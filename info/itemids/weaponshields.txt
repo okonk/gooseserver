@@ -1,0 +1,62 @@
+Weapons
+
+    * 1.Noob dagger
+    * 2.Small Chicken leg
+    * 3.Elemental staff
+    * 4.Blue Noob Warrior sword
+    * 5.Plain Brown staff
+    * 6.Stick
+    * 7.Can
+    * 8.Noob Hammer
+    * 9.Tree staff
+    * 10.Punchys Scythe
+    * 11.Sexy green dagger
+    * 12.Champions blade
+    * 13.Lower Priest hammer
+    * 14.Bear claw
+    * 15.Hays claw
+    * 16.Green Asp whip
+    * 17.Udyanas sword
+    * 18.Fire blade
+    * 19.Blue fire blade
+    * 20.Darker red Fire blade
+    * 21.Neamchthrom
+    * 22.Angelus
+    * 23.Azukos Staff
+    * 24.Sexy gold halloween sword
+    * 25.Sexy Black halloween sword
+    * 26.Purple Fire blade
+    * 27.Devastating dagger
+    * 28.Devastators staff
+    * 29.Staff of frozen rain
+    * 30.Novel
+    * 31.Bone sword
+    * 32.Pumpkin sword
+    * 33.Skull Staff
+    * 34.Kitty Purse (Body type 4)
+    * 35.Contraband dagger
+    * 36.Candy cane
+    * 37.White hays dagger thingy
+    * 38.Magic Moon wand
+    * 39.Devastating dragon tooth sword
+    * 40.Frays Cane
+    * 41.Brown Wooden Shield
+    * 42.Silver warrior diamond shield
+    * 43.AD Shield (Grey)
+    * 44.Slime shield (Grey)
+    * 45.Spear of Time.
+    * 46.Town guard sword
+    * 47.Scratch
+    * 48.Star Shield
+    * 49.AD Dagger
+    * 50.AD Mallet (Silver)
+    * 51.Coral (Silver)
+    * 52.Katana
+    * 53.Practice katana
+    * 54.Firebreather Shield
+    * 55.AD Axe
+    * 56.Nub Axe
+    * 57.Moon Shield
+    * 58.Ham
+    * 59.Slime staff
+    * 60.Sanguine Chaos 

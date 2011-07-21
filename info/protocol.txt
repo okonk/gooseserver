@@ -1,0 +1,134 @@
+
+
+Okay I'm going to add the Server/Client Protocol here. Every packet ends in the ASCII character 1. Now. It all starts with LOGIN. The client connects to the server and sends the string:
+
+    * LOGINusername,password,BETA8,4.4.0 
+
+or somewhat like that anyway. That string is from Illutia. Aspereta is ALPHA and version 2-3. Anyway. If the username and password is valid the server sends back:
+
+    * LOKrealmname 
+
+Where realmname is the name of the server or realm. If the information is wrong or user is banned or whatever reason the server doesn't want the connection it can send back:
+
+    * LNOreason goes here 
+
+Where you replace "reason goes here" with a message and the client will display it to the user. After LOKrealmname the client sends 'login continue':
+
+    * LCNT 
+
+To which the server replies with 'send current map':
+
+    * SCMmapid,mapversion,mapname 
+
+It also sends the 'information string' to the client:
+
+    * SNFguildname,,classname,level,max_hp,max_mp,max_sp,cur_,cur_mp,cur_sp,stat_str,stat_sta,stat_int,stat_dex,ac,res_f,res_w,res_e,res_a,res_s,gold 
+
+The client responds to 'send current map' with 'done loading map':
+
+    * DLM 
+
+The server then sends the map name again. Not sure why:
+
+    * SMNmapname 
+
+The server also sends 'DSM' ('done sending map'?):
+
+    * DSM 
+
+Then the server sends 'make character' to the client and all the other players in the area:
+
+MKCid,character type,name,title,surname,guild,x,y,facing,hp percent,body,
+body pose,hair id,chest id,chest r,g,b,a,helm id,helm r,g,b,a,pants id,pants r,g,b,a,shoes id,shoes r,g,b,a,
+shield id,shield r,g,b,a,weapon id,weapon r,g,b,a,hair_r,hair_g,hair_b,hair_a,invis,head
+
+character type = 1 for player, 2 for regular npc, some others for banker and vendors will find later
+hair id = 20ish for the normal hairs
+head = 70-73 for faces
+body pose = 1 for normal, 3 for staff, 4 for sword
+body = values 100-166 are illusions, 1 is male, 11 is female. 2/12 are naga. 3 is skeleton
+invis = not sure at moment rly.
+
+The server also sends 'SUC' to the client:
+
+    * SUCid 
+
+Not too sure what SUC means but I think what it does is make the client centered on that id.
+
+And that is all for a client logging in.
+
+Other useful packets:
+
+Updating a character for clients who already have had 'MKC':
+
+CHPid,body,body pose,hair id,chest id,chest r,g,b,a,helm id,helm r,g,b,a,pants id,pants r,g,b,a,shoes id,shoes r,g,b,a,
+shield id,shield r,g,b,a,weapon id,weapon r,g,b,a,hair_r,hair_g,hair_b,hair_a,invis,head
+
+character type = 1 for player, 2 for regular npc, some others for banker and vendors will find later
+hair id = 20ish for the normal hairs
+head = 70-73 for faces
+body pose = 1 for normal, 3 for sword, 4 for staff
+body = values 100-166 are illusions, 1 is male, 11 is female. 2/12 are naga. 3 is skeleton
+invis = not sure at moment rly.
+
+Regen event:
+
+    * VCid,hp percent,mp percent 
+
+GM Mode:
+
+    * AMAid,1 
+
+Character moving:
+
+Client:
+
+    * Mdirection 
+
+direction being a number 1-4 corresponding to 1,2,3,4 = up,right,down,left
+
+Server:
+
+    * MOCid,x,y 
+
+Not much to explain there. Server sends to all other clients in area to notify of moving event.
+
+Character facing:
+
+Client:
+
+    * Fdirection 
+
+direction being 1-4. For some reason these differ from the moving.
+
+direction for facing is as follows. 1,2,3,4 = up,left,right,down
+
+Server:
+
+    * CHHid,direction 
+
+direction as above in F packet.
+
+Destroy a character on client:
+
+    * ERCid 
+
+black text:
+
+    * #message 
+
+different colours text:
+
+    * $nmessage 
+
+n being a number not sure of range.
+
+Client packet for text entry:
+
+    *  ;message 
+
+server sends to clients on message:
+
+    * ^id,name: message 
+
+Guess you could change name/message if you wanted. 

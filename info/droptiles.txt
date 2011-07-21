@@ -1,0 +1,404 @@
+
+    * 120000 Elemental Leggings
+    * 120001 Blue Elemental Leggings
+    * 120002 level 20 robe
+    * 120003 noob armor
+    * 120004 blue noob shoes
+    * 120005 brown noob shoes
+    * 120006 green slippers
+    * 120007 red slippers
+    * 120008 hairbow
+    * 120009 chest equip
+    * 120010 pink chest equip
+    * 120011 grey warrior cp
+    * 120012 chicken leg
+    * 120013 small dagger
+    * 120014 stick
+    * 120015 noob sword
+    * 120016 no idea wtf a needle?
+    * 120017 elemental staff
+    * 120018 noob horn helmet
+    * 120019 green noob horn helmet
+    * 120020 tin can
+    * 120021 stave
+    * 120022 rogue headband
+    * 120023 warrior headband
+    * 120024 red headband
+    * 120025 elemental tunic
+    * 120026 green elemental tunic
+    * 120027 noob pink dress
+    * 120028 yellow noob dress
+    * 120029 brown noob pants
+    * 120030 cow skull
+    * 120031 priests blue hat
+    * 120032 magus red hat
+    * 120033 level 20 brown hat
+    * 120034 blue warrior cp
+    * 120035 bronze warrior cp
+    * 120036 grey armored legs
+    * 120037 gold armored legs
+    * 120038 blue armored legs
+    * 120039 small hammer
+    * 120040 red shirt thing
+    * 120041 grey armored boots
+    * 120042 gold armored boots
+    * 120043 blue armored boots
+    * 120044 scythe
+    * 120045 um stick staff thing the nagan priests had
+    * 120046 champions sword
+    * 120047 rogues dagger
+    * 120048 shades
+    * 120049 priests hammer
+    * 120050 claw
+    * 120051 hays tail
+    * 120052 dead snake
+    * 120053 gold ring
+    * 120054 silver ring
+    * 120055 ruby gold ring
+    * 120056 ruby silver ring
+    * 120057 brown gold ring
+    * 120058 brown silver ring
+    * 120059 silver bracelet
+    * 120060 white gold ring
+    * 120061 white silver ring
+    * 120062 blue gold ring
+    * 120063 blue silver ring
+    * 120064 purple gold ring
+    * 120065 purple silver ring
+    * 120066 green gold ring
+    * 120067 green silver ring
+    * 120068 orange bead bracelet
+    * 120069 gold bracelet
+    * 120070 red silver bracelet
+    * 120071 red gold bracelet
+    * 120072 black silver bracelet
+    * 120073 black gold bracelet
+    * 120074 white silver bracelet
+    * 120075 white gold bracelet
+    * 120076 blue silver bracelet
+    * 120077 blue gold bracelet
+    * 120078 white pearl bracelet
+    * 120079 green silver bracelet
+    * 120080 green gold bracelet
+    * 120081 silver necklace thing?
+    * 120082 white necklace thing
+    * 120083 blue silver pendant necklace
+    * 120084 blue gold pendant necklace
+    * 120085 red silver pendant necklace
+    * 120086 red gold pendant necklace
+    * 120087 brown silver pendant necklace
+    * 120088 brown gold pendant necklace
+    * 120089 white silver pendant necklace
+    * 120090 white gold pendant necklace
+    * 120091 purple silver pendant necklace
+    * 120092 purple gold pendant necklace
+    * 120093 gold belt
+    * 120094 blue belt
+    * 120095 red belt
+    * 120096 brownish belt
+    * 120097 green belt
+    * 120098 udyanas sword
+    * 120099 azukos staff/trident
+    * 120100 lotsa gold
+    * 120101 1 gold
+    * 120102 green purple present
+    * 120103 teal red present
+    * 120104 red blue present
+    * 120105 red teal present
+    * 120106 apple
+    * 120107 cherries
+    * 120108 taco
+    * 120109 full health restore potion
+    * 120110 scroll
+    * 120111 yellow duck
+    * 120112 small red potion
+    * 120113 small green potion
+    * 120114 small blue potion
+    * 120115 red potion
+    * 120116 green potion
+    * 120117 blue potion
+    * 120118 teleporter
+    * 120119 rose
+    * 120120 sunflower
+    * 120121 crappy flower i dunno?
+    * 120122 watermelon
+    * 120123 uh yellow potion?
+    * 120124 poo
+    * 120125 $1
+    * 120126 lollipop
+    * 120127 wtf? smileyface bowl
+    * 120128 green can?
+    * 120129 sour squirter
+    * 120130 plate of something
+    * 120131 purple potion
+    * 120132 small purple potion
+    * 120133 yellow potion
+    * 120134 black potion
+    * 120135 small black potion
+    * 120136 grey potion
+    * 120137 small grey potion
+    * 120138 orange potion
+    * 120139 small orange potion
+    * 120140 brown potion
+    * 120141 small brown potion
+    * 120142 brown sack
+    * 120143 shivers doll
+    * 120144 rune
+    * 120145 - 120166 runes
+    * 120167 rune
+    * 120168 raven doll
+    * 120169 prolin doll
+    * 120170 genji doll?
+    * 120171 gold key
+    * 120172 gold/white key
+    * 120173 gold key
+    * 120174 purple key
+    * 120175 pink key
+    * 120176 green key
+    * 120177 orange slime potion
+    * 120178 blue slime potion
+    * 120179 green slime potion
+    * 120180 purple slime potion
+    * 120181 red slime potion
+    * 120182 empty bottle corked
+    * 120183 empty bottle
+    * 120184 lolbaby
+    * 120200 square buckle belt
+    * 120201 purple buckle belt
+    * 120202 red buckle belt
+    * 120203 blue buckle belt
+    * 120204 green buckle belt
+    * 120205 spiked belt
+    * 120206 purple buckled gold belt
+    * 120207 red buckled grey belt
+    * 120208 bling belt
+    * 120209 brown gloves
+    * 120210 grey gloves
+    * 120211 winter blade
+    * 120212 dark purple blade sword
+    * 120213 blue blade sword
+    * 120214 light purple blade sword
+    * 120215 red blade sword. fiery blade?
+    * 120216 red blade sword.
+    * 120217 pearl necklace
+    * 120218 purple pearl necklace
+    * 120219 green pearl necklace
+    * 120220 red pearl necklace
+    * 120221 brown cat ears
+    * 120222 bunny ears
+    * 120223 green mask thing
+    * 120224 purple mask thing
+    * 120225 gold halloween sword
+    * 120226 silver halloween sword
+    * 120227 uh twisted staff?
+    * 120228 staff of frozen rain
+    * 120229 frays flippers
+    * 120230 book
+    * 120231 book
+    * 120232 brown armguards
+    * 120233 silver armguards
+    * 120234 green armguards
+    * 120235 blue armguards
+    * 120236 purple armguards
+    * 120237 red armguards
+    * 120238 chainmail
+    * 120239 gold chainmail
+    * 120240 purple noob dress
+    * 120241 white shirt. rags?
+    * 120242 ddts
+    * 120243 moon wand
+    * 120244 frays cane
+    * 120245 grey gold/dev cp
+    * 120246 gold cp
+    * 120247 green gold/dev cp
+    * 120248 blue gold/dev cp
+    * 120249 um hays dagger thing
+    * 120250 town guard helm
+    * 120251 yellow town guard helm
+    * 120252 blue town guard helm
+    * 120253 green town guard helm
+    * 120254 brown ad robe
+    * 120255 green ad robe
+    * 120256 wtf pope hat
+    * 120257 battle gown
+    * 120258 wooden shield
+    * 120259 silver triangle shield
+    * 120260 slime shield uncoloured
+    * 120261 um. uncoloured ward thing
+    * 120262 star shield
+    * 120263 town guard sword
+    * 120264 spear of time
+    * 120265 sexy pink dress
+    * 120266 ad dagger
+    * 120267 gold neckalce
+    * 120268 trophy thing?
+    * 120269 gold pumpkin necklace
+    * 120270 gold slime necklace
+    * 120271 gold persecution necklace
+    * 120272 coral sword
+    * 120273 mallet
+    * 120274 skull staff pimp stick
+    * 120275 practice katana
+    * 120276 katana
+    * 120277 wooden sword
+    * 120278 pauldron thing
+    * 120279 gold pauldron thing
+    * 120280 cat
+    * 120281 firebreather shield
+    * 120282 AD axe
+    * 120283 small hatchet
+    * 120284 neam in shop
+    * 120285 doom robe
+    * 120286 thinner neam in shop thing
+    * 120287 doom helm
+    * 120288 laurels
+    * 120289 pink sandals
+    * 120290 frilly top
+    * 120291 frilly shorts
+    * 120292 ham
+    * 120293 tuxedo
+    * 120294 slime staff
+    * 120295 turbine
+    * 120296 ew fire angel robe thing
+    * 120300 pumpkin seed
+    * 120301 big pumkin seed thing chunk?
+    * 120302 uhwut
+    * 120303 - 120399 nothing
+    * 120400 pearl
+    * 120401 ruby
+    * 120402 black pearl
+    * 120403 green pearl
+    * 120404 - 120499 nothing 
+
+120500 - 121200:
+
+    * 120500 - Grey Shard/Ore
+    * 120501 - Gold Ore Vein
+    * 120502 - GOP
+    * 120503 - Purple Mineral thing
+    * 120504 - Pink Unrefined Ore
+    * 120505 - Light Blue Unrefined Ore 
+
+120506-120599 - Nothing
+
+    * 120600 - Cow Skin
+    * 120601 - White Fluff
+    * 120602 - Meat
+    * 120603 - Bones
+    * 120604 - Grey Pelt
+    * 120605 - Brown Pelt
+    * 120606 - Red Pelt
+    * 120607 - Chicken Leg
+    * 120608 - Bat Wing 
+
+120609-120699 - Nothing
+
+    * 120700 - Halloween Bag
+    * 120701 - White Mouse Bow
+    * 120702 - Mouse Bow
+    * 120703 - Pumpkin Helm
+    * 120704 - Blood Dagger
+    * 120705 - Monster Feet
+    * 120706 - Sky Robe
+    * 120707 - Skull Staff
+    * 120708 - Ghost Costume
+    * 120709 - Vampire Cape
+    * 120710 - Blue Vampire Cape
+    * 120711 - Fucked Pumpkin Sword
+    * 120712 - Bone Sword
+    * 120713 - Candy Cane
+    * 120714 - Gingerbread Costume
+    * 120715 - Santa Hat
+    * 120716 - Monkey Hat 
+
+120717-120799 - Nothing
+
+    * 120800 - Pumpkin
+    * 120801 - Pumpkin Face (Lantern)
+    * 120802 - Spirit Bomb
+    * 120803 - Pumpkin Bomb
+    * 120804 - Grey Cat
+    * 120805 - White bomb
+    * 120806 - Red bomb
+    * 120807 - Green bomb 
+
+120808-120899 - Nothing
+
+    * 120900 - Penguin Costume
+    * 120901 - Reaper Costume
+    * 120902 - Devil Costume 
+
+120903-120999 - Nothing
+
+    * 121000 - Snake Tiara
+    * 121001 - Snake Helm
+    * 121002 - Some Female Top (Probably Frill)
+    * 121003 - Skirt 
+
+121004-121099 - Nothing
+
+    * 121100 - Campfire
+    * 121101 - Blood
+    * 121102 - Shield/Design/Pattern thing
+    * 121103 - paintbrush?
+    * 121104 - Scissors
+    * 121105 - Big Fluff
+    * 121106 - Big White fluff
+    * 121107 - Gold Statue
+    * 121108 - Cross Sketch
+    * 121109 - Penguin Sketch
+    * 121110 - Gold Skeleton Statue
+    * 121111 - Garlic
+    * 121112 - Cigarette
+    * 121113 - Fire
+    * 121114 - Big Pearl
+    * 121115 - Silver Medallion
+    * 121116 - Grey Medallion
+    * 121117 - Gold Medallion
+    * 121118 - Grey Red Necked Medallion
+    * 121119 - Gold Red Necked Medallion
+    * 121120 - Map Sketch
+    * 121121 - Open Book
+    * 121122 - Dye Bottle
+    * 121123 - Cheque
+    * 121124 - Rope
+    * 121125 - Candle
+    * 121126 - Sewing Needle
+    * 121127 - Purple Thread
+    * 121128 - Pink Thread
+    * 121129 - Black Thread
+    * 121130 - Red Thread
+    * 121131 - Green Thread
+    * 121132 - Blue Thread
+    * 121133 - Red Thread again
+    * 121134 - Empty Box
+    * 121135 - Empty Crate
+    * 121136 - Brown Lump (ore)
+    * 121137 - Chisel
+    * 121138 - Silver Lump (ore)
+    * 121139 - Sword Blade
+    * 121140 - Sword Hilt
+    * 121141 - Ink Bottle
+    * 121142 - Dark Ink Bottle
+    * 121143 - Gold Plate thing
+    * 121144 - Feather
+    * 121145 - Leaf
+    * 121146 - Broken Grey Plate
+    * 121147 - Keg
+    * 121148 - White Pawn
+    * 121149 - White Rook
+    * 121150 - White Bishop
+    * 121151 - White Knight
+    * 121152 - White Queen
+    * 121153 - White King
+    * 121154 - Gold Slime Piece
+    * 121155 - Red Slime Piece
+    * 121156 - Blue Slime Piece 
+
+121157-121160 - Nothing
+
+    * 121161 - White Knight (back) 
+
+121162-121199 - nothing 
+
+121300ish - drinks mostly

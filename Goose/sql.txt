@@ -1,0 +1,29 @@
+ChatFilter.cs:            SqlCommand command = new SqlCommand("SELECT word,filtered FROM wordfilter", world.SqlConnection);
+ClassHandler.cs:            SqlCommand command = new SqlCommand("SELECT * FROM classes", world.SqlConnection);
+ClassHandler.cs:            command = new SqlCommand("SELECT * FROM class_info", world.SqlConnection);
+ClassHandler.cs:            command = new SqlCommand("SELECT * FROM classes_levelup_spells", world.SqlConnection);
+CombinationHandler.cs:            SqlCommand command = new SqlCommand("SELECT * FROM combinations", world.SqlConnection);
+CombinationHandler.cs:                command.CommandText = "SELECT item_template_id FROM combination_item_required " + 
+CombinationHandler.cs:                command.CommandText = "SELECT item_template_id FROM combination_item_results " +
+Guild.cs:                command.CommandText = "SELECT @@IDENTITY";
+GuildHandler.cs:            SqlCommand command = new SqlCommand("SELECT * FROM guilds", world.SqlConnection);
+GuildHandler.cs:                command = new SqlCommand("SELECT * FROM guild_members WHERE guild_id=" + guild.ID, 
+Inventory.cs:            query = "SELECT * FROM inventory WHERE player_id=" + this.player.PlayerID;
+Inventory.cs:            query = "SELECT * FROM equipped WHERE player_id=" + this.player.PlayerID;
+Inventory.cs:            query = "SELECT * FROM combinebag WHERE player_id=" + this.player.PlayerID;
+ItemHandler.cs:            SqlCommand command = new SqlCommand("SELECT * FROM item_templates", world.SqlConnection);
+ItemHandler.cs:            SqlCommand command = new SqlCommand("SELECT * FROM items", world.SqlConnection);
+Map.cs:            SqlCommand command = new SqlCommand("SELECT * FROM warptiles " +
+Map.cs:            command = new SqlCommand("SELECT * FROM blockedtiles " +
+Map.cs:            command = new SqlCommand("SELECT * FROM map_required_items " +
+MapHandler.cs:            SqlCommand command = new SqlCommand("SELECT * FROM maps", world.SqlConnection);
+NPCHandler.cs:            SqlCommand command = new SqlCommand("SELECT * FROM npc_templates", world.SqlConnection);
+NPCHandler.cs:                command.CommandText = "SELECT * FROM npc_drops WHERE npc_template_id=" + template.NPCTemplateID;
+NPCHandler.cs:                command.CommandText = "SELECT * FROM npc_vendor_items WHERE npc_template_id=" + 
+NPCHandler.cs:            SqlCommand command = new SqlCommand("SELECT * FROM npc_spawns", world.SqlConnection);
+Player.cs:            SqlCommand query = new SqlCommand("SELECT * FROM pets WHERE owner_id=" + this.PlayerID, world.SqlConnection);
+PlayerHandler.cs:            SqlCommand command = new SqlCommand("SELECT * FROM players", world.SqlConnection);
+Spellbook.cs:                "SELECT * FROM spellbook WHERE player_id=" + this.player.PlayerID, 
+SpellHandler.cs:            SqlCommand command = new SqlCommand("SELECT * FROM spell_effects", world.SqlConnection);
+SpellHandler.cs:            SqlCommand command = new SqlCommand("SELECT * FROM spells", world.SqlConnection);
+Events\CreditsUpdateEvent.cs:            SqlCommand command = new SqlCommand("SELECT txn_id, player_name, credits FROM paypal_payments WHERE redeemed='0';", world.SqlConnection);

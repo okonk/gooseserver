@@ -1,0 +1,6 @@
+I:\gooseserver\trunk\Goose\bin\Release\Goose.exe.config
+I:\gooseserver\trunk\Goose\bin\Release\Goose.exe
+I:\gooseserver\trunk\Goose\bin\Release\Goose.pdb
+I:\gooseserver\trunk\Goose\obj\Release\ResolveAssemblyReference.cache
+I:\gooseserver\trunk\Goose\obj\Release\Goose.exe
+I:\gooseserver\trunk\Goose\obj\Release\Goose.pdb

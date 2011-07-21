@@ -1,0 +1,63 @@
+spells 115000 - 115056
+
+115000 lightning bolt
+115001 rock drop
+115002 fire blast
+115003 rain cloud
+115004 blue tornado
+115005 red tornado
+115006 green tornado
+115007 brown tornado
+115008 cs
+115009 ss
+115010 backstab
+115011 3 red line slashies
+115012 teleport
+115013 regen
+115014 sac
+115015 heal
+115016 arcane shield
+
+115017 nothing
+115018 nothing
+115019 nothing
+
+115020 rejuv
+115021 blue aura
+115022 purple aura
+115023 green aura
+115024 red aura
+115025 spinning skulls
+115026 skull/crossbone poison thing
+115027 green poison bubbles
+115028 restore health
+115029 red teleport upside down
+115030 ancient blessing
+115031 arcane blast lookalike
+115032 arcane blast
+115033 ice crystals
+115034 snare
+115035 pink ice crystals
+
+115036 nothing
+
+115037 purple radar kinda thing
+115038 root
+115039 big sun stun fast 
+115040 big sun stun properly animated?
+115041 sword buff thing
+115042 sos
+115043 aa
+115044 ap
+115045 mana regen
+115046 cov (blue mana regen)
+115047 invis
+115048 teeth bite
+115049 slow growing smokebomb
+115050 fast big smokebomb
+115051 slow growing bigger smokebomb
+115052 orange split swords
+115053 grey body fadein
+115054 grey body fadeout
+115055 fireworks
+115056 hotdog snack

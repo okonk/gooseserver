@@ -1,0 +1,67 @@
+    * 100.Bat
+    * 101.White Ghost
+    * 102.White Ghost
+    * 103.Pink Ghost
+    * 104.Ram
+    * 105.Normal persecution
+    * 106.Skeleton
+    * 107.Red Slime
+    * 108.Yellow Slime
+    * 109.Orange Slime
+    * 110.Green Slime
+    * 111.Pink Slime
+    * 112.Zombie
+    * 113.Mouse
+    * 114.Lamb
+    * 115.Punchy
+    * 116.Vendor Lady
+    * 117.Cow
+    * 118.Freaky Pink/purple Cow
+    * 119.Green Persecution
+    * 120.Blue Slime
+    * 121.Red Persecution
+    * 122.Red asp
+    * 123.Green asp
+    * 124.Flan
+    * 125.Red Skeleton
+    * 126.Blacksmith
+    * 127.Nibbles 2 [Lady bat thing]
+    * 128.Black Skeleton
+    * 129.Brown Rat
+    * 130.Red Rat
+    * 131.Black Rat
+    * 132.Mushroom
+    * 133.Mushroom tile
+    * 134.Snowman
+    * 135.Tiny bat
+    * 136.Normal Bunny
+    * 137.Green Bunny
+    * 138.Purple Bunny
+    * 139.Pink and brown Bunny
+    * 140.Pink bunny
+    * 141.Orange bunny
+    * 142.Black dude
+    * 143.Really black dude
+    * 144.Frosty
+    * 145.Pumpkin
+    * 146.Purple/pink Pumpkin
+    * 147.Blue Pumpkin
+    * 148.Turkey
+    * 149.White turkey
+    * 150.Fruit Stand
+    * 151.Tree
+    * 152.Nothing
+    * 153.Mini Punchy
+    * 154.Green Gift box
+    * 155.Blue Gift box
+    * 156.Red Gift box
+    * 157.Poop
+    * 158.Alpha slime
+    * 159.Cat
+    * 160.Dog
+    * 161.Pig
+    * 162.Flying Pig
+    * 163.Monkey
+    * 164.Wolfy Illusion
+    * 165.Bear
+    * 166. Faery 

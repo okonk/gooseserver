@@ -1,0 +1,39 @@
+110000 - 110036 spellbook graphic ids
+
+110000 backstab
+110001 up arrow
+110002 down arrow
+110003 fire
+110004 elemental shielding
+110005 rejuv - green hair lady
+110006 heal
+110007 sac
+110008 regen
+110009 tele
+110010 restore health
+110011 rock smash
+110012 lightning
+110013 rain cloud
+110014 skull
+110015 blue tornado
+110016 ss
+110017 skull crossbones
+110018 arcane shield
+110019 heart
+110020 muscle arm
+110021 purple radar thing lol
+110022 red drop
+110023 snare
+110024 root
+110025 black little guy
+110026 smokebomb
+110027 sword buff thing?
+110028 sos
+110029 aa
+110030 ap
+110031 cov
+110032 mana regen
+110033 teeth
+110034 invis
+110035 orange swords
+110036 ab
