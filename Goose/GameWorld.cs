@@ -94,10 +94,10 @@ namespace Goose
             this.ChatFilter = new ChatFilter();
             this.LogHandler = new LogHandler();
 
-            this.SqlConnection = new SqlConnection("user id=" + GameSettings.Default.DatabaseUsername +
-                                       ";password=" + GameSettings.Default.DatabasePassword +
+            this.SqlConnection = new SqlConnection(//"user id=" + GameSettings.Default.DatabaseUsername +
+                                       //";password=" + GameSettings.Default.DatabasePassword +
                                        ";server=" + GameSettings.Default.DatabaseAddress +
-                                       //";Trusted_Connection=yes;" + // hopefully remove the windows connection
+                                       ";Trusted_Connection=yes;" + // hopefully remove the windows connection
                                        ";database=" + GameSettings.Default.DatabaseName +
                                        ";connection timeout=30" +
                                        ";async=true;MultipleActiveResultSets=True");
@@ -116,7 +116,7 @@ namespace Goose
             this.Running = false;
 
             Console.Out.WriteLine("Starting Goose Private Server v" + GameSettings.Default.ServerVersion);
-            Console.Out.Write("Connecting to Database: ");
+            Console.Out.Write("Connecting to Database ({0}): ", GameSettings.Default.DatabaseAddress);
             try
             {
                 this.SqlConnection.Open();

@@ -49,6 +49,7 @@ namespace Goose.Events
             IP = IP.Substring(0, IP.IndexOf(":"));
 
             if (packet.IndexOf(',') == -1) return;
+            if (packet.Length < 6) return;
 
             string name = packet.Substring(5, packet.IndexOf(',') - 5);
 
@@ -166,6 +167,7 @@ namespace Goose.Events
             this.Player.LastPing = world.TimeNow;
             this.Player.LastActive = world.TimeNow;
             this.Player.LastPlaytimeUpdate = world.TimeNow;
+            this.Player.SuspectedMacroCount = this.Player.SuspectedMacroCount / 2;
             this.Player.AddSaveEvent(world);
 
             this.Player.CurrentHP = (int)(this.Player.MaxStats.HP * 0.8);

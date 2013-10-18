@@ -511,4 +511,36 @@ INSERT INTO combination_item_required (combination_id, item_template_id) VALUES 
 INSERT INTO combination_item_required (combination_id, item_template_id) VALUES (67, 591); /* Howto: Helm Enchantment */
 INSERT INTO combination_item_results (combination_id, item_template_id) VALUES (67, 590);
 
+INSERT INTO combinations (combination_id, combination_name) VALUES (68, 'HP Regeneration Potion');
+INSERT INTO combination_item_required (combination_id, item_template_id) VALUES (68, 621); /* Empty Bottle */
+INSERT INTO combination_item_required (combination_id, item_template_id) VALUES (68, 489); /* Potion of Restoration */
+INSERT INTO combination_item_required (combination_id, item_template_id) VALUES (68, 623); /* Red Droplet */
+INSERT INTO combination_item_results (combination_id, item_template_id) VALUES (68, 628);
+
+INSERT INTO combinations (combination_id, combination_name) VALUES (69, 'MP Regeneration Potion');
+INSERT INTO combination_item_required (combination_id, item_template_id) VALUES (69, 621); /* Empty Bottle */
+INSERT INTO combination_item_required (combination_id, item_template_id) VALUES (69, 489); /* Potion of Restoration */
+INSERT INTO combination_item_required (combination_id, item_template_id) VALUES (69, 624); /* Blue Droplet */
+INSERT INTO combination_item_results (combination_id, item_template_id) VALUES (69, 629);
+
+INSERT INTO combinations (combination_id, combination_name) VALUES (70, 'Haste Potion');
+INSERT INTO combination_item_required (combination_id, item_template_id) VALUES (70, 621); /* Empty Bottle */
+INSERT INTO combination_item_required (combination_id, item_template_id) VALUES (70, 489); /* Potion of Restoration */
+INSERT INTO combination_item_required (combination_id, item_template_id) VALUES (70, 625); /* Purple Droplet */
+INSERT INTO combination_item_results (combination_id, item_template_id) VALUES (70, 630);
+
+INSERT INTO combinations (combination_id, combination_name) VALUES (71, 'Spell Damage Potion');
+INSERT INTO combination_item_required (combination_id, item_template_id) VALUES (71, 621); /* Empty Bottle */
+INSERT INTO combination_item_required (combination_id, item_template_id) VALUES (71, 489); /* Potion of Restoration */
+INSERT INTO combination_item_required (combination_id, item_template_id) VALUES (71, 622); /* Magical Liquid */
+INSERT INTO combination_item_required (combination_id, item_template_id) VALUES (71, 626); /* Green Droplet */
+INSERT INTO combination_item_results (combination_id, item_template_id) VALUES (71, 631);
+
+INSERT INTO combinations (combination_id, combination_name) VALUES (72, 'Spell Critical Potion');
+INSERT INTO combination_item_required (combination_id, item_template_id) VALUES (72, 621); /* Empty Bottle */
+INSERT INTO combination_item_required (combination_id, item_template_id) VALUES (72, 489); /* Potion of Restoration */
+INSERT INTO combination_item_required (combination_id, item_template_id) VALUES (72, 622); /* Magical Liquid */
+INSERT INTO combination_item_required (combination_id, item_template_id) VALUES (72, 627); /* Orange Droplet */
+INSERT INTO combination_item_results (combination_id, item_template_id) VALUES (72, 632);
+
 SET IDENTITY_INSERT combinations OFF;

@@ -1014,6 +1014,12 @@ INSERT INTO npc_templates (npc_id, npc_name, body_id, body_state, face_id, hair_
 VALUES (181, 'Pet Trainer', 11, 4, 71, 54, 3, 0.00, 50, 3, 70000, 0, 30, 0.20, 0, 0.0,'1',
 '8,*,0,*,0,*,0,*,0,*,0,*','0', '0', 316298, '0', 13, '1');
 
+INSERT INTO npc_templates (npc_id, npc_name, body_id, body_state, face_id, hair_id, aggro_range, move_speed, npc_level, 
+	class_id, weapon_damage, experience, respawn_time, hp_percent_regen,
+	attack_range, attack_speed, invincible, stationary, equipped_items, npc_type)
+VALUES (182, 'Alchemy Supplier Guy', 1, 1, 71, 23, 0, 0.0, 50, 3, 70000, 0, 30, 0.20, 0, 0.0, '1', '1',
+'23,*,0,*,0,*,0,*,0,*,0,*', 13);
+
 SET IDENTITY_INSERT npc_templates OFF;
 
 DROP TABLE npc_spawns;
@@ -3927,6 +3933,7 @@ INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y) VALUES (118, 2, 70,28)
 
 /* Teleport vendor guy vendor */
 INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y) VALUES (119, 1, 56,52)
+INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y) VALUES (119, 8, 3, 46)
 
 /* Candy Necklace Vendor */
 INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y) VALUES (120, 3, 46, 34)
@@ -5657,7 +5664,8 @@ INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y) VALUES (180, 36, 58, 78);
 /* Pet Trainer */
 INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y) VALUES (181, 36, 58, 74);
 
-
+/* Alchemy Vendor */
+INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y) VALUES (182, 36, 96, 6);
 
 DROP TABLE npc_drops;
 CREATE TABLE npc_drops (
@@ -5743,11 +5751,11 @@ INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUE
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (16, 268, 1, 7); /* Misplaced spouse - Present 1*/
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (16, 269, 1, 7); /* Misplaced spouse - Present 2*/
 /* Record Keeper drops */
-INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (17, 64, 1, 10); /* Scroll: Healing 5 */
-INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (17, 77, 1, 10); /* Scroll: Stamina 4 */
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (17, 64, 1, 20); /* Scroll: Healing 5 */
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (17, 77, 1, 15); /* Scroll: Stamina 4 */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (17, 72, 1, 10); /* Scroll: Strength 4 */
-INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (17, 198, 1, 10); /* Scroll: Regeneration 3 */
-INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (17, 197, 1, 10); /* Scroll: Elemental Strike 9 */
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (17, 198, 1, 15); /* Scroll: Regeneration 3 */
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (17, 197, 1, 15); /* Scroll: Elemental Strike 9 */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (17, 81, 1, 10); /* Scroll: Dexterity 2 */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (17, 224, 1, 7); /*  RK Leggings */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (17, 227, 1, 7); /*  RK Leggings */
@@ -5756,8 +5764,15 @@ INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUE
 /* Fire Asp */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (26, 214, 1, 4); /* Searing Whip */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (26, 355, 1, 2); /* Cats Hair */
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (26, 623, 1, 4); /* Fire Asp - Purple Droplet */
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (27, 623, 1, 4); /* Naga Warrior - Purple Droplet */
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (28, 623, 1, 4); /* Naga Rogue - Purple Droplet */
 
 /* Spook/Ghasts */
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (56, 623, 1, 2); /* Spook - Red Droplet */
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (56, 624, 1, 2); /* Spook - Blue Droplet */
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (57, 623, 1, 2); /* Ghast - Red Droplet */
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (57, 624, 1, 2); /* Ghast - Blue Droplet */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (56, 44, 1, 10); /* Large Health Potiion */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (56, 45, 1, 10); /* Large Mana Potion */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (57, 44, 1, 10); /* Large Health Potiion */
@@ -5774,6 +5789,7 @@ INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUE
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (58, 273, 1, 10); /* Scroll: Arcane Blast */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (58, 277, 1, 10); /* Scroll: Rejuvination */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (58, 420, 1, 7); /* Scroll: Spiritual Blessings */
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (58, 64, 1, 10); /* Scroll: Healing 5 */
 /* Ecto drops */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (59, 68, 1, 10); /* Scroll: Fortify 5 */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (59, 83, 1, 10); /* Scroll: Mana Regeneration 2 */
@@ -5819,23 +5835,40 @@ INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUE
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (60, 302, 1, 5); /* Scroll: Group Paradise Tele */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (60, 420, 1, 7); /* Scroll: Spiritual Blessings */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (60, 266, 1, 10); /* AD Key*/
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (60, 58, 1, 5); /* GOP - Punchy */
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (60, 622, 2, 2); /* magical liquid - Punchy */
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (60, 64, 1, 10); /* Scroll: Healing 5 */
 /* Savage drops */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (61, 343, 1, 5); /* Pearl */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (61, 457, 1, 5); /* Red Rope */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (61, 444, 1, 5); /* Sketch */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (61, 445, 1, 5); /* Soft Gold Ore */
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (61, 623, 1, 2); /* Rabid - Red Droplet */
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (61, 624, 1, 2); /* Rabid - Blue Droplet */
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (61, 626, 1, 2); /* Rabid - Green Droplet */
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (61, 627, 1, 2); /* Rabid - Orange Droplet */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (62, 343, 1, 5); /* Pearl */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (62, 457, 1, 5); /* Red Rope */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (62, 444, 1, 5); /* Sketch */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (62, 445, 1, 5); /* Soft Gold Ore */
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (62, 623, 1, 3); /* Hungry - Red Droplet */
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (62, 624, 1, 3); /* Hungry - Blue Droplet */
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (62, 626, 1, 3); /* Hungry - Green Droplet */
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (62, 627, 1, 3); /* Hungry - Orange Droplet */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (63, 343, 1, 5); /* Pearl */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (63, 457, 1, 5); /* Red Rope */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (63, 444, 1, 5); /* Sketch */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (63, 445, 1, 5); /* Soft Gold Ore */
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (63, 623, 1, 2); /* Savage - Red Droplet */
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (63, 624, 1, 2); /* Savage - Blue Droplet */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (64, 343, 1, 5); /* Pearl */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (64, 457, 1, 5); /* Red Rope */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (64, 444, 1, 5); /* Sketch */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (64, 445, 1, 5); /* Soft Gold Ore */
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (64, 623, 1, 3); /* Paranoid - Red Droplet */
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (64, 624, 1, 3); /* Paranoid - Blue Droplet */
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (64, 626, 1, 3); /* Paranoid - Green Droplet */
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (64, 627, 1, 3); /* Paranoid - Orange Droplet */
 /* Piglet drops */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (18, 42, 1, 10); /* Health Potion */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (18, 43, 1, 10); /* Mana Potion */
@@ -5921,6 +5954,12 @@ INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUE
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (48, 58, 1, 4); /* GOP */
 /* Nagan Beast */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (50, 354, 1, 3); /* Unrefined Ore */
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (50, 623, 1, 2); /* Beast - Red Droplet */
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (50, 624, 1, 2); /* Beast - Blue Droplet */
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (51, 623, 1, 2); /* Magus - Red Droplet */
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (51, 624, 1, 2); /* Magus - Blue Droplet */
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (52, 623, 1, 2); /* Priest - Red Droplet */
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (52, 624, 1, 2); /* Priest - Blue Droplet */
 /* Frozen Waste drops */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (29, 60, 1, 3); /* Iceman, Frozen Waste - Ruby */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (30, 60, 1, 3); /* Iceman, Frozen Waste - Ruby */
@@ -5938,7 +5977,7 @@ INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUE
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (53, 312, 1, 7); /* Nagan Armor */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (53, 1, 10000, 10); /* Gold (10000) */
 /* Beef drops */
-INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (65, 115, 1, 10); /* Beef - Moon shield */
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (65, 115, 1, 15); /* Beef - Moon shield */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (65, 135, 1, 5); /* Beef - Protection */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (65, 136, 1, 5); /* Beef - Immortality */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (65, 261, 1, 5); /* Beef - Beefs Fist */
@@ -5952,12 +5991,14 @@ INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUE
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (66, 162, 1, 10); /* Whirling robes*/
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (66, 146, 1, 10); /* Dragon belt*/
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (66, 216, 1, 10); /* Dev staff */
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (66, 622, 5, 10); /* Magical Liquid */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (67, 95, 1, 10); /* Gold Helmet*/
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (67, 109, 1, 10); /* Gold Leggings*/
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (67, 127, 1, 10); /* Gold Boots*/
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (67, 152, 1, 10); /* Gold Chestplate*/
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (67, 167, 1, 10); /* Dev Chestplate*/
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (67, 206, 1, 10); /* DDTS*/
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (67, 622, 5, 10); /* Magical Liquid */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (68, 94, 1, 10); /* Dev Helmet */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (68, 166, 1, 10); /* Dev Leggings */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (68, 126, 1, 10); /* Dev Boots */
@@ -5966,26 +6007,34 @@ INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUE
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (68, 423, 1, 10); /* Savage Pauldrons of the Cow */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (68, 424, 1, 10); /* Red Ring */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (68, 425, 1, 10); /* Black Ring */
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (68, 622, 5, 10); /* Magical Liquid */
 /* LFB */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (71, 266, 1, 20); /* LFB -  AD Key */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (71, 217, 1, 10); /* LFB -  Tiny club */
-INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (71, 115, 1, 4); /* LFB - Moon shield */
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (71, 115, 1, 10); /* LFB - Moon shield */
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (71, 58, 1, 5); /* GOP - LFB */
 /* Hay */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (72, 266, 1, 20); /* Hay -  AD Key*/
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (72, 257, 1, 5); /* Hay -  Hays claw*/
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (72, 96, 1, 5); /* Hay -  Hays tail*/
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (72, 86, 1, 15); /* Hay -  FL Rune */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (72, 87, 1, 15); /* Hay -  SoS Rune */
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (72, 274, 1, 15); /* Hay AA Rune */
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (72, 278, 1, 15); /* Hay RH Rune */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (72, 302, 1, 5); /* Scroll: Group Paradise Tele */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (72, 420, 1, 7); /* Scroll: Spiritual Blessings */
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (72, 58, 1, 5); /* GOP - Hay */
 /* Fray */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (73, 266, 1, 20); /* Fray -  AD Key*/
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (73, 260, 1, 5); /* Fray - Frays Flippers  */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (73, 218, 1, 5); /* Frays cane */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (73, 274, 1, 15); /* AA Rune */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (73, 278, 1, 15); /* RH Rune */
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (73, 86, 1, 15); /* Fray -  FL Rune */
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (73, 87, 1, 15); /* Fray -  SoS Rune */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (73, 302, 1, 5); /* Scroll: Group Paradise Tele */
-INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (72, 420, 1, 7); /* Scroll: Spiritual Blessings */
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (73, 420, 1, 7); /* Scroll: Spiritual Blessings */
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (73, 58, 1, 5); /* GOP - Fray */
 /* Elite Ancient Warrior drops */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (76, 313, 1, 7); /* Scroll: Ancient Healing */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (76, 315, 1, 5); /* Scroll: Ancient Sturdiness */
@@ -6054,8 +6103,8 @@ INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUE
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (115, 211, 1, 2); /* Brainless - Malignant dagger */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (115, 215, 1, 2); /* Brainless - Thicket Stave*/
 
-INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (116, 137, 1, 1); /* Nibbles - Val brace */
-INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (116, 144, 1, 1); /* Nibbles - Val ring */
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (116, 137, 1, 5); /* Nibbles - Val brace */
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (116, 144, 1, 5); /* Nibbles - Val ring */
 /* Nibbles II drops */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (118, 373, 1, 5); /* Nibbles II - Valiant Helmet */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (118, 374, 1, 5); /* Nibbles II - Valiant Chestplate */
@@ -6068,10 +6117,10 @@ INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUE
 /* Cranky Ewe drops */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (135, 104, 1, 8); /* Cranky Ewe - True Ewe */
 /* Frantic Monkey drops */
-INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (136, 132, 1, 6); /* Frantic Monkey -  Poo Slippers */
-INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (136, 140, 1, 6); /* Frantic Monkey -  Poo Gloves */
-INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (136, 161, 1, 6); /* Frantic Monkey -  Poo Tunic */
-INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (136, 163, 1, 6); /* Frantic Monkey -  Poo Leggings */
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (136, 132, 1, 8); /* Frantic Monkey -  Poo Slippers */
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (136, 140, 1, 8); /* Frantic Monkey -  Poo Gloves */
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (136, 161, 1, 8); /* Frantic Monkey -  Poo Tunic */
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (136, 163, 1, 8); /* Frantic Monkey -  Poo Leggings */
 
 /* Ancient Defender drops */
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (123, 319, 1, 5); /* Scroll: Ancient Buffiness */
@@ -6488,9 +6537,13 @@ INSERT INTO npc_vendor_items (npc_template_id, item_template_id, stack, stats_vi
 INSERT INTO npc_vendor_items (npc_template_id, item_template_id, stack, stats_visible, slot) VALUES (180, 525, 1, '1', 17); /* Clobber */
 INSERT INTO npc_vendor_items (npc_template_id, item_template_id, stack, stats_visible, slot) VALUES (180, 526, 1, '1', 18); /* Pummel */
 INSERT INTO npc_vendor_items (npc_template_id, item_template_id, stack, stats_visible, slot) VALUES (180, 382, 1, '1', 19); /* Shades */
+INSERT INTO npc_vendor_items (npc_template_id, item_template_id, stack, stats_visible, slot) VALUES (180, 531, 1, '1', 20); /* Scroll: Tame */
 /* Pet Trainer */
 INSERT INTO npc_vendor_items (npc_template_id, item_template_id, stack, stats_visible, slot) VALUES (181, 532, 1, '1', 1); /* Pet Attack */
 INSERT INTO npc_vendor_items (npc_template_id, item_template_id, stack, stats_visible, slot) VALUES (181, 533, 1, '1', 2); /* Pet Defend */
 INSERT INTO npc_vendor_items (npc_template_id, item_template_id, stack, stats_visible, slot) VALUES (181, 534, 1, '1', 3); /* Pet Recall */
 INSERT INTO npc_vendor_items (npc_template_id, item_template_id, stack, stats_visible, slot) VALUES (181, 535, 1, '1', 4); /* Pet Follow */
 INSERT INTO npc_vendor_items (npc_template_id, item_template_id, stack, stats_visible, slot) VALUES (181, 536, 1, '1', 5); /* Pet Neutral */
+
+/* Alchemy guy */
+INSERT INTO npc_vendor_items (npc_template_id, item_template_id, stack, stats_visible, slot) VALUES (182, 621, 1, '1', 1); /* Pet Neutral */

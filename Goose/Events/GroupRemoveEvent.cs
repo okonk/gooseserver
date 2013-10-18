@@ -59,7 +59,7 @@ namespace Goose.Events
                     if (this.Player.Group == player.Group)
                     {
                         this.Player.Group.RemovePlayer(player, world, (this.Player != player), this.Player);
-                        world.LogHandler.Log(Log.Types.LeaveGroup, player.PlayerID, "", this.Player.PlayerID, player.Map.ID, player.MapX, player.MapY);
+                        world.LogHandler.Log(Log.Types.LeaveGroup, player.PlayerID, "", this.Player.PlayerID, player.MapID, player.MapX, player.MapY);
                     }
                     else
                     {

@@ -462,7 +462,7 @@ INSERT INTO spells (spell_id, spell_name, spell_target, spellbook_graphic, mp_st
 VALUES (139, 'Pummel', 0, 110012, 250, 229, 50, 0);
 
 INSERT INTO spells (spell_id, spell_name, spell_target, spellbook_graphic, mp_static_cost, spell_effect_id, spell_aether, class_restrictions)
-VALUES (140, 'Tame', 1, 110012, 0, 230, 0, 0);
+VALUES (140, 'Tame', 1, 110012, 0, 230, 21600000, 0);
 
 INSERT INTO spells (spell_id, spell_name, spell_target, spellbook_graphic, mp_static_cost, spell_effect_id, spell_aether, class_restrictions)
 VALUES (141, 'Pet Attack', 0, 110012, 0, 231, 0, 0);
@@ -1872,5 +1872,45 @@ INSERT INTO spell_effects (spell_effect_id, spell_effect_name, spell_animation, 
 	target_type, target_size, spell_effected, effect_type, effect_duration,
 	hair_r, hair_g, hair_b, hair_a)
 VALUES (250, 'Hair Dye: Wesley Snipers', 0, 0, 0, 1, 1, 2, 0, 1, 1, 1, 255);
+
+INSERT INTO spell_effects (spell_effect_id, spell_effect_name, spell_animation, spell_display, 
+	target_type, target_size, spell_effected, effect_type, effect_duration,
+	works_not_in_pvp, hp_percent_regen, buff_removable, buff_graphic) /* For hp reg potion */
+VALUES (251, 'HP Regeneration', 115013, 1, 0, 1, 1, 1, 600, '1', 0.02, '1', 110008);
+
+INSERT INTO spell_effects (spell_effect_id, spell_effect_name, spell_animation, spell_display, 
+	target_type, target_size, spell_effected, effect_type, effect_duration,
+	works_not_in_pvp, mp_percent_regen, buff_removable, buff_graphic) /* For mp reg potion */
+VALUES (252, 'MP Regeneration', 115013, 1, 0, 1, 1, 1, 600, '1', 0.02, '1', 110008);
+
+INSERT INTO spell_effects (spell_effect_id, spell_effect_name, spell_animation, spell_display, 
+	target_type, target_size, spell_effected, effect_type, effect_duration,
+	works_not_in_pvp, haste, buff_removable, buff_graphic) /* For mp reg potion */
+VALUES (253, 'Haste', 115013, 1, 0, 1, 1, 1, 600, '1', 0.20, '1', 115021);
+
+INSERT INTO spell_effects (spell_effect_id, spell_effect_name, spell_animation, spell_display, 
+	target_type, target_size, spell_effected, effect_type, effect_duration,
+	works_not_in_pvp, spell_damage, buff_removable, buff_graphic) /* For sd potion */
+VALUES (254, 'Spell Damage', 115052, 1, 0, 1, 1, 1, 600, '1', 0.15, '1', 110035);
+
+INSERT INTO spell_effects (spell_effect_id, spell_effect_name, spell_animation, spell_display, 
+	target_type, target_size, spell_effected, effect_type, effect_duration,
+	works_not_in_pvp, spell_crit, buff_removable, buff_graphic) /* For sc potion */
+VALUES (255, 'Spell Crit', 115041, 1, 0, 1, 1, 1, 600, '1', 0.15, '1', 110035);
+
+INSERT INTO spell_effects (spell_effect_id, spell_effect_name, spell_animation, spell_display, 
+	target_type, target_size, spell_effected, effect_type, effect_duration,
+	works_not_in_pvp, buff_graphic, spell_crit, hp_percent_regen)
+VALUES (256, 'Spell Critical XX and HP Reg', 0, 0, 0, 0, 1, 1, 0, '1', 110035, 0.20, 0.01);
+
+INSERT INTO spell_effects (spell_effect_id, spell_effect_name, spell_animation, spell_display, 
+	target_type, target_size, spell_effected, effect_type, effect_duration,
+	works_not_in_pvp, buff_graphic, spell_damage, mp_percent_regen)
+VALUES (257, 'Spell Damage XX and MP Reg', 0, 0, 0, 0, 1, 1, 0, '1', 110035, 0.20, 0.01);
+
+INSERT INTO spell_effects (spell_effect_id, spell_effect_name, spell_animation, spell_display, 
+	target_type, target_size, spell_effected, effect_type, effect_duration,
+	works_not_in_pvp, buff_graphic, spell_crit)
+VALUES (258, 'Spell Critical XX', 0, 0, 0, 0, 1, 1, 0, '1', 110035, 0.20);
 
 SET IDENTITY_INSERT spell_effects OFF;

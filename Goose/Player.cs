@@ -365,6 +365,9 @@ namespace Goose
         /// </summary>
         public long LastPlaytimeUpdate { get; set; }
 
+        public long SuspectedMacroFirstTime { get; set; }
+        public int SuspectedMacroCount { get; set; }
+
         /**
          * Constructor
          * 
@@ -1616,24 +1619,24 @@ namespace Goose
                 return;
             }
 
-            double dodge = this.MaxStats.Dexterity / 100.0;
-            if (dodge > 50) dodge = 50;
-
-            if (world.Random.Next(0, 10001) <= dodge * 100)
-            {
-                packet = "BT" + this.LoginID + ",20,," + character.Name;
-                world.Send(this, packet);
-                foreach (Player p in range)
-                {
-                    world.Send(p, packet);
-                }
-                return;
-            }
-
             int dmg = (int)damage;
 
             if (damage > 0)
             {
+                double dodge = this.MaxStats.Dexterity / 100.0;
+                if (dodge > 50) dodge = 50;
+
+                if (world.Random.Next(0, 10001) <= dodge * 100)
+                {
+                    packet = "BT" + this.LoginID + ",20,," + character.Name;
+                    world.Send(this, packet);
+                    foreach (Player p in range)
+                    {
+                        world.Send(p, packet);
+                    }
+                    return;
+                }
+
                 // pvp 1/3 damage
                 if (character is Player) dmg /= 3;
                 packet = "BT" + this.LoginID + ",1," + (-dmg) + "," + character.Name + "\x1";

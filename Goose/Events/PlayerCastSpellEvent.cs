@@ -77,6 +77,11 @@ namespace Goose.Events
                             }
                         }
 
+                        this.Player.SuspectedMacroCount++;
+                        if (this.Player.SuspectedMacroCount > 10000)
+                        {
+                            world.LostConnection(this.Player.Sock);
+                        }
                         Console.WriteLine("SUSPECTED MACRO: " + this.Player.Name);
                     }
                 }

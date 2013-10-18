@@ -21,7 +21,7 @@
       <Value Profile="(Default)">password1</Value>
     </Setting>
     <Setting Name="DatabaseAddress" Type="System.String" Scope="User">
-      <Value Profile="(Default)">localhost\sqlexpress</Value>
+      <Value Profile="(Default)">localhost</Value>
     </Setting>
     <Setting Name="DatabaseName" Type="System.String" Scope="User">
       <Value Profile="(Default)">Goose</Value>
@@ -108,7 +108,7 @@
       <Value Profile="(Default)">0</Value>
     </Setting>
     <Setting Name="StartingGold" Type="System.Int64" Scope="User">
-      <Value Profile="(Default)">5000</Value>
+      <Value Profile="(Default)">10000</Value>
     </Setting>
     <Setting Name="StartingExperience" Type="System.Int64" Scope="User">
       <Value Profile="(Default)">0</Value>
@@ -147,7 +147,7 @@
       <Value Profile="(Default)">0</Value>
     </Setting>
     <Setting Name="MOTD" Type="System.String" Scope="User">
-      <Value Profile="(Default)">Welcome to Goose. Sorry about the downtime/rollback. If you were less than level 30 you can type /instalevel to get to 30. For everyone else there's 2x exp for the next few days. I'll work out item stuff over the next few days too. Forums and website are up. http://aspereta.net/</Value>
+      <Value Profile="(Default)">Welcome to Goose. Now with blackjack and hookers. And spelling errors.</Value>
     </Setting>
     <Setting Name="StartingTitle" Type="System.String" Scope="User">
       <Value Profile="(Default)" />
@@ -237,7 +237,7 @@
       <Value Profile="(Default)">10</Value>
     </Setting>
     <Setting Name="GuildCreationCost" Type="System.Int64" Scope="User">
-      <Value Profile="(Default)">700000</Value>
+      <Value Profile="(Default)">100000</Value>
     </Setting>
     <Setting Name="DefaultGuildMOTD" Type="System.String" Scope="User">
       <Value Profile="(Default)">Welcome. To change this message type /guildmotd &lt;message&gt;, to give ownership to someone else type /guildowner &lt;name&gt;. To give/remove officer status type /guildofficer &lt;name&gt;</Value>

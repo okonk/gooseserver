@@ -2541,8 +2541,8 @@ VALUES (530, 3, 'Scroll: Pummel', 0, 0, 139, 1000000, 0, 0, 120110, 0);
 
 INSERT INTO item_templates (item_template_id, item_usetype, item_name, item_slot, item_type, 
 	learn_spell_id, item_value, class_restrictions, min_level, 
-	graphic_tile, graphic_equip) 
-VALUES (531, 3, 'Scroll: Tame Pet', 0, 0, 140, 0, 0, 0, 120110, 0);
+	graphic_tile, graphic_equip, credits_value, item_description) /* Donation */
+VALUES (531, 3, 'Scroll: Tame Pet', 0, 0, 140, 0, 0, 0, 120110, 0, 30, 'Has a 6 hour cooldown.');
 
 INSERT INTO item_templates (item_template_id, item_usetype, item_name, item_slot, item_type, 
 	learn_spell_id, item_value, class_restrictions, min_level, 
@@ -2956,6 +2956,123 @@ VALUES (615, 0, 'Cloudy Robes', 10, 1, 200, 20, 650, 1000, 120241, 14, 50, 15, 0
 INSERT INTO item_templates (item_template_id, item_usetype, item_name, item_slot, item_type, 
 	item_value, graphic_tile, graphic_equip, stack_size, spell_effect_id, credits_value) /* Donation */
 VALUES (616, 1, 'Pet Bait', 15, 0, 250000, 120607, 0, 10, 230, 0);
+
+INSERT INTO item_templates (item_template_id, item_usetype, item_name, item_slot, item_type, 
+	item_value, graphic_tile, graphic_equip,
+	stat_ac, player_hp, player_mp, 
+	spell_effect_id) 
+VALUES (617, 0, 'Fuzex Necklace', 5, 0, 0, 120084, 0, 200, 3000, 3000, 72);
+
+INSERT INTO item_templates (item_template_id, item_usetype, item_name, weapon_damage, item_slot, item_type, 
+	item_value, graphic_tile, graphic_equip, body_state, class_restrictions,  
+  min_level, player_hp, player_mp, spell_effect_id, graphic_a) 
+VALUES (618, 0, 'Theknights Staff of Enchantment', 150, 2, 4, 0, 120228, 29, 3, 47, 50, 2000, 7000, 72, 200);
+
+INSERT INTO item_templates (item_template_id, item_usetype, item_name, weapon_damage, item_slot, item_type, 
+	item_value, graphic_tile, graphic_equip, body_state, min_level, stat_ac, player_hp, player_mp, graphic_a, spell_effect_id) 
+VALUES (619, 0, 'Theknights Shield', 0, 1, 0, 0, 120259, 57, 4, 1, 200, 3000, 3000, 200, 72);
+
+INSERT INTO item_templates (item_template_id, item_usetype, item_name, weapon_damage, item_slot, item_type, 
+	item_value, graphic_tile, stat_ac, player_hp, player_mp, spell_effect_id) 
+VALUES (620, 0, 'Theknights Ring of Awesomeness', 0, 4, 0, 0, 120079, 200, 3000, 3000, 72);
+
+INSERT INTO item_templates (item_template_id, item_usetype, item_name, item_slot, item_type, 
+	graphic_tile, graphic_equip, stack_size, item_value) 
+VALUES (621, 2, 'Empty Bottle', 0, 0, 120183, 0, 99, 500);
+
+INSERT INTO item_templates (item_template_id, item_usetype, item_name, item_slot, item_type, 
+	graphic_tile, graphic_equip, stack_size, item_value) 
+VALUES (622, 2, 'Magical Liquid', 0, 0, 120123, 0, 99, 200);
+
+INSERT INTO item_templates (item_template_id, item_usetype, item_name, item_slot, item_type, 
+	graphic_tile, graphic_equip, stack_size, graphic_r, graphic_g, graphic_b, graphic_a, item_value) 
+VALUES (623, 2, 'Red Droplet', 0, 0, 120300, 0, 99, 255, 65, 7, 200, 200);
+
+INSERT INTO item_templates (item_template_id, item_usetype, item_name, item_slot, item_type, 
+	graphic_tile, graphic_equip, stack_size, graphic_r, graphic_g, graphic_b, graphic_a, item_value) 
+VALUES (624, 2, 'Blue Droplet', 0, 0, 120300, 0, 99, 7, 89, 255, 200, 200);
+
+INSERT INTO item_templates (item_template_id, item_usetype, item_name, item_slot, item_type, 
+	graphic_tile, graphic_equip, stack_size, graphic_r, graphic_g, graphic_b, graphic_a, item_value) 
+VALUES (625, 2, 'Purple Droplet', 0, 0, 120300, 0, 99, 130, 7, 255, 200, 200);
+
+INSERT INTO item_templates (item_template_id, item_usetype, item_name, item_slot, item_type, 
+	graphic_tile, graphic_equip, stack_size, graphic_r, graphic_g, graphic_b, graphic_a, item_value) 
+VALUES (626, 2, 'Green Droplet', 0, 0, 120300, 0, 99, 71, 255, 7, 200, 200);
+
+INSERT INTO item_templates (item_template_id, item_usetype, item_name, item_slot, item_type, 
+	graphic_tile, graphic_equip, stack_size, graphic_r, graphic_g, graphic_b, graphic_a, item_value) 
+VALUES (627, 2, 'Orange Droplet', 0, 0, 120300, 0, 99, 255, 100, 15, 200, 200);
+
+INSERT INTO item_templates (item_template_id, item_usetype, item_name, item_slot, item_type, 
+	item_value, graphic_tile, graphic_equip, stack_size, spell_effect_id)
+VALUES (628, 1, 'HP Regen Potion', 15, 0, 1500, 120181, 0, 99, 251);
+
+INSERT INTO item_templates (item_template_id, item_usetype, item_name, item_slot, item_type, 
+	item_value, graphic_tile, graphic_equip, stack_size, spell_effect_id)
+VALUES (629, 1, 'MP Regen Potion', 15, 0, 1500, 120178, 0, 99, 252);
+
+INSERT INTO item_templates (item_template_id, item_usetype, item_name, item_slot, item_type, 
+	item_value, graphic_tile, graphic_equip, stack_size, spell_effect_id)
+VALUES (630, 1, 'Haste Potion', 15, 0, 1500, 120180, 0, 99, 253);
+
+INSERT INTO item_templates (item_template_id, item_usetype, item_name, item_slot, item_type, 
+	item_value, graphic_tile, graphic_equip, stack_size, spell_effect_id)
+VALUES (631, 1, 'Spell Damage Potion', 15, 0, 2000, 120179, 0, 99, 254);
+
+INSERT INTO item_templates (item_template_id, item_usetype, item_name, item_slot, item_type, 
+	item_value, graphic_tile, graphic_equip, stack_size, spell_effect_id)
+VALUES (632, 1, 'Spell Critical Potion', 15, 0, 2000, 120177, 0, 99, 255);
+
+INSERT INTO item_templates (item_template_id, item_usetype, item_name, item_slot, item_type, 
+  stat_ac, stat_str, stat_sta, stat_int, stat_dex, res_fire, res_water, res_earth, res_spirit, res_air,
+  graphic_tile, graphic_equip, min_level, class_restrictions, item_value, lore, event, player_hp, player_mp, spell_effect_id, bindonpickup, graphic_r, graphic_g, graphic_b, graphic_a) 
+VALUES (633, 0, 'Blind Faith', 0, 1, 200, 20, 20, 20, 20, 20, 20, 20, 20, 20, 120287, 29, 0, 0, 0, '1', '0', 1500, 1500, 72, '0', 20, 70, 130, 150);
+
+INSERT INTO item_templates (item_template_id, item_usetype, item_name, item_slot, item_type, 
+        stat_ac, stat_str, stat_sta, stat_int, stat_dex, res_fire, res_water, res_earth, res_spirit, res_air, player_mp, player_hp, 
+        graphic_tile, graphic_equip, min_level, class_restrictions, item_value, spell_effect_id, lore, bindonpickup,
+        graphic_r, graphic_g, graphic_b, graphic_a) 
+VALUES (634, 0, 'Cowardice', 10, 1, 200, 20, 20, 20, 20, 20, 20, 20, 20, 20, 1500, 1500, 120285, 22, 0, 0, 0, 72, '0', '0', 20, 70, 130, 150);
+
+INSERT INTO item_templates (item_template_id, item_usetype, item_name, weapon_damage, item_slot, item_type, 
+	item_value, graphic_tile, graphic_equip, body_state, class_restrictions, lore, min_level, player_hp, player_mp, graphic_r, graphic_g, graphic_b, graphic_a, spell_effect_id, bindonequip, bindonpickup, stat_ac, stat_str, stat_sta, stat_int, stat_dex, res_fire, res_water, res_earth, res_spirit, res_air) 
+VALUES (635, 0, 'Gonryomaru', 50, 2, 5, 0, 120272, 51, 4, 0, '0', 0, 1500, 1500, 20, 70, 130, 180, 72, '0', '0', 200, 20, 20, 20, 20, 20, 20, 20, 20, 20);
+
+INSERT INTO item_templates (item_template_id, item_usetype, item_name, item_slot, item_type, 
+	stat_ac, stat_str, stat_sta, stat_int, stat_dex, res_fire, res_water, res_earth, res_spirit, res_air, player_hp, player_mp, 
+	graphic_tile, graphic_equip, min_level, class_restrictions, item_value, graphic_a, spell_effect_id) 
+VALUES (636, 0, 'Sloth', 11, 3, 200, 20, 20, 20, 20, 20, 20, 20, 20, 20, 1500, 1500, 120036, 5, 0, 0, 0, 160, 140);
+
+INSERT INTO item_templates (item_template_id, item_usetype, item_name, item_slot, item_type, 
+	stat_ac, stat_str, stat_sta, stat_int, stat_dex, res_fire, res_water, res_earth, res_spirit, res_air, player_hp, player_mp,  
+	graphic_tile, graphic_equip, min_level, class_restrictions, item_value, lore, graphic_a, spell_effect_id) 
+VALUES (637, 0, 'Wrath', 12, 3, 200, 20, 20, 20, 20, 20, 20, 20, 20, 20, 1500, 1500, 120041, 4, 0, 0, 0, '1', 160, 140);
+
+INSERT INTO item_templates (item_template_id, item_usetype, item_name, item_slot, item_type, 
+	item_value, graphic_tile, graphic_equip, min_level, 
+	stat_ac, stat_str, stat_sta, stat_int, stat_dex, res_fire, res_water, res_earth, res_spirit, res_air, player_hp, player_mp, bindonpickup, bindonequip, spell_effect_id) 
+VALUES (638, 0, 'Lust', 6, 0, 0, 120232, 0, 0, 200, 20, 20, 20, 20, 20, 20, 20, 20, 20, 1500, 1500, '0', '0', 140);
+
+INSERT INTO item_templates (item_template_id, item_usetype, item_name, weapon_damage, item_slot, item_type, 
+	item_value, graphic_tile, min_level, 
+	stat_ac, stat_str, stat_sta, stat_int, stat_dex, res_fire, res_water, res_earth, res_spirit, res_air, player_hp, player_mp, spell_effect_id) 
+VALUES (639, 0, 'Gluttony', 0, 7, 0, 0, 110034, 0, 200, 20, 20, 20, 20, 20, 20, 20, 20, 20, 1500, 1500, 258);
+
+INSERT INTO item_templates (item_template_id, item_usetype, item_name, weapon_damage, item_slot, item_type, 
+	item_value, graphic_tile, min_level, 
+	stat_ac, stat_str, stat_sta, stat_int, stat_dex, res_fire, res_water, res_earth, res_spirit, res_air, player_hp, player_mp, spell_effect_id) 
+VALUES (640, 0, 'Greed', 0, 4, 0, 0, 120054, 0, 200, 20, 20, 20, 20, 20, 20, 20, 20, 20, 1500, 1500, 257);
+
+INSERT INTO item_templates (item_template_id, item_usetype, item_name, weapon_damage, item_slot, item_type, 
+	item_value, graphic_tile, min_level, 
+	stat_ac, stat_str, stat_sta, stat_int, stat_dex, res_fire, res_water, res_earth, res_spirit, res_air, player_hp, player_mp, spell_effect_id) 
+VALUES (641, 0, 'Pride', 0, 4, 0, 0, 120059, 0, 200, 20, 20, 20, 20, 20, 20, 20, 20, 20, 1500, 1500, 256);
+
+INSERT INTO item_templates (item_template_id, item_usetype, item_name, weapon_damage, item_slot, item_type, 
+	item_value, graphic_tile, min_level, 
+	stat_ac, stat_str, stat_sta, stat_int, stat_dex, res_fire, res_water, res_earth, res_spirit, res_air, player_hp, player_mp, spell_effect_id) 
+VALUES (642, 0, 'Envy', 0, 9, 0, 0, 120209, 0, 200, 20, 20, 20, 20, 20, 20, 20, 20, 20, 1500, 1500, 140);
 
 SET IDENTITY_INSERT item_templates OFF;
 
