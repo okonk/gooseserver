@@ -77,7 +77,7 @@ namespace Goose
         void Attacked(ICharacter character, double damage, GameWorld world);
 
         Map Map { get; set; }
-        string VCString();
+        string VPUString();
 
         int WeaponDamage { get; }
 

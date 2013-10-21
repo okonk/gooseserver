@@ -242,7 +242,7 @@ namespace Goose
             }
             else
             {
-                packet = target.VCString();
+                packet = target.VPUString();
                 if (target is Player)
                 {
                     world.Send((Player)target, packet);
@@ -341,7 +341,7 @@ namespace Goose
             }
 
             ((Player)target).AddRegenEvent(world);
-            string packet = ((Player)target).VCString() + "\x1" + ((Player)target).CHPString();
+            string packet = ((Player)target).VPUString() + "\x1" + ((Player)target).CHPString();
 
             if (this.Animation != 0) packet += "\x1SPP" + target.LoginID + "," + this.Animation;
             if (this.OnEffectText != "") world.Send((Player)target, "$7" + this.OnEffectText);

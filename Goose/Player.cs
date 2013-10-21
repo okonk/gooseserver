@@ -548,7 +548,7 @@ namespace Goose
             this.Class = world.ClassHandler.GetClass(this.ClassID);
             this.MaxStats += this.Class.GetLevel(this.Level).BaseStats;
 
-            this.BodyState = 1;
+            this.BodyState = 3;
 
             this.ToggleSettings = (ToggleSetting)GameSettings.Default.DefaultToggleSettings;
             this.AetherThreshold = GameSettings.Default.DefaultAetherThreshold;
@@ -1322,15 +1322,25 @@ namespace Goose
             return "CHP" +
                    this.LoginID + "," +
                    this.CurrentBodyID + "," +
-                   pose + "," +
-                   this.HairID + "," +
-                   this.Inventory.EquippedDisplay() + // Note: EquippedDisplay() adds it's own , on end
-                   this.HairR + "," +
-                   this.HairG + "," +
-                   this.HairB + "," +
-                   this.HairA + "," +
-                   "0" + "," + // Invis thing
-                   this.FaceID;
+                   0 + "," + // Body Color R
+                   0 + "," + // Body Color G
+                   0 + "," + // Body Color B
+                   0 + "," + // Body Color A
+                   (this.CurrentBodyID >= 100 ? 3 : pose) + "," +
+                   (this.CurrentBodyID >= 100 ? "" : this.HairID + ",") +
+                   (this.CurrentBodyID >= 100 ? "" : this.Inventory.EquippedDisplay()) + // Note: EquippedDisplay() adds it's own , on end
+                   (this.CurrentBodyID >= 100 ? "" : this.HairR + ",") +
+                   (this.CurrentBodyID >= 100 ? "" : this.HairG + ",") +
+                   (this.CurrentBodyID >= 100 ? "" : this.HairB + ",") +
+                   (this.CurrentBodyID >= 100 ? "" : this.HairA + ",") +
+                   (this.CurrentBodyID >= 100 ? "" : "0" + ",") + // Invis thing
+                   (this.CurrentBodyID >= 100 ? "" : this.FaceID + ",") +
+                   320 + "," + // Move Speed
+                   "0" + // Player Name Color
+                   (this.CurrentBodyID >= 100 ? "" : 0 + ",") + // Mount Color R
+                   (this.CurrentBodyID >= 100 ? "" : 0 + ",") + // Mount Color G
+                   (this.CurrentBodyID >= 100 ? "" : 0 + ",") + // Mount Color B
+                   (this.CurrentBodyID >= 100 ? "" : 0 + ""); // Mount Color A
         }
 
         /**
@@ -1589,7 +1599,7 @@ namespace Goose
             this.CurrentHP = this.MaxStats.HP;
             this.CurrentMP = this.MaxStats.MP;
             world.Send(this, this.SNFString());
-            world.Send(this, this.VCString());
+            world.Send(this, this.VPUString());
             if (levels == 1) world.Send(this, "$7You have gained a level.");
             else world.Send(this, "$7You have gained " + levels + " levels.");
 
@@ -1665,7 +1675,7 @@ namespace Goose
 
                 this.WarpTo(world, this.BoundMap, this.BoundX, this.BoundY);
                 this.AddRegenEvent(world);
-                world.Send(this, this.VCString());
+                world.Send(this, this.VPUString());
                 world.Send(this, this.SNFString());
 
                 // Remove all buffs on death
@@ -1684,7 +1694,7 @@ namespace Goose
             }
             else
             {
-                packet += this.VCString();
+                packet += this.VPUString();
                 this.AddRegenEvent(world);
             }
 
@@ -1708,11 +1718,11 @@ namespace Goose
         }
 
         /**
-         * VCString, returns regen event string
+         * VPUString, returns regen event string
          */
-        public string VCString()
+        public string VPUString()
         {
-            return "VC" + this.LoginID + "," +
+            return "VPU" + this.LoginID + "," +
                    (int)(((float)this.CurrentHP / this.MaxStats.HP) * 100) + "," +
                    (int)(((float)this.CurrentMP / this.MaxStats.MP) * 100);
         }
@@ -1845,7 +1855,7 @@ namespace Goose
 
                     if (this.State == States.Ready)
                     {
-                        string packet = this.VCString();
+                        string packet = this.VPUString();
 
                         world.Send(this, packet);
                         world.Send(this, this.SNFString());
@@ -1983,7 +1993,7 @@ namespace Goose
             // Add/remove stats
             this.AddStats(buff.SpellEffect.Stats, world);
 
-            packet = this.VCString();
+            packet = this.VPUString();
 
             if (buff.SpellEffect.Stats.Haste != Decimal.Zero)
             {
@@ -2036,7 +2046,7 @@ namespace Goose
             // Add/remove stats
             this.RemoveStats(buff.SpellEffect.Stats, world);
 
-            string packet = this.VCString();
+            string packet = this.VPUString();
 
             if (buff.SpellEffect.Stats.Haste != Decimal.Zero)
             {

@@ -8,7 +8,7 @@ namespace Goose.Events
     /**
      * Character regen Event
      * 
-     * Sends VCid,hp %, mp % to everyone in range, including the player themselves
+     * Sends VPUid,hp %, mp % to everyone in range, including the player themselves
      * 
      */
     public class RegenEvent : Event
@@ -39,7 +39,7 @@ namespace Goose.Events
                     if (this.NPC.CurrentHP <= 0) this.NPC.CurrentHP = 1;
                     if (this.NPC.CurrentMP <= 0) this.NPC.CurrentMP = 1;
 
-                    string packet = this.NPC.VCString();
+                    string packet = this.NPC.VPUString();
                     List<Player> range = this.NPC.Map.GetPlayersInRange(this.NPC);
                     foreach (Player p in range)
                     {
@@ -69,7 +69,7 @@ namespace Goose.Events
                     if (player.CurrentHP <= 0) player.CurrentHP = 1;
                     if (player.CurrentMP <= 0) player.CurrentMP = 1;
 
-                    string packet = player.VCString();
+                    string packet = player.VPUString();
 
                     List<Player> range = player.Map.GetPlayersInRange(player);
                     world.Send(player, packet);

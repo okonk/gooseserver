@@ -736,7 +736,7 @@ namespace Goose
             }
             else
             {
-                packet += this.VCString();
+                packet += this.VPUString();
                 this.AddRegenEvent(world);
             }
 
