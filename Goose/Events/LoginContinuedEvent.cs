@@ -34,7 +34,7 @@ namespace Goose.Events
 
                 this.Player.State = Player.States.LoadingMap;
                 
-                world.Send(this.Player, "SCM" + map.ID + ",1," + map.Name);
+                world.Send(this.Player, "SCM" + map.FileName + ",1," + map.Name + ",0");
 
                 if (GameSettings.Default.MOTD.Length > 0) 
                 {

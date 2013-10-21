@@ -32,7 +32,8 @@ namespace Goose
             Gloves,
             Chest,
             Pants,
-            Shoes
+            Shoes,
+            Mount
         }
         public enum ItemTypes
         {

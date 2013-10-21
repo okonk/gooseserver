@@ -46,6 +46,7 @@ namespace Goose
                 Map map = new Map(width, height);
                 map.ID = Convert.ToInt32(reader["map_id"]);
                 map.Name = Convert.ToString(reader["map_name"]);
+                map.FileName = Convert.ToString(reader["map_filename"]);
                 map.Width = width;
                 map.Height = height;
 

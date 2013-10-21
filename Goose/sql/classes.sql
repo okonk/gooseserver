@@ -1,4 +1,4 @@
-USE Goose
+USE IllutiaGoose;
 
 DROP TABLE classes;
 CREATE TABLE classes (
@@ -261,32 +261,3 @@ CREATE TABLE classes_levelup_spells (
   level SMALLINT NOT NULL,
   spell_id INT NOT NULL
 );
-
-/* Rogue */
-INSERT INTO classes_levelup_spells (class_id, level, spell_id) VALUES (2, 4, 3);
-INSERT INTO classes_levelup_spells (class_id, level, spell_id) VALUES (2, 11, 25);
-INSERT INTO classes_levelup_spells (class_id, level, spell_id) VALUES (2, 14, 26);
-INSERT INTO classes_levelup_spells (class_id, level, spell_id) VALUES (2, 19, 27);
-INSERT INTO classes_levelup_spells (class_id, level, spell_id) VALUES (2, 24, 28);
-INSERT INTO classes_levelup_spells (class_id, level, spell_id) VALUES (2, 28, 81);
-INSERT INTO classes_levelup_spells (class_id, level, spell_id) VALUES (2, 31, 82);
-INSERT INTO classes_levelup_spells (class_id, level, spell_id) VALUES (2, 34, 83);
-INSERT INTO classes_levelup_spells (class_id, level, spell_id) VALUES (2, 39, 84);
-INSERT INTO classes_levelup_spells (class_id, level, spell_id) VALUES (2, 44, 85);
-
-/* Warrior */
-INSERT INTO classes_levelup_spells (class_id, level, spell_id) VALUES (3, 1, 4);
-INSERT INTO classes_levelup_spells (class_id, level, spell_id) VALUES (3, 5, 20);
-INSERT INTO classes_levelup_spells (class_id, level, spell_id) VALUES (3, 9, 21);
-INSERT INTO classes_levelup_spells (class_id, level, spell_id) VALUES (3, 14, 22);
-INSERT INTO classes_levelup_spells (class_id, level, spell_id) VALUES (3, 19, 23);
-INSERT INTO classes_levelup_spells (class_id, level, spell_id) VALUES (3, 25, 24);
-INSERT INTO classes_levelup_spells (class_id, level, spell_id) VALUES (3, 29, 74);
-INSERT INTO classes_levelup_spells (class_id, level, spell_id) VALUES (3, 30, 75);
-INSERT INTO classes_levelup_spells (class_id, level, spell_id) VALUES (3, 32, 76);
-INSERT INTO classes_levelup_spells (class_id, level, spell_id) VALUES (3, 35, 77);
-INSERT INTO classes_levelup_spells (class_id, level, spell_id) VALUES (3, 39, 86);
-INSERT INTO classes_levelup_spells (class_id, level, spell_id) VALUES (3, 45, 78);
-INSERT INTO classes_levelup_spells (class_id, level, spell_id) VALUES (3, 46, 79);
-INSERT INTO classes_levelup_spells (class_id, level, spell_id) VALUES (3, 48, 80);
-INSERT INTO classes_levelup_spells (class_id, level, spell_id) VALUES (3, 49, 87);

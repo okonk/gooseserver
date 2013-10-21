@@ -41,7 +41,6 @@ namespace Goose.Events
                 map.SetCharacter(this.Player, this.Player.MapX, this.Player.MapY);
 
                 this.Player.State = Player.States.Ready;
-                world.Send(this.Player, "SMN" + map.Name);
                 world.Send(this.Player, "DSM");
                 world.Send(this.Player, this.Player.MKCString());
                 world.Send(this.Player, "SUC" + this.Player.LoginID.ToString());

@@ -1,4 +1,4 @@
-USE Goose;
+USE IllutiaGoose;
 
 CREATE TABLE logs (
   text VARCHAR(255), 

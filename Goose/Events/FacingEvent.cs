@@ -50,11 +50,6 @@ namespace Goose.Events
 
                 if (facing <= 0 || facing >= 5) return; // log bad facing event
 
-                if (facing == 1) facing = 1;
-                else if (facing == 2) facing = 3;
-                else if (facing == 3) facing = 4;
-                else if (facing == 4) facing = 2;
-
                 if (this.Player.Facing != facing)
                 {
                     this.Player.UpdateIdleStatus(world);

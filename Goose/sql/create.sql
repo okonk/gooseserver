@@ -1,7 +1,9 @@
-CREATE DATABASE Goose;
+DROP DATABASE IllutiaGoose;
+
+CREATE DATABASE IllutiaGoose;
 go
 
-USE Goose;
+USE IllutiaGoose;
 go
 
 CREATE LOGIN GooseServer WITH password='password1';
@@ -23,7 +25,7 @@ CREATE TABLE blockedtiles (
 );
 
 CREATE TABLE items (
-  item_id INT IDENTITY(5002, 1) NOT NULL,
+  item_id INT NOT NULL,
   item_template_id INT NOT NULL,
   item_name VARCHAR(64) NOT NULL,
   item_description VARCHAR(64) DEFAULT '' NOT NULL,
@@ -55,9 +57,5 @@ CREATE TABLE items (
   PRIMARY KEY(item_id)
 );
 
-SET IDENTITY_INSERT items ON;
-
 INSERT INTO items (item_id, item_template_id, item_name,  
 	graphic_tile, graphic_equip) VALUES (5001, 1, 'Gold', 120100, 0);
-	
-SET IDENTITY_INSERT items OFF;

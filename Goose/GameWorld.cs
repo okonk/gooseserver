@@ -357,6 +357,8 @@ namespace Goose
         public void NewConnection(Socket sock)
         {
             Console.Out.WriteLine("Connection attempt: " + sock.RemoteEndPoint.ToString());
+
+            sock.Send(Encoding.ASCII.GetBytes("IMN00000000" + "\x1"));
         }
 
         /**

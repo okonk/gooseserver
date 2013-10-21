@@ -27,7 +27,8 @@ namespace Goose
             Belt,
             Necklace,
             Ring1,
-            Ring2
+            Ring2,
+            Mount
         }
 
         ItemSlot[] equipped;
@@ -100,14 +101,21 @@ namespace Goose
                 ItemSlot slot = this.inventory[i];
                 if (slot != null)
                 {
-                    world.Send(this.player, "SIS" + i + "," + slot.Item.ItemID + "," + slot.Item.Name + "," +
-                                            slot.Stack + "," + slot.Item.GraphicTile + "," +
-                                            slot.Item.GraphicR + "," + slot.Item.GraphicG + "," +
-                                            slot.Item.GraphicB + "," + slot.Item.GraphicA);
+                    world.Send(this.player, "SIS" + i + "|" + slot.Item.GraphicTile + "|" +
+                    ((int)slot.Item.Slot == 1 ? 2269 : (int)slot.Item.Slot < 13 ? 2278 : 2268) + "|" +
+                    "title" + "|" + slot.Item.Name + "|" + "surname" + "|" + slot.Stack + "|" + slot.Item.Value + "|" +
+                    "" + "|" + slot.Item.Description + "|" + slot.Item.WeaponDamage + "|" + slot.Item.WeaponDamage + "|" +
+                    slot.Item.WeaponDelay + "|" + "0" + "|" + slot.Item.BaseStats.AC + "|" +
+                    slot.Item.BaseStats.HP + "|" + slot.Item.BaseStats.MP + "|" + slot.Item.BaseStats.SP + "|" +
+                    slot.Item.BaseStats.Strength + "|" + slot.Item.BaseStats.Stamina + "|" + slot.Item.BaseStats.Intelligence + "|" +
+                    slot.Item.BaseStats.Dexterity + "|" + slot.Item.BaseStats.FireResist + "|" + slot.Item.BaseStats.WaterResist + "|" +
+                    slot.Item.BaseStats.EarthResist + "|" + slot.Item.BaseStats.AirResist + "|" +
+                    slot.Item.BaseStats.SpiritResist + "|" + slot.Item.MinLevel + "|" + slot.Item.MaxLevel + "|0|0|0|0|0" + "|" +
+                    (slot.Item.SpellEffect == null ? "" : slot.Item.SpellEffect.Name) + "|" + "0|0|0|0|0|0|0|0");
                 }
                 else
                 {
-                    world.Send(this.player, "SIS" + i);
+                    world.Send(this.player, "CIS" + i);
                 }
             }
         }
@@ -570,6 +578,9 @@ namespace Goose
                 case ItemTemplate.ItemSlots.TwoHanded:
                     return EquipSlots.Weapon;
 
+                case ItemTemplate.ItemSlots.Mount:
+                    return EquipSlots.Mount;
+
                 default:
                     return 0;
 
@@ -654,15 +665,21 @@ namespace Goose
                 ItemSlot slot = this.equipped[(int)equipslot];
                 if (slot != null)
                 {
-                    world.Send(this.player, "WNF11," + (int)equipslot + "," + slot.Item.Name + "|" +
-                                            slot.Stack + "|" + slot.Item.ItemID + "|" + 
-                                            slot.Item.GraphicTile + "|" +
-                                            slot.Item.GraphicR + "|" + slot.Item.GraphicG + "|" +
-                                            slot.Item.GraphicB + "|" + slot.Item.GraphicA);
+                    world.Send(this.player, "SIS" + ((int)equipslot + 31) + "|" + slot.Item.GraphicTile + "|" +
+                    ((int)equipslot == 1 ? 2269 : (int)equipslot < 13 ? 2278 : 2268) + "|" +
+                    "title" + "|" + slot.Item.Name + "|" + "surname" + "|" + slot.Stack + "|" + slot.Item.Value + "|" +
+                    "" + "|" + slot.Item.Description + "|" + slot.Item.WeaponDamage + "|" + slot.Item.WeaponDamage + "|" +
+                    slot.Item.WeaponDelay + "|" + "0" + "|" + slot.Item.BaseStats.AC + "|" +
+                    slot.Item.BaseStats.HP + "|" + slot.Item.BaseStats.MP + "|" + slot.Item.BaseStats.SP + "|" +
+                    slot.Item.BaseStats.Strength + "|" + slot.Item.BaseStats.Stamina + "|" + slot.Item.BaseStats.Intelligence + "|" +
+                    slot.Item.BaseStats.Dexterity + "|" + slot.Item.BaseStats.FireResist + "|" + slot.Item.BaseStats.WaterResist + "|" +
+                    slot.Item.BaseStats.EarthResist + "|" + slot.Item.BaseStats.AirResist + "|" +
+                    slot.Item.BaseStats.SpiritResist + "|" + slot.Item.MinLevel + "|" + slot.Item.MaxLevel + "|0|0|0|0|0" + "|" +
+                    (slot.Item.SpellEffect == null ? "" : slot.Item.SpellEffect.Name) + "|" + "0|0|0|0|0|0|0|0");
                 }
                 else
                 {
-                    world.Send(this.player, "WNF11," + (int)equipslot + ", |0|0|0|*");
+                    world.Send(this.player, "CIS" + ((int)equipslot + 31));
                 }
             }
         }

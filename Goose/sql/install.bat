@@ -13,6 +13,5 @@ osql -U GooseServer -P password1 -S localhost\sqlexpress -i warptiles.sql
 osql -U GooseServer -P password1 -S localhost\sqlexpress -i maps.sql
 osql -U GooseServer -P password1 -S localhost\sqlexpress -i wordfilter.sql
 osql -U GooseServer -P password1 -S localhost\sqlexpress -i pets.sql
-
-
-call ExecuteBlockedTiles.exe
+osql -U GooseServer -P password1 -S localhost\sqlexpress -i paypal.sql
+osql -U GooseServer -P password1 -S localhost\sqlexpress -i logs.sql

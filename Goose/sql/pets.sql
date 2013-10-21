@@ -1,4 +1,4 @@
-USE Goose;
+USE IllutiaGoose;
 
 DROP TABLE pets;
 CREATE TABLE pets (

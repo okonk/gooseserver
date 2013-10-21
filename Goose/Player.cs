@@ -436,24 +436,32 @@ namespace Goose
 
             return "MKC" + this.LoginID + "," +
                            "1," +
-                           this.Name + "," +
-                           this.Title + "," +
-                           this.Surname + "," +
-                           "" + "," + // Guild name
-                           this.MapX + "," +
-                           this.MapY + "," +
-                           this.Facing + "," +
-                           (int)(((float)this.CurrentHP / this.MaxStats.HP) * 100) + "," + // HP %
-                           this.CurrentBodyID + "," +
-                           (this.CurrentBodyID >= 100 ? 1 : pose) + "," +
-                           (this.CurrentBodyID >= 100 ? 0 : this.HairID) + "," +
-                           this.Inventory.EquippedDisplay() + // Note: EquippedDisplay() adds it's own , on end
-                           this.HairR + "," +
-                           this.HairG + "," +
-                           this.HairB + "," +
-                           this.HairA + "," +
-                           "0" + "," + // Invis thing
-                           (this.CurrentBodyID >= 100 ? 0 : this.FaceID);
+                          this.Name + "," +
+                          this.Title + "," +
+                          this.Surname + "," +
+                          "" + "," + // Guild name
+                          this.MapX + "," +
+                          this.MapY + "," +
+                          this.Facing + "," +
+                          (int)(((float)this.CurrentHP / this.MaxStats.HP) * 100) + "," + // HP %
+                          this.CurrentBodyID + "," +
+                          0 + "," + // Body Color R
+                          0 + "," + // Body Color G
+                          0 + "," + // Body Color B
+                          0 + "," + // Body Color A
+                          (this.CurrentBodyID >= 100 ? 3 : pose) + "," +
+                          (this.CurrentBodyID >= 100 ? "" : this.HairID + ",") +
+                          (this.CurrentBodyID >= 100 ? "" : this.Inventory.EquippedDisplay()) + // Note: EquippedDisplay() adds it's own , on end
+                          (this.CurrentBodyID >= 100 ? "" : this.HairR + "," + HairG + "," + HairB + "," + HairA + ",") +
+                          "0" + "," + // Invis thing
+                          (this.CurrentBodyID >= 100 ? "" : this.FaceID + ",") +
+                          320 + "," + // Move Speed
+                            "0" + "," + // Player Name Color
+                            (this.CurrentBodyID >= 100 ? "" : 0 + ",") + // Mount Graphic
+                            (this.CurrentBodyID >= 100 ? "" : 0 + ",") + // Mount Color R
+                            (this.CurrentBodyID >= 100 ? "" : 0 + ",") + // Mount Color G
+                            (this.CurrentBodyID >= 100 ? "" : 0 + ",") + // Mount Color B
+                            (this.CurrentBodyID >= 100 ? "" : 0 + ""); // Mount Color A
         }
 
         /**
@@ -1130,7 +1138,7 @@ namespace Goose
                 this.MapX = x;
                 this.MapY = y;
 
-                world.Send(this, "SCM" + map.ID + ",1," + map.Name);
+                world.Send(this, "SCM" + map.FileName + ",1," + map.Name + ",0");
             }
         }
 
@@ -1213,7 +1221,7 @@ namespace Goose
                 exp = this.Experience;
                 percent = (long)(((float)(exp - prev) / (next - prev)) * 100);
             }
-            return "TNL" + percent + "," + exp + "," + tnl;
+            return "TNL" + percent + "," + exp + "," + tnl + "," + this.ExperienceSold;
         }
 
         /**
@@ -2124,7 +2132,7 @@ namespace Goose
         {
             int wps = (int)((decimal)(this.WeaponDelay / 10.0) * (1 - this.MaxStats.Haste) * 1000);
 
-            return "WPS" + wps;
+            return "WPS" + wps + ",0,0";
         }
 
         /**

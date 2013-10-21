@@ -1,4 +1,4 @@
-USE Goose;
+USE IllutiaGoose;
 
 CREATE TABLE guilds (
   guild_id INT IDENTITY(1,1) NOT NULL,

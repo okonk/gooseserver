@@ -26,6 +26,7 @@ namespace Goose
          * 
          */
         public string Name { get; set; }
+        public string FileName { get; set; }
         /**
          * map_x
          * 

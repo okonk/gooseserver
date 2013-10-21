@@ -1,4 +1,4 @@
-USE Goose;
+USE IllutiaGoose;
 
 CREATE TABLE paypal_logs (
   request TEXT NOT NULL
