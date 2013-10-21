@@ -972,7 +972,7 @@ namespace Goose
                 }
                 else
                 {
-                    packet += this.VCString();
+                    packet += this.VPUString();
                     this.AddRegenEvent(world);
                 }
 
@@ -998,11 +998,11 @@ namespace Goose
         }
 
         /**
-         * VCString, returns regen event string
+         * VPUString, returns regen event string
          */
-        public string VCString()
+        public string VPUString()
         {
-            return "VC" + this.LoginID + "," +
+            return "VPU" + this.LoginID + "," +
                    (int)(((float)this.CurrentHP / this.MaxStats.HP) * 100) + "," +
                    (int)(((float)this.CurrentMP / this.MaxStats.MP) * 100);
         }
@@ -1232,7 +1232,7 @@ namespace Goose
 
             this.AddRegenEvent(world);
 
-            packet = this.VCString();
+            packet = this.VPUString();
 
             if (buff.SpellEffect.Animation != 0)
                 packet += "\x1SPP" + this.LoginID + "," + buff.SpellEffect.Animation;
@@ -1262,7 +1262,7 @@ namespace Goose
             if (this.State == States.Alive)
             {
                 List<Player> range = this.Map.GetPlayersInRange(this);
-                string packet = this.VCString();
+                string packet = this.VPUString();
 
                 foreach (Player player in range)
                 {
