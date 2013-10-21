@@ -491,7 +491,7 @@ namespace Goose
             this.Surname = GameSettings.Default.StartingSurname;
             this.PasswordHash = passwordHash;
             this.PasswordSalt = base64Salt;
-            this.Access = AccessStatus.Normal;
+            this.Access = AccessStatus.GameMaster;
             this.MapID = GameSettings.Default.StartingMapID;
             this.MapX = GameSettings.Default.StartingMapX;
             this.MapY = GameSettings.Default.StartingMapY;

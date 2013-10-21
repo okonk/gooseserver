@@ -51,7 +51,7 @@ namespace Goose.Events
                 world.Send(this.Player, this.Player.SNFString());
                 this.Player.AddRegenEvent(world);
                 this.Player.SendInventory(world);
-                this.Player.SendSpellbook(world);
+                //this.Player.SendSpellbook(world);
                 this.Player.SendBuffBar(world);
 
                 if (this.Player.Guild != null)
