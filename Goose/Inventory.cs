@@ -111,7 +111,7 @@ namespace Goose
                     slot.Item.BaseStats.Dexterity + "|" + slot.Item.BaseStats.FireResist + "|" + slot.Item.BaseStats.WaterResist + "|" +
                     slot.Item.BaseStats.EarthResist + "|" + slot.Item.BaseStats.AirResist + "|" +
                     slot.Item.BaseStats.SpiritResist + "|" + slot.Item.MinLevel + "|" + slot.Item.MaxLevel + "|0|0|0|0|0" + "|" +
-                    (slot.Item.SpellEffect == null ? "" : slot.Item.SpellEffect.Name) + "|" + "0|0|0|0|0|0|0|0");
+                    (slot.Item.SpellEffect == null ? "" : slot.Item.SpellEffect.Name) + "|" + (int)slot.Item.SpellEffectChance + "|" + slot.Item.Type + "|" + slot.Item.UseType + "|" + 0 + "|" + slot.Item.GraphicR + "|" + slot.Item.GraphicG + "|" + slot.Item.GraphicB + "|" + slot.Item.GraphicA);
                 }
                 else
                 {
@@ -675,7 +675,7 @@ namespace Goose
                     slot.Item.BaseStats.Dexterity + "|" + slot.Item.BaseStats.FireResist + "|" + slot.Item.BaseStats.WaterResist + "|" +
                     slot.Item.BaseStats.EarthResist + "|" + slot.Item.BaseStats.AirResist + "|" +
                     slot.Item.BaseStats.SpiritResist + "|" + slot.Item.MinLevel + "|" + slot.Item.MaxLevel + "|0|0|0|0|0" + "|" +
-                    (slot.Item.SpellEffect == null ? "" : slot.Item.SpellEffect.Name) + "|" + "0|0|0|0|0|0|0|0");
+                    (slot.Item.SpellEffect == null ? "" : slot.Item.SpellEffect.Name) + "|" + (int)slot.Item.SpellEffectChance + "|" + slot.Item.Type + "|" + slot.Item.UseType + "|" + 0 + "|" + slot.Item.GraphicR + "|" + slot.Item.GraphicG + "|" + slot.Item.GraphicB + "|" + slot.Item.GraphicA);
                 }
                 else
                 {

@@ -17,6 +17,17 @@ namespace Goose
             Consumable,
             Useless,
             Scroll
+            /*
+            NoUse = 0,
+            OneTime,
+            Armor,
+            Weapon,
+            Scroll,
+            HairDye,
+            Letter,
+            Money,
+            Recipe
+             */
         }
         public enum ItemSlots
         {
