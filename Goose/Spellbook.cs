@@ -111,16 +111,14 @@ namespace Goose
             }
 
             Spell spell = this.spells[slot];
-            if (spell == null)
+            if (spell != null)
             {
-                world.Send(this.player, "SSS" + slot);
-            }
-            else
-            {
-                world.Send(this.player, "SSS" + slot + "," + 
-                    spell.Name + ",0,0," + 
-                    (spell.Target == Spell.SpellTargets.Target ? "T" : "X") + "," +
-                    spell.Graphic);
+                world.Send(this.player, "SSS" + slot + "," +
+                    spell.Name + "," +
+                    spell.SpellEffect.Animation + ",0,0," +
+                    (spell.Target == Spell.SpellTargets.Target ? "1" : "0") + "," +
+                    spell.Graphic + ",0," +
+                    spell.Aether);
             }
         }
 

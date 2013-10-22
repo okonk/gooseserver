@@ -1336,7 +1336,7 @@ namespace Goose
                    (this.CurrentBodyID >= 100 ? "" : "0" + ",") + // Invis thing
                    (this.CurrentBodyID >= 100 ? "" : this.FaceID + ",") +
                    320 + "," + // Move Speed
-                   "0" + // Player Name Color
+                   (this.CurrentBodyID >= 100 ? "" : 0 + ",") + // Mount Graphic
                    (this.CurrentBodyID >= 100 ? "" : 0 + ",") + // Mount Color R
                    (this.CurrentBodyID >= 100 ? "" : 0 + ",") + // Mount Color G
                    (this.CurrentBodyID >= 100 ? "" : 0 + ",") + // Mount Color B
