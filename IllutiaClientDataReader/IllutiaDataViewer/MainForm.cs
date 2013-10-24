@@ -31,6 +31,9 @@ namespace IllutiaDataViewer
             adfFileComboBox.DataSource = adfs.Where(a => a.Type == ADFType.Graphic && a.FileNumber != 4589).ToList();
             adfFileComboBox.ValueMember = "FileNumber";
             adfFileComboBox.DisplayMember = "FileNumber";
+
+            filterComboBox.Items.AddRange(Enum.GetNames(typeof(Filters)));
+            filterComboBox.SelectedIndex = 0;
         }
 
         private void MainForm_Load(object sender, EventArgs e)
@@ -119,6 +122,59 @@ namespace IllutiaDataViewer
         private void drawingPanel_Paint(object sender, PaintEventArgs e)
         {
             Draw();
+        }
+
+        private void DoFilters()
+        {
+            var selectedFilter = (Filters)Enum.Parse(typeof(Filters), (string)filterComboBox.SelectedItem);
+            var filteredAdfs = this.adfs.Where(a => a.Type == ADFType.Graphic && a.FileNumber != 4589);
+
+            switch (selectedFilter)
+            {
+                case Filters.All:
+                    break;
+                case Filters.Tiles:
+                    filteredAdfs = filteredAdfs.Where(a => a.AnimationCount == 0 && !compiledEnc.SheetToAnimation.ContainsKey(a.FileNumber));
+                    break;
+                case Filters.Spells:
+                    filteredAdfs = filteredAdfs.Where(a => a.AnimationCount > 0 && !compiledEnc.SheetToAnimation.ContainsKey(a.FileNumber));
+                    break;
+
+                default:
+                    var equipType = (AnimationType)Enum.Parse(typeof(AnimationType), selectedFilter.ToString());
+                    filteredAdfs = filteredAdfs.Where(a => compiledEnc.SheetToAnimation.ContainsKey(a.FileNumber) 
+                        && compiledEnc.SheetToAnimation[a.FileNumber].Type == equipType);
+
+                    break;
+            }
+
+            this.selectedFrame = null;
+            adfFileComboBox.DataSource = filteredAdfs.ToList();
+            adfFileComboBox.SelectedIndex = 0;
+
+            Draw();
+        }
+
+        public enum Filters
+        {
+            All,
+            Body,
+            Hair,
+            Eyes,
+            Chest,
+            Helm,
+            Legs,
+            Feet,
+            Hand,
+            //RightHand,
+            //Mount,
+            Tiles,
+            Spells,
+        }
+
+        private void filterComboBox_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            this.DoFilters();
         }
     }
 }

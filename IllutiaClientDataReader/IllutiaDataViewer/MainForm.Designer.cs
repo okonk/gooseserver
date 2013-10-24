@@ -37,6 +37,8 @@
             this.selectedIdTextBox = new System.Windows.Forms.TextBox();
             this.selectedAnimationTextBox = new System.Windows.Forms.TextBox();
             this.label4 = new System.Windows.Forms.Label();
+            this.label5 = new System.Windows.Forms.Label();
+            this.filterComboBox = new System.Windows.Forms.ComboBox();
             this.SuspendLayout();
             // 
             // drawingPanel
@@ -47,7 +49,7 @@
             this.drawingPanel.Cursor = System.Windows.Forms.Cursors.Default;
             this.drawingPanel.Location = new System.Drawing.Point(12, 87);
             this.drawingPanel.Name = "drawingPanel";
-            this.drawingPanel.Size = new System.Drawing.Size(709, 504);
+            this.drawingPanel.Size = new System.Drawing.Size(645, 504);
             this.drawingPanel.TabIndex = 2;
             this.drawingPanel.Paint += new System.Windows.Forms.PaintEventHandler(this.drawingPanel_Paint);
             this.drawingPanel.MouseClick += new System.Windows.Forms.MouseEventHandler(this.drawingPanel_MouseClick);
@@ -57,7 +59,7 @@
             this.adfFileComboBox.FormattingEnabled = true;
             this.adfFileComboBox.Location = new System.Drawing.Point(83, 10);
             this.adfFileComboBox.Name = "adfFileComboBox";
-            this.adfFileComboBox.Size = new System.Drawing.Size(128, 21);
+            this.adfFileComboBox.Size = new System.Drawing.Size(109, 21);
             this.adfFileComboBox.TabIndex = 3;
             this.adfFileComboBox.SelectedIndexChanged += new System.EventHandler(this.adfFileComboBox_SelectedIndexChanged);
             // 
@@ -73,7 +75,7 @@
             // label2
             // 
             this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(217, 13);
+            this.label2.Location = new System.Drawing.Point(431, 45);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(87, 13);
             this.label2.TabIndex = 5;
@@ -81,10 +83,10 @@
             // 
             // animationInfoTextBox
             // 
-            this.animationInfoTextBox.Location = new System.Drawing.Point(324, 10);
+            this.animationInfoTextBox.Location = new System.Drawing.Point(538, 42);
             this.animationInfoTextBox.Name = "animationInfoTextBox";
             this.animationInfoTextBox.ReadOnly = true;
-            this.animationInfoTextBox.Size = new System.Drawing.Size(169, 20);
+            this.animationInfoTextBox.Size = new System.Drawing.Size(121, 20);
             this.animationInfoTextBox.TabIndex = 6;
             // 
             // label3
@@ -101,31 +103,51 @@
             this.selectedIdTextBox.Location = new System.Drawing.Point(83, 42);
             this.selectedIdTextBox.Name = "selectedIdTextBox";
             this.selectedIdTextBox.ReadOnly = true;
-            this.selectedIdTextBox.Size = new System.Drawing.Size(128, 20);
+            this.selectedIdTextBox.Size = new System.Drawing.Size(109, 20);
             this.selectedIdTextBox.TabIndex = 8;
             // 
             // selectedAnimationTextBox
             // 
-            this.selectedAnimationTextBox.Location = new System.Drawing.Point(324, 42);
+            this.selectedAnimationTextBox.Location = new System.Drawing.Point(305, 42);
             this.selectedAnimationTextBox.Name = "selectedAnimationTextBox";
             this.selectedAnimationTextBox.ReadOnly = true;
-            this.selectedAnimationTextBox.Size = new System.Drawing.Size(169, 20);
+            this.selectedAnimationTextBox.Size = new System.Drawing.Size(119, 20);
             this.selectedAnimationTextBox.TabIndex = 10;
             // 
             // label4
             // 
             this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(217, 45);
+            this.label4.Location = new System.Drawing.Point(198, 45);
             this.label4.Name = "label4";
             this.label4.Size = new System.Drawing.Size(101, 13);
             this.label4.TabIndex = 9;
             this.label4.Text = "Selected Animation:";
             // 
+            // label5
+            // 
+            this.label5.AutoSize = true;
+            this.label5.Location = new System.Drawing.Point(262, 13);
+            this.label5.Name = "label5";
+            this.label5.Size = new System.Drawing.Size(37, 13);
+            this.label5.TabIndex = 12;
+            this.label5.Text = "Show:";
+            // 
+            // filterComboBox
+            // 
+            this.filterComboBox.FormattingEnabled = true;
+            this.filterComboBox.Location = new System.Drawing.Point(305, 10);
+            this.filterComboBox.Name = "filterComboBox";
+            this.filterComboBox.Size = new System.Drawing.Size(119, 21);
+            this.filterComboBox.TabIndex = 11;
+            this.filterComboBox.SelectedIndexChanged += new System.EventHandler(this.filterComboBox_SelectedIndexChanged);
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(733, 603);
+            this.ClientSize = new System.Drawing.Size(669, 603);
+            this.Controls.Add(this.label5);
+            this.Controls.Add(this.filterComboBox);
             this.Controls.Add(this.selectedAnimationTextBox);
             this.Controls.Add(this.label4);
             this.Controls.Add(this.selectedIdTextBox);
@@ -155,6 +177,8 @@
         private System.Windows.Forms.TextBox selectedIdTextBox;
         private System.Windows.Forms.TextBox selectedAnimationTextBox;
         private System.Windows.Forms.Label label4;
+        private System.Windows.Forms.Label label5;
+        private System.Windows.Forms.ComboBox filterComboBox;
     }
 }
 

@@ -15,9 +15,9 @@ namespace IllutiaClientDataReader
         Helm,
         Legs,
         Feet,
-        LeftHand,
-        RightHand,
-        Mount
+        Hand,
+        //RightHand,
+        //Mount
     }
 
     public class CompiledAnimation
