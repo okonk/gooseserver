@@ -148,6 +148,7 @@ namespace Goose
         public bool BuffCanBeRemoved { get; set; }
 
         public int BuffGraphic { get; set; }
+        public int BuffGraphicFile { get; set; }
 
         public decimal RandomJoinChance { get; set; }
 

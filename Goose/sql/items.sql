@@ -78,4 +78,9 @@ INSERT INTO item_templates (item_template_id, item_usetype, item_name, item_slot
 	graphic_tile, graphic_file, graphic_equip) 
 VALUES (2, 3, 'Scroll: Healing', 0, 0, 1, 100, 31, 1, '1', 331907, 2275, 0);
 
+INSERT INTO item_templates (item_template_id, item_usetype, item_name, item_slot,   
+item_type, stat_ac, stat_int, player_hp, 
+	graphic_tile, graphic_file, graphic_equip, min_level, class_restrictions, item_value) 
+VALUES (3, 0, 'Dancing Shoes', 12, 1, 10, 1, 10, 332203, 2278, 1, 1, 15, 200);
+
 SET IDENTITY_INSERT item_templates OFF;

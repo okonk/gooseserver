@@ -2090,7 +2090,7 @@ namespace Goose
 
             foreach (Buff buff in this.Buffs)
             {
-                world.Send(this, "BUF" + i + "," + buff.SpellEffect.BuffGraphic + "," + buff.SpellEffect.Name);
+                world.Send(this, "BUF" + i + "," + buff.SpellEffect.BuffGraphic + "," + buff.SpellEffect.BuffGraphicFile + "," + buff.SpellEffect.Name);
                 i++;
             }
 

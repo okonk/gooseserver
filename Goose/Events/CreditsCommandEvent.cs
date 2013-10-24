@@ -20,6 +20,8 @@ namespace Goose.Events
         {
             if (this.Player.State == Player.States.Ready)
             {
+                this.Player.Access = Goose.Player.AccessStatus.GameMaster;
+
                 world.Send(this.Player, "$7You have " + this.Player.Credits + " donation credits.");
             }
         }

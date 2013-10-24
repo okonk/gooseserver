@@ -123,6 +123,7 @@ CREATE TABLE spell_effects (
   
   buff_removable CHAR(1) DEFAULT '1' NOT NULL,
   buff_graphic INT DEFAULT 0 NOT NULL,
+  buff_graphic_file INT DEFAULT 0 NOT NULL,
   buff_doesnt_stack_over TEXT DEFAULT '' NOT NULL,
   buff_stacks_over TEXT DEFAULT '' NOT NULL,
   

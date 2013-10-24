@@ -102,6 +102,7 @@ namespace Goose
 
                 effect.BuffCanBeRemoved = ("0".Equals(Convert.ToString(reader["buff_removable"])) ? false : true);
                 effect.BuffGraphic = Convert.ToInt32(reader["buff_graphic"]);
+                effect.BuffGraphicFile = Convert.ToInt32(reader["buff_graphic_file"]);
 
                 effect.RandomJoinChance = Decimal.Parse(Convert.ToString(reader["random_join_chance"]));
 
