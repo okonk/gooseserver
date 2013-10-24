@@ -15,7 +15,7 @@ namespace BlockedTilesRunner
 
             using (SqlConnection sql = new SqlConnection())
             {
-                sql.ConnectionString = "Server=localhost;Database=Goose;Trusted_Connection=True;";
+                sql.ConnectionString = "Server=localhost;Database=IllutiaGoose;Trusted_Connection=True;";
                 sql.Open();
 
                 SqlCommand cmd = sql.CreateCommand();

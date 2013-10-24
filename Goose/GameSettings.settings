@@ -6,7 +6,7 @@
       <Value Profile="(Default)">True</Value>
     </Setting>
     <Setting Name="GameServerPort" Type="System.Int16" Scope="User">
-      <Value Profile="(Default)">2006</Value>
+      <Value Profile="(Default)">2008</Value>
     </Setting>
     <Setting Name="MaxPlayers" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">200</Value>

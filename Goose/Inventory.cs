@@ -102,7 +102,7 @@ namespace Goose
                 if (slot != null)
                 {
                     world.Send(this.player, "SIS" + i + "|" + slot.Item.GraphicTile + "|" +
-                    ((int)slot.Item.Slot == 1 ? 2269 : (int)slot.Item.Slot < 13 ? 2278 : 2268) + "|" +
+                    slot.Item.GraphicFile + "|" +
                     "title" + "|" + slot.Item.Name + "|" + "surname" + "|" + slot.Stack + "|" + slot.Item.Value + "|" +
                     "" + "|" + slot.Item.Description + "|" + slot.Item.WeaponDamage + "|" + slot.Item.WeaponDamage + "|" +
                     slot.Item.WeaponDelay + "|" + "0" + "|" + slot.Item.BaseStats.AC + "|" +

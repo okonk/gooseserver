@@ -37,6 +37,7 @@ namespace Goose
                 effect.ID = Convert.ToInt32(reader["spell_effect_id"]);
                 effect.Name = Convert.ToString(reader["spell_effect_name"]);
                 effect.Animation = Convert.ToInt32(reader["spell_animation"]);
+                effect.AnimationFile = Convert.ToInt32(reader["spell_animation_file"]);
                 effect.Display = (SpellEffect.SpellDisplays)Convert.ToInt32(reader["spell_display"]);
                 effect.TargetType = (SpellEffect.TargetTypes)Convert.ToInt32(reader["target_type"]);
                 effect.TargetSize = Convert.ToInt32(reader["target_size"]);
@@ -46,6 +47,8 @@ namespace Goose
                 effect.Duration = Convert.ToInt64(reader["effect_duration"]);
                 effect.DoAttackAnimation = 
                     ("0".Equals(Convert.ToString(reader["do_attack_animation"])) ? false : true);
+                effect.DoCastAnimation =
+                    ("0".Equals(Convert.ToString(reader["do_cast_animation"])) ? false : true);
                 effect.SpellDamageEffects = 
                     ("0".Equals(Convert.ToString(reader["spell_damage_effects"])) ? false : true);
                 effect.EnergyType = Convert.ToInt32(reader["spell_energy_type"]);
@@ -202,6 +205,7 @@ namespace Goose
                 spell.ClassRestrictions = Convert.ToInt64(reader["class_restrictions"]);
                 spell.Aether = Convert.ToInt64(reader["spell_aether"]);
                 spell.Graphic = Convert.ToInt32(reader["spellbook_graphic"]);
+                spell.GraphicFile = Convert.ToInt32(reader["spellbook_graphic_file"]);
                 spell.HPPercentCost = Decimal.Parse(Convert.ToString(reader["hp_percent_cost"]));
                 spell.HPStaticCost = Convert.ToInt32(reader["hp_static_cost"]);
                 spell.MPPercentCost = Decimal.Parse(Convert.ToString(reader["mp_percent_cost"]));

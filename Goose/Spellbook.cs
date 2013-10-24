@@ -33,7 +33,7 @@ namespace Goose
         public void Load(GameWorld world)
         {
             SqlCommand command = new SqlCommand(
-                "SELECT * FROM spellbook WHERE player_id=" + this.player.PlayerID, 
+                "SELECT * FROM spellbook WHERE player_id=" + this.player.PlayerID,
                 world.SqlConnection);
             SqlDataReader reader = command.ExecuteReader();
 
@@ -113,11 +113,28 @@ namespace Goose
             Spell spell = this.spells[slot];
             if (spell != null)
             {
+                int targetType = 0;
+                if (spell.Target == Spell.SpellTargets.Target)
+                {
+                    if (((int)spell.SpellEffect.Effected & (int)SpellEffect.SpellEffected.Player) != 0)
+                    {
+                        targetType = 2;
+                    }
+                    else
+                    {
+                        targetType = 1;
+                    }
+                }
+
+
                 world.Send(this.player, "SSS" + slot + "," +
                     spell.Name + "," +
-                    spell.SpellEffect.Animation + ",0,0," +
-                    (spell.Target == Spell.SpellTargets.Target ? "1" : "0") + "," +
-                    spell.Graphic + ",0," +
+                    spell.SpellEffect.Animation + "," +
+                    "0," +
+                    "0," +
+                    targetType + "," +
+                    spell.Graphic + "," +
+                    spell.GraphicFile + "," +
                     spell.Aether);
             }
         }
@@ -239,7 +256,7 @@ namespace Goose
         public void SwapSlots(int slot1, int slot2, GameWorld world)
         {
             if (slot1 <= 0 || slot1 > GameSettings.Default.SpellbookSize ||
-                slot2 <= 0 || slot2 > GameSettings.Default.SpellbookSize) 
+                slot2 <= 0 || slot2 > GameSettings.Default.SpellbookSize)
             {
                 return;
             }

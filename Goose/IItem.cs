@@ -18,6 +18,7 @@ namespace Goose
 
         int GraphicEquipped { get; set; }
         int GraphicTile { get; set; }
+        int GraphicFile { get; set; }
         int GraphicR { get; set; }
         int GraphicG { get; set; }
         int GraphicB { get; set; }

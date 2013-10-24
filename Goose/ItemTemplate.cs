@@ -75,6 +75,7 @@ namespace Goose
         public ItemTypes Type { get; set; }
         public int GraphicEquipped { get; set; }
         public int GraphicTile { get; set; }
+        public int GraphicFile { get; set; }
         public int GraphicR { get; set; }
         public int GraphicG { get; set; }
         public int GraphicB { get; set; }

@@ -33,6 +33,7 @@ CREATE TABLE item_templates (
   bindonequip CHAR(1) DEFAULT '0' NOT NULL,
   event CHAR(1) DEFAULT '0' NOT NULL,
   graphic_tile INT NOT NULL,
+  graphic_file INT NOT NULL,
   graphic_equip SMALLINT DEFAULT 0 NOT NULL,
   graphic_r SMALLINT DEFAULT 0 NOT NULL,
   graphic_g SMALLINT DEFAULT 0 NOT NULL,
@@ -69,7 +70,12 @@ priest		5	31
 SET IDENTITY_INSERT item_templates ON;
 
 INSERT INTO item_templates (item_template_id, item_usetype, item_name, item_slot, item_type, 
-	graphic_tile, graphic_equip, stack_size) 
-VALUES (1, 2, 'Gold', 0, 0, 120100, 0, 0);
+	graphic_tile, graphic_file, graphic_equip, stack_size) 
+VALUES (1, 2, 'Gold', 0, 0, 331900, 2275, 0, 0);
+
+INSERT INTO item_templates (item_template_id, item_usetype, item_name, item_slot, item_type, 
+	learn_spell_id, item_value, class_restrictions, min_level, lore,
+	graphic_tile, graphic_file, graphic_equip) 
+VALUES (2, 3, 'Scroll: Healing', 0, 0, 1, 100, 31, 1, '1', 331907, 2275, 0);
 
 SET IDENTITY_INSERT item_templates OFF;

@@ -82,6 +82,7 @@ namespace Goose
                 template.WeaponDelay = Convert.ToInt32(reader["weapon_delay"]);
                 template.Value = Convert.ToInt64(reader["item_value"]);
                 template.GraphicTile = Convert.ToInt32(reader["graphic_tile"]);
+                template.GraphicFile = Convert.ToInt32(reader["graphic_file"]);
                 template.GraphicEquipped = Convert.ToInt32(reader["graphic_equip"]);
                 template.GraphicR = Convert.ToInt32(reader["graphic_r"]);
                 template.GraphicG = Convert.ToInt32(reader["graphic_g"]);
@@ -173,6 +174,7 @@ namespace Goose
                 item.WeaponDamage = Convert.ToInt32(reader["weapon_damage"]);
                 item.Value = Convert.ToInt64(reader["item_value"]);
                 item.GraphicTile = Convert.ToInt32(reader["graphic_tile"]);
+                item.GraphicFile = Convert.ToInt32(reader["graphic_file"]);
                 item.GraphicEquipped = Convert.ToInt32(reader["graphic_equip"]);
                 item.GraphicR = Convert.ToInt32(reader["graphic_r"]);
                 item.GraphicG = Convert.ToInt32(reader["graphic_g"]);

@@ -455,7 +455,7 @@ namespace Goose
                           (this.CurrentBodyID >= 100 ? "" : this.HairR + "," + HairG + "," + HairB + "," + HairA + ",") +
                           "0" + "," + // Invis thing
                           (this.CurrentBodyID >= 100 ? "" : this.FaceID + ",") +
-                          320 + "," + // Move Speed
+                          160 + "," + // Move Speed
                             "0" + "," + // Player Name Color
                             (this.CurrentBodyID >= 100 ? "" : 0 + ",") + // Mount Graphic
                             (this.CurrentBodyID >= 100 ? "" : 0 + ",") + // Mount Color R
@@ -491,7 +491,7 @@ namespace Goose
             this.Surname = GameSettings.Default.StartingSurname;
             this.PasswordHash = passwordHash;
             this.PasswordSalt = base64Salt;
-            this.Access = AccessStatus.GameMaster;
+            this.Access = AccessStatus.Normal;
             this.MapID = GameSettings.Default.StartingMapID;
             this.MapX = GameSettings.Default.StartingMapX;
             this.MapY = GameSettings.Default.StartingMapY;
@@ -811,7 +811,7 @@ namespace Goose
             this.Spellbook = new Spellbook(this);
             this.Spellbook.Load(world);
 
-            this.BodyState = 1;
+            this.BodyState = 3;
 
             this.LoadPets(world);
         }
@@ -1335,7 +1335,7 @@ namespace Goose
                    (this.CurrentBodyID >= 100 ? "" : this.HairA + ",") +
                    (this.CurrentBodyID >= 100 ? "" : "0" + ",") + // Invis thing
                    (this.CurrentBodyID >= 100 ? "" : this.FaceID + ",") +
-                   320 + "," + // Move Speed
+                   160 + "," + // Move Speed
                    (this.CurrentBodyID >= 100 ? "" : 0 + ",") + // Mount Graphic
                    (this.CurrentBodyID >= 100 ? "" : 0 + ",") + // Mount Color R
                    (this.CurrentBodyID >= 100 ? "" : 0 + ",") + // Mount Color G

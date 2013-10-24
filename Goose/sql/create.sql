@@ -45,6 +45,7 @@ CREATE TABLE items (
   weapon_damage SMALLINT DEFAULT 1 NOT NULL,
   item_value BIGINT DEFAULT 0 NOT NULL,
   graphic_tile INT NOT NULL,
+  graphic_file INT NOT NULL,
   graphic_equip SMALLINT NOT NULL,
   graphic_r SMALLINT DEFAULT 0 NOT NULL,
   graphic_g SMALLINT DEFAULT 0 NOT NULL,
@@ -58,4 +59,4 @@ CREATE TABLE items (
 );
 
 INSERT INTO items (item_id, item_template_id, item_name,  
-	graphic_tile, graphic_equip) VALUES (5001, 1, 'Gold', 120100, 0);
+	graphic_tile, graphic_file, graphic_equip) VALUES (5001, 1, 'Gold', 331900, 2275, 0);

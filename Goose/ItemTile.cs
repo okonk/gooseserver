@@ -31,7 +31,7 @@ namespace Goose
          * MOBString, create Map Object string
          * 
          */
-        public string MOBString()
+        public string MOBString(bool dropAnimation = false)
         {
             string rgba = "*";
             if (this.ItemSlot.Item.GraphicA != 0)
@@ -42,12 +42,20 @@ namespace Goose
                 this.ItemSlot.Item.GraphicA;
             }
 
-            return "MOB" +
+            return "DOB" +
                    this.ItemSlot.Item.GraphicTile + "," +
+                   this.ItemSlot.Item.GraphicFile + "," +
+                   0 + "," + // sound id
+                   0 + "," + // sound file
                    this.X + "," +
                    this.Y + "," +
-                   this.ItemSlot.Item.Name + (this.ItemSlot.Item.IsBindOnPickup ? " (BoP)" : "") + "," +
+                   "," + // title
+                   this.ItemSlot.Item.Name + "," +
+                   "," + // surname
                    this.ItemSlot.Stack + "," +
+                   0 + "," + // not sure, bind on equip thingie?
+                   0 + "," + // not sure, either
+                   (dropAnimation ? 1 : 0) + "," + // drop animation if 1
                    rgba;
         }
 

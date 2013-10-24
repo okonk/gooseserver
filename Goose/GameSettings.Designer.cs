@@ -37,7 +37,7 @@ namespace Goose {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("2006")]
+        [global::System.Configuration.DefaultSettingValueAttribute("2008")]
         public short GameServerPort {
             get {
                 return ((short)(this["GameServerPort"]));

@@ -28,6 +28,7 @@ namespace Goose
          */
         public long Aether { get; set; }
         public long Graphic { get; set; }
+        public int GraphicFile { get; set; }
 
         public int HPStaticCost { get; set; }
         public decimal HPPercentCost { get; set; }

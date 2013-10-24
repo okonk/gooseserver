@@ -25,6 +25,7 @@ namespace Goose
 
         public int GraphicEquipped { get; set; }
         public int GraphicTile { get; set; }
+        public int GraphicFile { get; set; }
         public int GraphicR { get; set; }
         public int GraphicG { get; set; }
         public int GraphicB { get; set; }
@@ -128,6 +129,7 @@ namespace Goose
             this.Description = this.Template.Description;
             this.GraphicEquipped = this.Template.GraphicEquipped;
             this.GraphicTile = this.Template.GraphicTile;
+            this.GraphicFile = this.Template.GraphicFile;
             this.GraphicR = this.Template.GraphicR;
             this.GraphicG = this.Template.GraphicG;
             this.GraphicB = this.Template.GraphicB;
@@ -168,7 +170,7 @@ namespace Goose
             string query = "INSERT INTO items (item_id, item_template_id, item_name, item_description, " +
             "player_hp, player_mp, player_sp, stat_ac, stat_str, stat_sta, stat_dex, stat_int, " +
             "res_fire, res_water, res_spirit, res_air, res_earth, weapon_damage, item_value, " +
-            "graphic_tile, graphic_equip, graphic_r, graphic_g, graphic_b, graphic_a, stat_multiplier, " +
+            "graphic_tile, graphic_file, graphic_equip, graphic_r, graphic_g, graphic_b, graphic_a, stat_multiplier, " +
             "bound, body_state) VALUES (" +
             this.ItemID + "," +
             this.TemplateID + ", " +
@@ -190,6 +192,7 @@ namespace Goose
             this.weapondamage + ", " +
             this.Value + ", " +
             this.GraphicTile + ", " +
+            this.GraphicFile + ", " +
             this.GraphicEquipped + ", " +
             this.GraphicR + ", " +
             this.GraphicG + ", " +
@@ -240,6 +243,7 @@ namespace Goose
                 "weapon_damage=" + this.weapondamage + ", " +
                 "item_value=" + this.Value + ", " + 
                 "graphic_tile=" + this.GraphicTile + ", " +
+                "graphic_file=" + this.GraphicFile + ", " +
                 "graphic_equip=" + this.GraphicEquipped + ", " +
                 "graphic_r=" + this.GraphicR + ", " +
                 "graphic_g=" + this.GraphicG + ", " +
