@@ -28,7 +28,8 @@ namespace Goose
             Vendor = 13,
             ItemInfo = 22,
             EightSlot = 18,
-            TenSlot = 19
+            TenSlot = 19,
+            Bank = 26,
         }
         public WindowFrames Frame { get; set; }
         public enum WindowTypes
@@ -38,7 +39,8 @@ namespace Goose
             CharInfo,
             Rank,
             CombineBag,
-            PetInfo
+            PetInfo,
+            Bank,
         }
         public WindowTypes Type { get; set; }
 
@@ -82,6 +84,10 @@ namespace Goose
                 case WindowTypes.CombineBag:
                     this.Frame = WindowFrames.TenSlot;
                     this.ID = 22; // combine has to be id 22
+                    break;
+                case WindowTypes.Bank:
+                    this.Frame = WindowFrames.Bank;
+                    this.ID = 21; // bank has to be id 21
                     break;
             }
 
@@ -132,9 +138,7 @@ namespace Goose
                             continue;
                         }
 
-                        world.Send(player, "WNF" + this.ID + "," + i + "," + slot.ItemTemplate.Name +
-                            (slot.Stack > 1 ? " (" + slot.Stack + ")" : "") + "|" + 0 + "|" +
-                            slot.ItemTemplate.ID + "|" + slot.ItemTemplate.GraphicTile + "|*");
+                        world.Send(player, "SVS" + slot.ItemTemplate.GetSlotPacket(i, 1));
                         i++;
                     }
                     break;
@@ -165,29 +169,30 @@ namespace Goose
             switch (this.Type)
             {
                 case WindowTypes.Vendor:
+                    // commented out cause don't think it's needed
                     // start at 0 since first slot is always null
-                    int i = 0;
-                    foreach (NPCVendorSlot slot in this.NPC.VendorItems)
-                    {
-                        if (slot == null)
-                        {
-                            world.Send(player, "WNF" + this.ID + "," + i + ", |0|0|0|*");
-                        }
-                        else
-                        {
-                            world.Send(player, "WNF" + this.ID + "," + i + "," + slot.ItemTemplate.Name +
-                                (slot.Stack > 1 ? " (" + slot.Stack + ")" : "") + "|" +
-                                0 + "|" +
-                                slot.ItemTemplate.ID + "|" + slot.ItemTemplate.GraphicTile + "|*");
-                        }
-                        i++;
-                    }
+                    //int i = 0;
+                    //foreach (NPCVendorSlot slot in this.NPC.VendorItems)
+                    //{
+                    //    if (slot == null)
+                    //    {
+                    //        world.Send(player, "WNF" + this.ID + "," + i + ", |0|0|0|*");
+                    //    }
+                    //    else
+                    //    {
+                    //        world.Send(player, "WNF" + this.ID + "," + i + "," + slot.ItemTemplate.Name +
+                    //            (slot.Stack > 1 ? " (" + slot.Stack + ")" : "") + "|" +
+                    //            0 + "|" +
+                    //            slot.ItemTemplate.ID + "|" + slot.ItemTemplate.GraphicTile + "|*");
+                    //    }
+                    //    i++;
+                    //}
 
-                    while (i <= GameSettings.Default.VendorSlotSize)
-                    {
-                        world.Send(player, "WNF" + this.ID + "," + i + ", |0|0|0|*");
-                        i++;
-                    }
+                    //while (i <= GameSettings.Default.VendorSlotSize)
+                    //{
+                    //    world.Send(player, "WNF" + this.ID + "," + i + ", |0|0|0|*");
+                    //    i++;
+                    //}
 
                     break;
                 case WindowTypes.ItemInfo:

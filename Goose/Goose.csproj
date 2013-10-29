@@ -76,6 +76,8 @@
     <Compile Include="Events\CharacterInfoCommandEvent.cs" />
     <Compile Include="Events\ChatEvent.cs" />
     <Compile Include="Events\CheckNameCommandEvent.cs" />
+    <Compile Include="Events\SpellbookBackEvent.cs" />
+    <Compile Include="Events\SpellbookNextEvent.cs" />
     <Compile Include="Events\GiveCreditsCommandEvent.cs" />
     <Compile Include="Events\GMSetSurnameCommandEvent.cs" />
     <Compile Include="Events\GMSetTitleCommandEvent.cs" />

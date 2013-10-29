@@ -130,6 +130,8 @@ namespace Goose
             this.stringToEvent.Add("/setsurname ", GMSetSurnameCommandEvent.Create);
             this.stringToEvent.Add("/givecredits ", GiveCreditsCommandEvent.Create);
             this.stringToEvent.Add("/hairdye ", HairdyeCommandEvent.Create);
+            this.stringToEvent.Add("SBN", SpellbookNextEvent.Create);
+            this.stringToEvent.Add("SBB", SpellbookBackEvent.Create);
         }
 
         /**

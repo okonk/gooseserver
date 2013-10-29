@@ -98,6 +98,21 @@ namespace Goose
             }
         }
 
+        public int NextFreeSlot(int lowerBound)
+        {
+            if (lowerBound <= 0 || lowerBound >= GameSettings.Default.SpellbookSize) return -1;
+
+            for (int i = lowerBound; i <= this.spells.Length; i++)
+            {
+                if (this.spells[i] == null)
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
         /**
          * SendSlot, sends spellbook slot to player
          * 
@@ -136,6 +151,10 @@ namespace Goose
                     spell.Graphic + "," +
                     spell.GraphicFile + "," +
                     spell.Aether);
+            }
+            else
+            {
+                world.Send(this.player, "SSS" + slot + ",,0,0,0,0,0,0,0");
             }
         }
 

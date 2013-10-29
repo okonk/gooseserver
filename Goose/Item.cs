@@ -63,68 +63,9 @@ namespace Goose
         public bool Delete { get; set; }
         public long Value { get; set; }
 
-        public int Flags
-        {
-            get
-            {
-                return (0 | (IsBindOnPickup ? 0x80 : 0) | (IsBindOnEquip ? 2 : 0) | (IsEvent ? 0x10 : 0));
-            }
-        }
+        public int Flags { get { return this.Template.Flags; } }
 
-        public int BodyType
-        {
-            get
-            {
-                switch (Slot)
-                {
-                    case ItemTemplate.ItemSlots.Belt:
-                        return 8;
-
-                    case ItemTemplate.ItemSlots.Chest:
-                        return 2;
-
-                    case ItemTemplate.ItemSlots.Cloak:
-                        return 7;
-
-                    case ItemTemplate.ItemSlots.Gloves:
-                        return 4;
-
-                    case ItemTemplate.ItemSlots.Helmet:
-                        return 1;
-
-                    case ItemTemplate.ItemSlots.Necklace:
-                        return 9;
-
-                    case ItemTemplate.ItemSlots.OneHanded:
-                        return 11;
-
-                    case ItemTemplate.ItemSlots.Pants:
-                        return 5;
-
-                    case ItemTemplate.ItemSlots.Pauldrons:
-                        return 3;
-
-                    case ItemTemplate.ItemSlots.Ring:
-                        return 10;
-
-                    case ItemTemplate.ItemSlots.Shield:
-                        return 12;
-
-                    case ItemTemplate.ItemSlots.Shoes:
-                        return 6;
-
-                    case ItemTemplate.ItemSlots.TwoHanded:
-                        return 11;
-
-                    case ItemTemplate.ItemSlots.Mount:
-                        return 13;
-
-                    default:
-                        return 0;
-
-                }
-            }
-        }
+        public int BodyType { get { return this.Template.BodyType; } }
 
         bool bound = false;
         public bool IsBound
