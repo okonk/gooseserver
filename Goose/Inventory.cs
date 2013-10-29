@@ -101,17 +101,7 @@ namespace Goose
                 ItemSlot slot = this.inventory[i];
                 if (slot != null)
                 {
-                    world.Send(this.player, "SIS" + i + "|" + slot.Item.GraphicTile + "|" +
-                    slot.Item.GraphicFile + "|" +
-                    "title" + "|" + slot.Item.Name + "|" + "surname" + "|" + slot.Stack + "|" + slot.Item.Value + "|" +
-                    "" + "|" + slot.Item.Description + "|" + slot.Item.WeaponDamage + "|" + slot.Item.WeaponDamage + "|" +
-                    slot.Item.WeaponDelay + "|" + "0" + "|" + slot.Item.BaseStats.AC + "|" +
-                    slot.Item.BaseStats.HP + "|" + slot.Item.BaseStats.MP + "|" + slot.Item.BaseStats.SP + "|" +
-                    slot.Item.BaseStats.Strength + "|" + slot.Item.BaseStats.Stamina + "|" + slot.Item.BaseStats.Intelligence + "|" +
-                    slot.Item.BaseStats.Dexterity + "|" + slot.Item.BaseStats.FireResist + "|" + slot.Item.BaseStats.WaterResist + "|" +
-                    slot.Item.BaseStats.EarthResist + "|" + slot.Item.BaseStats.AirResist + "|" +
-                    slot.Item.BaseStats.SpiritResist + "|" + slot.Item.MinLevel + "|" + slot.Item.MaxLevel + "|0|0|0|0|0" + "|" +
-                    (slot.Item.SpellEffect == null ? "" : slot.Item.SpellEffect.Name) + "|" + (int)slot.Item.SpellEffectChance + "|" + slot.Item.Type + "|" + slot.Item.UseType + "|" + 0 + "|" + slot.Item.GraphicR + "|" + slot.Item.GraphicG + "|" + slot.Item.GraphicB + "|" + slot.Item.GraphicA);
+                    world.Send(this.player, "SIS" + slot.Item.GetSlotPacket(i, slot.Stack));
                 }
                 else
                 {
@@ -253,11 +243,11 @@ namespace Goose
 
             if (this.player.CanUse(slot.Item, world))
             {
-                if (slot.Item.UseType == ItemTemplate.UseTypes.Equipment) 
+                if (slot.Item.UseType == ItemTemplate.UseTypes.Armor || slot.Item.UseType == ItemTemplate.UseTypes.Weapon)
                 {
                     this.Equip(slot.Item, world);
                 }
-                else if (slot.Item.UseType == ItemTemplate.UseTypes.Consumable)
+                else if (slot.Item.UseType == ItemTemplate.UseTypes.OneTime)
                 {
                     this.UseConsumable(slot.Item, world);
                 }
@@ -665,17 +655,7 @@ namespace Goose
                 ItemSlot slot = this.equipped[(int)equipslot];
                 if (slot != null)
                 {
-                    world.Send(this.player, "SIS" + ((int)equipslot + 31) + "|" + slot.Item.GraphicTile + "|" +
-                    ((int)equipslot == 1 ? 2269 : (int)equipslot < 13 ? 2278 : 2268) + "|" +
-                    "title" + "|" + slot.Item.Name + "|" + "surname" + "|" + slot.Stack + "|" + slot.Item.Value + "|" +
-                    "" + "|" + slot.Item.Description + "|" + slot.Item.WeaponDamage + "|" + slot.Item.WeaponDamage + "|" +
-                    slot.Item.WeaponDelay + "|" + "0" + "|" + slot.Item.BaseStats.AC + "|" +
-                    slot.Item.BaseStats.HP + "|" + slot.Item.BaseStats.MP + "|" + slot.Item.BaseStats.SP + "|" +
-                    slot.Item.BaseStats.Strength + "|" + slot.Item.BaseStats.Stamina + "|" + slot.Item.BaseStats.Intelligence + "|" +
-                    slot.Item.BaseStats.Dexterity + "|" + slot.Item.BaseStats.FireResist + "|" + slot.Item.BaseStats.WaterResist + "|" +
-                    slot.Item.BaseStats.EarthResist + "|" + slot.Item.BaseStats.AirResist + "|" +
-                    slot.Item.BaseStats.SpiritResist + "|" + slot.Item.MinLevel + "|" + slot.Item.MaxLevel + "|0|0|0|0|0" + "|" +
-                    (slot.Item.SpellEffect == null ? "" : slot.Item.SpellEffect.Name) + "|" + (int)slot.Item.SpellEffectChance + "|" + slot.Item.Type + "|" + slot.Item.UseType + "|" + 0 + "|" + slot.Item.GraphicR + "|" + slot.Item.GraphicG + "|" + slot.Item.GraphicB + "|" + slot.Item.GraphicA);
+                    world.Send(this.player, "SIS" + slot.Item.GetSlotPacket(((int)equipslot + 31), slot.Stack));
                 }
                 else
                 {
@@ -1115,15 +1095,11 @@ namespace Goose
                     ItemSlot slot = this.combine[i];
                     if (slot != null)
                     {
-                        world.Send(this.player, "WNF" + window.ID + "," + i + "," + slot.Item.Name + "|" +
-                                                slot.Stack + "|" + slot.Item.ItemID + "|" +
-                                                slot.Item.GraphicTile + "|" +
-                                                slot.Item.GraphicR + "|" + slot.Item.GraphicG + "|" +
-                                                slot.Item.GraphicB + "|" + slot.Item.GraphicA);
+                        world.Send(this.player, "SCS" + slot.Item.GetSlotPacket(i, slot.Stack));
                     }
                     else
                     {
-                        world.Send(this.player, "WNF" + window.ID + "," + i + ", |0|0|0|*");
+                        world.Send(this.player, "CCS" + i);
                     }
                 }
             }

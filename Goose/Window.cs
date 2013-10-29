@@ -81,6 +81,7 @@ namespace Goose
                     break;
                 case WindowTypes.CombineBag:
                     this.Frame = WindowFrames.TenSlot;
+                    this.ID = 22; // combine has to be id 22
                     break;
             }
 
@@ -236,7 +237,7 @@ namespace Goose
             line = "WNF" + this.ID + "," + 2 + "," + item.Description + "|0|0|0|*";
             world.Send(player, line);
 
-            if (item.UseType == ItemTemplate.UseTypes.Equipment)
+            if (item.UseType == ItemTemplate.UseTypes.Armor || item.UseType == ItemTemplate.UseTypes.Weapon)
             {
                 if (item.Slot == ItemTemplate.ItemSlots.OneHanded ||
                     item.Slot == ItemTemplate.ItemSlots.TwoHanded)
@@ -327,7 +328,7 @@ namespace Goose
             world.Send(player, line);
 
             line = "WNF" + this.ID + "," + 10 + ",";
-            if (item.UseType == ItemTemplate.UseTypes.Equipment)
+            if (item.UseType == ItemTemplate.UseTypes.Armor || item.UseType == ItemTemplate.UseTypes.Weapon)
             {
                 line += "Slot: " + item.Slot.ToString() + " ";
             }

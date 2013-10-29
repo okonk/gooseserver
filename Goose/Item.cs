@@ -63,6 +63,69 @@ namespace Goose
         public bool Delete { get; set; }
         public long Value { get; set; }
 
+        public int Flags
+        {
+            get
+            {
+                return (0 | (IsBindOnPickup ? 0x80 : 0) | (IsBindOnEquip ? 2 : 0) | (IsEvent ? 0x10 : 0));
+            }
+        }
+
+        public int BodyType
+        {
+            get
+            {
+                switch (Slot)
+                {
+                    case ItemTemplate.ItemSlots.Belt:
+                        return 8;
+
+                    case ItemTemplate.ItemSlots.Chest:
+                        return 2;
+
+                    case ItemTemplate.ItemSlots.Cloak:
+                        return 7;
+
+                    case ItemTemplate.ItemSlots.Gloves:
+                        return 4;
+
+                    case ItemTemplate.ItemSlots.Helmet:
+                        return 1;
+
+                    case ItemTemplate.ItemSlots.Necklace:
+                        return 9;
+
+                    case ItemTemplate.ItemSlots.OneHanded:
+                        return 11;
+
+                    case ItemTemplate.ItemSlots.Pants:
+                        return 5;
+
+                    case ItemTemplate.ItemSlots.Pauldrons:
+                        return 3;
+
+                    case ItemTemplate.ItemSlots.Ring:
+                        return 10;
+
+                    case ItemTemplate.ItemSlots.Shield:
+                        return 12;
+
+                    case ItemTemplate.ItemSlots.Shoes:
+                        return 6;
+
+                    case ItemTemplate.ItemSlots.TwoHanded:
+                        return 11;
+
+                    case ItemTemplate.ItemSlots.Mount:
+                        return 13;
+
+                    default:
+                        return 0;
+
+                }
+            }
+        }
+
         bool bound = false;
         public bool IsBound
         {
@@ -271,6 +334,53 @@ namespace Goose
                 "DELETE FROM items WHERE item_id=" + this.ItemID, 
                 world.SqlConnection);
             command.BeginExecuteNonQuery(new AsyncCallback(GameWorld.DefaultEndExecuteNonQueryAsyncCallback), command);
+        }
+
+        public string GetSlotPacket(int slotId, long stack)
+        {
+            return slotId + "|" +
+                    this.GraphicTile + "|" +
+                    this.GraphicFile + "|" +
+                    "" + "|" + // title
+                    this.Name + "|" +
+                    "" + "|" + //surname
+                    stack + "|" +
+                    this.Value + "|" +
+                    this.Flags + "|" +
+                    this.Description + "|" +
+                    this.WeaponDamage + "|" +
+                    this.WeaponDamage + "|" +
+                    (this.WeaponDamage > 0 ? this.WeaponDelay : 0) + "|" +
+                    (int)this.Type + "|" +
+                    this.TotalStats.AC + "|" +
+                    this.TotalStats.HP + "|" +
+                    this.TotalStats.MP + "|" +
+                    this.TotalStats.SP + "|" +
+                    this.TotalStats.Strength + "|" +
+                    this.TotalStats.Stamina + "|" +
+                    this.TotalStats.Intelligence + "|" +
+                    this.TotalStats.Dexterity + "|" +
+                    this.TotalStats.FireResist + "|" +
+                    this.TotalStats.WaterResist + "|" +
+                    this.TotalStats.EarthResist + "|" +
+                    this.TotalStats.AirResist + "|" +
+                    this.TotalStats.SpiritResist + "|" +
+                    this.MinLevel + "|" +
+                    this.MaxLevel + "|" +
+                    "0" + "|" + // class 1
+                    "0" + "|" + // class 2
+                    "0" + "|" + // class 3
+                    "0" + "|" + // gm access
+                    "0" + "|" + // gender, always 0 since we don't care about gender
+                    (this.SpellEffect == null ? "" : this.SpellEffect.Name) + "|" +
+                    (int)this.SpellEffectChance + "|" +
+                    this.BodyType + "|" +
+                    (int)this.UseType + "|" +
+                    0 + "|" + // not sure
+                    this.GraphicR + "|" +
+                    this.GraphicG + "|" +
+                    this.GraphicB + "|" +
+                    this.GraphicA;
         }
     }
 }

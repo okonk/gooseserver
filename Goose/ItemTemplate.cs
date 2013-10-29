@@ -13,11 +13,6 @@ namespace Goose
     {
         public enum UseTypes 
         {
-            Equipment = 0,
-            Consumable,
-            Useless,
-            Scroll
-            /*
             NoUse = 0,
             OneTime,
             Armor,
@@ -26,8 +21,7 @@ namespace Goose
             HairDye,
             Letter,
             Money,
-            Recipe
-             */
+            Recipe,
         }
         public enum ItemSlots
         {
@@ -44,20 +38,22 @@ namespace Goose
             Chest,
             Pants,
             Shoes,
-            Mount
+            Mount,
+            Misc = 20,
         }
         public enum ItemTypes
         {
-            Accessory = 0,
+            Plate = 10,
+            Leather,
             Cloth,
-            Silk,
-            Plate,
+            Mail,
+            OneHandedSword,
+            TwoHandedSword,
             OneHandedBlunt,
-            OneHandedSlash,
-            OneHandedPierce,
             TwoHandedBlunt,
-            TwoHandedSlash,
-            TwoHandedPierce
+            OneHandedPierce,
+            TwoHandedPierce,
+            Fist,
         }
 
         public int ID { get; set; }

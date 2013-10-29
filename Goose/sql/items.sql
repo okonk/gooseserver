@@ -23,7 +23,7 @@ CREATE TABLE item_templates (
   min_level SMALLINT DEFAULT 0 NOT NULL,
   max_experience BIGINT DEFAULT 0 NOT NULL,
   max_level SMALLINT DEFAULT 0 NOT NULL,
-  weapon_damage SMALLINT DEFAULT 1 NOT NULL,
+  weapon_damage SMALLINT DEFAULT 0 NOT NULL,
   weapon_delay SMALLINT DEFAULT 10 NOT NULL,
   item_slot SMALLINT NOT NULL,
   item_type SMALLINT NOT NULL,
@@ -71,16 +71,16 @@ SET IDENTITY_INSERT item_templates ON;
 
 INSERT INTO item_templates (item_template_id, item_usetype, item_name, item_slot, item_type, 
 	graphic_tile, graphic_file, graphic_equip, stack_size) 
-VALUES (1, 2, 'Gold', 0, 0, 331900, 2275, 0, 0);
+VALUES (1, 7, 'Gold', 20, 0, 331900, 2275, 0, 0);
 
 INSERT INTO item_templates (item_template_id, item_usetype, item_name, item_slot, item_type, 
 	learn_spell_id, item_value, class_restrictions, min_level, lore,
 	graphic_tile, graphic_file, graphic_equip) 
-VALUES (2, 3, 'Scroll: Healing', 0, 0, 1, 100, 31, 1, '1', 331907, 2275, 0);
+VALUES (2, 4, 'Scroll: Healing', 20, 0, 1, 100, 31, 1, '1', 331907, 2275, 0);
 
 INSERT INTO item_templates (item_template_id, item_usetype, item_name, item_slot,   
 item_type, stat_ac, stat_int, player_hp, 
 	graphic_tile, graphic_file, graphic_equip, min_level, class_restrictions, item_value) 
-VALUES (3, 0, 'Dancing Shoes', 12, 1, 10, 1, 10, 332203, 2278, 1, 1, 15, 200);
+VALUES (3, 2, 'Dancing Shoes', 12, 12, 10, 1, 10, 332203, 2278, 1, 1, 15, 200);
 
 SET IDENTITY_INSERT item_templates OFF;

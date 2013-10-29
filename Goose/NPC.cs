@@ -1110,7 +1110,7 @@ namespace Goose
                     else
                     {
                         drop.Item = new Item();
-                        if (dropinfo.ItemTemplate.UseType == ItemTemplate.UseTypes.Equipment &&
+                        if ((dropinfo.ItemTemplate.UseType == ItemTemplate.UseTypes.Armor || dropinfo.ItemTemplate.UseType == ItemTemplate.UseTypes.Weapon) &&
                             world.Random.Next(1, 100001) <= 1000)
                         {
                             drop.Item.LoadFromTemplate(dropinfo.ItemTemplate);
