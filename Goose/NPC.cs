@@ -168,6 +168,22 @@ namespace Goose
          */
         public int HairA { get; set; }
         /**
+         * Body colour r
+         */
+        public int BodyR { get; set; }
+        /**
+         * Body colour g
+         */
+        public int BodyG { get; set; }
+        /**
+         * Body colour b
+         */
+        public int BodyB { get; set; }
+        /**
+         * Body colour a
+         */
+        public int BodyA { get; set; }
+        /**
          * Face id
          */
         public int FaceID { get; set; }
@@ -298,24 +314,28 @@ namespace Goose
         public string MKCString()
         {
             return "MKC" + this.LoginID + ",2," +
-                           this.Name + "," +
-                           this.Title + "," +
-                           this.Surname + "," +
-                           "" + "," + // Guild name
-                           this.MapX + "," +
-                           this.MapY + "," +
-                           this.Facing + "," +
-                           (int)(((float)this.CurrentHP / this.MaxStats.HP) * 100) + "," + // HP %
-                           this.CurrentBodyID + "," +
-                           (this.CurrentBodyID >= 100 ? 1 : this.BodyState) + "," +
-                           (this.CurrentBodyID >= 100 ? 0 : this.HairID) + "," +
-                           this.EquippedItems + "," +
-                           this.HairR + "," +
-                           this.HairG + "," +
-                           this.HairB + "," +
-                           this.HairA + "," +
-                           "0" + "," + // Invis thing
-                           (this.CurrentBodyID >= 100 ? 0 : this.FaceID);
+                        this.Name + "," +
+                        this.Title + "," +
+                        this.Surname + "," +
+                        "" + "," + // Guild name
+                        this.MapX + "," +
+                        this.MapY + "," +
+                        this.Facing + "," +
+                        (int)(((float)this.CurrentHP / this.MaxStats.HP) * 100) + "," + // HP %
+                        this.CurrentBodyID + "," +
+                        this.BodyR + "," + // Body Color R
+                        this.BodyG + "," + // Body Color G
+                        this.BodyB + "," + // Body Color B
+                        this.BodyA + "," + // Body Color A
+                        (this.CurrentBodyID >= 100 ? 3 : this.BodyState) + "," +
+                        (this.CurrentBodyID >= 100 ? "" : this.HairID + ",") +
+                        (this.CurrentBodyID >= 100 ? "" : this.EquippedItems) + "," + 
+                        (this.CurrentBodyID >= 100 ? "" : this.HairR + "," + HairG + "," + HairB + "," + HairA + ",") +
+                        "0" + "," + // Invis thing
+                        (this.CurrentBodyID >= 100 ? "" : this.FaceID + ",") +
+                        "320," + // Move Speed
+                        "0" + "," + // Player Name Color
+                        (this.CurrentBodyID >= 100 ? "" : "0,0,0,0"); // Mount
         }
 
         /**
@@ -417,6 +437,10 @@ namespace Goose
             this.BaseStats = new AttributeSet();
             this.BaseStats += template.BaseStats;
             this.BodyID = template.BodyID;
+            this.BodyA = template.BodyA;
+            this.BodyB = template.BodyB;
+            this.BodyG = template.BodyG;
+            this.BodyR = template.BodyR;
             this.BodyState = template.BodyState;
             this.CanBeKilled = template.CanBeKilled;
             this.CanBeRooted = template.CanBeRooted;

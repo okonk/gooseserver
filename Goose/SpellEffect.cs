@@ -192,6 +192,22 @@ namespace Goose
          */
         public int HairA { get; set; }
         /**
+         * Body colour r
+         */
+        public int BodyR { get; set; }
+        /**
+         * Body colour g
+         */
+        public int BodyG { get; set; }
+        /**
+         * Body colour b
+         */
+        public int BodyB { get; set; }
+        /**
+         * Body colour a
+         */
+        public int BodyA { get; set; }
+        /**
          * Face id
          */
         public int FaceID { get; set; }
@@ -343,6 +359,14 @@ namespace Goose
             {
                 if (target.CurrentBodyID == target.BodyID) target.CurrentBodyID = this.BodyID;
                 target.BodyID = this.BodyID;
+            }
+            // an alpha value of 0 means don't dye body. 
+            if (this.BodyA != 0)
+            {
+                target.BodyR = this.BodyR;
+                target.BodyG = this.BodyG;
+                target.BodyB = this.BodyB;
+                target.BodyA = this.BodyA;
             }
 
             ((Player)target).AddRegenEvent(world);

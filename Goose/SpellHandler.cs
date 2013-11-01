@@ -63,6 +63,10 @@ namespace Goose
                 effect.TeleportMapY = Convert.ToInt32(reader["teleport_y"]);
 
                 effect.BodyID = Convert.ToInt32(reader["body_id"]);
+                effect.BodyR = Convert.ToInt32(reader["body_r"]);
+                effect.BodyG = Convert.ToInt32(reader["body_g"]);
+                effect.BodyB = Convert.ToInt32(reader["body_b"]);
+                effect.BodyA = Convert.ToInt32(reader["body_a"]);
                 effect.FaceID = Convert.ToInt32(reader["face_id"]);
                 effect.HairID = Convert.ToInt32(reader["hair_id"]);
                 effect.HairR = Convert.ToInt32(reader["hair_r"]);

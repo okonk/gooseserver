@@ -178,6 +178,10 @@ namespace Goose
             pet.Facing = character.Facing;
             pet.FaceID = character.FaceID;
             pet.BodyID = character.BodyID;
+            pet.BodyR = character.BodyR;
+            pet.BodyG = character.BodyG;
+            pet.BodyB = character.BodyB;
+            pet.BodyA = character.BodyA;
             pet.CurrentBodyID = pet.BodyID;
             pet.EquippedItems = character.EquippedItems;
             pet.BodyState = character.BodyState;
@@ -208,6 +212,10 @@ namespace Goose
             pet.Experience = Convert.ToInt64(reader["experience"]);
             pet.ExperienceSold = Convert.ToInt64(reader["experience_sold"]);
             pet.BodyID = Convert.ToInt32(reader["body_id"]);
+            pet.BodyR = Convert.ToInt32(reader["body_r"]);
+            pet.BodyG = Convert.ToInt32(reader["body_g"]);
+            pet.BodyB = Convert.ToInt32(reader["body_b"]);
+            pet.BodyA = Convert.ToInt32(reader["body_a"]);
             pet.CurrentBodyID = pet.BodyID;
             pet.FaceID = Convert.ToInt32(reader["face_id"]);
             pet.HairID = Convert.ToInt32(reader["hair_id"]);
@@ -294,7 +302,7 @@ namespace Goose
                 string query = "INSERT INTO pets (pet_id, pet_name, pet_title, pet_surname, " +
                     "pet_facing, pet_level, experience, experience_sold, " +
                     "pet_hp, pet_mp, pet_sp, class_id, stat_ac, stat_str, stat_sta, " +
-                    "stat_dex, stat_int, res_fire, res_water, res_spirit, res_air, res_earth, body_id, " +
+                    "stat_dex, stat_int, res_fire, res_water, res_spirit, res_air, res_earth, body_id, body_r, body_g, body_b, body_a, " +
                     "face_id, hair_id, hair_r, hair_g, hair_b, hair_a, respawn_time, aggro_range, attack_speed, attack_range, " +
                     "move_speed, body_state, equipped_items, weapon_damage, hp_percent_regen, hp_static_regen, " +
                     "mp_percent_regen, mp_static_regen, owner_id) VALUES" +
@@ -320,6 +328,10 @@ namespace Goose
                     this.BaseStats.AirResist + ", " +
                     this.BaseStats.EarthResist + ", " +
                     this.BodyID + ", " +
+                    this.BodyR + ", " +
+                    this.BodyG + ", " +
+                    this.BodyB + ", " +
+                    this.BodyA + ", " +
                     this.FaceID + ", " +
                     this.HairID + ", " +
                     this.HairR + ", " +
@@ -379,6 +391,10 @@ namespace Goose
                     "res_air=" + this.BaseStats.AirResist + ", " +
                     "res_earth=" + this.BaseStats.EarthResist + ", " +
                     "body_id=" + this.BodyID + ", " +
+                    "body_r=" + this.BodyR + ", " +
+                    "body_g=" + this.BodyG + ", " +
+                    "body_b=" + this.BodyB + ", " +
+                    "body_a=" + this.BodyA + ", " +
                     "face_id=" + this.FaceID + ", " +
                     "hair_id=" + this.HairID + ", " +
                     "hair_r=" + this.HairR + ", " +
@@ -499,24 +515,28 @@ namespace Goose
         public override string MKCString()
         {
             return "MKC" + this.LoginID + ",12," +
-                        this.Name + "," +
-                        this.Title + "," +
-                        this.Surname + "," +
-                        "" + "," + // Guild name
-                        this.MapX + "," +
-                        this.MapY + "," +
-                        this.Facing + "," +
-                        (int)(((float)this.CurrentHP / this.MaxStats.HP) * 100) + "," + // HP %
-                        this.CurrentBodyID + "," +
-                        (this.CurrentBodyID >= 100 ? 1 : this.BodyState) + "," +
-                        (this.CurrentBodyID >= 100 ? 0 : this.HairID) + "," +
-                        this.EquippedItems + "," +
-                        this.HairR + "," +
-                        this.HairG + "," +
-                        this.HairB + "," +
-                        this.HairA + "," +
-                        "0" + "," + // Invis thing
-                        (this.CurrentBodyID >= 100 ? 0 : this.FaceID);
+                            this.Name + "," +
+                            this.Title + "," +
+                            this.Surname + "," +
+                            "" + "," + // Guild name
+                            this.MapX + "," +
+                            this.MapY + "," +
+                            this.Facing + "," +
+                            (int)(((float)this.CurrentHP / this.MaxStats.HP) * 100) + "," + // HP %
+                            this.CurrentBodyID + "," +
+                            this.BodyR + "," + // Body Color R
+                            this.BodyG + "," + // Body Color G
+                            this.BodyB + "," + // Body Color B
+                            this.BodyA + "," + // Body Color A
+                            (this.CurrentBodyID >= 100 ? 3 : this.BodyState) + "," +
+                            (this.CurrentBodyID >= 100 ? "" : this.HairID + ",") +
+                            (this.CurrentBodyID >= 100 ? "" : this.EquippedItems) + "," +
+                            (this.CurrentBodyID >= 100 ? "" : this.HairR + "," + HairG + "," + HairB + "," + HairA + ",") +
+                            "0" + "," + // Invis thing
+                            (this.CurrentBodyID >= 100 ? "" : this.FaceID + ",") +
+                            "320," + // Move Speed
+                            "0" + "," + // Player Name Color
+                            (this.CurrentBodyID >= 100 ? "" : "0,0,0,0"); // Mount
         }
 
         /**
@@ -528,15 +548,21 @@ namespace Goose
             return "CHP" +
                     this.LoginID + "," +
                     this.CurrentBodyID + "," +
-                    (this.CurrentBodyID >= 100 ? 1 : this.BodyState) + "," +
-                    (this.CurrentBodyID >= 100 ? 0 : this.HairID) + "," +
-                    this.EquippedItems + "," +
-                    this.HairR + "," +
-                    this.HairG + "," +
-                    this.HairB + "," +
-                    this.HairA + "," +
-                    "0" + "," + // Invis thing
-                    (this.CurrentBodyID >= 100 ? 0 : this.FaceID);
+                    this.BodyR + "," + // Body Color R
+                    this.BodyG + "," + // Body Color G
+                    this.BodyB + "," + // Body Color B
+                    this.BodyA + "," + // Body Color A
+                    (this.CurrentBodyID >= 100 ? 3 : this.BodyState) + "," +
+                    (this.CurrentBodyID >= 100 ? "" : this.HairID + ",") +
+                    (this.CurrentBodyID >= 100 ? "" : this.EquippedItems + ",") +
+                    (this.CurrentBodyID >= 100 ? "" : this.HairR + ",") +
+                    (this.CurrentBodyID >= 100 ? "" : this.HairG + ",") +
+                    (this.CurrentBodyID >= 100 ? "" : this.HairB + ",") +
+                    (this.CurrentBodyID >= 100 ? "" : this.HairA + ",") +
+                    (this.CurrentBodyID >= 100 ? "" : "0" + ",") + // Invis thing
+                    (this.CurrentBodyID >= 100 ? "" : this.FaceID + ",") +
+                    "320," + // Move Speed
+                    (this.CurrentBodyID >= 100 ? "" : "0,0,0,0"); // Mount
         }
 
         public void AddMoveEvent(GameWorld world)

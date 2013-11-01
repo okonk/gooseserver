@@ -113,6 +113,22 @@ namespace Goose
          * Current Body ID
          */
         int CurrentBodyID { get; set; }
+        /**
+         * Body colour r
+         */
+        int BodyR { get; set; }
+        /**
+         * Body colour g
+         */
+        int BodyG { get; set; }
+        /**
+         * Body colour b
+         */
+        int BodyB { get; set; }
+        /**
+         * Body colour a
+         */
+        int BodyA { get; set; }
 
 
         void AddBuff(Buff buff, GameWorld world);

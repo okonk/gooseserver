@@ -77,6 +77,22 @@ namespace Goose
          */
         public int HairA { get; set; }
         /**
+         * Body colour r
+         */
+        public int BodyR { get; set; }
+        /**
+         * Body colour g
+         */
+        public int BodyG { get; set; }
+        /**
+         * Body colour b
+         */
+        public int BodyB { get; set; }
+        /**
+         * Body colour a
+         */
+        public int BodyA { get; set; }
+        /**
          * Face id
          */
         public int FaceID { get; set; }

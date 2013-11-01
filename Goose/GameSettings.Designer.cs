@@ -1266,5 +1266,53 @@ namespace Goose {
                 this["StartingMoveSpeed"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public int StartingBodyR {
+            get {
+                return ((int)(this["StartingBodyR"]));
+            }
+            set {
+                this["StartingBodyR"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public int StartingBodyG {
+            get {
+                return ((int)(this["StartingBodyG"]));
+            }
+            set {
+                this["StartingBodyG"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public int StartingBodyB {
+            get {
+                return ((int)(this["StartingBodyB"]));
+            }
+            set {
+                this["StartingBodyB"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("200")]
+        public int StartingBodyA {
+            get {
+                return ((int)(this["StartingBodyA"]));
+            }
+            set {
+                this["StartingBodyA"] = value;
+            }
+        }
     }
 }

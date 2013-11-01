@@ -64,6 +64,10 @@ namespace Goose
 
                 npc.BodyState = Convert.ToInt32(reader["body_state"]);
                 npc.BodyID = Convert.ToInt32(reader["body_id"]);
+                npc.BodyR = Convert.ToInt32(reader["body_r"]);
+                npc.BodyG = Convert.ToInt32(reader["body_g"]);
+                npc.BodyB = Convert.ToInt32(reader["body_b"]);
+                npc.BodyA = Convert.ToInt32(reader["body_a"]);
                 npc.FaceID = Convert.ToInt32(reader["face_id"]);
                 npc.HairID = Convert.ToInt32(reader["hair_id"]);
                 npc.HairR = Convert.ToInt32(reader["hair_r"]);

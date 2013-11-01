@@ -219,6 +219,22 @@ namespace Goose
          */
         public int HairA { get; set; }
         /**
+         * Body colour r
+         */
+        public int BodyR { get; set; }
+        /**
+         * Body colour g
+         */
+        public int BodyG { get; set; }
+        /**
+         * Body colour b
+         */
+        public int BodyB { get; set; }
+        /**
+         * Body colour a
+         */
+        public int BodyA { get; set; }
+        /**
          * Face id
          */
         public int FaceID { get; set; }
@@ -445,10 +461,10 @@ namespace Goose
                           this.Facing + "," +
                           (int)(((float)this.CurrentHP / this.MaxStats.HP) * 100) + "," + // HP %
                           this.CurrentBodyID + "," +
-                          0 + "," + // Body Color R
-                          0 + "," + // Body Color G
-                          0 + "," + // Body Color B
-                          0 + "," + // Body Color A
+                          this.BodyR + "," + // Body Color R
+                          this.BodyG + "," + // Body Color G
+                          this.BodyB + "," + // Body Color B
+                          this.BodyA + "," + // Body Color A
                           (this.CurrentBodyID >= 100 ? 3 : pose) + "," +
                           (this.CurrentBodyID >= 100 ? "" : this.HairID + ",") +
                           (this.CurrentBodyID >= 100 ? "" : this.Inventory.EquippedDisplay()) + // Note: EquippedDisplay() adds it's own , on end
@@ -456,8 +472,8 @@ namespace Goose
                           "0" + "," + // Invis thing
                           (this.CurrentBodyID >= 100 ? "" : this.FaceID + ",") +
                           this.CalculateMoveSpeed() + "," + // Move Speed
-                            "0" + "," + // Player Name Color
-                            (this.CurrentBodyID >= 100 ? "" : this.Inventory.MountDisplay()); // Mount
+                          "0" + "," + // Player Name Color
+                          (this.CurrentBodyID >= 100 ? "" : this.Inventory.MountDisplay()); // Mount
         }
 
         /**
@@ -505,6 +521,10 @@ namespace Goose
             this.Experience = GameSettings.Default.StartingExperience;
             this.ExperienceSold = GameSettings.Default.StartingExperienceSold;
             this.BodyID = GameSettings.Default.StartingBodyID;
+            this.BodyR = GameSettings.Default.StartingBodyR;
+            this.BodyG = GameSettings.Default.StartingBodyG;
+            this.BodyB = GameSettings.Default.StartingBodyB;
+            this.BodyA = GameSettings.Default.StartingBodyA;
             this.CurrentBodyID = this.BodyID;
             this.FaceID = GameSettings.Default.StartingFaceID;
             this.HairID = GameSettings.Default.StartingHairID;
@@ -626,6 +646,10 @@ namespace Goose
             this.Experience = Convert.ToInt64(reader["experience"]);
             this.ExperienceSold = Convert.ToInt64(reader["experience_sold"]);
             this.BodyID = Convert.ToInt32(reader["body_id"]);
+            this.BodyR = Convert.ToInt32(reader["body_r"]);
+            this.BodyG = Convert.ToInt32(reader["body_g"]);
+            this.BodyB = Convert.ToInt32(reader["body_b"]);
+            this.BodyA = Convert.ToInt32(reader["body_a"]);
             this.CurrentBodyID = this.BodyID;
             this.FaceID = Convert.ToInt32(reader["face_id"]);
             this.HairID = Convert.ToInt32(reader["hair_id"]);
@@ -729,7 +753,7 @@ namespace Goose
                     "password_hash, password_salt, access_status, map_id, map_x, map_y, player_facing, " +
                     "bound_id, bound_x, bound_y, player_gold, player_level, experience, experience_sold, " +
                     "player_hp, player_mp, player_sp, class_id, guild_id, stat_ac, stat_str, stat_sta, " +
-                    "stat_dex, stat_int, res_fire, res_water, res_spirit, res_air, res_earth, body_id, " +
+                    "stat_dex, stat_int, res_fire, res_water, res_spirit, res_air, res_earth, body_id, body_r, body_g, body_b, body_a, " +
                     "face_id, hair_id, hair_r, hair_g, hair_b, hair_a, aether_threshold, toggle_settings, " +
                     "donation_credits, total_playtime, total_afktime, move_speed) VALUES" +
                     "(" + 
@@ -765,6 +789,10 @@ namespace Goose
                     this.BaseStats.AirResist + ", " +
                     this.BaseStats.EarthResist + ", " +
                     this.BodyID + ", " +
+                    this.BodyR + ", " +
+                    this.BodyG + ", " +
+                    this.BodyB + ", " +
+                    this.BodyA + ", " +
                     this.FaceID + ", " +
                     this.HairID + ", " +
                     this.HairR + ", " +
@@ -823,6 +851,10 @@ namespace Goose
                     "res_air=" + this.BaseStats.AirResist + ", " +
                     "res_earth=" + this.BaseStats.EarthResist + ", " +
                     "body_id=" + this.BodyID + ", " +
+                    "body_r=" + this.BodyR + ", " +
+                    "body_g=" + this.BodyG + ", " +
+                    "body_b=" + this.BodyB + ", " +
+                    "body_a=" + this.BodyA + ", " +
                     "face_id=" + this.FaceID + ", " +
                     "hair_id=" + this.HairID + ", " +
                     "hair_r=" + this.HairR + ", " +
@@ -1200,10 +1232,10 @@ namespace Goose
             return "CHP" +
                    this.LoginID + "," +
                    this.CurrentBodyID + "," +
-                   0 + "," + // Body Color R
-                   0 + "," + // Body Color G
-                   0 + "," + // Body Color B
-                   0 + "," + // Body Color A
+                   this.BodyR + "," + // Body Color R
+                   this.BodyG + "," + // Body Color G
+                   this.BodyB + "," + // Body Color B
+                   this.BodyA + "," + // Body Color A
                    (this.CurrentBodyID >= 100 ? 3 : pose) + "," +
                    (this.CurrentBodyID >= 100 ? "" : this.HairID + ",") +
                    (this.CurrentBodyID >= 100 ? "" : this.Inventory.EquippedDisplay()) + // Note: EquippedDisplay() adds it's own , on end

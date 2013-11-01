@@ -320,5 +320,17 @@
     <Setting Name="StartingMoveSpeed" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">320</Value>
     </Setting>
+    <Setting Name="StartingBodyR" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">0</Value>
+    </Setting>
+    <Setting Name="StartingBodyG" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">0</Value>
+    </Setting>
+    <Setting Name="StartingBodyB" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">0</Value>
+    </Setting>
+    <Setting Name="StartingBodyA" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">200</Value>
+    </Setting>
   </Settings>
 </SettingsFile>
