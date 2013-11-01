@@ -169,7 +169,7 @@ namespace Goose
             }
         }
 
-        public string GetSlotPacket(int slotId, long stack)
+        public string GetSlotPacket(GameWorld world, int slotId, long stack)
         {
             return slotId + "|" +
                     this.GraphicTile + "|" +
@@ -200,9 +200,7 @@ namespace Goose
                     this.BaseStats.SpiritResist + "|" +
                     this.MinLevel + "|" +
                     this.MaxLevel + "|" +
-                    "0" + "|" + // class 1
-                    "0" + "|" + // class 2
-                    "0" + "|" + // class 3
+                    FigureClassRestrictions(world, this.ClassRestrictions) +
                     "0" + "|" + // gm access
                     "0" + "|" + // gender, always 0 since we don't care about gender
                     (this.SpellEffect == null ? "" : this.SpellEffect.Name) + "|" +
@@ -214,6 +212,66 @@ namespace Goose
                     this.GraphicG + "|" +
                     this.GraphicB + "|" +
                     this.GraphicA;
+        }
+
+        public static string FigureClassRestrictions(GameWorld world, long classRestrictions)
+        {
+            var canUse = new List<Class>();
+            var cantUse = new List<Class>();
+            var allClasses = world.ClassHandler.Classes;
+
+            foreach (Class cls in allClasses)
+            {
+                if ((classRestrictions & Convert.ToInt64(Math.Pow(2.0, (double)cls.ClassID))) != 0)
+                {
+                    cantUse.Add(cls);
+                }
+                else
+                {
+                    canUse.Add(cls);
+                }
+            }
+
+            if (cantUse.Count == 0)
+            {
+                return "0|0|0|";
+            }
+
+            string output = "";
+
+            if (canUse.Count <= 3)
+            {
+                foreach (Class cls in canUse)
+                {
+                    output += (cls.ClassID);
+                    output += "|";
+                }
+
+                for (int i = 0; i < 3 - canUse.Count; i++)
+                {
+                    output += "0|";
+                }
+            }
+            else if (cantUse.Count <= 3)
+            {
+                foreach (Class cls in cantUse)
+                {
+                    // +50 = can't use
+                    output += (cls.ClassID + 50);
+                    output += "|";
+                }
+
+                for (int i = 0; i < 3 - cantUse.Count; i++)
+                {
+                    output += "0|";
+                }
+            }
+            else
+            {
+                // more than 3 can and can't use.. what do?
+            }
+
+            return output;
         }
     }
 }

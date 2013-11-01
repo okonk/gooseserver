@@ -101,7 +101,7 @@ namespace Goose
                 ItemSlot slot = this.inventory[i];
                 if (slot != null)
                 {
-                    world.Send(this.player, "SIS" + slot.Item.GetSlotPacket(i, slot.Stack));
+                    world.Send(this.player, "SIS" + slot.Item.GetSlotPacket(world, i, slot.Stack));
                 }
                 else
                 {
@@ -686,7 +686,7 @@ namespace Goose
                 ItemSlot slot = this.equipped[(int)equipslot];
                 if (slot != null)
                 {
-                    world.Send(this.player, "SIS" + slot.Item.GetSlotPacket(((int)equipslot + 31), slot.Stack));
+                    world.Send(this.player, "SIS" + slot.Item.GetSlotPacket(world, ((int)equipslot + 31), slot.Stack));
                 }
                 else
                 {
@@ -1126,7 +1126,7 @@ namespace Goose
                     ItemSlot slot = this.combine[i];
                     if (slot != null)
                     {
-                        world.Send(this.player, "SCS" + slot.Item.GetSlotPacket(i, slot.Stack));
+                        world.Send(this.player, "SCS" + slot.Item.GetSlotPacket(world, i, slot.Stack));
                     }
                     else
                     {

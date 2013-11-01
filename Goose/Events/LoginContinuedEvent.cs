@@ -36,6 +36,12 @@ namespace Goose.Events
                 
                 world.Send(this.Player, "SCM" + map.FileName + ",1," + map.Name + ",0");
 
+                // send classes
+                foreach (Class classs in world.ClassHandler.Classes)
+                {
+                    world.Send(this.Player, "CUP" + classs.ClassID + "," + classs.ClassName);
+                }
+
                 if (GameSettings.Default.MOTD.Length > 0) 
                 {
                     world.Send(this.Player, "$7" + GameSettings.Default.MOTD);

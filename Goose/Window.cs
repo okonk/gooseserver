@@ -138,7 +138,7 @@ namespace Goose
                             continue;
                         }
 
-                        world.Send(player, "SVS" + slot.ItemTemplate.GetSlotPacket(i, 1));
+                        world.Send(player, "SVS" + slot.ItemTemplate.GetSlotPacket(world, i, 1));
                         i++;
                     }
                     break;

@@ -13,11 +13,11 @@ namespace Goose
      */
     public class ClassHandler
     {
-        Hashtable classes;
+        Dictionary<int, Class> classes;
 
         public ClassHandler()
         {
-            this.classes = new Hashtable();
+            this.classes = new Dictionary<int, Class>();
         }
 
         /**
@@ -26,7 +26,14 @@ namespace Goose
          */
         public Class GetClass(int id)
         {
-            return (Class)this.classes[id];
+            Class classs;
+
+            if (this.classes.TryGetValue(id, out classs))
+            {
+                return classs;
+            }
+
+            return null;;
         }
 
         /**
@@ -147,5 +154,7 @@ namespace Goose
         {
             get { return this.classes.Count; }
         }
+
+        public ICollection<Class> Classes { get { return this.classes.Values; } }
     }
 }

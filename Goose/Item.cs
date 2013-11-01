@@ -277,7 +277,7 @@ namespace Goose
             command.BeginExecuteNonQuery(new AsyncCallback(GameWorld.DefaultEndExecuteNonQueryAsyncCallback), command);
         }
 
-        public string GetSlotPacket(int slotId, long stack)
+        public string GetSlotPacket(GameWorld world, int slotId, long stack)
         {
             return slotId + "|" +
                     this.GraphicTile + "|" +
@@ -308,9 +308,7 @@ namespace Goose
                     this.TotalStats.SpiritResist + "|" +
                     this.MinLevel + "|" +
                     this.MaxLevel + "|" +
-                    "0" + "|" + // class 1
-                    "0" + "|" + // class 2
-                    "0" + "|" + // class 3
+                    ItemTemplate.FigureClassRestrictions(world, this.ClassRestrictions) +
                     "0" + "|" + // gm access
                     "0" + "|" + // gender, always 0 since we don't care about gender
                     (this.SpellEffect == null ? "" : this.SpellEffect.Name) + "|" +
