@@ -96,6 +96,7 @@ namespace Goose
                 effect.Stats.MeleeDamage = Decimal.Parse(Convert.ToString(reader["melee_damage"]));
                 effect.Stats.SpellCrit = Decimal.Parse(Convert.ToString(reader["spell_crit"]));
                 effect.Stats.SpellDamage = Decimal.Parse(Convert.ToString(reader["spell_damage"]));
+                effect.Stats.MoveSpeedIncrease = Decimal.Parse(Convert.ToString(reader["move_speed"]));
 
                 effect.WorksInPVP = ("0".Equals(Convert.ToString(reader["works_in_pvp"])) ? false : true);
                 effect.WorksNotInPVP = ("0".Equals(Convert.ToString(reader["works_not_in_pvp"])) ? false : true);

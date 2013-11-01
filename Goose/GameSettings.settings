@@ -314,5 +314,11 @@
     <Setting Name="CreditUpdateInterval" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">60</Value>
     </Setting>
+    <Setting Name="BaseMoveSpeedIncrease" Type="System.Decimal" Scope="User">
+      <Value Profile="(Default)">0</Value>
+    </Setting>
+    <Setting Name="StartingMoveSpeed" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">320</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

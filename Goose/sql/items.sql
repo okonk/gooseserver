@@ -41,7 +41,7 @@ CREATE TABLE item_templates (
   graphic_a SMALLINT DEFAULT 0 NOT NULL,
   class_restrictions BIGINT DEFAULT 0 NOT NULL,
   stack_size SMALLINT DEFAULT 1 NOT NULL,
-  body_state SMALLINT DEFAULT 1 NOT NULL,
+  body_state SMALLINT DEFAULT 3 NOT NULL,
   spell_effect_id INT DEFAULT 0 NOT NULL,
   spell_effect_chance DECIMAL(9,4) DEFAULT 100 NOT NULL,
   learn_spell_id INT DEFAULT 0 NOT NULL,
@@ -82,5 +82,10 @@ INSERT INTO item_templates (item_template_id, item_usetype, item_name, item_slot
 item_type, stat_ac, stat_int, player_hp, 
 	graphic_tile, graphic_file, graphic_equip, min_level, class_restrictions, item_value) 
 VALUES (3, 2, 'Dancing Shoes', 12, 12, 10, 1, 10, 332203, 2278, 1, 1, 15, 200);
+
+INSERT INTO item_templates (item_template_id, item_usetype, item_name, item_slot,   
+item_type, spell_effect_id, 
+	graphic_tile, graphic_file, graphic_equip, min_level, class_restrictions, item_value) 
+VALUES (4, 2, 'Mount', 13, 0, 2, 294497, 4849, 182, 1, 0, 0);
 
 SET IDENTITY_INSERT item_templates OFF;

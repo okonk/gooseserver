@@ -645,6 +645,37 @@ namespace Goose
         }
 
         /**
+         * MountDisplay, returns mount display for use in MKC and CHP
+         * 
+         */
+        public string MountDisplay()
+        {
+            string e = "";
+            ItemSlot item = this.GetEquippedSlot(EquipSlots.Mount);
+            if (item != null)
+            {
+                if (item.Item.GraphicA == 0)
+                {
+                    e += item.Item.GraphicEquipped + ",*";
+                }
+                else
+                {
+                    e += item.Item.GraphicEquipped + "," +
+                            item.Item.GraphicR + "," +
+                            item.Item.GraphicG + "," +
+                            item.Item.GraphicB + "," +
+                            item.Item.GraphicA + ",";
+                }
+            }
+            else
+            {
+                e += "0,*";
+            }
+
+            return e;
+        }
+
+        /**
          * SendEquippedSlot, sends info about equipped slot to player
          * 
          */

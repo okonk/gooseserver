@@ -46,6 +46,7 @@ CREATE TABLE players (
   donation_credits INT DEFAULT 0 NOT NULL,
   total_playtime BIGINT DEFAULT 0 NOT NULL,
   total_afktime BIGINT DEFAULT 0 NOT NULL,
+  move_speed INT DEFAULT 320 NOT NULL,
   
   PRIMARY KEY(player_id)
 );

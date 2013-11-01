@@ -34,6 +34,8 @@ namespace Goose
         public decimal MeleeDamage { get; set; }
         public decimal MeleeCrit { get; set; }
         public decimal DamageReduction { get; set; }
+        public decimal MoveSpeedIncrease { get; set; }
+        public int MoveSpeed { get; set; }
 
         public AttributeSet()
         {
@@ -60,6 +62,8 @@ namespace Goose
             this.MeleeDamage = 0;
             this.MeleeCrit = 0;
             this.DamageReduction = 0;
+            this.MoveSpeedIncrease = 0;
+            this.MoveSpeed = 0;
         }
 
         public static AttributeSet operator +(AttributeSet a1, AttributeSet a2)
@@ -89,6 +93,8 @@ namespace Goose
             temp.MeleeDamage = a1.MeleeDamage + a2.MeleeDamage;
             temp.MeleeCrit = a1.MeleeCrit + a2.MeleeCrit;
             temp.DamageReduction = a1.DamageReduction + a2.DamageReduction;
+            temp.MoveSpeedIncrease = a1.MoveSpeedIncrease + a2.MoveSpeedIncrease;
+            temp.MoveSpeed = a1.MoveSpeed + a2.MoveSpeed;
 
             return temp;
         }
@@ -120,6 +126,8 @@ namespace Goose
             temp.MeleeDamage = a1.MeleeDamage - a2.MeleeDamage;
             temp.MeleeCrit = a1.MeleeCrit - a2.MeleeCrit;
             temp.DamageReduction = a1.DamageReduction - a2.DamageReduction;
+            temp.MoveSpeedIncrease = a1.MoveSpeedIncrease - a2.MoveSpeedIncrease;
+            temp.MoveSpeed = a1.MoveSpeed - a2.MoveSpeed;
 
             return temp;
         }
@@ -151,6 +159,8 @@ namespace Goose
             temp.MeleeDamage = a1.MeleeDamage * multiplier;
             temp.MeleeCrit = a1.MeleeCrit * multiplier;
             temp.DamageReduction = a1.DamageReduction * multiplier;
+            temp.MoveSpeedIncrease = a1.MoveSpeedIncrease * multiplier;
+            temp.MoveSpeed = (int)Math.Ceiling(a1.MoveSpeed * multiplier);
 
             return temp;
         }

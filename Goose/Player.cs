@@ -455,13 +455,9 @@ namespace Goose
                           (this.CurrentBodyID >= 100 ? "" : this.HairR + "," + HairG + "," + HairB + "," + HairA + ",") +
                           "0" + "," + // Invis thing
                           (this.CurrentBodyID >= 100 ? "" : this.FaceID + ",") +
-                          160 + "," + // Move Speed
+                          this.CalculateMoveSpeed() + "," + // Move Speed
                             "0" + "," + // Player Name Color
-                            (this.CurrentBodyID >= 100 ? "" : 0 + ",") + // Mount Graphic
-                            (this.CurrentBodyID >= 100 ? "" : 0 + ",") + // Mount Color R
-                            (this.CurrentBodyID >= 100 ? "" : 0 + ",") + // Mount Color G
-                            (this.CurrentBodyID >= 100 ? "" : 0 + ",") + // Mount Color B
-                            (this.CurrentBodyID >= 100 ? "" : 0 + ""); // Mount Color A
+                            (this.CurrentBodyID >= 100 ? "" : this.Inventory.MountDisplay()); // Mount
         }
 
         /**
@@ -531,6 +527,7 @@ namespace Goose
             this.BaseStats.EarthResist = GameSettings.Default.StartingEarthResist;
             this.BaseStats.SpiritResist = GameSettings.Default.StartingSpiritResist;
             this.BaseStats.WaterResist = GameSettings.Default.StartingWaterResist;
+            this.BaseStats.MoveSpeed = GameSettings.Default.StartingMoveSpeed;
 
             this.MaxStats = new AttributeSet();
             this.MaxStats += this.BaseStats;
@@ -544,6 +541,7 @@ namespace Goose
             this.MaxStats.HPStaticRegen = GameSettings.Default.BaseHPStaticRegen;
             this.MaxStats.MPPercentRegen = GameSettings.Default.BaseMPPercentRegen;
             this.MaxStats.MPStaticRegen = GameSettings.Default.BaseMPStaticRegen;
+            this.MaxStats.MoveSpeedIncrease = GameSettings.Default.BaseMoveSpeedIncrease;
 
             this.Class = world.ClassHandler.GetClass(this.ClassID);
             this.MaxStats += this.Class.GetLevel(this.Level).BaseStats;
@@ -592,131 +590,6 @@ namespace Goose
                 }
             }
             this.Spellbook = new Spellbook(this);
-        }
-
-        /**
-         * LoadFromReader, loads player info from a Sq1DataReader
-         * 
-         * Takes the password to hash with the salt from dataabase first 
-         * to check if the password is correct.
-         * 
-         * Closes the reader
-         * 
-         * Returns a LoginEvent.LoginMessages value indicating Banned/WrongPassword or Success
-         * 
-         */
-        public LoginEvent.LoginMessages LoadFromReaderOld(string password, GameWorld world, SqlDataReader reader)
-        {
-            reader.Read();
-
-            this.Access = (AccessStatus)Convert.ToInt32(reader["access_status"]);
-            if (this.Access == AccessStatus.Banned)
-            {
-                reader.Close();
-                return LoginEvent.LoginMessages.Banned;
-            }
-
-            string databaseHash = Convert.ToString(reader["password_hash"]);
-            string base64Salt = Convert.ToString(reader["password_salt"]);
-
-            string salt = Encoding.ASCII.GetString(Convert.FromBase64String(base64Salt));
-
-            MD5CryptoServiceProvider md5 = new MD5CryptoServiceProvider();
-            byte[] data = Encoding.ASCII.GetBytes(salt + password + GameSettings.Default.ServerName);
-            data = md5.ComputeHash(data);
-            string hash = BitConverter.ToString(data).Replace("-", "").ToLower();
-
-            // Incorrect password
-            if (!databaseHash.Equals(hash))
-            {
-                reader.Close();
-                return LoginEvent.LoginMessages.WrongPassword;
-            }
-
-            this.AutoCreatedNotSaved = false;
-            this.PlayerID = Convert.ToInt32(reader["player_id"]);
-            this.Name = Convert.ToString(reader["player_name"]);
-            this.Title = Convert.ToString(reader["player_title"]);
-            this.Surname = Convert.ToString(reader["player_surname"]);
-            this.PasswordHash = databaseHash;
-            this.PasswordSalt = base64Salt;
-            this.MapID = Convert.ToInt32(reader["map_id"]);
-            this.MapX = Convert.ToInt32(reader["map_x"]);
-            this.MapY = Convert.ToInt32(reader["map_y"]);
-            this.Facing = Convert.ToInt32(reader["player_facing"]);
-            this.BoundID = Convert.ToInt32(reader["bound_id"]);
-            this.BoundX = Convert.ToInt32(reader["bound_x"]);
-            this.BoundY = Convert.ToInt32(reader["bound_y"]);
-            this.BoundMap = world.MapHandler.GetMap(this.BoundID);
-            this.Gold = Convert.ToInt64(reader["player_gold"]);
-            this.Level = Convert.ToInt32(reader["player_level"]);
-            this.ClassID = Convert.ToInt32(reader["class_id"]);
-            this.GuildID = Convert.ToInt32(reader["guild_id"]);
-            this.Guild = world.GuildHandler.GetGuild(this.GuildID);
-            this.Experience = Convert.ToInt64(reader["experience"]);
-            this.ExperienceSold = Convert.ToInt64(reader["experience_sold"]);
-            this.BodyID = Convert.ToInt32(reader["body_id"]);
-            this.CurrentBodyID = this.BodyID;
-            this.FaceID = Convert.ToInt32(reader["face_id"]);
-            this.HairID = Convert.ToInt32(reader["hair_id"]);
-            this.HairR = Convert.ToInt32(reader["hair_r"]);
-            this.HairG = Convert.ToInt32(reader["hair_g"]);
-            this.HairB = Convert.ToInt32(reader["hair_b"]);
-            this.HairA = Convert.ToInt32(reader["hair_a"]);
-
-            this.BaseStats = new AttributeSet();
-            this.BaseStats.HP = Convert.ToInt32(reader["player_hp"]);
-            this.BaseStats.MP = Convert.ToInt32(reader["player_mp"]);
-            this.BaseStats.SP = Convert.ToInt32(reader["player_sp"]);
-            this.BaseStats.AC = Convert.ToInt32(reader["stat_ac"]);
-            this.BaseStats.Strength = Convert.ToInt32(reader["stat_str"]);
-            this.BaseStats.Stamina = Convert.ToInt32(reader["stat_sta"]);
-            this.BaseStats.Intelligence = Convert.ToInt32(reader["stat_int"]);
-            this.BaseStats.Dexterity = Convert.ToInt32(reader["stat_dex"]);
-            this.BaseStats.FireResist = Convert.ToInt32(reader["res_fire"]);
-            this.BaseStats.AirResist = Convert.ToInt32(reader["res_air"]);
-            this.BaseStats.EarthResist = Convert.ToInt32(reader["res_earth"]);
-            this.BaseStats.SpiritResist = Convert.ToInt32(reader["res_spirit"]);
-            this.BaseStats.WaterResist = Convert.ToInt32(reader["res_water"]);
-
-            this.MaxStats = new AttributeSet();
-            this.MaxStats += this.BaseStats;
-            this.MaxStats.Haste = GameSettings.Default.BaseHaste;
-            this.MaxStats.SpellDamage = GameSettings.Default.BaseSpellDamage;
-            this.MaxStats.SpellCrit = GameSettings.Default.BaseSpellCrit;
-            this.MaxStats.MeleeDamage = GameSettings.Default.BaseMeleeDamage;
-            this.MaxStats.MeleeCrit = GameSettings.Default.BaseMeleeCrit;
-            this.MaxStats.DamageReduction = GameSettings.Default.BaseDamageReduction;
-            this.MaxStats.HPPercentRegen = GameSettings.Default.BaseHPPercentRegen;
-            this.MaxStats.HPStaticRegen = GameSettings.Default.BaseHPStaticRegen;
-            this.MaxStats.MPPercentRegen = GameSettings.Default.BaseMPPercentRegen;
-            this.MaxStats.MPStaticRegen = GameSettings.Default.BaseMPStaticRegen;
-
-            this.Class = world.ClassHandler.GetClass(this.ClassID);
-            this.MaxStats += this.Class.GetLevel(this.Level).BaseStats;
-
-            this.CurrentHP = (int)(this.MaxStats.HP * 0.8);
-            this.CurrentMP = (int)(this.MaxStats.MP * 0.8);
-            this.CurrentSP = this.MaxStats.SP;
-
-            this.ToggleSettings = (ToggleSetting)Convert.ToInt64(reader["toggle_settings"]);
-            this.AetherThreshold = Convert.ToDecimal(reader["aether_threshold"]);
-
-            // Close reader here so inventory can create it's own reader
-            reader.Close();
-
-            this.Inventory = new Inventory(this);
-            this.Inventory.Load(world);
-            this.Spellbook = new Spellbook(this);
-            this.Spellbook.Load(world);
-
-            this.BodyState = 1;
-
-            this.LoadPets(world);
-
-            this.AddSaveEvent(world);
-
-            return LoginEvent.LoginMessages.Success;
         }
 
         /**
@@ -775,6 +648,7 @@ namespace Goose
             this.BaseStats.EarthResist = Convert.ToInt32(reader["res_earth"]);
             this.BaseStats.SpiritResist = Convert.ToInt32(reader["res_spirit"]);
             this.BaseStats.WaterResist = Convert.ToInt32(reader["res_water"]);
+            this.BaseStats.MoveSpeed = Convert.ToInt32(reader["move_speed"]);
 
             this.MaxStats = new AttributeSet();
             this.MaxStats += this.BaseStats;
@@ -788,6 +662,7 @@ namespace Goose
             this.MaxStats.HPStaticRegen = GameSettings.Default.BaseHPStaticRegen;
             this.MaxStats.MPPercentRegen = GameSettings.Default.BaseMPPercentRegen;
             this.MaxStats.MPStaticRegen = GameSettings.Default.BaseMPStaticRegen;
+            this.MaxStats.MoveSpeedIncrease = GameSettings.Default.BaseMoveSpeedIncrease;
 
             this.Class = world.ClassHandler.GetClass(this.ClassID);
             this.MaxStats += this.Class.GetLevel(this.Level).BaseStats;
@@ -856,7 +731,7 @@ namespace Goose
                     "player_hp, player_mp, player_sp, class_id, guild_id, stat_ac, stat_str, stat_sta, " +
                     "stat_dex, stat_int, res_fire, res_water, res_spirit, res_air, res_earth, body_id, " +
                     "face_id, hair_id, hair_r, hair_g, hair_b, hair_a, aether_threshold, toggle_settings, " +
-                    "donation_credits, total_playtime, total_afktime) VALUES" +
+                    "donation_credits, total_playtime, total_afktime, move_speed) VALUES" +
                     "(" + 
                     this.PlayerID + "," +
                     " @playerName, @playerTitle, @playerSurname, " +
@@ -900,7 +775,9 @@ namespace Goose
                     (long)this.ToggleSettings + ", " +
                     this.Credits + ", " +
                     this.TotalPlayTime + ", " +
-                    this.TotalAfkTime + ")";
+                    this.TotalAfkTime + ", " +
+                    this.BaseStats.MoveSpeed + 
+                    ")";
 
                 this.AutoCreatedNotSaved = false;
 
@@ -956,7 +833,8 @@ namespace Goose
                     "toggle_settings=" + (long)this.ToggleSettings + ", " + 
                     "donation_credits=" + this.Credits + ", " +
                     "total_playtime=" + this.TotalPlayTime + ", " +
-                    "total_afktime=" + this.TotalAfkTime + " " +
+                    "total_afktime=" + this.TotalAfkTime + ", " +
+                    "move_speed=" + this.BaseStats.MoveSpeed + " " +
                     "WHERE player_id=" + this.PlayerID;
 
                 SqlCommand command = new SqlCommand(query, world.SqlConnection);
@@ -1335,12 +1213,13 @@ namespace Goose
                    (this.CurrentBodyID >= 100 ? "" : this.HairA + ",") +
                    (this.CurrentBodyID >= 100 ? "" : "0" + ",") + // Invis thing
                    (this.CurrentBodyID >= 100 ? "" : this.FaceID + ",") +
-                   160 + "," + // Move Speed
-                   (this.CurrentBodyID >= 100 ? "" : 0 + ",") + // Mount Graphic
-                   (this.CurrentBodyID >= 100 ? "" : 0 + ",") + // Mount Color R
-                   (this.CurrentBodyID >= 100 ? "" : 0 + ",") + // Mount Color G
-                   (this.CurrentBodyID >= 100 ? "" : 0 + ",") + // Mount Color B
-                   (this.CurrentBodyID >= 100 ? "" : 0 + ""); // Mount Color A
+                   this.CalculateMoveSpeed() + "," + // Move Speed
+                   (this.CurrentBodyID >= 100 ? "" : this.Inventory.MountDisplay()); // Mount
+        }
+
+        private int CalculateMoveSpeed()
+        {
+            return (int)(this.BaseStats.MoveSpeed * (1 - this.MaxStats.MoveSpeedIncrease));
         }
 
         /**

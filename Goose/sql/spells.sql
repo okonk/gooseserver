@@ -97,6 +97,7 @@ CREATE TABLE spell_effects (
   melee_damage DECIMAL(9,4) DEFAULT 0 NOT NULL,
   melee_crit DECIMAL(9,4) DEFAULT 0 NOT NULL,
   damage_reduce DECIMAL(9,4) DEFAULT 0 NOT NULL,
+  move_speed DECIMAL(9,4) DEFAULT 0 NOT NULL,
   body_id SMALLINT DEFAULT 0 NOT NULL,
   
   oneffect_text VARCHAR(64) DEFAULT '' NOT NULL,
@@ -147,5 +148,10 @@ INSERT INTO spell_effects (spell_effect_id, spell_effect_name, spell_animation, 
 	target_type, target_size, spell_effected, effect_type, effect_duration, spell_damage_effects,
 	hp_change_formula, works_not_in_pvp)
 VALUES (1, 'Healing 1', 65000, 407, 0, 0, 0, 5, 0, 0, '1', '25', '1');
+
+INSERT INTO spell_effects (spell_effect_id, spell_effect_name, spell_animation, spell_animation_file, spell_display, 
+	target_type, target_size, spell_effected, effect_type, effect_duration,
+	works_not_in_pvp, move_speed)
+VALUES (2, 'Hacker Mount', 0, 0, 0, 0, 0, 1, 1, 0, '1', 0.5);
 
 SET IDENTITY_INSERT spell_effects OFF;

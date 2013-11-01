@@ -1242,5 +1242,29 @@ namespace Goose {
                 this["CreditUpdateInterval"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public decimal BaseMoveSpeedIncrease {
+            get {
+                return ((decimal)(this["BaseMoveSpeedIncrease"]));
+            }
+            set {
+                this["BaseMoveSpeedIncrease"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("320")]
+        public int StartingMoveSpeed {
+            get {
+                return ((int)(this["StartingMoveSpeed"]));
+            }
+            set {
+                this["StartingMoveSpeed"] = value;
+            }
+        }
     }
 }
