@@ -5,6 +5,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IllutiaClientDataReader", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IllutiaDataViewer", "IllutiaDataViewer\IllutiaDataViewer.csproj", "{6E99CDAA-EBC6-465C-9DAE-CCFD39BE841A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IllutiaMapViewer", "IllutiaMapViewer\IllutiaMapViewer.csproj", "{EF33C4F9-6DFB-4C19-B38B-6F581E6D0E82}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -19,6 +21,10 @@ Global
 		{6E99CDAA-EBC6-465C-9DAE-CCFD39BE841A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6E99CDAA-EBC6-465C-9DAE-CCFD39BE841A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6E99CDAA-EBC6-465C-9DAE-CCFD39BE841A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EF33C4F9-6DFB-4C19-B38B-6F581E6D0E82}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EF33C4F9-6DFB-4C19-B38B-6F581E6D0E82}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EF33C4F9-6DFB-4C19-B38B-6F581E6D0E82}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EF33C4F9-6DFB-4C19-B38B-6F581E6D0E82}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

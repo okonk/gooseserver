@@ -274,7 +274,7 @@ namespace Goose
             }
 
             if (this.Animation != 0) packet = "SPP" + target.LoginID + "," +this.Animation + "," + this.AnimationFile;
-            if (this.DoCastAnimation) packet += "\x1CST" + caster.LoginID;
+            if (this.DoCastAnimation) packet += "\x1" + "CST" + caster.LoginID;
 
             if (target is NPC && this.TauntAggro > 0)
             {
@@ -320,7 +320,7 @@ namespace Goose
             string packet = "BT" + target.LoginID + ",60,Bound";
 
             if (this.Animation != 0) packet += "\x1SPP" + target.LoginID + "," +this.Animation + "," + this.AnimationFile;
-            if (this.DoCastAnimation) packet += "\x1CST" + caster.LoginID;
+            if (this.DoCastAnimation) packet += "\x1" + "CST" + caster.LoginID;
 
             world.Send((Player)target, "$7Your soul has been bound to this spot.");
             world.Send((Player)target, packet);
@@ -373,7 +373,7 @@ namespace Goose
             string packet = ((Player)target).VPUString() + "\x1" + ((Player)target).CHPString();
 
             if (this.Animation != 0) packet += "\x1SPP" + target.LoginID + "," +this.Animation + "," + this.AnimationFile;
-            if (this.DoCastAnimation) packet += "\x1CST" + caster.LoginID;
+            if (this.DoCastAnimation) packet += "\x1" + "CST" + caster.LoginID;
             if (this.OnEffectText != "") world.Send((Player)target, "$7" + this.OnEffectText);
 
             world.Send((Player)target, ((Player)target).SNFString());
@@ -786,7 +786,7 @@ namespace Goose
                 bool hitone = false;
 
                 if (this.DoAttackAnimation) packet += "ATT" + caster.LoginID;
-                if (this.DoCastAnimation) packet += "\x1CST" + caster.LoginID;
+                if (this.DoCastAnimation) packet += "\x1" + "CST" + caster.LoginID;
 
                 if (this.TargetType == TargetTypes.LineFront)
                 {
