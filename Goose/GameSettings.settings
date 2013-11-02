@@ -279,7 +279,7 @@
       <Value Profile="(Default)">3</Value>
     </Setting>
     <Setting Name="MaxNPCs" Type="System.Int32" Scope="User">
-      <Value Profile="(Default)">6000</Value>
+      <Value Profile="(Default)">10000</Value>
     </Setting>
     <Setting Name="PetVitaBuyAmount" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">50</Value>

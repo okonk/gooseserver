@@ -211,14 +211,26 @@ namespace Goose
         /**
          * GetNewID, returns new login id for npc
          */
-        public int GetNewID()
+        public int GetNewID(GameWorld world)
         {
-            for (int i = GameSettings.Default.MaxPlayers + 1; i < GameSettings.Default.MaxNPCs; i++)
+            int id;
+            do
             {
-                if (this.idToNPC[i] == null) return i;
+                id = world.Random.Next(GameSettings.Default.MaxPlayers + 1, GameSettings.Default.MaxNPCs);
+            } while (this.idToNPC[id] != null);
+
+            return id;
+        }
+
+        public void AssignNewId(GameWorld world, NPC npc)
+        {
+            if (npc.LoginID != 0 && this.idToNPC[npc.LoginID] != null)
+            {
+                this.idToNPC[npc.LoginID] = null;
             }
 
-            return 0;
+            npc.LoginID = this.GetNewID(world);
+            this.idToNPC[npc.LoginID] = npc;
         }
 
         /**
@@ -245,8 +257,7 @@ namespace Goose
                     if (npc.LoadFromTemplate(world, map_id, map_x, map_y, template))
                     {
                         this.npcs.Add(npc);
-                        npc.LoginID = this.GetNewID();
-                        this.idToNPC[npc.LoginID] = npc;
+                        AssignNewId(world, npc);
                     }
                     else
                     {

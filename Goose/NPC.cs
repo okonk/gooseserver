@@ -492,6 +492,8 @@ namespace Goose
          */
         public void Spawn(GameWorld world)
         {
+            world.NPCHandler.AssignNewId(world, this);
+
             this.MapX = this.SpawnX;
             this.MapY = this.SpawnY;
             //ICharacter old = this.Map.GetCharacterAt(this.MapX, this.MapY);

@@ -1101,7 +1101,7 @@ namespace Goose {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("6000")]
+        [global::System.Configuration.DefaultSettingValueAttribute("10000")]
         public int MaxNPCs {
             get {
                 return ((int)(this["MaxNPCs"]));
