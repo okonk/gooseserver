@@ -57,12 +57,12 @@ namespace IllutiaMapViewer
 
             Image blocked = this.GetGraphic(13, 3002);
 
-            int xOffset = this.hScrollBar.Value / 32;
-            int yOffset = this.vScrollBar.Value / 32;
+            int xOffset = Math.Max(this.hScrollBar.Value / 32, 0);
+            int yOffset = Math.Max(this.vScrollBar.Value / 32, 0);
 
             var selectedMap = (MapFile)this.mapsComboBox.SelectedItem;
-            int visibleX = this.drawArea.Width / 32 + 1;
-            int visibleY = this.drawArea.Height / 32 + 1;
+            int visibleX = Math.Min(this.drawArea.Width / 32 + 1, selectedMap.Width);
+            int visibleY = Math.Min(this.drawArea.Height / 32 + 1, selectedMap.Height);
 
             for (int layerIndex = 0; layerIndex < 5; layerIndex++)
             {
@@ -76,7 +76,7 @@ namespace IllutiaMapViewer
                         int drawX = (x * 32) - (xOffset * 32);
                         int drawY = (y * 32) - (yOffset * 32);
 
-                        if (layer.Sheet != 0 && layer.Graphic != 0) 
+                        if (layer.Sheet != 0 && layer.Graphic != 0 && (layerIndex < 4 || (layerIndex == 4 && showRoofsCheckBox.Checked))) 
                         {
                             Image graphic = this.GetGraphic(layer.Sheet, layer.Graphic);
 
@@ -116,8 +116,27 @@ namespace IllutiaMapViewer
 
         private void Resized(MapFile selectedMap)
         {
-            this.vScrollBar.Maximum = selectedMap.Height * 32 - (this.drawArea.Height);
-            this.hScrollBar.Maximum = selectedMap.Width * 32 - (this.drawArea.Width);
+            this.vScrollBar.Enabled = true;
+            this.vScrollBar.SmallChange = 32;
+            this.vScrollBar.LargeChange = 32;
+            this.vScrollBar.Minimum = 0;
+            this.vScrollBar.Maximum = selectedMap.Height * 32 - this.drawArea.Height + 32;
+            if (this.vScrollBar.Maximum < 0)
+            {
+                this.vScrollBar.Maximum = 0;
+                this.vScrollBar.Enabled = false;
+            }
+
+            this.hScrollBar.Enabled = true;
+            this.hScrollBar.SmallChange = 32;
+            this.hScrollBar.LargeChange = 32;
+            this.hScrollBar.Minimum = 0;
+            this.hScrollBar.Maximum = selectedMap.Width * 32 - this.drawArea.Width + 32;
+            if (this.hScrollBar.Maximum < 0)
+            {
+                this.hScrollBar.Maximum = 0;
+                this.hScrollBar.Enabled = false;
+            }
         }
 
         private Image GetGraphic(int sheet, int graphic)
@@ -166,6 +185,11 @@ namespace IllutiaMapViewer
         }
 
         private void drawArea_Paint(object sender, PaintEventArgs e)
+        {
+            this.Draw();
+        }
+
+        private void showRoofsCheckBox_CheckedChanged(object sender, EventArgs e)
         {
             this.Draw();
         }

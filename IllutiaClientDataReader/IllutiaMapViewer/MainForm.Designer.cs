@@ -33,6 +33,7 @@
             this.vScrollBar = new System.Windows.Forms.VScrollBar();
             this.hScrollBar = new System.Windows.Forms.HScrollBar();
             this.blockedTilesCheckBox = new System.Windows.Forms.CheckBox();
+            this.showRoofsCheckBox = new System.Windows.Forms.CheckBox();
             this.SuspendLayout();
             // 
             // mapsComboBox
@@ -91,11 +92,25 @@
             this.blockedTilesCheckBox.UseVisualStyleBackColor = true;
             this.blockedTilesCheckBox.CheckedChanged += new System.EventHandler(this.blockedTilesCheckBox_CheckedChanged);
             // 
+            // showRoofsCheckBox
+            // 
+            this.showRoofsCheckBox.AutoSize = true;
+            this.showRoofsCheckBox.Checked = true;
+            this.showRoofsCheckBox.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.showRoofsCheckBox.Location = new System.Drawing.Point(258, 12);
+            this.showRoofsCheckBox.Name = "showRoofsCheckBox";
+            this.showRoofsCheckBox.Size = new System.Drawing.Size(54, 17);
+            this.showRoofsCheckBox.TabIndex = 5;
+            this.showRoofsCheckBox.Text = "Roofs";
+            this.showRoofsCheckBox.UseVisualStyleBackColor = true;
+            this.showRoofsCheckBox.CheckedChanged += new System.EventHandler(this.showRoofsCheckBox_CheckedChanged);
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(635, 416);
+            this.Controls.Add(this.showRoofsCheckBox);
             this.Controls.Add(this.blockedTilesCheckBox);
             this.Controls.Add(this.hScrollBar);
             this.Controls.Add(this.vScrollBar);
@@ -116,6 +131,7 @@
         private System.Windows.Forms.VScrollBar vScrollBar;
         private System.Windows.Forms.HScrollBar hScrollBar;
         private System.Windows.Forms.CheckBox blockedTilesCheckBox;
+        private System.Windows.Forms.CheckBox showRoofsCheckBox;
     }
 }
 
