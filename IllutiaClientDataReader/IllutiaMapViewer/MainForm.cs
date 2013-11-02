@@ -101,6 +101,9 @@ namespace IllutiaMapViewer
                     }
                 }
             }
+
+            graphics.DrawString("X: " + xOffset + " Y: " + yOffset, new Font("Consolas", 20), Brushes.Black, 11, 11);
+            graphics.DrawString("X: " + xOffset + " Y: " + yOffset, new Font("Consolas", 20), Brushes.White, 10, 10);
         }
 
         private void mapsComboBox_SelectedIndexChanged(object sender, EventArgs e)

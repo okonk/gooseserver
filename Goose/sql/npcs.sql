@@ -62,6 +62,16 @@ CREATE TABLE npc_templates (
 
 SET IDENTITY_INSERT npc_templates ON;
 
+INSERT INTO npc_templates (npc_id, npc_name, body_id, body_state, face_id, hair_id, aggro_range, move_speed, 
+	npc_level, class_id, weapon_damage, experience, respawn_time, hp_static_regen, 
+	attack_range, attack_speed) 
+VALUES (1, 'Lamb', 104, 3, 0, 0, 0, 2.0, 2, 4, 6, 40, 40, 0, 1, 1.5);
+
+INSERT INTO npc_templates (npc_id, npc_name, body_id, body_state, face_id, hair_id, aggro_range, move_speed, npc_level, 
+	class_id, weapon_damage, experience, respawn_time, hp_percent_regen,
+	attack_range, attack_speed, invincible, stationary, equipped_items, npc_type)
+VALUES (2, 'Vendor Guy', 1, 3, 14, 21, 0, 0.0, 50, 3, 70000, 0, 30, 0.20, 0, 0.0, '1', '1',
+'12,*,0,*,0,*,0,*,0,*,0,*', 10);
 
 SET IDENTITY_INSERT npc_templates OFF;
 
@@ -76,6 +86,13 @@ CREATE TABLE npc_spawns (
   PRIMARY KEY(id)
 );
 
+INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y) VALUES (2, 2, 50, 176);
+INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y) VALUES (1, 2, 55, 180);
+INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y) VALUES (1, 2, 55, 180);
+INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y) VALUES (1, 2, 55, 180);
+INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y) VALUES (1, 2, 55, 180);
+INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y) VALUES (1, 2, 55, 180);
+
 DROP TABLE npc_drops;
 CREATE TABLE npc_drops (
   npc_template_id INT NOT NULL,
@@ -83,6 +100,8 @@ CREATE TABLE npc_drops (
   stack INT NOT NULL,
   droprate DECIMAL(9,4) NOT NULL
 );
+
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate) VALUES (1, 2, 1, 0.5);
 
 DROP TABLE npc_vendor_items;
 CREATE TABLE npc_vendor_items (
@@ -92,3 +111,5 @@ CREATE TABLE npc_vendor_items (
   stats_visible CHAR(1) DEFAULT '1' NOT NULL,
   slot INT NOT NULL
 );
+
+INSERT INTO npc_vendor_items (npc_template_id, item_template_id, stack, slot) VALUES (2, 3, 1, 1);

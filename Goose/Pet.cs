@@ -530,7 +530,7 @@ namespace Goose
                             this.BodyA + "," + // Body Color A
                             (this.CurrentBodyID >= 100 ? 3 : this.BodyState) + "," +
                             (this.CurrentBodyID >= 100 ? "" : this.HairID + ",") +
-                            (this.CurrentBodyID >= 100 ? "" : this.EquippedItems) + "," +
+                            (this.CurrentBodyID >= 100 ? "" : this.EquippedItems + ",") +
                             (this.CurrentBodyID >= 100 ? "" : this.HairR + "," + HairG + "," + HairB + "," + HairA + ",") +
                             "0" + "," + // Invis thing
                             (this.CurrentBodyID >= 100 ? "" : this.FaceID + ",") +
