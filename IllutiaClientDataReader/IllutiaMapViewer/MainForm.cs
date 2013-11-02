@@ -44,7 +44,7 @@ namespace IllutiaMapViewer
 
             this.mapsComboBox.SelectedIndex = 0;
 
-            this.Draw();
+            this.drawArea.Invalidate();
         }
 
         private void Draw()
@@ -57,8 +57,8 @@ namespace IllutiaMapViewer
 
             Image blocked = this.GetGraphic(13, 3002);
 
-            int xOffset = 0; // todo get from scrollbar
-            int yOffset = 0; // todo: get from scrollbar
+            int xOffset = this.hScrollBar.Value / 32;
+            int yOffset = this.vScrollBar.Value / 32;
 
             var selectedMap = (MapFile)this.mapsComboBox.SelectedItem;
             int visibleX = this.drawArea.Width / 32 + 1;
@@ -66,35 +66,36 @@ namespace IllutiaMapViewer
 
             for (int layerIndex = 0; layerIndex < 5; layerIndex++)
             {
-                for (int y = yOffset; y < visibleY; y++)
+                for (int y = yOffset; y < yOffset + visibleY; y++)
                 {
-                    for (int x = xOffset; x < visibleX; x++)
+                    for (int x = xOffset; x < xOffset + visibleX; x++)
                     {
                         Tile tile = selectedMap[x, y];
                         Layer layer = tile.Layers[layerIndex];
 
+                        int drawX = (x * 32) - (xOffset * 32);
+                        int drawY = (y * 32) - (yOffset * 32);
+
                         if (layer.Sheet != 0 && layer.Graphic != 0) 
                         {
                             Image graphic = this.GetGraphic(layer.Sheet, layer.Graphic);
-                            int drawX = x * 32;
-                            int drawY = y * 32;
 
                             if (graphic.Width > 32)
                             {
-                                drawX = x * 32 - (graphic.Width / 2) + 16;
+                                drawX -= (graphic.Width / 2) - 16;
                             }
                             if (graphic.Height > 32)
                             {
-                                drawY = y * 32 - (graphic.Height) + 32;
+                                drawY -= graphic.Height - 32;
                             }
 
                             Rectangle dstRect = new Rectangle(drawX, drawY, graphic.Width, graphic.Height);
                             graphics.DrawImage(graphic, dstRect, 0, 0, graphic.Width, graphic.Height, GraphicsUnit.Pixel, attr);
                         }
 
-                        if (layerIndex == 4 && tile.IsBlocked())
+                        if (layerIndex == 4 && blockedTilesCheckBox.Checked && tile.IsBlocked())
                         {
-                            Rectangle dstRect = new Rectangle(x * 32, y * 32, blocked.Width, blocked.Height);
+                            Rectangle dstRect = new Rectangle(drawX, drawY, blocked.Width, blocked.Height);
                             graphics.DrawImage(blocked, dstRect, 0, 0, blocked.Width, blocked.Height, GraphicsUnit.Pixel, attr);
                         }
                     }
@@ -104,7 +105,19 @@ namespace IllutiaMapViewer
 
         private void mapsComboBox_SelectedIndexChanged(object sender, EventArgs e)
         {
+            var selectedMap = (MapFile)this.mapsComboBox.SelectedItem;
+            this.vScrollBar.Value = 0;
+            this.hScrollBar.Value = 0;
+
+            this.Resized(selectedMap);
+
             this.Draw();
+        }
+
+        private void Resized(MapFile selectedMap)
+        {
+            this.vScrollBar.Maximum = selectedMap.Height * 32 - (this.drawArea.Height);
+            this.hScrollBar.Maximum = selectedMap.Width * 32 - (this.drawArea.Width);
         }
 
         private Image GetGraphic(int sheet, int graphic)
@@ -128,6 +141,33 @@ namespace IllutiaMapViewer
             this.graphicCache[graphic] = graphicTile;
 
             return graphicTile;
+        }
+
+        private void blockedTilesCheckBox_CheckedChanged(object sender, EventArgs e)
+        {
+            this.Draw();
+        }
+
+        private void vScrollBar_Scroll(object sender, ScrollEventArgs e)
+        {
+            this.Draw();
+        }
+
+        private void hScrollBar_Scroll(object sender, ScrollEventArgs e)
+        {
+            this.Draw();
+        }
+
+        private void drawArea_Resize(object sender, EventArgs e)
+        {
+            var selectedMap = (MapFile)this.mapsComboBox.SelectedItem;
+            this.Resized(selectedMap);
+            this.Draw();
+        }
+
+        private void drawArea_Paint(object sender, PaintEventArgs e)
+        {
+            this.Draw();
         }
     }
 }
