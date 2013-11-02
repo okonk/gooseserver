@@ -17,11 +17,11 @@ GRANT CONTROL TO GooseServer;
 go
 
 CREATE TABLE blockedtiles (
-  id INT IDENTITY(1,1) NOT NULL,
+  /*id INT IDENTITY(1,1) NOT NULL,*/
   map_id SMALLINT NOT NULL,
   map_x SMALLINT NOT NULL,
   map_y SMALLINT NOT NULL,
-  PRIMARY KEY (id)
+  /*PRIMARY KEY (id)*/
 );
 
 CREATE TABLE items (

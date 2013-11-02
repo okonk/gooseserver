@@ -160,7 +160,7 @@ namespace Goose
         public void AddItem(ItemTile item, GameWorld world)
         {
             this.items.Add(item);
-            this.tiles[item.X * this.Width + item.Y] = item;
+            this.tiles[item.Y * this.Width + item.X] = item;
 
             item.DroppedTime = world.TimeNow;
 
@@ -177,7 +177,7 @@ namespace Goose
         public void RemoveItem(ItemTile item, GameWorld world)
         {
             this.items.Remove(item);
-            this.tiles[item.X * this.Width + item.Y] = null;
+            this.tiles[item.Y * this.Width + item.X] = null;
 
             world.SendToMap(this, item.EOBString());
         }
@@ -194,7 +194,7 @@ namespace Goose
             if ((Math.Abs(character.MapX - x) == 1 && Math.Abs(character.MapY - y) == 0) ||
                 (Math.Abs(character.MapX - x) == 0 && Math.Abs(character.MapY - y) == 1))
             {
-                ITile tile = this.tiles[x * this.Width + y];
+                ITile tile = this.tiles[y * this.Width + x];
                 if (tile != null)
                 {
                     if (tile is WarpTile)
@@ -335,7 +335,7 @@ namespace Goose
             // invalid coordinates
             if (x < 1 || x >= this.Width + 1 || y < 1 || y >= this.Height + 1) return true;
 
-            ITile tile = this.tiles[x * this.Width + y];
+            ITile tile = this.tiles[y * this.Width + x];
             if (tile != null)
             {
                 if (tile is WarpTile)
@@ -382,7 +382,7 @@ namespace Goose
                 int x = Convert.ToInt32(reader["map_x"]);
                 int y = Convert.ToInt32(reader["map_y"]);
 
-                this.tiles[x * this.Width + y] = warp;
+                this.tiles[y * this.Width + x] = warp;
             }
 
             reader.Close();
@@ -398,7 +398,7 @@ namespace Goose
                 int x = Convert.ToInt32(reader["map_x"]);
                 int y = Convert.ToInt32(reader["map_y"]);
 
-                this.tiles[x * this.Width + y] = blocked;
+                this.tiles[y * this.Width + x] = blocked;
             }
 
             reader.Close();
@@ -424,7 +424,7 @@ namespace Goose
             // invalid coordinates
             if (x < 1 || x >= this.Width + 1 || y < 1 || y >= this.Height + 1) return null;
 
-            return this.tiles[x * this.Width + y];
+            return this.tiles[y * this.Width + x];
         }
 
         /**
@@ -476,7 +476,7 @@ namespace Goose
         {
             if (x < 1 || x >= this.Width + 1 || y < 1 || y >= this.Height + 1) return null;
 
-            return this.characters[x * this.Width + y];
+            return this.characters[y * this.Width + x];
         }
 
         /**
@@ -486,7 +486,7 @@ namespace Goose
         {
             if (x < 1 || x >= this.Width + 1 || y < 1 || y >= this.Height + 1) return;
 
-            this.characters[x * this.Width + y] = character;
+            this.characters[y * this.Width + x] = character;
         }
 
         /**
