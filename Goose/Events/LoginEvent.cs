@@ -10,10 +10,20 @@ using System.Security.Cryptography;
 namespace Goose.Events
 {
     /**
-     * LoginEvent, event for LOGIN packet
+     * LoginEvent, event for the first packet, which should be the login packet
      * 
      * Called as soon as a client connects
      * Packet format: LOGINUsername,password,ALPHA33,3.5.2
+     * 
+     * OR for Illutia's newest client:
+     * A 2 byte, followed by another byte the length of the message
+     * The message is xor-encrypted with the key "Tamra"
+     * The first byte should be 2, then 2 more bytes which are the version number
+     * Then the next 32 bytes of md5 data
+     * 16 bytes of username in ASCII
+     * length of the username
+     * 16 bytes of password in ASCII
+     * length of the password
      * 
      * Server responds: LOKServername or LNOReason for failure
      * Login OK or Login Not OK
@@ -48,15 +58,39 @@ namespace Goose.Events
             string IP = sock.RemoteEndPoint.ToString();
             IP = IP.Substring(0, IP.IndexOf(":"));
 
-            if (packet.IndexOf(',') == -1) return;
-            if (packet.Length < 6) return;
+            string name;
+            string password;
 
-            string name = packet.Substring(5, packet.IndexOf(',') - 5);
+            if (packet.StartsWith("LOGIN"))
+            {
+                // regular old login packet
+                if (packet.IndexOf(',') == -1) return;
+                if (packet.Length < 6) return;
 
-            string[] t = packet.Split(",".ToCharArray());
+                name = packet.Substring(5, packet.IndexOf(',') - 5);
 
-            if (t.Length < 2) return;
-            string password = t[1];
+                string[] t = packet.Split(",".ToCharArray());
+
+                if (t.Length < 2) return;
+                password = t[1];
+            }
+            else
+            {
+                // "encrypted" login packet
+                // we ignore checking the hash since we don't really care at this point
+
+                byte[] data = Encoding.ASCII.GetBytes(packet).Skip(2).ToArray();
+                byte[] keyBytes = Encoding.ASCII.GetBytes("Tamra");
+                for (int i = 0; i < data.Length; i++)
+                {
+                    data[i] = (byte)(data[i] ^ keyBytes[i % keyBytes.Length]);
+                }
+
+                if (data.Length < 69) return;
+
+                name = Encoding.ASCII.GetString(data, 35, data[51]);
+                password = Encoding.ASCII.GetString(data, 52, data[68]);
+            }
 
             if (name.Length <= 1 || password.Length <= 1)
             {
