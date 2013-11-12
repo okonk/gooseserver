@@ -69,23 +69,28 @@ priest		5	31
 
 SET IDENTITY_INSERT item_templates ON;
 
-INSERT INTO item_templates (item_template_id, item_usetype, item_name, item_slot, item_type, 
-	graphic_tile, graphic_file, graphic_equip, stack_size) 
-VALUES (1, 7, 'Gold', 20, 0, 331900, 2275, 0, 0);
+INSERT INTO item_templates (item_template_id, item_usetype, item_name, item_slot, item_type, graphic_tile, graphic_file, stack_size)
+VALUES (1, 7, 'Gold', 20, 0, 331900, 2275, 0);
 
-INSERT INTO item_templates (item_template_id, item_usetype, item_name, item_slot, item_type, 
-	learn_spell_id, item_value, class_restrictions, min_level, lore,
-	graphic_tile, graphic_file, graphic_equip) 
-VALUES (2, 4, 'Scroll: Healing', 20, 0, 1, 100, 31, 1, '1', 331907, 2275, 0);
+INSERT INTO item_templates (item_template_id, item_usetype, item_name, weapon_damage, item_slot, item_type, graphic_tile, graphic_file, graphic_equip, body_state)
+VALUES (2, 3, 'Stick', 3, 2, 16, 331405, 2270, 1, 4);
 
-INSERT INTO item_templates (item_template_id, item_usetype, item_name, item_slot,   
-item_type, stat_ac, stat_int, player_hp, 
-	graphic_tile, graphic_file, graphic_equip, min_level, class_restrictions, item_value) 
-VALUES (3, 2, 'Dancing Shoes', 12, 12, 10, 1, 10, 332203, 2278, 1, 1, 15, 200);
+INSERT INTO item_templates (item_template_id, item_usetype, item_name, player_hp, player_mp, stat_ac, item_slot, item_type, graphic_tile, graphic_file, graphic_equip)
+VALUES (3, 2, 'Old Sack', 15, 15, 5, 10, 12, 331940, 2275, 6);
 
-INSERT INTO item_templates (item_template_id, item_usetype, item_name, item_slot,   
-item_type, spell_effect_id, 
-	graphic_tile, graphic_file, graphic_equip, min_level, class_restrictions, item_value) 
-VALUES (4, 2, 'Mount', 13, 0, 2, 294497, 4849, 182, 1, 0, 0);
+INSERT INTO item_templates (item_template_id, item_usetype, item_name, player_hp, player_mp, stat_ac, item_slot, item_type, graphic_tile, graphic_file, spell_effect_id)
+VALUES (4, 2, 'Commoner Ring', 15, 15, 5, 4, 0, 331221, 2268, 1);
+
+INSERT INTO item_templates (item_template_id, item_usetype, item_name, player_hp, player_mp, stat_ac, min_level, item_slot, item_type, graphic_tile, graphic_file, graphic_equip)
+VALUES (5, 2, 'Nooblet Helmet', 20, 20, 10, 5, 0, 12, 332292, 2278, 52);
+
+INSERT INTO item_templates (item_template_id, item_usetype, item_name, player_hp, player_mp, stat_ac, min_level, item_slot, item_type, graphic_tile, graphic_file, graphic_equip)
+VALUES (6, 2, 'Nooblet Shirt', 15, 10, 5, 5, 10, 12, 332205, 2278, 2);
+
+INSERT INTO item_templates (item_template_id, item_usetype, item_name, player_hp, stat_ac, min_level, item_slot, item_type, graphic_tile, graphic_file, graphic_equip)
+VALUES (7, 2, 'Nooblet Pants', 10, 5, 5, 11, 12, 332204, 2278, 1);
+
+INSERT INTO item_templates (item_template_id, item_usetype, item_name, player_hp, stat_ac, min_level, item_slot, item_type, graphic_tile, graphic_file, graphic_equip)
+VALUES (8, 2, 'Nooblet Shoes', 10, 2, 5, 12, 12, 332213, 2278, 2);
 
 SET IDENTITY_INSERT item_templates OFF;

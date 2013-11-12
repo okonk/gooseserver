@@ -42,8 +42,6 @@ priest		5	  31
 
 SET IDENTITY_INSERT spells ON;
 
-INSERT INTO spells (spell_id, spell_name, spell_target, spellbook_graphic, spellbook_graphic_file, mp_static_cost, spell_effect_id, spell_aether, class_restrictions)
-VALUES (1, 'Healing 1', 0, 50753, 104, 5, 1, 0, 31);
 
 SET IDENTITY_INSERT spells OFF;
   
@@ -59,6 +57,7 @@ CREATE TABLE spell_effects (
   
   spell_effected INT NOT NULL,
   min_level_effected INT DEFAULT 1 NOT NULL,
+  max_level_effected INT DEFAULT 50 NOT NULL,
   
   effect_type INT NOT NULL,
   effect_duration BIGINT NOT NULL,
@@ -148,14 +147,7 @@ CREATE TABLE spell_effects (
 
 SET IDENTITY_INSERT spell_effects ON;
 
-INSERT INTO spell_effects (spell_effect_id, spell_effect_name, spell_animation, spell_animation_file, spell_display, 
-	target_type, target_size, spell_effected, effect_type, effect_duration, spell_damage_effects,
-	hp_change_formula, works_not_in_pvp)
-VALUES (1, 'Healing 1', 65000, 407, 0, 0, 0, 5, 0, 0, '1', '25', '1');
-
-INSERT INTO spell_effects (spell_effect_id, spell_effect_name, spell_animation, spell_animation_file, spell_display, 
-	target_type, target_size, spell_effected, effect_type, effect_duration,
-	works_not_in_pvp, move_speed)
-VALUES (2, 'Hacker Mount', 0, 0, 0, 0, 0, 1, 1, 0, '1', 0.5);
+INSERT INTO spell_effects (spell_effect_id, spell_effect_name, spell_animation, spell_animation_file, spell_display, target_type, target_size, spell_effected, effect_type, effect_duration, hp_static_regen, mp_static_regen, buff_graphic, buff_graphic_file)
+VALUES (1, 'Basic Regeneration', 0, 0, 0, 0, 0, 1, 1, 0, 5, 5, 50754, 104);
 
 SET IDENTITY_INSERT spell_effects OFF;

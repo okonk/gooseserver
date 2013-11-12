@@ -65,7 +65,7 @@ SET IDENTITY_INSERT npc_templates ON;
 INSERT INTO npc_templates (npc_id, npc_name, body_id, body_state, face_id, hair_id, aggro_range, move_speed, 
 	npc_level, class_id, weapon_damage, experience, respawn_time, hp_static_regen, 
 	attack_range, attack_speed) 
-VALUES (1, 'Lamb', 104, 3, 0, 0, 0, 2.0, 2, 4, 6, 40, 40, 0, 1, 1.5);
+VALUES (1, 'Lamb', 104, 3, 0, 0, 0, 2.0, 1, 4, 6, 40, 40, 0, 1, 1.5);
 
 INSERT INTO npc_templates (npc_id, npc_name, body_id, body_state, face_id, hair_id, aggro_range, move_speed, npc_level, 
 	class_id, weapon_damage, experience, respawn_time, hp_percent_regen,
