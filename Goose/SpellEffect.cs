@@ -116,6 +116,7 @@ namespace Goose
         public int TargetSize { get; set; }
         public SpellEffected Effected { get; set; }
         public int MinimumLevelEffected { get; set; }
+        public int MaximumLevelEffected { get; set; }
         public EffectTypes EffectType { get; set; }
         public long Duration { get; set; }
         public bool DoAttackAnimation { get; set; }
@@ -495,7 +496,7 @@ namespace Goose
                 else return true;
             }
             if (target is Player && !this.WorksNotInPVP && !target.Map.CanPVP) return false;
-            if (target.Level >= this.MinimumLevelEffected)
+            if (target.Level >= this.MinimumLevelEffected && target.Level <= this.MaximumLevelEffected)
             {
                 if (target is Player)
                 {

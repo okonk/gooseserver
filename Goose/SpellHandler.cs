@@ -43,6 +43,7 @@ namespace Goose
                 effect.TargetSize = Convert.ToInt32(reader["target_size"]);
                 effect.Effected = (SpellEffect.SpellEffected)Convert.ToInt32(reader["spell_effected"]);
                 effect.MinimumLevelEffected = Convert.ToInt32(reader["min_level_effected"]);
+                effect.MaximumLevelEffected = Convert.ToInt32(reader["max_level_effected"]);
                 effect.EffectType = (SpellEffect.EffectTypes)Convert.ToInt32(reader["effect_type"]);
                 effect.Duration = Convert.ToInt64(reader["effect_duration"]);
                 effect.DoAttackAnimation = 
