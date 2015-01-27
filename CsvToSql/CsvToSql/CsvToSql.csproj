@@ -47,6 +47,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CsvToSqlBase.cs" />
+    <Compile Include="WarpTilesCsvToSql.cs" />
+    <Compile Include="SpellsCsvToSql.cs" />
+    <Compile Include="NpcVendorsCsvToSql.cs" />
+    <Compile Include="NpcDropsCsvToSql.cs" />
+    <Compile Include="NpcSpawnsCsvToSql.cs" />
+    <Compile Include="NpcCsvToSql.cs" />
     <Compile Include="ItemsCsvToSql.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

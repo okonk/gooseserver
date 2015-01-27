@@ -93,4 +93,26 @@ VALUES (7, 2, 'Nooblet Pants', 10, 5, 5, 11, 12, 332204, 2278, 1);
 INSERT INTO item_templates (item_template_id, item_usetype, item_name, player_hp, stat_ac, min_level, item_slot, item_type, graphic_tile, graphic_file, graphic_equip)
 VALUES (8, 2, 'Nooblet Shoes', 10, 2, 5, 12, 12, 332213, 2278, 2);
 
+INSERT INTO item_templates (item_template_id, item_usetype, item_name, player_hp, player_mp, stat_ac, stat_str, stat_sta, stat_dex, stat_int, min_level, item_slot, item_type, lore, bindonpickup, graphic_tile, graphic_file, graphic_equip, spell_effect_id)
+VALUES (9, 2, 'Doom Helmet', 2500, 2500, 500, 100, 100, 100, 100, 50, 0, 12, 1, 1, 332294, 2278, 53, 2);
+
+INSERT INTO item_templates (item_template_id, item_usetype, item_name, item_description, player_hp, stat_str, stat_sta, stat_dex, stat_int, min_level, weapon_damage, item_slot, item_type, item_value, graphic_tile, graphic_file, graphic_equip, body_state)
+VALUES (10, 3, 'Hobos Can', 'Smells like Beer', 0, 1, 1, 1, 1, 5, 5, 2, 16, 50, 331350, 2269, 60, 4);
+
+INSERT INTO item_templates (item_template_id, item_usetype, item_name, stat_str, stat_sta, stat_dex, stat_int, min_level, weapon_damage, item_slot, item_type, item_value, graphic_tile, graphic_file, graphic_equip, body_state)
+VALUES (11, 3, 'Tiny Dagger', 2, 2, 2, 2, 7, 7, 2, 18, 100, 331379, 2269, 11, 4);
+
+INSERT INTO item_templates (item_template_id, item_usetype, item_name, stat_str, stat_sta, min_level, weapon_damage, item_slot, item_type, item_value, graphic_tile, graphic_file, graphic_equip, body_state)
+VALUES (12, 3, 'Blunt Sword', 2, 2, 7, 8, 2, 14, 100, 331312, 2269, 9, 4);
+
+INSERT INTO item_templates (item_template_id, item_usetype, item_name, player_hp, stat_sta, min_level, item_slot, item_type, item_value, graphic_tile, graphic_file, graphic_equip)
+VALUES (13, 2, 'Wooden Shield', 20, 1, 7, 1, 16, 100, 332225, 2278, 21);
+
+INSERT INTO item_templates (item_template_id, item_usetype, item_name, item_slot, item_type, graphic_tile, graphic_file, graphic_equip, spell_effect_id)
+VALUES (14, 2, 'Mount', 13, 10, 332524, 2281, 120, 3);
+
+
+
+
+
 SET IDENTITY_INSERT item_templates OFF;

@@ -150,4 +150,10 @@ SET IDENTITY_INSERT spell_effects ON;
 INSERT INTO spell_effects (spell_effect_id, spell_effect_name, spell_animation, spell_animation_file, spell_display, target_type, target_size, spell_effected, effect_type, effect_duration, hp_static_regen, mp_static_regen, buff_graphic, buff_graphic_file)
 VALUES (1, 'Basic Regeneration', 0, 0, 0, 0, 0, 1, 1, 0, 5, 5, 50754, 104);
 
+INSERT INTO spell_effects (spell_effect_id, spell_effect_name, spell_animation, spell_animation_file, spell_display, target_type, target_size, spell_effected, effect_type, effect_duration, hp_static_regen, buff_graphic, buff_graphic_file)
+VALUES (2, 'HP Regeneration 500', 0, 0, 0, 0, 0, 1, 1, 0, 500, 50754, 104);
+
+INSERT INTO spell_effects (spell_effect_id, spell_effect_name, spell_animation, spell_animation_file, spell_display, target_type, target_size, spell_effected, effect_type, effect_duration, move_speed, buff_graphic, buff_graphic_file)
+VALUES (3, 'Mount', 0, 0, 0, 0, 0, 1, 1, 0, 0.5, 50754, 104);
+
 SET IDENTITY_INSERT spell_effects OFF;
