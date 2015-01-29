@@ -30,13 +30,13 @@
       <Value Profile="(Default)">Extrico</Value>
     </Setting>
     <Setting Name="StartingMapID" Type="System.Int32" Scope="User">
-      <Value Profile="(Default)">1</Value>
+      <Value Profile="(Default)">2</Value>
     </Setting>
     <Setting Name="StartingMapX" Type="System.Int32" Scope="User">
-      <Value Profile="(Default)">50</Value>
+      <Value Profile="(Default)">51</Value>
     </Setting>
     <Setting Name="StartingMapY" Type="System.Int32" Scope="User">
-      <Value Profile="(Default)">50</Value>
+      <Value Profile="(Default)">182</Value>
     </Setting>
     <Setting Name="BaseHaste" Type="System.Decimal" Scope="User">
       <Value Profile="(Default)">0</Value>
@@ -330,7 +330,7 @@
       <Value Profile="(Default)">0</Value>
     </Setting>
     <Setting Name="StartingBodyA" Type="System.Int32" Scope="User">
-      <Value Profile="(Default)">200</Value>
+      <Value Profile="(Default)">0</Value>
     </Setting>
   </Settings>
 </SettingsFile>

@@ -133,7 +133,7 @@ namespace Goose {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("1")]
+        [global::System.Configuration.DefaultSettingValueAttribute("2")]
         public int StartingMapID {
             get {
                 return ((int)(this["StartingMapID"]));
@@ -145,7 +145,7 @@ namespace Goose {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("50")]
+        [global::System.Configuration.DefaultSettingValueAttribute("51")]
         public int StartingMapX {
             get {
                 return ((int)(this["StartingMapX"]));
@@ -157,7 +157,7 @@ namespace Goose {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("50")]
+        [global::System.Configuration.DefaultSettingValueAttribute("182")]
         public int StartingMapY {
             get {
                 return ((int)(this["StartingMapY"]));
@@ -1305,7 +1305,7 @@ namespace Goose {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("200")]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
         public int StartingBodyA {
             get {
                 return ((int)(this["StartingBodyA"]));

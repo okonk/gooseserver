@@ -5,6 +5,7 @@ using System.Text;
 using System.Collections;
 
 using Goose.Events;
+using Goose.Quests;
 
 namespace Goose
 {
@@ -306,6 +307,8 @@ namespace Goose
         /// </summary>
         public bool CreditDealer { get { return this.NPCTemplate.CreditDealer; } }
 
+        internal List<Quest> Quests { get; set; }
+
         /**
          * MKCString, see Player.MKCString for details
          * 
@@ -471,6 +474,7 @@ namespace Goose
             this.WeaponDamage = template.WeaponDamage;
             this.Class = world.ClassHandler.GetClass(this.ClassID);
             this.MaxStats += this.Class.GetLevel(this.Level).BaseStats;
+            this.Quests = template.Quests;
 
             this.SpawnX = this.MapX;
             this.SpawnY = this.MapY;

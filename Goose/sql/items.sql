@@ -111,6 +111,29 @@ VALUES (13, 2, 'Wooden Shield', 20, 1, 7, 1, 16, 100, 332225, 2278, 21);
 INSERT INTO item_templates (item_template_id, item_usetype, item_name, item_slot, item_type, graphic_tile, graphic_file, graphic_equip, spell_effect_id)
 VALUES (14, 2, 'Mount', 13, 10, 332524, 2281, 120, 3);
 
+INSERT INTO item_templates (item_template_id, item_usetype, item_name, player_hp, player_mp, stat_ac, stat_str, stat_sta, stat_dex, stat_int, min_level, item_slot, item_type, item_value, graphic_tile, graphic_file, graphic_equip, stack_size)
+VALUES (15, 2, 'Helmet of the Cow Slayer', 50, 50, 20, 3, 1, 3, 3, 10, 0, 11, 500, 332215, 2278, 12, 0);
+
+INSERT INTO item_templates (item_template_id, item_usetype, item_name, player_hp, player_mp, stat_ac, stat_str, stat_sta, stat_dex, stat_int, min_level, item_slot, item_type, item_value, graphic_tile, graphic_file, graphic_equip, stack_size)
+VALUES (16, 2, 'Shirt of the Cow Slayer', 30, 20, 10, 2, 1, 2, 2, 10, 10, 11, 500, 332212, 2278, 4, 0);
+
+INSERT INTO item_templates (item_template_id, item_usetype, item_name, player_hp, player_mp, stat_ac, stat_str, stat_sta, stat_dex, stat_int, min_level, item_slot, item_type, item_value, graphic_tile, graphic_file, graphic_equip, graphic_r, graphic_g, graphic_b, graphic_a, stack_size)
+VALUES (17, 2, 'Pants of the Cow Slayer', 25, 15, 10, 2, 1, 2, 2, 10, 11, 11, 500, 332204, 2278, 1, 235, 108, 88, 150, 0);
+
+INSERT INTO item_templates (item_template_id, item_usetype, item_name, player_hp, player_mp, stat_ac, stat_str, stat_sta, stat_dex, stat_int, min_level, item_slot, item_type, item_value, graphic_tile, graphic_file, graphic_equip, graphic_r, graphic_g, graphic_b, graphic_a, stack_size)
+VALUES (18, 2, 'Boots of the Cow Slayer', 20, 10, 5, 1, 1, 1, 1, 10, 12, 11, 500, 332213, 2278, 2, 226, 81, 21, 150, 0);
+
+INSERT INTO item_templates (item_template_id, item_usetype, item_name, item_slot, item_type, item_value, graphic_tile, graphic_file, learn_spell_id)
+VALUES (19, 4, 'Lightning Strike', 20, 0, 20, 331907, 2275, 1);
+
+INSERT INTO item_templates (item_template_id, item_usetype, item_name, item_slot, item_type, item_value, graphic_tile, graphic_file, learn_spell_id)
+VALUES (20, 4, 'Reave', 20, 0, 20, 331907, 2275, 2);
+
+INSERT INTO item_templates (item_template_id, item_usetype, item_name, item_slot, item_type, item_value, graphic_tile, graphic_file, learn_spell_id)
+VALUES (21, 4, 'Chomp', 20, 0, 20, 331907, 2275, 3);
+
+INSERT INTO item_templates (item_template_id, item_usetype, item_name, item_slot, item_type, item_value, graphic_tile, graphic_file, learn_spell_id)
+VALUES (22, 4, 'Heal', 20, 0, 20, 331907, 2275, 4);
 
 
 

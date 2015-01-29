@@ -8,6 +8,16 @@ namespace ConsoleApplication1
 {
     class MapReader
     {
+        public static void Main(string[] args)
+        {
+            var r = new MapReader();
+
+            foreach (var map in Directory.EnumerateFiles(@"C:\Users\Hayden\Downloads\Illutia\maps", "*.map"))
+            {
+                r.Read(map);
+            }
+        }
+
         public void Read(string file)
         {
             BinaryReader reader = new BinaryReader(File.Open(file, FileMode.Open));
@@ -25,7 +35,7 @@ namespace ConsoleApplication1
 
                     if ((flags & 2) > 0)
                     {
-                        blockedTiles.Add(new Tuple<int, int>(j, i));
+                        blockedTiles.Add(new Tuple<int, int>(j + 1, i + 1));
                     }
 
                     for (int k = 0; k < 5; k++)

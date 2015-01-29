@@ -8,6 +8,7 @@ using System.Data.SqlClient;
 using System.Security.Cryptography;
 
 using Goose.Events;
+using Goose.Quests;
 
 namespace Goose
 {
@@ -384,6 +385,10 @@ namespace Goose
         public long SuspectedMacroFirstTime { get; set; }
         public int SuspectedMacroCount { get; set; }
 
+        internal List<QuestCompleted> QuestsCompleted { get; set; }
+        internal List<QuestStarted> QuestsStarted { get; set; }
+        internal List<QuestProgress> QuestProgress { get; set; }
+
         /**
          * Constructor
          * 
@@ -402,6 +407,11 @@ namespace Goose
 
             this.Buffs = new List<Buff>();
             this.Pets = new List<Pet>();
+
+            this.QuestProgress = new List<QuestProgress>();
+            this.QuestsCompleted = new List<QuestCompleted>();
+            this.QuestsStarted = new List<QuestStarted>();
+
             this.GroupInvitesEnabled = false;
 
             this.MovementRecordingSteps = 0;
@@ -713,6 +723,7 @@ namespace Goose
             this.BodyState = 3;
 
             this.LoadPets(world);
+            this.LoadQuests(world);
         }
 
         /// <summary>
@@ -730,6 +741,42 @@ namespace Goose
             }
 
             reader.Close();
+        }
+
+        public void LoadQuests(GameWorld world)
+        {
+            SqlCommand query = new SqlCommand("SELECT * FROM quest_started WHERE player_id=" + this.PlayerID, world.SqlConnection);
+            using (SqlDataReader reader = query.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    var started = QuestStarted.FromReader(reader, world);
+                    if (started != null)
+                        this.QuestsStarted.Add(started);
+                }
+            }
+
+            query = new SqlCommand("SELECT * FROM quest_completed WHERE player_id=" + this.PlayerID, world.SqlConnection);
+            using (SqlDataReader reader = query.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    var completed = QuestCompleted.FromReader(reader, world);
+                    if (completed != null)
+                        this.QuestsCompleted.Add(completed);
+                }
+            }
+
+            query = new SqlCommand("SELECT * FROM quest_progress WHERE player_id=" + this.PlayerID, world.SqlConnection);
+            using (SqlDataReader reader = query.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    var progress = Quests.QuestProgress.FromReader(reader, world, this);
+                    if (progress != null)
+                        this.QuestProgress.Add(progress);
+                }
+            }
         }
 
         /**

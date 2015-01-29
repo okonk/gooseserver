@@ -34,6 +34,7 @@
             this.hScrollBar = new System.Windows.Forms.HScrollBar();
             this.blockedTilesCheckBox = new System.Windows.Forms.CheckBox();
             this.showRoofsCheckBox = new System.Windows.Forms.CheckBox();
+            this.selectedLabel = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
             // mapsComboBox
@@ -55,6 +56,7 @@
             this.drawArea.Size = new System.Drawing.Size(597, 351);
             this.drawArea.TabIndex = 1;
             this.drawArea.Paint += new System.Windows.Forms.PaintEventHandler(this.drawArea_Paint);
+            this.drawArea.MouseClick += new System.Windows.Forms.MouseEventHandler(this.drawArea_MouseClick);
             this.drawArea.Resize += new System.EventHandler(this.drawArea_Resize);
             // 
             // vScrollBar
@@ -105,11 +107,21 @@
             this.showRoofsCheckBox.UseVisualStyleBackColor = true;
             this.showRoofsCheckBox.CheckedChanged += new System.EventHandler(this.showRoofsCheckBox_CheckedChanged);
             // 
+            // selectedLabel
+            // 
+            this.selectedLabel.AutoSize = true;
+            this.selectedLabel.Location = new System.Drawing.Point(334, 12);
+            this.selectedLabel.Name = "selectedLabel";
+            this.selectedLabel.Size = new System.Drawing.Size(71, 13);
+            this.selectedLabel.TabIndex = 6;
+            this.selectedLabel.Text = "Selected: x, y";
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(635, 416);
+            this.Controls.Add(this.selectedLabel);
             this.Controls.Add(this.showRoofsCheckBox);
             this.Controls.Add(this.blockedTilesCheckBox);
             this.Controls.Add(this.hScrollBar);
@@ -132,6 +144,7 @@
         private System.Windows.Forms.HScrollBar hScrollBar;
         private System.Windows.Forms.CheckBox blockedTilesCheckBox;
         private System.Windows.Forms.CheckBox showRoofsCheckBox;
+        private System.Windows.Forms.Label selectedLabel;
     }
 }
 

@@ -8,3 +8,4 @@ osql -U GooseServer -P password1 -i npcs.sql
 osql -U GooseServer -P password1 -i warptiles.sql
 osql -U GooseServer -P password1 -i maps.sql
 osql -U GooseServer -P password1 -i wordfilter.sql
+osql -U GooseServer -P password1 -i quests.sql

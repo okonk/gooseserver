@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Goose.Quests;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -188,5 +189,12 @@ namespace Goose
         /// Does this NPC deal in credits instead of gold?
         /// </summary>
         public bool CreditDealer { get; set; }
+
+        internal List<Quest> Quests { get; set; }
+
+        public NPCTemplate()
+        {
+            this.Quests = new List<Quest>();
+        }
     }
 }

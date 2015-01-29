@@ -7,6 +7,7 @@ using System.Data.SqlClient;
 using System.Runtime.InteropServices;
 
 using Goose.Events;
+using Goose.Quests;
 
 namespace Goose
 {
@@ -44,6 +45,7 @@ namespace Goose
         public CombinationHandler CombinationHandler { get; set; }
         public ChatFilter ChatFilter { get; set; }
         public LogHandler LogHandler { get; set; }
+        internal QuestHandler QuestHandler { get; set; }
 
         public Dictionary<string, int> CharactersCreatedPerIP { get; set; }
 
@@ -93,6 +95,7 @@ namespace Goose
             this.CombinationHandler = new CombinationHandler();
             this.ChatFilter = new ChatFilter();
             this.LogHandler = new LogHandler();
+            this.QuestHandler = new QuestHandler();
 
             this.SqlConnection = new SqlConnection(//"user id=" + GameSettings.Default.DatabaseUsername +
                                        //";password=" + GameSettings.Default.DatabasePassword +
@@ -205,6 +208,19 @@ namespace Goose
                 return;
             }
             Console.Out.WriteLine(this.ItemHandler.ItemCount.ToString() + " items loaded.");
+
+            Console.Out.Write("Loading Quests: ");
+            try
+            {
+                this.QuestHandler.LoadQuests(this);
+            }
+            catch (Exception e)
+            {
+                Console.Out.WriteLine("Fail, " + e.Message);
+                Console.Out.WriteLine("Aborting...");
+                return;
+            }
+            Console.Out.WriteLine(this.QuestHandler.Quests.Count.ToString() + " quests loaded.");
 
             Console.Out.Write("Loading Maps: ");
             try

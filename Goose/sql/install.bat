@@ -15,3 +15,4 @@ osql -U GooseServer -P password1 -i wordfilter.sql
 osql -U GooseServer -P password1 -i pets.sql
 osql -U GooseServer -P password1 -i paypal.sql
 osql -U GooseServer -P password1 -i logs.sql
+osql -U GooseServer -P password1 -i quests.sql

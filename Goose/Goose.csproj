@@ -10,13 +10,14 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Goose</RootNamespace>
     <AssemblyName>Goose</AssemblyName>
-    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <FileUpgradeFlags>
     </FileUpgradeFlags>
     <UpgradeBackupLocation>
     </UpgradeBackupLocation>
     <OldToolsVersion>3.5</OldToolsVersion>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -199,6 +200,13 @@
       <DependentUpon>GameSettings.settings</DependentUpon>
     </Compile>
     <Compile Include="ITile.cs" />
+    <Compile Include="Quests\Quest.cs" />
+    <Compile Include="Quests\QuestStarted.cs" />
+    <Compile Include="Quests\QuestHandler.cs" />
+    <Compile Include="Quests\QuestCompleted.cs" />
+    <Compile Include="Quests\QuestProgress.cs" />
+    <Compile Include="Quests\QuestRequirement.cs" />
+    <Compile Include="Quests\QuestReward.cs" />
     <Compile Include="RankHandler.cs" />
     <Compile Include="Ranks.cs" />
     <Compile Include="Spell.cs" />
@@ -215,6 +223,7 @@
       <LastGenOutput>GameSettings.Designer.cs</LastGenOutput>
     </None>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

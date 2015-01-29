@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -102,8 +103,8 @@ namespace IllutiaMapViewer
                 }
             }
 
-            graphics.DrawString("X: " + xOffset + " Y: " + yOffset, new Font("Consolas", 20), Brushes.Black, 11, 11);
-            graphics.DrawString("X: " + xOffset + " Y: " + yOffset, new Font("Consolas", 20), Brushes.White, 10, 10);
+            //graphics.DrawString("X: " + xOffset + " Y: " + yOffset, new Font("Consolas", 20), Brushes.Black, 11, 11);
+            //graphics.DrawString("X: " + xOffset + " Y: " + yOffset, new Font("Consolas", 20), Brushes.White, 10, 10);
         }
 
         private void mapsComboBox_SelectedIndexChanged(object sender, EventArgs e)
@@ -195,6 +196,11 @@ namespace IllutiaMapViewer
         private void showRoofsCheckBox_CheckedChanged(object sender, EventArgs e)
         {
             this.Draw();
+        }
+
+        private void drawArea_MouseClick(object sender, MouseEventArgs e)
+        {
+            Debug.WriteLine("{0}, {1}", e.X, e.Y);
         }
     }
 }
