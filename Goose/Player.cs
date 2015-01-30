@@ -9,6 +9,7 @@ using System.Security.Cryptography;
 
 using Goose.Events;
 using Goose.Quests;
+using System.Threading.Tasks;
 
 namespace Goose
 {
@@ -929,6 +930,73 @@ namespace Goose
             foreach (Pet pet in this.Pets)
             {
                 pet.SaveToDatabase(world);
+            }
+
+            this.SaveQuests(world);
+        }
+
+        private void SaveQuests(GameWorld world)
+        {
+            foreach (var questCompleted in this.QuestsCompleted)
+            {
+                if (questCompleted.Dirty)
+                {
+                    var query = "INSERT INTO quest_completed (quest_id, player_id) VALUES (" + questCompleted.Quest.Id + ", " + this.PlayerID + ");";
+                    var command = new SqlCommand(query, world.SqlConnection);
+                    command.BeginExecuteNonQuery(new AsyncCallback(GameWorld.DefaultEndExecuteNonQueryAsyncCallback), command);
+
+                    questCompleted.Dirty = false;
+                }
+            }
+
+            foreach (var questStarted in this.QuestsStarted)
+            {
+                if (questStarted.Dirty)
+                {
+                    var query = "INSERT INTO quest_started (quest_id, player_id) VALUES (" + questStarted.Quest.Id + ", " + this.PlayerID + ");";
+                    var command = new SqlCommand(query, world.SqlConnection);
+                    command.BeginExecuteNonQuery(new AsyncCallback(GameWorld.DefaultEndExecuteNonQueryAsyncCallback), command);
+
+                    questStarted.Dirty = false;
+                }
+            }
+
+            List<QuestProgress> toRemove = new List<Quests.QuestProgress>();
+            foreach (var questProgress in this.QuestProgress)
+            {
+                if (questProgress.Remove && questProgress.Id != 0)
+                {
+                    var query = "DELETE FROM quest_progress WHERE id=" + questProgress.Id + ";";
+                    var command = new SqlCommand(query, world.SqlConnection);
+                    command.BeginExecuteNonQuery(new AsyncCallback(GameWorld.DefaultEndExecuteNonQueryAsyncCallback), command);
+
+                    toRemove.Add(questProgress);
+                }
+                else if (questProgress.Id == 0)
+                {
+                    // TODO: Is this going to be stable, is it even worth spawning a task for this?
+                    Task.Factory.StartNew(() =>
+                    {
+                        var query = "INSERT INTO quest_progress (requirement_id, player_id, progress_value) OUTPUT INSERTED.id VALUES (" + questProgress.Requirement.Id + ", " + this.PlayerID + ", " + questProgress.Value + ");";
+                        var command = new SqlCommand(query, world.SqlConnection);
+                        questProgress.Id = (int)command.ExecuteScalar();
+
+                        questProgress.Dirty = false;
+                    });
+                }
+                else if (questProgress.Dirty)
+                {
+                    var query = "UPDATE quest_progress SET progress_value = " + questProgress.Value + " WHERE id=" + questProgress.Id + ";";
+                    var command = new SqlCommand(query, world.SqlConnection);
+                    command.BeginExecuteNonQuery(new AsyncCallback(GameWorld.DefaultEndExecuteNonQueryAsyncCallback), command);
+
+                    questProgress.Dirty = false;
+                }
+            }
+
+            foreach (var questProgress in toRemove)
+            {
+                this.QuestProgress.Remove(questProgress);
             }
         }
 

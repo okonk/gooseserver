@@ -103,7 +103,7 @@ namespace Goose
 
                 npc.CreditDealer = ("0".Equals(Convert.ToString(reader["credit_dealer"])) ? false : true);
 
-                var questIds = Convert.ToString(reader["quest_ids"]).Split(' ').Select(id => Convert.ToInt32(id));
+                var questIds = Convert.ToString(reader["quest_ids"]).Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Select(id => Convert.ToInt32(id));
                 npc.Quests.AddRange(questIds.Select(id => world.QuestHandler.Get(id)));
 
                 this.templates.Add(npc);
