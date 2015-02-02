@@ -64,8 +64,19 @@ namespace Goose.Events
                             world.Send(this.Player, "$7Word filter is disabled.");
                         }
                         break;
+                    case "quest":
+                        this.Player.ToggleSettings ^= Player.ToggleSetting.QuestCredit;
+                        if (this.Player.QuestCreditFilterEnabled)
+                        {
+                            world.Send(this.Player, "$7Quest credit filter is enabled.");
+                        }
+                        else
+                        {
+                            world.Send(this.Player, "$7Quest credit filter is disabled.");
+                        }
+                        break;
                     default:
-                        world.Send(this.Player, "$7/toggle [experience|tell|curse]");
+                        world.Send(this.Player, "$7/toggle [experience|tell|curse|quest]");
                         break;
                 }
             }

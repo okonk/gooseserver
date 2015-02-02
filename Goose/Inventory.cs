@@ -717,6 +717,29 @@ namespace Goose
             return false;
         }
 
+        /// <summary>
+        /// Returns true if inventory (only inventory, no combine bag/equipped) has at least number of templateid items
+        /// </summary>
+        /// <param name="templateid"></param>
+        /// <param name="numberOf"></param>
+        /// <returns></returns>
+        public bool HasItem(int templateid, long numberOf)
+        {
+            long count = 0;
+            foreach (ItemSlot slot in this.inventory)
+            {
+                if (slot != null && slot.Item.Template.ID == templateid)
+                {
+                    count += slot.Stack;
+
+                    if (count >= numberOf)
+                        return true;
+                }
+            }
+
+            return false;
+        }
+
         /**
          * GetWeaponDamage, returns currently equipped weapons damage
          * 

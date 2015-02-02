@@ -132,6 +132,7 @@ namespace Goose
             this.stringToEvent.Add("/hairdye ", HairdyeCommandEvent.Create);
             this.stringToEvent.Add("SBN", SpellbookNextEvent.Create);
             this.stringToEvent.Add("SBB", SpellbookBackEvent.Create);
+            this.stringToEvent.Add("LC", PlayerLeftClickEvent.Create);
         }
 
         /**

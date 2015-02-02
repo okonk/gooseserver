@@ -5,6 +5,8 @@ CREATE TABLE quests (
   id INT IDENTITY(1,1) NOT NULL,
   name TEXT NOT NULL,
   description TEXT DEFAULT '' NOT NULL,
+  fail_text TEXT DEFAULT '' NOT NULL,
+  pass_text TEXT DEFAULT '' NOT NULL,
   min_experience BIGINT DEFAULT 0,
   max_experience BIGINT DEFAULT 0,
   min_level INT DEFAULT 0,
@@ -18,7 +20,8 @@ CREATE TABLE quests (
 
 SET IDENTITY_INSERT quests ON;
 
-
+INSERT INTO quests (id, name, description, fail_text, pass_text) VALUES 
+(1, 'Test Quest 1', 'Hello\nYou need to do something for me.\n\n\n\n\n\nNewlines!', 'lol you suck', 'you passed');
 
 SET IDENTITY_INSERT quests OFF;
 

@@ -123,11 +123,45 @@ namespace Goose
             world.Send(player, "ENW" + this.ID);
         }
 
+        public virtual void Clicked(ButtonTypes buttonid, int npcid, int id2, int id3, Player player, GameWorld world)
+        {
+            switch (buttonid)
+            {
+                case Window.ButtonTypes.Exit:
+                case Window.ButtonTypes.Close:
+                    switch (this.Type)
+                    {
+                        case Window.WindowTypes.Vendor:
+                            this.NPC.CloseVendorWindow(this, player, world);
+                            break;
+                        case Window.WindowTypes.CombineBag:
+                            player.Windows.Remove(this);
+                            break;
+                        case Window.WindowTypes.ItemInfo:
+                        case Window.WindowTypes.CharInfo:
+                        case Window.WindowTypes.Rank:
+                        case Window.WindowTypes.PetInfo:
+                            player.Windows.Remove(this);
+                            break;
+                    }
+                    break;
+                case Window.ButtonTypes.Combine:
+                    switch (this.Type)
+                    {
+                        case Window.WindowTypes.CombineBag:
+                            player.Inventory.Combine(world);
+                            break;
+                    }
+                    break;
+            }
+        }
+
+
         /**
          * Populate, initially populates the window
          * 
          */
-        public void Populate(Player player, GameWorld world)
+        public virtual void Populate(Player player, GameWorld world)
         {
             switch (this.Type)
             {

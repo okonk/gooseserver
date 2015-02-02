@@ -35,6 +35,7 @@ namespace Goose.Quests
                     while (reader.Read())
                     {
                         var req = QuestRequirement.FromReader(reader);
+                        req.Quest = quest;
                         quest.Requirements.Add(req);
                     }
                 }

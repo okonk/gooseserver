@@ -78,6 +78,9 @@ VALUES (4, 2, 'Cow', 45, 100, 1, 1.2, 1.5, 1, 1, 1, 120, 4, 116, 25);
 INSERT INTO npc_templates (npc_id, npc_type, npc_name, npc_title, respawn_time, experience, aggro_range, attack_range, attack_speed, move_speed, rootable, slowable, npc_hp, class_id, body_id, body_r, body_g, body_b, body_a, weapon_damage, hp_static_regen, stuck_behaviour)
 VALUES (5, 2, 'Cow', 'Enraged', 1800, 600, 2, 2, 1.2, 1.5, 1, 1, 750, 4, 116, 229, 58, 31, 150, 55, 20, 2);
 
+INSERT INTO npc_templates (npc_id, npc_type, npc_name, respawn_time, experience, aggro_range, attack_range, attack_speed, move_speed, stunnable, rootable, slowable, npc_hp, class_id, body_id, weapon_damage, quest_ids)
+VALUES (6, 12, 'Wise Mouse', 60, 20, 0, 1, 1.5, 2, 1, 1, 1, 20, 4, 122, 4, '1');
+
 SET IDENTITY_INSERT npc_templates OFF;
 
 DROP TABLE npc_spawns;
@@ -202,7 +205,8 @@ VALUES (2, 2, 45, 177);
 INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y)
 VALUES (2, 2, 55, 174);
 
-
+INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y)
+VALUES (6, 2, 50, 180);
 
 
 DROP TABLE npc_drops;

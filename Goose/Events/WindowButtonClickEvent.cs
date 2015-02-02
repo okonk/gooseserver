@@ -60,35 +60,7 @@ namespace Goose.Events
                 {
                     if (window.ID == windowid)
                     {
-                        switch ((Window.ButtonTypes)buttonid)
-                        {
-                            case Window.ButtonTypes.Exit:
-                            case Window.ButtonTypes.Close:
-                                switch (window.Type)
-                                {
-                                    case Window.WindowTypes.Vendor:
-                                        window.NPC.CloseVendorWindow(window, this.Player, world);
-                                        break;
-                                    case Window.WindowTypes.CombineBag:
-                                        this.Player.Windows.Remove(window);
-                                        break;
-                                    case Window.WindowTypes.ItemInfo:
-                                    case Window.WindowTypes.CharInfo:
-                                    case Window.WindowTypes.Rank:
-                                    case Window.WindowTypes.PetInfo:
-                                        this.Player.Windows.Remove(window);
-                                        break;
-                                }
-                                break;
-                            case Window.ButtonTypes.Combine:
-                                switch (window.Type)
-                                {
-                                    case Window.WindowTypes.CombineBag:
-                                        this.Player.Inventory.Combine(world);
-                                        break;
-                                }
-                                break;
-                        }
+                        window.Clicked((Window.ButtonTypes)buttonid, npcid, id2, id3, this.Player, world);
 
                         return;
                     }

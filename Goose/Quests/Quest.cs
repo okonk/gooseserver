@@ -11,6 +11,8 @@ namespace Goose.Quests
         public int Id { get; set; }
         public string Name { get; set; }
         public string Description { get; set; }
+        public string FailText { get; set; }
+        public string PassText { get; set; }
         public int MinLevel { get; set; }
         public int MaxLevel { get; set; }
         public long MinExperience { get; set; }
@@ -39,6 +41,8 @@ namespace Goose.Quests
             quest.Id = Convert.ToInt32(reader["id"]);
             quest.Name = Convert.ToString(reader["name"]);
             quest.Description = Convert.ToString(reader["description"]);
+            quest.FailText = Convert.ToString(reader["fail_text"]);
+            quest.PassText = Convert.ToString(reader["pass_text"]);
             quest.MinLevel = Convert.ToInt32(reader["min_level"]);
             quest.MaxLevel = Convert.ToInt32(reader["max_level"]);
             quest.MinExperience = Convert.ToInt64(reader["min_experience"]);

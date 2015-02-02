@@ -316,7 +316,8 @@ namespace Goose
          */
         public string MKCString()
         {
-            return "MKC" + this.LoginID + ",2," +
+            return "MKC" + this.LoginID + "," + 
+                        (int)this.NPCType + "," +
                         this.Name + "," +
                         this.Title + "," +
                         this.Surname + "," +
@@ -959,27 +960,30 @@ namespace Goose
 
                     if (highest is Group)
                     {
+                        ((Group)highest).Killed(this, world);
                         ((Group)highest).GainExperience(this, world);
                     }
                     else
                     {
+                        Player.ExperienceMessage expMessage = Player.ExperienceMessage.Normal;
+                        long experience = this.Experience;
+
                         if (this.Level + 9 < ((Player)highest).Level)
                         {
-                            if (highest is Pet)
-                            {
-                                ((Pet)highest).Owner.AddExperience((long)(this.Experience * 0.10), world,
-                                Player.ExperienceMessage.TooHigh);
-                            }
-                            ((Player)highest).AddExperience((long)(this.Experience * 0.10), world, 
-                                Player.ExperienceMessage.TooHigh);
+                            experience = (long)(this.Experience * 0.10);
+                            expMessage = Player.ExperienceMessage.TooHigh;
+                        }
+
+                        if (highest is Pet)
+                        {
+                            ((Pet)highest).Owner.Killed(this, world);
+                            ((Pet)highest).Owner.AddExperience(experience, world, expMessage);
+                            ((Player)highest).AddExperience(experience, world, expMessage);
                         }
                         else
                         {
-                            if (highest is Pet)
-                            {
-                                ((Pet)highest).Owner.AddExperience(this.Experience, world, Player.ExperienceMessage.Normal);
-                            }
-                            ((Player)highest).AddExperience(this.Experience, world, Player.ExperienceMessage.Normal);
+                            ((Player)highest).Killed(this, world);
+                            ((Player)highest).AddExperience(experience, world, expMessage);
                         }
                     }
 

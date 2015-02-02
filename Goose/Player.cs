@@ -345,12 +345,14 @@ namespace Goose
         {
             Experience = 1,
             Tell = 2,
-            WordFilter = 4
+            WordFilter = 4,
+            QuestCredit = 8,
         }
 
         public ToggleSetting ToggleSettings { get; set; }
 
         public bool ChatFilterEnabled { get { return ((this.ToggleSettings & Player.ToggleSetting.WordFilter) == 0); } }
+        public bool QuestCreditFilterEnabled { get { return ((this.ToggleSettings & Player.ToggleSetting.QuestCredit) != 0); } }
 
         public decimal AetherThreshold { get; set; }
 
@@ -933,6 +935,37 @@ namespace Goose
             }
 
             this.SaveQuests(world);
+        }
+
+        /// <summary>
+        /// Player, or Player's Group or Pet killed the given npc
+        /// </summary>
+        /// <param name="npc"></param>
+        /// <param name="world"></param>
+        internal void Killed(NPC npc, GameWorld world)
+        {
+            this.UpdatePossibleQuestProgress(RequirementType.Kill, npc.NPCTemplate.NPCTemplateID, world);
+        }
+
+        internal void TalkedTo(NPC npc, GameWorld world)
+        {
+            this.UpdatePossibleQuestProgress(RequirementType.TalkToNPC, npc.NPCTemplate.NPCTemplateID, world);
+        }
+
+        private void UpdatePossibleQuestProgress(RequirementType requirementType, long requirementValue, GameWorld world)
+        {
+            foreach (var progress in this.QuestProgress)
+            {
+                if (progress.Requirement.Type == requirementType && progress.Requirement.Value == requirementValue)
+                {
+                    progress.Value++;
+                    progress.Dirty = true;
+                    if (!QuestCreditFilterEnabled)
+                    {
+                        world.Send(this, string.Format("BT{0},{1},Quest Credit: {2}", this.LoginID, 60, progress.Requirement.Quest.Name));
+                    }
+                }
+            }
         }
 
         private void SaveQuests(GameWorld world)

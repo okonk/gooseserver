@@ -20,6 +20,7 @@ namespace Goose.Quests
     {
         public int Id { get; set; }
         public RequirementType Type { get; set; }
+        public Quest Quest { get; set; }
         public long Value { get; set; }
         public long Value2 { get; set; }
         /// <summary>

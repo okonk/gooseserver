@@ -201,5 +201,13 @@ namespace Goose
                 }
             }
         }
+
+        internal void Killed(NPC npc, GameWorld world)
+        {
+            foreach (Player player in this.Players)
+            {
+                player.Killed(npc, world);
+            }
+        }
     }
 }
