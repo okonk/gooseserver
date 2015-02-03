@@ -379,7 +379,7 @@ namespace Goose.Quests
         {
             foreach (var requirement in quest.Requirements)
             {
-                if (requirement.KeepRequirement)
+                if (!requirement.KeepRequirement)
                 {
                     switch (requirement.Type)
                     {
