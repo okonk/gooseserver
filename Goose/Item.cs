@@ -106,6 +106,8 @@ namespace Goose
 
         public bool Unsaved { get; set; }
 
+        public bool Custom { get { return false; } }
+
         public Item()
         {
             this.Unsaved = true;

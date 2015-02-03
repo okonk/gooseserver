@@ -113,6 +113,18 @@ namespace Goose
             return -1;
         }
 
+        public int GetNumberOfFreeSlots()
+        {
+            int free = 0;
+            for (int i = 1; i <= GameSettings.Default.SpellbookSize; i++)
+            {
+                if (this.spells[i] == null)
+                    free++;
+            }
+
+            return free;
+        }
+
         /**
          * SendSlot, sends spellbook slot to player
          * 

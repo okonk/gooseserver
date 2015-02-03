@@ -36,6 +36,7 @@ namespace Goose.Quests
         public int Id { get; set; }
         public RewardType Type { get; set; }
         public long LongValue { get; set; }
+        public long LongValue2 { get; set; }
         public string StringValue { get; set; }
 
         public static QuestReward FromReader(SqlDataReader reader)
@@ -45,6 +46,7 @@ namespace Goose.Quests
             reward.Id = Convert.ToInt32(reader["id"]);
             reward.Type = (RewardType)Convert.ToInt32(reader["reward_type"]);
             reward.LongValue = Convert.ToInt32(reader["long_value"]);
+            reward.LongValue = Convert.ToInt32(reader["long_value2"]);
             reward.StringValue = Convert.ToString(reader["string_value"]);
 
             return reward;

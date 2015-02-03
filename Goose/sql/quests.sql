@@ -31,7 +31,7 @@ CREATE TABLE quest_requirements (
   quest_id INT NOT NULL,
   requirement_type INT NOT NULL,
   requirement_value BIGINT NOT NULL,
-  requirement_value2 BIGINT NOT NULL,
+  requirement_value2 BIGINT DEFAULT 0,
   keep_requirement CHAR(1) DEFAULT '0',
   
   PRIMARY KEY (id)
@@ -42,8 +42,9 @@ CREATE TABLE quest_rewards (
   id INT IDENTITY(1,1) NOT NULL,
   quest_id INT NOT NULL,
   reward_type INT NOT NULL,
-  long_value BIGINT,
-  string_value TEXT,
+  long_value BIGINT DEFAULT 0,
+  long_value2 BIGINT DEFAULT 0,
+  string_value TEXT DEFAULT '',
   
   PRIMARY KEY (id)
 );

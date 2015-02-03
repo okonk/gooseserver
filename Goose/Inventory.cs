@@ -110,6 +110,18 @@ namespace Goose
             }
         }
 
+        public int GetNumberOfFreeSlots()
+        {
+            int free = 0;
+            for (int i = 1; i <= GameSettings.Default.InventorySize; i++)
+            {
+                if (this.inventory[i] == null)
+                    free++;
+            }
+
+            return free;
+        }
+
         /**
          * SendAll, sends all slots to player
          * 
@@ -446,6 +458,45 @@ namespace Goose
             return null;
         }
 
+        /// <summary>
+        /// Removes number of templateId items from inventory
+        /// </summary>
+        /// <param name="templateId"></param>
+        /// <param name="number"></param>
+        /// <param name="world"></param>
+        /// <returns></returns>
+        public void RemoveItem(int templateId, long number, GameWorld world)
+        {
+            ItemSlot slot;
+
+            for (int i = 1; i <= GameSettings.Default.InventorySize; i++)
+            {
+                slot = this.inventory[i];
+
+                if (slot == null) continue;
+                if (slot.Item.TemplateID != templateId) continue;
+
+                if (slot.Stack == number)
+                {
+                    this.inventory[i] = null;
+                    this.SendSlot(i, world);
+                    return;
+                }
+                else if (slot.Stack > number)
+                {
+                    slot.Stack -= number;
+                    this.SendSlot(i, world);
+                    return;
+                }
+                else
+                {
+                    this.inventory[i] = null;
+                    this.SendSlot(i, world);
+                    number -= slot.Stack;
+                }
+            }
+        }
+
         /**
          * Unequip, unequips equipped item at equip slot
          * 
@@ -728,7 +779,7 @@ namespace Goose
             long count = 0;
             foreach (ItemSlot slot in this.inventory)
             {
-                if (slot != null && slot.Item.Template.ID == templateid)
+                if (slot != null && slot.Item.Template.ID == templateid && !slot.Item.Custom)
                 {
                     count += slot.Stack;
 

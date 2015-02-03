@@ -43,7 +43,8 @@ namespace Goose
          */
         public enum ExperienceMessage
         {
-            TooLow = 0,
+            None = 0,
+            TooLow,
             TooHigh,
             TooFarAway,
             Normal
@@ -1397,6 +1398,16 @@ namespace Goose
                    (this.CurrentBodyID >= 100 ? "" : this.Inventory.MountDisplay()); // Mount
         }
 
+        public void SendCHPString(GameWorld world)
+        {
+            string chpstring = this.CHPString();
+            world.Send(this, chpstring);
+            foreach (Player player in this.Map.GetPlayersInRange(this))
+            {
+                world.Send(player, chpstring);
+            }
+        }
+
         private int CalculateMoveSpeed()
         {
             return (int)(this.BaseStats.MoveSpeed * (1 - this.MaxStats.MoveSpeedIncrease));
@@ -1613,6 +1624,9 @@ namespace Goose
 
                     case ExperienceMessage.TooLow:
                         world.Send(this, "$7Group members too high to gain any experience.");
+                        break;
+
+                    case ExperienceMessage.None:
                         break;
                 }
             }
