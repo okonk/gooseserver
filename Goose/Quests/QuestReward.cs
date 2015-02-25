@@ -45,8 +45,8 @@ namespace Goose.Quests
 
             reward.Id = Convert.ToInt32(reader["id"]);
             reward.Type = (RewardType)Convert.ToInt32(reader["reward_type"]);
-            reward.LongValue = Convert.ToInt32(reader["long_value"]);
-            reward.LongValue = Convert.ToInt32(reader["long_value2"]);
+            reward.LongValue = Convert.ToInt64(reader["long_value"]);
+            reward.LongValue2 = Convert.ToInt64(reader["long_value2"]);
             reward.StringValue = Convert.ToString(reader["string_value"]);
 
             return reward;

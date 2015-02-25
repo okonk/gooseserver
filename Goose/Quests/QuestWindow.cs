@@ -64,7 +64,30 @@ namespace Goose.Quests
                 if (player.QuestsCompleted.Any(q => q.Quest.Id == quest.Id))
                     continue;
 
+                foreach (var prereq in quest.PrerequisiteQuests)
+                {
+                    if (!player.QuestsCompleted.Any(q => q.Quest.Id == prereq))
+                        return;
+                }
+
                 var questWindow = new QuestWindow(npc, player, quest, world);
+
+                // todo: make repeatable quests work
+                if (!player.QuestsStarted.Any(q => q.Quest.Id == quest.Id))
+                {
+                    player.QuestsStarted.Add(new QuestStarted() { Dirty = true, Quest = quest });
+
+                    foreach (var requirement in quest.Requirements)
+                    {
+                        if (requirement.Type == RequirementType.Kill || requirement.Type == RequirementType.TalkToNPC)
+                        {
+                            if (!player.QuestProgress.Any(q => q.Requirement.Id == requirement.Id))
+                            {
+                                player.QuestProgress.Add(new QuestProgress() { Dirty = true, Requirement = requirement, Value = 0 });
+                            }
+                        }
+                    }
+                }
             }
         }
 

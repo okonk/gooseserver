@@ -67,19 +67,26 @@ INSERT INTO npc_templates (npc_id, npc_type, npc_name, respawn_time, experience,
 VALUES (1, 2, 'Lamb', 40, 40, 0, 1, 1.5, 2, 1, 1, 1, 50, 4, 104, 6);
 
 INSERT INTO npc_templates (npc_id, npc_type, npc_name, respawn_time, experience, aggro_range, attack_range, attack_speed, move_speed, stunnable, rootable, slowable, npc_hp, class_id, body_id, weapon_damage)
-VALUES (2, 2, 'Mouse', 60, 20, 0, 1, 1.5, 2, 1, 1, 1, 20, 4, 122, 4);
+VALUES (2, 2, 'Mouse', 30, 20, 0, 1, 1.5, 2, 1, 1, 1, 20, 4, 122, 4);
 
 INSERT INTO npc_templates (npc_id, npc_type, npc_name, respawn_time, experience, aggro_range, attack_range, attack_speed, move_speed, stunnable, rootable, slowable, npc_hp, class_id, body_id, weapon_damage)
 VALUES (3, 2, 'Sheep', 40, 60, 0, 1, 1.5, 2, 1, 1, 1, 75, 4, 112, 10);
 
-INSERT INTO npc_templates (npc_id, npc_type, npc_name, respawn_time, experience, attack_range, attack_speed, move_speed, stunnable, rootable, slowable, npc_hp, class_id, body_id, weapon_damage)
-VALUES (4, 2, 'Cow', 45, 100, 1, 1.2, 1.5, 1, 1, 1, 120, 4, 116, 25);
+INSERT INTO npc_templates (npc_id, npc_type, npc_name, respawn_time, experience, aggro_range, attack_range, attack_speed, move_speed, stunnable, rootable, slowable, npc_hp, class_id, body_id, weapon_damage)
+VALUES (4, 2, 'Cow', 45, 100, 0, 1, 1.2, 1.5, 1, 1, 1, 120, 4, 116, 25);
 
 INSERT INTO npc_templates (npc_id, npc_type, npc_name, npc_title, respawn_time, experience, aggro_range, attack_range, attack_speed, move_speed, rootable, slowable, npc_hp, class_id, body_id, body_r, body_g, body_b, body_a, weapon_damage, hp_static_regen, stuck_behaviour)
-VALUES (5, 2, 'Cow', 'Enraged', 1800, 600, 2, 2, 1.2, 1.5, 1, 1, 750, 4, 116, 229, 58, 31, 150, 55, 20, 2);
+VALUES (5, 2, 'Cow', 'Enraged', 1800, 600, 2, 2, 1.2, 1.5, 1, 1, 750, 4, 116, 229, 58, 31, 150, 55, 10, 2);
 
-INSERT INTO npc_templates (npc_id, npc_type, npc_name, respawn_time, experience, aggro_range, attack_range, attack_speed, move_speed, stunnable, rootable, slowable, npc_hp, class_id, body_id, weapon_damage, quest_ids)
-VALUES (6, 12, 'Wise Mouse', 60, 20, 0, 1, 1.5, 2, 1, 1, 1, 20, 4, 122, 4, '1');
+INSERT INTO npc_templates (npc_id, npc_type, npc_name, respawn_time, experience, stationary, invincible, npc_hp, class_id, body_id, face_id, hair_id, quest_ids)
+VALUES (6, 12, 'Snusnu', 5, 1, 1, 1, 999, 4, 1, 1, 1, '1');
+
+INSERT INTO npc_templates (npc_id, npc_type, npc_name, respawn_time, experience, stationary, invincible, npc_hp, class_id, body_id, face_id, hair_id, quest_ids)
+VALUES (7, 12, 'Nusnus', 5, 1, 1, 1, 999, 4, 1, 1, 1, '2');
+
+INSERT INTO npc_templates (npc_id, npc_type, npc_name, respawn_time, experience, stationary, invincible, npc_hp, class_id, body_id, face_id, hair_id, quest_ids)
+VALUES (8, 12, 'UsnUsn', 5, 1, 1, 1, 999, 4, 1, 1, 1, '3');
+
 
 SET IDENTITY_INSERT npc_templates OFF;
 
@@ -206,8 +213,13 @@ INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y)
 VALUES (2, 2, 55, 174);
 
 INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y)
-VALUES (6, 2, 50, 180);
+VALUES (6, 2, 45, 182);
 
+INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y)
+VALUES (7, 2, 81, 127);
+
+INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y)
+VALUES (8, 2, 63, 132);
 
 DROP TABLE npc_drops;
 CREATE TABLE npc_drops (
@@ -228,6 +240,34 @@ VALUES (5, 17, 1, 10);
 
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate)
 VALUES (5, 18, 1, 10);
+
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate)
+VALUES (1, 48, 1, 10);
+
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate)
+VALUES (3, 48, 1, 10);
+
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate)
+VALUES (4, 48, 1, 10);
+
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate)
+VALUES (1, 51, 1, 10);
+
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate)
+VALUES (3, 51, 1, 10);
+
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate)
+VALUES (4, 51, 1, 10);
+
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate)
+VALUES (2, 54, 1, 30);
+
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate)
+VALUES (3, 55, 1, 20);
+
+INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate)
+VALUES (4, 56, 1, 20);
+
 
 DROP TABLE npc_vendor_items;
 CREATE TABLE npc_vendor_items (
