@@ -37,6 +37,8 @@ CREATE TABLE quest_requirements (
   PRIMARY KEY (id)
 );
 
+
+
 DROP TABLE quest_rewards;
 CREATE TABLE quest_rewards (
   id INT IDENTITY(1,1) NOT NULL,
@@ -49,11 +51,7 @@ CREATE TABLE quest_rewards (
   PRIMARY KEY (id)
 );
 
-SET IDENTITY_INSERT quest_rewards ON;
 
-
-
-SET IDENTITY_INSERT quest_rewards OFF;
 
 CREATE TABLE quest_progress (
   id INT IDENTITY(1,1) NOT NULL,

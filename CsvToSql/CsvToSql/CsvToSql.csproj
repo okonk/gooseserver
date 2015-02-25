@@ -47,6 +47,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CsvToSqlBase.cs" />
+    <Compile Include="QuestRewardsCsvToSql.cs" />
+    <Compile Include="QuestsCsvToSql.cs" />
+    <Compile Include="QuestRequirementsCsvToSql.cs" />
     <Compile Include="WarpTilesCsvToSql.cs" />
     <Compile Include="SpellsCsvToSql.cs" />
     <Compile Include="NpcVendorsCsvToSql.cs" />

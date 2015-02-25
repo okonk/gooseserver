@@ -60,6 +60,15 @@ namespace CsvToSql
                     case "illutia - Warptiles.csv":
                         new WarpTilesCsvToSql().Convert(file, "warptiles");
                         break;
+                    case "illutia - Quests.csv":
+                        new QuestsCsvToSql().Convert(file, "quests");
+                        break;
+                    case "illutia - Quest Reqs.csv":
+                        new QuestRequirementsCsvToSql().Convert(file, "quest_requirements");
+                        break;
+                    case "illutia - Quest Rewards.csv":
+                        new QuestRewardsCsvToSql().Convert(file, "quest_rewards");
+                        break;
                     default:
                         break;
                 }
