@@ -1288,20 +1288,20 @@ namespace Goose
          * 
          * Resets level/exp to starting values
          */
-        public void ChangeClass(int classid, GameWorld world)
+        public void ChangeClass(int classid, int newLevel, GameWorld world)
         {
             // todo unequip equipment i guess
 
             this.RemoveStats(this.BaseStats, world);
 
             this.MaxStats -= this.Class.GetLevel(this.Level).BaseStats;
-            this.Level = GameSettings.Default.StartingLevel;
-            this.Experience = GameSettings.Default.StartingExperience;
-            this.ExperienceSold = GameSettings.Default.StartingExperienceSold;
+            this.Level = newLevel;
+            this.Experience = (this.Level == 1 ? 0 : this.Class.GetLevel(this.Level - 1).Experience);
+            //this.ExperienceSold = GameSettings.Default.StartingExperienceSold;
             this.ClassID = classid;
             this.Class = world.ClassHandler.GetClass(this.ClassID);
-            this.BaseStats.HP = 0;
-            this.BaseStats.MP = 0;
+            //this.BaseStats.HP = 0;
+            //this.BaseStats.MP = 0;
 
             this.AddStats(this.Class.GetLevel(this.Level).BaseStats, world);
             this.AddStats(this.BaseStats, world);

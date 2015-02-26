@@ -337,7 +337,7 @@ namespace Goose.Quests
                         rewardMessage = string.Format("{0}changed body colour", prefix);
                         break;
                     case RewardType.ClassChange:
-                        player.ChangeClass((int)reward.LongValue, world);
+                        player.ChangeClass((int)reward.LongValue, 5, world);
                         rewardMessage = string.Format("{0}Class changed to {1}", prefix, player.Class.ClassName);
                         break;
                     case RewardType.HP:

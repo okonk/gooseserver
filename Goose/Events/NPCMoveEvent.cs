@@ -47,7 +47,7 @@ namespace Goose.Events
                     else
                     {
                         // if outside of spawn area, try to move back to it
-                        if (Math.Abs(this.NPC.MapX - this.NPC.SpawnX) > 15 || Math.Abs(this.NPC.MapY - this.NPC.SpawnY) > 15)
+                        if (Math.Abs(this.NPC.MapX - this.NPC.SpawnX) > 10 || Math.Abs(this.NPC.MapY - this.NPC.SpawnY) > 10)
                         {
                             direction = this.NPC.NextStepTo(this.NPC.SpawnX, this.NPC.SpawnY, world);
                         }

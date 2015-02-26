@@ -41,16 +41,16 @@ namespace Goose.Events
                 switch (cl.ToLower())
                 {
                     case "rogue":
-                        this.Player.ChangeClass(2, world);
+                        this.Player.ChangeClass(2, 1, world);
                         break;
                     case "warrior":
-                        this.Player.ChangeClass(3, world);
+                        this.Player.ChangeClass(3, 1, world);
                         break;
                     case "magus":
-                        this.Player.ChangeClass(4, world);
+                        this.Player.ChangeClass(4, 1, world);
                         break;
                     case "priest":
-                        this.Player.ChangeClass(5, world);
+                        this.Player.ChangeClass(5, 1, world);
                         break;
                     default:
                         world.Send(this.Player, "$7/changeclass [rogue|magus|warrior|priest]");
