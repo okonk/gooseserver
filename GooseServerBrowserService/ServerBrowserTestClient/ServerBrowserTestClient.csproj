@@ -52,7 +52,7 @@
       <Project>{faf2381e-1234-4d2c-abd4-0b6adb07ab79}</Project>
       <Name>GooseServerBrowserService.Client</Name>
     </ProjectReference>
-    <ProjectReference Include="..\GooseServerBrowserService\GooseServerBrowserService.Contract\GooseServerBrowserService.Contract.csproj">
+    <ProjectReference Include="..\GooseServerBrowserService.Contract\GooseServerBrowserService.Contract.csproj">
       <Project>{9584e4dc-4a62-45af-b69e-8b7238ae6e4d}</Project>
       <Name>GooseServerBrowserService.Contract</Name>
     </ProjectReference>

@@ -10,7 +10,7 @@ namespace ServerBrowserTestClient
     {
         static void Main(string[] args)
         {
-            new GooseServerBrowserService.Client.GooseServerBrowserClient("http://localhost:3000/").Register(new GooseServerBrowserService.Contract.RegisterRequest()
+            new GooseServerBrowserService.Client.GooseServerBrowserClient("http://illutia.tk:3000/").Register(new GooseServerBrowserService.Contract.RegisterRequest()
             {
                 ServerName = "Test 124",
                 PlayerCount = 1,
