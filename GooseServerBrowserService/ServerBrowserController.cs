@@ -15,6 +15,9 @@ namespace GooseServerBrowserService
         [HttpPost]
         public void Register(RegisterRequest request)
         {
+            if (request.Checksum != request.ComputeChecksum())
+                return;
+
             OwinContext owinContext = (OwinContext)this.Request.Properties["MS_OwinContext"];
             string ipAddress = owinContext.Request.RemoteIpAddress;
 

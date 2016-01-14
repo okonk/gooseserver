@@ -20,6 +20,8 @@ namespace GooseServerBrowserService.Client
 
         public void Register(RegisterRequest request)
         {
+            request.Checksum = request.ComputeChecksum();
+
             var httpClient = new HttpClient();
             var result = httpClient.PostAsync(baseUrl + "api/ServerBrowser/Register", new StringContent(JsonConvert.SerializeObject(request), Encoding.UTF8, "application/json")).Result;
         }
