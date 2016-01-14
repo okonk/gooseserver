@@ -20,6 +20,9 @@ namespace CsvToSql
         {
             switch (columnName)
             {
+                case "keep_requirement":
+                    // booleans
+                    return EscapeString(value);
                 case "requirement_type":
                     return ConvertEnum(value, typeof(RequirementType));
                 default:

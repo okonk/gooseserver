@@ -18,6 +18,9 @@ namespace CsvToSql
         {
             switch (columnName)
             {
+                case "stats_visible":
+                    // booleans
+                    return EscapeString(value);
                 default:
                     return value;
             }

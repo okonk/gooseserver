@@ -29,6 +29,14 @@ namespace CsvToSql
                 case "npc_surname":
                 case "quest_ids":
                     return EscapeString(value);
+                case "stationary":
+                case "stunnable":
+                case "rootable":
+                case "slowable":
+                case "invincible":
+                case "credit_dealer":
+                    // booleans
+                    return EscapeString(value);
                 case "npc_type":
                     return ConvertEnum(value, typeof(Types));
                 case "stuck_behaviour":

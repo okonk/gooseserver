@@ -1,4 +1,6 @@
-﻿using CsvHelper;
+﻿using ClosedXML.Excel;
+using CsvHelper;
+using CsvHelper.Excel;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -9,13 +11,13 @@ namespace CsvToSql
 {
     abstract class CsvToSqlBase
     {
-        public void Convert(string csvPath, string tableName)
+        public string Convert(IXLWorksheet worksheet, string template, string tableName)
         {
             string[] allColumns = GetColumns();
 
-            using (var writer = new StreamWriter(tableName + ".sql"))
-            using (var streamReader = new StreamReader(csvPath))
-            using (var csvReader = new CsvReader(streamReader, new CsvHelper.Configuration.CsvConfiguration() { HasHeaderRecord = true }))
+            var sqlBuilder = new StringBuilder();
+
+            using (var csvReader = new CsvReader(new ExcelParser(worksheet, new CsvHelper.Configuration.CsvConfiguration() { HasHeaderRecord = true })))
             {
                 while (csvReader.Read())
                 {
@@ -31,13 +33,15 @@ namespace CsvToSql
                         values.Add(TransformValue(allColumns[i], value));
                     }
 
-                    writer.Write("INSERT INTO {0} (", tableName);
-                    writer.Write(string.Join(", ", columns));
-                    writer.Write(")\nVALUES (");
-                    writer.Write(string.Join(", ", values));
-                    writer.WriteLine(");\n");
+                    sqlBuilder.AppendFormat("INSERT INTO {0} (", tableName);
+                    sqlBuilder.Append(string.Join(", ", columns));
+                    sqlBuilder.Append(")\nVALUES (");
+                    sqlBuilder.Append(string.Join(", ", values));
+                    sqlBuilder.Append(");\n");
                 }
             }
+
+            return template.Replace("{{" + tableName + "}}", sqlBuilder.ToString());
         }
 
         protected string EscapeString(string value)

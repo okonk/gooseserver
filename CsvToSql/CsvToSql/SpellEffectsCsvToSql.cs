@@ -33,6 +33,15 @@ namespace CsvToSql
                 case "mp_change_formula":
                 case "sp_change_formula":
                     return EscapeString(value);
+                case "do_attack_animation":
+                case "do_cast_animation":
+                case "spell_damage_effects":
+                case "works_in_pvp":
+                case "works_not_in_pvp":
+                case "buff_removable":
+                case "only_hits_one_npc":
+                    // booleans
+                    return EscapeString(value);
 
                 case "spell_display":
                     return ConvertEnum(value, typeof(SpellDisplays));

@@ -225,7 +225,16 @@
       <LastGenOutput>GameSettings.Designer.cs</LastGenOutput>
     </None>
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <ProjectReference Include="..\GooseServerBrowserService\GooseServerBrowserService.Client\GooseServerBrowserService.Client.csproj">
+      <Project>{faf2381e-1234-4d2c-abd4-0b6adb07ab79}</Project>
+      <Name>GooseServerBrowserService.Client</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\GooseServerBrowserService\GooseServerBrowserService.Contract\GooseServerBrowserService.Contract.csproj">
+      <Project>{9584e4dc-4a62-45af-b69e-8b7238ae6e4d}</Project>
+      <Name>GooseServerBrowserService.Contract</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

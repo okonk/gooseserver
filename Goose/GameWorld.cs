@@ -8,6 +8,9 @@ using System.Runtime.InteropServices;
 
 using Goose.Events;
 using Goose.Quests;
+using System.Threading.Tasks;
+using GooseServerBrowserService.Client;
+using System.Threading;
 
 namespace Goose
 {
@@ -106,6 +109,8 @@ namespace Goose
                                        ";async=true;MultipleActiveResultSets=True");
 
             this.ExperienceModifier = GameSettings.Default.ExperienceModifier;
+
+            this.LaunchServerBrowserUpdateThread();
         }
 
         /**
@@ -538,6 +543,32 @@ namespace Goose
         {
             SqlCommand command = (SqlCommand)ar.AsyncState;
             command.EndExecuteNonQuery(ar);
+        }
+
+        public void LaunchServerBrowserUpdateThread()
+        {
+            Task.Factory.StartNew(() => 
+            {
+                while (true)
+                {
+                    try
+                    {
+                        new GooseServerBrowserClient("http://illutia.tk:3000/").Register(new GooseServerBrowserService.Contract.RegisterRequest()
+                            {
+                                ServerName = GameSettings.Default.ServerName,
+                                PlayerCount = this.PlayerHandler.PlayerCount,
+                                Port = GameSettings.Default.GameServerPort,
+                                Version = GameSettings.Default.ServerVersion,
+                            });
+                    }
+                    catch
+                    {
+
+                    }
+
+                    Thread.Sleep(TimeSpan.FromMinutes(2));
+                }
+            });
         }
     }
 }

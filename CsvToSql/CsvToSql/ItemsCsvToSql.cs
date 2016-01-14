@@ -27,6 +27,12 @@ namespace CsvToSql
                 case "item_description":
                 case "item_name":
                     return EscapeString(value);
+                case "lore":
+                case "bindonpickup":
+                case "bindonequip":
+                case "event":
+                    // booleans
+                    return EscapeString(value);
                 case "item_usetype":
                     return ConvertEnum(value, typeof(UseTypes));
                 case "item_slot":

@@ -26,6 +26,10 @@ namespace CsvToSql
                 case "fail_text":
                 case "prerequisite_quests":
                     return EscapeString(value);
+                case "repeatable":
+                case "only_one_player_can_complete":
+                    // booleans
+                    return EscapeString(value);
                 default:
                     return value;
             }

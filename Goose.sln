@@ -1,7 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2012
+# Visual Studio 2013
+VisualStudioVersion = 12.0.31101.0
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Goose", "Goose\Goose.csproj", "{D2C2493F-4A52-487A-824F-7380BEDE041A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GooseServerBrowserService.Client", "GooseServerBrowserService\GooseServerBrowserService.Client\GooseServerBrowserService.Client.csproj", "{FAF2381E-1234-4D2C-ABD4-0B6ADB07AB79}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GooseServerBrowserService.Contract", "GooseServerBrowserService\GooseServerBrowserService.Contract\GooseServerBrowserService.Contract.csproj", "{9584E4DC-4A62-45AF-B69E-8B7238AE6E4D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -13,6 +19,14 @@ Global
 		{D2C2493F-4A52-487A-824F-7380BEDE041A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D2C2493F-4A52-487A-824F-7380BEDE041A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D2C2493F-4A52-487A-824F-7380BEDE041A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FAF2381E-1234-4D2C-ABD4-0B6ADB07AB79}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FAF2381E-1234-4D2C-ABD4-0B6ADB07AB79}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FAF2381E-1234-4D2C-ABD4-0B6ADB07AB79}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FAF2381E-1234-4D2C-ABD4-0B6ADB07AB79}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9584E4DC-4A62-45AF-B69E-8B7238AE6E4D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9584E4DC-4A62-45AF-B69E-8B7238AE6E4D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9584E4DC-4A62-45AF-B69E-8B7238AE6E4D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9584E4DC-4A62-45AF-B69E-8B7238AE6E4D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
