@@ -33,7 +33,7 @@ namespace CsvToSql
 
             var spreadsheet = new MemoryStream(new HttpClient().GetByteArrayAsync("https://docs.google.com/spreadsheets/d/14oayAdw6kPbvt_AloWlBjO5glYC5g9vHV3cpVwVyxZ8/export?format=xlsx&id=14oayAdw6kPbvt_AloWlBjO5glYC5g9vHV3cpVwVyxZ8").Result);
 
-            string sqlTemplate = File.ReadAllText(@"..\..\sqlTemplate.sql");
+            string sqlTemplate = CsvToSql.Properties.Resources.sqlTemplate;
             using (var workbook = new XLWorkbook(spreadsheet, XLEventTracking.Disabled))
             {
                 foreach (var worksheet in workbook.Worksheets)

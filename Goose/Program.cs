@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.IO;
+using System.ServiceProcess;
 
 namespace Goose
 {
@@ -14,32 +15,18 @@ namespace Goose
          */
         static void Main(string[] args)
         {
-            while (true)
+            if (args.Contains("-service"))
             {
-                try
-                {
-                    GameServer gs = new GameServer();
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine("\nCrashed: " + DateTime.Now.ToString());
-                    Console.WriteLine(e.Message + " " + e.InnerException);
-                    Console.WriteLine(e.StackTrace);
+                ServiceBase.Run(new ServiceBase[] 
+                { 
+                    new GooseWindowsService() 
+                });
 
-                    using (StreamWriter writer = File.AppendText("crashlog.txt"))
-                    {
-                        writer.WriteLine("\nCrashed: " + DateTime.Now.ToString());
-                        writer.WriteLine(e.Message + " " + e.InnerException);
-                        writer.WriteLine(e.StackTrace);
-                    }
-
-                    System.Threading.Thread.Sleep(10000);
-                    continue;
-                }
-
-                break;
+                return;
             }
 
+            GameServer server = new GameServer();
+            server.Run();
             Console.ReadKey(); // so console doesn't close when server closes
         }
     }

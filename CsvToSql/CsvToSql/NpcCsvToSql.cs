@@ -28,6 +28,7 @@ namespace CsvToSql
                 case "npc_title":
                 case "npc_surname":
                 case "quest_ids":
+                case "equipped_items":
                     return EscapeString(value);
                 case "stationary":
                 case "stunnable":

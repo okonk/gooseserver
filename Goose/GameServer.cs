@@ -20,6 +20,8 @@ namespace Goose
 
         GameWorld gameworld;
 
+        private bool stopping = false;
+
         /**
          * Constructor, constructs the GameWorld
          * 
@@ -29,11 +31,39 @@ namespace Goose
          */
         public GameServer()
         {
-            this.sockets = new ArrayList();
-            this.gameworld = new GameWorld(this);
+            
+        }
 
-            this.Start();
-            this.GameLoop();
+        public void Run()
+        {
+            while (true)
+            {
+                try
+                {
+                    this.sockets = new ArrayList();
+                    this.gameworld = new GameWorld(this);
+                    this.Start();
+                    this.GameLoop();
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("\nCrashed: " + DateTime.Now.ToString());
+                    Console.WriteLine(e.Message + " " + e.InnerException);
+                    Console.WriteLine(e.StackTrace);
+
+                    using (System.IO.StreamWriter writer = System.IO.File.AppendText("crashlog.txt"))
+                    {
+                        writer.WriteLine("\nCrashed: " + DateTime.Now.ToString());
+                        writer.WriteLine(e.Message + " " + e.InnerException);
+                        writer.WriteLine(e.StackTrace);
+                    }
+
+                    System.Threading.Thread.Sleep(10000);
+                    continue;
+                }
+
+                break;
+            }
         }
 
         /**
@@ -121,7 +151,8 @@ namespace Goose
                 this.gameworld.Update();
             }
 
-            this.Stop();
+            if (!stopping)
+                this.Stop();
         }
 
         /**
@@ -134,6 +165,7 @@ namespace Goose
          */
         public void Stop()
         {
+            this.stopping = true;
             this.gameworld.Stop();
 
             foreach (Socket sock in this.sockets)

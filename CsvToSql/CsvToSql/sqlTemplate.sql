@@ -1,5 +1,9 @@
 USE IllutiaGoose;
 
+SET NOCOUNT ON;
+
+BEGIN TRY
+
 DROP TABLE item_templates;
 CREATE TABLE item_templates (
   item_template_id INT NOT NULL,
@@ -237,7 +241,7 @@ CREATE TABLE spell_effects (
   max_level_effected INT DEFAULT 50 NOT NULL,
   
   effect_type INT NOT NULL,
-  effect_duration BIGINT NOT NULL,
+  effect_duration BIGINT DEFAULT 0 NOT NULL,
   
   do_attack_animation CHAR(1) DEFAULT '0' NOT NULL,
   do_cast_animation CHAR(1) DEFAULT '1' NOT NULL,
@@ -337,3 +341,10 @@ CREATE TABLE warptiles (
 );
 
 {{warptiles}}
+
+END TRY
+BEGIN CATCH
+    --PRINT 'Error Line: ' + STR(ERROR_LINE()) + ', Message: ' + ERROR_MESSAGE();
+    --RETURN 1;
+    THROW;
+END CATCH
