@@ -230,6 +230,27 @@ namespace Goose
             }
         }
 
+        public string SPPString(int targetId)
+        {
+            return "SPP" +
+                targetId + "," +
+                this.Animation + "," +
+                this.AnimationFile + "," +
+                "0," + // todo: what are these 0s? Sound maybe?
+                "0";
+        }
+
+        public string SPAString(int x, int y)
+        {
+            return "SPA" +
+                x + "," +
+                y + "," +
+                this.Animation + "," +
+                this.AnimationFile + "," +
+                "0," +
+                "0";
+        }
+
         /**
          * CastFormulaSpell
          * 
@@ -274,7 +295,7 @@ namespace Goose
                 }
             }
 
-            if (this.Animation != 0) packet = "SPP" + target.LoginID + "," +this.Animation + "," + this.AnimationFile;
+            if (this.Animation != 0) packet = this.SPPString(target.LoginID);
             if (this.DoCastAnimation) packet += "\x1" + "CST" + caster.LoginID;
 
             if (target is NPC && this.TauntAggro > 0)
@@ -320,7 +341,7 @@ namespace Goose
             List<Player> range = target.Map.GetPlayersInRange(target);
             string packet = "BT" + target.LoginID + ",60,Bound";
 
-            if (this.Animation != 0) packet += "\x1SPP" + target.LoginID + "," +this.Animation + "," + this.AnimationFile;
+            if (this.Animation != 0) packet += "\x1" + this.SPPString(target.LoginID);
             if (this.DoCastAnimation) packet += "\x1" + "CST" + caster.LoginID;
 
             world.Send((Player)target, "$7Your soul has been bound to this spot.");
@@ -373,7 +394,7 @@ namespace Goose
             ((Player)target).AddRegenEvent(world);
             string packet = ((Player)target).VPUString() + "\x1" + ((Player)target).CHPString();
 
-            if (this.Animation != 0) packet += "\x1SPP" + target.LoginID + "," +this.Animation + "," + this.AnimationFile;
+            if (this.Animation != 0) packet += "\x1" + this.SPPString(target.LoginID);
             if (this.DoCastAnimation) packet += "\x1" + "CST" + caster.LoginID;
             if (this.OnEffectText != "") world.Send((Player)target, "$7" + this.OnEffectText);
 
@@ -456,7 +477,7 @@ namespace Goose
             {
                 List<Player> range = target.Map.GetPlayersInRange(target);
 
-                string packet = "SPP" + target.LoginID + "," +this.Animation + "," + this.AnimationFile;
+                string packet = this.SPPString(target.LoginID);
 
                 world.Send((Player)target, packet);
                 foreach (Player player in range)
@@ -812,7 +833,7 @@ namespace Goose
                         }
                         if (this.Display == SpellDisplays.Tile && this.Animation != 0)
                         {
-                            packet += "\x1SPA" + x + "," + y + "," +this.Animation + "," + this.AnimationFile;
+                            packet += "\x1" + this.SPAString(x, y);
                         }
 
                         if (hitone) break;
@@ -832,7 +853,7 @@ namespace Goose
                             }
                             if (this.Display == SpellDisplays.Tile && this.Animation != 0)
                             {
-                                packet += "\x1SPA" + x + "," + y + "," +this.Animation + "," + this.AnimationFile;
+                                packet += "\x1" + this.SPAString(x, y);
                             }
 
                             if (hitone) break;
@@ -857,7 +878,7 @@ namespace Goose
                                 }
                                 if (this.Display == SpellDisplays.Tile && this.Animation != 0)
                                 {
-                                    packet += "\x1SPA" + x + "," + y + "," +this.Animation + "," + this.AnimationFile;
+                                    packet += "\x1" + this.SPAString(x, y);
                                 }
                             }
                             if (hitone) break;
@@ -881,7 +902,7 @@ namespace Goose
                                 }
                                 if (this.Display == SpellDisplays.Tile && this.Animation != 0)
                                 {
-                                    packet += "\x1SPA" + x + "," + y + "," +this.Animation + "," + this.AnimationFile;
+                                    packet += "\x1" + this.SPAString(x, y);
                                 }
                             }
                             if (hitone) break;
@@ -941,7 +962,7 @@ namespace Goose
                         }
                         if (this.Display == SpellDisplays.Tile && this.Animation != 0)
                         {
-                            packet += "\x1SPA" + p.x + "," + p.y + "," +this.Animation + "," + this.AnimationFile;
+                            packet += "\x1" + this.SPAString(p.x, p.y);
                         }
                         if (hitone) break;
                     }
@@ -1001,7 +1022,7 @@ namespace Goose
 
                             if (this.Display == SpellDisplays.Tile && this.Animation != 0)
                             {
-                                packet += "\x1SPA" + x + "," + y + "," +this.Animation + "," + this.AnimationFile;
+                                packet += "\x1" + this.SPAString(x, y);
                             }
 
                             if (hitone) break;

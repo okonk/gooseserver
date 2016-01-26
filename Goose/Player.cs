@@ -1378,6 +1378,27 @@ namespace Goose
                 pose = weapon.Item.BodyState;
             }
 
+            // CHP
+            // 12278,
+            // 1, body
+            // 0,0,0,0, body rgba
+            // 4, pose
+            // 16, hair id
+            // 60,*,
+            // 133,*,
+            // 11,146,183,68,150,
+            // 3,150,150,150,135,
+            // 224,*,
+            // 3,60,25,180,150,
+            // 0,0,0,0,
+            // 0,
+            // 2,
+            // 320,
+            // 0,0,0,0,0
+
+            // MKC5735,12,Road Sign (Quest),,,,52,177,3,100,152,0,0,0,0,3,0,320,0,0
+            // MKC5582,2,Snake (Lv3),,,,64,178,3,100,123,0,0,0,0,3,0,320,0,0.
+
             return "CHP" +
                    this.LoginID + "," +
                    this.CurrentBodyID + "," +
@@ -1392,7 +1413,7 @@ namespace Goose
                    (this.CurrentBodyID >= 100 ? "" : this.HairG + ",") +
                    (this.CurrentBodyID >= 100 ? "" : this.HairB + ",") +
                    (this.CurrentBodyID >= 100 ? "" : this.HairA + ",") +
-                   (this.CurrentBodyID >= 100 ? "" : "0" + ",") + // Invis thing
+                   "0" + "," + // Invis thing
                    (this.CurrentBodyID >= 100 ? "" : this.FaceID + ",") +
                    this.CalculateMoveSpeed() + "," + // Move Speed
                    (this.CurrentBodyID >= 100 ? "" : this.Inventory.MountDisplay()); // Mount
@@ -2011,7 +2032,7 @@ namespace Goose
 
                     if (buff.SpellEffect.Animation != 0)
                     {
-                        packet = "SPP" + this.LoginID + "," + buff.SpellEffect.Animation;
+                        packet = buff.SpellEffect.SPPString(this.LoginID);
                         if (buff.SpellEffect.DoAttackAnimation) 
                             packet += "\x1ATT" + this.LoginID; // kinda weird but k
 
@@ -2083,7 +2104,7 @@ namespace Goose
             this.AddRegenEvent(world);
 
             if (buff.SpellEffect.Animation != 0)
-                packet += "\x1SPP" + this.LoginID + "," + buff.SpellEffect.Animation;
+                packet += "\x1" + buff.SpellEffect.SPPString(this.LoginID);
             if (buff.SpellEffect.DoAttackAnimation) packet += "\x1ATT" + this.LoginID; // kinda weird but k
 
             if (buff.SpellEffect.OnEffectText != "") world.Send(this, "$7" + buff.SpellEffect.OnEffectText);

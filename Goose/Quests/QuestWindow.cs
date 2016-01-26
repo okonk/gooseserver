@@ -61,7 +61,7 @@ namespace Goose.Quests
 
             foreach (var quest in npc.Quests)
             {
-                if (player.QuestsCompleted.Any(q => q.Quest.Id == quest.Id))
+                if (player.QuestsCompleted.Any(q => q.Quest.Id == quest.Id) && !quest.Repeatable)
                     continue;
 
                 foreach (var prereq in quest.PrerequisiteQuests)
@@ -72,7 +72,6 @@ namespace Goose.Quests
 
                 var questWindow = new QuestWindow(npc, player, quest, world);
 
-                // todo: make repeatable quests work
                 if (!player.QuestsStarted.Any(q => q.Quest.Id == quest.Id))
                 {
                     player.QuestsStarted.Add(new QuestStarted() { Dirty = true, Quest = quest });
@@ -138,7 +137,7 @@ namespace Goose.Quests
                         this.Buttons = "0,1,0,0,0";
 
                         // player has opened the quest window twice, and already completed it in one
-                        if (player.QuestsCompleted.Any(q => q.Quest.Id == quest.Id))
+                        if (!quest.Repeatable && player.QuestsCompleted.Any(q => q.Quest.Id == quest.Id))
                         {
                             player.Windows.Remove(this);
                             return;
@@ -228,11 +227,15 @@ namespace Goose.Quests
 
         public void CompleteQuest(NPC npc, Player player, GameWorld world)
         {
-            player.QuestsCompleted.Add(new QuestCompleted()
+            // only mark quest as completed once if it is repeatable
+            if (quest.Repeatable && !player.QuestsCompleted.Any(q => q.Quest.Id == quest.Id))
             {
-                Dirty = true,
-                Quest = quest
-            });
+                player.QuestsCompleted.Add(new QuestCompleted()
+                {
+                    Dirty = true,
+                    Quest = quest
+                });
+            }
 
             var progressToRemove = player.QuestProgress.Where(p => p.Requirement.Quest.Id == quest.Id);
             foreach (var progress in progressToRemove)

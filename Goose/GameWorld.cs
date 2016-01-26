@@ -553,7 +553,7 @@ namespace Goose
                 {
                     try
                     {
-                        new GooseServerBrowserClient("http://illutia.tk:3000/").Register(new GooseServerBrowserService.Contract.RegisterRequest()
+                        new GooseServerBrowserClient("http://illutia.ddns.net:3000/").Register(new GooseServerBrowserService.Contract.RegisterRequest()
                             {
                                 ServerName = GameSettings.Default.ServerName,
                                 PlayerCount = this.PlayerHandler.PlayerCount,
