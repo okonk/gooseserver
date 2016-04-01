@@ -189,7 +189,7 @@ namespace Goose.Quests
                         break;
                     case RequirementType.TalkToNPC:
                     case RequirementType.Kill:
-                        if (!player.QuestProgress.Any(p => p.Requirement.Id == requirement.Id && p.Value >= p.Requirement.Value2))
+                        if (!player.QuestProgress.Any(p => !p.Remove && p.Requirement.Id == requirement.Id && p.Value >= p.Requirement.Value2))
                             return false;
                         break;
                     case RequirementType.ExperienceBanked:
@@ -227,8 +227,7 @@ namespace Goose.Quests
 
         public void CompleteQuest(NPC npc, Player player, GameWorld world)
         {
-            // only mark quest as completed once if it is repeatable
-            if (quest.Repeatable && !player.QuestsCompleted.Any(q => q.Quest.Id == quest.Id))
+            if (!player.QuestsCompleted.Any(q => q.Quest.Id == quest.Id))
             {
                 player.QuestsCompleted.Add(new QuestCompleted()
                 {
@@ -237,10 +236,13 @@ namespace Goose.Quests
                 });
             }
 
-            var progressToRemove = player.QuestProgress.Where(p => p.Requirement.Quest.Id == quest.Id);
-            foreach (var progress in progressToRemove)
+            if (!quest.Repeatable)
             {
-                progress.Remove = true;
+                var progressToRemove = player.QuestProgress.Where(p => p.Requirement.Quest.Id == quest.Id).ToArray();
+                foreach (var progress in progressToRemove)
+                {
+                    progress.Remove = true;
+                }
             }
 
             this.TakeRequirements(player, world);
@@ -417,6 +419,15 @@ namespace Goose.Quests
                             break;
                         case RequirementType.TalkToNPC:
                         case RequirementType.Kill:
+                            var progress = player.QuestProgress.FirstOrDefault(p => p.Requirement.Quest.Id == quest.Id 
+                                && p.Requirement.Type == requirement.Type
+                                && p.Requirement.Value == requirement.Value 
+                                && p.Requirement.Value2 == requirement.Value2);
+                            if (progress != null)
+                            {
+                                progress.Value = Math.Max(0, progress.Value - requirement.Value2);
+                                progress.Dirty = true;
+                            }
                             break;
                         case RequirementType.ExperienceBanked:
                             player.AddExperience(-requirement.Value, world, Player.ExperienceMessage.None);

@@ -1011,11 +1011,12 @@ namespace Goose
                     // TODO: Is this going to be stable, is it even worth spawning a task for this?
                     Task.Factory.StartNew(() =>
                     {
-                        var query = "INSERT INTO quest_progress (requirement_id, player_id, progress_value) OUTPUT INSERTED.id VALUES (" + questProgress.Requirement.Id + ", " + this.PlayerID + ", " + questProgress.Value + ");";
+                        var qp = questProgress;
+                        var query = "INSERT INTO quest_progress (requirement_id, player_id, progress_value) OUTPUT INSERTED.id VALUES (" + qp.Requirement.Id + ", " + this.PlayerID + ", " + qp.Value + ");";
                         var command = new SqlCommand(query, world.SqlConnection);
-                        questProgress.Id = (int)command.ExecuteScalar();
+                        qp.Id = (int)command.ExecuteScalar();
 
-                        questProgress.Dirty = false;
+                        qp.Dirty = false;
                     });
                 }
                 else if (questProgress.Dirty)
