@@ -29,6 +29,11 @@ namespace CsvToSql
                 { "Quests", new { Converter = new QuestsCsvToSql(), Table = "quests" } },
                 { "Quest Reqs", new { Converter = new QuestRequirementsCsvToSql(), Table = "quest_requirements" } },
                 { "Quest Rewards", new { Converter = new QuestRewardsCsvToSql(), Table = "quest_rewards" } },
+                { "Maps", new { Converter = new MapsCsvToSql(), Table = "maps" } },
+                { "Map Required Items", new { Converter = new MapRequiredItemsCsvToSql(), Table = "map_required_items" } },
+                { "Combinations", new { Converter = new CombinationsCsvToSql(), Table = "combinations" } },
+                { "Combination Item Required", new { Converter = new CombinationItemRequiredCsvToSql(), Table = "combination_item_required" } },
+                { "Combination Item Result", new { Converter = new CombinationItemResultsCsvToSql(), Table = "combination_item_results" } },
             };
 
             var spreadsheet = new MemoryStream(new HttpClient().GetByteArrayAsync("https://docs.google.com/spreadsheets/d/14oayAdw6kPbvt_AloWlBjO5glYC5g9vHV3cpVwVyxZ8/export?format=xlsx&id=14oayAdw6kPbvt_AloWlBjO5glYC5g9vHV3cpVwVyxZ8").Result);

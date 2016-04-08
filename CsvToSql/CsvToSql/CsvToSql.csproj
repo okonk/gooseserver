@@ -62,13 +62,18 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CombinationItemResultsCsvToSql.cs" />
+    <Compile Include="CombinationItemRequiredCsvToSql.cs" />
     <Compile Include="CsvToSqlBase.cs" />
+    <Compile Include="MapRequiredItemsCsvToSql.cs" />
+    <Compile Include="CombinationsCsvToSql.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
     <Compile Include="QuestRewardsCsvToSql.cs" />
+    <Compile Include="MapsCsvToSql.cs" />
     <Compile Include="QuestsCsvToSql.cs" />
     <Compile Include="QuestRequirementsCsvToSql.cs" />
     <Compile Include="WarpTilesCsvToSql.cs" />
