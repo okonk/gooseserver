@@ -166,6 +166,8 @@ namespace Goose
             switch (this.Type)
             {
                 case WindowTypes.Vendor:
+                    // clear vendor window
+                    world.Send(player, "VCL");
                     // start at 0 since first slot is always null
                     int i = 0;
                     foreach (NPCVendorSlot slot in this.NPC.VendorItems)

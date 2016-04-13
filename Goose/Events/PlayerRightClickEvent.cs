@@ -55,6 +55,12 @@ namespace Goose.Events
                     return;
                 }
 
+                // if already has vendor open, do nothing
+                if (Player.Windows.Any(w => w.Type == Window.WindowTypes.Vendor))
+                {
+                    return;
+                }
+
                 // Look for any vendors
                 List<NPC> range = this.Player.Map.GetNPCsInRange(this.Player);
                 foreach (NPC npc in range)
