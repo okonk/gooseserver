@@ -12,7 +12,7 @@ namespace ConsoleApplication1
         {
             var r = new MapReader();
 
-            foreach (var map in Directory.EnumerateFiles(@"C:\Users\Hayden\Downloads\Illutia\maps", "*.map"))
+            foreach (var map in Directory.EnumerateFiles(@"C:\Users\Hayden\Desktop\Illutia_updated\maps", "*.map"))
             {
                 r.Read(map);
             }

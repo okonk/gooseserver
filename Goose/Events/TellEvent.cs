@@ -51,7 +51,8 @@ namespace Goose.Events
                             {
                                 world.Send(this.Player, "$6[tell to] " + recipient.Name + ": " + message);
                                 if (recipient.ChatFilterEnabled) message = world.ChatFilter.Filter(message);
-                                world.Send(recipient, "$6[tell from] " + this.Player.Name + ": " + message);
+                                // The 0 in here is for AFK, but I don't see the use of it
+                                world.Send(recipient, string.Format("&{0},0,{1}", this.Player.Name, message));
 
                                 if (recipient.IsIdle(world))
                                 {

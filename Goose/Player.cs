@@ -29,8 +29,8 @@ namespace Goose
          * 
          */
         Socket sock;
-        public Socket Sock 
-        { 
+        public Socket Sock
+        {
             get { return this.sock; }
             set { this.sock = value; }
         }
@@ -717,7 +717,7 @@ namespace Goose
         }
 
 
-        public void LoadAdditional(GameWorld world) 
+        public void LoadAdditional(GameWorld world)
         {
             this.Inventory = new Inventory(this);
             this.Inventory.Load(world);
@@ -807,7 +807,7 @@ namespace Goose
                     "stat_dex, stat_int, res_fire, res_water, res_spirit, res_air, res_earth, body_id, body_r, body_g, body_b, body_a, " +
                     "face_id, hair_id, hair_r, hair_g, hair_b, hair_a, aether_threshold, toggle_settings, " +
                     "donation_credits, total_playtime, total_afktime, move_speed) VALUES" +
-                    "(" + 
+                    "(" +
                     this.PlayerID + "," +
                     " @playerName, @playerTitle, @playerSurname, " +
                     "'" + this.PasswordHash + "', " +
@@ -855,7 +855,7 @@ namespace Goose
                     this.Credits + ", " +
                     this.TotalPlayTime + ", " +
                     this.TotalAfkTime + ", " +
-                    this.BaseStats.MoveSpeed + 
+                    this.BaseStats.MoveSpeed +
                     ")";
 
                 this.AutoCreatedNotSaved = false;
@@ -913,7 +913,7 @@ namespace Goose
                     "hair_b=" + this.HairB + ", " +
                     "hair_a=" + this.HairA + ", " +
                     "aether_threshold=" + this.AetherThreshold + ", " +
-                    "toggle_settings=" + (long)this.ToggleSettings + ", " + 
+                    "toggle_settings=" + (long)this.ToggleSettings + ", " +
                     "donation_credits=" + this.Credits + ", " +
                     "total_playtime=" + this.TotalPlayTime + ", " +
                     "total_afktime=" + this.TotalAfkTime + ", " +
@@ -1347,13 +1347,13 @@ namespace Goose
             if ((item.MinExperience != 0) &&
                 (this.Experience + this.ExperienceSold < item.MinExperience))
             {
-                world.Send(this, "$7You are too low experienced to use " + item.Name + ".");
+                world.Send(this, string.Format("$7You are too low experienced to use {0}. {1} experience required.", item.Name, item.MinExperience));
                 return false;
             }
             if ((item.MaxExperience != 0) &&
                 (this.Experience + this.ExperienceSold > item.MaxExperience))
             {
-                world.Send(this, "$7You are too high experienced to use " + item.Name + ".");
+                world.Send(this, string.Format("$7You are too high experienced to use {0}. {1} experience maximum.", item.Name, item.MaxExperience));
                 return false;
             }
 
@@ -1658,7 +1658,7 @@ namespace Goose
 
             int i = this.Level;
             ClassLevel level = this.Class.GetLevel(i);
-            while (this.Class.GetLevel(i) != null)
+            while (level != null)
             {
                 levelup = level.Experience;
                 if (levelup == 0) break;
@@ -1893,7 +1893,7 @@ namespace Goose
                 }
             }
 
-            if ((spell.Target == Spell.SpellTargets.Group || spell.Target == Spell.SpellTargets.Self) && 
+            if ((spell.Target == Spell.SpellTargets.Group || spell.Target == Spell.SpellTargets.Self) &&
                 target != this)
             {
                 target = this;
@@ -2018,7 +2018,7 @@ namespace Goose
                 }
 
                 // already have that buff so renew the time cast
-                if (!b.ItemBuff && !buff.ItemBuff && 
+                if (!b.ItemBuff && !buff.ItemBuff &&
                     (buff.SpellEffect == b.SpellEffect ||
                     buff.SpellEffect.BuffStacksOver.Contains(b.SpellEffect)))
                 {
@@ -2034,7 +2034,7 @@ namespace Goose
                     if (buff.SpellEffect.Animation != 0)
                     {
                         packet = buff.SpellEffect.SPPString(this.LoginID);
-                        if (buff.SpellEffect.DoAttackAnimation) 
+                        if (buff.SpellEffect.DoAttackAnimation)
                             packet += "\x1ATT" + this.LoginID; // kinda weird but k
 
                         world.Send(this, packet);

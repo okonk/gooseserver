@@ -106,11 +106,11 @@ namespace Goose
         public List<NPC> GetNPCsInRange(ICharacter character)
         {
             List<NPC> range = (from p in this.npcs
-                                  where Math.Abs(p.MapX - character.MapX) < RANGE_X &&
-                                        Math.Abs(p.MapY - character.MapY) < RANGE_Y &&
-                                        p != character &&
-                                        p.State == NPC.States.Alive
-                                  select p).ToList<NPC>();
+                               where Math.Abs(p.MapX - character.MapX) < RANGE_X &&
+                                     Math.Abs(p.MapY - character.MapY) < RANGE_Y &&
+                                     p != character &&
+                                     p.State == NPC.States.Alive
+                               select p).ToList<NPC>();
             return range;
         }
 
@@ -207,7 +207,7 @@ namespace Goose
 
                 return !this.IsTileBlocked(character, x, y);
             }
-            
+
             return false;
         }
 
@@ -398,7 +398,15 @@ namespace Goose
                 int x = Convert.ToInt32(reader["map_x"]);
                 int y = Convert.ToInt32(reader["map_y"]);
 
-                this.tiles[y * this.Width + x] = blocked;
+                try
+                {
+                    this.tiles[y * this.Width + x] = blocked;
+                }
+                catch (Exception)
+                {
+                    Console.WriteLine("Exception Loading blocked tile {0} {1} {2}", this.ID, y, x);
+                    throw;
+                }
             }
 
             reader.Close();

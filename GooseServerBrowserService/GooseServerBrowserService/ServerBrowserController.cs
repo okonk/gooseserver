@@ -68,7 +68,7 @@ namespace GooseServerBrowserService
         private SqlConnection CreateConnection()
         {
             // User Id=GooseServer;Password=password1;
-            return new SqlConnection("Server=localhost;Trusted_Connection=yes;Database=GooseServerBrowser;Connection Timeout=30");
+            return new SqlConnection(@"Server=localhost\sqlexpress;User Id=GooseServer;Password=password1;Database=GooseServerBrowser;Connection Timeout=30");
         }
     }
 }

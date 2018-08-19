@@ -8,9 +8,9 @@ namespace Goose.Events
     /**
      * EmoteEvent
      * 
-     * Format: EMOTn
+     * Format: EMOTanimId,sheetNum
      * 
-     * n is 1-12
+     * animId is 1080-1091, sheetNum 8-10
      * 
      */
     public class EmoteEvent : Event
@@ -28,25 +28,19 @@ namespace Goose.Events
         {
             if (this.Player.State == Player.States.Ready)
             {
-                const int MAX_EMOTES = 12;
-
                 string data = ((string)this.Data).Substring(4);
                 if (data.Length <= 0) return;
 
-                int emot = 0;
+                string[] tokens = data.Split(',');
+                if (tokens.Length != 2) return;
 
-                try
-                {
-                    emot = Convert.ToInt32(data);
-                }
-                catch (Exception)
-                {
-                    emot = 0;
-                }
+                int animId = 0;
+                if (!int.TryParse(tokens[0], out animId) || animId < 1080 || animId > 1091) return;
 
-                if (emot <= 0 || emot > MAX_EMOTES) return;
+                int sheetNum = 0;
+                if (!int.TryParse(tokens[1], out sheetNum) || sheetNum < 8 || sheetNum > 10) return;
 
-                string packet = "EMOT" + this.Player.LoginID + "," + emot;
+                string packet = string.Format("EMOT{0},{1},{2}", this.Player.LoginID, animId, sheetNum);
                 world.Send(this.Player, packet);
                 foreach (Player player in this.Player.Map.GetPlayersInRange(this.Player))
                 {

@@ -54,7 +54,7 @@ namespace Goose
             this.stringToEvent.Add("F4", FacingEvent.Create);
             this.stringToEvent.Add("/tell ", TellEvent.Create);
             this.stringToEvent.Add("/who", WhoEvent.Create);
-            this.stringToEvent.Add("/changeclass ", ChangeClassEvent.Create);
+            //this.stringToEvent.Add("/changeclass ", ChangeClassEvent.Create);
             this.stringToEvent.Add("/summon ", SummonEvent.Create);
             this.stringToEvent.Add("/warp ", WarpEvent.Create);
             this.stringToEvent.Add("/approach ", ApproachEvent.Create);

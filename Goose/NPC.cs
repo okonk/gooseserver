@@ -407,7 +407,7 @@ namespace Goose
                         Math.Abs(npc.MapY - this.MapY) <= npc.AggroRange)
                     {
                         npc.AddAggro(this.AggroTarget, 1, world);
-                        packet += "EMOT" + npc.LoginID + ",8\x1";
+                        packet += "EMOT" + npc.LoginID + ",1087,9\x1";
 
                         npc.AddMoveEvent(world);
                         npc.AddAttackEvent(world);
@@ -817,7 +817,7 @@ namespace Goose
             if (Math.Abs(this.MapX - player.MapX) <= this.AggroRange &&
                 Math.Abs(this.MapY - player.MapY) <= this.AggroRange)
             {
-                string packet = "EMOT" + this.LoginID + ",8\x1";
+                string packet = "EMOT" + this.LoginID + ",1087,9\x1";
 
                 this.AddAggro(player, 1, world);
                 
@@ -831,7 +831,7 @@ namespace Goose
                         Math.Abs(npc.MapY - this.MapY) <= npc.AggroRange)
                     {
                         npc.AddAggro(player, 1, world);
-                        packet += "EMOT" + npc.LoginID + ",8\x1";
+                        packet += "EMOT" + npc.LoginID + ",1087,9\x1";
 
                         npc.AddMoveEvent(world);
                         npc.AddAttackEvent(world);

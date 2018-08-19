@@ -100,10 +100,10 @@ namespace Goose
             this.LogHandler = new LogHandler();
             this.QuestHandler = new QuestHandler();
 
-            this.SqlConnection = new SqlConnection(//"user id=" + GameSettings.Default.DatabaseUsername +
-                                       //";password=" + GameSettings.Default.DatabasePassword +
+            this.SqlConnection = new SqlConnection("user id=" + GameSettings.Default.DatabaseUsername +
+                                       ";password=" + GameSettings.Default.DatabasePassword +
                                        ";server=" + GameSettings.Default.DatabaseAddress +
-                                       ";Trusted_Connection=yes;" + // hopefully remove the windows connection
+                                       //";Trusted_Connection=yes;" + // hopefully remove the windows connection
                                        ";database=" + GameSettings.Default.DatabaseName +
                                        ";connection timeout=30" +
                                        ";async=true;MultipleActiveResultSets=True");
@@ -234,7 +234,7 @@ namespace Goose
             }
             catch (Exception e)
             {
-                Console.Out.WriteLine("Fail, " + e.Message);
+                Console.Out.WriteLine("Fail, " + e);
                 Console.Out.WriteLine("Aborting...");
                 return;
             }
@@ -553,7 +553,7 @@ namespace Goose
                 {
                     try
                     {
-                        new GooseServerBrowserClient("http://illutia.ddns.net:3000/").Register(new GooseServerBrowserService.Contract.RegisterRequest()
+                        new GooseServerBrowserClient("http://goose.ddns.net:3000/").Register(new GooseServerBrowserService.Contract.RegisterRequest()
                             {
                                 ServerName = GameSettings.Default.ServerName,
                                 PlayerCount = this.PlayerHandler.PlayerCount,

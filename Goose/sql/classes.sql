@@ -51,8 +51,11 @@ CREATE TABLE class_info (
 );
 
 /* Commoner */
-INSERT INTO class_info (class_id, level, player_hp, player_mp, player_sp)
-	VALUES (1, 1, 30, 30, 0);
+INSERT INTO class_info (class_id, level, level_up_exp, player_hp, player_mp) VALUES (1,1,200,30,30)
+INSERT INTO class_info (class_id, level, level_up_exp, player_hp, player_mp) VALUES (1,2,800,38,38)
+INSERT INTO class_info (class_id, level, level_up_exp, player_hp, player_mp) VALUES (1,3,2000,50,50)
+INSERT INTO class_info (class_id, level, level_up_exp, player_hp, player_mp) VALUES (1,4,4000,66,66)
+INSERT INTO class_info (class_id, level, level_up_exp, player_hp, player_mp) VALUES (1,5,0,86,86)
 
 INSERT INTO class_info (class_id, level, level_up_exp, player_hp, player_mp) VALUES (2,1,200,30,30)
 INSERT INTO class_info (class_id, level, level_up_exp, player_hp, player_mp) VALUES (2,2,800,38,38)
