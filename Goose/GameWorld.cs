@@ -450,7 +450,7 @@ namespace Goose
         {
             string data = player.Buffer;
             string[] tokens = data.Split("\x1".ToCharArray());
-            int limit = tokens.Length-1;
+            int limit = tokens.Length - 1;
 
             if (!data.EndsWith("\x1"))
             {
@@ -461,7 +461,7 @@ namespace Goose
             for (int i = 0; i < limit; i++)
             {
                 packet = tokens[i];
-                data = data.Remove(0, packet.Length+1);
+                data = data.Remove(0, packet.Length + 1);
 
                 this.EventHandler.AddEvent(player, packet);
             }
@@ -547,19 +547,19 @@ namespace Goose
 
         public void LaunchServerBrowserUpdateThread()
         {
-            Task.Factory.StartNew(() => 
+            Task.Factory.StartNew(() =>
             {
                 while (true)
                 {
                     try
                     {
                         new GooseServerBrowserClient("http://goose.ddns.net:3000/").Register(new GooseServerBrowserService.Contract.RegisterRequest()
-                            {
-                                ServerName = GameSettings.Default.ServerName,
-                                PlayerCount = this.PlayerHandler.PlayerCount,
-                                Port = GameSettings.Default.GameServerPort,
-                                Version = GameSettings.Default.ServerVersion,
-                            });
+                        {
+                            ServerName = GameSettings.Default.ServerName,
+                            PlayerCount = this.PlayerHandler.PlayerCount,
+                            Port = GameSettings.Default.GameServerPort,
+                            Version = GameSettings.Default.ServerVersion,
+                        });
                     }
                     catch
                     {
