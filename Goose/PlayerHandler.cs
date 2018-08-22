@@ -58,9 +58,9 @@ namespace Goose
          * Automatically gives a player an ID
          * 
          */
-        public void AddPlayer(Player player)
+        public void AddPlayer(Player player, GameWorld world)
         {
-            player.LoginID = this.GetNewID();
+            player.LoginID = this.GetNewID(world);
             this.players.Add(player);
             this.sockToPlayer[player.Sock] = player;
             this.idToPlayer[player.LoginID] = player;
@@ -95,23 +95,27 @@ namespace Goose
             this.idToPlayer[player.LoginID] = null;
         }
 
-        /**
-         * GetNewID, returns a new player id
-         * 
-         * If we ran out of player ids returns 0
-         * 
-         */
-        public int GetNewID()
+
+        public int GetNewID(GameWorld world)
         {
-            for (int i = 1; i < GameSettings.Default.MaxPlayers; i++)
+            int id;
+            do
             {
-                if (this.idToPlayer[i] == null)
-                {
-                    return i;
-                }
+                id = world.Random.Next(1, GameSettings.Default.MaxPlayers);
+            } while (this.idToPlayer[id] != null);
+
+            return id;
+        }
+
+        public void AssignNewId(GameWorld world, Player player)
+        {
+            if (player.LoginID != 0 && this.idToPlayer[player.LoginID] != null)
+            {
+                this.idToPlayer[player.LoginID] = null;
             }
 
-            return 0;
+            player.LoginID = this.GetNewID(world);
+            this.idToPlayer[player.LoginID] = player;
         }
 
         /**

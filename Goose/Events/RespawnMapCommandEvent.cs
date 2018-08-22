@@ -29,6 +29,10 @@ namespace Goose.Events
                 }
 
                 world.SendToMap(this.Player.Map, "$7Respawned all NPCs.");
+
+                world.LogHandler.Log(Log.Types.RespawnMap,
+                    this.Player.PlayerID, "",
+                    this.Player.Map.ID, this.Player.MapX, this.Player.MapY);
             }
         }
     }

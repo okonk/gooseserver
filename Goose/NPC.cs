@@ -1024,8 +1024,11 @@ namespace Goose
          */
         public void AddRespawnEvent(GameWorld world)
         {
+            // some variance in respawn to help stop basic macroing
+            int respawnTime = world.Random.Next((int)(this.RespawnTime * 0.85), (int)(this.RespawnTime * 1.15) + 1);
+
             NPCSpawnEvent ev = new NPCSpawnEvent();
-            ev.Ticks += (long)(this.RespawnTime * world.TimerFrequency);
+            ev.Ticks += (long)(respawnTime * world.TimerFrequency);
             ev.NPC = this;
 
             world.EventHandler.AddEvent(ev);

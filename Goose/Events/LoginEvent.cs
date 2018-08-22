@@ -180,7 +180,7 @@ namespace Goose.Events
                 return;
             }
 
-            world.PlayerHandler.AddPlayer(this.Player);
+            world.PlayerHandler.AddPlayer(this.Player, world);
             if (this.Player.LoginID == 0)
             {
                 world.Send(this.Player, "LNOThe server is full. Try again later.");

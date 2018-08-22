@@ -67,35 +67,37 @@ namespace Goose
             {
                 case RankTypes.All:
                     result = (from p in world.PlayerHandler.GetAllPlayerData()
+                              where p.Access == Player.AccessStatus.Normal
                               orderby p.Experience + p.ExperienceSold descending
                               select p).Take(GameSettings.Default.NumberOfRanks).ToList();
                     break;
                 case RankTypes.Gold:
                     result = (from p in world.PlayerHandler.GetAllPlayerData()
+                              where p.Access == Player.AccessStatus.Normal
                               orderby p.Gold descending
                               select p).Take(GameSettings.Default.NumberOfRanks).ToList();
                     break;
                 case RankTypes.Magus:
                     result = (from p in world.PlayerHandler.GetAllPlayerData()
-                              where p.ClassID == 4
+                              where p.ClassID == 4 && p.Access == Player.AccessStatus.Normal
                               orderby p.Experience + p.ExperienceSold descending
                               select p).Take(GameSettings.Default.NumberOfRanks).ToList();
                     break;
                 case RankTypes.Priest:
                     result = (from p in world.PlayerHandler.GetAllPlayerData()
-                              where p.ClassID == 5
+                              where p.ClassID == 5 && p.Access == Player.AccessStatus.Normal
                               orderby p.Experience + p.ExperienceSold descending
                               select p).Take(GameSettings.Default.NumberOfRanks).ToList();
                     break;
                 case RankTypes.Rogue:
                     result = (from p in world.PlayerHandler.GetAllPlayerData()
-                              where p.ClassID == 2
+                              where p.ClassID == 2 && p.Access == Player.AccessStatus.Normal
                               orderby p.Experience + p.ExperienceSold descending
                               select p).Take(GameSettings.Default.NumberOfRanks).ToList();
                     break;
                 case RankTypes.Warrior:
                     result = (from p in world.PlayerHandler.GetAllPlayerData()
-                              where p.ClassID == 3
+                              where p.ClassID == 3 && p.Access == Player.AccessStatus.Normal
                               orderby p.Experience + p.ExperienceSold descending
                               select p).Take(GameSettings.Default.NumberOfRanks).ToList();
                     break;

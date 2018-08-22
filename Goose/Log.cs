@@ -31,7 +31,8 @@ namespace Goose
 
             GetItem = 17,
             ClassChange = 18,
-            GiveExperience = 19
+            GiveExperience = 19,
+            RespawnMap = 20,
         }
 
         public Types Type { get; set; }
