@@ -53,8 +53,8 @@ namespace Goose
                    this.ItemSlot.Item.Name + "," +
                    "," + // surname
                    this.ItemSlot.Stack + "," +
-                   0 + "," + // not sure, bind on equip thingie?
-                   0 + "," + // not sure, either
+                   0 + "," + // not sure
+                   this.ItemSlot.Item.Flags + "," +
                    (dropAnimation ? 1 : 0) + "," + // drop animation if 1
                    rgba;
         }
