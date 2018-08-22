@@ -72,6 +72,7 @@ namespace Goose
             this.stringToEvent.Add("CAST", PlayerCastSpellEvent.Create);
             this.stringToEvent.Add("/getitem ", GMGetItemCommandEvent.Create);
             this.stringToEvent.Add("/hax ", HaxCommandEvent.Create);
+            this.stringToEvent.Add("/gmhax ", HaxCommandEvent.Create);
             this.stringToEvent.Add("/togglegroup", ToggleGroupCommandEvent.Create);
             this.stringToEvent.Add("/group ", GroupChatEvent.Create);
             this.stringToEvent.Add("/groupadd ", GroupAddEvent.Create);
