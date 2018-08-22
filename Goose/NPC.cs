@@ -865,6 +865,8 @@ namespace Goose
          */
         public void Attacked(ICharacter character, double damage, GameWorld world)
         {
+            if (this.State == States.Dead) return;
+
             if (character is Player)
             {
                 List<Player> range = this.Map.GetPlayersInRange(this);
