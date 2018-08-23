@@ -20,7 +20,7 @@ namespace Goose.Events
         {
             if (this.Player.State == Player.States.Ready && this.Player.Access == Player.AccessStatus.GameMaster)
             {
-                string data = ((string)this.Data).Substring(5);
+                string data = ((string)this.Data).Substring(7);
                 world.Send(this.Player, data);
                 foreach (var player in this.Player.Map.GetPlayersInRange(this.Player))
                 {
