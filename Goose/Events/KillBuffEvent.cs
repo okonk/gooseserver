@@ -40,9 +40,11 @@ namespace Goose.Events
                     id = 0;
                 }
 
-                if (id <= 0 || id > this.Player.Buffs.Count) return; // log bad packet
+                var buffs = this.Player.Buffs.Where(b => !b.ItemBuff || this.Player.ShowItemBuffs).ToArray();
 
-                Buff buff = this.Player.Buffs[id - 1];
+                if (id <= 0 || id > buffs.Length) return; // log bad packet
+
+                Buff buff = buffs[id - 1];
                 // I dunno if I should make item buffs able to be removed or not..
                 if (!buff.SpellEffect.BuffCanBeRemoved) return;
 

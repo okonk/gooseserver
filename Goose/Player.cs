@@ -348,15 +348,18 @@ namespace Goose
             Tell = 2,
             WordFilter = 4,
             QuestCredit = 8,
-            GMInvisible = 16 // GM only
+            GMInvisible = 16, // GM only
+            GM = 32,
+            ItemBuffs = 64,
         }
 
         public ToggleSetting ToggleSettings { get; set; }
 
         public bool ChatFilterEnabled { get { return ((this.ToggleSettings & Player.ToggleSetting.WordFilter) == 0); } }
         public bool QuestCreditFilterEnabled { get { return ((this.ToggleSettings & Player.ToggleSetting.QuestCredit) != 0); } }
-
         public bool IsGMInvisible { get { return (this.Access == AccessStatus.GameMaster && ((this.ToggleSettings & Player.ToggleSetting.GMInvisible) == 0)); } }
+        public bool IsGM { get { return (this.Access == AccessStatus.GameMaster && ((this.ToggleSettings & Player.ToggleSetting.GM) == 0)); } }
+        public bool ShowItemBuffs { get { return ((this.ToggleSettings & Player.ToggleSetting.ItemBuffs) == 0); } }
 
         public decimal AetherThreshold { get; set; }
 
@@ -2209,6 +2212,8 @@ namespace Goose
 
             foreach (Buff buff in this.Buffs)
             {
+                if (buff.ItemBuff && !this.ShowItemBuffs) continue;
+
                 world.Send(this, "BUF" + i + "," + buff.SpellEffect.BuffGraphic + "," + buff.SpellEffect.BuffGraphicFile + "," + buff.SpellEffect.Name);
                 i++;
             }

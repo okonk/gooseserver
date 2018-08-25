@@ -78,7 +78,7 @@ namespace Goose.Events
                     case "invisible":
                         if (this.Player.Access != Player.AccessStatus.GameMaster)
                         {
-                            world.Send(this.Player, "$7/toggle [experience|tell|curse]");
+                            world.Send(this.Player, "$7/toggle [experience|tell|curse|quest|itembuffs]");
                             return;
                         }
 
@@ -100,8 +100,20 @@ namespace Goose.Events
                             this.Player.WarpTo(world, this.Player.Map, this.Player.MapX, this.Player.MapY);
                         }
                         break;
+                    case "itembuffs":
+                        this.Player.ToggleSettings ^= Player.ToggleSetting.ItemBuffs;
+                        if ((this.Player.ToggleSettings & Player.ToggleSetting.ItemBuffs) == 0)
+                        {
+                            world.Send(this.Player, "$7Item buffs are now visible.");
+                        }
+                        else
+                        {
+                            world.Send(this.Player, "$7Item buffs are now hidden.");
+                        }
+                        this.Player.SendBuffBar(world);
+                        break;
                     default:
-                        world.Send(this.Player, "$7/toggle [experience|tell|curse|quest]");
+                        world.Send(this.Player, "$7/toggle [experience|tell|curse|quest|itembuffs]");
                         break;
                 }
             }
