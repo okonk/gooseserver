@@ -348,12 +348,15 @@ namespace Goose
             Tell = 2,
             WordFilter = 4,
             QuestCredit = 8,
+            GMInvisible = 16 // GM only
         }
 
         public ToggleSetting ToggleSettings { get; set; }
 
         public bool ChatFilterEnabled { get { return ((this.ToggleSettings & Player.ToggleSetting.WordFilter) == 0); } }
         public bool QuestCreditFilterEnabled { get { return ((this.ToggleSettings & Player.ToggleSetting.QuestCredit) != 0); } }
+
+        public bool IsGMInvisible { get { return (this.Access == AccessStatus.GameMaster && ((this.ToggleSettings & Player.ToggleSetting.GMInvisible) == 0)); } }
 
         public decimal AetherThreshold { get; set; }
 
@@ -1059,11 +1062,13 @@ namespace Goose
             List<NPC> beforeNPCRange = this.Map.GetNPCsInRange(this);
 
             // move off this square so null
-            this.Map.SetCharacter(null, this.MapX, this.MapY);
+            if (!IsGMInvisible)
+                this.Map.SetCharacter(null, this.MapX, this.MapY);
             this.MapX = x;
             this.MapY = y;
             // move onto this square so this
-            this.Map.SetCharacter(this, this.MapX, this.MapY);
+            if (!IsGMInvisible)
+                this.Map.SetCharacter(this, this.MapX, this.MapY);
 
             List<Player> afterRange = this.Map.GetPlayersInRange(this);
             List<NPC> afterNPCRange = this.Map.GetNPCsInRange(this);
@@ -1075,16 +1080,22 @@ namespace Goose
             // MKC on client too
             foreach (Player player in afterRange.Except<Player>(beforeRange))
             {
-                world.Send(player, mkc);
-                world.Send(this, player.MKCString());
-
-                if (this.Access == Goose.Player.AccessStatus.GameMaster)
+                if (!IsGMInvisible)
                 {
-                    world.Send(player, gmstring);
+                    world.Send(player, mkc);
+                    if (this.Access == Goose.Player.AccessStatus.GameMaster)
+                    {
+                        world.Send(player, gmstring);
+                    }
                 }
-                if (player.Access == Goose.Player.AccessStatus.GameMaster)
+
+                if (!player.IsGMInvisible)
                 {
-                    world.Send(this, "AMA" + player.LoginID + ",1");
+                    world.Send(this, player.MKCString());
+                    if (player.Access == Goose.Player.AccessStatus.GameMaster)
+                    {
+                        world.Send(this, "AMA" + player.LoginID + ",1");
+                    }
                 }
             }
 
@@ -1169,16 +1180,23 @@ namespace Goose
                 string mkc = this.MKCString();
                 foreach (Player player in this.Map.GetPlayersInRange(this))
                 {
-                    world.Send(player, mkc);
-                    world.Send(this, player.MKCString());
+                    if (!IsGMInvisible)
+                    {
+                        world.Send(player, mkc);
 
-                    if (this.Access == Goose.Player.AccessStatus.GameMaster)
-                    {
-                        world.Send(player, gmstring);
+                        if (this.Access == Goose.Player.AccessStatus.GameMaster)
+                        {
+                            world.Send(player, gmstring);
+                        }
                     }
-                    if (player.Access == Goose.Player.AccessStatus.GameMaster)
+
+                    if (!player.IsGMInvisible)
                     {
-                        world.Send(this, "AMA" + player.LoginID + ",1");
+                        world.Send(this, player.MKCString());
+                        if (player.Access == Goose.Player.AccessStatus.GameMaster)
+                        {
+                            world.Send(this, "AMA" + player.LoginID + ",1");
+                        }
                     }
                 }
                 foreach (NPC npc in this.Map.GetNPCsInRange(this))

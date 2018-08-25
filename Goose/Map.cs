@@ -335,6 +335,9 @@ namespace Goose
             // invalid coordinates
             if (x < 1 || x >= this.Width + 1 || y < 1 || y >= this.Height + 1) return true;
 
+            Player ignorePlayer = ignore as Player;
+            bool isgm = (ignorePlayer != null && ignorePlayer.Access == Player.AccessStatus.GameMaster);
+
             ITile tile = this.tiles[y * this.Width + x];
             if (tile != null)
             {
@@ -344,20 +347,12 @@ namespace Goose
                 }
                 if (tile is BlockedTile)
                 {
-                    if (ignore is Player &&
-                        ((Player)ignore).Access == Player.AccessStatus.GameMaster)
-                    {
-                        return false;
-                    }
-                    else
-                    {
-                        return true;
-                    }
+                    return !isgm;
                 }
             }
 
             ICharacter character = this.GetCharacterAt(x, y);
-            if (character == null || character == ignore) return false;
+            if (character == null || character == ignore || (isgm && ignorePlayer.IsGMInvisible)) return false;
 
             return true;
         }

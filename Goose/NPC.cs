@@ -383,7 +383,9 @@ namespace Goose
             foreach (Player player in afterRange.Union<Player>(beforeRange).Distinct<Player>())
             {
                 world.Send(player, packet);
-                this.AggroIfInRange(player, world);
+
+                if (!player.IsGMInvisible)
+                    this.AggroIfInRange(player, world);
             }
             string erc = "ERC" + this.LoginID;
             // Send to all people that aren't in after but are in before ERC
@@ -527,7 +529,9 @@ namespace Goose
             foreach (Player player in range)
             {
                 world.Send(player, packet);
-                this.AggroIfInRange(player, world);
+
+                if (!player.IsGMInvisible)
+                    this.AggroIfInRange(player, world);
             }
 
             this.AddMoveEvent(world);

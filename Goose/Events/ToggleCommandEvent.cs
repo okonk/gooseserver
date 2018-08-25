@@ -75,6 +75,31 @@ namespace Goose.Events
                             world.Send(this.Player, "$7Quest credit filter is disabled.");
                         }
                         break;
+                    case "invisible":
+                        if (this.Player.Access != Player.AccessStatus.GameMaster)
+                        {
+                            world.Send(this.Player, "$7/toggle [experience|tell|curse]");
+                            return;
+                        }
+
+                        this.Player.ToggleSettings ^= Player.ToggleSetting.GMInvisible;
+                        if ((this.Player.ToggleSettings & Player.ToggleSetting.GMInvisible) == 0)
+                        {
+                            world.Send(this.Player, "$7You are now invisible.");
+
+                            this.Player.Map.SetCharacter(null, this.Player.MapX, this.Player.MapY);
+                            string erc = "ERC" + this.Player.LoginID;
+                            foreach (Player player in this.Player.Map.GetPlayersInRange(this.Player))
+                            {
+                                world.Send(player, erc);
+                            }
+                        }
+                        else
+                        {
+                            world.Send(this.Player, "$7You are now visible.");
+                            this.Player.WarpTo(world, this.Player.Map, this.Player.MapX, this.Player.MapY);
+                        }
+                        break;
                     default:
                         world.Send(this.Player, "$7/toggle [experience|tell|curse|quest]");
                         break;

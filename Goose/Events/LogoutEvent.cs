@@ -54,7 +54,9 @@ namespace Goose.Events
                         npc.RemoveAggro(player);
                     }
                     player.Map.RemovePlayer(player);
-                    player.Map.SetCharacter(null, player.MapX, player.MapY);
+
+                    if (!player.IsGMInvisible)
+                        player.Map.SetCharacter(null, player.MapX, player.MapY);
                 }
 
                 foreach (Pet pet in player.Pets)

@@ -64,6 +64,7 @@ namespace Goose.Events
                 foreach (Player player in players)
                 {
                     if (player is Pet) continue;
+                    if (player.IsGMInvisible) continue;
 
                     if (player.State == Player.States.Ready)
                     {

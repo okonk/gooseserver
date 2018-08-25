@@ -37,8 +37,11 @@ namespace Goose.Events
 
                 Map map = world.MapHandler.GetMap(this.Player.MapID);
 
-                map.PlaceCharacter(this.Player);
-                map.SetCharacter(this.Player, this.Player.MapX, this.Player.MapY);
+                if (!this.Player.IsGMInvisible)
+                {
+                    map.PlaceCharacter(this.Player);
+                    map.SetCharacter(this.Player, this.Player.MapX, this.Player.MapY);
+                }
 
                 this.Player.State = Player.States.Ready;
                 world.Send(this.Player, "DSM");
@@ -56,16 +59,22 @@ namespace Goose.Events
                 List<Player> range = map.GetPlayersInRange(this.Player);
                 foreach (Player player in range)
                 {
-                    world.Send(player, this.Player.MKCString());
-                    world.Send(this.Player, player.MKCString());
-
-                    if (this.Player.Access == Goose.Player.AccessStatus.GameMaster)
+                    if (!this.Player.IsGMInvisible)
                     {
-                        world.Send(player, gmstring);
+                        world.Send(player, this.Player.MKCString());
+                        if (this.Player.Access == Goose.Player.AccessStatus.GameMaster)
+                        {
+                            world.Send(player, gmstring);
+                        }
                     }
-                    if (player.Access == Goose.Player.AccessStatus.GameMaster)
+
+                    if (!player.IsGMInvisible)
                     {
-                        world.Send(this.Player, "AMA" + player.LoginID + ",1");
+                        world.Send(this.Player, player.MKCString());
+                        if (player.Access == Goose.Player.AccessStatus.GameMaster)
+                        {
+                            world.Send(this.Player, "AMA" + player.LoginID + ",1");
+                        }
                     }
                 }
 
@@ -73,7 +82,9 @@ namespace Goose.Events
                 foreach (NPC npc in npcrange)
                 {
                     world.Send(this.Player, npc.MKCString());
-                    npc.AggroIfInRange(this.Player, world);
+
+                    if (!this.Player.IsGMInvisible)
+                        npc.AggroIfInRange(this.Player, world);
                 }
 
                 this.Player.Map = map;
