@@ -13,8 +13,8 @@ namespace Goose
     public class Map
     {
         // Viewing ranges
-        public static int RANGE_X = 15;
-        public static int RANGE_Y = 15;
+        public static int RANGE_X = 16;
+        public static int RANGE_Y = 12;
 
         /**
          * map_id
