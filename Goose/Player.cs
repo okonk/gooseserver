@@ -1466,7 +1466,7 @@ namespace Goose
             }
         }
 
-        private int CalculateMoveSpeed()
+        public int CalculateMoveSpeed()
         {
             return (int)(this.BaseStats.MoveSpeed * (1 - this.MaxStats.MoveSpeedIncrease));
         }

@@ -1314,5 +1314,17 @@ namespace Goose {
                 this["StartingBodyA"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("10000")]
+        public int HairdyeCommandCost {
+            get {
+                return ((int)(this["HairdyeCommandCost"]));
+            }
+            set {
+                this["HairdyeCommandCost"] = value;
+            }
+        }
     }
 }

@@ -20,24 +20,24 @@ namespace Goose.Events
         {
             if (this.Player.State == Player.States.Ready)
             {
-                string data = ((string)this.Data).Substring(9);
+                string data = ((string)this.Data).Substring(8);
 
-                if (data.Length == 0)
+                if (string.IsNullOrWhiteSpace(data) || data.ToLower() == " help")
                 {
                     world.Send(this.Player, "$7/hairdye [preview|kill|gogodyeme] <r> <g> <b> <a>");
                     return;
                 }
 
-                string[] tokens = data.Split(' ');
-                int r,g,b,a;
+                string[] tokens = data.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                int r, g, b, a;
                 string error;
 
                 switch (tokens[0].ToLower())
                 {
                     case "gogodyeme":
-                        if (this.Player.Credits < 1)
+                        if (this.Player.Gold < GameSettings.Default.HairdyeCommandCost)
                         {
-                            world.Send(this.Player, "$7/hairdye gogodyeme requires 1 credit, and you have 0.");
+                            world.Send(this.Player, string.Format("$7/hairdye gogodyeme requires {0} gold.", GameSettings.Default.HairdyeCommandCost));
                             return;
                         }
 
@@ -48,7 +48,7 @@ namespace Goose.Events
                             return;
                         }
 
-                        this.Player.Credits -= 1;
+                        this.Player.Gold -= GameSettings.Default.HairdyeCommandCost;
                         this.Player.HairR = r;
                         this.Player.HairG = g;
                         this.Player.HairB = b;
@@ -76,26 +76,41 @@ namespace Goose.Events
                         if (prevx == 1) prevx += 1;
                         else prevx -= 1;
 
-                        world.Send(this.Player, 
-                           "MKC" + 9000 + "," +
-                           "1," +
-                           "Hairdye Preview" + "," +
-                           "," +
-                           "," +
-                           "" + "," + // Guild name
-                           prevx + "," +
-                           prevy + "," +
-                           this.Player.Facing + "," +
-                           100 + "," + // HP %
-                           11 + "," +
-                           1 + "," +
-                           this.Player.HairID + "," +
-                           "0,*,0,*,0,*,0,*,0,*,0,*," + // Note: EquippedDisplay() adds it's own , on end
-                           r + "," +
-                           g + "," +
-                           b + "," +
-                           a + "," +
-                           "0" + ",0"); // Invis thing
+                        int pose = this.Player.BodyState;
+                        ItemSlot weapon = this.Player.Inventory.GetEquippedSlot(Inventory.EquipSlots.Weapon);
+                        if (weapon != null)
+                        {
+                            pose = weapon.Item.BodyState;
+                        }
+
+                        world.Send(this.Player,
+                            "MKC" + 9000 + "," +
+                            "1," +
+                            "Hairdye Preview," +
+                            "," +
+                            "," +
+                            "" + "," + // Guild name
+                            prevx + "," +
+                            prevy + "," +
+                            this.Player.Facing + "," +
+                            100 + "," + // HP %
+                            this.Player.BodyID + "," +
+                            this.Player.BodyR + "," + // Body Color R
+                            this.Player.BodyG + "," + // Body Color G
+                            this.Player.BodyB + "," + // Body Color B
+                            this.Player.BodyA + "," + // Body Color A
+                            pose + "," +
+                            this.Player.HairID + "," +
+                            this.Player.Inventory.EquippedDisplay() + // Note: EquippedDisplay() adds it's own , on end
+                            r + "," +
+                            g + "," +
+                            b + "," +
+                            a + "," +
+                            "0" + "," + // Invis thing
+                            this.Player.FaceID + "," +
+                            this.Player.CalculateMoveSpeed() + "," + // Move Speed
+                            "0" + "," + // Player Name Color
+                            this.Player.Inventory.MountDisplay()); // Mount
                         break;
                     case "kill":
                         world.Send(this.Player, "ERC9000");
