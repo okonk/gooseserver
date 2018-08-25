@@ -1105,23 +1105,29 @@ namespace Goose
                 world.Send(this, npc.MKCString());
             }
 
-            // Send to everyone MOC
-            string packet = "MOC" + this.LoginID + "," + this.MapX + "," + this.MapY;
-            foreach (Player player in afterRange.Union<Player>(beforeRange).Distinct<Player>())
+            if (!IsGMInvisible)
             {
-                world.Send(player, packet);
+                // Send to everyone MOC
+                string packet = "MOC" + this.LoginID + "," + this.MapX + "," + this.MapY;
+                foreach (Player player in afterRange.Union<Player>(beforeRange).Distinct<Player>())
+                {
+                    world.Send(player, packet);
+                }
+                // check if aggro any npcs
+                foreach (NPC npc in afterNPCRange.Union<NPC>(beforeNPCRange).Distinct<NPC>())
+                {
+                    npc.AggroIfInRange(this, world);
+                }
             }
-            // check if aggro any npcs
-            foreach (NPC npc in afterNPCRange.Union<NPC>(beforeNPCRange).Distinct<NPC>())
-            {
-                npc.AggroIfInRange(this, world);
-            }
+
             string erc = "ERC" + this.LoginID;
             // Send to all people that aren't in after but are in before ERC
             // Erase from client too
             foreach (Player player in beforeRange.Except<Player>(afterRange))
             {
-                world.Send(player, erc);
+                if (!IsGMInvisible)
+                    world.Send(player, erc);
+
                 world.Send(this, "ERC" + player.LoginID);
             }
 
@@ -1151,7 +1157,9 @@ namespace Goose
             string erc = "ERC" + this.LoginID;
             foreach (Player player in this.Map.GetPlayersInRange(this))
             {
-                world.Send(player, erc);
+                if (!IsGMInvisible)
+                    world.Send(player, erc);
+
                 world.Send(this, "ERC" + player.LoginID);
             }
             foreach (NPC npc in this.Map.GetNPCsInRange(this))
@@ -1164,16 +1172,20 @@ namespace Goose
             {
                 // Same map, no need to reload map
                 // move off this square so null
-                this.Map.SetCharacter(null, this.MapX, this.MapY);
+                if (!IsGMInvisible)
+                    this.Map.SetCharacter(null, this.MapX, this.MapY);
 
                 this.MapX = x;
                 this.MapY = y;
 
-                this.Map.PlaceCharacter(this);
-                // move onto this square so this
-                this.Map.SetCharacter(this, this.MapX, this.MapY);
+                if (!IsGMInvisible)
+                {
+                    this.Map.PlaceCharacter(this);
+                    // move onto this square so this
+                    this.Map.SetCharacter(this, this.MapX, this.MapY);
 
-                world.Send(this, "SUP" + this.MapX + "," + this.MapY);
+                    world.Send(this, "SUP" + this.MapX + "," + this.MapY);
+                }
 
                 string gmstring = "AMA" + this.LoginID + ",1";
 
@@ -1202,14 +1214,20 @@ namespace Goose
                 foreach (NPC npc in this.Map.GetNPCsInRange(this))
                 {
                     world.Send(this, npc.MKCString());
-                    npc.AggroIfInRange(this, world);
+
+                    if (!IsGMInvisible)
+                        npc.AggroIfInRange(this, world);
                 }
             }
             else
             {
                 this.State = States.LoadingMap;
-                // move off this square so null
-                this.Map.SetCharacter(null, this.MapX, this.MapY);
+                if (!IsGMInvisible)
+                {
+                    // move off this square so null
+                    this.Map.SetCharacter(null, this.MapX, this.MapY);
+                }
+
                 this.Map.RemovePlayer(this);
                 this.Map = null;
                 this.MapID = map.ID;
@@ -1551,18 +1569,6 @@ namespace Goose
                 return;
             }
 
-            /*
-            double damage = ((double)this.MaxStats.Strength * 0.05 + 5) * 2 *
-                ((double)this.WeaponDamage / 10);
-            double absorb = (double)character.MaxStats.AC / 20;
-            */
-            /*
-            double levelfactor = (this.Level / (double)character.Level);
-            if (levelfactor < 1) levelfactor = 1.0;
-
-            double damage = ((levelfactor * 0.7 * (this.MaxStats.Strength / 10.0 + 1) * this.WeaponDamage) / 3) +
-                this.Level/3 + world.Random.Next(1, this.Level);
-             */
             double damage = 0;
             if (this.WeaponDamage == 1)
             {
@@ -1676,7 +1682,7 @@ namespace Goose
 
             int i = this.Level;
             ClassLevel level = this.Class.GetLevel(i);
-            while (level != null)
+            while (this.Class.GetLevel(i) != null)
             {
                 levelup = level.Experience;
                 if (levelup == 0) break;
