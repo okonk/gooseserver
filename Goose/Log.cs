@@ -33,6 +33,7 @@ namespace Goose
             ClassChange = 18,
             GiveExperience = 19,
             RespawnMap = 20,
+            SpawnedNPC = 21,
         }
 
         public Types Type { get; set; }

@@ -134,6 +134,8 @@ namespace Goose
             this.stringToEvent.Add("SBN", SpellbookNextEvent.Create);
             this.stringToEvent.Add("SBB", SpellbookBackEvent.Create);
             this.stringToEvent.Add("LC", PlayerLeftClickEvent.Create);
+            this.stringToEvent.Add("/spawnnpc ", GMSpawnNPCCommandEvent.Create);
+            this.stringToEvent.Add("/search ", GMSearchCommandEvent.Create);
         }
 
         /**

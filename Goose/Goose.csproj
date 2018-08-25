@@ -86,6 +86,8 @@
     <Compile Include="Events\ChatEvent.cs" />
     <Compile Include="Events\CheckNameCommandEvent.cs" />
     <Compile Include="Events\GMHaxCommandEvent.cs" />
+    <Compile Include="Events\GMSearchCommandEvent.cs" />
+    <Compile Include="Events\GMSpawnNPCCommandEvent.cs" />
     <Compile Include="Events\PlayerLeftClickEvent .cs" />
     <Compile Include="Events\SpellbookBackEvent.cs" />
     <Compile Include="Events\SpellbookNextEvent.cs" />

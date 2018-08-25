@@ -28,6 +28,11 @@ namespace Goose
             this.idToNPC = new Hashtable();
         }
 
+        public IEnumerable<NPCTemplate> GetTemplates()
+        {
+            return templates;
+        }
+
         /**
          * LoadNPCTemplates, loads npc templatess from database
          * 
@@ -257,10 +262,9 @@ namespace Goose
                 NPCTemplate template = this.GetNPCTemplate(npc_id);
                 if (template != null)
                 {
-                    if (npc.LoadFromTemplate(world, map_id, map_x, map_y, template))
+                    if (npc.LoadFromTemplate(world, map_id, map_x, map_y, template, shouldRespawn: true))
                     {
                         this.npcs.Add(npc);
-                        AssignNewId(world, npc);
                     }
                     else
                     {

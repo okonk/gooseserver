@@ -45,6 +45,8 @@ namespace Goose
             }
         }
 
+        public bool ShouldRespawn { get; set; }
+
         /**
          * LoginID is the ID assigned by the server on login
          */
@@ -428,8 +430,10 @@ namespace Goose
          * LoadFromTemplate
          * 
          */
-        public bool LoadFromTemplate(GameWorld world, int map_id, int map_x, int map_y, NPCTemplate template)
+        public bool LoadFromTemplate(GameWorld world, int map_id, int map_x, int map_y, NPCTemplate template, bool shouldRespawn)
         {
+            this.ShouldRespawn = shouldRespawn;
+
             this.Map = world.MapHandler.GetMap(map_id);
             if (this.Map == null) return false;
             this.MapID = map_id;
@@ -931,7 +935,14 @@ namespace Goose
                     this.CurrentHP = 0;
                     packet = "ERC" + this.LoginID;
 
-                    this.AddRespawnEvent(world);
+                    if (this.ShouldRespawn)
+                    {
+                        this.AddRespawnEvent(world);
+                    }
+                    else
+                    {
+                        this.Map.RemoveNPC(this);
+                    }
 
                     Dictionary<Object, long> damages = new Dictionary<Object, long>();
                     foreach (KeyValuePair<Player, Aggro> p in this.AggroTargetToValue)

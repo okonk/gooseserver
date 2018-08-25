@@ -37,7 +37,12 @@ namespace Goose
             get { return this.currentid; }
             set { this.currentid = value; }
         }
-        
+
+        public IEnumerable<ItemTemplate> GetTemplates()
+        {
+            return templates.Values.Cast<ItemTemplate>();
+        }
+
         /**
          * LoadTemplates, loads item templates
          * 
