@@ -70,10 +70,14 @@ namespace Goose.Quests
                         return;
                 }
 
-                var questWindow = new QuestWindow(npc, player, quest, world);
+                if (player.Level < quest.MinLevel || player.Experience + player.ExperienceSold < quest.MinExperience)
+                    return;
 
                 if (!player.QuestsStarted.Any(q => q.Quest.Id == quest.Id))
                 {
+                    if (player.Level > quest.MaxLevel || player.Experience + player.ExperienceSold > quest.MaxExperience)
+                        return;
+
                     player.QuestsStarted.Add(new QuestStarted() { Dirty = true, Quest = quest });
 
                     foreach (var requirement in quest.Requirements)
@@ -87,6 +91,8 @@ namespace Goose.Quests
                         }
                     }
                 }
+
+                var questWindow = new QuestWindow(npc, player, quest, world);
             }
         }
 
