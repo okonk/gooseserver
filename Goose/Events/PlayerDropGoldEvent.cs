@@ -42,9 +42,9 @@ namespace Goose.Events
 
                 if (gold > this.Player.Gold) return;
 
-                if (this.Player.Level < 33)
+                if (this.Player.Level < 10)
                 {
-                    world.Send(this.Player, "$7You need to be level 33 or higher to drop gold. ;)");
+                    world.Send(this.Player, "$7You need to be level 10 or higher to drop gold.");
                     return;
                 }
 
@@ -74,7 +74,7 @@ namespace Goose.Events
 
                 world.LogHandler.Log(Log.Types.PlayerDropItem,
                     this.Player.PlayerID, tile.ItemSlot.Stack + " gold",
-                    this.Player.Map.ID, this.Player.MapX, this.Player.MapY);
+                    0, this.Player.Map.ID, this.Player.MapX, this.Player.MapY);
             }
         }
     }

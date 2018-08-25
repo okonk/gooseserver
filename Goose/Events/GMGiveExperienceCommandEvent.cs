@@ -60,7 +60,7 @@ namespace Goose.Events
 
                 world.LogHandler.Log(Log.Types.GiveExperience,
                     this.Player.PlayerID, exp.ToString() + " to " + player.PlayerID,
-                    this.Player.Map.ID, this.Player.MapX, this.Player.MapY);
+                    player.PlayerID, this.Player.Map.ID, this.Player.MapX, this.Player.MapY);
             }
         }
     }

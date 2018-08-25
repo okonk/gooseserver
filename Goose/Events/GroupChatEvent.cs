@@ -36,7 +36,7 @@ namespace Goose.Events
                 if (message.Length >= 1)
                 {
                     this.Player.Group.Chat(this.Player, message, world);
-                    world.LogHandler.Log(Log.Types.GroupChat, this.Player.PlayerID, message, this.Player.Map.ID, this.Player.MapX, this.Player.MapY);
+                    world.LogHandler.Log(Log.Types.GroupChat, this.Player.PlayerID, message, 0, this.Player.Map.ID, this.Player.MapX, this.Player.MapY);
                 }
             }
         }

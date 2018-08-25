@@ -91,7 +91,7 @@ namespace Goose.Events
                 {
                     this.Player.AddGold(tile.ItemSlot.Stack, world);
                     this.Player.Map.RemoveItem(tile, world);
-                    world.LogHandler.Log(Log.Types.PickupItem, this.Player.PlayerID, tile.ItemSlot.Stack + " gold", this.Player.Map.ID, this.Player.MapX, this.Player.MapY);
+                    world.LogHandler.Log(Log.Types.PickupItem, this.Player.PlayerID, tile.ItemSlot.Stack + " gold", 0, this.Player.Map.ID, this.Player.MapX, this.Player.MapY);
                 }
                 else
                 {
@@ -108,7 +108,7 @@ namespace Goose.Events
 
                         world.LogHandler.Log(Log.Types.PickupItem,
                             this.Player.PlayerID, tile.ItemSlot.Item.ItemID + " " + tile.ItemSlot.Item.Template.ID + " " + tile.ItemSlot.Item.Name + " " + tile.ItemSlot.Stack, 
-                            this.Player.Map.ID, this.Player.MapX, this.Player.MapY);
+                            0, this.Player.Map.ID, this.Player.MapX, this.Player.MapY);
                     }
                     else
                     {

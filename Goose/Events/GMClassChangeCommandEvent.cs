@@ -107,7 +107,7 @@ namespace Goose.Events
 
                 world.LogHandler.Log(Log.Types.ClassChange,
                     this.Player.PlayerID, player.PlayerID + " " + cl + " " + modifier,
-                    this.Player.Map.ID, this.Player.MapX, this.Player.MapY);
+                    0, this.Player.Map.ID, this.Player.MapX, this.Player.MapY);
             }
         }
     }

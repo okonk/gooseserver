@@ -69,7 +69,7 @@ namespace Goose.Events
 
                 world.LogHandler.Log(Log.Types.GetItem,
                     this.Player.PlayerID, item.Name + " " + item.ItemID + " " + stack,
-                    this.Player.Map.ID, this.Player.MapX, this.Player.MapY);
+                    0, this.Player.Map.ID, this.Player.MapX, this.Player.MapY);
             }
         }
     }

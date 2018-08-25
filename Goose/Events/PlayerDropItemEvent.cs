@@ -77,7 +77,7 @@ namespace Goose.Events
 
                 world.LogHandler.Log(Log.Types.PlayerDropItem,
                     this.Player.PlayerID, tile.ItemSlot.Item.ItemID + " " + tile.ItemSlot.Item.Template.ID + " " + tile.ItemSlot.Item.Name + " " + tile.ItemSlot.Stack,
-                    this.Player.Map.ID, this.Player.MapX, this.Player.MapY);
+                    0, this.Player.Map.ID, this.Player.MapX, this.Player.MapY);
             }
         }
     }
