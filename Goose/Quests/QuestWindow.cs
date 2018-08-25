@@ -75,7 +75,7 @@ namespace Goose.Quests
 
                 if (!player.QuestsStarted.Any(q => q.Quest.Id == quest.Id))
                 {
-                    if (player.Level > quest.MaxLevel || player.Experience + player.ExperienceSold > quest.MaxExperience)
+                    if ((quest.MaxLevel > 0 && player.Level > quest.MaxLevel) || (quest.MaxExperience > 0 && player.Experience + player.ExperienceSold > quest.MaxExperience))
                         return;
 
                     player.QuestsStarted.Add(new QuestStarted() { Dirty = true, Quest = quest });
