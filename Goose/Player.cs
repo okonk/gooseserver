@@ -2096,7 +2096,7 @@ namespace Goose
             }
 
             // for illusions
-            if (buff.SpellEffect.BodyID != 0)
+            if (buff.SpellEffect.BodyID != 0 && this.Inventory.GetEquippedSlot(Inventory.EquipSlots.Mount) == null)
             {
                 this.CurrentBodyID = buff.SpellEffect.BodyID;
                 packet += "\x1" + this.CHPString();

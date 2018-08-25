@@ -419,6 +419,7 @@ namespace Goose
             if (target is Pet && this.BodyID > 0)
             {
                 Console.WriteLine("OMG DONT CRASH MY SERVER " + caster.Name);
+                // TODO: Is the crash fixed, or am I just logging it?
             }
 
 

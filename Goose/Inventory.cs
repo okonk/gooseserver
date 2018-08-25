@@ -346,6 +346,11 @@ namespace Goose
                 return false;
             }
 
+            if (equipslot == EquipSlots.Mount && this.player.CurrentBodyID != this.player.BodyID)
+            {
+                this.player.CurrentBodyID = this.player.BodyID;
+            }
+
             this.equipped[(int)equipslot] = slot;
             this.player.AddStats(slot.Item.TotalStats, world);
 
