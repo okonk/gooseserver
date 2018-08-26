@@ -82,6 +82,7 @@ namespace Goose.Events
                         item.GraphicB = b;
                         item.GraphicA = a;
                         item.GraphicTile = lookSlot.Item.GraphicTile;
+                        item.GraphicFile = lookSlot.Item.GraphicFile;
                         item.Name = (tokens[5].Length > 50 ? tokens[5].Substring(0, 50) : tokens[5]).Replace(",", "");
                         item.Description = "Custom created by " + this.Player.Name;
                         item.IsBound = statsSlot.Item.IsBound;
@@ -232,13 +233,16 @@ namespace Goose.Events
             EquipSlots lookSlot = this.Player.Inventory.ItemSlotToEquipSlot(customLook.Item.Slot);
 
             ItemSlot item = this.Player.Inventory.GetEquippedSlot(EquipSlots.Mount);
+            string e = "";
             if (lookSlot == EquipSlots.Mount)
             {
-                item = customLook;
+                e += customLook.Item.GraphicEquipped + "," +
+                             r + "," +
+                             g + "," +
+                             b + "," +
+                             a + ",";
             }
-
-            string e = "";
-            if (item != null)
+            else if (item != null)
             {
                 if (item.Item.GraphicA == 0)
                 {
@@ -272,10 +276,10 @@ namespace Goose.Events
                 return false;
             }
 
-            if (statsSlot.Item.UseType != ItemTemplate.UseTypes.Armor
-                || statsSlot.Item.UseType != ItemTemplate.UseTypes.Weapon
-                || lookSlot.Item.UseType != ItemTemplate.UseTypes.Armor
-                || lookSlot.Item.UseType != ItemTemplate.UseTypes.Weapon
+            if ((statsSlot.Item.UseType != ItemTemplate.UseTypes.Armor &&
+                 statsSlot.Item.UseType != ItemTemplate.UseTypes.Weapon)
+                || (lookSlot.Item.UseType != ItemTemplate.UseTypes.Armor &&
+                    lookSlot.Item.UseType != ItemTemplate.UseTypes.Weapon)
                 || statsSlot.Item.Slot == ItemTemplate.ItemSlots.Ring
                 || statsSlot.Item.Slot == ItemTemplate.ItemSlots.Necklace
                 || statsSlot.Item.Slot == ItemTemplate.ItemSlots.Pauldrons
