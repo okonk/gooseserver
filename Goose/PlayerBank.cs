@@ -61,7 +61,7 @@ namespace Goose
                 int npc_id = kvp.Key;
                 ItemContainer container = kvp.Value;
 
-                for (int i = 1; i <= container.MaxSlots; i++)
+                for (int i = 1; i < container.MaxSlots; i++)
                 {
                     string query = null;
 

@@ -41,19 +41,6 @@ namespace Goose.Quests
             this.SendCreate(player, world);
         }
 
-        public void SendCreate(Player player, GameWorld world)
-        {
-            world.Send(player, this.MKWString());
-            this.Populate(player, world);
-            world.Send(player, "ENW" + this.ID);
-        }
-
-        public string MKWString()
-        {
-            return string.Format("MKW{0},{1},{2},{3},{4},{5},{6}",
-                this.ID, (int)this.Frame, this.Title, this.Buttons, this.NPC.LoginID, 0, 0);
-        }
-
         /// <summary>
         /// Called when a player left clicks a quest npc
         /// </summary>

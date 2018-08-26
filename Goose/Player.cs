@@ -595,6 +595,7 @@ namespace Goose
             this.ToggleSettings = (ToggleSetting)GameSettings.Default.DefaultToggleSettings;
             this.AetherThreshold = GameSettings.Default.DefaultAetherThreshold;
 
+            this.NumberOfBankPages = GameSettings.Default.StartingBankPages;
             this.Credits = 0;
             this.TotalAfkTime = 0;
             this.TotalPlayTime = 0;
@@ -719,6 +720,7 @@ namespace Goose
             this.ToggleSettings = (ToggleSetting)Convert.ToInt64(reader["toggle_settings"]);
             this.AetherThreshold = Convert.ToDecimal(reader["aether_threshold"]);
 
+            this.NumberOfBankPages = Convert.ToInt32(reader["bank_pages"]);
             this.Credits = Convert.ToInt32(reader["donation_credits"]);
             this.TotalPlayTime = Convert.ToInt64(reader["total_playtime"]);
             this.TotalAfkTime = Convert.ToInt64(reader["total_afktime"]);
@@ -819,7 +821,7 @@ namespace Goose
                     "player_hp, player_mp, player_sp, class_id, guild_id, stat_ac, stat_str, stat_sta, " +
                     "stat_dex, stat_int, res_fire, res_water, res_spirit, res_air, res_earth, body_id, body_r, body_g, body_b, body_a, " +
                     "face_id, hair_id, hair_r, hair_g, hair_b, hair_a, aether_threshold, toggle_settings, " +
-                    "donation_credits, total_playtime, total_afktime, move_speed) VALUES" +
+                    "donation_credits, total_playtime, total_afktime, move_speed, bank_pages) VALUES" +
                     "(" +
                     this.PlayerID + "," +
                     " @playerName, @playerTitle, @playerSurname, " +
@@ -868,7 +870,8 @@ namespace Goose
                     this.Credits + ", " +
                     this.TotalPlayTime + ", " +
                     this.TotalAfkTime + ", " +
-                    this.BaseStats.MoveSpeed +
+                    this.BaseStats.MoveSpeed + ", " +
+                    this.NumberOfBankPages +
                     ")";
 
                 this.AutoCreatedNotSaved = false;
@@ -930,7 +933,8 @@ namespace Goose
                     "donation_credits=" + this.Credits + ", " +
                     "total_playtime=" + this.TotalPlayTime + ", " +
                     "total_afktime=" + this.TotalAfkTime + ", " +
-                    "move_speed=" + this.BaseStats.MoveSpeed + " " +
+                    "move_speed=" + this.BaseStats.MoveSpeed + ", " +
+                    "bank_pages=" + this.NumberOfBankPages + " " +
                     "WHERE player_id=" + this.PlayerID;
 
                 SqlCommand command = new SqlCommand(query, world.SqlConnection);

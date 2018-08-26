@@ -32,15 +32,15 @@ namespace Goose
 
         public override void InventoryToWindow(Player player, int invSlotIndex, int toSlotIndex, GameWorld world)
         {
-            if (toSlotIndex <= 0 || toSlotIndex > this.ItemContainer.MaxSlots) return; // log bad attempt at crash
+            if (!ValidateSlotIndex(toSlotIndex)) return;
 
             ItemSlot inventorySlot = player.Inventory.GetSlot(invSlotIndex);
-            ItemSlot containerSlot = this.ItemContainer.GetSlot(toSlotIndex);
+            ItemSlot containerSlot = this.GetSlot(toSlotIndex);
 
             ItemSlot.SwapSlots(ref inventorySlot, ref containerSlot);
 
             player.Inventory.SetSlot(invSlotIndex, inventorySlot);
-            this.ItemContainer.SetSlot(toSlotIndex, containerSlot);
+            this.SetSlot(toSlotIndex, containerSlot);
 
             player.Inventory.SendSlot(invSlotIndex, world);
             this.SendSlot(toSlotIndex, player, world);
@@ -48,14 +48,14 @@ namespace Goose
 
         public override void WindowToInventory(Player player, int fromSlotIndex, int invSlotIndex, GameWorld world)
         {
-            if (fromSlotIndex <= 0 || fromSlotIndex > this.ItemContainer.MaxSlots) return; // log bad attempt at crash
+            if (!ValidateSlotIndex(fromSlotIndex)) return;
 
-            ItemSlot containerSlot = this.ItemContainer.GetSlot(fromSlotIndex);
+            ItemSlot containerSlot = this.GetSlot(fromSlotIndex);
             ItemSlot inventorySlot = player.Inventory.GetSlot(invSlotIndex);
 
             ItemSlot.SwapSlots(ref containerSlot, ref inventorySlot);
 
-            this.ItemContainer.SetSlot(fromSlotIndex, containerSlot);
+            this.SetSlot(fromSlotIndex, containerSlot);
             player.Inventory.SetSlot(invSlotIndex, inventorySlot);
 
             this.SendSlot(fromSlotIndex, player, world);

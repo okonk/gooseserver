@@ -52,6 +52,7 @@ namespace CsvToSql
         {
             Monster = 2,
             Vendor = 10,
+            Banker = 11,
             Quest = 12
         }
 

@@ -16,17 +16,19 @@ namespace Goose
 
         public override string Title
         {
-            get { return string.Format("Bank Page {0}/{1}", CurrentPage + 1, MaxPages);  }
+            get { return string.Format("Bank Page {0}/{1}", CurrentPage, MaxPages);  }
         }
 
         public override string Buttons
         {
-            get { return string.Format("0,1,{0},{1},0", (CurrentPage - 1 <= 0 ? "0" : "1"), (CurrentPage + 1 == MaxPages ? "0" : "1")); }
+            get { return string.Format("0,1,{0},{1},0", (CurrentPage - 1 <= 0 ? "0" : "1"), (CurrentPage == MaxPages ? "0" : "1")); }
         }
 
         public BankWindow(GameWorld world, Player player, NPC npc)
         {
             this.ItemContainer = player.Bank.GetOrCreateContainer(player, npc.NPCTemplateID);
+            this.CurrentPage = 1;
+            this.MaxPages = player.NumberOfBankPages;
 
             this.ID = 21;
             this.Frame = WindowFrames.Bank;
@@ -46,10 +48,7 @@ namespace Goose
 
         public override void Populate(Player player, GameWorld world)
         {
-            int startIndex = GetSlotOffset() + 1;
-            int endIndex = startIndex + SlotsPerPage;
-
-            for (int i = startIndex; i < endIndex; i++)
+            for (int i = 1; i <= SlotsPerPage; i++)
             {
                 this.SendSlot(i, player, world);
             }
@@ -67,7 +66,7 @@ namespace Goose
 
         private int GetSlotOffset()
         {
-            return (CurrentPage - 1 * SlotsPerPage);
+            return (CurrentPage - 1) * SlotsPerPage;
         }
 
         public override bool ValidateSlotIndex(int index)
@@ -77,35 +76,31 @@ namespace Goose
 
         public override ItemSlot GetSlot(int slotIndex)
         {
-            return this.ItemContainer.GetSlot(slotIndex - GetSlotOffset());
+            return this.ItemContainer.GetSlot(slotIndex + GetSlotOffset());
         }
 
         public override void SetSlot(int slotIndex, ItemSlot slot)
         {
-            this.ItemContainer.SetSlot(slotIndex - GetSlotOffset(), slot);
+            this.ItemContainer.SetSlot(slotIndex + GetSlotOffset(), slot);
         }
 
         public override void InventoryToWindow(Player player, int invSlotIndex, int toSlotIndex, GameWorld world)
         {
             if (!BankerInRange(player)) return;
-            if (!ValidateSlotIndex(toSlotIndex)) return;
 
-            base.InventoryToWindow(player, invSlotIndex, toSlotIndex + GetSlotOffset(), world);
+            base.InventoryToWindow(player, invSlotIndex, toSlotIndex, world);
         }
 
         public override void WindowToInventory(Player player, int fromSlotIndex, int invSlotIndex, GameWorld world)
         {
             if (!BankerInRange(player)) return;
-            if (!ValidateSlotIndex(fromSlotIndex)) return;
-
-            base.WindowToInventory(player, fromSlotIndex + GetSlotOffset(), invSlotIndex, world);
+            
+            base.WindowToInventory(player, fromSlotIndex, invSlotIndex, world);
         }
 
         public override void SendSlot(int slotIndex, Player player, GameWorld world)
         {
-            slotIndex -= GetSlotOffset();
-
-            ItemSlot slot = this.ItemContainer.GetSlot(slotIndex);
+            ItemSlot slot = this.GetSlot(slotIndex);
             if (slot != null)
             {
                 world.Send(player, "SBS" + slot.Item.GetSlotPacket(world, slotIndex, slot.Stack));
@@ -125,11 +120,11 @@ namespace Goose
                     player.Windows.Remove(this);
                     break;
                 case ButtonTypes.Next:
-                    if (CurrentPage + 1 == MaxPages)
+                    if (CurrentPage == MaxPages)
                         return;
 
                     CurrentPage++;
-                    this.Refresh(player, world);
+                    this.SendCreate(player, world);
 
                     break;
                 case ButtonTypes.Back:
@@ -137,7 +132,7 @@ namespace Goose
                         return;
 
                     CurrentPage--;
-                    this.Refresh(player, world);
+                    this.SendCreate(player, world);
 
                     break;
                 default:
