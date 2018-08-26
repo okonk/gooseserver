@@ -106,7 +106,7 @@ namespace Goose.Quests
                     text = "You don't have enough spellbook space to accept \\nthe reward.\\nDelete a spell and try again.";
                     break;
                 case QuestWindowState.QuestNotRightLevel:
-                    text = "You don't meet the level or experience \\nrequirements. Come back to me when you're stronger.";
+                    text = "You don't meet the level or experience \\nrequirements. Come back to me when you're \\nstronger.";
                     break;
             }
 
