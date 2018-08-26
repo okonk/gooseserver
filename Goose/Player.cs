@@ -298,6 +298,8 @@ namespace Goose
          */
         public Inventory Inventory { get; set; }
 
+        public PlayerBank Bank { get; set; }
+
         /**
          * Time of last melee attack
          * 
@@ -336,6 +338,8 @@ namespace Goose
 
         public long MovementRecordingStarted { get; set; }
         public long MovementRecordingSteps { get; set; }
+
+        public int NumberOfBankPages { get; set; }
 
         /**
          * Bitfield for toggled settings
@@ -630,6 +634,7 @@ namespace Goose
                 }
             }
             this.Spellbook = new Spellbook(this);
+            this.Bank = new PlayerBank();
         }
 
         /**
@@ -729,6 +734,8 @@ namespace Goose
             this.Inventory.Load(world);
             this.Spellbook = new Spellbook(this);
             this.Spellbook.Load(world);
+            this.Bank = new PlayerBank();
+            this.Bank.Load(world, this);
 
             this.BodyState = 3;
 
@@ -935,6 +942,7 @@ namespace Goose
 
             this.Inventory.Save(world);
             this.Spellbook.Save(world);
+            this.Bank.Save(world, this);
 
             foreach (Pet pet in this.Pets)
             {
@@ -1557,7 +1565,7 @@ namespace Goose
          */
         public bool HasItem(int templateid)
         {
-            return this.Inventory.HasItem(templateid);
+            return this.Inventory.HasItem(templateid) || this.Bank.HasItem(templateid);
         }
 
         /**
@@ -2267,39 +2275,6 @@ namespace Goose
             int wps = (int)((decimal)(this.WeaponDelay / 10.0) * (1 - this.MaxStats.Haste) * 1000);
 
             return "WPS" + wps + ",0,0";
-        }
-
-        /**
-         * ShowStatsWindow, opens up item stats window for id
-         * 
-         * ID is a template id if less than GameSettings.Default.ItemIDStartpoint
-         * 
-         */
-        public void ShowStatsWindow(int id, GameWorld world)
-        {
-            Object item = null;
-
-            if (id < GameSettings.Default.ItemIDStartpoint)
-            {
-                item = world.ItemHandler.GetTemplate(id);
-            }
-            else
-            {
-                item = world.ItemHandler.GetItem(id);
-            }
-
-            // log bad id
-            if (item == null) return;
-
-            Window window = new Window();
-            window.Title = (item is ItemTemplate ? ((ItemTemplate)item).Name : ((Item)item).Name);
-            window.Buttons = "0,0,0,0,0";
-            window.Type = Window.WindowTypes.ItemInfo;
-            window.Data = item;
-
-            this.Windows.Add(window);
-
-            window.Create(this, world);
         }
 
         /// <summary>

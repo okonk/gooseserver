@@ -16,6 +16,7 @@ namespace Goose
         {
             Monster = 2,
             Vendor = 10,
+            Banker = 11,
             Quest = 12
         }
         public Types NPCType { get; set; }

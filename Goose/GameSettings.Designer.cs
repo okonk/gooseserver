@@ -1326,5 +1326,17 @@ namespace Goose {
                 this["HairdyeCommandCost"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("3")]
+        public int StartingBankPages {
+            get {
+                return ((int)(this["StartingBankPages"]));
+            }
+            set {
+                this["StartingBankPages"] = value;
+            }
+        }
     }
 }

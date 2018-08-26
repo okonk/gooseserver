@@ -65,10 +65,18 @@ namespace Goose.Events
                 List<NPC> range = this.Player.Map.GetNPCsInRange(this.Player);
                 foreach (NPC npc in range)
                 {
-                    if (npc.MapX == x && npc.MapY == y && npc.VendorItems != null)
+                    if (npc.MapX == x && npc.MapY == y)
                     {
-                        npc.OpenVendorWindow(this.Player, world);
-                        return;
+                        if (npc.VendorItems != null)
+                        {
+                            npc.OpenVendorWindow(this.Player, world);
+                            return;
+                        }
+
+                        if (npc.NPCType == NPCTemplate.Types.Banker)
+                        {
+                            BankWindow.Open(world, this.Player, npc);
+                        }
                     }
                 }
             }

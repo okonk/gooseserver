@@ -33,5 +33,30 @@ namespace Goose
 
             return true;
         }
+
+        public static void SwapSlots(ref ItemSlot from, ref ItemSlot to)
+        {
+            if (from == null && to == null) return;
+
+            if (from == null || to == null)
+            {
+                ItemSlot temp = from;
+                from = to;
+                to = temp;
+            }
+            // Same base item and they can stack
+            else if (from.Item.TemplateID == to.Item.TemplateID && to.CanStack(from))
+            {
+                to.Stack += from.Stack;
+                from.Item.Delete = true;
+                from = null;
+            }
+            else
+            {
+                ItemSlot temp = from;
+                from = to;
+                to = temp;
+            }
+        }
     }
 }

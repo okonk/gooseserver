@@ -85,6 +85,13 @@ namespace Goose
             this.items = new List<ItemTile>();
         }
 
+        public static bool InRange(ICharacter a, ICharacter b)
+        {
+            return (a.Map.ID == b.Map.ID &&
+                Math.Abs(a.MapX - b.MapX) < RANGE_X &&
+                Math.Abs(a.MapY - b.MapY) < RANGE_Y);
+        }
+
         /**
          * GetPlayersInRange, returns all players that the character can see
          * 

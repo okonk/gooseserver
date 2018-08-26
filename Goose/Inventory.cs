@@ -33,7 +33,7 @@ namespace Goose
 
         ItemSlot[] equipped;
         ItemSlot[] inventory;
-        ItemSlot[] combine;
+        ItemContainer combineContainer;
         /**
          * The player this inventory belongs to
          */
@@ -46,8 +46,13 @@ namespace Goose
             // Equipped is numbered 1 to EquippedSize.
             this.equipped = new ItemSlot[GameSettings.Default.EquippedSize + 1];
             // Combine is numbered 1 to CombineBagSize.
-            this.combine = new ItemSlot[GameSettings.Default.CombineBagSize + 1];
+            this.combineContainer = new ItemContainer(GameSettings.Default.CombineBagSize + 1);
             this.player = player;
+        }
+
+        public ItemContainer GetCombineBagContainer()
+        {
+            return this.combineContainer;
         }
 
         /**
@@ -154,44 +159,27 @@ namespace Goose
             return null;
         }
 
+        public void SetSlot(int i, ItemSlot slot)
+        {
+            this.inventory[i] = slot;
+        }
+
         /**
          * SwapSlots, swaps the 2 slots
          * 
          */
-        public void SwapSlots(int id1, int id2, GameWorld world)
+        public void SwapSlots(int fromSlotId, int toSlotId, GameWorld world)
         {
-            if (id1 <= 0 || id1 > GameSettings.Default.InventorySize ||
-                id2 <= 0 || id2 > GameSettings.Default.InventorySize)
-            {
-                // log id out of inventory range
-                return;
-            }
+            ItemSlot fromSlot = this.GetSlot(fromSlotId);
+            ItemSlot toSlot = this.GetSlot(toSlotId);
 
-            ItemSlot slot1 = this.GetSlot(id1);
-            ItemSlot slot2 = this.GetSlot(id2);
+            ItemSlot.SwapSlots(ref fromSlot, ref toSlot);
 
-            if (slot1 == null && slot2 == null) return;
+            this.SetSlot(fromSlotId, fromSlot);
+            this.SetSlot(toSlotId, toSlot);
 
-            if (slot1 == null || slot2 == null)
-            {
-                this.inventory[id1] = slot2;
-                this.inventory[id2] = slot1;
-            }
-            // Same base item and they can stack
-            else if (slot1.Item.TemplateID == slot2.Item.TemplateID && slot2.CanStack(slot1))
-            {
-                slot2.Stack += slot1.Stack;
-                slot1.Item.Delete = true;
-                this.inventory[id1] = null;
-            }
-            else
-            {
-                this.inventory[id1] = slot2;
-                this.inventory[id2] = slot1;
-            }
-
-            this.SendSlot(id1, world);
-            this.SendSlot(id2, world);
+            this.SendSlot(fromSlotId, world);
+            this.SendSlot(toSlotId, world);
         }
 
         /**
@@ -765,7 +753,7 @@ namespace Goose
             {
                 if (slot != null && slot.Item.Template.ID == templateid) return true;
             }
-            foreach (ItemSlot slot in this.combine)
+            foreach (ItemSlot slot in this.combineContainer)
             {
                 if (slot != null && slot.Item.Template.ID == templateid) return true;
             }
@@ -888,7 +876,7 @@ namespace Goose
             // Save combine bag
             for (int i = 1; i <= GameSettings.Default.CombineBagSize; i++)
             {
-                slot = this.combine[i];
+                slot = this.combineContainer.GetSlot(i);
                 if (slot == null)
                 {
                     query = "DELETE FROM combinebag WHERE player_id=" + this.player.PlayerID + " AND slot=" + i;
@@ -1012,49 +1000,23 @@ namespace Goose
 
                 item = world.ItemHandler.GetItem(itemid);
                 if (item == null) continue; // log bad item id
-                if (this.combine[slot] != null) continue; // log 2 items trying to be in the same slot
+                if (this.combineContainer.GetSlot(slot) != null) continue; // log 2 items trying to be in the same slot
 
-                this.combine[slot] = new ItemSlot();
-                this.combine[slot].Item = item;
-                this.combine[slot].Stack = stack;
+                var combineSlot = new ItemSlot { Item = item, Stack = stack };
+                this.combineContainer.SetSlot(slot, combineSlot);
             }
 
             reader.Close();
         }
 
         /**
-         * ShowStatsWindow, shows stats window if player has the itemid
-         * 
-         */
-        public void ShowStatsWindow(int itemid, GameWorld world)
-        {
-            foreach (ItemSlot slot in this.equipped)
-            {
-                if (slot != null && slot.Item.ItemID == itemid)
-                {
-                    this.player.ShowStatsWindow(itemid, world);
-                    return;
-                }
-            }
-
-            foreach (ItemSlot slot in this.inventory)
-            {
-                if (slot != null && slot.Item.ItemID == itemid)
-                {
-                    this.player.ShowStatsWindow(itemid, world);
-                    return;
-                }
-            }
-        }
-
-        /**
          * Combine, combines whatever is in combine bag if possible
          * 
          */
-        public void Combine(GameWorld world)
+        public void Combine(Window combineBagWindow, GameWorld world)
         {
             Dictionary<int, int> combineHash = new Dictionary<int, int>();
-            foreach (ItemSlot slot in this.combine)
+            foreach (ItemSlot slot in this.combineContainer)
             {
                 if (slot == null) continue;
 
@@ -1108,7 +1070,7 @@ namespace Goose
 
 
             List<int> freeslots = new List<int>();
-			ItemSlot[] newcombine = new ItemSlot[GameSettings.Default.CombineBagSize + 1];
+            var newcombine = new ItemContainer(GameSettings.Default.CombineBagSize + 1);
 
             Dictionary<int, int> reqhash = new Dictionary<int, int>();
             foreach (KeyValuePair<int, int> req in match.RequiredHash)
@@ -1118,15 +1080,16 @@ namespace Goose
             Item item;
             long count;
             long slotcount;
-			for (int i = 1; i < this.combine.Length; i++) {
-
-                if (this.combine[i] == null)
+            for (int i = 1; i < this.combineContainer.MaxSlots; i++)
+            {
+                var slot = this.combineContainer.GetSlot(i);
+                if (slot == null)
                 {
                     freeslots.Add(i);
                     continue;
                 }
-                item = this.combine[i].Item;
-                slotcount = this.combine[i].Stack;
+                item = slot.Item;
+                slotcount = slot.Stack;
                 // if this item is in the combination and it still requires more
                 if (reqhash.ContainsKey(item.TemplateID)) count = reqhash[item.TemplateID];
                 else count = 0;
@@ -1141,9 +1104,8 @@ namespace Goose
                 // if we still have some left over, add it back to combine bag
                 if (slotcount > 0)
                 {
-                    newcombine[i] = new ItemSlot();
-                    newcombine[i].Item = item;
-                    newcombine[i].Stack = slotcount;
+                    var newSlot = new ItemSlot { Item = item, Stack = slotcount };
+                    newcombine.SetSlot(i, newSlot);
                 }
                 else
                 {
@@ -1162,7 +1124,7 @@ namespace Goose
             int index;
             foreach (ItemTemplate template in match.ResultItems) 
             {
-                if (template.IsLore && this.HasItem(template.ID))
+                if (template.IsLore && this.player.HasItem(template.ID))
                 {
                     world.Send(this.player, "$7Already have LORE item " + template.Name + ".");
                     return;
@@ -1177,74 +1139,18 @@ namespace Goose
                 index = freeslots[0];
                 freeslots.RemoveAt(0);
 
-                newcombine[index] = new ItemSlot();
-                newcombine[index].Item = item;
-                newcombine[index].Stack = 1;
+                var newSlot = new ItemSlot { Item = item, Stack = 1 };
+                newcombine.SetSlot(index, newSlot);
 
                 world.Send(this.player, "$7Successfully created " + template.Name + ".");
             }
 
-            this.combine = newcombine;
-            this.SendCombineBag(world);
-        }
-
-        /**
-         * SendCombineSlot, sends combine bag slot i to player
-         * 
-         * kinda inefficient since it searches for combine bag window id every time..
-         * 
-         */
-        public void SendCombineSlot(int i, GameWorld world)
-        {
-            if (this.player.State >= Player.States.LoadingMap)
+            for (int i = 1; i < this.combineContainer.MaxSlots; i++)
             {
-                foreach (Window window in this.player.Windows)
-                {
-                    if (window.Type != Window.WindowTypes.CombineBag) continue;
-
-                    ItemSlot slot = this.combine[i];
-                    if (slot != null)
-                    {
-                        world.Send(this.player, "SCS" + slot.Item.GetSlotPacket(world, i, slot.Stack));
-                    }
-                    else
-                    {
-                        world.Send(this.player, "CCS" + i);
-                    }
-                }
+                this.combineContainer.SetSlot(i, newcombine.GetSlot(i));
             }
-        }
 
-        /**
-         * SendCombineBag, sends combine bag items to player
-         * 
-         */
-        public void SendCombineBag(GameWorld world)
-        {
-            for (int i = 1; i <= GameSettings.Default.CombineBagSize; i++)
-            {
-                this.SendCombineSlot(i, world);
-            }
-        }
-
-        /***
-         * SwapInventoryCombineSlots, swaps inventory slot with combine slot
-         * 
-         * Assumes values are valid
-         * 
-         */
-        public void SwapInventoryCombineSlots(int invslot, int combslot, GameWorld world)
-        {
-            if (combslot <= 0 || combslot > GameSettings.Default.CombineBagSize) return; // log bad attempt at crash
-
-            ItemSlot inventoryslot = this.inventory[invslot];
-            ItemSlot combineslot = this.combine[combslot];
-
-            this.combine[combslot] = inventoryslot;
-            this.inventory[invslot] = combineslot;
-
-            this.SendSlot(invslot, world);
-            this.SendCombineSlot(combslot, world);
+            combineBagWindow.Refresh(player, world);
         }
     }
 }

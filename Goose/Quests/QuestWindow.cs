@@ -142,7 +142,7 @@ namespace Goose.Quests
                 case ButtonTypes.Close:
                     player.Windows.Remove(this);
                     break;
-                case ButtonTypes.ShowNext:
+                case ButtonTypes.Next:
                     if (this.state == QuestWindowState.QuestDescription)
                     {
                         this.Buttons = "0,1,0,0,0";

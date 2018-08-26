@@ -42,9 +42,10 @@ namespace Goose.Events
                     id2 = 0;
                 }
 
-                if (id1 <= 0 || id2 <= 0)
+                if (id1 <= 0 || id1 > GameSettings.Default.InventorySize ||
+                    id2 <= 0 || id2 > GameSettings.Default.InventorySize)
                 {
-                    // log something bad about packet
+                    // log id out of inventory range
                     return;
                 }
 

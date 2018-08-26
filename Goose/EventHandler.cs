@@ -83,7 +83,6 @@ namespace Goose
             this.stringToEvent.Add("VSI", VendorSellInventoryEvent.Create);
             this.stringToEvent.Add("/ban ", GMBanCommandEvent.Create);
             this.stringToEvent.Add("/kick ", GMKickCommandEvent.Create);
-            this.stringToEvent.Add("GID", ItemInfoEvent.Create);
             this.stringToEvent.Add("/shout ", ShoutCommandEvent.Create);
             this.stringToEvent.Add("/auction ", AuctionCommandEvent.Create);
             this.stringToEvent.Add("/random", RandomCommandEvent.Create);
@@ -136,6 +135,7 @@ namespace Goose
             this.stringToEvent.Add("LC", PlayerLeftClickEvent.Create);
             this.stringToEvent.Add("/spawnnpc ", GMSpawnNPCCommandEvent.Create);
             this.stringToEvent.Add("/search ", GMSearchCommandEvent.Create);
+            this.stringToEvent.Add("WTW", WindowToWindowEvent.Create);
         }
 
         /**

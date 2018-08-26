@@ -62,6 +62,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AttributeSet.cs" />
+    <Compile Include="BankWindow.cs" />
     <Compile Include="BlockedTile.cs" />
     <Compile Include="Buff.cs" />
     <Compile Include="ChatFilter.cs" />
@@ -70,6 +71,7 @@
     <Compile Include="ClassLevel.cs" />
     <Compile Include="Combination.cs" />
     <Compile Include="CombinationHandler.cs" />
+    <Compile Include="CombineBagWindow.cs" />
     <Compile Include="Event.cs" />
     <Compile Include="EventHandler.cs" />
     <Compile Include="Events\AetherCommandEvent.cs" />
@@ -145,7 +147,6 @@
     <Compile Include="Events\InventorySplitEvent.cs" />
     <Compile Include="Events\InventoryToWindowEvent.cs" />
     <Compile Include="Events\InventoryUseEvent.cs" />
-    <Compile Include="Events\ItemInfoEvent.cs" />
     <Compile Include="Events\ItemSaveEvent.cs" />
     <Compile Include="Events\LocationEvent.cs" />
     <Compile Include="Events\LoginContinuedEvent.cs" />
@@ -178,6 +179,7 @@
     <Compile Include="Events\WarpEvent.cs" />
     <Compile Include="Events\WhoEvent.cs" />
     <Compile Include="Events\WindowButtonClickEvent.cs" />
+    <Compile Include="Events\WindowToWindowEvent.cs" />
     <Compile Include="GameSettings.cs" />
     <Compile Include="GooseWindowsService.cs">
       <SubType>Component</SubType>
@@ -191,6 +193,8 @@
     <Compile Include="IItem.cs" />
     <Compile Include="Inventory.cs" />
     <Compile Include="Item.cs" />
+    <Compile Include="ItemContainer.cs" />
+    <Compile Include="ItemContainerWindow.cs" />
     <Compile Include="ItemHandler.cs" />
     <Compile Include="ItemSlot.cs" />
     <Compile Include="ItemTemplate.cs" />
@@ -209,6 +213,7 @@
     <Compile Include="NPCVendorSlot.cs" />
     <Compile Include="Pet.cs" />
     <Compile Include="Player.cs" />
+    <Compile Include="PlayerBank.cs" />
     <Compile Include="PlayerHandler.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
