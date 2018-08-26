@@ -13,7 +13,8 @@ namespace Goose.Quests
             QuestFail,
             QuestPass,
             QuestNoInventorySpace,
-            QuestNoSpellbookSpace
+            QuestNoSpellbookSpace,
+            QuestNotRightLevel,
         }
 
         private Quest quest;
@@ -28,7 +29,11 @@ namespace Goose.Quests
             this.Type = WindowTypes.Quest;
             this.NPC = npc;
             this.quest = quest;
-            this.state = QuestWindowState.QuestDescription;
+
+            if (player.Level < quest.MinLevel || player.Experience + player.ExperienceSold < quest.MinExperience)
+                this.state = QuestWindowState.QuestNotRightLevel;
+            else
+                this.state = QuestWindowState.QuestDescription;
 
             player.Windows.Add(this);
             player.TalkedTo(npc, world);
@@ -69,9 +74,6 @@ namespace Goose.Quests
                     if (!player.QuestsCompleted.Any(q => q.Quest.Id == prereq))
                         return;
                 }
-
-                if (player.Level < quest.MinLevel || player.Experience + player.ExperienceSold < quest.MinExperience)
-                    return;
 
                 if (!player.QuestsStarted.Any(q => q.Quest.Id == quest.Id))
                 {
@@ -115,6 +117,9 @@ namespace Goose.Quests
                     break;
                 case QuestWindowState.QuestNoSpellbookSpace:
                     text = "You don't have enough spellbook space to accept \\nthe reward.\\nDelete a spell and try again.";
+                    break;
+                case QuestWindowState.QuestNotRightLevel:
+                    text = "You don't meet the level or experience \\nrequirements. Come back to me when you're stronger.";
                     break;
             }
 
