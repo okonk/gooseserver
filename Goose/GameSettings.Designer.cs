@@ -1338,5 +1338,17 @@ namespace Goose {
                 this["StartingBankPages"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("677")]
+        public int CustomTicketId {
+            get {
+                return ((int)(this["CustomTicketId"]));
+            }
+            set {
+                this["CustomTicketId"] = value;
+            }
+        }
     }
 }

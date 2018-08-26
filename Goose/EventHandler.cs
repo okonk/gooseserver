@@ -136,6 +136,7 @@ namespace Goose
             this.stringToEvent.Add("/spawnnpc ", GMSpawnNPCCommandEvent.Create);
             this.stringToEvent.Add("/search ", GMSearchCommandEvent.Create);
             this.stringToEvent.Add("WTW", WindowToWindowEvent.Create);
+            this.stringToEvent.Add("/custom", CustomCommandEvent.Create);
         }
 
         /**
