@@ -169,7 +169,7 @@ namespace Goose
         public void GainExperience(NPC npc, GameWorld world)
         {
             long exp = npc.Experience;
-            double groupexp = exp / this.Players.Count * 1.3 * (this.Players.Count * 0.1 + 1);
+            double groupexp = exp * Math.Pow(0.91, this.Players.Count-1);
 
             int highest = 0;
             foreach (Player player in this.Players)
