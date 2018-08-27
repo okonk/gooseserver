@@ -251,6 +251,188 @@ namespace Goose
                 "0";
         }
 
+        private string GetPercentageDescription(string label, decimal value, string prefix)
+        {
+            if (value < 0)
+                return string.Format("{0}Decrease {1} by {2:F0}%;", prefix, label, Math.Abs(value) * 100);
+            else
+                return string.Format("{0}Increase {1} by {2:F0}%;", prefix, label, value * 100);
+        }
+
+        private string GetValueDescription(string label, long value, string prefix)
+        {
+            if (value < 0)
+                return string.Format("{0}Decrease {1} by {2:N0};", prefix, label, Math.Abs(value));
+            else
+                return string.Format("{0}Increase {1} by {2:N0};", prefix, label, value);
+        }
+
+        private string GetFormulaDescription(string formula, string stat, string prefix)
+        {
+            if (string.IsNullOrWhiteSpace(formula) || formula == "0") return "";
+
+            if (long.TryParse(formula, out long val))
+            {
+                return GetValueDescription(stat, val, prefix);
+            }
+            else
+            {
+                if (formula[0] == '-')
+                    return string.Format("{0}Decrease {1} by formula;", prefix, stat);
+                else
+                    return string.Format("{0}Increase {1} by formula;", prefix, stat);
+            }
+        }
+
+        private string GetBuffDescription(string prefix)
+        {
+            string desc = "";
+            if (this.BodyID != 0)
+                desc += string.Format("{0}Change Body ID to {1};", prefix, this.BodyID);
+            if (this.BodyA != 0)
+                desc += string.Format("{0}Change Body Color to {1},{2},{3},{4};", prefix, this.BodyR, this.BodyG, this.BodyB, this.BodyA);
+            if (this.HairID != 0)
+                desc += string.Format("{0}Change Hair ID to {1};", prefix, this.HairID);
+            if (this.HairA != 0)
+                desc += string.Format("{0}Change Hair Color to {1},{2},{3},{4};", prefix, this.HairR, this.HairG, this.HairB, this.HairA);
+            if (this.FaceID != 0)
+                desc += string.Format("{0}Change Face ID to {1};", prefix, this.FaceID);
+
+            if (this.Stats.HP != 0)
+                desc += GetValueDescription("Maximum HP", this.Stats.HP, prefix);
+            if (this.Stats.MP != 0)
+                desc += GetValueDescription("Maximum MP", this.Stats.MP, prefix);
+            if (this.Stats.SP != 0)
+                desc += GetValueDescription("Maximum SP", this.Stats.SP, prefix);
+
+            if (this.Stats.HPPercentRegen != 0)
+                desc += GetPercentageDescription("HP Regeneration", this.Stats.HPPercentRegen, prefix);
+            if (this.Stats.HPStaticRegen != 0)
+                desc += GetValueDescription("HP Regeneration", this.Stats.HPStaticRegen, prefix);
+            if (this.Stats.MPPercentRegen != 0)
+                desc += GetPercentageDescription("MP Regeneration", this.Stats.MPPercentRegen, prefix);
+            if (this.Stats.MPStaticRegen != 0)
+                desc += GetValueDescription("MP Regeneration", this.Stats.MPStaticRegen, prefix);
+
+            if (this.Stats.Strength != 0)
+                desc += GetValueDescription("Strength", this.Stats.Strength, prefix);
+            if (this.Stats.Stamina != 0)
+                desc += GetValueDescription("Stamina", this.Stats.Stamina, prefix);
+            if (this.Stats.Intelligence != 0)
+                desc += GetValueDescription("Intelligence", this.Stats.Intelligence, prefix);
+            if (this.Stats.Dexterity != 0)
+                desc += GetValueDescription("Dexterity", this.Stats.Dexterity, prefix);
+
+            if (this.Stats.FireResist != 0)
+                desc += GetValueDescription("Fire Resistance", this.Stats.FireResist, prefix);
+            if (this.Stats.SpiritResist != 0)
+                desc += GetValueDescription("Spirit Resistance", this.Stats.SpiritResist, prefix);
+            if (this.Stats.WaterResist != 0)
+                desc += GetValueDescription("Water Resistance", this.Stats.WaterResist, prefix);
+            if (this.Stats.AirResist != 0)
+                desc += GetValueDescription("Air Resistance", this.Stats.AirResist, prefix);
+            if (this.Stats.EarthResist != 0)
+                desc += GetValueDescription("Earth Resistance", this.Stats.EarthResist, prefix);
+
+            if (this.Stats.AC != 0)
+                desc += GetValueDescription("Armor", this.Stats.AC, prefix);
+
+            if (this.Stats.Haste != 0)
+                desc += GetPercentageDescription("Melee Attack Speed", this.Stats.Haste, prefix);
+            if (this.Stats.SpellDamage != 0)
+                desc += GetPercentageDescription("Spell Damage", this.Stats.SpellDamage, prefix);
+            if (this.Stats.SpellCrit != 0)
+                desc += GetPercentageDescription("Spell Critical Chance", this.Stats.SpellCrit, prefix);
+            if (this.Stats.MeleeDamage != 0)
+                desc += GetPercentageDescription("Melee Damage", this.Stats.MeleeDamage, prefix);
+            if (this.Stats.MeleeCrit != 0)
+                desc += GetPercentageDescription("Melee Critical Chance", this.Stats.MeleeCrit, prefix);
+            if (this.Stats.DamageReduction != 0)
+                desc += GetPercentageDescription("Damage Reduction", this.Stats.DamageReduction, prefix);
+
+            if (this.Stats.MoveSpeedIncrease != 0)
+                desc += GetPercentageDescription("Move Speed", this.Stats.MoveSpeedIncrease, prefix);
+            if (this.Stats.MoveSpeed != 0)
+                desc += GetValueDescription("Move Speed", this.Stats.MoveSpeed, prefix);
+
+            if (this.SnarePercent != 0)
+                desc += string.Format("{0}Decrease Move Speed by {1:F0}%;", prefix, this.SnarePercent);
+
+            return desc;
+        }
+
+        public string GetItemDescription(GameWorld world)
+        {
+            string desc = "";
+
+            switch (this.EffectType)
+            {
+                case EffectTypes.Bind:
+                    desc += "Set respawn point;";
+                    break;
+                case EffectTypes.Stun:
+                    desc += "Stun;";
+                    break;
+                case EffectTypes.Root:
+                    desc += "Root;";
+                    break;
+                case EffectTypes.PetTame:
+                    desc += "Attempt to tame a pet;";
+                    break;
+                case EffectTypes.PetDefend:
+                    desc += "Set pet to defend mode;";
+                    break;
+                case EffectTypes.PetDestroy:
+                    desc += "Recall pet;";
+                    break;
+                case EffectTypes.PetFollow:
+                    desc += "Set pet to follow mode;";
+                    break;
+                case EffectTypes.PetNeutral:
+                    desc += "Set pet to neutral mode;";
+                    break;
+                case EffectTypes.PetAttack:
+                    desc += "Tell pet to attack;";
+                    break;
+                case EffectTypes.Formula:
+                    desc += GetFormulaDescription(this.HPFormula, "HP", "");
+                    desc += GetFormulaDescription(this.MPFormula, "MP", "");
+                    //desc += GetFormulaDescription(this.SPFormula, "SP");
+                    if (this.TauntAggro > 0)
+                        desc += string.Format("Taunt for {0:N0};", this.TauntAggro);
+                    break;
+                case EffectTypes.Tick:
+                case EffectTypes.Viral:
+                    desc += GetFormulaDescription(this.HPFormula, "HP", "Tick> ");
+                    desc += GetFormulaDescription(this.MPFormula, "MP", "Tick> ");
+                    //desc += GetFormulaDescription(this.SPFormula, "SP", "Tick> ");
+                    if (this.TauntAggro > 0)
+                        desc += string.Format("Tick> Taunt for {0:N0};", this.TauntAggro);
+                    break;
+                case EffectTypes.Teleport:
+                    var map = world.MapHandler.GetMap(this.TeleportMapID);
+                    if (map != null)
+                        desc += "Teleport to " + map.Name + "(" + this.TeleportMapX + ", " + this.TeleportMapY + ");";
+                    break;
+                case EffectTypes.Permanent:
+                    desc += GetBuffDescription("Permanently ");
+                    break;
+                case EffectTypes.OnMeleeHit:
+                    if (this.OnMeleeHitSpell != null)
+                        desc += "When hit by melee, cast " + this.OnMeleeHitSpell.Name + ";" + this.OnMeleeHitSpell.GetItemDescription(world);
+                    break;
+                case EffectTypes.OnAttack:
+                    if (this.OnMeleeAttackSpell != null)
+                        desc += "When attacking with melee, cast " + this.OnMeleeAttackSpell.Name + ";" + this.OnMeleeAttackSpell.GetItemDescription(world);
+                    break;
+                default:
+                    desc += GetBuffDescription("");
+                    break;
+            }
+
+            return desc.TrimEnd(';');
+        }
+
         /**
          * CastFormulaSpell
          * 
