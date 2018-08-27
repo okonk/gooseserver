@@ -32,15 +32,15 @@ namespace Goose.Events
             {
                 this.Player.UpdateIdleStatus(world);
 
-                string message = (string)this.Data;
-                if (message.Length == 1) return; // log bad chat event
-                message = message.Substring(1, message.Length - 1);
-
                 if (!this.Player.Map.CanChat && this.Player.Access != Player.AccessStatus.GameMaster)
                 {
                     world.Send(this.Player, "#Chat is disabled in this map.");
                     return;
                 }
+
+                string message = (string)this.Data;
+                if (message.Length == 1) return; // log bad chat event
+                message = message.Substring(1, message.Length - 1);
 
                 string packet = "^" + this.Player.LoginID + "," + this.Player.Name + ": " + message;
                 string filteredpacket = "^" + this.Player.LoginID + "," + this.Player.Name + ": ";

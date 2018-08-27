@@ -40,10 +40,13 @@ namespace Goose
 
         public static void Open(GameWorld world, Player player, NPC npc)
         {
-            if (!player.Windows.Any(w => w.Type == WindowTypes.Bank && w.NPC == npc))
+            var bank = player.Windows.FirstOrDefault(w => w.Type == WindowTypes.Bank && w.NPC == npc);
+            if (bank != null)
             {
-                player.Windows.Add(new BankWindow(world, player, npc));
+                player.Windows.Remove(bank);
             }
+
+            player.Windows.Add(new BankWindow(world, player, npc));
         }
 
         public override void Populate(Player player, GameWorld world)
