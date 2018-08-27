@@ -165,7 +165,7 @@ namespace Goose
         {
             get
             {
-                return (0 | (IsLore ? 8 : 0) | (IsBindOnPickup ? 2 : 0) | (IsBindOnEquip ? 0x80 : 0) | (IsEvent ? 0x10 : 0));
+                return (0 | (IsLore ? 1 : 0) | (IsBindOnPickup ? 2 : 0) | (IsBindOnEquip ? 0x80 : 0) | (IsEvent ? 0x10 : 0));
             }
         }
 
