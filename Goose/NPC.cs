@@ -977,7 +977,6 @@ namespace Goose
 
                     if (highest is Group)
                     {
-                        ((Group)highest).Killed(this, world);
                         ((Group)highest).GainExperience(this, world);
                     }
                     else

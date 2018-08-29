@@ -193,20 +193,14 @@ namespace Goose
                 }
                 else if (npc.Level + 9 < player.Level)
                 {
+                    player.Killed(npc, world);
                     player.AddExperience((long)groupexp / 10, world, Player.ExperienceMessage.TooHigh);
                 }
                 else
                 {
+                    player.Killed(npc, world);
                     player.AddExperience((long)groupexp, world, Player.ExperienceMessage.Normal);
                 }
-            }
-        }
-
-        internal void Killed(NPC npc, GameWorld world)
-        {
-            foreach (Player player in this.Players)
-            {
-                player.Killed(npc, world);
             }
         }
     }
