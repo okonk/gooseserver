@@ -412,7 +412,7 @@ namespace Goose
                 case EffectTypes.Teleport:
                     var map = world.MapHandler.GetMap(this.TeleportMapID);
                     if (map != null)
-                        desc += "Teleport to " + map.Name + "(" + this.TeleportMapX + ", " + this.TeleportMapY + ");";
+                        desc += "Teleport to " + map.Name + " (" + this.TeleportMapX + ", " + this.TeleportMapY + ");";
                     break;
                 case EffectTypes.Permanent:
                     desc += GetBuffDescription("Permanently ");
