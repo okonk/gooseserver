@@ -267,6 +267,57 @@ namespace Goose
                 return string.Format("{0}Increase {1} by {2:N0};", prefix, label, value);
         }
 
+        private string ConvertFormulaVariable(string variable)
+        {
+            switch (variable)
+            {
+                case "%cchp":
+                    return "Current HP";
+                case "%ccmp":
+                    return "Current MP";
+                case "%tchp":
+                    return "Target's Current HP";
+                case "%tcmp":
+                    return "Target's Current MP";
+                case "%chp":
+                    return "Max HP";
+                case "%cmp":
+                    return "Max MP";
+                case "%thp":
+                    return "Target's Max HP";
+                case "%tmp":
+                    return "Target's Max MP";
+                default:
+                    return null;
+            }
+        }
+
+        private string ParseFormula(string formula)
+        {
+            var tokens = formula.Split('*');
+            if (tokens.Length != 2) return "formula";
+
+            tokens[0] = tokens[0].Trim();
+            tokens[1] = tokens[1].Trim();
+
+            string stat = "";
+            double mult = 0;
+            if (tokens[1][0] == '%')
+            {
+                stat = ConvertFormulaVariable(tokens[1]);
+                double.TryParse(tokens[0], out mult);
+            }
+            else
+            {
+                stat = ConvertFormulaVariable(tokens[0]);
+                double.TryParse(tokens[1], out mult);
+            }
+
+            if (stat == null || mult == 0) return "formula";
+
+            return string.Format("{0:F0}% of {1}", mult * 100, stat);
+        }
+
         private string GetFormulaDescription(string formula, string stat, string prefix)
         {
             if (string.IsNullOrWhiteSpace(formula) || formula == "0") return "";
@@ -278,9 +329,9 @@ namespace Goose
             else
             {
                 if (formula[0] == '-')
-                    return string.Format("{0}Decrease {1} by formula;", prefix, stat);
+                    return string.Format("{0}Decrease {1} by {2};", prefix, stat, ParseFormula(formula.Substring(1)));
                 else
-                    return string.Format("{0}Increase {1} by formula;", prefix, stat);
+                    return string.Format("{0}Increase {1} by {2};", prefix, stat, ParseFormula(formula));
             }
         }
 
