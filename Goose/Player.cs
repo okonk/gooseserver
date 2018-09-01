@@ -1198,9 +1198,9 @@ namespace Goose
                     this.Map.PlaceCharacter(this);
                     // move onto this square so this
                     this.Map.SetCharacter(this, this.MapX, this.MapY);
-
-                    world.Send(this, "SUP" + this.MapX + "," + this.MapY);
                 }
+
+                world.Send(this, "SUP" + this.MapX + "," + this.MapY);
 
                 string gmstring = "AMA" + this.LoginID + ",1";
 
