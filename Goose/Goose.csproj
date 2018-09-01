@@ -71,6 +71,8 @@
     <Compile Include="ClassLevel.cs" />
     <Compile Include="Combination.cs" />
     <Compile Include="CombinationHandler.cs" />
+    <Compile Include="Events\SpellInfoEvent.cs" />
+    <Compile Include="SpellInfoWindow.cs" />
     <Compile Include="CombineBagWindow.cs" />
     <Compile Include="Event.cs" />
     <Compile Include="EventHandler.cs" />

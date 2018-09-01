@@ -137,6 +137,7 @@ namespace Goose
             this.stringToEvent.Add("/search ", GMSearchCommandEvent.Create);
             this.stringToEvent.Add("WTW", WindowToWindowEvent.Create);
             this.stringToEvent.Add("/custom", CustomCommandEvent.Create);
+            this.stringToEvent.Add("SID", SpellInfoEvent.Create);
         }
 
         /**

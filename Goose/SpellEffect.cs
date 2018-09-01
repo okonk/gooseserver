@@ -254,17 +254,17 @@ namespace Goose
         private string GetPercentageDescription(string label, decimal value, string prefix)
         {
             if (value < 0)
-                return string.Format("{0}Decrease {1} by {2:F0}%;", prefix, label, Math.Abs(value) * 100);
+                return string.Format("{0}Decrease {1} by {2:F0}%", prefix, label, Math.Abs(value) * 100);
             else
-                return string.Format("{0}Increase {1} by {2:F0}%;", prefix, label, value * 100);
+                return string.Format("{0}Increase {1} by {2:F0}%", prefix, label, value * 100);
         }
 
         private string GetValueDescription(string label, long value, string prefix)
         {
             if (value < 0)
-                return string.Format("{0}Decrease {1} by {2:N0};", prefix, label, Math.Abs(value));
+                return string.Format("{0}Decrease {1} by {2:N0}", prefix, label, Math.Abs(value));
             else
-                return string.Format("{0}Increase {1} by {2:N0};", prefix, label, value);
+                return string.Format("{0}Increase {1} by {2:N0}", prefix, label, value);
         }
 
         private string ConvertFormulaVariable(string variable)
@@ -320,8 +320,6 @@ namespace Goose
 
         private string GetFormulaDescription(string formula, string stat, string prefix)
         {
-            if (string.IsNullOrWhiteSpace(formula) || formula == "0") return "";
-
             if (long.TryParse(formula, out long val))
             {
                 return GetValueDescription(stat, val, prefix);
@@ -329,159 +327,160 @@ namespace Goose
             else
             {
                 if (formula[0] == '-')
-                    return string.Format("{0}Decrease {1} by {2};", prefix, stat, ParseFormula(formula.Substring(1)));
+                    return string.Format("{0}Decrease {1} by {2:N0}", prefix, stat, ParseFormula(formula.Substring(1)));
                 else
-                    return string.Format("{0}Increase {1} by {2};", prefix, stat, ParseFormula(formula));
+                    return string.Format("{0}Increase {1} by {2:N0}", prefix, stat, ParseFormula(formula));
             }
         }
 
-        private string GetBuffDescription(string prefix)
+        private IEnumerable<string> GetBuffDescription(string prefix)
         {
-            string desc = "";
             if (this.BodyID != 0)
-                desc += string.Format("{0}Change Body ID to {1};", prefix, this.BodyID);
+                yield return string.Format("{0}Change Body ID to {1}", prefix, this.BodyID);
             if (this.BodyA != 0)
-                desc += string.Format("{0}Change Body Color to {1},{2},{3},{4};", prefix, this.BodyR, this.BodyG, this.BodyB, this.BodyA);
+                yield return string.Format("{0}Change Body Color to {1},{2},{3},{4}", prefix, this.BodyR, this.BodyG, this.BodyB, this.BodyA);
             if (this.HairID != 0)
-                desc += string.Format("{0}Change Hair ID to {1};", prefix, this.HairID);
+                yield return string.Format("{0}Change Hair ID to {1}", prefix, this.HairID);
             if (this.HairA != 0)
-                desc += string.Format("{0}Change Hair Color to {1},{2},{3},{4};", prefix, this.HairR, this.HairG, this.HairB, this.HairA);
+                yield return string.Format("{0}Change Hair Color to {1},{2},{3},{4}", prefix, this.HairR, this.HairG, this.HairB, this.HairA);
             if (this.FaceID != 0)
-                desc += string.Format("{0}Change Face ID to {1};", prefix, this.FaceID);
+                yield return string.Format("{0}Change Face ID to {1}", prefix, this.FaceID);
 
             if (this.Stats.HP != 0)
-                desc += GetValueDescription("Maximum HP", this.Stats.HP, prefix);
+                yield return GetValueDescription("Maximum HP", this.Stats.HP, prefix);
             if (this.Stats.MP != 0)
-                desc += GetValueDescription("Maximum MP", this.Stats.MP, prefix);
+                yield return GetValueDescription("Maximum MP", this.Stats.MP, prefix);
             if (this.Stats.SP != 0)
-                desc += GetValueDescription("Maximum SP", this.Stats.SP, prefix);
+                yield return GetValueDescription("Maximum SP", this.Stats.SP, prefix);
 
             if (this.Stats.HPPercentRegen != 0)
-                desc += GetPercentageDescription("HP Regeneration", this.Stats.HPPercentRegen, prefix);
+                yield return GetPercentageDescription("HP Regeneration", this.Stats.HPPercentRegen, prefix);
             if (this.Stats.HPStaticRegen != 0)
-                desc += GetValueDescription("HP Regeneration", this.Stats.HPStaticRegen, prefix);
+                yield return GetValueDescription("HP Regeneration", this.Stats.HPStaticRegen, prefix);
             if (this.Stats.MPPercentRegen != 0)
-                desc += GetPercentageDescription("MP Regeneration", this.Stats.MPPercentRegen, prefix);
+                yield return GetPercentageDescription("MP Regeneration", this.Stats.MPPercentRegen, prefix);
             if (this.Stats.MPStaticRegen != 0)
-                desc += GetValueDescription("MP Regeneration", this.Stats.MPStaticRegen, prefix);
+                yield return GetValueDescription("MP Regeneration", this.Stats.MPStaticRegen, prefix);
 
             if (this.Stats.Strength != 0)
-                desc += GetValueDescription("Strength", this.Stats.Strength, prefix);
+                yield return GetValueDescription("Strength", this.Stats.Strength, prefix);
             if (this.Stats.Stamina != 0)
-                desc += GetValueDescription("Stamina", this.Stats.Stamina, prefix);
+                yield return GetValueDescription("Stamina", this.Stats.Stamina, prefix);
             if (this.Stats.Intelligence != 0)
-                desc += GetValueDescription("Intelligence", this.Stats.Intelligence, prefix);
+                yield return GetValueDescription("Intelligence", this.Stats.Intelligence, prefix);
             if (this.Stats.Dexterity != 0)
-                desc += GetValueDescription("Dexterity", this.Stats.Dexterity, prefix);
+                yield return GetValueDescription("Dexterity", this.Stats.Dexterity, prefix);
 
             if (this.Stats.FireResist != 0)
-                desc += GetValueDescription("Fire Resistance", this.Stats.FireResist, prefix);
+                yield return GetValueDescription("Fire Resistance", this.Stats.FireResist, prefix);
             if (this.Stats.SpiritResist != 0)
-                desc += GetValueDescription("Spirit Resistance", this.Stats.SpiritResist, prefix);
+                yield return GetValueDescription("Spirit Resistance", this.Stats.SpiritResist, prefix);
             if (this.Stats.WaterResist != 0)
-                desc += GetValueDescription("Water Resistance", this.Stats.WaterResist, prefix);
+                yield return GetValueDescription("Water Resistance", this.Stats.WaterResist, prefix);
             if (this.Stats.AirResist != 0)
-                desc += GetValueDescription("Air Resistance", this.Stats.AirResist, prefix);
+                yield return GetValueDescription("Air Resistance", this.Stats.AirResist, prefix);
             if (this.Stats.EarthResist != 0)
-                desc += GetValueDescription("Earth Resistance", this.Stats.EarthResist, prefix);
+                yield return GetValueDescription("Earth Resistance", this.Stats.EarthResist, prefix);
 
             if (this.Stats.AC != 0)
-                desc += GetValueDescription("Armor", this.Stats.AC, prefix);
+                yield return GetValueDescription("Armor", this.Stats.AC, prefix);
 
             if (this.Stats.Haste != 0)
-                desc += GetPercentageDescription("Melee Attack Speed", this.Stats.Haste, prefix);
+                yield return GetPercentageDescription("Melee Attack Speed", this.Stats.Haste, prefix);
             if (this.Stats.SpellDamage != 0)
-                desc += GetPercentageDescription("Spell Damage", this.Stats.SpellDamage, prefix);
+                yield return GetPercentageDescription("Spell Damage", this.Stats.SpellDamage, prefix);
             if (this.Stats.SpellCrit != 0)
-                desc += GetPercentageDescription("Spell Critical Chance", this.Stats.SpellCrit, prefix);
+                yield return GetPercentageDescription("Spell Critical Chance", this.Stats.SpellCrit, prefix);
             if (this.Stats.MeleeDamage != 0)
-                desc += GetPercentageDescription("Melee Damage", this.Stats.MeleeDamage, prefix);
+                yield return GetPercentageDescription("Melee Damage", this.Stats.MeleeDamage, prefix);
             if (this.Stats.MeleeCrit != 0)
-                desc += GetPercentageDescription("Melee Critical Chance", this.Stats.MeleeCrit, prefix);
+                yield return GetPercentageDescription("Melee Critical Chance", this.Stats.MeleeCrit, prefix);
             if (this.Stats.DamageReduction != 0)
-                desc += GetPercentageDescription("Damage Reduction", this.Stats.DamageReduction, prefix);
+                yield return GetPercentageDescription("Damage Reduction", this.Stats.DamageReduction, prefix);
 
             if (this.Stats.MoveSpeedIncrease != 0)
-                desc += GetPercentageDescription("Move Speed", this.Stats.MoveSpeedIncrease, prefix);
+                yield return GetPercentageDescription("Move Speed", this.Stats.MoveSpeedIncrease, prefix);
             if (this.Stats.MoveSpeed != 0)
-                desc += GetValueDescription("Move Speed", this.Stats.MoveSpeed, prefix);
+                yield return GetValueDescription("Move Speed", this.Stats.MoveSpeed, prefix);
 
             if (this.SnarePercent != 0)
-                desc += string.Format("{0}Decrease Move Speed by {1:F0}%;", prefix, this.SnarePercent);
-
-            return desc;
+                yield return string.Format("{0}Decrease Move Speed by {1:F0}%", prefix, this.SnarePercent);
         }
 
-        public string GetItemDescription(GameWorld world)
+        public IEnumerable<string> GetItemDescription(GameWorld world)
         {
-            string desc = "";
-
             switch (this.EffectType)
             {
                 case EffectTypes.Bind:
-                    desc += "Set respawn point;";
+                    yield return "Set respawn point to this location";
                     break;
                 case EffectTypes.Stun:
-                    desc += "Stun;";
+                    yield return "Stun";
                     break;
                 case EffectTypes.Root:
-                    desc += "Root;";
+                    yield return "Root";
                     break;
                 case EffectTypes.PetTame:
-                    desc += "Attempt to tame a pet;";
+                    yield return "Attempt to tame a pet";
                     break;
                 case EffectTypes.PetDefend:
-                    desc += "Set pet to defend mode;";
+                    yield return "Set pet to defend mode";
                     break;
                 case EffectTypes.PetDestroy:
-                    desc += "Recall pet;";
+                    yield return "Recall pet";
                     break;
                 case EffectTypes.PetFollow:
-                    desc += "Set pet to follow mode;";
+                    yield return "Set pet to follow mode";
                     break;
                 case EffectTypes.PetNeutral:
-                    desc += "Set pet to neutral mode;";
+                    yield return "Set pet to neutral mode";
                     break;
                 case EffectTypes.PetAttack:
-                    desc += "Tell pet to attack;";
+                    yield return "Tell pet to attack";
                     break;
                 case EffectTypes.Formula:
-                    desc += GetFormulaDescription(this.HPFormula, "HP", "");
-                    desc += GetFormulaDescription(this.MPFormula, "MP", "");
-                    //desc += GetFormulaDescription(this.SPFormula, "SP");
+                    if (!string.IsNullOrWhiteSpace(this.HPFormula) && this.HPFormula != "0")
+                        yield return GetFormulaDescription(this.HPFormula, "HP", "");
+                    if (!string.IsNullOrWhiteSpace(this.MPFormula) && this.MPFormula != "0")
+                        yield return GetFormulaDescription(this.MPFormula, "MP", "");
                     if (this.TauntAggro > 0)
-                        desc += string.Format("Taunt for {0:N0};", this.TauntAggro);
+                        yield return string.Format("Taunt for {0:N0}", this.TauntAggro);
                     break;
                 case EffectTypes.Tick:
                 case EffectTypes.Viral:
-                    desc += GetFormulaDescription(this.HPFormula, "HP", "Tick> ");
-                    desc += GetFormulaDescription(this.MPFormula, "MP", "Tick> ");
-                    //desc += GetFormulaDescription(this.SPFormula, "SP", "Tick> ");
+                    if (!string.IsNullOrWhiteSpace(this.HPFormula) && this.HPFormula != "0")
+                        yield return GetFormulaDescription(this.HPFormula, "HP", "Tick> ");
+                    if (!string.IsNullOrWhiteSpace(this.MPFormula) && this.MPFormula != "0")
+                        yield return GetFormulaDescription(this.MPFormula, "MP", "Tick> ");
                     if (this.TauntAggro > 0)
-                        desc += string.Format("Tick> Taunt for {0:N0};", this.TauntAggro);
+                        yield return string.Format("Tick> Taunt for {0:N0}", this.TauntAggro);
                     break;
                 case EffectTypes.Teleport:
                     var map = world.MapHandler.GetMap(this.TeleportMapID);
                     if (map != null)
-                        desc += "Teleport to " + map.Name + " (" + this.TeleportMapX + ", " + this.TeleportMapY + ");";
+                        yield return "Teleport to " + map.Name + " (" + this.TeleportMapX + ", " + this.TeleportMapY + ")";
                     break;
                 case EffectTypes.Permanent:
-                    desc += GetBuffDescription("Permanently ");
+                    foreach (var line in GetBuffDescription("Permanently ")) yield return line;
                     break;
                 case EffectTypes.OnMeleeHit:
                     if (this.OnMeleeHitSpell != null)
-                        desc += "When hit by melee, cast " + this.OnMeleeHitSpell.Name + ";" + this.OnMeleeHitSpell.GetItemDescription(world);
+                    {
+                        yield return "When hit by melee, cast " + this.OnMeleeHitSpell.Name;
+                        foreach (var line in this.OnMeleeHitSpell.GetItemDescription(world)) yield return line;
+                    }
                     break;
                 case EffectTypes.OnAttack:
                     if (this.OnMeleeAttackSpell != null)
-                        desc += "When attacking with melee, cast " + this.OnMeleeAttackSpell.Name + ";" + this.OnMeleeAttackSpell.GetItemDescription(world);
+                    {
+                        yield return "When attacking with melee, cast " + this.OnMeleeAttackSpell.Name;
+                        foreach (var line in this.OnMeleeAttackSpell.GetItemDescription(world)) yield return line;
+                    }
                     break;
                 default:
-                    desc += GetBuffDescription("");
+                    foreach (var line in GetBuffDescription("")) yield return line;
                     break;
             }
-
-            return desc.TrimEnd(';');
         }
 
         /**

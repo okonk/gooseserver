@@ -27,7 +27,7 @@ namespace Goose
         public enum WindowFrames
         {
             Vendor = 13,
-            ItemInfo = 22,
+            GenericInfo = 22,
             EightSlot = 18,
             TenSlot = 19, // used for combine
             Quest = 20,// quest window can show 20 lines, of 50 characters each
@@ -42,7 +42,8 @@ namespace Goose
             CombineBag,
             PetInfo,
             Bank,
-            Quest
+            Quest,
+            SpellInfo,
         }
         public WindowTypes Type { get; set; }
 
@@ -81,7 +82,7 @@ namespace Goose
                 case WindowTypes.Rank:
                 case WindowTypes.CharInfo:
                 case WindowTypes.PetInfo:
-                    this.Frame = WindowFrames.ItemInfo;
+                    this.Frame = WindowFrames.GenericInfo;
                     break;
             }
 

@@ -322,7 +322,7 @@ namespace Goose
                     ItemTemplate.FigureClassRestrictions(world, this.ClassRestrictions) +
                     "0" + "|" + // gm access
                     "0" + "|" + // gender, always 0 since we don't care about gender
-                    (spellEffect == null ? "" : spellEffect.Name + ';' + spellEffect.GetItemDescription(world)) + "|" +
+                    (spellEffect == null ? "" : spellEffect.Name + ';' + string.Join(";", spellEffect.GetItemDescription(world))) + "|" +
                     spellEffectChance + "|" +
                     this.BodyType + "|" +
                     (int)this.UseType + "|" +
