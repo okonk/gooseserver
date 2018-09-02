@@ -11,6 +11,7 @@ using Goose.Quests;
 using System.Threading.Tasks;
 using GooseServerBrowserService.Client;
 using System.Threading;
+using Goose.Scripting;
 
 namespace Goose
 {
@@ -49,6 +50,7 @@ namespace Goose
         public ChatFilter ChatFilter { get; set; }
         public LogHandler LogHandler { get; set; }
         internal QuestHandler QuestHandler { get; set; }
+        public ScriptHandler ScriptHandler { get; set; }
 
         public Dictionary<string, int> CharactersCreatedPerIP { get; set; }
 
@@ -99,6 +101,7 @@ namespace Goose
             this.ChatFilter = new ChatFilter();
             this.LogHandler = new LogHandler();
             this.QuestHandler = new QuestHandler();
+            this.ScriptHandler = new ScriptHandler();
 
             this.SqlConnection = new SqlConnection("user id=" + GameSettings.Default.DatabaseUsername +
                                        ";password=" + GameSettings.Default.DatabasePassword +

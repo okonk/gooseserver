@@ -209,7 +209,9 @@
     <Compile Include="Events\SpellInfoEvent.cs" />
     <Compile Include="Scripting\BaseNPCScript.cs" />
     <Compile Include="Scripting\INPCScript.cs" />
+    <Compile Include="Scripting\IScript.cs" />
     <Compile Include="Scripting\Script.cs" />
+    <Compile Include="Scripting\ScriptHandler.cs" />
     <Compile Include="SpellInfoWindow.cs" />
     <Compile Include="CombineBagWindow.cs" />
     <Compile Include="Event.cs" />
@@ -388,7 +390,12 @@
       <LastGenOutput>GameSettings.Designer.cs</LastGenOutput>
     </None>
     <None Include="packages.config" />
-    <None Include="Scripts\SpellNPC.csx" />
+    <None Include="Scripts\BaseNPC.csx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Scripts\SpellNPC.csx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\GooseServerBrowserService\GooseServerBrowserService.Client\GooseServerBrowserService.Client.csproj">

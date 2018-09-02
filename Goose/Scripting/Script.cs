@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace Goose.Scripting
 {
-    public class Script<T>
+    public class Script<T> : IScript
     {
         public string FilePath { get; set; }
 

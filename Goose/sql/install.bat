@@ -18,3 +18,4 @@ osql -S %server% -U GooseServer -P password1 -i pets.sql
 osql -S %server% -U GooseServer -P password1 -i paypal.sql
 osql -S %server% -U GooseServer -P password1 -i logs.sql
 osql -S %server% -U GooseServer -P password1 -i quests.sql
+osql -S %server% -U GooseServer -P password1 -i banks.sql

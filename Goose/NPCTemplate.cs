@@ -1,4 +1,5 @@
 ﻿using Goose.Quests;
+using Goose.Scripting;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -192,6 +193,8 @@ namespace Goose
         public bool CreditDealer { get; set; }
 
         internal List<Quest> Quests { get; set; }
+
+        public Script<INPCScript> Script { get; set; }
 
         public NPCTemplate()
         {

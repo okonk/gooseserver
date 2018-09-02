@@ -312,7 +312,7 @@ namespace Goose
 
         internal List<Quest> Quests { get; set; }
 
-        public Script<INPCScript> Script { get; set; }
+        public Script<INPCScript> Script { get { return this.NPCTemplate.Script; } }
 
         /**
          * MKCString, see Player.MKCString for details

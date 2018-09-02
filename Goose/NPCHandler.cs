@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Data.SqlClient;
+using Goose.Scripting;
 
 namespace Goose
 {
@@ -110,6 +111,8 @@ namespace Goose
 
                 var questIds = Convert.ToString(reader["quest_ids"]).Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Select(id => Convert.ToInt32(id));
                 npc.Quests.AddRange(questIds.Select(id => world.QuestHandler.Get(id)));
+
+                npc.Script = world.ScriptHandler.GetScript<INPCScript>(Convert.ToString(reader["script_path"]));
 
                 this.templates.Add(npc);
             }
@@ -247,8 +250,6 @@ namespace Goose
          */
         public void LoadNPCs(GameWorld world)
         {
-            var script = new Scripting.Script<Scripting.INPCScript>(@"C:\code\illutiagooseserver\Goose\Scripts\SpellNPC.csx");
-
             SqlCommand command = new SqlCommand("SELECT * FROM npc_spawns", world.SqlConnection);
             SqlDataReader reader = command.ExecuteReader();
 
@@ -266,7 +267,6 @@ namespace Goose
                 {
                     if (npc.LoadFromTemplate(world, map_id, map_x, map_y, template, shouldRespawn: true))
                     {
-                        npc.Script = script;
                         this.npcs.Add(npc);
                     }
                     else

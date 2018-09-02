@@ -1,16 +1,9 @@
 ﻿using Goose;
 using Goose.Scripting;
 
-public class SpellNPC : INPCScript
+public class SpellNPC : BaseNPCScript
 {
-	public SpellNPC() { }
-
-	public void OnMoveEvent(NPC npc, GameWorld world)
-	{
-		npc.HandleMoveEvent(world);
-	}
-
-	public void OnAttackEvent(NPC npc, GameWorld world)
+	public override void OnAttackEvent(NPC npc, GameWorld world)
 	{
 		if (npc.AggroTarget != null)
 		{
