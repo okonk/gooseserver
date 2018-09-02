@@ -97,7 +97,7 @@ namespace Goose {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("localhost")]
+        [global::System.Configuration.DefaultSettingValueAttribute("localhost\\sqlexpress")]
         public string DatabaseAddress {
             get {
                 return ((string)(this["DatabaseAddress"]));

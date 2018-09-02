@@ -21,7 +21,7 @@
       <Value Profile="(Default)">password1</Value>
     </Setting>
     <Setting Name="DatabaseAddress" Type="System.String" Scope="User">
-      <Value Profile="(Default)">localhost</Value>
+      <Value Profile="(Default)">localhost\sqlexpress</Value>
     </Setting>
     <Setting Name="DatabaseName" Type="System.String" Scope="User">
       <Value Profile="(Default)">IllutiaGoose</Value>

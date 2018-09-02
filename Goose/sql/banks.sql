@@ -1,4 +1,4 @@
-USE Goose;
+USE IllutiaGoose;
 
 --DROP TABLE bank_items;
 CREATE TABLE bank_items (
