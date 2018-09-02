@@ -750,7 +750,7 @@ namespace Goose
                 if (((int)this.Effected & (int)SpellEffected.Self) == 0) return false;
                 else return true;
             }
-            if (target is Player && !this.WorksNotInPVP && !target.Map.CanPVP) return false;
+            if (caster is Player && target is Player && !this.WorksNotInPVP && !target.Map.CanPVP) return false;
             if (target.Level >= this.MinimumLevelEffected && target.Level <= this.MaximumLevelEffected)
             {
                 if (target is Player)

@@ -247,6 +247,8 @@ namespace Goose
          */
         public void LoadNPCs(GameWorld world)
         {
+            var script = new Scripting.Script<Scripting.INPCScript>(@"C:\code\illutiagooseserver\Goose\Scripts\SpellNPC.csx");
+
             SqlCommand command = new SqlCommand("SELECT * FROM npc_spawns", world.SqlConnection);
             SqlDataReader reader = command.ExecuteReader();
 
@@ -264,6 +266,7 @@ namespace Goose
                 {
                     if (npc.LoadFromTemplate(world, map_id, map_x, map_y, template, shouldRespawn: true))
                     {
+                        npc.Script = script;
                         this.npcs.Add(npc);
                     }
                     else

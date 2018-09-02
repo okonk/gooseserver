@@ -13,13 +13,13 @@ namespace Goose
      */
     public class SpellHandler
     {
-        Hashtable effects;
-        Hashtable spells;
+        private Dictionary<int, SpellEffect> effects;
+        private Dictionary<int, Spell> spells;
 
         public SpellHandler()
         {
-            this.effects = new Hashtable();
-            this.spells = new Hashtable();
+            this.effects = new Dictionary<int, SpellEffect>();
+            this.spells = new Dictionary<int, Spell>();
         }
 
         /**
@@ -190,7 +190,9 @@ namespace Goose
          */
         public SpellEffect GetSpellEffect(int id)
         {
-            return (SpellEffect)this.effects[id];
+            SpellEffect effect = null;
+            this.effects.TryGetValue(id, out effect);
+            return effect;
         }
 
         /**
@@ -246,7 +248,14 @@ namespace Goose
          */
         public Spell GetSpell(int id)
         {
-            return (Spell)this.spells[id];
+            Spell spell = null;
+            this.spells.TryGetValue(id, out spell);
+            return spell;
+        }
+
+        public Spell GetSpellByName(string name)
+        {
+            return this.spells.Values.Where(s => s.Name == name).FirstOrDefault();
         }
     }
 }

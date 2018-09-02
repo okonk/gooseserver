@@ -6,6 +6,7 @@ using System.Collections;
 
 using Goose.Events;
 using Goose.Quests;
+using Goose.Scripting;
 
 namespace Goose
 {
@@ -311,6 +312,8 @@ namespace Goose
 
         internal List<Quest> Quests { get; set; }
 
+        public Script<INPCScript> Script { get; set; }
+
         /**
          * MKCString, see Player.MKCString for details
          * 
@@ -360,7 +363,7 @@ namespace Goose
 
         public void OnMoveEvent(GameWorld world)
         {
-            this.HandleMoveEvent(world);
+            this.Script.Object.OnMoveEvent(this, world);
         }
 
         public void HandleMoveEvent(GameWorld world)
@@ -1203,7 +1206,7 @@ namespace Goose
 
         public void OnAttackEvent(GameWorld world)
         {
-            this.HandleAttackEvent(world);
+            this.Script.Object.OnAttackEvent(this, world);
         }
 
         public void HandleAttackEvent(GameWorld world)
