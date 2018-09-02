@@ -318,7 +318,7 @@ namespace Goose
          */
         public string MKCString()
         {
-            return "MKC" + this.LoginID + "," + 
+            return "MKC" + this.LoginID + "," +
                         (int)this.NPCType + "," +
                         this.Name + "," +
                         this.Title + "," +
@@ -335,7 +335,7 @@ namespace Goose
                         this.BodyA + "," + // Body Color A
                         (this.CurrentBodyID >= 100 ? 3 : this.BodyState) + "," +
                         (this.CurrentBodyID >= 100 ? "" : this.HairID + ",") +
-                        (this.CurrentBodyID >= 100 ? "" : this.EquippedItems + ",") + 
+                        (this.CurrentBodyID >= 100 ? "" : this.EquippedItems + ",") +
                         (this.CurrentBodyID >= 100 ? "" : this.HairR + "," + HairG + "," + HairB + "," + HairA + ",") +
                         "0" + "," + // Invis thing
                         (this.CurrentBodyID >= 100 ? "" : this.FaceID + ",") +
@@ -356,6 +356,147 @@ namespace Goose
             }
 
             return false;
+        }
+
+        public void OnMoveEvent(GameWorld world)
+        {
+            this.HandleMoveEvent(world);
+        }
+
+        public void HandleMoveEvent(GameWorld world)
+        {
+            foreach (Buff b in this.Buffs)
+            {
+                // can't move when stunned or rooted
+                if (b.SpellEffect.EffectType == SpellEffect.EffectTypes.Stun ||
+                    b.SpellEffect.EffectType == SpellEffect.EffectTypes.Root)
+                {
+                    this.AddMoveEvent(world);
+                    return;
+                }
+            }
+
+            int direction;
+            if (this.AggroTarget == null)
+            {
+                if (this.MoveSpeed <= Decimal.Zero) return;
+                if (!this.CanMove)
+                {
+                    // Return to spawn point if stationary npc
+                    if (this.MapX != this.SpawnX || this.MapY != this.SpawnY)
+                    {
+                        direction = this.NextStepTo(this.SpawnX, this.SpawnY, world);
+                    }
+                    else
+                    {
+                        return;
+                    }
+                }
+                else
+                {
+                    // if outside of spawn area, try to move back to it
+                    if (Math.Abs(this.MapX - this.SpawnX) > 10 || Math.Abs(this.MapY - this.SpawnY) > 10)
+                    {
+                        direction = this.NextStepTo(this.SpawnX, this.SpawnY, world);
+                    }
+                    else
+                    {
+                        direction = world.Random.Next(1, 5);
+                    }
+                }
+            }
+            else
+            {
+                // Fix being hit from across map bug.
+                // If the player isn't on same map/in screen range then lose aggro
+                if (this.AggroTarget.Map == this.Map &&
+                    Math.Abs(this.AggroTarget.MapX - this.MapX) < Map.RANGE_X &&
+                    Math.Abs(this.AggroTarget.MapY - this.MapY) < Map.RANGE_Y)
+                {
+                    direction =
+                        this.NextStepTo(this.AggroTarget.MapX, this.AggroTarget.MapY, world);
+                }
+                else
+                {
+                    this.AggroTargetToValue.Remove(this.AggroTarget);
+                    this.AggroTarget = null;
+
+                    List<Player> remove = new List<Player>();
+
+                    Player highest = null;
+                    NPC.Aggro aggro = new NPC.Aggro(0, 0);
+                    foreach (KeyValuePair<Player, NPC.Aggro> p in this.AggroTargetToValue)
+                    {
+                        if (p.Value > aggro)
+                        {
+                            if (p.Key.Map == this.Map &&
+                                Math.Abs(p.Key.MapX - this.MapX) < Map.RANGE_X &&
+                                Math.Abs(p.Key.MapY - this.MapY) < Map.RANGE_Y)
+                            {
+                                aggro = p.Value;
+                                highest = p.Key;
+                            }
+                            else
+                            {
+                                remove.Add(p.Key);
+                            }
+                        }
+                    }
+
+                    foreach (Player p in remove)
+                    {
+                        this.AggroTargetToValue.Remove(p);
+                    }
+
+                    if (highest == null)
+                    {
+                        this.AddMoveEvent(world);
+                        return;
+                    }
+                    else
+                    {
+                        this.AggroTarget = highest;
+                        this.AggroValue = aggro;
+
+                        direction =
+                            this.NextStepTo(this.AggroTarget.MapX, this.AggroTarget.MapY, world);
+                    }
+                }
+            }
+
+
+            int ox = this.MapX;
+            int oy = this.MapY;
+            int x = ox;
+            int y = oy;
+
+            switch (direction)
+            {
+                case 1:
+                    y--;
+                    break;
+                case 2:
+                    x++;
+                    break;
+                case 3:
+                    y++;
+                    break;
+                case 4:
+                    x--;
+                    break;
+            }
+
+            if (this.CanMoveTo(x, y))
+            {
+                this.MoveTo(world, x, y);
+                this.Facing = direction;
+            }
+            else
+            {
+                this.FaceTo(direction, world);
+            }
+
+            this.AddMoveEvent(world);
         }
 
         /**
@@ -1058,6 +1199,92 @@ namespace Goose
             return "VPU" + this.LoginID + "," +
                    (int)(((float)this.CurrentHP / this.MaxStats.HP) * 100) + "," +
                    (int)(((float)this.CurrentMP / this.MaxStats.MP) * 100);
+        }
+
+        public void OnAttackEvent(GameWorld world)
+        {
+            this.HandleAttackEvent(world);
+        }
+
+        public void HandleAttackEvent(GameWorld world)
+        {
+            bool rooted = false;
+
+            foreach (Buff b in this.Buffs)
+            {
+                // can't attack when stunned
+                if (b.SpellEffect.EffectType == SpellEffect.EffectTypes.Stun)
+                {
+                    this.LastAttackTime = world.TimeNow;
+                    this.AddAttackEvent(world);
+                    return;
+                }
+
+                if (b.SpellEffect.EffectType == SpellEffect.EffectTypes.Root)
+                {
+                    rooted = true;
+                    this.LastAttackTime = world.TimeNow;
+                }
+
+            }
+
+            // Can't tele when rooted
+            if (!rooted && this.LastAttackTime + this.BehaviourTimeout * world.TimerFrequency <
+                world.TimeNow)
+            {
+                switch (this.Behaviour)
+                {
+                    case NPCTemplate.BehaviourTypes.TeleportAggro:
+                        bool loseaggro = true;
+                        this.AggroTarget.WarpTo(world, this.Map,
+                            this.MapX, this.MapY, !loseaggro);
+                        // reset attack time so doesn't keep teleporting if it can't attack
+                        this.LastAttackTime = world.TimeNow;
+                        break;
+                    case NPCTemplate.BehaviourTypes.TeleportToAggro:
+                        // move off this square so null
+                        this.Map.SetCharacter(null, this.MapX, this.MapY);
+                        this.MapX = this.AggroTarget.MapX;
+                        this.MapY = this.AggroTarget.MapY;
+                        this.Map.PlaceCharacter(this);
+                        this.MoveTo(world, this.MapX, this.MapY);
+                        // kinda hackish, moveto will set the aggrotarget char to null so have to reset it
+                        //this.Map.SetCharacter(this.AggroTarget, 
+                        //    this.AggroTarget.MapX, this.AggroTarget.MapX);
+                        // reset attack time so doesn't keep teleporting if it can't attack
+                        this.LastAttackTime = world.TimeNow;
+                        break;
+                }
+            }
+
+            Player aggro = this.AggroTarget;
+            // Try to attack main aggro first
+            if (this.Map == aggro.Map &&
+                Math.Abs(this.MapX - aggro.MapX) <= this.AttackRange &&
+                Math.Abs(this.MapY - aggro.MapY) <= this.AttackRange)
+            {
+                this.Attack(aggro, world);
+                this.AddAttackEvent(world);
+
+                return;
+            }
+
+            foreach (Player player in this.AggroTargetToValue.Keys)
+            {
+                if (player == aggro) continue;
+
+                if (this.Map == player.Map &&
+                    Math.Abs(this.MapX - player.MapX) <= this.AttackRange &&
+                    Math.Abs(this.MapY - player.MapY) <= this.AttackRange)
+                {
+                    this.Attack(player, world);
+                    this.AddAttackEvent(world);
+
+                    return;
+                }
+            }
+
+            this.AddAttackEvent(world);
         }
 
         /**
