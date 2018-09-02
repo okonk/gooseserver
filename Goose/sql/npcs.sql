@@ -57,7 +57,7 @@ CREATE TABLE npc_templates (
   stuck_timeout INT DEFAULT 20 NOT NULL, /* Time since last attack to do behaviour in seconds */
   credit_dealer CHAR(1) DEFAULT '0' NOT NULL,
   quest_ids TEXT DEFAULT '' NOT NULL,
-  script_path TEXT DEFAULT 'Scripts/BaseNPC.csx' NOT NULL,
+  script_path TEXT DEFAULT 'Scripts/NPC/BaseNPC.csx' NOT NULL,
   
   PRIMARY KEY(npc_id)
 );
@@ -68,7 +68,7 @@ INSERT INTO npc_templates (npc_id, npc_type, npc_name, respawn_time, experience,
 VALUES (1, 2, 'Lamb', 40, 40, 0, 1, 1.5, 2, 1, 1, 1, 50, 4, 104, 6);
 
 INSERT INTO npc_templates (npc_id, npc_type, npc_name, respawn_time, experience, aggro_range, attack_range, attack_speed, move_speed, stunnable, rootable, slowable, npc_hp, class_id, body_id, weapon_damage, script_path)
-VALUES (2, 2, 'Mouse', 30, 20, 0, 1, 1.5, 2, 1, 1, 1, 20, 4, 122, 4, 'Scripts/SpellNPC.csx');
+VALUES (2, 2, 'Mouse', 30, 20, 0, 1, 1.5, 2, 1, 1, 1, 20, 4, 122, 4, 'Scripts/NPC/SpellNPC.csx');
 
 INSERT INTO npc_templates (npc_id, npc_type, npc_name, respawn_time, experience, aggro_range, attack_range, attack_speed, move_speed, stunnable, rootable, slowable, npc_hp, class_id, body_id, weapon_damage)
 VALUES (3, 2, 'Sheep', 40, 60, 0, 1, 1.5, 2, 1, 1, 1, 75, 4, 112, 10);
