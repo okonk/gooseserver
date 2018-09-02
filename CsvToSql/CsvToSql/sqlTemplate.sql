@@ -113,6 +113,7 @@ CREATE TABLE npc_templates (
   stuck_timeout INT DEFAULT 20 NOT NULL, /* Time since last attack to do behaviour in seconds */
   credit_dealer CHAR(1) DEFAULT '0' NOT NULL,
   quest_ids TEXT DEFAULT '' NOT NULL,
+  script_path TEXT DEFAULT 'Scripts/NPC/BaseNPC.csx' NOT NULL,
   
   PRIMARY KEY(npc_id)
 );

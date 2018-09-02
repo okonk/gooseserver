@@ -15,6 +15,8 @@ namespace Goose
          */
         static void Main(string[] args)
         {
+            Directory.SetCurrentDirectory(AppDomain.CurrentDomain.BaseDirectory);
+
             if (args.Contains("-service"))
             {
                 ServiceBase.Run(new ServiceBase[] 
