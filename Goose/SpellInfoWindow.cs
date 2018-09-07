@@ -62,10 +62,10 @@ namespace Goose
 
             string cd = "";
             if (t.Hours != 0)
-                cd += t.Hours + " h";
+                cd += t.Hours + "h ";
 
             if (t.Minutes != 0)
-                cd += t.Minutes + " m";
+                cd += t.Minutes + "m ";
 
             if (t.Seconds != 0)
             {
@@ -73,16 +73,16 @@ namespace Goose
                 if (t.Milliseconds != 0)
                 {
                     seconds += t.Milliseconds / 1000.0d;
-                    cd += string.Format("{0:N1} s", seconds);
+                    cd += string.Format("{0:N1}s ", seconds);
                 }
                 else
                 {
-                    cd += t.Seconds + " s";
+                    cd += t.Seconds + "s ";
                 }
             }
-            else
+            else if (cd == "" || t.Milliseconds != 0)
             {
-                cd += t.Milliseconds + " ms";
+                cd += t.Milliseconds + "ms";
             }
 
             return cd;
