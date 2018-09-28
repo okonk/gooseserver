@@ -112,7 +112,7 @@ namespace Goose
             this.stringToEvent.Add("KBUF", KillBuffEvent.Create);
             this.stringToEvent.Add("/toggle ", ToggleCommandEvent.Create);
             this.stringToEvent.Add("/aether ", AetherCommandEvent.Create);
-            this.stringToEvent.Add("/instalevel", InstaLevelCommandEvent.Create);
+            //this.stringToEvent.Add("/instalevel", InstaLevelCommandEvent.Create);
             this.stringToEvent.Add("/petlist", PetListCommandEvent.Create);
             this.stringToEvent.Add("/petspawn ", PetSpawnCommandEvent.Create);
             this.stringToEvent.Add("/petinfo ", PetInfoCommandEvent.Create);
