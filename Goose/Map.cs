@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Data.SqlClient;
+using System.IO;
 
 namespace Goose
 {
@@ -77,8 +78,6 @@ namespace Goose
             this.Width = width;
             this.Height = height;
 
-            this.characters = new ICharacter[(this.Width + 1) * (this.Height + 1)];
-            this.tiles = new ITile[(this.Width + 1) * (this.Height + 1)];
             this.players = new List<Player>();
             this.requiredItems = new List<int>();
             this.npcs = new List<NPC>();
@@ -370,6 +369,38 @@ namespace Goose
          */
         public void LoadData(GameWorld world)
         {
+            using (var fileStream = File.Open(@"Maps/" + FileName, FileMode.Open, FileAccess.Read))
+            using (var mapReader = new BinaryReader(fileStream))
+            {
+                var version = mapReader.ReadInt16();
+                var editorVersion = mapReader.ReadInt16();
+                this.Width = mapReader.ReadInt32();
+                this.Height = mapReader.ReadInt32();
+
+                this.characters = new ICharacter[(this.Width + 1) * (this.Height + 1)];
+                this.tiles = new ITile[(this.Width + 1) * (this.Height + 1)];
+
+                for (int y = 1; y <= this.Height; y++)
+                {
+                    for (int x = 1; x <= this.Width; x++)
+                    {
+                        var flags = mapReader.ReadInt32();
+
+                        for (int k = 0; k < 5; k++)
+                        {
+                            var graphic = mapReader.ReadInt32();
+                            var sheet = mapReader.ReadInt16();
+                        }
+
+                        if ((flags & 2) > 0)
+                        {
+                            BlockedTile blocked = new BlockedTile();
+                            this.tiles[y * this.Width + x] = blocked;
+                        }
+                    }
+                }
+            }
+
             SqlCommand command = new SqlCommand("SELECT * FROM warptiles " +
                                                 "WHERE map_id=" + this.ID, world.SqlConnection);
             SqlDataReader reader = command.ExecuteReader();
@@ -385,30 +416,6 @@ namespace Goose
                 int y = Convert.ToInt32(reader["map_y"]);
 
                 this.tiles[y * this.Width + x] = warp;
-            }
-
-            reader.Close();
-
-            command = new SqlCommand("SELECT * FROM blockedtiles " +
-                                                "WHERE map_id=" + this.ID, world.SqlConnection);
-            reader = command.ExecuteReader();
-
-            while (reader.Read())
-            {
-                BlockedTile blocked = new BlockedTile();
-
-                int x = Convert.ToInt32(reader["map_x"]);
-                int y = Convert.ToInt32(reader["map_y"]);
-
-                try
-                {
-                    this.tiles[y * this.Width + x] = blocked;
-                }
-                catch (Exception)
-                {
-                    Console.WriteLine("Exception Loading blocked tile {0} {1} {2}", this.ID, y, x);
-                    throw;
-                }
             }
 
             reader.Close();

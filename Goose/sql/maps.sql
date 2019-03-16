@@ -146,4 +146,6 @@ DROP TABLE map_required_items;
 CREATE TABLE map_required_items (
   map_id SMALLINT NOT NULL,
   item_template_id INT NOT NULL,
+
+  INDEX map_required_items_map_id_idx (map_id)
 );

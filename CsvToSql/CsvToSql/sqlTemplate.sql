@@ -138,7 +138,9 @@ CREATE TABLE npc_drops (
   npc_template_id INT NOT NULL,
   item_template_id INT NOT NULL,
   stack INT NOT NULL,
-  droprate DECIMAL(9,4) NOT NULL
+  droprate DECIMAL(9,4) NOT NULL,
+
+  INDEX npc_drops_npc_template_id_idx (npc_template_id)
 );
 
 {{npc_drops}}
@@ -149,7 +151,9 @@ CREATE TABLE npc_vendor_items (
   item_template_id INT NOT NULL,
   stack INT DEFAULT 1 NOT NULL,
   stats_visible CHAR(1) DEFAULT '1' NOT NULL,
-  slot INT NOT NULL
+  slot INT NOT NULL,
+
+  INDEX npc_vendor_items_npc_template_id_idx (npc_template_id)
 );
 
 {{npc_vendor_items}}
@@ -338,7 +342,8 @@ CREATE TABLE warptiles (
   warp_id SMALLINT NOT NULL,
   warp_x SMALLINT NOT NULL,
   warp_y SMALLINT NOT NULL,
-  PRIMARY KEY (id)
+  PRIMARY KEY (id),
+  INDEX warptiles_map_id_idx (map_id)
 );
 
 {{warptiles}}
@@ -374,6 +379,8 @@ DROP TABLE map_required_items;
 CREATE TABLE map_required_items (
   map_id SMALLINT NOT NULL,
   item_template_id INT NOT NULL,
+
+  INDEX map_required_items_map_id_idx (map_id)
 );
 
 {{map_required_items}}

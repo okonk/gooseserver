@@ -86,7 +86,8 @@ CREATE TABLE quest_progress (
   player_id INT NOT NULL,
   progress_value BIGINT NOT NULL,
   
-  PRIMARY KEY (id)
+  PRIMARY KEY (id),
+  INDEX quest_progress_player_id_idx (player_id)
 );
 
 CREATE TABLE quest_completed (
@@ -94,7 +95,8 @@ CREATE TABLE quest_completed (
   quest_id INT NOT NULL,
   player_id INT NOT NULL,
   
-  PRIMARY KEY (id)
+  PRIMARY KEY (id),
+  INDEX quest_completed_player_id_idx (player_id)
 );
 
 CREATE TABLE quest_started (
@@ -102,5 +104,6 @@ CREATE TABLE quest_started (
   quest_id INT NOT NULL,
   player_id INT NOT NULL,
   
-  PRIMARY KEY (id)
+  PRIMARY KEY (id),
+  INDEX quest_started_player_id_idx (player_id)
 );

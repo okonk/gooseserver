@@ -332,9 +332,9 @@ namespace Goose
             updateExperienceModifier.Ticks += this.TimerFrequency * GameSettings.Default.IdleTimeout;
             this.EventHandler.AddEvent(updateExperienceModifier);
 
-            Event updateCredits = new CreditsUpdateEvent();
-            updateExperienceModifier.Ticks += this.TimerFrequency * GameSettings.Default.CreditUpdateInterval;
-            this.EventHandler.AddEvent(updateCredits);
+            //Event updateCredits = new CreditsUpdateEvent();
+            //updateExperienceModifier.Ticks += this.TimerFrequency * GameSettings.Default.CreditUpdateInterval;
+            //this.EventHandler.AddEvent(updateCredits);
 
             Console.Out.WriteLine("Finished loading game. Ready to join.");
 

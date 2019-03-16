@@ -49,5 +49,6 @@ CREATE TABLE pets (
   mp_percent_regen DECIMAL(9,4) DEFAULT 0 NOT NULL,
   mp_static_regen INT DEFAULT 0 NOT NULL,
   
-  PRIMARY KEY(pet_id)
+  PRIMARY KEY(pet_id),
+  INDEX pets_owner_id_idx (owner_id)
 );

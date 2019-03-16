@@ -9,7 +9,8 @@ CREATE TABLE warptiles (
   warp_id SMALLINT NOT NULL,
   warp_x SMALLINT NOT NULL,
   warp_y SMALLINT NOT NULL,
-  PRIMARY KEY (id)
+  PRIMARY KEY (id),
+  INDEX warptiles_map_id_idx (map_id)
 );
 
 SET IDENTITY_INSERT warptiles ON;

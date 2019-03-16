@@ -61,6 +61,9 @@ CREATE TABLE inventory (
   item_id INT NOT NULL,
   slot SMALLINT NOT NULL,
   stack INT NOT NULL,
+
+  PRIMARY KEY(player_id, slot),
+  INDEX inventory_player_id_idx (player_id)
 );
 
 SELECT * FROM players;
@@ -70,7 +73,10 @@ SELECT * FROM inventory;
 CREATE TABLE equipped (
   player_id INT NOT NULL,
   item_id INT NOT NULL,
-  slot SMALLINT NOT NULL
+  slot SMALLINT NOT NULL,
+
+  PRIMARY KEY(player_id, slot),
+  INDEX equipped_player_id_idx (player_id)
 );
 
 SELECT * FROM equipped;
@@ -79,7 +85,10 @@ CREATE TABLE combinebag (
   player_id INT NOT NULL,
   item_id INT NOT NULL,
   slot SMALLINT NOT NULL,
-  stack INT NOT NULL
+  stack INT NOT NULL,
+
+  PRIMARY KEY(player_id, slot),
+  INDEX combinebag_player_id_idx (player_id)
 );
 
 DROP TABLE spellbook
@@ -87,5 +96,8 @@ CREATE TABLE spellbook (
   player_id INT NOT NULL,
   spell_id INT NOT NULL,
   slot SMALLINT NOT NULL,
-  last_casted BIGINT DEFAULT 0 NOT NULL
+  last_casted BIGINT DEFAULT 0 NOT NULL,
+
+  PRIMARY KEY(player_id, slot),
+  INDEX spellbook_player_id_idx (player_id)
 );
