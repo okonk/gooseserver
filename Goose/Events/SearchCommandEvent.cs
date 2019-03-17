@@ -6,11 +6,11 @@ using System.Text.RegularExpressions;
 
 namespace Goose.Events
 {
-    class GMSearchCommandEvent : Event
+    class SearchCommandEvent : Event
     {
         public static Event Create(Player player, Object data)
         {
-            Event e = new GMSearchCommandEvent();
+            Event e = new SearchCommandEvent();
             e.Player = player;
             e.Data = data;
 
@@ -20,7 +20,7 @@ namespace Goose.Events
         public override void Ready(GameWorld world)
         {
             if (this.Player.State != Player.States.Ready) return;
-            if (this.Player.Access != Player.AccessStatus.GameMaster) return;
+            if (!this.Player.HasPrivilege(AccessPrivilege.Search)) return;
 
             string[] tokens = ((string)this.Data).Split(" ".ToCharArray(), 3);
             string command, name;

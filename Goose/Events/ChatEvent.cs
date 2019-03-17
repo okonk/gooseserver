@@ -32,7 +32,7 @@ namespace Goose.Events
             {
                 this.Player.UpdateIdleStatus(world);
 
-                if (!this.Player.Map.CanChat && this.Player.Access != Player.AccessStatus.GameMaster)
+                if ((!this.Player.Map.CanChat || !this.Player.Map.Muted) && this.Player.HasPrivilege(AccessPrivilege.TalkWhileMuted))
                 {
                     world.Send(this.Player, "#Chat is disabled in this map.");
                     return;

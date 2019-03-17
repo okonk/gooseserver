@@ -196,6 +196,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AccessLevels.cs" />
     <Compile Include="AttributeSet.cs" />
     <Compile Include="BankWindow.cs" />
     <Compile Include="BlockedTile.cs" />
@@ -206,6 +207,8 @@
     <Compile Include="ClassLevel.cs" />
     <Compile Include="Combination.cs" />
     <Compile Include="CombinationHandler.cs" />
+    <Compile Include="Events\SetAccessCommandEvent.cs" />
+    <Compile Include="Events\MuteMapEvent.cs" />
     <Compile Include="Events\SpellInfoEvent.cs" />
     <Compile Include="Scripting\BaseNPCScript.cs" />
     <Compile Include="Scripting\INPCScript.cs" />
@@ -231,20 +234,20 @@
     <Compile Include="Events\CheckNameCommandEvent.cs" />
     <Compile Include="Events\CustomCommandEvent.cs" />
     <Compile Include="Events\GMHaxCommandEvent.cs" />
-    <Compile Include="Events\GMSearchCommandEvent.cs" />
-    <Compile Include="Events\GMSpawnNPCCommandEvent.cs" />
+    <Compile Include="Events\SearchCommandEvent.cs" />
+    <Compile Include="Events\SpawnNPCCommandEvent.cs" />
     <Compile Include="Events\PlayerLeftClickEvent .cs" />
     <Compile Include="Events\SpellbookBackEvent.cs" />
     <Compile Include="Events\SpellbookNextEvent.cs" />
     <Compile Include="Events\GiveCreditsCommandEvent.cs" />
-    <Compile Include="Events\GMSetSurnameCommandEvent.cs" />
-    <Compile Include="Events\GMSetTitleCommandEvent.cs" />
+    <Compile Include="Events\SetSurnameCommandEvent.cs" />
+    <Compile Include="Events\SetTitleCommandEvent.cs" />
     <Compile Include="Events\ClearCreatedHistoryEvent.cs" />
     <Compile Include="Events\ClearMapItemsEvent.cs" />
     <Compile Include="Events\CreditsCommandEvent.cs" />
     <Compile Include="Events\CreditsUpdateEvent.cs" />
-    <Compile Include="Events\GMGiveExperienceCommandEvent.cs" />
-    <Compile Include="Events\GMClassChangeCommandEvent.cs" />
+    <Compile Include="Events\GiveExperienceCommandEvent.cs" />
+    <Compile Include="Events\ClassChangeCommandEvent.cs" />
     <Compile Include="Events\GuildAddCommandEvent.cs" />
     <Compile Include="Events\GuildChatCommandEvent.cs" />
     <Compile Include="Events\GuildCreateCommandEvent.cs" />
@@ -278,10 +281,10 @@
     <Compile Include="Events\DoneLoadingMapEvent.cs" />
     <Compile Include="Events\EmoteEvent.cs" />
     <Compile Include="Events\FacingEvent.cs" />
-    <Compile Include="Events\GMBanCommandEvent.cs" />
-    <Compile Include="Events\GMBroadcastCommandEvent.cs" />
-    <Compile Include="Events\GMGetItemCommandEvent.cs" />
-    <Compile Include="Events\GMKickCommandEvent.cs" />
+    <Compile Include="Events\BanCommandEvent.cs" />
+    <Compile Include="Events\BroadcastCommandEvent.cs" />
+    <Compile Include="Events\GetItemCommandEvent.cs" />
+    <Compile Include="Events\KickCommandEvent.cs" />
     <Compile Include="Events\GroupAddEvent.cs" />
     <Compile Include="Events\GroupChatEvent.cs" />
     <Compile Include="Events\GroupRemoveEvent.cs" />
@@ -396,6 +399,9 @@
     <None Include="Scripts\NPC\SpellNPC.csx">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="sql\genexp.py" />
+    <None Include="sql\install.bat" />
+    <None Include="sql\updatesql.bat" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\GooseServerBrowserService\GooseServerBrowserService.Client\GooseServerBrowserService.Client.csproj">
@@ -411,6 +417,25 @@
     <Content Include="FodyWeavers.xml">
       <SubType>Designer</SubType>
     </Content>
+    <Content Include="sql\banks.sql" />
+    <Content Include="sql\blockedtiles.sql" />
+    <Content Include="sql\BlockedTilesRunner.exe" />
+    <Content Include="sql\classes.sql" />
+    <Content Include="sql\combinations.sql" />
+    <Content Include="sql\create.sql" />
+    <Content Include="sql\guilds.sql" />
+    <Content Include="sql\items.sql" />
+    <Content Include="sql\logs.sql" />
+    <Content Include="sql\maps.sql" />
+    <Content Include="sql\npcs.sql" />
+    <Content Include="sql\onetimeupdates.sql" />
+    <Content Include="sql\paypal.sql" />
+    <Content Include="sql\pets.sql" />
+    <Content Include="sql\players.sql" />
+    <Content Include="sql\quests.sql" />
+    <Content Include="sql\spells.sql" />
+    <Content Include="sql\warptiles.sql" />
+    <Content Include="sql\wordfilter.sql" />
   </ItemGroup>
   <ItemGroup>
     <Analyzer Include="..\packages\Microsoft.CodeAnalysis.Analyzers.2.6.1\analyzers\dotnet\cs\Microsoft.CodeAnalysis.Analyzers.dll" />

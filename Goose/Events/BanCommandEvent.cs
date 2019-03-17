@@ -11,11 +11,11 @@ namespace Goose.Events
      * Bans player from server
      * 
      */
-    public class GMBanCommandEvent : Event
+    public class BanCommandEvent : Event
     {
         public static Event Create(Player player, Object data)
         {
-            Event e = new GMBanCommandEvent();
+            Event e = new BanCommandEvent();
             e.Player = player;
             e.Data = data;
 
@@ -25,7 +25,7 @@ namespace Goose.Events
         public override void Ready(GameWorld world)
         {
             if (this.Player.State == Player.States.Ready &&
-                this.Player.Access == Player.AccessStatus.GameMaster)
+                this.Player.HasPrivilege(AccessPrivilege.Ban))
             {
                 string name = ((string)this.Data).Substring(5);
                 Player player = world.PlayerHandler.GetPlayerFromData(name);

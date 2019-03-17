@@ -70,7 +70,7 @@ namespace Goose
             this.stringToEvent.Add("/location", LocationEvent.Create);
             this.stringToEvent.Add("/refresh", RefreshPositionEvent.Create);
             this.stringToEvent.Add("CAST", PlayerCastSpellEvent.Create);
-            this.stringToEvent.Add("/getitem ", GMGetItemCommandEvent.Create);
+            this.stringToEvent.Add("/getitem ", GetItemCommandEvent.Create);
             this.stringToEvent.Add("/hax ", HaxCommandEvent.Create);
             this.stringToEvent.Add("/gmhax ", GMHaxCommandEvent.Create);
             this.stringToEvent.Add("/togglegroup", ToggleGroupCommandEvent.Create);
@@ -81,12 +81,12 @@ namespace Goose
             this.stringToEvent.Add("WBC", WindowButtonClickEvent.Create);
             this.stringToEvent.Add("VPI", VendorPurchaseInventoryEvent.Create);
             this.stringToEvent.Add("VSI", VendorSellInventoryEvent.Create);
-            this.stringToEvent.Add("/ban ", GMBanCommandEvent.Create);
-            this.stringToEvent.Add("/kick ", GMKickCommandEvent.Create);
+            this.stringToEvent.Add("/ban ", BanCommandEvent.Create);
+            this.stringToEvent.Add("/kick ", KickCommandEvent.Create);
             this.stringToEvent.Add("/shout ", ShoutCommandEvent.Create);
             this.stringToEvent.Add("/auction ", AuctionCommandEvent.Create);
             this.stringToEvent.Add("/random", RandomCommandEvent.Create);
-            this.stringToEvent.Add("/broadcast ", GMBroadcastCommandEvent.Create);
+            this.stringToEvent.Add("/broadcast ", BroadcastCommandEvent.Create);
             this.stringToEvent.Add("EMOT", EmoteEvent.Create);
             this.stringToEvent.Add("/buyvita", BuyVitaCommandEvent.Create);
             this.stringToEvent.Add("/buymana", BuyManaCommandEvent.Create);
@@ -121,23 +121,25 @@ namespace Goose
             this.stringToEvent.Add("/petdelete ", PetDeleteCommandEvent.Create);
             this.stringToEvent.Add("/unban ", UnbanCommandEvent.Create);
             this.stringToEvent.Add("/checkname ", CheckNameCommandEvent.Create);
-            this.stringToEvent.Add("/classchange ", GMClassChangeCommandEvent.Create);
+            this.stringToEvent.Add("/classchange ", ClassChangeCommandEvent.Create);
             this.stringToEvent.Add("/changename ", ChangeNameCommandEvent.Create);
-            this.stringToEvent.Add("/giveexperience ", GMGiveExperienceCommandEvent.Create);
+            this.stringToEvent.Add("/giveexperience ", GiveExperienceCommandEvent.Create);
             this.stringToEvent.Add("/credits", CreditsCommandEvent.Create);
             this.stringToEvent.Add("/playtime", PlaytimeCommandEvent.Create);
-            this.stringToEvent.Add("/settitle ", GMSetTitleCommandEvent.Create);
-            this.stringToEvent.Add("/setsurname ", GMSetSurnameCommandEvent.Create);
+            this.stringToEvent.Add("/settitle ", SetTitleCommandEvent.Create);
+            this.stringToEvent.Add("/setsurname ", SetSurnameCommandEvent.Create);
             this.stringToEvent.Add("/givecredits ", GiveCreditsCommandEvent.Create);
             this.stringToEvent.Add("/hairdye", HairdyeCommandEvent.Create);
             this.stringToEvent.Add("SBN", SpellbookNextEvent.Create);
             this.stringToEvent.Add("SBB", SpellbookBackEvent.Create);
             this.stringToEvent.Add("LC", PlayerLeftClickEvent.Create);
-            this.stringToEvent.Add("/spawnnpc ", GMSpawnNPCCommandEvent.Create);
-            this.stringToEvent.Add("/search ", GMSearchCommandEvent.Create);
+            this.stringToEvent.Add("/spawnnpc ", SpawnNPCCommandEvent.Create);
+            this.stringToEvent.Add("/search ", SearchCommandEvent.Create);
             this.stringToEvent.Add("WTW", WindowToWindowEvent.Create);
             this.stringToEvent.Add("/custom", CustomCommandEvent.Create);
             this.stringToEvent.Add("SID", SpellInfoEvent.Create);
+            this.stringToEvent.Add("/mutemap", MuteMapEvent.Create);
+            this.stringToEvent.Add("/setaccess", SetAccessCommandEvent.Create);
         }
 
         /**

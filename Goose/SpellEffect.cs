@@ -744,7 +744,7 @@ namespace Goose
         public bool CanCastSpell(ICharacter caster, ICharacter target)
         {
             if (target == null) return false;
-            if ((caster.Map != null && !caster.Map.CanCast) && (caster is Player && !((caster as Player).Access == Player.AccessStatus.GameMaster))) return false;
+            if ((caster.Map != null && !caster.Map.CanCast) && (caster is Player && !((caster as Player).HasPrivilege(AccessPrivilege.CastSpellsWhileBlocked)))) return false;
             if (caster == target)
             {
                 if (((int)this.Effected & (int)SpellEffected.Self) == 0) return false;

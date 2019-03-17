@@ -26,7 +26,7 @@ namespace Goose.Events
 
                 if (data.Length <= 0) return;
 
-                if (!this.Player.Map.CanAuction && this.Player.Access != Player.AccessStatus.GameMaster)
+                if ((!this.Player.Map.CanAuction || !this.Player.Map.Muted) && this.Player.HasPrivilege(AccessPrivilege.TalkWhileMuted))
                 {
                     world.Send(this.Player, "#Auction is disabled in this map.");
                     return;

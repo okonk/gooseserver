@@ -5,11 +5,11 @@ using System.Text;
 
 namespace Goose.Events
 {
-    class GMClassChangeCommandEvent : Event
+    class ClassChangeCommandEvent : Event
     {
         public static Event Create(Player player, Object data)
         {
-            Event e = new GMClassChangeCommandEvent();
+            Event e = new ClassChangeCommandEvent();
             e.Player = player;
             e.Data = data;
 
@@ -19,7 +19,7 @@ namespace Goose.Events
         public override void Ready(GameWorld world)
         {
             if (this.Player.State == Player.States.Ready &&
-                this.Player.Access == Player.AccessStatus.GameMaster)
+                this.Player.HasPrivilege(AccessPrivilege.ClassChange))
             {
                 string packet = (string)this.Data;
                 string[] tokens = packet.Split(" ".ToCharArray());

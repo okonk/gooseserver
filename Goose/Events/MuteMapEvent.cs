@@ -5,11 +5,15 @@ using System.Text;
 
 namespace Goose.Events
 {
-    public class GMBroadcastCommandEvent : Event
+    /**
+     * /mutemap
+     * 
+     */
+    public class MuteMapEvent : Event
     {
         public static Event Create(Player player, Object data)
         {
-            Event e = new GMBroadcastCommandEvent();
+            Event e = new MuteMapEvent();
             e.Player = player;
             e.Data = data;
 
@@ -19,13 +23,11 @@ namespace Goose.Events
         public override void Ready(GameWorld world)
         {
             if (this.Player.State == Player.States.Ready &&
-                this.Player.Access == Player.AccessStatus.GameMaster)
+                this.Player.HasPrivilege(AccessPrivilege.MuteMap))
             {
-                string data = ((string)this.Data).Substring(11);
+                this.Player.Map.Muted = !this.Player.Map.Muted;
 
-                if (data.Length <= 0) return;
-
-                world.SendToAll("$7" + data);
+                world.SendToMap(this.Player.Map, string.Format("$7Chat is now {0}.", (this.Player.Map.Muted ? "muted" : "unmuted")));
             }
         }
     }

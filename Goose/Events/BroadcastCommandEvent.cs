@@ -5,11 +5,11 @@ using System.Text;
 
 namespace Goose.Events
 {
-    public class SaveConfigCommandEvent : Event
+    public class BroadcastCommandEvent : Event
     {
         public static Event Create(Player player, Object data)
         {
-            Event e = new SaveConfigCommandEvent();
+            Event e = new BroadcastCommandEvent();
             e.Player = player;
             e.Data = data;
 
@@ -19,11 +19,13 @@ namespace Goose.Events
         public override void Ready(GameWorld world)
         {
             if (this.Player.State == Player.States.Ready &&
-                this.Player.Access == Player.AccessStatus.GameMaster)
+                this.Player.HasPrivilege(AccessPrivilege.Broadcast))
             {
-                // Commented out because this is bad, it saves the settings to some random path in appdata
-                //GameSettings.Default.Save();
-                //world.Send(this.Player, "$7Game Settings Saved.");
+                string data = ((string)this.Data).Substring(11);
+
+                if (data.Length <= 0) return;
+
+                world.SendToAll(string.Format("$7[{0}]: {1}", this.Player.Access.ToString().Replace("Master", " Master"), data));
             }
         }
     }

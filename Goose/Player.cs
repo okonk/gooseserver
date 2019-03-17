@@ -72,6 +72,9 @@ namespace Goose
             Deleted = 0,
             Banned,
             Normal,
+            Helper = 3,
+            EventMaster = 6,
+            Guide = 7,
             GameMaster = 9
         }
         public AccessStatus Access { get; set; }
@@ -361,7 +364,7 @@ namespace Goose
 
         public bool ChatFilterEnabled { get { return ((this.ToggleSettings & Player.ToggleSetting.WordFilter) == 0); } }
         public bool QuestCreditFilterEnabled { get { return ((this.ToggleSettings & Player.ToggleSetting.QuestCredit) != 0); } }
-        public bool IsGMInvisible { get { return (this.Access == AccessStatus.GameMaster && ((this.ToggleSettings & Player.ToggleSetting.GMInvisible) == 0)); } }
+        public bool IsGMInvisible { get { return (this.HasPrivilege(AccessPrivilege.GMInvisible) && ((this.ToggleSettings & Player.ToggleSetting.GMInvisible) == 0)); } }
         public bool IsGM { get { return (this.Access == AccessStatus.GameMaster && ((this.ToggleSettings & Player.ToggleSetting.GM) == 0)); } }
         public bool ShowItemBuffs { get { return ((this.ToggleSettings & Player.ToggleSetting.ItemBuffs) == 0); } }
 
@@ -434,6 +437,11 @@ namespace Goose
         public Player()
         {
 
+        }
+
+        public bool HasPrivilege(AccessPrivilege privilege)
+        {
+            return AccessLevels.HasPrivilege(this, privilege);
         }
 
         /**
@@ -1098,7 +1106,7 @@ namespace Goose
                 if (!IsGMInvisible)
                 {
                     world.Send(player, mkc);
-                    if (this.Access == Goose.Player.AccessStatus.GameMaster)
+                    if (this.HasPrivilege(AccessPrivilege.GMInvisible))
                     {
                         world.Send(player, gmstring);
                     }
@@ -1107,7 +1115,7 @@ namespace Goose
                 if (!player.IsGMInvisible)
                 {
                     world.Send(this, player.MKCString());
-                    if (player.Access == Goose.Player.AccessStatus.GameMaster)
+                    if (player.HasPrivilege(AccessPrivilege.GMInvisible))
                     {
                         world.Send(this, "AMA" + player.LoginID + ",1");
                     }
@@ -1211,7 +1219,7 @@ namespace Goose
                     {
                         world.Send(player, mkc);
 
-                        if (this.Access == Goose.Player.AccessStatus.GameMaster)
+                        if (this.HasPrivilege(AccessPrivilege.GMInvisible))
                         {
                             world.Send(player, gmstring);
                         }
@@ -1220,7 +1228,7 @@ namespace Goose
                     if (!player.IsGMInvisible)
                     {
                         world.Send(this, player.MKCString());
-                        if (player.Access == Goose.Player.AccessStatus.GameMaster)
+                        if (player.HasPrivilege(AccessPrivilege.GMInvisible))
                         {
                             world.Send(this, "AMA" + player.LoginID + ",1");
                         }
@@ -1383,7 +1391,7 @@ namespace Goose
          */
         public bool CanUse(Item item, GameWorld world)
         {
-            if (this.Access == AccessStatus.GameMaster) return true;
+            if (this.HasPrivilege(AccessPrivilege.IgnoreItemRequirements)) return true;
 
             if (item.MinLevel != 0 && this.Level < item.MinLevel)
             {

@@ -19,7 +19,7 @@ namespace Goose.Events
         public override void Ready(GameWorld world)
         {
             if (this.Player.State == Player.States.Ready &&
-                this.Player.Access == Player.AccessStatus.GameMaster)
+                this.Player.HasPrivilege(AccessPrivilege.Ban))
             {
                 string name = ((string)this.Data).Substring(7);
                 Player player = world.PlayerHandler.GetPlayerFromData(name);

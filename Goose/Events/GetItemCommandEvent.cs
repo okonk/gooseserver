@@ -9,11 +9,11 @@ namespace Goose.Events
      * /getitem templateid stack
      * 
      */
-    public class GMGetItemCommandEvent : Event
+    public class GetItemCommandEvent : Event
     {
         public static Event Create(Player player, Object data)
         {
-            Event e = new GMGetItemCommandEvent();
+            Event e = new GetItemCommandEvent();
             e.Player = player;
             e.Data = data;
 
@@ -24,7 +24,7 @@ namespace Goose.Events
         {
             if (this.Player.State == Player.States.Ready)
             {
-                if (this.Player.Access != Player.AccessStatus.GameMaster) return;
+                if (!this.Player.HasPrivilege(AccessPrivilege.SpawnItem)) return;
 
                 int id = 0;
                 int stack = 1;

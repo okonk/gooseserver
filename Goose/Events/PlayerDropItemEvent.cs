@@ -49,7 +49,7 @@ namespace Goose.Events
                 if (stack > slot.Stack) return; // log bad stack
 
                 // Can't drop bound item unless gm
-                if (slot.Item.IsBound && this.Player.Access != Player.AccessStatus.GameMaster) return;
+                if (slot.Item.IsBound && !this.Player.HasPrivilege(AccessPrivilege.DropBoundItem)) return;
 
                 ItemSlot drop = this.Player.Inventory.RemoveItem(slot.Item, slot.Stack, world);
                 if (drop == null) return;

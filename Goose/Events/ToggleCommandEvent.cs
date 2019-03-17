@@ -76,7 +76,7 @@ namespace Goose.Events
                         }
                         break;
                     case "invisible":
-                        if (this.Player.Access != Player.AccessStatus.GameMaster)
+                        if (!this.Player.HasPrivilege(AccessPrivilege.GMInvisible))
                         {
                             world.Send(this.Player, "$7/toggle [experience|tell|curse|quest|itembuffs]");
                             return;

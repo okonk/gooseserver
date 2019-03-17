@@ -24,7 +24,7 @@ namespace Goose.Events
         {
             if (this.Player.State == Player.States.Ready)
             {
-                if (this.Player.Access == Player.AccessStatus.GameMaster)
+                if (this.Player.HasPrivilege(AccessPrivilege.Shutdown))
                 {
                     world.Running = false;
                 }

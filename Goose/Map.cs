@@ -52,6 +52,7 @@ namespace Goose
         public bool CanBind { get; set; }
         public bool CanUseItems { get; set; }
         public bool CanSpawnPets { get; set; }
+        public bool Muted { get; set; }
 
         ICharacter[] characters;
         ITile[] tiles;
@@ -450,7 +451,7 @@ namespace Goose
          */
         public bool PlayerCanJoin(Player player, GameWorld world)
         {
-            if (player.Access == Player.AccessStatus.GameMaster) return true;
+            if (player.HasPrivilege(AccessPrivilege.IgnoreMapRequirements)) return true;
 
             if (this.MinLevel != 0 && player.Level < this.MinLevel)
             {

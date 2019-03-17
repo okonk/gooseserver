@@ -11,11 +11,11 @@ namespace Goose.Events
      * kicks player from server
      * 
      */
-    public class GMKickCommandEvent : Event
+    public class KickCommandEvent : Event
     {
         public static Event Create(Player player, Object data)
         {
-            Event e = new GMKickCommandEvent();
+            Event e = new KickCommandEvent();
             e.Player = player;
             e.Data = data;
 
@@ -25,7 +25,7 @@ namespace Goose.Events
         public override void Ready(GameWorld world)
         {
             if (this.Player.State == Player.States.Ready &&
-                this.Player.Access == Player.AccessStatus.GameMaster)
+                this.Player.HasPrivilege(AccessPrivilege.Kick))
             {
                 string name = ((string)this.Data).Substring(6);
                 Player player = world.PlayerHandler.GetPlayer(name);

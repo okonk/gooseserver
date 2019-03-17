@@ -23,7 +23,7 @@ namespace Goose.Events
         public override void Ready(GameWorld world)
         {
             if (this.Player.State == Player.States.Ready && 
-                this.Player.Access == Player.AccessStatus.GameMaster)
+                this.Player.HasPrivilege(AccessPrivilege.Warp))
             {
                 string[] tokens = ((string)this.Data).Split(" ".ToCharArray());
                 int mapid = 1;

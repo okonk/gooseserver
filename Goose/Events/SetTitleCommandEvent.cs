@@ -5,11 +5,11 @@ using System.Text;
 
 namespace Goose.Events
 {
-    class GMSetSurnameCommandEvent : Event
+    class SetTitleCommandEvent : Event
     {
         public static Event Create(Player player, Object data)
         {
-            Event e = new GMSetSurnameCommandEvent();
+            Event e = new SetTitleCommandEvent();
             e.Player = player;
             e.Data = data;
 
@@ -18,32 +18,32 @@ namespace Goose.Events
 
         public override void Ready(GameWorld world)
         {
-            if (this.Player.State == Player.States.Ready &&
-                this.Player.Access == Goose.Player.AccessStatus.GameMaster)
+            if (this.Player.State == Player.States.Ready && 
+                this.Player.HasPrivilege(AccessPrivilege.SetTitle))
             {
                 string[] tokens = ((string)this.Data).Split(" ".ToCharArray(), 3);
-                string name, surname;
+                string name, title;
                 if (tokens.Length < 2)
                 {
-                    world.Send(this.Player, "$7/setsurname <name> <title>");
+                    world.Send(this.Player, "$7/settitle <name> <title>");
                     return;
                 }
                 if (tokens.Length == 2)
                 {
                     name = tokens[1];
-                    surname = "";
+                    title = "";
                 }
                 else
                 {
                     name = tokens[1];
-                    surname = tokens[2];
+                    title = tokens[2];
                 }
 
                 Player player = world.PlayerHandler.GetPlayerFromData(name);
                 if (player != null)
                 {
-                    player.Surname = surname;
-                    world.Send(this.Player, "$7Changed surname successfully.");
+                    player.Title = title;
+                    world.Send(this.Player, "$7Changed title successfully.");
 
                     if (player.State != Goose.Player.States.NotLoggedIn)
                     {

@@ -9,11 +9,11 @@ namespace Goose.Events
      * /spawnnpc id
      * 
      */
-    public class GMSpawnNPCCommandEvent : Event
+    public class SpawnNPCCommandEvent : Event
     {
         public static Event Create(Player player, Object data)
         {
-            Event e = new GMSpawnNPCCommandEvent();
+            Event e = new SpawnNPCCommandEvent();
             e.Player = player;
             e.Data = data;
 
@@ -23,7 +23,7 @@ namespace Goose.Events
         public override void Ready(GameWorld world)
         {
             if (this.Player.State != Player.States.Ready) return;
-            if (this.Player.Access != Player.AccessStatus.GameMaster) return;
+            if (!this.Player.HasPrivilege(AccessPrivilege.SpawnNPC)) return;
 
             int id = 0;
 

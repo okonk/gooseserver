@@ -5,11 +5,11 @@ using System.Text;
 
 namespace Goose.Events
 {
-    class GMGiveExperienceCommandEvent : Event
+    class GiveExperienceCommandEvent : Event
     {
         public static Event Create(Player player, Object data)
         {
-            Event e = new GMGiveExperienceCommandEvent();
+            Event e = new GiveExperienceCommandEvent();
             e.Player = player;
             e.Data = data;
 
@@ -19,7 +19,7 @@ namespace Goose.Events
         public override void Ready(GameWorld world)
         {
             if (this.Player.State == Player.States.Ready &&
-                this.Player.Access == Player.AccessStatus.GameMaster)
+                this.Player.HasPrivilege(AccessPrivilege.GiveExperience))
             {
                 string packet = (string)this.Data;
                 string[] tokens = packet.Split(" ".ToCharArray());

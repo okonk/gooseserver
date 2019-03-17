@@ -20,7 +20,7 @@ namespace Goose.Events
         public override void Ready(GameWorld world)
         {
             if (this.Player.State == Player.States.Ready &&
-                this.Player.Access == Player.AccessStatus.GameMaster)
+                this.Player.HasPrivilege(AccessPrivilege.SetConfig))
             {
                 string data = ((string)this.Data).Substring(11);
 
@@ -48,10 +48,17 @@ namespace Goose.Events
                 else
                 {
                     // Else we have to get a parser from the return type of the getter
-                    // And Set the value to the parsed value
-                    MethodInfo parser = getter.ReturnType.GetMethod("Parse", new Type[] { typeof(string) });
-                    setter.Invoke(GameSettings.Default,
-                        new object[] { parser.Invoke(null, new object[] { tokens[1] }) });
+                    // And Set the value to the parsed 
+                    try
+                    {
+                        MethodInfo parser = getter.ReturnType.GetMethod("Parse", new Type[] { typeof(string) });
+                        setter.Invoke(GameSettings.Default,
+                            new object[] { parser.Invoke(null, new object[] { tokens[1] }) });
+                    }
+                    catch
+                    {
+
+                    }
                 }
 
                 world.SendToAll("$7[GM] Set Game Setting " + tokens[0] + " to: " + tokens[1]);

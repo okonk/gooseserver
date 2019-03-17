@@ -58,6 +58,12 @@ namespace Goose
                         writer.WriteLine(e.StackTrace);
                     }
 
+                    try
+                    {
+                        this.Stop();
+                    }
+                    catch { }
+
                     System.Threading.Thread.Sleep(10000);
                     continue;
                 }

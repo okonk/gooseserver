@@ -19,7 +19,7 @@ namespace Goose.Events
         public override void Ready(GameWorld world)
         {
             if (this.Player.State == Player.States.Ready && 
-                this.Player.Access == Player.AccessStatus.GameMaster)
+                this.Player.HasPrivilege(AccessPrivilege.RespawnMap))
             {
                 foreach (NPC npc in this.Player.Map.NPCs) {
                     if (npc.State == NPC.States.Dead)

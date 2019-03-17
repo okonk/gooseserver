@@ -62,7 +62,7 @@ namespace Goose.Events
                     if (!this.Player.IsGMInvisible)
                     {
                         world.Send(player, this.Player.MKCString());
-                        if (this.Player.Access == Goose.Player.AccessStatus.GameMaster)
+                        if (this.Player.HasPrivilege(AccessPrivilege.GMInvisible))
                         {
                             world.Send(player, gmstring);
                         }
@@ -71,7 +71,7 @@ namespace Goose.Events
                     if (!player.IsGMInvisible)
                     {
                         world.Send(this.Player, player.MKCString());
-                        if (player.Access == Goose.Player.AccessStatus.GameMaster)
+                        if (player.HasPrivilege(AccessPrivilege.GMInvisible))
                         {
                             world.Send(this.Player, "AMA" + player.LoginID + ",1");
                         }
