@@ -145,11 +145,14 @@ namespace Goose
                 {
                     if (((int)spell.SpellEffect.Effected & (int)SpellEffect.SpellEffected.Player) != 0)
                     {
-                        targetType = 2;
+                        if (((int)spell.SpellEffect.Effected & (int)SpellEffect.SpellEffected.NPC) != 0)
+                            targetType = 2; // NPC and Player
+                        else
+                            targetType = 3; // Player only
                     }
                     else
                     {
-                        targetType = 1;
+                        targetType = 1; // NPC only
                     }
                 }
 

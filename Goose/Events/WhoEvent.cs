@@ -65,18 +65,39 @@ namespace Goose.Events
                 {
                     if (player is Pet) continue;
                     if (player.IsGMInvisible) continue;
+                    if (player.IsWhoInvisible && this.Player.Access < player.Access) continue;
 
                     if (player.State == Player.States.Ready)
                     {
-                        world.Send(this.Player, "#[" + player.Map.Name + "] " + (!String.IsNullOrEmpty(player.Title) ? player.Title + " " : "") +
+                        world.Send(this.Player, "#[" + player.Map.Name + "] " + InvisibleDisplay(player) + (!String.IsNullOrEmpty(player.Title) ? player.Title + " " : "") +
                                                 player.Name + (!String.IsNullOrEmpty(player.Surname) ? " " + player.Surname : "") +
-                                                " (Level " + player.Level + " " + player.Class.ClassName + ")");
+                                                " (Level " + player.Level + " " + ClassDisplay(player) + ")");
 
                         matches++;
                     }
                 }
 
                 world.Send(this.Player, "#[Matched " + matches + " players]");
+            }
+        }
+
+        public string InvisibleDisplay(Player player)
+        {
+            if (player.IsWhoInvisible)
+                return "*** Invisible *** ";
+            else
+                return "";
+        }
+
+        public string ClassDisplay(Player player)
+        {
+            if (player.Access > Player.AccessStatus.Normal)
+            {
+                return player.Access.ToString().Replace("Master", " Master");
+            }
+            else
+            {
+                return player.Class.ClassName;
             }
         }
     }

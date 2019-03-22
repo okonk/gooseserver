@@ -26,7 +26,7 @@ namespace Goose.Events
 
                 if (data.Length <= 0) return;
 
-                if ((!this.Player.Map.CanShout || !this.Player.Map.Muted) && this.Player.HasPrivilege(AccessPrivilege.TalkWhileMuted))
+                if ((!this.Player.Map.CanShout || this.Player.Map.Muted) && !this.Player.HasPrivilege(AccessPrivilege.TalkWhileMuted))
                 {
                     world.Send(this.Player, "#Shouting is disabled in this map.");
                     return;

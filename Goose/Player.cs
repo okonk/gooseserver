@@ -358,6 +358,7 @@ namespace Goose
             GMInvisible = 16, // GM only
             GM = 32,
             ItemBuffs = 64,
+            WhoInvisible = 128,
         }
 
         public ToggleSetting ToggleSettings { get; set; }
@@ -365,6 +366,7 @@ namespace Goose
         public bool ChatFilterEnabled { get { return ((this.ToggleSettings & Player.ToggleSetting.WordFilter) == 0); } }
         public bool QuestCreditFilterEnabled { get { return ((this.ToggleSettings & Player.ToggleSetting.QuestCredit) != 0); } }
         public bool IsGMInvisible { get { return (this.HasPrivilege(AccessPrivilege.GMInvisible) && ((this.ToggleSettings & Player.ToggleSetting.GMInvisible) == 0)); } }
+        public bool IsWhoInvisible { get { return (this.HasPrivilege(AccessPrivilege.WhoInvisible) && ((this.ToggleSettings & Player.ToggleSetting.WhoInvisible) == 0)); } }
         public bool IsGM { get { return (this.Access == AccessStatus.GameMaster && ((this.ToggleSettings & Player.ToggleSetting.GM) == 0)); } }
         public bool ShowItemBuffs { get { return ((this.ToggleSettings & Player.ToggleSetting.ItemBuffs) == 0); } }
 
@@ -504,7 +506,7 @@ namespace Goose
                           "0" + "," + // Invis thing
                           (this.CurrentBodyID >= 100 ? "" : this.FaceID + ",") +
                           this.CalculateMoveSpeed() + "," + // Move Speed
-                          "0" + "," + // Player Name Color
+                          (this.Access > AccessStatus.Normal ? "1" : "0") + "," + // Is GM
                           (this.CurrentBodyID >= 100 ? "" : this.Inventory.MountDisplay()); // Mount
         }
 

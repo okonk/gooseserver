@@ -75,6 +75,7 @@ namespace Goose.Events
                             world.Send(this.Player, "$7Quest credit filter is disabled.");
                         }
                         break;
+                    case "gm-invisible":
                     case "invisible":
                         if (!this.Player.HasPrivilege(AccessPrivilege.GMInvisible))
                         {
@@ -98,6 +99,24 @@ namespace Goose.Events
                         {
                             world.Send(this.Player, "$7You are now visible.");
                             this.Player.WarpTo(world, this.Player.Map, this.Player.MapX, this.Player.MapY);
+                        }
+                        break;
+                    case "who-invisible":
+                    case "whoinvisible":
+                        if (!this.Player.HasPrivilege(AccessPrivilege.WhoInvisible))
+                        {
+                            world.Send(this.Player, "$7/toggle [experience|tell|curse|quest|itembuffs]");
+                            return;
+                        }
+
+                        this.Player.ToggleSettings ^= Player.ToggleSetting.WhoInvisible;
+                        if ((this.Player.ToggleSettings & Player.ToggleSetting.WhoInvisible) == 0)
+                        {
+                            world.Send(this.Player, "$7You are now who-invisible.");
+                        }
+                        else
+                        {
+                            world.Send(this.Player, "$7You are now who-visible.");
                         }
                         break;
                     case "itembuffs":
