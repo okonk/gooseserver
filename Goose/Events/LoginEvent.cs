@@ -165,11 +165,34 @@ namespace Goose.Events
                     world.GameServer.Disconnect(this.Player.Sock);
                     return;
                 }
-                else if (player.Access == Goose.Player.AccessStatus.Banned)
+                else if (player.Access == Player.AccessStatus.Banned)
                 {
-                    world.Send(this.Player, "LNOYour character has been banned.");
-                    world.GameServer.Disconnect(this.Player.Sock);
-                    return;
+                    string banRemaining = "";
+                    if (player.UnbanDate.HasValue)
+                    {
+                        if (player.UnbanDate.Value < DateTime.Now)
+                        {
+                            player.Access = Player.AccessStatus.Normal;
+                            player.UnbanDate = null;
+                        }
+                        else
+                        {
+                            var remaining = player.UnbanDate.Value - DateTime.Now;
+                            if (remaining.Days > 0)
+                                banRemaining += " " + remaining.Days + "d";
+                            if (remaining.Hours > 0)
+                                banRemaining += " " + remaining.Hours + "h";
+                            if (remaining.Minutes > 0)
+                                banRemaining += " " + remaining.Minutes + "m";
+                        }
+                    }
+
+                    if (player.Access == Player.AccessStatus.Banned)
+                    {
+                        world.Send(this.Player, "LNOYou have been banned." + banRemaining);
+                        world.GameServer.Disconnect(this.Player.Sock);
+                        return;
+                    }
                 }
             }
 

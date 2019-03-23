@@ -34,6 +34,11 @@ namespace Goose
             GiveExperience = 19,
             RespawnMap = 20,
             SpawnedNPC = 21,
+            MacroCheck = 22,
+            MacroCheckConfirm = 23,
+            MacroCheckFailed = 24,
+            Ban,
+            Kick,
         }
 
         public Types Type { get; set; }

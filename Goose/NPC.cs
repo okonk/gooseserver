@@ -223,6 +223,11 @@ namespace Goose
          * Respawn time in seconds
          */
         public int RespawnTime { get; set; }
+
+        public long LastSpawnTime { get; set; }
+
+        public int LastRespawnTimeSeconds { get; set; }
+
         /**
          * Aggro range in tiles
          */
@@ -620,6 +625,7 @@ namespace Goose
             this.NPCTemplate = template;
             this.NPCType = template.NPCType;
             this.RespawnTime = template.RespawnTime;
+            this.LastRespawnTimeSeconds = this.RespawnTime;
             this.Surname = template.Surname;
             this.Title = template.Title;
             this.WeaponDamage = template.WeaponDamage;
@@ -648,6 +654,8 @@ namespace Goose
         public void Spawn(GameWorld world)
         {
             world.NPCHandler.AssignNewId(world, this);
+
+            this.LastSpawnTime = world.TimeNow;
 
             this.MapX = this.SpawnX;
             this.MapY = this.SpawnY;
@@ -1185,7 +1193,17 @@ namespace Goose
         public void AddRespawnEvent(GameWorld world)
         {
             // some variance in respawn to help stop basic macroing
-            int respawnTime = world.Random.Next((int)(this.RespawnTime * 0.85), (int)(this.RespawnTime * 1.15) + 1);
+            int respawnTime = world.Random.Next((int)(this.LastRespawnTimeSeconds * 0.85), (int)(this.LastRespawnTimeSeconds * 1.15) + 1);
+
+            if (this.RespawnTime < 120)
+            {
+                // Some more variance to hopefully force people to move around rather than macro in 1 spot
+                long timeNow = world.TimeNow;
+                long timeSinceSpawned = (this.LastSpawnTime - timeNow) / world.TimerFrequency;
+
+                respawnTime = Math.Min(Math.Max(this.RespawnTime, (int)((respawnTime * GameSettings.Default.RespawnTimeBackoff) - timeSinceSpawned)), 300);
+                this.LastRespawnTimeSeconds = respawnTime;
+            }
 
             NPCSpawnEvent ev = new NPCSpawnEvent();
             ev.Ticks += (long)(respawnTime * world.TimerFrequency);

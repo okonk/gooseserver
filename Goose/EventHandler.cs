@@ -140,6 +140,8 @@ namespace Goose
             this.stringToEvent.Add("SID", SpellInfoEvent.Create);
             this.stringToEvent.Add("/mutemap", MuteMapEvent.Create);
             this.stringToEvent.Add("/setaccess", SetAccessCommandEvent.Create);
+            this.stringToEvent.Add("/macrocheck ", MacroCheckCommandEvent.Create);
+            this.stringToEvent.Add("/mc ", MacroConfirmCommandEvent.Create);
         }
 
         /**

@@ -44,6 +44,7 @@ namespace Goose
             Bank,
             Quest,
             SpellInfo,
+            MacroCheck,
         }
         public WindowTypes Type { get; set; }
 

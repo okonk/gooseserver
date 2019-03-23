@@ -27,12 +27,21 @@ namespace Goose.Events
             if (this.Player.State == Player.States.Ready &&
                 this.Player.HasPrivilege(AccessPrivilege.Ban))
             {
-                string name = ((string)this.Data).Substring(5);
-                Player player = world.PlayerHandler.GetPlayerFromData(name);
+                string[] tokens = ((string)this.Data).Split(" ".ToCharArray(), 3);
+
+                Player player = world.PlayerHandler.GetPlayerFromData(tokens[1]);
                 if (player != null)
                 {
+                    int daysToBan;
+                    if (tokens.Length <= 2 || !int.TryParse(tokens[2], out daysToBan))
+                        daysToBan = 1000;
+
                     player.Access = Player.AccessStatus.Banned;
-                    world.Send(this.Player, "$7Banned " + name + ".");
+                    this.Player.UnbanDate = DateTime.Now.AddDays(daysToBan);
+
+                    world.Send(this.Player, "$7Banned " + tokens[1] + " for " + daysToBan + " days.");
+
+                    world.LogHandler.Log(Log.Types.Ban, this.Player.PlayerID, "", player.PlayerID);
 
                     if (player.State != Goose.Player.States.NotLoggedIn)
                     {

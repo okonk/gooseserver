@@ -165,7 +165,7 @@ namespace Goose
                     targetType + "," +
                     spell.Graphic + "," +
                     spell.GraphicFile + "," +
-                    spell.Aether);
+                    (spell.Aether > TimeSpan.FromHours(1).TotalMilliseconds ? 5000 : spell.Aether));
             }
             else
             {

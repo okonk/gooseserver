@@ -1,8 +1,10 @@
 /macrocheck command
 Spell to spawn npcs
 Spawn time increases the more repeatedly npcs are killed (goal is to force people to move around the map and not stay in 1 spot longer than ~10 mins)
+fix daily spell cooldown
 
 ban with timer -- also store the time in DB to auto unban
+Change experience display in ranks to "mil", "bil"
 
 fix casting of spells/attacking while on mount, maybe can also undo the change made for mounts/illusions
 command to check player's inventory

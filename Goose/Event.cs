@@ -16,9 +16,6 @@ namespace Goose
         [DllImport("Kernel32.dll")]
         private static extern bool QueryPerformanceCounter(
             out long lpPerformanceCount);
-        [DllImport("Kernel32.dll")]
-        private static extern bool QueryPerformanceFrequency(
-            out long lpPerformanceFrequency);
 
         /**
          * Constructor

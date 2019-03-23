@@ -52,6 +52,8 @@ CREATE TABLE players (
   total_afktime BIGINT DEFAULT 0 NOT NULL,
   move_speed INT DEFAULT 320 NOT NULL,
   bank_pages INT DEFAULT 3 NOT NULL,
+  unban_date DATETIME2 DEFAULT NULL,
+  macrocheck_failures INT DEFAULT 0 NOT NULL,
   
   PRIMARY KEY(player_id)
 );

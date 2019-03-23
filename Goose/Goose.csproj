@@ -207,9 +207,13 @@
     <Compile Include="ClassLevel.cs" />
     <Compile Include="Combination.cs" />
     <Compile Include="CombinationHandler.cs" />
+    <Compile Include="Events\MacroConfirmCommandEvent.cs" />
+    <Compile Include="Events\MacroCheckCommandEvent.cs" />
+    <Compile Include="Events\MacroCheckEvent.cs" />
     <Compile Include="Events\SetAccessCommandEvent.cs" />
     <Compile Include="Events\MuteMapEvent.cs" />
     <Compile Include="Events\SpellInfoEvent.cs" />
+    <Compile Include="MacroCheckWindow.cs" />
     <Compile Include="Scripting\BaseNPCScript.cs" />
     <Compile Include="Scripting\INPCScript.cs" />
     <Compile Include="Scripting\IScript.cs" />

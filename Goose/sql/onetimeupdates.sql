@@ -19,3 +19,7 @@ CREATE INDEX pets_owner_id_idx ON pets (owner_id);
 
 CREATE INDEX guild_members_guild_id_idx ON guild_members (guild_id);
 ALTER TABLE guild_members ADD PRIMARY KEY CLUSTERED (guild_id ASC, player_id ASC); -- not currently active, could be dodgy since DB contains multiple values for guild_id, player_id already which violates the index
+
+
+ALTER TABLE players ADD unban_date DATETIME2 DEFAULT NULL;
+ALTER TABLE players ADD macrocheck_failures INT DEFAULT 0 NOT NULL;

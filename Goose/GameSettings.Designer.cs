@@ -1350,5 +1350,17 @@ namespace Goose {
                 this["CustomTicketId"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("1.05")]
+        public double RespawnTimeBackoff {
+            get {
+                return ((double)(this["RespawnTimeBackoff"]));
+            }
+            set {
+                this["RespawnTimeBackoff"] = value;
+            }
+        }
     }
 }

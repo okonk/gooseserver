@@ -408,6 +408,15 @@ namespace Goose
         internal List<QuestStarted> QuestsStarted { get; set; }
         internal List<QuestProgress> QuestProgress { get; set; }
 
+        public int MacroCheckFailures { get; set; }
+
+        public long LastMacroCheckTime { get; set; }
+
+        public MacroCheckEvent MacroCheckEvent { get; set; }
+
+        public DateTime? UnbanDate { get; set; }
+
+
         /**
          * Constructor
          * 
@@ -735,6 +744,11 @@ namespace Goose
             this.TotalPlayTime = Convert.ToInt64(reader["total_playtime"]);
             this.TotalAfkTime = Convert.ToInt64(reader["total_afktime"]);
 
+            var unbanDate = reader["unban_date"];
+            this.UnbanDate = (unbanDate == DBNull.Value ? null : (DateTime?)unbanDate);
+
+            this.MacroCheckFailures = Convert.ToInt32(reader["macrocheck_failures"]);
+
             this.LastActive = world.TimeNow;
             this.LastPlaytimeUpdate = world.TimeNow;
         }
@@ -820,6 +834,9 @@ namespace Goose
             playerTitleParam.Value = this.Title;
             SqlParameter playerSurnameParam = new SqlParameter("@playerSurname", SqlDbType.VarChar, 50);
             playerSurnameParam.Value = this.Surname;
+            SqlParameter unbanDateParam = new SqlParameter("@unbanDate", SqlDbType.DateTime2);
+            unbanDateParam.Value = this.UnbanDate;
+            unbanDateParam.IsNullable = true;
 
             if (this.GuildID == 0 && this.Guild != null) this.Guild.Save(world);
 
@@ -831,7 +848,7 @@ namespace Goose
                     "player_hp, player_mp, player_sp, class_id, guild_id, stat_ac, stat_str, stat_sta, " +
                     "stat_dex, stat_int, res_fire, res_water, res_spirit, res_air, res_earth, body_id, body_r, body_g, body_b, body_a, " +
                     "face_id, hair_id, hair_r, hair_g, hair_b, hair_a, aether_threshold, toggle_settings, " +
-                    "donation_credits, total_playtime, total_afktime, move_speed, bank_pages) VALUES" +
+                    "donation_credits, total_playtime, total_afktime, move_speed, bank_pages, macrocheck_failures) VALUES" +
                     "(" +
                     this.PlayerID + "," +
                     " @playerName, @playerTitle, @playerSurname, " +
@@ -881,7 +898,9 @@ namespace Goose
                     this.TotalPlayTime + ", " +
                     this.TotalAfkTime + ", " +
                     this.BaseStats.MoveSpeed + ", " +
-                    this.NumberOfBankPages +
+                    this.NumberOfBankPages + ", " +
+                    //"@unbanDate, " +
+                    this.MacroCheckFailures +
                     ")";
 
                 this.AutoCreatedNotSaved = false;
@@ -890,6 +909,7 @@ namespace Goose
                 command.Parameters.Add(playerNameParam);
                 command.Parameters.Add(playerTitleParam);
                 command.Parameters.Add(playerSurnameParam);
+                //command.Parameters.Add(unbanDateParam);
                 command.BeginExecuteNonQuery(new AsyncCallback(GameWorld.DefaultEndExecuteNonQueryAsyncCallback), command);
             }
             else
@@ -944,13 +964,16 @@ namespace Goose
                     "total_playtime=" + this.TotalPlayTime + ", " +
                     "total_afktime=" + this.TotalAfkTime + ", " +
                     "move_speed=" + this.BaseStats.MoveSpeed + ", " +
-                    "bank_pages=" + this.NumberOfBankPages + " " +
+                    "bank_pages=" + this.NumberOfBankPages + ", " +
+                    //"unban_date=@unbanDate, " +
+                    "macrocheck_failures=" + this.MacroCheckFailures + " " +
                     "WHERE player_id=" + this.PlayerID;
 
                 SqlCommand command = new SqlCommand(query, world.SqlConnection);
                 command.Parameters.Add(playerNameParam);
                 command.Parameters.Add(playerTitleParam);
                 command.Parameters.Add(playerSurnameParam);
+                //command.Parameters.Add(unbanDateParam);
                 command.BeginExecuteNonQuery(new AsyncCallback(GameWorld.DefaultEndExecuteNonQueryAsyncCallback), command);
             }
 
