@@ -22,8 +22,8 @@ namespace Goose
         Ban,
         SetTitle,
         SetSurname,
-        ChangeName,
         MacroCheck,
+        ChangeName,
         DropBoundItem,
         IgnoreItemRequirements,
         RespawnMap,
@@ -32,6 +32,7 @@ namespace Goose
         SpawnItem,
         GiveExperience,
         ClassChange,
+        ReloadScripts,
         GMInvisible,
         SetAccess,
         SetConfig,
@@ -49,7 +50,7 @@ namespace Goose
             accessPrivileges[Player.AccessStatus.Guide] = new HashSet<AccessPrivilege>
             {
                 AccessPrivilege.IgnoreMapRequirements, AccessPrivilege.Warp, AccessPrivilege.Approach, AccessPrivilege.TalkWhileMuted, AccessPrivilege.CastSpellsWhileBlocked, AccessPrivilege.MuteMap, AccessPrivilege.MutePlayer, AccessPrivilege.Broadcast, AccessPrivilege.WhoInvisible,
-                AccessPrivilege.Summon, AccessPrivilege.Kick, AccessPrivilege.Ban, AccessPrivilege.SetTitle, AccessPrivilege.SetSurname, AccessPrivilege.ChangeName, AccessPrivilege.MacroCheck, AccessPrivilege.Search, AccessPrivilege.SpawnNPC
+                AccessPrivilege.Summon, AccessPrivilege.Kick, AccessPrivilege.Ban, AccessPrivilege.SetTitle, AccessPrivilege.SetSurname, AccessPrivilege.MacroCheck
             };
             accessPrivileges[Player.AccessStatus.EventMaster] = new HashSet<AccessPrivilege>
             {

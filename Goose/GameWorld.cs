@@ -349,6 +349,8 @@ namespace Goose
          */
         public void Stop()
         {
+            this.Running = false;
+
             Console.WriteLine("Shutting down server.");
             Console.WriteLine("Clearing maps.");
             foreach (Map map in this.MapHandler.Maps)

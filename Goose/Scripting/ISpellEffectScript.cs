@@ -6,8 +6,8 @@ using System.Threading.Tasks;
 
 namespace Goose.Scripting
 {
-    public interface IScript
+    public interface ISpellEffectScript
     {
-        void LoadScript();
+        bool Cast(SpellEffect thisEffect, ICharacter caster, ICharacter target, GameWorld world);
     }
 }

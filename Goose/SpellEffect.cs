@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 
 using System.Collections;
+using Goose.Scripting;
 
 namespace Goose
 {
@@ -89,7 +90,8 @@ namespace Goose
             PetDefend,
             PetDestroy,
             PetFollow,
-            PetNeutral = 20
+            PetNeutral = 20,
+            Script
         }
 
         /**
@@ -216,6 +218,10 @@ namespace Goose
          * Body ID
          */
         public int BodyID { get; set; }
+
+        public Script<ISpellEffectScript> Script { get; set; }
+
+        public string ScriptData { get; set; }
 
         // Used in random spell
         struct Point
@@ -1026,7 +1032,19 @@ namespace Goose
         {
             if (!this.WorksInPVP && target.Map.CanPVP) return false;
 
-            if (this.TargetType == TargetTypes.Target)
+            if (this.EffectType == EffectTypes.Script)
+            {
+                try
+                {
+                    return this.Script.Object.Cast(this, caster, target, world);
+                }
+                catch (Exception e)
+                {
+                    // TODO: need logging system
+                    return false;
+                }
+            }
+            else if (this.TargetType == TargetTypes.Target)
             {
                 return this.CastSpell(caster, target, world);
             }

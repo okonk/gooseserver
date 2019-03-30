@@ -23,3 +23,14 @@ ALTER TABLE guild_members ADD PRIMARY KEY CLUSTERED (guild_id ASC, player_id ASC
 
 ALTER TABLE players ADD unban_date DATETIME2 DEFAULT NULL;
 ALTER TABLE players ADD macrocheck_failures INT DEFAULT 0 NOT NULL;
+
+ALTER TABLE spell_effects ADD script_path TEXT DEFAULT '' NOT NULL;
+ALTER TABLE spell_effects ADD script_data TEXT DEFAULT '' NOT NULL;
+
+
+SELECT
+      [progress_value]
+	  ,n.npc_name
+  FROM [dbo].[quest_progress] p, quest_requirements r, npc_templates n
+  where p.requirement_id = r.id and n.npc_id = r.requirement_value and
+  player_id = 3 and requirement_id >= 43 and requirement_id <= 57

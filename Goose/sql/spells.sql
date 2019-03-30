@@ -153,6 +153,9 @@ CREATE TABLE spell_effects (
   snare_percent DECIMAL(5,2) DEFAULT 0 NOT NULL,
   
   only_hits_one_npc CHAR(1) DEFAULT '0' NOT NULL,
+
+  script_path TEXT DEFAULT '' NOT NULL,
+  script_data TEXT DEFAULT '' NOT NULL,
   
   PRIMARY KEY (spell_effect_id)
 );

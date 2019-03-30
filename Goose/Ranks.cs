@@ -68,7 +68,7 @@ namespace Goose
                 case RankTypes.All:
                     result = (from p in world.PlayerHandler.GetAllPlayerData()
                               where p.Access == Player.AccessStatus.Normal
-                              orderby p.Experience + p.ExperienceSold descending
+                              orderby p.ExperienceSold descending
                               select p).Take(GameSettings.Default.NumberOfRanks).ToList();
                     break;
                 case RankTypes.Gold:
@@ -80,25 +80,25 @@ namespace Goose
                 case RankTypes.Magus:
                     result = (from p in world.PlayerHandler.GetAllPlayerData()
                               where p.ClassID == 4 && p.Access == Player.AccessStatus.Normal
-                              orderby p.Experience + p.ExperienceSold descending
+                              orderby p.ExperienceSold descending
                               select p).Take(GameSettings.Default.NumberOfRanks).ToList();
                     break;
                 case RankTypes.Priest:
                     result = (from p in world.PlayerHandler.GetAllPlayerData()
                               where p.ClassID == 5 && p.Access == Player.AccessStatus.Normal
-                              orderby p.Experience + p.ExperienceSold descending
+                              orderby p.ExperienceSold descending
                               select p).Take(GameSettings.Default.NumberOfRanks).ToList();
                     break;
                 case RankTypes.Rogue:
                     result = (from p in world.PlayerHandler.GetAllPlayerData()
                               where p.ClassID == 2 && p.Access == Player.AccessStatus.Normal
-                              orderby p.Experience + p.ExperienceSold descending
+                              orderby p.ExperienceSold descending
                               select p).Take(GameSettings.Default.NumberOfRanks).ToList();
                     break;
                 case RankTypes.Warrior:
                     result = (from p in world.PlayerHandler.GetAllPlayerData()
                               where p.ClassID == 3 && p.Access == Player.AccessStatus.Normal
-                              orderby p.Experience + p.ExperienceSold descending
+                              orderby p.ExperienceSold descending
                               select p).Take(GameSettings.Default.NumberOfRanks).ToList();
                     break;
             }
@@ -114,16 +114,16 @@ namespace Goose
                     case RankTypes.Rogue:
                     case RankTypes.Warrior:
                         line = i + ". " + player.Name + ", " +
-                            (player.Experience + player.ExperienceSold) + " xp";
+                            FormatNumber(player.ExperienceSold) + " xp";
                         break;
                     case RankTypes.All:
                         line = i + ". " + player.Name + ", " + 
                             player.Class.ClassName +
-                            ", " + (player.Experience + player.ExperienceSold) + " xp";
+                            ", " + FormatNumber(player.ExperienceSold) + " xp";
                         break;
                     case RankTypes.Gold:
                         line = i + ". " + player.Name + ", " +
-                            player.Gold + " gp";
+                            FormatNumber(player.Gold) + " gp";
                         break;
                 }
                 i++;
@@ -136,6 +136,22 @@ namespace Goose
             }
 
             this.lastUpdated = world.TimeNow;
+        }
+
+        private static string FormatNumber(long num)
+        {
+            // Ensure number has max 3 significant digits (no rounding up can happen)
+            long i = (long)Math.Pow(10, (int)Math.Max(0, Math.Log10(num) - 2));
+            num = num / i * i;
+
+            if (num >= 1000000000)
+                return (num / 1000000000D).ToString("0.##") + "b";
+            if (num >= 1000000)
+                return (num / 1000000D).ToString("0.##") + "m";
+            if (num >= 1000)
+                return (num / 1000D).ToString("0.##") + "k";
+
+            return num.ToString("#,0");
         }
     }
 }

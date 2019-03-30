@@ -142,6 +142,7 @@ namespace Goose
             this.stringToEvent.Add("/setaccess", SetAccessCommandEvent.Create);
             this.stringToEvent.Add("/macrocheck ", MacroCheckCommandEvent.Create);
             this.stringToEvent.Add("/mc ", MacroConfirmCommandEvent.Create);
+            this.stringToEvent.Add("/reloadscripts", ReloadScriptsCommandEvent.Create);
         }
 
         /**
@@ -218,9 +219,9 @@ namespace Goose
             {
                 Event ev = readyEvents[i];
 
-                ev.Ready(world);
+                ev?.Ready(world);
 
-                if ((index = this.events.IndexOfValue(ev)) < readyEvents.Count)
+                if ((index = this.events.IndexOfValue(ev)) < readyEvents.Count && index > -1)
                 {
                     this.events.RemoveAt(index);
                 }

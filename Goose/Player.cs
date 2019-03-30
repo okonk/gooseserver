@@ -835,7 +835,10 @@ namespace Goose
             SqlParameter playerSurnameParam = new SqlParameter("@playerSurname", SqlDbType.VarChar, 50);
             playerSurnameParam.Value = this.Surname;
             SqlParameter unbanDateParam = new SqlParameter("@unbanDate", SqlDbType.DateTime2);
-            unbanDateParam.Value = this.UnbanDate;
+            if (this.UnbanDate.HasValue)
+                unbanDateParam.Value = this.UnbanDate.Value;
+            else
+                unbanDateParam.Value = DBNull.Value;
             unbanDateParam.IsNullable = true;
 
             if (this.GuildID == 0 && this.Guild != null) this.Guild.Save(world);
@@ -848,7 +851,7 @@ namespace Goose
                     "player_hp, player_mp, player_sp, class_id, guild_id, stat_ac, stat_str, stat_sta, " +
                     "stat_dex, stat_int, res_fire, res_water, res_spirit, res_air, res_earth, body_id, body_r, body_g, body_b, body_a, " +
                     "face_id, hair_id, hair_r, hair_g, hair_b, hair_a, aether_threshold, toggle_settings, " +
-                    "donation_credits, total_playtime, total_afktime, move_speed, bank_pages, macrocheck_failures) VALUES" +
+                    "donation_credits, total_playtime, total_afktime, move_speed, bank_pages, unban_date, macrocheck_failures) VALUES" +
                     "(" +
                     this.PlayerID + "," +
                     " @playerName, @playerTitle, @playerSurname, " +
@@ -899,7 +902,7 @@ namespace Goose
                     this.TotalAfkTime + ", " +
                     this.BaseStats.MoveSpeed + ", " +
                     this.NumberOfBankPages + ", " +
-                    //"@unbanDate, " +
+                    "@unbanDate, " +
                     this.MacroCheckFailures +
                     ")";
 
@@ -909,7 +912,7 @@ namespace Goose
                 command.Parameters.Add(playerNameParam);
                 command.Parameters.Add(playerTitleParam);
                 command.Parameters.Add(playerSurnameParam);
-                //command.Parameters.Add(unbanDateParam);
+                command.Parameters.Add(unbanDateParam);
                 command.BeginExecuteNonQuery(new AsyncCallback(GameWorld.DefaultEndExecuteNonQueryAsyncCallback), command);
             }
             else
@@ -965,7 +968,7 @@ namespace Goose
                     "total_afktime=" + this.TotalAfkTime + ", " +
                     "move_speed=" + this.BaseStats.MoveSpeed + ", " +
                     "bank_pages=" + this.NumberOfBankPages + ", " +
-                    //"unban_date=@unbanDate, " +
+                    "unban_date=@unbanDate, " +
                     "macrocheck_failures=" + this.MacroCheckFailures + " " +
                     "WHERE player_id=" + this.PlayerID;
 
@@ -973,7 +976,7 @@ namespace Goose
                 command.Parameters.Add(playerNameParam);
                 command.Parameters.Add(playerTitleParam);
                 command.Parameters.Add(playerSurnameParam);
-                //command.Parameters.Add(unbanDateParam);
+                command.Parameters.Add(unbanDateParam);
                 command.BeginExecuteNonQuery(new AsyncCallback(GameWorld.DefaultEndExecuteNonQueryAsyncCallback), command);
             }
 

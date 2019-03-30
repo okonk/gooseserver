@@ -22,50 +22,57 @@ namespace Goose.Events
             if (this.Player.State != Player.States.Ready) return;
             if (!this.Player.HasPrivilege(AccessPrivilege.Search)) return;
 
-            string[] tokens = ((string)this.Data).Split(" ".ToCharArray(), 3);
-            string command, name;
-            if (tokens.Length < 3)
+            try
             {
-                world.Send(this.Player, "$7/search [item|npc] name");
-                return;
-            }
-            else
-            {
-                command = tokens[1];
-                name = tokens[2];
-            }
+                string[] tokens = ((string)this.Data).Split(" ".ToCharArray(), 3);
+                string command, name;
+                if (tokens.Length < 3)
+                {
+                    world.Send(this.Player, "$7/search [item|npc] name");
+                    return;
+                }
+                else
+                {
+                    command = tokens[1];
+                    name = tokens[2];
+                }
 
-            var regex = new Regex(name, RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
+                var regex = new Regex(name, RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
 
-            switch (command.ToLowerInvariant())
-            {
-                case "item":
-                    {
-                        var templates = world.ItemHandler.GetTemplates();
-                        var matched = templates.Where(i => regex.IsMatch(i.Name)).OrderBy(i => i.ID).ToArray();
-
-                        foreach (var item in matched)
+                switch (command.ToLowerInvariant())
+                {
+                    case "item":
                         {
-                            world.Send(this.Player, string.Format("$7{0} - {1}", item.ID, item.Name));
+                            var templates = world.ItemHandler.GetTemplates();
+                            var matched = templates.Where(i => regex.IsMatch(i.Name)).OrderBy(i => i.ID).ToArray();
+
+                            foreach (var item in matched)
+                            {
+                                world.Send(this.Player, string.Format("$7{0} - {1}", item.ID, item.Name));
+                            }
+
+                            world.Send(this.Player, string.Format("$7[Matched {0} items]", matched.Length));
+
+                            break;
                         }
-
-                        world.Send(this.Player, string.Format("$7[Matched {0} items]", matched.Length));
-
-                        break;
-                    }
-                case "npc":
-                    {
-                        var templates = world.NPCHandler.GetTemplates();
-                        var matched = templates.Where(n => regex.IsMatch(n.Name)).OrderBy(i => i.NPCTemplateID).ToArray();
-
-                        foreach (var npc in matched)
+                    case "npc":
                         {
-                            world.Send(this.Player, string.Format("$7{0} - {1}", npc.NPCTemplateID, npc.Name));
-                        }
+                            var templates = world.NPCHandler.GetTemplates();
+                            var matched = templates.Where(n => regex.IsMatch(n.Name)).OrderBy(i => i.NPCTemplateID).ToArray();
 
-                        world.Send(this.Player, string.Format("$7[Matched {0} npcs]", matched.Length));
-                        break;
-                    }
+                            foreach (var npc in matched)
+                            {
+                                world.Send(this.Player, string.Format("$7{0} - {1}", npc.NPCTemplateID, npc.Name));
+                            }
+
+                            world.Send(this.Player, string.Format("$7[Matched {0} npcs]", matched.Length));
+                            break;
+                        }
+                }
+            }
+            catch
+            {
+                world.Send(this.Player, "$7Invalid search pattern or arguments");
             }
         }
     }

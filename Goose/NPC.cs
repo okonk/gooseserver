@@ -368,7 +368,14 @@ namespace Goose
 
         public void OnMoveEvent(GameWorld world)
         {
-            this.Script.Object.OnMoveEvent(this, world);
+            try
+            {
+                this.Script.Object.OnMoveEvent(this, world);
+            }
+            catch (Exception e)
+            {
+                // TODO: need a logging system
+            }
         }
 
         public void HandleMoveEvent(GameWorld world)
@@ -1192,18 +1199,19 @@ namespace Goose
          */
         public void AddRespawnEvent(GameWorld world)
         {
-            // some variance in respawn to help stop basic macroing
-            int respawnTime = world.Random.Next((int)(this.LastRespawnTimeSeconds * 0.85), (int)(this.LastRespawnTimeSeconds * 1.15) + 1);
+            int respawnTime = this.LastRespawnTimeSeconds;
 
             if (this.RespawnTime < 120)
             {
                 // Some more variance to hopefully force people to move around rather than macro in 1 spot
                 long timeNow = world.TimeNow;
-                long timeSinceSpawned = (this.LastSpawnTime - timeNow) / world.TimerFrequency;
+                long timeSinceSpawned = (timeNow - this.LastSpawnTime) / world.TimerFrequency;
 
                 respawnTime = Math.Min(Math.Max(this.RespawnTime, (int)((respawnTime * GameSettings.Default.RespawnTimeBackoff) - timeSinceSpawned)), 300);
                 this.LastRespawnTimeSeconds = respawnTime;
             }
+
+            respawnTime = world.Random.Next((int)(respawnTime * 0.85), (int)(respawnTime * 1.15) + 1);
 
             NPCSpawnEvent ev = new NPCSpawnEvent();
             ev.Ticks += (long)(respawnTime * world.TimerFrequency);
@@ -1224,7 +1232,14 @@ namespace Goose
 
         public void OnAttackEvent(GameWorld world)
         {
-            this.Script.Object.OnAttackEvent(this, world);
+            try
+            {
+                this.Script.Object.OnAttackEvent(this, world);
+            }
+            catch (Exception e)
+            {
+                // TODO: need a logging system
+            }
         }
 
         public void HandleAttackEvent(GameWorld world)

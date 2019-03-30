@@ -37,5 +37,20 @@ namespace Goose.Scripting
 
             return script;
         }
+
+        public void ReloadScripts()
+        {
+            foreach (var kvp in scripts)
+            {
+                try
+                {
+                    kvp.Value.LoadScript();
+                }
+                catch (Exception e)
+                {
+                    throw new Exception(string.Format("Failed loading {0}: {1}", kvp.Key, e.Message));
+                }
+            }
+        }
     }
 }

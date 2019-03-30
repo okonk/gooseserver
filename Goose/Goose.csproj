@@ -59,6 +59,9 @@
     <Reference Include="Microsoft.CodeAnalysis.Scripting, Version=2.9.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.CodeAnalysis.Scripting.Common.2.9.0\lib\netstandard1.3\Microsoft.CodeAnalysis.Scripting.dll</HintPath>
     </Reference>
+    <Reference Include="Newtonsoft.Json, Version=6.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.6.0.4\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.AppContext, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\packages\System.AppContext.4.3.0\lib\net46\System.AppContext.dll</HintPath>
@@ -210,11 +213,13 @@
     <Compile Include="Events\MacroConfirmCommandEvent.cs" />
     <Compile Include="Events\MacroCheckCommandEvent.cs" />
     <Compile Include="Events\MacroCheckEvent.cs" />
+    <Compile Include="Events\ReloadScriptsCommandEvent.cs" />
     <Compile Include="Events\SetAccessCommandEvent.cs" />
     <Compile Include="Events\MuteMapEvent.cs" />
     <Compile Include="Events\SpellInfoEvent.cs" />
     <Compile Include="MacroCheckWindow.cs" />
     <Compile Include="Scripting\BaseNPCScript.cs" />
+    <Compile Include="Scripting\ISpellEffectScript.cs" />
     <Compile Include="Scripting\INPCScript.cs" />
     <Compile Include="Scripting\IScript.cs" />
     <Compile Include="Scripting\Script.cs" />
@@ -397,6 +402,18 @@
       <LastGenOutput>GameSettings.Designer.cs</LastGenOutput>
     </None>
     <None Include="packages.config" />
+    <None Include="Scripts\Spell\TestSpell1.csx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Scripts\Spell\TestSpell2.csx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Scripts\Spell\TestSpell3.csx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Scripts\Spell\SpawnNPCScript.csx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="Scripts\NPC\BaseNPC.csx">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -446,6 +463,7 @@
     <Analyzer Include="..\packages\Microsoft.CodeAnalysis.Analyzers.2.6.1\analyzers\dotnet\cs\Microsoft.CodeAnalysis.CSharp.Analyzers.dll" />
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="Scripts\Item\" />
     <Folder Include="Scripts\Map\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

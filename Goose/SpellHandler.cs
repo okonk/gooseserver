@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Collections;
 using System.Data.SqlClient;
+using Goose.Scripting;
 
 namespace Goose
 {
@@ -127,6 +128,12 @@ namespace Goose
                 effect.BuffDoesntStackOver = new List<SpellEffect>();
 
                 effect.OnlyHitsOneNPC = ("0".Equals(Convert.ToString(reader["only_hits_one_npc"])) ? false : true);
+
+                if (effect.EffectType == SpellEffect.EffectTypes.Script)
+                {
+                    effect.Script = world.ScriptHandler.GetScript<ISpellEffectScript>(Convert.ToString(reader["script_path"]));
+                    effect.ScriptData = Convert.ToString(reader["script_data"]);
+                }
 
                 this.effects[effect.ID] = effect;
             }
