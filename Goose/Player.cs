@@ -2171,7 +2171,7 @@ namespace Goose
             }
 
             // for illusions
-            if (buff.SpellEffect.BodyID != 0 && this.Inventory.GetEquippedSlot(Inventory.EquipSlots.Mount) == null)
+            if (buff.SpellEffect.BodyID != 0 && !IsMounted())
             {
                 this.CurrentBodyID = buff.SpellEffect.BodyID;
                 packet += "\x1" + this.CHPString();
@@ -2192,6 +2192,11 @@ namespace Goose
             }
 
             if (refreshbar) this.SendBuffBar(world);
+        }
+
+        public bool IsMounted()
+        {
+            return this.Inventory.GetEquippedSlot(Inventory.EquipSlots.Mount) != null;
         }
 
         public void RemoveBuff(Buff buff, GameWorld world)

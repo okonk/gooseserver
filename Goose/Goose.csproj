@@ -213,6 +213,7 @@
     <Compile Include="Events\MacroConfirmCommandEvent.cs" />
     <Compile Include="Events\MacroCheckCommandEvent.cs" />
     <Compile Include="Events\MacroCheckEvent.cs" />
+    <Compile Include="Events\ReloadSqlCommandEvent.cs" />
     <Compile Include="Events\ReloadScriptsCommandEvent.cs" />
     <Compile Include="Events\SetAccessCommandEvent.cs" />
     <Compile Include="Events\MuteMapEvent.cs" />
@@ -411,7 +412,7 @@
     <None Include="Scripts\Spell\TestSpell3.csx">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="Scripts\Spell\SpawnNPCScript.csx">
+    <None Include="Scripts\Spell\SpawnNPC.csx">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="Scripts\NPC\BaseNPC.csx">

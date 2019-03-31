@@ -54,6 +54,8 @@ namespace Goose
         public bool CanSpawnPets { get; set; }
         public bool Muted { get; set; }
 
+        public object ScriptStore { get; set; }
+
         ICharacter[] characters;
         ITile[] tiles;
         List<Player> players;

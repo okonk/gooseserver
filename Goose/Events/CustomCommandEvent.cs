@@ -75,6 +75,7 @@ namespace Goose.Events
 
                         Item item = new Item();
                         item.LoadFromTemplate(statsSlot.Item.Template);
+                        item.StatMultiplier = statsSlot.Item.StatMultiplier;
                         item.BodyState = lookSlot.Item.BodyState;
                         item.GraphicEquipped = lookSlot.Item.GraphicEquipped;
                         item.GraphicR = r;

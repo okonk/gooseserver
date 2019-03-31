@@ -28,10 +28,11 @@ namespace Goose.Events
 
                 int id = 0;
                 int stack = 1;
+                bool powerful = false;
 
-                string[] t = ((string)this.Data).Split(" ".ToCharArray());
+                string[] t = ((string)this.Data).Split(" ".ToCharArray(), 5);
 
-                if (t.Length <= 2)
+                if (t.Length >= 2)
                 {
                     try
                     {
@@ -46,13 +47,18 @@ namespace Goose.Events
                 {
                     try
                     {
-                        id = Convert.ToInt32(t[1]);
                         stack = Convert.ToInt32(t[2]);
                     }
                     catch (Exception)
                     {
                         stack = 1;
+
+                        powerful = t[2].Equals("powerful", StringComparison.OrdinalIgnoreCase);
                     }
+                }
+                if (t.Length >= 4)
+                {
+                    powerful = t[3].Equals("powerful", StringComparison.OrdinalIgnoreCase);
                 }
 
                 if (id <= 0 || stack <= 0) return;
@@ -62,6 +68,15 @@ namespace Goose.Events
 
                 Item item = new Item();
                 item.LoadFromTemplate(template);
+
+                if (powerful && (item.Template.UseType == ItemTemplate.UseTypes.Armor || item.Template.UseType == ItemTemplate.UseTypes.Weapon))
+                {
+                    item.Name = "Powerful " + item.Template.Name;
+                    item.StatMultiplier = 2;
+                    item.TotalStats = item.Template.BaseStats;
+                    item.TotalStats *= item.StatMultiplier;
+                    item.TotalStats += item.BaseStats;
+                }
 
                 world.ItemHandler.AddItem(item);
 

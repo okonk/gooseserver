@@ -43,6 +43,11 @@ namespace Goose
             return templates.Values.Cast<ItemTemplate>();
         }
 
+        public IEnumerable<Item> GetItems()
+        {
+            return items.Values.Cast<Item>().Concat(newitems);
+        }
+
         /**
          * LoadTemplates, loads item templates
          * 
@@ -54,9 +59,10 @@ namespace Goose
 
             while (reader.Read())
             {
-                ItemTemplate template = new ItemTemplate();
+                int templateId = Convert.ToInt32(reader["item_template_id"]);
+                ItemTemplate template = (ItemTemplate)this.templates[templateId] ?? new ItemTemplate();
 
-                template.ID = Convert.ToInt32(reader["item_template_id"]);
+                template.ID = templateId;
                 template.Type = (ItemTemplate.ItemTypes)Convert.ToInt32(reader["item_type"]);
                 template.Slot = (ItemTemplate.ItemSlots)Convert.ToInt32(reader["item_slot"]);
                 template.UseType = (ItemTemplate.UseTypes)Convert.ToInt32(reader["item_usetype"]);
@@ -308,6 +314,23 @@ namespace Goose
             }
 
             return item;
+        }
+
+        /// <summary>
+        /// Called after reloading item templates to update stats
+        /// </summary>
+        /// <param name="world"></param>
+        public void RefreshItemStats(GameWorld world)
+        {
+            foreach (var item in GetItems())
+            {
+                var newTotalStats = new AttributeSet();
+                newTotalStats += item.Template.BaseStats;
+                newTotalStats *= item.StatMultiplier;
+                newTotalStats += item.BaseStats;
+
+                item.TotalStats = newTotalStats;
+            }
         }
     }
 }

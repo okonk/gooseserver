@@ -33,6 +33,7 @@ namespace Goose
         GiveExperience,
         ClassChange,
         ReloadScripts,
+        ReloadSQL,
         GMInvisible,
         SetAccess,
         SetConfig,

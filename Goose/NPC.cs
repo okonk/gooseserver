@@ -319,6 +319,8 @@ namespace Goose
 
         public Script<INPCScript> Script { get { return this.NPCTemplate.Script; } }
 
+        public object ScriptStore { get; set; }
+
         /**
          * MKCString, see Player.MKCString for details
          * 

@@ -1,11 +1,11 @@
-fix casting of spells/attacking while on mount, maybe can also undo the change made for mounts/illusions
 command to check player's inventory
+quest book
 
-/reloadsql command. Should be able to do items easily. NPCs not sure..
+/reloadsql for npcs
 test running goose on linux -- .net core?
 
 Map editor
-npc scripting
+npc scripting improvements
 item scripting?
 map scripting/dynamic maps
 
@@ -22,3 +22,7 @@ maybe? fix Index was out of range. Must be non-negative and less than the size o
 Change experience display in ranks to "mil", "bil"
 Spell to spawn npcs
 spell scripting
+script for spawning shitloads of shit
+fix casting of spells/attacking while on mount, maybe can also undo the change made for mounts/illusions
+command for powerful items
+/reloadsql command. Should be able to do items easily. 

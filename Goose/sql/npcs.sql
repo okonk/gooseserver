@@ -46,7 +46,7 @@ CREATE TABLE npc_templates (
   hair_g SMALLINT DEFAULT 0 NOT NULL,
   hair_b SMALLINT DEFAULT 0 NOT NULL,
   hair_a SMALLINT DEFAULT 0 NOT NULL,
-  equipped_items VARCHAR(100) DEFAULT '0,*,0,*,0,*,0,*,0,*,0,*' NOT NULL,
+  equipped_items TEXT DEFAULT '0,*,0,*,0,*,0,*,0,*,0,*' NOT NULL,
   weapon_damage INT DEFAULT 1 NOT NULL,
   hp_percent_regen DECIMAL(9,4) DEFAULT 0 NOT NULL,
   hp_static_regen INT DEFAULT 0 NOT NULL,
