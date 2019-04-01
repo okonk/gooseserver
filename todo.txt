@@ -1,10 +1,8 @@
 command to check player's inventory
-quest book
-port large formula changes over from asp
-item disappearing bug...
 reset class quest
-move inventory loading/saving to json
+item disappearing bug... move inventory loading/saving to json fields on player table
 convert decimals -> doubles
+title/surname items
 
 /reloadsql for npcs
 test running goose on linux -- .net core?
@@ -33,6 +31,9 @@ command for powerful items
 /reloadsql command. Should be able to do items easily. 
 bug with healing power when changing map
 make onhit work without doing dmg?
+port large formula changes over from asp
+update stat_multiplier in items table -> stat_multiplier DECIMAL(18,4) DEFAULT 1 NOT NULL,
+quest book -- shows progress on certain quests on failure. good enough
 
 
 TUPx,y,graphicnum,sheetnum,graphicnum,sheetnum,graphicnum,sheetnum,graphicnum,sheetnum,graphicnum,sheetnum,flags

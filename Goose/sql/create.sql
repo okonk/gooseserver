@@ -16,14 +16,6 @@ GRANT CONTROL TO GooseServer;
 
 go
 
-CREATE TABLE blockedtiles (
-  /*id INT IDENTITY(1,1) NOT NULL,*/
-  map_id SMALLINT NOT NULL,
-  map_x SMALLINT NOT NULL,
-  map_y SMALLINT NOT NULL,
-  /*PRIMARY KEY (id)*/
-);
-
 CREATE TABLE items (
   item_id INT NOT NULL,
   item_template_id INT NOT NULL,
@@ -51,7 +43,7 @@ CREATE TABLE items (
   graphic_g SMALLINT DEFAULT 0 NOT NULL,
   graphic_b SMALLINT DEFAULT 0 NOT NULL,
   graphic_a SMALLINT DEFAULT 0 NOT NULL,
-  stat_multiplier DECIMAL DEFAULT 1 NOT NULL,
+  stat_multiplier DECIMAL(18,4) DEFAULT 1 NOT NULL,
   body_state SMALLINT DEFAULT 1 NOT NULL,
   bound CHAR(1) DEFAULT '0' NOT NULL,
   

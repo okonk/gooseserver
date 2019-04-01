@@ -18,6 +18,7 @@ namespace Goose.Quests
         public long MinExperience { get; set; }
         public long MaxExperience { get; set; }
         public bool Repeatable { get; set; }
+        public bool ShowProgress { get; set; }
         /// <summary>
         /// After the first player completes this quest, can anyone else complete it?
         /// Used for special one-time quests
@@ -48,6 +49,7 @@ namespace Goose.Quests
             quest.MinExperience = Convert.ToInt64(reader["min_experience"]);
             quest.MaxExperience = Convert.ToInt64(reader["max_experience"]);
             quest.Repeatable = ("0".Equals(Convert.ToString(reader["repeatable"])) ? false : true);
+            quest.ShowProgress = ("0".Equals(Convert.ToString(reader["show_progress"])) ? false : true);
             quest.OnlyOnePlayerCanComplete = ("0".Equals(Convert.ToString(reader["only_one_player_can_complete"])) ? false : true);
             quest.PrerequisiteQuests = Convert.ToString(reader["prerequisite_quests"]).Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Select(id => Convert.ToInt32(id)).ToList();
 

@@ -15,6 +15,7 @@ namespace Goose.Quests
             QuestNoInventorySpace,
             QuestNoSpellbookSpace,
             QuestNotRightLevel,
+            QuestProgress,
         }
 
         private Quest quest;
@@ -108,6 +109,9 @@ namespace Goose.Quests
                 case QuestWindowState.QuestNotRightLevel:
                     text = "You don't meet the level or experience \\nrequirements. Come back to me when you're \\nstronger.";
                     break;
+                case QuestWindowState.QuestProgress:
+                    text = GetQuestProgressText(player, world);
+                    break;
             }
 
             var lines = text.Split(new string[] { "\\n" }, StringSplitOptions.None);
@@ -160,15 +164,60 @@ namespace Goose.Quests
                         else
                         {
                             this.state = QuestWindowState.QuestFail;
-                        }
 
-                        this.SendCreate(player, world);
+                            if (this.quest.ShowProgress)
+                                this.Buttons = "0,1,0,1,0";
+                        }
                     }
+                    else if (this.state == QuestWindowState.QuestFail && this.quest.ShowProgress)
+                    {
+                        this.Buttons = "0,1,0,0,0";
+                        this.state = QuestWindowState.QuestProgress;
+                    }
+
+                    this.SendCreate(player, world);
                     break;
                 default:
                     player.Windows.Remove(this);
                     break;
             }
+        }
+
+        public string GetQuestProgressText(Player player, GameWorld world)
+        {
+            string text = "Requirements\\n\\n";
+
+            foreach (var requirement in this.quest.Requirements.OrderBy(r => r.Type))
+            {
+                switch (requirement.Type)
+                {
+                    case RequirementType.Gold:
+                        text += string.Format("{0:N0} gp\\n", requirement.Value);
+                        break;
+                    case RequirementType.Item:
+                        var item = world.ItemHandler.GetTemplate((int)requirement.Value);
+                        text += string.Format("{0} ({1})\\n", item.Name, requirement.Value2);
+                        break;
+                    case RequirementType.TalkToNPC:
+                        var talkNPC = world.NPCHandler.GetNPCTemplate((int)requirement.Value);
+                        long talkNPCProgress = player.QuestProgress.FirstOrDefault(p => p.Requirement.Id == requirement.Id)?.Value ?? 0;
+                        text += string.Format("Talk to {0} ({1}/{2})\\n", talkNPC.Name, talkNPCProgress, requirement.Value2);
+                        break;
+                    case RequirementType.Kill:
+                        var killNpc = world.NPCHandler.GetNPCTemplate((int)requirement.Value);
+                        long killNpcProgress = player.QuestProgress.FirstOrDefault(p => p.Requirement.Id == requirement.Id)?.Value ?? 0;
+                        text += string.Format("Kill {0} ({1:N0}/{2:N0})\\n", killNpc.Name, killNpcProgress, requirement.Value2);
+                        break;
+                    case RequirementType.ExperienceBanked:
+                        text += string.Format("{0:N0} xp banked\\n", requirement.Value);
+                        break;
+                    case RequirementType.ExperienceSold:
+                        text += string.Format("{0:N0} xp sold\\n", requirement.Value);
+                        break;
+                }
+            }
+
+            return text;
         }
 
         public bool PlayerMeetsRequirements(Player player)

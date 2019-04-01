@@ -170,6 +170,7 @@ CREATE TABLE quests (
   min_level INT DEFAULT 0,
   max_level INT DEFAULT 0,
   repeatable CHAR(1) DEFAULT '0',
+  show_progress CHAR(1) DEFAULT '0',
   only_one_player_can_complete CHAR(1) DEFAULT '0',
   prerequisite_quests TEXT DEFAULT '' NOT NULL,
  
