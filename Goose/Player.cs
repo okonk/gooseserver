@@ -1614,6 +1614,8 @@ namespace Goose
          */
         public void Attack(ICharacter character, GameWorld world)
         {
+            this.OnMeleeAttack(character, world);
+
             if (character is Player &&
                 (!this.Map.CanPVP && this.Access != AccessStatus.GameMaster))
             {
@@ -1637,7 +1639,6 @@ namespace Goose
             damage *= (double)GameSettings.Default.DamageModifier;
             damage *= (1 + (double)this.MaxStats.MeleeDamage);
             damage *= (1 - (double)character.MaxStats.DamageReduction);
-            //damage -= absorb;
             damage *= absorb;
             damage -= (double)(character.MaxStats.AC * character.Class.ACMultiplier / 25);
 
@@ -1645,7 +1646,6 @@ namespace Goose
             if (damage > 0)
             {
                 character.OnMeleeHit(this, world);
-                this.OnMeleeAttack(character, world);
             }
         }
 

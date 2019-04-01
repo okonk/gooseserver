@@ -1,5 +1,8 @@
 command to check player's inventory
 quest book
+port large formula changes over from asp
+item disappearing bug...
+
 
 /reloadsql for npcs
 test running goose on linux -- .net core?
@@ -26,3 +29,8 @@ script for spawning shitloads of shit
 fix casting of spells/attacking while on mount, maybe can also undo the change made for mounts/illusions
 command for powerful items
 /reloadsql command. Should be able to do items easily. 
+bug with healing power when changing map
+make onhit work without doing dmg?
+
+
+TUPx,y,graphicnum,sheetnum,graphicnum,sheetnum,graphicnum,sheetnum,graphicnum,sheetnum,graphicnum,sheetnum,flags
