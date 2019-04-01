@@ -75,8 +75,8 @@ namespace Goose
         /**
          * Current HP
          */
-        int currentHP;
-        public int CurrentHP
+        long currentHP;
+        public long CurrentHP
         {
             get { return this.currentHP; }
             set
@@ -88,8 +88,8 @@ namespace Goose
         /**
          * Current MP
          */
-        int currentMP;
-        public int CurrentMP
+        long currentMP;
+        public long CurrentMP
         {
             get { return this.currentMP; }
             set
@@ -101,8 +101,8 @@ namespace Goose
         /**
           * Current SP
           */
-        int currentSP;
-        public int CurrentSP
+        long currentSP;
+        public long CurrentSP
         {
             get { return this.currentSP; }
             set
@@ -1032,7 +1032,7 @@ namespace Goose
          * 60 - Yellow text
          * 
          */
-        public void Attacked(ICharacter character, double damage, GameWorld world)
+        public void Attacked(ICharacter character, long damage, GameWorld world)
         {
             if (this.State == States.Dead) return;
 
@@ -1053,23 +1053,21 @@ namespace Goose
                     return;
                 }
 
-                double dodge = this.MaxStats.Dexterity / 100.0;
-                if (dodge > 50) dodge = 50;
+                //double dodge = this.MaxStats.Dexterity / 100.0;
+                //if (dodge > 50) dodge = 50;
 
-                if (world.Random.Next(0, 10001) <= dodge * 100)
-                {
-                    packet = "BT" + this.LoginID + ",20,," + character.Name;
-                    foreach (Player p in range)
-                    {
-                        world.Send(p, packet);
-                    }
-                    return;
-                }
+                //if (world.Random.Next(0, 10001) <= dodge * 100)
+                //{
+                //    packet = "BT" + this.LoginID + ",20,," + character.Name;
+                //    foreach (Player p in range)
+                //    {
+                //        world.Send(p, packet);
+                //    }
+                //    return;
+                //}
 
                 packet = "";
-                int dmg = (int)damage;
-
-                if (dmg <= 0)
+                if (damage <= 0)
                 {
                     packet = "BT" + this.LoginID + ",21,," + character.Name;
                     foreach (Player p in range)
@@ -1081,10 +1079,10 @@ namespace Goose
                     return;
                 }
 
-                this.CurrentHP -= dmg;
-                packet += "BT" + this.LoginID + ",1," + (-dmg) + "," + character.Name + "\x1";
+                this.CurrentHP -= damage;
+                packet += "BT" + this.LoginID + ",1," + (-damage) + "," + character.Name + "\x1";
 
-                this.AddAggro(player, dmg, world);
+                this.AddAggro(player, damage, world);
                 this.AddAttackEvent(world);
 
                 if (this.CurrentHP <= 0)
@@ -1392,7 +1390,7 @@ namespace Goose
 
             if (damage > 0)
             {
-                character.Attacked(this, damage, world);
+                character.Attacked(this, (long)damage, world);
 
                 character.OnMeleeHit(this, world);
                 this.OnMeleeAttack(character, world);

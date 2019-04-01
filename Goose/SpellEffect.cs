@@ -500,20 +500,20 @@ namespace Goose
             List<Player> range = target.Map.GetPlayersInRange(target);
             string packet = "";
 
-            int hpresult = this.ParseFormula(this.HPFormula, caster, target);
-            int mpresult = this.ParseFormula(this.MPFormula, caster, target);
+            long hpresult = this.ParseFormula(this.HPFormula, caster, target);
+            long mpresult = this.ParseFormula(this.MPFormula, caster, target);
             //int spresult = this.ParseFormula(this.SPFormula, caster, target);
 
             // if target is a player then no sd for pvp if not a heal
             if (!(hpresult < 0 && target is Player) && this.SpellDamageEffects)
             {
                 if (world.Random.Next(1, 10001) <= caster.MaxStats.SpellCrit * 10000) hpresult *= 2;
-                hpresult = (int)(hpresult * (1 + caster.MaxStats.SpellDamage));
+                hpresult = (long)(hpresult * (1 + caster.MaxStats.SpellDamage));
 
                 if (world.Random.Next(1, 10001) <= caster.MaxStats.SpellCrit * 10000) mpresult *= 2;
-                mpresult = (int)(mpresult * (1 + caster.MaxStats.SpellDamage));
+                mpresult = (long)(mpresult * (1 + caster.MaxStats.SpellDamage));
             }
-            hpresult = (int)((decimal)hpresult * GameSettings.Default.DamageModifier);
+            hpresult = (long)(hpresult * GameSettings.Default.DamageModifier);
             target.CurrentMP += mpresult;
             if (hpresult != 0)
             {
@@ -1307,7 +1307,7 @@ namespace Goose
          * result
          * 
          */
-        public int ParseFormula(string formula, ICharacter caster, ICharacter target)
+        public long ParseFormula(string formula, ICharacter caster, ICharacter target)
         {
             List<Object> result = new List<Object>();
             Stack<char> operators = new Stack<char>();
@@ -1347,7 +1347,7 @@ namespace Goose
                     {
                         if (buffer[0] == '%')
                         {
-                            value = (int)symbolToValue[buffer];
+                            value = Convert.ToDecimal(symbolToValue[buffer]);
                             // bad symbol
                             // needa log here
                             //if (value == null)
@@ -1383,7 +1383,7 @@ namespace Goose
                     {
                         if (buffer[0] == '%')
                         {
-                            value = (int)symbolToValue[buffer];
+                            value = Convert.ToDecimal(symbolToValue[buffer]);
                             // bad symbol
                             // needa log here
                             //if (value == null)
@@ -1457,7 +1457,7 @@ namespace Goose
                     {
                         if (buffer[0] == '%')
                         {
-                            value = (int)symbolToValue[buffer];
+                            value = Convert.ToDecimal(symbolToValue[buffer]);
                             // bad symbol
                             // needa log here
                             //if (value == null)
@@ -1494,7 +1494,7 @@ namespace Goose
             {
                 if (buffer[0] == '%')
                 {
-                    value = (int)symbolToValue[buffer];
+                    value = Convert.ToDecimal(symbolToValue[buffer]);
                     // bad symbol
                     // needa log here
                     //if (value == null)
@@ -1559,7 +1559,7 @@ namespace Goose
                 }
             }
 
-            return Convert.ToInt32(result[0]);
+            return Convert.ToInt64(result[0]);
         }
     }
 }

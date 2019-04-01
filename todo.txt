@@ -2,7 +2,9 @@ command to check player's inventory
 quest book
 port large formula changes over from asp
 item disappearing bug...
-
+reset class quest
+move inventory loading/saving to json
+convert decimals -> doubles
 
 /reloadsql for npcs
 test running goose on linux -- .net core?

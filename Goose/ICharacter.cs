@@ -49,15 +49,15 @@ namespace Goose
         /**
          * Current HP
          */
-        int CurrentHP { get; set; }
+        long CurrentHP { get; set; }
         /**
          * Current MP
          */
-        int CurrentMP { get; set; }
+        long CurrentMP { get; set; }
         /**
           * Current SP
           */
-        int CurrentSP { get; set; }
+        long CurrentSP { get; set; }
         /**
          * Level
          */
@@ -74,7 +74,7 @@ namespace Goose
         bool CanMoveTo(int x, int y);
         void MoveTo(GameWorld world, int x, int y);
 
-        void Attacked(ICharacter character, double damage, GameWorld world);
+        void Attacked(ICharacter character, long damage, GameWorld world);
 
         Map Map { get; set; }
         string VPUString();

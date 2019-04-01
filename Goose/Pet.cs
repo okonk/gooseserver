@@ -710,7 +710,7 @@ namespace Goose
          * Player was attacked by character
          * 
          */
-        public override void Attacked(ICharacter character, double damage, GameWorld world)
+        public override void Attacked(ICharacter character, long damage, GameWorld world)
         {
             if (!this.IsAlive) return;
 
@@ -741,20 +741,18 @@ namespace Goose
                 return;
             }
 
-            int dmg = (int)damage;
-
             if (damage > 0)
             {
                 // pvp 1/2 damage
-                if (character is Player) dmg /= 2;
-                packet = "BT" + this.LoginID + ",1," + (-dmg) + "," + character.Name + "\x1";
+                if (character is Player) damage /= 2;
+                packet = "BT" + this.LoginID + ",1," + (-damage) + "," + character.Name + "\x1";
             }
             else
             {
-                packet = "BT" + this.LoginID + ",7,+" + (-dmg) + "," + character.Name + "\x1";
+                packet = "BT" + this.LoginID + ",7,+" + (-damage) + "," + character.Name + "\x1";
             }
 
-            this.CurrentHP -= dmg;
+            this.CurrentHP -= damage;
 
             if (this.CurrentHP <= 0)
             {

@@ -152,8 +152,8 @@ namespace Goose
         /**
          * Current HP
          */
-        int currentHP;
-        public int CurrentHP
+        long currentHP;
+        public long CurrentHP
         {
             get { return this.currentHP; }
             set
@@ -165,8 +165,8 @@ namespace Goose
         /**
          * Current MP
          */
-        int currentMP;
-        public int CurrentMP
+        long currentMP;
+        public long CurrentMP
         {
             get { return this.currentMP; }
             set
@@ -178,8 +178,8 @@ namespace Goose
         /**
           * Current SP
           */
-        int currentSP;
-        public int CurrentSP
+        long currentSP;
+        public long CurrentSP
         {
             get { return this.currentSP; }
             set
@@ -1642,7 +1642,7 @@ namespace Goose
             damage *= absorb;
             damage -= (double)(character.MaxStats.AC * character.Class.ACMultiplier / 25);
 
-            character.Attacked(this, damage, world);
+            character.Attacked(this, (long)damage, world);
             if (damage > 0)
             {
                 character.OnMeleeHit(this, world);
@@ -1788,7 +1788,7 @@ namespace Goose
          * Player was attacked by character
          * 
          */
-        public virtual void Attacked(ICharacter character, double damage, GameWorld world)
+        public virtual void Attacked(ICharacter character, long damage, GameWorld world)
         {
             if (this.State != States.Ready) return;
 
@@ -1807,8 +1807,6 @@ namespace Goose
                 return;
             }
 
-            int dmg = (int)damage;
-
             if (damage > 0)
             {
                 double dodge = this.MaxStats.Dexterity / 100.0;
@@ -1826,20 +1824,20 @@ namespace Goose
                 }
 
                 // pvp 1/3 damage
-                if (character is Player) dmg /= 3;
-                packet = "BT" + this.LoginID + ",1," + (-dmg) + "," + character.Name + "\x1";
+                if (character is Player) damage /= 3;
+                packet = "BT" + this.LoginID + ",1," + (-damage) + "," + character.Name + "\x1";
             }
             else
             {
-                packet = "BT" + this.LoginID + ",7,+" + (-dmg) + "," + character.Name + "\x1";
+                packet = "BT" + this.LoginID + ",7,+" + (-damage) + "," + character.Name + "\x1";
             }
 
-            this.CurrentHP -= dmg;
+            this.CurrentHP -= damage;
 
             if (this.CurrentHP <= 0)
             {
-                this.CurrentHP = (int)(this.MaxStats.HP * 0.5);
-                this.CurrentMP = (int)(this.MaxStats.MP * 0.1);
+                this.CurrentHP = (long)(this.MaxStats.HP * 0.5);
+                this.CurrentMP = (long)(this.MaxStats.MP * 0.1);
 
                 world.SendToMap(this.Map, "$7" + this.Name + " was slain by " + character.Name + ".");
 
@@ -1875,7 +1873,7 @@ namespace Goose
                 world.Send(p, packet);
             }
 
-            if (dmg > 0)
+            if (damage > 0)
             {
                 foreach (Pet pet in this.Pets.Where(p => p.Mode == Pet.Modes.Defend && p.Target == null))
                 {
@@ -2011,9 +2009,9 @@ namespace Goose
                     this.CurrentMP -= spell.MPStaticCost;
                     this.CurrentSP -= spell.SPStaticCost;
 
-                    this.CurrentHP -= (int)(this.CurrentHP * (spell.HPPercentCost / (decimal)100.0));
-                    this.CurrentMP -= (int)(this.CurrentMP * (spell.MPPercentCost / (decimal)100.0));
-                    this.CurrentSP -= (int)(this.CurrentSP * (spell.SPPercentCost / (decimal)100.0));
+                    this.CurrentHP -= (long)(this.CurrentHP * (spell.HPPercentCost / (decimal)100.0));
+                    this.CurrentMP -= (long)(this.CurrentMP * (spell.MPPercentCost / (decimal)100.0));
+                    this.CurrentSP -= (long)(this.CurrentSP * (spell.SPPercentCost / (decimal)100.0));
 
                     if (this.CurrentHP <= 0) this.CurrentHP = 1;
                     if (this.CurrentMP < 0) this.CurrentMP = 0;
