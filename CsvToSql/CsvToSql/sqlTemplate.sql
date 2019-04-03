@@ -114,6 +114,7 @@ CREATE TABLE npc_templates (
   credit_dealer CHAR(1) DEFAULT '0' NOT NULL,
   quest_ids TEXT DEFAULT '' NOT NULL,
   script_path TEXT DEFAULT 'Scripts/NPC/BaseNPC.csx' NOT NULL,
+  script_params TEXT DEFAULT '' NOT NULL,
   
   PRIMARY KEY(npc_id)
 );
@@ -330,7 +331,7 @@ CREATE TABLE spell_effects (
   only_hits_one_npc CHAR(1) DEFAULT '0' NOT NULL,
 
   script_path TEXT DEFAULT '' NOT NULL,
-  script_data TEXT DEFAULT '' NOT NULL,
+  script_params TEXT DEFAULT '' NOT NULL,
   
   PRIMARY KEY (spell_effect_id)
 );
@@ -373,6 +374,9 @@ CREATE TABLE maps (
   bind_enabled CHAR(1) DEFAULT '0' NOT NULL,
   items_enabled CHAR(1) DEFAULT '1' NOT NULL,
   pets_enabled CHAR(1) DEFAULT '1' NOT NULL,
+
+  script_path TEXT DEFAULT '' NOT NULL,
+  script_params TEXT DEFAULT '' NOT NULL,
   
   PRIMARY KEY(map_id)
 );

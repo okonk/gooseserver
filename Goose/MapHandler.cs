@@ -5,6 +5,7 @@ using System.Text;
 using System.Data.SqlClient;
 
 using Goose.Events;
+using Goose.Scripting;
 
 namespace Goose
 {
@@ -63,6 +64,13 @@ namespace Goose
                 map.CanCast = ("0".Equals(Convert.ToString(reader["spells_enabled"])) ? false : true);
                 map.CanBind = ("0".Equals(Convert.ToString(reader["bind_enabled"])) ? false : true);
                 map.CanSpawnPets = ("0".Equals(Convert.ToString(reader["pets_enabled"])) ? false : true);
+
+                string scriptPath = Convert.ToString(reader["script_path"]);
+                if (!string.IsNullOrEmpty(scriptPath))
+                {
+                    map.Script = world.ScriptHandler.GetScript<IMapScript>(scriptPath);
+                    map.ScriptParams = Convert.ToString(reader["script_params"]);
+                }
 
                 this.maps.Add(map);
             }

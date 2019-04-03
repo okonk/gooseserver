@@ -1,24 +1,16 @@
 ﻿using System;
 using Goose;
 using Goose.Scripting;
+using System.Linq;
 
-public class TestSpell3 : ISpellEffectScript
+public class TestSpell3 : BaseSpellEffectScript
 {
-	public bool Cast(SpellEffect thisEffect, ICharacter caster, ICharacter target, GameWorld world)
+	public override bool Cast(SpellEffect thisEffect, ICharacter caster, ICharacter target, GameWorld world)
 	{
-		int casterId = (caster as Player)?.PlayerID ?? 0;
-
-		int id = 409;
-
-		NPCTemplate template = world.NPCHandler.GetNPCTemplate(id);
-		if (template == null) return false;
-
-		new NPC().LoadFromTemplate(world, caster.Map.ID, caster.MapX, caster.MapY, template, shouldRespawn: false);
-
-		if (casterId > 0)
-			world.LogHandler.Log(Log.Types.SpawnedNPC,
-				casterId, template.Name,
-				template.NPCTemplateID, caster.Map.ID, caster.MapX, caster.MapY);
+		foreach (var zombie in caster.Map.NPCs.Where(n => n.NPCTemplateID == 449))
+		{
+			zombie.Attacked(caster, 1000000000, world);
+		}
 
 		return true;
 	}

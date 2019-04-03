@@ -196,6 +196,8 @@ namespace Goose
 
         public Script<INPCScript> Script { get; set; }
 
+        public string ScriptParams { get; set; }
+
         public NPCTemplate()
         {
             this.Quests = new List<Quest>();

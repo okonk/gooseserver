@@ -26,10 +26,18 @@ namespace Goose.Events
                 {
                     try
                     {
+                        world.SpellHandler.LoadSpellEffects(world);
+                        world.SpellHandler.LoadSpells(world);
                         world.ItemHandler.LoadTemplates(world);
                         world.ItemHandler.RefreshItemStats(world);
+                        world.QuestHandler.LoadQuests(world);
+                        //world.MapHandler.LoadMaps(world);
+                        //world.ClassHandler.LoadClasses(world);
+                        world.NPCHandler.LoadNPCTemplates(world);
+                        //world.NPCHandler.LoadNPCs(world);
+                        //world.CombinationHandler.LoadCombinations(world);
 
-                        world.Send(this.Player, "$7Reloaded item templates.");
+                        world.Send(this.Player, "$7Reloaded sql data.");
                     }
                     catch (Exception e)
                     {

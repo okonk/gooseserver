@@ -344,5 +344,8 @@
     <Setting Name="RespawnTimeBackoff" Type="System.Double" Scope="User">
       <Value Profile="(Default)">1.05</Value>
     </Setting>
+    <Setting Name="ChangeClassExperienceLossPercent" Type="System.Double" Scope="User">
+      <Value Profile="(Default)">0.07</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

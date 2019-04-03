@@ -53,7 +53,7 @@ namespace Goose.Events
                     {
                         npc.RemoveAggro(player);
                     }
-                    player.Map.RemovePlayer(player);
+                    player.Map.RemovePlayer(player, world);
 
                     if (!player.IsGMInvisible)
                         player.Map.SetCharacter(null, player.MapX, player.MapY);

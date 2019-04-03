@@ -2,15 +2,15 @@
 using Goose;
 using Goose.Scripting;
 
-public class SpawnNPC : ISpellEffectScript
+public class SpawnNPC : BaseSpellEffectScript
 {
-	public bool Cast(SpellEffect thisEffect, ICharacter caster, ICharacter target, GameWorld world)
+	public override bool Cast(SpellEffect thisEffect, ICharacter caster, ICharacter target, GameWorld world)
 	{
 		int casterId = (caster as Player)?.PlayerID ?? 0;
 
 		int chance = 100;
 		int number = 1;
-		string[] tokens = thisEffect.ScriptData.Split(' ');
+		string[] tokens = thisEffect.ScriptParams.Split(' ');
 		if (tokens.Length >= 2)
 			number = Convert.ToInt32(tokens[1]);
 		if (tokens.Length >= 3)

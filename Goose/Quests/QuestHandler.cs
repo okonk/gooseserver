@@ -22,13 +22,15 @@ namespace Goose.Quests
             {
                 while (reader.Read())
                 {
-                    var quest = Quest.FromReader(reader);
+                    var quest = Quest.FromReader(reader, this.Quests);
                     this.Quests[quest.Id] = quest;
                 }
             }
 
             foreach (var quest in this.Quests.Values)
             {
+                var requirements = new List<QuestRequirement>();
+
                 command = new SqlCommand("SELECT * FROM quest_requirements WHERE quest_id=" + quest.Id, world.SqlConnection);
                 using (SqlDataReader reader = command.ExecuteReader())
                 {
@@ -36,22 +38,28 @@ namespace Goose.Quests
                     {
                         var req = QuestRequirement.FromReader(reader);
                         req.Quest = quest;
-                        quest.Requirements.Add(req);
+                        requirements.Add(req);
                     }
                 }
+
+                quest.Requirements = requirements;
             }
 
             foreach (var quest in this.Quests.Values)
             {
+                var rewards = new List<QuestReward>();
+
                 command = new SqlCommand("SELECT * FROM quest_rewards WHERE quest_id=" + quest.Id, world.SqlConnection);
                 using (SqlDataReader reader = command.ExecuteReader())
                 {
                     while (reader.Read())
                     {
                         var reward = QuestReward.FromReader(reader);
-                        quest.Rewards.Add(reward);
+                        rewards.Add(reward);
                     }
                 }
+
+                quest.Rewards = rewards;
             }
         }
 

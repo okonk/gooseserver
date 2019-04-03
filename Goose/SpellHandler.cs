@@ -34,8 +34,13 @@ namespace Goose
 
             while (reader.Read())
             {
-                SpellEffect effect = new SpellEffect();
-                effect.ID = Convert.ToInt32(reader["spell_effect_id"]);
+                int id = Convert.ToInt32(reader["spell_effect_id"]);
+
+                SpellEffect effect = null;
+                if (!this.effects.TryGetValue(id, out effect))
+                    effect = new SpellEffect();
+
+                effect.ID = id;
                 effect.Name = Convert.ToString(reader["spell_effect_name"]);
                 effect.Animation = Convert.ToInt32(reader["spell_animation"]);
                 effect.AnimationFile = Convert.ToInt32(reader["spell_animation_file"]);
@@ -129,10 +134,11 @@ namespace Goose
 
                 effect.OnlyHitsOneNPC = ("0".Equals(Convert.ToString(reader["only_hits_one_npc"])) ? false : true);
 
-                if (effect.EffectType == SpellEffect.EffectTypes.Script)
+                string scriptPath = Convert.ToString(reader["script_path"]);
+                if (!string.IsNullOrEmpty(scriptPath))
                 {
-                    effect.Script = world.ScriptHandler.GetScript<ISpellEffectScript>(Convert.ToString(reader["script_path"]));
-                    effect.ScriptData = Convert.ToString(reader["script_data"]);
+                    effect.Script = world.ScriptHandler.GetScript<ISpellEffectScript>(scriptPath);
+                    effect.ScriptParams = Convert.ToString(reader["script_params"]);
                 }
 
                 this.effects[effect.ID] = effect;
@@ -213,8 +219,13 @@ namespace Goose
 
             while (reader.Read())
             {
-                Spell spell = new Spell();
-                spell.ID = Convert.ToInt32(reader["spell_id"]);
+                int id = Convert.ToInt32(reader["spell_id"]);
+
+                Spell spell = null;
+                if (!this.spells.TryGetValue(id, out spell))
+                    spell = new Spell();
+
+                spell.ID = id;
                 spell.Name = Convert.ToString(reader["spell_name"]);
                 spell.Description = Convert.ToString(reader["spell_description"]);
                 spell.Target = (Spell.SpellTargets)Convert.ToInt32(reader["spell_target"]);

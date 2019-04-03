@@ -23,6 +23,9 @@ CREATE TABLE maps (
   bind_enabled CHAR(1) DEFAULT '0' NOT NULL,
   items_enabled CHAR(1) DEFAULT '1' NOT NULL,
   pets_enabled CHAR(1) DEFAULT '1' NOT NULL,
+
+  script_path TEXT DEFAULT '' NOT NULL,
+  script_data TEXT DEFAULT '' NOT NULL,
   
   PRIMARY KEY(map_id)
 );

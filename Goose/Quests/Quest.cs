@@ -36,10 +36,15 @@ namespace Goose.Quests
             this.Rewards = new List<QuestReward>();
         }
 
-        public static Quest FromReader(SqlDataReader reader)
+        public static Quest FromReader(SqlDataReader reader, Dictionary<int, Quest> quests)
         {
-            var quest = new Quest();
-            quest.Id = Convert.ToInt32(reader["id"]);
+            int id = Convert.ToInt32(reader["id"]);
+
+            Quest quest = null;
+            if (!quests.TryGetValue(id, out quest))
+                quest = new Quest();
+
+            quest.Id = id;
             quest.Name = Convert.ToString(reader["name"]);
             quest.Description = Convert.ToString(reader["description"]);
             quest.FailText = Convert.ToString(reader["fail_text"]);
@@ -51,7 +56,7 @@ namespace Goose.Quests
             quest.Repeatable = ("0".Equals(Convert.ToString(reader["repeatable"])) ? false : true);
             quest.ShowProgress = ("0".Equals(Convert.ToString(reader["show_progress"])) ? false : true);
             quest.OnlyOnePlayerCanComplete = ("0".Equals(Convert.ToString(reader["only_one_player_can_complete"])) ? false : true);
-            quest.PrerequisiteQuests = Convert.ToString(reader["prerequisite_quests"]).Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Select(id => Convert.ToInt32(id)).ToList();
+            quest.PrerequisiteQuests = Convert.ToString(reader["prerequisite_quests"]).Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Select(q => Convert.ToInt32(q)).ToList();
 
             return quest;
         }

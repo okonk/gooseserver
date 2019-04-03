@@ -88,7 +88,7 @@ namespace Goose.Events
                 }
 
                 this.Player.Map = map;
-                this.Player.Map.AddPlayer(this.Player);
+                this.Player.Map.AddPlayer(this.Player, world);
 
                 this.Player.AddRegenEvent(world);
 

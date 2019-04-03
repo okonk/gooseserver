@@ -14,6 +14,7 @@ namespace Goose.Quests
         TalkToNPC,
         ExperienceBanked,
         ExperienceSold,
+        NothingEquipped,
     }
 
     class QuestRequirement

@@ -66,6 +66,20 @@ namespace Goose.Events
                         world.Send(player, packet);
                     }
                 }
+
+                foreach (var npc in this.Player.Map.GetNPCsInRange(this.Player))
+                {
+                    try
+                    {
+                        npc.Script?.Object.OnPlayerChatEvent(npc, this.Player, message, world);
+                    }
+                    catch (Exception e)
+                    {
+                        // TODO: need a logging system
+                    }
+                }
+
+                this.Player.Map.Script?.Object.OnPlayerChatEvent(this.Player.Map, this.Player, message, world);
             }
         }
     }

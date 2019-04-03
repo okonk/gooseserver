@@ -58,6 +58,7 @@ CREATE TABLE npc_templates (
   credit_dealer CHAR(1) DEFAULT '0' NOT NULL,
   quest_ids TEXT DEFAULT '' NOT NULL,
   script_path TEXT DEFAULT 'Scripts/NPC/BaseNPC.csx' NOT NULL,
+  script_params TEXT DEFAULT '' NOT NULL,
   
   PRIMARY KEY(npc_id)
 );

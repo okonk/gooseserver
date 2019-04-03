@@ -16,7 +16,7 @@ namespace CsvToSql
                 "melee_crit", "damage_reduce", "move_speed", "body_id", "oneffect_text", "offeffect_text", "face_id", "hair_id", "hair_r", "hair_g", "hair_b", "hair_a", "body_r", "body_g", 
                 "body_b", "body_a", "teleport_map", "teleport_x", "teleport_y", "taunt_aggro", "works_in_pvp", "works_not_in_pvp", "buff_removable", "buff_graphic", "buff_graphic_file", 
                 "buff_doesnt_stack_over", "buff_stacks_over", "random_join_chance", "on_hit_spell_effect_id", "on_hit_spell_chance", "on_attack_spell_effect_id", "on_attack_spell_chance", 
-                "snare_percent", "only_hits_one_npc", "script_path", "script_data",
+                "snare_percent", "only_hits_one_npc", "script_path", "script_params",
             };
         }
 
@@ -33,7 +33,7 @@ namespace CsvToSql
                 case "mp_change_formula":
                 case "sp_change_formula":
                 case "script_path":
-                case "script_data":
+                case "script_params":
                     return EscapeString(value);
                 case "do_attack_animation":
                 case "do_cast_animation":

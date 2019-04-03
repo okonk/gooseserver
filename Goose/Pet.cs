@@ -452,7 +452,7 @@ namespace Goose
             this.MapY = this.Owner.MapY;
             this.Map.PlaceCharacter(this);
             this.Map.SetCharacter(this, this.MapX, this.MapY);
-            this.Map.AddPlayer(this);
+            this.Map.AddPlayer(this, world);
 
             this.Mode = Modes.Neutral;
 
@@ -503,7 +503,7 @@ namespace Goose
                 this.RemoveBuff(b, world, false);
             }
 
-            this.Map.RemovePlayer(this);
+            this.Map.RemovePlayer(this, world);
 
             this.State = States.NotLoggedIn;
 

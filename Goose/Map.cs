@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Data.SqlClient;
 using System.IO;
+using Goose.Scripting;
 
 namespace Goose
 {
@@ -53,6 +54,10 @@ namespace Goose
         public bool CanUseItems { get; set; }
         public bool CanSpawnPets { get; set; }
         public bool Muted { get; set; }
+
+        public Script<IMapScript> Script { get; set; }
+
+        public string ScriptParams { get; set; }
 
         public object ScriptStore { get; set; }
 
@@ -127,18 +132,36 @@ namespace Goose
          * AddPlayer, adds player to players list
          * 
          */
-        public void AddPlayer(Player player)
+        public void AddPlayer(Player player, GameWorld world)
         {
             this.players.Add(player);
+
+            try
+            {
+                this.Script?.Object.OnPlayerEntered(this, player, world);
+            }
+            catch (Exception e)
+            {
+                // TODO: need a logging system
+            }
         }
 
         /**
          * RemovePlayer, removes player from players list
          * 
          */
-        public void RemovePlayer(Player player)
+        public void RemovePlayer(Player player, GameWorld world)
         {
             this.players.Remove(player);
+
+            try
+            {
+                this.Script?.Object.OnPlayerLeft(this, player, world);
+            }
+            catch (Exception e)
+            {
+                // TODO: need a logging system
+            }
         }
 
         /**
@@ -445,6 +468,14 @@ namespace Goose
             if (x < 1 || x >= this.Width + 1 || y < 1 || y >= this.Height + 1) return null;
 
             return this.tiles[y * this.Width + x];
+        }
+
+        public void SetTile(int x, int y, ITile tile)
+        {
+            // invalid coordinates
+            if (x < 1 || x >= this.Width + 1 || y < 1 || y >= this.Height + 1) return;
+
+            this.tiles[y * this.Width + x] = tile;
         }
 
         /**

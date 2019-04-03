@@ -1121,6 +1121,15 @@ namespace Goose
             if (!IsGMInvisible)
                 this.Map.SetCharacter(this, this.MapX, this.MapY);
 
+            try
+            {
+                this.Map.Script?.Object.OnPlayerMove(this.Map, this, world);
+            }
+            catch (Exception e)
+            {
+                // TODO: need a logging system
+            }
+
             List<Player> afterRange = this.Map.GetPlayersInRange(this);
             List<NPC> afterNPCRange = this.Map.GetNPCsInRange(this);
 
@@ -1279,7 +1288,7 @@ namespace Goose
                     this.Map.SetCharacter(null, this.MapX, this.MapY);
                 }
 
-                this.Map.RemovePlayer(this);
+                this.Map.RemovePlayer(this, world);
                 this.Map = null;
                 this.MapID = map.ID;
                 this.MapX = x;
@@ -1384,23 +1393,35 @@ namespace Goose
 
             this.MaxStats -= this.Class.GetLevel(this.Level).BaseStats;
             this.Level = newLevel;
+            this.ExperienceSold = this.Experience + this.ExperienceSold;
+            if (classid == 1)
+            {
+                // This is a hack, need a better solution
+                this.ExperienceSold = (long)(this.ExperienceSold * (1.0d - GameSettings.Default.ChangeClassExperienceLossPercent));
+            }
             this.Experience = (this.Level == 1 ? 0 : this.Class.GetLevel(this.Level - 1).Experience);
-            //this.ExperienceSold = GameSettings.Default.StartingExperienceSold;
             this.ClassID = classid;
             this.Class = world.ClassHandler.GetClass(this.ClassID);
-            //this.BaseStats.HP = 0;
-            //this.BaseStats.MP = 0;
+            this.BaseStats.HP = 0;
+            this.BaseStats.MP = 0;
 
             this.AddStats(this.Class.GetLevel(this.Level).BaseStats, world);
             this.AddStats(this.BaseStats, world);
+
+            this.Spellbook.RemoveNonClassSpells(world);
 
             world.Send(this, this.SNFString());
             world.Send(this, this.TNLString());
             world.Send(this, "$7Changed class to " + this.Class.ClassName + ".");
 
-            foreach (Spell spell in this.Class.GetLevel(this.Level).Spells)
+            for (int level = 1; level <= this.Level; level++)
             {
-                this.LearnSpell(spell.ID, world);
+                if (level > this.Class.MaxLevel) break;
+
+                foreach (Spell spell in this.Class.GetLevel(level).Spells)
+                {
+                    this.LearnSpell(spell.ID, world);
+                }
             }
         }
 
@@ -1692,14 +1713,6 @@ namespace Goose
                 exp = (long)(exp * (world.ExperienceModifier - GameSettings.Default.ExperienceModifier + 1));
             }
 
-            // To stop the client from crashing
-            if (this.Experience + exp > int.MaxValue)
-            {
-                if ((this.ToggleSettings & ToggleSetting.Experience) != 0) return;
-                world.Send(this, "$7You have reached the max banked. Gained 0 experience points.");
-                return;
-            }
-
             this.Experience += exp;
 
             if ((this.ToggleSettings & ToggleSetting.Experience) == 0)
@@ -1768,7 +1781,6 @@ namespace Goose
             this.AddStats(this.Class.GetLevel(this.Level).BaseStats, world);
             this.CurrentHP = this.MaxStats.HP;
             this.CurrentMP = this.MaxStats.MP;
-            world.Send(this, this.SNFString());
             world.Send(this, this.VPUString());
             if (levels == 1) world.Send(this, "$7You have gained a level.");
             else world.Send(this, "$7You have gained " + levels + " levels.");
@@ -1781,6 +1793,13 @@ namespace Goose
                 world.Send(player, packet);
             }
 
+            if (this.Level == this.Class.MaxLevel)
+            {
+                this.Experience += this.ExperienceSold;
+                this.ExperienceSold = 0;
+            }
+
+            world.Send(this, this.SNFString());
             world.Send(this, this.TNLString());
         }
 
@@ -1964,6 +1983,12 @@ namespace Goose
                     world.Send(this, "$7You can't cast spells while with a vendor.");
                     return;
                 }
+            }
+
+            if (!this.Class.CanUse(spell.ClassRestrictions) && !this.HasPrivilege(AccessPrivilege.IgnoreItemRequirements))
+            {
+                world.Send(this, "$7You are the wrong class to use this spell.");
+                return;
             }
 
             if ((spell.Target == Spell.SpellTargets.Group || spell.Target == Spell.SpellTargets.Self) &&
@@ -2161,6 +2186,12 @@ namespace Goose
             // Add/remove stats
             this.AddStats(buff.SpellEffect.Stats, world);
 
+            try
+            {
+                buff.SpellEffect?.Script?.Object.OnBuffAdded(buff, world);
+            }
+            catch (Exception e) { }
+
             packet = this.VPUString();
 
             if (buff.SpellEffect.Stats.Haste != Decimal.Zero)
@@ -2218,6 +2249,12 @@ namespace Goose
 
             // Add/remove stats
             this.RemoveStats(buff.SpellEffect.Stats, world);
+
+            try
+            {
+                buff.SpellEffect?.Script?.Object.OnBuffRemoved(buff, world);
+            }
+            catch (Exception e) { }
 
             string packet = this.VPUString();
 

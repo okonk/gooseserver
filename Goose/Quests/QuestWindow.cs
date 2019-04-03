@@ -214,6 +214,9 @@ namespace Goose.Quests
                     case RequirementType.ExperienceSold:
                         text += string.Format("{0:N0} xp sold\\n", requirement.Value);
                         break;
+                    case RequirementType.NothingEquipped:
+                        text += "Have no items equipped\\n";
+                        break;
                 }
             }
 
@@ -246,6 +249,14 @@ namespace Goose.Quests
                     case RequirementType.ExperienceSold:
                         if (player.ExperienceSold < requirement.Value)
                             return false;
+                        break;
+                    case RequirementType.NothingEquipped:
+                        foreach (Inventory.EquipSlots slot in Enum.GetValues(typeof(Inventory.EquipSlots)))
+                        {
+                            if (player.Inventory.GetEquippedSlot(slot) != null)
+                                return false;
+                        }
+                        
                         break;
                     default:
                         return false;

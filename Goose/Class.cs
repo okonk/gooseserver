@@ -35,6 +35,11 @@ namespace Goose
             this.levels[c.Level] = c;
         }
 
-        public int MaxLevel { get { return this.levels.Count + 1; } }
+        public int MaxLevel { get { return this.levels.Count; } }
+
+        public bool CanUse(long classRestrictions)
+        {
+            return ((classRestrictions & Convert.ToInt64(Math.Pow(2.0, (double)this.ClassID))) == 0);
+        }
     }
 }

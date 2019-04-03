@@ -9,6 +9,7 @@ namespace Goose
     public enum AccessPrivilege
     {
         IgnoreMapRequirements,
+        IgnoreItemRequirements,
         Warp,
         Approach,
         TalkWhileMuted,
@@ -25,7 +26,6 @@ namespace Goose
         MacroCheck,
         ChangeName,
         DropBoundItem,
-        IgnoreItemRequirements,
         RespawnMap,
         Search,
         SpawnNPC,
@@ -50,12 +50,12 @@ namespace Goose
             accessPrivileges[Player.AccessStatus.GameMaster] = new HashSet<AccessPrivilege>(Enum.GetValues(typeof(AccessPrivilege)).Cast<AccessPrivilege>());
             accessPrivileges[Player.AccessStatus.Guide] = new HashSet<AccessPrivilege>
             {
-                AccessPrivilege.IgnoreMapRequirements, AccessPrivilege.Warp, AccessPrivilege.Approach, AccessPrivilege.TalkWhileMuted, AccessPrivilege.CastSpellsWhileBlocked, AccessPrivilege.MuteMap, AccessPrivilege.MutePlayer, AccessPrivilege.Broadcast, AccessPrivilege.WhoInvisible,
+                AccessPrivilege.IgnoreMapRequirements, AccessPrivilege.IgnoreItemRequirements, AccessPrivilege.Warp, AccessPrivilege.Approach, AccessPrivilege.TalkWhileMuted, AccessPrivilege.CastSpellsWhileBlocked, AccessPrivilege.MuteMap, AccessPrivilege.MutePlayer, AccessPrivilege.Broadcast, AccessPrivilege.WhoInvisible,
                 AccessPrivilege.Summon, AccessPrivilege.Kick, AccessPrivilege.Ban, AccessPrivilege.SetTitle, AccessPrivilege.SetSurname, AccessPrivilege.MacroCheck
             };
             accessPrivileges[Player.AccessStatus.EventMaster] = new HashSet<AccessPrivilege>
             {
-                AccessPrivilege.IgnoreMapRequirements, AccessPrivilege.Warp, AccessPrivilege.Approach, AccessPrivilege.TalkWhileMuted, AccessPrivilege.CastSpellsWhileBlocked, AccessPrivilege.MuteMap, AccessPrivilege.MutePlayer, AccessPrivilege.Broadcast, AccessPrivilege.WhoInvisible
+                AccessPrivilege.IgnoreMapRequirements, AccessPrivilege.IgnoreItemRequirements, AccessPrivilege.Warp, AccessPrivilege.Approach, AccessPrivilege.TalkWhileMuted, AccessPrivilege.CastSpellsWhileBlocked, AccessPrivilege.MuteMap, AccessPrivilege.MutePlayer, AccessPrivilege.Broadcast, AccessPrivilege.WhoInvisible
             };
             accessPrivileges[Player.AccessStatus.Helper] = new HashSet<AccessPrivilege> { AccessPrivilege.IgnoreMapRequirements, AccessPrivilege.Warp, AccessPrivilege.Approach, AccessPrivilege.TalkWhileMuted };
             accessPrivileges[Player.AccessStatus.Normal] = new HashSet<AccessPrivilege> { };

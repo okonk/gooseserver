@@ -219,7 +219,10 @@
     <Compile Include="Events\MuteMapEvent.cs" />
     <Compile Include="Events\SpellInfoEvent.cs" />
     <Compile Include="MacroCheckWindow.cs" />
+    <Compile Include="Scripting\BaseMapScript.cs" />
+    <Compile Include="Scripting\BaseSpellEffectScript.cs" />
     <Compile Include="Scripting\BaseNPCScript.cs" />
+    <Compile Include="Scripting\IMapScript.cs" />
     <Compile Include="Scripting\ISpellEffectScript.cs" />
     <Compile Include="Scripting\INPCScript.cs" />
     <Compile Include="Scripting\IScript.cs" />
@@ -403,6 +406,15 @@
       <LastGenOutput>GameSettings.Designer.cs</LastGenOutput>
     </None>
     <None Include="packages.config" />
+    <None Include="Scripts\Map\ZombieTownMap.csx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Scripts\NPC\ZombieNPC.csx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Scripts\NPC\BodyStealerNPC.csx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="Scripts\Spell\TestSpell1.csx">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -465,7 +477,6 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Scripts\Item\" />
-    <Folder Include="Scripts\Map\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <UsingTask TaskName="CosturaCleanup" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.v4.0.dll" TaskFactory="CodeTaskFactory">

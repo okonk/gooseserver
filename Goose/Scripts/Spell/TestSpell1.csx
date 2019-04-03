@@ -2,9 +2,9 @@
 using Goose;
 using Goose.Scripting;
 
-public class TestSpell1 : ISpellEffectScript
+public class TestSpell1 : BaseSpellEffectScript
 {
-	public bool Cast(SpellEffect thisEffect, ICharacter caster, ICharacter target, GameWorld world)
+	public override bool Cast(SpellEffect thisEffect, ICharacter caster, ICharacter target, GameWorld world)
 	{
 		target.Attacked(caster, 1000000000, world);
 

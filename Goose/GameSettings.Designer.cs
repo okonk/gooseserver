@@ -1362,5 +1362,17 @@ namespace Goose {
                 this["RespawnTimeBackoff"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0.07")]
+        public double ChangeClassExperienceLossPercent {
+            get {
+                return ((double)(this["ChangeClassExperienceLossPercent"]));
+            }
+            set {
+                this["ChangeClassExperienceLossPercent"] = value;
+            }
+        }
     }
 }

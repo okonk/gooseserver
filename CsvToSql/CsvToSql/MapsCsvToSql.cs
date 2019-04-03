@@ -12,7 +12,8 @@ namespace CsvToSql
         protected override string[] GetColumns()
         {
             return new[] {
-                "map_id", "map_name", "map_filename", "map_x", "map_y", "min_level", "max_level", "min_experience", "max_experience", "pvp_enabled", "chat_enabled", "auction_enabled", "shout_enabled", "spells_enabled", "bind_enabled", "items_enabled", "pets_enabled"
+                "map_id", "map_name", "map_filename", "map_x", "map_y", "min_level", "max_level", "min_experience", "max_experience", "pvp_enabled", "chat_enabled", "auction_enabled", "shout_enabled", "spells_enabled", "bind_enabled", "items_enabled", "pets_enabled",
+                "script_path", "script_params",
             };
         }
 
@@ -22,6 +23,8 @@ namespace CsvToSql
             {
                 case "map_name":
                 case "map_filename":
+                case "script_path":
+                case "script_params":
                     return EscapeString(value);
                 case "pvp_enabled":
                 case "chat_enabled":

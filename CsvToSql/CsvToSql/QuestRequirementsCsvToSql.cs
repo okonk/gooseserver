@@ -38,6 +38,7 @@ namespace CsvToSql
             TalkToNPC,
             ExperienceBanked,
             ExperienceSold,
+            NothingEquipped,
         }
     }
 }

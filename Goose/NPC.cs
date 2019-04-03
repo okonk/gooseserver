@@ -319,6 +319,8 @@ namespace Goose
 
         public Script<INPCScript> Script { get { return this.NPCTemplate.Script; } }
 
+        public string ScriptParams { get { return this.NPCTemplate.ScriptParams; } }
+
         public object ScriptStore { get; set; }
 
         /**
@@ -372,7 +374,7 @@ namespace Goose
         {
             try
             {
-                this.Script.Object.OnMoveEvent(this, world);
+                this.Script?.Object.OnMoveEvent(this, world);
             }
             catch (Exception e)
             {
@@ -663,6 +665,15 @@ namespace Goose
         public void Spawn(GameWorld world)
         {
             world.NPCHandler.AssignNewId(world, this);
+
+            try
+            {
+                this.Script?.Object.OnSpawnEvent(this, world);
+            }
+            catch (Exception e)
+            {
+                // TODO: need a logging system
+            }
 
             this.LastSpawnTime = world.TimeNow;
 
@@ -1036,6 +1047,15 @@ namespace Goose
         {
             if (this.State == States.Dead) return;
 
+            try
+            {
+                this.Script?.Object.OnAttackedEvent(this, character, damage, world);
+            }
+            catch (Exception e)
+            {
+                // TODO: need a logging system
+            }
+
             if (character is Player)
             {
                 List<Player> range = this.Map.GetPlayersInRange(this);
@@ -1087,6 +1107,15 @@ namespace Goose
 
                 if (this.CurrentHP <= 0)
                 {
+                    try
+                    {
+                        this.Script?.Object.OnKilledEvent(this, character, world);
+                    }
+                    catch (Exception e)
+                    {
+                        // TODO: need a logging system
+                    }
+
                     // move off this square so null
                     this.Map.SetCharacter(null, this.MapX, this.MapY);
                     this.State = States.Dead;
@@ -1234,7 +1263,7 @@ namespace Goose
         {
             try
             {
-                this.Script.Object.OnAttackEvent(this, world);
+                this.Script?.Object.OnAttackEvent(this, world);
             }
             catch (Exception e)
             {
@@ -1546,6 +1575,12 @@ namespace Goose
             // Add/remove stats
             this.MaxStats += buff.SpellEffect.Stats;
 
+            try
+            {
+                buff.SpellEffect?.Script?.Object.OnBuffAdded(buff, world);
+            }
+            catch (Exception e) { }
+
             this.AddRegenEvent(world);
 
             packet = this.VPUString();
@@ -1572,6 +1607,12 @@ namespace Goose
 
             // Add/remove stats
             this.MaxStats -= buff.SpellEffect.Stats;
+
+            try
+            {
+                buff.SpellEffect?.Script?.Object.OnBuffRemoved(buff, world);
+            }
+            catch (Exception e) { }
 
             this.AddRegenEvent(world);
 
@@ -1654,6 +1695,11 @@ namespace Goose
         {
             player.Windows.Remove(window);
 
+        }
+
+        public string GetChatPacket(string message)
+        {
+            return string.Format("^{0},{1}: {2}", LoginID, Name, message);
         }
     }
 }

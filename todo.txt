@@ -1,16 +1,17 @@
-command to check player's inventory
-reset class quest
 item disappearing bug... move inventory loading/saving to json fields on player table
+look into wrath etc spawns what can be done to make training better but not encourage macroing
 convert decimals -> doubles
+convert hashtables -> Dictionaries
 title/surname items
+command to check player's inventory
+increase bank slot item
+block casting spells on invincible npcs
+pets
 
-/reloadsql for npcs
+
 test running goose on linux -- .net core?
-
 Map editor
-npc scripting improvements
 item scripting?
-map scripting/dynamic maps
 
 automated /macrocheck? maybe only do check every 4+ hours to not get annoying to players, also give 5k gold or 500k exp? reward for passing check
 
@@ -34,6 +35,13 @@ make onhit work without doing dmg?
 port large formula changes over from asp
 update stat_multiplier in items table -> stat_multiplier DECIMAL(18,4) DEFAULT 1 NOT NULL,
 quest book -- shows progress on certain quests on failure. good enough
-
+reset class quest
+/reloadsql for npcs,spells
+npc scripting improvements
+map scripting/dynamic maps
 
 TUPx,y,graphicnum,sheetnum,graphicnum,sheetnum,graphicnum,sheetnum,graphicnum,sheetnum,graphicnum,sheetnum,flags
+
+
+new map: winter event town/patrian/ipcus/forsaken hollow. mobs are random players. light tint for weaker mobs. red tint for strong
+other map; one of maloha temple maps? More AP. mobs are just players from the map

@@ -221,7 +221,7 @@ namespace Goose
 
         public Script<ISpellEffectScript> Script { get; set; }
 
-        public string ScriptData { get; set; }
+        public string ScriptParams { get; set; }
 
         // Used in random spell
         struct Point

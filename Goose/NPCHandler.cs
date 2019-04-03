@@ -14,7 +14,7 @@ namespace Goose
      */
     public class NPCHandler
     {
-        List<NPCTemplate> templates;
+        Dictionary<int, NPCTemplate> templates;
         List<NPC> npcs;
         Hashtable idToNPC;
 
@@ -24,14 +24,14 @@ namespace Goose
          */
         public NPCHandler()
         {
-            this.templates = new List<NPCTemplate>();
+            this.templates = new Dictionary<int, NPCTemplate>();
             this.npcs = new List<NPC>();
             this.idToNPC = new Hashtable();
         }
 
         public IEnumerable<NPCTemplate> GetTemplates()
         {
-            return templates;
+            return templates.Values;
         }
 
         /**
@@ -45,8 +45,13 @@ namespace Goose
 
             while (reader.Read())
             {
-                NPCTemplate npc = new NPCTemplate();
-                npc.NPCTemplateID = Convert.ToInt32(reader["npc_id"]);
+                int id = Convert.ToInt32(reader["npc_id"]);
+
+                NPCTemplate npc = null;
+                if (!templates.TryGetValue(id, out npc))
+                    npc = new NPCTemplate();
+
+                npc.NPCTemplateID = id;
                 npc.NPCType = (NPCTemplate.Types)Convert.ToInt32(reader["npc_type"]);
                 npc.Name = Convert.ToString(reader["npc_name"]);
                 npc.Title = Convert.ToString(reader["npc_title"]);
@@ -102,25 +107,31 @@ namespace Goose
                 npc.BaseStats.MPStaticRegen = Convert.ToInt32(reader["mp_static_regen"]);
 
                 npc.AlliesString = Convert.ToString(reader["npc_alliance"]);
-                npc.Allies = new List<NPCTemplate>();
 
                 npc.Behaviour = (NPCTemplate.BehaviourTypes)Convert.ToInt32(reader["stuck_behaviour"]);
                 npc.BehaviourTimeout = Convert.ToInt64(reader["stuck_timeout"]);
 
                 npc.CreditDealer = ("0".Equals(Convert.ToString(reader["credit_dealer"])) ? false : true);
 
-                var questIds = Convert.ToString(reader["quest_ids"]).Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Select(id => Convert.ToInt32(id));
-                npc.Quests.AddRange(questIds.Select(id => world.QuestHandler.Get(id)));
+                var questIds = Convert.ToString(reader["quest_ids"]).Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Select(q => Convert.ToInt32(q));
+                npc.Quests = questIds.Select(q => world.QuestHandler.Get(q)).ToList();
 
-                npc.Script = world.ScriptHandler.GetScript<INPCScript>(Convert.ToString(reader["script_path"]));
+                string scriptPath = Convert.ToString(reader["script_path"]);
+                if (!string.IsNullOrEmpty(scriptPath))
+                {
+                    npc.Script = world.ScriptHandler.GetScript<INPCScript>(scriptPath);
+                    npc.ScriptParams = Convert.ToString(reader["script_params"]);
+                }
 
-                this.templates.Add(npc);
+                this.templates[npc.NPCTemplateID] = npc;
             }
 
             reader.Close();
 
-            foreach (NPCTemplate npc in this.templates)
+            foreach (NPCTemplate npc in this.templates.Values)
             {
+                var allies = new List<NPCTemplate>();
+
                 foreach (string ally in npc.AlliesString.Split(" ".ToCharArray()))
                 {
                     try
@@ -132,7 +143,7 @@ namespace Goose
                         }
                         else
                         {
-                            npc.Allies.Add(a);
+                            allies.Add(a);
                         }
                     }
                     catch (Exception)
@@ -140,9 +151,11 @@ namespace Goose
 
                     }
                 }
+
+                npc.Allies = allies;
             }
 
-            foreach (NPCTemplate template in this.templates)
+            foreach (NPCTemplate template in this.templates.Values)
             {
                 command.CommandText = "SELECT * FROM npc_drops WHERE npc_template_id=" + template.NPCTemplateID;
                 reader = command.ExecuteReader();
@@ -211,10 +224,9 @@ namespace Goose
          */
         public NPCTemplate GetNPCTemplate(int npc_id)
         {
-            foreach (NPCTemplate template in this.templates)
-            {
-                if (template.NPCTemplateID == npc_id) return template;
-            }
+            NPCTemplate npc = null;
+            if (templates.TryGetValue(npc_id, out npc))
+                return npc;
 
             return null;
         }
