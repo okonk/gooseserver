@@ -256,6 +256,21 @@ namespace Goose
             }
             Console.Out.WriteLine(this.ClassHandler.Count.ToString() + " classes loaded.");
 
+            Console.Out.Write("Loading Players: ");
+            try
+            {
+                this.PlayerHandler.LoadPlayerData(this);
+            }
+            catch (Exception e)
+            {
+                Console.Out.WriteLine("Fail, " + e.Message);
+                Console.Out.WriteLine("Aborting...");
+                return;
+            }
+            Console.Out.WriteLine(this.PlayerHandler.PlayerDataCount.ToString() + " players loaded.");
+
+            this.RankHandler.UpdateAll(this);
+
             Console.Out.Write("Loading NPC Templates: ");
             try
             {
@@ -307,21 +322,6 @@ namespace Goose
                 return;
             }
             Console.Out.WriteLine(this.ChatFilter.Count.ToString() + " words loaded.");
-
-            Console.Out.Write("Loading Players: ");
-            try
-            {
-                this.PlayerHandler.LoadPlayerData(this);
-            }
-            catch (Exception e)
-            {
-                Console.Out.WriteLine("Fail, " + e.Message);
-                Console.Out.WriteLine("Aborting...");
-                return;
-            }
-            Console.Out.WriteLine(this.PlayerHandler.PlayerDataCount.ToString() + " players loaded.");
-
-            this.RankHandler.UpdateAll(this);
 
             this.CharactersCreatedPerIP = new Dictionary<string, int>();
             Event clearCreatedHistory = new ClearCreatedHistoryEvent();

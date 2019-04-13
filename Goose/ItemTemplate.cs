@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Goose.Scripting;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -105,6 +106,10 @@ namespace Goose
         public int LearnSpellID { get; set; }
 
         public int Credits { get; set; }
+
+        public Script<IItemScript> Script { get; set; }
+
+        public string ScriptParams { get; set; }
 
         public int BodyType
         {

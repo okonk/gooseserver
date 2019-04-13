@@ -213,16 +213,19 @@
     <Compile Include="Events\MacroConfirmCommandEvent.cs" />
     <Compile Include="Events\MacroCheckCommandEvent.cs" />
     <Compile Include="Events\MacroCheckEvent.cs" />
+    <Compile Include="Events\PlaceSpawnCommandEvent.cs" />
     <Compile Include="Events\ReloadSqlCommandEvent.cs" />
     <Compile Include="Events\ReloadScriptsCommandEvent.cs" />
     <Compile Include="Events\SetAccessCommandEvent.cs" />
     <Compile Include="Events\MuteMapEvent.cs" />
     <Compile Include="Events\SpellInfoEvent.cs" />
     <Compile Include="MacroCheckWindow.cs" />
+    <Compile Include="Scripting\BaseItemScript.cs" />
     <Compile Include="Scripting\BaseMapScript.cs" />
     <Compile Include="Scripting\BaseSpellEffectScript.cs" />
     <Compile Include="Scripting\BaseNPCScript.cs" />
     <Compile Include="Scripting\IMapScript.cs" />
+    <Compile Include="Scripting\IItemScript.cs" />
     <Compile Include="Scripting\ISpellEffectScript.cs" />
     <Compile Include="Scripting\INPCScript.cs" />
     <Compile Include="Scripting\IScript.cs" />
@@ -402,10 +405,13 @@
   <ItemGroup>
     <None Include="app.config" />
     <None Include="GameSettings.settings">
-      <Generator>SettingsSingleFileGenerator</Generator>
+      <Generator>PublicSettingsSingleFileGenerator</Generator>
       <LastGenOutput>GameSettings.Designer.cs</LastGenOutput>
     </None>
     <None Include="packages.config" />
+    <None Include="Scripts\Item\ZombieLegIllusion.csx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="Scripts\Map\ZombieTownMap.csx">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -413,6 +419,12 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="Scripts\NPC\BodyStealerNPC.csx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Scripts\Spell\PlaceSpawnHelper.csx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Scripts\Spell\ZombieMapDebuff.csx">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="Scripts\Spell\TestSpell1.csx">
@@ -475,9 +487,7 @@
     <Analyzer Include="..\packages\Microsoft.CodeAnalysis.Analyzers.2.6.1\analyzers\dotnet\cs\Microsoft.CodeAnalysis.Analyzers.dll" />
     <Analyzer Include="..\packages\Microsoft.CodeAnalysis.Analyzers.2.6.1\analyzers\dotnet\cs\Microsoft.CodeAnalysis.CSharp.Analyzers.dll" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Scripts\Item\" />
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <UsingTask TaskName="CosturaCleanup" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.v4.0.dll" TaskFactory="CodeTaskFactory">
     <ParameterGroup>

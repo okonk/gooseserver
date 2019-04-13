@@ -103,7 +103,7 @@ namespace Goose.Events
                 Item item = new Item();
                 item.LoadFromTemplate(slot.ItemTemplate);
 
-                world.ItemHandler.AddItem(item);
+                world.ItemHandler.AddItem(item, world);
 
                 if (this.Player.Inventory.AddItem(item, slot.Stack, world))
                 {

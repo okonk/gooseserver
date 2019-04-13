@@ -46,6 +46,8 @@ CREATE TABLE item_templates (
   spell_effect_chance DECIMAL(9,4) DEFAULT 100 NOT NULL,
   learn_spell_id INT DEFAULT 0 NOT NULL,
   credits_value INT DEFAULT 0 NOT NULL,
+  script_path TEXT DEFAULT '' NOT NULL,
+  script_params TEXT DEFAULT '' NOT NULL,
   
   PRIMARY KEY(item_template_id)
 );

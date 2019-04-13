@@ -144,6 +144,7 @@ namespace Goose
             this.stringToEvent.Add("/mc ", MacroConfirmCommandEvent.Create);
             this.stringToEvent.Add("/reloadscripts", ReloadScriptsCommandEvent.Create);
             this.stringToEvent.Add("/reloadsql", ReloadSqlCommandEvent.Create);
+            this.stringToEvent.Add("/placespawn", PlaceSpawnCommandEvent.Create);
         }
 
         /**

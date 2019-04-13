@@ -23,7 +23,8 @@ namespace Goose
         }
         public RankTypes Type { get; set; }
 
-        List<String> ranks;
+        public List<Player> RanksList { get; set; }
+        List<String> ranksStrings;
         long lastUpdated;
 
         /**
@@ -31,7 +32,8 @@ namespace Goose
          */
         public Ranks(RankTypes type)
         {
-            this.ranks = new List<string>();
+            this.RanksList = new List<Player>();
+            this.ranksStrings = new List<string>();
             this.lastUpdated = 0;
             this.Type = type;
         }
@@ -50,7 +52,7 @@ namespace Goose
                 this.Update(world);
             }
 
-            return this.ranks;
+            return this.ranksStrings;
         }
 
         /**
@@ -59,7 +61,7 @@ namespace Goose
          */
         public void Update(GameWorld world)
         {
-            this.ranks = new List<string>();
+            this.ranksStrings = new List<string>();
 
             List<Player> result = null;
 
@@ -103,6 +105,8 @@ namespace Goose
                     break;
             }
 
+            this.RanksList = result;
+
             string line = "";
             int i = 1;
             foreach (Player player in result)
@@ -127,11 +131,11 @@ namespace Goose
                         break;
                 }
                 i++;
-                this.ranks.Add(line);
+                this.ranksStrings.Add(line);
             }
             while (i <= GameSettings.Default.NumberOfRanks)
             {
-                this.ranks.Add(i + ". ");
+                this.ranksStrings.Add(i + ". ");
                 i++;
             }
 

@@ -192,7 +192,7 @@ namespace Goose
                         vslot.CanSeeStats = ("0".Equals(Convert.ToString(reader["stats_visible"])) ? false : true);
 
                         if (vslot.ItemTemplate != null &&
-                            vslot.Slot > 0 && vslot.Slot < GameSettings.Default.VendorSlotSize)
+                            vslot.Slot > 0 && vslot.Slot <= GameSettings.Default.VendorSlotSize)
                         {
                             template.VendorItems[vslot.Slot] = vslot;
                         }

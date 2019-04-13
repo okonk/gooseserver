@@ -395,6 +395,12 @@ namespace Goose
          */
         public void LoadData(GameWorld world)
         {
+            try
+            {
+                this.Script?.Object.OnLoad(this, world);
+            }
+            catch (Exception e) { }
+
             using (var fileStream = File.Open(@"Maps/" + FileName, FileMode.Open, FileAccess.Read))
             using (var mapReader = new BinaryReader(fileStream))
             {
@@ -416,6 +422,12 @@ namespace Goose
                         {
                             var graphic = mapReader.ReadInt32();
                             var sheet = mapReader.ReadInt16();
+
+                            try
+                            {
+                                this.Script?.Object.OnLoadTile(this, x, y, k, graphic, sheet, flags, world);
+                            }
+                            catch (Exception e) { }
                         }
 
                         if ((flags & 2) > 0)
@@ -454,6 +466,12 @@ namespace Goose
             {
                 this.requiredItems.Add(Convert.ToInt32(reader["item_template_id"]));
             }
+
+            try
+            {
+                this.Script?.Object.OnFinishedLoad(this, world);
+            }
+            catch (Exception e) { }
 
             reader.Close();
         }

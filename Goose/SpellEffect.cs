@@ -813,7 +813,7 @@ namespace Goose
 
             double successrate = (double)(
                 player.BaseStats.HP + player.Class.GetLevel(player.Level).BaseStats.HP + 
-                player.BaseStats.MP + player.Class.GetLevel(player.Level).BaseStats.MP) / (double)target.MaxStats.HP;
+                player.BaseStats.MP + player.Class.GetLevel(player.Level).BaseStats.MP) / (double)target.MaxHP;
 
 
             if (world.Random.Next(1, 101) <= successrate * 100)
@@ -826,7 +826,7 @@ namespace Goose
             }
             else
             {
-                world.Send(player, "$7Failed to tame " + target.Name + ". (" + target.MaxStats.HP + " hp)");
+                world.Send(player, "$7Failed to tame " + target.Name + ". (" + target.MaxHP + " hp)");
                 return false;
             }
         }
@@ -1324,8 +1324,8 @@ namespace Goose
             symbolToValue.Add("%cstr", caster.MaxStats.Strength);
             symbolToValue.Add("%cwdmg", caster.WeaponDamage);
             symbolToValue.Add("%clevel", caster.Level);
-            symbolToValue.Add("%chp", caster.MaxStats.HP);
-            symbolToValue.Add("%cmp", caster.MaxStats.MP);
+            symbolToValue.Add("%chp", caster.MaxHP);
+            symbolToValue.Add("%cmp", caster.MaxMP);
 
             symbolToValue.Add("%tchp", target.CurrentHP);
             symbolToValue.Add("%tcmp", target.CurrentMP);
@@ -1333,8 +1333,8 @@ namespace Goose
             symbolToValue.Add("%tstr", target.MaxStats.Strength);
             symbolToValue.Add("%twdmg", target.WeaponDamage);
             symbolToValue.Add("%tlevel", target.Level);
-            symbolToValue.Add("%thp", target.MaxStats.HP);
-            symbolToValue.Add("%tmp", target.MaxStats.MP);
+            symbolToValue.Add("%thp", target.MaxHP);
+            symbolToValue.Add("%tmp", target.MaxMP);
 
             for (int i = 0; i < formula.Length; i++)
             {

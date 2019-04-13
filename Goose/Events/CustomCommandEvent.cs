@@ -58,6 +58,7 @@ namespace Goose.Events
                         world.Send(this.Player, "$7Type /custom make <r> <g> <b> <a> <custom name> to make the custom. It will destroy your custom ticket and source items.");
 
                         break;
+                    case "create":
                     case "make":
                         error = ParseRGBA(tokens, out r, out g, out b, out a);
                         if (error != null)
@@ -76,6 +77,9 @@ namespace Goose.Events
                         Item item = new Item();
                         item.LoadFromTemplate(statsSlot.Item.Template);
                         item.StatMultiplier = statsSlot.Item.StatMultiplier;
+                        item.TotalStats = item.Template.BaseStats;
+                        item.TotalStats *= item.StatMultiplier;
+                        item.TotalStats += item.BaseStats;
                         item.BodyState = lookSlot.Item.BodyState;
                         item.GraphicEquipped = lookSlot.Item.GraphicEquipped;
                         item.GraphicR = r;
@@ -87,7 +91,7 @@ namespace Goose.Events
                         item.Name = (tokens[5].Length > 50 ? tokens[5].Substring(0, 50) : tokens[5]).Replace(",", "");
                         item.Description = "Custom created by " + this.Player.Name;
                         item.IsBound = statsSlot.Item.IsBound;
-                        world.ItemHandler.AddItem(item);
+                        world.ItemHandler.AddItem(item, world);
 
                         statsSlot.Item.Delete = true;
                         lookSlot.Item.Delete = true;

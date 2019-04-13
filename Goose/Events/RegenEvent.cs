@@ -22,18 +22,18 @@ namespace Goose.Events
                     if (this.NPC.AggroTarget != null)
                     {
                         this.NPC.CurrentHP += 
-                            (int)Math.Round(this.NPC.MaxStats.HP * this.NPC.MaxStats.HPPercentRegen, 0);
+                            (int)Math.Round(this.NPC.MaxHP * this.NPC.MaxStats.HPPercentRegen, 0);
                         this.NPC.CurrentHP += 
                             this.NPC.MaxStats.HPStaticRegen;
                         this.NPC.CurrentMP += 
-                            (int)Math.Round(this.NPC.MaxStats.MP * this.NPC.MaxStats.MPPercentRegen, 0);
+                            (int)Math.Round(this.NPC.MaxMP * this.NPC.MaxStats.MPPercentRegen, 0);
                         this.NPC.CurrentMP += 
                             this.NPC.MaxStats.MPStaticRegen;
                     }
                     else
                     {
                         this.NPC.CurrentHP += 
-                            (int)Math.Round(this.NPC.MaxStats.HP * 0.10, 0);
+                            (int)Math.Round(this.NPC.MaxHP * 0.10, 0);
                     }
 
                     if (this.NPC.CurrentHP <= 0) this.NPC.CurrentHP = 1;
@@ -61,9 +61,9 @@ namespace Goose.Events
 
                 if (player.State == Player.States.Ready)
                 {
-                    player.CurrentHP += (int)Math.Round(player.MaxStats.HP * player.MaxStats.HPPercentRegen, 0);
+                    player.CurrentHP += (int)Math.Round(player.MaxHP * player.MaxStats.HPPercentRegen, 0);
                     player.CurrentHP += player.MaxStats.HPStaticRegen;
-                    player.CurrentMP += (int)Math.Round(player.MaxStats.MP * player.MaxStats.MPPercentRegen, 0);
+                    player.CurrentMP += (int)Math.Round(player.MaxMP * player.MaxStats.MPPercentRegen, 0);
                     player.CurrentMP += player.MaxStats.MPStaticRegen;
 
                     if (player.CurrentHP <= 0) player.CurrentHP = 1;

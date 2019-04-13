@@ -78,7 +78,7 @@ namespace Goose.Events
                     item.TotalStats += item.BaseStats;
                 }
 
-                world.ItemHandler.AddItem(item);
+                world.ItemHandler.AddItem(item, world);
 
                 this.Player.Inventory.AddItem(item, stack, world);
 

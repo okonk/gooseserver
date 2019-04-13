@@ -227,8 +227,8 @@ namespace Goose.Events
             this.Player.SuspectedMacroCount = this.Player.SuspectedMacroCount / 2;
             this.Player.AddSaveEvent(world);
 
-            this.Player.CurrentHP = (int)(this.Player.MaxStats.HP * 0.8);
-            this.Player.CurrentMP = (int)(this.Player.MaxStats.MP * 0.8);
+            this.Player.CurrentHP = (int)(this.Player.MaxHP * 0.8);
+            this.Player.CurrentMP = (int)(this.Player.MaxMP * 0.8);
             this.Player.CurrentSP = this.Player.MaxStats.SP;
 
             this.Player.UpdateIdleStatus(world);

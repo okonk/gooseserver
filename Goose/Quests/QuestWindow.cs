@@ -329,7 +329,7 @@ namespace Goose.Quests
                         Item item = new Item();
                         item.LoadFromTemplate(template);
 
-                        world.ItemHandler.AddItem(item);
+                        world.ItemHandler.AddItem(item, world);
 
                         player.Inventory.AddItem(item, stack, world);
 

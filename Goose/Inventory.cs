@@ -209,7 +209,7 @@ namespace Goose
 
             if (slot2 == null)
             {
-                world.ItemHandler.AddItem(temp.Item);
+                world.ItemHandler.AddItem(temp.Item, world);
                 slot2 = temp;
             }
 
@@ -400,10 +400,24 @@ namespace Goose
                 }
             }
 
-            if (world.Random.Next(1, 100001) <= item.SpellEffectChance * 1000)
-            {
-                item.SpellEffect.Cast(this.player, this.player, world);
+            bool remove = true;
 
+            if (item.SpellEffect != null && world.Random.Next(1, 100001) <= item.SpellEffectChance * 1000)
+            {
+                item.SpellEffect.Cast(this.player, this.player, world); 
+            }
+
+            if (item.Script != null)
+            {
+                try
+                {
+                    remove = item.Script?.Object.OnUseConsumableEvent(player, item, world) ?? true;
+                }
+                catch (Exception e) { }
+            }
+
+            if (remove)
+            {
                 this.RemoveItem(item, 1, world);
             }
         }
@@ -1132,7 +1146,7 @@ namespace Goose
 
                 item = new Item();
                 item.LoadFromTemplate(template);
-                world.ItemHandler.AddItem(item);
+                world.ItemHandler.AddItem(item, world);
 
                 if (item.IsBindOnPickup) item.IsBound = true;
 

@@ -46,6 +46,7 @@ CREATE TABLE items (
   stat_multiplier DECIMAL(18,4) DEFAULT 1 NOT NULL,
   body_state SMALLINT DEFAULT 1 NOT NULL,
   bound CHAR(1) DEFAULT '0' NOT NULL,
+  script_params TEXT DEFAULT '' NOT NULL,
   
   PRIMARY KEY(item_id)
 );

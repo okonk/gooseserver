@@ -4,7 +4,7 @@ using Goose;
 using Goose.Scripting;
 using System.Linq;
 
-public class TestSpell3 : BaseSpellEffectScript
+public class PlaceSpawnHelper : BaseSpellEffectScript
 {
 	public override bool Cast(SpellEffect thisEffect, ICharacter caster, ICharacter target, GameWorld world)
 	{
@@ -19,9 +19,10 @@ public class TestSpell3 : BaseSpellEffectScript
 				NPCTemplate template = world.NPCHandler.GetNPCTemplate(npcId);
 				if (template == null) return false;
 
-				new NPC().LoadFromTemplate(world, caster.Map.ID, itemTile.X, itemTile.Y, template, shouldRespawn: true);
-
 				writer.WriteLine("{0},{1},{2},{3}", npcId, caster.Map.ID, itemTile.X, itemTile.Y);
+
+				if (thisEffect.ScriptParams == "spawn")
+					new NPC().LoadFromTemplate(world, caster.Map.ID, itemTile.X, itemTile.Y, template, shouldRespawn: true);
 			}
 		}
 
@@ -29,4 +30,4 @@ public class TestSpell3 : BaseSpellEffectScript
 	}
 }
 
-return typeof(TestSpell3);
+return typeof(PlaceSpawnHelper);

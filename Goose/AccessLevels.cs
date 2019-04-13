@@ -29,6 +29,7 @@ namespace Goose
         RespawnMap,
         Search,
         SpawnNPC,
+        PlaceSpawn,
         SpawnItem,
         GiveExperience,
         ClassChange,

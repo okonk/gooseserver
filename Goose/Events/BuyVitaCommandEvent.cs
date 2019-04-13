@@ -40,7 +40,7 @@ namespace Goose.Events
 
                 if (buys <= 0) return;
 
-                this.Player.RemoveStats(this.Player.BaseStats, world);
+                this.Player.RemoveStats(this.Player.BaseStats, world, false);
 
                 decimal buyrate = 0;
 

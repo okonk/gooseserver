@@ -162,8 +162,8 @@ namespace Goose
             pet.MaxStats.HPStaticRegen += GameSettings.Default.BaseHPStaticRegen;
             pet.MaxStats.MPPercentRegen += GameSettings.Default.BaseMPPercentRegen;
             pet.MaxStats.MPStaticRegen += GameSettings.Default.BaseMPStaticRegen;
-            pet.CurrentHP = pet.MaxStats.HP;
-            pet.CurrentMP = pet.MaxStats.MP;
+            pet.CurrentHP = pet.MaxHP;
+            pet.CurrentMP = pet.MaxMP;
             pet.Experience = pet.Class.GetLevel(pet.Level).Experience/2;
             pet.ExperienceSold = 0;
             pet.WeaponDamage = character.WeaponDamage;
@@ -255,8 +255,8 @@ namespace Goose
             pet.Class = world.ClassHandler.GetClass(pet.ClassID);
             pet.MaxStats += pet.Class.GetLevel(pet.Level).BaseStats;
 
-            pet.CurrentHP = pet.MaxStats.HP;
-            pet.CurrentMP = pet.MaxStats.MP;
+            pet.CurrentHP = pet.MaxHP;
+            pet.CurrentMP = pet.MaxMP;
 
             pet.WeaponDamage = Convert.ToInt32(reader["weapon_damage"]);
 
@@ -437,8 +437,8 @@ namespace Goose
 
             this.Facing = this.Owner.Facing;
 
-            this.CurrentHP = this.MaxStats.HP;
-            this.CurrentMP = this.MaxStats.MP;
+            this.CurrentHP = this.MaxHP;
+            this.CurrentMP = this.MaxMP;
             this.CurrentSP = this.MaxStats.SP;
             this.CurrentBodyID = this.BodyID;
 
@@ -522,7 +522,7 @@ namespace Goose
                             this.MapX + "," +
                             this.MapY + "," +
                             this.Facing + "," +
-                            (int)(((float)this.CurrentHP / this.MaxStats.HP) * 100) + "," + // HP %
+                            (int)(((float)this.CurrentHP / this.MaxHP) * 100) + "," + // HP %
                             this.CurrentBodyID + "," +
                             this.BodyR + "," + // Body Color R
                             this.BodyG + "," + // Body Color G
@@ -817,8 +817,8 @@ namespace Goose
             this.RemoveStats(this.Class.GetLevel(this.Level).BaseStats, world);
             this.Level += levels;
             this.AddStats(this.Class.GetLevel(this.Level).BaseStats, world);
-            this.CurrentHP = this.MaxStats.HP;
-            this.CurrentMP = this.MaxStats.MP;
+            this.CurrentHP = this.MaxHP;
+            this.CurrentMP = this.MaxMP;
 
             this.WeaponDamage += (levels * 3) + (world.Random.Next(0, 3) * levels);
 

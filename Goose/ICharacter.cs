@@ -58,6 +58,15 @@ namespace Goose
           * Current SP
           */
         long CurrentSP { get; set; }
+
+        long MaxHP { get; }
+
+        long MaxMP { get; }
+
+        long? TemporaryMaxHP { get; }
+
+        long? TemporaryMaxMP { get; }
+
         /**
          * Level
          */

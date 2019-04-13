@@ -6,6 +6,7 @@ using System.Text;
 using System.Data.SqlClient;
 
 using Goose.Events;
+using Goose.Scripting;
 
 namespace Goose
 {
@@ -121,6 +122,13 @@ namespace Goose
 
                 template.Credits = Convert.ToInt32(reader["credits_value"]);
 
+                string scriptPath = Convert.ToString(reader["script_path"]);
+                if (!string.IsNullOrEmpty(scriptPath))
+                {
+                    template.Script = world.ScriptHandler.GetScript<IItemScript>(scriptPath);
+                    template.ScriptParams = Convert.ToString(reader["script_params"]);
+                }
+
                 this.templates[template.ID] = template;
             }
 
@@ -203,6 +211,8 @@ namespace Goose
 
                 item.Unsaved = false;
 
+                item.ScriptParams = Convert.ToString(reader["script_params"]);
+
                 this.items[item.ItemID] = item;
 
                 if (item.ItemID >= this.CurrentID)
@@ -228,10 +238,16 @@ namespace Goose
          * into the items hashtable.
          * 
          */
-        public void AddItem(Item item)
+        public void AddItem(Item item, GameWorld world)
         {
             item.ItemID = this.CurrentID;
             this.CurrentID++;
+
+            try
+            {
+                item.Script?.Object.OnCreateEvent(item, world);
+            }
+            catch (Exception e) { }
 
             this.newitems.Add(item);
         }

@@ -158,8 +158,7 @@ namespace Goose
             get { return this.currentHP; }
             set
             {
-                this.currentHP = value;
-                if (this.currentHP > this.MaxStats.HP) this.currentHP = this.MaxStats.HP;
+                this.currentHP = Math.Min(value, this.MaxHP);
             }
         }
         /**
@@ -171,8 +170,7 @@ namespace Goose
             get { return this.currentMP; }
             set
             {
-                currentMP = value;
-                if (this.currentMP > this.MaxStats.MP) this.currentMP = this.MaxStats.MP;
+                currentMP = Math.Min(value, this.MaxMP);
             }
         }
         /**
@@ -184,10 +182,30 @@ namespace Goose
             get { return this.currentSP; }
             set
             {
-                this.currentSP = value;
-                if (this.currentSP > this.MaxStats.SP) this.currentSP = this.MaxStats.SP;
+                this.currentSP = Math.Min(value, this.MaxStats.SP);
             }
         }
+
+        public long MaxHP
+        {
+            get
+            {
+                return this.TemporaryMaxHP ?? this.MaxStats.HP;
+            }
+        }
+
+        public long MaxMP
+        {
+            get
+            {
+                return this.TemporaryMaxMP ?? this.MaxStats.MP;
+            }
+        }
+
+        public long? TemporaryMaxHP { get; set; }
+
+        public long? TemporaryMaxMP { get; set; }
+
         /**
          * Bound/respawn map id
          */
@@ -502,7 +520,7 @@ namespace Goose
                           this.MapX + "," +
                           this.MapY + "," +
                           this.Facing + "," +
-                          (int)(((float)this.CurrentHP / this.MaxStats.HP) * 100) + "," + // HP %
+                          (int)(((float)this.CurrentHP / this.MaxHP) * 100) + "," + // HP %
                           this.CurrentBodyID + "," +
                           this.BodyR + "," + // Body Color R
                           this.BodyG + "," + // Body Color G
@@ -639,7 +657,7 @@ namespace Goose
                         }
                         Item item = new Item();
                         item.LoadFromTemplate(template);
-                        world.ItemHandler.AddItem(item);
+                        world.ItemHandler.AddItem(item, world);
 
                         if (!this.Inventory.AddItem(item, 1, world))
                         {
@@ -1311,8 +1329,8 @@ namespace Goose
                    "" + "," + // Not sure
                    this.Class.ClassName + "," +
                    this.Level + "," +
-                   this.MaxStats.HP + "," +
-                   this.MaxStats.MP + "," +
+                   this.MaxHP + "," +
+                   this.MaxMP + "," +
                    this.MaxStats.SP + "," +
                    this.CurrentHP + "," +
                    this.CurrentMP + "," +
@@ -1338,8 +1356,8 @@ namespace Goose
         {
             if (this.RegenEventExists) return;
 
-            if ((this.CurrentHP == this.MaxStats.HP) &&
-                (this.CurrentMP == this.MaxStats.MP))
+            if ((this.CurrentHP == this.MaxHP) &&
+                (this.CurrentMP == this.MaxMP))
             {
                 // Already max stats
                 return;
@@ -1576,18 +1594,9 @@ namespace Goose
             this.MaxStats.HP += (stats.Stamina * GameSettings.Default.StaminaToHP);
             this.MaxStats.MP += (stats.Intelligence * GameSettings.Default.IntelligenceToMP);
 
-            if (this.CurrentHP > this.MaxStats.HP)
-            {
-                this.CurrentHP = this.MaxStats.HP;
-            }
-            if (this.CurrentMP > this.MaxStats.MP)
-            {
-                this.CurrentMP = this.MaxStats.MP;
-            }
-            if (this.CurrentSP > this.MaxStats.SP)
-            {
-                this.CurrentSP = this.MaxStats.SP;
-            }
+            this.CurrentHP = Math.Min(this.CurrentHP, this.MaxHP);
+            this.CurrentMP = Math.Min(this.CurrentMP, this.MaxMP);
+            this.CurrentSP = Math.Min(this.CurrentSP, this.MaxStats.SP);
 
             world.Send(this, this.SNFString());
             this.AddRegenEvent(world);
@@ -1597,27 +1606,21 @@ namespace Goose
          * RemoveStats, remove stats from player
          * 
          */
-        public void RemoveStats(AttributeSet stats, GameWorld world)
+        public void RemoveStats(AttributeSet stats, GameWorld world, bool changeCurrentHPMP = true)
         {
             this.MaxStats -= stats;
             this.MaxStats.HP -= (stats.Stamina * GameSettings.Default.StaminaToHP);
             this.MaxStats.MP -= (stats.Intelligence * GameSettings.Default.IntelligenceToMP);
 
-            if (this.CurrentHP > this.MaxStats.HP)
+            if (changeCurrentHPMP)
             {
-                this.CurrentHP = this.MaxStats.HP;
-            }
-            if (this.CurrentMP > this.MaxStats.MP)
-            {
-                this.CurrentMP = this.MaxStats.MP;
-            }
-            if (this.CurrentSP > this.MaxStats.SP)
-            {
-                this.CurrentSP = this.MaxStats.SP;
-            }
+                this.CurrentHP = Math.Min(this.CurrentHP, this.MaxHP);
+                this.CurrentMP = Math.Min(this.CurrentMP, this.MaxMP);
+                this.CurrentSP = Math.Min(this.CurrentSP, this.MaxStats.SP);
 
-            world.Send(this, this.SNFString());
-            this.AddRegenEvent(world);
+                world.Send(this, this.SNFString());
+                this.AddRegenEvent(world);
+            }
         }
 
         /**
@@ -1779,8 +1782,8 @@ namespace Goose
             this.RemoveStats(this.Class.GetLevel(this.Level).BaseStats, world);
             this.Level += levels;
             this.AddStats(this.Class.GetLevel(this.Level).BaseStats, world);
-            this.CurrentHP = this.MaxStats.HP;
-            this.CurrentMP = this.MaxStats.MP;
+            this.CurrentHP = this.MaxHP;
+            this.CurrentMP = this.MaxMP;
             world.Send(this, this.VPUString());
             if (levels == 1) world.Send(this, "$7You have gained a level.");
             else world.Send(this, "$7You have gained " + levels + " levels.");
@@ -1855,8 +1858,8 @@ namespace Goose
 
             if (this.CurrentHP <= 0)
             {
-                this.CurrentHP = (long)(this.MaxStats.HP * 0.5);
-                this.CurrentMP = (long)(this.MaxStats.MP * 0.1);
+                this.CurrentHP = (long)(this.MaxHP * 0.5);
+                this.CurrentMP = (long)(this.MaxMP * 0.1);
 
                 world.SendToMap(this.Map, "$7" + this.Name + " was slain by " + character.Name + ".");
 
@@ -1910,8 +1913,8 @@ namespace Goose
         public string VPUString()
         {
             return "VPU" + this.LoginID + "," +
-                   (int)(((float)this.CurrentHP / this.MaxStats.HP) * 100) + "," +
-                   (int)(((float)this.CurrentMP / this.MaxStats.MP) * 100);
+                   (int)(((float)this.CurrentHP / this.MaxHP) * 100) + "," +
+                   (int)(((float)this.CurrentMP / this.MaxMP) * 100);
         }
 
         /**

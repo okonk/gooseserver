@@ -55,6 +55,16 @@ namespace Goose.Events
 
                 if (now - this.Player.LastAttack >= delay)
                 {
+                    var weaponSlot = this.Player.Inventory.GetEquippedSlot(Inventory.EquipSlots.Weapon);
+                    if (weaponSlot.Item != null)
+                    {
+                        try
+                        {
+                            weaponSlot.Item.Script?.Object.OnMeleeEvent(this.Player, weaponSlot.Item, world);
+                        }
+                        catch (Exception e) { }
+                    }
+
                     List<Player> range = this.Player.Map.GetPlayersInRange(this.Player);
                     string packet = "ATT" + this.Player.LoginID;
                     foreach (Player player in range)

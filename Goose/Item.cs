@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Data.SqlClient;
 using System.Data;
+using Goose.Scripting;
 
 namespace Goose
 {
@@ -108,6 +109,10 @@ namespace Goose
 
         public bool Custom { get { return false; } }
 
+        public Script<IItemScript> Script { get { return this.Template.Script; } }
+
+        public string ScriptParams { get; set; }
+
         public Item()
         {
             this.Unsaved = true;
@@ -143,6 +148,8 @@ namespace Goose
 
             this.Value = this.Template.Value;
             this.BodyState = this.Template.BodyState;
+
+            this.ScriptParams = this.Template.ScriptParams;
         }
 
         /**
@@ -172,12 +179,14 @@ namespace Goose
             nameParam.Value = this.Name;
             SqlParameter descriptionParam = new SqlParameter("@itemDescription", SqlDbType.VarChar, 64);
             descriptionParam.Value = this.Description;
+            SqlParameter scriptParamsParam = new SqlParameter("@scriptParams", SqlDbType.Text);
+            scriptParamsParam.Value = this.ScriptParams;
 
             string query = "INSERT INTO items (item_id, item_template_id, item_name, item_description, " +
             "player_hp, player_mp, player_sp, stat_ac, stat_str, stat_sta, stat_dex, stat_int, " +
             "res_fire, res_water, res_spirit, res_air, res_earth, weapon_damage, item_value, " +
             "graphic_tile, graphic_file, graphic_equip, graphic_r, graphic_g, graphic_b, graphic_a, stat_multiplier, " +
-            "bound, body_state) VALUES (" +
+            "bound, body_state, script_params) VALUES (" +
             this.ItemID + "," +
             this.TemplateID + ", " +
             "@itemName, " +
@@ -206,7 +215,8 @@ namespace Goose
             this.GraphicA + ", " +
             this.StatMultiplier + ", " +
             (this.bound ? "'1'" : "'0'") + ", " +
-            this.BodyState + ")";
+            this.BodyState + ", " +
+            "@scriptParams" + ")";
 
             this.Dirty = false;
 
@@ -215,6 +225,7 @@ namespace Goose
             SqlCommand command = new SqlCommand(query, world.SqlConnection);
             command.Parameters.Add(nameParam);
             command.Parameters.Add(descriptionParam);
+            command.Parameters.Add(scriptParamsParam);
             command.BeginExecuteNonQuery(new AsyncCallback(GameWorld.DefaultEndExecuteNonQueryAsyncCallback), command);
         }
 
@@ -228,6 +239,8 @@ namespace Goose
             nameParam.Value = this.Name;
             SqlParameter descriptionParam = new SqlParameter("@itemDescription", SqlDbType.VarChar, 64);
             descriptionParam.Value = this.Description;
+            SqlParameter scriptParamsParam = new SqlParameter("@scriptParams", SqlDbType.Text);
+            scriptParamsParam.Value = this.ScriptParams;
 
             string query = "UPDATE items SET " +
                 "item_template_id=" + this.TemplateID + ", " +
@@ -257,12 +270,14 @@ namespace Goose
                 "graphic_a=" + this.GraphicA + ", " +
                 "stat_multiplier=" + this.StatMultiplier + ", " +
                 "bound=" + (this.bound ? "'1'" : "'0'") + ", " +
-                "body_state=" + this.BodyState + 
+                "body_state=" + this.BodyState + ", " +
+                "script_params=" + "@scriptParams" +
                 " WHERE item_id=" + this.ItemID;
 
             SqlCommand command = new SqlCommand(query, world.SqlConnection);
             command.Parameters.Add(nameParam);
             command.Parameters.Add(descriptionParam);
+            command.Parameters.Add(scriptParamsParam);
             command.BeginExecuteNonQuery(new AsyncCallback(GameWorld.DefaultEndExecuteNonQueryAsyncCallback), command);
             this.Dirty = false;
         }

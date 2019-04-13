@@ -81,8 +81,7 @@ namespace Goose
             get { return this.currentHP; }
             set
             {
-                this.currentHP = value;
-                if (this.currentHP > this.MaxStats.HP) this.currentHP = this.MaxStats.HP;
+                this.currentHP = Math.Min(value, this.MaxHP);
             }
         }
         /**
@@ -94,8 +93,7 @@ namespace Goose
             get { return this.currentMP; }
             set
             {
-                currentMP = value;
-                if (this.currentMP > this.MaxStats.MP) this.currentMP = this.MaxStats.MP;
+                currentMP = Math.Min(value, this.MaxMP);
             }
         }
         /**
@@ -111,6 +109,26 @@ namespace Goose
                 if (this.currentSP > this.MaxStats.SP) this.currentSP = this.MaxStats.SP;
             }
         }
+
+        public long MaxHP
+        {
+            get
+            {
+                return this.TemporaryMaxHP ?? this.MaxStats.HP;
+            }
+        }
+
+        public long MaxMP
+        {
+            get
+            {
+                return this.TemporaryMaxMP ?? this.MaxStats.MP;
+            }
+        }
+
+        public long? TemporaryMaxHP { get; set; }
+
+        public long? TemporaryMaxMP { get; set; }
 
         /**
          * spawn map x
@@ -339,7 +357,7 @@ namespace Goose
                         this.MapX + "," +
                         this.MapY + "," +
                         this.Facing + "," +
-                        (int)(((float)this.CurrentHP / this.MaxStats.HP) * 100) + "," + // HP %
+                        (int)(((float)this.CurrentHP / this.MaxHP) * 100) + "," + // HP %
                         this.CurrentBodyID + "," +
                         this.BodyR + "," + // Body Color R
                         this.BodyG + "," + // Body Color G
@@ -669,6 +687,7 @@ namespace Goose
             try
             {
                 this.Script?.Object.OnSpawnEvent(this, world);
+                this.Map.Script?.Object.OnNPCSpawnEvent(this.Map, this, world);
             }
             catch (Exception e)
             {
@@ -686,8 +705,8 @@ namespace Goose
             // move to this square so this
             this.Map.SetCharacter(this, this.MapX, this.MapY);
 
-            this.CurrentHP = this.MaxStats.HP;
-            this.CurrentMP = this.MaxStats.MP;
+            this.CurrentHP = this.MaxHP;
+            this.CurrentMP = this.MaxMP;
             this.CurrentSP = this.MaxStats.SP;
 
             this.CurrentBodyID = this.BodyID;
@@ -860,8 +879,8 @@ namespace Goose
             if (this.RegenEventExists) return;
             if (this.State == States.Dead) return;
 
-            if ((this.CurrentHP == this.MaxStats.HP) &&
-                (this.CurrentMP == this.MaxStats.MP))
+            if ((this.CurrentHP == this.MaxHP) &&
+                (this.CurrentMP == this.MaxMP))
             {
                 // Already max stats
                 return;
@@ -1110,6 +1129,7 @@ namespace Goose
                     try
                     {
                         this.Script?.Object.OnKilledEvent(this, character, world);
+                        this.Map.Script?.Object.OnNPCKilledEvent(this.Map, this, character, world);
                     }
                     catch (Exception e)
                     {
@@ -1255,8 +1275,8 @@ namespace Goose
         public string VPUString()
         {
             return "VPU" + this.LoginID + "," +
-                   (int)(((float)this.CurrentHP / this.MaxStats.HP) * 100) + "," +
-                   (int)(((float)this.CurrentMP / this.MaxStats.MP) * 100);
+                   (int)(((float)this.CurrentHP / this.MaxHP) * 100) + "," +
+                   (int)(((float)this.CurrentMP / this.MaxMP) * 100);
         }
 
         public void OnAttackEvent(GameWorld world)
@@ -1469,7 +1489,7 @@ namespace Goose
                         {
                             drop.Item.LoadFromTemplate(dropinfo.ItemTemplate);
                         }
-                        world.ItemHandler.AddItem(drop.Item);
+                        world.ItemHandler.AddItem(drop.Item, world);
                     }
                     drop.Stack = dropinfo.Stack;
 

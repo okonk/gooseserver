@@ -16,7 +16,7 @@ namespace CsvToSql
                 "res_earth", "min_experience", "min_level", "max_experience", "max_level", "weapon_damage", "weapon_delay", "item_slot",
                 "item_type", "item_value", "lore", "bindonpickup", "bindonequip", "event", "graphic_tile", "graphic_file", "graphic_equip",
                 "graphic_r", "graphic_g", "graphic_b", "graphic_a", "class_restrictions", "stack_size", "body_state", "spell_effect_id",
-                "spell_effect_chance", "learn_spell_id", "credits_value",
+                "spell_effect_chance", "learn_spell_id", "credits_value", "script_path", "script_params"
             };
         }
 
@@ -26,6 +26,8 @@ namespace CsvToSql
             {
                 case "item_description":
                 case "item_name":
+                case "script_path":
+                case "script_params":
                     return EscapeString(value);
                 case "lore":
                 case "bindonpickup":
