@@ -28,6 +28,8 @@ namespace Goose
      */
     public class GameWorld
     {
+        private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
+
         [DllImport("Kernel32.dll")]
         private static extern bool QueryPerformanceCounter(
             out long lpPerformanceCount);
@@ -550,8 +552,15 @@ namespace Goose
 
         public static void DefaultEndExecuteNonQueryAsyncCallback(IAsyncResult ar)
         {
-            SqlCommand command = (SqlCommand)ar.AsyncState;
-            command.EndExecuteNonQuery(ar);
+            try
+            {
+                SqlCommand command = (SqlCommand)ar.AsyncState;
+                command.EndExecuteNonQuery(ar);
+            }
+            catch (Exception e)
+            {
+                log.Error(e, "SQL Query Failed");
+            }
         }
 
         public void LaunchServerBrowserUpdateThread()

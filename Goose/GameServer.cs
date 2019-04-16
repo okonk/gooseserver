@@ -178,6 +178,8 @@ namespace Goose
             {
                 sock.Close();
             }
+
+            NLog.LogManager.Shutdown();
         }
 
         /**

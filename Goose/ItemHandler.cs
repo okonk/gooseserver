@@ -126,8 +126,9 @@ namespace Goose
                 if (!string.IsNullOrEmpty(scriptPath))
                 {
                     template.Script = world.ScriptHandler.GetScript<IItemScript>(scriptPath);
-                    template.ScriptParams = Convert.ToString(reader["script_params"]);
                 }
+
+                template.ScriptParams = Convert.ToString(reader["script_params"]);
 
                 this.templates[template.ID] = template;
             }

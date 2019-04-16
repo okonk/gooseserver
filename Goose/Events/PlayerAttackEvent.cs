@@ -56,7 +56,7 @@ namespace Goose.Events
                 if (now - this.Player.LastAttack >= delay)
                 {
                     var weaponSlot = this.Player.Inventory.GetEquippedSlot(Inventory.EquipSlots.Weapon);
-                    if (weaponSlot.Item != null)
+                    if (weaponSlot?.Item != null)
                     {
                         try
                         {

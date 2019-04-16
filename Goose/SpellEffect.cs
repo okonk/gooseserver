@@ -14,6 +14,8 @@ namespace Goose
      */
     public class SpellEffect
     {
+        private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
+
         /**
          * Character only shows the animation if there is a character there
          * Tile shows animation all the time.
@@ -932,7 +934,19 @@ namespace Goose
          */
         public bool CastSpell(ICharacter caster, ICharacter target, GameWorld world)
         {
-            if (this.EffectType == EffectTypes.Formula)
+            if (this.EffectType == EffectTypes.Script)
+            {
+                try
+                {
+                    return this.Script.Object.Cast(this, caster, target, world);
+                }
+                catch (Exception e)
+                {
+                    log.Error(e, "Cast Spell {0} (c: {1}, t: {2}) Exception", this.Name, caster.Name, target.Name);
+                    return false;
+                }
+            }
+            else if (this.EffectType == EffectTypes.Formula)
             {
                 return this.CastFormulaSpell(caster, target, world);
             }
@@ -1032,19 +1046,7 @@ namespace Goose
         {
             if (!this.WorksInPVP && target.Map.CanPVP) return false;
 
-            if (this.EffectType == EffectTypes.Script)
-            {
-                try
-                {
-                    return this.Script.Object.Cast(this, caster, target, world);
-                }
-                catch (Exception e)
-                {
-                    // TODO: need logging system
-                    return false;
-                }
-            }
-            else if (this.TargetType == TargetTypes.Target)
+            if (this.TargetType == TargetTypes.Target)
             {
                 return this.CastSpell(caster, target, world);
             }

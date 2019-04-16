@@ -16,6 +16,8 @@ namespace Goose
      */
     public class NPC : ICharacter
     {
+        private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
+
         public enum States
         {
             Alive = 0,
@@ -396,7 +398,7 @@ namespace Goose
             }
             catch (Exception e)
             {
-                // TODO: need a logging system
+                log.Error(e, "NPC OnMoveEvent {0} Exception", this.Name);
             }
         }
 
@@ -691,7 +693,7 @@ namespace Goose
             }
             catch (Exception e)
             {
-                // TODO: need a logging system
+                log.Error(e, "NPC OnSpawnEvent {0} Exception", this.Name);
             }
 
             this.LastSpawnTime = world.TimeNow;
@@ -1287,7 +1289,7 @@ namespace Goose
             }
             catch (Exception e)
             {
-                // TODO: need a logging system
+                log.Error(e, "NPC OnAttackEvent {0} Exception", this.Name);
             }
         }
 
