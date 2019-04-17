@@ -21,7 +21,7 @@ public class AncientVampire : BaseNPCScript
 			return false;
 
 		ICharacter target = npc.AggroTarget;
-		if (target == null || !Map.InRange(npc, target) || world.Random.Next(0, 100) <= 20)
+		if (target == null || !Map.InRange(npc, target) || world.Random.Next(0, 100) <= 5)
 			target = playersInRange[world.Random.Next(0, playersInRange.Count)];
 
 		var attack = world.SpellHandler.GetSpellEffect(387);

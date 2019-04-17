@@ -436,6 +436,9 @@
     <None Include="Scripts\NPC\Lust\AncientVampire.csx">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="Scripts\NPC\EasterEvent.csx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="Scripts\NPC\ZombieNPC.csx">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

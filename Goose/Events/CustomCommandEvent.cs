@@ -91,6 +91,7 @@ namespace Goose.Events
                         item.Name = (tokens[5].Length > 50 ? tokens[5].Substring(0, 50) : tokens[5]).Replace(",", "");
                         item.Description = "Custom created by " + this.Player.Name;
                         item.IsBound = statsSlot.Item.IsBound;
+                        item.ScriptParams = statsSlot.Item.ScriptParams;
                         world.ItemHandler.AddItem(item, world);
 
                         statsSlot.Item.Delete = true;

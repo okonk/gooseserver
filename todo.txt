@@ -15,9 +15,11 @@ reset bound spot when resetting
 logging everywhere
 aliases for /ga /gr
 flag for hiding other equips when cloak is equipped
+spell to see monster info
 
 test running goose on linux -- .net core?
 Map editor
+client
 
 
 automated /macrocheck? maybe only do check every 4+ hours to not get annoying to players, also give 5k gold or 500k exp? reward for passing check
@@ -48,6 +50,7 @@ npc scripting improvements
 map scripting/dynamic maps
 item scripting?
 spell/command for placing spawns
+customing needs to copy scriptparams
 
 TUPx,y,graphicnum,sheetnum,graphicnum,sheetnum,graphicnum,sheetnum,graphicnum,sheetnum,graphicnum,sheetnum,flags
 
