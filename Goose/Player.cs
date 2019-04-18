@@ -2079,7 +2079,8 @@ namespace Goose
                 wait = Math.Round(wait, 2);
                 if (wait >= this.AetherThreshold)
                 {
-                    world.Send(this, "$7You must wait " + wait + " seconds to cast this spell.");
+
+                    world.Send(this, "$7You must wait " + Utils.FormatDuration((long)(wait * 1000)) + " to cast this spell.");
                 }
             }
 

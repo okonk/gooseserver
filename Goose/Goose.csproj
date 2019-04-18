@@ -408,6 +408,7 @@
     <Compile Include="Spellbook.cs" />
     <Compile Include="SpellEffect.cs" />
     <Compile Include="SpellHandler.cs" />
+    <Compile Include="Utils.cs" />
     <Compile Include="WarpTile.cs" />
     <Compile Include="Window.cs" />
   </ItemGroup>
