@@ -74,7 +74,9 @@ namespace Goose
             this.stringToEvent.Add("/gmhax ", GMHaxCommandEvent.Create);
             this.stringToEvent.Add("/togglegroup", ToggleGroupCommandEvent.Create);
             this.stringToEvent.Add("/group ", GroupChatEvent.Create);
+            this.stringToEvent.Add("/invite ", GroupAddEvent.Create);
             this.stringToEvent.Add("/groupadd ", GroupAddEvent.Create);
+            this.stringToEvent.Add("/disband", GroupRemoveEvent.Create);
             this.stringToEvent.Add("/groupremove", GroupRemoveEvent.Create);
             this.stringToEvent.Add("RC", PlayerRightClickEvent.Create);
             this.stringToEvent.Add("WBC", WindowButtonClickEvent.Create);

@@ -10,9 +10,7 @@ pets
 make invis work
 log when player creates a custom
 fix datatypes in DB. varchar -> text
-reset bound spot when resetting
 logging everywhere
-aliases for /ga /gr
 flag for hiding other equips when cloak is equipped
 spell to see monster info
 something buggy with move speed
@@ -52,6 +50,8 @@ item scripting?
 spell/command for placing spawns
 customing needs to copy scriptparams
 make arena use same debuff as zombies
+reset bound spot when resetting
+aliases for /ga /gr
 
 TUPx,y,graphicnum,sheetnum,graphicnum,sheetnum,graphicnum,sheetnum,graphicnum,sheetnum,graphicnum,sheetnum,flags
 

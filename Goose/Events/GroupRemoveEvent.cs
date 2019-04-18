@@ -27,9 +27,9 @@ namespace Goose.Events
         {
             if (this.Player.State == Player.States.Ready)
             {
-                string name = ((string)this.Data).Substring(12);
+                string[] t = ((string)this.Data).Split(" ".ToCharArray());
 
-                if (name == "")
+                if (t.Length == 1)
                 {
                     if (this.Player.Group == null)
                     {
@@ -44,7 +44,7 @@ namespace Goose.Events
                     }
                 }
 
-                name = name.Substring(1);
+                string name = t[1];
                 if (name.Length <= 0) return;
 
                 Player player = world.PlayerHandler.GetPlayer(name);
