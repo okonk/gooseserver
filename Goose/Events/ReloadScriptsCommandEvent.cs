@@ -26,6 +26,8 @@ namespace Goose.Events
                 {
                     try
                     {
+                        world.LoadGlobalScripts();
+
                         world.ScriptHandler.ReloadScripts();
 
                         world.Send(this.Player, "$7Reloaded scripts.");

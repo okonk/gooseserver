@@ -229,10 +229,12 @@
     <Compile Include="Events\MuteMapEvent.cs" />
     <Compile Include="Events\SpellInfoEvent.cs" />
     <Compile Include="MacroCheckWindow.cs" />
+    <Compile Include="Scripting\BaseGlobalScript.cs" />
     <Compile Include="Scripting\BaseItemScript.cs" />
     <Compile Include="Scripting\BaseMapScript.cs" />
     <Compile Include="Scripting\BaseSpellEffectScript.cs" />
     <Compile Include="Scripting\BaseNPCScript.cs" />
+    <Compile Include="Scripting\IGlobalScript.cs" />
     <Compile Include="Scripting\IMapScript.cs" />
     <Compile Include="Scripting\IItemScript.cs" />
     <Compile Include="Scripting\ISpellEffectScript.cs" />
@@ -518,7 +520,9 @@
     <Analyzer Include="..\packages\Microsoft.CodeAnalysis.Analyzers.2.6.1\analyzers\dotnet\cs\Microsoft.CodeAnalysis.Analyzers.dll" />
     <Analyzer Include="..\packages\Microsoft.CodeAnalysis.Analyzers.2.6.1\analyzers\dotnet\cs\Microsoft.CodeAnalysis.CSharp.Analyzers.dll" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Folder Include="Scripts\Global\" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <UsingTask TaskName="CosturaCleanup" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.v4.0.dll" TaskFactory="CodeTaskFactory">
     <ParameterGroup>

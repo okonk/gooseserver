@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 using GooseServerBrowserService.Client;
 using System.Threading;
 using Goose.Scripting;
+using System.IO;
 
 namespace Goose
 {
@@ -338,6 +339,18 @@ namespace Goose
             //updateExperienceModifier.Ticks += this.TimerFrequency * GameSettings.Default.CreditUpdateInterval;
             //this.EventHandler.AddEvent(updateCredits);
 
+            Console.Out.Write("Loading Global Scripts: ");
+            try
+            {
+                LoadGlobalScripts();
+            }
+            catch (Exception e)
+            {
+                Console.Out.WriteLine("Fail, " + e.Message);
+                Console.Out.WriteLine("Aborting...");
+                return;
+            }
+
             Console.Out.WriteLine("Finished loading game. Ready to join.");
 
             this.Running = true;
@@ -587,6 +600,17 @@ namespace Goose
                     Thread.Sleep(TimeSpan.FromMinutes(2));
                 }
             });
+        }
+
+        public void LoadGlobalScripts()
+        {
+            foreach (var scriptPath in Directory.EnumerateFiles("Scripts/Global", "*.csx"))
+            {
+                if (this.ScriptHandler.HasScript(scriptPath)) continue;
+
+                var script = this.ScriptHandler.GetScript<IGlobalScript>(scriptPath);
+                script.Object.OnLoaded(this);
+            }
         }
     }
 }

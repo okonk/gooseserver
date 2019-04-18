@@ -52,5 +52,10 @@ namespace Goose.Scripting
                 }
             }
         }
+
+        public bool HasScript(string filePath)
+        {
+            return this.scripts.ContainsKey(filePath);
+        }
     }
 }
