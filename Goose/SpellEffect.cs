@@ -771,7 +771,11 @@ namespace Goose
                 {
                     if (((int)this.Effected & (int)SpellEffected.NPC) != 0)
                     {
-                        if (this.EffectType == EffectTypes.Root)
+                        if (!(((NPC)target).CanBeKilled))
+                        {
+                            return false;
+                        }
+                        else if (this.EffectType == EffectTypes.Root)
                         {
                             if (((NPC)target).CanBeRooted) return true;
                             else return false;

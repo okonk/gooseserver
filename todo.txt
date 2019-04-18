@@ -2,15 +2,14 @@ item disappearing bug... move inventory loading/saving to json fields on player 
 look into wrath etc spawns what can be done to make training better but not encourage macroing
 convert decimals -> doubles
 convert hashtables -> Dictionaries
+fix datatypes in DB. varchar -> text
+logging everywhere
 title/surname items
 command to check player's inventory
 increase bank slot item
-block casting spells on invincible npcs
 pets
 make invis work
 log when player creates a custom
-fix datatypes in DB. varchar -> text
-logging everywhere
 flag for hiding other equips when cloak is equipped
 spell to see monster info
 something buggy with move speed
@@ -52,6 +51,7 @@ customing needs to copy scriptparams
 make arena use same debuff as zombies
 reset bound spot when resetting
 aliases for /ga /gr
+block casting spells on invincible npcs
 
 TUPx,y,graphicnum,sheetnum,graphicnum,sheetnum,graphicnum,sheetnum,graphicnum,sheetnum,graphicnum,sheetnum,flags
 
