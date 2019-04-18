@@ -467,6 +467,8 @@ namespace Goose
                     var map = world.MapHandler.GetMap(this.TeleportMapID);
                     if (map != null)
                         yield return "Teleport to " + map.Name + " (" + this.TeleportMapX + ", " + this.TeleportMapY + ")";
+                    else
+                        yield return "Teleport to bound location";
                     break;
                 case EffectTypes.Permanent:
                     foreach (var line in GetBuffDescription("Permanently ")) yield return line;
