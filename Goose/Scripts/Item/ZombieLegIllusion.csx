@@ -39,8 +39,9 @@ public class ZombieLegIllusion : BaseItemScript
 
 		var targetPlayer = character as Player;
 
-		if (targetPlayer.Buffs.Any(b => b.SpellEffect.Name == "Zombie Leg Illusion"))
-			return;
+		var buff = targetPlayer.Buffs.FirstOrDefault(b => b.SpellEffect.Name == "Zombie Leg Illusion");
+		if (buff != null)
+			targetPlayer.RemoveBuff(buff, world, false);
 
 		var spellEffect = new SpellEffect();
 		spellEffect.Name = "Zombie Leg Illusion";

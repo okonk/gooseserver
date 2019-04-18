@@ -2208,7 +2208,7 @@ namespace Goose
             }
 
             // for illusions
-            if (buff.SpellEffect.BodyID != 0 && !IsMounted())
+            if (buff.SpellEffect.BodyID != 0)
             {
                 this.CurrentBodyID = buff.SpellEffect.BodyID;
                 packet += "\x1" + this.CHPString();
