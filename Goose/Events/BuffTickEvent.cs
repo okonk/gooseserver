@@ -62,8 +62,7 @@ namespace Goose.Events
             if (!buff.ItemBuff && buff.BuffExpireEvent != null)
             {
                 // buff will expire before next tick
-                if (buff.BuffExpireEvent.Ticks - world.TimeNow <
-                    GameSettings.Default.SpellEffectPeriod * world.TimerFrequency)
+                if (world.TimeNow - buff.TimeCast >= (buff.SpellEffect.Duration - GameSettings.Default.SpellEffectPeriod) * world.TimerFrequency)
                 {
                     return;
                 }
