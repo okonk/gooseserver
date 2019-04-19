@@ -45,6 +45,7 @@ namespace Goose
             Quest,
             SpellInfo,
             MacroCheck,
+            PlayerInfo
         }
         public WindowTypes Type { get; set; }
 
@@ -221,7 +222,7 @@ namespace Goose
             string line;
             // Experience sold, hp, mp
             line = "WNF" + this.ID + "," + 1 + "," +
-                "Experience Sold: " + player.ExperienceSold +
+                "Experience Sold: " + string.Format("{0:N0}", player.ExperienceSold) +
                 "|0|0|0|0|*";
             world.Send(player, line);
             // Bound map, x, y
@@ -231,12 +232,12 @@ namespace Goose
             world.Send(player, line);
             // HP regen
             line = "WNF" + this.ID + "," + 3 + "," +
-                "HP Regeneration: " + Math.Round(player.MaxStats.HPPercentRegen * 100, 0) + "%" +
+                "HP Regeneration: " + Math.Round(player.MaxStats.HPPercentRegen * 100, 0) + "%" + string.Format(" +{0:N0}", player.MaxStats.HPStaticRegen) +
                 "|0|0|0|0|*";
             world.Send(player, line);
             // MP Regen
             line = "WNF" + this.ID + "," + 4 + "," +
-                "MP Regeneration: " + Math.Round(player.MaxStats.MPPercentRegen * 100, 0) + "%" +
+                "MP Regeneration: " + Math.Round(player.MaxStats.MPPercentRegen * 100, 0) + "%" + string.Format(" +{0:N0}", player.MaxStats.MPStaticRegen) +
                 "|0|0|0|0|*";
             world.Send(player, line);
             // SD

@@ -218,6 +218,7 @@
     <Compile Include="ClassLevel.cs" />
     <Compile Include="Combination.cs" />
     <Compile Include="CombinationHandler.cs" />
+    <Compile Include="Events\PlayerInfoCommandEvent.cs" />
     <Compile Include="Events\ScriptTimerEvent.cs" />
     <Compile Include="Events\MacroConfirmCommandEvent.cs" />
     <Compile Include="Events\MacroCheckCommandEvent.cs" />
@@ -228,6 +229,7 @@
     <Compile Include="Events\SetAccessCommandEvent.cs" />
     <Compile Include="Events\MuteMapEvent.cs" />
     <Compile Include="Events\SpellInfoEvent.cs" />
+    <Compile Include="PlayerInfoWindow.cs" />
     <Compile Include="MacroCheckWindow.cs" />
     <Compile Include="Scripting\BaseGlobalScript.cs" />
     <Compile Include="Scripting\BaseItemScript.cs" />

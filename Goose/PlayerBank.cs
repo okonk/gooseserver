@@ -14,6 +14,10 @@ namespace Goose
         /// </summary>
         private Dictionary<int, ItemContainer> bankContainers;
 
+        public int NumberOfContainers {  get { return bankContainers.Count; } }
+
+        public Dictionary<int, ItemContainer> Containers { get { return bankContainers; } }
+
         public PlayerBank()
         {
             this.bankContainers = new Dictionary<int, ItemContainer>();

@@ -66,7 +66,7 @@ public class EasterEvent : BaseNPCScript
 			var type = npc.Script.Object.GetType();
 			var methodInfo = type.GetMethod("DoEvent");
 			methodInfo.Invoke(npc.Script.Object, new object[] { npc, world });
-		}, TimeSpan.FromMinutes(1), world);
+		}, TimeSpan.FromMinutes(30), world);
 	}
 }
 

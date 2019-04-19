@@ -18,6 +18,7 @@ namespace Goose
         MutePlayer,
         Broadcast,
         WhoInvisible,
+        PlayerInfoCheck,
         Summon,
         Kick,
         Ban,
@@ -52,7 +53,7 @@ namespace Goose
             accessPrivileges[Player.AccessStatus.Guide] = new HashSet<AccessPrivilege>
             {
                 AccessPrivilege.IgnoreMapRequirements, AccessPrivilege.IgnoreItemRequirements, AccessPrivilege.Warp, AccessPrivilege.Approach, AccessPrivilege.TalkWhileMuted, AccessPrivilege.CastSpellsWhileBlocked, AccessPrivilege.MuteMap, AccessPrivilege.MutePlayer, AccessPrivilege.Broadcast, AccessPrivilege.WhoInvisible,
-                AccessPrivilege.Summon, AccessPrivilege.Kick, AccessPrivilege.Ban, AccessPrivilege.SetTitle, AccessPrivilege.SetSurname, AccessPrivilege.MacroCheck
+                AccessPrivilege.PlayerInfoCheck, AccessPrivilege.Summon, AccessPrivilege.Kick, AccessPrivilege.Ban, AccessPrivilege.SetTitle, AccessPrivilege.SetSurname, AccessPrivilege.MacroCheck
             };
             accessPrivileges[Player.AccessStatus.EventMaster] = new HashSet<AccessPrivilege>
             {
