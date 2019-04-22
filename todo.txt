@@ -5,7 +5,6 @@ convert hashtables -> Dictionaries
 fix datatypes in DB. varchar -> text
 logging everywhere
 title/surname items
-command to check player's inventory
 increase bank slot item
 pets
 make invis work
@@ -13,6 +12,8 @@ log when player creates a custom
 flag for hiding other equips when cloak is equipped
 spell to see monster info
 something buggy with move speed
+/who search
+fix AC scaling
 
 test running goose on linux -- .net core?
 Map editor
@@ -52,6 +53,7 @@ make arena use same debuff as zombies
 reset bound spot when resetting
 aliases for /ga /gr
 block casting spells on invincible npcs
+command to check player's inventory
 
 TUPx,y,graphicnum,sheetnum,graphicnum,sheetnum,graphicnum,sheetnum,graphicnum,sheetnum,graphicnum,sheetnum,flags
 
@@ -76,3 +78,8 @@ The NPC is 480, I've already set the respawn timer for 30 minutes.
 I’ll be creating the Million Dollar Man here soon.
 When he spawns the server will say, “Look it’s that damn rich guy again...”. My POINT is, he will give 1M EXP, and have a 10% chance to drop his wallet of 1M GP.
 He will spawn once every 24 hours randomly somewhere in the world. He’ll hit for 1M and have 1M HP. But he’ll be an extra way to earn EXP.
+
+RESTORE DATABASE IllutiaGoose_2018_09_14 FROM DISK='C:\shared\IllutiaGoose.bak'
+WITH REPLACE, RECOVERY, 
+   MOVE 'IllutiaGoose' TO 'C:\Program Files\Microsoft SQL Server\MSSQL14.SQLEXPRESS\MSSQL\DATA\IllutiaGoose_2018_09_14.mdf',
+   MOVE 'IllutiaGoose_log' TO 'C:\Program Files\Microsoft SQL Server\MSSQL14.SQLEXPRESS\MSSQL\DATA\IllutiaGoose_2018_09_14_log.ldf'

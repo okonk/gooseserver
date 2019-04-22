@@ -2189,6 +2189,11 @@ namespace Goose
                 }
             }
 
+            if (buff.SpellEffect.EffectType == SpellEffect.EffectTypes.Tick)
+            {
+                buff.SpellEffect.CastFormulaSpell(buff.Caster, buff.Target, world);
+            }
+
             this.Buffs.Add(buff);
 
             // Add/remove stats

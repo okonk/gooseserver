@@ -67,6 +67,7 @@ namespace Goose
             this.stringToEvent.Add("PONG", PlayerPongEvent.Create);
             this.stringToEvent.Add("/shutdown", ShutdownCommandEvent.Create);
             this.stringToEvent.Add("/location", LocationEvent.Create);
+            this.stringToEvent.Add("RPU", RefreshPositionEvent.Create);
             this.stringToEvent.Add("/refresh", RefreshPositionEvent.Create);
             this.stringToEvent.Add("CAST", PlayerCastSpellEvent.Create);
             this.stringToEvent.Add("/getitem ", GetItemCommandEvent.Create);
