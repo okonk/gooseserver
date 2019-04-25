@@ -14,10 +14,13 @@ spell to see monster info
 something buggy with move speed
 /who search
 fix AC scaling
+support for sounds
 
 test running goose on linux -- .net core?
 Map editor
 client
+make a data writer (done somewhat)
+patcher system
 
 
 automated /macrocheck? maybe only do check every 4+ hours to not get annoying to players, also give 5k gold or 500k exp? reward for passing check

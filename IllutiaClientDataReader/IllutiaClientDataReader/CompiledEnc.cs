@@ -22,13 +22,19 @@ namespace IllutiaClientDataReader
 
     public class CompiledAnimation
     {
-        public AnimationType Type { get; private set; }
-        public int Id { get; private set; }
+        public AnimationType Type { get; set; }
+        public int Id { get; set; }
+
+        public int[] AnimationIndexes { get; private set; }
+
+        public int[] AnimationFiles { get; private set; }
 
         public CompiledAnimation(AnimationType type, int id)
         {
             this.Type = type;
             this.Id = id;
+            this.AnimationIndexes = new int[4 * 11];
+            this.AnimationFiles = new int[11];
         }
     }
 
@@ -57,7 +63,7 @@ namespace IllutiaClientDataReader
                     {
                         for (int k = 0; k < 11; k++)
                         {
-                            int frameIndex = reader.ReadInt32();
+                            animation.AnimationIndexes[i * 11 + k] = reader.ReadInt32();
                         }
                     }
                     // files
@@ -65,7 +71,28 @@ namespace IllutiaClientDataReader
                     {
                         int fileNumber = reader.ReadInt32();
                         this.SheetToAnimation[fileNumber] = animation;
+                        animation.AnimationFiles[j] = fileNumber;
                     }
+
+                    this.CompiledAnimations.Add(animation);
+                }
+            }
+        }
+
+        public void WriteToFile(string filename)
+        {
+            using (var writer = new BinaryWriter(File.Open(filename, FileMode.Create)))
+            {
+                foreach (var animation in this.CompiledAnimations)
+                {
+                    writer.Write((short)(animation.Type+1));
+                    writer.Write(animation.Id);
+
+                    foreach (var animationIndex in animation.AnimationIndexes)
+                        writer.Write(animationIndex);
+
+                    foreach (var animationFile in animation.AnimationFiles)
+                        writer.Write(animationFile);
                 }
             }
         }

@@ -1,0 +1,20 @@
+//------------------------------------------------
+//--- 010 Editor v8.0.1 Binary Template
+//
+//      File: 
+//   Authors: 
+//   Version: 
+//   Purpose: 
+//  Category: 
+// File Mask: 
+//  ID Bytes: 
+//   History: 
+//------------------------------------------------
+
+struct RECORD {
+    int16 type;
+    int32 id;
+
+    int32 animations[4 * 11];
+    int32 animationFiles[11];
+} records[FileSize() / sizeof(RECORD)];

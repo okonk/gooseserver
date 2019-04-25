@@ -8,21 +8,13 @@ public class TestSpell3 : BaseSpellEffectScript
 {
 	public override bool Cast(SpellEffect thisEffect, ICharacter caster, ICharacter target, GameWorld world)
 	{
-		using (var writer = new StreamWriter(@"C:\Goose\Spawns\" + caster.MapID + ".csv"))
+		target.HairID = (target.HairID + 1) % 47;
+
+		string packet = ((Player)target).CHPString();
+		world.Send(((Player)target), packet);
+		foreach (var player in target.Map.GetPlayersInRange(target))
 		{
-			foreach (var itemTile in caster.Map.Items.Where(i => i.ItemSlot.Item.TemplateID == 1 && !string.IsNullOrEmpty(i.ItemSlot.Item.ScriptParams)))
-			{
-				var item = itemTile.ItemSlot.Item;
-
-				int npcId = Convert.ToInt32(item.ScriptParams);
-
-				NPCTemplate template = world.NPCHandler.GetNPCTemplate(npcId);
-				if (template == null) return false;
-
-				new NPC().LoadFromTemplate(world, caster.Map.ID, itemTile.X, itemTile.Y, template, shouldRespawn: true);
-
-				writer.WriteLine("{0},{1},{2},{3}", npcId, caster.Map.ID, itemTile.X, itemTile.Y);
-			}
+			world.Send(player, packet);
 		}
 
 		return true;
