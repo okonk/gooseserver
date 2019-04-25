@@ -2189,11 +2189,6 @@ namespace Goose
                 }
             }
 
-            if (buff.SpellEffect.EffectType == SpellEffect.EffectTypes.Tick)
-            {
-                buff.SpellEffect.CastFormulaSpell(buff.Caster, buff.Target, world);
-            }
-
             this.Buffs.Add(buff);
 
             // Add/remove stats
@@ -2204,6 +2199,11 @@ namespace Goose
                 buff.SpellEffect?.Script?.Object.OnBuffAdded(buff, world);
             }
             catch (Exception e) { }
+
+            if (buff.SpellEffect.EffectType == SpellEffect.EffectTypes.Tick)
+            {
+                buff.SpellEffect.CastFormulaSpell(buff.Caster, buff.Target, world);
+            }
 
             packet = this.VPUString();
 

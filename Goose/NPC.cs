@@ -1603,6 +1603,11 @@ namespace Goose
             }
             catch (Exception e) { }
 
+            if (buff.SpellEffect.EffectType == SpellEffect.EffectTypes.Tick)
+            {
+                buff.SpellEffect.CastFormulaSpell(buff.Caster, buff.Target, world);
+            }
+
             this.AddRegenEvent(world);
 
             packet = this.VPUString();
