@@ -13,6 +13,7 @@ using GooseServerBrowserService.Client;
 using System.Threading;
 using Goose.Scripting;
 using System.IO;
+using Newtonsoft.Json;
 
 namespace Goose
 {
@@ -54,6 +55,7 @@ namespace Goose
         public LogHandler LogHandler { get; set; }
         internal QuestHandler QuestHandler { get; set; }
         public ScriptHandler ScriptHandler { get; set; }
+        public DatabaseWriter DatabaseWriter { get; set; }
 
         public Dictionary<string, int> CharactersCreatedPerIP { get; set; }
 
@@ -78,6 +80,17 @@ namespace Goose
         public bool Running { get; set; }
 
         public decimal ExperienceModifier { get; set; }
+
+        public static JsonSerializerSettings JsonSerializerSettings { get; set; }
+
+        static GameWorld()
+        {
+            JsonSerializerSettings = new JsonSerializerSettings
+            {
+                DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate,
+                NullValueHandling = NullValueHandling.Ignore,
+            };
+        }
 
         /**
          * Constructor
@@ -105,6 +118,7 @@ namespace Goose
             this.LogHandler = new LogHandler();
             this.QuestHandler = new QuestHandler();
             this.ScriptHandler = new ScriptHandler();
+            this.DatabaseWriter = new DatabaseWriter();
 
             this.SqlConnection = new SqlConnection("user id=" + GameSettings.Default.DatabaseUsername +
                                        ";password=" + GameSettings.Default.DatabasePassword +
@@ -117,6 +131,7 @@ namespace Goose
             this.ExperienceModifier = GameSettings.Default.ExperienceModifier;
 
             this.LaunchServerBrowserUpdateThread();
+            this.LaunchDatabaseWriterThread();
         }
 
         /**
@@ -129,31 +144,21 @@ namespace Goose
         {
             this.Running = false;
 
-            Console.Out.WriteLine("Starting Goose Private Server v" + GameSettings.Default.ServerVersion);
-            Console.Out.Write("Connecting to Database ({0}): ", GameSettings.Default.DatabaseAddress);
+            log.Info("Starting Goose Private Server v" + GameSettings.Default.ServerVersion);
+            log.Info("Connecting to Database ({0}): ", GameSettings.Default.DatabaseAddress);
             try
             {
                 this.SqlConnection.Open();
             }
             catch (SqlException e)
             {
-                Console.Out.WriteLine("Fail, " + e.Message);
-                Console.Out.WriteLine("Aborting...");
+                log.Fatal(e);
+                log.Info("Aborting...");
                 return;
             }
-            Console.Out.WriteLine("Connected.");
+            log.Info("Connected.");
 
-            /**
-             * 
-             * This is for fixing spell last cast time
-             * If the host pc has been restarted players will have a high chance
-             * of not being able to cast spells
-             * 
-             */
-            SqlCommand query = new SqlCommand("UPDATE spellbook SET last_casted=0", this.SqlConnection);
-            query.ExecuteNonQuery();
-
-            Console.Out.Write("Loading Guilds: ");
+            log.Info("Loading Guilds: ");
             try
             {
                 this.GuildHandler.LoadGuilds(this);
@@ -161,170 +166,156 @@ namespace Goose
             }
             catch (Exception e)
             {
-                Console.Out.WriteLine("Fail, " + e.Message);
-                Console.Out.WriteLine("Aborting...");
+                log.Fatal(e);
+                log.Info("Aborting...");
                 return;
             }
-            Console.Out.WriteLine(this.GuildHandler.Count.ToString() + " guilds loaded.");
+            log.Info(this.GuildHandler.Count.ToString() + " guilds loaded.");
 
-            Console.Out.Write("Loading Spell Effects: ");
+            log.Info("Loading Spell Effects: ");
             try
             {
                 this.SpellHandler.LoadSpellEffects(this);
             }
             catch (Exception e)
             {
-                Console.Out.WriteLine("Fail, " + e.Message);
-                Console.Out.WriteLine("Aborting...");
+                log.Fatal(e);
+                log.Info("Aborting...");
                 return;
             }
-            Console.Out.WriteLine(this.SpellHandler.EffectCount.ToString() + " spell effects loaded.");
+            log.Info(this.SpellHandler.EffectCount.ToString() + " spell effects loaded.");
 
-            Console.Out.Write("Loading Spells: ");
+            log.Info("Loading Spells: ");
             try
             {
                 this.SpellHandler.LoadSpells(this);
             }
             catch (Exception e)
             {
-                Console.Out.WriteLine("Fail, " + e.Message);
-                Console.Out.WriteLine("Aborting...");
+                log.Fatal(e);
+                log.Info("Aborting...");
                 return;
             }
-            Console.Out.WriteLine(this.SpellHandler.Count.ToString() + " spells loaded.");
+            log.Info(this.SpellHandler.Count.ToString() + " spells loaded.");
 
-            Console.Out.Write("Loading Item Templates: ");
+            log.Info("Loading Item Templates: ");
             try
             {
                 this.ItemHandler.LoadTemplates(this);
             }
             catch (Exception e)
             {
-                Console.Out.WriteLine("Fail, " + e.Message);
-                Console.Out.WriteLine("Aborting...");
+                log.Fatal(e);
+                log.Info("Aborting...");
                 return;
             }
-            Console.Out.WriteLine(this.ItemHandler.TemplateCount.ToString() + " item templates loaded.");
+            log.Info(this.ItemHandler.TemplateCount.ToString() + " item templates loaded.");
 
-            Console.Out.Write("Loading Items: ");
-            try
-            {
-                this.ItemHandler.LoadItems(this);
-                this.ItemHandler.AddSaveEvent(this);
-            }
-            catch (Exception e)
-            {
-                Console.Out.WriteLine("Fail, " + e.Message);
-                Console.Out.WriteLine("Aborting...");
-                return;
-            }
-            Console.Out.WriteLine(this.ItemHandler.ItemCount.ToString() + " items loaded.");
-
-            Console.Out.Write("Loading Quests: ");
+            log.Info("Loading Quests: ");
             try
             {
                 this.QuestHandler.LoadQuests(this);
             }
             catch (Exception e)
             {
-                Console.Out.WriteLine("Fail, " + e.Message);
-                Console.Out.WriteLine("Aborting...");
+                log.Fatal(e);
+                log.Info("Aborting...");
                 return;
             }
-            Console.Out.WriteLine(this.QuestHandler.Quests.Count.ToString() + " quests loaded.");
+            log.Info(this.QuestHandler.Quests.Count.ToString() + " quests loaded.");
 
-            Console.Out.Write("Loading Maps: ");
+            log.Info("Loading Maps: ");
             try
             {
                 this.MapHandler.LoadMaps(this);
             }
             catch (Exception e)
             {
-                Console.Out.WriteLine("Fail, " + e);
-                Console.Out.WriteLine("Aborting...");
+                log.Fatal(e);
+                log.Info("Aborting...");
                 return;
             }
-            Console.Out.WriteLine(this.MapHandler.Count.ToString() + " maps loaded.");
+            log.Info(this.MapHandler.Count.ToString() + " maps loaded.");
 
-            Console.Out.Write("Loading Classes: ");
+            log.Info("Loading Classes: ");
             try
             {
                 this.ClassHandler.LoadClasses(this);
             }
             catch (Exception e)
             {
-                Console.Out.WriteLine("Fail, " + e.Message);
-                Console.Out.WriteLine("Aborting...");
+                log.Fatal(e);
+                log.Info("Aborting...");
                 return;
             }
-            Console.Out.WriteLine(this.ClassHandler.Count.ToString() + " classes loaded.");
+            log.Info(this.ClassHandler.Count.ToString() + " classes loaded.");
 
-            Console.Out.Write("Loading Players: ");
+            log.Info("Loading Players: ");
             try
             {
                 this.PlayerHandler.LoadPlayerData(this);
             }
             catch (Exception e)
             {
-                Console.Out.WriteLine("Fail, " + e.Message);
-                Console.Out.WriteLine("Aborting...");
+                log.Fatal(e);
+                log.Info("Aborting...");
                 return;
             }
-            Console.Out.WriteLine(this.PlayerHandler.PlayerDataCount.ToString() + " players loaded.");
+            log.Info(this.PlayerHandler.PlayerDataCount.ToString() + " players loaded.");
 
             this.RankHandler.UpdateAll(this);
 
-            Console.Out.Write("Loading NPC Templates: ");
+            log.Info("Loading NPC Templates: ");
             try
             {
                 this.NPCHandler.LoadNPCTemplates(this);
             }
             catch (Exception e)
             {
-                Console.Out.WriteLine("Fail, " + e.Message);
-                Console.Out.WriteLine("Aborting...");
+                log.Fatal(e);
+                log.Info("Aborting...");
                 return;
             }
-            Console.Out.WriteLine(this.NPCHandler.TemplateCount.ToString() + " NPC templates loaded.");
+            log.Info(this.NPCHandler.TemplateCount.ToString() + " NPC templates loaded.");
 
-            Console.Out.Write("Loading NPC Spawns: ");
+            log.Info("Loading NPC Spawns: ");
             try
             {
                 this.NPCHandler.LoadNPCs(this);
             }
             catch (Exception e)
             {
-                Console.Out.WriteLine("Fail, " + e.Message);
-                Console.Out.WriteLine("Aborting...");
+                log.Fatal(e);
+                log.Info("Aborting...");
                 return;
             }
-            Console.Out.WriteLine(this.NPCHandler.NPCCount.ToString() + " NPCs spawned.");
+            log.Info(this.NPCHandler.NPCCount.ToString() + " NPCs spawned.");
 
-            Console.Out.Write("Loading Combinations: ");
+            log.Info("Loading Combinations: ");
             try
             {
                 this.CombinationHandler.LoadCombinations(this);
             }
             catch (Exception e)
             {
-                Console.Out.WriteLine("Fail, " + e.Message);
-                Console.Out.WriteLine("Aborting...");
+                log.Fatal(e);
+                log.Info("Aborting...");
                 return;
             }
-            Console.Out.WriteLine(this.CombinationHandler.Count.ToString() + " combinations loaded.");
+            log.Info(this.CombinationHandler.Count.ToString() + " combinations loaded.");
 
-            Console.Out.Write("Loading Chat Filter: ");
+            log.Info("Loading Chat Filter: ");
             try
             {
                 this.ChatFilter.LoadFilter(this);
             }
             catch (Exception e)
             {
-                Console.Out.WriteLine("Fail, " + e.Message);
-                Console.Out.WriteLine("Aborting...");
+                log.Fatal(e);
+                log.Info("Aborting...");
                 return;
             }
-            Console.Out.WriteLine(this.ChatFilter.Count.ToString() + " words loaded.");
+            log.Info(this.ChatFilter.Count.ToString() + " words loaded.");
 
             this.CharactersCreatedPerIP = new Dictionary<string, int>();
             Event clearCreatedHistory = new ClearCreatedHistoryEvent();
@@ -339,19 +330,20 @@ namespace Goose
             //updateExperienceModifier.Ticks += this.TimerFrequency * GameSettings.Default.CreditUpdateInterval;
             //this.EventHandler.AddEvent(updateCredits);
 
-            Console.Out.Write("Loading Global Scripts: ");
+            log.Info("Loading Global Scripts: ");
             try
             {
                 LoadGlobalScripts();
             }
             catch (Exception e)
             {
-                Console.Out.WriteLine("Fail, " + e.Message);
-                Console.Out.WriteLine("Aborting...");
+                log.Fatal(e);
+                log.Info("Aborting...");
                 return;
             }
+            log.Info("Done loading global scripts");
 
-            Console.Out.WriteLine("Finished loading game. Ready to join.");
+            log.Info("Finished loading game. Ready to join.");
 
             this.Running = true;
         }
@@ -366,18 +358,9 @@ namespace Goose
         {
             this.Running = false;
 
-            Console.WriteLine("Shutting down server.");
-            Console.WriteLine("Clearing maps.");
-            foreach (Map map in this.MapHandler.Maps)
-            {
-                foreach (ItemTile tile in map.Items)
-                {
-                    if (tile.ItemSlot.Item != this.ItemHandler.GetGold()) tile.ItemSlot.Item.Delete = true;
-                }
-            }
-            Console.WriteLine("Saving items.");
-            this.ItemHandler.Save(this);
-            Console.WriteLine("Saving players.");
+            log.Info("Shutting down server.");
+
+            log.Info("Saving players.");
             foreach (Player player in this.PlayerHandler.Players)
             {
                 if (player.State > Player.States.LoadingGame)
@@ -385,7 +368,14 @@ namespace Goose
                     player.SaveToDatabase(this);
                 }
             }
-            Console.WriteLine("Finished shutting down.");
+
+            log.Info("Waiting for database writes.");
+            while (this.DatabaseWriter.Count > 0)
+            {
+                Thread.Sleep(1000);
+            }
+
+            log.Info("Finished shutting down.");
         }
 
         /**
@@ -397,7 +387,7 @@ namespace Goose
          */
         public void NewConnection(Socket sock)
         {
-            Console.Out.WriteLine("Connection attempt: " + sock.RemoteEndPoint.ToString());
+            log.Info("Connection attempt: " + sock.RemoteEndPoint.ToString());
 
             try
             {
@@ -417,7 +407,7 @@ namespace Goose
         {
             try
             {
-                Console.Out.WriteLine("Connection lost: " + sock.RemoteEndPoint.ToString());
+                log.Info("Connection lost: " + sock.RemoteEndPoint.ToString());
 
                 this.GameServer.Disconnect(sock);
 
@@ -519,7 +509,7 @@ namespace Goose
             data += "\x1";
             try
             {
-                player.Sock.Send(Encoding.ASCII.GetBytes(data));
+                player.Sock?.Send(Encoding.ASCII.GetBytes(data));
             }
             catch (Exception)
             {
@@ -563,19 +553,6 @@ namespace Goose
             }
         }
 
-        public static void DefaultEndExecuteNonQueryAsyncCallback(IAsyncResult ar)
-        {
-            try
-            {
-                SqlCommand command = (SqlCommand)ar.AsyncState;
-                command.EndExecuteNonQuery(ar);
-            }
-            catch (Exception e)
-            {
-                log.Error(e, "SQL Query Failed");
-            }
-        }
-
         public void LaunchServerBrowserUpdateThread()
         {
             Task.Factory.StartNew(() =>
@@ -599,7 +576,7 @@ namespace Goose
 
                     Thread.Sleep(TimeSpan.FromMinutes(2));
                 }
-            });
+            }, TaskCreationOptions.LongRunning);
         }
 
         public void LoadGlobalScripts()
@@ -611,6 +588,14 @@ namespace Goose
                 var script = this.ScriptHandler.GetScript<IGlobalScript>(scriptPath);
                 script.Object.OnLoaded(this);
             }
+        }
+
+        public void LaunchDatabaseWriterThread()
+        {
+            Task.Factory.StartNew(() =>
+            {
+                this.DatabaseWriter.Run(this);
+            }, TaskCreationOptions.LongRunning);
         }
     }
 }

@@ -92,16 +92,11 @@ namespace Goose.Events
                         item.Description = "Custom created by " + this.Player.Name;
                         item.IsBound = statsSlot.Item.IsBound;
                         item.ScriptParams = statsSlot.Item.ScriptParams;
-                        world.ItemHandler.AddItem(item, world);
-
-                        statsSlot.Item.Delete = true;
-                        lookSlot.Item.Delete = true;
+                        world.ItemHandler.AddAndAssignId(item, world);
 
                         long newTicketStack = ticketSlot.Stack - 1;
                         if (newTicketStack <= 0)
                         {
-                            ticketSlot.Item.Delete = true;
-
                             ticketSlot.Item = item;
                             ticketSlot.Stack = 1;
 

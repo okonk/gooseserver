@@ -18,7 +18,6 @@ namespace Goose
     {
         Hashtable templates;
         Hashtable items;
-        List<Item> newitems;
 
         int currentid = 5002;
 
@@ -27,7 +26,6 @@ namespace Goose
         {
             this.templates = new Hashtable();
             this.items = new Hashtable();
-            this.newitems = new List<Item>();
         }
 
         /// <summary>
@@ -46,7 +44,7 @@ namespace Goose
 
         public IEnumerable<Item> GetItems()
         {
-            return items.Values.Cast<Item>().Concat(newitems);
+            return items.Values.Cast<Item>();
         }
 
         /**
@@ -151,95 +149,12 @@ namespace Goose
         }
 
         /**
-         * LoadItems, loads items
-         * 
-         */
-        public void LoadItems(GameWorld world)
-        {
-            SqlCommand command = new SqlCommand("SELECT * FROM items", world.SqlConnection);
-            SqlDataReader reader = command.ExecuteReader();
-
-            while (reader.Read())
-            {
-                Item item = new Item();
-                item.ItemID = Convert.ToInt32(reader["item_id"]);
-                item.TemplateID = Convert.ToInt32(reader["item_template_id"]);
-                item.Template = this.GetTemplate(item.TemplateID);
-
-                if (item.Template == null)
-                {
-                    // something went wrong, continue
-                    // need to log later
-                    continue;
-                }
-
-                item.Name = Convert.ToString(reader["item_name"]);
-                item.Description = Convert.ToString(reader["item_description"]);
-
-                item.BaseStats = new AttributeSet();
-                item.BaseStats.HP = Convert.ToInt32(reader["player_hp"]);
-                item.BaseStats.MP = Convert.ToInt32(reader["player_mp"]);
-                item.BaseStats.SP = Convert.ToInt32(reader["player_sp"]);
-                item.BaseStats.AC = Convert.ToInt32(reader["stat_ac"]);
-                item.BaseStats.Strength = Convert.ToInt32(reader["stat_str"]);
-                item.BaseStats.Stamina = Convert.ToInt32(reader["stat_sta"]);
-                item.BaseStats.Intelligence = Convert.ToInt32(reader["stat_int"]);
-                item.BaseStats.Dexterity = Convert.ToInt32(reader["stat_dex"]);
-                item.BaseStats.FireResist = Convert.ToInt32(reader["res_fire"]);
-                item.BaseStats.AirResist = Convert.ToInt32(reader["res_air"]);
-                item.BaseStats.EarthResist = Convert.ToInt32(reader["res_earth"]);
-                item.BaseStats.SpiritResist = Convert.ToInt32(reader["res_spirit"]);
-                item.BaseStats.WaterResist = Convert.ToInt32(reader["res_water"]);
-
-                item.WeaponDamage = Convert.ToInt32(reader["weapon_damage"]);
-                item.Value = Convert.ToInt64(reader["item_value"]);
-                item.GraphicTile = Convert.ToInt32(reader["graphic_tile"]);
-                item.GraphicFile = Convert.ToInt32(reader["graphic_file"]);
-                item.GraphicEquipped = Convert.ToInt32(reader["graphic_equip"]);
-                item.GraphicR = Convert.ToInt32(reader["graphic_r"]);
-                item.GraphicG = Convert.ToInt32(reader["graphic_g"]);
-                item.GraphicB = Convert.ToInt32(reader["graphic_b"]);
-                item.GraphicA = Convert.ToInt32(reader["graphic_a"]);
-
-                item.BodyState = Convert.ToInt32(reader["body_state"]);
-
-                item.StatMultiplier = Convert.ToDecimal(reader["stat_multiplier"]);
-
-                item.LoadTemplate(item.Template);
-                item.Dirty = false;
-
-                item.IsBound = ("0".Equals(Convert.ToString(reader["bound"])) ? false : true);
-
-                item.Unsaved = false;
-
-                item.ScriptParams = Convert.ToString(reader["script_params"]);
-
-                this.items[item.ItemID] = item;
-
-                if (item.ItemID >= this.CurrentID)
-                {
-                    this.CurrentID = item.ItemID + 1;
-                }
-            }
-
-            reader.Close();
-        }
-
-        /**
          * ItemCount, returns item count
          * 
          */
         public int ItemCount { get { return this.items.Count; } }
 
-        /**
-         * AddItem, adds an item to the handler
-         * 
-         * What it does is adds the item to the newitems list, which temporarily holds the item
-         * until the ItemHandler is called to save the items to database. So once it has an ID it gets put
-         * into the items hashtable.
-         * 
-         */
-        public void AddItem(Item item, GameWorld world)
+        public void AddAndAssignId(Item item, GameWorld world)
         {
             item.ItemID = this.CurrentID;
             this.CurrentID++;
@@ -250,7 +165,17 @@ namespace Goose
             }
             catch (Exception e) { }
 
-            this.newitems.Add(item);
+            this.items[item.ItemID] = item;
+        }
+
+        public void AddItem(Item item, GameWorld world)
+        {
+            if (item.ItemID >= this.CurrentID)
+            {
+                this.CurrentID = item.ItemID + 1;
+            }
+
+            this.items[item.ItemID] = item;
         }
 
         /**
@@ -263,74 +188,12 @@ namespace Goose
         }
 
         /**
-         * Save, saves items
-         * 
-         */
-        public void Save(GameWorld world)
-        {
-            List<int> remove = new List<int>();
-
-            foreach (Item item in this.items.Values)
-            {
-                if (item.Delete)
-                {
-                    item.DeleteItem(world);
-                    remove.Add(item.ItemID);
-                }
-                else if (item.Dirty)
-                {
-                    item.SaveItem(world);
-                }
-            }
-
-            foreach (int id in remove)
-            {
-                this.items.Remove(id);
-            }
-
-            foreach (Item item in this.newitems)
-            {
-                if (item.Delete) continue;
-                if (item.Unsaved) item.AddItem(world);
-
-                this.items[item.ItemID] = item;
-            }
-
-            this.newitems.Clear();
-
-            this.AddSaveEvent(world);
-        }
-
-        /**
-         * AddSaveEvent, adds save event to eventhandler
-         * 
-         */
-        public void AddSaveEvent(GameWorld world)
-        {
-            ItemSaveEvent ev = new ItemSaveEvent();
-            ev.Ticks += (long)(GameSettings.Default.ItemSavePeriod * world.TimerFrequency);
-
-            world.EventHandler.AddEvent(ev);
-        }
-
-        /**
          * GetItem, returns item by id
          * 
          */
         public Item GetItem(int id)
         {
-            Item item = null;
-            item = (Item)this.items[id];
-
-            if (item == null)
-            {
-                foreach (Item i in this.newitems)
-                {
-                    if (i.ItemID == id) return i;
-                }
-            }
-
-            return item;
+            return (Item)this.items[id];
         }
 
         /// <summary>
@@ -347,6 +210,8 @@ namespace Goose
                 newTotalStats += item.BaseStats;
 
                 item.TotalStats = newTotalStats;
+
+                item.WeaponDamage = (int)(item.Template.WeaponDamage * item.StatMultiplier);
             }
         }
     }

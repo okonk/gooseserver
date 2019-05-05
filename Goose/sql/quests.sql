@@ -81,30 +81,9 @@ INSERT INTO quest_rewards (quest_id, reward_type, long_value, long_value2)
 VALUES (3, 1, 10, 1);
 
 
-CREATE TABLE quest_progress (
-  id INT IDENTITY(1,1) NOT NULL,
-  requirement_id INT NOT NULL,
+CREATE TABLE quest_status (
   player_id INT NOT NULL,
-  progress_value BIGINT NOT NULL,
+  serialized_data TEXT NOT NULL,
   
-  PRIMARY KEY (id),
-  INDEX quest_progress_player_id_idx (player_id)
-);
-
-CREATE TABLE quest_completed (
-  id INT IDENTITY(1,1) NOT NULL,
-  quest_id INT NOT NULL,
-  player_id INT NOT NULL,
-  
-  PRIMARY KEY (id),
-  INDEX quest_completed_player_id_idx (player_id)
-);
-
-CREATE TABLE quest_started (
-  id INT IDENTITY(1,1) NOT NULL,
-  quest_id INT NOT NULL,
-  player_id INT NOT NULL,
-  
-  PRIMARY KEY (id),
-  INDEX quest_started_player_id_idx (player_id)
+  PRIMARY KEY (player_id)
 );

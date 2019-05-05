@@ -103,7 +103,7 @@ namespace Goose.Events
                 Item item = new Item();
                 item.LoadFromTemplate(slot.ItemTemplate);
 
-                world.ItemHandler.AddItem(item, world);
+                world.ItemHandler.AddAndAssignId(item, world);
 
                 if (this.Player.Inventory.AddItem(item, slot.Stack, world))
                 {
@@ -133,8 +133,6 @@ namespace Goose.Events
                 }
                 else
                 {
-                    item.Delete = true;
-
                     world.Send(this.Player, "$7Can't purchase " + slot.ItemTemplate.Name +
                         " as your inventory is full.");
                     return;

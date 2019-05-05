@@ -81,7 +81,7 @@ namespace Goose
             SqlCommand command = new SqlCommand(query, world.SqlConnection);
             command.Parameters.Add(logTextParam);
             command.Parameters.Add(logDateParam);
-            command.BeginExecuteNonQuery(new AsyncCallback(GameWorld.DefaultEndExecuteNonQueryAsyncCallback), command);
+            world.DatabaseWriter.Add(command);
         }
     }
 }

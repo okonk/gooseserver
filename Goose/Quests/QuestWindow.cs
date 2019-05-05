@@ -54,21 +54,21 @@ namespace Goose.Quests
 
             foreach (var quest in npc.Quests)
             {
-                if (player.QuestsCompleted.Any(q => q.Quest.Id == quest.Id) && !quest.Repeatable)
+                if (player.QuestsCompleted.Any(q => q.Id == quest.Id) && !quest.Repeatable)
                     continue;
 
                 foreach (var prereq in quest.PrerequisiteQuests)
                 {
-                    if (!player.QuestsCompleted.Any(q => q.Quest.Id == prereq))
+                    if (!player.QuestsCompleted.Any(q => q.Id == prereq))
                         return;
                 }
 
-                if (!player.QuestsStarted.Any(q => q.Quest.Id == quest.Id))
+                if (!player.QuestsStarted.Any(q => q.Id == quest.Id))
                 {
                     if ((quest.MaxLevel > 0 && player.Level > quest.MaxLevel) || (quest.MaxExperience > 0 && player.Experience + player.ExperienceSold > quest.MaxExperience))
                         return;
 
-                    player.QuestsStarted.Add(new QuestStarted() { Dirty = true, Quest = quest });
+                    player.QuestsStarted.Add(quest);
 
                     foreach (var requirement in quest.Requirements)
                     {
@@ -76,7 +76,7 @@ namespace Goose.Quests
                         {
                             if (!player.QuestProgress.Any(q => q.Requirement.Id == requirement.Id))
                             {
-                                player.QuestProgress.Add(new QuestProgress() { Dirty = true, Requirement = requirement, Value = 0 });
+                                player.QuestProgress.Add(new QuestProgress() { Requirement = requirement, Value = 0 });
                             }
                         }
                     }
@@ -139,7 +139,7 @@ namespace Goose.Quests
                         this.Buttons = "0,1,0,0,0";
 
                         // player has opened the quest window twice, and already completed it in one
-                        if (!quest.Repeatable && player.QuestsCompleted.Any(q => q.Quest.Id == quest.Id))
+                        if (!quest.Repeatable && player.QuestsCompleted.Any(q => q.Id == quest.Id))
                         {
                             player.Windows.Remove(this);
                             return;
@@ -239,7 +239,7 @@ namespace Goose.Quests
                         break;
                     case RequirementType.TalkToNPC:
                     case RequirementType.Kill:
-                        if (!player.QuestProgress.Any(p => !p.Remove && p.Requirement.Id == requirement.Id && p.Value >= p.Requirement.Value2))
+                        if (!player.QuestProgress.Any(p => p.Requirement.Id == requirement.Id && p.Value >= p.Requirement.Value2))
                             return false;
                         break;
                     case RequirementType.ExperienceBanked:
@@ -285,22 +285,14 @@ namespace Goose.Quests
 
         public void CompleteQuest(NPC npc, Player player, GameWorld world)
         {
-            if (!player.QuestsCompleted.Any(q => q.Quest.Id == quest.Id))
+            if (!player.QuestsCompleted.Any(q => q.Id == quest.Id))
             {
-                player.QuestsCompleted.Add(new QuestCompleted()
-                {
-                    Dirty = true,
-                    Quest = quest
-                });
+                player.QuestsCompleted.Add(quest);
             }
 
             if (!quest.Repeatable)
             {
-                var progressToRemove = player.QuestProgress.Where(p => p.Requirement.Quest.Id == quest.Id).ToArray();
-                foreach (var progress in progressToRemove)
-                {
-                    progress.Remove = true;
-                }
+                player.QuestProgress.RemoveAll(p => p.Requirement.Quest.Id == quest.Id);
             }
 
             this.TakeRequirements(player, world);
@@ -329,7 +321,7 @@ namespace Goose.Quests
                         Item item = new Item();
                         item.LoadFromTemplate(template);
 
-                        world.ItemHandler.AddItem(item, world);
+                        world.ItemHandler.AddAndAssignId(item, world);
 
                         player.Inventory.AddItem(item, stack, world);
 
@@ -484,7 +476,6 @@ namespace Goose.Quests
                             if (progress != null)
                             {
                                 progress.Value = Math.Max(0, progress.Value - requirement.Value2);
-                                progress.Dirty = true;
                             }
                             break;
                         case RequirementType.ExperienceBanked:

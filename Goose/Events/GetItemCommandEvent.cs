@@ -76,9 +76,10 @@ namespace Goose.Events
                     item.TotalStats = item.Template.BaseStats;
                     item.TotalStats *= item.StatMultiplier;
                     item.TotalStats += item.BaseStats;
+                    item.WeaponDamage = (int)(item.WeaponDamage * item.StatMultiplier);
                 }
 
-                world.ItemHandler.AddItem(item, world);
+                world.ItemHandler.AddAndAssignId(item, world);
 
                 this.Player.Inventory.AddItem(item, stack, world);
 

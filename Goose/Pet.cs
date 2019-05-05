@@ -356,7 +356,7 @@ namespace Goose
                 command.Parameters.Add(petNameParam);
                 command.Parameters.Add(petTitleParam);
                 command.Parameters.Add(petSurnameParam);
-                command.BeginExecuteNonQuery(new AsyncCallback(GameWorld.DefaultEndExecuteNonQueryAsyncCallback), command);
+                world.DatabaseWriter.Add(command);
                 this.AutoCreatedNotSaved = false;
             }
             else if (this.Delete)
@@ -364,7 +364,7 @@ namespace Goose
                 string query = "DELETE FROM pets WHERE pet_id=" + this.PetID;
 
                 SqlCommand command = new SqlCommand(query, world.SqlConnection);
-                command.BeginExecuteNonQuery(new AsyncCallback(GameWorld.DefaultEndExecuteNonQueryAsyncCallback), command);
+                world.DatabaseWriter.Add(command);
             }
             else
             {
@@ -420,7 +420,7 @@ namespace Goose
                 command.Parameters.Add(petNameParam);
                 command.Parameters.Add(petTitleParam);
                 command.Parameters.Add(petSurnameParam);
-                command.BeginExecuteNonQuery(new AsyncCallback(GameWorld.DefaultEndExecuteNonQueryAsyncCallback), command);
+                world.DatabaseWriter.Add(command);
             }
         }
 

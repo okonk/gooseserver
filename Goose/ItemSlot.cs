@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 
@@ -14,6 +15,7 @@ namespace Goose
     public class ItemSlot
     {
         public Item Item { get; set; }
+        [DefaultValue(1)]
         public long Stack { get; set; }
 
         /**
@@ -48,7 +50,6 @@ namespace Goose
             else if (from.Item.TemplateID == to.Item.TemplateID && to.CanStack(from))
             {
                 to.Stack += from.Stack;
-                from.Item.Delete = true;
                 from = null;
             }
             else

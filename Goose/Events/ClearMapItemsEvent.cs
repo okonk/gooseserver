@@ -22,11 +22,6 @@ namespace Goose.Events
                 existedfor = ((world.TimeNow - item.DroppedTime) / world.TimerFrequency);
                 if (existedfor < GameSettings.Default.ItemGroundExistTime) continue;
 
-                if (item.ItemSlot.Item.ItemID != 
-                    GameSettings.Default.ItemIDStartpoint + GameSettings.Default.GoldItemID)
-                {
-                    item.ItemSlot.Item.Delete = true;
-                }
                 remove.Add(item);
             }
 

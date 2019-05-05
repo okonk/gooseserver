@@ -218,6 +218,7 @@
     <Compile Include="ClassLevel.cs" />
     <Compile Include="Combination.cs" />
     <Compile Include="CombinationHandler.cs" />
+    <Compile Include="DatabaseWriter.cs" />
     <Compile Include="Events\PlayerInfoCommandEvent.cs" />
     <Compile Include="Events\ScriptTimerEvent.cs" />
     <Compile Include="Events\MacroConfirmCommandEvent.cs" />
@@ -231,6 +232,7 @@
     <Compile Include="Events\SpellInfoEvent.cs" />
     <Compile Include="PlayerInfoWindow.cs" />
     <Compile Include="MacroCheckWindow.cs" />
+    <Compile Include="Quests\QuestStatus.cs" />
     <Compile Include="Scripting\BaseGlobalScript.cs" />
     <Compile Include="Scripting\BaseItemScript.cs" />
     <Compile Include="Scripting\BaseMapScript.cs" />
@@ -322,7 +324,6 @@
     <Compile Include="Events\InventorySplitEvent.cs" />
     <Compile Include="Events\InventoryToWindowEvent.cs" />
     <Compile Include="Events\InventoryUseEvent.cs" />
-    <Compile Include="Events\ItemSaveEvent.cs" />
     <Compile Include="Events\LocationEvent.cs" />
     <Compile Include="Events\LoginContinuedEvent.cs" />
     <Compile Include="Events\LoginEvent.cs" />
@@ -399,9 +400,7 @@
     </Compile>
     <Compile Include="ITile.cs" />
     <Compile Include="Quests\Quest.cs" />
-    <Compile Include="Quests\QuestStarted.cs" />
     <Compile Include="Quests\QuestHandler.cs" />
-    <Compile Include="Quests\QuestCompleted.cs" />
     <Compile Include="Quests\QuestProgress.cs" />
     <Compile Include="Quests\QuestRequirement.cs" />
     <Compile Include="Quests\QuestReward.cs" />

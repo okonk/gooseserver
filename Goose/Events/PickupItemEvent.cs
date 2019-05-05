@@ -103,7 +103,6 @@ namespace Goose.Events
                         if (tile.ItemSlot.Item.IsBindOnPickup)
                         {
                             tile.ItemSlot.Item.IsBound = true;
-                            tile.ItemSlot.Item.Dirty = true;
                         }
 
                         world.LogHandler.Log(Log.Types.PickupItem,

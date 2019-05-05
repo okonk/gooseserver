@@ -1488,12 +1488,13 @@ namespace Goose
                             drop.Item.TotalStats = dropinfo.ItemTemplate.BaseStats;
                             drop.Item.TotalStats *= drop.Item.StatMultiplier;
                             drop.Item.TotalStats += drop.Item.BaseStats;
+                            drop.Item.WeaponDamage = (int)(drop.Item.WeaponDamage * drop.Item.StatMultiplier);
                         }
                         else
                         {
                             drop.Item.LoadFromTemplate(dropinfo.ItemTemplate);
                         }
-                        world.ItemHandler.AddItem(drop.Item, world);
+                        world.ItemHandler.AddAndAssignId(drop.Item, world);
                     }
                     drop.Stack = dropinfo.Stack;
 
@@ -1511,11 +1512,6 @@ namespace Goose
                     ItemTile maptile = (ItemTile)this.Map.GetTile(tile.X, tile.Y);
                     if (maptile != null && maptile is ItemTile)
                     {
-                        if (drop.Item.ItemID != 
-                            GameSettings.Default.ItemIDStartpoint + GameSettings.Default.GoldItemID)
-                        {
-                            drop.Item.Delete = true;
-                        }
                         maptile.ItemSlot.Stack += drop.Stack;
                         maptile.Owner = tile.Owner;
                         maptile.PickupTime = tile.PickupTime;

@@ -37,3 +37,50 @@ SELECT
   FROM [dbo].[quest_progress] p, quest_requirements r, npc_templates n
   where p.requirement_id = r.id and n.npc_id = r.requirement_value and
   player_id = 3 and requirement_id >= 43 and requirement_id <= 57
+
+
+/* Stuff for json/sql saving update */
+CREATE TABLE inventory (
+  player_id INT NOT NULL,
+  serialized_data TEXT NOT NULL,
+
+  PRIMARY KEY(player_id)
+);
+
+CREATE TABLE equipped (
+  player_id INT NOT NULL,
+  serialized_data TEXT NOT NULL,
+
+  PRIMARY KEY(player_id)
+);
+
+CREATE TABLE combinebag (
+  player_id INT NOT NULL,
+  serialized_data TEXT NOT NULL,
+
+  PRIMARY KEY(player_id)
+);
+
+CREATE TABLE bank_items (
+  npc_id INT NOT NULL,
+  player_id INT NOT NULL,
+  serialized_data TEXT NOT NULL,
+  
+  PRIMARY KEY(npc_id, player_id)
+);
+
+CREATE INDEX bank_items_player_id_idx ON bank_items (player_id);
+
+CREATE TABLE spellbook (
+  player_id INT NOT NULL,
+  serialized_data TEXT NOT NULL,
+
+  PRIMARY KEY(player_id)
+);
+
+CREATE TABLE quest_status (
+  player_id INT NOT NULL,
+  serialized_data TEXT NOT NULL,
+  
+  PRIMARY KEY (player_id)
+);

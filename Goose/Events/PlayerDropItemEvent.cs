@@ -65,7 +65,6 @@ namespace Goose.Events
                 ItemTile maptile = (ItemTile)this.Player.Map.GetTile(tile.X, tile.Y);
                 if (maptile != null && maptile is ItemTile)
                 {
-                    drop.Item.Delete = true;
                     maptile.ItemSlot.Stack += drop.Stack;
 
                     world.SendToMap(this.Player.Map, maptile.MOBString());

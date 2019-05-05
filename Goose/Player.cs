@@ -10,6 +10,7 @@ using System.Security.Cryptography;
 using Goose.Events;
 using Goose.Quests;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 
 namespace Goose
 {
@@ -422,8 +423,8 @@ namespace Goose
         public long SuspectedMacroFirstTime { get; set; }
         public int SuspectedMacroCount { get; set; }
 
-        internal List<QuestCompleted> QuestsCompleted { get; set; }
-        internal List<QuestStarted> QuestsStarted { get; set; }
+        internal List<Quest> QuestsCompleted { get; set; }
+        internal List<Quest> QuestsStarted { get; set; }
         internal List<QuestProgress> QuestProgress { get; set; }
 
         public int MacroCheckFailures { get; set; }
@@ -455,8 +456,8 @@ namespace Goose
             this.Pets = new List<Pet>();
 
             this.QuestProgress = new List<QuestProgress>();
-            this.QuestsCompleted = new List<QuestCompleted>();
-            this.QuestsStarted = new List<QuestStarted>();
+            this.QuestsCompleted = new List<Quest>();
+            this.QuestsStarted = new List<Quest>();
 
             this.GroupInvitesEnabled = false;
 
@@ -657,7 +658,7 @@ namespace Goose
                         }
                         Item item = new Item();
                         item.LoadFromTemplate(template);
-                        world.ItemHandler.AddItem(item, world);
+                        world.ItemHandler.AddAndAssignId(item, world);
 
                         if (!this.Inventory.AddItem(item, 1, world))
                         {
@@ -806,36 +807,36 @@ namespace Goose
 
         public void LoadQuests(GameWorld world)
         {
-            SqlCommand query = new SqlCommand("SELECT * FROM quest_started WHERE player_id=" + this.PlayerID, world.SqlConnection);
-            using (SqlDataReader reader = query.ExecuteReader())
+            using (SqlCommand query = new SqlCommand("SELECT serialized_data FROM quest_status WHERE player_id=" + this.PlayerID, world.SqlConnection))
             {
-                while (reader.Read())
-                {
-                    var started = QuestStarted.FromReader(reader, world);
-                    if (started != null)
-                        this.QuestsStarted.Add(started);
-                }
-            }
+                string serialized_data = Convert.ToString(query.ExecuteScalar());
+                var questStatus = JsonConvert.DeserializeObject<QuestStatus>(serialized_data, GameWorld.JsonSerializerSettings);
 
-            query = new SqlCommand("SELECT * FROM quest_completed WHERE player_id=" + this.PlayerID, world.SqlConnection);
-            using (SqlDataReader reader = query.ExecuteReader())
-            {
-                while (reader.Read())
+                foreach (var started in questStatus.Started)
                 {
-                    var completed = QuestCompleted.FromReader(reader, world);
-                    if (completed != null)
-                        this.QuestsCompleted.Add(completed);
+                    var quest = world.QuestHandler.Get(started);
+                    if (quest != null)
+                        this.QuestsStarted.Add(quest);
                 }
-            }
 
-            query = new SqlCommand("SELECT * FROM quest_progress WHERE player_id=" + this.PlayerID, world.SqlConnection);
-            using (SqlDataReader reader = query.ExecuteReader())
-            {
-                while (reader.Read())
+                foreach (var completed in questStatus.Completed)
                 {
-                    var progress = Quests.QuestProgress.FromReader(reader, world, this);
-                    if (progress != null)
-                        this.QuestProgress.Add(progress);
+                    var quest = world.QuestHandler.Get(completed);
+                    if (quest != null)
+                        this.QuestsCompleted.Add(quest);
+                }
+
+                foreach (var progress in questStatus.Progress)
+                {
+                    var quest = world.QuestHandler.Get(progress.QuestId);
+                    if (quest == null)
+                        continue;
+
+                    var requirement = quest.Requirements.FirstOrDefault(r => r.Id == progress.RequirementId);
+                    if (requirement == null)
+                        continue;
+
+                    this.QuestProgress.Add(new QuestProgress { Requirement = requirement, Value = progress.Progress });
                 }
             }
         }
@@ -846,7 +847,7 @@ namespace Goose
          */
         public virtual void SaveToDatabase(GameWorld world)
         {
-            SqlParameter playerNameParam = new SqlParameter("@playerName", SqlDbType.VarChar, 50);
+            SqlParameter playerNameParam = new SqlParameter("@playerName", SqlDbType.VarChar, 50) { Value = this.Name };
             playerNameParam.Value = this.Name;
             SqlParameter playerTitleParam = new SqlParameter("@playerTitle", SqlDbType.VarChar, 50);
             playerTitleParam.Value = this.Title;
@@ -931,7 +932,8 @@ namespace Goose
                 command.Parameters.Add(playerTitleParam);
                 command.Parameters.Add(playerSurnameParam);
                 command.Parameters.Add(unbanDateParam);
-                command.BeginExecuteNonQuery(new AsyncCallback(GameWorld.DefaultEndExecuteNonQueryAsyncCallback), command);
+
+                world.DatabaseWriter.Add(command);
             }
             else
             {
@@ -995,7 +997,8 @@ namespace Goose
                 command.Parameters.Add(playerTitleParam);
                 command.Parameters.Add(playerSurnameParam);
                 command.Parameters.Add(unbanDateParam);
-                command.BeginExecuteNonQuery(new AsyncCallback(GameWorld.DefaultEndExecuteNonQueryAsyncCallback), command);
+
+                world.DatabaseWriter.Add(command);
             }
 
             this.Inventory.Save(world);
@@ -1032,7 +1035,6 @@ namespace Goose
                 if (progress.Requirement.Type == requirementType && progress.Requirement.Value == requirementValue)
                 {
                     progress.Value++;
-                    progress.Dirty = true;
                     if (!QuestCreditFilterEnabled)
                     {
                         world.Send(this, string.Format("BT{0},{1},Quest Credit: {2}", this.LoginID, 60, progress.Requirement.Quest.Name));
@@ -1043,68 +1045,18 @@ namespace Goose
 
         private void SaveQuests(GameWorld world)
         {
-            foreach (var questCompleted in this.QuestsCompleted)
-            {
-                if (questCompleted.Dirty)
-                {
-                    var query = "INSERT INTO quest_completed (quest_id, player_id) VALUES (" + questCompleted.Quest.Id + ", " + this.PlayerID + ");";
-                    var command = new SqlCommand(query, world.SqlConnection);
-                    command.BeginExecuteNonQuery(new AsyncCallback(GameWorld.DefaultEndExecuteNonQueryAsyncCallback), command);
+            var questStatus = new QuestStatus();
+            questStatus.Completed = this.QuestsCompleted.Select(q => q.Id).ToArray();
+            questStatus.Started = this.QuestsStarted.Select(q => q.Id).ToArray();
+            questStatus.Progress = this.QuestProgress.Select(q => new QuestStatus.QuestProgress(q.Requirement.Quest.Id, q.Requirement.Id, q.Value)).ToArray();
 
-                    questCompleted.Dirty = false;
-                }
-            }
-
-            foreach (var questStarted in this.QuestsStarted)
-            {
-                if (questStarted.Dirty)
-                {
-                    var query = "INSERT INTO quest_started (quest_id, player_id) VALUES (" + questStarted.Quest.Id + ", " + this.PlayerID + ");";
-                    var command = new SqlCommand(query, world.SqlConnection);
-                    command.BeginExecuteNonQuery(new AsyncCallback(GameWorld.DefaultEndExecuteNonQueryAsyncCallback), command);
-
-                    questStarted.Dirty = false;
-                }
-            }
-
-            List<QuestProgress> toRemove = new List<Quests.QuestProgress>();
-            foreach (var questProgress in this.QuestProgress)
-            {
-                if (questProgress.Remove && questProgress.Id != 0)
-                {
-                    var query = "DELETE FROM quest_progress WHERE id=" + questProgress.Id + ";";
-                    var command = new SqlCommand(query, world.SqlConnection);
-                    command.BeginExecuteNonQuery(new AsyncCallback(GameWorld.DefaultEndExecuteNonQueryAsyncCallback), command);
-
-                    toRemove.Add(questProgress);
-                }
-                else if (questProgress.Id == 0)
-                {
-                    // TODO: Is this going to be stable, is it even worth spawning a task for this?
-                    Task.Factory.StartNew(() =>
-                    {
-                        var qp = questProgress;
-                        var query = "INSERT INTO quest_progress (requirement_id, player_id, progress_value) OUTPUT INSERTED.id VALUES (" + qp.Requirement.Id + ", " + this.PlayerID + ", " + qp.Value + ");";
-                        var command = new SqlCommand(query, world.SqlConnection);
-                        qp.Id = (int)command.ExecuteScalar();
-
-                        qp.Dirty = false;
-                    });
-                }
-                else if (questProgress.Dirty)
-                {
-                    var query = "UPDATE quest_progress SET progress_value = " + questProgress.Value + " WHERE id=" + questProgress.Id + ";";
-                    var command = new SqlCommand(query, world.SqlConnection);
-                    command.BeginExecuteNonQuery(new AsyncCallback(GameWorld.DefaultEndExecuteNonQueryAsyncCallback), command);
-
-                    questProgress.Dirty = false;
-                }
-            }
-
-            foreach (var questProgress in toRemove)
-            {
-                this.QuestProgress.Remove(questProgress);
-            }
+            SqlCommand saveQuestStatusCommand = new SqlCommand(
+                @"UPDATE quest_status SET serialized_data=@serialized_data WHERE player_id=@player_id; 
+                  IF @@ROWCOUNT = 0 
+                    INSERT INTO quest_status (player_id, serialized_data) VALUES (@player_id, @serialized_data);", world.SqlConnection);
+            saveQuestStatusCommand.Parameters.Add(new SqlParameter("@player_id", SqlDbType.Int) { Value = this.PlayerID });
+            saveQuestStatusCommand.Parameters.Add(new SqlParameter("@serialized_data", SqlDbType.Text) { Value = JsonConvert.SerializeObject(questStatus, GameWorld.JsonSerializerSettings) });
+            world.DatabaseWriter.Add(saveQuestStatusCommand);
         }
 
         /**

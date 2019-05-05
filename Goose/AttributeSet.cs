@@ -132,8 +132,11 @@ namespace Goose
             return temp;
         }
 
-        public static AttributeSet operator *(AttributeSet a1, decimal multiplier)
+        public static AttributeSet operator *(AttributeSet a1, double mult)
         {
+            // quick hack, fix later
+            decimal multiplier = (decimal)mult;
+
             AttributeSet temp = new AttributeSet();
 
             temp.HP = (int)Math.Ceiling(a1.HP * multiplier);

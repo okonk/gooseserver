@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Data.SqlClient;
+using System.Data;
+using Newtonsoft.Json;
 
 namespace Goose
 {
@@ -32,35 +34,20 @@ namespace Goose
          */
         public void Load(GameWorld world)
         {
-            SqlCommand command = new SqlCommand(
-                "SELECT * FROM spellbook WHERE player_id=" + this.player.PlayerID,
-                world.SqlConnection);
-            SqlDataReader reader = command.ExecuteReader();
-
-            int slot, spellid;
-
-            while (reader.Read())
+            using (SqlCommand query = new SqlCommand("SELECT serialized_data FROM spellbook WHERE player_id=" + this.player.PlayerID, world.SqlConnection))
             {
-                spellid = Convert.ToInt32(reader["spell_id"]);
-                slot = Convert.ToInt32(reader["slot"]);
-
-                if (slot < 1 || slot > GameSettings.Default.SpellbookSize)
+                string serialized_data = Convert.ToString(query.ExecuteScalar());
+                var spellIds = JsonConvert.DeserializeObject<int[]>(serialized_data, GameWorld.JsonSerializerSettings);
+                    
+                for (int i = 1; i < this.spells.Length; i++)
                 {
-                    // log bad spellbook loading
-                    continue;
-                }
+                    var spellId = spellIds[i];
+                    if (spellId == 0)
+                        continue;
 
-                this.spells[slot] = world.SpellHandler.GetSpell(spellid);
-                if (this.spells[slot] == null)
-                {
-                    // log bad spell loading
-                    continue;
+                    this.spells[i] = world.SpellHandler.GetSpell(spellId);
                 }
-
-                this.lastcast[slot] = Convert.ToInt64(reader["last_casted"]);
             }
-
-            reader.Close();
         }
 
         /**
@@ -69,33 +56,13 @@ namespace Goose
          */
         public void Save(GameWorld world)
         {
-            SqlCommand command = new SqlCommand("", world.SqlConnection);
-            string query;
-            Spell slot;
-
-            // Save spells
-            for (int i = 1; i <= GameSettings.Default.SpellbookSize; i++)
-            {
-                slot = this.GetSlot(i);
-                if (slot == null)
-                {
-                    query = "DELETE FROM spellbook WHERE player_id=" + this.player.PlayerID + " AND slot=" + i;
-                }
-                else
-                {
-                    query = "DELETE FROM spellbook WHERE player_id=" +
-                        this.player.PlayerID + " AND slot=" + i + ";";
-
-                    query += "INSERT INTO spellbook (player_id, slot, spell_id, last_casted) VALUES (" +
-                        this.player.PlayerID + ", " +
-                        i + ", " +
-                        slot.ID + ", " +
-                        this.GetSlotLastCast(i) + ");";
-                }
-
-                command = new SqlCommand(query, world.SqlConnection);
-                command.BeginExecuteNonQuery(new AsyncCallback(GameWorld.DefaultEndExecuteNonQueryAsyncCallback), command);
-            }
+            SqlCommand saveSpellbookCommand = new SqlCommand(
+                @"UPDATE spellbook SET serialized_data=@serialized_data WHERE player_id=@player_id; 
+                  IF @@ROWCOUNT = 0 
+                    INSERT INTO spellbook (player_id, serialized_data) VALUES (@player_id, @serialized_data);", world.SqlConnection);
+            saveSpellbookCommand.Parameters.Add(new SqlParameter("@player_id", SqlDbType.Int) { Value = this.player.PlayerID });
+            saveSpellbookCommand.Parameters.Add(new SqlParameter("@serialized_data", SqlDbType.Text) { Value = JsonConvert.SerializeObject(spells.Select(s => (s == null ? 0 : s.ID)).ToArray(), GameWorld.JsonSerializerSettings) });
+            world.DatabaseWriter.Add(saveSpellbookCommand);
         }
 
         public int NextFreeSlot(int lowerBound)

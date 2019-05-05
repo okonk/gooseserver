@@ -48,7 +48,6 @@ namespace Goose.Events
                     if (slot == null) return;
                     slot = this.Player.Inventory.RemoveItem(slot.Item, slot.Stack, world);
                     if (slot == null) return;
-                    slot.Item.Delete = true;
                 }
                 else
                 {
@@ -57,7 +56,6 @@ namespace Goose.Events
                     this.Player.Inventory.Unequip(id, world);
                     slot = this.Player.Inventory.RemoveItem(slot.Item, slot.Stack, world);
                     if (slot == null) return;
-                    slot.Item.Delete = true;
                 }
             }
         }

@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Data.SqlClient;
+using System.Data;
+using Newtonsoft.Json;
 
 namespace Goose
 {
@@ -79,8 +81,6 @@ namespace Goose
                 }
                 else if (this.inventory[i].CanStack(slot))
                 {
-                    // Mark for deletion since we're adding to a stack
-                    slot.Item.Delete = true;
                     this.inventory[i].Stack += slot.Stack;
                     this.SendSlot(i, world);
 
@@ -209,7 +209,7 @@ namespace Goose
 
             if (slot2 == null)
             {
-                world.ItemHandler.AddItem(temp.Item, world);
+                world.ItemHandler.AddAndAssignId(temp.Item, world);
                 slot2 = temp;
             }
 
@@ -221,7 +221,6 @@ namespace Goose
                 if (slot1.Stack > 1) slot1.Stack--;
                 else
                 {
-                    slot1.Item.Delete = true;
                     this.inventory[id1] = null;
                 }
             }
@@ -362,7 +361,6 @@ namespace Goose
             if (slot.Item.IsBindOnEquip)
             {
                 slot.Item.IsBound = true;
-                slot.Item.Dirty = true;
             }
 
             return true;
@@ -822,91 +820,32 @@ namespace Goose
         /**
          * Save, saves to database
          * 
-         * Uses delete/insert so if the row doesn't exist it doesn't die.. maybe research into this more
-         * 
          */
         public void Save(GameWorld world)
         {
-            SqlCommand command = new SqlCommand("", world.SqlConnection);
-            string query;
-            ItemSlot slot;
+            SqlCommand saveInventoryCommand = new SqlCommand(
+                @"UPDATE inventory SET serialized_data=@serialized_data WHERE player_id=@player_id; 
+                  IF @@ROWCOUNT = 0 
+                    INSERT INTO inventory (player_id, serialized_data) VALUES (@player_id, @serialized_data);", world.SqlConnection);
+            saveInventoryCommand.Parameters.Add(new SqlParameter("@player_id", SqlDbType.Int) { Value = this.player.PlayerID });
+            saveInventoryCommand.Parameters.Add(new SqlParameter("@serialized_data", SqlDbType.Text) { Value = JsonConvert.SerializeObject(inventory, GameWorld.JsonSerializerSettings) });
+            world.DatabaseWriter.Add(saveInventoryCommand);
 
-            // Save inventory
-            for (int i = 1; i <= GameSettings.Default.InventorySize; i++)
-            {
-                slot = this.GetSlot(i);
-                if (slot == null)
-                {
-                    query = "DELETE FROM inventory WHERE player_id=" + this.player.PlayerID + " AND slot=" + i;
-                }
-                else
-                {
-                    if (slot.Item.Unsaved) slot.Item.AddItem(world); // have to add item
+            SqlCommand saveEquippedCommand = new SqlCommand(
+                @"UPDATE equipped SET serialized_data=@serialized_data WHERE player_id=@player_id; 
+                  IF @@ROWCOUNT = 0 
+                    INSERT INTO equipped (player_id, serialized_data) VALUES (@player_id, @serialized_data);", world.SqlConnection);
+            saveEquippedCommand.Parameters.Add(new SqlParameter("@player_id", SqlDbType.Int) { Value = this.player.PlayerID });
+            saveEquippedCommand.Parameters.Add(new SqlParameter("@serialized_data", SqlDbType.Text) { Value = JsonConvert.SerializeObject(equipped, GameWorld.JsonSerializerSettings) });
+            world.DatabaseWriter.Add(saveEquippedCommand);
 
-                    query = "DELETE FROM inventory WHERE player_id=" + 
-                        this.player.PlayerID + " AND slot=" + i + ";";
-
-                    query += "INSERT INTO inventory (player_id, slot, item_id, stack) VALUES (" +
-                        this.player.PlayerID + ", " +
-                        i + ", " +
-                        slot.Item.ItemID + ", " +
-                        slot.Stack + ");";
-                }
-
-                command = new SqlCommand(query, world.SqlConnection);
-                command.BeginExecuteNonQuery(new AsyncCallback(GameWorld.DefaultEndExecuteNonQueryAsyncCallback), command);
-            }
-
-            // Save equipped
-            for (int i = 1; i <= GameSettings.Default.EquippedSize; i++)
-            {
-                slot = this.equipped[i];
-                if (slot == null)
-                {
-                    query = "DELETE FROM equipped WHERE player_id=" + this.player.PlayerID + " AND slot=" + i;
-                }
-                else
-                {
-                    if (slot.Item.Unsaved) slot.Item.AddItem(world); // have to add item
-
-                    query = "DELETE FROM equipped WHERE player_id=" +
-                        this.player.PlayerID + " AND slot=" + i + ";";
-
-                    query += "INSERT INTO equipped (player_id, slot, item_id) VALUES (" +
-                        this.player.PlayerID + ", " +
-                        i + ", " +
-                        slot.Item.ItemID + ");";
-                }
-
-                command = new SqlCommand(query, world.SqlConnection);
-                command.BeginExecuteNonQuery(new AsyncCallback(GameWorld.DefaultEndExecuteNonQueryAsyncCallback), command);
-            }
-
-            // Save combine bag
-            for (int i = 1; i <= GameSettings.Default.CombineBagSize; i++)
-            {
-                slot = this.combineContainer.GetSlot(i);
-                if (slot == null)
-                {
-                    query = "DELETE FROM combinebag WHERE player_id=" + this.player.PlayerID + " AND slot=" + i;
-                }
-                else
-                {
-                    if (slot.Item.Unsaved) slot.Item.AddItem(world); // have to add item
-
-                    query = "DELETE FROM combinebag WHERE player_id=" +
-                        this.player.PlayerID + " AND slot=" + i + ";";
-
-                    query += "INSERT INTO combinebag (player_id, slot, item_id, stack) VALUES (" +
-                        this.player.PlayerID + ", " +
-                        i + ", " +
-                        slot.Item.ItemID + ", " +
-                        slot.Stack + ");";
-                }
-
-                command = new SqlCommand(query, world.SqlConnection);
-                command.BeginExecuteNonQuery(new AsyncCallback(GameWorld.DefaultEndExecuteNonQueryAsyncCallback), command);
-            }
+            SqlCommand saveCombineBagCommand = new SqlCommand(
+                @"UPDATE combinebag SET serialized_data=@serialized_data WHERE player_id=@player_id; 
+                  IF @@ROWCOUNT = 0 
+                    INSERT INTO combinebag (player_id, serialized_data) VALUES (@player_id, @serialized_data);", world.SqlConnection);
+            saveCombineBagCommand.Parameters.Add(new SqlParameter("@player_id", SqlDbType.Int) { Value = this.player.PlayerID });
+            saveCombineBagCommand.Parameters.Add(new SqlParameter("@serialized_data", SqlDbType.Text) { Value = JsonConvert.SerializeObject(combineContainer, GameWorld.JsonSerializerSettings) });
+            world.DatabaseWriter.Add(saveCombineBagCommand);
         }
 
         /**
@@ -915,107 +854,68 @@ namespace Goose
          */
         public void Load(GameWorld world)
         {
-            SqlCommand command = new SqlCommand("", world.SqlConnection);
-            string query;
-            SqlDataReader reader;
-
-            int slot;
-            int stack;
-            int itemid;
-            Item item;
-
-            // Load inventory
-            query = "SELECT * FROM inventory WHERE player_id=" + this.player.PlayerID;
-            command.CommandText = query;
-            reader = command.ExecuteReader();
-            while (reader.Read())
+            using (SqlCommand query = new SqlCommand("SELECT serialized_data FROM inventory WHERE player_id=" + this.player.PlayerID, world.SqlConnection))
             {
-                slot = Convert.ToInt32(reader["slot"]);
-                stack = Convert.ToInt32(reader["stack"]);
-                itemid = Convert.ToInt32(reader["item_id"]);
+                string serialized_data = Convert.ToString(query.ExecuteScalar());
+                this.inventory = JsonConvert.DeserializeObject<ItemSlot[]>(serialized_data, GameWorld.JsonSerializerSettings);
 
-                if (slot < 1 || slot > GameSettings.Default.InventorySize) continue; // log bad slot
-                if (stack < 1) continue; // log bad stack
-
-                item = world.ItemHandler.GetItem(itemid);
-                if (item == null) continue; // log bad item id
-                if (this.inventory[slot] != null) continue; // log 2 items trying to be in the same slot
-
-                this.inventory[slot] = new ItemSlot();
-                this.inventory[slot].Item = item;
-                this.inventory[slot].Stack = stack;
-            }
-
-            reader.Close();
-
-            // Load equipped
-            query = "SELECT * FROM equipped WHERE player_id=" + this.player.PlayerID;
-            command.CommandText = query;
-            reader = command.ExecuteReader();
-            while (reader.Read())
-            {
-                slot = Convert.ToInt32(reader["slot"]);
-                itemid = Convert.ToInt32(reader["item_id"]);
-
-                if (slot < 1 || slot > GameSettings.Default.EquippedSize) continue; // log bad slot
-
-                item = world.ItemHandler.GetItem(itemid);
-                if (item == null) continue; // log bad item id
-                if (this.equipped[slot] != null) continue; // log 2 items trying to be in the same slot
-
-                // if the database slot is a ring and the item's slot isn't, 
-                // or the item's slot isn't the same as the database slot
-                // should probably check for conflicting equipment, eg a shield + 2 handed sword won't work
-                if ((EquipSlots)slot == EquipSlots.Ring1 || (EquipSlots)slot == EquipSlots.Ring2)
+                foreach (var invSlot in this.inventory)
                 {
-                    if (item.Slot != ItemTemplate.ItemSlots.Ring) continue; // log bad equipment in slot
-                }
-                else if (this.ItemSlotToEquipSlot(item.Slot) != (EquipSlots)slot)
-                {
-                    continue; // log bad equipment in slot
-                }
+                    if (invSlot == null) continue;
 
-                this.equipped[slot] = new ItemSlot();
-                this.equipped[slot].Item = item;
-                this.equipped[slot].Stack = 1;
+                    world.ItemHandler.AddItem(invSlot.Item, world);
 
-                this.player.AddStats(this.equipped[slot].Item.TotalStats, world);
-                if (this.equipped[slot].Item.SpellEffect != null)
-                {
-                    Buff buff = new Buff();
-                    buff.Caster = this.player;
-                    buff.Target = this.player;
-                    buff.ItemBuff = true;
-                    buff.SpellEffect = this.equipped[slot].Item.SpellEffect;
-
-                    this.player.AddBuff(buff, world, false);
+                    invSlot.Item.Template = world.ItemHandler.GetTemplate(invSlot.Item.TemplateID);
+                    invSlot.Item.LoadTemplate(invSlot.Item.Template);
                 }
             }
 
-            reader.Close();
-
-            // Load combine bag
-            query = "SELECT * FROM combinebag WHERE player_id=" + this.player.PlayerID;
-            command.CommandText = query;
-            reader = command.ExecuteReader();
-            while (reader.Read())
+            using (SqlCommand query = new SqlCommand("SELECT serialized_data FROM equipped WHERE player_id=" + this.player.PlayerID, world.SqlConnection))
             {
-                slot = Convert.ToInt32(reader["slot"]);
-                stack = Convert.ToInt32(reader["stack"]);
-                itemid = Convert.ToInt32(reader["item_id"]);
+                string serialized_data = Convert.ToString(query.ExecuteScalar());
+                this.equipped = JsonConvert.DeserializeObject<ItemSlot[]>(serialized_data, GameWorld.JsonSerializerSettings);
 
-                if (slot < 1 || slot > GameSettings.Default.CombineBagSize) continue; // log bad slot
-                if (stack < 1) continue; // log bad stack
+                foreach (var equipSlot in equipped)
+                {
+                    if (equipSlot == null) continue;
 
-                item = world.ItemHandler.GetItem(itemid);
-                if (item == null) continue; // log bad item id
-                if (this.combineContainer.GetSlot(slot) != null) continue; // log 2 items trying to be in the same slot
+                    world.ItemHandler.AddItem(equipSlot.Item, world);
 
-                var combineSlot = new ItemSlot { Item = item, Stack = stack };
-                this.combineContainer.SetSlot(slot, combineSlot);
+                    equipSlot.Item.Template = world.ItemHandler.GetTemplate(equipSlot.Item.TemplateID);
+                    equipSlot.Item.LoadTemplate(equipSlot.Item.Template);
+
+                    this.player.AddStats(equipSlot.Item.TotalStats, world);
+                    if (equipSlot.Item.SpellEffect != null)
+                    {
+                        Buff buff = new Buff();
+                        buff.Caster = this.player;
+                        buff.Target = this.player;
+                        buff.ItemBuff = true;
+                        buff.SpellEffect = equipSlot.Item.SpellEffect;
+
+                        this.player.AddBuff(buff, world, false);
+                    }
+                }
             }
 
-            reader.Close();
+            using (SqlCommand query = new SqlCommand("SELECT serialized_data FROM combinebag WHERE player_id=" + this.player.PlayerID, world.SqlConnection))
+            {
+                string serialized_data = Convert.ToString(query.ExecuteScalar());
+                var combineSlots = JsonConvert.DeserializeObject<ItemSlot[]>(serialized_data, GameWorld.JsonSerializerSettings);
+
+                for (int i = 0; i < combineSlots.Length; i++)
+                {
+                    var combineSlot = combineSlots[i];
+                    if (combineSlot == null) continue;
+
+                    world.ItemHandler.AddItem(combineSlot.Item, world);
+
+                    combineSlot.Item.Template = world.ItemHandler.GetTemplate(combineSlot.Item.TemplateID);
+                    combineSlot.Item.LoadTemplate(combineSlot.Item.Template);
+
+                    this.combineContainer.SetSlot(i, combineSlot);
+                }
+            }
         }
 
         /**
@@ -1119,8 +1019,6 @@ namespace Goose
                 else
                 {
                     freeslots.Add(i);
-                    // else mark the item for deletion
-                    item.Delete = true;
                 }
 			}
 
@@ -1141,7 +1039,7 @@ namespace Goose
 
                 item = new Item();
                 item.LoadFromTemplate(template);
-                world.ItemHandler.AddItem(item, world);
+                world.ItemHandler.AddAndAssignId(item, world);
 
                 if (item.IsBindOnPickup) item.IsBound = true;
 

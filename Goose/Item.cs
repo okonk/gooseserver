@@ -5,6 +5,8 @@ using System.Text;
 using System.Data.SqlClient;
 using System.Data;
 using Goose.Scripting;
+using Newtonsoft.Json;
+using System.ComponentModel;
 
 namespace Goose
 {
@@ -17,111 +19,118 @@ namespace Goose
      */
     public class Item : IItem
     {
+        [JsonProperty(PropertyName = "id")]
         public int ItemID { get; set; }
+        [JsonProperty(PropertyName = "tid")]
         public int TemplateID { get; set; }
+        [JsonIgnore]
         public ItemTemplate Template { get; set; }
 
         public string Name { get; set; }
+        [JsonProperty(PropertyName = "desc")]
+        [DefaultValue("")]
         public string Description { get; set; }
 
+        [JsonProperty(PropertyName = "ge")]
         public int GraphicEquipped { get; set; }
+        [JsonProperty(PropertyName = "gt")]
         public int GraphicTile { get; set; }
+        [JsonProperty(PropertyName = "gf")]
         public int GraphicFile { get; set; }
+        [JsonProperty(PropertyName = "r")]
         public int GraphicR { get; set; }
+        [JsonProperty(PropertyName = "g")]
         public int GraphicG { get; set; }
+        [JsonProperty(PropertyName = "b")]
         public int GraphicB { get; set; }
+        [JsonProperty(PropertyName = "a")]
         public int GraphicA { get; set; }
-        int weapondamage = 0;
-        public int WeaponDamage 
-        {
-            get
-            {
-                return this.weapondamage + (int)Math.Ceiling(this.Template.WeaponDamage * this.StatMultiplier);
-            }
-            set
-            {
-                this.weapondamage = value;
-            }
-        }
 
-        /**
-         * Body pose/state 1 for normal, 3 for staff, 4 for sword
-         */
+        [JsonProperty(PropertyName = "wdmg")]
+        public int WeaponDamage { get; set; }
+
+        [DefaultValue(3)]
         public int BodyState { get; set; }
-
+        [JsonProperty(PropertyName = "stats")]
         public AttributeSet BaseStats { get; set; }
+
+        [JsonIgnore]
         public AttributeSet TotalStats { get; set; }
 
-        public decimal StatMultiplier { get; set; }
-        /**
-         * Dirty, has data changed since loading
-         * 
-         */
-        public bool Dirty { get; set; }
-        /**
-         * Delete, item is no longer in game so delete it
-         */
-        public bool Delete { get; set; }
+        [DefaultValue(1.0)]
+        public double StatMultiplier { get; set; }
+
         public long Value { get; set; }
 
-        public int Flags { get { return this.Template.Flags; } }
-
-        public int BodyType { get { return this.Template.BodyType; } }
-
-        bool bound = false;
-        public bool IsBound
-        {
-            get { return this.bound; }
-            set { this.bound = value; }
-        }
+        public bool IsBound { get; set; }
 
         /**
          * These properties are read only and just pass along from the templates properties
          * 
          */
+        [JsonIgnore]
         public int WeaponDelay { get { return this.Template.WeaponDelay; } }
+        [JsonIgnore]
         public int StackSize { get { return this.Template.StackSize; } }
+        [JsonIgnore]
         public bool IsLore { get { return this.Template.IsLore; } }
+        [JsonIgnore]
         public bool IsBindOnPickup { get { return this.Template.IsBindOnPickup; } }
+        [JsonIgnore]
         public bool IsBindOnEquip { get { return this.Template.IsBindOnEquip; } }
+        [JsonIgnore]
         public bool IsEvent { get { return this.Template.IsEvent; } }
+        [JsonIgnore]
         public ItemTemplate.ItemSlots Slot { get { return this.Template.Slot; } }
+        [JsonIgnore]
         public ItemTemplate.ItemTypes Type { get { return this.Template.Type; } }
+        [JsonIgnore]
         public ItemTemplate.UseTypes UseType { get { return this.Template.UseType; } }
+        [JsonIgnore]
         public int MinLevel { get { return this.Template.MinLevel; } }
+        [JsonIgnore]
         public int MaxLevel { get { return this.Template.MaxLevel; } }
+        [JsonIgnore]
         public long MinExperience { get { return this.Template.MinExperience; } }
+        [JsonIgnore]
         public long MaxExperience { get { return this.Template.MaxExperience; } }
+        [JsonIgnore]
+        public int Flags { get { return this.Template.Flags; } }
+        [JsonIgnore]
+        public int BodyType { get { return this.Template.BodyType; } }
         /**
          * This is a bitmask
          * Therefore only limited to about 64 classes, which should be enough.
          * If the bit is set then that class id CAN'T use the item.
          * 
          */
+        [JsonIgnore]
         public long ClassRestrictions { get { return this.Template.ClassRestrictions; } }
+        [JsonIgnore]
         public SpellEffect SpellEffect { get { return this.Template.SpellEffect; } }
+        [JsonIgnore]
         public decimal SpellEffectChance { get { return this.Template.SpellEffectChance; } }
+        [JsonIgnore]
         public int LearnSpellID { get { return this.Template.LearnSpellID; } }
+        [JsonIgnore]
 
         public int Credits { get { return this.Template.Credits; } }
 
-        public bool Unsaved { get; set; }
-
+        [JsonIgnore]
         public bool Custom { get { return false; } }
 
+        [JsonIgnore]
         public Script<IItemScript> Script { get { return this.Template.Script; } }
 
+        [DefaultValue("")]
         public string ScriptParams { get; set; }
 
         public Item()
         {
-            this.Unsaved = true;
             this.ItemID = 0;
             this.TotalStats = new AttributeSet();
             this.BaseStats = new AttributeSet();
             this.StatMultiplier = 1;
-            this.Dirty = true;
-            this.Delete = false;
         }
 
         /**
@@ -146,6 +155,8 @@ namespace Goose
             this.GraphicB = this.Template.GraphicB;
             this.GraphicA = this.Template.GraphicA;
 
+            this.WeaponDamage = this.Template.WeaponDamage;
+
             this.Value = this.Template.Value;
             this.BodyState = this.Template.BodyState;
 
@@ -164,134 +175,15 @@ namespace Goose
          */
         public void LoadTemplate(ItemTemplate template)
         {
+            // Temporary measure for transition to new code
+            if (this.BaseStats == null) this.BaseStats = new AttributeSet();
+
             this.TotalStats += template.BaseStats;
             this.TotalStats *= this.StatMultiplier;
             this.TotalStats += this.BaseStats;
-        }
 
-        /**
-         * AddItem, adds item to database
-         * 
-         */
-        public void AddItem(GameWorld world)
-        {
-            SqlParameter nameParam = new SqlParameter("@itemName", SqlDbType.VarChar, 64);
-            nameParam.Value = this.Name;
-            SqlParameter descriptionParam = new SqlParameter("@itemDescription", SqlDbType.VarChar, 64);
-            descriptionParam.Value = this.Description;
-            SqlParameter scriptParamsParam = new SqlParameter("@scriptParams", SqlDbType.Text);
-            scriptParamsParam.Value = this.ScriptParams;
-
-            string query = "INSERT INTO items (item_id, item_template_id, item_name, item_description, " +
-            "player_hp, player_mp, player_sp, stat_ac, stat_str, stat_sta, stat_dex, stat_int, " +
-            "res_fire, res_water, res_spirit, res_air, res_earth, weapon_damage, item_value, " +
-            "graphic_tile, graphic_file, graphic_equip, graphic_r, graphic_g, graphic_b, graphic_a, stat_multiplier, " +
-            "bound, body_state, script_params) VALUES (" +
-            this.ItemID + "," +
-            this.TemplateID + ", " +
-            "@itemName, " +
-            "@itemDescription, " +
-            this.BaseStats.HP + ", " +
-            this.BaseStats.MP + ", " +
-            this.BaseStats.SP + ", " +
-            this.BaseStats.AC + ", " +
-            this.BaseStats.Strength + ", " +
-            this.BaseStats.Stamina + ", " +
-            this.BaseStats.Dexterity + ", " +
-            this.BaseStats.Intelligence + ", " +
-            this.BaseStats.FireResist + ", " +
-            this.BaseStats.WaterResist + ", " +
-            this.BaseStats.SpiritResist + ", " +
-            this.BaseStats.AirResist + ", " +
-            this.BaseStats.EarthResist + ", " +
-            this.weapondamage + ", " +
-            this.Value + ", " +
-            this.GraphicTile + ", " +
-            this.GraphicFile + ", " +
-            this.GraphicEquipped + ", " +
-            this.GraphicR + ", " +
-            this.GraphicG + ", " +
-            this.GraphicB + ", " +
-            this.GraphicA + ", " +
-            this.StatMultiplier + ", " +
-            (this.bound ? "'1'" : "'0'") + ", " +
-            this.BodyState + ", " +
-            "@scriptParams" + ")";
-
-            this.Dirty = false;
-
-            this.Unsaved = false;
-
-            SqlCommand command = new SqlCommand(query, world.SqlConnection);
-            command.Parameters.Add(nameParam);
-            command.Parameters.Add(descriptionParam);
-            command.Parameters.Add(scriptParamsParam);
-            command.BeginExecuteNonQuery(new AsyncCallback(GameWorld.DefaultEndExecuteNonQueryAsyncCallback), command);
-        }
-
-        /**
-         * SaveItem, updates item info in database
-         * 
-         */
-        public void SaveItem(GameWorld world)
-        {
-            SqlParameter nameParam = new SqlParameter("@itemName", SqlDbType.VarChar, 64);
-            nameParam.Value = this.Name;
-            SqlParameter descriptionParam = new SqlParameter("@itemDescription", SqlDbType.VarChar, 64);
-            descriptionParam.Value = this.Description;
-            SqlParameter scriptParamsParam = new SqlParameter("@scriptParams", SqlDbType.Text);
-            scriptParamsParam.Value = this.ScriptParams;
-
-            string query = "UPDATE items SET " +
-                "item_template_id=" + this.TemplateID + ", " +
-                "item_name=" + "@itemName, " +
-                "item_description=" + "@itemDescription, " + 
-                "player_hp=" + this.BaseStats.HP + ", " +
-                "player_mp=" + this.BaseStats.MP + ", " +
-                "player_sp=" + this.BaseStats.SP + ", " +
-                "stat_ac=" + this.BaseStats.AC + ", " +
-                "stat_str=" + this.BaseStats.Strength + ", " +
-                "stat_sta=" + this.BaseStats.Stamina + ", " +
-                "stat_dex=" + this.BaseStats.Dexterity + ", " +
-                "stat_int=" + this.BaseStats.Intelligence + ", " + 
-                "res_fire=" + this.BaseStats.FireResist + ", " +
-                "res_water=" + this.BaseStats.WaterResist + ", " +
-                "res_spirit=" + this.BaseStats.SpiritResist + ", " +
-                "res_air=" + this.BaseStats.AirResist + ", " +
-                "res_earth=" + this.BaseStats.EarthResist + ", " +
-                "weapon_damage=" + this.weapondamage + ", " +
-                "item_value=" + this.Value + ", " + 
-                "graphic_tile=" + this.GraphicTile + ", " +
-                "graphic_file=" + this.GraphicFile + ", " +
-                "graphic_equip=" + this.GraphicEquipped + ", " +
-                "graphic_r=" + this.GraphicR + ", " +
-                "graphic_g=" + this.GraphicG + ", " +
-                "graphic_b=" + this.GraphicB + ", " +
-                "graphic_a=" + this.GraphicA + ", " +
-                "stat_multiplier=" + this.StatMultiplier + ", " +
-                "bound=" + (this.bound ? "'1'" : "'0'") + ", " +
-                "body_state=" + this.BodyState + ", " +
-                "script_params=" + "@scriptParams" +
-                " WHERE item_id=" + this.ItemID;
-
-            SqlCommand command = new SqlCommand(query, world.SqlConnection);
-            command.Parameters.Add(nameParam);
-            command.Parameters.Add(descriptionParam);
-            command.Parameters.Add(scriptParamsParam);
-            command.BeginExecuteNonQuery(new AsyncCallback(GameWorld.DefaultEndExecuteNonQueryAsyncCallback), command);
-            this.Dirty = false;
-        }
-
-        /**
-         * DeleteItem, deletes item from database
-         * 
-         */
-        public void DeleteItem(GameWorld world)
-        {
-            SqlCommand command = new SqlCommand(
-                "DELETE FROM items WHERE item_id=" + this.ItemID, 
-                world.SqlConnection);
-            command.BeginExecuteNonQuery(new AsyncCallback(GameWorld.DefaultEndExecuteNonQueryAsyncCallback), command);
+            // Mainly here as a temporary measure for transition to new code
+            this.WeaponDamage = (int)(this.Template.WeaponDamage * this.StatMultiplier);
         }
 
         public string GetSlotPacket(GameWorld world, int slotId, long stack)

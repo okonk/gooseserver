@@ -1,5 +1,7 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
@@ -34,26 +36,23 @@ namespace Goose
                 while (reader.Read())
                 {
                     int npc_id = Convert.ToInt32(reader["npc_id"]);
-                    int item_id = Convert.ToInt32(reader["item_id"]);
-                    int slot = Convert.ToInt16(reader["slot"]);
-                    int stack = Convert.ToInt32(reader["stack"]);
-
-                    if (slot < 1 || slot > player.NumberOfBankPages * BankWindow.SlotsPerPage + 1)
-                    {
-                        // log bad bank loading
-                        continue;
-                    }
-
-                    if (stack < 1) continue; // log bad stack
-
-                    Item item = world.ItemHandler.GetItem(item_id);
-                    if (item == null) continue; // log bad item id
+                    string serialized_data = Convert.ToString(reader["serialized_data"]);
 
                     ItemContainer container = GetOrCreateContainer(player, npc_id);
-                    //if (container.GetSlot(slot) != null) continue; // log 2 items trying to be in the same slot
 
-                    var itemSlot = new ItemSlot { Item = item, Stack = stack };
-                    container.SetSlot(slot, itemSlot);
+                    var containerSlots = JsonConvert.DeserializeObject<ItemSlot[]>(serialized_data, GameWorld.JsonSerializerSettings);
+                    for (int i = 0; i < containerSlots.Length; i++)
+                    {
+                        var containerSlot = containerSlots[i];
+                        if (containerSlot == null) continue;
+
+                        world.ItemHandler.AddItem(containerSlot.Item, world);
+
+                        containerSlot.Item.Template = world.ItemHandler.GetTemplate(containerSlot.Item.TemplateID);
+                        containerSlot.Item.LoadTemplate(containerSlot.Item.Template);
+
+                        container.SetSlot(i, containerSlots[i]);
+                    }
                 }
             }
         }
@@ -65,33 +64,14 @@ namespace Goose
                 int npc_id = kvp.Key;
                 ItemContainer container = kvp.Value;
 
-                for (int i = 1; i < container.MaxSlots; i++)
-                {
-                    string query = null;
-
-                    var slot = container.GetSlot(i);
-                    if (slot == null)
-                    {
-                        query = "DELETE FROM bank_items WHERE npc_id=" + npc_id + " AND player_id=" + player.PlayerID + " AND slot=" + i;
-                    }
-                    else
-                    {
-                        if (slot.Item.Unsaved) slot.Item.AddItem(world); // have to add item
-
-                        query = "DELETE FROM bank_items WHERE npc_id=" + npc_id + " AND player_id=" +
-                            player.PlayerID + " AND slot=" + i + ";";
-
-                        query += "INSERT INTO bank_items (npc_id, player_id, item_id, slot, stack) VALUES (" +
-                            npc_id + ", " +
-                            player.PlayerID + ", " +
-                            slot.Item.ItemID + ", " +
-                            i + ", " +
-                            slot.Stack + ");";
-                    }
-
-                    var command = new SqlCommand(query, world.SqlConnection);
-                    command.BeginExecuteNonQuery(new AsyncCallback(GameWorld.DefaultEndExecuteNonQueryAsyncCallback), command);
-                }
+                SqlCommand saveContainerCommand = new SqlCommand(
+                    @"UPDATE bank_items SET serialized_data=@serialized_data WHERE npc_id=@npc_id AND player_id=@player_id; 
+                    IF @@ROWCOUNT = 0 
+                        INSERT INTO bank_items (npc_id, player_id, serialized_data) VALUES (@npc_id, @player_id, @serialized_data);", world.SqlConnection);
+                saveContainerCommand.Parameters.Add(new SqlParameter("@npc_id", SqlDbType.Int) { Value = npc_id });
+                saveContainerCommand.Parameters.Add(new SqlParameter("@player_id", SqlDbType.Int) { Value = player.PlayerID });
+                saveContainerCommand.Parameters.Add(new SqlParameter("@serialized_data", SqlDbType.Text) { Value = JsonConvert.SerializeObject(container, GameWorld.JsonSerializerSettings) });
+                world.DatabaseWriter.Add(saveContainerCommand);
             }
         }
 
