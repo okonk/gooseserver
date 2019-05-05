@@ -330,6 +330,12 @@ namespace Goose
             //updateExperienceModifier.Ticks += this.TimerFrequency * GameSettings.Default.CreditUpdateInterval;
             //this.EventHandler.AddEvent(updateCredits);
 
+            // Add gold item
+            var gold = new Item();
+            gold.ItemID = GameSettings.Default.ItemIDStartpoint + GameSettings.Default.GoldItemID;
+            gold.LoadFromTemplate(ItemHandler.GetTemplate(GameSettings.Default.GoldItemID));
+            this.ItemHandler.AddItem(gold, this);
+
             log.Info("Loading Global Scripts: ");
             try
             {

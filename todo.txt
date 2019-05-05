@@ -1,4 +1,3 @@
-item disappearing bug... move inventory loading/saving to json fields on player table
 look into wrath etc spawns what can be done to make training better but not encourage macroing
 convert decimals -> doubles
 convert hashtables -> Dictionaries
@@ -66,6 +65,7 @@ priest mana based tick spell
 npc for priestless blessings
 adjust zombie attack speed
 AC changes
+item disappearing bug... move inventory loading/saving to json fields on player table
 
 TUPx,y,graphicnum,sheetnum,graphicnum,sheetnum,graphicnum,sheetnum,graphicnum,sheetnum,graphicnum,sheetnum,flags
 
