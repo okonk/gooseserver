@@ -198,6 +198,8 @@ namespace Goose
 
         public string ScriptParams { get; set; }
 
+        public int ArmorPierce { get; set; }
+
         public NPCTemplate()
         {
             this.Quests = new List<Quest>();

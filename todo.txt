@@ -13,14 +13,18 @@ flag for hiding other equips when cloak is equipped
 spell to see monster info
 something buggy with move speed
 /who search
-fix AC scaling
 support for sounds
+sanitise user names to only alphabetical
+global script threading issues
+
+
 
 test running goose on linux -- .net core?
 Map editor
 client
 make a data writer (done somewhat)
 patcher system
+discord bridge bot
 
 
 automated /macrocheck? maybe only do check every 4+ hours to not get annoying to players, also give 5k gold or 500k exp? reward for passing check
@@ -57,6 +61,11 @@ reset bound spot when resetting
 aliases for /ga /gr
 block casting spells on invincible npcs
 command to check player's inventory
+fix AC scaling -- armor pierce
+priest mana based tick spell
+npc for priestless blessings
+adjust zombie attack speed
+AC changes
 
 TUPx,y,graphicnum,sheetnum,graphicnum,sheetnum,graphicnum,sheetnum,graphicnum,sheetnum,graphicnum,sheetnum,flags
 
@@ -86,3 +95,11 @@ RESTORE DATABASE IllutiaGoose_2018_09_14 FROM DISK='C:\shared\IllutiaGoose.bak'
 WITH REPLACE, RECOVERY, 
    MOVE 'IllutiaGoose' TO 'C:\Program Files\Microsoft SQL Server\MSSQL14.SQLEXPRESS\MSSQL\DATA\IllutiaGoose_2018_09_14.mdf',
    MOVE 'IllutiaGoose_log' TO 'C:\Program Files\Microsoft SQL Server\MSSQL14.SQLEXPRESS\MSSQL\DATA\IllutiaGoose_2018_09_14_log.ldf'
+   
+   
+   
+use json to serialize containers
+same table names just have a data column
+need to track active sql queries and stop server from quitting until all queries completed
+
+or fix quests to not rely on id?

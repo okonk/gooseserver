@@ -21,13 +21,15 @@ namespace Goose.Events
                 return;
             }
 
-            try
+            if (buff.SpellEffect.Script != null)
             {
-                buff.SpellEffect?.Script?.Object.OnBuffTick(buff, world);
+                try
+                {
+                    buff.SpellEffect?.Script?.Object.OnBuffTick(buff, world);
+                }
+                catch (Exception e) { }
             }
-            catch (Exception e) { }
-
-            if (buff.SpellEffect.EffectType == SpellEffect.EffectTypes.Tick)
+            else if (buff.SpellEffect.EffectType == SpellEffect.EffectTypes.Tick)
             {
                 buff.SpellEffect.CastFormulaSpell(buff.Caster, buff.Target, world);
             }

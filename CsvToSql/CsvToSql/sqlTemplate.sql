@@ -117,6 +117,7 @@ CREATE TABLE npc_templates (
   quest_ids TEXT DEFAULT '' NOT NULL,
   script_path TEXT DEFAULT 'Scripts/NPC/BaseNPC.csx' NOT NULL,
   script_params TEXT DEFAULT '' NOT NULL,
+  armor_pierce INT DEFAULT 0 NOT NULL,
   
   PRIMARY KEY(npc_id)
 );

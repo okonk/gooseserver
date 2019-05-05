@@ -343,6 +343,8 @@ namespace Goose
 
         public object ScriptStore { get; set; }
 
+        public int ArmorPierce { get { return this.NPCTemplate.ArmorPierce; } }
+
         /**
          * MKCString, see Player.MKCString for details
          * 
@@ -1422,7 +1424,7 @@ namespace Goose
                             (this.Level - character.Level);
 
             double maxac = GameSettings.Default.MaxAC;
-            double absorb = (1 - ((double)(character.MaxStats.AC * character.Class.ACMultiplier) / maxac));
+            double absorb = (1 - ((character.MaxStats.AC - this.ArmorPierce) * (double)character.Class.ACMultiplier) / maxac);
 
             if (world.Random.Next(1, 10001) <= this.MaxStats.MeleeCrit * 10000) damage *= 2;
             //damage *= (double)GameSettings.Default.DamageModifier; npcs don't get a modifier lol

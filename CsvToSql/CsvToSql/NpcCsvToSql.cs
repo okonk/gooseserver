@@ -14,8 +14,8 @@ namespace CsvToSql
                 "attack_range", "attack_speed", "move_speed", "stationary", "stunnable", "rootable", "slowable", "invincible", "npc_hp", "npc_mp", "npc_sp",
                 "class_id", "stat_ac", "stat_str", "stat_sta", "stat_dex", "stat_int", "res_fire", "res_water", "res_spirit", "res_air", "res_earth", "body_state",
                 "body_id", "body_r", "body_g", "body_b", "body_a", "face_id", "hair_id", "hair_r", "hair_g", "hair_b", "hair_a", "equipped_items", "weapon_damage",
-                "hp_percent_regen", "hp_static_regen", "mp_percent_regen", "mp_static_regen", "npc_alliance", "stuck_behaviour", "stuck_timeout", "credit_dealer",
-                "quest_ids", "script_path", "script_params"
+                "armor_pierce", "hp_percent_regen", "hp_static_regen", "mp_percent_regen", "mp_static_regen", "npc_alliance", "stuck_behaviour", "stuck_timeout",
+                "credit_dealer", "quest_ids", "script_path", "script_params"
             };
         }
 

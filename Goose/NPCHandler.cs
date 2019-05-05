@@ -123,6 +123,8 @@ namespace Goose
                     npc.ScriptParams = Convert.ToString(reader["script_params"]);
                 }
 
+                npc.ArmorPierce = Convert.ToInt32(reader["armor_pierce"]);
+
                 this.templates[npc.NPCTemplateID] = npc;
             }
 
