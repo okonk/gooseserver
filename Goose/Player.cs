@@ -363,6 +363,8 @@ namespace Goose
 
         public int NumberOfBankPages { get; set; }
 
+        public decimal AdditionalExperienceModifier { get; set; }
+
         /**
          * Bitfield for toggled settings
          * 
@@ -1664,12 +1666,12 @@ namespace Goose
                 this.Experience + this.ExperienceSold > GameSettings.Default.ExperienceModifierLimit))
             {
                 // Under the limit gets the full modifier
-                exp = (long)(exp * world.ExperienceModifier);
+                exp = (long)(exp * (world.ExperienceModifier + AdditionalExperienceModifier));
             }
             else
             {
                 // over the limit only gets player bonus
-                exp = (long)(exp * (world.ExperienceModifier - GameSettings.Default.ExperienceModifier + 1));
+                exp = (long)(exp * (world.ExperienceModifier - GameSettings.Default.ExperienceModifier + 1 + AdditionalExperienceModifier));
             }
 
             this.Experience += exp;
