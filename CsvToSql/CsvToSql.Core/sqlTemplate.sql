@@ -1,3 +1,5 @@
+BEGIN TRANSACTION;
+
 DROP TABLE IF EXISTS item_templates;
 CREATE TABLE item_templates (
   item_template_id INTEGER PRIMARY KEY,
@@ -228,7 +230,7 @@ CREATE TABLE spell_effects (
   max_level_effected INT DEFAULT 50 NOT NULL,
   
   effect_type INT NOT NULL,
-  effect_duration BIGINT NOT NULL,
+  effect_duration BIGINT DEFAULT 0 NOT NULL,
   
   do_attack_animation CHAR(1) DEFAULT '0' NOT NULL,
   do_cast_animation CHAR(1) DEFAULT '1' NOT NULL,
@@ -351,7 +353,7 @@ CREATE TABLE maps (
   pets_enabled CHAR(1) DEFAULT '1' NOT NULL,
 
   script_path TEXT DEFAULT '' NOT NULL,
-  script_data TEXT DEFAULT '' NOT NULL
+  script_params TEXT DEFAULT '' NOT NULL
 );
 
 {{maps}}
@@ -394,3 +396,5 @@ CREATE TABLE combination_item_results (
 );
 
 {{combination_item_results}}
+
+COMMIT;

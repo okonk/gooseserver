@@ -6,13 +6,13 @@ using System.Threading.Tasks;
 
 namespace Goose.Events
 {
-    public class ReloadScriptsCommandEvent : Event
+    public class UpdateSqlCommandEvent : Event
     {
         private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
 
         public static Event Create(Player player, Object data)
         {
-            Event e = new ReloadScriptsCommandEvent();
+            Event e = new UpdateSqlCommandEvent();
             e.Player = player;
             e.Data = data;
 
@@ -22,24 +22,23 @@ namespace Goose.Events
         public override void Ready(GameWorld world)
         {
             if (this.Player.State == Player.States.Ready && 
-                this.Player.HasPrivilege(AccessPrivilege.ReloadScripts))
+                this.Player.HasPrivilege(AccessPrivilege.ReloadSQL))
             {
                 Task.Run(() =>
                 {
                     try
                     {
-                        // TODO: This is bad, it executes the global script OnLoaded on the wrong thread
-                        world.LoadGlobalScripts();
+                        var sqlData = CsvToSql.Core.CsvToSqlConverter.Convert();
+                        using (var command = world.SqlConnection.CreateCommand())
+                        {
+                            command.CommandText = sqlData;
 
-                        world.ScriptHandler.ReloadScripts();
-
-                        // TODO: Not safe to call Send on multiple threads
-                        //world.Send(this.Player, "$7Reloaded scripts.");
-                        log.Info("Reloaded scripts");
+                            world.DatabaseWriter.Add(command);
+                        }
                     }
                     catch (Exception e)
                     {
-                        log.Error(e, "Failed reloading scripts");
+                        log.Error(e, "Failed updating sql data");
                         //world.Send(this.Player, "$7" + e.Message);
                     }
                 });

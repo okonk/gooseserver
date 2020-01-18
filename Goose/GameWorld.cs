@@ -155,6 +155,9 @@ namespace Goose
             ExecuteSql(connection, SqlFiles.wordfilter);
             ExecuteSql(connection, SqlFiles.paypal);
 
+            log.Info("Importing data from Google Docs");
+            ExecuteSql(connection, CsvToSql.Core.CsvToSqlConverter.Convert());
+
             return connection;
         }
 

@@ -8,6 +8,8 @@ namespace Goose.Events
 {
     public class ReloadSqlCommandEvent : Event
     {
+        private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
+
         public static Event Create(Player player, Object data)
         {
             Event e = new ReloadSqlCommandEvent();
@@ -37,11 +39,14 @@ namespace Goose.Events
                         //world.NPCHandler.LoadNPCs(world);
                         //world.CombinationHandler.LoadCombinations(world);
 
-                        world.Send(this.Player, "$7Reloaded sql data.");
+                        // TODO: Not safe to call Send from multiple threads
+                        //world.Send(this.Player, "$7Reloaded sql data.");
+                        log.Info("Reloaded sql data");
                     }
                     catch (Exception e)
                     {
-                        world.Send(this.Player, "$7" + e.Message);
+                        log.Error(e, "Failed reloading sql data");
+                        //world.Send(this.Player, "$7" + e.Message);
                     }
                 });
             }

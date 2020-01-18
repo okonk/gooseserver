@@ -64,7 +64,7 @@ CREATE TABLE spell_effects (
   max_level_effected INT DEFAULT 50 NOT NULL,
   
   effect_type INT NOT NULL,
-  effect_duration BIGINT NOT NULL,
+  effect_duration BIGINT DEFAULT 0 NOT NULL,
   
   do_attack_animation CHAR(1) DEFAULT '0' NOT NULL,
   do_cast_animation CHAR(1) DEFAULT '1' NOT NULL,

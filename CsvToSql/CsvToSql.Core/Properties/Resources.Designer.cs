@@ -61,25 +61,21 @@ namespace CsvToSql.Core.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to USE IllutiaGoose;
+        ///   Looks up a localized string similar to BEGIN TRANSACTION;
         ///
-        ///SET NOCOUNT ON;
-        ///
-        ///BEGIN TRY
-        ///
-        ///DROP TABLE item_templates;
+        ///DROP TABLE IF EXISTS item_templates;
         ///CREATE TABLE item_templates (
-        ///  item_template_id INT NOT NULL,
+        ///  item_template_id INTEGER PRIMARY KEY,
         ///  item_usetype SMALLINT NOT NULL,
-        ///  item_name VARCHAR(64) NOT NULL,
-        ///  item_description VARCHAR(64) DEFAULT &apos;&apos; NOT NULL,
+        ///  item_name TEXT NOT NULL,
+        ///  item_description TEXT DEFAULT &apos;&apos; NOT NULL,
         ///  player_hp INT DEFAULT 0 NOT NULL,
         ///  player_mp INT DEFAULT 0 NOT NULL,
         ///  player_sp INT DEFAULT 0 NOT NULL,
         ///  stat_ac SMALLINT DEFAULT 0 NOT NULL,
         ///  stat_str SMALLINT DEFAULT 0 NOT NULL,
         ///  stat_sta SMALLINT DEFAULT 0 NOT NULL,
-        ///  stat_dex [rest of string was truncated]&quot;;.
+        ///  stat_dex SMALLINT DEFAULT 0 NOT NULL [rest of string was truncated]&quot;;.
         /// </summary>
         internal static string sqlTemplate {
             get {

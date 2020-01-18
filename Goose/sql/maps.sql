@@ -21,7 +21,7 @@ CREATE TABLE maps (
   pets_enabled CHAR(1) DEFAULT '1' NOT NULL,
 
   script_path TEXT DEFAULT '' NOT NULL,
-  script_data TEXT DEFAULT '' NOT NULL
+  script_params TEXT DEFAULT '' NOT NULL
 );
 
 INSERT INTO maps (map_id, map_filename, map_name, map_x, map_y) VALUES (1, 'Map1.map', '1', 286, 194);

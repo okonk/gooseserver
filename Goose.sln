@@ -5,6 +5,8 @@ VisualStudioVersion = 16.0.29025.244
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Goose", "Goose\Goose.csproj", "{5662C766-7FB1-44CB-93AC-B13CBF8DA1FF}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CsvToSql.Core", "CsvToSql\CsvToSql.Core\CsvToSql.Core.csproj", "{64EDC926-58D5-4EF2-9807-C7B9E7499EFB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{5662C766-7FB1-44CB-93AC-B13CBF8DA1FF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5662C766-7FB1-44CB-93AC-B13CBF8DA1FF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5662C766-7FB1-44CB-93AC-B13CBF8DA1FF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{64EDC926-58D5-4EF2-9807-C7B9E7499EFB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{64EDC926-58D5-4EF2-9807-C7B9E7499EFB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{64EDC926-58D5-4EF2-9807-C7B9E7499EFB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{64EDC926-58D5-4EF2-9807-C7B9E7499EFB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
