@@ -1,7 +1,6 @@
 look into wrath etc spawns what can be done to make training better but not encourage macroing
 convert decimals -> doubles
 convert hashtables -> Dictionaries
-fix datatypes in DB. varchar -> text
 logging everywhere
 title/surname items
 increase bank slot item
@@ -19,7 +18,6 @@ assign ids to quest requirements/rewards -- be careful, could mess up existing q
 
 
 
-test running goose on linux -- .net core?
 Map editor
 client
 make a data writer (done somewhat)
@@ -68,6 +66,10 @@ npc for priestless blessings
 adjust zombie attack speed
 AC changes
 item disappearing bug... move inventory loading/saving to json fields on player table
+use json to serialize containers
+need to track active sql queries and stop server from quitting until all queries completed
+fix datatypes in DB. varchar -> text
+goose on .net core for linux
 
 
 
@@ -104,10 +106,6 @@ WITH REPLACE, RECOVERY,
    MOVE 'IllutiaGoose' TO 'C:\Program Files\Microsoft SQL Server\MSSQL14.SQLEXPRESS\MSSQL\DATA\IllutiaGoose_2018_09_14.mdf',
    MOVE 'IllutiaGoose_log' TO 'C:\Program Files\Microsoft SQL Server\MSSQL14.SQLEXPRESS\MSSQL\DATA\IllutiaGoose_2018_09_14_log.ldf'
    
-   
-   
-use json to serialize containers
-same table names just have a data column
-need to track active sql queries and stop server from quitting until all queries completed
+
 
 or fix quests to not rely on id?
