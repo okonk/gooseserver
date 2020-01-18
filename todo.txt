@@ -5,7 +5,7 @@ fix datatypes in DB. varchar -> text
 logging everywhere
 title/surname items
 increase bank slot item
-pets
+pets commit 8e919ffaff6c
 make invis work
 log when player creates a custom
 flag for hiding other equips when cloak is equipped
@@ -15,6 +15,7 @@ something buggy with move speed
 support for sounds
 sanitise user names to only alphabetical
 global script threading issues
+assign ids to quest requirements/rewards -- be careful, could mess up existing quest data
 
 
 
@@ -24,6 +25,7 @@ client
 make a data writer (done somewhat)
 patcher system
 discord bridge bot
+daily quests
 
 
 automated /macrocheck? maybe only do check every 4+ hours to not get annoying to players, also give 5k gold or 500k exp? reward for passing check
@@ -66,6 +68,12 @@ npc for priestless blessings
 adjust zombie attack speed
 AC changes
 item disappearing bug... move inventory loading/saving to json fields on player table
+
+
+
+
+
+random thoughts:
 
 TUPx,y,graphicnum,sheetnum,graphicnum,sheetnum,graphicnum,sheetnum,graphicnum,sheetnum,graphicnum,sheetnum,flags
 

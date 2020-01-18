@@ -165,7 +165,7 @@ namespace IllutiaClientDataReader
             return data;
         }
 
-        public void WriteToFile(string filename)
+        public void WriteToFile(string filename, bool headerOnly = false)
         {
             using (var writer = new BinaryWriter(File.Open(filename, FileMode.Create)))
             {
@@ -203,17 +203,20 @@ namespace IllutiaClientDataReader
                     }
                 }
 
-                writer.Write(this.Encode((int)writer.BaseStream.Position + 4));
-
-                for (int i = 0, j = 0; i < this.FileData.Length; i++)
+                if (!headerOnly)
                 {
-                    writer.Write(EncodeByte(this.FileData[i]));
+                    writer.Write(this.Encode((int)writer.BaseStream.Position + 4));
 
-                    j++;
-                    if (j == 789)
+                    for (int i = 0, j = 0; i < this.FileData.Length; i++)
                     {
-                        writer.Write((byte)0);
-                        j = 0;
+                        writer.Write(EncodeByte(this.FileData[i]));
+
+                        j++;
+                        if (j == 789)
+                        {
+                            writer.Write((byte)0);
+                            j = 0;
+                        }
                     }
                 }
             }
