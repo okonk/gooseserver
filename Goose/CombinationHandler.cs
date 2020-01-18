@@ -26,8 +26,9 @@ namespace Goose
          */
         public void LoadCombinations(GameWorld world)
         {
-            SqlCommand command = new SqlCommand("SELECT * FROM combinations", world.SqlConnection);
-            SqlDataReader reader = command.ExecuteReader();
+            var command = world.SqlConnection.CreateCommand();
+            command.CommandText = "SELECT * FROM combinations";
+            var reader = command.ExecuteReader();
 
             while (reader.Read())
             {

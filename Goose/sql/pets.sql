@@ -1,12 +1,10 @@
-USE IllutiaGoose;
-
-DROP TABLE pets;
+DROP TABLE IF EXISTS pets;
 CREATE TABLE pets (
-  pet_id INT NOT NULL,
+  pet_id INT PRIMARY KEY,
   owner_id INT NOT NULL,
-  pet_name VARCHAR(50) NOT NULL,
-  pet_title VARCHAR(50) DEFAULT ' ' NOT NULL,
-  pet_surname VARCHAR(50) DEFAULT ' ' NOT NULL,
+  pet_name TEXT NOT NULL,
+  pet_title TEXT DEFAULT ' ' NOT NULL,
+  pet_surname TEXT DEFAULT ' ' NOT NULL,
   respawn_time INT DEFAULT 0 NOT NULL,
   next_respawn_time BIGINT DEFAULT 0 NOT NULL,
   pet_facing SMALLINT DEFAULT 3 NOT NULL,
@@ -41,14 +39,13 @@ CREATE TABLE pets (
   hair_g SMALLINT DEFAULT 0 NOT NULL,
   hair_b SMALLINT DEFAULT 0 NOT NULL,
   hair_a SMALLINT DEFAULT 0 NOT NULL,
-  equipped_items VARCHAR(100) DEFAULT '0,*,0,*,0,*,0,*,0,*,0,*' NOT NULL,
+  equipped_items TEXT DEFAULT '0,*,0,*,0,*,0,*,0,*,0,*' NOT NULL,
   weapon_damage INT DEFAULT 1 NOT NULL,
   
   hp_percent_regen DECIMAL(9,4) DEFAULT 0 NOT NULL,
   hp_static_regen INT DEFAULT 0 NOT NULL,
   mp_percent_regen DECIMAL(9,4) DEFAULT 0 NOT NULL,
-  mp_static_regen INT DEFAULT 0 NOT NULL,
-  
-  PRIMARY KEY(pet_id),
-  INDEX pets_owner_id_idx (owner_id)
+  mp_static_regen INT DEFAULT 0 NOT NULL
 );
+
+CREATE INDEX pets_owner_id_idx ON pets(owner_id);

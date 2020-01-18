@@ -14,6 +14,9 @@ using System.Threading;
 using Goose.Scripting;
 using System.IO;
 using Newtonsoft.Json;
+using System.Data.SQLite;
+using Goose.sql;
+using System.Data.Common;
 
 namespace Goose
 {
@@ -44,7 +47,7 @@ namespace Goose
         public MapHandler MapHandler { get; set; }
         public NPCHandler NPCHandler { get; set; }
         public ClassHandler ClassHandler { get; set; }
-        public SqlConnection SqlConnection { get; set; }
+        public DbConnection SqlConnection { get; set; }
         public GameServer GameServer { get; set; }
         public ItemHandler ItemHandler { get; set; }
         public SpellHandler SpellHandler { get; set; }
@@ -120,18 +123,59 @@ namespace Goose
             this.ScriptHandler = new ScriptHandler();
             this.DatabaseWriter = new DatabaseWriter();
 
-            this.SqlConnection = new SqlConnection("user id=" + GameSettings.Default.DatabaseUsername +
-                                       ";password=" + GameSettings.Default.DatabasePassword +
-                                       ";server=" + GameSettings.Default.DatabaseAddress +
-                                       //";Trusted_Connection=yes;" + // hopefully remove the windows connection
-                                       ";database=" + GameSettings.Default.DatabaseName +
-                                       ";connection timeout=30" +
-                                       ";async=true;MultipleActiveResultSets=True");
-
             this.ExperienceModifier = GameSettings.Default.ExperienceModifier;
 
             this.LaunchServerBrowserUpdateThread();
             this.LaunchDatabaseWriterThread();
+        }
+
+        private DbConnection CreateDbConnection()
+        {
+            try
+            {
+                var connection = new SQLiteConnection(string.Format("Data Source={0}.db; Version=3; FailIfMissing=True;", GameSettings.Default.DatabaseName));
+                connection.Open();
+                return connection;
+            }
+            catch (Exception e)
+            {
+                log.Info("DB file not found, creating...");
+                return CreateDatabase();
+            }
+        }
+
+        private DbConnection CreateDatabase()
+        {
+            var connection = new SQLiteConnection(string.Format("Data Source={0}.db; Version=3;", GameSettings.Default.DatabaseName));
+            connection.Open();
+
+            ExecuteSql(connection, SqlFiles.items);
+            ExecuteSql(connection, SqlFiles.maps);
+            ExecuteSql(connection, SqlFiles.classes);
+            ExecuteSql(connection, SqlFiles.npcs);
+            ExecuteSql(connection, SqlFiles.players);
+            ExecuteSql(connection, SqlFiles.spells);
+            ExecuteSql(connection, SqlFiles.banks);
+            ExecuteSql(connection, SqlFiles.quests);
+            ExecuteSql(connection, SqlFiles.combinations);
+            ExecuteSql(connection, SqlFiles.logs);
+            ExecuteSql(connection, SqlFiles.pets);
+            ExecuteSql(connection, SqlFiles.guilds);
+            ExecuteSql(connection, SqlFiles.warptiles);
+            ExecuteSql(connection, SqlFiles.wordfilter);
+            ExecuteSql(connection, SqlFiles.paypal);
+
+            return connection;
+        }
+
+        private void ExecuteSql(DbConnection connection, string sqlFile)
+        {
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = sqlFile;
+
+                command.ExecuteNonQuery();
+            }
         }
 
         /**
@@ -145,18 +189,19 @@ namespace Goose
             this.Running = false;
 
             log.Info("Starting Goose Private Server v" + GameSettings.Default.ServerVersion);
-            log.Info("Connecting to Database ({0}): ", GameSettings.Default.DatabaseAddress);
+            log.Info("Opening Database ({0}): ", GameSettings.Default.DatabaseName);
             try
             {
-                this.SqlConnection.Open();
+                this.SqlConnection = CreateDbConnection();
+
+                log.Info("Connected.");
             }
-            catch (SqlException e)
+            catch (Exception e)
             {
-                log.Fatal(e);
+                log.Fatal(e, "");
                 log.Info("Aborting...");
                 return;
             }
-            log.Info("Connected.");
 
             log.Info("Loading Guilds: ");
             try
@@ -166,7 +211,7 @@ namespace Goose
             }
             catch (Exception e)
             {
-                log.Fatal(e);
+                log.Fatal(e, "");
                 log.Info("Aborting...");
                 return;
             }
@@ -179,7 +224,7 @@ namespace Goose
             }
             catch (Exception e)
             {
-                log.Fatal(e);
+                log.Fatal(e, "");
                 log.Info("Aborting...");
                 return;
             }
@@ -192,7 +237,7 @@ namespace Goose
             }
             catch (Exception e)
             {
-                log.Fatal(e);
+                log.Fatal(e, "");
                 log.Info("Aborting...");
                 return;
             }
@@ -205,7 +250,7 @@ namespace Goose
             }
             catch (Exception e)
             {
-                log.Fatal(e);
+                log.Fatal(e, "");
                 log.Info("Aborting...");
                 return;
             }
@@ -218,7 +263,7 @@ namespace Goose
             }
             catch (Exception e)
             {
-                log.Fatal(e);
+                log.Fatal(e, "");
                 log.Info("Aborting...");
                 return;
             }
@@ -231,7 +276,7 @@ namespace Goose
             }
             catch (Exception e)
             {
-                log.Fatal(e);
+                log.Fatal(e, "");
                 log.Info("Aborting...");
                 return;
             }
@@ -244,7 +289,7 @@ namespace Goose
             }
             catch (Exception e)
             {
-                log.Fatal(e);
+                log.Fatal(e, "");
                 log.Info("Aborting...");
                 return;
             }
@@ -257,7 +302,7 @@ namespace Goose
             }
             catch (Exception e)
             {
-                log.Fatal(e);
+                log.Fatal(e, "");
                 log.Info("Aborting...");
                 return;
             }
@@ -272,7 +317,7 @@ namespace Goose
             }
             catch (Exception e)
             {
-                log.Fatal(e);
+                log.Fatal(e, "");
                 log.Info("Aborting...");
                 return;
             }
@@ -285,7 +330,7 @@ namespace Goose
             }
             catch (Exception e)
             {
-                log.Fatal(e);
+                log.Fatal(e, "");
                 log.Info("Aborting...");
                 return;
             }
@@ -298,7 +343,7 @@ namespace Goose
             }
             catch (Exception e)
             {
-                log.Fatal(e);
+                log.Fatal(e, "");
                 log.Info("Aborting...");
                 return;
             }
@@ -311,7 +356,7 @@ namespace Goose
             }
             catch (Exception e)
             {
-                log.Fatal(e);
+                log.Fatal(e, "");
                 log.Info("Aborting...");
                 return;
             }
@@ -343,7 +388,7 @@ namespace Goose
             }
             catch (Exception e)
             {
-                log.Fatal(e);
+                log.Fatal(e, "");
                 log.Info("Aborting...");
                 return;
             }

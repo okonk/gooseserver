@@ -29,8 +29,9 @@ namespace Goose
          */
         public void LoadSpellEffects(GameWorld world)
         {
-            SqlCommand command = new SqlCommand("SELECT * FROM spell_effects", world.SqlConnection);
-            SqlDataReader reader = command.ExecuteReader();
+            var command = world.SqlConnection.CreateCommand();
+            command.CommandText = "SELECT * FROM spell_effects";
+            var reader = command.ExecuteReader();
 
             while (reader.Read())
             {
@@ -214,8 +215,9 @@ namespace Goose
          */
         public void LoadSpells(GameWorld world)
         {
-            SqlCommand command = new SqlCommand("SELECT * FROM spells", world.SqlConnection);
-            SqlDataReader reader = command.ExecuteReader();
+            var command = world.SqlConnection.CreateCommand();
+            command.CommandText = "SELECT * FROM spells";
+            var reader = command.ExecuteReader();
 
             while (reader.Read())
             {

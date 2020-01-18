@@ -17,8 +17,9 @@ namespace Goose.Quests
 
         public void LoadQuests(GameWorld world)
         {
-            SqlCommand command = new SqlCommand("SELECT * FROM quests", world.SqlConnection);
-            using (SqlDataReader reader = command.ExecuteReader())
+            var command = world.SqlConnection.CreateCommand();
+            command.CommandText = "SELECT * FROM quests";
+            using (var reader = command.ExecuteReader())
             {
                 while (reader.Read())
                 {
@@ -31,8 +32,9 @@ namespace Goose.Quests
             {
                 var requirements = new List<QuestRequirement>();
 
-                command = new SqlCommand("SELECT * FROM quest_requirements WHERE quest_id=" + quest.Id, world.SqlConnection);
-                using (SqlDataReader reader = command.ExecuteReader())
+                command = world.SqlConnection.CreateCommand();
+                command.CommandText = "SELECT * FROM quest_requirements WHERE quest_id=" + quest.Id;
+                using (var reader = command.ExecuteReader())
                 {
                     while (reader.Read())
                     {
@@ -49,8 +51,9 @@ namespace Goose.Quests
             {
                 var rewards = new List<QuestReward>();
 
-                command = new SqlCommand("SELECT * FROM quest_rewards WHERE quest_id=" + quest.Id, world.SqlConnection);
-                using (SqlDataReader reader = command.ExecuteReader())
+                command = world.SqlConnection.CreateCommand();
+                command.CommandText = "SELECT * FROM quest_rewards WHERE quest_id=" + quest.Id;
+                using (var reader = command.ExecuteReader())
                 {
                     while (reader.Read())
                     {

@@ -36,8 +36,9 @@ namespace Goose
          */
         public void LoadMaps(GameWorld world)
         {
-            SqlCommand command = new SqlCommand("SELECT * FROM maps", world.SqlConnection);
-            SqlDataReader reader = command.ExecuteReader();
+            var command = world.SqlConnection.CreateCommand();
+            command.CommandText = "SELECT * FROM maps";
+            var reader = command.ExecuteReader();
 
             while (reader.Read())
             {

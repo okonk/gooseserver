@@ -5,6 +5,7 @@ using System.Text;
 using System.Data.SqlClient;
 using System.Data;
 using Newtonsoft.Json;
+using System.Data.SQLite;
 
 namespace Goose
 {
@@ -34,8 +35,9 @@ namespace Goose
          */
         public void Load(GameWorld world)
         {
-            using (SqlCommand query = new SqlCommand("SELECT serialized_data FROM spellbook WHERE player_id=" + this.player.PlayerID, world.SqlConnection))
+            using (var query = world.SqlConnection.CreateCommand())
             {
+                query.CommandText = "SELECT serialized_data FROM spellbook WHERE player_id=" + this.player.PlayerID;
                 string serialized_data = Convert.ToString(query.ExecuteScalar());
                 var spellIds = JsonConvert.DeserializeObject<int[]>(serialized_data, GameWorld.JsonSerializerSettings);
                     
@@ -56,12 +58,12 @@ namespace Goose
          */
         public void Save(GameWorld world)
         {
-            SqlCommand saveSpellbookCommand = new SqlCommand(
-                @"UPDATE spellbook SET serialized_data=@serialized_data WHERE player_id=@player_id; 
-                  IF @@ROWCOUNT = 0 
-                    INSERT INTO spellbook (player_id, serialized_data) VALUES (@player_id, @serialized_data);", world.SqlConnection);
-            saveSpellbookCommand.Parameters.Add(new SqlParameter("@player_id", SqlDbType.Int) { Value = this.player.PlayerID });
-            saveSpellbookCommand.Parameters.Add(new SqlParameter("@serialized_data", SqlDbType.Text) { Value = JsonConvert.SerializeObject(spells.Select(s => (s == null ? 0 : s.ID)).ToArray(), GameWorld.JsonSerializerSettings) });
+            var saveSpellbookCommand = world.SqlConnection.CreateCommand();
+            saveSpellbookCommand.CommandText =
+                @"INSERT INTO spellbook (player_id, serialized_data) VALUES (@player_id, @serialized_data)
+                  ON CONFLICT(PLAYER_ID) DO UPDATE SET serialized_data=@serialized_data WHERE player_id=@player_id;";
+            saveSpellbookCommand.Parameters.Add(new SQLiteParameter("@player_id", DbType.Int32) { Value = this.player.PlayerID });
+            saveSpellbookCommand.Parameters.Add(new SQLiteParameter("@serialized_data", DbType.String) { Value = JsonConvert.SerializeObject(spells.Select(s => (s == null ? 0 : s.ID)).ToArray(), GameWorld.JsonSerializerSettings) });
             world.DatabaseWriter.Add(saveSpellbookCommand);
         }
 

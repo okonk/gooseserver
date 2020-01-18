@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
@@ -39,7 +40,7 @@ namespace Goose.Quests
         public long LongValue2 { get; set; }
         public string StringValue { get; set; }
 
-        public static QuestReward FromReader(SqlDataReader reader)
+        public static QuestReward FromReader(DbDataReader reader)
         {
             var reward = new QuestReward();
 

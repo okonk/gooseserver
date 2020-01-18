@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Data;
 using System.Data.SqlClient;
+using System.Data.SQLite;
 
 namespace Goose
 {
@@ -19,8 +20,9 @@ namespace Goose
 
         public void LoadFilter(GameWorld world)
         {
-            SqlCommand command = new SqlCommand("SELECT word,filtered FROM wordfilter", world.SqlConnection);
-            SqlDataReader reader = command.ExecuteReader();
+            var command = world.SqlConnection.CreateCommand();
+            command.CommandText = "SELECT word,filtered FROM wordfilter";
+            var reader = command.ExecuteReader();
 
             while (reader.Read())
             {

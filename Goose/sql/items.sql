@@ -1,11 +1,9 @@
-USE IllutiaGoose;
-
-DROP TABLE item_templates;
+DROP TABLE IF EXISTS item_templates;
 CREATE TABLE item_templates (
-  item_template_id INT IDENTITY(1, 1) NOT NULL,
+  item_template_id INTEGER PRIMARY KEY,
   item_usetype SMALLINT NOT NULL,
-  item_name VARCHAR(64) NOT NULL,
-  item_description VARCHAR(64) DEFAULT '' NOT NULL,
+  item_name TEXT NOT NULL,
+  item_description TEXT DEFAULT '' NOT NULL,
   player_hp INT DEFAULT 0 NOT NULL,
   player_mp INT DEFAULT 0 NOT NULL,
   player_sp INT DEFAULT 0 NOT NULL,
@@ -47,9 +45,7 @@ CREATE TABLE item_templates (
   learn_spell_id INT DEFAULT 0 NOT NULL,
   credits_value INT DEFAULT 0 NOT NULL,
   script_path TEXT DEFAULT '' NOT NULL,
-  script_params TEXT DEFAULT '' NOT NULL,
-  
-  PRIMARY KEY(item_template_id)
+  script_params TEXT DEFAULT '' NOT NULL
 );
 
 /*
@@ -68,8 +64,6 @@ magus		4	47
 priest		5	31
 
 */
-
-SET IDENTITY_INSERT item_templates ON;
 
 INSERT INTO item_templates (item_template_id, item_usetype, item_name, item_slot, item_type, graphic_tile, graphic_file, stack_size)
 VALUES (1, 7, 'Gold', 20, 0, 331900, 2275, 0);
@@ -136,8 +130,3 @@ VALUES (21, 4, 'Chomp', 20, 0, 20, 331907, 2275, 3);
 
 INSERT INTO item_templates (item_template_id, item_usetype, item_name, item_slot, item_type, item_value, graphic_tile, graphic_file, learn_spell_id)
 VALUES (22, 4, 'Heal', 20, 0, 20, 331907, 2275, 4);
-
-
-
-
-SET IDENTITY_INSERT item_templates OFF;

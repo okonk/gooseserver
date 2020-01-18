@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
+using System.Data.SQLite;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -27,11 +28,10 @@ namespace Goose
 
         public void Load(GameWorld world, Player player)
         {
-            SqlCommand command = new SqlCommand(
-                "SELECT * FROM bank_items WHERE player_id=" + player.PlayerID,
-                world.SqlConnection);
+            var command = world.SqlConnection.CreateCommand();
+            command.CommandText = "SELECT * FROM bank_items WHERE player_id=" + player.PlayerID;
 
-            using (SqlDataReader reader = command.ExecuteReader())
+            using (var reader = command.ExecuteReader())
             {
                 while (reader.Read())
                 {
@@ -64,13 +64,13 @@ namespace Goose
                 int npc_id = kvp.Key;
                 ItemContainer container = kvp.Value;
 
-                SqlCommand saveContainerCommand = new SqlCommand(
-                    @"UPDATE bank_items SET serialized_data=@serialized_data WHERE npc_id=@npc_id AND player_id=@player_id; 
-                    IF @@ROWCOUNT = 0 
-                        INSERT INTO bank_items (npc_id, player_id, serialized_data) VALUES (@npc_id, @player_id, @serialized_data);", world.SqlConnection);
-                saveContainerCommand.Parameters.Add(new SqlParameter("@npc_id", SqlDbType.Int) { Value = npc_id });
-                saveContainerCommand.Parameters.Add(new SqlParameter("@player_id", SqlDbType.Int) { Value = player.PlayerID });
-                saveContainerCommand.Parameters.Add(new SqlParameter("@serialized_data", SqlDbType.Text) { Value = JsonConvert.SerializeObject(container, GameWorld.JsonSerializerSettings) });
+                var saveContainerCommand = world.SqlConnection.CreateCommand();
+                saveContainerCommand.CommandText =
+                @"INSERT INTO bank_items (player_id, serialized_data) VALUES (@player_id, @serialized_data)
+                  ON CONFLICT(player_id) DO UPDATE SET serialized_data=@serialized_data WHERE player_id=@player_id;";
+                saveContainerCommand.Parameters.Add(new SQLiteParameter("@npc_id", DbType.Int32) { Value = npc_id });
+                saveContainerCommand.Parameters.Add(new SQLiteParameter("@player_id", DbType.Int32) { Value = player.PlayerID });
+                saveContainerCommand.Parameters.Add(new SQLiteParameter("@serialized_data", DbType.String) { Value = JsonConvert.SerializeObject(container, GameWorld.JsonSerializerSettings) });
                 world.DatabaseWriter.Add(saveContainerCommand);
             }
         }

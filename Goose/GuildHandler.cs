@@ -33,8 +33,9 @@ namespace Goose
          */
         public void LoadGuilds(GameWorld world)
         {
-            SqlCommand command = new SqlCommand("SELECT * FROM guilds", world.SqlConnection);
-            SqlDataReader reader = command.ExecuteReader();
+            var command = world.SqlConnection.CreateCommand();
+            command.CommandText = "SELECT * FROM guilds";
+            var reader = command.ExecuteReader();
 
             while (reader.Read())
             {
@@ -52,8 +53,8 @@ namespace Goose
             Guild.GuildRanks rank;
             foreach (Guild guild in this.guilds.Values)
             {
-                command = new SqlCommand("SELECT * FROM guild_members WHERE guild_id=" + guild.ID, 
-                    world.SqlConnection);
+                command = world.SqlConnection.CreateCommand();
+                command.CommandText = "SELECT * FROM guild_members WHERE guild_id=" + guild.ID;
                 reader = command.ExecuteReader();
 
                 while (reader.Read())

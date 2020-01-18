@@ -1,10 +1,8 @@
-USE IllutiaGoose;
-
-DROP TABLE wordfilter;
+DROP TABLE IF EXISTS wordfilter;
 
 CREATE TABLE wordfilter (
-  word VARCHAR(32) NOT NULL,
-  filtered VARCHAR(32) NOT NULL
+  word TEXT NOT NULL,
+  filtered TEXT NOT NULL
 );
 
 /*INSERT INTO wordfilter VALUES ('raped', '*****');

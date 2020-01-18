@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Data;
 using System.Data.SqlClient;
+using System.Data.SQLite;
 
 namespace Goose
 {
@@ -64,10 +65,8 @@ namespace Goose
 
         public void SaveToDatabase(GameWorld world)
         {
-            SqlParameter logTextParam = new SqlParameter("@logText", SqlDbType.VarChar, 255);
-            logTextParam.Value = this.Text;
-            SqlParameter logDateParam = new SqlParameter("@logDate", SqlDbType.DateTime2);
-            logDateParam.Value = this.Time;
+            var logTextParam = new SQLiteParameter("@logText", DbType.String) { Value = this.Text };
+            var logDateParam = new SQLiteParameter("@logDate", DbType.DateTime2) { Value = this.Time };
 
             string query = "INSERT INTO logs (text, log_date, log_type, playerid, otherid, mapid, mapx, mapy) VALUES (@logText, @logDate, ";
             query += (int)this.Type + ", ";
@@ -78,7 +77,8 @@ namespace Goose
             query += this.MapY;
             query += ");";
 
-            SqlCommand command = new SqlCommand(query, world.SqlConnection);
+            var command = world.SqlConnection.CreateCommand();
+            command.CommandText = query;
             command.Parameters.Add(logTextParam);
             command.Parameters.Add(logDateParam);
             world.DatabaseWriter.Add(command);

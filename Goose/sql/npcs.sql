@@ -1,12 +1,10 @@
-USE IllutiaGoose;
-
-DROP TABLE npc_templates;
+DROP TABLE IF EXISTS npc_templates;
 CREATE TABLE npc_templates (
-  npc_id INT IDENTITY(1,1) NOT NULL,
+  npc_id INTEGER PRIMARY KEY,
   npc_type SMALLINT DEFAULT 2 NOT NULL,
-  npc_name VARCHAR(50) NOT NULL,
-  npc_title VARCHAR(50) DEFAULT ' ' NOT NULL,
-  npc_surname VARCHAR(50) DEFAULT ' ' NOT NULL,
+  npc_name TEXT NOT NULL,
+  npc_title TEXT DEFAULT ' ' NOT NULL,
+  npc_surname TEXT DEFAULT ' ' NOT NULL,
   respawn_time INT DEFAULT 0 NOT NULL,
   npc_facing SMALLINT DEFAULT 3 NOT NULL,
   npc_level SMALLINT DEFAULT 1 NOT NULL,
@@ -59,12 +57,8 @@ CREATE TABLE npc_templates (
   quest_ids TEXT DEFAULT '' NOT NULL,
   script_path TEXT DEFAULT 'Scripts/NPC/BaseNPC.csx' NOT NULL,
   script_params TEXT DEFAULT '' NOT NULL,
-  armor_pierce INT DEFAULT 0 NOT NULL,
-  
-  PRIMARY KEY(npc_id)
+  armor_pierce INT DEFAULT 0 NOT NULL
 );
-
-SET IDENTITY_INSERT npc_templates ON;
 
 INSERT INTO npc_templates (npc_id, npc_type, npc_name, respawn_time, experience, aggro_range, attack_range, attack_speed, move_speed, stunnable, rootable, slowable, npc_hp, class_id, body_id, weapon_damage)
 VALUES (1, 2, 'Lamb', 40, 40, 0, 1, 1.5, 2, 1, 1, 1, 50, 4, 104, 6);
@@ -90,18 +84,12 @@ VALUES (7, 12, 'Nusnus', 5, 1, 1, 1, 999, 4, 1, 1, 1, '2');
 INSERT INTO npc_templates (npc_id, npc_type, npc_name, respawn_time, experience, stationary, invincible, npc_hp, class_id, body_id, face_id, hair_id, quest_ids)
 VALUES (8, 12, 'UsnUsn', 5, 1, 1, 1, 999, 4, 1, 1, 1, '3');
 
-
-SET IDENTITY_INSERT npc_templates OFF;
-
-DROP TABLE npc_spawns;
+DROP TABLE IF EXISTS npc_spawns;
 CREATE TABLE npc_spawns (
-  id INT IDENTITY(1, 1) NOT NULL,
   npc_id INT NOT NULL,
   map_id SMALLINT NOT NULL,
   map_x SMALLINT NOT NULL,
-  map_y SMALLINT NOT NULL,
-  
-  PRIMARY KEY(id)
+  map_y SMALLINT NOT NULL
 );
 
 INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y)
@@ -224,15 +212,15 @@ VALUES (7, 2, 81, 127);
 INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y)
 VALUES (8, 2, 63, 132);
 
-DROP TABLE npc_drops;
+DROP TABLE IF EXISTS npc_drops;
 CREATE TABLE npc_drops (
   npc_template_id INT NOT NULL,
   item_template_id INT NOT NULL,
   stack INT NOT NULL,
-  droprate DECIMAL(9,4) NOT NULL,
-
-  INDEX npc_drops_npc_template_id_idx (npc_template_id)
+  droprate DECIMAL(9,4) NOT NULL
 );
+
+CREATE INDEX npc_drops_npc_template_id_idx ON npc_drops(npc_template_id);
 
 INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate)
 VALUES (5, 15, 1, 10);
@@ -274,13 +262,13 @@ INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate)
 VALUES (4, 56, 1, 20);
 
 
-DROP TABLE npc_vendor_items;
+DROP TABLE IF EXISTS npc_vendor_items;
 CREATE TABLE npc_vendor_items (
   npc_template_id INT NOT NULL,
   item_template_id INT NOT NULL,
   stack INT DEFAULT 1 NOT NULL,
   stats_visible CHAR(1) DEFAULT '1' NOT NULL,
-  slot INT NOT NULL,
-
-  INDEX npc_vendor_items_npc_template_id_idx (npc_template_id)
+  slot INT NOT NULL
 );
+
+CREATE INDEX npc_vendor_items_npc_template_id_idx ON npc_vendor_items(npc_template_id);

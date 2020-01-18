@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Data.SqlClient;
 using System.Data;
+using System.Data.SQLite;
 
 namespace Goose
 {
@@ -178,23 +179,21 @@ namespace Goose
          */
         public void Save(GameWorld world)
         {
-            SqlParameter guildNameParam = new SqlParameter("@name", SqlDbType.VarChar, 64);
-            guildNameParam.Value = this.Name;
-            SqlParameter guildMOTDParam = new SqlParameter("@motd", SqlDbType.VarChar, 256);
-            guildMOTDParam.Value = this.MOTD;
+            var guildNameParam = new SQLiteParameter("@name", DbType.String) { Value = this.Name };
+            var guildMOTDParam = new SQLiteParameter("@motd", DbType.String) { Value = this.MOTD };
 
             bool justsaved = false;
             string query;
-            SqlCommand command;
+            var command = world.SqlConnection.CreateCommand();
             if (this.ID == 0)
             {
                 query = "INSERT INTO guilds (guild_name, guild_motd) VALUES (@name, @motd)";
-                command = new SqlCommand(query, world.SqlConnection);
+                command.CommandText = query;
                 command.Parameters.Add(guildNameParam);
                 command.Parameters.Add(guildMOTDParam);
                 command.ExecuteNonQuery();
 
-                command.CommandText = "SELECT @@IDENTITY";
+                command.CommandText = "SELECT last_row_id()";
                 this.ID = Convert.ToInt32(command.ExecuteScalar());
 
                 justsaved = true;
@@ -208,7 +207,8 @@ namespace Goose
             if (!justsaved)
             {
                 query = "UPDATE guilds SET guild_name=@name, guild_motd=@motd WHERE guild_id=" + this.ID;
-                command = new SqlCommand(query, world.SqlConnection);
+                command = world.SqlConnection.CreateCommand();
+                command.CommandText = query;
                 command.Parameters.Add(guildNameParam);
                 command.Parameters.Add(guildMOTDParam);
                 command.ExecuteNonQuery();
@@ -226,7 +226,8 @@ namespace Goose
                     {
                         query = "DELETE FROM guild_members WHERE guild_id=" + this.ID +
                             " AND player_id=" + status.PlayerID;
-                        command = new SqlCommand(query, world.SqlConnection);
+                        command = world.SqlConnection.CreateCommand();
+                        command.CommandText = query;
                         command.ExecuteNonQuery();
 
                         removed.Add(status.PlayerID);
@@ -237,7 +238,8 @@ namespace Goose
                         {
                             query = "INSERT INTO guild_members (guild_id, player_id, guild_rank) VALUES (" +
                                 this.ID + ", " + status.PlayerID + ", " + (int)status.Rank + ")";
-                            command = new SqlCommand(query, world.SqlConnection);
+                            command = world.SqlConnection.CreateCommand();
+                            command.CommandText = query;
                             command.ExecuteNonQuery();
 
                             status.JustAdded = false;
@@ -246,7 +248,8 @@ namespace Goose
                         {
                             query = "UPDATE guild_members SET guild_rank=" + (int)status.Rank + 
                                 " WHERE guild_id=" + this.ID + " AND player_id=" + status.PlayerID;
-                            command = new SqlCommand(query, world.SqlConnection);
+                            command = world.SqlConnection.CreateCommand();
+                            command.CommandText = query;
                             command.ExecuteNonQuery();
                         }
                     }

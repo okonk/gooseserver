@@ -1,8 +1,6 @@
-USE IllutiaGoose;
-
-DROP TABLE quests;
+DROP TABLE IF EXISTS quests;
 CREATE TABLE quests (
-  id INT IDENTITY(1,1) NOT NULL,
+  id INTEGER PRIMARY KEY,
   name TEXT NOT NULL,
   description TEXT DEFAULT '' NOT NULL,
   fail_text TEXT DEFAULT '' NOT NULL,
@@ -14,12 +12,8 @@ CREATE TABLE quests (
   repeatable CHAR(1) DEFAULT '0',
   show_progress CHAR(1) DEFAULT '0',
   only_one_player_can_complete CHAR(1) DEFAULT '0',
-  prerequisite_quests TEXT DEFAULT '' NOT NULL,
- 
-  PRIMARY KEY (id)
+  prerequisite_quests TEXT DEFAULT '' NOT NULL
 );
-
-SET IDENTITY_INSERT quests ON;
 
 INSERT INTO quests (id, name, description, pass_text, fail_text)
 VALUES (1, 'Rat Infestation', 'Hey there, you look new. Why dont you help me out\n by killing some of these dirty Rats over here and i''ll point\n you towards something better?\n Kill some rats and bring back a Thread for me.', 'Good job newbie. Head North, make a right\n and go straight up to reach the lamb and sheep area. Be careful!', 'Looks like you still dont have that rat thread\n for me eh? Go kill some of these rats and find one.');
@@ -30,18 +24,14 @@ VALUES (2, 'Annoying Lambs', 'These damn lambs and their annoying little bitch v
 INSERT INTO quests (id, name, description, pass_text, fail_text, min_level, prerequisite_quests)
 VALUES (3, 'Woolen Sweater', 'Hey there, I want to make me a nice woolen sweater.\n Hows about you slaughter some of these sheep and\n bring me back 10 pieces of wool?\n Theres a handy little weapon in it for ya.', 'Sweet. I''ll tell the missus to get stichin right now.', 'Still dont have those 10 pieces of wool?\n Kill some of these sheep.', 3, '2');
 
-SET IDENTITY_INSERT quests OFF;
-
-DROP TABLE quest_requirements;
+DROP TABLE IF EXISTS quest_requirements;
 CREATE TABLE quest_requirements (
-  id INT IDENTITY(1,1) NOT NULL,
+  id INTEGER PRIMARY KEY,
   quest_id INT NOT NULL,
   requirement_type INT NOT NULL,
   requirement_value BIGINT NOT NULL,
   requirement_value2 BIGINT DEFAULT 0,
-  keep_requirement CHAR(1) DEFAULT '0',
-  
-  PRIMARY KEY (id)
+  keep_requirement CHAR(1) DEFAULT '0'
 );
 
 INSERT INTO quest_requirements (quest_id, requirement_type, requirement_value, requirement_value2)
@@ -53,16 +43,14 @@ VALUES (2, 2, 1, 20);
 INSERT INTO quest_requirements (quest_id, requirement_type, requirement_value, requirement_value2)
 VALUES (3, 1, 55, 10);
 
-DROP TABLE quest_rewards;
+DROP TABLE IF EXISTS quest_rewards;
 CREATE TABLE quest_rewards (
-  id INT IDENTITY(1,1) NOT NULL,
+  id INTEGER PRIMARY KEY,
   quest_id INT NOT NULL,
   reward_type INT NOT NULL,
   long_value BIGINT DEFAULT 0,
   long_value2 BIGINT DEFAULT 0,
-  string_value TEXT DEFAULT '',
-  
-  PRIMARY KEY (id)
+  string_value TEXT DEFAULT ''
 );
 
 INSERT INTO quest_rewards (quest_id, reward_type, long_value)
@@ -82,8 +70,6 @@ VALUES (3, 1, 10, 1);
 
 
 CREATE TABLE quest_status (
-  player_id INT NOT NULL,
-  serialized_data TEXT NOT NULL,
-  
-  PRIMARY KEY (player_id)
+  player_id INT PRIMARY KEY NOT NULL,
+  serialized_data TEXT NOT NULL
 );

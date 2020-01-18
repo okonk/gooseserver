@@ -42,8 +42,9 @@ namespace Goose
          */
         public void LoadClasses(GameWorld world)
         {
-            SqlCommand command = new SqlCommand("SELECT * FROM classes", world.SqlConnection);
-            SqlDataReader reader = command.ExecuteReader();
+            var command = world.SqlConnection.CreateCommand();
+            command.CommandText = "SELECT * FROM classes";
+            var reader = command.ExecuteReader();
 
             while (reader.Read())
             {
@@ -59,7 +60,8 @@ namespace Goose
             }
             reader.Close();
 
-            command = new SqlCommand("SELECT * FROM class_info", world.SqlConnection);
+            command = world.SqlConnection.CreateCommand();
+            command.CommandText = "SELECT * FROM class_info";
             reader = command.ExecuteReader();
 
             while (reader.Read())
@@ -111,7 +113,8 @@ namespace Goose
 
             reader.Close();
 
-            command = new SqlCommand("SELECT * FROM classes_levelup_spells", world.SqlConnection);
+            command = world.SqlConnection.CreateCommand();
+            command.CommandText = "SELECT * FROM classes_levelup_spells";
             reader = command.ExecuteReader();
 
             Class clas;

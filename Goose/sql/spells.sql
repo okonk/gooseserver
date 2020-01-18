@@ -1,10 +1,8 @@
-USE IllutiaGoose;
-
-DROP TABLE spells;
+DROP TABLE IF EXISTS spells;
 CREATE TABLE spells (
-  spell_id INT IDENTITY(1,1) NOT NULL,
-  spell_name VARCHAR(64) NOT NULL,
-  spell_description VARCHAR(128) DEFAULT '' NOT NULL,
+  spell_id INTEGER PRIMARY KEY,
+  spell_name TEXT NOT NULL,
+  spell_description TEXT DEFAULT '' NOT NULL,
   spell_target INT NOT NULL,
   class_restrictions BIGINT DEFAULT 0 NOT NULL, /* if bit not set class id can cast */
   spell_aether BIGINT DEFAULT 100 NOT NULL, /* Aether in milliseconds */
@@ -18,9 +16,7 @@ CREATE TABLE spells (
   sp_static_cost INT DEFAULT 0 NOT NULL,
   sp_percent_cost DECIMAL(9,4) DEFAULT 0 NOT NULL,
 
-  spell_effect_id INT NOT NULL,
-  
-  PRIMARY KEY(spell_id)
+  spell_effect_id INT NOT NULL
 );
 
 /*
@@ -40,7 +36,6 @@ priest		5	  31
 
 */
 
-SET IDENTITY_INSERT spells ON;
 INSERT INTO spells (spell_id, spell_name, spell_target, spell_aether, spellbook_graphic, spellbook_graphic_file, mp_static_cost, spell_effect_id)
 VALUES (1, 'Lightning Strike', 0, 300, 50456, 421, 10, 4);
 
@@ -54,13 +49,10 @@ INSERT INTO spells (spell_id, spell_name, spell_target, spell_aether, spellbook_
 VALUES (4, 'Heal', 0, 200, 50459, 421, 15, 7);
 
 
-
-SET IDENTITY_INSERT spells OFF;
-  
-DROP TABLE spell_effects;
+DROP TABLE IF EXISTS spell_effects;
 CREATE TABLE spell_effects (
-  spell_effect_id INT IDENTITY(1,1) NOT NULL,
-  spell_effect_name VARCHAR(64) NOT NULL,
+  spell_effect_id INTEGER PRIMARY KEY,
+  spell_effect_name TEXT NOT NULL,
   spell_animation INT NOT NULL,
   spell_animation_file INT NOT NULL,
   spell_display INT NOT NULL,
@@ -111,8 +103,8 @@ CREATE TABLE spell_effects (
   move_speed DECIMAL(9,4) DEFAULT 0 NOT NULL,
   body_id SMALLINT DEFAULT 0 NOT NULL,
   
-  oneffect_text VARCHAR(64) DEFAULT '' NOT NULL,
-  offeffect_text VARCHAR(64) DEFAULT '' NOT NULL,
+  oneffect_text TEXT DEFAULT '' NOT NULL,
+  offeffect_text TEXT DEFAULT '' NOT NULL,
   
   /* For permanent */
   face_id SMALLINT DEFAULT 0 NOT NULL,
@@ -155,12 +147,8 @@ CREATE TABLE spell_effects (
   only_hits_one_npc CHAR(1) DEFAULT '0' NOT NULL,
 
   script_path TEXT DEFAULT '' NOT NULL,
-  script_params TEXT DEFAULT '' NOT NULL,
-  
-  PRIMARY KEY (spell_effect_id)
+  script_params TEXT DEFAULT '' NOT NULL
 );
-
-SET IDENTITY_INSERT spell_effects ON;
 
 INSERT INTO spell_effects (spell_effect_id, spell_effect_name, spell_animation, spell_animation_file, spell_display, target_type, target_size, spell_effected, effect_type, effect_duration, hp_static_regen, mp_static_regen, buff_graphic, buff_graphic_file)
 VALUES (1, 'Basic Regeneration', 0, 0, 0, 0, 0, 1, 1, 0, 5, 5, 50754, 104);
@@ -182,5 +170,3 @@ VALUES (6, 'Chomp', 272730, 3252, 0, 1, 1, 6, 0, 0, '-30');
 
 INSERT INTO spell_effects (spell_effect_id, spell_effect_name, spell_animation, spell_animation_file, spell_display, target_type, target_size, spell_effected, effect_type, effect_duration, spell_damage_effects, hp_change_formula)
 VALUES (7, 'Heal', 65046, 2369, 0, 0, 1, 5, 0, 0, 1, '20');
-
-SET IDENTITY_INSERT spell_effects OFF;

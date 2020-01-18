@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
@@ -36,7 +37,7 @@ namespace Goose.Quests
             this.Rewards = new List<QuestReward>();
         }
 
-        public static Quest FromReader(SqlDataReader reader, Dictionary<int, Quest> quests)
+        public static Quest FromReader(DbDataReader reader, Dictionary<int, Quest> quests)
         {
             int id = Convert.ToInt32(reader["id"]);
 

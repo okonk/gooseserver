@@ -11,6 +11,8 @@ using Goose.Events;
 using Goose.Quests;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using System.Data.Common;
+using System.Data.SQLite;
 
 namespace Goose
 {
@@ -682,7 +684,7 @@ namespace Goose
          * LoadFromReader, loads player info from a Sq1DataReader
          *
          */
-        public void LoadFromReader(GameWorld world, SqlDataReader reader)
+        public void LoadFromReader(GameWorld world, DbDataReader reader)
         {
             this.Access = (AccessStatus)Convert.ToInt32(reader["access_status"]);
 
@@ -796,8 +798,9 @@ namespace Goose
         /// <param name="world"></param>
         public void LoadPets(GameWorld world)
         {
-            SqlCommand query = new SqlCommand("SELECT * FROM pets WHERE owner_id=" + this.PlayerID, world.SqlConnection);
-            SqlDataReader reader = query.ExecuteReader();
+            var query = world.SqlConnection.CreateCommand();
+            query.CommandText = "SELECT * FROM pets WHERE owner_id=" + this.PlayerID;
+            var reader = query.ExecuteReader();
 
             while (reader.Read())
             {
@@ -809,8 +812,9 @@ namespace Goose
 
         public void LoadQuests(GameWorld world)
         {
-            using (SqlCommand query = new SqlCommand("SELECT serialized_data FROM quest_status WHERE player_id=" + this.PlayerID, world.SqlConnection))
+            using (var query = world.SqlConnection.CreateCommand())
             {
+                query.CommandText = "SELECT serialized_data FROM quest_status WHERE player_id=" + this.PlayerID;
                 string serialized_data = Convert.ToString(query.ExecuteScalar());
                 var questStatus = JsonConvert.DeserializeObject<QuestStatus>(serialized_data, GameWorld.JsonSerializerSettings);
 
@@ -849,13 +853,11 @@ namespace Goose
          */
         public virtual void SaveToDatabase(GameWorld world)
         {
-            SqlParameter playerNameParam = new SqlParameter("@playerName", SqlDbType.VarChar, 50) { Value = this.Name };
-            playerNameParam.Value = this.Name;
-            SqlParameter playerTitleParam = new SqlParameter("@playerTitle", SqlDbType.VarChar, 50);
-            playerTitleParam.Value = this.Title;
-            SqlParameter playerSurnameParam = new SqlParameter("@playerSurname", SqlDbType.VarChar, 50);
-            playerSurnameParam.Value = this.Surname;
-            SqlParameter unbanDateParam = new SqlParameter("@unbanDate", SqlDbType.DateTime2);
+            var playerNameParam = new SQLiteParameter("@playerName", DbType.String) { Value = this.Name };
+            var playerTitleParam = new SQLiteParameter("@playerTitle", DbType.String) { Value = this.Title };
+            var playerSurnameParam = new SQLiteParameter("@playerSurname", DbType.String) { Value = this.Surname };
+
+            var unbanDateParam = new SQLiteParameter("@unbanDate", DbType.DateTime2);
             if (this.UnbanDate.HasValue)
                 unbanDateParam.Value = this.UnbanDate.Value;
             else
@@ -929,7 +931,8 @@ namespace Goose
 
                 this.AutoCreatedNotSaved = false;
 
-                SqlCommand command = new SqlCommand(query, world.SqlConnection);
+                var command = world.SqlConnection.CreateCommand();
+                command.CommandText = query;
                 command.Parameters.Add(playerNameParam);
                 command.Parameters.Add(playerTitleParam);
                 command.Parameters.Add(playerSurnameParam);
@@ -994,7 +997,8 @@ namespace Goose
                     "macrocheck_failures=" + this.MacroCheckFailures + " " +
                     "WHERE player_id=" + this.PlayerID;
 
-                SqlCommand command = new SqlCommand(query, world.SqlConnection);
+                var command = world.SqlConnection.CreateCommand();
+                command.CommandText = query;
                 command.Parameters.Add(playerNameParam);
                 command.Parameters.Add(playerTitleParam);
                 command.Parameters.Add(playerSurnameParam);
@@ -1052,12 +1056,12 @@ namespace Goose
             questStatus.Started = this.QuestsStarted.Select(q => q.Id).ToArray();
             questStatus.Progress = this.QuestProgress.Select(q => new QuestStatus.QuestProgress(q.Requirement.Quest.Id, q.Requirement.Id, q.Value)).ToArray();
 
-            SqlCommand saveQuestStatusCommand = new SqlCommand(
-                @"UPDATE quest_status SET serialized_data=@serialized_data WHERE player_id=@player_id; 
-                  IF @@ROWCOUNT = 0 
-                    INSERT INTO quest_status (player_id, serialized_data) VALUES (@player_id, @serialized_data);", world.SqlConnection);
-            saveQuestStatusCommand.Parameters.Add(new SqlParameter("@player_id", SqlDbType.Int) { Value = this.PlayerID });
-            saveQuestStatusCommand.Parameters.Add(new SqlParameter("@serialized_data", SqlDbType.Text) { Value = JsonConvert.SerializeObject(questStatus, GameWorld.JsonSerializerSettings) });
+            var saveQuestStatusCommand = world.SqlConnection.CreateCommand();
+            saveQuestStatusCommand.CommandText =
+                @"INSERT INTO quest_status (player_id, serialized_data) VALUES (@player_id, @serialized_data)
+                  ON CONFLICT(player_id) DO UPDATE SET serialized_data=@serialized_data WHERE player_id=@player_id;";
+            saveQuestStatusCommand.Parameters.Add(new SQLiteParameter("@player_id", DbType.Int32) { Value = this.PlayerID });
+            saveQuestStatusCommand.Parameters.Add(new SQLiteParameter("@serialized_data", DbType.String) { Value = JsonConvert.SerializeObject(questStatus, GameWorld.JsonSerializerSettings) });
             world.DatabaseWriter.Add(saveQuestStatusCommand);
         }
 

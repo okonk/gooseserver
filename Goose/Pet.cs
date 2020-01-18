@@ -7,6 +7,8 @@ using System.Data;
 using System.Data.SqlClient;
 
 using Goose.Events;
+using System.Data.Common;
+using System.Data.SQLite;
 
 namespace Goose
 {
@@ -197,7 +199,7 @@ namespace Goose
             return pet;
         }
 
-        public static Pet FromReader(SqlDataReader reader, GameWorld world)
+        public static Pet FromReader(DbDataReader reader, GameWorld world)
         {
             Pet pet = new Pet();
 
@@ -290,12 +292,9 @@ namespace Goose
 
         public override void SaveToDatabase(GameWorld world)
         {
-            SqlParameter petNameParam = new SqlParameter("@petName", SqlDbType.VarChar, 50);
-            petNameParam.Value = this.Name;
-            SqlParameter petTitleParam = new SqlParameter("@petTitle", SqlDbType.VarChar, 50);
-            petTitleParam.Value = this.Title;
-            SqlParameter petSurnameParam = new SqlParameter("@petSurname", SqlDbType.VarChar, 50);
-            petSurnameParam.Value = this.Surname;
+            var petNameParam = new SQLiteParameter("@petName", DbType.String) { Value = this.Name };
+            var petTitleParam = new SQLiteParameter("@petTitle", DbType.String) { Value = this.Title };
+            var petSurnameParam = new SQLiteParameter("@petSurname", DbType.String) { Value = this.Surname };
 
             if (this.AutoCreatedNotSaved)
             {
@@ -352,7 +351,8 @@ namespace Goose
                     this.BaseStats.MPStaticRegen + ", " +
                     this.Owner.PlayerID +
                     ")";
-                SqlCommand command = new SqlCommand(query, world.SqlConnection);
+                var command = world.SqlConnection.CreateCommand();
+                command.CommandText = query;
                 command.Parameters.Add(petNameParam);
                 command.Parameters.Add(petTitleParam);
                 command.Parameters.Add(petSurnameParam);
@@ -363,7 +363,8 @@ namespace Goose
             {
                 string query = "DELETE FROM pets WHERE pet_id=" + this.PetID;
 
-                SqlCommand command = new SqlCommand(query, world.SqlConnection);
+                var command = world.SqlConnection.CreateCommand();
+                command.CommandText = query;
                 world.DatabaseWriter.Add(command);
             }
             else
@@ -416,7 +417,8 @@ namespace Goose
                     "owner_id=" + this.Owner.PlayerID + " " +
                     "WHERE pet_id=" + this.PetID;
 
-                SqlCommand command = new SqlCommand(query, world.SqlConnection);
+                var command = world.SqlConnection.CreateCommand();
+                command.CommandText = query;
                 command.Parameters.Add(petNameParam);
                 command.Parameters.Add(petTitleParam);
                 command.Parameters.Add(petSurnameParam);

@@ -439,9 +439,9 @@ namespace Goose
                 }
             }
 
-            SqlCommand command = new SqlCommand("SELECT * FROM warptiles " +
-                                                "WHERE map_id=" + this.ID, world.SqlConnection);
-            SqlDataReader reader = command.ExecuteReader();
+            var command = world.SqlConnection.CreateCommand();
+            command.CommandText = "SELECT * FROM warptiles WHERE map_id=" + this.ID;
+            var reader = command.ExecuteReader();
 
             while (reader.Read())
             {
@@ -458,8 +458,8 @@ namespace Goose
 
             reader.Close();
 
-            command = new SqlCommand("SELECT * FROM map_required_items " +
-                                                "WHERE map_id=" + this.ID, world.SqlConnection);
+            command = world.SqlConnection.CreateCommand();
+            command.CommandText = "SELECT * FROM map_required_items WHERE map_id=" + this.ID;
             reader = command.ExecuteReader();
 
             while (reader.Read())

@@ -40,8 +40,9 @@ namespace Goose
          */
         public void LoadNPCTemplates(GameWorld world)
         {
-            SqlCommand command = new SqlCommand("SELECT * FROM npc_templates", world.SqlConnection);
-            SqlDataReader reader = command.ExecuteReader();
+            var command = world.SqlConnection.CreateCommand();
+            command.CommandText = "SELECT * FROM npc_templates";
+            var reader = command.ExecuteReader();
 
             while (reader.Read())
             {
@@ -264,8 +265,9 @@ namespace Goose
          */
         public void LoadNPCs(GameWorld world)
         {
-            SqlCommand command = new SqlCommand("SELECT * FROM npc_spawns", world.SqlConnection);
-            SqlDataReader reader = command.ExecuteReader();
+            var command = world.SqlConnection.CreateCommand();
+            command.CommandText = "SELECT * FROM npc_spawns";
+            var reader = command.ExecuteReader();
 
             while (reader.Read())
             {

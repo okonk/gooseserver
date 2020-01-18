@@ -1,12 +1,8 @@
-USE IllutiaGoose;
-
-DROP TABLE maps;
-GO
-
+DROP TABLE IF EXISTS maps;
 CREATE TABLE maps (
-  map_id SMALLINT IDENTITY(1, 1) NOT NULL,
-  map_name VARCHAR(50) NOT NULL,
-  map_filename VARCHAR(50) NOT NULL,
+  map_id INTEGER PRIMARY KEY,
+  map_name TEXT NOT NULL,
+  map_filename TEXT NOT NULL,
   map_x SMALLINT DEFAULT 100 NOT NULL,
   map_y SMALLINT DEFAULT 100 NOT NULL,
   
@@ -25,12 +21,9 @@ CREATE TABLE maps (
   pets_enabled CHAR(1) DEFAULT '1' NOT NULL,
 
   script_path TEXT DEFAULT '' NOT NULL,
-  script_data TEXT DEFAULT '' NOT NULL,
-  
-  PRIMARY KEY(map_id)
+  script_data TEXT DEFAULT '' NOT NULL
 );
 
-SET IDENTITY_INSERT maps ON;
 INSERT INTO maps (map_id, map_filename, map_name, map_x, map_y) VALUES (1, 'Map1.map', '1', 286, 194);
 INSERT INTO maps (map_id, map_filename, map_name, map_x, map_y) VALUES (2, 'Map2.map', '2', 500, 215);
 INSERT INTO maps (map_id, map_filename, map_name, map_x, map_y) VALUES (3, 'Map3.map', '3', 500, 500);
@@ -143,12 +136,11 @@ INSERT INTO maps (map_id, map_filename, map_name, map_x, map_y) VALUES (109, 'Ma
 INSERT INTO maps (map_id, map_filename, map_name, map_x, map_y) VALUES (110, 'Map110.map', '110', 198, 153);
 INSERT INTO maps (map_id, map_filename, map_name, map_x, map_y) VALUES (111, 'Map111.map', '111', 204, 185);
 INSERT INTO maps (map_id, map_filename, map_name, map_x, map_y) VALUES (112, 'Map112.map', '112', 500, 150);
-SET IDENTITY_INSERT maps OFF;
 
-DROP TABLE map_required_items;
+DROP TABLE IF EXISTS map_required_items;
 CREATE TABLE map_required_items (
-  map_id SMALLINT NOT NULL,
-  item_template_id INT NOT NULL,
-
-  INDEX map_required_items_map_id_idx (map_id)
+  map_id INT NOT NULL,
+  item_template_id INT NOT NULL
 );
+
+CREATE INDEX map_required_items_map_id_idx ON map_required_items(map_id);

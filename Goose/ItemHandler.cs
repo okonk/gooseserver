@@ -53,8 +53,9 @@ namespace Goose
          */
         public void LoadTemplates(GameWorld world)
         {
-            SqlCommand command = new SqlCommand("SELECT * FROM item_templates", world.SqlConnection);
-            SqlDataReader reader = command.ExecuteReader();
+            var command = world.SqlConnection.CreateCommand();
+            command.CommandText = "SELECT * FROM item_templates";
+            var reader = command.ExecuteReader();
 
             while (reader.Read())
             {

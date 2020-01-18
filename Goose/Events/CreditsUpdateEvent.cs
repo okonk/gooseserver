@@ -14,8 +14,9 @@ namespace Goose.Events
             Player player;
             int credits;
 
-            SqlCommand command = new SqlCommand("SELECT txn_id, player_name, credits FROM paypal_payments WHERE redeemed='0';", world.SqlConnection);
-            SqlDataReader reader = command.ExecuteReader();
+            var command = world.SqlConnection.CreateCommand();
+            command.CommandText = "SELECT txn_id, player_name, credits FROM paypal_payments WHERE redeemed='0';";
+            var reader = command.ExecuteReader();
             while (reader.Read())
             {
                 player = world.PlayerHandler.GetPlayerFromData(reader["player_name"].ToString());

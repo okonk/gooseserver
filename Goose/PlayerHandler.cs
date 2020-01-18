@@ -200,8 +200,9 @@ namespace Goose
 
         public void LoadPlayerData(GameWorld world)
         {
-            SqlCommand command = new SqlCommand("SELECT * FROM players", world.SqlConnection);
-            SqlDataReader reader = command.ExecuteReader();
+            var command = world.SqlConnection.CreateCommand();
+            command.CommandText = "SELECT * FROM players";
+            var reader = command.ExecuteReader();
 
             while (reader.Read())
             {

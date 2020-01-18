@@ -1,12 +1,10 @@
-USE IllutiaGoose;
-
 CREATE TABLE players (
-  player_id INT NOT NULL,
-  player_name VARCHAR(50) NOT NULL,
-  player_title VARCHAR(50) DEFAULT '' NOT NULL,
-  player_surname VARCHAR(50) DEFAULT '' NOT NULL,
-  password_hash CHAR(32) NOT NULL,
-  password_salt VARCHAR(50) NOT NULL,
+  player_id INT PRIMARY KEY,
+  player_name TEXT NOT NULL,
+  player_title TEXT DEFAULT '' NOT NULL,
+  player_surname TEXT DEFAULT '' NOT NULL,
+  password_hash TEXT NOT NULL,
+  password_salt TEXT NOT NULL,
   access_status SMALLINT DEFAULT 2 NOT NULL,
   map_id SMALLINT DEFAULT 1 NOT NULL,
   map_x SMALLINT DEFAULT 50 NOT NULL,
@@ -53,9 +51,7 @@ CREATE TABLE players (
   move_speed INT DEFAULT 320 NOT NULL,
   bank_pages INT DEFAULT 3 NOT NULL,
   unban_date DATETIME2 DEFAULT NULL,
-  macrocheck_failures INT DEFAULT 0 NOT NULL,
-  
-  PRIMARY KEY(player_id)
+  macrocheck_failures INT DEFAULT 0 NOT NULL
 );
 
 CREATE TABLE inventory (

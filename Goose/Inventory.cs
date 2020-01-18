@@ -6,6 +6,7 @@ using System.Text;
 using System.Data.SqlClient;
 using System.Data;
 using Newtonsoft.Json;
+using System.Data.SQLite;
 
 namespace Goose
 {
@@ -823,28 +824,28 @@ namespace Goose
          */
         public void Save(GameWorld world)
         {
-            SqlCommand saveInventoryCommand = new SqlCommand(
-                @"UPDATE inventory SET serialized_data=@serialized_data WHERE player_id=@player_id; 
-                  IF @@ROWCOUNT = 0 
-                    INSERT INTO inventory (player_id, serialized_data) VALUES (@player_id, @serialized_data);", world.SqlConnection);
-            saveInventoryCommand.Parameters.Add(new SqlParameter("@player_id", SqlDbType.Int) { Value = this.player.PlayerID });
-            saveInventoryCommand.Parameters.Add(new SqlParameter("@serialized_data", SqlDbType.Text) { Value = JsonConvert.SerializeObject(inventory, GameWorld.JsonSerializerSettings) });
+            var saveInventoryCommand = world.SqlConnection.CreateCommand();
+            saveInventoryCommand.CommandText =
+                @"INSERT INTO inventory (player_id, serialized_data) VALUES (@player_id, @serialized_data)
+                  ON CONFLICT(player_id) DO UPDATE SET serialized_data=@serialized_data WHERE player_id=@player_id;";
+            saveInventoryCommand.Parameters.Add(new SQLiteParameter("@player_id", DbType.Int32) { Value = this.player.PlayerID });
+            saveInventoryCommand.Parameters.Add(new SQLiteParameter("@serialized_data", DbType.String) { Value = JsonConvert.SerializeObject(inventory, GameWorld.JsonSerializerSettings) });
             world.DatabaseWriter.Add(saveInventoryCommand);
 
-            SqlCommand saveEquippedCommand = new SqlCommand(
-                @"UPDATE equipped SET serialized_data=@serialized_data WHERE player_id=@player_id; 
-                  IF @@ROWCOUNT = 0 
-                    INSERT INTO equipped (player_id, serialized_data) VALUES (@player_id, @serialized_data);", world.SqlConnection);
-            saveEquippedCommand.Parameters.Add(new SqlParameter("@player_id", SqlDbType.Int) { Value = this.player.PlayerID });
-            saveEquippedCommand.Parameters.Add(new SqlParameter("@serialized_data", SqlDbType.Text) { Value = JsonConvert.SerializeObject(equipped, GameWorld.JsonSerializerSettings) });
+            var saveEquippedCommand = world.SqlConnection.CreateCommand();
+            saveEquippedCommand.CommandText =
+                @"INSERT INTO equipped (player_id, serialized_data) VALUES (@player_id, @serialized_data)
+                  ON CONFLICT(player_id) DO UPDATE SET serialized_data=@serialized_data WHERE player_id=@player_id;";
+            saveEquippedCommand.Parameters.Add(new SQLiteParameter("@player_id", DbType.Int32) { Value = this.player.PlayerID });
+            saveEquippedCommand.Parameters.Add(new SQLiteParameter("@serialized_data", DbType.String) { Value = JsonConvert.SerializeObject(equipped, GameWorld.JsonSerializerSettings) });
             world.DatabaseWriter.Add(saveEquippedCommand);
 
-            SqlCommand saveCombineBagCommand = new SqlCommand(
-                @"UPDATE combinebag SET serialized_data=@serialized_data WHERE player_id=@player_id; 
-                  IF @@ROWCOUNT = 0 
-                    INSERT INTO combinebag (player_id, serialized_data) VALUES (@player_id, @serialized_data);", world.SqlConnection);
-            saveCombineBagCommand.Parameters.Add(new SqlParameter("@player_id", SqlDbType.Int) { Value = this.player.PlayerID });
-            saveCombineBagCommand.Parameters.Add(new SqlParameter("@serialized_data", SqlDbType.Text) { Value = JsonConvert.SerializeObject(combineContainer, GameWorld.JsonSerializerSettings) });
+            var saveCombineBagCommand = world.SqlConnection.CreateCommand();
+            saveCombineBagCommand.CommandText =
+                @"INSERT INTO combinebag (player_id, serialized_data) VALUES (@player_id, @serialized_data)
+                  ON CONFLICT(player_id) DO UPDATE SET serialized_data=@serialized_data WHERE player_id=@player_id;";
+            saveCombineBagCommand.Parameters.Add(new SQLiteParameter("@player_id", DbType.Int32) { Value = this.player.PlayerID });
+            saveCombineBagCommand.Parameters.Add(new SQLiteParameter("@serialized_data", DbType.String) { Value = JsonConvert.SerializeObject(combineContainer, GameWorld.JsonSerializerSettings) });
             world.DatabaseWriter.Add(saveCombineBagCommand);
         }
 
@@ -854,8 +855,9 @@ namespace Goose
          */
         public void Load(GameWorld world)
         {
-            using (SqlCommand query = new SqlCommand("SELECT serialized_data FROM inventory WHERE player_id=" + this.player.PlayerID, world.SqlConnection))
+            using (var query = world.SqlConnection.CreateCommand())
             {
+                query.CommandText = "SELECT serialized_data FROM inventory WHERE player_id=" + this.player.PlayerID;
                 string serialized_data = Convert.ToString(query.ExecuteScalar());
                 this.inventory = JsonConvert.DeserializeObject<ItemSlot[]>(serialized_data, GameWorld.JsonSerializerSettings);
 
@@ -870,8 +872,9 @@ namespace Goose
                 }
             }
 
-            using (SqlCommand query = new SqlCommand("SELECT serialized_data FROM equipped WHERE player_id=" + this.player.PlayerID, world.SqlConnection))
+            using (var query = world.SqlConnection.CreateCommand())
             {
+                query.CommandText = "SELECT serialized_data FROM equipped WHERE player_id=" + this.player.PlayerID;
                 string serialized_data = Convert.ToString(query.ExecuteScalar());
                 this.equipped = JsonConvert.DeserializeObject<ItemSlot[]>(serialized_data, GameWorld.JsonSerializerSettings);
 
@@ -898,8 +901,9 @@ namespace Goose
                 }
             }
 
-            using (SqlCommand query = new SqlCommand("SELECT serialized_data FROM combinebag WHERE player_id=" + this.player.PlayerID, world.SqlConnection))
+            using (var query = world.SqlConnection.CreateCommand())
             {
+                query.CommandText = "SELECT serialized_data FROM combinebag WHERE player_id=" + this.player.PlayerID;
                 string serialized_data = Convert.ToString(query.ExecuteScalar());
                 var combineSlots = JsonConvert.DeserializeObject<ItemSlot[]>(serialized_data, GameWorld.JsonSerializerSettings);
 

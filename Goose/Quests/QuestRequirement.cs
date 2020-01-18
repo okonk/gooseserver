@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
@@ -31,7 +32,7 @@ namespace Goose.Quests
         /// </summary>
         public bool KeepRequirement { get; set; }
 
-        public static QuestRequirement FromReader(SqlDataReader reader)
+        public static QuestRequirement FromReader(DbDataReader reader)
         {
             var requirement = new QuestRequirement();
 
