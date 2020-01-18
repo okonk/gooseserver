@@ -11,10 +11,11 @@ spell to see monster info
 something buggy with move speed
 /who search
 support for sounds
-sanitise user names to only alphabetical
 global script threading issues
 assign ids to quest requirements/rewards -- be careful, could mess up existing quest data
-
+Global chat
+Move packet creation to it's own class
+Readd server browser stuff
 
 
 Map editor
@@ -70,7 +71,7 @@ need to track active sql queries and stop server from quitting until all queries
 fix datatypes in DB. varchar -> text
 goose on .net core for linux
 log when player creates a custom
-
+sanitise user names to only alphabetical
 
 
 

@@ -130,6 +130,13 @@ namespace Goose.Events
 
                 if (GameSettings.Default.AutoCharacterCreation)
                 {
+                    if (!name.All(c => (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')))
+                    {
+                        world.Send(new Player() { Sock = sock }, "LNOYour name must contain letters only.");
+                        world.GameServer.Disconnect(sock);
+                        return;
+                    }
+
                     player = new Player(0);
                     player.Sock = sock;
                     player.LoadFromAutoCreate(name, password, world);
