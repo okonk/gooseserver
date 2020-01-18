@@ -6,7 +6,6 @@ title/surname items
 increase bank slot item
 pets commit 8e919ffaff6c
 make invis work
-log when player creates a custom
 flag for hiding other equips when cloak is equipped
 spell to see monster info
 something buggy with move speed
@@ -70,6 +69,7 @@ use json to serialize containers
 need to track active sql queries and stop server from quitting until all queries completed
 fix datatypes in DB. varchar -> text
 goose on .net core for linux
+log when player creates a custom
 
 
 

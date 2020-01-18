@@ -29,15 +29,18 @@ namespace Goose
             ReceivedCredits = 14,
             GaveCredits = 15,
             InvalidPassword = 16,
+            CreatedCustom,
+            
 
-            GetItem = 17,
-            ClassChange = 18,
-            GiveExperience = 19,
-            RespawnMap = 20,
-            SpawnedNPC = 21,
-            MacroCheck = 22,
-            MacroCheckConfirm = 23,
-            MacroCheckFailed = 24,
+            // GM-related logs
+            GetItem = 10001,
+            ClassChange,
+            GiveExperience,
+            RespawnMap,
+            SpawnedNPC,
+            MacroCheck,
+            MacroCheckConfirm,
+            MacroCheckFailed,
             Ban,
             Kick,
         }

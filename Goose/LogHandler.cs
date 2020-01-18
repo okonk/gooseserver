@@ -28,5 +28,10 @@ namespace Goose
         {
             this.logs.Add(new Log(type, playerid, text, otherid, mapid, mapx, mapy));
         }
+
+        public void Log(Log.Types type, Player player, string text, int otherid = 0)
+        {
+            this.logs.Add(new Log(type, player.PlayerID, text, otherid, player.MapID, player.MapX, player.MapY));
+        }
     }
 }

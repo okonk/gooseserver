@@ -88,7 +88,7 @@ namespace Goose.Events
                         item.GraphicA = a;
                         item.GraphicTile = lookSlot.Item.GraphicTile;
                         item.GraphicFile = lookSlot.Item.GraphicFile;
-                        item.Name = (tokens[5].Length > 50 ? tokens[5].Substring(0, 50) : tokens[5]).Replace(",", "");
+                        item.Name = (tokens[5].Length > 255 ? tokens[5].Substring(0, 255) : tokens[5]).Replace(",", "");
                         item.Description = "Custom created by " + this.Player.Name;
                         item.IsBound = statsSlot.Item.IsBound;
                         item.ScriptParams = statsSlot.Item.ScriptParams;
@@ -113,6 +113,9 @@ namespace Goose.Events
 
                         var combineBagWindow = this.Player.Windows.FirstOrDefault(w => w.Type == Window.WindowTypes.CombineBag);
                         if (combineBagWindow != null) combineBagWindow.Refresh(this.Player, world);
+
+                        world.LogHandler.Log(Log.Types.CreatedCustom, this.Player, 
+                            string.Format("{0} ({1}) {2}|{3},{4},{5},{6}", item.Name, item.TemplateID, lookSlot.Item.TemplateID, r, g, b, a), item.ItemID);
 
                         break;
                     case "preview":
