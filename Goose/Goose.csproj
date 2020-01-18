@@ -1,522 +1,40 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProductVersion>9.0.30729</ProductVersion>
-    <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{D2C2493F-4A52-487A-824F-7380BEDE041A}</ProjectGuid>
     <OutputType>Exe</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Goose</RootNamespace>
-    <AssemblyName>Goose</AssemblyName>
-    <TargetFrameworkVersion>v4.6.2</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
-    <FileUpgradeFlags>
-    </FileUpgradeFlags>
-    <UpgradeBackupLocation>
-    </UpgradeBackupLocation>
-    <OldToolsVersion>3.5</OldToolsVersion>
-    <TargetFrameworkProfile />
-    <NuGetPackageImportStamp>
-    </NuGetPackageImportStamp>
-    <DisableFody Condition="'$(Configuration)' == 'Debug'">true</DisableFody>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
-    <Prefer32Bit>false</Prefer32Bit>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <OutputPath>bin/Debug/</OutputPath>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
-    <Prefer32Bit>false</Prefer32Bit>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <OutputPath>bin/Release/</OutputPath>
   </PropertyGroup>
+
   <ItemGroup>
-    <Reference Include="Costura, Version=3.1.0.0, Culture=neutral, PublicKeyToken=9919ef960d84173d, processorArchitecture=MSIL">
-      <HintPath>..\packages\Costura.Fody.3.1.0\lib\net46\Costura.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.CodeAnalysis, Version=2.9.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.CodeAnalysis.Common.2.9.0\lib\netstandard1.3\Microsoft.CodeAnalysis.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.CodeAnalysis.CSharp, Version=2.9.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.CodeAnalysis.CSharp.2.9.0\lib\netstandard1.3\Microsoft.CodeAnalysis.CSharp.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.CodeAnalysis.CSharp.Scripting, Version=2.9.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.CodeAnalysis.CSharp.Scripting.2.9.0\lib\netstandard1.3\Microsoft.CodeAnalysis.CSharp.Scripting.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.CodeAnalysis.Scripting, Version=2.9.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.CodeAnalysis.Scripting.Common.2.9.0\lib\netstandard1.3\Microsoft.CodeAnalysis.Scripting.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="Newtonsoft.Json, Version=6.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <HintPath>..\packages\Newtonsoft.Json.6.0.4\lib\net45\Newtonsoft.Json.dll</HintPath>
-    </Reference>
-    <Reference Include="NLog, Version=4.0.0.0, Culture=neutral, PublicKeyToken=5120e14c03d0593c, processorArchitecture=MSIL">
-      <HintPath>..\packages\NLog.4.6.2\lib\net45\NLog.dll</HintPath>
-    </Reference>
-    <Reference Include="System" />
-    <Reference Include="System.AppContext, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.AppContext.4.3.0\lib\net46\System.AppContext.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Collections.Immutable, Version=1.2.3.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Collections.Immutable.1.5.0\lib\netstandard2.0\System.Collections.Immutable.dll</HintPath>
-    </Reference>
-    <Reference Include="System.ComponentModel.Composition" />
-    <Reference Include="System.Configuration" />
-    <Reference Include="System.Console, Version=4.0.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Console.4.3.0\lib\net46\System.Console.dll</HintPath>
-      <Private>True</Private>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.Core">
-      <RequiredTargetFramework>3.5</RequiredTargetFramework>
-    </Reference>
-    <Reference Include="System.Data.SQLite, Version=1.0.112.0, Culture=neutral, PublicKeyToken=db937bc2d44ff139, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Data.SQLite.Core.1.0.112.0\lib\net46\System.Data.SQLite.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Diagnostics.FileVersionInfo, Version=4.0.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Diagnostics.FileVersionInfo.4.3.0\lib\net46\System.Diagnostics.FileVersionInfo.dll</HintPath>
-      <Private>True</Private>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.Diagnostics.StackTrace, Version=4.0.3.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Diagnostics.StackTrace.4.3.0\lib\net46\System.Diagnostics.StackTrace.dll</HintPath>
-      <Private>True</Private>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.IO, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.IO.4.3.0\lib\net462\System.IO.dll</HintPath>
-      <Private>True</Private>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.IO.Compression, Version=4.1.2.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.IO.Compression.4.3.0\lib\net46\System.IO.Compression.dll</HintPath>
-      <Private>True</Private>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.IO.FileSystem, Version=4.0.2.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.IO.FileSystem.4.3.0\lib\net46\System.IO.FileSystem.dll</HintPath>
-      <Private>True</Private>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.IO.FileSystem.Primitives, Version=4.0.2.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.IO.FileSystem.Primitives.4.3.0\lib\net46\System.IO.FileSystem.Primitives.dll</HintPath>
-      <Private>True</Private>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.Numerics" />
-    <Reference Include="System.Reflection, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Reflection.4.3.0\lib\net462\System.Reflection.dll</HintPath>
-      <Private>True</Private>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.Reflection.Metadata, Version=1.4.3.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Reflection.Metadata.1.6.0\lib\netstandard2.0\System.Reflection.Metadata.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Runtime, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Runtime.4.3.0\lib\net462\System.Runtime.dll</HintPath>
-      <Private>True</Private>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.Runtime.Extensions, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Runtime.Extensions.4.3.0\lib\net462\System.Runtime.Extensions.dll</HintPath>
-      <Private>True</Private>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.Runtime.InteropServices, Version=4.1.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Runtime.InteropServices.4.3.0\lib\net462\System.Runtime.InteropServices.dll</HintPath>
-      <Private>True</Private>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.Runtime.Serialization" />
-    <Reference Include="System.Security.Cryptography.Algorithms, Version=4.1.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Security.Cryptography.Algorithms.4.3.0\lib\net461\System.Security.Cryptography.Algorithms.dll</HintPath>
-      <Private>True</Private>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.Security.Cryptography.Encoding, Version=4.0.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Security.Cryptography.Encoding.4.3.0\lib\net46\System.Security.Cryptography.Encoding.dll</HintPath>
-      <Private>True</Private>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.Security.Cryptography.Primitives, Version=4.0.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Security.Cryptography.Primitives.4.3.0\lib\net46\System.Security.Cryptography.Primitives.dll</HintPath>
-      <Private>True</Private>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.Security.Cryptography.X509Certificates, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Security.Cryptography.X509Certificates.4.3.0\lib\net461\System.Security.Cryptography.X509Certificates.dll</HintPath>
-      <Private>True</Private>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.ServiceModel" />
-    <Reference Include="System.ServiceProcess" />
-    <Reference Include="System.Text.Encoding.CodePages, Version=4.0.2.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Text.Encoding.CodePages.4.3.0\lib\net46\System.Text.Encoding.CodePages.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Threading.Tasks.Extensions, Version=4.1.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Threading.Tasks.Extensions.4.3.0\lib\portable-net45+win8+wp8+wpa81\System.Threading.Tasks.Extensions.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Threading.Thread, Version=4.0.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Threading.Thread.4.3.0\lib\net46\System.Threading.Thread.dll</HintPath>
-      <Private>True</Private>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.Transactions" />
-    <Reference Include="System.ValueTuple, Version=4.0.1.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.ValueTuple.4.3.0\lib\netstandard1.0\System.ValueTuple.dll</HintPath>
-      <Private>True</Private>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.Xml.Linq">
-      <RequiredTargetFramework>3.5</RequiredTargetFramework>
-    </Reference>
-    <Reference Include="System.Data.DataSetExtensions">
-      <RequiredTargetFramework>3.5</RequiredTargetFramework>
-    </Reference>
-    <Reference Include="System.Data" />
-    <Reference Include="System.Xml" />
-    <Reference Include="System.Xml.ReaderWriter, Version=4.1.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Xml.ReaderWriter.4.3.0\lib\net46\System.Xml.ReaderWriter.dll</HintPath>
-      <Private>True</Private>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.Xml.XmlDocument, Version=4.0.2.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Xml.XmlDocument.4.3.0\lib\net46\System.Xml.XmlDocument.dll</HintPath>
-      <Private>True</Private>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.Xml.XPath, Version=4.0.2.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Xml.XPath.4.3.0\lib\net46\System.Xml.XPath.dll</HintPath>
-      <Private>True</Private>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.Xml.XPath.XDocument, Version=4.0.2.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Xml.XPath.XDocument.4.3.0\lib\net46\System.Xml.XPath.XDocument.dll</HintPath>
-      <Private>True</Private>
-      <Private>True</Private>
-    </Reference>
+    <None Remove="sql\banks.sql" />
+    <None Remove="sql\classes.sql" />
+    <None Remove="sql\combinations.sql" />
+    <None Remove="sql\create.sql" />
+    <None Remove="sql\guilds.sql" />
+    <None Remove="sql\items.sql" />
+    <None Remove="sql\logs.sql" />
+    <None Remove="sql\maps.sql" />
+    <None Remove="sql\npcs.sql" />
+    <None Remove="sql\onetimeupdates.sql" />
+    <None Remove="sql\paypal.sql" />
+    <None Remove="sql\pets.sql" />
+    <None Remove="sql\players.sql" />
+    <None Remove="sql\quests.sql" />
+    <None Remove="sql\spells.sql" />
+    <None Remove="sql\warptiles.sql" />
+    <None Remove="sql\wordfilter.sql" />
   </ItemGroup>
+
   <ItemGroup>
-    <Compile Include="AccessLevels.cs" />
-    <Compile Include="AttributeSet.cs" />
-    <Compile Include="BankWindow.cs" />
-    <Compile Include="BlockedTile.cs" />
-    <Compile Include="Buff.cs" />
-    <Compile Include="ChatFilter.cs" />
-    <Compile Include="Class.cs" />
-    <Compile Include="ClassHandler.cs" />
-    <Compile Include="ClassLevel.cs" />
-    <Compile Include="Combination.cs" />
-    <Compile Include="CombinationHandler.cs" />
-    <Compile Include="DatabaseWriter.cs" />
-    <Compile Include="Events\PlayerInfoCommandEvent.cs" />
-    <Compile Include="Events\ScriptTimerEvent.cs" />
-    <Compile Include="Events\MacroConfirmCommandEvent.cs" />
-    <Compile Include="Events\MacroCheckCommandEvent.cs" />
-    <Compile Include="Events\MacroCheckEvent.cs" />
-    <Compile Include="Events\PlaceSpawnCommandEvent.cs" />
-    <Compile Include="Events\ReloadSqlCommandEvent.cs" />
-    <Compile Include="Events\ReloadScriptsCommandEvent.cs" />
-    <Compile Include="Events\SetAccessCommandEvent.cs" />
-    <Compile Include="Events\MuteMapEvent.cs" />
-    <Compile Include="Events\SpellInfoEvent.cs" />
-    <Compile Include="PlayerInfoWindow.cs" />
-    <Compile Include="MacroCheckWindow.cs" />
-    <Compile Include="Quests\QuestStatus.cs" />
-    <Compile Include="Scripting\BaseGlobalScript.cs" />
-    <Compile Include="Scripting\BaseItemScript.cs" />
-    <Compile Include="Scripting\BaseMapScript.cs" />
-    <Compile Include="Scripting\BaseSpellEffectScript.cs" />
-    <Compile Include="Scripting\BaseNPCScript.cs" />
-    <Compile Include="Scripting\IGlobalScript.cs" />
-    <Compile Include="Scripting\IMapScript.cs" />
-    <Compile Include="Scripting\IItemScript.cs" />
-    <Compile Include="Scripting\ISpellEffectScript.cs" />
-    <Compile Include="Scripting\INPCScript.cs" />
-    <Compile Include="Scripting\IScript.cs" />
-    <Compile Include="Scripting\Script.cs" />
-    <Compile Include="Scripting\ScriptHandler.cs" />
-    <Compile Include="SpellInfoWindow.cs" />
-    <Compile Include="CombineBagWindow.cs" />
-    <Compile Include="Event.cs" />
-    <Compile Include="EventHandler.cs" />
-    <Compile Include="Events\AetherCommandEvent.cs" />
-    <Compile Include="Events\ApproachEvent.cs" />
-    <Compile Include="Events\AuctionCommandEvent.cs" />
-    <Compile Include="Events\BuffExpireEvent.cs" />
-    <Compile Include="Events\BuffTickEvent.cs" />
-    <Compile Include="Events\BuyManaCommandEvent.cs" />
-    <Compile Include="Events\BuyVitaCommandEvent.cs" />
-    <Compile Include="Events\ChangeClassEvent.cs" />
-    <Compile Include="Events\ChangeNameCommandEvent.cs" />
-    <Compile Include="Events\ChangePasswordCommandEvent.cs" />
-    <Compile Include="Events\CharacterInfoCommandEvent.cs" />
-    <Compile Include="Events\ChatEvent.cs" />
-    <Compile Include="Events\CheckNameCommandEvent.cs" />
-    <Compile Include="Events\CustomCommandEvent.cs" />
-    <Compile Include="Events\GMHaxCommandEvent.cs" />
-    <Compile Include="Events\SearchCommandEvent.cs" />
-    <Compile Include="Events\SpawnNPCCommandEvent.cs" />
-    <Compile Include="Events\PlayerLeftClickEvent .cs" />
-    <Compile Include="Events\SpellbookBackEvent.cs" />
-    <Compile Include="Events\SpellbookNextEvent.cs" />
-    <Compile Include="Events\GiveCreditsCommandEvent.cs" />
-    <Compile Include="Events\SetSurnameCommandEvent.cs" />
-    <Compile Include="Events\SetTitleCommandEvent.cs" />
-    <Compile Include="Events\ClearCreatedHistoryEvent.cs" />
-    <Compile Include="Events\ClearMapItemsEvent.cs" />
-    <Compile Include="Events\CreditsCommandEvent.cs" />
-    <Compile Include="Events\CreditsUpdateEvent.cs" />
-    <Compile Include="Events\GiveExperienceCommandEvent.cs" />
-    <Compile Include="Events\ClassChangeCommandEvent.cs" />
-    <Compile Include="Events\GuildAddCommandEvent.cs" />
-    <Compile Include="Events\GuildChatCommandEvent.cs" />
-    <Compile Include="Events\GuildCreateCommandEvent.cs" />
-    <Compile Include="Events\GuildMotdCommandEvent.cs" />
-    <Compile Include="Events\GuildOfficerCommandEvent.cs" />
-    <Compile Include="Events\GuildOwnerCommandEvent.cs" />
-    <Compile Include="Events\GuildRemoveCommandEvent.cs" />
-    <Compile Include="Events\GuildSaveEvent.cs" />
-    <Compile Include="Events\HairdyeCommandEvent.cs" />
-    <Compile Include="Events\InstaLevelCommandEvent.cs" />
-    <Compile Include="Events\KillBuffEvent.cs" />
-    <Compile Include="Events\PetAttackEvent.cs" />
-    <Compile Include="Events\PetDamageCommandEvent.cs" />
-    <Compile Include="Events\PetDeleteCommandEvent.cs" />
-    <Compile Include="Events\PetVitaCommandEvent.cs" />
-    <Compile Include="Events\PetInfoCommandEvent.cs" />
-    <Compile Include="Events\PetListCommandEvent.cs" />
-    <Compile Include="Events\PetMoveEvent.cs" />
-    <Compile Include="Events\PetSpawnCommandEvent.cs" />
-    <Compile Include="Events\PlayerCountExperienceModifierUpdateEvent.cs" />
-    <Compile Include="Events\PlaytimeCommandEvent.cs" />
-    <Compile Include="Events\RankCommandEvent.cs" />
-    <Compile Include="Events\RespawnMapCommandEvent.cs" />
-    <Compile Include="Events\SaveConfigCommandEvent.cs" />
-    <Compile Include="Events\SetConfigCommandEvent.cs" />
-    <Compile Include="Events\ToggleCommandEvent.cs" />
-    <Compile Include="Events\UnbanCommandEvent.cs" />
-    <Compile Include="Events\WindowToInventoryEvent.cs" />
-    <Compile Include="Events\DestroyItemEvent.cs" />
-    <Compile Include="Events\DestroySpellEvent.cs" />
-    <Compile Include="Events\DoneLoadingMapEvent.cs" />
-    <Compile Include="Events\EmoteEvent.cs" />
-    <Compile Include="Events\FacingEvent.cs" />
-    <Compile Include="Events\BanCommandEvent.cs" />
-    <Compile Include="Events\BroadcastCommandEvent.cs" />
-    <Compile Include="Events\GetItemCommandEvent.cs" />
-    <Compile Include="Events\KickCommandEvent.cs" />
-    <Compile Include="Events\GroupAddEvent.cs" />
-    <Compile Include="Events\GroupChatEvent.cs" />
-    <Compile Include="Events\GroupRemoveEvent.cs" />
-    <Compile Include="Events\HaxCommandEvent.cs" />
-    <Compile Include="Events\InventoryChangeSlotEvent.cs" />
-    <Compile Include="Events\InventorySplitEvent.cs" />
-    <Compile Include="Events\InventoryToWindowEvent.cs" />
-    <Compile Include="Events\InventoryUseEvent.cs" />
-    <Compile Include="Events\LocationEvent.cs" />
-    <Compile Include="Events\LoginContinuedEvent.cs" />
-    <Compile Include="Events\LoginEvent.cs" />
-    <Compile Include="Events\LogoutEvent.cs" />
-    <Compile Include="Events\MoveEvent.cs" />
-    <Compile Include="Events\NPCAttackEvent.cs" />
-    <Compile Include="Events\NPCMoveEvent.cs" />
-    <Compile Include="Events\NPCSpawnEvent.cs" />
-    <Compile Include="Events\OpenCombineBagEvent.cs" />
-    <Compile Include="Events\PickupItemEvent.cs" />
-    <Compile Include="Events\PlayerAttackEvent.cs" />
-    <Compile Include="Events\PlayerCastSpellEvent.cs" />
-    <Compile Include="Events\PlayerDropGoldEvent.cs" />
-    <Compile Include="Events\PlayerDropItemEvent.cs" />
-    <Compile Include="Events\PlayerPongEvent.cs" />
-    <Compile Include="Events\PlayerRightClickEvent.cs" />
-    <Compile Include="Events\PlayerSaveEvent.cs" />
-    <Compile Include="Events\RandomCommandEvent.cs" />
-    <Compile Include="Events\RefreshPositionEvent.cs" />
-    <Compile Include="Events\RegenEvent.cs" />
-    <Compile Include="Events\ShoutCommandEvent.cs" />
-    <Compile Include="Events\ShutdownCommandEvent.cs" />
-    <Compile Include="Events\SpellbookSwapEvent.cs" />
-    <Compile Include="Events\SummonEvent.cs" />
-    <Compile Include="Events\TellEvent.cs" />
-    <Compile Include="Events\ToggleGroupCommandEvent.cs" />
-    <Compile Include="Events\VendorPurchaseInventoryEvent.cs" />
-    <Compile Include="Events\VendorSellInventoryEvent.cs" />
-    <Compile Include="Events\WarpEvent.cs" />
-    <Compile Include="Events\WhoEvent.cs" />
-    <Compile Include="Events\WindowButtonClickEvent.cs" />
-    <Compile Include="Events\WindowToWindowEvent.cs" />
-    <Compile Include="GameSettings.cs" />
-    <Compile Include="GooseWindowsService.cs">
-      <SubType>Component</SubType>
-    </Compile>
-    <Compile Include="GooseWindowsService.Designer.cs">
-      <DependentUpon>GooseWindowsService.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Group.cs" />
-    <Compile Include="Guild.cs" />
-    <Compile Include="GuildHandler.cs" />
-    <Compile Include="IItem.cs" />
-    <Compile Include="Inventory.cs" />
-    <Compile Include="Item.cs" />
-    <Compile Include="ItemContainer.cs" />
-    <Compile Include="ItemContainerWindow.cs" />
-    <Compile Include="ItemHandler.cs" />
-    <Compile Include="ItemSlot.cs" />
-    <Compile Include="ItemTemplate.cs" />
-    <Compile Include="ItemTile.cs" />
-    <Compile Include="LogHandler.cs" />
-    <Compile Include="Log.cs" />
-    <Compile Include="Map.cs" />
-    <Compile Include="MapHandler.cs" />
-    <Compile Include="GameWorld.cs" />
-    <Compile Include="ICharacter.cs" />
-    <Compile Include="GameServer.cs" />
-    <Compile Include="NPC.cs" />
-    <Compile Include="NPCDropInfo.cs" />
-    <Compile Include="NPCTemplate.cs" />
-    <Compile Include="NPCHandler.cs" />
-    <Compile Include="NPCVendorSlot.cs" />
-    <Compile Include="Pet.cs" />
-    <Compile Include="Player.cs" />
-    <Compile Include="PlayerBank.cs" />
-    <Compile Include="PlayerHandler.cs" />
-    <Compile Include="Program.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="GameSettings.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTimeSharedInput>True</DesignTimeSharedInput>
-      <DependentUpon>GameSettings.settings</DependentUpon>
-    </Compile>
-    <Compile Include="ITile.cs" />
-    <Compile Include="Quests\Quest.cs" />
-    <Compile Include="Quests\QuestHandler.cs" />
-    <Compile Include="Quests\QuestProgress.cs" />
-    <Compile Include="Quests\QuestRequirement.cs" />
-    <Compile Include="Quests\QuestReward.cs" />
-    <Compile Include="Quests\QuestWindow.cs" />
-    <Compile Include="RankHandler.cs" />
-    <Compile Include="Ranks.cs" />
-    <Compile Include="Spell.cs" />
-    <Compile Include="Spellbook.cs" />
-    <Compile Include="SpellEffect.cs" />
-    <Compile Include="SpellHandler.cs" />
-    <Compile Include="sql\SqlFiles.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>SqlFiles.resx</DependentUpon>
-    </Compile>
-    <Compile Include="Utils.cs" />
-    <Compile Include="WarpTile.cs" />
-    <Compile Include="Window.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="app.config" />
-    <None Include="GameSettings.settings">
-      <Generator>PublicSettingsSingleFileGenerator</Generator>
-      <LastGenOutput>GameSettings.Designer.cs</LastGenOutput>
-    </None>
-    <None Include="NLog.config">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="packages.config" />
-    <None Include="Scripts\Global\CrystalCritterSpawner.csx">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Scripts\Item\OkonkIllusionSword.csx">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Scripts\Item\ZombieLegIllusion.csx">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Scripts\Map\ArenaMap.csx">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Scripts\Map\ZombieTownMap.csx">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Scripts\NPC\Lust\DeceitfulVampire.csx">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Scripts\NPC\Lust\AncientVampire.csx">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Scripts\NPC\EasterEvent.csx">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Scripts\NPC\ZombieNPC.csx">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Scripts\NPC\BodyStealerNPC.csx">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Scripts\Item\HairCutItem.csx">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Scripts\Spell\PriestlessBlessings.csx">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Scripts\Spell\PlaceSpawnHelper.csx">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Scripts\Spell\ArenaMapDebuff.csx">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Scripts\Spell\LustStatDrain.csx">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Scripts\Spell\ZombieMapDebuff.csx">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Scripts\Spell\TestSpell1.csx">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Scripts\Spell\TestSpell2.csx">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Scripts\Spell\TestSpell3.csx">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Scripts\Spell\SpawnNPC.csx">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Scripts\NPC\BaseNPC.csx">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Scripts\NPC\SpellNPC.csx">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="sql\genexp.py" />
-    <None Include="sql\install.bat" />
-    <None Include="sql\updatesql.bat" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\GooseServerBrowserService\GooseServerBrowserService.Client\GooseServerBrowserService.Client.csproj">
-      <Project>{faf2381e-1234-4d2c-abd4-0b6adb07ab79}</Project>
-      <Name>GooseServerBrowserService.Client</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\GooseServerBrowserService\GooseServerBrowserService.Contract\GooseServerBrowserService.Contract.csproj">
-      <Project>{9584e4dc-4a62-45af-b69e-8b7238ae6e4d}</Project>
-      <Name>GooseServerBrowserService.Contract</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="FodyWeavers.xml">
-      <SubType>Designer</SubType>
-    </Content>
     <Content Include="sql\banks.sql" />
     <Content Include="sql\classes.sql" />
     <Content Include="sql\combinations.sql" />
@@ -535,69 +53,117 @@
     <Content Include="sql\warptiles.sql" />
     <Content Include="sql\wordfilter.sql" />
   </ItemGroup>
+
   <ItemGroup>
-    <Analyzer Include="..\packages\Microsoft.CodeAnalysis.Analyzers.2.6.1\analyzers\dotnet\cs\Microsoft.CodeAnalysis.Analyzers.dll" />
-    <Analyzer Include="..\packages\Microsoft.CodeAnalysis.Analyzers.2.6.1\analyzers\dotnet\cs\Microsoft.CodeAnalysis.CSharp.Analyzers.dll" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="3.4.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="3.4.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
+    <PackageReference Include="NLog" Version="4.6.8" />
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="4.7.0" />
+    <PackageReference Include="System.Data.SQLite.Core" Version="1.0.112" />
+    <PackageReference Include="System.ServiceProcess.ServiceController" Version="4.7.0" />
   </ItemGroup>
+
   <ItemGroup>
-    <EmbeddedResource Include="sql\SqlFiles.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
+    <Compile Update="GameSettings.Designer.cs">
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+      <DependentUpon>GameSettings.settings</DependentUpon>
+      <AutoGen>True</AutoGen>
+    </Compile>
+    <Compile Update="GooseWindowsService.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="GooseWindowsService.Designer.cs">
+      <DependentUpon>GooseWindowsService.cs</DependentUpon>
+    </Compile>
+    <Compile Update="sql\SqlFiles.Designer.cs">
+      <DependentUpon>SqlFiles.resx</DependentUpon>
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="sql\SqlFiles.resx">
       <LastGenOutput>SqlFiles.Designer.cs</LastGenOutput>
+      <Generator>ResXFileCodeGenerator</Generator>
     </EmbeddedResource>
   </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <UsingTask TaskName="CosturaCleanup" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.v4.0.dll" TaskFactory="CodeTaskFactory">
-    <ParameterGroup>
-      <Config Output="false" Required="true" ParameterType="Microsoft.Build.Framework.ITaskItem" />
-      <Files Output="false" Required="true" ParameterType="Microsoft.Build.Framework.ITaskItem[]" />
-    </ParameterGroup>
-    <Task Evaluate="true">
-      <Reference xmlns="http://schemas.microsoft.com/developer/msbuild/2003" Include="System.Xml" />
-      <Reference xmlns="http://schemas.microsoft.com/developer/msbuild/2003" Include="System.Xml.Linq" />
-      <Using xmlns="http://schemas.microsoft.com/developer/msbuild/2003" Namespace="System" />
-      <Using xmlns="http://schemas.microsoft.com/developer/msbuild/2003" Namespace="System.IO" />
-      <Using xmlns="http://schemas.microsoft.com/developer/msbuild/2003" Namespace="System.Xml.Linq" />
-      <Code xmlns="http://schemas.microsoft.com/developer/msbuild/2003" Type="Fragment" Language="cs"><![CDATA[
-var config = XElement.Load(Config.ItemSpec).Elements("Costura").FirstOrDefault();
 
-if (config == null) return true;
+  <ItemGroup>
+    <None Update="GameSettings.settings">
+      <LastGenOutput>GameSettings.Designer.cs</LastGenOutput>
+      <Generator>PublicSettingsSingleFileGenerator</Generator>
+    </None>
+    <None Update="NLog.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Scripts\Global\CrystalCritterSpawner.csx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Scripts\Item\HairCutItem.csx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Scripts\Item\OkonkIllusionSword.csx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Scripts\Item\ZombieLegIllusion.csx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Scripts\Map\ArenaMap.csx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Scripts\Map\ZombieTownMap.csx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Scripts\NPC\BaseNPC.csx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Scripts\NPC\BodyStealerNPC.csx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Scripts\NPC\EasterEvent.csx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Scripts\NPC\Lust\AncientVampire.csx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Scripts\NPC\Lust\DeceitfulVampire.csx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Scripts\NPC\SpellNPC.csx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Scripts\NPC\ZombieNPC.csx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Scripts\Spell\ArenaMapDebuff.csx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Scripts\Spell\LustStatDrain.csx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Scripts\Spell\PlaceSpawnHelper.csx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Scripts\Spell\PriestlessBlessings.csx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Scripts\Spell\SpawnNPC.csx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Scripts\Spell\TestSpell1.csx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Scripts\Spell\TestSpell2.csx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Scripts\Spell\TestSpell3.csx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Scripts\Spell\ZombieMapDebuff.csx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 
-var excludedAssemblies = new List<string>();
-var attribute = config.Attribute("ExcludeAssemblies");
-if (attribute != null)
-    foreach (var item in attribute.Value.Split('|').Select(x => x.Trim()).Where(x => x != string.Empty))
-        excludedAssemblies.Add(item);
-var element = config.Element("ExcludeAssemblies");
-if (element != null)
-    foreach (var item in element.Value.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries).Select(x => x.Trim()).Where(x => x != string.Empty))
-        excludedAssemblies.Add(item);
-
-var filesToCleanup = Files.Select(f => f.ItemSpec).Where(f => !excludedAssemblies.Contains(Path.GetFileNameWithoutExtension(f), StringComparer.InvariantCultureIgnoreCase));
-
-foreach (var item in filesToCleanup)
-  File.Delete(item);
-]]></Code>
-    </Task>
-  </UsingTask>
-  <Target Name="CleanReferenceCopyLocalPaths" AfterTargets="AfterBuild;NonWinFodyTarget" Condition="'$(Configuration)' != 'Debug'">
-    <CosturaCleanup Config="FodyWeavers.xml" Files="@(ReferenceCopyLocalPaths->'$(OutDir)%(DestinationSubDirectory)%(Filename)%(Extension)')" />
-  </Target>
-  <Import Project="..\packages\Fody.3.1.3\build\Fody.targets" Condition="Exists('..\packages\Fody.3.1.3\build\Fody.targets')" />
-  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
-    <PropertyGroup>
-      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
-    </PropertyGroup>
-    <Error Condition="!Exists('..\packages\Fody.3.1.3\build\Fody.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Fody.3.1.3\build\Fody.targets'))" />
-    <Error Condition="!Exists('..\packages\Costura.Fody.3.1.0\build\Costura.Fody.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Costura.Fody.3.1.0\build\Costura.Fody.targets'))" />
-    <Error Condition="!Exists('..\packages\System.Data.SQLite.Core.1.0.112.0\build\net46\System.Data.SQLite.Core.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\System.Data.SQLite.Core.1.0.112.0\build\net46\System.Data.SQLite.Core.targets'))" />
-  </Target>
-  <Import Project="..\packages\Costura.Fody.3.1.0\build\Costura.Fody.targets" Condition="Exists('..\packages\Costura.Fody.3.1.0\build\Costura.Fody.targets')" />
-  <Import Project="..\packages\System.Data.SQLite.Core.1.0.112.0\build\net46\System.Data.SQLite.Core.targets" Condition="Exists('..\packages\System.Data.SQLite.Core.1.0.112.0\build\net46\System.Data.SQLite.Core.targets')" />
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
-  </Target>
-  <Target Name="AfterBuild">
-  </Target>
-  -->
 </Project>

@@ -3,13 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Net.Sockets;
-using System.Data.SqlClient;
 using System.Runtime.InteropServices;
 
 using Goose.Events;
 using Goose.Quests;
 using System.Threading.Tasks;
-using GooseServerBrowserService.Client;
 using System.Threading;
 using Goose.Scripting;
 using System.IO;
@@ -125,7 +123,7 @@ namespace Goose
 
             this.ExperienceModifier = GameSettings.Default.ExperienceModifier;
 
-            this.LaunchServerBrowserUpdateThread();
+            //this.LaunchServerBrowserUpdateThread();
             this.LaunchDatabaseWriterThread();
         }
 
@@ -606,28 +604,28 @@ namespace Goose
 
         public void LaunchServerBrowserUpdateThread()
         {
-            Task.Factory.StartNew(() =>
-            {
-                while (true)
-                {
-                    try
-                    {
-                        new GooseServerBrowserClient("http://goose.ddns.net:3000/").Register(new GooseServerBrowserService.Contract.RegisterRequest()
-                        {
-                            ServerName = GameSettings.Default.ServerName,
-                            PlayerCount = this.PlayerHandler.PlayerCount,
-                            Port = GameSettings.Default.GameServerPort,
-                            Version = GameSettings.Default.ServerVersion,
-                        });
-                    }
-                    catch
-                    {
+            //Task.Factory.StartNew(() =>
+            //{
+            //    while (true)
+            //    {
+            //        try
+            //        {
+            //            new GooseServerBrowserClient("http://goose.ddns.net:3000/").Register(new GooseServerBrowserService.Contract.RegisterRequest()
+            //            {
+            //                ServerName = GameSettings.Default.ServerName,
+            //                PlayerCount = this.PlayerHandler.PlayerCount,
+            //                Port = GameSettings.Default.GameServerPort,
+            //                Version = GameSettings.Default.ServerVersion,
+            //            });
+            //        }
+            //        catch
+            //        {
 
-                    }
+            //        }
 
-                    Thread.Sleep(TimeSpan.FromMinutes(2));
-                }
-            }, TaskCreationOptions.LongRunning);
+            //        Thread.Sleep(TimeSpan.FromMinutes(2));
+            //    }
+            //}, TaskCreationOptions.LongRunning);
         }
 
         public void LoadGlobalScripts()

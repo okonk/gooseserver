@@ -61,9 +61,7 @@ namespace Goose.sql {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to USE IllutiaGoose;
-        ///
-        ///--DROP TABLE bank_items;
+        ///   Looks up a localized string similar to --DROP TABLE bank_items;
         ///CREATE TABLE bank_items (
         ///  npc_id INT NOT NULL,
         ///  player_id INT NOT NULL,
@@ -81,22 +79,18 @@ namespace Goose.sql {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to USE IllutiaGoose;
-        ///
-        ///DROP TABLE classes;
+        ///   Looks up a localized string similar to DROP TABLE IF EXISTS classes;
         ///CREATE TABLE classes (
-        ///  class_id INT IDENTITY(1, 1) NOT NULL,
-        ///  class_name VARCHAR(32) NOT NULL,
+        ///  class_id INTEGER PRIMARY KEY,
+        ///  class_name TEXT NOT NULL,
         ///  ac_multiplier DECIMAL(9,2) DEFAULT 1 NOT NULL,
         ///  vita_cost BIGINT DEFAULT 200000 NOT NULL,
-        ///  mana_cost BIGINT DEFAULT 200000 NOT NULL,
-        ///  
-        ///  PRIMARY KEY(class_id)
+        ///  mana_cost BIGINT DEFAULT 200000 NOT NULL
         ///);
         ///
-        ///SET IDENTITY_INSERT classes ON;
         ///INSERT INTO classes (class_id, class_name, ac_multiplier, vita_cost, mana_cost) VALUES (1, &apos;Commoner&apos;, 1, 10000, 10000);
-        ///INSERT INTO classes (class_id, class_na [rest of string was truncated]&quot;;.
+        ///INSERT INTO classes (class_id, class_name, ac_multiplier, vita_cost, mana_cost) VALUES (2, &apos;Rogue&apos;, 0.65, 150000, 150000);
+        ///INSE [rest of string was truncated]&quot;;.
         /// </summary>
         internal static string classes {
             get {
@@ -105,23 +99,21 @@ namespace Goose.sql {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to USE IllutiaGoose;
-        ///
-        ///DROP TABLE combination_item_required;
+        ///   Looks up a localized string similar to DROP TABLE IF EXISTS combination_item_required;
         ///CREATE TABLE combination_item_required (
         ///	combination_id INT NOT NULL,
-        ///	item_template_id INT NOT NULL,
+        ///	item_template_id INT NOT NULL
         ///);
         ///
-        ///DROP TABLE combination_item_results;
+        ///DROP TABLE IF EXISTS combination_item_results;
         ///CREATE TABLE combination_item_results (
         ///	combination_id INT NOT NULL,
-        ///	item_template_id INT NOT NULL,
+        ///	item_template_id INT NOT NULL
         ///);
         ///
-        ///DROP TABLE combinations;
+        ///DROP TABLE IF EXISTS combinations;
         ///CREATE TABLE combinations (
-        ///	combination_id INT IDENTITY(1,1) NOT NULL,
+        ///	combination_id INTEGER PRIMARY KEY,
         ///	combination_name VARCHAR(64) NOT NULL,
         ///	min_level INT DEFAULT 1 NOT NULL,
         ///	max_level INT [rest of string was truncated]&quot;;.
@@ -133,14 +125,10 @@ namespace Goose.sql {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to USE IllutiaGoose;
-        ///
-        ///CREATE TABLE guilds (
-        ///  guild_id INT IDENTITY(1,1) NOT NULL,
-        ///  guild_name VARCHAR(64) NOT NULL,
-        ///  guild_motd VARCHAR(256) DEFAULT &apos;&apos; NOT NULL,
-        ///  
-        ///  PRIMARY KEY (guild_id)
+        ///   Looks up a localized string similar to CREATE TABLE guilds (
+        ///  guild_id INTEGER PRIMARY KEY,
+        ///  guild_name TEXT NOT NULL,
+        ///  guild_motd TEXT DEFAULT &apos;&apos; NOT NULL
         ///);
         ///
         ///CREATE TABLE guild_members (
@@ -148,8 +136,11 @@ namespace Goose.sql {
         ///	player_id INT NOT NULL,
         ///	guild_rank SMALLINT DEFAULT 1 NOT NULL,
         ///
-        ///	PRIMARY KEY (guild_id, player_id),
-        ///    --INDEX guild_members_guild_id_idx (guild_id) -- not currently active, could be dodgy since DB contains multiple values for guild_id, player_i [rest of string was truncated]&quot;;.
+        ///	PRIMARY KEY (guild_id, player_id)
+        ///);
+        ///
+        ///CREATE INDEX guild_members_guild_id_idx ON guild_members(guild_id); -- not currently active, could be dodgy since DB contains multiple values for guild_id, player_id already which violates the index
+        ///.
         /// </summary>
         internal static string guilds {
             get {
@@ -158,21 +149,20 @@ namespace Goose.sql {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to USE IllutiaGoose;
-        ///
-        ///DROP TABLE item_templates;
+        ///   Looks up a localized string similar to DROP TABLE IF EXISTS item_templates;
         ///CREATE TABLE item_templates (
-        ///  item_template_id INT IDENTITY(1, 1) NOT NULL,
+        ///  item_template_id INTEGER PRIMARY KEY,
         ///  item_usetype SMALLINT NOT NULL,
-        ///  item_name VARCHAR(64) NOT NULL,
-        ///  item_description VARCHAR(64) DEFAULT &apos;&apos; NOT NULL,
+        ///  item_name TEXT NOT NULL,
+        ///  item_description TEXT DEFAULT &apos;&apos; NOT NULL,
         ///  player_hp INT DEFAULT 0 NOT NULL,
         ///  player_mp INT DEFAULT 0 NOT NULL,
         ///  player_sp INT DEFAULT 0 NOT NULL,
         ///  stat_ac SMALLINT DEFAULT 0 NOT NULL,
         ///  stat_str SMALLINT DEFAULT 0 NOT NULL,
         ///  stat_sta SMALLINT DEFAULT 0 NOT NULL,
-        ///  stat_dex SMALLINT DEFAULT [rest of string was truncated]&quot;;.
+        ///  stat_dex SMALLINT DEFAULT 0 NOT NULL,
+        ///  stat_int SMALLINT [rest of string was truncated]&quot;;.
         /// </summary>
         internal static string items {
             get {
@@ -181,17 +171,15 @@ namespace Goose.sql {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to USE IllutiaGoose;
-        ///
-        ///CREATE TABLE logs (
-        ///  text VARCHAR(255), 
+        ///   Looks up a localized string similar to CREATE TABLE logs (
+        ///  text TEXT, 
         ///  log_type INT NOT NULL, 
         ///  playerid INT NOT NULL, 
         ///  otherid INT, 
         ///  mapid SMALLINT, 
         ///  mapx SMALLINT, 
         ///  mapy SMALLINT,
-        ///  log_date DATETIME2 NOT NULL,
+        ///  log_date DATETIME2 NOT NULL
         ///);.
         /// </summary>
         internal static string logs {
@@ -201,15 +189,11 @@ namespace Goose.sql {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to USE IllutiaGoose;
-        ///
-        ///DROP TABLE maps;
-        ///GO
-        ///
+        ///   Looks up a localized string similar to DROP TABLE IF EXISTS maps;
         ///CREATE TABLE maps (
-        ///  map_id SMALLINT IDENTITY(1, 1) NOT NULL,
-        ///  map_name VARCHAR(50) NOT NULL,
-        ///  map_filename VARCHAR(50) NOT NULL,
+        ///  map_id INTEGER PRIMARY KEY,
+        ///  map_name TEXT NOT NULL,
+        ///  map_filename TEXT NOT NULL,
         ///  map_x SMALLINT DEFAULT 100 NOT NULL,
         ///  map_y SMALLINT DEFAULT 100 NOT NULL,
         ///  
@@ -219,7 +203,8 @@ namespace Goose.sql {
         ///  max_experience BIGINT DEFAULT 0 NOT NULL,
         ///  
         ///  pvp_enabled CHAR(1) DEFAULT &apos;0&apos; NOT NULL,
-        ///  chat_enabled CHAR(1)  [rest of string was truncated]&quot;;.
+        ///  chat_enabled CHAR(1) DEFAULT &apos;1&apos; NOT NULL,
+        ///  auction_enabled CHA [rest of string was truncated]&quot;;.
         /// </summary>
         internal static string maps {
             get {
@@ -228,21 +213,20 @@ namespace Goose.sql {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to USE IllutiaGoose;
-        ///
-        ///DROP TABLE npc_templates;
+        ///   Looks up a localized string similar to DROP TABLE IF EXISTS npc_templates;
         ///CREATE TABLE npc_templates (
-        ///  npc_id INT IDENTITY(1,1) NOT NULL,
+        ///  npc_id INTEGER PRIMARY KEY,
         ///  npc_type SMALLINT DEFAULT 2 NOT NULL,
-        ///  npc_name VARCHAR(50) NOT NULL,
-        ///  npc_title VARCHAR(50) DEFAULT &apos; &apos; NOT NULL,
-        ///  npc_surname VARCHAR(50) DEFAULT &apos; &apos; NOT NULL,
+        ///  npc_name TEXT NOT NULL,
+        ///  npc_title TEXT DEFAULT &apos; &apos; NOT NULL,
+        ///  npc_surname TEXT DEFAULT &apos; &apos; NOT NULL,
         ///  respawn_time INT DEFAULT 0 NOT NULL,
         ///  npc_facing SMALLINT DEFAULT 3 NOT NULL,
         ///  npc_level SMALLINT DEFAULT 1 NOT NULL,
         ///  experience BIGINT DEFAULT 0 NOT NULL,
         ///  aggro_range SMALLINT DEFAULT 0 NOT NULL,
-        ///  attack_range  [rest of string was truncated]&quot;;.
+        ///  attack_range SMALLINT DEFAULT 0 NOT NULL,
+        ///  attack_ [rest of string was truncated]&quot;;.
         /// </summary>
         internal static string npcs {
             get {
@@ -271,15 +255,13 @@ namespace Goose.sql {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to USE IllutiaGoose;
-        ///
-        ///CREATE TABLE paypal_logs (
+        ///   Looks up a localized string similar to CREATE TABLE paypal_logs (
         ///  request TEXT NOT NULL
         ///);
         ///
         ///CREATE TABLE paypal_payments (
-        ///  txn_id VARCHAR(17) NOT NULL,
-        ///  player_name VARCHAR(50) NOT NULL, 
+        ///  txn_id TEXT NOT NULL,
+        ///  player_name TEXT NOT NULL, 
         ///  credits SMALLINT NOT NULL, 
         ///  price DECIMAL(5, 2) NOT NULL, 
         ///  redeemed CHAR(1) DEFAULT &apos;0&apos; NOT NULL,
@@ -294,22 +276,20 @@ namespace Goose.sql {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to USE IllutiaGoose;
-        ///
-        ///DROP TABLE pets;
+        ///   Looks up a localized string similar to DROP TABLE IF EXISTS pets;
         ///CREATE TABLE pets (
-        ///  pet_id INT NOT NULL,
+        ///  pet_id INT PRIMARY KEY,
         ///  owner_id INT NOT NULL,
-        ///  pet_name VARCHAR(50) NOT NULL,
-        ///  pet_title VARCHAR(50) DEFAULT &apos; &apos; NOT NULL,
-        ///  pet_surname VARCHAR(50) DEFAULT &apos; &apos; NOT NULL,
+        ///  pet_name TEXT NOT NULL,
+        ///  pet_title TEXT DEFAULT &apos; &apos; NOT NULL,
+        ///  pet_surname TEXT DEFAULT &apos; &apos; NOT NULL,
         ///  respawn_time INT DEFAULT 0 NOT NULL,
         ///  next_respawn_time BIGINT DEFAULT 0 NOT NULL,
         ///  pet_facing SMALLINT DEFAULT 3 NOT NULL,
         ///  pet_level SMALLINT DEFAULT 1 NOT NULL,
         ///  experience BIGINT DEFAULT 0 NOT NULL,
         ///  experience_sold BIGINT DEFAULT 0 NOT NULL,
-        ///  aggro_rang [rest of string was truncated]&quot;;.
+        ///  aggro_range SMALLINT DEFAULT 0 NOT NULL [rest of string was truncated]&quot;;.
         /// </summary>
         internal static string pets {
             get {
@@ -318,21 +298,20 @@ namespace Goose.sql {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to USE IllutiaGoose;
-        ///
-        ///CREATE TABLE players (
-        ///  player_id INT NOT NULL,
-        ///  player_name VARCHAR(50) NOT NULL,
-        ///  player_title VARCHAR(50) DEFAULT &apos;&apos; NOT NULL,
-        ///  player_surname VARCHAR(50) DEFAULT &apos;&apos; NOT NULL,
-        ///  password_hash CHAR(32) NOT NULL,
-        ///  password_salt VARCHAR(50) NOT NULL,
+        ///   Looks up a localized string similar to CREATE TABLE players (
+        ///  player_id INT PRIMARY KEY,
+        ///  player_name TEXT NOT NULL,
+        ///  player_title TEXT DEFAULT &apos;&apos; NOT NULL,
+        ///  player_surname TEXT DEFAULT &apos;&apos; NOT NULL,
+        ///  password_hash TEXT NOT NULL,
+        ///  password_salt TEXT NOT NULL,
         ///  access_status SMALLINT DEFAULT 2 NOT NULL,
         ///  map_id SMALLINT DEFAULT 1 NOT NULL,
         ///  map_x SMALLINT DEFAULT 50 NOT NULL,
         ///  map_y SMALLINT DEFAULT 50 NOT NULL,
         ///  player_facing SMALLINT DEFAULT 2 NOT NULL,
-        ///  bound_id SMALLINT [rest of string was truncated]&quot;;.
+        ///  bound_id SMALLINT DEFAULT 1 NOT NULL,
+        ///  bound_x SMALLINT DEFAULT 5 [rest of string was truncated]&quot;;.
         /// </summary>
         internal static string players {
             get {
@@ -341,11 +320,9 @@ namespace Goose.sql {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to USE IllutiaGoose;
-        ///
-        ///DROP TABLE quests;
+        ///   Looks up a localized string similar to DROP TABLE IF EXISTS quests;
         ///CREATE TABLE quests (
-        ///  id INT IDENTITY(1,1) NOT NULL,
+        ///  id INTEGER PRIMARY KEY,
         ///  name TEXT NOT NULL,
         ///  description TEXT DEFAULT &apos;&apos; NOT NULL,
         ///  fail_text TEXT DEFAULT &apos;&apos; NOT NULL,
@@ -357,7 +334,7 @@ namespace Goose.sql {
         ///  repeatable CHAR(1) DEFAULT &apos;0&apos;,
         ///  show_progress CHAR(1) DEFAULT &apos;0&apos;,
         ///  only_one_player_can_complete CHAR(1) DEFAULT &apos;0&apos;,
-        ///  prerequisite_que [rest of string was truncated]&quot;;.
+        ///  prerequisite_quests TEXT DEFAULT &apos; [rest of string was truncated]&quot;;.
         /// </summary>
         internal static string quests {
             get {
@@ -366,13 +343,11 @@ namespace Goose.sql {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to USE IllutiaGoose;
-        ///
-        ///DROP TABLE spells;
+        ///   Looks up a localized string similar to DROP TABLE IF EXISTS spells;
         ///CREATE TABLE spells (
-        ///  spell_id INT IDENTITY(1,1) NOT NULL,
-        ///  spell_name VARCHAR(64) NOT NULL,
-        ///  spell_description VARCHAR(128) DEFAULT &apos;&apos; NOT NULL,
+        ///  spell_id INTEGER PRIMARY KEY,
+        ///  spell_name TEXT NOT NULL,
+        ///  spell_description TEXT DEFAULT &apos;&apos; NOT NULL,
         ///  spell_target INT NOT NULL,
         ///  class_restrictions BIGINT DEFAULT 0 NOT NULL, /* if bit not set class id can cast */
         ///  spell_aether BIGINT DEFAULT 100 NOT NULL, /* Aether in milliseconds */
@@ -380,7 +355,7 @@ namespace Goose.sql {
         ///  spellbook_graphic_file INT NOT NULL,
         ///  
         ///  hp_static_cost INT DEFAULT 0 NOT NULL,
-        ///  hp [rest of string was truncated]&quot;;.
+        ///  hp_percent_cost DECIMAL(9,4) DEFAUL [rest of string was truncated]&quot;;.
         /// </summary>
         internal static string spells {
             get {
@@ -389,24 +364,17 @@ namespace Goose.sql {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to USE IllutiaGoose;
-        ///
-        ///DROP TABLE warptiles;
+        ///   Looks up a localized string similar to DROP TABLE IF EXISTS warptiles;
         ///CREATE TABLE warptiles (
-        ///  id INT IDENTITY(1,1) NOT NULL,
         ///  map_id SMALLINT NOT NULL,
         ///  map_x SMALLINT NOT NULL,
         ///  map_y SMALLINT NOT NULL,
         ///  warp_id SMALLINT NOT NULL,
         ///  warp_x SMALLINT NOT NULL,
-        ///  warp_y SMALLINT NOT NULL,
-        ///  PRIMARY KEY (id),
-        ///  INDEX warptiles_map_id_idx (map_id)
+        ///  warp_y SMALLINT NOT NULL
         ///);
         ///
-        ///SET IDENTITY_INSERT warptiles ON;
-        ///
-        ///SET IDENTITY_INSERT warptiles OFF;.
+        ///CREATE INDEX warptiles_map_id_idx ON warptiles(map_id);.
         /// </summary>
         internal static string warptiles {
             get {
@@ -415,13 +383,11 @@ namespace Goose.sql {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to USE IllutiaGoose;
-        ///
-        ///DROP TABLE wordfilter;
+        ///   Looks up a localized string similar to DROP TABLE IF EXISTS wordfilter;
         ///
         ///CREATE TABLE wordfilter (
-        ///  word VARCHAR(32) NOT NULL,
-        ///  filtered VARCHAR(32) NOT NULL
+        ///  word TEXT NOT NULL,
+        ///  filtered TEXT NOT NULL
         ///);
         ///
         ////*INSERT INTO wordfilter VALUES (&apos;raped&apos;, &apos;*****&apos;);
@@ -431,7 +397,7 @@ namespace Goose.sql {
         ///INSERT INTO wordfilter VALUES (&apos;fuck&apos;, &apos;****&apos;);
         ///INSERT INTO wordfilter VALUES (&apos;nigger&apos;, &apos;******&apos;);
         ///INSERT INTO wordfilter VALUES (&apos;nigga&apos;, &apos;*****&apos;);
-        ///INSERT INT [rest of string was truncated]&quot;;.
+        ///INSERT INTO wordfilter VALUES (&apos;cun [rest of string was truncated]&quot;;.
         /// </summary>
         internal static string wordfilter {
             get {
