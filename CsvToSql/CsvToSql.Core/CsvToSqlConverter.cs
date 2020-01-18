@@ -2,18 +2,15 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net.Http;
 using System.Text;
 
-namespace CsvToSql
+namespace CsvToSql.Core
 {
-    class Program
+    public class CsvToSqlConverter
     {
-        static void Main(string[] args)
+        public static string Convert()
         {
-            File.Delete("illutiaData.sql");
-
             var converterMapping = new Dictionary<string, dynamic>()
             {
                 { "Items", new { Converter = new ItemsCsvToSql(), Table = "item_templates" } },
@@ -34,9 +31,9 @@ namespace CsvToSql
                 { "Combination Item Result", new { Converter = new CombinationItemResultsCsvToSql(), Table = "combination_item_results" } },
             };
 
-            var spreadsheet = new MemoryStream(new HttpClient().GetByteArrayAsync("https://docs.google.com/spreadsheets/d/184bj0W8Ngxq3mXL1ydF7PDuKPJn_PgSMEfC44iwZhkc/export?format=xlsx&id=184bj0W8Ngxq3mXL1ydF7PDuKPJn_PgSMEfC44iwZhkc").Result);
+            var spreadsheet = new MemoryStream(new HttpClient().GetByteArrayAsync("https://docs.google.com/spreadsheets/u/0/d/1AE7SKm46KuAdr5mJk_u-Qn20C1Myg4Q6eyzxTb3Wqpo/export?format=xlsx&id=1AE7SKm46KuAdr5mJk_u-Qn20C1Myg4Q6eyzxTb3Wqpo").Result);
 
-            string sqlTemplate = CsvToSql.Properties.Resources.sqlTemplate;
+            string sqlTemplate = Properties.Resources.sqlTemplate;
             using (var workbook = new XLWorkbook(spreadsheet, XLEventTracking.Disabled))
             {
                 foreach (var worksheet in workbook.Worksheets)
@@ -49,7 +46,7 @@ namespace CsvToSql
                 }
             }
 
-            File.WriteAllText("illutiaData.sql", sqlTemplate);
+            return sqlTemplate;
         }
     }
 }

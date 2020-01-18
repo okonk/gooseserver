@@ -1,15 +1,9 @@
-USE IllutiaGoose;
-
-SET NOCOUNT ON;
-
-BEGIN TRY
-
-DROP TABLE item_templates;
+DROP TABLE IF EXISTS item_templates;
 CREATE TABLE item_templates (
-  item_template_id INT NOT NULL,
+  item_template_id INTEGER PRIMARY KEY,
   item_usetype SMALLINT NOT NULL,
-  item_name VARCHAR(64) NOT NULL,
-  item_description VARCHAR(64) DEFAULT '' NOT NULL,
+  item_name TEXT NOT NULL,
+  item_description TEXT DEFAULT '' NOT NULL,
   player_hp INT DEFAULT 0 NOT NULL,
   player_mp INT DEFAULT 0 NOT NULL,
   player_sp INT DEFAULT 0 NOT NULL,
@@ -51,20 +45,18 @@ CREATE TABLE item_templates (
   learn_spell_id INT DEFAULT 0 NOT NULL,
   credits_value INT DEFAULT 0 NOT NULL,
   script_path TEXT DEFAULT '' NOT NULL,
-  script_params TEXT DEFAULT '' NOT NULL,
-  
-  PRIMARY KEY(item_template_id)
+  script_params TEXT DEFAULT '' NOT NULL
 );
 
 {{item_templates}}
 
-DROP TABLE npc_templates;
+DROP TABLE IF EXISTS npc_templates;
 CREATE TABLE npc_templates (
-  npc_id INT NOT NULL,
+  npc_id INTEGER PRIMARY KEY,
   npc_type SMALLINT DEFAULT 2 NOT NULL,
-  npc_name VARCHAR(50) NOT NULL,
-  npc_title VARCHAR(50) DEFAULT ' ' NOT NULL,
-  npc_surname VARCHAR(50) DEFAULT ' ' NOT NULL,
+  npc_name TEXT NOT NULL,
+  npc_title TEXT DEFAULT ' ' NOT NULL,
+  npc_surname TEXT DEFAULT ' ' NOT NULL,
   respawn_time INT DEFAULT 0 NOT NULL,
   npc_facing SMALLINT DEFAULT 3 NOT NULL,
   npc_level SMALLINT DEFAULT 1 NOT NULL,
@@ -117,54 +109,47 @@ CREATE TABLE npc_templates (
   quest_ids TEXT DEFAULT '' NOT NULL,
   script_path TEXT DEFAULT 'Scripts/NPC/BaseNPC.csx' NOT NULL,
   script_params TEXT DEFAULT '' NOT NULL,
-  armor_pierce INT DEFAULT 0 NOT NULL,
-  
-  PRIMARY KEY(npc_id)
+  armor_pierce INT DEFAULT 0 NOT NULL
 );
 
 {{npc_templates}}
 
-DROP TABLE npc_spawns;
+DROP TABLE IF EXISTS npc_spawns;
 CREATE TABLE npc_spawns (
-  id INT IDENTITY(1, 1) NOT NULL,
   npc_id INT NOT NULL,
   map_id SMALLINT NOT NULL,
   map_x SMALLINT NOT NULL,
-  map_y SMALLINT NOT NULL,
-  
-  PRIMARY KEY(id)
+  map_y SMALLINT NOT NULL
 );
 
 {{npc_spawns}}
 
-DROP TABLE npc_drops;
+DROP TABLE IF EXISTS npc_drops;
 CREATE TABLE npc_drops (
   npc_template_id INT NOT NULL,
   item_template_id INT NOT NULL,
   stack INT NOT NULL,
-  droprate DECIMAL(9,4) NOT NULL,
-
-  INDEX npc_drops_npc_template_id_idx (npc_template_id)
+  droprate DECIMAL(9,4) NOT NULL
 );
 
 {{npc_drops}}
 
-DROP TABLE npc_vendor_items;
+DROP TABLE IF EXISTS npc_vendor_items;
 CREATE TABLE npc_vendor_items (
   npc_template_id INT NOT NULL,
   item_template_id INT NOT NULL,
   stack INT DEFAULT 1 NOT NULL,
   stats_visible CHAR(1) DEFAULT '1' NOT NULL,
-  slot INT NOT NULL,
-
-  INDEX npc_vendor_items_npc_template_id_idx (npc_template_id)
+  slot INT NOT NULL
 );
+
+CREATE INDEX npc_vendor_items_npc_template_id_idx ON npc_vendor_items(npc_template_id);
 
 {{npc_vendor_items}}
 
-DROP TABLE quests;
+DROP TABLE IF EXISTS quests;
 CREATE TABLE quests (
-  id INT NOT NULL,
+  id INTEGER PRIMARY KEY,
   name TEXT NOT NULL,
   description TEXT DEFAULT '' NOT NULL,
   fail_text TEXT DEFAULT '' NOT NULL,
@@ -176,46 +161,40 @@ CREATE TABLE quests (
   repeatable CHAR(1) DEFAULT '0',
   show_progress CHAR(1) DEFAULT '0',
   only_one_player_can_complete CHAR(1) DEFAULT '0',
-  prerequisite_quests TEXT DEFAULT '' NOT NULL,
- 
-  PRIMARY KEY (id)
+  prerequisite_quests TEXT DEFAULT '' NOT NULL
 );
 
 {{quests}}
 
-DROP TABLE quest_requirements;
+DROP TABLE IF EXISTS quest_requirements;
 CREATE TABLE quest_requirements (
-  id INT IDENTITY(1,1) NOT NULL,
+  id INTEGER PRIMARY KEY,
   quest_id INT NOT NULL,
   requirement_type INT NOT NULL,
   requirement_value BIGINT NOT NULL,
   requirement_value2 BIGINT DEFAULT 0,
-  keep_requirement CHAR(1) DEFAULT '0',
-  
-  PRIMARY KEY (id)
+  keep_requirement CHAR(1) DEFAULT '0'
 );
 
 {{quest_requirements}}
 
-DROP TABLE quest_rewards;
+DROP TABLE IF EXISTS quest_rewards;
 CREATE TABLE quest_rewards (
-  id INT IDENTITY(1,1) NOT NULL,
+  id INTEGER PRIMARY KEY,
   quest_id INT NOT NULL,
   reward_type INT NOT NULL,
   long_value BIGINT DEFAULT 0,
   long_value2 BIGINT DEFAULT 0,
-  string_value TEXT DEFAULT '',
-  
-  PRIMARY KEY (id)
+  string_value TEXT DEFAULT ''
 );
 
 {{quest_rewards}}
 
-DROP TABLE spells;
+DROP TABLE IF EXISTS spells;
 CREATE TABLE spells (
-  spell_id INT NOT NULL,
-  spell_name VARCHAR(64) NOT NULL,
-  spell_description VARCHAR(128) DEFAULT '' NOT NULL,
+  spell_id INTEGER PRIMARY KEY,
+  spell_name TEXT NOT NULL,
+  spell_description TEXT DEFAULT '' NOT NULL,
   spell_target INT NOT NULL,
   class_restrictions BIGINT DEFAULT 0 NOT NULL, /* if bit not set class id can cast */
   spell_aether BIGINT DEFAULT 100 NOT NULL, /* Aether in milliseconds */
@@ -229,17 +208,15 @@ CREATE TABLE spells (
   sp_static_cost INT DEFAULT 0 NOT NULL,
   sp_percent_cost DECIMAL(9,4) DEFAULT 0 NOT NULL,
 
-  spell_effect_id INT NOT NULL,
-  
-  PRIMARY KEY(spell_id)
+  spell_effect_id INT NOT NULL
 );
 
 {{spells}}
   
-DROP TABLE spell_effects;
+DROP TABLE IF EXISTS spell_effects;
 CREATE TABLE spell_effects (
-  spell_effect_id INT NOT NULL,
-  spell_effect_name VARCHAR(64) NOT NULL,
+  spell_effect_id INTEGER PRIMARY KEY,
+  spell_effect_name TEXT NOT NULL,
   spell_animation INT NOT NULL,
   spell_animation_file INT NOT NULL,
   spell_display INT NOT NULL,
@@ -251,7 +228,7 @@ CREATE TABLE spell_effects (
   max_level_effected INT DEFAULT 50 NOT NULL,
   
   effect_type INT NOT NULL,
-  effect_duration BIGINT DEFAULT 0 NOT NULL,
+  effect_duration BIGINT NOT NULL,
   
   do_attack_animation CHAR(1) DEFAULT '0' NOT NULL,
   do_cast_animation CHAR(1) DEFAULT '1' NOT NULL,
@@ -290,8 +267,8 @@ CREATE TABLE spell_effects (
   move_speed DECIMAL(9,4) DEFAULT 0 NOT NULL,
   body_id SMALLINT DEFAULT 0 NOT NULL,
   
-  oneffect_text VARCHAR(64) DEFAULT '' NOT NULL,
-  offeffect_text VARCHAR(64) DEFAULT '' NOT NULL,
+  oneffect_text TEXT DEFAULT '' NOT NULL,
+  offeffect_text TEXT DEFAULT '' NOT NULL,
   
   /* For permanent */
   face_id SMALLINT DEFAULT 0 NOT NULL,
@@ -334,33 +311,28 @@ CREATE TABLE spell_effects (
   only_hits_one_npc CHAR(1) DEFAULT '0' NOT NULL,
 
   script_path TEXT DEFAULT '' NOT NULL,
-  script_params TEXT DEFAULT '' NOT NULL,
-  
-  PRIMARY KEY (spell_effect_id)
+  script_params TEXT DEFAULT '' NOT NULL
 );
 
 {{spell_effects}}
 
-DROP TABLE warptiles;
+DROP TABLE IF EXISTS warptiles;
 CREATE TABLE warptiles (
-  id INT IDENTITY(1,1) NOT NULL,
   map_id SMALLINT NOT NULL,
   map_x SMALLINT NOT NULL,
   map_y SMALLINT NOT NULL,
   warp_id SMALLINT NOT NULL,
   warp_x SMALLINT NOT NULL,
-  warp_y SMALLINT NOT NULL,
-  PRIMARY KEY (id),
-  INDEX warptiles_map_id_idx (map_id)
+  warp_y SMALLINT NOT NULL
 );
 
 {{warptiles}}
 
-DROP TABLE maps;
+DROP TABLE IF EXISTS maps;
 CREATE TABLE maps (
-  map_id SMALLINT NOT NULL,
-  map_name VARCHAR(50) NOT NULL,
-  map_filename VARCHAR(50) NOT NULL,
+  map_id INTEGER PRIMARY KEY,
+  map_name TEXT NOT NULL,
+  map_filename TEXT NOT NULL,
   map_x SMALLINT DEFAULT 100 NOT NULL,
   map_y SMALLINT DEFAULT 100 NOT NULL,
   
@@ -379,57 +351,46 @@ CREATE TABLE maps (
   pets_enabled CHAR(1) DEFAULT '1' NOT NULL,
 
   script_path TEXT DEFAULT '' NOT NULL,
-  script_params TEXT DEFAULT '' NOT NULL,
-  
-  PRIMARY KEY(map_id)
+  script_data TEXT DEFAULT '' NOT NULL
 );
 
 {{maps}}
 
-DROP TABLE map_required_items;
+DROP TABLE IF EXISTS map_required_items;
 CREATE TABLE map_required_items (
-  map_id SMALLINT NOT NULL,
-  item_template_id INT NOT NULL,
-
-  INDEX map_required_items_map_id_idx (map_id)
+  map_id INT NOT NULL,
+  item_template_id INT NOT NULL
 );
+
+CREATE INDEX map_required_items_map_id_idx ON map_required_items(map_id);
 
 {{map_required_items}}
 
-DROP TABLE combinations;
+DROP TABLE IF EXISTS combinations;
 CREATE TABLE combinations (
-	combination_id INT NOT NULL,
+	combination_id INTEGER PRIMARY KEY,
 	combination_name VARCHAR(64) NOT NULL,
 	min_level INT DEFAULT 1 NOT NULL,
 	max_level INT DEFAULT 50 NOT NULL,
 	min_experience BIGINT DEFAULT 0 NOT NULL,
 	max_experience BIGINT DEFAULT 0 NOT NULL,
-	class_restrictions BIGINT DEFAULT 0 NOT NULL,
-	
-	PRIMARY KEY(combination_id)
+	class_restrictions BIGINT DEFAULT 0 NOT NULL
 );
 
 {{combinations}}
 
-DROP TABLE combination_item_required;
+DROP TABLE IF EXISTS combination_item_required;
 CREATE TABLE combination_item_required (
 	combination_id INT NOT NULL,
-	item_template_id INT NOT NULL,
+	item_template_id INT NOT NULL
 );
 
 {{combination_item_required}}
 
-DROP TABLE combination_item_results;
+DROP TABLE IF EXISTS combination_item_results;
 CREATE TABLE combination_item_results (
 	combination_id INT NOT NULL,
-	item_template_id INT NOT NULL,
+	item_template_id INT NOT NULL
 );
 
 {{combination_item_results}}
-
-END TRY
-BEGIN CATCH
-    --PRINT 'Error Line: ' + STR(ERROR_LINE()) + ', Message: ' + ERROR_MESSAGE();
-    --RETURN 1;
-    THROW;
-END CATCH
