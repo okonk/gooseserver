@@ -6,3 +6,4 @@ syntax: glob
 *.sln.ide/*
 packages/*
 .vs/*
+FodyWeavers.xsd
