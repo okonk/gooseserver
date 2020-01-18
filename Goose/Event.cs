@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Runtime.InteropServices;
+using System.Diagnostics;
 
 namespace Goose
 {
@@ -13,10 +14,6 @@ namespace Goose
         public Object Data { get; set; }
         public NPC NPC { get; set; }
 
-        [DllImport("Kernel32.dll")]
-        private static extern bool QueryPerformanceCounter(
-            out long lpPerformanceCount);
-
         /**
          * Constructor
          * 
@@ -24,10 +21,7 @@ namespace Goose
          */
         public Event()
         {
-            long highres;
-            QueryPerformanceCounter(out highres);
-            this.Ticks = highres;
-            //this.Ticks = DateTime.Now.Ticks;
+            this.Ticks = Stopwatch.GetTimestamp();
         }
 
         public abstract void Ready(GameWorld world);

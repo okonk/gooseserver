@@ -14,10 +14,6 @@ namespace Goose
      */
     public class EventHandler
     {
-        [DllImport("Kernel32.dll")]
-        private static extern bool QueryPerformanceCounter(
-            out long lpPerformanceCount);
-
         /**
          * SortedList acts like a priority queue
          * 
@@ -211,8 +207,7 @@ namespace Goose
          */
         public void Update(GameWorld world)
         {
-            long now; // High resolution timing
-            QueryPerformanceCounter(out now);
+            long now = world.TimeNow;
             int index;
 
             var readyEvents = (from e in this.events

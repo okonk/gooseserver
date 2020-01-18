@@ -15,6 +15,7 @@ using Newtonsoft.Json;
 using System.Data.SQLite;
 using Goose.sql;
 using System.Data.Common;
+using System.Diagnostics;
 
 namespace Goose
 {
@@ -32,13 +33,6 @@ namespace Goose
     public class GameWorld
     {
         private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
-
-        [DllImport("Kernel32.dll")]
-        private static extern bool QueryPerformanceCounter(
-            out long lpPerformanceCount);
-        [DllImport("Kernel32.dll")]
-        private static extern bool QueryPerformanceFrequency(
-            out long lpPerformanceFrequency);
 
         public PlayerHandler PlayerHandler { get; set; }
         public EventHandler EventHandler { get; set; }
@@ -72,9 +66,7 @@ namespace Goose
         {
             get
             {
-                long now;
-                GameWorld.QueryPerformanceCounter(out now);
-                return now;
+                return Stopwatch.GetTimestamp();
             }
         }
 
@@ -101,7 +93,7 @@ namespace Goose
          */
         public GameWorld(GameServer server)
         {
-            QueryPerformanceFrequency(out this.timerfreq);
+            this.timerfreq = Stopwatch.Frequency;
             this.rng = new Random();
 
             this.GameServer = server;
