@@ -41,7 +41,7 @@ namespace Goose.Events
                 Player player = world.PlayerHandler.GetPlayerFromData(name);
                 if (player == null)
                 {
-                    world.Send(this.Player, "$7Player " + name + " doesn't exist.");
+                    world.Send(this.Player, P.ServerMessage("Player " + name + " doesn't exist."));
                     return;
                 }
 
@@ -60,7 +60,7 @@ namespace Goose.Events
                         player.ClassID = 5;
                         break;
                     default:
-                        world.Send(this.Player, "$7Invalid class name.");
+                        world.Send(this.Player, P.ServerMessage("Invalid class name."));
                         return;
                 }
 
@@ -94,7 +94,7 @@ namespace Goose.Events
                     }
                 }
 
-                world.Send(this.Player, "$7Changed class successfully.");
+                world.Send(this.Player, P.ServerMessage("Changed class successfully."));
 
                 if (player.State != Goose.Player.States.NotLoggedIn)
                 {

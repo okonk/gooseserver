@@ -94,14 +94,14 @@ namespace Goose.Events
 
             if (name.Length <= 1 || password.Length <= 1)
             {
-                world.Send(new Player() { Sock = sock }, "LNOPlease use a longer username or password.");
+                world.Send(new Player() { Sock = sock }, P.LoginDenied("Please use a longer username or password."));
                 world.GameServer.Disconnect(sock);
                 return;
             }
 
             if (world.PlayerHandler.IsLoggedIn(name.ToLower()))
             {
-                world.Send(new Player() { Sock = sock }, "LNOCharacter is already logged in.");
+                world.Send(new Player() { Sock = sock }, P.LoginDenied("Character is already logged in."));
                 world.GameServer.Disconnect(sock);
                 return;
             }
@@ -118,7 +118,7 @@ namespace Goose.Events
                     {
                         if (created >= GameSettings.Default.NewCharactersPerDayPerIP)
                         {
-                            world.Send(new Player() { Sock = sock }, "LNOYou can't create any more characters today.");
+                            world.Send(new Player() { Sock = sock }, P.LoginDenied("You can't create any more characters today."));
                             world.GameServer.Disconnect(sock);
                             return;
                         }
@@ -132,7 +132,7 @@ namespace Goose.Events
                 {
                     if (!name.All(c => (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')))
                     {
-                        world.Send(new Player() { Sock = sock }, "LNOYour name must contain letters only.");
+                        world.Send(new Player() { Sock = sock }, P.LoginDenied("Your name must contain letters only."));
                         world.GameServer.Disconnect(sock);
                         return;
                     }
@@ -146,7 +146,7 @@ namespace Goose.Events
                 }
                 else
                 {
-                    world.Send(new Player() { Sock = sock }, "LNOCharacter does not exist.");
+                    world.Send(new Player() { Sock = sock }, P.LoginDenied("Character does not exist."));
                     world.GameServer.Disconnect(sock);
                     return;
                 }
@@ -168,7 +168,7 @@ namespace Goose.Events
                 {
                     world.LogHandler.Log(Log.Types.InvalidPassword, this.Player.PlayerID, IP);
 
-                    world.Send(this.Player, "LNOWrong password for character.");
+                    world.Send(this.Player, P.LoginDenied("Wrong password for character."));
                     world.GameServer.Disconnect(this.Player.Sock);
                     return;
                 }
@@ -196,7 +196,7 @@ namespace Goose.Events
 
                     if (player.Access == Player.AccessStatus.Banned)
                     {
-                        world.Send(this.Player, "LNOYou have been banned." + banRemaining);
+                        world.Send(this.Player, P.LoginDenied("You have been banned." + banRemaining));
                         world.GameServer.Disconnect(this.Player.Sock);
                         return;
                     }
@@ -205,7 +205,7 @@ namespace Goose.Events
 
             if (GameSettings.Default.LockdownModeEnabled && this.Player.Access != Player.AccessStatus.GameMaster)
             {
-                world.Send(this.Player, "LNOServer is currently under maintenance. Try again soon.");
+                world.Send(this.Player, P.LoginDenied("Server is currently under maintenance. Try again soon."));
                 world.GameServer.Disconnect(this.Player.Sock);
                 return;
             }
@@ -213,7 +213,7 @@ namespace Goose.Events
             world.PlayerHandler.AddPlayer(this.Player, world);
             if (this.Player.LoginID == 0)
             {
-                world.Send(this.Player, "LNOThe server is full. Try again later.");
+                world.Send(this.Player, P.LoginDenied("The server is full. Try again later."));
                 world.GameServer.Disconnect(this.Player.Sock);
                 world.PlayerHandler.RemovePlayer(this.Player);
                 return;
@@ -222,10 +222,10 @@ namespace Goose.Events
             world.LogHandler.Log(Log.Types.JoinGame, this.Player.PlayerID, IP);
 
             if (this.Player.Access != Goose.Player.AccessStatus.GameMaster)
-                world.SendToAll("$7" + this.Player.Name + " has joined the world.");
+                world.SendToAll(P.ServerMessage(this.Player.Name + " has joined the world."));
 
             this.Player.State = Player.States.LoadingGame;
-            world.Send(this.Player, "LOK" + GameSettings.Default.ServerName);
+            world.Send(this.Player, P.LoginAccepted(GameSettings.Default.ServerName));
 
             this.Player.Windows = new List<Window>();
             this.Player.LastPing = world.TimeNow;

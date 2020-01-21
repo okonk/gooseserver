@@ -55,7 +55,7 @@ namespace Goose.Events
             {
                 List<Player> range = pet.Map.GetPlayersInRange(pet);
 
-                string packet = "ATT" + pet.LoginID;
+                string packet = P.Attack(pet);
                 foreach (Player player in range)
                 {
                     world.Send(player, packet);

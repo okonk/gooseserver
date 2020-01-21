@@ -238,27 +238,6 @@ namespace Goose
             }
         }
 
-        public string SPPString(int targetId)
-        {
-            return "SPP" +
-                targetId + "," +
-                this.Animation + "," +
-                this.AnimationFile + "," +
-                "0," + // todo: what are these 0s? Sound maybe?
-                "0";
-        }
-
-        public string SPAString(int x, int y)
-        {
-            return "SPA" +
-                x + "," +
-                y + "," +
-                this.Animation + "," +
-                this.AnimationFile + "," +
-                "0," +
-                "0";
-        }
-
         private string GetPercentageDescription(string label, decimal value, string prefix)
         {
             if (value < 0)
@@ -525,11 +504,11 @@ namespace Goose
             }
             else
             {
-                packet = target.VPUString();
+                packet = P.VitalsPercentage(target);
                 if (target is Player)
                 {
                     world.Send((Player)target, packet);
-                    world.Send((Player)target, ((Player)target).SNFString());
+                    world.Send((Player)target, P.StatusInfo((Player)target));
                 }
                 foreach (Player player in range)
                 {
@@ -537,14 +516,14 @@ namespace Goose
                 }
             }
 
-            if (this.Animation != 0) packet = this.SPPString(target.LoginID);
-            if (this.DoCastAnimation) packet += "\x1" + "CST" + caster.LoginID;
+            if (this.Animation != 0) packet = P.SpellPlayer(target.LoginID, this.Animation);
+            if (this.DoCastAnimation) packet += "\x1" + P.Cast(caster);
 
             if (target is NPC && this.TauntAggro > 0)
             {
                 ((NPC)target).AddAggro((Player)caster, this.TauntAggro, true, world);
 
-                packet += "\x1" + "BT" + target.LoginID + ",60,Taunted";
+                packet += "\x1" + P.BattleTextYellow(target, "Taunted");
             }
 
             packet.TrimStart("\x1".ToCharArray());
@@ -581,12 +560,12 @@ namespace Goose
             ((Player)target).BoundY = target.MapY;
 
             List<Player> range = target.Map.GetPlayersInRange(target);
-            string packet = "BT" + target.LoginID + ",60,Bound";
+            string packet = P.BattleTextYellow(target, "Bound");
 
-            if (this.Animation != 0) packet += "\x1" + this.SPPString(target.LoginID);
-            if (this.DoCastAnimation) packet += "\x1" + "CST" + caster.LoginID;
+            if (this.Animation != 0) packet += "\x1" + P.SpellPlayer(target.LoginID, this.Animation);
+            if (this.DoCastAnimation) packet += "\x1" + P.Cast(caster);
 
-            world.Send((Player)target, "$7Your soul has been bound to this spot.");
+            world.Send((Player)target, P.ServerMessage("Your soul has been bound to this spot."));
             world.Send((Player)target, packet);
             foreach (Player player in range)
             {
@@ -634,13 +613,13 @@ namespace Goose
             }
 
             ((Player)target).AddRegenEvent(world);
-            string packet = ((Player)target).VPUString() + "\x1" + ((Player)target).CHPString();
+            string packet = P.VitalsPercentage((Player)target) + "\x1" + P.UpdateCharacter((Player)target);
 
-            if (this.Animation != 0) packet += "\x1" + this.SPPString(target.LoginID);
-            if (this.DoCastAnimation) packet += "\x1" + "CST" + caster.LoginID;
-            if (this.OnEffectText != "") world.Send((Player)target, "$7" + this.OnEffectText);
+            if (this.Animation != 0) packet += "\x1" + P.SpellPlayer(target.LoginID, this.Animation);
+            if (this.DoCastAnimation) packet += "\x1" + P.Cast(caster);
+            if (this.OnEffectText != "") world.Send((Player)target, P.ServerMessage(this.OnEffectText));
 
-            world.Send((Player)target, ((Player)target).SNFString());
+            world.Send((Player)target, P.StatusInfo((Player)target));
             world.Send((Player)target, packet);
             foreach (Player player in range)
             {
@@ -660,7 +639,6 @@ namespace Goose
 
             if (target is Pet && this.BodyID > 0)
             {
-                Console.WriteLine("OMG DONT CRASH MY SERVER " + caster.Name);
                 // TODO: Is the crash fixed, or am I just logging it?
             }
 
@@ -668,7 +646,7 @@ namespace Goose
             if (this.EffectType == EffectTypes.Stun)
             {
                 List<Player> range = target.Map.GetPlayersInRange(target);
-                string packet = "BT" + target.LoginID + ",50";
+                string packet = P.BattleTextStunned(target);
 
                 if (target is Player) world.Send((Player)target, packet);
                 foreach (Player player in range)
@@ -679,7 +657,7 @@ namespace Goose
             else if (this.EffectType == EffectTypes.Root)
             {
                 List<Player> range = target.Map.GetPlayersInRange(target);
-                string packet = "BT" + target.LoginID + ",11";
+                string packet = P.BattleTextRooted(target);
 
                 if (target is Player) world.Send((Player)target, packet);
                 foreach (Player player in range)
@@ -721,8 +699,7 @@ namespace Goose
             {
                 List<Player> range = target.Map.GetPlayersInRange(target);
 
-                string packet = this.SPPString(target.LoginID);
-
+                string packet = P.SpellPlayer(target.LoginID, this.Animation);
                 world.Send((Player)target, packet);
                 foreach (Player player in range)
                 {
@@ -816,7 +793,7 @@ namespace Goose
 
             if (player.Pets.Count == GameSettings.Default.PetCountLimit)
             {
-                world.Send(player, "$7You have reached the maximum amount of pets. Use /petdelete <id> to release one");
+                world.Send(player, P.ServerMessage("You have reached the maximum amount of pets. Use /petdelete <id> to release one."));
                 return false;
             }
 
@@ -829,13 +806,13 @@ namespace Goose
             {
                 Pet newpet = Pet.FromCharacter((NPC)target);
                 player.AddPet(newpet);
-                world.Send(player, "$7Successfully tamed " + target.Name + ".");
+                world.Send(player, P.ServerMessage("Successfully tamed " + target.Name + "."));
                 newpet.SaveToDatabase(world);
                 return true;
             }
             else
             {
-                world.Send(player, "$7Failed to tame " + target.Name + ". (" + target.MaxHP + " hp)");
+                world.Send(player, P.ServerMessage("Failed to tame " + target.Name + ". (" + target.MaxHP + " hp)"));
                 return false;
             }
         }
@@ -1068,8 +1045,8 @@ namespace Goose
 
                 bool hitone = false;
 
-                if (this.DoAttackAnimation) packet += "ATT" + caster.LoginID;
-                if (this.DoCastAnimation) packet += "\x1" + "CST" + caster.LoginID;
+                if (this.DoAttackAnimation) packet += P.Attack(caster);
+                if (this.DoCastAnimation) packet += "\x1" + P.Cast(caster);
 
                 if (this.TargetType == TargetTypes.LineFront)
                 {
@@ -1094,7 +1071,7 @@ namespace Goose
                         }
                         if (this.Display == SpellDisplays.Tile && this.Animation != 0)
                         {
-                            packet += "\x1" + this.SPAString(x, y);
+                            packet += "\x1" + P.SpellTile(x, y, this.Animation, this.AnimationFile);
                         }
 
                         if (hitone) break;
@@ -1114,7 +1091,7 @@ namespace Goose
                             }
                             if (this.Display == SpellDisplays.Tile && this.Animation != 0)
                             {
-                                packet += "\x1" + this.SPAString(x, y);
+                                packet += "\x1" + P.SpellTile(x, y, this.Animation, this.AnimationFile);
                             }
 
                             if (hitone) break;
@@ -1139,7 +1116,7 @@ namespace Goose
                                 }
                                 if (this.Display == SpellDisplays.Tile && this.Animation != 0)
                                 {
-                                    packet += "\x1" + this.SPAString(x, y);
+                                    packet += "\x1" + P.SpellTile(x, y, this.Animation, this.AnimationFile);
                                 }
                             }
                             if (hitone) break;
@@ -1163,7 +1140,7 @@ namespace Goose
                                 }
                                 if (this.Display == SpellDisplays.Tile && this.Animation != 0)
                                 {
-                                    packet += "\x1" + this.SPAString(x, y);
+                                    packet += "\x1" + P.SpellTile(x, y, this.Animation, this.AnimationFile);
                                 }
                             }
                             if (hitone) break;
@@ -1223,7 +1200,7 @@ namespace Goose
                         }
                         if (this.Display == SpellDisplays.Tile && this.Animation != 0)
                         {
-                            packet += "\x1" + this.SPAString(p.x, p.y);
+                            packet += "\x1" + P.SpellTile(p.x, p.y, this.Animation, this.AnimationFile);
                         }
                         if (hitone) break;
                     }
@@ -1283,7 +1260,7 @@ namespace Goose
 
                             if (this.Display == SpellDisplays.Tile && this.Animation != 0)
                             {
-                                packet += "\x1" + this.SPAString(x, y);
+                                packet += "\x1" + P.SpellTile(x, y, this.Animation, this.AnimationFile);
                             }
 
                             if (hitone) break;

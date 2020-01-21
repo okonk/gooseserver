@@ -26,7 +26,7 @@ namespace Goose.Events
                 if (player != null)
                 {
                     player.Access = Player.AccessStatus.Normal;
-                    world.Send(this.Player, "$7Unbanned " + name + ".");
+                    world.Send(this.Player, P.ServerMessage("Unbanned " + name + "."));
 
                     if (player.State == Goose.Player.States.NotLoggedIn)
                     {
@@ -35,7 +35,7 @@ namespace Goose.Events
                 }
                 else
                 {
-                    world.Send(this.Player, "$7Couldn't find player.");
+                    world.Send(this.Player, P.ServerMessage("Couldn't find player."));
                 }
             }
         }

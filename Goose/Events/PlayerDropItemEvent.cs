@@ -67,7 +67,7 @@ namespace Goose.Events
                 {
                     maptile.ItemSlot.Stack += drop.Stack;
 
-                    world.SendToMap(this.Player.Map, maptile.MOBString());
+                    world.SendToMap(this.Player.Map, P.MakeObject(maptile));
                 }
                 else
                 {

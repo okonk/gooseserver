@@ -28,7 +28,7 @@ namespace Goose.Events
                     }
                 }
 
-                world.SendToMap(this.Player.Map, "$7Respawned all NPCs.");
+                world.SendToMap(this.Player.Map, P.ServerMessage("Respawned all NPCs."));
 
                 world.LogHandler.Log(Log.Types.RespawnMap,
                     this.Player.PlayerID, "",

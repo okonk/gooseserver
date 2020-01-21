@@ -31,14 +31,14 @@ namespace Goose.Events
                if (this.Player.Gold < GameSettings.Default.GuildCreationCost)
                {
                    world.Send(this.Player, 
-                       "$7You need " + GameSettings.Default.GuildCreationCost + "gp to create a guild.");
+                       P.ServerMessage("You need " + GameSettings.Default.GuildCreationCost + "gp to create a guild."));
                    return;
                }
 
                string name = ((string)this.Data).Substring(13);
-               if (name.Length <= 3 || name.Length > 64)
+               if (name.Length <= 3 || name.Length > 128)
                {
-                   world.Send(this.Player, "$7Your guild name needs to be between 3 and 64 characters.");
+                   world.Send(this.Player, P.ServerMessage("Your guild name needs to be between 3 and 128 characters."));
                    return;
                }
 
@@ -55,8 +55,7 @@ namespace Goose.Events
                this.Player.Guild.AddMember(this.Player.PlayerID, Guild.GuildRanks.Leader, true, true);
                this.Player.Guild.OnlineMembers.Add(this.Player);
 
-               this.Player.Guild.SendToGuild("$2[guild-notice] MOTD: " + GameSettings.Default.DefaultGuildMOTD, 
-                   world);
+               this.Player.Guild.SendToGuild(P.GuildMessage("[guild-notice] MOTD: " + GameSettings.Default.DefaultGuildMOTD), world);
 
                world.GuildHandler.AddGuild(this.Player.Guild);
            }

@@ -39,7 +39,7 @@ namespace Goose.Events
                     player.Access = Player.AccessStatus.Banned;
                     this.Player.UnbanDate = DateTime.Now.AddDays(daysToBan);
 
-                    world.Send(this.Player, "$7Banned " + tokens[1] + " for " + daysToBan + " days.");
+                    world.Send(this.Player, P.ServerMessage("Banned " + tokens[1] + " for " + daysToBan + " days."));
 
                     world.LogHandler.Log(Log.Types.Ban, this.Player.PlayerID, "", player.PlayerID);
 
@@ -54,7 +54,7 @@ namespace Goose.Events
                 }
                 else
                 {
-                    world.Send(this.Player, "$7Couldn't find player.");
+                    world.Send(this.Player, P.ServerMessage("Couldn't find player."));
                 }
             }
         }

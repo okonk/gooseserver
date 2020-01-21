@@ -119,7 +119,7 @@ namespace Goose.Quests
             int lineNo = 1;
             foreach (var line in lines)
             {
-                world.Send(player, string.Format("WNF{0},{1},{2}|0|0|0|0|*", this.ID, lineNo, line));
+                world.Send(player, P.WindowTextLine(this.ID, lineNo, line));
 
                 lineNo++;
             }
@@ -301,7 +301,7 @@ namespace Goose.Quests
 
         private void GiveRewards(NPC npc, Player player, GameWorld world)
         {
-            string prefix = "$7[Quest Reward]: ";
+            string prefix = "[Quest Reward]: ";
             foreach (var reward in quest.Rewards)
             {
                 string rewardMessage = null;
@@ -437,7 +437,7 @@ namespace Goose.Quests
                 }
 
                 if (rewardMessage != null)
-                    world.Send(player, rewardMessage);
+                    world.Send(player, P.ServerMessage(rewardMessage));
             }
         }
 

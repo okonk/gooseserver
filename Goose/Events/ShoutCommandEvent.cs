@@ -28,13 +28,12 @@ namespace Goose.Events
 
                 if ((!this.Player.Map.CanShout || this.Player.Map.Muted) && !this.Player.HasPrivilege(AccessPrivilege.TalkWhileMuted))
                 {
-                    world.Send(this.Player, "#Shouting is disabled in this map.");
+                    world.Send(this.Player, P.HashMessage("Shouting is disabled in this map."));
                     return;
                 }
 
-                //world.SendToMap(this.Player.Map, "#" + this.Player.Name + " shouts: " + data);
-                string packet = "#" + this.Player.Name + " shouts: " + data;
-                string filteredpacket = "#" + this.Player.Name + " shouts: ";
+                string packet = P.HashMessage(this.Player.Name + " shouts: " + data);
+                string filteredpacket = P.HashMessage(this.Player.Name + " shouts: ");
                 bool filtered = false;
 
                 world.LogHandler.Log(Log.Types.Shout, this.Player.PlayerID, data, 0, this.Player.Map.ID, this.Player.MapX, this.Player.MapY);

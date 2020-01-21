@@ -115,13 +115,13 @@ namespace Goose
          */
         public void JoinGuild(Player player, GameWorld world)
         {
-            this.SendToGuild("$2[guild-notice] " + player.Name + " has joined the guild.", world);
+            this.SendToGuild(P.GuildMessage("[guild-notice] " + player.Name + " has joined the guild."), world);
             this.AddMember(player.PlayerID, GuildRanks.Member, true, true);
             this.OnlineMembers.Add(player);
             player.Guild = this;
             if (this.ID != 0) player.GuildID = this.ID;
-            world.Send(player, "$2[guild-notice] You have joined " + this.Name + ".");
-            world.Send(player, player.SNFString());
+            world.Send(player, P.GuildMessage("[guild-notice] You have joined " + this.Name + "."));
+            world.Send(player, P.StatusInfo(player));
         }
 
         /**
@@ -147,15 +147,15 @@ namespace Goose
             player.Guild = null;
             if (kicked)
             {
-                this.SendToGuild("$2[guild-notice] " + player.Name + " was kicked from the guild.", world);
-                world.Send(player, "$2[guild-notice] You were kicked from the guild.");
+                this.SendToGuild(P.GuildMessage("[guild-notice] " + player.Name + " was kicked from the guild."), world);
+                world.Send(player, P.GuildMessage("[guild-notice] You were kicked from the guild."));
             }
             else
             {
-                this.SendToGuild("$2[guild-notice] " + player.Name + " left the guild.", world);
-                world.Send(player, "$2[guild-notice] You left the guild.");
+                this.SendToGuild(P.GuildMessage("[guild-notice] " + player.Name + " left the guild."), world);
+                world.Send(player, P.GuildMessage("[guild-notice] You left the guild."));
             }
-            world.Send(player, player.SNFString());
+            world.Send(player, P.StatusInfo(player));
         }
 
         /**
@@ -279,7 +279,7 @@ namespace Goose
 
             this.Dirty = true;
 
-            this.SendToGuild("$2[guild-notice] " + newleader.Name + " is now the new guild leader.", world);
+            this.SendToGuild(P.GuildMessage("[guild-notice] " + newleader.Name + " is now the new guild leader."), world);
         }
 
         /**
@@ -294,10 +294,10 @@ namespace Goose
             switch (rank)
             {
                 case GuildRanks.Officer:
-                    this.SendToGuild("$2[guild-notice] " + player.Name + " is now an officer.", world);
+                    this.SendToGuild(P.GuildMessage("[guild-notice] " + player.Name + " is now an officer."), world);
                     break;
                 case GuildRanks.Member:
-                    this.SendToGuild("$2[guild-notice] " + player.Name + " is now a member.", world);
+                    this.SendToGuild(P.GuildMessage("[guild-notice] " + player.Name + " is now a member."), world);
                     break;
             }
 

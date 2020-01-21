@@ -24,7 +24,7 @@ namespace Goose.Events
 
                 if (string.IsNullOrWhiteSpace(data) || data.ToLower() == " help")
                 {
-                    world.Send(this.Player, "$7/hairdye [preview|kill|gogodyeme] <r> <g> <b> <a>");
+                    world.Send(this.Player, P.ServerMessage("/hairdye [preview|kill|accept] <r> <g> <b> <a>"));
                     return;
                 }
 
@@ -34,10 +34,11 @@ namespace Goose.Events
 
                 switch (tokens[0].ToLower())
                 {
+                    case "accept":
                     case "gogodyeme":
                         if (this.Player.Gold < GameSettings.Default.HairdyeCommandCost)
                         {
-                            world.Send(this.Player, string.Format("$7/hairdye gogodyeme requires {0} gold.", GameSettings.Default.HairdyeCommandCost));
+                            world.Send(this.Player, P.ServerMessage(string.Format("/hairdye accept requires {0} gold.", GameSettings.Default.HairdyeCommandCost)));
                             return;
                         }
 
@@ -113,7 +114,7 @@ namespace Goose.Events
                             this.Player.Inventory.MountDisplay()); // Mount
                         break;
                     case "kill":
-                        world.Send(this.Player, "ERC9000");
+                        world.Send(this.Player, P.EraseCharacter(9000));
                         break;
                 }
             }
@@ -136,7 +137,7 @@ namespace Goose.Events
                 g = 0;
                 b = 0;
                 a = 0;
-                return "$7/hairdye [preview|kill|gogodyeme] <r> <g> <b> <a>";
+                return P.ServerMessage("/hairdye [preview|kill|gogodyeme] <r> <g> <b> <a>");
             }
 
             try
@@ -154,10 +155,10 @@ namespace Goose.Events
                 a = -1;
             }
 
-            if (r < 0 || r > 255) return "$7/hairdye: invalid r value";
-            if (g < 0 || g > 255) return "$7/hairdye: invalid g value";
-            if (b < 0 || b > 255) return "$7/hairdye: invalid b value";
-            if (a < 0 || a > 255) return "$7/hairdye: invalid a value";
+            if (r < 0 || r > 255) return P.ServerMessage("/hairdye: invalid r value");
+            if (g < 0 || g > 255) return P.ServerMessage("/hairdye: invalid g value");
+            if (b < 0 || b > 255) return P.ServerMessage("/hairdye: invalid b value");
+            if (a < 0 || a > 255) return P.ServerMessage("/hairdye: invalid a value");
 
             return null;
         }

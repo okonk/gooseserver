@@ -24,8 +24,8 @@ namespace Goose.Events
         {
             if (this.Player.State == Player.States.Ready)
             {
-                world.Send(this.Player, "$7You are in " +
-                    this.Player.Map.Name + " at " + this.Player.MapX + "," + this.Player.MapY + ".");
+                world.Send(this.Player, P.ServerMessage("You are in " +
+                    this.Player.Map.Name + " at " + this.Player.MapX + "," + this.Player.MapY + "."));
             }
         }
     }

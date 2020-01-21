@@ -39,7 +39,7 @@ namespace Goose.Events
                     if (b.SpellEffect.EffectType == SpellEffect.EffectTypes.Stun)
                     {
                         // stunned battletext
-                        world.Send(this.Player, "BT" + this.Player.LoginID + ",50");
+                        world.Send(this.Player, P.BattleTextStunned(this.Player));
                         return;
                     }
                 }
@@ -55,7 +55,7 @@ namespace Goose.Events
                     this.Player.UpdateIdleStatus(world);
 
                     this.Player.Facing = facing;
-                    string packet = "CHH" + this.Player.LoginID + "," + this.Player.Facing;
+                    string packet = P.ChangeHeading(this.Player);
                     world.Send(this.Player, packet);
                     List<Player> range = this.Player.Map.GetPlayersInRange(this.Player);
                     foreach (Player player in range)

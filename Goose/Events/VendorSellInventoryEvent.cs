@@ -83,13 +83,13 @@ namespace Goose.Events
 
                 if (npc.CreditDealer && slot.Item.Credits >= 0)
                 {
-                    world.Send(this.Player, "$7I have no interest in purchasing " + slot.Item.Name + ".");
+                    world.Send(this.Player, P.ServerMessage("I have no interest in purchasing " + slot.Item.Name + "."));
                     return;
                 }
                 
                 if (slot.Item.Value == 0)
                 {
-                    world.Send(this.Player, "$7I have no interest in purchasing " + slot.Item.Name + ".");
+                    world.Send(this.Player, P.ServerMessage("I have no interest in purchasing " + slot.Item.Name + "."));
                     return;
                 }
 
@@ -97,9 +97,9 @@ namespace Goose.Events
 
                 this.Player.AddGold(sellslot.Stack * slot.Item.Value / 2, world);
 
-                world.Send(this.Player, "$7Sold " + sellslot.Item.Name +
+                world.Send(this.Player, P.ServerMessage("Sold " + sellslot.Item.Name +
                     (sellslot.Stack > 1 ? " (" + sellslot.Stack + ")" : "") +
-                    " for " + sellslot.Stack * sellslot.Item.Value / 2 + " gold.");
+                    " for " + sellslot.Stack * sellslot.Item.Value / 2 + " gold."));
             }
         }
     }

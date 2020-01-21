@@ -139,7 +139,6 @@ namespace Goose
                         }
                         catch (SocketException)
                         {
-                            // GTFO, I want C-style
                         }
 
                         if (res <= 0)

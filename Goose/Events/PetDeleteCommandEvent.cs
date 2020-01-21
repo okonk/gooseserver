@@ -34,7 +34,7 @@ namespace Goose.Events
 
                 if (id <= 0)
                 {
-                    world.Send(this.Player, "$7Invalid pet ID.");
+                    world.Send(this.Player, P.ServerMessage("Invalid pet ID."));
                     return;
                 }
 
@@ -50,7 +50,7 @@ namespace Goose.Events
 
                 if (match == null)
                 {
-                    world.Send(this.Player, "$7Couldn't find pet matching ID.");
+                    world.Send(this.Player, P.ServerMessage("Couldn't find pet matching ID."));
                     return;
                 }
 

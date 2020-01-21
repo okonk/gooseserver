@@ -33,22 +33,22 @@ namespace Goose.Events
                         this.Player.ToggleSettings ^= Player.ToggleSetting.Experience;
                         if ((this.Player.ToggleSettings & Player.ToggleSetting.Experience) == 0)
                         {
-                            world.Send(this.Player, "$7Experience display is enabled.");
+                            world.Send(this.Player, P.ServerMessage("Experience display is enabled."));
                         }
                         else
                         {
-                            world.Send(this.Player, "$7Experience display is disabled.");
+                            world.Send(this.Player, P.ServerMessage("Experience display is disabled."));
                         }
                         break;
                     case "tell":
                         this.Player.ToggleSettings ^= Player.ToggleSetting.Tell;
                         if ((this.Player.ToggleSettings & Player.ToggleSetting.Tell) == 0)
                         {
-                            world.Send(this.Player, "$7Tells are enabled.");
+                            world.Send(this.Player, P.ServerMessage("Tells are enabled."));
                         }
                         else
                         {
-                            world.Send(this.Player, "$7Tells are disabled.");
+                            world.Send(this.Player, P.ServerMessage("Tells are disabled."));
                         }
                         break;
                     case "swear":
@@ -57,39 +57,39 @@ namespace Goose.Events
                         this.Player.ToggleSettings ^= Player.ToggleSetting.WordFilter;
                         if ((this.Player.ToggleSettings & Player.ToggleSetting.WordFilter) == 0)
                         {
-                            world.Send(this.Player, "$7Word filter is enabled.");
+                            world.Send(this.Player, P.ServerMessage("Word filter is enabled."));
                         }
                         else
                         {
-                            world.Send(this.Player, "$7Word filter is disabled.");
+                            world.Send(this.Player, P.ServerMessage("Word filter is disabled."));
                         }
                         break;
                     case "quest":
                         this.Player.ToggleSettings ^= Player.ToggleSetting.QuestCredit;
                         if (this.Player.QuestCreditFilterEnabled)
                         {
-                            world.Send(this.Player, "$7Quest credit filter is enabled.");
+                            world.Send(this.Player, P.ServerMessage("Quest credit filter is enabled."));
                         }
                         else
                         {
-                            world.Send(this.Player, "$7Quest credit filter is disabled.");
+                            world.Send(this.Player, P.ServerMessage("Quest credit filter is disabled."));
                         }
                         break;
                     case "gm-invisible":
                     case "invisible":
                         if (!this.Player.HasPrivilege(AccessPrivilege.GMInvisible))
                         {
-                            world.Send(this.Player, "$7/toggle [experience|tell|curse|quest|itembuffs]");
+                            world.Send(this.Player, P.ServerMessage("/toggle [experience|tell|curse|quest|itembuffs]"));
                             return;
                         }
 
                         this.Player.ToggleSettings ^= Player.ToggleSetting.GMInvisible;
                         if ((this.Player.ToggleSettings & Player.ToggleSetting.GMInvisible) == 0)
                         {
-                            world.Send(this.Player, "$7You are now invisible.");
+                            world.Send(this.Player, P.ServerMessage("You are now invisible."));
 
                             this.Player.Map.SetCharacter(null, this.Player.MapX, this.Player.MapY);
-                            string erc = "ERC" + this.Player.LoginID;
+                            string erc = P.EraseCharacter(this.Player.LoginID);
                             foreach (Player player in this.Player.Map.GetPlayersInRange(this.Player))
                             {
                                 world.Send(player, erc);
@@ -97,7 +97,7 @@ namespace Goose.Events
                         }
                         else
                         {
-                            world.Send(this.Player, "$7You are now visible.");
+                            world.Send(this.Player, P.ServerMessage("You are now visible."));
                             this.Player.WarpTo(world, this.Player.Map, this.Player.MapX, this.Player.MapY);
                         }
                         break;
@@ -105,34 +105,34 @@ namespace Goose.Events
                     case "whoinvisible":
                         if (!this.Player.HasPrivilege(AccessPrivilege.WhoInvisible))
                         {
-                            world.Send(this.Player, "$7/toggle [experience|tell|curse|quest|itembuffs]");
+                            world.Send(this.Player, P.ServerMessage("/toggle [experience|tell|curse|quest|itembuffs]"));
                             return;
                         }
 
                         this.Player.ToggleSettings ^= Player.ToggleSetting.WhoInvisible;
                         if ((this.Player.ToggleSettings & Player.ToggleSetting.WhoInvisible) == 0)
                         {
-                            world.Send(this.Player, "$7You are now who-invisible.");
+                            world.Send(this.Player, P.ServerMessage("You are now who-invisible."));
                         }
                         else
                         {
-                            world.Send(this.Player, "$7You are now who-visible.");
+                            world.Send(this.Player, P.ServerMessage("You are now who-visible."));
                         }
                         break;
                     case "itembuffs":
                         this.Player.ToggleSettings ^= Player.ToggleSetting.ItemBuffs;
                         if ((this.Player.ToggleSettings & Player.ToggleSetting.ItemBuffs) == 0)
                         {
-                            world.Send(this.Player, "$7Item buffs are now visible.");
+                            world.Send(this.Player, P.ServerMessage("Item buffs are now visible."));
                         }
                         else
                         {
-                            world.Send(this.Player, "$7Item buffs are now hidden.");
+                            world.Send(this.Player, P.ServerMessage("Item buffs are now hidden."));
                         }
                         this.Player.SendBuffBar(world);
                         break;
                     default:
-                        world.Send(this.Player, "$7/toggle [experience|tell|curse|quest|itembuffs]");
+                        world.Send(this.Player, P.ServerMessage("/toggle [experience|tell|curse|quest|itembuffs]"));
                         break;
                 }
             }

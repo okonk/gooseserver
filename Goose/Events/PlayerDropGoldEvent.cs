@@ -44,7 +44,7 @@ namespace Goose.Events
 
                 if (this.Player.Level < 10)
                 {
-                    world.Send(this.Player, "$7You need to be level 10 or higher to drop gold.");
+                    world.Send(this.Player, P.ServerMessage("You need to be level 10 or higher to drop gold."));
                     return;
                 }
 
@@ -65,7 +65,7 @@ namespace Goose.Events
                 {
                     maptile.ItemSlot.Stack += tile.ItemSlot.Stack;
 
-                    world.SendToMap(this.Player.Map, maptile.MOBString());
+                    world.SendToMap(this.Player.Map, P.MakeObject(maptile));
                 }
                 else
                 {

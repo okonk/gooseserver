@@ -31,14 +31,14 @@ namespace Goose
         {
             if (this.Players.Contains(player)) return;
 
-            string packet = "$3" + player.Name + " has joined your group. (" + adder.Name + ")";
+            string packet = P.GroupMessage(player.Name + " has joined your group. (" + adder.Name + ")");
             foreach (Player p in this.Players)
             {
                 if (p.State != Player.States.Ready) continue;
 
                 world.Send(p, packet);
             }
-            world.Send(player, "$3You have joined a group.");
+            world.Send(player, P.GroupMessage("You have joined a group."));
 
             player.Group = this;
             this.Players.Add(player);
@@ -64,8 +64,8 @@ namespace Goose
             this.SendPartyWindow(player, world);
 
             string packet;
-            if (kicked) { packet = "$3" + player.Name + " was kicked from your group. (" + kicker.Name + ")"; }
-            else { packet = "$3" + player.Name + " has left your group."; }
+            if (kicked) { packet = P.GroupMessage(player.Name + " was kicked from your group. (" + kicker.Name + ")"); }
+            else { packet = P.GroupMessage(player.Name + " has left your group."); }
 
             foreach (Player p in this.Players)
             {
@@ -75,13 +75,13 @@ namespace Goose
                 this.SendPartyWindow(p, world);
             }
 
-            if (kicked) { world.Send(player, "$3" + kicker.Name + " kicked you from the group."); }
-            else { world.Send(player, "$3You have left the group."); }
+            if (kicked) { world.Send(player, P.GroupMessage(kicker.Name + " kicked you from the group.")); }
+            else { world.Send(player, P.GroupMessage("You have left the group.")); }
 
             if (this.Players.Count == 1)
             {
                 this.Players[0].Group = null;
-                world.Send(this.Players[0], "$3Your group has been disbanded.");
+                world.Send(this.Players[0], P.GroupMessage("Your group has been disbanded."));
             }
         }
 
@@ -101,8 +101,7 @@ namespace Goose
                     if (i > GameSettings.Default.PartyWindowMax) return;
                     if (p == player) continue;
 
-                    world.Send(player, 
-                        "GUD" + i + "," + p.LoginID + "," + p.Name + "," + p.Level + p.Class.ClassName);
+                    world.Send(player, P.GroupUpdate(p, i));
 
                     i++;
                 }
@@ -110,7 +109,7 @@ namespace Goose
             // blank out the rest of the party window
             while (i <= GameSettings.Default.PartyWindowMax)
             {
-                world.Send(player, "GUD" + i + ",0,,0,");
+                world.Send(player, P.GroupUpdate(null, i));
                 i++;
             }
         }
@@ -121,14 +120,8 @@ namespace Goose
          */
         public void Chat(Player player, string message, GameWorld world)
         {
-            //string packet = "$3[group] " + player.Name + ": " + message;
-            //foreach (Player p in this.Players)
-            //{
-            //    world.Send(p, packet);
-            //}
-            
-            string packet = "$3[group] " + player.Name + ": " + message;
-            string filteredpacket = "$3[group] " + player.Name + ": ";
+            string packet = P.GroupMessage("[group] " + player.Name + ": " + message);
+            string filteredpacket = P.GroupMessage("[group] " + player.Name + ": ");
             bool filtered = false;
 
             foreach (Player p in this.Players)
@@ -155,7 +148,7 @@ namespace Goose
          */
         public void ItemPickup(Player player, ItemSlot itemslot, GameWorld world)
         {
-            string packet = "$3" + player.Name + " picked up " + itemslot.Item.Name + " (" + itemslot.Stack + ").";
+            string packet = P.GroupMessage(player.Name + " picked up " + itemslot.Item.Name + " (" + itemslot.Stack + ").");
             foreach (Player p in this.Players)
             {
                 world.Send(p, packet);

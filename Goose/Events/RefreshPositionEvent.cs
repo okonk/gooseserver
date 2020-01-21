@@ -25,7 +25,7 @@ namespace Goose.Events
             if (this.Player.State == Player.States.Ready)
             {
                 // Fix the clients position
-                world.Send(this.Player, "SUP" + this.Player.MapX + "," + this.Player.MapY);
+                world.Send(this.Player, P.SetYourPosition(this.Player));
             }
         }
     }

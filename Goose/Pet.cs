@@ -458,7 +458,7 @@ namespace Goose
 
             this.Mode = Modes.Neutral;
 
-            string packet = this.MKCString();
+            string packet = P.MakePetCharacter(this);
             List<Player> range = this.Map.GetPlayersInRange(this);
             foreach (Player player in range)
             {
@@ -482,7 +482,7 @@ namespace Goose
         {
             if (!this.IsAlive) return;
 
-            string erase = "ERC" + this.LoginID;
+            string erase = P.EraseCharacter(this.LoginID);
             List<Player> oldrange = this.Map.GetPlayersInRange(this);
             foreach (Player player in oldrange)
             {
@@ -512,59 +512,6 @@ namespace Goose
             Pet.LoginIDToPet[this.LoginID] = null;
             this.Map.SetCharacter(null, this.MapX, this.MapY);
             this.Map = null;
-        }
-
-        public override string MKCString()
-        {
-            return "MKC" + this.LoginID + ",12," +
-                            this.Name + "," +
-                            this.Title + "," +
-                            this.Surname + "," +
-                            "" + "," + // Guild name
-                            this.MapX + "," +
-                            this.MapY + "," +
-                            this.Facing + "," +
-                            (int)(((float)this.CurrentHP / this.MaxHP) * 100) + "," + // HP %
-                            this.CurrentBodyID + "," +
-                            this.BodyR + "," + // Body Color R
-                            this.BodyG + "," + // Body Color G
-                            this.BodyB + "," + // Body Color B
-                            this.BodyA + "," + // Body Color A
-                            (this.CurrentBodyID >= 100 ? 3 : this.BodyState) + "," +
-                            (this.CurrentBodyID >= 100 ? "" : this.HairID + ",") +
-                            (this.CurrentBodyID >= 100 ? "" : this.EquippedItems + ",") +
-                            (this.CurrentBodyID >= 100 ? "" : this.HairR + "," + HairG + "," + HairB + "," + HairA + ",") +
-                            "0" + "," + // Invis thing
-                            (this.CurrentBodyID >= 100 ? "" : this.FaceID + ",") +
-                            "320," + // Move Speed
-                            "0" + "," + // Player Name Color
-                            (this.CurrentBodyID >= 100 ? "" : "0,0,0,0"); // Mount
-        }
-
-        /**
-         * CHPString, update character string
-         * 
-         */
-        public override string CHPString()
-        {
-            return "CHP" +
-                    this.LoginID + "," +
-                    this.CurrentBodyID + "," +
-                    this.BodyR + "," + // Body Color R
-                    this.BodyG + "," + // Body Color G
-                    this.BodyB + "," + // Body Color B
-                    this.BodyA + "," + // Body Color A
-                    (this.CurrentBodyID >= 100 ? 3 : this.BodyState) + "," +
-                    (this.CurrentBodyID >= 100 ? "" : this.HairID + ",") +
-                    (this.CurrentBodyID >= 100 ? "" : this.EquippedItems + ",") +
-                    (this.CurrentBodyID >= 100 ? "" : this.HairR + ",") +
-                    (this.CurrentBodyID >= 100 ? "" : this.HairG + ",") +
-                    (this.CurrentBodyID >= 100 ? "" : this.HairB + ",") +
-                    (this.CurrentBodyID >= 100 ? "" : this.HairA + ",") +
-                    (this.CurrentBodyID >= 100 ? "" : "0" + ",") + // Invis thing
-                    (this.CurrentBodyID >= 100 ? "" : this.FaceID + ",") +
-                    "320," + // Move Speed
-                    (this.CurrentBodyID >= 100 ? "" : "0,0,0,0"); // Mount
         }
 
         public void AddMoveEvent(GameWorld world)
@@ -686,7 +633,7 @@ namespace Goose
             if (this.Facing == direction) return;
 
             this.Facing = direction;
-            string packet = "CHH" + this.LoginID + "," + this.Facing;
+            string packet = P.ChangeHeading(this)
             List<Player> range = this.Map.GetPlayersInRange(this);
             foreach (Player player in range)
             {
@@ -722,7 +669,7 @@ namespace Goose
 
             if (damage == 0)
             {
-                packet = "BT" + this.LoginID + ",21,," + character.Name;
+                packet = P.BattleTextMiss(this);
                 foreach (Player p in range)
                 {
                     world.Send(p, packet);
@@ -735,7 +682,7 @@ namespace Goose
 
             if (world.Random.Next(0, 10001) <= dodge * 100)
             {
-                packet = "BT" + this.LoginID + ",20,," + character.Name;
+                packet = P.BattleTextMiss(this);
                 foreach (Player p in range)
                 {
                     world.Send(p, packet);
@@ -747,11 +694,11 @@ namespace Goose
             {
                 // pvp 1/2 damage
                 if (character is Player) damage /= 2;
-                packet = "BT" + this.LoginID + ",1," + (-damage) + "," + character.Name + "\x1";
+                packet = P.BattleTextDamage(this, damage);
             }
             else
             {
-                packet = "BT" + this.LoginID + ",7,+" + (-damage) + "," + character.Name + "\x1";
+                packet = P.BattleTextHeal(this, damage) + "\x1";
             }
 
             this.CurrentHP -= damage;
@@ -762,7 +709,7 @@ namespace Goose
             }
             else
             {
-                packet += this.VPUString();
+                packet += P.VitalsPercentage(this);
                 this.AddRegenEvent(world);
             }
 
@@ -825,24 +772,12 @@ namespace Goose
             this.WeaponDamage += (levels * 3) + (world.Random.Next(0, 3) * levels);
 
             List<Player> range = this.Map.GetPlayersInRange(this);
-            string packet = "BT" + this.LoginID + ",60,Level Up!," + this.Name;
+            string packet = P.BattleTextYellow(this, "Level Up!");
             world.Send(this, packet);
             foreach (Player player in range)
             {
                 world.Send(player, packet);
             }
-        }
-
-        /**
-         * WPSSTring, weapon speed string
-         * Overrides to fix a bug since pets don't have a weapondelay
-         * 
-         */
-        public override string WPSString()
-        {
-            int wps = (int)(this.AttackSpeed * 1000);
-
-            return "WPS" + wps;
         }
 
         public override int WeaponDelay

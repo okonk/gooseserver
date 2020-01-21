@@ -25,7 +25,7 @@ namespace Goose.Events
                 string name, surname;
                 if (tokens.Length < 2)
                 {
-                    world.Send(this.Player, "$7/setsurname <name> <title>");
+                    world.Send(this.Player, P.ServerMessage("/setsurname <name> <title>"));
                     return;
                 }
                 if (tokens.Length == 2)
@@ -43,18 +43,18 @@ namespace Goose.Events
                 if (player != null)
                 {
                     player.Surname = surname;
-                    world.Send(this.Player, "$7Changed surname successfully.");
+                    world.Send(this.Player, P.ServerMessage("Changed surname successfully."));
 
                     if (player.State != Goose.Player.States.NotLoggedIn)
                     {
-                        world.Send(player, player.SNFString());
+                        world.Send(player, P.StatusInfo(player));
 
                         if (player.Map != null)
                         {
                             List<Player> range = player.Map.GetPlayersInRange(player);
 
-                            string packet = "ERC" + player.LoginID;
-                            string packet2 = player.MKCString();
+                            string packet = P.EraseCharacter(player.LoginID);
+                            string packet2 = P.MakeCharacter(player);
 
                             foreach (Player p in range)
                             {
@@ -70,7 +70,7 @@ namespace Goose.Events
                 }
                 else
                 {
-                    world.Send(this.Player, "$7Couldn't find player.");
+                    world.Send(this.Player, P.ServerMessage("Couldn't find player."));
                 }
             }
         }

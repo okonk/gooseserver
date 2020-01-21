@@ -557,7 +557,7 @@ namespace Goose
             }
             catch (Exception)
             {
-                // No crash me pls pls pls
+                
             }
         }
 

@@ -25,7 +25,7 @@ namespace Goose.Events
 
                 if (data.Length <= 0) return;
 
-                world.SendToAll(string.Format("$7[{0}]: {1}", this.Player.Access.ToString().Replace("Master", " Master"), data));
+                world.SendToAll(P.ServerMessage(string.Format("[{0}]: {1}", this.Player.Access.ToString().Replace("Master", " Master"), data)));
             }
         }
     }

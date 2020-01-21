@@ -28,7 +28,7 @@ namespace Goose.Events
                 string command, name;
                 if (tokens.Length < 3)
                 {
-                    world.Send(this.Player, "$7/search [item|npc] name");
+                    world.Send(this.Player, P.ServerMessage("/search [item|npc] name"));
                     return;
                 }
                 else
@@ -48,10 +48,10 @@ namespace Goose.Events
 
                             foreach (var item in matched)
                             {
-                                world.Send(this.Player, string.Format("$7{0} - {1}", item.ID, item.Name));
+                                world.Send(this.Player, P.ServerMessage(string.Format("{0} - {1}", item.ID, item.Name)));
                             }
 
-                            world.Send(this.Player, string.Format("$7[Matched {0} items]", matched.Length));
+                            world.Send(this.Player, P.ServerMessage(string.Format("[Matched {0} items]", matched.Length)));
 
                             break;
                         }
@@ -62,17 +62,17 @@ namespace Goose.Events
 
                             foreach (var npc in matched)
                             {
-                                world.Send(this.Player, string.Format("$7{0} - {1}", npc.NPCTemplateID, npc.Name));
+                                world.Send(this.Player, P.ServerMessage(string.Format("{0} - {1}", npc.NPCTemplateID, npc.Name)));
                             }
 
-                            world.Send(this.Player, string.Format("$7[Matched {0} npcs]", matched.Length));
+                            world.Send(this.Player, P.ServerMessage(string.Format("[Matched {0} npcs]", matched.Length)));
                             break;
                         }
                 }
             }
             catch
             {
-                world.Send(this.Player, "$7Invalid search pattern or arguments");
+                world.Send(this.Player, P.ServerMessage("Invalid search pattern or arguments"));
             }
         }
     }

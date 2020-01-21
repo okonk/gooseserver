@@ -34,7 +34,7 @@ namespace Goose.Events
 
                 if ((!this.Player.Map.CanChat || this.Player.Map.Muted) && !this.Player.HasPrivilege(AccessPrivilege.TalkWhileMuted))
                 {
-                    world.Send(this.Player, "#Chat is disabled in this map.");
+                    world.Send(this.Player, P.HashMessage("Chat is disabled in this map."));
                     return;
                 }
 
@@ -42,8 +42,8 @@ namespace Goose.Events
                 if (message.Length == 1) return; // log bad chat event
                 message = message.Substring(1, message.Length - 1);
 
-                string packet = "^" + this.Player.LoginID + "," + this.Player.Name + ": " + message;
-                string filteredpacket = "^" + this.Player.LoginID + "," + this.Player.Name + ": ";
+                string packet = P.Chat(this.Player.LoginID, this.Player.Name, message);
+                string filteredpacket = P.Chat(this.Player.LoginID, this.Player.Name, "");
                 bool filtered = false;
 
                 world.LogHandler.Log(Log.Types.Chat, this.Player.PlayerID, message, 0, this.Player.Map.ID, this.Player.MapX, this.Player.MapY);

@@ -33,17 +33,17 @@ namespace Goose.Events
                 {
                     if (player == this.Player)
                     {
-                        world.Send(this.Player, "$3You can't group with yourself.");
+                        world.Send(this.Player, P.GroupMessage("You can't group with yourself."));
                         return;
                     }
                     if (player.Group != null)
                     {
-                        world.Send(this.Player, "$3Player is already in a group.");
+                        world.Send(this.Player, P.GroupMessage("Player is already in a group."));
                         return;
                     }
                     if (!player.GroupInvitesEnabled)
                     {
-                        world.Send(this.Player, "$3Player is not accepting group invitations.");
+                        world.Send(this.Player, P.GroupMessage("Player is not accepting group invitations."));
                         return;
                     }
 
@@ -59,7 +59,7 @@ namespace Goose.Events
                 }
                 else
                 {
-                    world.Send(this.Player, "$3Couldn't find player.");
+                    world.Send(this.Player, P.GroupMessage("Couldn't find player."));
                 }
             }
         }

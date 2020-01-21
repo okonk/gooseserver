@@ -36,18 +36,18 @@ namespace Goose.Events
                 this.Player.Access = Player.AccessStatus.Banned;
                 this.Player.UnbanDate = DateTime.Now.AddDays(30);
 
-                world.Send(this.Player, "$7You have failed the macro check and will be banned for a month.");
+                world.Send(this.Player, P.ServerMessage("You have failed the macro check and will be banned for a month."));
             }
             else if (this.Player.MacroCheckFailures >= 2)
             {
                 this.Player.Access = Player.AccessStatus.Banned;
                 this.Player.UnbanDate = DateTime.Now.AddDays(7);
 
-                world.Send(this.Player, "$7You have failed the macro check and will be banned for a week.");
+                world.Send(this.Player, P.ServerMessage("You have failed the macro check and will be banned for a week."));
             }
             else
             {
-                world.Send(this.Player, "$7You have failed the macro check and have been kicked. This is your only warning.");
+                world.Send(this.Player, P.ServerMessage("You have failed the macro check and have been kicked. This is your only warning."));
             }
 
             world.LostConnection(this.Player.Sock);

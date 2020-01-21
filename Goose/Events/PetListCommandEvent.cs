@@ -23,11 +23,11 @@ namespace Goose.Events
         {
             if (this.Player.State == Player.States.Ready)
             {
-                world.Send(this.Player, "$7Listing Pets: <ID> <Name> <Level>");
+                world.Send(this.Player, P.ServerMessage("Listing Pets: <ID> <Name> <Level>"));
 
                 foreach (Pet pet in this.Player.Pets)
                 {
-                    world.Send(this.Player, "$7" + pet.PetID + " " + pet.Name + " " + pet.Level);
+                    world.Send(this.Player, P.ServerMessage(pet.PetID + " " + pet.Name + " " + pet.Level));
                 }
             }
         }

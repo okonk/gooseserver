@@ -32,11 +32,11 @@ namespace Goose.Events
 
                 if (this.Player.GroupInvitesEnabled)
                 {
-                    world.Send(this.Player, "$3Group invitations are now enabled.");
+                    world.Send(this.Player, P.GroupMessage("Group invitations are now enabled."));
                 }
                 else
                 {
-                    world.Send(this.Player, "$3Group invitations have been disabled.");
+                    world.Send(this.Player, P.GroupMessage("Group invitations have been disabled."));
                 }
             }
         }

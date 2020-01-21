@@ -40,18 +40,18 @@ namespace Goose.Events
                 Player player = world.PlayerHandler.GetPlayerFromData(name);
                 if (player == null)
                 {
-                    world.Send(this.Player, "$7Player " + name + " doesn't exist.");
+                    world.Send(this.Player, P.ServerMessage("Player " + name + " doesn't exist."));
                     return;
                 }
 
                 player.Experience += exp;
 
-                world.Send(this.Player, "$7Added experience successfully.");
+                world.Send(this.Player, P.ServerMessage("Added experience successfully."));
 
                 if (player.State != Goose.Player.States.NotLoggedIn)
                 {
-                    world.Send(player, player.SNFString());
-                    world.Send(player, player.TNLString());
+                    world.Send(player, P.StatusInfo(player));
+                    world.Send(player, P.ExpBar(player));
                 }
                 else
                 {

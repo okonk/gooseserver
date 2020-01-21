@@ -33,7 +33,7 @@ namespace Goose.Events
                 {
                     if (this.Player.Group == null)
                     {
-                        world.Send(this.Player, "$3You are not in a group.");
+                        world.Send(this.Player, P.GroupMessage("You are not in a group."));
                         return;
                     }
                     else
@@ -52,7 +52,7 @@ namespace Goose.Events
                 {
                     if (player.Group == null)
                     {
-                        world.Send(this.Player, "$3Player is not in a group.");
+                        world.Send(this.Player, P.GroupMessage("Player is not in a group."));
                         return;
                     }
 
@@ -63,13 +63,13 @@ namespace Goose.Events
                     }
                     else
                     {
-                        world.Send(this.Player, "$3Player isn't in your group.");
+                        world.Send(this.Player, P.GroupMessage("Player isn't in your group."));
                         return;
                     }
                 }
                 else
                 {
-                    world.Send(this.Player, "$3Couldn't find player.");
+                    world.Send(this.Player, P.GroupMessage("Couldn't find player."));
                 }
             }
         }

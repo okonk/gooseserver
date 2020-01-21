@@ -35,7 +35,7 @@ namespace Goose.Events
                     this.Player.Guild.Dirty = true;
                 }
 
-                this.Player.Guild.SendToGuild("$2[guild-notice] MOTD: " + this.Player.Guild.MOTD, world);
+                this.Player.Guild.SendToGuild(P.GuildMessage("[guild-notice] MOTD: " + this.Player.Guild.MOTD), world);
             }
         }
     }

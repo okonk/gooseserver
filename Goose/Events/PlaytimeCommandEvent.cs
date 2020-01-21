@@ -21,7 +21,7 @@ namespace Goose.Events
             if (this.Player.State == Player.States.Ready)
             {
                 StringBuilder builder = new StringBuilder();
-                builder.Append("$7You have spent");
+                builder.Append("You have spent");
 
                 bool needcomma = false;
                 TimeSpan afkTime = TimeSpan.FromSeconds(this.Player.TotalAfkTime);
@@ -72,7 +72,7 @@ namespace Goose.Events
                 }
                 builder.Append(" playing.");
 
-                world.Send(this.Player, builder.ToString());
+                world.Send(this.Player, P.ServerMessage(builder.ToString()));
             }
         }
     }

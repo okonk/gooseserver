@@ -106,11 +106,11 @@ namespace Goose
             ItemSlot slot = this.GetSlot(slotIndex);
             if (slot != null)
             {
-                world.Send(player, "SBS" + slot.Item.GetSlotPacket(world, slotIndex, slot.Stack));
+                world.Send(player, P.BankSlot(slot.Item, world, slotIndex, slot.Stack));
             }
             else
             {
-                world.Send(player, "CBS" + slotIndex);
+                world.Send(player, P.ClearBankSlot(slotIndex));
             }
         }
 

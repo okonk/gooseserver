@@ -25,12 +25,12 @@ namespace Goose.Events
 
                 if (password.Length < 3)
                 {
-                    world.Send(this.Player, "$7Your password needs to be more than 3 characters long.");
+                    world.Send(this.Player, P.ServerMessage("Your password needs to be more than 3 characters long."));
                     return;
                 }
                 if (password.Length > 10)
                 {
-                    world.Send(this.Player, "$7Your password needs to be less than 10 characters long.");
+                    world.Send(this.Player, P.ServerMessage("Your password needs to be less than 10 characters long."));
                     return;
                 }
 
@@ -50,7 +50,7 @@ namespace Goose.Events
                 this.Player.PasswordHash = passwordHash;
                 this.Player.PasswordSalt = base64Salt;
 
-                world.Send(this.Player, "$7Your password has been changed.");
+                world.Send(this.Player, P.ServerMessage("Your password has been changed."));
             }
         }
     }

@@ -25,7 +25,7 @@ namespace Goose.Events
 
                 if (tokens.Length < 3)
                 {
-                    world.Send(this.Player, "$7/changename <oldname> <newname>: not enough parameters.");
+                    world.Send(this.Player, P.ServerMessage("/changename <oldname> <newname>: not enough parameters."));
                     return;
                 }
 
@@ -35,14 +35,14 @@ namespace Goose.Events
                 Player playerCheck = world.PlayerHandler.GetPlayerFromData(newname);
                 if (playerCheck != null)
                 {
-                    world.Send(this.Player, "$7New name " + newname + " is already used.");
+                    world.Send(this.Player, P.ServerMessage("New name " + newname + " is already used."));
                     return;
                 }
 
                 Player player = world.PlayerHandler.GetPlayerFromData(oldname);
                 if (player == null)
                 {
-                    world.Send(this.Player, "$7Old name " + oldname + " doesn't exist.");
+                    world.Send(this.Player, P.ServerMessage("Old name " + oldname + " doesn't exist."));
                     return;
                 }
 
@@ -50,7 +50,7 @@ namespace Goose.Events
                 player.Name = newname;
                 world.PlayerHandler.AddPlayerToData(player);
 
-                world.Send(this.Player, "$7Changed name successfully.");
+                world.Send(this.Player, P.ServerMessage("Changed name successfully."));
 
                 if (player.State != Goose.Player.States.NotLoggedIn)
                 {
@@ -60,7 +60,7 @@ namespace Goose.Events
                     {
                         List<Player> range = player.Map.GetPlayersInRange(player);
 
-                        string packet = "ERC" + player.LoginID;
+                        string packet = P.EraseCharacter(player.LoginID);
                         string packet2 = player.MKCString();
 
                         foreach (Player p in range)

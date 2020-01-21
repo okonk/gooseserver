@@ -25,13 +25,13 @@ namespace Goose.Events
 
             if (this.Player.MacroCheckEvent == null)
             {
-                world.Send(this.Player, "$7You don't have a current macrocheck to do.");
+                world.Send(this.Player, P.ServerMessage("You don't have a current macrocheck to do."));
                 return;
             }
 
             if (this.Player.MacroCheckEvent.Code != code)
             {
-                world.Send(this.Player, "$7Macrocheck code doesn't match.. try again.");
+                world.Send(this.Player, P.ServerMessage("Macrocheck code doesn't match.. try again."));
                 return;
             }
 
@@ -41,9 +41,9 @@ namespace Goose.Events
             this.Player.MacroCheckEvent = null;
 
             this.Player.Experience += 1000000;
-            world.Send(this.Player, "$7Macrocheck passed. You earned 1mil experience.");
-            world.Send(this.Player, this.Player.SNFString());
-            world.Send(this.Player, this.Player.TNLString());
+            world.Send(this.Player, P.ServerMessage("Macrocheck passed. You earned 1mil experience."));
+            world.Send(this.Player, P.StatusInfo(this.Player));
+            world.Send(this.Player, P.ExpBar(this.Player));
         }
     }
 }

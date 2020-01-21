@@ -27,7 +27,7 @@ namespace Goose.Events
             {
                 if (!this.Player.Map.CanSpawnPets)
                 {
-                    world.Send(this.Player, "$7Pets are disabled in this map.");
+                    world.Send(this.Player, P.ServerMessage("Pets are disabled in this map."));
                     return;
                 }
 
@@ -45,7 +45,7 @@ namespace Goose.Events
 
                 if (id <= 0)
                 {
-                    world.Send(this.Player, "$7Invalid pet ID.");
+                    world.Send(this.Player, P.ServerMessage("Invalid pet ID."));
                     return;
                 }
 
@@ -61,7 +61,7 @@ namespace Goose.Events
 
                 if (match == null)
                 {
-                    world.Send(this.Player, "$7Couldn't find pet matching ID.");
+                    world.Send(this.Player, P.ServerMessage("Couldn't find pet matching ID."));
                     return;
                 }
 
@@ -70,7 +70,7 @@ namespace Goose.Events
                     decimal wait = ((decimal)(world.TimeNow - match.NextRespawnTime) / world.TimerFrequency);
                     wait = Math.Round(wait, 2);
                 
-                    world.Send(this.Player, "$7You must wait " + wait + " seconds to spawn this pet.");
+                    world.Send(this.Player, P.ServerMessage("You must wait " + wait + " seconds to spawn this pet."));
                     return;
                 }
 

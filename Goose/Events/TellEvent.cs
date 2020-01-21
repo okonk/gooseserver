@@ -49,24 +49,24 @@ namespace Goose.Events
 
                             if ((recipient.ToggleSettings & Player.ToggleSetting.Tell) == 0)
                             {
-                                world.Send(this.Player, "$6[tell to] " + recipient.Name + ": " + message);
+                                world.Send(this.Player, P.TellMessage("[tell to] " + recipient.Name + ": " + message));
                                 if (recipient.ChatFilterEnabled) message = world.ChatFilter.Filter(message);
-                                // The 0 in here is for AFK, but I don't see the use of it
-                                world.Send(recipient, string.Format("&{0},0,{1}", this.Player.Name, message));
+                                
+                                world.Send(recipient, P.Tell(this.Player, message));
 
                                 if (recipient.IsIdle(world))
                                 {
-                                    world.Send(this.Player, "$7" + recipient.Name + " is AFK.");
+                                    world.Send(this.Player, P.ServerMessage(recipient.Name + " is AFK."));
                                 }
                             }
                             else
                             {
-                                world.Send(this.Player, "$7" + recipient.Name + " has tells disabled.");
+                                world.Send(this.Player, P.ServerMessage(recipient.Name + " has tells disabled."));
                             }
                         }
                         else
                         {
-                            world.Send(this.Player, "$6" + name + " is not online.");
+                            world.Send(this.Player, P.TellMessage(name + " is not online."));
                         }
                     }
                 }

@@ -196,7 +196,7 @@ namespace Goose
 
             item.DroppedTime = world.TimeNow;
 
-            world.SendToMap(this, item.MOBString());
+            world.SendToMap(this, P.MakeObject(item));
         }
 
         /**
@@ -211,7 +211,7 @@ namespace Goose
             this.items.Remove(item);
             this.tiles[item.Y * this.Width + item.X] = null;
 
-            world.SendToMap(this, item.EOBString());
+            world.SendToMap(this, P.EraseObject(item));
         }
 
         /**

@@ -45,7 +45,7 @@ namespace Goose.Events
 
             if (oldModifier != world.ExperienceModifier)
             {
-                world.SendToAll("$7Experience modifier is now " + world.ExperienceModifier + "x because of " + uniquenonafkips.Count + " active players.");
+                world.SendToAll(P.ServerMessage("Experience modifier is now " + world.ExperienceModifier + "x because of " + uniquenonafkips.Count + " active players."));
             }
 
             this.Ticks += world.TimerFrequency * GameSettings.Default.IdleTimeout;

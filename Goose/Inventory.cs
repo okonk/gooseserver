@@ -107,11 +107,11 @@ namespace Goose
                 ItemSlot slot = this.inventory[i];
                 if (slot != null)
                 {
-                    world.Send(this.player, "SIS" + slot.Item.GetSlotPacket(world, i, slot.Stack));
+                    world.Send(this.player, P.InventorySlot(slot.Item, world, i, slot.Stack));
                 }
                 else
                 {
-                    world.Send(this.player, "CIS" + i);
+                    world.Send(this.player, P.ClearInventorySlot(i));
                 }
             }
         }
@@ -261,7 +261,7 @@ namespace Goose
             }
             else if (!this.player.Map.CanUseItems)
             {
-                world.Send(this.player, "#You can't use items in this map.");
+                world.Send(this.player, P.HashMessage("You can't use items in this map."));
             }
         }
 
@@ -349,14 +349,15 @@ namespace Goose
             }
 
             this.SendEquippedSlot(equipslot, world);
-            world.Send(this.player, this.player.CHPString());
-            world.Send(this.player, this.player.SNFString());
-            world.Send(this.player, this.player.WPSString());
+            string updateCharacter = P.UpdateCharacter(this.player);
+            world.Send(this.player, updateCharacter);
+            world.Send(this.player, P.StatusInfo(this.player));
+            world.Send(this.player, P.WeaponSpeed(this.player));
 
             List<Player> range = this.player.Map.GetPlayersInRange(this.player);
             foreach (Player p in range)
             {
-                world.Send(p, this.player.CHPString());
+                world.Send(p, updateCharacter);
             }
 
             if (slot.Item.IsBindOnEquip)
@@ -380,7 +381,7 @@ namespace Goose
                 if (b.SpellEffect.EffectType == SpellEffect.EffectTypes.Stun)
                 {
                     // stunned battletext
-                    world.Send(this.player, "BT" + this.player.LoginID + ",50");
+                    world.Send(this.player, P.BattleTextStunned(this.player));
                     return;
                 }
             }
@@ -389,7 +390,7 @@ namespace Goose
             {
                 if (window.Type == Window.WindowTypes.Vendor)
                 {
-                    world.Send(this.player, "$7You can't use items while with a vendor.");
+                    world.Send(this.player, P.ServerMessage("You can't use items while with a vendor."));
                     return;
                 }
             }
@@ -538,13 +539,14 @@ namespace Goose
             }
 
             this.SendEquippedSlot(equipslot, world);
-            world.Send(this.player, this.player.CHPString());
-            world.Send(this.player, this.player.SNFString());
+            string updateCharacter = P.UpdateCharacter(this.player);
+            world.Send(this.player, updateCharacter);
+            world.Send(this.player, P.StatusInfo(this.player));
 
             List<Player> range = this.player.Map.GetPlayersInRange(this.player);
             foreach (Player p in range)
             {
-                world.Send(p, this.player.CHPString());
+                world.Send(p, updateCharacter);
             }
 
             return true;
@@ -738,11 +740,11 @@ namespace Goose
                 ItemSlot slot = this.equipped[(int)equipslot];
                 if (slot != null)
                 {
-                    world.Send(this.player, "SIS" + slot.Item.GetSlotPacket(world, ((int)equipslot + 31), slot.Stack));
+                    world.Send(this.player, P.InventorySlot(slot.Item, world, ((int)equipslot + 31), slot.Stack));
                 }
                 else
                 {
-                    world.Send(this.player, "CIS" + ((int)equipslot + 31));
+                    world.Send(this.player, P.ClearInventorySlot((int)equipslot + 31));
                 }
             }
         }
@@ -946,38 +948,38 @@ namespace Goose
             Combination match = world.CombinationHandler.GetMatch(combineHash);
             if (match == null)
             {
-                world.Send(this.player, "$7Couldn't combine items.");
+                world.Send(this.player, P.ServerMessage("Couldn't combine items."));
                 return;
             }
 
             if (match.MinLevel > this.player.Level)
             {
-                world.Send(this.player, "$7You need to be level " + match.MinLevel + " to create " +
-                    match.Name + ".");
+                world.Send(this.player, P.ServerMessage("You need to be level " + match.MinLevel + " to create " +
+                    match.Name + "."));
                 return;
             }
             else if (match.MaxLevel > 0 && match.MaxLevel < this.player.Level)
             {
-                world.Send(this.player, "$7You need to be less than level " + match.MaxLevel + " to create " +
-                    match.Name + ".");
+                world.Send(this.player, P.ServerMessage("You need to be less than level " + match.MaxLevel + " to create " +
+                    match.Name + "."));
                 return;
             }
             else if (match.MinExperience > this.player.Experience + this.player.ExperienceSold)
             {
-                world.Send(this.player, "$7You need " + match.MinExperience + " experience to create " +
-                    match.Name + ".");
+                world.Send(this.player, P.ServerMessage("You need " + match.MinExperience + " experience to create " +
+                    match.Name + "."));
                 return;
             }
             else if (match.MaxExperience > 0 &&
                 match.MaxExperience < this.player.Experience + this.player.ExperienceSold)
             {
-                world.Send(this.player, "$7You need less than " + match.MaxExperience + 
-                    " experience to create " + match.Name + ".");
+                world.Send(this.player, P.ServerMessage("You need less than " + match.MaxExperience + 
+                    " experience to create " + match.Name + "."));
                 return;
             }
             else if ((match.ClassRestrictions & Convert.ToInt64(Math.Pow(2.0, (double)this.player.Class.ClassID))) != 0)
             {
-                world.Send(this.player, "$7You are the wrong class to create " + match.Name + ".");
+                world.Send(this.player, P.ServerMessage("You are the wrong class to create " + match.Name + "."));
                 return;
             }
 
@@ -1028,7 +1030,7 @@ namespace Goose
 
             if (freeslots.Count < match.ResultItems.Count)
             {
-                world.Send(this.player, "$7Not enough free slots to create " + match.Name + ".");
+                world.Send(this.player, P.ServerMessage("Not enough free slots to create " + match.Name + "."));
                 return;
             }
 
@@ -1037,7 +1039,7 @@ namespace Goose
             {
                 if (template.IsLore && this.player.HasItem(template.ID))
                 {
-                    world.Send(this.player, "$7Already have LORE item " + template.Name + ".");
+                    world.Send(this.player, P.ServerMessage("Already have LORE item " + template.Name + "."));
                     return;
                 }
 
@@ -1053,7 +1055,7 @@ namespace Goose
                 var newSlot = new ItemSlot { Item = item, Stack = 1 };
                 newcombine.SetSlot(index, newSlot);
 
-                world.Send(this.player, "$7Successfully created " + template.Name + ".");
+                world.Send(this.player, P.ServerMessage("Successfully created " + template.Name + "."));
             }
 
             for (int i = 1; i < this.combineContainer.MaxSlots; i++)

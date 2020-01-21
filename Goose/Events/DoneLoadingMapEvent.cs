@@ -34,7 +34,6 @@ namespace Goose.Events
         {
             if (this.Player.State == Player.States.LoadingMap)
             {
-
                 Map map = world.MapHandler.GetMap(this.Player.MapID);
 
                 if (!this.Player.IsGMInvisible)
@@ -44,11 +43,11 @@ namespace Goose.Events
                 }
 
                 this.Player.State = Player.States.Ready;
-                world.Send(this.Player, "DSM");
-                world.Send(this.Player, this.Player.MKCString());
-                world.Send(this.Player, "SUC" + this.Player.LoginID.ToString());
+                world.Send(this.Player, P.DoneSendingMap());
+                world.Send(this.Player, P.MakeCharacter(this.Player));
+                world.Send(this.Player, P.SetYourCharacter(this.Player.LoginID));
 
-                string gmstring = "AMA" + this.Player.LoginID + ",1";
+                string gmstring = P.AdminMode(this.Player.LoginID);
                 if (this.Player.Access == Goose.Player.AccessStatus.GameMaster)
                 {
                     world.Send(this.Player, gmstring);
@@ -61,7 +60,7 @@ namespace Goose.Events
                 {
                     if (!this.Player.IsGMInvisible)
                     {
-                        world.Send(player, this.Player.MKCString());
+                        world.Send(player, P.MakeCharacter(this.Player));
                         if (this.Player.HasPrivilege(AccessPrivilege.GMInvisible))
                         {
                             world.Send(player, gmstring);
@@ -70,10 +69,10 @@ namespace Goose.Events
 
                     if (!player.IsGMInvisible)
                     {
-                        world.Send(this.Player, player.MKCString());
+                        world.Send(this.Player, P.MakeCharacter(player));
                         if (player.HasPrivilege(AccessPrivilege.GMInvisible))
                         {
-                            world.Send(this.Player, "AMA" + player.LoginID + ",1");
+                            world.Send(this.Player, P.AdminMode(player.LoginID));
                         }
                     }
                 }
@@ -81,7 +80,7 @@ namespace Goose.Events
                 List<NPC> npcrange = map.GetNPCsInRange(this.Player);
                 foreach (NPC npc in npcrange)
                 {
-                    world.Send(this.Player, npc.MKCString());
+                    world.Send(this.Player, P.MakeNPCCharacter(npc));
 
                     if (!this.Player.IsGMInvisible)
                         npc.AggroIfInRange(this.Player, world);
@@ -92,14 +91,14 @@ namespace Goose.Events
 
                 this.Player.AddRegenEvent(world);
 
-                world.Send(this.Player, this.Player.TNLString());
-                world.Send(this.Player, this.Player.WPSString());
+                world.Send(this.Player, P.ExpBar(this.Player));
+                world.Send(this.Player, P.WeaponSpeed(this.Player));
 
                 this.Player.SendBuffBar(world);
 
                 foreach (ItemTile tile in this.Player.Map.Items)
                 {
-                    world.Send(this.Player, tile.MOBString());
+                    world.Send(this.Player, P.MakeObject(tile));
                 }
 
                 if (this.Player.Group != null)

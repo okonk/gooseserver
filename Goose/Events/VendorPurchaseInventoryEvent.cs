@@ -79,24 +79,24 @@ namespace Goose.Events
 
                 if (slot.ItemTemplate.IsLore && this.Player.HasItem(slot.ItemTemplate.ID))
                 {
-                    world.Send(this.Player, "$7Can't purchase " + slot.ItemTemplate.Name + 
-                        " as it is LORE and you already have this item.");
+                    world.Send(this.Player, P.ServerMessage("Can't purchase " + slot.ItemTemplate.Name + 
+                        " as it is LORE and you already have this item."));
                     return;
                 }
 
                 if (!npc.CreditDealer && slot.ItemTemplate.Value * slot.Stack > this.Player.Gold)
                 {
-                    world.Send(this.Player, "$7Can't purchase " + slot.ItemTemplate.Name + 
+                    world.Send(this.Player, P.ServerMessage("Can't purchase " + slot.ItemTemplate.Name + 
                         (slot.Stack > 1 ? " (" + slot.Stack + ")" : "") +
-                        " as you don't have enough gold.");
+                        " as you don't have enough gold."));
                     return;
                 }
 
                 if (npc.CreditDealer && slot.ItemTemplate.Credits * slot.Stack > this.Player.Credits)
                 {
-                    world.Send(this.Player, "$7Can't purchase " + slot.ItemTemplate.Name +
+                    world.Send(this.Player, P.ServerMessage("Can't purchase " + slot.ItemTemplate.Name +
                         (slot.Stack > 1 ? " (" + slot.Stack + ")" : "") +
-                        " as you don't have enough credits.");
+                        " as you don't have enough credits."));
                     return;
                 }
 
@@ -111,17 +111,17 @@ namespace Goose.Events
                     {
                         this.Player.Credits -= (slot.ItemTemplate.Credits * slot.Stack);
 
-                        world.Send(this.Player, "$7Purchased " + slot.ItemTemplate.Name +
+                        world.Send(this.Player, P.ServerMessage("Purchased " + slot.ItemTemplate.Name +
                             (slot.Stack > 1 ? " (" + slot.Stack + ")" : "") +
-                            " for " + slot.ItemTemplate.Credits * slot.Stack + " credits.");
+                            " for " + slot.ItemTemplate.Credits * slot.Stack + " credits."));
                     }
                     else
                     {
                         this.Player.RemoveGold(slot.ItemTemplate.Value * slot.Stack, world);
 
-                        world.Send(this.Player, "$7Purchased " + slot.ItemTemplate.Name +
+                        world.Send(this.Player, P.ServerMessage("Purchased " + slot.ItemTemplate.Name +
                             (slot.Stack > 1 ? " (" + slot.Stack + ")" : "") +
-                            " for " + slot.ItemTemplate.Value * slot.Stack + " gold.");
+                            " for " + slot.ItemTemplate.Value * slot.Stack + " gold."));
                     }
 
                     if (item.IsBindOnPickup)
@@ -133,8 +133,8 @@ namespace Goose.Events
                 }
                 else
                 {
-                    world.Send(this.Player, "$7Can't purchase " + slot.ItemTemplate.Name +
-                        " as your inventory is full.");
+                    world.Send(this.Player, P.ServerMessage("Can't purchase " + slot.ItemTemplate.Name +
+                        " as your inventory is full."));
                     return;
                 }
             }

@@ -38,7 +38,7 @@ namespace Goose.Events
             {
                 player.State = Player.States.NotLoggedIn;
                 world.PlayerHandler.RemovePlayer(player);
-                world.SendToAll("$7" + player.Name + " has left the world.");
+                world.SendToAll(P.ServerMessage(player.Name + " has left the world."));
             }
             else
             {
@@ -47,7 +47,7 @@ namespace Goose.Events
                     List<Player> range = player.Map.GetPlayersInRange(player);
                     foreach (Player p in range)
                     {
-                        world.Send(p, "ERC" + player.LoginID);
+                        world.Send(p, P.EraseCharacter(player.LoginID));
                     }
                     foreach (NPC npc in player.Map.GetNPCsInRange(player))
                     {
@@ -91,7 +91,7 @@ namespace Goose.Events
 
                 world.PlayerHandler.RemovePlayer(player);
                 if (player.Access != Goose.Player.AccessStatus.GameMaster)
-                    world.SendToAll("$7" + player.Name + " has left the world.");
+                    world.SendToAll(P.ServerMessage(player.Name + " has left the world."));
 
                 world.LogHandler.Log(Log.Types.LeaveGame, player.PlayerID, "");
 

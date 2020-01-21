@@ -41,13 +41,13 @@ namespace Goose.Events
                 Player player = world.PlayerHandler.GetPlayerFromData(name);
                 if (player == null)
                 {
-                    world.Send(this.Player, "$7Player " + name + " doesn't exist.");
+                    world.Send(this.Player, P.ServerMessage("Player " + name + " doesn't exist."));
                     return;
                 }
 
                 if (this.Player.Credits < credits)
                 {
-                    world.Send(this.Player, "$7You don't have enough credits.");
+                    world.Send(this.Player, P.ServerMessage("You don't have enough credits."));
                     return;
                 }
 
@@ -56,7 +56,7 @@ namespace Goose.Events
 
                 if (player.State == Player.States.Ready)
                 {
-                    world.Send(player, "$7" + this.Player.Name + " gave you " + credits + " donation credits.");
+                    world.Send(player, P.ServerMessage(this.Player.Name + " gave you " + credits + " donation credits."));
                 }
                 else
                 {

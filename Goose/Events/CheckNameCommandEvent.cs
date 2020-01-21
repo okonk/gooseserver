@@ -26,11 +26,11 @@ namespace Goose.Events
 
                 if (player == null)
                 {
-                    world.Send(this.Player, "$7" + name + " is currently unused.");
+                    world.Send(this.Player, P.ServerMessage(name + " is currently unused."));
                 }
                 else
                 {
-                    world.Send(this.Player, "$7" + name + " is used.");
+                    world.Send(this.Player, P.ServerMessage(name + " is used."));
                 }
             }
         }

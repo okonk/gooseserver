@@ -34,27 +34,27 @@ namespace Goose.Events
 
                 this.Player.State = Player.States.LoadingMap;
                 
-                world.Send(this.Player, "SCM" + map.FileName + ",1," + map.Name + ",0");
+                world.Send(this.Player, P.SendCurrentMap(map));
 
                 // send classes
-                foreach (Class classs in world.ClassHandler.Classes)
+                foreach (Class @class in world.ClassHandler.Classes)
                 {
-                    world.Send(this.Player, "CUP" + classs.ClassID + "," + classs.ClassName);
+                    world.Send(this.Player, P.ClassUpdate(@class));
                 }
 
                 if (GameSettings.Default.MOTD.Length > 0) 
                 {
-                    world.Send(this.Player, "$7" + GameSettings.Default.MOTD);
+                    world.Send(this.Player, P.ServerMessage(GameSettings.Default.MOTD));
                 }
-                world.Send(this.Player, "$7There are currently " + 
+                world.Send(this.Player, P.ServerMessage("There are currently " + 
                                         world.PlayerHandler.PlayerCount + 
-                                        " players online.");
+                                        " players online."));
                 if (GameSettings.Default.ExperienceModifier != 1)
                 {
-                    world.Send(this.Player, "$7Current experience rate is " + 
-                        world.ExperienceModifier + "x.");
+                    world.Send(this.Player, P.ServerMessage("Current experience rate is " + 
+                        world.ExperienceModifier + "x."));
                 }
-                world.Send(this.Player, this.Player.SNFString());
+                world.Send(this.Player, P.StatusInfo(this.Player));
                 this.Player.AddRegenEvent(world);
                 this.Player.SendInventory(world);
                 this.Player.SendSpellbook(world);
@@ -65,13 +65,13 @@ namespace Goose.Events
                     this.Player.Guild.OnlineMembers.Add(this.Player);
                     if (this.Player.Guild.MOTD != "")
                     {
-                        world.Send(this.Player, "$2[guild-notice] MOTD: " + this.Player.Guild.MOTD);
+                        world.Send(this.Player, P.GuildMessage("[guild-notice] MOTD: " + this.Player.Guild.MOTD));
                     }
                 }
 
                 if (this.Player.Credits > 0)
                 {
-                    world.Send(this.Player, "$7You have " + this.Player.Credits + " donation credits.");
+                    world.Send(this.Player, P.ServerMessage("You have " + this.Player.Credits + " donation credits."));
                 }
             }
         }

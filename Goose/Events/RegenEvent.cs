@@ -39,7 +39,7 @@ namespace Goose.Events
                     if (this.NPC.CurrentHP <= 0) this.NPC.CurrentHP = 1;
                     if (this.NPC.CurrentMP <= 0) this.NPC.CurrentMP = 1;
 
-                    string packet = this.NPC.VPUString();
+                    string packet = P.VitalsPercentage(this.NPC);
                     List<Player> range = this.NPC.Map.GetPlayersInRange(this.NPC);
                     foreach (Player p in range)
                     {
@@ -69,11 +69,11 @@ namespace Goose.Events
                     if (player.CurrentHP <= 0) player.CurrentHP = 1;
                     if (player.CurrentMP <= 0) player.CurrentMP = 1;
 
-                    string packet = player.VPUString();
+                    string packet = P.VitalsPercentage(player);
 
                     List<Player> range = player.Map.GetPlayersInRange(player);
                     world.Send(player, packet);
-                    world.Send(player, player.SNFString());
+                    world.Send(player, P.StatusInfo(player));
                     foreach (Player p in range)
                     {
                         world.Send(p, packet);

@@ -490,59 +490,6 @@ namespace Goose
         }
 
         /**
-         * MKCString, returns the MKC packet string for this character
-         * 
-         * MKCid,character type,name,title,surname,guild,x,y,facing,hp percent,body,
-         * body pose,hair id,chest id,chest r,g,b,a,helm id,helm r,g,b,a,
-         * pants id,pants r,g,b,a,shoes id,shoes r,g,b,a,
-         * shield id,shield r,g,b,a,weapon id,weapon r,g,b,a,hair_r,hair_g,hair_b,hair_a,invis,head
-         *
-         * character type = 1 for player, 2 for regular npc, some others for banker and vendors will find later
-         * hair id = 20ish for the normal hairs
-         * head = 70-73 for faces
-         * body pose/state = 1 for normal, 3 for staff, 4 for sword
-         * body = values 100-166 are illusions, 1 is male, 11 is female. 2/12 are naga. 3 is skeleton
-         * invis = not sure at moment
-         * 
-         * For item r,g,b,a of 0,0,0,0 you can use * instead
-         * 
-         */
-        public virtual string MKCString()
-        {
-            int pose = this.BodyState;
-            ItemSlot weapon = this.Inventory.GetEquippedSlot(Inventory.EquipSlots.Weapon);
-            if (weapon != null)
-            {
-                pose = weapon.Item.BodyState;
-            }
-
-            return "MKC" + this.LoginID + "," +
-                           "1," +
-                          this.Name + "," +
-                          this.Title + "," +
-                          this.Surname + "," +
-                          "" + "," + // Guild name
-                          this.MapX + "," +
-                          this.MapY + "," +
-                          this.Facing + "," +
-                          (int)(((float)this.CurrentHP / this.MaxHP) * 100) + "," + // HP %
-                          this.CurrentBodyID + "," +
-                          this.BodyR + "," + // Body Color R
-                          this.BodyG + "," + // Body Color G
-                          this.BodyB + "," + // Body Color B
-                          this.BodyA + "," + // Body Color A
-                          (this.CurrentBodyID >= 100 ? 3 : pose) + "," +
-                          (this.CurrentBodyID >= 100 ? "" : this.HairID + ",") +
-                          (this.CurrentBodyID >= 100 ? "" : this.Inventory.EquippedDisplay()) + // Note: EquippedDisplay() adds it's own , on end
-                          (this.CurrentBodyID >= 100 ? "" : this.HairR + "," + HairG + "," + HairB + "," + HairA + ",") +
-                          "0" + "," + // Invis thing
-                          (this.CurrentBodyID >= 100 ? "" : this.FaceID + ",") +
-                          this.CalculateMoveSpeed() + "," + // Move Speed
-                          (this.Access > AccessStatus.Normal ? "1" : "0") + "," + // Is GM
-                          (this.CurrentBodyID >= 100 ? "" : this.Inventory.MountDisplay()); // Mount
-        }
-
-        /**
          * LoadFromAutoCreate, fills in player info from server defaults
          * 
          */
@@ -1043,7 +990,7 @@ namespace Goose
                     progress.Value++;
                     if (!QuestCreditFilterEnabled)
                     {
-                        world.Send(this, string.Format("BT{0},{1},Quest Credit: {2}", this.LoginID, 60, progress.Requirement.Quest.Name));
+                        world.Send(this, P.BattleTextYellow(this, "Quest Credit: " + progress.Requirement.Quest.Name));
                     }
                 }
             }
@@ -1109,9 +1056,9 @@ namespace Goose
             List<Player> afterRange = this.Map.GetPlayersInRange(this);
             List<NPC> afterNPCRange = this.Map.GetNPCsInRange(this);
 
-            string gmstring = "AMA" + this.LoginID + ",1";
+            string gmstring = P.AdminMode(this.LoginID);
 
-            string mkc = this.MKCString();
+            string mkc = P.MakeCharacter(this);
             // Send to all people that are in after but aren't in before MKC
             // MKC on client too
             foreach (Player player in afterRange.Except<Player>(beforeRange))
@@ -1127,10 +1074,10 @@ namespace Goose
 
                 if (!player.IsGMInvisible)
                 {
-                    world.Send(this, player.MKCString());
+                    world.Send(this, P.MakeCharacter(player));
                     if (player.HasPrivilege(AccessPrivilege.GMInvisible))
                     {
-                        world.Send(this, "AMA" + player.LoginID + ",1");
+                        world.Send(this, P.AdminMode(player.LoginID));
                     }
                 }
             }
@@ -1138,13 +1085,13 @@ namespace Goose
             // MKC all new npcs
             foreach (NPC npc in afterNPCRange.Except<NPC>(beforeNPCRange))
             {
-                world.Send(this, npc.MKCString());
+                world.Send(this, P.MakeNPCCharacter(npc));
             }
 
             if (!IsGMInvisible)
             {
                 // Send to everyone MOC
-                string packet = "MOC" + this.LoginID + "," + this.MapX + "," + this.MapY;
+                string packet = P.MoveCharacter(this);
                 foreach (Player player in afterRange.Union<Player>(beforeRange).Distinct<Player>())
                 {
                     world.Send(player, packet);
@@ -1156,7 +1103,7 @@ namespace Goose
                 }
             }
 
-            string erc = "ERC" + this.LoginID;
+            string erc = P.EraseCharacter(this.LoginID);
             // Send to all people that aren't in after but are in before ERC
             // Erase from client too
             foreach (Player player in beforeRange.Except<Player>(afterRange))
@@ -1164,14 +1111,14 @@ namespace Goose
                 if (!IsGMInvisible)
                     world.Send(player, erc);
 
-                world.Send(this, "ERC" + player.LoginID);
+                world.Send(this, P.EraseCharacter(player.LoginID));
             }
 
             // Erase old npcs
             // Remove npc aggro towards player
             foreach (NPC npc in beforeNPCRange.Except<NPC>(afterNPCRange))
             {
-                world.Send(this, "ERC" + npc.LoginID);
+                world.Send(this, P.EraseCharacter(npc.LoginID));
                 npc.RemoveAggro(this);
             }
         }
@@ -1190,17 +1137,17 @@ namespace Goose
          */
         public void WarpTo(GameWorld world, Map map, int x, int y, bool loseaggro)
         {
-            string erc = "ERC" + this.LoginID;
+            string erc = P.EraseCharacter(this.LoginID);
             foreach (Player player in this.Map.GetPlayersInRange(this))
             {
                 if (!IsGMInvisible)
                     world.Send(player, erc);
 
-                world.Send(this, "ERC" + player.LoginID);
+                world.Send(this, P.EraseCharacter(player.LoginID));
             }
             foreach (NPC npc in this.Map.GetNPCsInRange(this))
             {
-                world.Send(this, "ERC" + npc.LoginID);
+                world.Send(this, P.EraseCharacter(npc.LoginID));
                 if (loseaggro) npc.RemoveAggro(this);
             }
 
@@ -1221,11 +1168,11 @@ namespace Goose
                     this.Map.SetCharacter(this, this.MapX, this.MapY);
                 }
 
-                world.Send(this, "SUP" + this.MapX + "," + this.MapY);
+                world.Send(this, P.SetYourPosition(this));
 
-                string gmstring = "AMA" + this.LoginID + ",1";
+                string gmstring = P.AdminMode(this.LoginID);
 
-                string mkc = this.MKCString();
+                string mkc = P.MakeCharacter(this);
                 foreach (Player player in this.Map.GetPlayersInRange(this))
                 {
                     if (!IsGMInvisible)
@@ -1240,16 +1187,16 @@ namespace Goose
 
                     if (!player.IsGMInvisible)
                     {
-                        world.Send(this, player.MKCString());
+                        world.Send(this, P.MakeCharacter(player));
                         if (player.HasPrivilege(AccessPrivilege.GMInvisible))
                         {
-                            world.Send(this, "AMA" + player.LoginID + ",1");
+                            world.Send(this, P.AdminMode(player.LoginID));
                         }
                     }
                 }
                 foreach (NPC npc in this.Map.GetNPCsInRange(this))
                 {
-                    world.Send(this, npc.MKCString());
+                    world.Send(this, P.MakeNPCCharacter(npc));
 
                     if (!IsGMInvisible)
                         npc.AggroIfInRange(this, world);
@@ -1270,40 +1217,8 @@ namespace Goose
                 this.MapX = x;
                 this.MapY = y;
 
-                world.Send(this, "SCM" + map.FileName + ",1," + map.Name + ",0");
+                world.Send(this, P.SendCurrentMap(map));
             }
-        }
-
-        /**
-         * SNFString, send info string
-         * 
-         * SNFguildname,,classname,level,max_hp,max_mp,max_sp,cur_,cur_mp,cur_sp,
-         * stat_str,stat_sta,stat_int,stat_dex,ac,res_f,res_w,res_e,res_a,res_s,gold 
-         */
-        public string SNFString()
-        {
-            return "SNF" +
-                   (this.Guild != null ? this.Guild.Name : "") + "," + // guild name
-                   "" + "," + // Not sure
-                   this.Class.ClassName + "," +
-                   this.Level + "," +
-                   this.MaxHP + "," +
-                   this.MaxMP + "," +
-                   this.MaxStats.SP + "," +
-                   this.CurrentHP + "," +
-                   this.CurrentMP + "," +
-                   this.CurrentSP + "," +
-                   this.MaxStats.Strength + "," +
-                   this.MaxStats.Stamina + "," +
-                   this.MaxStats.Intelligence + "," +
-                   this.MaxStats.Dexterity + "," +
-                   this.MaxStats.AC + "," +
-                   this.MaxStats.FireResist + "," +
-                   this.MaxStats.WaterResist + "," +
-                   this.MaxStats.EarthResist + "," +
-                   this.MaxStats.AirResist + "," +
-                   this.MaxStats.SpiritResist + "," +
-                   this.Gold;
         }
 
         /**
@@ -1328,32 +1243,6 @@ namespace Goose
             this.RegenEventExists = true;
 
             world.EventHandler.AddEvent(ev);
-        }
-
-        /**
-         * TNLString, returns data for exp bar
-         * 
-         */
-        public string TNLString()
-        {
-            long percent, tnl, exp;
-            if (this.Class.GetLevel(this.Level).Experience == 0)
-            {
-                percent = 100;
-                tnl = exp = this.Experience;
-            }
-            else
-            {
-                long prev;
-                if (this.Level == 1) prev = 0;
-                else prev = this.Class.GetLevel(this.Level - 1).Experience;
-
-                long next = this.Class.GetLevel(this.Level).Experience;
-                tnl = next - this.Experience;
-                exp = this.Experience;
-                percent = (long)(((float)(exp - prev) / (next - prev)) * 100);
-            }
-            return "TNL" + percent + "," + exp + "," + tnl + "," + this.ExperienceSold;
         }
 
         /**
@@ -1390,9 +1279,9 @@ namespace Goose
 
             this.Spellbook.RemoveNonClassSpells(world);
 
-            world.Send(this, this.SNFString());
-            world.Send(this, this.TNLString());
-            world.Send(this, "$7Changed class to " + this.Class.ClassName + ".");
+            world.Send(this, P.StatusInfo(this));
+            world.Send(this, P.ExpBar(this));
+            world.Send(this, P.ServerMessage("Changed class to " + this.Class.ClassName + "."));
 
             for (int level = 1; level <= this.Level; level++)
             {
@@ -1424,93 +1313,39 @@ namespace Goose
 
             if (item.MinLevel != 0 && this.Level < item.MinLevel)
             {
-                world.Send(this, "$7You are too low level to use " + item.Name + ".");
+                world.Send(this, P.ServerMessage("You are too low level to use " + item.Name + ".");
                 return false;
             }
             if (item.MaxLevel != 0 && this.Level > item.MaxLevel)
             {
-                world.Send(this, "$7You are too high level to use " + item.Name + ".");
+                world.Send(this, P.ServerMessage("You are too high level to use " + item.Name + ".");
                 return false;
             }
             if ((item.MinExperience != 0) &&
                 (this.Experience + this.ExperienceSold < item.MinExperience))
             {
-                world.Send(this, string.Format("$7You are too low experienced to use {0}. {1} experience required.", item.Name, item.MinExperience));
+                world.Send(this, P.ServerMessage(string.Format("You are too low experienced to use {0}. {1} experience required.", item.Name, item.MinExperience)));
                 return false;
             }
             if ((item.MaxExperience != 0) &&
                 (this.Experience + this.ExperienceSold > item.MaxExperience))
             {
-                world.Send(this, string.Format("$7You are too high experienced to use {0}. {1} experience maximum.", item.Name, item.MaxExperience));
+                world.Send(this, P.ServerMessage(string.Format("You are too high experienced to use {0}. {1} experience maximum.", item.Name, item.MaxExperience)));
                 return false;
             }
 
             if ((item.ClassRestrictions & Convert.ToInt64(Math.Pow(2.0, (double)this.Class.ClassID))) != 0)
             {
-                world.Send(this, "$7You are the wrong class to use " + item.Name + ".");
+                world.Send(this, P.ServerMessage("You are the wrong class to use " + item.Name + "."));
                 return false;
             }
 
             return true;
         }
 
-        /**
-         * CHPString, update character string
-         * 
-         */
-        public virtual string CHPString()
-        {
-            int pose = this.BodyState;
-            ItemSlot weapon = this.Inventory.GetEquippedSlot(Inventory.EquipSlots.Weapon);
-            if (weapon != null)
-            {
-                pose = weapon.Item.BodyState;
-            }
-
-            // CHP
-            // 12278,
-            // 1, body
-            // 0,0,0,0, body rgba
-            // 4, pose
-            // 16, hair id
-            // 60,*,
-            // 133,*,
-            // 11,146,183,68,150,
-            // 3,150,150,150,135,
-            // 224,*,
-            // 3,60,25,180,150,
-            // 0,0,0,0,
-            // 0,
-            // 2,
-            // 320,
-            // 0,0,0,0,0
-
-            // MKC5735,12,Road Sign (Quest),,,,52,177,3,100,152,0,0,0,0,3,0,320,0,0
-            // MKC5582,2,Snake (Lv3),,,,64,178,3,100,123,0,0,0,0,3,0,320,0,0.
-
-            return "CHP" +
-                   this.LoginID + "," +
-                   this.CurrentBodyID + "," +
-                   this.BodyR + "," + // Body Color R
-                   this.BodyG + "," + // Body Color G
-                   this.BodyB + "," + // Body Color B
-                   this.BodyA + "," + // Body Color A
-                   (this.CurrentBodyID >= 100 ? 3 : pose) + "," +
-                   (this.CurrentBodyID >= 100 ? "" : this.HairID + ",") +
-                   (this.CurrentBodyID >= 100 ? "" : this.Inventory.EquippedDisplay()) + // Note: EquippedDisplay() adds it's own , on end
-                   (this.CurrentBodyID >= 100 ? "" : this.HairR + ",") +
-                   (this.CurrentBodyID >= 100 ? "" : this.HairG + ",") +
-                   (this.CurrentBodyID >= 100 ? "" : this.HairB + ",") +
-                   (this.CurrentBodyID >= 100 ? "" : this.HairA + ",") +
-                   "0" + "," + // Invis thing
-                   (this.CurrentBodyID >= 100 ? "" : this.FaceID + ",") +
-                   this.CalculateMoveSpeed() + "," + // Move Speed
-                   (this.CurrentBodyID >= 100 ? "" : this.Inventory.MountDisplay()); // Mount
-        }
-
         public void SendCHPString(GameWorld world)
         {
-            string chpstring = this.CHPString();
+            string chpstring = P.UpdateCharacter(this);
             world.Send(this, chpstring);
             foreach (Player player in this.Map.GetPlayersInRange(this))
             {
@@ -1531,7 +1366,7 @@ namespace Goose
         {
             this.Gold += amount;
 
-            world.Send(this, this.SNFString());
+            world.Send(this, P.StatusInfo(this));
         }
 
         /**
@@ -1543,7 +1378,7 @@ namespace Goose
             if (amount > this.Gold) return;
             this.Gold -= amount;
 
-            world.Send(this, this.SNFString());
+            world.Send(this, P.StatusInfo(this));
         }
 
         /**
@@ -1560,7 +1395,7 @@ namespace Goose
             this.CurrentMP = Math.Min(this.CurrentMP, this.MaxMP);
             this.CurrentSP = Math.Min(this.CurrentSP, this.MaxStats.SP);
 
-            world.Send(this, this.SNFString());
+            world.Send(this, P.StatusInfo(this));
             this.AddRegenEvent(world);
         }
 
@@ -1580,7 +1415,7 @@ namespace Goose
                 this.CurrentMP = Math.Min(this.CurrentMP, this.MaxMP);
                 this.CurrentSP = Math.Min(this.CurrentSP, this.MaxStats.SP);
 
-                world.Send(this, this.SNFString());
+                world.Send(this, P.StatusInfo(this));
                 this.AddRegenEvent(world);
             }
         }
@@ -1662,7 +1497,7 @@ namespace Goose
                 this.Experience + this.ExperienceSold > GameSettings.Default.ExperienceCap)
             {
                 if ((this.ToggleSettings & ToggleSetting.Experience) != 0) return;
-                world.Send(this, "$7You have reached the experience cap. Gained 0 experience points.");
+                world.Send(this, P.ServerMessage("You have reached the experience cap. Gained 0 experience points."));
                 return;
             }
 
@@ -1685,20 +1520,20 @@ namespace Goose
                 switch (message)
                 {
                     case ExperienceMessage.Normal:
-                        world.Send(this, "$7You have gained " + exp + " experience points.");
+                        world.Send(this, P.ServerMessage("You have gained " + exp + " experience points."));
                         break;
 
                     case ExperienceMessage.TooFarAway:
-                        world.Send(this, "$7You were too far away to gain experience.");
+                        world.Send(this, P.ServerMessage("You were too far away to gain experience."));
                         break;
 
                     case ExperienceMessage.TooHigh:
                         world.Send(this,
-                            "$7You were too experienced, you only gained " + exp + " experience points.");
+                            P.ServerMessage("You were too experienced, you only gained " + exp + " experience points."));
                         break;
 
                     case ExperienceMessage.TooLow:
-                        world.Send(this, "$7Group members too high to gain any experience.");
+                        world.Send(this, P.ServerMessage("Group members too high to gain any experience."));
                         break;
 
                     case ExperienceMessage.None:
@@ -1737,7 +1572,7 @@ namespace Goose
 
             if (levels == 0)
             {
-                world.Send(this, this.TNLString());
+                world.Send(this, P.ExpBar(this));
                 return;
             }
 
@@ -1746,12 +1581,12 @@ namespace Goose
             this.AddStats(this.Class.GetLevel(this.Level).BaseStats, world);
             this.CurrentHP = this.MaxHP;
             this.CurrentMP = this.MaxMP;
-            world.Send(this, this.VPUString());
-            if (levels == 1) world.Send(this, "$7You have gained a level.");
-            else world.Send(this, "$7You have gained " + levels + " levels.");
+            world.Send(this, P.VitalsPercentage(this));
+            if (levels == 1) world.Send(this, P.ServerMessage("You have gained a level."));
+            else world.Send(this, P.ServerMessage("You have gained " + levels + " levels."));
 
             List<Player> range = this.Map.GetPlayersInRange(this);
-            string packet = "BT" + this.LoginID + ",60,Level Up!," + this.Name;
+            string packet = P.BattleTextYellow(this, "Level Up!");
             world.Send(this, packet);
             foreach (Player player in range)
             {
@@ -1764,8 +1599,8 @@ namespace Goose
                 this.ExperienceSold = 0;
             }
 
-            world.Send(this, this.SNFString());
-            world.Send(this, this.TNLString());
+            world.Send(this, P.StatusInfo(this));
+            world.Send(this, P.ExpBar(this));
         }
 
         /**
@@ -1782,7 +1617,7 @@ namespace Goose
 
             if (damage == 0 || this.Access == AccessStatus.GameMaster)
             {
-                packet = "BT" + this.LoginID + ",21,," + character.Name;
+                packet = P.BattleTextMiss(this);
                 world.Send(this, packet);
                 foreach (Player p in range)
                 {
@@ -1798,7 +1633,7 @@ namespace Goose
 
                 if (world.Random.Next(0, 10001) <= dodge * 100)
                 {
-                    packet = "BT" + this.LoginID + ",20,," + character.Name;
+                    packet = P.BattleTextDodge(this);
                     world.Send(this, packet);
                     foreach (Player p in range)
                     {
@@ -1809,11 +1644,11 @@ namespace Goose
 
                 // pvp 1/3 damage
                 if (character is Player) damage /= 3;
-                packet = "BT" + this.LoginID + ",1," + (-damage) + "," + character.Name + "\x1";
+                packet = P.BattleTextDamage(this, damage) + "\x1";
             }
             else
             {
-                packet = "BT" + this.LoginID + ",7,+" + (-damage) + "," + character.Name + "\x1";
+                packet = P.BattleTextHeal(this, damage) + "\x1";
             }
 
             this.CurrentHP -= damage;
@@ -1823,12 +1658,12 @@ namespace Goose
                 this.CurrentHP = (long)(this.MaxHP * 0.5);
                 this.CurrentMP = (long)(this.MaxMP * 0.1);
 
-                world.SendToMap(this.Map, "$7" + this.Name + " was slain by " + character.Name + ".");
+                world.SendToMap(this.Map, P.ServerMessage(this.Name + " was slain by " + character.Name + "."));
 
                 this.WarpTo(world, this.BoundMap, this.BoundX, this.BoundY);
                 this.AddRegenEvent(world);
-                world.Send(this, this.VPUString());
-                world.Send(this, this.SNFString());
+                world.Send(this, P.VitalsPercentage(this));
+                world.Send(this, P.StatusInfo(this));
 
                 // Remove all buffs on death
                 List<Buff> removebuff = new List<Buff>();
@@ -1846,11 +1681,11 @@ namespace Goose
             }
             else
             {
-                packet += this.VPUString();
+                packet += P.VitalsPercentage(this);
                 this.AddRegenEvent(world);
             }
 
-            world.Send(this, this.SNFString());
+            world.Send(this, P.StatusInfo(this));
             world.Send(this, packet);
             foreach (Player p in range)
             {
@@ -1867,16 +1702,6 @@ namespace Goose
             }
 
             return;
-        }
-
-        /**
-         * VPUString, returns regen event string
-         */
-        public string VPUString()
-        {
-            return "VPU" + this.LoginID + "," +
-                   (int)(((float)this.CurrentHP / this.MaxHP) * 100) + "," +
-                   (int)(((float)this.CurrentMP / this.MaxMP) * 100);
         }
 
         /**
@@ -1936,7 +1761,7 @@ namespace Goose
                 // can't cast when stunned
                 if (b.SpellEffect.EffectType == SpellEffect.EffectTypes.Stun)
                 {
-                    world.Send(this, "BT" + this.LoginID + ",50");
+                    world.Send(this, P.BattleTextStunned(this));
                     return;
                 }
             }
@@ -1945,14 +1770,14 @@ namespace Goose
             {
                 if (window.Type == Window.WindowTypes.Vendor)
                 {
-                    world.Send(this, "$7You can't cast spells while with a vendor.");
+                    world.Send(this, P.ServerMessage("You can't cast spells while with a vendor."));
                     return;
                 }
             }
 
             if (!this.Class.CanUse(spell.ClassRestrictions) && !this.HasPrivilege(AccessPrivilege.IgnoreItemRequirements))
             {
-                world.Send(this, "$7You are the wrong class to use this spell.");
+                world.Send(this, P.ServerMessage("You are the wrong class to use this spell."));
                 return;
             }
 
@@ -2013,10 +1838,10 @@ namespace Goose
 
                     if (this.State == States.Ready)
                     {
-                        string packet = this.VPUString();
+                        string packet = P.VitalsPercentage(this);
 
                         world.Send(this, packet);
-                        world.Send(this, this.SNFString());
+                        world.Send(this, P.StatusInfo(this));
                         foreach (Player player in this.Map.GetPlayersInRange(this))
                         {
                             world.Send(player, packet);
@@ -2025,7 +1850,7 @@ namespace Goose
                 }
                 else
                 {
-                    string packet = "BT" + this.LoginID + ",60,Fizzle";
+                    string packet = P.BattleTextYellow(this, "Fizzle");
 
                     world.Send(this, packet);
                     foreach (Player player in this.Map.GetPlayersInRange(this))
@@ -2041,8 +1866,8 @@ namespace Goose
                 wait = Math.Round(wait, 2);
                 if (wait >= this.AetherThreshold)
                 {
-
-                    world.Send(this, "$7You must wait " + Utils.FormatDuration((long)(wait * 1000)) + " to cast this spell.");
+                    world.Send(this, P.BattleTextYellow(this, Utils.FormatDuration((long)(wait * 1000))));
+                    //world.Send(this, P.ServerMessage("You must wait " + Utils.FormatDuration((long)(wait * 1000)) + " to cast this spell."));
                 }
             }
 
@@ -2077,7 +1902,7 @@ namespace Goose
             {
                 if (buff.SpellEffect.BuffDoesntStackOver.Contains(b.SpellEffect))
                 {
-                    world.Send(this, "$7The buff had no effect.");
+                    world.Send(this, P.ServerMessage("The buff had no effect."));
                     return;
                 }
 
@@ -2089,7 +1914,7 @@ namespace Goose
                     this.RemoveStats(b.SpellEffect.Stats, world);
                     this.AddStats(buff.SpellEffect.Stats, world);
 
-                    world.Send(this, this.WPSString());
+                    world.Send(this, P.WeaponSpeed(this));
 
                     b.TimeCast = world.TimeNow;
                     b.SpellEffect = buff.SpellEffect;
@@ -2099,7 +1924,7 @@ namespace Goose
                     {
                         packet = buff.SpellEffect.SPPString(this.LoginID);
                         if (buff.SpellEffect.DoAttackAnimation)
-                            packet += "\x1ATT" + this.LoginID; // kinda weird but k
+                            packet += "\x1" + P.Attack(this); // kinda weird but k
 
                         world.Send(this, packet);
                         foreach (Player player in range)
@@ -2107,8 +1932,8 @@ namespace Goose
                             world.Send(player, packet);
                         }
                     }
-                    if (b.SpellEffect.OffEffectText != "") world.Send(this, "$7" + buff.SpellEffect.OffEffectText);
-                    if (buff.SpellEffect.OnEffectText != "") world.Send(this, "$7" + buff.SpellEffect.OnEffectText);
+                    if (b.SpellEffect.OffEffectText != "") world.Send(this, P.ServerMessage(buff.SpellEffect.OffEffectText));
+                    if (buff.SpellEffect.OnEffectText != "") world.Send(this, P.ServerMessage(buff.SpellEffect.OnEffectText));
 
                     this.SendBuffBar(world);
 
@@ -2163,28 +1988,28 @@ namespace Goose
                 buff.SpellEffect.CastFormulaSpell(buff.Caster, buff.Target, world);
             }
 
-            packet = this.VPUString();
+            packet = P.VitalsPercentage(this);
 
             if (buff.SpellEffect.Stats.Haste != Decimal.Zero)
             {
-                world.Send(this, this.WPSString());
+                world.Send(this, P.WeaponSpeed(this));
             }
 
             // for illusions
             if (buff.SpellEffect.BodyID != 0)
             {
                 this.CurrentBodyID = buff.SpellEffect.BodyID;
-                packet += "\x1" + this.CHPString();
+                packet += "\x1" + P.UpdateCharacter(this);
             }
 
             this.AddRegenEvent(world);
 
             if (buff.SpellEffect.Animation != 0)
-                packet += "\x1" + buff.SpellEffect.SPPString(this.LoginID);
-            if (buff.SpellEffect.DoAttackAnimation) packet += "\x1ATT" + this.LoginID; // kinda weird but k
+                packet += "\x1" + P.SpellPlayer(this.LoginID, buff.SpellEffect.Animation);
+            if (buff.SpellEffect.DoAttackAnimation) packet += "\x1" + P.Attack(this); // kinda weird but k
 
-            if (buff.SpellEffect.OnEffectText != "") world.Send(this, "$7" + buff.SpellEffect.OnEffectText);
-            world.Send(this, this.SNFString());
+            if (buff.SpellEffect.OnEffectText != "") world.Send(this, P.ServerMessage(buff.SpellEffect.OnEffectText));
+            world.Send(this, P.StatusInfo(this));
             world.Send(this, packet);
             foreach (Player player in range)
             {
@@ -2227,18 +2052,18 @@ namespace Goose
             }
             catch (Exception e) { }
 
-            string packet = this.VPUString();
+            string packet = P.VitalsPercentage(this);
 
             if (buff.SpellEffect.Stats.Haste != Decimal.Zero)
             {
-                world.Send(this, this.WPSString());
+                world.Send(this, P.WeaponSpeed(this));
             }
 
             // for illusions
             if (buff.SpellEffect.BodyID != 0)
             {
                 this.CurrentBodyID = this.BodyID;
-                packet += "\x1" + this.CHPString();
+                packet += "\x1" + P.UpdateCharacter(this);
             }
 
             this.AddRegenEvent(world);
@@ -2247,8 +2072,8 @@ namespace Goose
             {
                 List<Player> range = this.Map.GetPlayersInRange(this);
 
-                if (buff.SpellEffect.OffEffectText != "") world.Send(this, "$7" + buff.SpellEffect.OffEffectText);
-                world.Send(this, this.SNFString());
+                if (buff.SpellEffect.OffEffectText != "") world.Send(this, P.ServerMessage(buff.SpellEffect.OffEffectText));
+                world.Send(this, P.StatusInfo(this));
                 world.Send(this, packet);
                 foreach (Player player in range)
                 {
@@ -2273,13 +2098,13 @@ namespace Goose
             {
                 if (buff.ItemBuff && !this.ShowItemBuffs) continue;
 
-                world.Send(this, "BUF" + i + "," + buff.SpellEffect.BuffGraphic + "," + buff.SpellEffect.BuffGraphicFile + "," + buff.SpellEffect.Name);
+                world.Send(this, P.BuffBar(buff, i));
                 i++;
             }
 
             while (i <= GameSettings.Default.BuffBarVisibleSize)
             {
-                world.Send(this, "BUF" + i);
+                world.Send(this, P.BuffBar(null, i));
                 i++;
             }
         }
@@ -2315,17 +2140,6 @@ namespace Goose
                         b.SpellEffect.OnMeleeAttackSpell.Cast(this, this, world);
                 }
             }
-        }
-
-        /**
-         * WPSSTring, weapon speed string
-         * 
-         */
-        public virtual string WPSString()
-        {
-            int wps = (int)((decimal)(this.WeaponDelay / 10.0) * (1 - this.MaxStats.Haste) * 1000);
-
-            return "WPS" + wps + ",0,0";
         }
 
         /// <summary>

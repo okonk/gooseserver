@@ -23,7 +23,7 @@ namespace Goose.Events
             {
                 if ((!this.Player.Map.CanChat || this.Player.Map.Muted) && !this.Player.HasPrivilege(AccessPrivilege.TalkWhileMuted))
                 {
-                    world.Send(this.Player, "#Chat is disabled in this map.");
+                    world.Send(this.Player, P.HashMessage("Chat is disabled in this map."));
                     return;
                 }
 
@@ -45,7 +45,7 @@ namespace Goose.Events
                 if (max <= 0) max = 1001;
 
                 int rnd = world.Random.Next(1, max);
-                string packet = "$7" + this.Player.Name + " rolls " + rnd + " out of " + (max-1) + ".";
+                string packet = P.ServerMessage(this.Player.Name + " rolls " + rnd + " out of " + (max-1) + ".");
 
                 world.Send(this.Player, packet);
                 foreach (Player player in this.Player.Map.GetPlayersInRange(this.Player))

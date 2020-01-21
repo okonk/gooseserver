@@ -28,13 +28,12 @@ namespace Goose.Events
 
                 if ((!this.Player.Map.CanAuction || this.Player.Map.Muted) && !this.Player.HasPrivilege(AccessPrivilege.TalkWhileMuted))
                 {
-                    world.Send(this.Player, "#Auction is disabled in this map.");
+                    world.Send(this.Player, P.HashMessage("Auction is disabled in this map."));
                     return;
                 }
 
-                //world.SendToMap(this.Player.Map, "$7<Auction> " + this.Player.Name + ": " + data);
-                string packet = "$7<Auction> " + this.Player.Name + ": " + data;
-                string filteredpacket = "$7<Auction> " + this.Player.Name + ": ";
+                string packet = P.ServerMessage("<Auction> " + this.Player.Name + ": " + data);
+                string filteredpacket = P.ServerMessage("<Auction> " + this.Player.Name + ": ");
                 bool filtered = false;
 
                 world.LogHandler.Log(Log.Types.Auction, this.Player.PlayerID, data, 0, this.Player.Map.ID, this.Player.MapX, this.Player.MapY);

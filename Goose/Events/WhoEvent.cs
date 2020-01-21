@@ -69,15 +69,15 @@ namespace Goose.Events
 
                     if (player.State == Player.States.Ready)
                     {
-                        world.Send(this.Player, "#[" + player.Map.Name + "] " + InvisibleDisplay(player) + (!String.IsNullOrEmpty(player.Title) ? player.Title + " " : "") +
+                        world.Send(this.Player, P.HashMessage("[" + player.Map.Name + "] " + InvisibleDisplay(player) + (!String.IsNullOrEmpty(player.Title) ? player.Title + " " : "") +
                                                 player.Name + (!String.IsNullOrEmpty(player.Surname) ? " " + player.Surname : "") +
-                                                " (Level " + player.Level + " " + ClassDisplay(player) + ")");
+                                                " (Level " + player.Level + " " + ClassDisplay(player) + ")"));
 
                         matches++;
                     }
                 }
 
-                world.Send(this.Player, "#[Matched " + matches + " players]");
+                world.Send(this.Player, P.HashMessage("[Matched " + matches + " players]"));
             }
         }
 

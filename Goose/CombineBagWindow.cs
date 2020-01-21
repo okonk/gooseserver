@@ -42,11 +42,11 @@ namespace Goose
             ItemSlot slot = this.ItemContainer.GetSlot(slotIndex);
             if (slot != null)
             {
-                world.Send(player, "SCS" + slot.Item.GetSlotPacket(world, slotIndex, slot.Stack));
+                world.Send(player, P.CombineSlot(slot.Item, world, slotIndex, slot.Stack));
             }
             else
             {
-                world.Send(player, "CCS" + slotIndex);
+                world.Send(player, P.ClearCombineSlot(slotIndex));
             }
         }
     }

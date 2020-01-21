@@ -346,39 +346,6 @@ namespace Goose
         public int ArmorPierce { get { return this.NPCTemplate.ArmorPierce; } }
 
         /**
-         * MKCString, see Player.MKCString for details
-         * 
-         * 
-         */
-        public string MKCString()
-        {
-            return "MKC" + this.LoginID + "," +
-                        (int)this.NPCType + "," +
-                        this.Name + "," +
-                        this.Title + "," +
-                        this.Surname + "," +
-                        "" + "," + // Guild name
-                        this.MapX + "," +
-                        this.MapY + "," +
-                        this.Facing + "," +
-                        (int)(((float)this.CurrentHP / this.MaxHP) * 100) + "," + // HP %
-                        this.CurrentBodyID + "," +
-                        this.BodyR + "," + // Body Color R
-                        this.BodyG + "," + // Body Color G
-                        this.BodyB + "," + // Body Color B
-                        this.BodyA + "," + // Body Color A
-                        (this.CurrentBodyID >= 100 ? 3 : this.BodyState) + "," +
-                        (this.CurrentBodyID >= 100 ? "" : this.HairID + ",") +
-                        (this.CurrentBodyID >= 100 ? "" : this.EquippedItems + ",") +
-                        (this.CurrentBodyID >= 100 ? "" : this.HairR + "," + HairG + "," + HairB + "," + HairA + ",") +
-                        "0" + "," + // Invis thing
-                        (this.CurrentBodyID >= 100 ? "" : this.FaceID + ",") +
-                        "320," + // Move Speed
-                        "0" + "," + // Player Name Color
-                        (this.CurrentBodyID >= 100 ? "" : "0,0,0,0"); // Mount
-        }
-
-        /**
          * CanMoveTo, checks if character can move to the specified x,y
          * 
          */
@@ -556,14 +523,14 @@ namespace Goose
 
             List<Player> afterRange = this.Map.GetPlayersInRange(this);
 
-            string mkc = this.MKCString();
+            string mkc = P.MakeNPCCharacter(this);
             // Send to all people that are in after but aren't in before MKC
             foreach (Player player in afterRange.Except<Player>(beforeRange))
             {
                 world.Send(player, mkc);
             }
             // Send to everyone MOC
-            string packet = "MOC" + this.LoginID + "," + this.MapX + "," + this.MapY;
+            string packet = P.MoveCharacter(this);
             foreach (Player player in afterRange.Union<Player>(beforeRange).Distinct<Player>())
             {
                 world.Send(player, packet);
@@ -571,7 +538,7 @@ namespace Goose
                 if (!player.IsGMInvisible)
                     this.AggroIfInRange(player, world);
             }
-            string erc = "ERC" + this.LoginID;
+            string erc = P.EraseCharacter(this.LoginID);
             // Send to all people that aren't in after but are in before ERC
             foreach (Player player in beforeRange.Except<Player>(afterRange))
             {
@@ -593,7 +560,7 @@ namespace Goose
                         Math.Abs(npc.MapY - this.MapY) <= npc.AggroRange)
                     {
                         npc.AddAggro(this.AggroTarget, 1, world);
-                        packet += "EMOT" + npc.LoginID + ",1087,9\x1";
+                        packet += P.NPCAngryEmote(npc) + "\x1";
 
                         npc.AddMoveEvent(world);
                         npc.AddAttackEvent(world);
@@ -724,7 +691,7 @@ namespace Goose
             this.AggroTargetToValue = new Dictionary<Player, Aggro>();
 
             List<Player> range = this.Map.GetPlayersInRange(this);
-            string packet = this.MKCString();
+            string packet = P.MakeNPCCharacter(this);
             foreach (Player player in range)
             {
                 world.Send(player, packet);
@@ -866,7 +833,7 @@ namespace Goose
             if (this.Facing == direction) return;
 
             this.Facing = direction;
-            string packet = "CHH" + this.LoginID + "," + this.Facing;
+            string packet = P.ChangeHeading(this);
             List<Player> range = this.Map.GetPlayersInRange(this);
             foreach (Player player in range)
             {
@@ -1020,7 +987,7 @@ namespace Goose
             if (Math.Abs(this.MapX - player.MapX) <= this.AggroRange &&
                 Math.Abs(this.MapY - player.MapY) <= this.AggroRange)
             {
-                string packet = "EMOT" + this.LoginID + ",1087,9\x1";
+                string packet = P.NPCAngryEmote(this) + "\x1";
 
                 this.AddAggro(player, 1, world);
                 
@@ -1034,7 +1001,7 @@ namespace Goose
                         Math.Abs(npc.MapY - this.MapY) <= npc.AggroRange)
                     {
                         npc.AddAggro(player, 1, world);
-                        packet += "EMOT" + npc.LoginID + ",1087,9\x1";
+                        packet += P.NPCAngryEmote(npc) + "\x1";
 
                         npc.AddMoveEvent(world);
                         npc.AddAttackEvent(world);
@@ -1088,7 +1055,7 @@ namespace Goose
 
                 if (!this.CanBeKilled)
                 {
-                    packet = "BT" + this.LoginID + ",21,," + character.Name;
+                    packet = P.BattleTextMiss(this);
                     foreach (Player p in range)
                     {
                         world.Send(p, packet);
@@ -1096,23 +1063,10 @@ namespace Goose
                     return;
                 }
 
-                //double dodge = this.MaxStats.Dexterity / 100.0;
-                //if (dodge > 50) dodge = 50;
-
-                //if (world.Random.Next(0, 10001) <= dodge * 100)
-                //{
-                //    packet = "BT" + this.LoginID + ",20,," + character.Name;
-                //    foreach (Player p in range)
-                //    {
-                //        world.Send(p, packet);
-                //    }
-                //    return;
-                //}
-
                 packet = "";
                 if (damage <= 0)
                 {
-                    packet = "BT" + this.LoginID + ",21,," + character.Name;
+                    packet = P.BattleTextMiss(this);
                     foreach (Player p in range)
                     {
                         world.Send(p, packet);
@@ -1123,7 +1077,7 @@ namespace Goose
                 }
 
                 this.CurrentHP -= damage;
-                packet += "BT" + this.LoginID + ",1," + (-damage) + "," + character.Name + "\x1";
+                packet += P.BattleTextDamage(this, damage) + "\x1";
 
                 this.AddAggro(player, damage, world);
                 this.AddAttackEvent(world);
@@ -1145,7 +1099,7 @@ namespace Goose
                     this.State = States.Dead;
                     this.MoveEvent = null;
                     this.CurrentHP = 0;
-                    packet = "ERC" + this.LoginID;
+                    packet = P.EraseCharacter(this.LoginID);
 
                     if (this.ShouldRespawn)
                     {
@@ -1234,7 +1188,7 @@ namespace Goose
                 }
                 else
                 {
-                    packet += this.VPUString();
+                    packet += P.VitalsPercentage(this);
                     this.AddRegenEvent(world);
                 }
 
@@ -1271,16 +1225,6 @@ namespace Goose
             ev.NPC = this;
 
             world.EventHandler.AddEvent(ev);
-        }
-
-        /**
-         * VPUString, returns regen event string
-         */
-        public string VPUString()
-        {
-            return "VPU" + this.LoginID + "," +
-                   (int)(((float)this.CurrentHP / this.MaxHP) * 100) + "," +
-                   (int)(((float)this.CurrentMP / this.MaxMP) * 100);
         }
 
         public void OnAttackEvent(GameWorld world)
@@ -1412,12 +1356,6 @@ namespace Goose
          */
         public void Attack(ICharacter character, GameWorld world)
         {
-            /*
-            double damage = ((double)this.MaxStats.Strength * 0.05 + 5) * 2 *
-                ((double)this.WeaponDamage / 10);
-            //double absorb = (double)character.MaxStats.AC / 20;
-            */
-
             double damage = this.MaxStats.Strength + 
                             this.WeaponDamage + 
                             this.Level + 
@@ -1427,7 +1365,6 @@ namespace Goose
             double absorb = (1 - ((character.MaxStats.AC - this.ArmorPierce) * (double)character.Class.ACMultiplier) / maxac);
 
             if (world.Random.Next(1, 10001) <= this.MaxStats.MeleeCrit * 10000) damage *= 2;
-            //damage *= (double)GameSettings.Default.DamageModifier; npcs don't get a modifier lol
             damage *= (1 + (double)this.MaxStats.MeleeDamage);
             damage *= (1 - (double)character.MaxStats.DamageReduction);
             damage *= absorb;
@@ -1435,7 +1372,7 @@ namespace Goose
 
             List<Player> range = this.Map.GetPlayersInRange(this);
 
-            string packet = "ATT" + this.LoginID;
+            string packet = P.Attack(this);
             foreach (Player player in range)
             {
                 world.Send(player, packet);
@@ -1450,7 +1387,7 @@ namespace Goose
             }
             else
             {
-                packet = "BT" + character.LoginID + ",21,," + this.Name;
+                packet = P.BattleTextMiss(character);
                 foreach (Player player in range)
                 {
                     world.Send(player, packet);
@@ -1516,7 +1453,7 @@ namespace Goose
                         maptile.Owner = tile.Owner;
                         maptile.PickupTime = tile.PickupTime;
 
-                        world.SendToMap(this.Map, maptile.MOBString());
+                        world.SendToMap(this.Map, P.MakeObject(maptile));
                     }
                     else
                     {
@@ -1545,9 +1482,9 @@ namespace Goose
 
                     if (buff.SpellEffect.Animation != 0)
                     {
-                        packet = "SPP" + this.LoginID + "," + buff.SpellEffect.Animation;
+                        packet = P.SpellPlayer(this.LoginID, buff.SpellEffect.Animation);
                         if (buff.SpellEffect.DoAttackAnimation)
-                            packet += "\x1ATT" + this.LoginID; // kinda weird but k
+                            packet += "\x1" + P.Attack(this); // kinda weird but k
 
                         foreach (Player player in range)
                         {
@@ -1608,11 +1545,11 @@ namespace Goose
 
             this.AddRegenEvent(world);
 
-            packet = this.VPUString();
+            packet = P.VitalsPercentage(this);
 
             if (buff.SpellEffect.Animation != 0)
-                packet += "\x1SPP" + this.LoginID + "," + buff.SpellEffect.Animation;
-            if (buff.SpellEffect.DoAttackAnimation) packet += "\x1ATT" + this.LoginID; // kinda weird but k
+                packet += "\x1" + P.SpellPlayer(this.LoginID, buff.SpellEffect.Animation);
+            if (buff.SpellEffect.DoAttackAnimation) packet += "\x1" + P.Attack(this); // kinda weird but k
 
             foreach (Player player in range)
             {
@@ -1644,7 +1581,7 @@ namespace Goose
             if (this.State == States.Alive)
             {
                 List<Player> range = this.Map.GetPlayersInRange(this);
-                string packet = this.VPUString();
+                string packet = P.VitalsPercentage(this);
 
                 foreach (Player player in range)
                 {
@@ -1720,11 +1657,6 @@ namespace Goose
         {
             player.Windows.Remove(window);
 
-        }
-
-        public string GetChatPacket(string message)
-        {
-            return string.Format("^{0},{1}: {2}", LoginID, Name, message);
         }
     }
 }

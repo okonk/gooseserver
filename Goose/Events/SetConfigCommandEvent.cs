@@ -34,7 +34,7 @@ namespace Goose.Events
                 // Couldn't find property.. error and return
                 if (prop == null)
                 {
-                    world.Send(this.Player, "$7Couldn't find Game Setting: " + tokens[0] + ".");
+                    world.Send(this.Player, P.ServerMessage("Couldn't find Game Setting: " + tokens[0] + "."));
                     return;
                 }
                 // Get Setter/Getter
@@ -61,7 +61,7 @@ namespace Goose.Events
                     }
                 }
 
-                world.SendToAll("$7[GM] Set Game Setting " + tokens[0] + " to: " + tokens[1]);
+                world.SendToAll(P.ServerMessage("[GM] Set Game Setting " + tokens[0] + " to: " + tokens[1]));
             }
         }
     }

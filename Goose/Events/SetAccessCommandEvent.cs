@@ -28,7 +28,7 @@ namespace Goose.Events
                 string[] tokens = ((string)this.Data).Split(" ".ToCharArray(), 3);
                 if (tokens.Length < 3)
                 {
-                    world.Send(this.Player, "$7/setaccess <playername> <" + string.Join("|", Enum.GetNames(typeof(Player.AccessStatus))).ToLower() + ">");
+                    world.Send(this.Player, P.ServerMessage("/setaccess <playername> <" + string.Join("|", Enum.GetNames(typeof(Player.AccessStatus))).ToLower() + ">"));
                     return;
                 }
 
@@ -42,7 +42,7 @@ namespace Goose.Events
                     {
                         var accessStatus = Enum.GetValues(typeof(Player.AccessStatus)).Cast<Player.AccessStatus>().Where(y => y.ToString().Equals(access, StringComparison.OrdinalIgnoreCase)).First();
                         player.Access = accessStatus;
-                        world.Send(this.Player, string.Format("$7Set AccessStatus for {0} to {1}.", player.Name, player.Access));
+                        world.Send(this.Player, P.ServerMessage(string.Format("Set AccessStatus for {0} to {1}.", player.Name, player.Access)));
 
                         if (player.State == Goose.Player.States.NotLoggedIn)
                         {
@@ -51,12 +51,12 @@ namespace Goose.Events
                     }
                     catch
                     {
-                        world.Send(this.Player, "$7Couldn't parse access value.");
+                        world.Send(this.Player, P.ServerMessage("Couldn't parse access value."));
                     }
                 }
                 else
                 {
-                    world.Send(this.Player, "$7Couldn't find player.");
+                    world.Send(this.Player, P.ServerMessage("Couldn't find player."));
                 }
             }
         }

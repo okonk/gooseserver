@@ -28,13 +28,13 @@ namespace Goose.Events
                 {
                     if (player.State != Player.States.Ready)
                     {
-                        world.Send(this.Player, "$7Player is still loading a map or not logged in.");
+                        world.Send(this.Player, P.ServerMessage("Player is still loading a map or not logged in."));
                         return;
                     }
 
                     if (player.MacroCheckEvent != null)
                     {
-                        world.Send(this.Player, "$7Player has already has an active macrocheck.");
+                        world.Send(this.Player, P.ServerMessage("Player has already has an active macrocheck."));
                         return;
                     }
 
@@ -42,7 +42,7 @@ namespace Goose.Events
                     long timeSinceLastCheck = (timeNow - player.LastMacroCheckTime) / world.TimerFrequency;
                     if (timeSinceLastCheck <= TimeSpan.FromHours(2).TotalSeconds)
                     {
-                        world.Send(this.Player, "$7Player has already been macrochecked recently.");
+                        world.Send(this.Player, P.ServerMessage("Player has already been macrochecked recently."));
                         return;
                     }
 
@@ -60,7 +60,7 @@ namespace Goose.Events
                 }
                 else
                 {
-                    world.Send(this.Player, "$7Couldn't find player.");
+                    world.Send(this.Player, P.ServerMessage("Couldn't find player."));
                 }
             }
         }

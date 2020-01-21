@@ -20,7 +20,7 @@ namespace Goose.Events
         {
             if (this.Player.State == Player.States.Ready)
             {
-                world.Send(this.Player, "$7You have " + this.Player.Credits + " donation credits.");
+                world.Send(this.Player, P.ServerMessage("You have " + this.Player.Credits + " donation credits."));
             }
         }
     }

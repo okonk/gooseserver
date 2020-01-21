@@ -28,7 +28,7 @@ namespace Goose.Events
 
                     if (player.State == Player.States.Ready)
                     {
-                        world.Send(player, "$7You have gained " + credits + " donation credits.");
+                        world.Send(player, P.ServerMessage("You have gained " + credits + " donation credits."));
                     }
                     else
                     {

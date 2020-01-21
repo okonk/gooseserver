@@ -24,7 +24,7 @@ namespace Goose.Events
 
             if (tokens.Length == 1)
             {
-                world.Send(this.Player, "$7/placespawn <npcid>");
+                world.Send(this.Player, P.ServerMessage("/placespawn <npcid>"));
                 return;
             }
 
@@ -41,14 +41,14 @@ namespace Goose.Events
 
             if (npcId <= 0)
             {
-                world.Send(this.Player, "$7/placespawn <npcid>");
+                world.Send(this.Player, P.ServerMessage("/placespawn <npcid>"));
                 return;
             }
 
             var npc = world.NPCHandler.GetNPCTemplate(npcId);
             if (npc == null)
             {
-                world.Send(this.Player, "$7/placespawn <npcid>");
+                world.Send(this.Player, P.ServerMessage("/placespawn <npcid>"));
                 return;
             }
 
@@ -79,7 +79,7 @@ namespace Goose.Events
             {
                 maptile.ItemSlot.Stack += tile.ItemSlot.Stack;
 
-                world.SendToMap(this.Player.Map, maptile.MOBString());
+                world.SendToMap(this.Player.Map, P.MakeObject(maptile));
             }
             else
             {

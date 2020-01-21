@@ -32,7 +32,7 @@ namespace Goose.Events
                 {
                     if (player.State != Player.States.Ready)
                     {
-                        world.Send(this.Player, "$7Player is still loading a map.");
+                        world.Send(this.Player, P.ServerMessage("Player is still loading a map."));
                         return;
                     }
 
@@ -40,7 +40,7 @@ namespace Goose.Events
                 }
                 else
                 {
-                    world.Send(this.Player, "$7Couldn't find player.");
+                    world.Send(this.Player, P.ServerMessage("Couldn't find player."));
                 }
             }
         }

@@ -174,51 +174,6 @@ namespace Goose
             }
         }
 
-        public string GetSlotPacket(GameWorld world, int slotId, long stack)
-        {
-            return slotId + "|" +
-                    this.GraphicTile + "|" +
-                    this.GraphicFile + "|" +
-                    "" + "|" + // title
-                    this.Name + "|" +
-                    "" + "|" + //surname
-                    stack + "|" +
-                    this.Value + "|" +
-                    this.Flags + "|" +
-                    this.Description + "|" +
-                    this.WeaponDamage + "|" +
-                    this.WeaponDamage + "|" +
-                    (this.WeaponDamage > 0 ? this.WeaponDelay : 0) + "|" +
-                    (int)this.Type + "|" +
-                    this.BaseStats.AC + "|" +
-                    this.BaseStats.HP + "|" +
-                    this.BaseStats.MP + "|" +
-                    this.BaseStats.SP + "|" +
-                    this.BaseStats.Strength + "|" +
-                    this.BaseStats.Stamina + "|" +
-                    this.BaseStats.Intelligence + "|" +
-                    this.BaseStats.Dexterity + "|" +
-                    this.BaseStats.FireResist + "|" +
-                    this.BaseStats.WaterResist + "|" +
-                    this.BaseStats.EarthResist + "|" +
-                    this.BaseStats.AirResist + "|" +
-                    this.BaseStats.SpiritResist + "|" +
-                    this.MinLevel + "|" +
-                    this.MaxLevel + "|" +
-                    FigureClassRestrictions(world, this.ClassRestrictions) +
-                    "0" + "|" + // gm access
-                    "0" + "|" + // gender, always 0 since we don't care about gender
-                    (this.SpellEffect == null ? "" : this.SpellEffect.Name) + "|" +
-                    (int)this.SpellEffectChance + "|" +
-                    this.BodyType + "|" +
-                    (int)this.UseType + "|" +
-                    0 + "|" + // not sure
-                    this.GraphicR + "|" +
-                    this.GraphicG + "|" +
-                    this.GraphicB + "|" +
-                    this.GraphicA;
-        }
-
         public static string FigureClassRestrictions(GameWorld world, long classRestrictions)
         {
             var canUse = new List<Class>();

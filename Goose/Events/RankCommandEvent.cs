@@ -30,7 +30,7 @@ namespace Goose.Events
 
                 if (data.Length <= 0)
                 {
-                    world.Send(this.Player, "$7Usage: /rank [all, gold, magus, priest, warrior, rogue]");
+                    world.Send(this.Player, P.ServerMessage("Usage: /rank [all, gold, magus, priest, warrior, rogue]"));
                     return;
                 }
 
@@ -82,7 +82,7 @@ namespace Goose.Events
                         window.Data = world.RankHandler.Rogue;
                         break;
                     default:
-                        world.Send(this.Player, "$7Usage: /rank [all, gold, magus, priest, warrior, rogue]");
+                        world.Send(this.Player, P.ServerMessage("Usage: /rank [all, gold, magus, priest, warrior, rogue]"));
                         return;
                 }
 

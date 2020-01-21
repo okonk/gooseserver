@@ -28,7 +28,7 @@ namespace Goose.Events
             {
                 if (!this.Player.Class.ClassName.Equals("Commoner"))
                 {
-                    world.Send(this.Player, "$7/changeclass: You need to be a Commoner to change class.");
+                    world.Send(this.Player, P.ServerMessage("/changeclass: You need to be a Commoner to change class."));
                     return;
                 }
 
@@ -53,7 +53,7 @@ namespace Goose.Events
                         this.Player.ChangeClass(5, 1, world);
                         break;
                     default:
-                        world.Send(this.Player, "$7/changeclass [rogue|magus|warrior|priest]");
+                        world.Send(this.Player, P.ServerMessage("/changeclass [rogue|magus|warrior|priest]"));
                         break;
                 }
             }

@@ -185,59 +185,5 @@ namespace Goose
             // Mainly here as a temporary measure for transition to new code
             this.WeaponDamage = (int)(this.Template.WeaponDamage * this.StatMultiplier);
         }
-
-        public string GetSlotPacket(GameWorld world, int slotId, long stack)
-        {
-            var spellEffect = this.SpellEffect;
-            int spellEffectChance = (int)this.SpellEffectChance;
-            if (this.LearnSpellID != 0)
-            {
-                var spell = world.SpellHandler.GetSpell(this.LearnSpellID);
-                spellEffect = spell?.SpellEffect;
-                spellEffectChance = 100;
-            }
-
-            return slotId + "|" +
-                    this.GraphicTile + "|" +
-                    this.GraphicFile + "|" +
-                    "" + "|" + // title
-                    this.Name + "|" +
-                    "" + "|" + //surname
-                    stack + "|" +
-                    this.Value + "|" +
-                    this.Flags + "|" +
-                    this.Description + "|" +
-                    this.WeaponDamage + "|" +
-                    this.WeaponDamage + "|" +
-                    (this.WeaponDamage > 0 ? this.WeaponDelay : 0) + "|" +
-                    (int)this.Type + "|" +
-                    this.TotalStats.AC + "|" +
-                    this.TotalStats.HP + "|" +
-                    this.TotalStats.MP + "|" +
-                    this.TotalStats.SP + "|" +
-                    this.TotalStats.Strength + "|" +
-                    this.TotalStats.Stamina + "|" +
-                    this.TotalStats.Intelligence + "|" +
-                    this.TotalStats.Dexterity + "|" +
-                    this.TotalStats.FireResist + "|" +
-                    this.TotalStats.WaterResist + "|" +
-                    this.TotalStats.EarthResist + "|" +
-                    this.TotalStats.AirResist + "|" +
-                    this.TotalStats.SpiritResist + "|" +
-                    this.MinLevel + "|" +
-                    this.MaxLevel + "|" +
-                    ItemTemplate.FigureClassRestrictions(world, this.ClassRestrictions) +
-                    "0" + "|" + // gm access
-                    "0" + "|" + // gender, always 0 since we don't care about gender
-                    (spellEffect == null ? "" : spellEffect.Name + ';' + string.Join(";", spellEffect.GetItemDescription(world))) + "|" +
-                    spellEffectChance + "|" +
-                    this.BodyType + "|" +
-                    (int)this.UseType + "|" +
-                    0 + "|" + // not sure
-                    this.GraphicR + "|" +
-                    this.GraphicG + "|" +
-                    this.GraphicB + "|" +
-                    this.GraphicA;
-        }
     }
 }

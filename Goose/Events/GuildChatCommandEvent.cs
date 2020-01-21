@@ -27,9 +27,8 @@ namespace Goose.Events
                 string message = ((string)this.Data).Substring(7);
                 if (message.Length <= 0) return;
 
-                //this.Player.Guild.SendToGuild("$2[guild] " + this.Player.Name + ": " + message, world);
-                string packet = "$2[guild] " + this.Player.Name + ": " + message;
-                string filteredpacket = "$2[guild] " + this.Player.Name + ": ";
+                string packet = P.GuildMessage("[guild] " + this.Player.Name + ": " + message);
+                string filteredpacket = P.GuildMessage("[guild] " + this.Player.Name + ": ");
                 bool filtered = false;
 
                 world.LogHandler.Log(Log.Types.GuildChat, this.Player.PlayerID, message, this.Player.Guild.ID, this.Player.Map.ID, this.Player.MapX, this.Player.MapY);

@@ -67,7 +67,7 @@ namespace Goose.Events
 
                 if (bought == 0) return;
 
-                world.Send(this.Player, "$7Bought " + bought + " mp for " + soldexp + " experience.");
+                world.Send(this.Player, P.ServerMessage("Bought " + bought + " mp for " + soldexp + " experience."));
                 world.Send(this.Player, this.Player.TNLString());
             }
         }

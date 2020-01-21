@@ -19,10 +19,6 @@ namespace Goose
         string Name { get; set; }
 
         /**
-         * MKCString, returns the MKC packet string for this character
-         */
-        string MKCString();
-        /**
          * Current map id
          */
         int MapID { get; set; }
@@ -86,7 +82,6 @@ namespace Goose
         void Attacked(ICharacter character, long damage, GameWorld world);
 
         Map Map { get; set; }
-        string VPUString();
 
         int WeaponDamage { get; }
 

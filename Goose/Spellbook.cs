@@ -125,20 +125,11 @@ namespace Goose
                     }
                 }
 
-
-                world.Send(this.player, "SSS" + slot + "," +
-                    spell.Name + "," +
-                    spell.SpellEffect.Animation + "," +
-                    "0," +
-                    "0," +
-                    targetType + "," +
-                    spell.Graphic + "," +
-                    spell.GraphicFile + "," +
-                    (spell.Aether > TimeSpan.FromHours(1).TotalMilliseconds ? 5000 : spell.Aether));
+                world.Send(this.player, P.SpellSlot(spell, slot, targetType));
             }
             else
             {
-                world.Send(this.player, "SSS" + slot + ",,0,0,0,0,0,0,0");
+                world.Send(this.player, P.SpellSlot(null, slot, 0));
             }
         }
 
@@ -221,7 +212,7 @@ namespace Goose
 
                     this.SendSlot(i, world);
 
-                    world.Send(this.player, "$7You have learned " + spell.Name + ".");
+                    world.Send(this.player, P.ServerMessage("You have learned " + spell.Name + "."));
                     return true;
                 }
             }
@@ -239,7 +230,7 @@ namespace Goose
 
             if (this.spells[slot] != null)
             {
-                world.Send(this.player, "$7You have unlearned " + this.spells[slot].Name + ".");
+                world.Send(this.player, P.ServerMessage("You have forgotten " + this.spells[slot].Name + "."));
 
                 this.spells[slot] = null;
                 this.lastcast[slot] = 0;

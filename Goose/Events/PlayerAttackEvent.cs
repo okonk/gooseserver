@@ -33,7 +33,7 @@ namespace Goose.Events
                     // can't attack when stunned
                     if (b.SpellEffect.EffectType == SpellEffect.EffectTypes.Stun)
                     {
-                        world.Send(this.Player, "BT" + this.Player.LoginID + ",50");
+                        world.Send(this.Player, P.BattleTextStunned(this.Player));
                         return;
                     }
                 }
@@ -41,7 +41,7 @@ namespace Goose.Events
                 {
                     if (window.Type == Window.WindowTypes.Vendor)
                     {
-                        world.Send(this.Player, "$7You can't attack while with a vendor.");
+                        world.Send(this.Player, P.ServerMessage("You can't attack while with a vendor."));
                         return;
                     }
                 }
@@ -66,7 +66,7 @@ namespace Goose.Events
                     }
 
                     List<Player> range = this.Player.Map.GetPlayersInRange(this.Player);
-                    string packet = "ATT" + this.Player.LoginID;
+                    string packet = P.Attack(this.Player);
                     foreach (Player player in range)
                     {
                         world.Send(player, packet);

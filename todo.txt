@@ -1,21 +1,29 @@
-look into wrath etc spawns what can be done to make training better but not encourage macroing
+Move packet creation to it's own class
+title/surname items
+spell to see monster info
+assign ids to quest requirements/rewards -- be careful, could mess up existing quest data
+Change guilds to not update DB itself
+daily quests
+make invis work
+Readd server browser stuff
+/help command
+Show aether as battletext
+Global chat
 convert decimals -> doubles
 convert hashtables -> Dictionaries
+look into wrath etc spawns what can be done to make training better but not encourage macroing
 logging everywhere
-title/surname items
 increase bank slot item
 pets commit 8e919ffaff6c
-make invis work
 flag for hiding other equips when cloak is equipped
-spell to see monster info
 something buggy with move speed
 /who search
-support for sounds
 global script threading issues
-assign ids to quest requirements/rewards -- be careful, could mess up existing quest data
-Global chat
-Move packet creation to it's own class
-Readd server browser stuff
+support for sounds
+Death animations?
+Revives?
+
+
 
 
 Map editor
@@ -23,7 +31,7 @@ client
 make a data writer (done somewhat)
 patcher system
 discord bridge bot
-daily quests
+
 
 
 automated /macrocheck? maybe only do check every 4+ hours to not get annoying to players, also give 5k gold or 500k exp? reward for passing check
@@ -110,3 +118,11 @@ WITH REPLACE, RECOVERY,
 
 
 or fix quests to not rely on id?
+
+
+Packet refactoring still to do:
+* CustomCommandEvent
+* Scripts
+something broken with pet NextRespawnTime? what is setting it.
+Bank is going to be different between Asp and Illutia.
+Aspereta doesn't have spellbook pages

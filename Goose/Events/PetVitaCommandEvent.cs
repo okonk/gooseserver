@@ -47,12 +47,12 @@ namespace Goose.Events
 
                 if (buys <= 0)
                 {
-                    world.Send(this.Player, "$7Invalid buy amount.");
+                    world.Send(this.Player, P.ServerMessage("Invalid buy amount."));
                     return;
                 }
                 if (petid <= 0)
                 {
-                    world.Send(this.Player, "$7Invalid pet id.");
+                    world.Send(this.Player, P.ServerMessage("Invalid pet id."));
                     return;
                 }
 
@@ -68,7 +68,7 @@ namespace Goose.Events
 
                 if (match == null)
                 {
-                    world.Send(this.Player, "$7Couldn't find pet matching ID.");
+                    world.Send(this.Player, P.ServerMessage("Couldn't find pet matching ID."));
                     return;
                 }
 
@@ -103,7 +103,7 @@ namespace Goose.Events
 
                 if (bought == 0) return;
 
-                world.Send(this.Player, "$7Bought " + bought + " hp for " + soldexp + " experience.");
+                world.Send(this.Player, P.ServerMessage("Bought " + bought + " hp for " + soldexp + " experience."));
             }
         }
     }

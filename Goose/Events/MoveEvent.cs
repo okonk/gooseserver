@@ -39,17 +39,17 @@ namespace Goose.Events
                     if (b.SpellEffect.EffectType == SpellEffect.EffectTypes.Stun)
                     {
                         // stunned battletext
-                        world.Send(this.Player, "BT" + this.Player.LoginID + ",50");
+                        world.Send(this.Player, P.BattleTextStunned(this.Player));
                         // Fix the clients position
-                        world.Send(this.Player, "SUP" + this.Player.MapX + "," + this.Player.MapY);
+                        world.Send(this.Player, P.SetYourPosition(this.Player));
                         return;
                     }
                     else if (b.SpellEffect.EffectType == SpellEffect.EffectTypes.Root)
                     {
                         // rooted battletext
-                        world.Send(this.Player, "BT" + this.Player.LoginID + ",11");
+                        world.Send(this.Player, P.BattleTextRooted(this.Player));
                         // Fix the clients position
-                        world.Send(this.Player, "SUP" + this.Player.MapX + "," + this.Player.MapY);
+                        world.Send(this.Player, P.SetYourPosition(this.Player));
                         return;
                     }
                 }
@@ -58,7 +58,7 @@ namespace Goose.Events
                 {
                     if (window.Type == Window.WindowTypes.Vendor)
                     {
-                        world.Send(this.Player, "$7You can't move while with a vendor.");
+                        world.Send(this.Player, P.ServerMessage("You can't move while with a vendor."));
                         return;
                     }
                 }
@@ -135,14 +135,14 @@ namespace Goose.Events
                             // Have to move player back
                             this.Player.MoveTo(world, ox, oy);
                             // Fix the clients position
-                            world.Send(this.Player, "SUP" + this.Player.MapX + "," + this.Player.MapY);
+                            world.Send(this.Player, P.SetYourPosition(this.Player));
                         }
                     }
                 }
                 else
                 {
                     // Fix the clients position
-                    world.Send(this.Player, "SUP" + this.Player.MapX + "," + this.Player.MapY);
+                    world.Send(this.Player, P.SetYourPosition(this.Player));
                 }
             }
         }

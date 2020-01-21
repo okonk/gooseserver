@@ -26,14 +26,14 @@ namespace Goose.Events
                 var firstSlot = combineBag.GetSlot(1);
                 if (firstSlot == null || firstSlot.Item.TemplateID != GameSettings.Default.CustomTicketId)
                 {
-                    world.Send(this.Player, "$7You need a custom ticket in your first combine bag slot to use this command.");
+                    world.Send(this.Player, P.ServerMessage("You need a custom ticket in your first combine bag slot to use this command."));
                     return;
                 }
 
                 string data = ((string)this.Data).Substring(7);
                 if (string.IsNullOrWhiteSpace(data))
                 {
-                    world.Send(this.Player, "$7/custom [help|preview|kill|make] <r> <g> <b> <a> <custom name>");
+                    world.Send(this.Player, P.ServerMessage("/custom [help|preview|kill|make] <r> <g> <b> <a> <custom name>"));
                     return;
                 }
 
@@ -41,7 +41,7 @@ namespace Goose.Events
 
                 if (tokens.Length < 6 && tokens[0].ToLower() != "help" && tokens[0].ToLower() != "kill")
                 {
-                    world.Send(this.Player, "$7/custom [help|preview|kill|make] <r> <g> <b> <a> <custom name>");
+                    world.Send(this.Player, P.ServerMessage("/custom [help|preview|kill|make] <r> <g> <b> <a> <custom name>"));
                     return;
                 }
 
@@ -53,9 +53,9 @@ namespace Goose.Events
                 switch (tokens[0].ToLower())
                 {
                     case "help":
-                        world.Send(this.Player, "$7In combine bag: Place custom ticket in first slot. Place the item you want the stats of in second slot. Place the item you want the look of in the third slot.");
-                        world.Send(this.Player, "$7Type /custom preview <r> <g> <b> <a> <custom name> to preview the colour and look");
-                        world.Send(this.Player, "$7Type /custom make <r> <g> <b> <a> <custom name> to make the custom. It will destroy your custom ticket and source items.");
+                        world.Send(this.Player, P.ServerMessage("In combine bag: Place custom ticket in first slot. Place the item you want the stats of in second slot. Place the item you want the look of in the third slot."));
+                        world.Send(this.Player, P.ServerMessage("Type /custom preview <r> <g> <b> <a> <custom name> to preview the colour and look"));
+                        world.Send(this.Player, P.ServerMessage("Type /custom make <r> <g> <b> <a> <custom name> to make the custom. It will destroy your custom ticket and source items."));
 
                         break;
                     case "create":
@@ -179,7 +179,7 @@ namespace Goose.Events
                             this.MountDisplay(lookSlot, r, g, b, a)); // Mount
                         break;
                     case "kill":
-                        world.Send(this.Player, "ERC9000");
+                        world.Send(this.Player, P.EraseCharacter(9000));
                         break;
                 }
             }
@@ -275,8 +275,8 @@ namespace Goose.Events
             var lookSlot = combineBag.GetSlot(3);
             if (statsSlot == null || lookSlot == null)
             {
-                world.Send(player, "$7Items missing for customisation");
-                world.Send(player, "$7In combine bag: Place custom ticket in first slot. Place the item you want the stats of in second slot. Place the item you want the look of in the third slot.");
+                world.Send(player, P.ServerMessage("Items missing for customisation"));
+                world.Send(player, P.ServerMessage("In combine bag: Place custom ticket in first slot. Place the item you want the stats of in second slot. Place the item you want the look of in the third slot."));
                 return false;
             }
 
@@ -291,13 +291,13 @@ namespace Goose.Events
                 || statsSlot.Item.Slot == ItemTemplate.ItemSlots.Belt
                 || statsSlot.Item.Slot == ItemTemplate.ItemSlots.Gloves)
             {
-                world.Send(player, "$7Items to be customised must be equipment and must be visible items.");
+                world.Send(player, P.ServerMessage("Items to be customised must be equipment and must be visible items."));
                 return false;
             }
 
             if (statsSlot.Item.Slot != lookSlot.Item.Slot)
             {
-                world.Send(player, "$7Items to be customised must be of the same equipment type.");
+                world.Send(player, P.ServerMessage("Items to be customised must be of the same equipment type."));
                 return false;
             }
 
@@ -330,10 +330,10 @@ namespace Goose.Events
                 a = -1;
             }
 
-            if (r < 0 || r > 255) return "$7/custom: invalid r value";
-            if (g < 0 || g > 255) return "$7/custom: invalid g value";
-            if (b < 0 || b > 255) return "$7/custom: invalid b value";
-            if (a < 0 || a > 255) return "$7/custom: invalid a value";
+            if (r < 0 || r > 255) return P.ServerMessage("/custom: invalid r value");
+            if (g < 0 || g > 255) return P.ServerMessage("/custom: invalid g value");
+            if (b < 0 || b > 255) return P.ServerMessage("/custom: invalid b value");
+            if (a < 0 || a > 255) return P.ServerMessage("/custom: invalid a value");
 
             return null;
         }
