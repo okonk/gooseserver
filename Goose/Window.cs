@@ -88,28 +88,9 @@ namespace Goose
                     break;
             }
 
-            string create = "MKW" +
-                            this.ID + "," +
-                            (int)this.Frame + "," +
-                            this.Title + "," +
-                            this.Buttons + ",";
-
-            switch (this.Type)
-            {
-                case WindowTypes.Vendor:
-                    create += this.NPC.LoginID + "," +
-                              "0,0";
-                    break;
-                case WindowTypes.Rank:
-                case WindowTypes.CharInfo:
-                case WindowTypes.PetInfo:
-                    create += "0,0,0";
-                    break;
-            }
-
-            world.Send(player, create);
+            world.Send(player, P.MakeWindow(this));
             this.Populate(player, world);
-            world.Send(player, "ENW" + this.ID);
+            world.Send(player, P.EndWindow(this));
         }
 
         public virtual void Clicked(ButtonTypes buttonid, int npcid, int id2, int id3, Player player, GameWorld world)
@@ -155,20 +136,13 @@ namespace Goose
             switch (this.Type)
             {
                 case WindowTypes.Vendor:
-                    // clear vendor window
-                    world.Send(player, "VCL");
-                    // start at 0 since first slot is always null
-                    int i = 0;
-                    foreach (NPCVendorSlot slot in this.NPC.VendorItems)
+                    world.Send(player, P.ClearVendor());
+                    for (int i = 1; i < this.NPC.VendorItems.Length; i++)
                     {
-                        if (slot == null)
-                        {
-                            i++;
-                            continue;
-                        }
+                        var slot = this.NPC.VendorItems[i];
+                        if (slot == null) continue;
 
-                        world.Send(player, "SVS" + slot.ItemTemplate.GetSlotPacket(world, i, 1));
-                        i++;
+                        world.Send(player, P.VendorSlot(slot.ItemTemplate, world, i, 1));
                     }
                     break;
                 case WindowTypes.CharInfo:
@@ -219,56 +193,28 @@ namespace Goose
          */
         public void PopulateCharInfo(Player player, GameWorld world)
         {
+            int i = 1;
             string line;
-            // Experience sold, hp, mp
-            line = "WNF" + this.ID + "," + 1 + "," +
-                "Experience Sold: " + string.Format("{0:N0}", player.ExperienceSold) +
-                "|0|0|0|0|*";
+
+            line = P.WindowTextLine(this.ID, i++, string.Format("Experience Sold: {0:N0}", player.ExperienceSold));
             world.Send(player, line);
-            // Bound map, x, y
-            line = "WNF" + this.ID + "," + 2 + "," +
-                "Bound: " + player.BoundMap.Name + " (" + player.BoundX + "," + player.BoundY + ")" +
-                "|0|0|0|0|*";
+            line = P.WindowTextLine(this.ID, i++, "Bound: " + player.BoundMap.Name + " (" + player.BoundX + "," + player.BoundY + ")");
             world.Send(player, line);
-            // HP regen
-            line = "WNF" + this.ID + "," + 3 + "," +
-                "HP Regeneration: " + Math.Round(player.MaxStats.HPPercentRegen * 100, 0) + "%" + string.Format(" +{0:N0}", player.MaxStats.HPStaticRegen) +
-                "|0|0|0|0|*";
+            line = P.WindowTextLine(this.ID, i++, "HP Regeneration: " + Math.Round(player.MaxStats.HPPercentRegen * 100, 0) + "%" + string.Format(" +{0:N0}", player.MaxStats.HPStaticRegen));
             world.Send(player, line);
-            // MP Regen
-            line = "WNF" + this.ID + "," + 4 + "," +
-                "MP Regeneration: " + Math.Round(player.MaxStats.MPPercentRegen * 100, 0) + "%" + string.Format(" +{0:N0}", player.MaxStats.MPStaticRegen) +
-                "|0|0|0|0|*";
+            line = P.WindowTextLine(this.ID, i++, "MP Regeneration: " + Math.Round(player.MaxStats.MPPercentRegen * 100, 0) + "%" + string.Format(" +{0:N0}", player.MaxStats.MPStaticRegen));
             world.Send(player, line);
-            // SD
-            line = "WNF" + this.ID + "," + 5 + "," +
-                "Spell Damage Increase: " + Math.Round(player.MaxStats.SpellDamage * 100, 0) + "%" +
-                "|0|0|0|0|*";
+            line = P.WindowTextLine(this.ID, i++, "Spell Damage Increase: " + Math.Round(player.MaxStats.SpellDamage * 100, 0) + "%");
             world.Send(player, line);
-            // SC
-            line = "WNF" + this.ID + "," + 6 + "," +
-                "Spell Critical Chance: " + Math.Round(player.MaxStats.SpellCrit * 100, 0) + "%" +
-                "|0|0|0|0|*";
+            line = P.WindowTextLine(this.ID, i++, "Spell Critical Chance: " + Math.Round(player.MaxStats.SpellCrit * 100, 0) + "%");
             world.Send(player, line);
-            // MD
-            line = "WNF" + this.ID + "," + 7 + "," +
-                "Melee Damage Increase: " + Math.Round(player.MaxStats.MeleeDamage * 100, 0) + "%" +
-                "|0|0|0|0|*";
+            line = P.WindowTextLine(this.ID, i++, "Melee Damage Increase: " + Math.Round(player.MaxStats.MeleeDamage * 100, 0) + "%");
             world.Send(player, line);
-            // MC
-            line = "WNF" + this.ID + "," + 8 + "," +
-                "Melee Critical Chance: " + Math.Round(player.MaxStats.MeleeCrit * 100, 0) + "%" +
-                "|0|0|0|0|*";
+            line = P.WindowTextLine(this.ID, i++, "Melee Critical Chance: " + Math.Round(player.MaxStats.MeleeCrit * 100, 0) + "%");
             world.Send(player, line);
-            // Haste
-            line = "WNF" + this.ID + "," + 9 + "," +
-                "Haste: " + Math.Round(player.MaxStats.Haste * 100, 0) + "%" +
-                "|0|0|0|0|*";
+            line = P.WindowTextLine(this.ID, i++, "Haste: " + Math.Round(player.MaxStats.Haste * 100, 0) + "%");
             world.Send(player, line);
-            // Damage reduce
-            line = "WNF" + this.ID + "," + 10 + "," +
-                "Damage Reduction: " + Math.Round(player.MaxStats.DamageReduction * 100, 0) + "%" +
-                "|0|0|0|0|*";
+            line = P.WindowTextLine(this.ID, i++, "Damage Reduction: " + Math.Round(player.MaxStats.DamageReduction * 100, 0) + "%");
             world.Send(player, line);
         }
 
@@ -283,8 +229,7 @@ namespace Goose
 
             foreach (string line in rank.GetRanks(world))
             {
-                world.Send(player, "WNF" + this.ID + "," + i + "," + line + "|0|0|0|0|*");
-                i++;
+                world.Send(player, P.WindowTextLine(this.ID, i++, line));
             }
         }
 
@@ -296,97 +241,40 @@ namespace Goose
         {
             Pet pet = (Pet)this.Data;
 
+            int i = 1;
             string line;
-            // Name
-            line = "WNF" + this.ID + "," + 1 + "," +
-                "Name: " + pet.Name +
-                "|0|0|0|0|*";
+
+            line = P.WindowTextLine(this.ID, i++, "Name: " + pet.Name);
             world.Send(player, line);
-            // Experience
-            line = "WNF" + this.ID + "," + 2 + "," +
-                "Experience: " + pet.Experience +
-                "|0|0|0|0|*";
+            line = P.WindowTextLine(this.ID, i++, "Experience: " + pet.Experience);
             world.Send(player, line);
-            // if max level show experience sold, else show tnl
             if (pet.Class.GetLevel(pet.Level).Experience == 0)
             {
-                // Experience Sold
-                line = "WNF" + this.ID + "," + 3 + "," +
-                    "Experience Sold: " + pet.ExperienceSold +
-                    "|0|0|0|0|*";
+                line = P.WindowTextLine(this.ID, i++, "Experience Sold: " + pet.ExperienceSold);
                 world.Send(player, line);
             }
             else
             {
-                // TNL
-                line = "WNF" + this.ID + "," + 3 + "," +
-                    "Next Level: " + (pet.Class.GetLevel(pet.Level).Experience - pet.Experience) +
-                    "|0|0|0|0|*";
+                line = P.WindowTextLine(this.ID, i++, "Next Level: " + (pet.Class.GetLevel(pet.Level).Experience - pet.Experience));
                 world.Send(player, line);
             }
-            // Level
-            line = "WNF" + this.ID + "," + 4 + "," +
-                "Level: " + pet.Level +
-                "|0|0|0|0|*";
+            line = P.WindowTextLine(this.ID, i++, "Level: " + pet.Level);
             world.Send(player, line);
-            // Weapon Damage
-            line = "WNF" + this.ID + "," + 5 + "," +
-                "Weapon Damage: " + pet.WeaponDamage +
-                "|0|0|0|0|*";
+            line = P.WindowTextLine(this.ID, i++, "Weapon Damage: " + pet.WeaponDamage);
             world.Send(player, line);
-            // Attack Speed
-            line = "WNF" + this.ID + "," + 6 + "," +
-                "Attack Speed: " + Math.Round(pet.AttackSpeed, 2) +
-                "|0|0|0|0|*";
+            line = P.WindowTextLine(this.ID, i++, "Attack Speed: " + Math.Round(pet.AttackSpeed, 2));
             world.Send(player, line);
-            // Move Speed
-            line = "WNF" + this.ID + "," + 7 + "," +
-                "Move Speed: " + Math.Round(pet.MoveSpeed, 2) +
-                "|0|0|0|0|*";
+            line = P.WindowTextLine(this.ID, i++, "Move Speed: " + Math.Round(pet.MoveSpeed, 2));
             world.Send(player, line);
-            // Bought HP
-            line = "WNF" + this.ID + "," + 8 + "," +
-                "Extra HP: " + pet.BaseStats.HP +
-                "|0|0|0|0|*";
+            line = P.WindowTextLine(this.ID, i++, "Extra HP: " + pet.BaseStats.HP);
             world.Send(player, line);
-
-            /*
-            // MD
-            line = "WNF" + this.ID + "," + 7 + "," +
-                "Melee Damage Increase: " + Math.Round(player.MaxStats.MeleeDamage * 100,0) + "%" +
-                "|0|0|0|0|*";
-            world.Send(player, line);
-            // MC
-            line = "WNF" + this.ID + "," + 8 + "," +
-                "Melee Critical Chance: " + Math.Round(player.MaxStats.MeleeCrit * 100,0) + "%" +
-                "|0|0|0|0|*";
-            world.Send(player, line);
-            // Haste
-            line = "WNF" + this.ID + "," + 9 + "," +
-                "Haste: " + Math.Round(player.MaxStats.Haste * 100,0) + "%" +
-                "|0|0|0|0|*";
-            world.Send(player, line);
-            // Damage reduce
-            line = "WNF" + this.ID + "," + 10 + "," +
-                "Damage Reduction: " + Math.Round(player.MaxStats.DamageReduction * 100, 0) + "%" +
-                "|0|0|0|0|*";
-            world.Send(player, line);
-             */
         }
 
         public void SendCreate(Player player, GameWorld world)
         {
-            world.Send(player, this.MKWString());
+            world.Send(player, P.MakeWindow(this));
             this.Populate(player, world);
-            world.Send(player, "ENW" + this.ID);
-        }
-
-        public string MKWString()
-        {
-            int npcLoginId = this.NPC == null ? 0 : this.NPC.LoginID;
-
-            return string.Format("MKW{0},{1},{2},{3},{4},{5},{6}",
-                this.ID, (int)this.Frame, this.Title, this.Buttons, npcLoginId, 0, 0);
+            world.Send(player, P.EndWindow(this));
         }
     }
 }

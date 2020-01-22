@@ -238,7 +238,7 @@ namespace Goose
         public static Func<ItemTile, string> EraseObject = (tile) =>
         {
             return "EOB" + tile.X + "," + tile.Y;
-        }
+        };
 
         public static Func<Player, string, string> Emote = (player, data) =>
         {
@@ -506,6 +506,17 @@ namespace Goose
             return "CCS" + slotId;
         };
 
+
+        public static Func<ItemTemplate, GameWorld, int, long, string> VendorSlot = (item, world, slotId, stack) =>
+        {
+            return "SVS" + VendorItemSlot(item, world, slotId, stack);
+        };
+
+        public static Func<string> ClearVendor = () =>
+        {
+            return "VCL";
+        };
+
         public static Func<Spell, int, int, string> SpellSlot = (spell, slotId, targetType) =>
         {
             if (spell == null)
@@ -521,7 +532,7 @@ namespace Goose
                     targetType + "," +
                     spell.Graphic + "," +
                     spell.GraphicFile + "," +
-                    (spell.Aether > TimeSpan.FromHours(1).TotalMilliseconds ? 5000 : spell.Aether)
+                    (spell.Aether > TimeSpan.FromHours(1).TotalMilliseconds ? 5000 : spell.Aether);
         };
 
         public static Func<Player, int, string> GroupUpdate = (player, index) =>
@@ -542,6 +553,22 @@ namespace Goose
             }
 
             return "BUF" + index + "," + buff.SpellEffect.BuffGraphic + "," + buff.SpellEffect.BuffGraphicFile + "," + buff.SpellEffect.Name; 
+        };
+
+        public static Func<Window, string> MakeWindow = (window) => 
+        {
+            return "MKW" +
+                    window.ID + "," +
+                    (int)window.Frame + "," +
+                    window.Title + "," +
+                    window.Buttons + "," +
+                    window.NPC?.LoginID + "," +
+                    "0,0";
+        };
+
+        public static Func<Window, string> EndWindow = (window) => 
+        {
+            return "ENW" + window.ID;
         };
     }
 }
