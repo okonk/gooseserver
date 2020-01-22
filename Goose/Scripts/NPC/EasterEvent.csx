@@ -34,7 +34,7 @@ public class EasterEvent : BaseNPCScript
 				bunny.State = NPC.States.Dead;
 				bunny.MoveEvent = null;
 				bunny.CurrentHP = 0;
-				string packet = "ERC" + bunny.LoginID;
+				string packet = P.EraseCharacter(bunny.LoginID);
 				foreach (var player in bunny.Map.GetPlayersInRange(bunny))
 				{
 					world.Send(player, packet);
@@ -59,7 +59,7 @@ public class EasterEvent : BaseNPCScript
 
 		npc.ScriptStore = npcs;
 
-		world.SendToAll("$7" + e.Item1);
+		world.SendToAll(P.ServerMessage(e.Item1));
 
 		Goose.Events.ScriptTimerEvent.Create(() =>
 		{

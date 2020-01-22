@@ -54,14 +54,14 @@ namespace Goose.Events
 
                 if (player.State != Goose.Player.States.NotLoggedIn)
                 {
-                    world.Send(player, player.SNFString());
+                    world.Send(player, P.StatusInfo(player));
 
                     if (player.Map != null)
                     {
                         List<Player> range = player.Map.GetPlayersInRange(player);
 
                         string packet = P.EraseCharacter(player.LoginID);
-                        string packet2 = player.MKCString();
+                        string packet2 = P.MakeCharacter(player);
 
                         foreach (Player p in range)
                         {

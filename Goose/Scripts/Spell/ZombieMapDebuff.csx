@@ -14,7 +14,7 @@ public class ZombieMapDebuff : BaseSpellEffectScript
 		player.CurrentHP = player.MaxHP;
 		player.CurrentMP = player.MaxMP;
 
-		world.Send(player, player.SNFString());
+		world.Send(player, P.StatusInfo(player));
 	}
 
 	public override void OnBuffRemoved(Buff buff, GameWorld world)
@@ -57,7 +57,7 @@ public class ZombieMapDebuff : BaseSpellEffectScript
 		player.CurrentHP = player.MaxHP;
 		player.CurrentMP = player.MaxMP;
 
-		world.Send(player, player.SNFString());
+		world.Send(player, P.StatusInfo(player));
 	}
 }
 

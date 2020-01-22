@@ -19,7 +19,7 @@ namespace Goose
 
         // TODO: What is the hash? -- White/normal text
         public static Func<string, string> HashMessage = (message) => { return "#" + message; };
-        public static Func<int, int, string> SpellPlayer = (loginId, animationId) => { return "SPP" + loginId + "," + animationId; }; // TODO: May need animation file and sounds on end
+        public static Func<int, int, int, string> SpellPlayer = (loginId, animationId, animationFile) => { return "SPP" + loginId + "," + animationId + "," + animationFile; };
         public static Func<int, int, int, int, string> SpellTile = (x, y, animationId, animationFile) => 
         { 
             return "SPA" +
@@ -142,6 +142,28 @@ namespace Goose
                    (player.CurrentBodyID >= 100 ? "" : player.FaceID + ",") +
                    player.CalculateMoveSpeed() + "," + // Move Speed
                    (player.CurrentBodyID >= 100 ? "" : player.Inventory.MountDisplay()); // Mount
+        };
+
+        public static Func<NPC, string> UpdateNPC = (npc) =>
+        {
+            return "CHP" +
+                   npc.LoginID + "," +
+                   npc.CurrentBodyID + "," +
+                   npc.BodyR + "," + // Body Color R
+                   npc.BodyG + "," + // Body Color G
+                   npc.BodyB + "," + // Body Color B
+                   npc.BodyA + "," + // Body Color A
+                   (npc.CurrentBodyID >= 100 ? 3 : npc.BodyState) + "," +
+                   (npc.CurrentBodyID >= 100 ? "" : npc.HairID + ",") +
+                   (npc.CurrentBodyID >= 100 ? "" : npc.EquippedItems + ",") +
+                   (npc.CurrentBodyID >= 100 ? "" : npc.HairR + ",") +
+                   (npc.CurrentBodyID >= 100 ? "" : npc.HairG + ",") +
+                   (npc.CurrentBodyID >= 100 ? "" : npc.HairB + ",") +
+                   (npc.CurrentBodyID >= 100 ? "" : npc.HairA + ",") +
+                   "0" + "," + // Invis thing
+                   (npc.CurrentBodyID >= 100 ? "" : npc.FaceID + ",") +
+                   "320," + // Move Speed
+                   (npc.CurrentBodyID >= 100 ? "" : "0,0,0,0"); // Mount
         };
 
         public static Func<NPC, string> MakeNPCCharacter = (npc) =>

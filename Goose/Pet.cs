@@ -633,7 +633,7 @@ namespace Goose
             if (this.Facing == direction) return;
 
             this.Facing = direction;
-            string packet = P.ChangeHeading(this)
+            string packet = P.ChangeHeading(this);
             List<Player> range = this.Map.GetPlayersInRange(this);
             foreach (Player player in range)
             {

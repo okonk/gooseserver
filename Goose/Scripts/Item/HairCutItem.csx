@@ -10,7 +10,7 @@ public class HairCutItem : BaseItemScript
 	{
 		player.HairID = Convert.ToInt32(item.ScriptParams);
 
-		string packet = player.CHPString();
+		string packet = P.UpdateCharacter(player);
 		world.Send(player, packet);
 		foreach (var p in player.Map.GetPlayersInRange(player))
 		{

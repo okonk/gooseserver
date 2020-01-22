@@ -41,7 +41,7 @@ namespace Goose.Events
                 {
                     List<Player> range = buff.Target.Map.GetPlayersInRange(buff.Target);
 
-                    string packet = P.SpellPlayer(buff.Target.LoginID, buff.SpellEffect.Animation);
+                    string packet = P.SpellPlayer(buff.Target.LoginID, buff.SpellEffect.Animation, buff.SpellEffect.AnimationFile);
 
                     if (buff.Target is Player) world.Send((Player)buff.Target, packet);
                     foreach (Player player in range)

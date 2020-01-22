@@ -56,10 +56,10 @@ public class DeceitfulVampire : BaseNPCScript
 		long numberOfHeals = 3;
 		target.CurrentHP += (healAmount * numberOfHeals);
 
-		string packet = "CST" + npc.LoginID;
-		packet += string.Format("\x1SPP{0},65000,407,0,0", target.LoginID);
-		packet += '\x1' + target.VPUString();
-		string healString = string.Format("\x0001BT{0},7,+{1},{2}", target.LoginID, healAmount, target.Name);
+		string packet = P.Cast(npc);
+		packet += '\x1' + P.SpellPlayer(target.LoginID, 65000, 407);
+		packet += '\x1' + P.VitalsPercentage(target);
+		string healString = P.BattleTextHeal(target, healAmount);
 		for (int i = 0; i < numberOfHeals; i++)
 		{
 			packet += healString;

@@ -1482,7 +1482,7 @@ namespace Goose
 
                     if (buff.SpellEffect.Animation != 0)
                     {
-                        packet = P.SpellPlayer(this.LoginID, buff.SpellEffect.Animation);
+                        packet = P.SpellPlayer(this.LoginID, buff.SpellEffect.Animation, buff.SpellEffect.AnimationFile);
                         if (buff.SpellEffect.DoAttackAnimation)
                             packet += "\x1" + P.Attack(this); // kinda weird but k
 
@@ -1548,7 +1548,7 @@ namespace Goose
             packet = P.VitalsPercentage(this);
 
             if (buff.SpellEffect.Animation != 0)
-                packet += "\x1" + P.SpellPlayer(this.LoginID, buff.SpellEffect.Animation);
+                packet += "\x1" + P.SpellPlayer(this.LoginID, buff.SpellEffect.Animation, buff.SpellEffect.AnimationFile);
             if (buff.SpellEffect.DoAttackAnimation) packet += "\x1" + P.Attack(this); // kinda weird but k
 
             foreach (Player player in range)

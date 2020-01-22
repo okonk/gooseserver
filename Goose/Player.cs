@@ -1313,12 +1313,12 @@ namespace Goose
 
             if (item.MinLevel != 0 && this.Level < item.MinLevel)
             {
-                world.Send(this, P.ServerMessage("You are too low level to use " + item.Name + ".");
+                world.Send(this, P.ServerMessage("You are too low level to use " + item.Name + "."));
                 return false;
             }
             if (item.MaxLevel != 0 && this.Level > item.MaxLevel)
             {
-                world.Send(this, P.ServerMessage("You are too high level to use " + item.Name + ".");
+                world.Send(this, P.ServerMessage("You are too high level to use " + item.Name + "."));
                 return false;
             }
             if ((item.MinExperience != 0) &&
@@ -1922,7 +1922,7 @@ namespace Goose
 
                     if (buff.SpellEffect.Animation != 0)
                     {
-                        packet = buff.SpellEffect.SPPString(this.LoginID);
+                        packet = P.SpellPlayer(this.LoginID, buff.SpellEffect.Animation, buff.SpellEffect.AnimationFile);
                         if (buff.SpellEffect.DoAttackAnimation)
                             packet += "\x1" + P.Attack(this); // kinda weird but k
 
@@ -2005,7 +2005,7 @@ namespace Goose
             this.AddRegenEvent(world);
 
             if (buff.SpellEffect.Animation != 0)
-                packet += "\x1" + P.SpellPlayer(this.LoginID, buff.SpellEffect.Animation);
+                packet += "\x1" + P.SpellPlayer(this.LoginID, buff.SpellEffect.Animation, buff.SpellEffect.AnimationFile);
             if (buff.SpellEffect.DoAttackAnimation) packet += "\x1" + P.Attack(this); // kinda weird but k
 
             if (buff.SpellEffect.OnEffectText != "") world.Send(this, P.ServerMessage(buff.SpellEffect.OnEffectText));

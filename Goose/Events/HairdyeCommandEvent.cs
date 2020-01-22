@@ -55,7 +55,7 @@ namespace Goose.Events
                         this.Player.HairB = b;
                         this.Player.HairA = a;
 
-                        string chpstring = this.Player.CHPString();
+                        string chpstring = P.UpdateCharacter(this.Player);
                         world.Send(this.Player, chpstring);
                         foreach (Player player in this.Player.Map.GetPlayersInRange(this.Player))
                         {

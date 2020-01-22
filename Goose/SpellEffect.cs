@@ -516,7 +516,7 @@ namespace Goose
                 }
             }
 
-            if (this.Animation != 0) packet = P.SpellPlayer(target.LoginID, this.Animation);
+            if (this.Animation != 0) packet = P.SpellPlayer(target.LoginID, this.Animation, this.AnimationFile);
             if (this.DoCastAnimation) packet += "\x1" + P.Cast(caster);
 
             if (target is NPC && this.TauntAggro > 0)
@@ -562,7 +562,7 @@ namespace Goose
             List<Player> range = target.Map.GetPlayersInRange(target);
             string packet = P.BattleTextYellow(target, "Bound");
 
-            if (this.Animation != 0) packet += "\x1" + P.SpellPlayer(target.LoginID, this.Animation);
+            if (this.Animation != 0) packet += "\x1" + P.SpellPlayer(target.LoginID, this.Animation, this.AnimationFile);
             if (this.DoCastAnimation) packet += "\x1" + P.Cast(caster);
 
             world.Send((Player)target, P.ServerMessage("Your soul has been bound to this spot."));
@@ -615,7 +615,7 @@ namespace Goose
             ((Player)target).AddRegenEvent(world);
             string packet = P.VitalsPercentage((Player)target) + "\x1" + P.UpdateCharacter((Player)target);
 
-            if (this.Animation != 0) packet += "\x1" + P.SpellPlayer(target.LoginID, this.Animation);
+            if (this.Animation != 0) packet += "\x1" + P.SpellPlayer(target.LoginID, this.Animation, this.AnimationFile);
             if (this.DoCastAnimation) packet += "\x1" + P.Cast(caster);
             if (this.OnEffectText != "") world.Send((Player)target, P.ServerMessage(this.OnEffectText));
 
@@ -699,7 +699,7 @@ namespace Goose
             {
                 List<Player> range = target.Map.GetPlayersInRange(target);
 
-                string packet = P.SpellPlayer(target.LoginID, this.Animation);
+                string packet = P.SpellPlayer(target.LoginID, this.Animation, this.AnimationFile);
                 world.Send((Player)target, packet);
                 foreach (Player player in range)
                 {

@@ -9,8 +9,8 @@ public class LustStatDrain : BaseSpellEffectScript
 		if (target is NPC) return false;
 
 		double drainPercent = 0.05;
-		string packet = thisEffect.SPPString(target.LoginID);
-		packet += '\x01' + target.VPUString();
+		string packet = P.SpellPlayer(target.LoginID, thisEffect.Animation, thisEffect.AnimationFile);
+		packet += '\x01' + P.VitalsPercentage(target);
 
 		if (target.CurrentMP / (double)target.MaxMP >= drainPercent)
 		{
@@ -21,10 +21,10 @@ public class LustStatDrain : BaseSpellEffectScript
 
 			target.CurrentMP -= drainAmount;
 
-			packet += string.Format("\x0001BT{0},60,-{1},{2}", target.LoginID, drainAmount, target.Name);
+			packet += '\x01' + P.BattleTextYellow(target, "-" + drainAmount);
 
 			caster.CurrentHP += drainAmount;
-			packet += string.Format("\x0001BT{0},7,+{1},{2}", caster.LoginID, drainAmount, caster.Name);
+			packet += '\x01' + P.BattleTextHeal(caster, drainAmount);
 		}
 		else
 		{
@@ -35,10 +35,10 @@ public class LustStatDrain : BaseSpellEffectScript
 
 			target.CurrentHP -= drainAmount;
 
-			packet += string.Format("\x0001BT{0},1,-{1},{2}", target.LoginID, drainAmount, target.Name);
+			packet += '\x01' + P.BattleTextDamage(target, drainAmount);
 
 			caster.CurrentHP += drainAmount;
-			packet += string.Format("\x0001BT{0},7,+{1},{2}", caster.LoginID, drainAmount, caster.Name);
+			packet += '\x01' + P.BattleTextHeal(caster, drainAmount);
 		}
 
 		foreach (var player in target.Map.GetPlayersInRange(target))
@@ -47,7 +47,7 @@ public class LustStatDrain : BaseSpellEffectScript
 		}
 
 		var p = (Player)target;
-		world.Send(p, p.SNFString());
+		world.Send(p, P.StatusInfo(p));
 		world.Send(p, packet);
 
 		p.AddRegenEvent(world);

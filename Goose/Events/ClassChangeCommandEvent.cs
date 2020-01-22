@@ -79,8 +79,8 @@ namespace Goose.Events
 
                 player.AddStats(player.Class.GetLevel(player.Level).BaseStats, world);
 
-                world.Send(player, player.SNFString());
-                world.Send(player, player.TNLString());
+                world.Send(player, P.StatusInfo(player));
+                world.Send(player, P.ExpBar(player));
 
                 player.Spellbook.RemoveNonClassSpells(world);
 
@@ -98,7 +98,7 @@ namespace Goose.Events
 
                 if (player.State != Goose.Player.States.NotLoggedIn)
                 {
-                    world.Send(player, player.SNFString());
+                    world.Send(player, P.StatusInfo(player));
                 }
                 else
                 {

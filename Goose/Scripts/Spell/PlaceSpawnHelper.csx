@@ -8,7 +8,7 @@ public class PlaceSpawnHelper : BaseSpellEffectScript
 {
 	public override bool Cast(SpellEffect thisEffect, ICharacter caster, ICharacter target, GameWorld world)
 	{
-		using (var writer = new StreamWriter(@"C:\Goose\Spawns\" + caster.MapID + ".csv"))
+		using (var writer = new StreamWriter(@"spawns-" + caster.MapID + ".csv"))
 		{
 			foreach (var itemTile in caster.Map.Items.Where(i => i.ItemSlot.Item.TemplateID == 1 && !string.IsNullOrEmpty(i.ItemSlot.Item.ScriptParams)))
 			{
