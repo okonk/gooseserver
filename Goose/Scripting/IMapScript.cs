@@ -17,5 +17,6 @@ namespace Goose.Scripting
         void OnPlayerChatEvent(Map map, Player player, string message, GameWorld world);
         void OnNPCKilledEvent(Map map, NPC npc, ICharacter killer, GameWorld world);
         void OnNPCSpawnEvent(Map map, NPC npc, GameWorld world);
+        void OnPetMove(Map map, Pet pet, GameWorld world);
     }
 }

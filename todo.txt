@@ -1,4 +1,4 @@
-Move packet creation to it's own class
+make aspereta version of server
 title/surname items
 spell to see monster info
 assign ids to quest requirements/rewards -- be careful, could mess up existing quest data
@@ -80,6 +80,7 @@ fix datatypes in DB. varchar -> text
 goose on .net core for linux
 log when player creates a custom
 sanitise user names to only alphabetical
+Move packet creation to it's own class
 
 
 

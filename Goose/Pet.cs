@@ -548,7 +548,7 @@ namespace Goose
             if (dx == -1 && dy == 0) return 4;
 
             int shortestpath = Math.Abs(x - (this.MapX)) + Math.Abs(y - (this.MapY));
-            int shortest = 0;
+            int shortest = 1;
 
             int temp;
             int f1 = 0, f2 = 0, f3 = 0, f4 = 0;
@@ -624,6 +624,63 @@ namespace Goose
             return shortest;
         }
 
+        public override void MoveTo(GameWorld world, int x, int y)
+        {
+            List<Player> beforeRange = this.Map.GetPlayersInRange(this);
+            List<NPC> beforeNPCRange = this.Map.GetNPCsInRange(this);
+
+            // move off this square so null
+            this.Map.SetCharacter(null, this.MapX, this.MapY);
+            this.MapX = x;
+            this.MapY = y;
+            // move onto this square so this
+            this.Map.SetCharacter(this, this.MapX, this.MapY);
+
+            try
+            {
+                this.Map.Script?.Object.OnPetMove(this.Map, this, world);
+            }
+            catch (Exception e)
+            {
+                // TODO: need a logging system
+            }
+
+            List<Player> afterRange = this.Map.GetPlayersInRange(this);
+            List<NPC> afterNPCRange = this.Map.GetNPCsInRange(this);
+
+            string mkc = P.MakePetCharacter(this);
+            // Send to all people that are in after but aren't in before MKC
+            foreach (Player player in afterRange.Except<Player>(beforeRange))
+            {
+                world.Send(player, mkc);
+            }
+
+            // Send to everyone MOC
+            string packet = P.MoveCharacter(this);
+            foreach (Player player in afterRange.Union<Player>(beforeRange).Distinct<Player>())
+            {
+                world.Send(player, packet);
+            }
+            // check if aggro any npcs
+            foreach (NPC npc in afterNPCRange.Union<NPC>(beforeNPCRange).Distinct<NPC>())
+            {
+                npc.AggroIfInRange(this, world);
+            }
+
+            string erc = P.EraseCharacter(this.LoginID);
+            // Send to all people that aren't in after but are in before ERC
+            foreach (Player player in beforeRange.Except<Player>(afterRange))
+            {
+                world.Send(player, erc);
+            }
+
+            // Remove npc aggro towards player
+            foreach (NPC npc in beforeNPCRange.Except<NPC>(afterNPCRange))
+            {
+                npc.RemoveAggro(this);
+            }
+        }
+
         /**
          * FaceTo, faces to direction
          * 
@@ -694,7 +751,7 @@ namespace Goose
             {
                 // pvp 1/2 damage
                 if (character is Player) damage /= 2;
-                packet = P.BattleTextDamage(this, damage);
+                packet = P.BattleTextDamage(this, damage) + "\x1";
             }
             else
             {

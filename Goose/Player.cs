@@ -1030,7 +1030,7 @@ namespace Goose
          * MoveTo, moves player to x, y
          * 
          */
-        public void MoveTo(GameWorld world, int x, int y)
+        public virtual void MoveTo(GameWorld world, int x, int y)
         {
             List<Player> beforeRange = this.Map.GetPlayersInRange(this);
             List<NPC> beforeNPCRange = this.Map.GetNPCsInRange(this);
@@ -1343,7 +1343,7 @@ namespace Goose
             return true;
         }
 
-        public void SendCHPString(GameWorld world)
+        public virtual void SendCHPString(GameWorld world)
         {
             string chpstring = P.UpdateCharacter(this);
             world.Send(this, chpstring);

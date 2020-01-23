@@ -82,6 +82,9 @@ namespace Goose
          */
         public static Func<Player, string> MakeCharacter = (player) =>
         {
+            // Hack to get around the fact pets are a subclass of Player
+            if (player is Pet) return MakePetCharacter((Pet)player);
+
             int pose = player.BodyState;
             ItemSlot weapon = player.Inventory.GetEquippedSlot(Inventory.EquipSlots.Weapon);
             if (weapon != null)
@@ -117,6 +120,8 @@ namespace Goose
 
         public static Func<Player, string> UpdateCharacter = (player) =>
         {
+            if (player is Pet) return UpdatePet((Pet)player);
+
             int pose = player.BodyState;
             ItemSlot weapon = player.Inventory.GetEquippedSlot(Inventory.EquipSlots.Weapon);
             if (weapon != null)
@@ -220,7 +225,29 @@ namespace Goose
                         "320," + // Move Speed
                         "0" + "," + // Player Name Color
                         (npc.CurrentBodyID >= 100 ? "" : "0,0,0,0"); // Mount
-        };        
+        };    
+
+        public static Func<Pet, string> UpdatePet = (pet) =>
+        {
+            return "CHP" +
+                   pet.LoginID + "," +
+                   pet.CurrentBodyID + "," +
+                   pet.BodyR + "," + // Body Color R
+                   pet.BodyG + "," + // Body Color G
+                   pet.BodyB + "," + // Body Color B
+                   pet.BodyA + "," + // Body Color A
+                   (pet.CurrentBodyID >= 100 ? 3 : pet.BodyState) + "," +
+                   (pet.CurrentBodyID >= 100 ? "" : pet.HairID + ",") +
+                   (pet.CurrentBodyID >= 100 ? "" : pet.EquippedItems + ",") +
+                   (pet.CurrentBodyID >= 100 ? "" : pet.HairR + ",") +
+                   (pet.CurrentBodyID >= 100 ? "" : pet.HairG + ",") +
+                   (pet.CurrentBodyID >= 100 ? "" : pet.HairB + ",") +
+                   (pet.CurrentBodyID >= 100 ? "" : pet.HairA + ",") +
+                   "0" + "," + // Invis thing
+                   (pet.CurrentBodyID >= 100 ? "" : pet.FaceID + ",") +
+                   "320," + // Move Speed
+                   (pet.CurrentBodyID >= 100 ? "" : "0,0,0,0"); // Mount
+        };
 
         public static Func<Player, string> WeaponSpeed = (player) =>
         {

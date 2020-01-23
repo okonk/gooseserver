@@ -100,5 +100,10 @@ namespace Goose.Scripting
         {
 
         }
+
+        public virtual void OnPetMove(Map map, Pet pet, GameWorld world)
+        {
+
+        }
     }
 }

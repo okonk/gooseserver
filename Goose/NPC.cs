@@ -752,7 +752,7 @@ namespace Goose
             if (dx == -1 && dy == 0) return 4;
 
             int shortestpath = Math.Abs(x - (this.MapX)) + Math.Abs(y - (this.MapY));
-            int shortest = 0;
+            int shortest = 1;
 
             int temp;
             int f1=0, f2=0, f3=0, f4=0;
