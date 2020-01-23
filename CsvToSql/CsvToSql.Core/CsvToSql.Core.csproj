@@ -5,10 +5,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="sqlTemplate.sql" />
-  </ItemGroup>
-
-  <ItemGroup>
     <EmbeddedResource Include="sqlTemplate.sql" />
   </ItemGroup>
 

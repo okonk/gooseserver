@@ -39,10 +39,10 @@ namespace Goose.Events
                     id = 0;
                 }
 
-                if (id <= 0 || id > GameSettings.Default.InventorySize + 
-                    GameSettings.Default.EquippedSize) return;
+                if (id <= 0 || id > GameWorld.Settings.InventorySize + 
+                    GameWorld.Settings.EquippedSize) return;
 
-                if (id <= GameSettings.Default.InventorySize)
+                if (id <= GameWorld.Settings.InventorySize)
                 {
                     ItemSlot slot = this.Player.Inventory.GetSlot(id);
                     if (slot == null) return;

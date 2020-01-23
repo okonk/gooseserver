@@ -38,7 +38,7 @@ namespace Goose.Events
                     slot = 0;
                 }
 
-                if (slot <= 0 || slot > GameSettings.Default.SpellbookSize)
+                if (slot <= 0 || slot > GameWorld.Settings.SpellbookSize)
                 {
                     // log something bad about packet
                     return;

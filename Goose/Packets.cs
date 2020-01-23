@@ -26,9 +26,7 @@ namespace Goose
                 x + "," +
                 y + "," +
                 animationId + "," +
-                animationFile + "," +
-                "0," +
-                "0";
+                animationFile;
         };
 
         public static Func<Player, string> ExpBar = (player) => 
@@ -543,6 +541,16 @@ namespace Goose
         public static Func<int, string> ClearInventorySlot = (slotId) =>
         {
             return "CIS" + slotId;
+        };
+
+        public static Func<Item, GameWorld, int, long, string> EquipSlot = (item, world, slotId, stack) =>
+        {
+            return "SIS" + ItemSlot(item, world, slotId + 31, stack);
+        };
+
+        public static Func<int, string> ClearEquipSlot = (slotId) =>
+        {
+            return "CIS" + (slotId + 31);
         };
 
         public static Func<Item, GameWorld, int, long, string> CombineSlot = (item, world, slotId, stack) =>

@@ -28,10 +28,10 @@ namespace Goose.Events
                 {
                     try
                     {
-                        // TODO: This is bad, it executes the global script OnLoaded on the wrong thread
-                        world.LoadGlobalScripts();
-
                         world.ScriptHandler.ReloadScripts();
+
+                         // TODO: This is bad, it executes the global script OnLoaded on the wrong thread
+                        world.LoadGlobalScripts();
 
                         // TODO: Not safe to call Send on multiple threads
                         //world.Send(this.Player, "$7Reloaded scripts.");

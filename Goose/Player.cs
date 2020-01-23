@@ -503,7 +503,7 @@ namespace Goose
             string base64Salt = Convert.ToBase64String(saltBytes);
 
             MD5CryptoServiceProvider md5 = new MD5CryptoServiceProvider();
-            byte[] data = Encoding.ASCII.GetBytes(salt + password + GameSettings.Default.ServerName);
+            byte[] data = Encoding.ASCII.GetBytes(salt + password + GameWorld.Settings.ServerName);
             data = md5.ComputeHash(data);
 
             string passwordHash = BitConverter.ToString(data).Replace("-", "").ToLower();
@@ -512,79 +512,79 @@ namespace Goose
             this.PlayerID = world.PlayerHandler.CurrentID;
             world.PlayerHandler.CurrentID++;
             this.Name = name;
-            this.Title = GameSettings.Default.StartingTitle;
-            this.Surname = GameSettings.Default.StartingSurname;
+            this.Title = GameWorld.Settings.StartingTitle;
+            this.Surname = GameWorld.Settings.StartingSurname;
             this.PasswordHash = passwordHash;
             this.PasswordSalt = base64Salt;
             this.Access = AccessStatus.Normal;
-            this.MapID = GameSettings.Default.StartingMapID;
-            this.MapX = GameSettings.Default.StartingMapX;
-            this.MapY = GameSettings.Default.StartingMapY;
+            this.MapID = GameWorld.Settings.StartingMapID;
+            this.MapX = GameWorld.Settings.StartingMapX;
+            this.MapY = GameWorld.Settings.StartingMapY;
 
             this.Facing = 2;
-            this.BoundID = GameSettings.Default.StartingMapID;
-            this.BoundX = GameSettings.Default.StartingMapX;
-            this.BoundY = GameSettings.Default.StartingMapY;
+            this.BoundID = GameWorld.Settings.StartingMapID;
+            this.BoundX = GameWorld.Settings.StartingMapX;
+            this.BoundY = GameWorld.Settings.StartingMapY;
             this.BoundMap = world.MapHandler.GetMap(this.BoundID);
-            this.Gold = GameSettings.Default.StartingGold;
-            this.Level = GameSettings.Default.StartingLevel;
-            this.ClassID = GameSettings.Default.StartingClassID;
-            this.GuildID = GameSettings.Default.StartingGuildID;
+            this.Gold = GameWorld.Settings.StartingGold;
+            this.Level = GameWorld.Settings.StartingLevel;
+            this.ClassID = GameWorld.Settings.StartingClassID;
+            this.GuildID = GameWorld.Settings.StartingGuildID;
             this.Guild = world.GuildHandler.GetGuild(this.GuildID);
-            this.Experience = GameSettings.Default.StartingExperience;
-            this.ExperienceSold = GameSettings.Default.StartingExperienceSold;
-            this.BodyID = GameSettings.Default.StartingBodyID;
-            this.BodyR = GameSettings.Default.StartingBodyR;
-            this.BodyG = GameSettings.Default.StartingBodyG;
-            this.BodyB = GameSettings.Default.StartingBodyB;
-            this.BodyA = GameSettings.Default.StartingBodyA;
+            this.Experience = GameWorld.Settings.StartingExperience;
+            this.ExperienceSold = GameWorld.Settings.StartingExperienceSold;
+            this.BodyID = GameWorld.Settings.StartingBodyID;
+            this.BodyR = GameWorld.Settings.StartingBodyR;
+            this.BodyG = GameWorld.Settings.StartingBodyG;
+            this.BodyB = GameWorld.Settings.StartingBodyB;
+            this.BodyA = GameWorld.Settings.StartingBodyA;
             this.CurrentBodyID = this.BodyID;
-            this.FaceID = GameSettings.Default.StartingFaceID;
-            this.HairID = GameSettings.Default.StartingHairID;
-            this.HairR = GameSettings.Default.StartingHairR;
-            this.HairG = GameSettings.Default.StartingHairG;
-            this.HairB = GameSettings.Default.StartingHairB;
-            this.HairA = GameSettings.Default.StartingHairA;
+            this.FaceID = GameWorld.Settings.StartingFaceID;
+            this.HairID = GameWorld.Settings.StartingHairID;
+            this.HairR = GameWorld.Settings.StartingHairR;
+            this.HairG = GameWorld.Settings.StartingHairG;
+            this.HairB = GameWorld.Settings.StartingHairB;
+            this.HairA = GameWorld.Settings.StartingHairA;
 
             this.BaseStats = new AttributeSet();
-            this.BaseStats.HP = GameSettings.Default.StartingHP;
-            this.BaseStats.MP = GameSettings.Default.StartingMP;
-            this.BaseStats.SP = GameSettings.Default.StartingSP;
-            this.BaseStats.AC = GameSettings.Default.StartingAC;
-            this.BaseStats.Strength = GameSettings.Default.StartingStrength;
-            this.BaseStats.Stamina = GameSettings.Default.StartingStamina;
-            this.BaseStats.Intelligence = GameSettings.Default.StartingIntelligence;
-            this.BaseStats.Dexterity = GameSettings.Default.StartingDexterity;
-            this.BaseStats.FireResist = GameSettings.Default.StartingFireResist;
-            this.BaseStats.AirResist = GameSettings.Default.StartingAirResist;
-            this.BaseStats.EarthResist = GameSettings.Default.StartingEarthResist;
-            this.BaseStats.SpiritResist = GameSettings.Default.StartingSpiritResist;
-            this.BaseStats.WaterResist = GameSettings.Default.StartingWaterResist;
-            this.BaseStats.MoveSpeed = GameSettings.Default.StartingMoveSpeed;
+            this.BaseStats.HP = GameWorld.Settings.StartingHP;
+            this.BaseStats.MP = GameWorld.Settings.StartingMP;
+            this.BaseStats.SP = GameWorld.Settings.StartingSP;
+            this.BaseStats.AC = GameWorld.Settings.StartingAC;
+            this.BaseStats.Strength = GameWorld.Settings.StartingStrength;
+            this.BaseStats.Stamina = GameWorld.Settings.StartingStamina;
+            this.BaseStats.Intelligence = GameWorld.Settings.StartingIntelligence;
+            this.BaseStats.Dexterity = GameWorld.Settings.StartingDexterity;
+            this.BaseStats.FireResist = GameWorld.Settings.StartingFireResist;
+            this.BaseStats.AirResist = GameWorld.Settings.StartingAirResist;
+            this.BaseStats.EarthResist = GameWorld.Settings.StartingEarthResist;
+            this.BaseStats.SpiritResist = GameWorld.Settings.StartingSpiritResist;
+            this.BaseStats.WaterResist = GameWorld.Settings.StartingWaterResist;
+            this.BaseStats.MoveSpeed = GameWorld.Settings.StartingMoveSpeed;
 
             this.MaxStats = new AttributeSet();
             this.MaxStats += this.BaseStats;
-            this.MaxStats.Haste = GameSettings.Default.BaseHaste;
-            this.MaxStats.SpellDamage = GameSettings.Default.BaseSpellDamage;
-            this.MaxStats.SpellCrit = GameSettings.Default.BaseSpellCrit;
-            this.MaxStats.MeleeDamage = GameSettings.Default.BaseMeleeDamage;
-            this.MaxStats.MeleeCrit = GameSettings.Default.BaseMeleeCrit;
-            this.MaxStats.DamageReduction = GameSettings.Default.BaseDamageReduction;
-            this.MaxStats.HPPercentRegen = GameSettings.Default.BaseHPPercentRegen;
-            this.MaxStats.HPStaticRegen = GameSettings.Default.BaseHPStaticRegen;
-            this.MaxStats.MPPercentRegen = GameSettings.Default.BaseMPPercentRegen;
-            this.MaxStats.MPStaticRegen = GameSettings.Default.BaseMPStaticRegen;
-            this.MaxStats.MoveSpeedIncrease = GameSettings.Default.BaseMoveSpeedIncrease;
+            this.MaxStats.Haste = GameWorld.Settings.BaseHaste;
+            this.MaxStats.SpellDamage = GameWorld.Settings.BaseSpellDamage;
+            this.MaxStats.SpellCrit = GameWorld.Settings.BaseSpellCrit;
+            this.MaxStats.MeleeDamage = GameWorld.Settings.BaseMeleeDamage;
+            this.MaxStats.MeleeCrit = GameWorld.Settings.BaseMeleeCrit;
+            this.MaxStats.DamageReduction = GameWorld.Settings.BaseDamageReduction;
+            this.MaxStats.HPPercentRegen = GameWorld.Settings.BaseHPPercentRegen;
+            this.MaxStats.HPStaticRegen = GameWorld.Settings.BaseHPStaticRegen;
+            this.MaxStats.MPPercentRegen = GameWorld.Settings.BaseMPPercentRegen;
+            this.MaxStats.MPStaticRegen = GameWorld.Settings.BaseMPStaticRegen;
+            this.MaxStats.MoveSpeedIncrease = GameWorld.Settings.BaseMoveSpeedIncrease;
 
             this.Class = world.ClassHandler.GetClass(this.ClassID);
             this.MaxStats += this.Class.GetLevel(this.Level).BaseStats;
 
-            this.BodyState = 3;
+            this.BodyState = GameWorld.Settings.StartingBodyState;
 
-            this.ToggleSettings = (ToggleSetting)GameSettings.Default.DefaultToggleSettings;
-            this.AetherThreshold = GameSettings.Default.DefaultAetherThreshold;
+            this.ToggleSettings = (ToggleSetting)GameWorld.Settings.DefaultToggleSettings;
+            this.AetherThreshold = GameWorld.Settings.DefaultAetherThreshold;
 
-            this.NumberOfBankPages = GameSettings.Default.StartingBankPages;
+            this.NumberOfBankPages = GameWorld.Settings.StartingBankPages;
             this.Credits = 0;
             this.TotalAfkTime = 0;
             this.TotalPlayTime = 0;
@@ -593,7 +593,7 @@ namespace Goose
             this.LastPlaytimeUpdate = world.TimeNow;
 
             this.Inventory = new Inventory(this);
-            string[] items = GameSettings.Default.StartingItems.Split(" ".ToCharArray());
+            string[] items = GameWorld.Settings.StartingItems.Split(" ".ToCharArray());
             if (items.Length > 0)
             {
                 for (int i = 0; i < items.Length; i++)
@@ -691,17 +691,17 @@ namespace Goose
 
             this.MaxStats = new AttributeSet();
             this.MaxStats += this.BaseStats;
-            this.MaxStats.Haste = GameSettings.Default.BaseHaste;
-            this.MaxStats.SpellDamage = GameSettings.Default.BaseSpellDamage;
-            this.MaxStats.SpellCrit = GameSettings.Default.BaseSpellCrit;
-            this.MaxStats.MeleeDamage = GameSettings.Default.BaseMeleeDamage;
-            this.MaxStats.MeleeCrit = GameSettings.Default.BaseMeleeCrit;
-            this.MaxStats.DamageReduction = GameSettings.Default.BaseDamageReduction;
-            this.MaxStats.HPPercentRegen = GameSettings.Default.BaseHPPercentRegen;
-            this.MaxStats.HPStaticRegen = GameSettings.Default.BaseHPStaticRegen;
-            this.MaxStats.MPPercentRegen = GameSettings.Default.BaseMPPercentRegen;
-            this.MaxStats.MPStaticRegen = GameSettings.Default.BaseMPStaticRegen;
-            this.MaxStats.MoveSpeedIncrease = GameSettings.Default.BaseMoveSpeedIncrease;
+            this.MaxStats.Haste = GameWorld.Settings.BaseHaste;
+            this.MaxStats.SpellDamage = GameWorld.Settings.BaseSpellDamage;
+            this.MaxStats.SpellCrit = GameWorld.Settings.BaseSpellCrit;
+            this.MaxStats.MeleeDamage = GameWorld.Settings.BaseMeleeDamage;
+            this.MaxStats.MeleeCrit = GameWorld.Settings.BaseMeleeCrit;
+            this.MaxStats.DamageReduction = GameWorld.Settings.BaseDamageReduction;
+            this.MaxStats.HPPercentRegen = GameWorld.Settings.BaseHPPercentRegen;
+            this.MaxStats.HPStaticRegen = GameWorld.Settings.BaseHPStaticRegen;
+            this.MaxStats.MPPercentRegen = GameWorld.Settings.BaseMPPercentRegen;
+            this.MaxStats.MPStaticRegen = GameWorld.Settings.BaseMPStaticRegen;
+            this.MaxStats.MoveSpeedIncrease = GameWorld.Settings.BaseMoveSpeedIncrease;
 
             this.Class = world.ClassHandler.GetClass(this.ClassID);
             this.MaxStats += this.Class.GetLevel(this.Level).BaseStats;
@@ -733,7 +733,7 @@ namespace Goose
             this.Bank = new PlayerBank();
             this.Bank.Load(world, this);
 
-            this.BodyState = 3;
+            this.BodyState = GameWorld.Settings.StartingBodyState;
 
             this.LoadPets(world);
             this.LoadQuests(world);
@@ -1237,7 +1237,7 @@ namespace Goose
             }
 
             RegenEvent ev = new RegenEvent();
-            ev.Ticks += (long)(GameSettings.Default.RegenSpeed * world.TimerFrequency);
+            ev.Ticks += (long)(GameWorld.Settings.RegenSpeed * world.TimerFrequency);
             ev.Data = this;
 
             this.RegenEventExists = true;
@@ -1262,7 +1262,7 @@ namespace Goose
             if (classid == 1)
             {
                 // This is a hack, need a better solution
-                this.ExperienceSold = (long)(this.ExperienceSold * (1.0d - GameSettings.Default.ChangeClassExperienceLossPercent));
+                this.ExperienceSold = (long)(this.ExperienceSold * (1.0d - GameWorld.Settings.ChangeClassExperienceLossPercent));
             }
             this.Experience = (this.Level == 1 ? 0 : this.Class.GetLevel(this.Level - 1).Experience);
             this.ClassID = classid;
@@ -1388,8 +1388,8 @@ namespace Goose
         public void AddStats(AttributeSet stats, GameWorld world)
         {
             this.MaxStats += stats;
-            this.MaxStats.HP += (stats.Stamina * GameSettings.Default.StaminaToHP);
-            this.MaxStats.MP += (stats.Intelligence * GameSettings.Default.IntelligenceToMP);
+            this.MaxStats.HP += (stats.Stamina * GameWorld.Settings.StaminaToHP);
+            this.MaxStats.MP += (stats.Intelligence * GameWorld.Settings.IntelligenceToMP);
 
             this.CurrentHP = Math.Min(this.CurrentHP, this.MaxHP);
             this.CurrentMP = Math.Min(this.CurrentMP, this.MaxMP);
@@ -1406,8 +1406,8 @@ namespace Goose
         public void RemoveStats(AttributeSet stats, GameWorld world, bool changeCurrentHPMP = true)
         {
             this.MaxStats -= stats;
-            this.MaxStats.HP -= (stats.Stamina * GameSettings.Default.StaminaToHP);
-            this.MaxStats.MP -= (stats.Intelligence * GameSettings.Default.IntelligenceToMP);
+            this.MaxStats.HP -= (stats.Stamina * GameWorld.Settings.StaminaToHP);
+            this.MaxStats.MP -= (stats.Intelligence * GameWorld.Settings.IntelligenceToMP);
 
             if (changeCurrentHPMP)
             {
@@ -1453,11 +1453,11 @@ namespace Goose
                 damage = this.MaxStats.Strength + this.WeaponDamage +
                     this.Level + world.Random.Next(1, this.Level) + (this.Level - character.Level);
             }
-            double maxac = GameSettings.Default.MaxAC;
+            double maxac = GameWorld.Settings.MaxAC;
             double absorb = (1 - ((double)(character.MaxStats.AC * character.Class.ACMultiplier) / maxac));
 
             if (world.Random.Next(1, 10001) <= this.MaxStats.MeleeCrit * 10000) damage *= 2;
-            damage *= (double)GameSettings.Default.DamageModifier;
+            damage *= (double)GameWorld.Settings.DamageModifier;
             damage *= (1 + (double)this.MaxStats.MeleeDamage);
             damage *= (1 - (double)character.MaxStats.DamageReduction);
             damage *= absorb;
@@ -1493,16 +1493,16 @@ namespace Goose
          */
         public virtual void AddExperience(long exp, GameWorld world, ExperienceMessage message)
         {
-            if (GameSettings.Default.ExperienceCap > 0 &&
-                this.Experience + this.ExperienceSold > GameSettings.Default.ExperienceCap)
+            if (GameWorld.Settings.ExperienceCap > 0 &&
+                this.Experience + this.ExperienceSold > GameWorld.Settings.ExperienceCap)
             {
                 if ((this.ToggleSettings & ToggleSetting.Experience) != 0) return;
                 world.Send(this, P.ServerMessage("You have reached the experience cap. Gained 0 experience points."));
                 return;
             }
 
-            if (!(GameSettings.Default.ExperienceModifierLimit > 0 &&
-                this.Experience + this.ExperienceSold > GameSettings.Default.ExperienceModifierLimit))
+            if (!(GameWorld.Settings.ExperienceModifierLimit > 0 &&
+                this.Experience + this.ExperienceSold > GameWorld.Settings.ExperienceModifierLimit))
             {
                 // Under the limit gets the full modifier
                 exp = (long)(exp * (world.ExperienceModifier + AdditionalExperienceModifier));
@@ -1510,7 +1510,7 @@ namespace Goose
             else
             {
                 // over the limit only gets player bonus
-                exp = (long)(exp * (world.ExperienceModifier - GameSettings.Default.ExperienceModifier + 1 + AdditionalExperienceModifier));
+                exp = (long)(exp * (world.ExperienceModifier - GameWorld.Settings.ExperienceModifier + 1 + AdditionalExperienceModifier));
             }
 
             this.Experience += exp;
@@ -1713,7 +1713,7 @@ namespace Goose
             if (this.LastPing == 0) this.LastPing = world.TimeNow;
 
             if ((world.TimeNow - this.LastPing) >
-                ((GameSettings.Default.PlayerSavePeriod * 1.10) * world.TimerFrequency))
+                ((GameWorld.Settings.PlayerSavePeriod * 1.10) * world.TimerFrequency))
             {
                 world.LostConnection(this.Sock);
             }
@@ -1723,7 +1723,7 @@ namespace Goose
 
                 PlayerSaveEvent ev = new PlayerSaveEvent();
                 ev.Player = this;
-                ev.Ticks += (GameSettings.Default.PlayerSavePeriod * world.TimerFrequency);
+                ev.Ticks += (GameWorld.Settings.PlayerSavePeriod * world.TimerFrequency);
 
                 world.EventHandler.AddEvent(ev);
             }
@@ -1961,12 +1961,12 @@ namespace Goose
             {
                 // buff will expire before next tick
                 if (buff.BuffExpireEvent.Ticks - world.TimeNow >
-                    GameSettings.Default.SpellEffectPeriod * world.TimerFrequency)
+                    GameWorld.Settings.SpellEffectPeriod * world.TimerFrequency)
                 {
                     BuffTickEvent ev = new BuffTickEvent();
                     ev.Data = buff;
                     ev.Player = this;
-                    ev.Ticks += (long)(GameSettings.Default.SpellEffectPeriod * world.TimerFrequency);
+                    ev.Ticks += (long)(GameWorld.Settings.SpellEffectPeriod * world.TimerFrequency);
 
                     world.EventHandler.AddEvent(ev);
                 }
@@ -2102,7 +2102,7 @@ namespace Goose
                 i++;
             }
 
-            while (i <= GameSettings.Default.BuffBarVisibleSize)
+            while (i <= GameWorld.Settings.BuffBarVisibleSize)
             {
                 world.Send(this, P.BuffBar(null, i));
                 i++;
@@ -2169,7 +2169,7 @@ namespace Goose
         {
             if (this.isIdle) return true;
 
-            if (this.LastActive + (GameSettings.Default.IdleTimeout * world.TimerFrequency) <= world.TimeNow)
+            if (this.LastActive + (GameWorld.Settings.IdleTimeout * world.TimerFrequency) <= world.TimeNow)
             {
                 this.isIdle = true;
                 return true;

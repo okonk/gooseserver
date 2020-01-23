@@ -87,7 +87,7 @@ namespace Goose.Events
 
                 // picked up gold
                 if (tile.ItemSlot.Item.ItemID == 
-                    GameSettings.Default.ItemIDStartpoint + GameSettings.Default.GoldItemID)
+                    GameWorld.Settings.ItemIDStartpoint + GameWorld.Settings.GoldItemID)
                 {
                     this.Player.AddGold(tile.ItemSlot.Stack, world);
                     this.Player.Map.RemoveItem(tile, world);

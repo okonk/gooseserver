@@ -42,15 +42,10 @@ namespace Goose
 
             while (reader.Read())
             {
-                int width = Convert.ToInt32(reader["map_x"]);
-                int height = Convert.ToInt32(reader["map_y"]);
-
-                Map map = new Map(width, height);
+                Map map = new Map();
                 map.ID = Convert.ToInt32(reader["map_id"]);
                 map.Name = Convert.ToString(reader["map_name"]);
                 map.FileName = Convert.ToString(reader["map_filename"]);
-                map.Width = width;
-                map.Height = height;
 
                 map.MinLevel = Convert.ToInt32(reader["min_level"]);
                 map.MaxLevel = Convert.ToInt32(reader["max_level"]);
@@ -83,7 +78,7 @@ namespace Goose
                 map.LoadData(world);
 
                 Event ev = new ClearMapItemsEvent();
-                ev.Ticks += world.TimerFrequency * GameSettings.Default.ItemGroundSweepTime;
+                ev.Ticks += world.TimerFrequency * GameWorld.Settings.ItemGroundSweepTime;
                 ev.Data = map;
                 world.EventHandler.AddEvent(ev);
             }

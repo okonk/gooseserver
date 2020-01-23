@@ -43,7 +43,7 @@ namespace Goose.Events
                 }
 
                 if (id1 <= 0 || id2 <= 0 ||
-                    id1 > GameSettings.Default.InventorySize || id2 > GameSettings.Default.InventorySize)
+                    id1 > GameWorld.Settings.InventorySize || id2 > GameWorld.Settings.InventorySize)
                 {
                     // log something bad about packet
                     return;

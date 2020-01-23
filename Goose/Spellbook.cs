@@ -24,8 +24,8 @@ namespace Goose
 
         public Spellbook(Player player)
         {
-            this.spells = new Spell[GameSettings.Default.SpellbookSize + 1];
-            this.lastcast = new long[GameSettings.Default.SpellbookSize + 1];
+            this.spells = new Spell[GameWorld.Settings.SpellbookSize + 1];
+            this.lastcast = new long[GameWorld.Settings.SpellbookSize + 1];
             this.player = player;
         }
 
@@ -69,7 +69,7 @@ namespace Goose
 
         public int NextFreeSlot(int lowerBound)
         {
-            if (lowerBound <= 0 || lowerBound >= GameSettings.Default.SpellbookSize) return -1;
+            if (lowerBound <= 0 || lowerBound >= GameWorld.Settings.SpellbookSize) return -1;
 
             for (int i = lowerBound; i <= this.spells.Length; i++)
             {
@@ -85,7 +85,7 @@ namespace Goose
         public int GetNumberOfFreeSlots()
         {
             int free = 0;
-            for (int i = 1; i <= GameSettings.Default.SpellbookSize; i++)
+            for (int i = 1; i <= GameWorld.Settings.SpellbookSize; i++)
             {
                 if (this.spells[i] == null)
                     free++;
@@ -100,7 +100,7 @@ namespace Goose
          */
         public void SendSlot(int slot, GameWorld world)
         {
-            if (slot < 1 || slot > GameSettings.Default.SpellbookSize)
+            if (slot < 1 || slot > GameWorld.Settings.SpellbookSize)
             {
                 // log bad spell slot
                 return;
@@ -139,7 +139,7 @@ namespace Goose
          */
         public void SendAll(GameWorld world)
         {
-            for (int i = 1; i <= GameSettings.Default.SpellbookSize; i++)
+            for (int i = 1; i <= GameWorld.Settings.SpellbookSize; i++)
             {
                 this.SendSlot(i, world);
             }
@@ -203,7 +203,7 @@ namespace Goose
                 }
             }
             // second pass to check if empty slot to add
-            for (int i = 1; i <= GameSettings.Default.SpellbookSize; i++)
+            for (int i = 1; i <= GameWorld.Settings.SpellbookSize; i++)
             {
                 if (this.spells[i] == null)
                 {
@@ -226,7 +226,7 @@ namespace Goose
          */
         public bool RemoveSpell(int slot, GameWorld world)
         {
-            if (slot <= 0 || slot > GameSettings.Default.SpellbookSize) return false;
+            if (slot <= 0 || slot > GameWorld.Settings.SpellbookSize) return false;
 
             if (this.spells[slot] != null)
             {
@@ -249,8 +249,8 @@ namespace Goose
          */
         public void SwapSlots(int slot1, int slot2, GameWorld world)
         {
-            if (slot1 <= 0 || slot1 > GameSettings.Default.SpellbookSize ||
-                slot2 <= 0 || slot2 > GameSettings.Default.SpellbookSize)
+            if (slot1 <= 0 || slot1 > GameWorld.Settings.SpellbookSize ||
+                slot2 <= 0 || slot2 > GameWorld.Settings.SpellbookSize)
             {
                 return;
             }
@@ -274,7 +274,7 @@ namespace Goose
         {
             Spell slot;
 
-            for (int i = 1; i <= GameSettings.Default.SpellbookSize; i++)
+            for (int i = 1; i <= GameWorld.Settings.SpellbookSize; i++)
             {
                 slot = this.GetSlot(i);
 

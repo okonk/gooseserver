@@ -81,6 +81,7 @@ goose on .net core for linux
 log when player creates a custom
 sanitise user names to only alphabetical
 Move packet creation to it's own class
+Refactor settings
 
 
 

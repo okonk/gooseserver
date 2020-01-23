@@ -36,10 +36,10 @@ namespace Goose.Events
 
             decimal oldModifier = world.ExperienceModifier;
 
-            decimal experiencemodifier = uniquenonafkips.Count / GameSettings.Default.PlayerCountExperienceModifierInterval;
-            experiencemodifier *= GameSettings.Default.PlayerCountExperienceModifier;
+            decimal experiencemodifier = uniquenonafkips.Count / GameWorld.Settings.PlayerCountExperienceModifierInterval;
+            experiencemodifier *= GameWorld.Settings.PlayerCountExperienceModifier;
 
-            experiencemodifier += GameSettings.Default.ExperienceModifier;
+            experiencemodifier += GameWorld.Settings.ExperienceModifier;
 
             world.ExperienceModifier = experiencemodifier;
 
@@ -48,7 +48,7 @@ namespace Goose.Events
                 world.SendToAll(P.ServerMessage("Experience modifier is now " + world.ExperienceModifier + "x because of " + uniquenonafkips.Count + " active players."));
             }
 
-            this.Ticks += world.TimerFrequency * GameSettings.Default.IdleTimeout;
+            this.Ticks += world.TimerFrequency * GameWorld.Settings.IdleTimeout;
             world.EventHandler.AddEvent(this);
 
             world.LogHandler.Save(world);

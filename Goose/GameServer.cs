@@ -84,8 +84,8 @@ namespace Goose
             this.gameworld.Start();
 
             this.listen = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            this.listen.Bind(new IPEndPoint(IPAddress.Parse(GameSettings.Default.GameServerIP), 
-                GameSettings.Default.GameServerPort));
+            this.listen.Bind(new IPEndPoint(IPAddress.Parse(GameWorld.Settings.GameServerIP), 
+                GameWorld.Settings.GameServerPort));
             this.listen.Listen(10);
 
             this.sockets.Add(this.listen);

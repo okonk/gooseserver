@@ -36,9 +36,9 @@ namespace Goose.Events
                 {
                     case "accept":
                     case "gogodyeme":
-                        if (this.Player.Gold < GameSettings.Default.HairdyeCommandCost)
+                        if (this.Player.Gold < GameWorld.Settings.HairdyeCommandCost)
                         {
-                            world.Send(this.Player, P.ServerMessage(string.Format("/hairdye accept requires {0} gold.", GameSettings.Default.HairdyeCommandCost)));
+                            world.Send(this.Player, P.ServerMessage(string.Format("/hairdye accept requires {0} gold.", GameWorld.Settings.HairdyeCommandCost)));
                             return;
                         }
 
@@ -49,7 +49,7 @@ namespace Goose.Events
                             return;
                         }
 
-                        this.Player.Gold -= GameSettings.Default.HairdyeCommandCost;
+                        this.Player.Gold -= GameWorld.Settings.HairdyeCommandCost;
                         this.Player.HairR = r;
                         this.Player.HairG = g;
                         this.Player.HairB = b;

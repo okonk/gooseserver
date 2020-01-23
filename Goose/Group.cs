@@ -98,7 +98,7 @@ namespace Goose
                 foreach (Player p in this.Players)
                 {
                     // Can only display PartyWindowMax players in list
-                    if (i > GameSettings.Default.PartyWindowMax) return;
+                    if (i > GameWorld.Settings.PartyWindowMax) return;
                     if (p == player) continue;
 
                     world.Send(player, P.GroupUpdate(p, i));
@@ -107,7 +107,7 @@ namespace Goose
                 }
             }
             // blank out the rest of the party window
-            while (i <= GameSettings.Default.PartyWindowMax)
+            while (i <= GameWorld.Settings.PartyWindowMax)
             {
                 world.Send(player, P.GroupUpdate(null, i));
                 i++;

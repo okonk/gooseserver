@@ -15,43 +15,57 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="sql\banks.sql" />
-    <None Remove="sql\classes.sql" />
-    <None Remove="sql\combinations.sql" />
-    <None Remove="sql\create.sql" />
-    <None Remove="sql\guilds.sql" />
-    <None Remove="sql\items.sql" />
-    <None Remove="sql\logs.sql" />
-    <None Remove="sql\maps.sql" />
-    <None Remove="sql\npcs.sql" />
-    <None Remove="sql\onetimeupdates.sql" />
-    <None Remove="sql\paypal.sql" />
-    <None Remove="sql\pets.sql" />
-    <None Remove="sql\players.sql" />
-    <None Remove="sql\quests.sql" />
-    <None Remove="sql\spells.sql" />
-    <None Remove="sql\warptiles.sql" />
-    <None Remove="sql\wordfilter.sql" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Include="sql\banks.sql" />
-    <Content Include="sql\classes.sql" />
-    <Content Include="sql\combinations.sql" />
-    <Content Include="sql\create.sql" />
-    <Content Include="sql\guilds.sql" />
-    <Content Include="sql\items.sql" />
-    <Content Include="sql\logs.sql" />
-    <Content Include="sql\maps.sql" />
-    <Content Include="sql\npcs.sql" />
-    <Content Include="sql\onetimeupdates.sql" />
-    <Content Include="sql\paypal.sql" />
-    <Content Include="sql\pets.sql" />
-    <Content Include="sql\players.sql" />
-    <Content Include="sql\quests.sql" />
-    <Content Include="sql\spells.sql" />
-    <Content Include="sql\warptiles.sql" />
-    <Content Include="sql\wordfilter.sql" />
+    <None Update="sql\banks.sql">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="sql\classes.sql">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="sql\combinations.sql">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="sql\create.sql">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="sql\guilds.sql">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="sql\items.sql">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="sql\logs.sql">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="sql\maps.sql">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="sql\npcs.sql">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="sql\onetimeupdates.sql">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="sql\paypal.sql">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="sql\pets.sql">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="sql\players.sql">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="sql\quests.sql">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="sql\spells.sql">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="sql\warptiles.sql">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="sql\wordfilter.sql">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
@@ -59,7 +73,6 @@
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="3.4.0" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
     <PackageReference Include="NLog" Version="4.6.8" />
-    <PackageReference Include="System.Configuration.ConfigurationManager" Version="4.7.0" />
     <PackageReference Include="System.Data.SQLite.Core" Version="1.0.112" />
     <PackageReference Include="System.ServiceProcess.ServiceController" Version="4.7.0" />
   </ItemGroup>
@@ -69,37 +82,19 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Update="GameSettings.Designer.cs">
-      <DesignTimeSharedInput>True</DesignTimeSharedInput>
-      <DependentUpon>GameSettings.settings</DependentUpon>
-      <AutoGen>True</AutoGen>
-    </Compile>
     <Compile Update="GooseWindowsService.cs">
       <SubType>Component</SubType>
     </Compile>
     <Compile Update="GooseWindowsService.Designer.cs">
       <DependentUpon>GooseWindowsService.cs</DependentUpon>
     </Compile>
-    <Compile Update="sql\SqlFiles.Designer.cs">
-      <DependentUpon>SqlFiles.resx</DependentUpon>
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-    </Compile>
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Update="sql\SqlFiles.resx">
-      <LastGenOutput>SqlFiles.Designer.cs</LastGenOutput>
-      <Generator>ResXFileCodeGenerator</Generator>
-    </EmbeddedResource>
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Update="GameSettings.settings">
-      <LastGenOutput>GameSettings.Designer.cs</LastGenOutput>
-      <Generator>PublicSettingsSingleFileGenerator</Generator>
-    </None>
     <None Update="NLog.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Scripts\Global\Aspereta.csx">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Scripts\Global\CrystalCritterSpawner.csx">
@@ -166,6 +161,9 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Scripts\Spell\ZombieMapDebuff.csx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="GooseSettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

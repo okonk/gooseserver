@@ -9,7 +9,7 @@ namespace CsvToSql.Core
 {
     public class CsvToSqlConverter
     {
-        public static string Convert()
+        public static string Convert(string dataLink)
         {
             var converterMapping = new Dictionary<string, dynamic>()
             {
@@ -31,7 +31,7 @@ namespace CsvToSql.Core
                 { "Combination Item Result", new { Converter = new CombinationItemResultsCsvToSql(), Table = "combination_item_results" } },
             };
 
-            var spreadsheet = new MemoryStream(new HttpClient().GetByteArrayAsync("https://docs.google.com/spreadsheets/u/0/d/1AE7SKm46KuAdr5mJk_u-Qn20C1Myg4Q6eyzxTb3Wqpo/export?format=xlsx&id=1AE7SKm46KuAdr5mJk_u-Qn20C1Myg4Q6eyzxTb3Wqpo").Result);
+            var spreadsheet = new MemoryStream(new HttpClient().GetByteArrayAsync(dataLink).Result);
 
             string sqlTemplate = Properties.Resources.sqlTemplate;
             using (var workbook = new XLWorkbook(spreadsheet, XLEventTracking.Disabled))

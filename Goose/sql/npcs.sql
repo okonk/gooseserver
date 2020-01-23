@@ -60,29 +60,10 @@ CREATE TABLE npc_templates (
   armor_pierce INT DEFAULT 0 NOT NULL
 );
 
+/*
 INSERT INTO npc_templates (npc_id, npc_type, npc_name, respawn_time, experience, aggro_range, attack_range, attack_speed, move_speed, stunnable, rootable, slowable, npc_hp, class_id, body_id, weapon_damage)
 VALUES (1, 2, 'Lamb', 40, 40, 0, 1, 1.5, 2, 1, 1, 1, 50, 4, 104, 6);
-
-INSERT INTO npc_templates (npc_id, npc_type, npc_name, respawn_time, experience, aggro_range, attack_range, attack_speed, move_speed, stunnable, rootable, slowable, npc_hp, class_id, body_id, weapon_damage, script_path)
-VALUES (2, 2, 'Mouse', 30, 20, 0, 1, 1.5, 2, 1, 1, 1, 20, 4, 122, 4, 'Scripts/NPC/SpellNPC.csx');
-
-INSERT INTO npc_templates (npc_id, npc_type, npc_name, respawn_time, experience, aggro_range, attack_range, attack_speed, move_speed, stunnable, rootable, slowable, npc_hp, class_id, body_id, weapon_damage)
-VALUES (3, 2, 'Sheep', 40, 60, 0, 1, 1.5, 2, 1, 1, 1, 75, 4, 112, 10);
-
-INSERT INTO npc_templates (npc_id, npc_type, npc_name, respawn_time, experience, aggro_range, attack_range, attack_speed, move_speed, stunnable, rootable, slowable, npc_hp, class_id, body_id, weapon_damage)
-VALUES (4, 2, 'Cow', 45, 100, 0, 1, 1.2, 1.5, 1, 1, 1, 120, 4, 116, 25);
-
-INSERT INTO npc_templates (npc_id, npc_type, npc_name, npc_title, respawn_time, experience, aggro_range, attack_range, attack_speed, move_speed, rootable, slowable, npc_hp, class_id, body_id, body_r, body_g, body_b, body_a, weapon_damage, hp_static_regen, stuck_behaviour)
-VALUES (5, 2, 'Cow', 'Enraged', 1800, 600, 2, 2, 1.2, 1.5, 1, 1, 750, 4, 116, 229, 58, 31, 150, 55, 10, 2);
-
-INSERT INTO npc_templates (npc_id, npc_type, npc_name, respawn_time, experience, stationary, invincible, npc_hp, class_id, body_id, face_id, hair_id, quest_ids)
-VALUES (6, 12, 'Snusnu', 5, 1, 1, 1, 999, 4, 1, 1, 1, '1');
-
-INSERT INTO npc_templates (npc_id, npc_type, npc_name, respawn_time, experience, stationary, invincible, npc_hp, class_id, body_id, face_id, hair_id, quest_ids)
-VALUES (7, 12, 'Nusnus', 5, 1, 1, 1, 999, 4, 1, 1, 1, '2');
-
-INSERT INTO npc_templates (npc_id, npc_type, npc_name, respawn_time, experience, stationary, invincible, npc_hp, class_id, body_id, face_id, hair_id, quest_ids)
-VALUES (8, 12, 'UsnUsn', 5, 1, 1, 1, 999, 4, 1, 1, 1, '3');
+*/
 
 DROP TABLE IF EXISTS npc_spawns;
 CREATE TABLE npc_spawns (
@@ -92,125 +73,6 @@ CREATE TABLE npc_spawns (
   map_y SMALLINT NOT NULL
 );
 
-INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y)
-VALUES (5, 2, 34, 132);
-
-INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y)
-VALUES (4, 2, 47, 130);
-
-INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y)
-VALUES (4, 2, 43, 132);
-
-INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y)
-VALUES (4, 2, 40, 129);
-
-INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y)
-VALUES (4, 2, 34, 130);
-
-INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y)
-VALUES (4, 2, 30, 133);
-
-INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y)
-VALUES (4, 2, 27, 129);
-
-INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y)
-VALUES (4, 2, 24, 132);
-
-INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y)
-VALUES (4, 2, 20, 129);
-
-INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y)
-VALUES (4, 2, 19, 134);
-
-INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y)
-VALUES (4, 2, 28, 136);
-
-INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y)
-VALUES (4, 2, 34, 133);
-
-INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y)
-VALUES (4, 2, 37, 137);
-
-INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y)
-VALUES (4, 2, 42, 138);
-
-INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y)
-VALUES (4, 2, 46, 135);
-
-INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y)
-VALUES (3, 2, 56, 132);
-
-INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y)
-VALUES (3, 2, 58, 134);
-
-INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y)
-VALUES (3, 2, 59, 137);
-
-INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y)
-VALUES (3, 2, 57, 133);
-
-INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y)
-VALUES (3, 2, 61, 135);
-
-INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y)
-VALUES (3, 2, 60, 136);
-
-INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y)
-VALUES (3, 2, 62, 133);
-
-INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y)
-VALUES (3, 2, 63, 138);
-
-INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y)
-VALUES (1, 2, 66, 155);
-
-INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y)
-VALUES (1, 2, 65, 145);
-
-INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y)
-VALUES (1, 2, 68, 137);
-
-INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y)
-VALUES (1, 2, 72, 132);
-
-INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y)
-VALUES (1, 2, 77, 131);
-
-INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y)
-VALUES (1, 2, 74, 128);
-
-INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y)
-VALUES (1, 2, 83, 128);
-
-INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y)
-VALUES (1, 2, 84, 131);
-
-INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y)
-VALUES (1, 2, 88, 130);
-
-INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y)
-VALUES (1, 2, 87, 128);
-
-INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y)
-VALUES (2, 2, 65, 179);
-
-INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y)
-VALUES (2, 2, 48, 182);
-
-INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y)
-VALUES (2, 2, 45, 177);
-
-INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y)
-VALUES (2, 2, 55, 174);
-
-INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y)
-VALUES (6, 2, 45, 182);
-
-INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y)
-VALUES (7, 2, 81, 127);
-
-INSERT INTO npc_spawns (npc_id, map_id, map_x, map_y)
-VALUES (8, 2, 63, 132);
 
 DROP TABLE IF EXISTS npc_drops;
 CREATE TABLE npc_drops (
@@ -221,45 +83,6 @@ CREATE TABLE npc_drops (
 );
 
 CREATE INDEX npc_drops_npc_template_id_idx ON npc_drops(npc_template_id);
-
-INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate)
-VALUES (5, 15, 1, 10);
-
-INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate)
-VALUES (5, 16, 1, 10);
-
-INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate)
-VALUES (5, 17, 1, 10);
-
-INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate)
-VALUES (5, 18, 1, 10);
-
-INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate)
-VALUES (1, 48, 1, 10);
-
-INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate)
-VALUES (3, 48, 1, 10);
-
-INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate)
-VALUES (4, 48, 1, 10);
-
-INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate)
-VALUES (1, 51, 1, 10);
-
-INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate)
-VALUES (3, 51, 1, 10);
-
-INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate)
-VALUES (4, 51, 1, 10);
-
-INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate)
-VALUES (2, 54, 1, 30);
-
-INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate)
-VALUES (3, 55, 1, 20);
-
-INSERT INTO npc_drops (npc_template_id, item_template_id, stack, droprate)
-VALUES (4, 56, 1, 20);
 
 
 DROP TABLE IF EXISTS npc_vendor_items;

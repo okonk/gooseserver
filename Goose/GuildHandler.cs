@@ -122,7 +122,7 @@ namespace Goose
         public void AddSaveEvent(GameWorld world)
         {
             Event ev = new GuildSaveEvent();
-            ev.Ticks += (long)(GameSettings.Default.GuildSavePeriod * world.TimerFrequency);
+            ev.Ticks += (long)(GameWorld.Settings.GuildSavePeriod * world.TimerFrequency);
 
             world.EventHandler.AddEvent(ev);
         }

@@ -64,7 +64,7 @@ namespace Goose.Events
             if (!buff.ItemBuff && buff.BuffExpireEvent != null)
             {
                 // buff will expire before next tick
-                if (world.TimeNow - buff.TimeCast >= (buff.SpellEffect.Duration - GameSettings.Default.SpellEffectPeriod) * world.TimerFrequency)
+                if (world.TimeNow - buff.TimeCast >= (buff.SpellEffect.Duration - GameWorld.Settings.SpellEffectPeriod) * world.TimerFrequency)
                 {
                     return;
                 }
@@ -74,7 +74,7 @@ namespace Goose.Events
             ev.Data = buff;
             ev.Player = this.Player;
             ev.NPC = this.NPC;
-            ev.Ticks += (long)(GameSettings.Default.SpellEffectPeriod * world.TimerFrequency);
+            ev.Ticks += (long)(GameWorld.Settings.SpellEffectPeriod * world.TimerFrequency);
 
             world.EventHandler.AddEvent(ev);
         }

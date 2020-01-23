@@ -55,8 +55,8 @@ namespace Goose.Events
             var rng = new Random(npcId);
 
             var item = new Item();
-            item.LoadFromTemplate(world.ItemHandler.GetTemplate(GameSettings.Default.GoldItemID));
-            item.ItemID = GameSettings.Default.ItemIDStartpoint + GameSettings.Default.GoldItemID;
+            item.LoadFromTemplate(world.ItemHandler.GetTemplate(GameWorld.Settings.GoldItemID));
+            item.ItemID = GameWorld.Settings.ItemIDStartpoint + GameWorld.Settings.GoldItemID;
             item.ScriptParams = npcId.ToString();
             item.Name = npc.Name;
             item.GraphicR = rng.Next(0, 256);

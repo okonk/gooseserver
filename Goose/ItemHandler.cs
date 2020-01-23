@@ -185,7 +185,7 @@ namespace Goose
          */
         public Item GetGold()
         {
-            return (Item)this.items[GameSettings.Default.ItemIDStartpoint + GameSettings.Default.GoldItemID];
+            return (Item)this.items[GameWorld.Settings.ItemIDStartpoint + GameWorld.Settings.GoldItemID];
         }
 
         /**

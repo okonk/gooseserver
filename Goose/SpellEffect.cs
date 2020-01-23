@@ -496,7 +496,7 @@ namespace Goose
                 if (world.Random.Next(1, 10001) <= caster.MaxStats.SpellCrit * 10000) mpresult *= 2;
                 mpresult = (long)(mpresult * (1 + caster.MaxStats.SpellDamage));
             }
-            hpresult = (long)(hpresult * GameSettings.Default.DamageModifier);
+            hpresult = (long)(hpresult * GameWorld.Settings.DamageModifier);
             target.CurrentMP += mpresult;
             if (hpresult != 0)
             {
@@ -791,7 +791,7 @@ namespace Goose
 
             Player player = (Player)caster;
 
-            if (player.Pets.Count == GameSettings.Default.PetCountLimit)
+            if (player.Pets.Count == GameWorld.Settings.PetCountLimit)
             {
                 world.Send(player, P.ServerMessage("You have reached the maximum amount of pets. Use /petdelete <id> to release one."));
                 return false;

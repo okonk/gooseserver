@@ -36,18 +36,10 @@ priest		5	  31
 
 */
 
+/*
 INSERT INTO spells (spell_id, spell_name, spell_target, spell_aether, spellbook_graphic, spellbook_graphic_file, mp_static_cost, spell_effect_id)
-VALUES (1, 'Lightning Strike', 0, 300, 50456, 421, 10, 4);
-
-INSERT INTO spells (spell_id, spell_name, spell_target, spell_aether, spellbook_graphic, spellbook_graphic_file, mp_static_cost, spell_effect_id)
-VALUES (2, 'Reave', 1, 4000, 50469, 421, 25, 5);
-
-INSERT INTO spells (spell_id, spell_name, spell_target, spell_aether, spellbook_graphic, spellbook_graphic_file, mp_static_cost, spell_effect_id)
-VALUES (3, 'Chomp', 1, 6000, 50448, 421, 30, 6);
-
-INSERT INTO spells (spell_id, spell_name, spell_target, spell_aether, spellbook_graphic, spellbook_graphic_file, mp_static_cost, spell_effect_id)
-VALUES (4, 'Heal', 0, 200, 50459, 421, 15, 7);
-
+VALUES (1, 'Lightning Strike', 0, 300, 50456, 421, 10, 1);
+*/
 
 DROP TABLE IF EXISTS spell_effects;
 CREATE TABLE spell_effects (
@@ -150,23 +142,7 @@ CREATE TABLE spell_effects (
   script_params TEXT DEFAULT '' NOT NULL
 );
 
-INSERT INTO spell_effects (spell_effect_id, spell_effect_name, spell_animation, spell_animation_file, spell_display, target_type, target_size, spell_effected, effect_type, effect_duration, hp_static_regen, mp_static_regen, buff_graphic, buff_graphic_file)
-VALUES (1, 'Basic Regeneration', 0, 0, 0, 0, 0, 1, 1, 0, 5, 5, 50754, 104);
-
-INSERT INTO spell_effects (spell_effect_id, spell_effect_name, spell_animation, spell_animation_file, spell_display, target_type, target_size, spell_effected, effect_type, effect_duration, hp_static_regen, buff_graphic, buff_graphic_file)
-VALUES (2, 'HP Regeneration 500', 0, 0, 0, 0, 0, 1, 1, 0, 500, 50754, 104);
-
-INSERT INTO spell_effects (spell_effect_id, spell_effect_name, spell_animation, spell_animation_file, spell_display, target_type, target_size, spell_effected, effect_type, effect_duration, move_speed, buff_graphic, buff_graphic_file)
-VALUES (3, 'Mount', 0, 0, 0, 0, 0, 1, 1, 0, 0.5, 50754, 104);
-
+/*
 INSERT INTO spell_effects (spell_effect_id, spell_effect_name, spell_animation, spell_animation_file, spell_display, target_type, target_size, spell_effected, effect_type, effect_duration, spell_damage_effects, hp_change_formula)
-VALUES (4, 'Lightning Strike', 65023, 420, 0, 0, 1, 6, 0, 0, 1, '-10');
-
-INSERT INTO spell_effects (spell_effect_id, spell_effect_name, spell_animation, spell_animation_file, spell_display, target_type, target_size, spell_effected, effect_type, effect_duration, hp_change_formula)
-VALUES (5, 'Reave', 65032, 2366, 0, 1, 1, 6, 0, 0, '-25');
-
-INSERT INTO spell_effects (spell_effect_id, spell_effect_name, spell_animation, spell_animation_file, spell_display, target_type, target_size, spell_effected, effect_type, effect_duration, hp_change_formula)
-VALUES (6, 'Chomp', 272730, 3252, 0, 1, 1, 6, 0, 0, '-30');
-
-INSERT INTO spell_effects (spell_effect_id, spell_effect_name, spell_animation, spell_animation_file, spell_display, target_type, target_size, spell_effected, effect_type, effect_duration, spell_damage_effects, hp_change_formula)
-VALUES (7, 'Heal', 65046, 2369, 0, 0, 1, 5, 0, 0, 1, '20');
+VALUES (1, 'Lightning Strike', 65023, 420, 0, 0, 1, 6, 0, 0, 1, '-10');
+*/

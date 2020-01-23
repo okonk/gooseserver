@@ -111,12 +111,12 @@ namespace Goose.Events
             if (player == null)
             {
                 // limit characters created per day
-                if (GameSettings.Default.NewCharactersPerDayPerIP > 0)
+                if (GameWorld.Settings.NewCharactersPerDayPerIP > 0)
                 {
                     int created;
                     if (world.CharactersCreatedPerIP.TryGetValue(IP, out created))
                     {
-                        if (created >= GameSettings.Default.NewCharactersPerDayPerIP)
+                        if (created >= GameWorld.Settings.NewCharactersPerDayPerIP)
                         {
                             world.Send(new Player() { Sock = sock }, P.LoginDenied("You can't create any more characters today."));
                             world.GameServer.Disconnect(sock);
@@ -128,7 +128,7 @@ namespace Goose.Events
                     world.CharactersCreatedPerIP[IP] = created;
                 }
 
-                if (GameSettings.Default.AutoCharacterCreation)
+                if (GameWorld.Settings.AutoCharacterCreation)
                 {
                     if (!name.All(c => (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')))
                     {
@@ -159,7 +159,7 @@ namespace Goose.Events
                 string salt = Encoding.ASCII.GetString(Convert.FromBase64String(this.Player.PasswordSalt));
 
                 MD5CryptoServiceProvider md5 = new MD5CryptoServiceProvider();
-                byte[] data = Encoding.ASCII.GetBytes(salt + password + GameSettings.Default.ServerName);
+                byte[] data = Encoding.ASCII.GetBytes(salt + password + GameWorld.Settings.ServerName);
                 data = md5.ComputeHash(data);
                 string hash = BitConverter.ToString(data).Replace("-", "").ToLower();
 
@@ -203,7 +203,7 @@ namespace Goose.Events
                 }
             }
 
-            if (GameSettings.Default.LockdownModeEnabled && this.Player.Access != Player.AccessStatus.GameMaster)
+            if (GameWorld.Settings.LockdownModeEnabled && this.Player.Access != Player.AccessStatus.GameMaster)
             {
                 world.Send(this.Player, P.LoginDenied("Server is currently under maintenance. Try again soon."));
                 world.GameServer.Disconnect(this.Player.Sock);
@@ -225,7 +225,7 @@ namespace Goose.Events
                 world.SendToAll(P.ServerMessage(this.Player.Name + " has joined the world."));
 
             this.Player.State = Player.States.LoadingGame;
-            world.Send(this.Player, P.LoginAccepted(GameSettings.Default.ServerName));
+            world.Send(this.Player, P.LoginAccepted(GameWorld.Settings.ServerName));
 
             this.Player.Windows = new List<Window>();
             this.Player.LastPing = world.TimeNow;

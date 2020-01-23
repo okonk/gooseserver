@@ -47,14 +47,14 @@ namespace Goose.Events
                 for (int i = 1; i <= buys; i++)
                 {
                     buyrate =
-                        ((this.Player.BaseStats.HP / GameSettings.Default.IncreaseVitaBuyAmount) * (decimal).2) + 1;
+                        ((this.Player.BaseStats.HP / GameWorld.Settings.IncreaseVitaBuyAmount) * (decimal).2) + 1;
 
                     if (this.Player.Experience >= this.Player.Class.VitaCost * buyrate)
                     {
                         this.Player.Experience -= (long)(this.Player.Class.VitaCost * buyrate);
                         this.Player.ExperienceSold += (long)(this.Player.Class.VitaCost * buyrate);
-                        this.Player.BaseStats.HP += GameSettings.Default.VitaBuyAmount;
-                        bought += GameSettings.Default.VitaBuyAmount;
+                        this.Player.BaseStats.HP += GameWorld.Settings.VitaBuyAmount;
+                        bought += GameWorld.Settings.VitaBuyAmount;
                         soldexp += (long)(this.Player.Class.VitaCost * buyrate);
                     }
                     else

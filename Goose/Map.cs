@@ -81,11 +81,8 @@ namespace Goose
          * Constructor
          * 
          */
-        public Map(int width, int height)
+        public Map()
         {
-            this.Width = width;
-            this.Height = height;
-
             this.players = new List<Player>();
             this.requiredItems = new List<int>();
             this.npcs = new List<NPC>();

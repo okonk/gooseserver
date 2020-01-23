@@ -22,7 +22,7 @@ namespace Goose.Events
                 this.Player.Access == Player.AccessStatus.GameMaster)
             {
                 // Commented out because this is bad, it saves the settings to some random path in appdata
-                //GameSettings.Default.Save();
+                //GameWorld.Settings.Save();
                 //world.Send(this.Player, "$7Game Settings Saved.");
             }
         }

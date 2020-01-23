@@ -45,7 +45,7 @@ namespace Goose
         {
             this.players = new List<Player>();
             this.sockToPlayer = new Hashtable();
-            this.idToPlayer = new Player[GameSettings.Default.MaxPlayers];
+            this.idToPlayer = new Player[GameWorld.Settings.MaxPlayers];
             this.allNameToPlayer = new Hashtable();
         }
 
@@ -101,7 +101,7 @@ namespace Goose
             int id;
             do
             {
-                id = world.Random.Next(1, GameSettings.Default.MaxPlayers);
+                id = world.Random.Next(1, GameWorld.Settings.MaxPlayers);
             } while (this.idToPlayer[id] != null);
 
             return id;

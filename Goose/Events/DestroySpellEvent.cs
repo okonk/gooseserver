@@ -35,7 +35,7 @@ namespace Goose.Events
                     id = 0;
                 }
 
-                if (id <= 0 || id > GameSettings.Default.SpellbookSize) return;
+                if (id <= 0 || id > GameWorld.Settings.SpellbookSize) return;
 
                 this.Player.Spellbook.RemoveSpell(id, world);
             }

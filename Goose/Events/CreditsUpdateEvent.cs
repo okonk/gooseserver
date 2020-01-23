@@ -49,7 +49,7 @@ namespace Goose.Events
                 command.ExecuteNonQuery();
             }
 
-            this.Ticks += world.TimerFrequency * GameSettings.Default.CreditUpdateInterval;
+            this.Ticks += world.TimerFrequency * GameWorld.Settings.CreditUpdateInterval;
             world.EventHandler.AddEvent(this);
         }
     }

@@ -13,7 +13,6 @@ using Goose.Scripting;
 using System.IO;
 using Newtonsoft.Json;
 using System.Data.SQLite;
-using Goose.sql;
 using System.Data.Common;
 using System.Diagnostics;
 
@@ -51,6 +50,7 @@ namespace Goose
         internal QuestHandler QuestHandler { get; set; }
         public ScriptHandler ScriptHandler { get; set; }
         public DatabaseWriter DatabaseWriter { get; set; }
+        public static GooseSettings Settings { get; set; }
 
         public Dictionary<string, int> CharactersCreatedPerIP { get; set; }
 
@@ -83,6 +83,8 @@ namespace Goose
                 DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate,
                 NullValueHandling = NullValueHandling.Ignore,
             };
+
+            Settings = JsonConvert.DeserializeObject<GooseSettings>(File.ReadAllText("GooseSettings.json", Encoding.UTF8));
         }
 
         /**
@@ -113,7 +115,7 @@ namespace Goose
             this.ScriptHandler = new ScriptHandler();
             this.DatabaseWriter = new DatabaseWriter();
 
-            this.ExperienceModifier = GameSettings.Default.ExperienceModifier;
+            this.ExperienceModifier = GameWorld.Settings.ExperienceModifier;
 
             //this.LaunchServerBrowserUpdateThread();
             this.LaunchDatabaseWriterThread();
@@ -123,7 +125,7 @@ namespace Goose
         {
             try
             {
-                var connection = new SQLiteConnection(string.Format("Data Source={0}.db; Version=3; FailIfMissing=True;", GameSettings.Default.DatabaseName));
+                var connection = new SQLiteConnection(string.Format("Data Source={0}.db; Version=3; FailIfMissing=True;", Settings.DatabaseName));
                 connection.Open();
                 return connection;
             }
@@ -136,27 +138,30 @@ namespace Goose
 
         private DbConnection CreateDatabase()
         {
-            var connection = new SQLiteConnection(string.Format("Data Source={0}.db; Version=3;", GameSettings.Default.DatabaseName));
+            var connection = new SQLiteConnection(string.Format("Data Source={0}.db; Version=3;", Settings.DatabaseName));
             connection.Open();
 
-            ExecuteSql(connection, SqlFiles.items);
-            ExecuteSql(connection, SqlFiles.maps);
-            ExecuteSql(connection, SqlFiles.classes);
-            ExecuteSql(connection, SqlFiles.npcs);
-            ExecuteSql(connection, SqlFiles.players);
-            ExecuteSql(connection, SqlFiles.spells);
-            ExecuteSql(connection, SqlFiles.banks);
-            ExecuteSql(connection, SqlFiles.quests);
-            ExecuteSql(connection, SqlFiles.combinations);
-            ExecuteSql(connection, SqlFiles.logs);
-            ExecuteSql(connection, SqlFiles.pets);
-            ExecuteSql(connection, SqlFiles.guilds);
-            ExecuteSql(connection, SqlFiles.warptiles);
-            ExecuteSql(connection, SqlFiles.wordfilter);
-            ExecuteSql(connection, SqlFiles.paypal);
+            ExecuteSql(connection, File.ReadAllText("sql/items.sql", Encoding.UTF8));
+            ExecuteSql(connection, File.ReadAllText("sql/maps.sql", Encoding.UTF8));
+            ExecuteSql(connection, File.ReadAllText("sql/classes.sql", Encoding.UTF8));
+            ExecuteSql(connection, File.ReadAllText("sql/npcs.sql", Encoding.UTF8));
+            ExecuteSql(connection, File.ReadAllText("sql/players.sql", Encoding.UTF8));
+            ExecuteSql(connection, File.ReadAllText("sql/spells.sql", Encoding.UTF8));
+            ExecuteSql(connection, File.ReadAllText("sql/banks.sql", Encoding.UTF8));
+            ExecuteSql(connection, File.ReadAllText("sql/quests.sql", Encoding.UTF8));
+            ExecuteSql(connection, File.ReadAllText("sql/combinations.sql", Encoding.UTF8));
+            ExecuteSql(connection, File.ReadAllText("sql/logs.sql", Encoding.UTF8));
+            ExecuteSql(connection, File.ReadAllText("sql/pets.sql", Encoding.UTF8));
+            ExecuteSql(connection, File.ReadAllText("sql/guilds.sql", Encoding.UTF8));
+            ExecuteSql(connection, File.ReadAllText("sql/warptiles.sql", Encoding.UTF8));
+            ExecuteSql(connection, File.ReadAllText("sql/wordfilter.sql", Encoding.UTF8));
+            ExecuteSql(connection, File.ReadAllText("sql/paypal.sql", Encoding.UTF8));
 
-            log.Info("Importing data from Google Docs");
-            ExecuteSql(connection, CsvToSql.Core.CsvToSqlConverter.Convert());
+            if (!string.IsNullOrEmpty(Settings.DataLink))
+            {
+                log.Info("Importing data from Google Docs");
+                ExecuteSql(connection, CsvToSql.Core.CsvToSqlConverter.Convert(Settings.DataLink));
+            }
 
             return connection;
         }
@@ -181,8 +186,8 @@ namespace Goose
         {
             this.Running = false;
 
-            log.Info("Starting Goose Private Server v" + GameSettings.Default.ServerVersion);
-            log.Info("Opening Database ({0}): ", GameSettings.Default.DatabaseName);
+            log.Info("Starting Goose Private Server v" + GameWorld.Settings.ServerVersion);
+            log.Info("Opening Database ({0}): ", GameWorld.Settings.DatabaseName);
             try
             {
                 this.SqlConnection = CreateDbConnection();
@@ -361,17 +366,17 @@ namespace Goose
             this.EventHandler.AddEvent(clearCreatedHistory);
 
             Event updateExperienceModifier = new PlayerCountExperienceModifierUpdateEvent();
-            updateExperienceModifier.Ticks += this.TimerFrequency * GameSettings.Default.IdleTimeout;
+            updateExperienceModifier.Ticks += this.TimerFrequency * GameWorld.Settings.IdleTimeout;
             this.EventHandler.AddEvent(updateExperienceModifier);
 
             //Event updateCredits = new CreditsUpdateEvent();
-            //updateExperienceModifier.Ticks += this.TimerFrequency * GameSettings.Default.CreditUpdateInterval;
+            //updateExperienceModifier.Ticks += this.TimerFrequency * GameWorld.Settings.CreditUpdateInterval;
             //this.EventHandler.AddEvent(updateCredits);
 
             // Add gold item
             var gold = new Item();
-            gold.ItemID = GameSettings.Default.ItemIDStartpoint + GameSettings.Default.GoldItemID;
-            gold.LoadFromTemplate(ItemHandler.GetTemplate(GameSettings.Default.GoldItemID));
+            gold.ItemID = GameWorld.Settings.ItemIDStartpoint + GameWorld.Settings.GoldItemID;
+            gold.LoadFromTemplate(ItemHandler.GetTemplate(GameWorld.Settings.GoldItemID));
             this.ItemHandler.AddItem(gold, this);
 
             log.Info("Loading Global Scripts: ");
@@ -457,7 +462,7 @@ namespace Goose
 
                 Event ev = new LogoutEvent();
                 ev.Data = sock;
-                ev.Ticks += (GameSettings.Default.LogoutLagTime * this.TimerFrequency);
+                ev.Ticks += (GameWorld.Settings.LogoutLagTime * this.TimerFrequency);
 
                 this.EventHandler.AddEvent(ev);
             }
@@ -607,10 +612,10 @@ namespace Goose
             //        {
             //            new GooseServerBrowserClient("http://goose.ddns.net:3000/").Register(new GooseServerBrowserService.Contract.RegisterRequest()
             //            {
-            //                ServerName = GameSettings.Default.ServerName,
+            //                ServerName = GameWorld.Settings.ServerName,
             //                PlayerCount = this.PlayerHandler.PlayerCount,
-            //                Port = GameSettings.Default.GameServerPort,
-            //                Version = GameSettings.Default.ServerVersion,
+            //                Port = GameWorld.Settings.GameServerPort,
+            //                Version = GameWorld.Settings.ServerVersion,
             //            });
             //        }
             //        catch

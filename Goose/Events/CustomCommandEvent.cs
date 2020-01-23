@@ -24,7 +24,7 @@ namespace Goose.Events
                 var combineBag = this.Player.Inventory.GetCombineBagContainer();
 
                 var firstSlot = combineBag.GetSlot(1);
-                if (firstSlot == null || firstSlot.Item.TemplateID != GameSettings.Default.CustomTicketId)
+                if (firstSlot == null || firstSlot.Item.TemplateID != GameWorld.Settings.CustomTicketId)
                 {
                     world.Send(this.Player, P.ServerMessage("You need a custom ticket in your first combine bag slot to use this command."));
                     return;

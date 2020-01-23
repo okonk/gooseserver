@@ -42,7 +42,7 @@ namespace Goose.Events
                 string base64Salt = Convert.ToBase64String(saltBytes);
 
                 MD5CryptoServiceProvider md5 = new MD5CryptoServiceProvider();
-                byte[] data = Encoding.ASCII.GetBytes(salt + password + GameSettings.Default.ServerName);
+                byte[] data = Encoding.ASCII.GetBytes(salt + password + GameWorld.Settings.ServerName);
                 data = md5.ComputeHash(data);
 
                 string passwordHash = BitConverter.ToString(data).Replace("-", "").ToLower();

@@ -70,7 +70,7 @@ namespace Goose.Events
                 if (direction <= 0 || direction >= 5) return; // log bad move event
 
                 /* Speedhack detection */
-                if (GameSettings.Default.SpeedhackDetectionEnabled)
+                if (GameWorld.Settings.SpeedhackDetectionEnabled)
                 {
                     if (this.Player.MovementRecordingSteps == 0)
                     {
