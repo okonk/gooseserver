@@ -2021,7 +2021,7 @@ namespace Goose
 
         public bool IsMounted()
         {
-            return this.Inventory.GetEquippedSlot(Inventory.EquipSlots.Mount) != null;
+            return this.Inventory.GetEquippedSlot(GameWorld.Settings.InventorySize + (int)Inventory.EquipSlots.Mount) != null;
         }
 
         public void RemoveBuff(Buff buff, GameWorld world)

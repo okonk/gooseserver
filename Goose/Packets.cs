@@ -523,12 +523,12 @@ namespace Goose
                     item.GraphicA;
         };
 
-        public static Func<Item, GameWorld, int, long, string> BankSlot = (item, world, slotId, stack) =>
+        public static Func<Window, Item, GameWorld, int, long, string> BankSlot = (window, item, world, slotId, stack) =>
         {
             return "SBS" + ItemSlot(item, world, slotId, stack);
         };
 
-        public static Func<int, string> ClearBankSlot = (slotId) =>
+        public static Func<Window, int, string> ClearBankSlot = (window, slotId) =>
         {
             return "CBS" + slotId;
         };
@@ -553,18 +553,18 @@ namespace Goose
             return "CIS" + (slotId + 31);
         };
 
-        public static Func<Item, GameWorld, int, long, string> CombineSlot = (item, world, slotId, stack) =>
+        public static Func<Window, Item, GameWorld, int, long, string> CombineSlot = (window, item, world, slotId, stack) =>
         {
             return "SCS" + ItemSlot(item, world, slotId, stack);
         };
 
-        public static Func<int, string> ClearCombineSlot = (slotId) =>
+        public static Func<Window, int, string> ClearCombineSlot = (window, slotId) =>
         {
             return "CCS" + slotId;
         };
 
 
-        public static Func<ItemTemplate, GameWorld, int, long, string> VendorSlot = (item, world, slotId, stack) =>
+        public static Func<Window, ItemTemplate, GameWorld, int, long, string> VendorSlot = (window, item, world, slotId, stack) =>
         {
             return "SVS" + VendorItemSlot(item, world, slotId, stack);
         };

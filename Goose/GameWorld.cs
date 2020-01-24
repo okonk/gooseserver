@@ -552,7 +552,7 @@ namespace Goose
          */
         public void Send(Player player, string data)
         {
-            if (player is Pet) return;
+            if (player is Pet || data == null) return;
             //Console.Out.WriteLine("Send: " + data);
 
             data += "\x1";

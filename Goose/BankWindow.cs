@@ -8,7 +8,7 @@ namespace Goose
 {
     public class BankWindow : ItemContainerWindow
     {
-        public const int SlotsPerPage = 30;
+        public readonly static int SlotsPerPage = GameWorld.Settings.BankSlotsPerPage;
 
         public int CurrentPage { get; set; }
 
@@ -24,13 +24,15 @@ namespace Goose
             get { return string.Format("0,1,{0},{1},0", (CurrentPage - 1 <= 0 ? "0" : "1"), (CurrentPage == MaxPages ? "0" : "1")); }
         }
 
+        public static Func<Player, int> IdGenerator = (player) => { return 21; };
+
         public BankWindow(GameWorld world, Player player, NPC npc)
         {
             this.ItemContainer = player.Bank.GetOrCreateContainer(player, npc.NPCTemplateID);
             this.CurrentPage = 1;
             this.MaxPages = player.NumberOfBankPages;
 
-            this.ID = 21;
+            this.ID = IdGenerator(player);
             this.Frame = WindowFrames.Bank;
             this.Type = WindowTypes.Bank;
             this.NPC = npc;
@@ -106,11 +108,11 @@ namespace Goose
             ItemSlot slot = this.GetSlot(slotIndex);
             if (slot != null)
             {
-                world.Send(player, P.BankSlot(slot.Item, world, slotIndex, slot.Stack));
+                world.Send(player, P.BankSlot(this, slot.Item, world, slotIndex, slot.Stack));
             }
             else
             {
-                world.Send(player, P.ClearBankSlot(slotIndex));
+                world.Send(player, P.ClearBankSlot(this, slotIndex));
             }
         }
 

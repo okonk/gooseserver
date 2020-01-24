@@ -6,13 +6,15 @@ using System.Threading.Tasks;
 
 namespace Goose
 {
-    class CombineBagWindow : ItemContainerWindow
+    public class CombineBagWindow : ItemContainerWindow
     {
+        public static Func<Player, int> IdGenerator = (player) => { return 22; };
+
         public CombineBagWindow(GameWorld world, Player player)
         {
             this.ItemContainer = player.Inventory.GetCombineBagContainer();
 
-            this.ID = 22;
+            this.ID = IdGenerator(player);
             this.Title = "Combine Bag";
             this.Buttons = "1,1,0,0,0";
             this.Frame = WindowFrames.TenSlot;
@@ -42,11 +44,11 @@ namespace Goose
             ItemSlot slot = this.ItemContainer.GetSlot(slotIndex);
             if (slot != null)
             {
-                world.Send(player, P.CombineSlot(slot.Item, world, slotIndex, slot.Stack));
+                world.Send(player, P.CombineSlot(this, slot.Item, world, slotIndex, slot.Stack));
             }
             else
             {
-                world.Send(player, P.ClearCombineSlot(slotIndex));
+                world.Send(player, P.ClearCombineSlot(this, slotIndex));
             }
         }
     }

@@ -13,6 +13,8 @@
     "EquippedSize": 13,
     "SpellbookSize": 30,
     "StartingBodyState": 1,
+    "StartingBankPages": 1,
+    "BankSlotsPerPage": 10,
 
     // Illutia Config
     // "ServerType": "Illutia",
@@ -26,6 +28,8 @@
     // "EquippedSize": 14,
     // "SpellbookSize": 90,
     // "StartingBodyState": 3,
+    // "StartingBankPages": 3,
+    // "BankSlotsPerPage": 30,
 
     // Common Config
     "AutoCharacterCreation": true,
@@ -119,7 +123,6 @@
     "StartingBodyB": 0,
     "StartingBodyA": 0,
     "HairdyeCommandCost": 10000,
-    "StartingBankPages": 3,
     "CustomTicketId": 677,
     "RespawnTimeBackoff": 1.05,
     "ChangeClassExperienceLossPercent": 0.07,

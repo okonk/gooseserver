@@ -26,11 +26,31 @@ namespace Goose
 
         public enum WindowFrames
         {
+            Toolbar = 1,
+            Inventory = 2,
+            Spellbook = 3,
+            Hotbar = 4,
+            Buffbar = 5,
+            FPS = 6,
+            HP = 7,
+            MP = 8,
+            SP = 9,
+            XP = 10,
+            Equipped = 11,
+            Chat = 12,
             Vendor = 13,
-            GenericInfo = 22,
+            Party = 14,
+            TwoSlot = 15,
+            FourSlot = 16,
+            SixSlot = 17,
             EightSlot = 18,
-            TenSlot = 19, // used for combine
-            Quest = 20,// quest window can show 20 lines, of 50 characters each
+            TenSlot = 19,
+            Quest = 20,
+            Quest2 = 21, // Dunno what this is for
+            GenericInfo = 22,
+            DiscardButton = 23,
+            Paper = 24,
+            Trade = 25,
             Bank = 26,
         }
         public WindowFrames Frame { get; set; }
@@ -137,12 +157,13 @@ namespace Goose
             {
                 case WindowTypes.Vendor:
                     world.Send(player, P.ClearVendor());
+                    
                     for (int i = 1; i < this.NPC.VendorItems.Length; i++)
                     {
                         var slot = this.NPC.VendorItems[i];
                         if (slot == null) continue;
 
-                        world.Send(player, P.VendorSlot(slot.ItemTemplate, world, i, 1));
+                        world.Send(player, P.VendorSlot(this, slot.ItemTemplate, world, i, 1));
                     }
                     break;
                 case WindowTypes.CharInfo:

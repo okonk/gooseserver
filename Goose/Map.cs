@@ -16,7 +16,7 @@ namespace Goose
     {
         // Viewing ranges
         public static int RANGE_X = 16;
-        public static int RANGE_Y = 12;
+        public static int RANGE_Y = 14;
 
         /**
          * map_id
@@ -61,8 +61,8 @@ namespace Goose
 
         public object ScriptStore { get; set; }
 
-        ICharacter[] characters;
-        ITile[] tiles;
+        public ICharacter[] characters;
+        public ITile[] tiles;
         List<Player> players;
         List<int> requiredItems;
         List<NPC> npcs;
@@ -386,6 +386,80 @@ namespace Goose
             return true;
         }
 
+        public static Action<BinaryReader, Map, GameWorld> IllutiaMapLoader = (mapReader, map, world) => 
+        {
+            var version = mapReader.ReadInt16();
+            var editorVersion = mapReader.ReadInt16();
+            map.Width = mapReader.ReadInt32();
+            map.Height = mapReader.ReadInt32();
+
+            map.characters = new ICharacter[(map.Width + 1) * (map.Height + 1)];
+            map.tiles = new ITile[(map.Width + 1) * (map.Height + 1)];
+
+            for (int y = 1; y <= map.Height; y++)
+            {
+                for (int x = 1; x <= map.Width; x++)
+                {
+                    var flags = mapReader.ReadInt32();
+
+                    for (int k = 0; k < 5; k++)
+                    {
+                        var graphic = mapReader.ReadInt32();
+                        var sheet = mapReader.ReadInt16();
+
+                        try
+                        {
+                            map.Script?.Object.OnLoadTile(map, x, y, k, graphic, sheet, flags, world);
+                        }
+                        catch (Exception e) { }
+                    }
+
+                    if ((flags & 2) > 0)
+                    {
+                        BlockedTile blocked = new BlockedTile();
+                        map.tiles[y * map.Width + x] = blocked;
+                    }
+                }
+            }
+        };
+
+        public static Action<BinaryReader, Map, GameWorld> AsperetaMapLoader = (mapReader, map, world) => 
+        {
+            var version = mapReader.ReadInt16();
+            var editorVersion = mapReader.ReadInt16();
+            map.Width = 100;
+            map.Height = 100;
+
+            map.characters = new ICharacter[(map.Width + 1) * (map.Height + 1)];
+            map.tiles = new ITile[(map.Width + 1) * (map.Height + 1)];
+
+            for (int y = 1; y <= map.Height; y++)
+            {
+                for (int x = 1; x <= map.Width; x++)
+                {
+                    byte flags = mapReader.ReadByte();
+
+                    for (int k = 0; k < 4; k++)
+                    {
+                        var graphic = mapReader.ReadInt32();
+                        short sheet = 0;
+
+                        try
+                        {
+                            map.Script?.Object.OnLoadTile(map, x, y, k, graphic, sheet, flags, world);
+                        }
+                        catch (Exception e) { }
+                    }
+
+                    if ((flags & 1) > 0)
+                    {
+                        BlockedTile blocked = new BlockedTile();
+                        map.tiles[y * map.Width + x] = blocked;
+                    }
+                }
+            }
+        };
+
         /**
          * LoadData, loads warp/blocked tiles, required items
          * 
@@ -398,42 +472,13 @@ namespace Goose
             }
             catch (Exception e) { }
 
-            using (var fileStream = File.Open(@"Maps/" + FileName, FileMode.Open, FileAccess.Read))
+            using (var fileStream = File.Open(GameWorld.Settings.DataPath + "/Maps/" + FileName, FileMode.Open, FileAccess.Read))
             using (var mapReader = new BinaryReader(fileStream))
             {
-                var version = mapReader.ReadInt16();
-                var editorVersion = mapReader.ReadInt16();
-                this.Width = mapReader.ReadInt32();
-                this.Height = mapReader.ReadInt32();
-
-                this.characters = new ICharacter[(this.Width + 1) * (this.Height + 1)];
-                this.tiles = new ITile[(this.Width + 1) * (this.Height + 1)];
-
-                for (int y = 1; y <= this.Height; y++)
-                {
-                    for (int x = 1; x <= this.Width; x++)
-                    {
-                        var flags = mapReader.ReadInt32();
-
-                        for (int k = 0; k < 5; k++)
-                        {
-                            var graphic = mapReader.ReadInt32();
-                            var sheet = mapReader.ReadInt16();
-
-                            try
-                            {
-                                this.Script?.Object.OnLoadTile(this, x, y, k, graphic, sheet, flags, world);
-                            }
-                            catch (Exception e) { }
-                        }
-
-                        if ((flags & 2) > 0)
-                        {
-                            BlockedTile blocked = new BlockedTile();
-                            this.tiles[y * this.Width + x] = blocked;
-                        }
-                    }
-                }
+                if (GameWorld.Settings.ServerType == "Illutia")
+                    IllutiaMapLoader(mapReader, this, world);
+                else
+                    AsperetaMapLoader(mapReader, this, world);
             }
 
             var command = world.SqlConnection.CreateCommand();

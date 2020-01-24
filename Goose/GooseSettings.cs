@@ -8,6 +8,7 @@ namespace Goose
         public string ServerType { get; set; }
         public string DatabaseName { get; set; }
         public string DataLink { get; set; }
+        public string DataPath { get; set; }
         public string ServerName { get; set; }
         public int StartingMapID { get; set; }
         public int StartingMapX { get; set; }
@@ -16,6 +17,10 @@ namespace Goose
         public int EquippedSize { get; set; }
         public int SpellbookSize { get; set; }
         public int StartingBodyState { get; set; }
+        public int StartingBankPages { get; set; }
+        public int BankSlotsPerPage { get; set; }
+
+
         public bool AutoCharacterCreation { get; set; }
         public string GameServerIP { get; set; }
         public int GameServerPort { get; set; }
@@ -107,7 +112,6 @@ namespace Goose
         public int StartingBodyB { get; set; }
         public int StartingBodyA { get; set; }
         public int HairdyeCommandCost { get; set; }
-        public int StartingBankPages { get; set; }
         public int CustomTicketId { get; set; }
         public double RespawnTimeBackoff { get; set; }
         public double ChangeClassExperienceLossPercent { get; set; }
@@ -118,6 +122,5 @@ namespace Goose
         public int CombineBagSize { get; set; }
         public int NumberOfRanks { get; set; }
         public int ItemIDStartpoint { get; set; }
-        public int FirstWindowId { get; set; }
     }
 }

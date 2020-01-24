@@ -18,8 +18,11 @@ namespace Goose.Events
      * Server sends the response to everyone in the area including the player who generated it
      * 
      */
-    class FacingEvent : Event
+    public class FacingEvent : Event
     {
+        // Needed because Aspereta needs to convert the facing
+        public static Func<int, int> FacingConverter = (facing) => { return facing; };
+
         public static Event Create(Player player, Object data)
         {
             Event e = new FacingEvent();
@@ -49,6 +52,8 @@ namespace Goose.Events
                 int facing = Convert.ToInt32(((string)this.Data)[1].ToString());
 
                 if (facing <= 0 || facing >= 5) return; // log bad facing event
+
+                facing = FacingConverter(facing);
 
                 if (this.Player.Facing != facing)
                 {
