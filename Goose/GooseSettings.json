@@ -4,22 +4,25 @@
     // Aspereta Config
     "ServerType": "Aspereta",
     "DatabaseName": "AsperetaGoose",
-    "DataLink": "",
+    "DataLink": "https://docs.google.com/spreadsheets/u/0/d/1YG94Xx-QOkcvmzM3D24QCyy0-G2OnNP52x2d8CQ4zc4/export?format=xlsx&id=1YG94Xx-QOkcvmzM3D24QCyy0-G2OnNP52x2d8CQ4zc4",
+    "DataPath": "Aspereta",
     "ServerName": "Goose",
     "StartingMapID": 1,
     "StartingMapX": 50,
     "StartingMapY": 50,
-    "StartingItems": "",
+    "StartingItems": "2 3 4 4 4 4 4 5 5 5 5 5",
     "EquippedSize": 13,
     "SpellbookSize": 30,
     "StartingBodyState": 1,
     "StartingBankPages": 1,
     "BankSlotsPerPage": 10,
+    "CustomTicketId": 643,
 
     // Illutia Config
     // "ServerType": "Illutia",
     // "DatabaseName": "IllutiaGoose",
     // "DataLink": "https://docs.google.com/spreadsheets/u/0/d/1AE7SKm46KuAdr5mJk_u-Qn20C1Myg4Q6eyzxTb3Wqpo/export?format=xlsx&id=1AE7SKm46KuAdr5mJk_u-Qn20C1Myg4Q6eyzxTb3Wqpo",
+    // "DataPath": "Illutia",
     // "ServerName": "Extrico",
     // "StartingMapID": 2,
     // "StartingMapX": 51,
@@ -30,6 +33,7 @@
     // "StartingBodyState": 3,
     // "StartingBankPages": 3,
     // "BankSlotsPerPage": 30,
+    // "CustomTicketId": 677,
 
     // Common Config
     "AutoCharacterCreation": true,
@@ -123,7 +127,6 @@
     "StartingBodyB": 0,
     "StartingBodyA": 0,
     "HairdyeCommandCost": 10000,
-    "CustomTicketId": 677,
     "RespawnTimeBackoff": 1.05,
     "ChangeClassExperienceLossPercent": 0.07,
 

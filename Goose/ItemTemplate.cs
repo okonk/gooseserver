@@ -44,6 +44,7 @@ namespace Goose
         }
         public enum ItemTypes
         {
+            None = 0,
             Plate = 10,
             Leather,
             Cloth,

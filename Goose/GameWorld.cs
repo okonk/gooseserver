@@ -160,7 +160,9 @@ namespace Goose
             if (!string.IsNullOrEmpty(Settings.DataLink))
             {
                 log.Info("Importing data from Google Docs");
-                ExecuteSql(connection, CsvToSql.Core.CsvToSqlConverter.Convert(Settings.DataLink));
+                string sql = CsvToSql.Core.CsvToSqlConverter.Convert(Settings.DataLink);
+                //File.WriteAllText("GooseData.sql", sql);
+                ExecuteSql(connection, sql);
             }
 
             return connection;

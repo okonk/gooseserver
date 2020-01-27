@@ -8,6 +8,7 @@ public class AsperetaMode : BaseGlobalScript
 	public override void OnLoaded(GameWorld world)
 	{
         // TODO: Custom command and hairdye command
+        // TODO: Right click item info in vendors + inventory
 
         Console.WriteLine("Loading Aspereta Mode");
 
