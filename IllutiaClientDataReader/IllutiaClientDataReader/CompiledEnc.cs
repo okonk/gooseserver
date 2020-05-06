@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
-namespace IllutiaClientDataReader
+namespace AsperetaClient
 {
     public enum AnimationType
     {
@@ -15,9 +15,7 @@ namespace IllutiaClientDataReader
         Helm,
         Legs,
         Feet,
-        Hand,
-        //RightHand,
-        //Mount
+        Hand
     }
 
     public class CompiledAnimation
@@ -33,8 +31,8 @@ namespace IllutiaClientDataReader
         {
             this.Type = type;
             this.Id = id;
-            this.AnimationIndexes = new int[4 * 11];
-            this.AnimationFiles = new int[11];
+            this.AnimationIndexes = new int[4 * 3];
+            this.AnimationFiles = new int[3];
         }
     }
 
@@ -61,13 +59,13 @@ namespace IllutiaClientDataReader
                     // directions
                     for (int i = 0; i < length; i++)
                     {
-                        for (int k = 0; k < 11; k++)
+                        for (int k = 0; k < 3; k++)
                         {
-                            animation.AnimationIndexes[i * 11 + k] = reader.ReadInt32();
+                            animation.AnimationIndexes[i * 3 + k] = reader.ReadInt32();
                         }
                     }
                     // files
-                    for (int j = 0; j < 11; j++)
+                    for (int j = 0; j < 3; j++)
                     {
                         int fileNumber = reader.ReadInt32();
                         this.SheetToAnimation[fileNumber] = animation;

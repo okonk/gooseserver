@@ -65,7 +65,8 @@ namespace Goose
             Quest,
             SpellInfo,
             MacroCheck,
-            PlayerInfo
+            PlayerInfo,
+            ItemInfo,
         }
         public WindowTypes Type { get; set; }
 

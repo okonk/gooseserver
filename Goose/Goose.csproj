@@ -94,10 +94,7 @@
     <None Update="NLog.config">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Scripts\Global\Aspereta.csx">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Scripts\Global\CrystalCritterSpawner.csx">
+    <None Update="Scripts\Global\*.csx">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Scripts\Item\HairCutItem.csx">

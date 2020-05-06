@@ -58,6 +58,16 @@ namespace Goose
             return this.combineContainer;
         }
 
+        public ItemSlot[] GetEquippedSlots()
+        {
+            return this.equipped;
+        }
+
+        public ItemSlot[] GetInventorySlots()
+        {
+            return this.inventory;
+        }
+
         /**
          * AddItem, adds an item to inventory
          * 

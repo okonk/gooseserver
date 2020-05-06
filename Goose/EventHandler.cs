@@ -25,7 +25,7 @@ namespace Goose
          * 
          */
         Dictionary<string, CreateEvent> stringToEvent;
-        delegate Event CreateEvent(Player player, Object data);
+        public delegate Event CreateEvent(Player player, Object data);
 
         /**
          * Constructor, constructs sortedlist
@@ -144,6 +144,11 @@ namespace Goose
             this.stringToEvent.Add("/updatesql", UpdateSqlCommandEvent.Create);
             this.stringToEvent.Add("/placespawn", PlaceSpawnCommandEvent.Create);
             this.stringToEvent.Add("/playerinfo ", PlayerInfoCommandEvent.Create);
+        }
+
+        public void RegisterEvent(string key, CreateEvent action)
+        {
+            this.stringToEvent[key] = action;
         }
 
         /**

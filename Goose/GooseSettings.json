@@ -4,7 +4,7 @@
     // Aspereta Config
     "ServerType": "Aspereta",
     "DatabaseName": "AsperetaGoose",
-    "DataLink": "https://docs.google.com/spreadsheets/u/0/d/1YG94Xx-QOkcvmzM3D24QCyy0-G2OnNP52x2d8CQ4zc4/export?format=xlsx&id=1YG94Xx-QOkcvmzM3D24QCyy0-G2OnNP52x2d8CQ4zc4",
+    "DataLink": "https://docs.google.com/spreadsheets/d/1XOuwc_STqSUE7FYJsnWSp9HxSxJWIRiNkb67FpXKJjU/export?format=xlsx&id=1XOuwc_STqSUE7FYJsnWSp9HxSxJWIRiNkb67FpXKJjU",
     "DataPath": "Aspereta",
     "ServerName": "Goose",
     "StartingMapID": 1,
@@ -16,7 +16,7 @@
     "StartingBodyState": 1,
     "StartingBankPages": 1,
     "BankSlotsPerPage": 10,
-    "CustomTicketId": 643,
+    "CustomTicketId": 823,
 
     // Illutia Config
     // "ServerType": "Illutia",

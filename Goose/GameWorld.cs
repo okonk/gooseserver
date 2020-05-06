@@ -440,11 +440,14 @@ namespace Goose
         {
             log.Info("Connection attempt: " + sock.RemoteEndPoint.ToString());
 
-            try
+            if (GameWorld.Settings.ServerType == "Illutia")
             {
-                sock.Send(Encoding.ASCII.GetBytes("IMN00000000" + "\x1"));
+                try
+                {
+                    sock.Send(Encoding.ASCII.GetBytes("IMN00000000" + "\x1"));
+                }
+                catch { }
             }
-            catch { }
         }
 
         /**

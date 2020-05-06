@@ -619,7 +619,7 @@ namespace Goose
                     (int)window.Frame + "," +
                     window.Title + "," +
                     window.Buttons + "," +
-                    window.NPC?.LoginID + "," +
+                    (window.NPC?.LoginID ?? 0) + "," +
                     "0,0";
         };
 

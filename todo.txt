@@ -1,4 +1,6 @@
-make aspereta version of server
+need to add sp regen
+
+
 title/surname items
 spell to see monster info
 assign ids to quest requirements/rewards -- be careful, could mess up existing quest data
@@ -22,6 +24,8 @@ global script threading issues
 support for sounds
 Death animations?
 Revives?
+
+change priest group heal to have more range but heal less the further away the heal targets are
 
 
 
@@ -128,3 +132,339 @@ Packet refactoring still to do:
 something broken with pet NextRespawnTime? what is setting it.
 Bank is going to be different between Asp and Illutia.
 Aspereta doesn't have spellbook pages
+
+
+SELECT 
+map_id, 
+map_name, 
+'' AS map_filename, 
+CASE WHEN min_level = 0 THEN NULL ELSE min_level END AS min_level,
+CASE WHEN max_level = 0 THEN NULL ELSE max_level END AS max_level,
+CASE WHEN min_experience = 0 THEN NULL ELSE min_experience END AS min_experience,
+CASE WHEN max_experience = 0 THEN NULL ELSE max_experience END AS max_experience,
+CASE WHEN pvp_enabled = '0' THEN NULL ELSE '1' END AS pvp_enabled,
+CASE WHEN chat_enabled = '1' THEN NULL ELSE '0' END AS chat_enabled,
+CASE WHEN auction_enabled = '1' THEN NULL ELSE '0' END AS auction_enabled,
+CASE WHEN shout_enabled = '1' THEN NULL ELSE '0' END AS shout_enabled,
+CASE WHEN spells_enabled = '1' THEN NULL ELSE '0' END AS spells_enabled,
+CASE WHEN bind_enabled = '0' THEN NULL ELSE '1' END AS bind_enabled,
+CASE WHEN items_enabled = '1' THEN NULL ELSE '0' END AS items_enabled,
+CASE WHEN pets_enabled = '1' THEN NULL ELSE '0' END AS pets_enabled,
+'' AS script_path, 
+'' AS script_params
+FROM maps
+ORDER BY map_id ASC;
+
+
+.headers on
+.mode csv
+.output spelleffectsxendria.csv
+
+SELECT 
+spell_effect_id,
+spell_effect_name,
+CASE WHEN spell_animation = 0 THEN NULL ELSE spell_animation END AS spell_animation,
+'' AS spell_animation_file,
+CASE WHEN spell_display = 0 THEN NULL ELSE spell_display END AS spell_display,
+CASE WHEN target_type = 0 THEN NULL ELSE target_type END AS target_type,
+CASE WHEN target_size = 0 THEN NULL ELSE target_size END AS target_size,
+spell_effected,
+CASE WHEN min_level_effected = 1 THEN NULL ELSE min_level_effected END AS min_level_effected,
+CASE WHEN max_level_effected = 50 THEN NULL ELSE max_level_effected END AS max_level_effected,
+effect_type,
+CASE WHEN effect_duration = 0 THEN NULL ELSE effect_duration END AS effect_duration,
+CASE WHEN do_attack_animation = '0' THEN NULL ELSE '1' END AS do_attack_animation,
+'0' AS do_cast_animation,
+CASE WHEN spell_damage_effects = '0' THEN NULL ELSE '1' END AS spell_damage_effects,
+CASE WHEN spell_energy_type = 0 THEN NULL ELSE spell_energy_type END AS spell_energy_type,
+CASE WHEN hp_change_formula = '0' THEN NULL ELSE hp_change_formula END AS hp_change_formula,
+CASE WHEN mp_change_formula = '0' THEN NULL ELSE mp_change_formula END AS mp_change_formula,
+CASE WHEN sp_change_formula = '0' THEN NULL ELSE sp_change_formula END AS sp_change_formula,
+CASE WHEN hp = 0 THEN NULL ELSE hp END AS hp,
+CASE WHEN mp = 0 THEN NULL ELSE mp END AS mp,
+CASE WHEN sp = 0 THEN NULL ELSE sp END AS sp,
+CASE WHEN stat_ac = 0 THEN NULL ELSE stat_ac END AS stat_ac,
+CASE WHEN stat_str = 0 THEN NULL ELSE stat_str END AS stat_str,
+CASE WHEN stat_sta = 0 THEN NULL ELSE stat_sta END AS stat_sta,
+CASE WHEN stat_dex = 0 THEN NULL ELSE stat_dex END AS stat_dex,
+CASE WHEN stat_int = 0 THEN NULL ELSE stat_int END AS stat_int,
+CASE WHEN res_fire = 0 THEN NULL ELSE res_fire END AS res_fire,
+CASE WHEN res_water = 0 THEN NULL ELSE res_water END AS res_water,
+CASE WHEN res_spirit = 0 THEN NULL ELSE res_spirit END AS res_spirit,
+CASE WHEN res_air = 0 THEN NULL ELSE res_air END AS res_air,
+CASE WHEN res_earth = 0 THEN NULL ELSE res_earth END AS res_earth,
+CASE WHEN hp_percent_regen = 0 THEN NULL ELSE hp_percent_regen END AS hp_percent_regen,
+CASE WHEN hp_static_regen = 0 THEN NULL ELSE hp_static_regen END AS hp_static_regen,
+CASE WHEN mp_percent_regen = 0 THEN NULL ELSE mp_percent_regen END AS mp_percent_regen,
+CASE WHEN mp_static_regen = 0 THEN NULL ELSE mp_static_regen END AS mp_static_regen,
+CASE WHEN haste = 0 THEN NULL ELSE haste END AS haste,
+CASE WHEN spell_damage = 0 THEN NULL ELSE spell_damage END AS spell_damage,
+CASE WHEN spell_crit = 0 THEN NULL ELSE spell_crit END AS spell_crit,
+CASE WHEN melee_damage = 0 THEN NULL ELSE melee_damage END AS melee_damage,
+CASE WHEN melee_crit = 0 THEN NULL ELSE melee_crit END AS melee_crit,
+CASE WHEN damage_reduce = 0 THEN NULL ELSE damage_reduce END AS damage_reduce,
+CASE WHEN move_speed = 0 THEN NULL ELSE move_speed END AS move_speed,
+CASE WHEN body_id = 0 THEN NULL ELSE body_id END AS body_id,
+oneffect_text,
+offeffect_text,
+CASE WHEN face_id = 0 THEN NULL ELSE face_id END AS face_id,
+CASE WHEN hair_id = 0 THEN NULL ELSE hair_id END AS hair_id,
+CASE WHEN hair_r = 0 THEN NULL ELSE hair_r END AS hair_r,
+CASE WHEN hair_g = 0 THEN NULL ELSE hair_g END AS hair_g,
+CASE WHEN hair_b = 0 THEN NULL ELSE hair_b END AS hair_b,
+CASE WHEN hair_a = 0 THEN NULL ELSE hair_a END AS hair_a,
+CASE WHEN body_r = 0 THEN NULL ELSE body_r END AS body_r,
+CASE WHEN body_g = 0 THEN NULL ELSE body_g END AS body_g,
+CASE WHEN body_b = 0 THEN NULL ELSE body_b END AS body_b,
+CASE WHEN body_a = 0 THEN NULL ELSE body_a END AS body_a,
+CASE WHEN teleport_map = 1 THEN NULL ELSE teleport_map END AS teleport_map,
+CASE WHEN teleport_x = 50 THEN NULL ELSE teleport_x END AS teleport_x,
+CASE WHEN teleport_y = 50 THEN NULL ELSE teleport_y END AS teleport_y,
+CASE WHEN taunt_aggro = 0 THEN NULL ELSE taunt_aggro END AS taunt_aggro,
+CASE WHEN works_in_pvp = '1' THEN NULL ELSE '0' END AS works_in_pvp,
+CASE WHEN works_not_in_pvp = '0' THEN NULL ELSE '1' END AS works_not_in_pvp,
+CASE WHEN buff_removable = '1' THEN NULL ELSE '0' END AS buff_removable,
+CASE WHEN buff_graphic = 0 THEN NULL ELSE buff_graphic END AS buff_graphic,
+'' AS buff_graphic_file,
+buff_doesnt_stack_over,
+buff_stacks_over,
+CASE WHEN random_join_chance = 0 THEN NULL ELSE random_join_chance END AS random_join_chance,
+CASE WHEN on_hit_spell_effect_id = 0 THEN NULL ELSE on_hit_spell_effect_id END AS on_hit_spell_effect_id,
+CASE WHEN on_hit_spell_chance = 100 THEN NULL ELSE on_hit_spell_chance END AS on_hit_spell_chance,
+CASE WHEN on_attack_spell_effect_id = 0 THEN NULL ELSE on_attack_spell_effect_id END AS on_attack_spell_effect_id,
+CASE WHEN on_attack_spell_chance = 100 THEN NULL ELSE on_attack_spell_chance END AS on_attack_spell_chance,
+CASE WHEN snare_percent = 0 THEN NULL ELSE snare_percent END AS snare_percent,
+CASE WHEN only_hits_one_npc = '0' THEN NULL ELSE '1' END AS only_hits_one_npc,
+'' AS script_path,
+'' AS script_params
+FROM spell_effects
+ORDER BY spell_effect_id ASC;
+
+.headers on
+.mode csv
+.output spellsxendria.csv
+
+SELECT
+spell_id,
+spell_name,
+spell_description,
+spell_target,
+CASE WHEN class_restrictions = 0 THEN NULL ELSE class_restrictions END AS class_restrictions,
+CASE WHEN spell_aether = 100 THEN NULL ELSE spell_aether END AS spell_aether,
+spellbook_graphic,
+'' AS spellbook_graphic_file,
+CASE WHEN hp_static_cost = 0 THEN NULL ELSE hp_static_cost END AS hp_static_cost,
+CASE WHEN hp_percent_cost = 0 THEN NULL ELSE hp_percent_cost END AS hp_percent_cost,
+CASE WHEN mp_static_cost = 0 THEN NULL ELSE mp_static_cost END AS mp_static_cost,
+CASE WHEN mp_percent_cost = 0 THEN NULL ELSE mp_percent_cost END AS mp_percent_cost,
+CASE WHEN sp_static_cost = 0 THEN NULL ELSE sp_static_cost END AS sp_static_cost,
+CASE WHEN sp_percent_cost = 0 THEN NULL ELSE sp_percent_cost END AS sp_percent_cost,
+spell_effect_id
+FROM spells
+ORDER BY spell_id ASC;
+
+.headers on
+.mode csv
+.output itemsxendria.csv
+
+SELECT
+item_template_id,
+item_usetype,
+item_name,
+item_description,
+CASE WHEN player_hp = 0 THEN NULL ELSE player_hp END AS player_hp,
+CASE WHEN player_mp = 0 THEN NULL ELSE player_mp END AS player_mp,
+CASE WHEN player_sp = 0 THEN NULL ELSE player_sp END AS player_sp,
+CASE WHEN stat_ac = 0 THEN NULL ELSE stat_ac END AS stat_ac,
+CASE WHEN stat_str = 0 THEN NULL ELSE stat_str END AS stat_str,
+CASE WHEN stat_sta = 0 THEN NULL ELSE stat_sta END AS stat_sta,
+CASE WHEN stat_dex = 0 THEN NULL ELSE stat_dex END AS stat_dex,
+CASE WHEN stat_int = 0 THEN NULL ELSE stat_int END AS stat_int,
+CASE WHEN res_fire = 0 THEN NULL ELSE res_fire END AS res_fire,
+CASE WHEN res_water = 0 THEN NULL ELSE res_water END AS res_water,
+CASE WHEN res_spirit = 0 THEN NULL ELSE res_spirit END AS res_spirit,
+CASE WHEN res_air = 0 THEN NULL ELSE res_air END AS res_air,
+CASE WHEN res_earth = 0 THEN NULL ELSE res_earth END AS res_earth,
+CASE WHEN min_experience = 0 THEN NULL ELSE min_experience END AS min_experience,
+CASE WHEN min_level = 0 THEN NULL ELSE min_level END AS min_level,
+CASE WHEN max_experience = 0 THEN NULL ELSE max_experience END AS max_experience,
+CASE WHEN max_level = 0 THEN NULL ELSE max_level END AS max_level,
+CASE WHEN weapon_damage = 0 THEN NULL ELSE weapon_damage END AS weapon_damage,
+CASE WHEN weapon_delay = 10 THEN NULL ELSE weapon_delay END AS weapon_delay,
+CASE WHEN item_slot = 20 THEN NULL ELSE item_slot END AS item_slot,
+CASE WHEN item_type = 0 THEN NULL ELSE item_type END AS item_type,
+CASE WHEN item_value = 0 THEN NULL ELSE item_value END AS item_value,
+CASE WHEN lore = '0' THEN NULL ELSE '1' END AS lore,
+CASE WHEN bindonpickup = '0' THEN NULL ELSE '1' END AS bindonpickup,
+CASE WHEN bindonequip = '0' THEN NULL ELSE '1' END AS bindonequip,
+CASE WHEN event = '0' THEN NULL ELSE '1' END AS event,
+graphic_tile,
+'' AS graphic_file,
+CASE WHEN graphic_equip = 0 THEN NULL ELSE graphic_equip END AS graphic_equip,
+CASE WHEN graphic_r = 0 THEN NULL ELSE graphic_r END AS graphic_r,
+CASE WHEN graphic_g = 0 THEN NULL ELSE graphic_g END AS graphic_g,
+CASE WHEN graphic_b = 0 THEN NULL ELSE graphic_b END AS graphic_b,
+CASE WHEN graphic_a = 0 THEN NULL ELSE graphic_a END AS graphic_a,
+CASE WHEN class_restrictions = 0 THEN NULL ELSE class_restrictions END AS class_restrictions,
+CASE WHEN stack_size = 1 THEN NULL ELSE stack_size END AS stack_size,
+CASE WHEN body_state = 3 THEN NULL ELSE body_state END AS body_state,
+CASE WHEN spell_effect_id = 0 THEN NULL ELSE spell_effect_id END AS spell_effect_id,
+CASE WHEN spell_effect_chance = 100 THEN NULL ELSE spell_effect_chance END AS spell_effect_chance,
+CASE WHEN learn_spell_id = 0 THEN NULL ELSE learn_spell_id END AS learn_spell_id,
+CASE WHEN credits_value = 0 THEN NULL ELSE credits_value END AS credits_value,
+'' AS script_path,
+'' AS script_params
+FROM item_templates
+ORDER BY item_template_id ASC;
+
+.headers on
+.mode csv
+.output npctemplatesxendria.csv
+
+SELECT 
+npc_id,
+CASE WHEN npc_type = 2 THEN NULL ELSE npc_type END AS npc_type,
+npc_name,
+npc_title,
+npc_surname,
+respawn_time,
+CASE WHEN npc_facing = 3 THEN NULL ELSE npc_facing END AS npc_facing,
+CASE WHEN npc_level = 1 THEN NULL ELSE npc_level END AS npc_level,
+CASE WHEN experience = 0 THEN NULL ELSE experience END AS experience,
+CASE WHEN aggro_range = 0 THEN NULL ELSE aggro_range END AS aggro_range,
+CASE WHEN attack_range = 0 THEN NULL ELSE attack_range END AS attack_range,
+CASE WHEN attack_speed = 2 THEN NULL ELSE attack_speed END AS attack_speed,
+CASE WHEN move_speed = 2 THEN NULL ELSE move_speed END AS move_speed,
+CASE WHEN stationary = '0' THEN NULL ELSE '1' END AS stationary,
+CASE WHEN stunnable = '0' THEN NULL ELSE '1' END AS stunnable,
+CASE WHEN rootable = '0' THEN NULL ELSE '1' END AS rootable,
+CASE WHEN slowable = '0' THEN NULL ELSE '1' END AS slowable,
+CASE WHEN invincible = '0' THEN NULL ELSE '1' END AS invincible,
+CASE WHEN npc_hp = 0 THEN NULL ELSE npc_hp END AS npc_hp,
+CASE WHEN npc_mp = 0 THEN NULL ELSE npc_mp END AS npc_mp,
+CASE WHEN npc_sp = 0 THEN NULL ELSE npc_sp END AS npc_sp,
+CASE WHEN class_id = 0 THEN NULL ELSE class_id END AS class_id,
+CASE WHEN stat_ac = 0 THEN NULL ELSE stat_ac END AS stat_ac,
+CASE WHEN stat_str = 0 THEN NULL ELSE stat_str END AS stat_str,
+CASE WHEN stat_sta = 0 THEN NULL ELSE stat_sta END AS stat_sta,
+CASE WHEN stat_dex = 0 THEN NULL ELSE stat_dex END AS stat_dex,
+CASE WHEN stat_int = 0 THEN NULL ELSE stat_int END AS stat_int,
+CASE WHEN res_fire = 0 THEN NULL ELSE res_fire END AS res_fire,
+CASE WHEN res_water = 0 THEN NULL ELSE res_water END AS res_water,
+CASE WHEN res_spirit = 0 THEN NULL ELSE res_spirit END AS res_spirit,
+CASE WHEN res_air = 0 THEN NULL ELSE res_air END AS res_air,
+CASE WHEN res_earth = 0 THEN NULL ELSE res_earth END AS res_earth,
+CASE WHEN body_state = 1 THEN NULL ELSE body_state END AS body_state,
+CASE WHEN body_id = 0 THEN NULL ELSE body_id END AS body_id,
+CASE WHEN body_r = 0 THEN NULL ELSE body_r END AS body_r,
+CASE WHEN body_g = 0 THEN NULL ELSE body_g END AS body_g,
+CASE WHEN body_b = 0 THEN NULL ELSE body_b END AS body_b,
+CASE WHEN body_a = 0 THEN NULL ELSE body_a END AS body_a,
+CASE WHEN face_id = 70 THEN NULL ELSE face_id END AS face_id,
+CASE WHEN hair_id = 26 THEN NULL ELSE hair_id END AS hair_id,
+CASE WHEN hair_r = 0 THEN NULL ELSE hair_r END AS hair_r,
+CASE WHEN hair_g = 0 THEN NULL ELSE hair_g END AS hair_g,
+CASE WHEN hair_b = 0 THEN NULL ELSE hair_b END AS hair_b,
+CASE WHEN hair_a = 0 THEN NULL ELSE hair_a END AS hair_a,
+CASE WHEN equipped_items = '0,*,0,*,0,*,0,*,0,*,0,*' THEN NULL ELSE equipped_items END AS equipped_items,
+CASE WHEN weapon_damage = 1 THEN NULL ELSE weapon_damage END AS weapon_damage,
+CASE WHEN armor_pierce = 0 THEN NULL ELSE armor_pierce END AS armor_pierce,
+CASE WHEN hp_percent_regen = 0 THEN NULL ELSE hp_percent_regen END AS hp_percent_regen,
+CASE WHEN hp_static_regen = 0 THEN NULL ELSE hp_static_regen END AS hp_static_regen,
+CASE WHEN mp_percent_regen = 0 THEN NULL ELSE mp_percent_regen END AS mp_percent_regen,
+CASE WHEN mp_static_regen = 0 THEN NULL ELSE mp_static_regen END AS mp_static_regen,
+npc_alliance,
+CASE WHEN stuck_behaviour = 0 THEN NULL ELSE stuck_behaviour END AS stuck_behaviour,
+CASE WHEN stuck_timeout = 20 THEN NULL ELSE stuck_timeout END AS stuck_timeout,
+CASE WHEN credit_dealer = '0' THEN NULL ELSE '1' END AS credit_dealer,
+'' AS quest_ids,
+'' AS script_path,
+'' AS script_params
+FROM npc_templates
+ORDER BY npc_id ASC;
+
+.headers on
+.mode csv
+.output npcspawnsxendria.csv
+
+SELECT 
+npc_id,
+map_id,
+map_x,
+map_y
+FROM npc_spawns
+ORDER BY npc_id, map_id, map_y, map_x;
+
+.headers on
+.mode csv
+.output npcdropsxendria.csv
+
+SELECT 
+npc_template_id,
+item_template_id,
+stack,
+droprate
+FROM npc_drops
+ORDER BY npc_template_id, item_template_id, stack;
+
+.headers on
+.mode csv
+.output npcvendorsxendria.csv
+
+SELECT 
+npc_template_id,
+item_template_id,
+stack,
+CASE WHEN stats_visible = '1' THEN NULL ELSE '0' END AS stats_visible,
+slot
+FROM npc_vendor_items
+ORDER BY npc_template_id, slot;
+
+.headers on
+.mode csv
+.output warpsxendria.csv
+
+SELECT 
+map_id,
+map_x,
+map_y,
+warp_id,
+warp_x,
+warp_y
+FROM warptiles
+ORDER BY map_id, map_y, map_x, warp_id, warp_y, warp_x;
+
+.headers on
+.mode csv
+.output combinationsxendria.csv
+
+SELECT 
+combination_id,
+combination_name,
+CASE WHEN min_level = 1 THEN NULL ELSE min_level END AS min_level,
+CASE WHEN max_level = 50 THEN NULL ELSE max_level END AS max_level,
+CASE WHEN min_experience = 0 THEN NULL ELSE min_experience END AS min_experience,
+CASE WHEN max_experience = 0 THEN NULL ELSE max_experience END AS max_experience,
+CASE WHEN class_restrictions = 0 THEN NULL ELSE class_restrictions END AS class_restrictions
+FROM combinations
+ORDER BY combination_id;
+
+.headers on
+.mode csv
+.output combinationrequiredxendria.csv
+
+SELECT 
+combination_id,
+item_template_id
+FROM combination_item_required
+ORDER BY combination_id, item_template_id;
+
+.headers on
+.mode csv
+.output combinationresultsxendria.csv
+
+SELECT 
+combination_id,
+item_template_id
+FROM combination_item_results
+ORDER BY combination_id, item_template_id;
