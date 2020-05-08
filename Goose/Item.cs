@@ -10,6 +10,12 @@ using System.ComponentModel;
 
 namespace Goose
 {
+    public enum ItemProperty
+    {
+        TitleId,
+        SurnameId,
+    }
+
     /**
      * Item, holds the actual item data
      * 
@@ -49,6 +55,9 @@ namespace Goose
         [JsonProperty(PropertyName = "wdmg")]
         public int WeaponDamage { get; set; }
 
+        [JsonIgnore]
+        public int TotalWeaponDamage { get; set; }
+
         [DefaultValue(3)]
         public int BodyState { get; set; }
         [JsonProperty(PropertyName = "stats")]
@@ -63,6 +72,9 @@ namespace Goose
         public long Value { get; set; }
 
         public bool IsBound { get; set; }
+
+        [JsonProperty(PropertyName = "props")]
+        public Dictionary<ItemProperty, object> ItemProperties;
 
         /**
          * These properties are read only and just pass along from the templates properties
@@ -113,7 +125,6 @@ namespace Goose
         [JsonIgnore]
         public int LearnSpellID { get { return this.Template.LearnSpellID; } }
         [JsonIgnore]
-
         public int Credits { get { return this.Template.Credits; } }
 
         [JsonIgnore]
@@ -131,6 +142,7 @@ namespace Goose
             this.TotalStats = new AttributeSet();
             this.BaseStats = new AttributeSet();
             this.StatMultiplier = 1;
+            this.ItemProperties = new Dictionary<ItemProperty, object>();
         }
 
         /**
@@ -155,35 +167,35 @@ namespace Goose
             this.GraphicB = this.Template.GraphicB;
             this.GraphicA = this.Template.GraphicA;
 
-            this.WeaponDamage = this.Template.WeaponDamage;
-
             this.Value = this.Template.Value;
             this.BodyState = this.Template.BodyState;
 
             this.ScriptParams = this.Template.ScriptParams;
         }
 
-        /**
-         * LoadTemplate, adds template to item
-         * 
-         * This is when we want to just add the templates stats to our item
-         * ie when loading the items database, eg for surname/titled items
-         * 
-         * Note: Doesn't load the value from the template as we want to keep the value as 0
-         * if the item is custom for example
-         * 
-         */
-        public void LoadTemplate(ItemTemplate template)
+        public T GetProperty<T>(ItemProperty prop)
         {
-            // Temporary measure for transition to new code
-            if (this.BaseStats == null) this.BaseStats = new AttributeSet();
+            if (this.ItemProperties.TryGetValue(prop, out object value))
+                return (T)value;
 
-            this.TotalStats += template.BaseStats;
-            this.TotalStats *= this.StatMultiplier;
-            this.TotalStats += this.BaseStats;
+            return default(T);
+        }
 
-            // Mainly here as a temporary measure for transition to new code
-            this.WeaponDamage = (int)(this.Template.WeaponDamage * this.StatMultiplier);
+        public bool HasProperty(ItemProperty prop)
+        {
+            return this.ItemProperties.ContainsKey(prop);
+        }
+
+        public void RefreshStats()
+        {
+            var newTotalStats = new AttributeSet();
+            newTotalStats += this.Template.BaseStats;
+            newTotalStats += this.BaseStats;
+            newTotalStats *= this.StatMultiplier;
+
+            this.TotalStats = newTotalStats;
+
+            this.TotalWeaponDamage = (int)((this.Template.WeaponDamage + this.WeaponDamage) * this.StatMultiplier);
         }
     }
 }

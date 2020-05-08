@@ -1269,10 +1269,10 @@ namespace Goose
             this.Class = world.ClassHandler.GetClass(this.ClassID);
             this.BaseStats.HP = 0;
             this.BaseStats.MP = 0;
-            this.BoundID = 2;
+            this.BoundID = GameWorld.Settings.StartingMapID;
             this.BoundMap = world.MapHandler.GetMap(this.BoundID);
-            this.BoundX = 51;
-            this.BoundY = 194;
+            this.BoundX = GameWorld.Settings.StartingMapX;
+            this.BoundY = GameWorld.Settings.StartingMapY;
 
             this.AddStats(this.Class.GetLevel(this.Level).BaseStats, world);
             this.AddStats(this.BaseStats, world);

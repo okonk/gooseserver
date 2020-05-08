@@ -63,11 +63,14 @@ namespace Goose.Quests
                         return;
                 }
 
+                if ((quest.MaxLevel > 0 && player.Level > quest.MaxLevel) || (quest.MaxExperience > 0 && player.Experience + player.ExperienceSold > quest.MaxExperience))
+                    return;
+
+                if (!player.Class.CanUse(quest.ClassRestrictions))
+                    return;
+
                 if (!player.QuestsStarted.Any(q => q.Id == quest.Id))
                 {
-                    if ((quest.MaxLevel > 0 && player.Level > quest.MaxLevel) || (quest.MaxExperience > 0 && player.Experience + player.ExperienceSold > quest.MaxExperience))
-                        return;
-
                     player.QuestsStarted.Add(quest);
 
                     foreach (var requirement in quest.Requirements)

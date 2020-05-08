@@ -256,6 +256,32 @@ namespace Goose
             }
             log.Info(this.ItemHandler.TemplateCount.ToString() + " item templates loaded.");
 
+            log.Info("Loading Item Titles: ");
+            try
+            {
+                int count = this.ItemHandler.LoadTitles(this);
+                log.Info($"{count} item titles loaded.");
+            }
+            catch (Exception e)
+            {
+                log.Fatal(e, "");
+                log.Info("Aborting...");
+                return;
+            }
+
+            log.Info("Loading Item Surnames: ");
+            try
+            {
+                int count = this.ItemHandler.LoadSurnames(this);
+                log.Info($"{count} item surnames loaded.");
+            }
+            catch (Exception e)
+            {
+                log.Fatal(e, "");
+                log.Info("Aborting...");
+                return;
+            }
+            
             log.Info("Loading Quests: ");
             try
             {
@@ -635,11 +661,11 @@ namespace Goose
 
         public void LoadGlobalScripts()
         {
-            foreach (var scriptPath in Directory.EnumerateFiles("Scripts/Global", "*.csx"))
+            foreach (var scriptPath in Directory.EnumerateFiles(Settings.DataPath + "/Scripts/Global", "*.csx"))
             {
                 if (this.ScriptHandler.HasScript(scriptPath)) continue;
 
-                var script = this.ScriptHandler.GetScript<IGlobalScript>(scriptPath);
+                var script = this.ScriptHandler.GetScript<IGlobalScript>(scriptPath.Substring(Settings.DataPath.Length + 1));
                 script.Object.OnLoaded(this);
             }
         }
@@ -650,6 +676,11 @@ namespace Goose
             {
                 this.DatabaseWriter.Run(this);
             }, TaskCreationOptions.LongRunning);
+        }
+
+        public bool RollChance(double chance)
+        {
+            return this.Random.Next(1, 1000001) <= chance * 1000000;
         }
     }
 }

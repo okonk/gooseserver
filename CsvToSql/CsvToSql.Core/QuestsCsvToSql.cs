@@ -11,7 +11,7 @@ namespace CsvToSql
         protected override string[] GetColumns()
         {
             return new[] {
-                "id", "name", "description", "pass_text", "fail_text", "min_experience", "max_experience", "min_level", "max_level", "repeatable", "show_progress", "only_one_player_can_complete", "prerequisite_quests"
+                "id", "name", "description", "pass_text", "fail_text", "class_restrictions", "min_experience", "max_experience", "min_level", "max_level", "repeatable", "show_progress", "only_one_player_can_complete", "prerequisite_quests"
             };
         }
 

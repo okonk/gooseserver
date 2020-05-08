@@ -195,7 +195,6 @@ namespace Goose
             {
                 this.events[e.Ticks] = e;
             }
-            //this.events[e.Ticks] = e;
         }
 
         /**

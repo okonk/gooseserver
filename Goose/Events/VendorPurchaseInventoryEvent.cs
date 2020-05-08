@@ -103,6 +103,8 @@ namespace Goose.Events
                 Item item = new Item();
                 item.LoadFromTemplate(slot.ItemTemplate);
 
+                world.ItemHandler.RollTitleAndSurname(item, world);
+
                 world.ItemHandler.AddAndAssignId(item, world);
 
                 if (this.Player.Inventory.AddItem(item, slot.Stack, world))
@@ -111,7 +113,7 @@ namespace Goose.Events
                     {
                         this.Player.Credits -= (slot.ItemTemplate.Credits * slot.Stack);
 
-                        world.Send(this.Player, P.ServerMessage("Purchased " + slot.ItemTemplate.Name +
+                        world.Send(this.Player, P.ServerMessage("Purchased " + item.Name +
                             (slot.Stack > 1 ? " (" + slot.Stack + ")" : "") +
                             " for " + slot.ItemTemplate.Credits * slot.Stack + " credits."));
                     }
@@ -119,7 +121,7 @@ namespace Goose.Events
                     {
                         this.Player.RemoveGold(slot.ItemTemplate.Value * slot.Stack, world);
 
-                        world.Send(this.Player, P.ServerMessage("Purchased " + slot.ItemTemplate.Name +
+                        world.Send(this.Player, P.ServerMessage("Purchased " + item.Name +
                             (slot.Stack > 1 ? " (" + slot.Stack + ")" : "") +
                             " for " + slot.ItemTemplate.Value * slot.Stack + " gold."));
                     }

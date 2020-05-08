@@ -16,16 +16,19 @@ namespace Goose
      */
     public class ItemHandler
     {
-        Hashtable templates;
-        Hashtable items;
+        private Dictionary<int, ItemTemplate> templates;
+        private Dictionary<int, Item> items;
+        private Dictionary<int, ItemModifier> titles;
+        private Dictionary<int, ItemModifier> surnames;
 
-        int currentid = 5002;
-
+        private int currentid = 5002;
 
         public ItemHandler()
         {
-            this.templates = new Hashtable();
-            this.items = new Hashtable();
+            this.templates = new Dictionary<int, ItemTemplate>();
+            this.items = new Dictionary<int, Item>();
+            this.titles = new Dictionary<int, ItemModifier>();
+            this.surnames = new Dictionary<int, ItemModifier>();
         }
 
         /// <summary>
@@ -39,12 +42,12 @@ namespace Goose
 
         public IEnumerable<ItemTemplate> GetTemplates()
         {
-            return templates.Values.Cast<ItemTemplate>();
+            return templates.Values;
         }
 
         public IEnumerable<Item> GetItems()
         {
-            return items.Values.Cast<Item>();
+            return items.Values;
         }
 
         /**
@@ -60,7 +63,7 @@ namespace Goose
             while (reader.Read())
             {
                 int templateId = Convert.ToInt32(reader["item_template_id"]);
-                ItemTemplate template = (ItemTemplate)this.templates[templateId] ?? new ItemTemplate();
+                ItemTemplate template = this.GetTemplate(templateId) ?? new ItemTemplate();
 
                 template.ID = templateId;
                 template.Type = (ItemTemplate.ItemTypes)Convert.ToInt32(reader["item_type"]);
@@ -135,6 +138,40 @@ namespace Goose
             reader.Close();
         }
 
+        public int LoadTitles(GameWorld world)
+        {
+            var command = world.SqlConnection.CreateCommand();
+            command.CommandText = "SELECT * FROM item_titles";
+
+            using (var reader = command.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    var title = ItemModifier.FromReader(reader, world, this.titles);
+                    this.titles[title.Id] = title;
+                }
+            }
+
+            return this.titles.Count;
+        }
+
+        public int LoadSurnames(GameWorld world)
+        {
+            var command = world.SqlConnection.CreateCommand();
+            command.CommandText = "SELECT * FROM item_surnames";
+
+            using (var reader = command.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    var surname = ItemModifier.FromReader(reader, world, this.surnames);
+                    this.surnames[surname.Id] = surname;
+                }
+            }
+
+            return this.surnames.Count;
+        }
+
         /**
          * TemplateCount, returns item template count
          * 
@@ -146,14 +183,11 @@ namespace Goose
          */
         public ItemTemplate GetTemplate(int id)
         {
-            return (ItemTemplate)this.templates[id];
-        }
+            if (this.templates.TryGetValue(id, out ItemTemplate template))
+                return template;
 
-        /**
-         * ItemCount, returns item count
-         * 
-         */
-        public int ItemCount { get { return this.items.Count; } }
+            return null;
+        }
 
         public void AddAndAssignId(Item item, GameWorld world)
         {
@@ -185,16 +219,7 @@ namespace Goose
          */
         public Item GetGold()
         {
-            return (Item)this.items[GameWorld.Settings.ItemIDStartpoint + GameWorld.Settings.GoldItemID];
-        }
-
-        /**
-         * GetItem, returns item by id
-         * 
-         */
-        public Item GetItem(int id)
-        {
-            return (Item)this.items[id];
+            return this.items[GameWorld.Settings.ItemIDStartpoint + GameWorld.Settings.GoldItemID];
         }
 
         /// <summary>
@@ -205,14 +230,41 @@ namespace Goose
         {
             foreach (var item in GetItems())
             {
-                var newTotalStats = new AttributeSet();
-                newTotalStats += item.Template.BaseStats;
-                newTotalStats *= item.StatMultiplier;
-                newTotalStats += item.BaseStats;
+                item.RefreshStats();
+            }
+        }
 
-                item.TotalStats = newTotalStats;
+        public void RollTitleAndSurname(Item item, GameWorld world)
+        {
+            if (item.UseType == ItemTemplate.UseTypes.Armor || item.UseType == ItemTemplate.UseTypes.Weapon)
+            {
+                if (world.RollChance(GameWorld.Settings.ItemSurnameChancePercent))
+                {
+                    foreach (var surname in this.surnames.Values)
+                    {
+                        if (surname.RollChance(item, world))
+                        {
+                            item.Name = $"{item.Name} {surname.Name}";
+                            item.ItemProperties[ItemProperty.SurnameId] = surname.Id;
+                            surname.ApplyStats(item, world);
+                            break;
+                        }
+                    }
+                }
 
-                item.WeaponDamage = (int)(item.Template.WeaponDamage * item.StatMultiplier);
+                if (world.RollChance(GameWorld.Settings.ItemTitleChancePercent))
+                {
+                    foreach (var title in this.titles.Values)
+                    {
+                        if (title.RollChance(item, world))
+                        {
+                            item.Name = $"{title.Name} {item.Name}";
+                            item.ItemProperties[ItemProperty.TitleId] = title.Id;
+                            title.ApplyStats(item, world);
+                            break;
+                        }
+                    }
+                }
             }
         }
     }

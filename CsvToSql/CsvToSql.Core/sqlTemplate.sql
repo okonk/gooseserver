@@ -156,6 +156,7 @@ CREATE TABLE quests (
   description TEXT DEFAULT '' NOT NULL,
   fail_text TEXT DEFAULT '' NOT NULL,
   pass_text TEXT DEFAULT '' NOT NULL,
+  class_restrictions BIGINT DEFAULT 0,
   min_experience BIGINT DEFAULT 0,
   max_experience BIGINT DEFAULT 0,
   min_level INT DEFAULT 0,
@@ -394,5 +395,39 @@ CREATE TABLE combination_item_results (
 );
 
 {{combination_item_results}}
+
+DROP TABLE IF EXISTS item_titles;
+CREATE TABLE item_titles (
+  id INTEGER PRIMARY KEY,
+  name TEXT NOT NULL,
+  min_level INT DEFAULT 1,
+  max_level INT DEFAULT 50,
+  min_experience BIGINT DEFAULT 0,
+  max_experience BIGINT DEFAULT 0,
+  item_usetype SMALLINT DEFAULT 0,
+  item_slot SMALLINT DEFAULT 20,
+  chance DECIMAL(5,4) NOT NULL,
+  script_path TEXT DEFAULT '' NOT NULL,
+  script_params TEXT DEFAULT '' NOT NULL
+);
+
+{{item_titles}}
+
+DROP TABLE IF EXISTS item_surnames;
+CREATE TABLE item_surnames (
+  id INTEGER PRIMARY KEY,
+  name TEXT NOT NULL,
+  min_level INT DEFAULT 1,
+  max_level INT DEFAULT 50,
+  min_experience BIGINT DEFAULT 0,
+  max_experience BIGINT DEFAULT 0,
+  item_usetype SMALLINT DEFAULT 0,
+  item_slot SMALLINT DEFAULT 20,
+  chance DECIMAL(5,4) NOT NULL,
+  script_path TEXT DEFAULT '' NOT NULL,
+  script_params TEXT DEFAULT '' NOT NULL
+);
+
+{{item_surnames}}
 
 COMMIT;

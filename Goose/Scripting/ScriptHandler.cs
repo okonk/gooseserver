@@ -29,6 +29,8 @@ namespace Goose.Scripting
 
         public IScript LoadScript<T>(string filePath)
         {
+            filePath = GameWorld.Settings.DataPath + "/" + filePath;
+            
             if (!File.Exists(filePath))
                 throw new FileNotFoundException("Couldn't find script " + filePath);
 

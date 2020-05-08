@@ -49,7 +49,7 @@ namespace Goose
                         world.ItemHandler.AddItem(containerSlot.Item, world);
 
                         containerSlot.Item.Template = world.ItemHandler.GetTemplate(containerSlot.Item.TemplateID);
-                        containerSlot.Item.LoadTemplate(containerSlot.Item.Template);
+                        containerSlot.Item.RefreshStats();
 
                         container.SetSlot(i, containerSlots[i]);
                     }
@@ -66,8 +66,8 @@ namespace Goose
 
                 var saveContainerCommand = world.SqlConnection.CreateCommand();
                 saveContainerCommand.CommandText =
-                @"INSERT INTO bank_items (player_id, serialized_data) VALUES (@player_id, @serialized_data)
-                  ON CONFLICT(player_id) DO UPDATE SET serialized_data=@serialized_data WHERE player_id=@player_id;";
+                @"INSERT INTO bank_items (npc_id, player_id, serialized_data) VALUES (@npc_id, @player_id, @serialized_data)
+                  ON CONFLICT(npc_id, player_id) DO UPDATE SET serialized_data=@serialized_data WHERE npc_id=@npc_id AND player_id=@player_id;";
                 saveContainerCommand.Parameters.Add(new SQLiteParameter("@npc_id", DbType.Int32) { Value = npc_id });
                 saveContainerCommand.Parameters.Add(new SQLiteParameter("@player_id", DbType.Int32) { Value = player.PlayerID });
                 saveContainerCommand.Parameters.Add(new SQLiteParameter("@serialized_data", DbType.String) { Value = JsonConvert.SerializeObject(container, GameWorld.JsonSerializerSettings) });

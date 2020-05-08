@@ -11,7 +11,7 @@ namespace CsvToSql
         protected override string[] GetColumns()
         {
             return new[] {
-                "quest_id", "reward_type", "long_value", "long_value2", "string_value"
+                "id", "quest_id", "reward_type", "long_value", "long_value2", "string_value"
             };
         }
 

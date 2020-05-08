@@ -814,7 +814,7 @@ namespace Goose
         {
             ItemSlot weapon = this.GetEquippedSlot(EquipSlots.Weapon);
             if (weapon == null) return 1;
-            return weapon.Item.WeaponDamage;
+            return weapon.Item.TotalWeaponDamage;
         }
 
         /**
@@ -880,7 +880,7 @@ namespace Goose
                     world.ItemHandler.AddItem(invSlot.Item, world);
 
                     invSlot.Item.Template = world.ItemHandler.GetTemplate(invSlot.Item.TemplateID);
-                    invSlot.Item.LoadTemplate(invSlot.Item.Template);
+                    invSlot.Item.RefreshStats();
                 }
             }
 
@@ -897,7 +897,7 @@ namespace Goose
                     world.ItemHandler.AddItem(equipSlot.Item, world);
 
                     equipSlot.Item.Template = world.ItemHandler.GetTemplate(equipSlot.Item.TemplateID);
-                    equipSlot.Item.LoadTemplate(equipSlot.Item.Template);
+                    equipSlot.Item.RefreshStats();
 
                     this.player.AddStats(equipSlot.Item.TotalStats, world);
                     if (equipSlot.Item.SpellEffect != null)
@@ -927,7 +927,7 @@ namespace Goose
                     world.ItemHandler.AddItem(combineSlot.Item, world);
 
                     combineSlot.Item.Template = world.ItemHandler.GetTemplate(combineSlot.Item.TemplateID);
-                    combineSlot.Item.LoadTemplate(combineSlot.Item.Template);
+                    combineSlot.Item.RefreshStats();
 
                     this.combineContainer.SetSlot(i, combineSlot);
                 }
@@ -1055,6 +1055,7 @@ namespace Goose
 
                 item = new Item();
                 item.LoadFromTemplate(template);
+                world.ItemHandler.RollTitleAndSurname(item, world);
                 world.ItemHandler.AddAndAssignId(item, world);
 
                 if (item.IsBindOnPickup) item.IsBound = true;
@@ -1065,7 +1066,7 @@ namespace Goose
                 var newSlot = new ItemSlot { Item = item, Stack = 1 };
                 newcombine.SetSlot(index, newSlot);
 
-                world.Send(this.player, P.ServerMessage("Successfully created " + template.Name + "."));
+                world.Send(this.player, P.ServerMessage("Successfully created " + item.Name + "."));
             }
 
             for (int i = 1; i < this.combineContainer.MaxSlots; i++)

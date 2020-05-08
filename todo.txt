@@ -24,6 +24,7 @@ global script threading issues
 support for sounds
 Death animations?
 Revives?
+Is it possible to do timed quests? Kill x monkeys in 10 mins
 
 change priest group heal to have more range but heal less the further away the heal targets are
 
@@ -127,9 +128,12 @@ or fix quests to not rely on id?
 
 
 Packet refactoring still to do:
-* CustomCommandEvent
 * Scripts
 something broken with pet NextRespawnTime? what is setting it.
+
+
+done:
+* CustomCommandEvent
 Bank is going to be different between Asp and Illutia.
 Aspereta doesn't have spellbook pages
 

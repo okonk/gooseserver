@@ -22,15 +22,14 @@ namespace Goose
         {
             while (true)
             {
+                var command = commands.Take();
                 try
                 {
-                    var command = commands.Take();
-
                     command.ExecuteNonQuery();
                 }
                 catch (Exception e)
                 {
-                    log.Error(e, "SQL Query Failed");
+                    log.Error(e, "SQL Query Failed: {query}", command.CommandText);
                 }
             }
         }

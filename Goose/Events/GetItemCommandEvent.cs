@@ -69,16 +69,6 @@ namespace Goose.Events
                 Item item = new Item();
                 item.LoadFromTemplate(template);
 
-                if (powerful && (item.Template.UseType == ItemTemplate.UseTypes.Armor || item.Template.UseType == ItemTemplate.UseTypes.Weapon))
-                {
-                    item.Name = "Powerful " + item.Template.Name;
-                    item.StatMultiplier = 2;
-                    item.TotalStats = item.Template.BaseStats;
-                    item.TotalStats *= item.StatMultiplier;
-                    item.TotalStats += item.BaseStats;
-                    item.WeaponDamage = (int)(item.WeaponDamage * item.StatMultiplier);
-                }
-
                 world.ItemHandler.AddAndAssignId(item, world);
 
                 this.Player.Inventory.AddItem(item, stack, world);

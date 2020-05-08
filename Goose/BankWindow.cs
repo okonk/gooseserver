@@ -10,6 +10,8 @@ namespace Goose
     {
         public readonly static int SlotsPerPage = GameWorld.Settings.BankSlotsPerPage;
 
+        public static WindowFrames BankFrame = WindowFrames.Bank;
+
         public int CurrentPage { get; set; }
 
         public int MaxPages { get; set; }
@@ -33,7 +35,7 @@ namespace Goose
             this.MaxPages = player.NumberOfBankPages;
 
             this.ID = IdGenerator(player);
-            this.Frame = WindowFrames.Bank;
+            this.Frame = BankFrame;
             this.Type = WindowTypes.Bank;
             this.NPC = npc;
 

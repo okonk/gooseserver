@@ -115,6 +115,8 @@ namespace Goose
         public int CustomTicketId { get; set; }
         public double RespawnTimeBackoff { get; set; }
         public double ChangeClassExperienceLossPercent { get; set; }
+        public double ItemTitleChancePercent { get; set; }
+        public double ItemSurnameChancePercent { get; set; }
         public int BuffBarVisibleSize { get; set; }
         public int VendorSlotSize { get; set; }
         public int InventorySize { get; set; }

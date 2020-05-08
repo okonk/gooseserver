@@ -114,7 +114,7 @@ namespace Goose
 
                 npc.CreditDealer = ("0".Equals(Convert.ToString(reader["credit_dealer"])) ? false : true);
 
-                var questIds = Convert.ToString(reader["quest_ids"]).Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Select(q => Convert.ToInt32(q));
+                var questIds = Convert.ToString(reader["quest_ids"]).Split(new[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries).Select(q => Convert.ToInt32(q));
                 npc.Quests = questIds.Select(q => world.QuestHandler.Get(q)).ToList();
 
                 string scriptPath = Convert.ToString(reader["script_path"]);
@@ -135,11 +135,11 @@ namespace Goose
             {
                 var allies = new List<NPCTemplate>();
 
-                foreach (string ally in npc.AlliesString.Split(" ".ToCharArray()))
+                try
                 {
-                    try
+                    foreach (int ally in npc.AlliesString.Split(new[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries).Select(q => Convert.ToInt32(q)))
                     {
-                        NPCTemplate a = this.GetNPCTemplate(Convert.ToInt32(ally));
+                        NPCTemplate a = this.GetNPCTemplate(ally);
                         if (a == null)
                         {
                             // log bad template id in allies
@@ -149,10 +149,10 @@ namespace Goose
                             allies.Add(a);
                         }
                     }
-                    catch (Exception)
-                    {
+                }
+                catch (Exception)
+                {
 
-                    }
                 }
 
                 npc.Allies = allies;

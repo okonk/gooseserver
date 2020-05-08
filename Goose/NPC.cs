@@ -1416,21 +1416,10 @@ namespace Goose
                     else
                     {
                         drop.Item = new Item();
-                        if ((dropinfo.ItemTemplate.UseType == ItemTemplate.UseTypes.Armor || dropinfo.ItemTemplate.UseType == ItemTemplate.UseTypes.Weapon) &&
-                            world.Random.Next(1, 100001) <= 1000)
-                        {
-                            drop.Item.LoadFromTemplate(dropinfo.ItemTemplate);
-                            drop.Item.Name = "Powerful " + dropinfo.ItemTemplate.Name;
-                            drop.Item.StatMultiplier = 2;
-                            drop.Item.TotalStats = dropinfo.ItemTemplate.BaseStats;
-                            drop.Item.TotalStats *= drop.Item.StatMultiplier;
-                            drop.Item.TotalStats += drop.Item.BaseStats;
-                            drop.Item.WeaponDamage = (int)(drop.Item.WeaponDamage * drop.Item.StatMultiplier);
-                        }
-                        else
-                        {
-                            drop.Item.LoadFromTemplate(dropinfo.ItemTemplate);
-                        }
+                        drop.Item.LoadFromTemplate(dropinfo.ItemTemplate);
+
+                        world.ItemHandler.RollTitleAndSurname(drop.Item, world);
+
                         world.ItemHandler.AddAndAssignId(drop.Item, world);
                     }
                     drop.Stack = dropinfo.Stack;

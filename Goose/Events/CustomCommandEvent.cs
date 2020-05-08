@@ -149,34 +149,61 @@ namespace Goose.Events
                             pose = lookSlot.Item.BodyState;
                         }
 
-                        world.Send(this.Player,
-                            "MKC" + 9000 + "," +
-                            "1," +
-                            "Custom Preview," +
-                            "," +
-                            "," +
-                            "" + "," + // Guild name
-                            prevx + "," +
-                            prevy + "," +
-                            this.Player.Facing + "," +
-                            100 + "," + // HP %
-                            this.Player.BodyID + "," +
-                            this.Player.BodyR + "," + // Body Color R
-                            this.Player.BodyG + "," + // Body Color G
-                            this.Player.BodyB + "," + // Body Color B
-                            this.Player.BodyA + "," + // Body Color A
-                            pose + "," +
-                            this.Player.HairID + "," +
-                            this.EquippedDisplay(lookSlot, r, g, b, a) + // Note: EquippedDisplay() adds it's own , on end
-                            r + "," +
-                            g + "," +
-                            b + "," +
-                            a + "," +
-                            "0" + "," + // Invis thing
-                            this.Player.FaceID + "," +
-                            this.Player.CalculateMoveSpeed() + "," + // Move Speed
-                            "0" + "," + // Player Name Color
-                            this.MountDisplay(lookSlot, r, g, b, a)); // Mount
+                        if (GameWorld.Settings.ServerType == "Illutia")
+                        {
+                            world.Send(this.Player,
+                                "MKC" + 9000 + "," +
+                                "1," +
+                                "Custom Preview," +
+                                "," +
+                                "," +
+                                "" + "," + // Guild name
+                                prevx + "," +
+                                prevy + "," +
+                                this.Player.Facing + "," +
+                                100 + "," + // HP %
+                                this.Player.BodyID + "," +
+                                this.Player.BodyR + "," + // Body Color R
+                                this.Player.BodyG + "," + // Body Color G
+                                this.Player.BodyB + "," + // Body Color B
+                                this.Player.BodyA + "," + // Body Color A
+                                pose + "," +
+                                this.Player.HairID + "," +
+                                this.EquippedDisplay(lookSlot, r, g, b, a) + // Note: EquippedDisplay() adds it's own , on end
+                                this.Player.HairR + "," +
+                                this.Player.HairG + "," +
+                                this.Player.HairB + "," +
+                                this.Player.HairA + "," +
+                                "0" + "," + // Invis thing
+                                this.Player.FaceID + "," +
+                                this.Player.CalculateMoveSpeed() + "," + // Move Speed
+                                "0" + "," + // Player Name Color
+                                this.MountDisplay(lookSlot, r, g, b, a)); // Mount
+                        }
+                        else
+                        {
+                            world.Send(this.Player,
+                                "MKC" + 9000 + "," +
+                                "1," +
+                                "Custom Preview," +
+                                "," +
+                                "," +
+                                "" + "," + // Guild name
+                                prevx + "," +
+                                prevy + "," +
+                                this.Player.Facing + "," +
+                                100 + "," + // HP %
+                                this.Player.BodyID + "," +
+                                pose + "," +
+                                this.Player.HairID + "," +
+                                this.EquippedDisplay(lookSlot, r, g, b, a) + // Note: EquippedDisplay() adds it's own , on end
+                                this.Player.HairR + "," +
+                                this.Player.HairG + "," +
+                                this.Player.HairB + "," +
+                                this.Player.HairA + "," +
+                                "0" + "," + // Invis thing
+                                this.Player.FaceID);
+                        }
                         break;
                     case "kill":
                         world.Send(this.Player, P.EraseCharacter(9000));
