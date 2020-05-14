@@ -161,7 +161,7 @@ namespace Goose
             {
                 log.Info("Importing data from Google Docs");
                 string sql = CsvToSql.Core.CsvToSqlConverter.Convert(Settings.DataLink);
-                //File.WriteAllText("GooseData.sql", sql);
+                File.WriteAllText("GooseData.sql", sql);
                 ExecuteSql(connection, sql);
             }
 

@@ -92,31 +92,31 @@ public class ItemModifierScript : BaseItemModifierScript
                 item.BaseStats.Dexterity += (int)value; 
                 break;
             case OperationType.SpellDamage: 
-                item.BaseStats.SpellDamage += (decimal)value; 
+                item.BaseStats.SpellDamage += (decimal)(value / 100); 
                 break;
             case OperationType.SpellCrit: 
-                item.BaseStats.SpellCrit += (decimal)value; 
+                item.BaseStats.SpellCrit += (decimal)(value / 100); 
                 break;
             case OperationType.MeleeDamage: 
-                item.BaseStats.MeleeDamage += (decimal)value; 
+                item.BaseStats.MeleeDamage += (decimal)(value / 100); 
                 break;
             case OperationType.MeleeCrit: 
-                item.BaseStats.MeleeCrit += (decimal)value; 
+                item.BaseStats.MeleeCrit += (decimal)(value / 100); 
                 break;
             case OperationType.Haste: 
-                item.BaseStats.Haste += (decimal)value; 
+                item.BaseStats.Haste += (decimal)(value / 100); 
                 break;
             case OperationType.DamageReduction: 
-                item.BaseStats.DamageReduction += (decimal)value; 
+                item.BaseStats.DamageReduction += (decimal)(value / 100); 
                 break;
             case OperationType.HPPercentRegen: 
-                item.BaseStats.HPPercentRegen += (decimal)value; 
+                item.BaseStats.HPPercentRegen += (decimal)(value / 100); 
                 break;
             case OperationType.HPStaticRegen: 
                 item.BaseStats.HPStaticRegen += (int)value; 
                 break;
             case OperationType.MPPercentRegen: 
-                item.BaseStats.MPPercentRegen += (decimal)value; 
+                item.BaseStats.MPPercentRegen += (decimal)(value / 100); 
                 break;
             case OperationType.MPStaticRegen: 
                 item.BaseStats.MPStaticRegen += (int)value; 

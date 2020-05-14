@@ -157,6 +157,8 @@ namespace Goose
             this.TemplateID = this.Template.ID;
             this.TotalStats += this.Template.BaseStats;
 
+            this.TotalWeaponDamage = this.Template.WeaponDamage;
+
             this.Name = this.Template.Name;
             this.Description = this.Template.Description;
             this.GraphicEquipped = this.Template.GraphicEquipped;

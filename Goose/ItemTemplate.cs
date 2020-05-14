@@ -69,6 +69,7 @@ namespace Goose
         public AttributeSet BaseStats { get; set; }
         public int WeaponDelay { get; set; }
         public int WeaponDamage { get; set; }
+        public int TotalWeaponDamage { get { return this.WeaponDamage; } }
         public ItemSlots Slot { get; set; }
         public ItemTypes Type { get; set; }
         public int GraphicEquipped { get; set; }

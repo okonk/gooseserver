@@ -79,17 +79,24 @@ namespace Goose.Events
                 // "encrypted" login packet
                 // we ignore checking the hash since we don't really care at this point
 
-                byte[] data = Encoding.ASCII.GetBytes(packet).Skip(2).ToArray();
-                byte[] keyBytes = Encoding.ASCII.GetBytes("Tamra");
-                for (int i = 0; i < data.Length; i++)
+                try
                 {
-                    data[i] = (byte)(data[i] ^ keyBytes[i % keyBytes.Length]);
+                    byte[] data = Encoding.ASCII.GetBytes(packet).Skip(2).ToArray();
+                    byte[] keyBytes = Encoding.ASCII.GetBytes("Tamra");
+                    for (int i = 0; i < data.Length; i++)
+                    {
+                        data[i] = (byte)(data[i] ^ keyBytes[i % keyBytes.Length]);
+                    }
+
+                    if (data.Length < 69) return;
+
+                    name = Encoding.ASCII.GetString(data, 35, data[51]);
+                    password = Encoding.ASCII.GetString(data, 52, data[68]);
                 }
-
-                if (data.Length < 69) return;
-
-                name = Encoding.ASCII.GetString(data, 35, data[51]);
-                password = Encoding.ASCII.GetString(data, 52, data[68]);
+                catch
+                {
+                    return;
+                }
             }
 
             if (name.Length <= 1 || password.Length <= 1)

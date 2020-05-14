@@ -32,6 +32,7 @@ namespace Goose
 
 
         int WeaponDamage { get; set; }
+        int TotalWeaponDamage { get; }
         int WeaponDelay { get; }
         int StackSize { get; }
         bool IsLore { get; }

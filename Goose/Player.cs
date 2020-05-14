@@ -1258,9 +1258,9 @@ namespace Goose
 
             this.MaxStats -= this.Class.GetLevel(this.Level).BaseStats;
             this.Level = newLevel;
-            this.ExperienceSold = this.Experience + this.ExperienceSold;
             if (classid == 1)
             {
+                this.ExperienceSold = this.Experience + this.ExperienceSold;
                 // This is a hack, need a better solution
                 this.ExperienceSold = (long)(this.ExperienceSold * (1.0d - GameWorld.Settings.ChangeClassExperienceLossPercent));
             }

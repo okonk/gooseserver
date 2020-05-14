@@ -472,3 +472,27 @@ combination_id,
 item_template_id
 FROM combination_item_results
 ORDER BY combination_id, item_template_id;
+
+Priests are vital to the survival of a par
+
+60,72 Warrior trainer
+65,72 Rogue trainer
+
+class_id,level,level_up_exp,player_hp,player_mp,player_sp,stat_ac,stat_str,stat_sta,stat_dex,stat_int,res_fire,res_water,res_spirit,res_air,res_earth,hp_percent_regen,hp_static_regen,mp_percent_regen,mp_static_regen,haste,spell_damage,spell_crit,melee_damage,melee_crit,damage_reduce
+
+
+Quest to kill 15 mice
+* Reward: 5 hp potions, 5 mp potions, xp
+Quest to kill 15 sheep
+* Reward: gold, xp
+
+Quest at start of arctic (51, 97), get 10 pelts and 10 fur to make jacket. Find missing friend
+* Reward: xp, gold, rabbit fur pants
+Quest on lake (66, 54). Scared of rabids, trapped here by them, kill 20 of them
+* Reward: 
+
+Quest near asps (83, 25). Kill 20 asps
+* Reward:
+
+Quest at start of bat cave (14, 10). Kill 25 bats
+* Reward:

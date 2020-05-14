@@ -47,6 +47,9 @@ namespace Goose.Events
 
                 switch (cl.ToLower())
                 {
+                    case "commoner":
+                        player.ClassID = 1;
+                        break;
                     case "rogue":
                         player.ClassID = 2;
                         break;

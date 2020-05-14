@@ -29,12 +29,12 @@ namespace Goose.Events
                     try
                     {
                         var sqlData = CsvToSql.Core.CsvToSqlConverter.Convert(GameWorld.Settings.DataLink);
-                        using (var command = world.SqlConnection.CreateCommand())
-                        {
-                            command.CommandText = sqlData;
+                        var command = world.SqlConnection.CreateCommand();
+                        command.CommandText = sqlData;
 
-                            world.DatabaseWriter.Add(command);
-                        }
+                        world.DatabaseWriter.Add(command, UpdateCompletedCallback);
+
+                        log.Info("Added sql command to queue");
                     }
                     catch (Exception e)
                     {
@@ -43,6 +43,14 @@ namespace Goose.Events
                     }
                 });
             }
+        }
+
+        private void UpdateCompletedCallback(Exception error)
+        {
+            if (error != null)
+                log.Error(error, "Updating sql failed");
+            else
+                log.Info("Updating sql success");
         }
     }
 }

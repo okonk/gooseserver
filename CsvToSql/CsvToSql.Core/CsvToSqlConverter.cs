@@ -31,6 +31,9 @@ namespace CsvToSql.Core
                 { "Combination Item Result", new { Converter = new CombinationItemResultsCsvToSql(), Table = "combination_item_results" } },
                 { "Titles", new { Converter = new TitleCsvToSql(), Table = "item_titles" } },
                 { "Surnames", new { Converter = new SurnameCsvToSql(), Table = "item_surnames" } },
+                { "Classes", new { Converter = new ClassesCsvToSql(), Table = "classes" } },
+                { "Class Info", new { Converter = new ClassInfoCsvToSql(), Table = "class_info" } },
+                { "Class Levelup Spells", new { Converter = new ClassLevelupSpellsCsvToSql(), Table = "classes_levelup_spells" } },
             };
 
             var spreadsheet = new MemoryStream(new HttpClient().GetByteArrayAsync(dataLink).Result);

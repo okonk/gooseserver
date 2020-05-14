@@ -430,4 +430,56 @@ CREATE TABLE item_surnames (
 
 {{item_surnames}}
 
+DROP TABLE IF EXISTS classes;
+CREATE TABLE classes (
+  class_id INTEGER PRIMARY KEY,
+  class_name TEXT NOT NULL,
+  ac_multiplier DECIMAL(9,2) DEFAULT 1 NOT NULL,
+  vita_cost BIGINT DEFAULT 200000 NOT NULL,
+  mana_cost BIGINT DEFAULT 200000 NOT NULL
+);
+
+{{classes}}
+
+DROP TABLE IF EXISTS class_info;
+CREATE TABLE class_info (
+  class_id INT NOT NULL,
+  level SMALLINT NOT NULL,
+  level_up_exp BIGINT DEFAULT 0 NOT NULL,
+  player_hp INT DEFAULT 0 NOT NULL,
+  player_mp INT DEFAULT 0 NOT NULL,
+  player_sp INT DEFAULT 0 NOT NULL,
+  stat_ac SMALLINT DEFAULT 0 NOT NULL,
+  stat_str SMALLINT DEFAULT 0 NOT NULL,
+  stat_sta SMALLINT DEFAULT 0 NOT NULL,
+  stat_dex SMALLINT DEFAULT 0 NOT NULL,
+  stat_int SMALLINT DEFAULT 0 NOT NULL,
+  res_fire SMALLINT DEFAULT 0 NOT NULL,
+  res_water SMALLINT DEFAULT 0 NOT NULL,
+  res_spirit SMALLINT DEFAULT 0 NOT NULL,
+  res_air SMALLINT DEFAULT 0 NOT NULL,
+  res_earth SMALLINT DEFAULT 0 NOT NULL,
+  hp_percent_regen DECIMAL(9,4) DEFAULT 0 NOT NULL,
+  hp_static_regen INT DEFAULT 0 NOT NULL,
+  mp_percent_regen DECIMAL(9,4) DEFAULT 0 NOT NULL,
+  mp_static_regen INT DEFAULT 0 NOT NULL,
+  haste DECIMAL(9,4) DEFAULT 0 NOT NULL,
+  spell_damage DECIMAL(9,4) DEFAULT 0 NOT NULL,
+  spell_crit DECIMAL(9,4) DEFAULT 0 NOT NULL,
+  melee_damage DECIMAL(9,4) DEFAULT 0 NOT NULL,
+  melee_crit DECIMAL(9,4) DEFAULT 0 NOT NULL,
+  damage_reduce DECIMAL(9,4) DEFAULT 0 NOT NULL
+);
+
+{{class_info}}
+
+DROP TABLE IF EXISTS classes_levelup_spells;
+CREATE TABLE classes_levelup_spells (
+  class_id INT NOT NULL,
+  level SMALLINT NOT NULL,
+  spell_id INT NOT NULL
+);
+
+{{classes_levelup_spells}}
+
 COMMIT;
