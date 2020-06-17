@@ -473,7 +473,7 @@ item_template_id
 FROM combination_item_results
 ORDER BY combination_id, item_template_id;
 
-Priests are vital to the survival of a par
+
 
 60,72 Warrior trainer
 65,72 Rogue trainer
@@ -482,17 +482,37 @@ class_id,level,level_up_exp,player_hp,player_mp,player_sp,stat_ac,stat_str,stat_
 
 
 Quest to kill 15 mice
-* Reward: 5 hp potions, 5 mp potions, xp
-Quest to kill 15 sheep
+Hello there, adventurer. These mice are\ngetting into everything and eating our\ncrops.\n\nHelp me kill 15 of these darn mice and I\nwill reward you.
+
+Thank you for eliminating those pesky\nmice. Take these potions and gold.
+* Reward: 5 hp potions, 5 mp potions, gp
+(This would be cool if he had a script that makes him attack mice that are next to him)
+
+
+Quest to get 10 sheep wool sheep
+Hello! These sheep are getting out of\nhand, there are too many of them and I\nneed their wool.\n\nPlease lend a hand and bring me 10 wool.\nYou will be rewarded.
+Phew! That was hard work. Thank you.\nTake this as payment.
 * Reward: gold, xp
 
-Quest at start of arctic (51, 97), get 10 pelts and 10 fur to make jacket. Find missing friend
+
+Quest (name: Jack) at start of arctic (51, 97), get 10 pelts and 10 fur to make jacket. Find missing friend
+Hi there! Brrr. It's cold out here. Please\nbring me 10 rabbit pelts and 10 rabbit fur\nso that I can make a jacket.\n\nBy the way, my friend Jill is out here\nsomewhere. I don't know where she went.\nLet me know where she is so I know she's\nalright.
+Much better! Glad to know Jill is alright.\nHere, take these pants.
 * Reward: xp, gold, rabbit fur pants
+
+
 Quest on lake (66, 54). Scared of rabids, trapped here by them, kill 20 of them
-* Reward: 
+Helppppp! These bunnies are staring at me\nlike they want to kill me. I'm scared.\nPlease kill 20 of them so I get out of\nhere.
+Thank you so much! Now I can go and see\nJack!
+* Reward: xp
 
 Quest near asps (83, 25). Kill 20 asps
-* Reward:
+I keep stepping on these damn Asps and\nget bitten by them. Wipe them out. Kill\n20 Asps and you will be rewarded.
+* Reward: 
 
 Quest at start of bat cave (14, 10). Kill 25 bats
+Hello there! These bats are driving me\ncrazy with their constant screeching.\nKill 25 of them for me, would you?
 * Reward:
+
+This is the length of quest window lines--
+Muchhhh better! I can finally hear my own\nthoughts. Here take this.
