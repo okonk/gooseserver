@@ -1,0 +1,12 @@
+*.suo
+*/bin/*
+*/obj/*
+*/packages/*
+*.sln.ide/*
+packages/*
+.vs/*
+FodyWeavers.xsd
+.vscode/
+bin/
+obj/
+

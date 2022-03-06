@@ -31,8 +31,8 @@ namespace AsperetaClient
         {
             this.Type = type;
             this.Id = id;
-            this.AnimationIndexes = new int[4 * 3];
-            this.AnimationFiles = new int[3];
+            this.AnimationIndexes = new int[4 * 11];
+            this.AnimationFiles = new int[11];
         }
     }
 
@@ -59,13 +59,13 @@ namespace AsperetaClient
                     // directions
                     for (int i = 0; i < length; i++)
                     {
-                        for (int k = 0; k < 3; k++)
+                        for (int k = 0; k < 11; k++)
                         {
-                            animation.AnimationIndexes[i * 3 + k] = reader.ReadInt32();
+                            animation.AnimationIndexes[i * 11 + k] = reader.ReadInt32();
                         }
                     }
                     // files
-                    for (int j = 0; j < 3; j++)
+                    for (int j = 0; j < 11; j++)
                     {
                         int fileNumber = reader.ReadInt32();
                         this.SheetToAnimation[fileNumber] = animation;
