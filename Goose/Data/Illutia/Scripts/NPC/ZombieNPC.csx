@@ -13,10 +13,12 @@ public class ZombieNPC : BaseNPCScript
 		Player player = null;
 
 		string title = "Zombie";
+        npc.Title = title;
 
 		if (t.Length < 2 || t[0] != "rank")
 		{
 			var allPlayers = world.PlayerHandler.GetAllPlayerData().Where(p => p.Level == 50 && (int)p.Access >= 2).ToList();
+            if (allPlayers.Count == 0) return;
 			player = allPlayers[world.Random.Next(0, allPlayers.Count)];
 
 			if (t.Length >= 1 && t[0] == "elite")
@@ -25,6 +27,8 @@ public class ZombieNPC : BaseNPCScript
 		else
 		{
 			int i = Convert.ToInt32(t[1]);
+            if (world.RankHandler.All.RanksList.Count == 0) return;
+
 			if (world.RankHandler.All.RanksList.Count < i)
 				player = world.RankHandler.All.RanksList.Last();
 			else
@@ -43,7 +47,7 @@ public class ZombieNPC : BaseNPCScript
 			pose = weapon.Item.BodyState;
 		}
 
-		npc.Title = title;
+		//npc.Title = title;
 		npc.Name = player.Name;
 		npc.CurrentBodyID = 21;
 		npc.BodyR = 0;

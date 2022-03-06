@@ -26,8 +26,17 @@ namespace Goose.Scripting
 
         public void LoadScript()
         {
+            if (!File.Exists(this.FilePath))
+                throw new FileNotFoundException("Couldn't find script " + this.FilePath);
+
             string scriptContents = File.ReadAllText(this.FilePath);
-            var script = CSharpScript.Create(scriptContents, ScriptOptions.Default.WithReferences(Assembly.GetExecutingAssembly(), typeof(JsonConvert).GetType().Assembly));
+
+            var scriptOptions = ScriptOptions.Default
+                .WithReferences(Assembly.GetExecutingAssembly(), typeof(JsonConvert).GetType().Assembly)
+                .WithImports("System", "System.Collections.Generic", "System.Linq",
+                    "Goose", "Goose.Events", "Goose.Quests", "Goose.Scripting");
+
+            var script = CSharpScript.Create(scriptContents, scriptOptions);
             script.Compile();
 
             var result = script.RunAsync().Result.ReturnValue;

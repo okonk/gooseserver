@@ -18,26 +18,16 @@ namespace Goose.Scripting
 
         public Script<T> GetScript<T>(string filePath)
         {
+            filePath = GameWorld.Settings.DataPath + "/" + filePath;
+
             IScript script = null;
             if (!this.scripts.TryGetValue(filePath, out script))
             {
-                script = LoadScript<T>(filePath);
+                script = new Script<T>(filePath);
+                this.scripts[filePath] = script;
             }
 
             return (Script<T>)script;
-        }
-
-        public IScript LoadScript<T>(string filePath)
-        {
-            filePath = GameWorld.Settings.DataPath + "/" + filePath;
-            
-            if (!File.Exists(filePath))
-                throw new FileNotFoundException("Couldn't find script " + filePath);
-
-            var script = new Script<T>(filePath);
-            this.scripts[filePath] = script;
-
-            return script;
         }
 
         public void ReloadScripts()
