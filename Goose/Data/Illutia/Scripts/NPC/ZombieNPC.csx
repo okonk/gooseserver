@@ -29,7 +29,7 @@ public class ZombieNPC : BaseNPCScript
 			int i = Convert.ToInt32(t[1]);
             if (world.RankHandler.All.RanksList.Count == 0) return;
 
-			if (world.RankHandler.All.RanksList.Count < i)
+			if (world.RankHandler.All.RanksList.Count <= i)
 				player = world.RankHandler.All.RanksList.Last();
 			else
 				player = world.RankHandler.All.RanksList[i];
@@ -47,7 +47,7 @@ public class ZombieNPC : BaseNPCScript
 			pose = weapon.Item.BodyState;
 		}
 
-		//npc.Title = title;
+		npc.Title = title;
 		npc.Name = player.Name;
 		npc.CurrentBodyID = 21;
 		npc.BodyR = 0;

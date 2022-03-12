@@ -20,8 +20,8 @@ namespace Goose
         // TODO: What is the hash? -- White/normal text
         public static Func<string, string> HashMessage = (message) => { return "#" + message; };
         public static Func<int, int, int, string> SpellPlayer = (loginId, animationId, animationFile) => { return "SPP" + loginId + "," + animationId + "," + animationFile; };
-        public static Func<int, int, int, int, string> SpellTile = (x, y, animationId, animationFile) => 
-        { 
+        public static Func<int, int, int, int, string> SpellTile = (x, y, animationId, animationFile) =>
+        {
             return "SPA" +
                 x + "," +
                 y + "," +
@@ -29,7 +29,7 @@ namespace Goose
                 animationFile;
         };
 
-        public static Func<Player, string> ExpBar = (player) => 
+        public static Func<Player, string> ExpBar = (player) =>
         {
             long percent, tnl, exp;
             if (player.Class.GetLevel(player.Level).Experience == 0)
@@ -49,7 +49,7 @@ namespace Goose
                 percent = (long)(((float)(exp - prev) / (next - prev)) * 100);
             }
 
-            return "TNL" + percent + "," + exp + "," + tnl + "," + player.ExperienceSold; 
+            return "TNL" + percent + "," + exp + "," + tnl + "," + player.ExperienceSold;
         };
 
         public static Func<int, string> EraseCharacter = (loginId) => { return "ERC" + loginId; };
@@ -62,7 +62,7 @@ namespace Goose
 
         /**
          * MKCString, returns the MKC packet string for this character
-         * 
+         *
          * MKCid,character type,name,title,surname,guild,x,y,facing,hp percent,body,
          * body pose,hair id,chest id,chest r,g,b,a,helm id,helm r,g,b,a,
          * pants id,pants r,g,b,a,shoes id,shoes r,g,b,a,
@@ -74,9 +74,9 @@ namespace Goose
          * body pose/state = 1 for normal, 3 for staff, 4 for sword
          * body = values 100-166 are illusions, 1 is male, 11 is female. 2/12 are naga. 3 is skeleton
          * invis = not sure at moment
-         * 
+         *
          * For item r,g,b,a of 0,0,0,0 you can use * instead
-         * 
+         *
          */
         public static Func<Player, string> MakeCharacter = (player) =>
         {
@@ -223,7 +223,7 @@ namespace Goose
                         "320," + // Move Speed
                         "0" + "," + // Player Name Color
                         (npc.CurrentBodyID >= 100 ? "" : "0,0,0,0"); // Mount
-        };    
+        };
 
         public static Func<Pet, string> UpdatePet = (pet) =>
         {
@@ -363,9 +363,9 @@ namespace Goose
 
         /**
          * SNFString, send info string
-         * 
+         *
          * SNFguildname,,classname,level,max_hp,max_mp,max_sp,cur_,cur_mp,cur_sp,
-         * stat_str,stat_sta,stat_int,stat_dex,ac,res_f,res_w,res_e,res_a,res_s,gold 
+         * stat_str,stat_sta,stat_int,stat_dex,ac,res_f,res_w,res_e,res_a,res_s,gold
          */
         public static Func<Player, string> StatusInfo = (player) =>
         {
@@ -409,7 +409,7 @@ namespace Goose
                    (int)(((float)target.CurrentHP / target.MaxHP) * 100) + "," +
                    (int)(((float)target.CurrentMP / target.MaxMP) * 100);
         };
-        
+
         public static Func<int, int, string, string> WindowTextLine = (windowId, lineNo, line) =>
         {
             return string.Format("WNF{0},{1},{2}|0|0|0|0|*", windowId, lineNo, line);
@@ -602,17 +602,17 @@ namespace Goose
             return "GUD" + index + "," + player.LoginID + "," + player.Name + "," + player.Level + player.Class.ClassName;
         };
 
-        public static Func<Buff, int, string> BuffBar = (buff, index) => 
+        public static Func<Buff, int, string> BuffBar = (buff, index) =>
         {
             if (buff == null)
             {
                 return "BUF" + index;
             }
 
-            return "BUF" + index + "," + buff.SpellEffect.BuffGraphic + "," + buff.SpellEffect.BuffGraphicFile + "," + buff.SpellEffect.Name; 
+            return "BUF" + index + "," + buff.SpellEffect.BuffGraphic + "," + buff.SpellEffect.BuffGraphicFile + "," + buff.SpellEffect.Name;
         };
 
-        public static Func<Window, string> MakeWindow = (window) => 
+        public static Func<Window, string> MakeWindow = (window) =>
         {
             return "MKW" +
                     window.ID + "," +
@@ -623,7 +623,7 @@ namespace Goose
                     "0,0";
         };
 
-        public static Func<Window, string> EndWindow = (window) => 
+        public static Func<Window, string> EndWindow = (window) =>
         {
             return "ENW" + window.ID;
         };
