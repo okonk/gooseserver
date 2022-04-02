@@ -1,3 +1,10 @@
+bugs:
+show why can't enter map
+in zombie map make it so if you die you spawn at the start up to 3 times
+There's a bug in the spell cooldowns where if the current time ticks is too low you are unable to cast the daily cooldown spells. Maybe need to default cooldown to long.MinValue instead of 0
+invert class restrictions (more logical, adding a class doesn't break everything)
+
+
 need to add sp regen
 
 
@@ -55,7 +62,7 @@ spell scripting
 script for spawning shitloads of shit
 fix casting of spells/attacking while on mount, maybe can also undo the change made for mounts/illusions
 command for powerful items
-/reloadsql command. Should be able to do items easily. 
+/reloadsql command. Should be able to do items easily.
 bug with healing power when changing map
 make onhit work without doing dmg?
 port large formula changes over from asp
@@ -103,11 +110,11 @@ blue 400k FL
 puffs 677k
 MP 580k
 
-290, 291, 292, 293, 313, 319, 
+290, 291, 292, 293, 313, 319,
 101 - 336
 
 
-I also wanna make the Crystal Critters spawn randomly over every map we have. I want like 2-3 to randomly spawn per map, every 30 minutes. 
+I also wanna make the Crystal Critters spawn randomly over every map we have. I want like 2-3 to randomly spawn per map, every 30 minutes.
 
 They’re gonna be weak weak, so no need for additional scripts to be added. It’ll be a basic NPC but they’ll drop the Energy Crystals for the Slot Machines.
 The NPC is 480, I've already set the respawn timer for 30 minutes.
@@ -118,10 +125,10 @@ When he spawns the server will say, “Look it’s that damn rich guy again...�
 He will spawn once every 24 hours randomly somewhere in the world. He’ll hit for 1M and have 1M HP. But he’ll be an extra way to earn EXP.
 
 RESTORE DATABASE IllutiaGoose_2018_09_14 FROM DISK='C:\shared\IllutiaGoose.bak'
-WITH REPLACE, RECOVERY, 
+WITH REPLACE, RECOVERY,
    MOVE 'IllutiaGoose' TO 'C:\Program Files\Microsoft SQL Server\MSSQL14.SQLEXPRESS\MSSQL\DATA\IllutiaGoose_2018_09_14.mdf',
    MOVE 'IllutiaGoose_log' TO 'C:\Program Files\Microsoft SQL Server\MSSQL14.SQLEXPRESS\MSSQL\DATA\IllutiaGoose_2018_09_14_log.ldf'
-   
+
 
 
 or fix quests to not rely on id?
@@ -138,10 +145,10 @@ Bank is going to be different between Asp and Illutia.
 Aspereta doesn't have spellbook pages
 
 
-SELECT 
-map_id, 
-map_name, 
-'' AS map_filename, 
+SELECT
+map_id,
+map_name,
+'' AS map_filename,
 CASE WHEN min_level = 0 THEN NULL ELSE min_level END AS min_level,
 CASE WHEN max_level = 0 THEN NULL ELSE max_level END AS max_level,
 CASE WHEN min_experience = 0 THEN NULL ELSE min_experience END AS min_experience,
@@ -154,7 +161,7 @@ CASE WHEN spells_enabled = '1' THEN NULL ELSE '0' END AS spells_enabled,
 CASE WHEN bind_enabled = '0' THEN NULL ELSE '1' END AS bind_enabled,
 CASE WHEN items_enabled = '1' THEN NULL ELSE '0' END AS items_enabled,
 CASE WHEN pets_enabled = '1' THEN NULL ELSE '0' END AS pets_enabled,
-'' AS script_path, 
+'' AS script_path,
 '' AS script_params
 FROM maps
 ORDER BY map_id ASC;
@@ -164,7 +171,7 @@ ORDER BY map_id ASC;
 .mode csv
 .output spelleffectsxendria.csv
 
-SELECT 
+SELECT
 spell_effect_id,
 spell_effect_name,
 CASE WHEN spell_animation = 0 THEN NULL ELSE spell_animation END AS spell_animation,
@@ -325,7 +332,7 @@ ORDER BY item_template_id ASC;
 .mode csv
 .output npctemplatesxendria.csv
 
-SELECT 
+SELECT
 npc_id,
 CASE WHEN npc_type = 2 THEN NULL ELSE npc_type END AS npc_type,
 npc_name,
@@ -391,7 +398,7 @@ ORDER BY npc_id ASC;
 .mode csv
 .output npcspawnsxendria.csv
 
-SELECT 
+SELECT
 npc_id,
 map_id,
 map_x,
@@ -403,7 +410,7 @@ ORDER BY npc_id, map_id, map_y, map_x;
 .mode csv
 .output npcdropsxendria.csv
 
-SELECT 
+SELECT
 npc_template_id,
 item_template_id,
 stack,
@@ -415,7 +422,7 @@ ORDER BY npc_template_id, item_template_id, stack;
 .mode csv
 .output npcvendorsxendria.csv
 
-SELECT 
+SELECT
 npc_template_id,
 item_template_id,
 stack,
@@ -428,7 +435,7 @@ ORDER BY npc_template_id, slot;
 .mode csv
 .output warpsxendria.csv
 
-SELECT 
+SELECT
 map_id,
 map_x,
 map_y,
@@ -442,7 +449,7 @@ ORDER BY map_id, map_y, map_x, warp_id, warp_y, warp_x;
 .mode csv
 .output combinationsxendria.csv
 
-SELECT 
+SELECT
 combination_id,
 combination_name,
 CASE WHEN min_level = 1 THEN NULL ELSE min_level END AS min_level,
@@ -457,7 +464,7 @@ ORDER BY combination_id;
 .mode csv
 .output combinationrequiredxendria.csv
 
-SELECT 
+SELECT
 combination_id,
 item_template_id
 FROM combination_item_required
@@ -467,7 +474,7 @@ ORDER BY combination_id, item_template_id;
 .mode csv
 .output combinationresultsxendria.csv
 
-SELECT 
+SELECT
 combination_id,
 item_template_id
 FROM combination_item_results
@@ -508,7 +515,7 @@ Thank you so much! Now I can go and see\nJack!
 
 Quest near asps (83, 25). Kill 20 asps
 I keep stepping on these damn Asps and\nget bitten by them. Wipe them out. Kill\n20 Asps and you will be rewarded.
-* Reward: 
+* Reward:
 
 Quest at start of bat cave (14, 10). Kill 25 bats
 Hello there! These bats are driving me\ncrazy with their constant screeching.\nKill 25 of them for me, would you?

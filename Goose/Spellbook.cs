@@ -11,7 +11,7 @@ namespace Goose
 {
     /**
      * Holds the spells a player knows
-     * 
+     *
      */
     public class Spellbook
     {
@@ -31,7 +31,7 @@ namespace Goose
 
         /**
          * Load, loads spells for player from database
-         * 
+         *
          */
         public void Load(GameWorld world)
         {
@@ -40,7 +40,7 @@ namespace Goose
                 query.CommandText = "SELECT serialized_data FROM spellbook WHERE player_id=" + this.player.PlayerID;
                 string serialized_data = Convert.ToString(query.ExecuteScalar());
                 var spellIds = JsonConvert.DeserializeObject<int[]>(serialized_data, GameWorld.JsonSerializerSettings);
-                    
+
                 for (int i = 1; i < this.spells.Length; i++)
                 {
                     var spellId = spellIds[i];
@@ -54,7 +54,7 @@ namespace Goose
 
         /**
          * Save, saves spells for player into database
-         * 
+         *
          */
         public void Save(GameWorld world)
         {
@@ -96,7 +96,7 @@ namespace Goose
 
         /**
          * SendSlot, sends spellbook slot to player
-         * 
+         *
          */
         public void SendSlot(int slot, GameWorld world)
         {
@@ -135,7 +135,7 @@ namespace Goose
 
         /**
          * SendAll, sends all spell slots to player
-         * 
+         *
          */
         public void SendAll(GameWorld world)
         {
@@ -147,7 +147,7 @@ namespace Goose
 
         /**
          * GetSlot, returns spell at slot
-         * 
+         *
          */
         public Spell GetSlot(int slot)
         {
@@ -156,7 +156,7 @@ namespace Goose
 
         /**
          * GetSlotLastCast, returns spell last cast at slot
-         * 
+         *
          */
         public long GetSlotLastCast(int slot)
         {
@@ -165,7 +165,7 @@ namespace Goose
 
         /**
          * SetSlotLastCast, sets spell last cast at slot
-         * 
+         *
          */
         public void SetSlotLastCast(int slot, long last)
         {
@@ -174,7 +174,7 @@ namespace Goose
 
         /**
          * LearnSpell, learns spell if possible
-         * 
+         *
          */
         public bool LearnSpell(int spellid, GameWorld world)
         {
@@ -190,7 +190,7 @@ namespace Goose
 
         /**
          * AddSpell, Adds spell if possible
-         * 
+         *
          */
         public bool AddSpell(Spell spell, GameWorld world)
         {
@@ -222,7 +222,7 @@ namespace Goose
 
         /**
          * RemoveSpell, removes spell at slot
-         * 
+         *
          */
         public bool RemoveSpell(int slot, GameWorld world)
         {
@@ -245,7 +245,7 @@ namespace Goose
 
         /**
          * SwapSlots, swaps two slots in spellbook
-         * 
+         *
          */
         public void SwapSlots(int slot1, int slot2, GameWorld world)
         {

@@ -21,9 +21,11 @@ namespace Goose.Events
 
         public override void Ready(GameWorld world)
         {
-            if (this.Player.State == Player.States.Ready && 
+            if (this.Player.State == Player.States.Ready &&
                 this.Player.HasPrivilege(AccessPrivilege.ReloadSQL))
             {
+                world.Send(this.Player, "$7Updating sql...");
+
                 Task.Run(() =>
                 {
                     try
@@ -32,25 +34,31 @@ namespace Goose.Events
                         var command = world.SqlConnection.CreateCommand();
                         command.CommandText = sqlData;
 
-                        world.DatabaseWriter.Add(command, UpdateCompletedCallback);
+                        world.DatabaseWriter.Add(command, (e) => UpdateCompletedCallback(e, world));
 
                         log.Info("Added sql command to queue");
                     }
                     catch (Exception e)
                     {
                         log.Error(e, "Failed updating sql data");
-                        //world.Send(this.Player, "$7" + e.Message);
+                        world.Send(this.Player, "$7Failed updating sql: " + e.Message);
                     }
                 });
             }
         }
 
-        private void UpdateCompletedCallback(Exception error)
+        private void UpdateCompletedCallback(Exception error, GameWorld world)
         {
             if (error != null)
+            {
                 log.Error(error, "Updating sql failed");
+                world.Send(this.Player, "$7Failed updating sql: " + error.Message);
+            }
             else
+            {
                 log.Info("Updating sql success");
+                world.Send(this.Player, "$7Updating sql success");
+            }
         }
     }
 }

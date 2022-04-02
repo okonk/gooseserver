@@ -26,6 +26,7 @@ namespace Goose.Events
                 if (player != null)
                 {
                     player.Access = Player.AccessStatus.Normal;
+                    player.UnbanDate = null;
                     world.Send(this.Player, P.ServerMessage("Unbanned " + name + "."));
 
                     if (player.State == Goose.Player.States.NotLoggedIn)

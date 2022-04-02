@@ -436,9 +436,9 @@ namespace Goose
                     item.Value + "|" +
                     item.Flags + "|" +
                     item.Description + "|" +
-                    item.WeaponDamage + "|" +
-                    item.WeaponDamage + "|" +
-                    (item.WeaponDamage > 0 ? item.WeaponDelay : 0) + "|" +
+                    item.TotalWeaponDamage + "|" +
+                    item.TotalWeaponDamage + "|" +
+                    (item.TotalWeaponDamage > 0 ? item.WeaponDelay : 0) + "|" +
                     (int)item.Type + "|" +
                     item.TotalStats.AC + "|" +
                     item.TotalStats.HP + "|" +

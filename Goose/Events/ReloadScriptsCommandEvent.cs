@@ -21,7 +21,7 @@ namespace Goose.Events
 
         public override void Ready(GameWorld world)
         {
-            if (this.Player.State == Player.States.Ready && 
+            if (this.Player.State == Player.States.Ready &&
                 this.Player.HasPrivilege(AccessPrivilege.ReloadScripts))
             {
                 Task.Run(() =>
@@ -33,14 +33,13 @@ namespace Goose.Events
                          // TODO: This is bad, it executes the global script OnLoaded on the wrong thread
                         world.LoadGlobalScripts();
 
-                        // TODO: Not safe to call Send on multiple threads
-                        //world.Send(this.Player, "$7Reloaded scripts.");
+                        world.Send(this.Player, "$7Reloaded scripts.");
                         log.Info("Reloaded scripts");
                     }
                     catch (Exception e)
                     {
                         log.Error(e, "Failed reloading scripts");
-                        //world.Send(this.Player, "$7" + e.Message);
+                        world.Send(this.Player, "$7" + e.Message);
                     }
                 });
             }

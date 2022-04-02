@@ -20,14 +20,14 @@ namespace Goose
 {
     /**
      * GameWorld, this is where all the game-related stuff will go
-     * 
+     *
      * Currently holds the PlayerHandler but eventually will hold
      * - EventHandler
      * - LogHandler
      * - NPCHandler
      * - MapHandler
      * ... etc
-     * 
+     *
      */
     public class GameWorld
     {
@@ -89,9 +89,9 @@ namespace Goose
 
         /**
          * Constructor
-         * 
+         *
          * Constructs all of our Handler objects
-         * 
+         *
          */
         public GameWorld(GameServer server)
         {
@@ -180,9 +180,9 @@ namespace Goose
 
         /**
          * Start, game startup
-         * 
+         *
          * Loads all of the required information for the game
-         * 
+         *
          */
         public void Start()
         {
@@ -281,7 +281,7 @@ namespace Goose
                 log.Info("Aborting...");
                 return;
             }
-            
+
             log.Info("Loading Quests: ");
             try
             {
@@ -427,9 +427,9 @@ namespace Goose
 
         /**
          * Stop, game shutdown
-         * 
+         *
          * Makes sure all information is saved properly, etc
-         * 
+         *
          */
         public void Stop()
         {
@@ -457,10 +457,10 @@ namespace Goose
 
         /**
          * NewConnection, player joined server
-         * 
+         *
          * Creates a new Player object and gives it to the PlayerHandler
-         * 
-         * 
+         *
+         *
          */
         public void NewConnection(Socket sock)
         {
@@ -478,10 +478,10 @@ namespace Goose
 
         /**
          * LostConnection, player left server
-         * 
+         *
          * Removes the player that left
-         * 
-         * 
+         *
+         *
          */
         public void LostConnection(Socket sock)
         {
@@ -505,14 +505,14 @@ namespace Goose
 
         /**
          * Received, received data from socket
-         * 
+         *
          * First we check if we already have the player, if we do we call the player's Received method
          * Then parse the data
-         * 
+         *
          * If the player is null then we haven't seen them before so create a new Player object
          * then this bit is hackish but it really shouldn't be a problem..
          * We assume the data is the full login packet so add an event to the event handler
-         * 
+         *
          */
         public void Received(Socket sock, string data)
         {
@@ -534,11 +534,11 @@ namespace Goose
 
         /**
          * ParseData, parses data received from player
-         * 
+         *
          * Splits the data by \x1 which is chr(1) which the client uses to delimit packets
          * Passes each packet along to the EventHandler.AddEvent to see if the EventHandler
          * will add the event.
-         * 
+         *
          */
         public void ParseData(Player player)
         {
@@ -565,9 +565,9 @@ namespace Goose
 
         /**
          * Update, update the game world
-         * 
+         *
          * Called every 5ms at least, will probably update the EventHandler, do NPC logic, etc
-         * 
+         *
          */
         public void Update()
         {
@@ -577,9 +577,9 @@ namespace Goose
 
         /**
          * Send, sends data to player
-         * 
+         *
          * Adds \x1 to the end which is the packet delimiter
-         * 
+         *
          */
         public void Send(Player player, string data)
         {
@@ -589,20 +589,20 @@ namespace Goose
             data += "\x1";
             try
             {
-                player.Sock?.Send(Encoding.ASCII.GetBytes(data));
+                player.Send(data);
             }
             catch (Exception)
             {
-                
+
             }
         }
 
         /**
          * SendToAll, sends data to all players
-         * 
+         *
          * Sends data to all Players whose state is > Player.States.LoadingGame,
          * because if they are loading the game or not logged in they'll probably crash
-         * 
+         *
          */
         public void SendToAll(string data)
         {
@@ -617,10 +617,10 @@ namespace Goose
 
         /**
          * SendToMap, sends data to all players in map
-         * 
+         *
          * Sends data to all Players whose state is Player.States.Ready,
          * because everyone on the map should be ready
-         * 
+         *
          */
         public void SendToMap(Map map, string data)
         {

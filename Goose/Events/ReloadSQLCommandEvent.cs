@@ -21,9 +21,11 @@ namespace Goose.Events
 
         public override void Ready(GameWorld world)
         {
-            if (this.Player.State == Player.States.Ready && 
+            if (this.Player.State == Player.States.Ready &&
                 this.Player.HasPrivilege(AccessPrivilege.ReloadSQL))
             {
+                world.Send(this.Player, "$7Reloading sql...");
+
                 Task.Run(() =>
                 {
                     try
@@ -39,14 +41,13 @@ namespace Goose.Events
                         //world.NPCHandler.LoadNPCs(world);
                         //world.CombinationHandler.LoadCombinations(world);
 
-                        // TODO: Not safe to call Send from multiple threads
-                        //world.Send(this.Player, "$7Reloaded sql data.");
+                        world.Send(this.Player, "$7Reloaded sql data.");
                         log.Info("Reloaded sql data");
                     }
                     catch (Exception e)
                     {
                         log.Error(e, "Failed reloading sql data");
-                        //world.Send(this.Player, "$7" + e.Message);
+                        world.Send(this.Player, "$7Failed reloading sql: " + e.Message);
                     }
                 });
             }

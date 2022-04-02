@@ -7,14 +7,14 @@ namespace Goose.Events
 {
     /**
      * MoveEvent, event for "M" + 1-4 packet
-     * 
+     *
      * Called when someone moves
      * Packet format: MDirection
      * Direction being a number 1-4 corresponding to 1,2,3,4 = up,right,down,left
-     * 
+     *
      * Server responds: MOCLoginID,X,Y
      * Server sends the response to everyone in the area excluding the player who generated it
-     * 
+     *
      */
     class MoveEvent : Event
     {
@@ -86,9 +86,9 @@ namespace Goose.Events
                         double secs = (double)diff / (double)world.TimerFrequency;
                         double rate = (double)this.Player.MovementRecordingSteps / secs;
 
-                        if (rate > 4.0)
+                        if (rate > 5.0)
                         {
-                            Console.WriteLine("SUSPECTED SPEEDHACK: " + 
+                            Console.WriteLine("SUSPECTED SPEEDHACK: " +
                                 this.Player.Name + " 15sq/" + secs + "sec = " + rate);
                         }
 

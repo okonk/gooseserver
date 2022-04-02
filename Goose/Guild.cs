@@ -11,15 +11,15 @@ namespace Goose
 {
     /**
      * Guild, holds information regarding a guilds members, guild name and message of the day
-     * 
+     *
      */
     public class Guild
     {
         /**
          * GuildRanks, the different guild ranks
-         * 
+         *
          */
-        public enum GuildRanks 
+        public enum GuildRanks
         {
             Deleted = 0,
             Member = 1,
@@ -29,7 +29,7 @@ namespace Goose
 
         /**
          * PlayerGuildStatus, holds information about a guild member
-         * 
+         *
          */
         class PlayerGuildStatus
         {
@@ -61,9 +61,9 @@ namespace Goose
 
         /**
          * AddMember, calls along to next addmember function supplying dirty as false.
-         * 
+         *
          * Used when loading guilds
-         * 
+         *
          */
         public void AddMember(int playerid, GuildRanks rank)
         {
@@ -72,7 +72,7 @@ namespace Goose
 
         /**
          * AddMember, adds a member to the guild
-         * 
+         *
          */
         public void AddMember(int playerid, GuildRanks rank, bool dirty, bool justadded)
         {
@@ -88,7 +88,7 @@ namespace Goose
 
         /**
          * SendToGuild, sends message to everyone online in the guild
-         * 
+         *
          */
         public void SendToGuild(string message, GameWorld world)
         {
@@ -100,7 +100,7 @@ namespace Goose
 
         /**
          * GetRank, returns the rank of the specified player
-         * 
+         *
          */
         public GuildRanks GetRank(Player player)
         {
@@ -111,7 +111,7 @@ namespace Goose
 
         /**
          * JoinGuild, adds the player to the guild
-         * 
+         *
          */
         public void JoinGuild(Player player, GameWorld world)
         {
@@ -126,9 +126,9 @@ namespace Goose
 
         /**
          * LeaveGuild, removes player from guild
-         * 
+         *
          * Calls to next LeaveGuild method specifying kicked as false
-         * 
+         *
          */
         public void LeaveGuild(Player player, GameWorld world)
         {
@@ -137,7 +137,7 @@ namespace Goose
 
         /**
          * LeaveGuild, removes player from guild
-         * 
+         *
          */
         public void LeaveGuild(Player player, GameWorld world, bool kicked)
         {
@@ -160,7 +160,7 @@ namespace Goose
 
         /**
          * RemoveMember, removes player from the guild
-         * 
+         *
          */
         public void RemoveMember(int playerid)
         {
@@ -173,9 +173,9 @@ namespace Goose
 
         /**
          * Save, saves to database
-         * 
+         *
          * Adds itself to database if it isn't already in there
-         * 
+         *
          */
         public void Save(GameWorld world)
         {
@@ -193,7 +193,7 @@ namespace Goose
                 command.Parameters.Add(guildMOTDParam);
                 command.ExecuteNonQuery();
 
-                command.CommandText = "SELECT last_row_id()";
+                command.CommandText = "SELECT last_insert_rowid()";
                 this.ID = Convert.ToInt32(command.ExecuteScalar());
 
                 justsaved = true;
@@ -246,7 +246,7 @@ namespace Goose
                         }
                         else
                         {
-                            query = "UPDATE guild_members SET guild_rank=" + (int)status.Rank + 
+                            query = "UPDATE guild_members SET guild_rank=" + (int)status.Rank +
                                 " WHERE guild_id=" + this.ID + " AND player_id=" + status.PlayerID;
                             command = world.SqlConnection.CreateCommand();
                             command.CommandText = query;
@@ -268,7 +268,7 @@ namespace Goose
 
         /**
          * ChangeOwner, swaps ownership of guild
-         * 
+         *
          */
         public void ChangeOwner(Player leader, Player newleader, GameWorld world)
         {
@@ -284,7 +284,7 @@ namespace Goose
 
         /**
          * ChangeRank, changes rank of player
-         * 
+         *
          */
         public void ChangeRank(Player player, GuildRanks rank, GameWorld world)
         {

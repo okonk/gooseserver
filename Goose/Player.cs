@@ -18,18 +18,18 @@ namespace Goose
 {
     /**
      * Player,
-     * 
+     *
      * Implements the ICharacter interface
-     * 
-     * 
+     *
+     *
      */
     public class Player : ICharacter
     {
         /**
          * Networking stuff
-         * 
+         *
          * Socket and receive buffer
-         * 
+         *
          */
         Socket sock;
         public Socket Sock
@@ -40,9 +40,9 @@ namespace Goose
         public string Buffer { get; set; }
 
         /**
-         * ExperienceMessage, used for sending to AddExperience to diaplay 
+         * ExperienceMessage, used for sending to AddExperience to diaplay
          * the right message when gaining experience
-         * 
+         *
          */
         public enum ExperienceMessage
         {
@@ -55,7 +55,7 @@ namespace Goose
 
         /**
          * Player's state
-         * 
+         *
          */
         public enum States
         {
@@ -68,7 +68,7 @@ namespace Goose
 
         /**
          * Player account access status
-         * 
+         *
          */
         public enum AccessStatus
         {
@@ -84,16 +84,16 @@ namespace Goose
 
         /**
          * Temporary information used when a player is autocreated
-         * 
+         *
          * AutoCreatedNotSaved - When a player is autocreated they're not saved until the
          * player save event is run
-         * 
+         *
          */
         public bool AutoCreatedNotSaved { get; set; }
 
         /**
          * Player info
-         * 
+         *
          */
         /**
          * PlayerID is the ID of the character in the database
@@ -318,7 +318,7 @@ namespace Goose
 
         /**
          * Player's inventory
-         * 
+         *
          */
         public Inventory Inventory { get; set; }
 
@@ -326,33 +326,33 @@ namespace Goose
 
         /**
          * Time of last melee attack
-         * 
+         *
          */
         public long LastAttack { get; set; }
 
         /**
          * For ping timeout
-         * 
+         *
          */
         public long LastPing { get; set; }
 
         /**
          * Holds players spells
-         * 
+         *
          */
         public Spellbook Spellbook { get; set; }
 
         /**
          * Buffs, holds players buffs
-         * 
+         *
          */
         public List<Buff> Buffs { get; set; }
 
         /**
          * The group the player is in
-         * 
+         *
          * If none is null.
-         * 
+         *
          */
         public Group Group { get; set; }
         public bool GroupInvitesEnabled { get; set; }
@@ -369,8 +369,8 @@ namespace Goose
 
         /**
          * Bitfield for toggled settings
-         * 
-         * 
+         *
+         *
          */
         public enum ToggleSetting
         {
@@ -439,11 +439,13 @@ namespace Goose
 
         public DateTime? UnbanDate { get; set; }
 
+        private object socketLock = new object();
+
 
         /**
          * Constructor
-         * 
-         * 
+         *
+         *
          */
         public Player(int unused)
         {
@@ -480,9 +482,9 @@ namespace Goose
 
         /**
          * Received, received data from player
-         * 
+         *
          * Adds the data to the receive buffer
-         * 
+         *
          */
         public void Received(string data)
         {
@@ -491,7 +493,7 @@ namespace Goose
 
         /**
          * LoadFromAutoCreate, fills in player info from server defaults
-         * 
+         *
          */
         public void LoadFromAutoCreate(string name, string password, GameWorld world)
         {
@@ -715,7 +717,7 @@ namespace Goose
             this.TotalAfkTime = Convert.ToInt64(reader["total_afktime"]);
 
             var unbanDate = reader["unban_date"];
-            this.UnbanDate = (unbanDate == DBNull.Value ? null : (DateTime?)unbanDate);
+            this.UnbanDate = (unbanDate == DBNull.Value ? null : Convert.ToDateTime(unbanDate));
 
             this.MacroCheckFailures = Convert.ToInt32(reader["macrocheck_failures"]);
 
@@ -796,7 +798,7 @@ namespace Goose
 
         /**
          * SaveToDatabase, saves player info to database
-         * 
+         *
          */
         public virtual void SaveToDatabase(GameWorld world)
         {
@@ -1014,7 +1016,7 @@ namespace Goose
 
         /**
          * CanMoveTo, checks if player can move to the specified x,y
-         * 
+         *
          */
         public bool CanMoveTo(int x, int y)
         {
@@ -1028,7 +1030,7 @@ namespace Goose
 
         /**
          * MoveTo, moves player to x, y
-         * 
+         *
          */
         public virtual void MoveTo(GameWorld world, int x, int y)
         {
@@ -1125,7 +1127,7 @@ namespace Goose
         /**
          * WarpTo, warps player to map, x, y
          * Defaults to losing aggro
-         * 
+         *
          */
         public void WarpTo(GameWorld world, Map map, int x, int y)
         {
@@ -1133,7 +1135,7 @@ namespace Goose
         }
         /**
          * WarpTo, warps player to map, x, y
-         * 
+         *
          */
         public void WarpTo(GameWorld world, Map map, int x, int y, bool loseaggro)
         {
@@ -1223,7 +1225,7 @@ namespace Goose
 
         /**
          * AddRegenEvent, adds regen event to eventhandler if needed
-         * 
+         *
          */
         public void AddRegenEvent(GameWorld world)
         {
@@ -1247,7 +1249,7 @@ namespace Goose
 
         /**
          * ChangeClass, changes players class
-         * 
+         *
          * Resets level/exp to starting values
          */
         public void ChangeClass(int classid, int newLevel, GameWorld world)
@@ -1296,7 +1298,7 @@ namespace Goose
 
         /**
          * SendInventory, sends inventory to player
-         * 
+         *
          */
         public void SendInventory(GameWorld world)
         {
@@ -1305,7 +1307,7 @@ namespace Goose
 
         /**
          * CanUse, returns true if player can use item
-         * 
+         *
          */
         public bool CanUse(Item item, GameWorld world)
         {
@@ -1360,7 +1362,7 @@ namespace Goose
 
         /**
          * AddGold, adds amount of gold to player
-         * 
+         *
          */
         public void AddGold(long amount, GameWorld world)
         {
@@ -1371,7 +1373,7 @@ namespace Goose
 
         /**
          * RemoveGold, removes amount of gold from player
-         * 
+         *
          */
         public void RemoveGold(long amount, GameWorld world)
         {
@@ -1383,7 +1385,7 @@ namespace Goose
 
         /**
          * AddStats, add stats to player
-         * 
+         *
          */
         public void AddStats(AttributeSet stats, GameWorld world)
         {
@@ -1401,7 +1403,7 @@ namespace Goose
 
         /**
          * RemoveStats, remove stats from player
-         * 
+         *
          */
         public void RemoveStats(AttributeSet stats, GameWorld world, bool changeCurrentHPMP = true)
         {
@@ -1422,7 +1424,7 @@ namespace Goose
 
         /**
          * HasItem, returns true if player has templateid somewhere
-         * 
+         *
          */
         public bool HasItem(int templateid)
         {
@@ -1431,7 +1433,7 @@ namespace Goose
 
         /**
          * Attack, attack character if possible
-         * 
+         *
          */
         public void Attack(ICharacter character, GameWorld world)
         {
@@ -1489,7 +1491,7 @@ namespace Goose
 
         /**
          * AddExperience, player gained experience
-         * 
+         *
          */
         public virtual void AddExperience(long exp, GameWorld world, ExperienceMessage message)
         {
@@ -1605,7 +1607,7 @@ namespace Goose
 
         /**
          * Player was attacked by character
-         * 
+         *
          */
         public virtual void Attacked(ICharacter character, long damage, GameWorld world)
         {
@@ -1706,7 +1708,7 @@ namespace Goose
 
         /**
          * AddSaveEvent, Adds save event. Also does ping timeout stuff
-         * 
+         *
          */
         public void AddSaveEvent(GameWorld world)
         {
@@ -1731,7 +1733,7 @@ namespace Goose
 
         /**
          * LearnSpell, learns spell id
-         * 
+         *
          */
         public bool LearnSpell(int spellid, GameWorld world)
         {
@@ -1740,7 +1742,7 @@ namespace Goose
 
         /**
          * SendSpellbook, sends spellbook to player
-         * 
+         *
          */
         public void SendSpellbook(GameWorld world)
         {
@@ -1749,7 +1751,7 @@ namespace Goose
 
         /**
          * CastSpell, casts spellslot spell on target
-         * 
+         *
          */
         public void CastSpell(int spellslot, ICharacter target, GameWorld world)
         {
@@ -1880,7 +1882,7 @@ namespace Goose
 
         /**
          * AddBuff, add buff to players buff list
-         * 
+         *
          */
         public void AddBuff(Buff buff, GameWorld world, bool refreshbar)
         {
@@ -2021,7 +2023,7 @@ namespace Goose
 
         public bool IsMounted()
         {
-            return this.Inventory.GetEquippedSlot(GameWorld.Settings.InventorySize + (int)Inventory.EquipSlots.Mount) != null;
+            return this.Inventory.GetEquippedSlot(Inventory.EquipSlots.Mount) != null;
         }
 
         public void RemoveBuff(Buff buff, GameWorld world)
@@ -2031,7 +2033,7 @@ namespace Goose
 
         /**
          * RemoveBuff, removes buff from buffs list
-         * 
+         *
          */
         public void RemoveBuff(Buff buff, GameWorld world, bool refreshbar)
         {
@@ -2086,7 +2088,7 @@ namespace Goose
 
         /**
          * SendBuffBar, sends buff bar to player
-         * 
+         *
          */
         public void SendBuffBar(GameWorld world)
         {
@@ -2112,7 +2114,7 @@ namespace Goose
 
         /**
          * OnMeleeHit, when hit by melee cast any reaction spells
-         * 
+         *
          */
         public void OnMeleeHit(ICharacter hitter, GameWorld world)
         {
@@ -2128,7 +2130,7 @@ namespace Goose
 
         /**
          * OnMeleeAttack, casts melee attack spells when we hit something
-         * 
+         *
          */
         public void OnMeleeAttack(ICharacter hit, GameWorld world)
         {
@@ -2209,6 +2211,18 @@ namespace Goose
             this.TotalPlayTime += (playTime / world.TimerFrequency);
 
             this.LastPlaytimeUpdate = world.TimeNow;
+        }
+
+        public void Send(string data)
+        {
+            if (this.sock == null) return;
+
+            var bytes = Encoding.ASCII.GetBytes(data);
+
+            lock (socketLock)
+            {
+                this.sock.Send(bytes);
+            }
         }
     }
 }
