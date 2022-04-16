@@ -18,10 +18,10 @@ namespace Goose
 
     /**
      * Item, holds the actual item data
-     * 
+     *
      * Each item in game is seperate
      * Holds the original template and modified/added stats
-     * 
+     *
      */
     public class Item : IItem
     {
@@ -78,7 +78,7 @@ namespace Goose
 
         /**
          * These properties are read only and just pass along from the templates properties
-         * 
+         *
          */
         [JsonIgnore]
         public int WeaponDelay { get { return this.Template.WeaponDelay; } }
@@ -114,7 +114,7 @@ namespace Goose
          * This is a bitmask
          * Therefore only limited to about 64 classes, which should be enough.
          * If the bit is set then that class id CAN'T use the item.
-         * 
+         *
          */
         [JsonIgnore]
         public long ClassRestrictions { get { return this.Template.ClassRestrictions; } }
@@ -147,9 +147,9 @@ namespace Goose
 
         /**
          * LoadFromTemplate, loads item from a template
-         * 
+         *
          * This is when we want an item the same as the template.
-         * 
+         *
          */
         public void LoadFromTemplate(ItemTemplate template)
         {

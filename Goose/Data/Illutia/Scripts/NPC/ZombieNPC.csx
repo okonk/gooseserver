@@ -175,11 +175,13 @@ public class ZombieNPC : BaseNPCScript
 	private bool CastBardSpell(NPC npc, GameWorld world)
 	{
 		var playersInRange = npc.Map.GetPlayersInRange(npc);
-		if (!playersInRange.Any() || world.Random.Next(0, 100) > 10)
+		if (!playersInRange.Any() || world.Random.Next(0, 100) > 14)
 			return false;
 
+		var target = playersInRange[world.Random.Next(0, playersInRange.Count)];
+
 		var attack = world.SpellHandler.GetSpellEffect(499);
-		attack.Cast(npc, npc, world);
+		attack.Cast(npc, target, world);
 
 		npc.AddAttackEvent(world);
 

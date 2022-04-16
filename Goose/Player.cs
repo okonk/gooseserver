@@ -1505,6 +1505,9 @@ namespace Goose
             set { }
         }
 
+        private static readonly System.Globalization.NumberFormatInfo xpFormatter
+            = new System.Globalization.NumberFormatInfo { NumberGroupSeparator = " " };
+
         /**
          * AddExperience, player gained experience
          *
@@ -1537,18 +1540,19 @@ namespace Goose
             {
                 switch (message)
                 {
+                    case ExperienceMessage.TooHigh:
                     case ExperienceMessage.Normal:
-                        world.Send(this, P.ServerMessage("You have gained " + exp + " experience points."));
+                        world.Send(this, P.BattleTextYellow(this, $"+{exp.ToString("N0", xpFormatter)} XP"));
                         break;
 
                     case ExperienceMessage.TooFarAway:
                         world.Send(this, P.ServerMessage("You were too far away to gain experience."));
                         break;
 
-                    case ExperienceMessage.TooHigh:
-                        world.Send(this,
-                            P.ServerMessage("You were too experienced, you only gained " + exp + " experience points."));
-                        break;
+                    // case ExperienceMessage.TooHigh:
+                    //     world.Send(this,
+                    //         P.ServerMessage("You were too experienced, you only gained " + exp + " experience points."));
+                    //     break;
 
                     case ExperienceMessage.TooLow:
                         world.Send(this, P.ServerMessage("Group members too high to gain any experience."));

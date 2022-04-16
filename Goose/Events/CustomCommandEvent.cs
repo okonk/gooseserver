@@ -114,7 +114,7 @@ namespace Goose.Events
                         var combineBagWindow = this.Player.Windows.FirstOrDefault(w => w.Type == Window.WindowTypes.CombineBag);
                         if (combineBagWindow != null) combineBagWindow.Refresh(this.Player, world);
 
-                        world.LogHandler.Log(Log.Types.CreatedCustom, this.Player, 
+                        world.LogHandler.Log(Log.Types.CreatedCustom, this.Player,
                             string.Format("{0} ({1}) {2}|{3},{4},{5},{6}", item.Name, item.TemplateID, lookSlot.Item.TemplateID, r, g, b, a), item.ItemID);
 
                         break;
@@ -320,6 +320,12 @@ namespace Goose.Events
             {
                 world.Send(player, P.ServerMessage("Items to be customised must be equipment and must be visible items."));
                 return false;
+            }
+
+            if ((statsSlot.Item.Slot == ItemTemplate.ItemSlots.OneHanded || statsSlot.Item.Slot == ItemTemplate.ItemSlots.TwoHanded)
+                && (lookSlot.Item.Slot == ItemTemplate.ItemSlots.OneHanded || lookSlot.Item.Slot == ItemTemplate.ItemSlots.TwoHanded))
+            {
+                return true;
             }
 
             if (statsSlot.Item.Slot != lookSlot.Item.Slot)

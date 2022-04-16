@@ -669,6 +669,14 @@ namespace Goose
                     world.Send(player, packet);
                 }
             }
+            else if (this.EffectType == EffectTypes.Invisible && target is Player player)
+            {
+                var range = target.Map.GetNPCsInRange(target);
+                foreach (var npc in range)
+                {
+                    npc.RemoveAggro(player);
+                }
+            }
 
             Buff buff = new Buff();
             buff.Target = target;

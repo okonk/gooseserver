@@ -3,14 +3,14 @@ bugs:
 
 in zombie map make it so if you die you spawn at the start up to 3 times
 
-change /custom command to allow swapping 2hand/1hand graphics
 
-make rogue invisible spell lose aggro
 
 
 
 
 scp root@game.illutia.net:/root/GooseServer/IllutiaGoose.db /mnt/bloom/media/Dump/Goose/IllutiaGoose_2022-04-03.db
+scp bin/Debug/Goose.dll root@game.illutia.net:/root/StagingGooseServer
+scp -r Data/Illutia/Scripts/ root@game.illutia.net:/root/StagingGooseServer/Data/Illutia
 
 
 change droprate to double
@@ -54,6 +54,8 @@ automated /macrocheck? maybe only do check every 4+ hours to not get annoying to
 
 
 done:
+make rogue invisible spell lose aggro
+change /custom command to allow swapping 2hand/1hand graphics
 add logs for buy/sell item from vendor
 There's a bug in the spell cooldowns where if the current time ticks is too low you are unable to cast the daily cooldown spells. Maybe need to default cooldown to long.MinValue instead of 0
 show why can't enter map
