@@ -10,7 +10,7 @@ namespace Goose
 {
     /**
      * Map, holds map information/methods
-     * 
+     *
      */
     public class Map
     {
@@ -20,23 +20,23 @@ namespace Goose
 
         /**
          * map_id
-         * 
+         *
          */
         public int ID { get; set; }
         /**
          * map_name
-         * 
+         *
          */
         public string Name { get; set; }
         public string FileName { get; set; }
         /**
          * map_x
-         * 
+         *
          */
         public int Width { get; set; }
         /**
          * map_y
-         * 
+         *
          */
         public int Height { get; set; }
 
@@ -70,7 +70,7 @@ namespace Goose
 
         /**
          * Players, returns player list
-         * 
+         *
          */
         public List<Player> Players
         {
@@ -79,7 +79,7 @@ namespace Goose
 
         /**
          * Constructor
-         * 
+         *
          */
         public Map()
         {
@@ -98,7 +98,7 @@ namespace Goose
 
         /**
          * GetPlayersInRange, returns all players that the character can see
-         * 
+         *
          */
         public List<Player> GetPlayersInRange(ICharacter character)
         {
@@ -112,7 +112,7 @@ namespace Goose
 
         /**
          * GetNPCsInRange, returns all npcs that the character can see
-         * 
+         *
          */
         public List<NPC> GetNPCsInRange(ICharacter character)
         {
@@ -127,7 +127,7 @@ namespace Goose
 
         /**
          * AddPlayer, adds player to players list
-         * 
+         *
          */
         public void AddPlayer(Player player, GameWorld world)
         {
@@ -145,7 +145,7 @@ namespace Goose
 
         /**
          * RemovePlayer, removes player from players list
-         * 
+         *
          */
         public void RemovePlayer(Player player, GameWorld world)
         {
@@ -163,7 +163,7 @@ namespace Goose
 
         /**
          * AddNPC, adds npc to npcs list
-         * 
+         *
          */
         public void AddNPC(NPC npc)
         {
@@ -172,7 +172,7 @@ namespace Goose
 
         /**
          * RemoveNPC, removes npc from npcs list
-         * 
+         *
          */
         public void RemoveNPC(NPC npc)
         {
@@ -182,9 +182,9 @@ namespace Goose
         /**
          * AddItem, adds item to items list
          * adds item to tiles array
-         * 
+         *
          * Updates everyone in the map about the item
-         * 
+         *
          */
         public void AddItem(ItemTile item, GameWorld world)
         {
@@ -199,9 +199,9 @@ namespace Goose
         /**
          * RemoveItem, removes item from items list
          * removes item from tiles array
-         * 
+         *
          * Updates everyone in the map about the item
-         * 
+         *
          */
         public void RemoveItem(ItemTile item, GameWorld world)
         {
@@ -213,7 +213,7 @@ namespace Goose
 
         /**
          * CanMoveTo, checks if character can move to x, y
-         * 
+         *
          */
         public bool CanMoveTo(ICharacter character, int x, int y)
         {
@@ -242,10 +242,10 @@ namespace Goose
 
         /**
          * PlacePlayer, places a character on the map
-         * 
+         *
          * This method checks if the players current coordinates are valid and not blocked
          * if they're blocked it moves the player until they can be placed
-         * 
+         *
          */
         public void PlaceCharacter(ICharacter character)
         {
@@ -270,7 +270,7 @@ namespace Goose
                             // within map bounds
                             if (x > 0 && x <= this.Width)
                             {
-                                // if x or y is at the radius we're searching 
+                                // if x or y is at the radius we're searching
                                 // so we don't search already searched tiles
                                 if ((y == oy - r || y == oy + r) || (x == ox - r || x == ox + r))
                                 {
@@ -292,12 +292,12 @@ namespace Goose
 
         /**
          * PlaceItem, places an item on the map
-         * 
+         *
          * This method checks if the items current coordinates are valid and not blocked
          * if they're blocked it moves the item until it can be placed
-         * 
+         *
          * returns true if could place item
-         * 
+         *
          */
         public bool PlaceItem(ItemTile item)
         {
@@ -322,7 +322,7 @@ namespace Goose
                             // within map bounds
                             if (x > 0 && x <= this.Width)
                             {
-                                // if x or y is at the radius we're searching 
+                                // if x or y is at the radius we're searching
                                 // so we don't search already searched tiles
                                 if ((y == oy - r || y == oy + r) || (x == ox - r || x == ox + r))
                                 {
@@ -355,9 +355,9 @@ namespace Goose
 
         /**
          * IsTileBlocked, checks if the tile at x,y is blocked
-         * 
+         *
          * Blocked either by another character or warp/unwalkable tiles
-         * 
+         *
          */
         public bool IsTileBlocked(ICharacter ignore, int x, int y)
         {
@@ -386,7 +386,7 @@ namespace Goose
             return true;
         }
 
-        public static Action<BinaryReader, Map, GameWorld> IllutiaMapLoader = (mapReader, map, world) => 
+        public static Action<BinaryReader, Map, GameWorld> IllutiaMapLoader = (mapReader, map, world) =>
         {
             var version = mapReader.ReadInt16();
             var editorVersion = mapReader.ReadInt16();
@@ -423,7 +423,7 @@ namespace Goose
             }
         };
 
-        public static Action<BinaryReader, Map, GameWorld> AsperetaMapLoader = (mapReader, map, world) => 
+        public static Action<BinaryReader, Map, GameWorld> AsperetaMapLoader = (mapReader, map, world) =>
         {
             var version = mapReader.ReadInt16();
             var editorVersion = mapReader.ReadInt16();
@@ -462,7 +462,7 @@ namespace Goose
 
         /**
          * LoadData, loads warp/blocked tiles, required items
-         * 
+         *
          */
         public void LoadData(GameWorld world)
         {
@@ -520,7 +520,7 @@ namespace Goose
 
         /**
          * GetTile, returns the tile at x, y
-         * 
+         *
          */
         public ITile GetTile(int x, int y)
         {
@@ -540,7 +540,7 @@ namespace Goose
 
         /**
          * PlayerCanJoin, checks if player meets requirements to join map
-         * 
+         *
          */
         public bool PlayerCanJoin(Player player, GameWorld world)
         {
@@ -548,26 +548,34 @@ namespace Goose
 
             if (this.MinLevel != 0 && player.Level < this.MinLevel)
             {
+                world.Send(player, $"$7You must be at least level {this.MinLevel} to enter this map.");
                 return false;
             }
             if (this.MaxLevel != 0 && player.Level > this.MaxLevel)
             {
+                world.Send(player, $"$7You must be at most level {this.MaxLevel} to enter this map.");
                 return false;
             }
             if ((this.MinExperience != 0) &&
                 (player.Experience + player.ExperienceSold < this.MinExperience))
             {
+                world.Send(player, $"$7You must have at least {Utils.FormatNumber(this.MinExperience)} experience to enter this map.");
                 return false;
             }
             if ((this.MaxExperience != 0) &&
                 (player.Experience + player.ExperienceSold > this.MaxExperience))
             {
+                world.Send(player, $"$7You must have at most {Utils.FormatNumber(this.MaxExperience)} experience to enter this map.");
                 return false;
             }
 
             foreach (int id in this.requiredItems)
             {
-                if (!player.HasItem(id)) return false;
+                if (!player.HasItem(id))
+                {
+                    world.Send(player, $"$7You need '{world.ItemHandler.GetTemplate(id)?.Name ?? "<unknown item>"}' to enter this map.");
+                    return false;
+                }
             }
 
             return true;
@@ -575,13 +583,13 @@ namespace Goose
 
         /**
          * Items, returns items list
-         * 
+         *
          */
         public List<ItemTile> Items { get { return this.items; } }
 
         /**
          * GetCharacterAt, gets character at x,y
-         * 
+         *
          */
         public ICharacter GetCharacterAt(int x, int y)
         {
@@ -602,7 +610,7 @@ namespace Goose
 
         /**
          * NPCs, returns npcs list
-         * 
+         *
          */
         public List<NPC> NPCs { get { return this.npcs; } }
     }

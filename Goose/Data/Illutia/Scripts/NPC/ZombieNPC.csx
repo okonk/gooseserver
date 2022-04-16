@@ -123,7 +123,7 @@ public class ZombieNPC : BaseNPCScript
 		string packet = P.Cast(npc);
 		packet += '\x1' + P.SpellPlayer(target.LoginID, 65000, 407);
 		packet += '\x1' + P.VitalsPercentage(target);
-		string healString = P.BattleTextHeal(target, healAmount);
+		string healString = P.BattleTextHeal(target, -healAmount);
 		for (int i = 0; i < numberOfHeals; i++)
 		{
 			packet += healString;
@@ -147,6 +147,8 @@ public class ZombieNPC : BaseNPCScript
 				return CastNonTargetAttackSpell(npc, world, 379);
 			case "Rogue":
 				return CastNonTargetAttackSpell(npc, world, 378);
+			case "Bard":
+				return CastBardSpell(npc, world);
 			default:
 				return false;
 		}
@@ -164,6 +166,20 @@ public class ZombieNPC : BaseNPCScript
 
 		var attack = world.SpellHandler.GetSpellEffect(377);
 		attack.Cast(npc, target, world);
+
+		npc.AddAttackEvent(world);
+
+		return true;
+	}
+
+	private bool CastBardSpell(NPC npc, GameWorld world)
+	{
+		var playersInRange = npc.Map.GetPlayersInRange(npc);
+		if (!playersInRange.Any() || world.Random.Next(0, 100) > 10)
+			return false;
+
+		var attack = world.SpellHandler.GetSpellEffect(499);
+		attack.Cast(npc, npc, world);
 
 		npc.AddAttackEvent(world);
 
@@ -202,7 +218,7 @@ public class ZombieNPC : BaseNPCScript
 			string packet = P.NPCAngryEmote(npc);
 		    packet += '\x1' + P.SpellPlayer(npc.LoginID, 65000, 407);
 		    packet += '\x1' + P.VitalsPercentage(npc);
-		    packet += '\x1' + P.BattleTextHeal(npc, healAmount);
+		    packet += '\x1' + P.BattleTextHeal(npc, -healAmount);
 
 			foreach (var player in playersInRange)
 			{

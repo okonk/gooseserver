@@ -12,7 +12,7 @@ namespace Goose
 {
     /**
      * NPC
-     * 
+     *
      */
     public class NPC : ICharacter
     {
@@ -107,8 +107,7 @@ namespace Goose
             get { return this.currentSP; }
             set
             {
-                this.currentSP = value;
-                if (this.currentSP > this.MaxStats.SP) this.currentSP = this.MaxStats.SP;
+                this.currentSP = Math.Min(value, this.MaxSP);
             }
         }
 
@@ -128,9 +127,18 @@ namespace Goose
             }
         }
 
+        public long MaxSP
+        {
+            get
+            {
+                return this.TemporaryMaxSP ?? this.MaxStats.SP;
+            }
+        }
+
         public long? TemporaryMaxHP { get; set; }
 
         public long? TemporaryMaxMP { get; set; }
+        public long? TemporaryMaxSP { get; set; }
 
         /**
          * spawn map x
@@ -148,7 +156,7 @@ namespace Goose
          */
         public int NPCTemplateID { get; set; }
         /**
-         * 
+         *
          */
         public NPCTemplate NPCTemplate { get; set; }
         /**
@@ -347,7 +355,7 @@ namespace Goose
 
         /**
          * CanMoveTo, checks if character can move to the specified x,y
-         * 
+         *
          */
         public bool CanMoveTo(int x, int y)
         {
@@ -509,7 +517,7 @@ namespace Goose
 
         /**
          * MoveTo, moves character
-         * 
+         *
          */
         public void MoveTo(GameWorld world, int x, int y)
         {
@@ -577,7 +585,7 @@ namespace Goose
 
         /**
          * LoadFromTemplate
-         * 
+         *
          */
         public bool LoadFromTemplate(GameWorld world, int map_id, int map_x, int map_y, NPCTemplate template, bool shouldRespawn)
         {
@@ -647,9 +655,9 @@ namespace Goose
 
         /**
          * Spawn, spawns npc
-         * 
+         *
          * adds it to map list, adds a movement event if npc can move
-         * 
+         *
          */
         public void Spawn(GameWorld world)
         {
@@ -678,7 +686,7 @@ namespace Goose
 
             this.CurrentHP = this.MaxHP;
             this.CurrentMP = this.MaxMP;
-            this.CurrentSP = this.MaxStats.SP;
+            this.CurrentSP = this.MaxSP;
 
             this.CurrentBodyID = this.BodyID;
 
@@ -705,7 +713,7 @@ namespace Goose
 
         /**
          * AddMoveEvent, adds move event to event handler
-         * 
+         *
          */
         public void AddMoveEvent(GameWorld world)
         {
@@ -734,9 +742,9 @@ namespace Goose
 
         /**
          * NextStepTo, returns direction to go to get to x,y
-         * 
+         *
          * 1,2,3,4 = up,right,down,left
-         * 
+         *
          */
         public int NextStepTo(int x, int y, GameWorld world)
         {
@@ -765,7 +773,7 @@ namespace Goose
                 if (this.CanMoveTo(nx,ny)) {
                     shortestpath = temp;
                     shortest = 1;
-                    f1++;    
+                    f1++;
                 }
             }
 
@@ -819,14 +827,14 @@ namespace Goose
                 if (d1==1)  { shortest = (rand == 1)? 2 : 4; }
                 if (d2==1)  { shortest = (rand == 1)? 1 : 3; }
                 if (d3==1)  { shortest = (rand == 1)? 2 : 4; }
-                if (d4==1)  { shortest = (rand == 1)? 1 : 3; }    
+                if (d4==1)  { shortest = (rand == 1)? 1 : 3; }
             }
             return shortest;
         }
 
         /**
          * FaceTo, faces to direction
-         * 
+         *
          */
         public void FaceTo(int direction, GameWorld world)
         {
@@ -843,7 +851,7 @@ namespace Goose
 
         /**
          * AddRegenEvent, adds regen event to eventhandler if needed
-         * 
+         *
          */
         public void AddRegenEvent(GameWorld world)
         {
@@ -867,8 +875,8 @@ namespace Goose
         }
 
         /**
-         * 
-         * 
+         *
+         *
          */
         public void AddAggro(Player player, long value, GameWorld world)
         {
@@ -877,7 +885,7 @@ namespace Goose
 
         /**
          * AddAggro, adds aggro to player
-         * 
+         *
          */
         public void AddAggro(Player player, long value, bool wastaunt, GameWorld world)
         {
@@ -949,7 +957,7 @@ namespace Goose
 
         /**
          * RemoveAggro, removes aggro towards player
-         * 
+         *
          */
         public void RemoveAggro(Player player)
         {
@@ -977,7 +985,7 @@ namespace Goose
 
         /**
          * AggroIfInRange, sets aggro to player if needed
-         * 
+         *
          */
         public void AggroIfInRange(Player player, GameWorld world)
         {
@@ -990,7 +998,7 @@ namespace Goose
                 string packet = P.NPCAngryEmote(this) + "\x1";
 
                 this.AddAggro(player, 1, world);
-                
+
                 List<NPC> npcs = this.Map.GetNPCsInRange(this);
                 foreach (NPC npc in npcs)
                 {
@@ -1022,7 +1030,7 @@ namespace Goose
 
         /**
          * NPC was attacked by character
-         * 
+         *
          * BattleText ids:
          * 1 - Red text
          * 7 - Green text
@@ -1031,7 +1039,7 @@ namespace Goose
          * 20 - DODGE
          * 21 - MISS
          * 60 - Yellow text
-         * 
+         *
          */
         public void Attacked(ICharacter character, long damage, GameWorld world)
         {
@@ -1181,7 +1189,7 @@ namespace Goose
                         this.RemoveBuff(b, world);
                     }
 
-                    if (highest is Group) 
+                    if (highest is Group)
                         this.DropItems(((Group)highest).Players[0], world);
                     else
                         this.DropItems(((Player)highest), world);
@@ -1202,7 +1210,7 @@ namespace Goose
 
         /**
          * AddRespawnEvent, adds respawn event
-         * 
+         *
          */
         public void AddRespawnEvent(GameWorld world)
         {
@@ -1282,7 +1290,7 @@ namespace Goose
                         this.Map.PlaceCharacter(this);
                         this.MoveTo(world, this.MapX, this.MapY);
                         // kinda hackish, moveto will set the aggrotarget char to null so have to reset it
-                        //this.Map.SetCharacter(this.AggroTarget, 
+                        //this.Map.SetCharacter(this.AggroTarget,
                         //    this.AggroTarget.MapX, this.AggroTarget.MapX);
                         // reset attack time so doesn't keep teleporting if it can't attack
                         this.LastAttackTime = world.TimeNow;
@@ -1322,7 +1330,7 @@ namespace Goose
 
         /**
          * AddAttackEvent, adds attack event if none exist
-         * 
+         *
          */
         public void AddAttackEvent(GameWorld world)
         {
@@ -1352,13 +1360,13 @@ namespace Goose
 
         /**
          * Attack, attack character
-         * 
+         *
          */
         public void Attack(ICharacter character, GameWorld world)
         {
-            double damage = this.MaxStats.Strength + 
-                            this.WeaponDamage + 
-                            this.Level + 
+            double damage = this.MaxStats.Strength +
+                            this.WeaponDamage +
+                            this.Level +
                             (this.Level - character.Level);
 
             double maxac = GameWorld.Settings.MaxAC;
@@ -1399,14 +1407,14 @@ namespace Goose
 
         /**
          * DropItems, drop items if any
-         * 
+         *
          */
         public void DropItems(Player player, GameWorld world)
         {
             foreach (NPCDropInfo dropinfo in this.NPCTemplate.Drops)
             {
-                if (world.Random.Next(1, 1000001) <= 
-                    GameWorld.Settings.DropRateModifier * dropinfo.DropRate * 10000)
+                if (world.Random.Next(1, 1000000001) <=
+                    GameWorld.Settings.DropRateModifier * dropinfo.DropRate * 10000000)
                 {
                     ItemSlot drop = new ItemSlot();
                     if (dropinfo.ItemTemplate.ID == GameWorld.Settings.GoldItemID)
@@ -1430,7 +1438,7 @@ namespace Goose
                     tile.Y = this.MapY;
                     if (player is Pet) tile.Owner = ((Pet)player).Owner;
                     else tile.Owner = player;
-                    tile.PickupTime = 
+                    tile.PickupTime =
                         world.TimeNow + (GameWorld.Settings.ItemProtectedTime * world.TimerFrequency);
                     this.Map.PlaceItem(tile);
 
@@ -1581,7 +1589,7 @@ namespace Goose
 
         /**
         * OnMeleeHit, when hit by melee cast any reaction spells
-        * 
+        *
         */
         public void OnMeleeHit(ICharacter hitter, GameWorld world)
         {
@@ -1597,7 +1605,7 @@ namespace Goose
 
         /**
          * OnMeleeAttack, casts melee attack spells when we hit something
-         * 
+         *
          */
         public void OnMeleeAttack(ICharacter hit, GameWorld world)
         {
@@ -1614,7 +1622,7 @@ namespace Goose
 
         /**
          * OpenVendorWindow, opens vendor window with player if needed
-         * 
+         *
          */
         public void OpenVendorWindow(Player player, GameWorld world)
         {
@@ -1640,7 +1648,7 @@ namespace Goose
 
         /**
          * CloseVendorWindow, removes vendor window from players info
-         * 
+         *
          */
         public void CloseVendorWindow(Window window, Player player, GameWorld world)
         {

@@ -12,10 +12,12 @@ namespace Goose
 {
     /**
      * Inventory, handles a players inventory
-     * 
+     *
      */
     public class Inventory
     {
+        private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
+
         public enum EquipSlots
         {
             Weapon = 1,
@@ -70,10 +72,10 @@ namespace Goose
 
         /**
          * AddItem, adds an item to inventory
-         * 
+         *
          * Adds to first free slot or stack that it can fit into.
          * If it can't do any of these returns false.
-         * 
+         *
          */
         public bool AddItem(Item item, long stack, GameWorld world)
         {
@@ -104,9 +106,9 @@ namespace Goose
 
         /**
          * SendSlot, sends information about slot i to the player who owns the inventory
-         * 
+         *
          * if they're in game
-         * 
+         *
          */
         public void SendSlot(int i, GameWorld world)
         {
@@ -140,7 +142,7 @@ namespace Goose
 
         /**
          * SendAll, sends all slots to player
-         * 
+         *
          */
         public void SendAll(GameWorld world)
         {
@@ -157,7 +159,7 @@ namespace Goose
 
         /**
          * GetSlot, returns slot i
-         * 
+         *
          */
         public ItemSlot GetSlot(int i)
         {
@@ -177,7 +179,7 @@ namespace Goose
 
         /**
          * SwapSlots, swaps the 2 slots
-         * 
+         *
          */
         public void SwapSlots(int fromSlotId, int toSlotId, GameWorld world)
         {
@@ -195,7 +197,7 @@ namespace Goose
 
         /**
          * SplitSlots, adds one item from slot 1 to slot 2
-         * 
+         *
          */
         public void SplitSlots(int id1, int id2, GameWorld world)
         {
@@ -242,9 +244,9 @@ namespace Goose
 
         /**
          * Use, equip/use item at slot id if possible
-         * 
+         *
          * Note: Assumes slot id is valid
-         * 
+         *
          */
         public void Use(int id, GameWorld world)
         {
@@ -277,9 +279,9 @@ namespace Goose
 
         /**
          * Equip, equips item
-         * 
+         *
          * Returns true if item could be successfully equipped
-         * 
+         *
          */
         public bool Equip(Item item, GameWorld world)
         {
@@ -302,7 +304,7 @@ namespace Goose
                 }
                 // Try to unequip 2handed weapon if shield is tried to be equipped
                 else if (equipslot == EquipSlots.Shield &&
-                    this.GetEquippedSlot(EquipSlots.Weapon) != null && 
+                    this.GetEquippedSlot(EquipSlots.Weapon) != null &&
                     this.GetEquippedSlot(EquipSlots.Weapon).Item.Slot == ItemTemplate.ItemSlots.TwoHanded)
                 {
                     // If we can't unequip the weapon then we can't equip the shield, so return false
@@ -380,9 +382,9 @@ namespace Goose
 
         /**
          * UseConsumable, use consumable item
-         * 
+         *
          * Potions, teleports, kegs
-         * 
+         *
          */
         public void UseConsumable(Item item, GameWorld world)
         {
@@ -409,7 +411,7 @@ namespace Goose
 
             if (item.SpellEffect != null && world.Random.Next(1, 100001) <= item.SpellEffectChance * 1000)
             {
-                item.SpellEffect.Cast(this.player, this.player, world); 
+                item.SpellEffect.Cast(this.player, this.player, world);
             }
 
             if (item.Script != null)
@@ -429,9 +431,9 @@ namespace Goose
 
         /**
          * RemoveItem, removes number items from inventory
-         * 
+         *
          * Returns ItemSlot with the item and stack
-         * 
+         *
          */
         public ItemSlot RemoveItem(Item item, long number, GameWorld world)
         {
@@ -511,9 +513,9 @@ namespace Goose
 
         /**
          * Unequip, unequips equipped item at equip slot
-         * 
+         *
          * Returns true if item could successfully be unequipped
-         * 
+         *
          */
         public bool Unequip(EquipSlots equipslot, GameWorld world)
         {
@@ -564,11 +566,11 @@ namespace Goose
 
         /**
          * Unequip, unequips equipped item at slot id
-         * 
+         *
          * Note: Assumes slot id is valid
-         * 
+         *
          * Returns true if item could successfully be unequipped
-         * 
+         *
          */
         public bool Unequip(int id, GameWorld world)
         {
@@ -581,10 +583,10 @@ namespace Goose
 
         /**
          * ItemSlotToEquipSlot, returns the slot id for equipment
-         * 
+         *
          * Note: ItemSlot refers to the ItemTemplate.ItemSlots enum, not the ItemSlot class,
          * should probably name it better but it'll do
-         * 
+         *
          */
         public EquipSlots ItemSlotToEquipSlot(ItemTemplate.ItemSlots slot)
         {
@@ -598,7 +600,7 @@ namespace Goose
 
                 case ItemTemplate.ItemSlots.Cloak:
                     return EquipSlots.Cloak;
- 
+
                 case ItemTemplate.ItemSlots.Gloves:
                     return EquipSlots.Gloves;
 
@@ -643,7 +645,7 @@ namespace Goose
 
         /**
          * GetEquippedSlot, returns the equipped item at the specified slot
-         * 
+         *
          */
         public ItemSlot GetEquippedSlot(EquipSlots slot)
         {
@@ -652,10 +654,10 @@ namespace Goose
 
         /**
          * GetEquippedSlot, returns equipped slot i
-         * 
+         *
          * Note: inventory size is subtracted from i to get it into equipped array range
          * since i as sent from the client is inventorysize + i
-         * 
+         *
          */
         public ItemSlot GetEquippedSlot(int i)
         {
@@ -671,14 +673,14 @@ namespace Goose
 
         /**
          * EquippedDisplay, returns equipped items display for use in MKC and CHP
-         * 
+         *
          * Note: keeps extra , on end
-         * 
+         *
          */
         public string EquippedDisplay()
         {
             string e = "";
-            EquipSlots[] slots = new EquipSlots[]{EquipSlots.Chest, EquipSlots.Head, 
+            EquipSlots[] slots = new EquipSlots[]{EquipSlots.Chest, EquipSlots.Head,
                 EquipSlots.Legs, EquipSlots.Feet, EquipSlots.Shield, EquipSlots.Weapon};
             ItemSlot item;
             foreach (EquipSlots eq in slots)
@@ -710,7 +712,7 @@ namespace Goose
 
         /**
          * MountDisplay, returns mount display for use in MKC and CHP
-         * 
+         *
          */
         public string MountDisplay()
         {
@@ -741,7 +743,7 @@ namespace Goose
 
         /**
          * SendEquippedSlot, sends info about equipped slot to player
-         * 
+         *
          */
         public void SendEquippedSlot(EquipSlots equipslot, GameWorld world)
         {
@@ -761,7 +763,7 @@ namespace Goose
 
         /**
          * HasItem, returns true if inventory has templateid somewhere
-         * 
+         *
          */
         public bool HasItem(int templateid)
         {
@@ -806,9 +808,9 @@ namespace Goose
 
         /**
          * GetWeaponDamage, returns currently equipped weapons damage
-         * 
+         *
          * Or 1 if no weapon
-         * 
+         *
          */
         public int GetWeaponDamage()
         {
@@ -819,9 +821,9 @@ namespace Goose
 
         /**
          * GetWeaponDelay, returns currently equipped weapons delay
-         * 
+         *
          * Or 10 if no weapon
-         * 
+         *
          */
         public int GetWeaponDelay()
         {
@@ -832,7 +834,7 @@ namespace Goose
 
         /**
          * Save, saves to database
-         * 
+         *
          */
         public void Save(GameWorld world)
         {
@@ -863,7 +865,7 @@ namespace Goose
 
         /**
          * Load, loads from database
-         * 
+         *
          */
         public void Load(GameWorld world)
         {
@@ -880,6 +882,8 @@ namespace Goose
                     world.ItemHandler.AddItem(invSlot.Item, world);
 
                     invSlot.Item.Template = world.ItemHandler.GetTemplate(invSlot.Item.TemplateID);
+                    if (invSlot.Item.Template == null)
+                        log.Warn("ItemTemplate '{}' was not found", invSlot.Item.TemplateID);
                     invSlot.Item.RefreshStats();
                 }
             }
@@ -897,6 +901,8 @@ namespace Goose
                     world.ItemHandler.AddItem(equipSlot.Item, world);
 
                     equipSlot.Item.Template = world.ItemHandler.GetTemplate(equipSlot.Item.TemplateID);
+                    if (equipSlot.Item.Template == null)
+                        log.Warn("ItemTemplate '{}' was not found", equipSlot.Item.TemplateID);
                     equipSlot.Item.RefreshStats();
 
                     this.player.AddStats(equipSlot.Item.TotalStats, world);
@@ -927,6 +933,8 @@ namespace Goose
                     world.ItemHandler.AddItem(combineSlot.Item, world);
 
                     combineSlot.Item.Template = world.ItemHandler.GetTemplate(combineSlot.Item.TemplateID);
+                    if (combineSlot.Item.Template == null)
+                        log.Warn("ItemTemplate '{}' was not found", combineSlot.Item.TemplateID);
                     combineSlot.Item.RefreshStats();
 
                     this.combineContainer.SetSlot(i, combineSlot);
@@ -936,7 +944,7 @@ namespace Goose
 
         /**
          * Combine, combines whatever is in combine bag if possible
-         * 
+         *
          */
         public void Combine(Window combineBagWindow, GameWorld world)
         {
@@ -983,7 +991,7 @@ namespace Goose
             else if (match.MaxExperience > 0 &&
                 match.MaxExperience < this.player.Experience + this.player.ExperienceSold)
             {
-                world.Send(this.player, P.ServerMessage("You need less than " + match.MaxExperience + 
+                world.Send(this.player, P.ServerMessage("You need less than " + match.MaxExperience +
                     " experience to create " + match.Name + "."));
                 return;
             }
@@ -1045,7 +1053,7 @@ namespace Goose
             }
 
             int index;
-            foreach (ItemTemplate template in match.ResultItems) 
+            foreach (ItemTemplate template in match.ResultItems)
             {
                 if (template.IsLore && this.player.HasItem(template.ID))
                 {

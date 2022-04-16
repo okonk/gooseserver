@@ -203,6 +203,28 @@ namespace Goose
                 return;
             }
 
+            if (Environment.GetCommandLineArgs().Contains("updatesql"))
+            {
+                log.Info("Updating SQL:");
+                try
+                {
+                    var sqlData = CsvToSql.Core.CsvToSqlConverter.Convert(GameWorld.Settings.DataLink);
+                    using (var command = this.SqlConnection.CreateCommand())
+                    {
+                        command.CommandText = sqlData;
+
+                        command.ExecuteNonQuery();
+                    }
+                }
+                catch (Exception e)
+                {
+                    log.Error(e, "Failed updating sql");
+                    return;
+                }
+
+                log.Info("Updated");
+            }
+
             log.Info("Loading Guilds: ");
             try
             {
@@ -680,7 +702,7 @@ namespace Goose
 
         public bool RollChance(double chance)
         {
-            return this.Random.Next(1, 1000001) <= chance * 1000000;
+            return this.Random.Next(1, 1000000001) <= chance * 1000000000;
         }
     }
 }

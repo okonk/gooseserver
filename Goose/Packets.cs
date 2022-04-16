@@ -376,7 +376,7 @@ namespace Goose
                    player.Level + "," +
                    player.MaxHP + "," +
                    player.MaxMP + "," +
-                   player.MaxStats.SP + "," +
+                   player.MaxSP + "," +
                    player.CurrentHP + "," +
                    player.CurrentMP + "," +
                    player.CurrentSP + "," +

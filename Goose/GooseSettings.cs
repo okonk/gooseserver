@@ -35,6 +35,8 @@ namespace Goose
         public int BaseHPStaticRegen { get; set; }
         public decimal BaseMPPercentRegen { get; set; }
         public int BaseMPStaticRegen { get; set; }
+        public decimal BaseSPPercentRegen { get; set; }
+        public int BaseSPStaticRegen { get; set; }
         public int StartingHP { get; set; }
         public int StartingMP { get; set; }
         public int StartingSP { get; set; }

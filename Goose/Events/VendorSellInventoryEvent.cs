@@ -7,9 +7,9 @@ namespace Goose.Events
 {
     /**
      * Player sold item to vendor
-     * 
+     *
      * Format: VSInpcid,invslotid,stack
-     * 
+     *
      */
     public class VendorSellInventoryEvent : Event
     {
@@ -86,7 +86,7 @@ namespace Goose.Events
                     world.Send(this.Player, P.ServerMessage("I have no interest in purchasing " + slot.Item.Name + "."));
                     return;
                 }
-                
+
                 if (slot.Item.Value == 0)
                 {
                     world.Send(this.Player, P.ServerMessage("I have no interest in purchasing " + slot.Item.Name + "."));
@@ -95,11 +95,15 @@ namespace Goose.Events
 
                 ItemSlot sellslot = this.Player.Inventory.RemoveItem(slot.Item, stack, world);
 
-                this.Player.AddGold(sellslot.Stack * slot.Item.Value / 2, world);
+                long price = sellslot.Stack * slot.Item.Value / 2;
+                this.Player.AddGold(price, world);
 
                 world.Send(this.Player, P.ServerMessage("Sold " + sellslot.Item.Name +
                     (sellslot.Stack > 1 ? " (" + sellslot.Stack + ")" : "") +
                     " for " + sellslot.Stack * sellslot.Item.Value / 2 + " gold."));
+
+                world.LogHandler.Log(Log.Types.SellToVendor, this.Player.PlayerID, $"{slot.Item.Name} ({slot.Item.TemplateID}) x{slot.Stack} ({price} gp)",
+                    npc.NPCTemplateID, this.Player.Map.ID, this.Player.MapX, this.Player.MapY);
             }
         }
     }

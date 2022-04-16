@@ -25,7 +25,7 @@ namespace Goose
         /// Returns the first empty login id for a pet
         /// </summary>
         /// <returns></returns>
-        public static int GetLoginID() 
+        public static int GetLoginID()
         {
             int startpoint = GameWorld.Settings.MaxPlayers + GameWorld.Settings.MaxNPCs + 1;
             for (int i = startpoint; ; i++)
@@ -164,6 +164,8 @@ namespace Goose
             pet.MaxStats.HPStaticRegen += GameWorld.Settings.BaseHPStaticRegen;
             pet.MaxStats.MPPercentRegen += GameWorld.Settings.BaseMPPercentRegen;
             pet.MaxStats.MPStaticRegen += GameWorld.Settings.BaseMPStaticRegen;
+            pet.MaxStats.SPPercentRegen += GameWorld.Settings.BaseSPPercentRegen;
+            pet.MaxStats.SPStaticRegen += GameWorld.Settings.BaseSPStaticRegen;
             pet.CurrentHP = pet.MaxHP;
             pet.CurrentMP = pet.MaxMP;
             pet.Experience = pet.Class.GetLevel(pet.Level).Experience/2;
@@ -253,6 +255,8 @@ namespace Goose
             pet.MaxStats.HPStaticRegen += GameWorld.Settings.BaseHPStaticRegen;
             pet.MaxStats.MPPercentRegen += GameWorld.Settings.BaseMPPercentRegen;
             pet.MaxStats.MPStaticRegen += GameWorld.Settings.BaseMPStaticRegen;
+            pet.MaxStats.SPPercentRegen += GameWorld.Settings.BaseSPPercentRegen;
+            pet.MaxStats.SPStaticRegen += GameWorld.Settings.BaseSPStaticRegen;
 
             pet.Class = world.ClassHandler.GetClass(pet.ClassID);
             pet.MaxStats += pet.Class.GetLevel(pet.Level).BaseStats;
@@ -305,7 +309,7 @@ namespace Goose
                     "face_id, hair_id, hair_r, hair_g, hair_b, hair_a, respawn_time, aggro_range, attack_speed, attack_range, " +
                     "move_speed, body_state, equipped_items, weapon_damage, hp_percent_regen, hp_static_regen, " +
                     "mp_percent_regen, mp_static_regen, owner_id) VALUES" +
-                    "(" + 
+                    "(" +
                     this.PetID + "," +
                     " @petName, @petTitle, @petSurname, " +
                     this.Facing + ", " +
@@ -441,7 +445,7 @@ namespace Goose
 
             this.CurrentHP = this.MaxHP;
             this.CurrentMP = this.MaxMP;
-            this.CurrentSP = this.MaxStats.SP;
+            this.CurrentSP = this.MaxSP;
             this.CurrentBodyID = this.BodyID;
 
             this.LastAttack = world.TimeNow;
@@ -530,9 +534,9 @@ namespace Goose
 
         /**
          * NextStepTo, returns direction to go to get to x,y
-         * 
+         *
          * 1,2,3,4 = up,right,down,left
-         * 
+         *
          */
         public int NextStepTo(int x, int y, GameWorld world)
         {
@@ -683,7 +687,7 @@ namespace Goose
 
         /**
          * FaceTo, faces to direction
-         * 
+         *
          */
         public void FaceTo(int direction, GameWorld world)
         {
@@ -714,7 +718,7 @@ namespace Goose
 
         /**
          * Player was attacked by character
-         * 
+         *
          */
         public override void Attacked(ICharacter character, long damage, GameWorld world)
         {
@@ -845,7 +849,7 @@ namespace Goose
             }
             set
             {
-                
+
             }
         }
     }

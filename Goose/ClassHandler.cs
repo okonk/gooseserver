@@ -9,7 +9,7 @@ namespace Goose
 {
     /**
      * ClassHandler, handles Class objects
-     * 
+     *
      */
     public class ClassHandler
     {
@@ -22,7 +22,7 @@ namespace Goose
 
         /**
          * GetClass, returns class object from id
-         * 
+         *
          */
         public Class GetClass(int id)
         {
@@ -38,7 +38,7 @@ namespace Goose
 
         /**
          * LoadClasses, loads classes from database
-         * 
+         *
          */
         public void LoadClasses(GameWorld world)
         {
@@ -57,6 +57,8 @@ namespace Goose
                 c.ManaCost = Convert.ToInt64(reader["mana_cost"]);
 
                 this.classes[c.ClassID] = c;
+
+                world.RankHandler.AddClass(c);
             }
             reader.Close();
 

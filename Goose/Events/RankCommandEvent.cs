@@ -7,9 +7,9 @@ namespace Goose.Events
 {
     /**
      * RankCommandEvent, handles /rank
-     * 
+     *
      * Packet: /rank [all, gold, magus, priest, warrior, rogue]
-     * 
+     *
      */
     class RankCommandEvent : Event
     {
@@ -30,14 +30,15 @@ namespace Goose.Events
 
                 if (data.Length <= 0)
                 {
-                    world.Send(this.Player, P.ServerMessage("Usage: /rank [all, gold, magus, priest, warrior, rogue]"));
+                    world.Send(this.Player, P.ServerMessage("Usage: /rank [all, gold, <classname>]"));
                     return;
                 }
 
                 data = data.Substring(1);
 
                 Window window;
-                switch (data.ToLower())
+                var argumentLower = data.ToLowerInvariant();
+                switch (argumentLower)
                 {
                     case "all":
                         window = new Window();
@@ -53,37 +54,20 @@ namespace Goose.Events
                         window.Buttons = "0,0,0,0,0";
                         window.Data = world.RankHandler.Gold;
                         break;
-                    case "magus":
-                        window = new Window();
-                        window.Type = Window.WindowTypes.Rank;
-                        window.Title = "Magus Ranks";
-                        window.Buttons = "0,0,0,0,0";
-                        window.Data = world.RankHandler.Magus;
-                        break;
-                    case "priest":
-                        window = new Window();
-                        window.Type = Window.WindowTypes.Rank;
-                        window.Title = "Priest Ranks";
-                        window.Buttons = "0,0,0,0,0";
-                        window.Data = world.RankHandler.Priest;
-                        break;
-                    case "warrior":
-                        window = new Window();
-                        window.Type = Window.WindowTypes.Rank;
-                        window.Title = "Warrior Ranks";
-                        window.Buttons = "0,0,0,0,0";
-                        window.Data = world.RankHandler.Warrior;
-                        break;
-                    case "rogue":
-                        window = new Window();
-                        window.Type = Window.WindowTypes.Rank;
-                        window.Title = "Rogue Ranks";
-                        window.Buttons = "0,0,0,0,0";
-                        window.Data = world.RankHandler.Rogue;
-                        break;
                     default:
-                        world.Send(this.Player, P.ServerMessage("Usage: /rank [all, gold, magus, priest, warrior, rogue]"));
-                        return;
+                        if (!world.RankHandler.ClassRanks.TryGetValue(argumentLower, out Ranks classRank))
+                        {
+                            world.Send(this.Player, P.ServerMessage("Usage: /rank [all, gold, <classname>]"));
+                            return;
+                        }
+
+                        window = new Window();
+                        window.Type = Window.WindowTypes.Rank;
+                        window.Title = $"{System.Globalization.CultureInfo.InvariantCulture.TextInfo.ToTitleCase(argumentLower)} Ranks";
+                        window.Buttons = "0,0,0,0,0";
+                        window.Data = classRank;
+
+                        break;
                 }
 
                 this.Player.Windows.Add(window);

@@ -30,7 +30,9 @@ namespace Goose
             GaveCredits = 15,
             InvalidPassword = 16,
             CreatedCustom,
-            
+            BuyFromVendor,
+            SellToVendor,
+
 
             // GM-related logs
             GetItem = 10001,

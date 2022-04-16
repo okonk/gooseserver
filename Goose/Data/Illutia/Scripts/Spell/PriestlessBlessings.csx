@@ -10,7 +10,7 @@ public class PriestlessBlessings : BaseSpellEffectScript
 		var player = buff.Target as Player;
 		if (player == null) return;
 
-		if (player.Group != null && player.Group.Players.Any(p => p.Class.ClassName == "Priest"))
+		if (player.Group != null && player.Group.Players.Any(p => p.Class.ClassName == "Priest" || p.Class.ClassName == "Bard"))
 			return;
 
 		buff.SpellEffect.CastFormulaSpell(buff.Caster, buff.Target, world);

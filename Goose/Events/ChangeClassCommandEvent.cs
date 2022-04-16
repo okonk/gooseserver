@@ -5,11 +5,11 @@ using System.Text;
 
 namespace Goose.Events
 {
-    class ClassChangeCommandEvent : Event
+    class ChangeClassCommandEvent : Event
     {
         public static Event Create(Player player, Object data)
         {
-            Event e = new ClassChangeCommandEvent();
+            Event e = new ChangeClassCommandEvent();
             e.Player = player;
             e.Data = data;
 
@@ -45,27 +45,14 @@ namespace Goose.Events
                     return;
                 }
 
-                switch (cl.ToLower())
+                var newClass = world.ClassHandler.Classes.FirstOrDefault(c => c.ClassName.ToLowerInvariant() == cl.ToLowerInvariant());
+                if (newClass == null)
                 {
-                    case "commoner":
-                        player.ClassID = 1;
-                        break;
-                    case "rogue":
-                        player.ClassID = 2;
-                        break;
-                    case "warrior":
-                        player.ClassID = 3;
-                        break;
-                    case "magus":
-                        player.ClassID = 4;
-                        break;
-                    case "priest":
-                        player.ClassID = 5;
-                        break;
-                    default:
-                        world.Send(this.Player, P.ServerMessage("Invalid class name."));
-                        return;
+                    world.Send(this.Player, P.ServerMessage("Invalid class name."));
+                    return;
                 }
+
+                player.ClassID = newClass.ClassID;
 
                 player.RemoveStats(player.BaseStats, world);
 
@@ -78,7 +65,7 @@ namespace Goose.Events
 
                 player.AddStats(player.BaseStats, world);
 
-                player.Class = world.ClassHandler.GetClass(player.ClassID);
+                player.Class = newClass;
 
                 player.AddStats(player.Class.GetLevel(player.Level).BaseStats, world);
 

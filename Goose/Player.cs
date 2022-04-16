@@ -185,7 +185,7 @@ namespace Goose
             get { return this.currentSP; }
             set
             {
-                this.currentSP = Math.Min(value, this.MaxStats.SP);
+                this.currentSP = Math.Min(value, this.MaxSP);
             }
         }
 
@@ -205,9 +205,18 @@ namespace Goose
             }
         }
 
+        public long MaxSP
+        {
+            get
+            {
+                return this.TemporaryMaxSP ?? this.MaxStats.SP;
+            }
+        }
+
         public long? TemporaryMaxHP { get; set; }
 
         public long? TemporaryMaxMP { get; set; }
+        public long? TemporaryMaxSP { get; set; }
 
         /**
          * Bound/respawn map id
@@ -366,6 +375,8 @@ namespace Goose
         public int NumberOfBankPages { get; set; }
 
         public decimal AdditionalExperienceModifier { get; set; }
+
+        public bool SPRegenSwitch { get; set; }
 
         /**
          * Bitfield for toggled settings
@@ -576,6 +587,8 @@ namespace Goose
             this.MaxStats.HPStaticRegen = GameWorld.Settings.BaseHPStaticRegen;
             this.MaxStats.MPPercentRegen = GameWorld.Settings.BaseMPPercentRegen;
             this.MaxStats.MPStaticRegen = GameWorld.Settings.BaseMPStaticRegen;
+            this.MaxStats.SPPercentRegen = GameWorld.Settings.BaseSPPercentRegen;
+            this.MaxStats.SPStaticRegen = GameWorld.Settings.BaseSPStaticRegen;
             this.MaxStats.MoveSpeedIncrease = GameWorld.Settings.BaseMoveSpeedIncrease;
 
             this.Class = world.ClassHandler.GetClass(this.ClassID);
@@ -703,6 +716,8 @@ namespace Goose
             this.MaxStats.HPStaticRegen = GameWorld.Settings.BaseHPStaticRegen;
             this.MaxStats.MPPercentRegen = GameWorld.Settings.BaseMPPercentRegen;
             this.MaxStats.MPStaticRegen = GameWorld.Settings.BaseMPStaticRegen;
+            this.MaxStats.SPPercentRegen = GameWorld.Settings.BaseSPPercentRegen;
+            this.MaxStats.SPStaticRegen = GameWorld.Settings.BaseSPStaticRegen;
             this.MaxStats.MoveSpeedIncrease = GameWorld.Settings.BaseMoveSpeedIncrease;
 
             this.Class = world.ClassHandler.GetClass(this.ClassID);
@@ -1232,7 +1247,8 @@ namespace Goose
             if (this.RegenEventExists) return;
 
             if ((this.CurrentHP == this.MaxHP) &&
-                (this.CurrentMP == this.MaxMP))
+                (this.CurrentMP == this.MaxMP) &&
+                (this.CurrentSP == this.MaxSP))
             {
                 // Already max stats
                 return;
@@ -1395,7 +1411,7 @@ namespace Goose
 
             this.CurrentHP = Math.Min(this.CurrentHP, this.MaxHP);
             this.CurrentMP = Math.Min(this.CurrentMP, this.MaxMP);
-            this.CurrentSP = Math.Min(this.CurrentSP, this.MaxStats.SP);
+            this.CurrentSP = Math.Min(this.CurrentSP, this.MaxSP);
 
             world.Send(this, P.StatusInfo(this));
             this.AddRegenEvent(world);
@@ -1415,7 +1431,7 @@ namespace Goose
             {
                 this.CurrentHP = Math.Min(this.CurrentHP, this.MaxHP);
                 this.CurrentMP = Math.Min(this.CurrentMP, this.MaxMP);
-                this.CurrentSP = Math.Min(this.CurrentSP, this.MaxStats.SP);
+                this.CurrentSP = Math.Min(this.CurrentSP, this.MaxSP);
 
                 world.Send(this, P.StatusInfo(this));
                 this.AddRegenEvent(world);
@@ -1796,8 +1812,8 @@ namespace Goose
             if (now - lastcast >= (long)((spell.Aether / 1000.0) * world.TimerFrequency))
             {
                 if (this.CurrentHP >= spell.HPStaticCost &&
-                    this.CurrentMP >= spell.MPStaticCost &&
-                    this.CurrentSP >= spell.SPStaticCost)
+                    this.CurrentMP >= spell.MPStaticCost)
+                    //this.CurrentSP >= spell.SPStaticCost) // for testing sp spells don't check the cost..
                 {
                     if (spell.Target == Spell.SpellTargets.Group)
                     {
@@ -1826,9 +1842,9 @@ namespace Goose
                     this.CurrentMP -= spell.MPStaticCost;
                     this.CurrentSP -= spell.SPStaticCost;
 
-                    this.CurrentHP -= (long)(this.CurrentHP * (spell.HPPercentCost / (decimal)100.0));
-                    this.CurrentMP -= (long)(this.CurrentMP * (spell.MPPercentCost / (decimal)100.0));
-                    this.CurrentSP -= (long)(this.CurrentSP * (spell.SPPercentCost / (decimal)100.0));
+                    this.CurrentHP -= (long)(this.CurrentHP * (spell.HPPercentCost / 100.0m));
+                    this.CurrentMP -= (long)(this.CurrentMP * (spell.MPPercentCost / 100.0m));
+                    this.CurrentSP -= (long)(this.CurrentSP * (spell.SPPercentCost / 100.0m));
 
                     if (this.CurrentHP <= 0) this.CurrentHP = 1;
                     if (this.CurrentMP < 0) this.CurrentMP = 0;

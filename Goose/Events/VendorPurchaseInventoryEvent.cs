@@ -7,9 +7,9 @@ namespace Goose.Events
 {
     /**
      * Player bought item from vendor
-     * 
+     *
      * Format: VPInpcid,slotid
-     * 
+     *
      */
     public class VendorPurchaseInventoryEvent : Event
     {
@@ -30,7 +30,7 @@ namespace Goose.Events
                 int slotid = 0;
 
                 string[] t = ((string)this.Data).Substring(3).Split(",".ToCharArray());
-                
+
                 // log bad packet
                 if (t.Length != 2) return;
 
@@ -79,14 +79,14 @@ namespace Goose.Events
 
                 if (slot.ItemTemplate.IsLore && this.Player.HasItem(slot.ItemTemplate.ID))
                 {
-                    world.Send(this.Player, P.ServerMessage("Can't purchase " + slot.ItemTemplate.Name + 
+                    world.Send(this.Player, P.ServerMessage("Can't purchase " + slot.ItemTemplate.Name +
                         " as it is LORE and you already have this item."));
                     return;
                 }
 
                 if (!npc.CreditDealer && slot.ItemTemplate.Value * slot.Stack > this.Player.Gold)
                 {
-                    world.Send(this.Player, P.ServerMessage("Can't purchase " + slot.ItemTemplate.Name + 
+                    world.Send(this.Player, P.ServerMessage("Can't purchase " + slot.ItemTemplate.Name +
                         (slot.Stack > 1 ? " (" + slot.Stack + ")" : "") +
                         " as you don't have enough gold."));
                     return;
@@ -111,19 +111,27 @@ namespace Goose.Events
                 {
                     if (npc.CreditDealer)
                     {
-                        this.Player.Credits -= (slot.ItemTemplate.Credits * slot.Stack);
+                        int cost = slot.ItemTemplate.Credits * slot.Stack;
+                        this.Player.Credits -= cost;
 
                         world.Send(this.Player, P.ServerMessage("Purchased " + item.Name +
                             (slot.Stack > 1 ? " (" + slot.Stack + ")" : "") +
-                            " for " + slot.ItemTemplate.Credits * slot.Stack + " credits."));
+                            " for " + cost + " credits."));
+
+                        world.LogHandler.Log(Log.Types.BuyFromVendor, this.Player.PlayerID, $"{item.Name} ({item.TemplateID}) x{slot.Stack} ({cost} cr)",
+                            npc.NPCTemplateID, this.Player.Map.ID, this.Player.MapX, this.Player.MapY);
                     }
                     else
                     {
-                        this.Player.RemoveGold(slot.ItemTemplate.Value * slot.Stack, world);
+                        long cost = slot.ItemTemplate.Value * slot.Stack;
+                        this.Player.RemoveGold(cost, world);
 
                         world.Send(this.Player, P.ServerMessage("Purchased " + item.Name +
                             (slot.Stack > 1 ? " (" + slot.Stack + ")" : "") +
-                            " for " + slot.ItemTemplate.Value * slot.Stack + " gold."));
+                            " for " + cost + " gold."));
+
+                        world.LogHandler.Log(Log.Types.BuyFromVendor, this.Player.PlayerID, $"{item.Name} ({item.TemplateID}) x{slot.Stack} ({cost} gp)",
+                            npc.NPCTemplateID, this.Player.Map.ID, this.Player.MapX, this.Player.MapY);
                     }
 
                     if (item.IsBindOnPickup)

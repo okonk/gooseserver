@@ -1,22 +1,25 @@
 bugs:
-show why can't enter map
+
+
 in zombie map make it so if you die you spawn at the start up to 3 times
-There's a bug in the spell cooldowns where if the current time ticks is too low you are unable to cast the daily cooldown spells. Maybe need to default cooldown to long.MinValue instead of 0
-invert class restrictions (more logical, adding a class doesn't break everything)
+
+change /custom command to allow swapping 2hand/1hand graphics
+
+make rogue invisible spell lose aggro
 
 
-need to add sp regen
 
 
-title/surname items
+scp root@game.illutia.net:/root/GooseServer/IllutiaGoose.db /mnt/bloom/media/Dump/Goose/IllutiaGoose_2022-04-03.db
+
+
+change droprate to double
 spell to see monster info
-assign ids to quest requirements/rewards -- be careful, could mess up existing quest data
 Change guilds to not update DB itself
 daily quests
 make invis work
 Readd server browser stuff
 /help command
-Show aether as battletext
 Global chat
 convert decimals -> doubles
 convert hashtables -> Dictionaries
@@ -32,6 +35,7 @@ support for sounds
 Death animations?
 Revives?
 Is it possible to do timed quests? Kill x monkeys in 10 mins
+invert class restrictions (more logical, adding a class doesn't break everything)
 
 change priest group heal to have more range but heal less the further away the heal targets are
 
@@ -50,6 +54,17 @@ automated /macrocheck? maybe only do check every 4+ hours to not get annoying to
 
 
 done:
+add logs for buy/sell item from vendor
+There's a bug in the spell cooldowns where if the current time ticks is too low you are unable to cast the daily cooldown spells. Maybe need to default cooldown to long.MinValue instead of 0
+show why can't enter map
+zombie boss for bard
+title/surname items
+add bard to priest in bottle spell
+/rank bard
+assign ids to quest requirements/rewards -- be careful, could mess up existing quest data
+need to add sp regen
+
+Show aether as battletext
 /macrocheck command
 Spawn time increases the more repeatedly npcs are killed (goal is to force people to move around the map and not stay in 1 spot longer than ~10 mins)
 fix daily spell cooldown

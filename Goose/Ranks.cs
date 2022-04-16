@@ -8,41 +8,41 @@ namespace Goose
 {
     /**
      * Ranks, holds a list of strings which contain rank info
-     * 
+     *
      */
     public class Ranks
     {
         public enum RankTypes
         {
             All = 0,
-            Rogue,
-            Warrior,
-            Priest,
-            Magus,
-            Gold
+            Gold,
+            Class
         }
         public RankTypes Type { get; set; }
 
         public List<Player> RanksList { get; set; }
-        List<String> ranksStrings;
-        long lastUpdated;
+
+        private List<string> ranksStrings;
+        private long lastUpdated;
+        private int classId;
 
         /**
          * Constructor
          */
-        public Ranks(RankTypes type)
+        public Ranks(RankTypes type, int classId = -1)
         {
             this.RanksList = new List<Player>();
             this.ranksStrings = new List<string>();
             this.lastUpdated = 0;
             this.Type = type;
+            this.classId = classId;
         }
 
         /**
          * GetRanks, returns the list of ranks
-         * 
+         *
          * If the information is out of date then it updates first
-         * 
+         *
          */
         public List<string> GetRanks(GameWorld world)
         {
@@ -57,7 +57,7 @@ namespace Goose
 
         /**
          * Update, updates ranking information
-         * 
+         *
          */
         public void Update(GameWorld world)
         {
@@ -79,27 +79,9 @@ namespace Goose
                               orderby p.Gold descending
                               select p).Take(GameWorld.Settings.NumberOfRanks).ToList();
                     break;
-                case RankTypes.Magus:
+                case RankTypes.Class:
                     result = (from p in world.PlayerHandler.GetAllPlayerData()
-                              where p.ClassID == 4 && p.Access == Player.AccessStatus.Normal
-                              orderby p.ExperienceSold descending
-                              select p).Take(GameWorld.Settings.NumberOfRanks).ToList();
-                    break;
-                case RankTypes.Priest:
-                    result = (from p in world.PlayerHandler.GetAllPlayerData()
-                              where p.ClassID == 5 && p.Access == Player.AccessStatus.Normal
-                              orderby p.ExperienceSold descending
-                              select p).Take(GameWorld.Settings.NumberOfRanks).ToList();
-                    break;
-                case RankTypes.Rogue:
-                    result = (from p in world.PlayerHandler.GetAllPlayerData()
-                              where p.ClassID == 2 && p.Access == Player.AccessStatus.Normal
-                              orderby p.ExperienceSold descending
-                              select p).Take(GameWorld.Settings.NumberOfRanks).ToList();
-                    break;
-                case RankTypes.Warrior:
-                    result = (from p in world.PlayerHandler.GetAllPlayerData()
-                              where p.ClassID == 3 && p.Access == Player.AccessStatus.Normal
+                              where p.ClassID == this.classId && p.Access == Player.AccessStatus.Normal
                               orderby p.ExperienceSold descending
                               select p).Take(GameWorld.Settings.NumberOfRanks).ToList();
                     break;
@@ -113,21 +95,18 @@ namespace Goose
             {
                 switch (this.Type)
                 {
-                    case RankTypes.Magus:
-                    case RankTypes.Priest:
-                    case RankTypes.Rogue:
-                    case RankTypes.Warrior:
+                    case RankTypes.Class:
                         line = i + ". " + player.Name + ", " +
-                            FormatNumber(player.ExperienceSold) + " xp";
+                            Utils.FormatNumber(player.ExperienceSold) + " xp";
                         break;
                     case RankTypes.All:
-                        line = i + ". " + player.Name + ", " + 
+                        line = i + ". " + player.Name + ", " +
                             player.Class.ClassName +
-                            ", " + FormatNumber(player.ExperienceSold) + " xp";
+                            ", " + Utils.FormatNumber(player.ExperienceSold) + " xp";
                         break;
                     case RankTypes.Gold:
                         line = i + ". " + player.Name + ", " +
-                            FormatNumber(player.Gold) + " gp";
+                            Utils.FormatNumber(player.Gold) + " gp";
                         break;
                 }
                 i++;
@@ -140,22 +119,6 @@ namespace Goose
             }
 
             this.lastUpdated = world.TimeNow;
-        }
-
-        private static string FormatNumber(long num)
-        {
-            // Ensure number has max 3 significant digits (no rounding up can happen)
-            long i = (long)Math.Pow(10, (int)Math.Max(0, Math.Log10(num) - 2));
-            num = num / i * i;
-
-            if (num >= 1000000000)
-                return (num / 1000000000D).ToString("0.##") + "b";
-            if (num >= 1000000)
-                return (num / 1000000D).ToString("0.##") + "m";
-            if (num >= 1000)
-                return (num / 1000D).ToString("0.##") + "k";
-
-            return num.ToString("#,0");
         }
     }
 }

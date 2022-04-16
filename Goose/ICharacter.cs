@@ -7,9 +7,9 @@ namespace Goose
 {
     /**
      * ICharacter, interface for characters, NPCs and Players
-     * 
+     *
      * Provides a common interface for NPCs and Players to implement
-     * 
+     *
      */
     public interface ICharacter
     {
@@ -58,10 +58,12 @@ namespace Goose
         long MaxHP { get; }
 
         long MaxMP { get; }
+        long MaxSP { get; }
 
         long? TemporaryMaxHP { get; }
 
         long? TemporaryMaxMP { get; }
+        long? TemporaryMaxSP { get; }
 
         /**
          * Level

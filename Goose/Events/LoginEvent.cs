@@ -11,10 +11,10 @@ namespace Goose.Events
 {
     /**
      * LoginEvent, event for the first packet, which should be the login packet
-     * 
+     *
      * Called as soon as a client connects
      * Packet format: LOGINUsername,password,ALPHA33,3.5.2
-     * 
+     *
      * OR for Illutia's newest client:
      * A 2 byte, followed by another byte the length of the message
      * The message is xor-encrypted with the key "Tamra"
@@ -24,13 +24,14 @@ namespace Goose.Events
      * length of the username
      * 16 bytes of password in ASCII
      * length of the password
-     * 
+     *
      * Server responds: LOKServername or LNOReason for failure
      * Login OK or Login Not OK
-     * 
+     *
      */
     public class LoginEvent : Event
     {
+        private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
 
         public enum LoginMessages
         {
@@ -241,13 +242,13 @@ namespace Goose.Events
             this.Player.SuspectedMacroCount = this.Player.SuspectedMacroCount / 2;
             this.Player.AddSaveEvent(world);
 
-            this.Player.CurrentHP = (int)(this.Player.MaxHP * 0.8);
-            this.Player.CurrentMP = (int)(this.Player.MaxMP * 0.8);
-            this.Player.CurrentSP = this.Player.MaxStats.SP;
+            this.Player.CurrentHP = (long)(this.Player.MaxHP * 0.8);
+            this.Player.CurrentMP = (long)(this.Player.MaxMP * 0.8);
+            this.Player.CurrentSP = (long)(this.Player.MaxSP * 0.5);
 
             this.Player.UpdateIdleStatus(world);
 
-            Console.WriteLine(this.Player.Name + " logged in.");
+            log.Info(this.Player.Name + " logged in.");
         }
     }
 }

@@ -10,26 +10,26 @@ namespace Goose
 {
     /**
      * EventHandler, does events at the specified time
-     * 
+     *
      */
     public class EventHandler
     {
         /**
          * SortedList acts like a priority queue
-         * 
+         *
          */
         SortedList<long, Event> events;
 
         /**
          * StringToEvent, converts a string to an event creator delegate
-         * 
+         *
          */
         Dictionary<string, CreateEvent> stringToEvent;
         public delegate Event CreateEvent(Player player, Object data);
 
         /**
          * Constructor, constructs sortedlist
-         * 
+         *
          */
         public EventHandler()
         {
@@ -118,7 +118,7 @@ namespace Goose
             this.stringToEvent.Add("/petdelete ", PetDeleteCommandEvent.Create);
             this.stringToEvent.Add("/unban ", UnbanCommandEvent.Create);
             this.stringToEvent.Add("/checkname ", CheckNameCommandEvent.Create);
-            this.stringToEvent.Add("/classchange ", ClassChangeCommandEvent.Create);
+            this.stringToEvent.Add("/changeclass ", ChangeClassCommandEvent.Create);
             this.stringToEvent.Add("/changename ", ChangeNameCommandEvent.Create);
             this.stringToEvent.Add("/giveexperience ", GiveExperienceCommandEvent.Create);
             this.stringToEvent.Add("/credits", CreditsCommandEvent.Create);
@@ -153,17 +153,17 @@ namespace Goose
 
         /**
          * AddEvent, creates Event object from packet and adds it to events
-         * 
+         *
          * This function is pretty sexy, not sure if it's a very good way of doing it though
          * What it does is searches our stringtToEvent dictionary and sees if any of the keys
          * match with the start of the packet.
-         * 
+         *
          * The stringToEvent dictionary holds a delegate which calls the static member of the Event class
          * which creates a new object of that event type and returns it.
-         * 
+         *
          * If we find a matching packet we return true.
          * If we don't find a match returns false.
-         * 
+         *
          */
         public bool AddEvent(Player player, string packet)
         {
@@ -182,7 +182,7 @@ namespace Goose
 
         /**
          * AddEvent, adds the Event object to events
-         * 
+         *
          */
         public void AddEvent(Event e)
         {
@@ -199,7 +199,7 @@ namespace Goose
 
         /**
          * RemoveEvent, removes event from event handler
-         * 
+         *
          */
         public void RemoveEvent(Event e)
         {
@@ -208,7 +208,7 @@ namespace Goose
 
         /**
          * Update, loops through list doing events if they need to be done
-         * 
+         *
          */
         public void Update(GameWorld world)
         {

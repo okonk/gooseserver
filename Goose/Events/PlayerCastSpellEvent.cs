@@ -7,12 +7,14 @@ namespace Goose.Events
 {
     /**
      * PlayerCastSpellEvent, event for "CAST" packet
-     * 
+     *
      * Syntax: CASTspellbookid,targetid
-     * 
+     *
      */
     public class PlayerCastSpellEvent : Event
     {
+        private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
+
         public static Event Create(Player player, Object data)
         {
             Event e = new PlayerCastSpellEvent();
@@ -85,7 +87,9 @@ namespace Goose.Events
                         {
                             world.LostConnection(this.Player.Sock);
                         }
-                        Console.WriteLine("SUSPECTED MACRO: " + this.Player.Name);
+
+                        if (this.Player.SuspectedMacroCount > 100)
+                            log.Info("SUSPECTED MACRO: " + this.Player.Name);
                     }
                 }
             }

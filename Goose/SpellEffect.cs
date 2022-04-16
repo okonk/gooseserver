@@ -10,7 +10,7 @@ namespace Goose
 {
     /**
      * SpellEffect, holds information for spell effects
-     * 
+     *
      */
     public class SpellEffect
     {
@@ -19,7 +19,7 @@ namespace Goose
         /**
          * Character only shows the animation if there is a character there
          * Tile shows animation all the time.
-         * 
+         *
          */
         public enum SpellDisplays
         {
@@ -59,7 +59,7 @@ namespace Goose
 
         /**
          * Spell Types
-         * 
+         *
          * Formula = only use formulas
          * Buff, temporarily increase stats/change body until effect wears off
          * Permanent, permanently change stats/body
@@ -68,7 +68,7 @@ namespace Goose
          * Taunt, uses formula but does taunt damage also
          * Viral, uses tick but also if it effects anyone it infects them too
          * Tame, used for pet taming spells
-         * 
+         *
          */
         public enum EffectTypes
         {
@@ -99,7 +99,7 @@ namespace Goose
         /**
          * Spell Energy Type
          * Possibly values for bitmask
-         * 
+         *
          */
         public enum EnergyTypes
         {
@@ -148,7 +148,7 @@ namespace Goose
 
         /**
          * If spell is a buff, can it be removed from buff bar by clicking it
-         * 
+         *
          */
         public bool BuffCanBeRemoved { get; set; }
 
@@ -173,7 +173,7 @@ namespace Goose
 
         /**
          * Stats to change
-         * 
+         *
          */
         public AttributeSet Stats { get; set; }
         /**
@@ -262,6 +262,8 @@ namespace Goose
                     return "Current HP";
                 case "%ccmp":
                     return "Current MP";
+                case "%ccsp":
+                    return "Current SP";
                 case "%tchp":
                     return "Target's Current HP";
                 case "%tcmp":
@@ -270,6 +272,8 @@ namespace Goose
                     return "Max HP";
                 case "%cmp":
                     return "Max MP";
+                case "%csp":
+                    return "Max SP";
                 case "%thp":
                     return "Target's Max HP";
                 case "%tmp":
@@ -474,7 +478,7 @@ namespace Goose
 
         /**
          * CastFormulaSpell
-         * 
+         *
          */
         public bool CastFormulaSpell(ICharacter caster, ICharacter target, GameWorld world)
         {
@@ -539,7 +543,7 @@ namespace Goose
 
         /**
          * CastBindSpell
-         * 
+         *
          */
         public bool CastBindSpell(ICharacter caster, ICharacter target, GameWorld world)
         {
@@ -577,7 +581,7 @@ namespace Goose
 
         /**
          * CastPermanentSpell
-         * 
+         *
          */
         public bool CastPermanentSpell(ICharacter caster, ICharacter target, GameWorld world)
         {
@@ -588,7 +592,7 @@ namespace Goose
             target.BaseStats += this.Stats;
 
             if (this.HairID != 0) target.HairID = this.HairID;
-            // an alpha value of 0 means don't dye hair. 
+            // an alpha value of 0 means don't dye hair.
             // kinda hackish but it's better than having another field
             if (this.HairA != 0)
             {
@@ -603,7 +607,7 @@ namespace Goose
                 if (target.CurrentBodyID == target.BodyID) target.CurrentBodyID = this.BodyID;
                 target.BodyID = this.BodyID;
             }
-            // an alpha value of 0 means don't dye body. 
+            // an alpha value of 0 means don't dye body.
             if (this.BodyA != 0)
             {
                 target.BodyR = this.BodyR;
@@ -631,7 +635,7 @@ namespace Goose
 
         /**
          * CastBuffSpell
-         * 
+         *
          */
         public bool CastBuffSpell(ICharacter caster, ICharacter target, GameWorld world)
         {
@@ -680,7 +684,7 @@ namespace Goose
 
         /**
          * CastTickSpell
-         * 
+         *
          */
         public bool CastTickSpell(ICharacter caster, ICharacter target, GameWorld world)
         {
@@ -689,7 +693,7 @@ namespace Goose
 
         /**
          * CastTeleportSpell
-         * 
+         *
          */
         public bool CastTeleportSpell(ICharacter caster, ICharacter target, GameWorld world)
         {
@@ -711,7 +715,7 @@ namespace Goose
             Map map = world.MapHandler.GetMap(this.TeleportMapID);
             if (map == null)
             {
-                ((Player)target).WarpTo(world, ((Player)target).BoundMap, 
+                ((Player)target).WarpTo(world, ((Player)target).BoundMap,
                     ((Player)target).BoundX, ((Player)target).BoundY);
             }
             else
@@ -798,7 +802,7 @@ namespace Goose
             }
 
             double successrate = (double)(
-                player.BaseStats.HP + player.Class.GetLevel(player.Level).BaseStats.HP + 
+                player.BaseStats.HP + player.Class.GetLevel(player.Level).BaseStats.HP +
                 player.BaseStats.MP + player.Class.GetLevel(player.Level).BaseStats.MP) / (double)target.MaxHP;
 
 
@@ -914,7 +918,7 @@ namespace Goose
 
         /**
          * CastSpell, uses the right spell function to cast the spell
-         * 
+         *
          */
         public bool CastSpell(ICharacter caster, ICharacter target, GameWorld world)
         {
@@ -1024,7 +1028,7 @@ namespace Goose
 
         /**
          * Cast, figures out how to cast the spell, centered on target
-         * 
+         *
          */
         public bool Cast(ICharacter caster, ICharacter target, GameWorld world)
         {
@@ -1215,19 +1219,19 @@ namespace Goose
                     {
                         switch (caster.Facing)
                         {
-                            case 1: 
+                            case 1:
                                 y--;
                                 x = ox - i;
                                 break;
-                            case 2: 
+                            case 2:
                                 x++;
                                 y = oy - i;
                                 break;
-                            case 3: 
+                            case 3:
                                 y++;
                                 x = ox - i;
                                 break;
-                            case 4: 
+                            case 4:
                                 x--;
                                 y = oy - i;
                                 break;
@@ -1286,12 +1290,12 @@ namespace Goose
 
         /**
          * ParseFormula, parse spell formula
-         * 
+         *
          * Uses http://en.wikipedia.org/wiki/Shunting-yard_algorithm to convert formula to reverse polish notation
-         * 
+         *
          * Then uses http://en.wikipedia.org/wiki/Reverse_Polish_notation#The_postfix_algorithm to calculate the
          * result
-         * 
+         *
          */
         public long ParseFormula(string formula, ICharacter caster, ICharacter target)
         {
@@ -1312,6 +1316,7 @@ namespace Goose
             symbolToValue.Add("%clevel", caster.Level);
             symbolToValue.Add("%chp", caster.MaxHP);
             symbolToValue.Add("%cmp", caster.MaxMP);
+            symbolToValue.Add("%csp", Math.Max(1, caster.MaxSP));
 
             symbolToValue.Add("%tchp", target.CurrentHP);
             symbolToValue.Add("%tcmp", target.CurrentMP);
@@ -1321,6 +1326,7 @@ namespace Goose
             symbolToValue.Add("%tlevel", target.Level);
             symbolToValue.Add("%thp", target.MaxHP);
             symbolToValue.Add("%tmp", target.MaxMP);
+            symbolToValue.Add("%tsp", Math.Max(1, target.MaxSP));
 
             for (int i = 0; i < formula.Length; i++)
             {

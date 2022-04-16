@@ -26,6 +26,8 @@ namespace Goose
         {
             this.spells = new Spell[GameWorld.Settings.SpellbookSize + 1];
             this.lastcast = new long[GameWorld.Settings.SpellbookSize + 1];
+            for (int i = 0; i < this.lastcast.Length; i++)
+                this.lastcast[i] = long.MinValue;
             this.player = player;
         }
 
@@ -208,7 +210,7 @@ namespace Goose
                 if (this.spells[i] == null)
                 {
                     this.spells[i] = spell;
-                    this.lastcast[i] = 0;
+                    this.lastcast[i] = long.MinValue;
 
                     this.SendSlot(i, world);
 
@@ -233,7 +235,7 @@ namespace Goose
                 world.Send(this.player, P.ServerMessage("You have forgotten " + this.spells[slot].Name + "."));
 
                 this.spells[slot] = null;
-                this.lastcast[slot] = 0;
+                this.lastcast[slot] = long.MinValue;
 
                 this.SendSlot(slot, world);
 
@@ -283,7 +285,7 @@ namespace Goose
                 if ((slot.ClassRestrictions & Convert.ToInt64(Math.Pow(2.0, (double)this.player.Class.ClassID))) != 0)
                 {
                     this.spells[i] = null;
-                    this.lastcast[i] = 0;
+                    this.lastcast[i] = long.MinValue;
 
                     this.SendSlot(i, world);
                 }

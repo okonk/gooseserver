@@ -7,6 +7,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Goose", "Goose\Goose.csproj
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CsvToSql.Core", "CsvToSql\CsvToSql.Core\CsvToSql.Core.csproj", "{64EDC926-58D5-4EF2-9807-C7B9E7499EFB}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CsvToSql", "CsvToSql", "{A87AB0DB-2C88-41B9-9F4C-6837F18AC538}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CsvToSql.Console", "CsvToSql\CsvToSql.Console\CsvToSql.Console.csproj", "{9E3F99FD-529D-4A6F-A90A-2A33B2C623BB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,11 +25,18 @@ Global
 		{64EDC926-58D5-4EF2-9807-C7B9E7499EFB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{64EDC926-58D5-4EF2-9807-C7B9E7499EFB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{64EDC926-58D5-4EF2-9807-C7B9E7499EFB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9E3F99FD-529D-4A6F-A90A-2A33B2C623BB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9E3F99FD-529D-4A6F-A90A-2A33B2C623BB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9E3F99FD-529D-4A6F-A90A-2A33B2C623BB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9E3F99FD-529D-4A6F-A90A-2A33B2C623BB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {0D9F7B0A-5CAD-4879-A3A6-B2308E1A31AD}
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{9E3F99FD-529D-4A6F-A90A-2A33B2C623BB} = {A87AB0DB-2C88-41B9-9F4C-6837F18AC538}
 	EndGlobalSection
 EndGlobal

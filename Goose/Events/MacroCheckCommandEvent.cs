@@ -51,7 +51,7 @@ namespace Goose.Events
                     string code = GenerateMacroCheckCode(world);
                     player.LastMacroCheckTime = timeNow;
                     player.MacroCheckEvent = new MacroCheckEvent();
-                    player.MacroCheckEvent.Ticks += (long)(600 * world.TimerFrequency);
+                    player.MacroCheckEvent.Ticks += (long)(300 * world.TimerFrequency);
                     player.MacroCheckEvent.Player = player;
                     player.MacroCheckEvent.Code = code;
                     world.EventHandler.AddEvent(player.MacroCheckEvent);

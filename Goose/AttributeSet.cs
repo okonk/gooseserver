@@ -7,7 +7,7 @@ namespace Goose
 {
     /**
      * AttributeSet, holds a set of attributes
-     * 
+     *
      */
     public class AttributeSet
     {
@@ -18,6 +18,8 @@ namespace Goose
         public int HPStaticRegen { get; set; }
         public decimal MPPercentRegen { get; set; }
         public int MPStaticRegen { get; set; }
+        public decimal SPPercentRegen { get; set; }
+        public int SPStaticRegen { get; set; }
         public int Strength { get; set; }
         public int Stamina { get; set; }
         public int Intelligence { get; set; }
@@ -46,6 +48,8 @@ namespace Goose
             this.HPStaticRegen = 0;
             this.MPPercentRegen = 0;
             this.MPStaticRegen = 0;
+            this.SPPercentRegen = 0;
+            this.SPStaticRegen = 0;
             this.Strength = 0;
             this.Stamina = 0;
             this.Intelligence = 0;
@@ -77,6 +81,8 @@ namespace Goose
             temp.HPStaticRegen = a1.HPStaticRegen + a2.HPStaticRegen;
             temp.MPPercentRegen = a1.MPPercentRegen + a2.MPPercentRegen;
             temp.MPStaticRegen = a1.MPStaticRegen + a2.MPStaticRegen;
+            temp.SPPercentRegen = a1.SPPercentRegen + a2.SPPercentRegen;
+            temp.SPStaticRegen = a1.SPStaticRegen + a2.SPStaticRegen;
             temp.Strength = a1.Strength + a2.Strength;
             temp.Stamina = a1.Stamina + a2.Stamina;
             temp.Intelligence = a1.Intelligence + a2.Intelligence;
@@ -110,6 +116,8 @@ namespace Goose
             temp.HPStaticRegen = a1.HPStaticRegen - a2.HPStaticRegen;
             temp.MPPercentRegen = a1.MPPercentRegen - a2.MPPercentRegen;
             temp.MPStaticRegen = a1.MPStaticRegen - a2.MPStaticRegen;
+            temp.SPPercentRegen = a1.SPPercentRegen - a2.SPPercentRegen;
+            temp.SPStaticRegen = a1.SPStaticRegen - a2.SPStaticRegen;
             temp.Strength = a1.Strength - a2.Strength;
             temp.Stamina = a1.Stamina - a2.Stamina;
             temp.Intelligence = a1.Intelligence - a2.Intelligence;
@@ -146,6 +154,8 @@ namespace Goose
             temp.HPStaticRegen = (int)Math.Ceiling(a1.HPStaticRegen * multiplier);
             temp.MPPercentRegen = a1.MPPercentRegen * multiplier;
             temp.MPStaticRegen = (int)Math.Ceiling(a1.MPStaticRegen * multiplier);
+            temp.SPPercentRegen = a1.SPPercentRegen * multiplier;
+            temp.SPStaticRegen = (int)Math.Ceiling(a1.SPStaticRegen * multiplier);
             temp.Strength = (int)Math.Ceiling(a1.Strength * multiplier);
             temp.Stamina = (int)Math.Ceiling(a1.Stamina * multiplier);
             temp.Intelligence = (int)Math.Ceiling(a1.Intelligence * multiplier);

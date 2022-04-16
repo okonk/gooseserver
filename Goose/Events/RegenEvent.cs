@@ -7,9 +7,9 @@ namespace Goose.Events
 {
     /**
      * Character regen Event
-     * 
+     *
      * Sends VPUid,hp %, mp % to everyone in range, including the player themselves
-     * 
+     *
      */
     public class RegenEvent : Event
     {
@@ -21,23 +21,26 @@ namespace Goose.Events
                 {
                     if (this.NPC.AggroTarget != null)
                     {
-                        this.NPC.CurrentHP += 
-                            (int)Math.Round(this.NPC.MaxHP * this.NPC.MaxStats.HPPercentRegen, 0);
-                        this.NPC.CurrentHP += 
-                            this.NPC.MaxStats.HPStaticRegen;
-                        this.NPC.CurrentMP += 
-                            (int)Math.Round(this.NPC.MaxMP * this.NPC.MaxStats.MPPercentRegen, 0);
-                        this.NPC.CurrentMP += 
-                            this.NPC.MaxStats.MPStaticRegen;
+                        this.NPC.CurrentHP = Math.Max(1,
+                            this.NPC.CurrentHP +
+                            (int)Math.Round(this.NPC.MaxHP * this.NPC.MaxStats.HPPercentRegen, 0)
+                            + this.NPC.MaxStats.HPStaticRegen);
+
+                        this.NPC.CurrentMP = Math.Max(1,
+                            this.NPC.CurrentMP +
+                            (int)Math.Round(this.NPC.MaxMP * this.NPC.MaxStats.MPPercentRegen, 0)
+                            + this.NPC.MaxStats.MPStaticRegen);
+
+                        this.NPC.CurrentSP = Math.Max(1,
+                            this.NPC.CurrentSP +
+                            (int)Math.Round(this.NPC.MaxSP * this.NPC.MaxStats.SPPercentRegen, 0)
+                            + this.NPC.MaxStats.SPStaticRegen);
                     }
                     else
                     {
-                        this.NPC.CurrentHP += 
+                        this.NPC.CurrentHP +=
                             (int)Math.Round(this.NPC.MaxHP * 0.10, 0);
                     }
-
-                    if (this.NPC.CurrentHP <= 0) this.NPC.CurrentHP = 1;
-                    if (this.NPC.CurrentMP <= 0) this.NPC.CurrentMP = 1;
 
                     string packet = P.VitalsPercentage(this.NPC);
                     List<Player> range = this.NPC.Map.GetPlayersInRange(this.NPC);
@@ -61,13 +64,25 @@ namespace Goose.Events
 
                 if (player.State == Player.States.Ready)
                 {
-                    player.CurrentHP += (int)Math.Round(player.MaxHP * player.MaxStats.HPPercentRegen, 0);
-                    player.CurrentHP += player.MaxStats.HPStaticRegen;
-                    player.CurrentMP += (int)Math.Round(player.MaxMP * player.MaxStats.MPPercentRegen, 0);
-                    player.CurrentMP += player.MaxStats.MPStaticRegen;
+                    player.CurrentHP = Math.Max(1,
+                        player.CurrentHP
+                        + (long)(player.MaxHP * player.MaxStats.HPPercentRegen)
+                        + player.MaxStats.HPStaticRegen);
 
-                    if (player.CurrentHP <= 0) player.CurrentHP = 1;
-                    if (player.CurrentMP <= 0) player.CurrentMP = 1;
+                    player.CurrentMP = Math.Max(0,
+                        player.CurrentMP
+                        + (long)(player.MaxMP * player.MaxStats.MPPercentRegen)
+                        + player.MaxStats.MPStaticRegen);
+
+                    if (player.SPRegenSwitch) {
+                        player.CurrentSP = Math.Max(0,
+                            player.CurrentSP
+                            + (long)(player.MaxSP * player.MaxStats.SPPercentRegen)
+                            + player.MaxStats.SPStaticRegen);
+                    }
+
+                    // regen SP every 2 events (so SP regens at half the rate). Hack for now
+                    player.SPRegenSwitch = !player.SPRegenSwitch;
 
                     string packet = P.VitalsPercentage(player);
 
