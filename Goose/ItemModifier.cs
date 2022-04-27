@@ -52,10 +52,10 @@ namespace Goose
 
         public bool RollChance(Item item, GameWorld world)
         {
-            if ((item.MinLevel > 0 && item.MinLevel < this.MinLevel) || (item.MaxLevel > 0 && item.MaxLevel > this.MaxLevel))
+            if ((this.MinLevel > 0 && item.MinLevel < this.MinLevel) || (this.MaxLevel > 0 && item.MinLevel > this.MaxLevel))
                 return false;
 
-            if (item.MinExperience < this.MinExperience || item.MaxExperience > this.MaxExperience)
+            if ((this.MinExperience > 0 && item.MinExperience < this.MinExperience) || (this.MaxExperience > 0 && item.MinExperience > this.MaxExperience))
                 return false;
 
             if ((this.UseType == ItemTemplate.UseTypes.Armor || this.UseType == ItemTemplate.UseTypes.Weapon) && item.UseType != this.UseType)

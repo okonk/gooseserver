@@ -6,10 +6,13 @@ public class TestSpell1 : BaseSpellEffectScript
 {
 	public override bool Cast(SpellEffect thisEffect, ICharacter caster, ICharacter target, GameWorld world)
 	{
-		//target.Attacked(caster, 1000000000, world);
-        var player = (Player)caster;
-        for (int i = 1; i <= GameWorld.Settings.SpellbookSize; i++)
-            player.Spellbook.SetSlotLastCast(i, 0);
+		NPCTemplate template = world.NPCHandler.GetNPCTemplate(331);
+		if (template == null) return false;
+
+		for (int i = 0; i < 100; i++)
+		{
+			new NPC().LoadFromTemplate(world, caster.Map.ID, caster.MapX, caster.MapY, template, shouldRespawn: false);
+		}
 
 		return true;
 	}

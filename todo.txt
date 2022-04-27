@@ -2,12 +2,12 @@ bugs:
 
 
 in zombie map make it so if you die you spawn at the start up to 3 times
+deadlock or something hanging the server?
 
 
 
 
-
-
+dotnet "build" "/home/hayden/code/illutiagooseserver/Goose/Goose.csproj"
 scp root@game.illutia.net:/root/GooseServer/IllutiaGoose.db /mnt/bloom/media/Dump/Goose/IllutiaGoose_2022-04-03.db
 scp bin/Debug/Goose.dll root@game.illutia.net:/root/StagingGooseServer
 scp -r Data/Illutia/Scripts/ root@game.illutia.net:/root/StagingGooseServer/Data/Illutia

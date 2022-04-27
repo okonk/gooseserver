@@ -92,6 +92,10 @@ namespace Goose.Events
                         item.Description = "Custom created by " + this.Player.Name;
                         item.IsBound = statsSlot.Item.IsBound;
                         item.ScriptParams = statsSlot.Item.ScriptParams;
+                        if (statsSlot.Item.ItemProperties.TryGetValue(ItemProperty.TitleId, out object titleId))
+                            item.ItemProperties[ItemProperty.TitleId] = (int)titleId;
+                        if (statsSlot.Item.ItemProperties.TryGetValue(ItemProperty.SurnameId, out object surnameId))
+                            item.ItemProperties[ItemProperty.SurnameId] = (int)surnameId;
                         world.ItemHandler.AddAndAssignId(item, world);
 
                         long newTicketStack = ticketSlot.Stack - 1;
