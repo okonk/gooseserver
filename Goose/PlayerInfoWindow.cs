@@ -58,7 +58,7 @@ namespace Goose
                 world.Send(player, P.WindowTextLine(this.ID, lineno++, string.Format("Melee Critical Chance: {0:F0}%", playerForInfo.MaxStats.MeleeCrit * 100)));
                 world.Send(player, P.WindowTextLine(this.ID, lineno++, string.Format("Haste: {0:F0}%", playerForInfo.MaxStats.Haste * 100)));
                 world.Send(player, P.WindowTextLine(this.ID, lineno++, string.Format("Damage Reduction: {0:F0}%", playerForInfo.MaxStats.DamageReduction * 100)));
-                world.Send(player, P.WindowTextLine(this.ID, lineno++, string.Format("Move Speed Increase: {0:F0}%", playerForInfo.MaxStats.MoveSpeedIncrease * 100)));
+                world.Send(player, P.WindowTextLine(this.ID, lineno++, string.Format("Move Speed: {0}", playerForInfo.CalculateMoveSpeed())));
                 world.Send(player, P.WindowTextLine(this.ID, lineno++, string.Format("Bank Pages: {0}", playerForInfo.NumberOfBankPages)));
             }
             else if (pageNumber == 1)

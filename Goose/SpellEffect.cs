@@ -389,10 +389,8 @@ namespace Goose
             if (this.Stats.DamageReduction != 0)
                 yield return GetPercentageDescription("Damage Reduction", this.Stats.DamageReduction, prefix);
 
-            if (this.Stats.MoveSpeedIncrease != 0)
-                yield return GetPercentageDescription("Move Speed", this.Stats.MoveSpeedIncrease, prefix);
             if (this.Stats.MoveSpeed != 0)
-                yield return GetValueDescription("Move Speed", this.Stats.MoveSpeed, prefix);
+                yield return string.Format("Set Move Speed to {0}", this.Stats.MoveSpeed);
 
             if (this.SnarePercent != 0)
                 yield return string.Format("{0}Decrease Move Speed by {1:F0}%", prefix, this.SnarePercent);

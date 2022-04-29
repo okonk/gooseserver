@@ -347,7 +347,7 @@ namespace Goose
             }
 
             this.equipped[(int)equipslot] = slot;
-            this.player.AddStats(slot.Item.TotalStats, world);
+            this.player.AddStats(slot.Item.TotalStats, world, updateCharacter: false);
 
             if (slot.Item.SpellEffect != null)
             {
@@ -357,7 +357,7 @@ namespace Goose
                 buff.ItemBuff = true;
                 buff.SpellEffect = slot.Item.SpellEffect;
 
-                this.player.AddBuff(buff, world, true);
+                this.player.AddBuff(buff, world, true, updateCharacter: false);
             }
 
             this.SendEquippedSlot(equipslot, world);
@@ -526,7 +526,7 @@ namespace Goose
             if (!this.AddItem(slot.Item, slot.Stack, world)) return false;
 
             this.equipped[(int)equipslot] = null;
-            this.player.RemoveStats(slot.Item.TotalStats, world);
+            this.player.RemoveStats(slot.Item.TotalStats, world, updateCharacter: false);
 
             if (slot.Item.SpellEffect != null)
             {
@@ -542,7 +542,7 @@ namespace Goose
 
                 if (remove != null)
                 {
-                    this.player.RemoveBuff(remove, world);
+                    this.player.RemoveBuff(remove, world, refreshbar: true, updateCharacter: false);
                 }
                 else
                 {

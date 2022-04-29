@@ -10,7 +10,7 @@ namespace Goose
 {
     /**
      * Manages Spell/SpellEffect objects
-     * 
+     *
      */
     public class SpellHandler
     {
@@ -25,7 +25,7 @@ namespace Goose
 
         /**
          * LoadSpellEffects, loads all spell effects
-         * 
+         *
          */
         public void LoadSpellEffects(GameWorld world)
         {
@@ -53,11 +53,11 @@ namespace Goose
                 effect.MaximumLevelEffected = Convert.ToInt32(reader["max_level_effected"]);
                 effect.EffectType = (SpellEffect.EffectTypes)Convert.ToInt32(reader["effect_type"]);
                 effect.Duration = Convert.ToInt64(reader["effect_duration"]);
-                effect.DoAttackAnimation = 
+                effect.DoAttackAnimation =
                     ("0".Equals(Convert.ToString(reader["do_attack_animation"])) ? false : true);
                 effect.DoCastAnimation =
                     ("0".Equals(Convert.ToString(reader["do_cast_animation"])) ? false : true);
-                effect.SpellDamageEffects = 
+                effect.SpellDamageEffects =
                     ("0".Equals(Convert.ToString(reader["spell_damage_effects"])) ? false : true);
                 effect.EnergyType = Convert.ToInt32(reader["spell_energy_type"]);
                 effect.HPFormula = Convert.ToString(reader["hp_change_formula"]);
@@ -108,7 +108,7 @@ namespace Goose
                 effect.Stats.MeleeDamage = Decimal.Parse(Convert.ToString(reader["melee_damage"]));
                 effect.Stats.SpellCrit = Decimal.Parse(Convert.ToString(reader["spell_crit"]));
                 effect.Stats.SpellDamage = Decimal.Parse(Convert.ToString(reader["spell_damage"]));
-                effect.Stats.MoveSpeedIncrease = Decimal.Parse(Convert.ToString(reader["move_speed"]));
+                effect.Stats.MoveSpeed = Convert.ToInt32(reader["move_speed"]);
 
                 effect.WorksInPVP = ("0".Equals(Convert.ToString(reader["works_in_pvp"])) ? false : true);
                 effect.WorksNotInPVP = ("0".Equals(Convert.ToString(reader["works_not_in_pvp"])) ? false : true);
@@ -120,7 +120,7 @@ namespace Goose
                 effect.RandomJoinChance = Decimal.Parse(Convert.ToString(reader["random_join_chance"]));
 
                 effect.OnMeleeAttackSpellID = Convert.ToInt32(reader["on_attack_spell_effect_id"]);
-                effect.OnMeleeAttackSpellChance = 
+                effect.OnMeleeAttackSpellChance =
                     Decimal.Parse(Convert.ToString(reader["on_attack_spell_chance"]));
                 effect.OnMeleeHitSpellID = Convert.ToInt32(reader["on_hit_spell_effect_id"]);
                 effect.OnMeleeHitSpellChance =
@@ -200,7 +200,7 @@ namespace Goose
 
         /**
          * GetSpellEffect, returns spell effect
-         * 
+         *
          */
         public SpellEffect GetSpellEffect(int id)
         {
@@ -211,7 +211,7 @@ namespace Goose
 
         /**
          * LoadSpells, loads all spells
-         * 
+         *
          */
         public void LoadSpells(GameWorld world)
         {
@@ -264,7 +264,7 @@ namespace Goose
 
         /**
          * GetSpell, returns spell
-         * 
+         *
          */
         public Spell GetSpell(int id)
         {

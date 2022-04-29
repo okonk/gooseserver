@@ -10,16 +10,16 @@ namespace Goose.Events
     {
         /*
          * If null they never made it into the system so just disconnect them
-         * 
+         *
          * If their state is not logged in we remove them from the player list
          * and disconnect them, since they're not actually in the game yet
-         * 
+         *
          * If their state is loading game we have already sent a "Player has entered world" message
          * but they're not in the game properly yet, so we just send a "Player left the world" message,
          * remove from player handler and disconnect them
-         * 
+         *
          * Else they're properly in the game and we have to remove them from maps, etc
-         * 
+         *
          */
         public override void Ready(GameWorld world)
         {
@@ -28,7 +28,7 @@ namespace Goose.Events
 
             if (player == null)
             {
-      
+
             }
             else if (player.State == Player.States.NotLoggedIn)
             {
@@ -86,7 +86,7 @@ namespace Goose.Events
 
                 foreach (Buff b in removebuff)
                 {
-                    player.RemoveBuff(b, world, false);
+                    player.RemoveBuff(b, world, false, updateCharacter: false);
                 }
 
                 world.PlayerHandler.RemovePlayer(player);

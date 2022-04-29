@@ -122,7 +122,6 @@
     "PlayerCountExperienceModifierInterval": 1000,
     "PlayerCountExperienceModifier": 1,
     "CreditUpdateInterval": 60,
-    "BaseMoveSpeedIncrease": 0,
     "StartingMoveSpeed": 320,
     "StartingBodyR": 0,
     "StartingBodyG": 0,

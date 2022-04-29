@@ -77,6 +77,7 @@ namespace Goose.Events
                         Item item = new Item();
                         item.LoadFromTemplate(statsSlot.Item.Template);
                         item.StatMultiplier = statsSlot.Item.StatMultiplier;
+                        item.BaseStats = statsSlot.Item.BaseStats.Clone();
                         item.TotalStats = item.Template.BaseStats;
                         item.TotalStats *= item.StatMultiplier;
                         item.TotalStats += item.BaseStats;

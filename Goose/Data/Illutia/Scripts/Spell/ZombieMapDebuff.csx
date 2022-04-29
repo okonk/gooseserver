@@ -31,7 +31,6 @@ public class ZombieMapDebuff : BaseSpellEffectScript
 		player.MaxStats.HPStaticRegen = GameWorld.Settings.BaseHPStaticRegen;
 		player.MaxStats.MPPercentRegen = GameWorld.Settings.BaseMPPercentRegen;
 		player.MaxStats.MPStaticRegen = GameWorld.Settings.BaseMPStaticRegen;
-		player.MaxStats.MoveSpeedIncrease = GameWorld.Settings.BaseMoveSpeedIncrease;
 
 		player.AddStats(player.Class.GetLevel(player.Level).BaseStats, world);
 		player.AddStats(player.BaseStats, world);

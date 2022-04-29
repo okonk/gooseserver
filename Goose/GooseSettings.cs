@@ -107,7 +107,6 @@ namespace Goose
         public int PlayerCountExperienceModifierInterval { get; set; }
         public decimal PlayerCountExperienceModifier { get; set; }
         public int CreditUpdateInterval { get; set; }
-        public decimal BaseMoveSpeedIncrease { get; set; }
         public int StartingMoveSpeed { get; set; }
         public int StartingBodyR { get; set; }
         public int StartingBodyG { get; set; }

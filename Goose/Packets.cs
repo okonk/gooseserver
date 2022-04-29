@@ -249,7 +249,7 @@ namespace Goose
 
         public static Func<Player, string> WeaponSpeed = (player) =>
         {
-            int wps = (int)((decimal)(player.WeaponDelay / 10.0) * (1 - player.MaxStats.Haste) * 1000);
+            int wps = (int)((player.WeaponDelay / 10.0m * (1 - Math.Min(0.95m, player.MaxStats.Haste))) * 1000);
 
             return "WPS" + wps + ",0,0";
         };

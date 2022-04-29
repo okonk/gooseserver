@@ -25,6 +25,8 @@ namespace Goose
      */
     public class Player : ICharacter
     {
+        private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
+
         /**
          * Networking stuff
          *
@@ -378,6 +380,8 @@ namespace Goose
 
         public bool SPRegenSwitch { get; set; }
 
+        private PriorityQueue<int, int> moveSpeed { get; set; }
+
         /**
          * Bitfield for toggled settings
          *
@@ -479,6 +483,8 @@ namespace Goose
             this.GroupInvitesEnabled = false;
 
             this.MovementRecordingSteps = 0;
+
+            this.moveSpeed = new PriorityQueue<int, int>();
         }
 
         public Player()
@@ -589,7 +595,6 @@ namespace Goose
             this.MaxStats.MPStaticRegen = GameWorld.Settings.BaseMPStaticRegen;
             this.MaxStats.SPPercentRegen = GameWorld.Settings.BaseSPPercentRegen;
             this.MaxStats.SPStaticRegen = GameWorld.Settings.BaseSPStaticRegen;
-            this.MaxStats.MoveSpeedIncrease = GameWorld.Settings.BaseMoveSpeedIncrease;
 
             this.Class = world.ClassHandler.GetClass(this.ClassID);
             this.MaxStats += this.Class.GetLevel(this.Level).BaseStats;
@@ -640,6 +645,8 @@ namespace Goose
             }
             this.Spellbook = new Spellbook(this);
             this.Bank = new PlayerBank();
+
+            this.moveSpeed.Enqueue(this.BaseStats.MoveSpeed, this.BaseStats.MoveSpeed);
         }
 
         /**
@@ -718,7 +725,6 @@ namespace Goose
             this.MaxStats.MPStaticRegen = GameWorld.Settings.BaseMPStaticRegen;
             this.MaxStats.SPPercentRegen = GameWorld.Settings.BaseSPPercentRegen;
             this.MaxStats.SPStaticRegen = GameWorld.Settings.BaseSPStaticRegen;
-            this.MaxStats.MoveSpeedIncrease = GameWorld.Settings.BaseMoveSpeedIncrease;
 
             this.Class = world.ClassHandler.GetClass(this.ClassID);
             this.MaxStats += this.Class.GetLevel(this.Level).BaseStats;
@@ -738,6 +744,8 @@ namespace Goose
 
             this.LastActive = world.TimeNow;
             this.LastPlaytimeUpdate = world.TimeNow;
+
+            this.moveSpeed.Enqueue(this.BaseStats.MoveSpeed, this.BaseStats.MoveSpeed);
         }
 
 
@@ -1373,7 +1381,7 @@ namespace Goose
 
         public int CalculateMoveSpeed()
         {
-            return (int)(this.BaseStats.MoveSpeed * (1 - this.MaxStats.MoveSpeedIncrease));
+            return this.moveSpeed.Peek();
         }
 
         /**
@@ -1403,11 +1411,34 @@ namespace Goose
          * AddStats, add stats to player
          *
          */
-        public void AddStats(AttributeSet stats, GameWorld world)
+        public void AddStats(AttributeSet stats, GameWorld world, bool updateCharacter = true)
         {
             this.MaxStats += stats;
             this.MaxStats.HP += (stats.Stamina * GameWorld.Settings.StaminaToHP);
             this.MaxStats.MP += (stats.Intelligence * GameWorld.Settings.IntelligenceToMP);
+
+            if (stats.MoveSpeed != 0)
+            {
+                var oldSpeed = this.moveSpeed.Peek();
+                this.moveSpeed.Enqueue(stats.MoveSpeed, stats.MoveSpeed);
+
+                if (updateCharacter)
+                {
+                    var newSpeed = this.moveSpeed.Peek();
+
+                    if (newSpeed < oldSpeed)
+                    {
+                        string updateCharacterPacket = P.UpdateCharacter(this);
+                        world.Send(this, updateCharacterPacket);
+
+                        var range = this.Map.GetPlayersInRange(this);
+                        foreach (var p in range)
+                        {
+                            world.Send(p, updateCharacterPacket);
+                        }
+                    }
+                }
+            }
 
             this.CurrentHP = Math.Min(this.CurrentHP, this.MaxHP);
             this.CurrentMP = Math.Min(this.CurrentMP, this.MaxMP);
@@ -1421,11 +1452,37 @@ namespace Goose
          * RemoveStats, remove stats from player
          *
          */
-        public void RemoveStats(AttributeSet stats, GameWorld world, bool changeCurrentHPMP = true)
+        public void RemoveStats(AttributeSet stats, GameWorld world, bool changeCurrentHPMP = true, bool updateCharacter = true)
         {
             this.MaxStats -= stats;
             this.MaxStats.HP -= (stats.Stamina * GameWorld.Settings.StaminaToHP);
             this.MaxStats.MP -= (stats.Intelligence * GameWorld.Settings.IntelligenceToMP);
+
+            if (stats.MoveSpeed != 0)
+            {
+                var oldSpeed = this.moveSpeed.Peek();
+
+                var speeds = this.moveSpeed.UnorderedItems.SkipFirstMatching(e => e.Element == oldSpeed).ToArray();
+                this.moveSpeed.Clear();
+                this.moveSpeed.EnqueueRange(speeds);
+
+                if (updateCharacter)
+                {
+                    var newSpeed = this.moveSpeed.Peek();
+
+                    if (oldSpeed != newSpeed)
+                    {
+                        string updateCharacterPacket = P.UpdateCharacter(this);
+                        world.Send(this, updateCharacterPacket);
+
+                        var range = this.Map.GetPlayersInRange(this);
+                        foreach (var p in range)
+                        {
+                            world.Send(p, updateCharacterPacket);
+                        }
+                    }
+                }
+            }
 
             if (changeCurrentHPMP)
             {
@@ -1696,7 +1753,7 @@ namespace Goose
 
                 foreach (Buff b in removebuff)
                 {
-                    this.RemoveBuff(b, world, false);
+                    this.RemoveBuff(b, world, false, updateCharacter: true);
                 }
 
                 this.SendBuffBar(world);
@@ -1904,14 +1961,14 @@ namespace Goose
          * AddBuff, add buff to players buff list
          *
          */
-        public void AddBuff(Buff buff, GameWorld world, bool refreshbar)
+        public void AddBuff(Buff buff, GameWorld world, bool refreshbar, bool updateCharacter = true)
         {
             if (this.State <= States.LoadingGame)
             {
                 this.Buffs.Add(buff);
 
                 // Add/remove stats
-                this.AddStats(buff.SpellEffect.Stats, world);
+                this.AddStats(buff.SpellEffect.Stats, world, updateCharacter: false);
 
 
                 return;
@@ -1933,8 +1990,8 @@ namespace Goose
                     (buff.SpellEffect == b.SpellEffect ||
                     buff.SpellEffect.BuffStacksOver.Contains(b.SpellEffect)))
                 {
-                    this.RemoveStats(b.SpellEffect.Stats, world);
-                    this.AddStats(buff.SpellEffect.Stats, world);
+                    this.RemoveStats(b.SpellEffect.Stats, world, updateCharacter: false);
+                    this.AddStats(buff.SpellEffect.Stats, world, updateCharacter: updateCharacter);
 
                     world.Send(this, P.WeaponSpeed(this));
 
@@ -1997,7 +2054,7 @@ namespace Goose
             this.Buffs.Add(buff);
 
             // Add/remove stats
-            this.AddStats(buff.SpellEffect.Stats, world);
+            this.AddStats(buff.SpellEffect.Stats, world, updateCharacter: updateCharacter);
 
             try
             {
@@ -2055,7 +2112,7 @@ namespace Goose
          * RemoveBuff, removes buff from buffs list
          *
          */
-        public void RemoveBuff(Buff buff, GameWorld world, bool refreshbar)
+        public void RemoveBuff(Buff buff, GameWorld world, bool refreshbar, bool updateCharacter = true)
         {
             this.Buffs.Remove(buff);
 
@@ -2066,7 +2123,7 @@ namespace Goose
             }
 
             // Add/remove stats
-            this.RemoveStats(buff.SpellEffect.Stats, world);
+            this.RemoveStats(buff.SpellEffect.Stats, world, updateCharacter: updateCharacter);
 
             try
             {

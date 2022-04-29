@@ -506,7 +506,7 @@ namespace Goose
 
             foreach (Buff b in removebuff)
             {
-                this.RemoveBuff(b, world, false);
+                this.RemoveBuff(b, world, false, updateCharacter: false);
             }
 
             this.Map.RemovePlayer(this, world);
