@@ -526,7 +526,7 @@ namespace Goose
             if (!this.AddItem(slot.Item, slot.Stack, world)) return false;
 
             this.equipped[(int)equipslot] = null;
-            this.player.RemoveStats(slot.Item.TotalStats, world, updateCharacter: false);
+            this.player.RemoveStats(slot.Item.TotalStats, world);
 
             if (slot.Item.SpellEffect != null)
             {
@@ -542,7 +542,7 @@ namespace Goose
 
                 if (remove != null)
                 {
-                    this.player.RemoveBuff(remove, world, refreshbar: true, updateCharacter: false);
+                    this.player.RemoveBuff(remove, world, refreshbar: true);
                 }
                 else
                 {

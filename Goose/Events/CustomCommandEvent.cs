@@ -94,9 +94,9 @@ namespace Goose.Events
                         item.IsBound = statsSlot.Item.IsBound;
                         item.ScriptParams = statsSlot.Item.ScriptParams;
                         if (statsSlot.Item.ItemProperties.TryGetValue(ItemProperty.TitleId, out object titleId))
-                            item.ItemProperties[ItemProperty.TitleId] = (int)titleId;
+                            item.ItemProperties[ItemProperty.TitleId] = titleId;
                         if (statsSlot.Item.ItemProperties.TryGetValue(ItemProperty.SurnameId, out object surnameId))
-                            item.ItemProperties[ItemProperty.SurnameId] = (int)surnameId;
+                            item.ItemProperties[ItemProperty.SurnameId] = surnameId;
                         world.ItemHandler.AddAndAssignId(item, world);
 
                         long newTicketStack = ticketSlot.Stack - 1;

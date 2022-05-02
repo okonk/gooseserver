@@ -646,6 +646,8 @@ namespace Goose
             this.Spellbook = new Spellbook(this);
             this.Bank = new PlayerBank();
 
+            // kind of a hack to ensure the queue should never be empty
+            this.moveSpeed.Enqueue(this.BaseStats.MoveSpeed, this.BaseStats.MoveSpeed);
             this.moveSpeed.Enqueue(this.BaseStats.MoveSpeed, this.BaseStats.MoveSpeed);
         }
 
@@ -745,6 +747,8 @@ namespace Goose
             this.LastActive = world.TimeNow;
             this.LastPlaytimeUpdate = world.TimeNow;
 
+            // kind of a hack to ensure the queue should never be empty
+            this.moveSpeed.Enqueue(this.BaseStats.MoveSpeed, this.BaseStats.MoveSpeed);
             this.moveSpeed.Enqueue(this.BaseStats.MoveSpeed, this.BaseStats.MoveSpeed);
         }
 
@@ -1381,7 +1385,8 @@ namespace Goose
 
         public int CalculateMoveSpeed()
         {
-            return this.moveSpeed.Peek();
+            this.moveSpeed.TryPeek(out int speed, out int _);
+            return speed;
         }
 
         /**
@@ -1452,7 +1457,7 @@ namespace Goose
          * RemoveStats, remove stats from player
          *
          */
-        public void RemoveStats(AttributeSet stats, GameWorld world, bool changeCurrentHPMP = true, bool updateCharacter = true)
+        public void RemoveStats(AttributeSet stats, GameWorld world, bool changeCurrentHPMP = true, bool updateCharacter = false)
         {
             this.MaxStats -= stats;
             this.MaxStats.HP -= (stats.Stamina * GameWorld.Settings.StaminaToHP);
@@ -1990,7 +1995,7 @@ namespace Goose
                     (buff.SpellEffect == b.SpellEffect ||
                     buff.SpellEffect.BuffStacksOver.Contains(b.SpellEffect)))
                 {
-                    this.RemoveStats(b.SpellEffect.Stats, world, updateCharacter: false);
+                    this.RemoveStats(b.SpellEffect.Stats, world);
                     this.AddStats(buff.SpellEffect.Stats, world, updateCharacter: updateCharacter);
 
                     world.Send(this, P.WeaponSpeed(this));
