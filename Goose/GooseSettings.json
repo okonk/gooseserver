@@ -110,7 +110,7 @@
     "DefaultAetherThreshold": 0,
     "DefaultToggleSettings": 0,
     "NewCharactersPerDayPerIP": 3,
-    "MaxNPCs": 10000,
+    "MaxNPCs": 15000,
     "PetVitaBuyAmount": 50,
     "IncreasePetVitaBuyCost": 100000,
     "PetVitaCost": 100000,

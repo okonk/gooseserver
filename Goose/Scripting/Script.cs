@@ -34,7 +34,7 @@ namespace Goose.Scripting
             var scriptOptions = ScriptOptions.Default
                 .WithReferences(Assembly.GetExecutingAssembly(), typeof(JsonConvert).GetType().Assembly)
                 .WithImports("System", "System.Collections.Generic", "System.Linq",
-                    "Goose", "Goose.Events", "Goose.Quests", "Goose.Scripting");
+                    "Goose", "Goose.Events", "Goose.Quests", "Goose.Scripting", "Newtonsoft.Json");
 
             var script = CSharpScript.Create(scriptContents, scriptOptions);
             script.Compile();
