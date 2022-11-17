@@ -114,6 +114,7 @@ namespace Goose
         public int StartingBodyA { get; set; }
         public int HairdyeCommandCost { get; set; }
         public int CustomTicketId { get; set; }
+        public int RippedCustomTicketId { get; set; }
         public double RespawnTimeBackoff { get; set; }
         public double ChangeClassExperienceLossPercent { get; set; }
         public double ItemTitleChancePercent { get; set; }

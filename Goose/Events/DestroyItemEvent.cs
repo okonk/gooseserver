@@ -7,11 +7,11 @@ namespace Goose.Events
 {
     /**
      * DestroyItemEvent, destroy item
-     * 
+     *
      * Packet: DITM<slot>
-     * 
+     *
      * Slot can be inventory or an equipped item
-     * 
+     *
      */
     public class DestroyItemEvent : Event
     {
@@ -39,23 +39,41 @@ namespace Goose.Events
                     id = 0;
                 }
 
-                if (id <= 0 || id > GameWorld.Settings.InventorySize + 
+                if (id <= 0 || id > GameWorld.Settings.InventorySize +
                     GameWorld.Settings.EquippedSize) return;
+
+                bool wasCustom = false;
 
                 if (id <= GameWorld.Settings.InventorySize)
                 {
                     ItemSlot slot = this.Player.Inventory.GetSlot(id);
-                    if (slot == null) return;
-                    slot = this.Player.Inventory.RemoveItem(slot.Item, slot.Stack, world);
-                    if (slot == null) return;
+                    if (slot == null || slot.Item == null) return;
+
+                    wasCustom = slot.Item.Custom;
+                    this.Player.Inventory.RemoveItem(slot.Item, slot.Stack, world);
                 }
                 else
                 {
                     ItemSlot slot = this.Player.Inventory.GetEquippedSlot(id);
-                    if (slot == null) return;
-                    this.Player.Inventory.Unequip(id, world);
-                    slot = this.Player.Inventory.RemoveItem(slot.Item, slot.Stack, world);
-                    if (slot == null) return;
+                    if (slot == null || slot.Item == null) return;
+                    if (!this.Player.Inventory.Unequip(id, world)) return;
+
+                    wasCustom = slot.Item.Custom;
+
+                    this.Player.Inventory.RemoveItem(slot.Item, slot.Stack, world);
+                }
+
+                if (wasCustom)
+                {
+                    ItemTemplate template = world.ItemHandler.GetTemplate(GameWorld.Settings.RippedCustomTicketId);
+                    if (template == null) return;
+
+                    Item item = new Item();
+                    item.LoadFromTemplate(template);
+
+                    world.ItemHandler.AddAndAssignId(item, world);
+
+                    this.Player.Inventory.AddItem(item, 1, world);
                 }
             }
         }

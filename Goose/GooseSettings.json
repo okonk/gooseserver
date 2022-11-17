@@ -17,6 +17,7 @@
     // "StartingBankPages": 1,
     // "BankSlotsPerPage": 10,
     // "CustomTicketId": 823,
+    // "RippedCustomTicketId": 1575,
 
     // Illutia Config
     "ServerType": "Illutia",
@@ -34,6 +35,7 @@
     "StartingBankPages": 3,
     "BankSlotsPerPage": 30,
     "CustomTicketId": 677,
+    "RippedCustomTicketId": 1575,
 
     // Common Config
     "AutoCharacterCreation": true,
@@ -78,7 +80,7 @@
     "StartingHairG": 0,
     "StartingHairB": 0,
     "StartingHairA": 0,
-    "MOTD": "Welcome to Goose2. No macroing.",
+    "MOTD": "Welcome to Goose2. NO GRIEFING, MACROING, PACKET EDITING OR ANY OTHER FORM OF NON-ACTIVE TRAINING.",
     "StartingTitle": "",
     "StartingSurname": "",
     "RegenSpeed": 2,

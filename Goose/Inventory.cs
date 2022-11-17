@@ -140,6 +140,17 @@ namespace Goose
             return free;
         }
 
+        public int GetNextFreeSlot()
+        {
+            for (int i = 1; i <= GameWorld.Settings.InventorySize; i++)
+            {
+                if (this.inventory[i] == null)
+                    return i;
+            }
+
+            return -1;
+        }
+
         /**
          * SendAll, sends all slots to player
          *

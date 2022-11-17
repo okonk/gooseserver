@@ -128,7 +128,7 @@ namespace Goose
         public int Credits { get { return this.Template.Credits; } }
 
         [JsonIgnore]
-        public bool Custom { get { return false; } }
+        public bool Custom { get { return this.Description?.StartsWith("Custom created by ") ?? false; } }
 
         [JsonIgnore]
         public Script<IItemScript> Script { get { return this.Template.Script; } }
