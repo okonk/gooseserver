@@ -166,7 +166,7 @@ namespace Goose
                    "0" + "," + // Invis thing
                    (npc.CurrentBodyID >= 100 ? "" : npc.FaceID + ",") +
                    "320," + // Move Speed
-                   (npc.CurrentBodyID >= 100 ? "" : "0,0,0,0"); // Mount
+                   (npc.CurrentBodyID >= 100 ? "" : "0,0,0,0,0"); // Mount
         };
 
         public static Func<NPC, string> MakeNPCCharacter = (npc) =>
@@ -194,7 +194,7 @@ namespace Goose
                         (npc.CurrentBodyID >= 100 ? "" : npc.FaceID + ",") +
                         "320," + // Move Speed
                         "0" + "," + // Player Name Color
-                        (npc.CurrentBodyID >= 100 ? "" : "0,0,0,0"); // Mount
+                        (npc.CurrentBodyID >= 100 ? "" : "0,0,0,0,0"); // Mount
         };
 
         public static Func<Pet, string> MakePetCharacter = (npc) =>
@@ -222,7 +222,7 @@ namespace Goose
                         (npc.CurrentBodyID >= 100 ? "" : npc.FaceID + ",") +
                         "320," + // Move Speed
                         "0" + "," + // Player Name Color
-                        (npc.CurrentBodyID >= 100 ? "" : "0,0,0,0"); // Mount
+                        (npc.CurrentBodyID >= 100 ? "" : "0,0,0,0,0"); // Mount
         };
 
         public static Func<Pet, string> UpdatePet = (pet) =>
@@ -244,7 +244,7 @@ namespace Goose
                    "0" + "," + // Invis thing
                    (pet.CurrentBodyID >= 100 ? "" : pet.FaceID + ",") +
                    "320," + // Move Speed
-                   (pet.CurrentBodyID >= 100 ? "" : "0,0,0,0"); // Mount
+                   (pet.CurrentBodyID >= 100 ? "" : "0,0,0,0,0"); // Mount
         };
 
         public static Func<Player, string> WeaponSpeed = (player) =>
@@ -276,7 +276,7 @@ namespace Goose
                    tile.ItemSlot.Item.Name + "," +
                    "," + // surname
                    tile.ItemSlot.Stack + "," +
-                   0 + "," + // not sure
+                   (int)tile.ItemSlot.Item.Type + "," +
                    tile.ItemSlot.Item.Flags + "," +
                    (false ? 1 : 0) + "," + // drop animation if 1
                    rgba;
@@ -584,7 +584,7 @@ namespace Goose
             return "SSS" + slotId + "," +
                     spell.Name + "," +
                     spell.SpellEffect.Animation + "," +
-                    "0," +
+                    "1000," +
                     "0," +
                     targetType + "," +
                     spell.Graphic + "," +
@@ -599,7 +599,7 @@ namespace Goose
                 return "GUD" + index + ",0,,0,";
             }
 
-            return "GUD" + index + "," + player.LoginID + "," + player.Name + "," + player.Level + player.Class.ClassName;
+            return "GUD" + index + "," + player.LoginID + "," + player.Name + "," + player.Level + "," + player.Class.ClassName;
         };
 
         public static Func<Buff, int, string> BuffBar = (buff, index) =>

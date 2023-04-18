@@ -23,23 +23,23 @@ namespace Goose.Events
                     {
                         this.NPC.CurrentHP = Math.Max(1,
                             this.NPC.CurrentHP +
-                            (int)Math.Round(this.NPC.MaxHP * this.NPC.MaxStats.HPPercentRegen, 0)
+                            (long)Math.Round(this.NPC.MaxHP * this.NPC.MaxStats.HPPercentRegen, 0)
                             + this.NPC.MaxStats.HPStaticRegen);
 
                         this.NPC.CurrentMP = Math.Max(1,
                             this.NPC.CurrentMP +
-                            (int)Math.Round(this.NPC.MaxMP * this.NPC.MaxStats.MPPercentRegen, 0)
+                            (long)Math.Round(this.NPC.MaxMP * this.NPC.MaxStats.MPPercentRegen, 0)
                             + this.NPC.MaxStats.MPStaticRegen);
 
                         this.NPC.CurrentSP = Math.Max(1,
                             this.NPC.CurrentSP +
-                            (int)Math.Round(this.NPC.MaxSP * this.NPC.MaxStats.SPPercentRegen, 0)
+                            (long)Math.Round(this.NPC.MaxSP * this.NPC.MaxStats.SPPercentRegen, 0)
                             + this.NPC.MaxStats.SPStaticRegen);
                     }
                     else
                     {
                         this.NPC.CurrentHP +=
-                            (int)Math.Round(this.NPC.MaxHP * 0.10, 0);
+                            (long)Math.Round(this.NPC.MaxHP * 0.10, 0);
                     }
 
                     string packet = P.VitalsPercentage(this.NPC);
@@ -66,18 +66,18 @@ namespace Goose.Events
                 {
                     player.CurrentHP = Math.Max(1,
                         player.CurrentHP
-                        + (long)(player.MaxHP * player.MaxStats.HPPercentRegen)
+                        + (long)(Math.Round(player.MaxHP * player.MaxStats.HPPercentRegen, 0))
                         + player.MaxStats.HPStaticRegen);
 
                     player.CurrentMP = Math.Max(0,
                         player.CurrentMP
-                        + (long)(player.MaxMP * player.MaxStats.MPPercentRegen)
+                        + (long)(Math.Round(player.MaxMP * player.MaxStats.MPPercentRegen, 0))
                         + player.MaxStats.MPStaticRegen);
 
                     if (player.SPRegenSwitch) {
                         player.CurrentSP = Math.Max(0,
                             player.CurrentSP
-                            + (long)(player.MaxSP * player.MaxStats.SPPercentRegen)
+                            + (long)(Math.Round(player.MaxSP * player.MaxStats.SPPercentRegen, 0))
                             + player.MaxStats.SPStaticRegen);
                     }
 

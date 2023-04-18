@@ -1,10 +1,13 @@
+
+shift to docker/terraform
+
 bugs:
 
 
 in zombie map make it so if you die you spawn at the start up to 3 times
 deadlock or something hanging the server?
 
-
+add a limit to chat text?
 
 
 dotnet "build" "/home/hayden/code/illutiagooseserver/Goose/Goose.csproj"
@@ -111,7 +114,7 @@ log when player creates a custom
 sanitise user names to only alphabetical
 Move packet creation to it's own class
 Refactor settings
-
+update to .net 7
 
 
 

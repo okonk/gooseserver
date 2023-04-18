@@ -118,6 +118,8 @@ namespace Goose.Events
                         break;
                 }
 
+                this.Player.Facing = direction;
+
                 if (this.Player.CanMoveTo(x, y))
                 {
                     this.Player.MoveTo(world, x, y);
