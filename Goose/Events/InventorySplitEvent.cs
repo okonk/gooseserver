@@ -7,10 +7,12 @@ namespace Goose.Events
 {
     /**
      * InventorySplitEvent, event for "SPLIT" packet
-     * 
+     *
      * Called when someone splits an item stack in their inventory
-     * Packet format: SPLITslotid1,slotid2
-     * 
+     * Packet format: SPLITslotid1,slotid2,stackSize
+     *
+     * StackSize isn't part of official illutia, so should be optional and default to 1 if not specified
+     *
      */
     public class InventorySplitEvent : Event
     {
@@ -29,17 +31,22 @@ namespace Goose.Events
             {
                 int id1 = 0;
                 int id2 = 0;
-                string[] ids = ((string)this.Data).Substring(5).Split(",".ToCharArray());
+                int amount = 1;
+                string[] tokens = ((string)this.Data).Substring(5).Split(",".ToCharArray());
 
                 try
                 {
-                    id1 = Convert.ToInt32(ids[0]);
-                    id2 = Convert.ToInt32(ids[1]);
+                    id1 = Convert.ToInt32(tokens[0]);
+                    id2 = Convert.ToInt32(tokens[1]);
+
+                    if (tokens.Length == 3)
+                        amount = Convert.ToInt32(tokens[2]);
                 }
                 catch (Exception)
                 {
                     id1 = 0;
                     id2 = 0;
+                    amount = 1;
                 }
 
                 if (id1 <= 0 || id2 <= 0 ||
@@ -49,7 +56,7 @@ namespace Goose.Events
                     return;
                 }
 
-                this.Player.Inventory.SplitSlots(id1, id2, world);
+                this.Player.Inventory.SplitSlots(id1, id2, amount, world);
             }
         }
     }

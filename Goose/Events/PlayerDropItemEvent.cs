@@ -7,9 +7,9 @@ namespace Goose.Events
 {
     /**
      * PlayerDropItemEvent, event for "DRP" packet
-     * 
+     *
      * Packet syntax: DRPinvid,stacksize
-     * 
+     *
      */
     class PlayerDropItemEvent : Event
     {
@@ -51,7 +51,7 @@ namespace Goose.Events
                 // Can't drop bound item unless gm
                 if (slot.Item.IsBound && !this.Player.HasPrivilege(AccessPrivilege.DropBoundItem)) return;
 
-                ItemSlot drop = this.Player.Inventory.RemoveItem(slot.Item, slot.Stack, world);
+                ItemSlot drop = this.Player.Inventory.RemoveItem(slot.Item, stack, world);
                 if (drop == null) return;
 
                 ItemTile tile = new ItemTile();

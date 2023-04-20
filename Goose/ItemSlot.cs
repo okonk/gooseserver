@@ -8,9 +8,9 @@ namespace Goose
 {
     /**
      * ItemSlot, holds an item and stack size
-     * 
+     *
      * Used for inventory, bank, combine bag slots
-     * 
+     *
      */
     public class ItemSlot
     {
@@ -20,20 +20,25 @@ namespace Goose
 
         /**
          * CanStack, returns true if other slot can stack with this slot
-         * 
+         *
          * Note: Doesn't do null checking
-         * 
+         *
          */
-        public bool CanStack(ItemSlot other)
+        public bool CanStack(ItemSlot other, long amount)
         {
             if (this.Item.TemplateID != other.Item.TemplateID) return false;
             if (this.Item.StackSize == 1) return false;
             if (other.Item.StackSize == 1) return false;
             if (this.Item.StackSize != other.Item.StackSize) return false;
             if (this.Item.StackSize == 0) return true;
-            if (this.Stack + other.Stack > this.Item.StackSize) return false;
+            if (this.Stack + amount > this.Item.StackSize) return false;
 
             return true;
+        }
+
+        public bool CanStack(ItemSlot other)
+        {
+            return CanStack(other, other.Stack);
         }
 
         public static void SwapSlots(ref ItemSlot from, ref ItemSlot to)

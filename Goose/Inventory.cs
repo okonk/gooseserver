@@ -207,10 +207,10 @@ namespace Goose
         }
 
         /**
-         * SplitSlots, adds one item from slot 1 to slot 2
+         * SplitSlots, adds items from slot 1 to slot 2
          *
          */
-        public void SplitSlots(int id1, int id2, GameWorld world)
+        public void SplitSlots(int id1, int id2, int stackSize, GameWorld world)
         {
             if (id1 <= 0 || id1 > GameWorld.Settings.InventorySize ||
                 id2 <= 0 || id2 > GameWorld.Settings.InventorySize)
@@ -223,31 +223,33 @@ namespace Goose
             ItemSlot slot2 = this.GetSlot(id2);
 
             if (slot1 == null) return;
-
-            ItemSlot temp = new ItemSlot();
-            temp.Item = new Item();
-            temp.Item.LoadFromTemplate(slot1.Item.Template);
-            temp.Stack = 0;
-
-            if (temp.Item.IsBindOnPickup) temp.Item.IsBound = true;
+            if (stackSize > slot1.Stack) return;
 
             if (slot2 == null)
             {
-                world.ItemHandler.AddAndAssignId(temp.Item, world);
-                slot2 = temp;
-            }
+                var newStack = new ItemSlot();
+                newStack.Item = new Item();
+                newStack.Item.LoadFromTemplate(slot1.Item.Template);
+                newStack.Stack = stackSize;
 
-            if (slot2.CanStack(slot1))
+                if (newStack.Item.IsBindOnPickup) newStack.Item.IsBound = true;
+
+                world.ItemHandler.AddAndAssignId(newStack.Item, world);
+                this.inventory[id2] = newStack;
+            }
+            else if (slot2.CanStack(slot1, stackSize))
             {
-                slot2.Stack += 1;
-                this.inventory[id2] = slot2;
-
-                if (slot1.Stack > 1) slot1.Stack--;
-                else
-                {
-                    this.inventory[id1] = null;
-                }
+                slot2.Stack += stackSize;
             }
+            else
+            {
+                return;
+            }
+
+            if (stackSize == slot1.Stack)
+                this.inventory[id1] = null;
+            else
+                slot1.Stack -= stackSize;
 
             this.SendSlot(id1, world);
             this.SendSlot(id2, world);
