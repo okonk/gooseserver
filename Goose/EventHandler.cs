@@ -34,116 +34,118 @@ namespace Goose
         public EventHandler()
         {
             this.events = new SortedList<long, Event>();
-            this.stringToEvent = new Dictionary<string, CreateEvent>();
-
-            this.stringToEvent.Add("LOGIN", LoginEvent.Create);
-            this.stringToEvent.Add("LCNT", LoginContinuedEvent.Create);
-            this.stringToEvent.Add("DLM", DoneLoadingMapEvent.Create);
-            this.stringToEvent.Add(";", ChatEvent.Create);
-            this.stringToEvent.Add("M1", MoveEvent.Create);
-            this.stringToEvent.Add("M2", MoveEvent.Create);
-            this.stringToEvent.Add("M3", MoveEvent.Create);
-            this.stringToEvent.Add("M4", MoveEvent.Create);
-            this.stringToEvent.Add("F1", FacingEvent.Create);
-            this.stringToEvent.Add("F2", FacingEvent.Create);
-            this.stringToEvent.Add("F3", FacingEvent.Create);
-            this.stringToEvent.Add("F4", FacingEvent.Create);
-            this.stringToEvent.Add("/tell ", TellEvent.Create);
-            this.stringToEvent.Add("/who", WhoEvent.Create);
-            this.stringToEvent.Add("/summon ", SummonEvent.Create);
-            this.stringToEvent.Add("/warp ", WarpEvent.Create);
-            this.stringToEvent.Add("/approach ", ApproachEvent.Create);
-            this.stringToEvent.Add("CHANGE", InventoryChangeSlotEvent.Create);
-            this.stringToEvent.Add("SPLIT", InventorySplitEvent.Create);
-            this.stringToEvent.Add("USE", InventoryUseEvent.Create);
-            this.stringToEvent.Add("GET", PickupItemEvent.Create);
-            this.stringToEvent.Add("DRP", PlayerDropItemEvent.Create);
-            this.stringToEvent.Add("/dropgold ", PlayerDropGoldEvent.Create);
-            this.stringToEvent.Add("ATT", PlayerAttackEvent.Create);
-            this.stringToEvent.Add("PONG", PlayerPongEvent.Create);
-            this.stringToEvent.Add("/shutdown", ShutdownCommandEvent.Create);
-            this.stringToEvent.Add("/location", LocationEvent.Create);
-            this.stringToEvent.Add("RPU", RefreshPositionEvent.Create);
-            this.stringToEvent.Add("/refresh", RefreshPositionEvent.Create);
-            this.stringToEvent.Add("CAST", PlayerCastSpellEvent.Create);
-            this.stringToEvent.Add("/getitem ", GetItemCommandEvent.Create);
-            this.stringToEvent.Add("/hax ", HaxCommandEvent.Create);
-            this.stringToEvent.Add("/gmhax ", GMHaxCommandEvent.Create);
-            this.stringToEvent.Add("/togglegroup", ToggleGroupCommandEvent.Create);
-            this.stringToEvent.Add("/group ", GroupChatEvent.Create);
-            this.stringToEvent.Add("/invite ", GroupAddEvent.Create);
-            this.stringToEvent.Add("/groupadd ", GroupAddEvent.Create);
-            this.stringToEvent.Add("/disband", GroupRemoveEvent.Create);
-            this.stringToEvent.Add("/groupremove", GroupRemoveEvent.Create);
-            this.stringToEvent.Add("RC", PlayerRightClickEvent.Create);
-            this.stringToEvent.Add("WBC", WindowButtonClickEvent.Create);
-            this.stringToEvent.Add("VPI", VendorPurchaseInventoryEvent.Create);
-            this.stringToEvent.Add("VSI", VendorSellInventoryEvent.Create);
-            this.stringToEvent.Add("/ban ", BanCommandEvent.Create);
-            this.stringToEvent.Add("/kick ", KickCommandEvent.Create);
-            this.stringToEvent.Add("/shout ", ShoutCommandEvent.Create);
-            this.stringToEvent.Add("/auction ", AuctionCommandEvent.Create);
-            this.stringToEvent.Add("/random", RandomCommandEvent.Create);
-            this.stringToEvent.Add("/broadcast ", BroadcastCommandEvent.Create);
-            this.stringToEvent.Add("EMOT", EmoteEvent.Create);
-            this.stringToEvent.Add("/buyvita", BuyVitaCommandEvent.Create);
-            this.stringToEvent.Add("/buymana", BuyManaCommandEvent.Create);
-            this.stringToEvent.Add("DITM", DestroyItemEvent.Create);
-            this.stringToEvent.Add("DSPL", DestroySpellEvent.Create);
-            this.stringToEvent.Add("SWAP", SpellbookSwapEvent.Create);
-            this.stringToEvent.Add("OCB", OpenCombineBagEvent.Create);
-            this.stringToEvent.Add("ITW", InventoryToWindowEvent.Create);
-            this.stringToEvent.Add("WTI", WindowToInventoryEvent.Create);
-            this.stringToEvent.Add("/charinfo", CharacterInfoCommandEvent.Create);
-            this.stringToEvent.Add("/guildcreate ", GuildCreateCommandEvent.Create);
-            this.stringToEvent.Add("/guildadd ", GuildAddCommandEvent.Create);
-            this.stringToEvent.Add("/guildremove", GuildRemoveCommandEvent.Create);
-            this.stringToEvent.Add("/guildmotd", GuildMotdCommandEvent.Create);
-            this.stringToEvent.Add("/guildowner ", GuildOwnerCommandEvent.Create);
-            this.stringToEvent.Add("/guildofficer ", GuildOfficerCommandEvent.Create);
-            this.stringToEvent.Add("/guild ", GuildChatCommandEvent.Create);
-            this.stringToEvent.Add("/rank", RankCommandEvent.Create);
-            this.stringToEvent.Add("/setconfig ", SetConfigCommandEvent.Create);
-            this.stringToEvent.Add("/saveconfig", SaveConfigCommandEvent.Create);
-            this.stringToEvent.Add("/respawnmap", RespawnMapCommandEvent.Create);
-            this.stringToEvent.Add("/changepassword ", ChangePasswordCommandEvent.Create);
-            this.stringToEvent.Add("KBUF", KillBuffEvent.Create);
-            this.stringToEvent.Add("/toggle ", ToggleCommandEvent.Create);
-            this.stringToEvent.Add("/aether ", AetherCommandEvent.Create);
-            this.stringToEvent.Add("/petlist", PetListCommandEvent.Create);
-            this.stringToEvent.Add("/petspawn ", PetSpawnCommandEvent.Create);
-            this.stringToEvent.Add("/petinfo ", PetInfoCommandEvent.Create);
-            this.stringToEvent.Add("/petdamage ", PetDamageCommandEvent.Create);
-            this.stringToEvent.Add("/petvita ", PetVitaCommandEvent.Create);
-            this.stringToEvent.Add("/petdelete ", PetDeleteCommandEvent.Create);
-            this.stringToEvent.Add("/unban ", UnbanCommandEvent.Create);
-            this.stringToEvent.Add("/checkname ", CheckNameCommandEvent.Create);
-            this.stringToEvent.Add("/changeclass ", ChangeClassCommandEvent.Create);
-            this.stringToEvent.Add("/changename ", ChangeNameCommandEvent.Create);
-            this.stringToEvent.Add("/giveexperience ", GiveExperienceCommandEvent.Create);
-            this.stringToEvent.Add("/credits", CreditsCommandEvent.Create);
-            this.stringToEvent.Add("/playtime", PlaytimeCommandEvent.Create);
-            this.stringToEvent.Add("/settitle ", SetTitleCommandEvent.Create);
-            this.stringToEvent.Add("/setsurname ", SetSurnameCommandEvent.Create);
-            this.stringToEvent.Add("/givecredits ", GiveCreditsCommandEvent.Create);
-            this.stringToEvent.Add("/hairdye", HairdyeCommandEvent.Create);
-            this.stringToEvent.Add("SBN", SpellbookNextEvent.Create);
-            this.stringToEvent.Add("SBB", SpellbookBackEvent.Create);
-            this.stringToEvent.Add("LC", PlayerLeftClickEvent.Create);
-            this.stringToEvent.Add("/spawnnpc ", SpawnNPCCommandEvent.Create);
-            this.stringToEvent.Add("/search ", SearchCommandEvent.Create);
-            this.stringToEvent.Add("WTW", WindowToWindowEvent.Create);
-            this.stringToEvent.Add("/custom", CustomCommandEvent.Create);
-            this.stringToEvent.Add("SID", SpellInfoEvent.Create);
-            this.stringToEvent.Add("/mutemap", MuteMapEvent.Create);
-            this.stringToEvent.Add("/setaccess", SetAccessCommandEvent.Create);
-            this.stringToEvent.Add("/macrocheck ", MacroCheckCommandEvent.Create);
-            this.stringToEvent.Add("/mc ", MacroConfirmCommandEvent.Create);
-            this.stringToEvent.Add("/reloadscripts", ReloadScriptsCommandEvent.Create);
-            this.stringToEvent.Add("/reloadsql", ReloadSqlCommandEvent.Create);
-            this.stringToEvent.Add("/updatesql", UpdateSqlCommandEvent.Create);
-            this.stringToEvent.Add("/placespawn", PlaceSpawnCommandEvent.Create);
-            this.stringToEvent.Add("/playerinfo ", PlayerInfoCommandEvent.Create);
+            this.stringToEvent = new Dictionary<string, CreateEvent>
+            {
+                { "LOGIN", LoginEvent.Create },
+                { "LCNT", LoginContinuedEvent.Create },
+                { "DLM", DoneLoadingMapEvent.Create },
+                { ";", ChatEvent.Create },
+                { "M1", MoveEvent.Create },
+                { "M2", MoveEvent.Create },
+                { "M3", MoveEvent.Create },
+                { "M4", MoveEvent.Create },
+                { "F1", FacingEvent.Create },
+                { "F2", FacingEvent.Create },
+                { "F3", FacingEvent.Create },
+                { "F4", FacingEvent.Create },
+                { "/tell ", TellEvent.Create },
+                { "/who", WhoEvent.Create },
+                { "/summon ", SummonEvent.Create },
+                { "/warp ", WarpEvent.Create },
+                { "/approach ", ApproachEvent.Create },
+                { "CHANGE", InventoryChangeSlotEvent.Create },
+                { "SPLIT", InventorySplitEvent.Create },
+                { "USE", InventoryUseEvent.Create },
+                { "GET", PickupItemEvent.Create },
+                { "DRP", PlayerDropItemEvent.Create },
+                { "/dropgold ", PlayerDropGoldEvent.Create },
+                { "ATT", PlayerAttackEvent.Create },
+                { "PONG", PlayerPongEvent.Create },
+                { "/shutdown", ShutdownCommandEvent.Create },
+                { "/location", LocationEvent.Create },
+                { "RPU", RefreshPositionEvent.Create },
+                { "/refresh", RefreshPositionEvent.Create },
+                { "CAST", PlayerCastSpellEvent.Create },
+                { "/getitem ", GetItemCommandEvent.Create },
+                { "/hax ", HaxCommandEvent.Create },
+                { "/gmhax ", GMHaxCommandEvent.Create },
+                { "/togglegroup", ToggleGroupCommandEvent.Create },
+                { "/group ", GroupChatEvent.Create },
+                { "/invite ", GroupAddEvent.Create },
+                { "/groupadd ", GroupAddEvent.Create },
+                { "/disband", GroupRemoveEvent.Create },
+                { "/groupremove", GroupRemoveEvent.Create },
+                { "RC", PlayerRightClickEvent.Create },
+                { "WBC", WindowButtonClickEvent.Create },
+                { "VPI", VendorPurchaseInventoryEvent.Create },
+                { "VSI", VendorSellInventoryEvent.Create },
+                { "/ban ", BanCommandEvent.Create },
+                { "/kick ", KickCommandEvent.Create },
+                { "/shout ", ShoutCommandEvent.Create },
+                { "/auction ", AuctionCommandEvent.Create },
+                { "/random", RandomCommandEvent.Create },
+                { "/broadcast ", BroadcastCommandEvent.Create },
+                { "EMOT", EmoteEvent.Create },
+                { "/buyvita", BuyVitaCommandEvent.Create },
+                { "/buymana", BuyManaCommandEvent.Create },
+                { "DITM", DestroyItemEvent.Create },
+                { "DSPL", DestroySpellEvent.Create },
+                { "SWAP", SpellbookSwapEvent.Create },
+                { "OCB", OpenCombineBagEvent.Create },
+                { "ITW", InventoryToWindowEvent.Create },
+                { "WTI", WindowToInventoryEvent.Create },
+                { "/charinfo", CharacterInfoCommandEvent.Create },
+                { "/guildcreate ", GuildCreateCommandEvent.Create },
+                { "/guildadd ", GuildAddCommandEvent.Create },
+                { "/guildremove", GuildRemoveCommandEvent.Create },
+                { "/guildmotd", GuildMotdCommandEvent.Create },
+                { "/guildowner ", GuildOwnerCommandEvent.Create },
+                { "/guildofficer ", GuildOfficerCommandEvent.Create },
+                { "/guild ", GuildChatCommandEvent.Create },
+                { "/rank", RankCommandEvent.Create },
+                { "/setconfig ", SetConfigCommandEvent.Create },
+                { "/saveconfig", SaveConfigCommandEvent.Create },
+                { "/respawnmap", RespawnMapCommandEvent.Create },
+                { "/changepassword ", ChangePasswordCommandEvent.Create },
+                { "KBUF", KillBuffEvent.Create },
+                { "/toggle ", ToggleCommandEvent.Create },
+                { "/aether ", AetherCommandEvent.Create },
+                { "/petlist", PetListCommandEvent.Create },
+                { "/petspawn ", PetSpawnCommandEvent.Create },
+                { "/petinfo ", PetInfoCommandEvent.Create },
+                { "/petdamage ", PetDamageCommandEvent.Create },
+                { "/petvita ", PetVitaCommandEvent.Create },
+                { "/petdelete ", PetDeleteCommandEvent.Create },
+                { "/unban ", UnbanCommandEvent.Create },
+                { "/checkname ", CheckNameCommandEvent.Create },
+                { "/changeclass ", ChangeClassCommandEvent.Create },
+                { "/changename ", ChangeNameCommandEvent.Create },
+                { "/giveexperience ", GiveExperienceCommandEvent.Create },
+                { "/credits", CreditsCommandEvent.Create },
+                { "/playtime", PlaytimeCommandEvent.Create },
+                { "/settitle ", SetTitleCommandEvent.Create },
+                { "/setsurname ", SetSurnameCommandEvent.Create },
+                { "/givecredits ", GiveCreditsCommandEvent.Create },
+                { "/hairdye", HairdyeCommandEvent.Create },
+                { "SBN", SpellbookNextEvent.Create },
+                { "SBB", SpellbookBackEvent.Create },
+                { "LC", PlayerLeftClickEvent.Create },
+                { "/spawnnpc ", SpawnNPCCommandEvent.Create },
+                { "/search ", SearchCommandEvent.Create },
+                { "WTW", WindowToWindowEvent.Create },
+                { "/custom", CustomCommandEvent.Create },
+                { "SID", SpellInfoEvent.Create },
+                { "/mutemap", MuteMapEvent.Create },
+                { "/setaccess", SetAccessCommandEvent.Create },
+                { "/macrocheck ", MacroCheckCommandEvent.Create },
+                { "/mc ", MacroConfirmCommandEvent.Create },
+                { "/reloadscripts", ReloadScriptsCommandEvent.Create },
+                { "/reloadsql", ReloadSqlCommandEvent.Create },
+                { "/updatesql", UpdateSqlCommandEvent.Create },
+                { "/placespawn", PlaceSpawnCommandEvent.Create },
+                { "/playerinfo ", PlayerInfoCommandEvent.Create },
+                { "/setpassword ", GMSetPasswordCommandEvent.Create }
+            };
         }
 
         public void RegisterEvent(string key, CreateEvent action)

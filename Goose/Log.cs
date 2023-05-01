@@ -45,6 +45,7 @@ namespace Goose
             MacroCheckFailed,
             Ban,
             Kick,
+            SetPassword,
         }
 
         public Types Type { get; set; }

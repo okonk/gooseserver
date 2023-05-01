@@ -2306,5 +2306,23 @@ namespace Goose
                 this.sock.Send(bytes);
             }
         }
+
+        public void SetPassword(string newPassword)
+        {
+            var saltBytes = new byte[16];
+            var rng = new RNGCryptoServiceProvider();
+            rng.GetNonZeroBytes(saltBytes);
+
+            var salt = Encoding.ASCII.GetString(saltBytes);
+            var base64Salt = Convert.ToBase64String(saltBytes);
+
+            var md5 = new MD5CryptoServiceProvider();
+            var data = Encoding.ASCII.GetBytes(salt + password + GameWorld.Settings.ServerName);
+
+            var passwordHash = BitConverter.ToString(md5.ComputeHash(data)).Replace("-", "").ToLower();
+
+            this.PasswordHash = passwordHash;
+            this.PasswordSalt = base64Salt;
+        }
     }
 }

@@ -34,21 +34,7 @@ namespace Goose.Events
                     return;
                 }
 
-                byte[] saltBytes = new byte[16];
-                RNGCryptoServiceProvider rng = new RNGCryptoServiceProvider();
-                rng.GetNonZeroBytes(saltBytes);
-
-                string salt = Encoding.ASCII.GetString(saltBytes);
-                string base64Salt = Convert.ToBase64String(saltBytes);
-
-                MD5CryptoServiceProvider md5 = new MD5CryptoServiceProvider();
-                byte[] data = Encoding.ASCII.GetBytes(salt + password + GameWorld.Settings.ServerName);
-                data = md5.ComputeHash(data);
-
-                string passwordHash = BitConverter.ToString(data).Replace("-", "").ToLower();
-
-                this.Player.PasswordHash = passwordHash;
-                this.Player.PasswordSalt = base64Salt;
+                this.Player.SetPassword(password);
 
                 world.Send(this.Player, P.ServerMessage("Your password has been changed."));
             }

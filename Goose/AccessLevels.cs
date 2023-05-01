@@ -39,6 +39,7 @@ namespace Goose
         GMInvisible,
         SetAccess,
         SetConfig,
+        SetPassword,
         Shutdown,
     }
 
