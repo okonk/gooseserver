@@ -100,7 +100,7 @@ namespace Goose.Events
                 }
             }
 
-            if (name.Length <= 1 || password.Length <= 1)
+            if (name.Length < 3 || password.Length < 3)
             {
                 world.Send(new Player() { Sock = sock }, P.LoginDenied("Please use a longer username or password."));
                 world.GameServer.Disconnect(sock);

@@ -2307,7 +2307,7 @@ namespace Goose
             }
         }
 
-        public void SetPassword(string newPassword)
+        public void SetPassword(string password)
         {
             var saltBytes = new byte[16];
             var rng = new RNGCryptoServiceProvider();

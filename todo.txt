@@ -12,8 +12,8 @@ add a limit to chat text?
 
 dotnet "build" "/home/hayden/code/illutiagooseserver/Goose/Goose.csproj"
 scp root@game.illutia.net:/root/GooseServer/IllutiaGoose.db /mnt/bloom/media/Dump/Goose/IllutiaGoose_2022-04-03.db
-scp bin/Debug/Goose.dll root@game.illutia.net:/root/StagingGooseServer
-scp -r Data/Illutia/Scripts/ root@game.illutia.net:/root/StagingGooseServer/Data/Illutia
+scp Goose/bin/Debug/Goose.dll root@game.illutia.net:/root/StagingGooseServer
+scp -r Goose/Data/Illutia/Scripts/ root@game.illutia.net:/root/StagingGooseServer/Data/Illutia
 
 
 change droprate to double
