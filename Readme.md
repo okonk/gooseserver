@@ -34,3 +34,23 @@ Set up the server to use your data sheet by copying the id out of the URL of you
 ### 5. Connect client
 
 Server runs on port 2006 by default. So configure your client for that port and play. :)
+
+### 6. Updating server data
+
+When restarting the server you can run it with "updatesql" on the end to update automatically.
+
+`dotnet "run" --project "Goose/Goose.csproj" updatesql`
+
+Otherwise if your character is a GM you can run the /updatesql command.
+
+### 7. Connecting to the database
+
+Via command line you can run `sqlite3 Goose/bin/Debug/IllutiaGoose.db` and run SQL commands.
+
+Otherwise you can download a tool such as [SQLite Browser](https://sqlitebrowser.org/) to open the `IllutiaGoose.db` file and edit it.
+
+### 8. Making your character a GM
+
+You can run this SQL with your player name, or update the access_status column for your player and set it to 9.
+
+`UPDATE players SET access_status=9 WHERE player_name='namegoeshere';`
