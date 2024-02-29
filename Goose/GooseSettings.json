@@ -4,7 +4,7 @@
     // Aspereta Config
     // "ServerType": "Aspereta",
     // "DatabaseName": "AsperetaGoose",
-    // "DataLink": "https://docs.google.com/spreadsheets/d/1XOuwc_STqSUE7FYJsnWSp9HxSxJWIRiNkb67FpXKJjU/export?format=xlsx&id=1XOuwc_STqSUE7FYJsnWSp9HxSxJWIRiNkb67FpXKJjU",
+    // "DataLink": "1YB572cYPg43haWySGHxk4v15fS3NSjf_Gj1rLcSE2Zc",
     // "DataPath": "Data/Aspereta",
     // "ServerName": "Goose",
     // "StartingMapID": 1,
@@ -22,7 +22,7 @@
     // Illutia Config
     "ServerType": "Illutia",
     "DatabaseName": "IllutiaGoose",
-    "DataLink": "https://docs.google.com/spreadsheets/u/0/d/1p3yRBr_hIPMYdeIwFHvYRQFiEskKHK8TgLLu8Z1ZEVI/export?format=xlsx&id=1p3yRBr_hIPMYdeIwFHvYRQFiEskKHK8TgLLu8Z1ZEVI",
+    "DataLinkId": "1Ig7u4XHc1Vjk4Y1502bwHEVEDba3JTCUcrKwrcOPWyQ",
     "DataPath": "Data/Illutia",
     "ServerName": "Extrico",
     "StartingMapID": 2,

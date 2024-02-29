@@ -157,10 +157,10 @@ namespace Goose
             ExecuteSql(connection, File.ReadAllText("sql/wordfilter.sql", Encoding.UTF8));
             ExecuteSql(connection, File.ReadAllText("sql/paypal.sql", Encoding.UTF8));
 
-            if (!string.IsNullOrEmpty(Settings.DataLink))
+            if (!string.IsNullOrEmpty(Settings.DataLinkId))
             {
                 log.Info("Importing data from Google Docs");
-                string sql = CsvToSql.Core.CsvToSqlConverter.Convert(Settings.DataLink);
+                string sql = CsvToSql.Core.CsvToSqlConverter.Convert(Settings.DataLinkId);
                 File.WriteAllText("GooseData.sql", sql);
                 ExecuteSql(connection, sql);
             }
@@ -208,7 +208,7 @@ namespace Goose
                 log.Info("Updating SQL:");
                 try
                 {
-                    var sqlData = CsvToSql.Core.CsvToSqlConverter.Convert(GameWorld.Settings.DataLink);
+                    var sqlData = CsvToSql.Core.CsvToSqlConverter.Convert(GameWorld.Settings.DataLinkId);
                     using (var command = this.SqlConnection.CreateCommand())
                     {
                         command.CommandText = sqlData;

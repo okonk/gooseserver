@@ -7,7 +7,7 @@ namespace Goose
         public string ServerVersion { get; set; }
         public string ServerType { get; set; }
         public string DatabaseName { get; set; }
-        public string DataLink { get; set; }
+        public string DataLinkId { get; set; }
         public string DataPath { get; set; }
         public string ServerName { get; set; }
         public int StartingMapID { get; set; }

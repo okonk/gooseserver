@@ -30,7 +30,7 @@ namespace Goose.Events
                 {
                     try
                     {
-                        var sqlData = CsvToSql.Core.CsvToSqlConverter.Convert(GameWorld.Settings.DataLink);
+                        var sqlData = CsvToSql.Core.CsvToSqlConverter.Convert(GameWorld.Settings.DataLinkId);
                         var command = world.SqlConnection.CreateCommand();
                         command.CommandText = sqlData;
 
