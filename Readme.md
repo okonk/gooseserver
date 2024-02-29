@@ -23,9 +23,9 @@ This will prompt you to copy the sheet. Go to your new sheet, share it to make i
 
 Open the file `GooseSettings.json`.
 
-By default the settings are configured for Illutia. If you want the server to run for Aspereta you will need to remove/comment out the section under "// Illutia Config". And uncomment the section under "// Aspereta Config".
+By default the settings are configured for Illutia. If you want the server to run for Aspereta you will need to remove/comment out the section under `// Illutia Config`. And uncomment the section under `// Aspereta Config`.
 
-Set up the server to use your data sheet by copying the id out of the URL of your sheet and copying it into the ID in the config "DataLinkId".
+Set up the server to use your data sheet by copying the id out of the URL of your sheet and copying it into the ID in the config `DataLinkId`.
 
 ### 4. Run the server
 
@@ -37,11 +37,11 @@ Server runs on port 2006 by default. So configure your client for that port and 
 
 ### 6. Updating server data
 
-When restarting the server you can run it with "updatesql" on the end to update automatically.
+When restarting the server you can run it with `updatesql` on the end to update automatically.
 
 `dotnet "run" --project "Goose/Goose.csproj" updatesql`
 
-Otherwise if your character is a GM you can run the /updatesql command.
+Otherwise if your character is a GM you can run the `/updatesql` command.
 
 ### 7. Connecting to the database
 
