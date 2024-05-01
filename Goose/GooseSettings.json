@@ -18,6 +18,8 @@
     // "BankSlotsPerPage": 10,
     // "CustomTicketId": 823,
     // "RippedCustomTicketId": 1575,
+    // "StartingFaceID": 70,
+    // "StartingHairID": 20,
 
     // Illutia Config
     "ServerType": "Illutia",
@@ -36,6 +38,8 @@
     "BankSlotsPerPage": 30,
     "CustomTicketId": 677,
     "RippedCustomTicketId": 1575,
+    "StartingFaceID": 2,
+    "StartingHairID": 16,
 
     // Common Config
     "AutoCharacterCreation": true,
@@ -74,8 +78,6 @@
     "StartingClassID": 1,
     "StartingGuildID": 0,
     "StartingBodyID": 1,
-    "StartingFaceID": 2,
-    "StartingHairID": 16,
     "StartingHairR": 0,
     "StartingHairG": 0,
     "StartingHairB": 0,
