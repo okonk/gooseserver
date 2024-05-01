@@ -2105,6 +2105,10 @@ namespace Goose
 
         public bool IsMounted()
         {
+            // If there is no mount slot, just return false. This is for Aspereta
+            if ((int)Inventory.EquipSlots.Mount > GameWorld.Settings.EquippedSize)
+                return false;
+
             return this.Inventory.GetEquippedSlot(Inventory.EquipSlots.Mount) != null;
         }
 
