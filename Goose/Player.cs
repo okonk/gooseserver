@@ -41,6 +41,8 @@ namespace Goose
         }
         public string Buffer { get; set; }
 
+        public List<byte> SendBuffer { get; private set; }
+
         /**
          * ExperienceMessage, used for sending to AddExperience to diaplay
          * the right message when gaining experience
@@ -490,6 +492,12 @@ namespace Goose
         public Player()
         {
 
+        }
+
+        public void OnLogin()
+        {
+            this.Buffer = "";
+            this.SendBuffer = new();
         }
 
         public bool HasPrivilege(AccessPrivilege privilege)
@@ -2307,7 +2315,18 @@ namespace Goose
 
             lock (socketLock)
             {
-                this.sock.Send(bytes);
+                var bytesSent = this.sock.Send(bytes);
+                if (bytesSent != bytes.Length)
+                    this.SendBuffer.AddRange(bytes.AsSpan(bytesSent));
+            }
+        }
+
+        public void Send()
+        {
+            lock (socketLock)
+            {
+                var bytesSent = this.sock.Send(this.SendBuffer.ToArray());
+                this.SendBuffer.RemoveRange(0, bytesSent);
             }
         }
 

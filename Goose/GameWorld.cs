@@ -564,25 +564,13 @@ namespace Goose
          */
         public void ParseData(Player player)
         {
-            string data = player.Buffer;
-            string[] tokens = data.Split("\x1".ToCharArray());
-            int limit = tokens.Length - 1;
+            var packets = player.Buffer.Split('\x1');
+            player.Buffer = packets[^1];
 
-            if (!data.EndsWith("\x1"))
+            for (int i = 0; i < packets.Length - 1; i++)
             {
-                limit--;
+                this.EventHandler.AddEvent(player, packets[i]);
             }
-
-            string packet;
-            for (int i = 0; i < limit; i++)
-            {
-                packet = tokens[i];
-                data = data.Remove(0, packet.Length + 1);
-
-                this.EventHandler.AddEvent(player, packet);
-            }
-
-            player.Buffer = data;
         }
 
         /**

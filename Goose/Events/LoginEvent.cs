@@ -233,6 +233,9 @@ namespace Goose.Events
                 world.SendToAll(P.ServerMessage(this.Player.Name + " has joined the world."));
 
             this.Player.State = Player.States.LoadingGame;
+
+            this.Player.OnLogin();
+            
             world.Send(this.Player, P.LoginAccepted(GameWorld.Settings.ServerName));
 
             this.Player.Windows = new List<Window>();

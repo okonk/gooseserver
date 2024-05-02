@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -15,10 +14,10 @@ namespace Goose
      */
     public class GameServer
     {
-        Socket listen;
-        ArrayList sockets;
+        private Socket listen;
+        private List<Socket> sockets;
 
-        GameWorld gameworld;
+        private GameWorld gameworld;
 
         private bool stopping = false;
 
@@ -40,7 +39,7 @@ namespace Goose
             {
                 try
                 {
-                    this.sockets = new ArrayList();
+                    this.sockets = new();
                     this.gameworld = new GameWorld(this);
                     this.Start();
                     this.GameLoop();
@@ -107,47 +106,51 @@ namespace Goose
          */
         public void GameLoop()
         {
-            ArrayList readList;
-            ArrayList writeList;
-
             while (this.gameworld.Running) 
             {
                 System.Threading.Thread.Sleep(1);
 
-                readList = (ArrayList)this.sockets.Clone();
-                writeList = (ArrayList)this.sockets.Clone();
+                var readList = this.sockets.ToList();
+                var writeList = this.sockets.Where(s => gameworld.PlayerHandler.GetPlayer(s)?.SendBuffer.Count > 0).ToList();
 
                 Socket.Select(readList, writeList, null, 2000);
+
+                foreach (var writeSocket in writeList)
+                {
+                    var player = gameworld.PlayerHandler.GetPlayer(writeSocket);
+                    
+                    player?.Send();
+                }
 
                 foreach (Socket sock in readList)
                 {
                     if (sock == this.listen)
                     {
-                        Socket newsock = this.listen.Accept();
-                        newsock.Blocking = false;
-                        this.sockets.Add(newsock);
+                        var newSocket = this.listen.Accept();
+                        newSocket.Blocking = false;
+                        this.sockets.Add(newSocket);
 
-                        this.gameworld.NewConnection(newsock);
+                        this.gameworld.NewConnection(newSocket);
                     }
                     else
                     {
-                        byte[] buffer = new byte[512];
-                        int res = 0;
+                        var buffer = new byte[8192];
+                        int bytesRead = 0;
                         try
                         {
-                            res = sock.Receive(buffer);
+                            bytesRead = sock.Receive(buffer);
                         }
                         catch (SocketException)
                         {
                         }
 
-                        if (res <= 0)
+                        if (bytesRead <= 0)
                         {
                             this.gameworld.LostConnection(sock);
                         }
                         else
                         {
-                            string strBuffer = Encoding.ASCII.GetString(buffer, 0, res);
+                            string strBuffer = Encoding.ASCII.GetString(buffer, 0, bytesRead);
                             this.gameworld.Received(sock, strBuffer);
                         }
                     }
