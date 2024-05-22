@@ -50,7 +50,7 @@ public class ItemModifierScript : BaseItemModifierScript
         {
             double value = operation.value;
             if (value == 0)
-                value = world.Random.Next((int)operation.min, (int)operation.max);
+                value = world.Random.Next((int)operation.min, (int)operation.max + 1);
 
             this.AddStats(item, operation, value);
             item.RefreshStats();

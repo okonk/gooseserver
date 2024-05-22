@@ -1283,15 +1283,22 @@ namespace Goose
                         this.LastAttackTime = world.TimeNow;
                         break;
                     case NPCTemplate.BehaviourTypes.TeleportToAggro:
-                        // move off this square so null
+                        var originalX = this.MapX;
+                        var originalY = this.MapY;
+
+                        // Use PlaceCharacter to find the spot to tele to
                         this.Map.SetCharacter(null, this.MapX, this.MapY);
                         this.MapX = this.AggroTarget.MapX;
                         this.MapY = this.AggroTarget.MapY;
                         this.Map.PlaceCharacter(this);
-                        this.MoveTo(world, this.MapX, this.MapY);
-                        // kinda hackish, moveto will set the aggrotarget char to null so have to reset it
-                        //this.Map.SetCharacter(this.AggroTarget,
-                        //    this.AggroTarget.MapX, this.AggroTarget.MapX);
+
+                        var teleportX = this.MapX;
+                        var teleportY = this.MapY;
+
+                        this.MapX = originalX;
+                        this.MapY = originalY;
+                        this.MoveTo(world, teleportX, teleportY);
+
                         // reset attack time so doesn't keep teleporting if it can't attack
                         this.LastAttackTime = world.TimeNow;
                         break;

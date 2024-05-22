@@ -79,11 +79,13 @@ public class ItemInfoWindow : Window
         world.Send(player, P.WindowTextLine(this.ID, lineno++, line));
 
         line = "";
-        if (stats.FireResist != 0) line += "FR: " + stats.FireResist + " ";
-        if (stats.AirResist != 0) line += "AR: " + stats.AirResist + " ";
-        if (stats.EarthResist != 0) line += "ER: " + stats.EarthResist + " ";
-        if (stats.WaterResist != 0) line += "WR: " + stats.WaterResist + " ";
-        if (stats.SpiritResist != 0) line += "SR: " + stats.SpiritResist + " ";
+        // if (stats.FireResist != 0) line += "FR: " + stats.FireResist + " ";
+        // if (stats.AirResist != 0) line += "AR: " + stats.AirResist + " ";
+        // if (stats.EarthResist != 0) line += "ER: " + stats.EarthResist + " ";
+        // if (stats.WaterResist != 0) line += "WR: " + stats.WaterResist + " ";
+        // if (stats.SpiritResist != 0) line += "SR: " + stats.SpiritResist + " ";
+        var totalSpellDamage = stats.SpellDamage + (item.SpellEffect?.Stats.SpellDamage ?? 0);
+        if (totalSpellDamage != 0) line += $"+SD: {totalSpellDamage * 100:N0}%";
         world.Send(player, P.WindowTextLine(this.ID, lineno++, line));
 
         line = "";
@@ -524,7 +526,8 @@ public class AsperetaMode : BaseGlobalScript
                     "0," +
                     (spell.Target == Spell.SpellTargets.Target ? "T" : "X") + "," +
                     spell.Graphic + "," +
-                    spell.GraphicFile;
+                    spell.GraphicFile + "," +
+                    (spell.Aether > TimeSpan.FromHours(1).TotalMilliseconds ? 5000 : spell.Aether) ;
         };
 
         P.SpellPlayer = (loginId, animationId, animationFile) => 
@@ -579,7 +582,7 @@ public class AsperetaMode : BaseGlobalScript
                 percent = (long)(((float)(exp - prev) / (next - prev)) * 100);
             }
 
-            string packet = "TNL" + percent + "," + exp + "," + tnl;
+            string packet = "TNL" + Math.Max(100, percent) + "," + exp + "," + tnl;
             if (xpCapped)
             {
                 packet += "," + player.Experience;

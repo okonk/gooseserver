@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net.Http;
+using System.Reflection;
 using System.Text;
 
 namespace CsvToSql.Core
@@ -39,8 +40,13 @@ namespace CsvToSql.Core
             var url = $"https://docs.google.com/spreadsheets/u/0/d/{dataLinkId}/export?format=xlsx&id={dataLinkId}";
             var spreadsheet = new MemoryStream(new HttpClient().GetByteArrayAsync(url).Result);
 
-            string sqlTemplate = File.ReadAllText("sqlTemplate.sql", Encoding.UTF8);
-            using (var workbook = new XLWorkbook(spreadsheet, XLEventTracking.Disabled))
+            var assembly = typeof(CsvToSqlConverter).GetTypeInfo().Assembly;
+            var resource = assembly.GetManifestResourceStream($"CsvToSql.Core.sqlTemplate.sql");
+            using var streamReader = new StreamReader(resource, Encoding.UTF8);
+
+            string sqlTemplate = streamReader.ReadToEnd();
+
+            using (var workbook = new XLWorkbook(spreadsheet))
             {
                 foreach (var worksheet in workbook.Worksheets)
                 {

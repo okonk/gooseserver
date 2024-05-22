@@ -5,13 +5,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Update="sqlTemplate.sql">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
+    <EmbeddedResource Include="sqlTemplate.sql" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="ClosedXML" Version="0.94.2" />
+    <PackageReference Include="ClosedXML" Version="0.102.2" />
   </ItemGroup>
 
 </Project>
