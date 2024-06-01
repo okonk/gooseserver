@@ -51,6 +51,10 @@ namespace Goose.Events
         {
             if (error != null)
             {
+                var command = world.SqlConnection.CreateCommand();
+                command.CommandText = "ROLLBACK";
+                command.ExecuteNonQuery();
+
                 log.Error(error, "Updating sql failed");
                 world.Send(this.Player, "$7Failed updating sql: " + error.Message);
             }
