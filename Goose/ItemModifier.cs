@@ -50,7 +50,7 @@ namespace Goose
             return modifier;
         }
 
-        public bool RollChance(Item item, GameWorld world)
+        public bool ModifierAppliesToItem(Item item, GameWorld world)
         {
             if ((this.MinLevel > 0 && item.MinLevel < this.MinLevel) || (this.MaxLevel > 0 && item.MinLevel > this.MaxLevel))
                 return false;
@@ -64,7 +64,7 @@ namespace Goose
             if (this.Slot != ItemTemplate.ItemSlots.Misc && item.Slot != this.Slot)
                 return false;
 
-            return world.RollChance(this.Chance);
+            return true;
         }
 
         public void ApplyStats(Item item, GameWorld world)

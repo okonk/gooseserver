@@ -236,36 +236,57 @@ namespace Goose
 
         public void RollTitleAndSurname(Item item, GameWorld world)
         {
-            if (item.UseType == ItemTemplate.UseTypes.Armor || item.UseType == ItemTemplate.UseTypes.Weapon)
-            {
-                if (world.RollChance(GameWorld.Settings.ItemSurnameChancePercent))
-                {
-                    foreach (var surname in this.surnames.Values)
-                    {
-                        if (surname.RollChance(item, world))
-                        {
-                            item.Name = $"{item.Name} {surname.Name}";
-                            item.ItemProperties[ItemProperty.SurnameId] = surname.Id;
-                            surname.ApplyStats(item, world);
-                            break;
-                        }
-                    }
-                }
+            if (item.UseType != ItemTemplate.UseTypes.Armor && item.UseType != ItemTemplate.UseTypes.Weapon)
+                return;
 
-                if (world.RollChance(GameWorld.Settings.ItemTitleChancePercent))
+            if (world.RollChance(GameWorld.Settings.ItemSurnameChancePercent))
+            {
+                var surname = RollModifier(item, surnames.Values, world);
+                if (surname is not null)
                 {
-                    foreach (var title in this.titles.Values)
-                    {
-                        if (title.RollChance(item, world))
-                        {
-                            item.Name = $"{title.Name} {item.Name}";
-                            item.ItemProperties[ItemProperty.TitleId] = title.Id;
-                            title.ApplyStats(item, world);
-                            break;
-                        }
-                    }
+                    item.Name = $"{item.Name} {surname.Name}";
+                    item.ItemProperties[ItemProperty.SurnameId] = surname.Id;
+                    surname.ApplyStats(item, world);
                 }
             }
+
+            if (world.RollChance(GameWorld.Settings.ItemTitleChancePercent))
+            {
+                var title = RollModifier(item, titles.Values, world);
+                if (title is not null)
+                {
+                    item.Name = $"{title.Name} {item.Name}";
+                    item.ItemProperties[ItemProperty.TitleId] = title.Id;
+                    title.ApplyStats(item, world);
+                }
+            }
+        }
+
+        private ItemModifier RollModifier(Item item, IReadOnlyCollection<ItemModifier> allModifiers, GameWorld world)
+        {
+            var modifiersWithRanges = new List<(ItemModifier Modifier, int StartRange, int EndRange)>();
+
+            var nextStart = 0;
+            foreach (var modifier in allModifiers)
+            {
+                if (!modifier.ModifierAppliesToItem(item, world))
+                    continue;
+
+                var currentLength = (int)(modifier.Chance * 100);
+                var currentEnd = nextStart + currentLength - 1;
+                modifiersWithRanges.Add((modifier, nextStart, currentEnd));
+
+                nextStart = currentEnd + 1;
+            }
+
+            var number = world.Random.Next(0, nextStart);
+            foreach (var (modifier, startRange, endRange) in modifiersWithRanges)
+            {
+                if (number >= startRange && number <= endRange)
+                    return modifier;
+            }
+
+            return null;
         }
     }
 }
