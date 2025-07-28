@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -12,7 +11,7 @@ namespace Goose
      */
     public class Class 
     {
-        Hashtable levels;
+        private Dictionary<int, ClassLevel> levels = new();
 
         public int ClassID { get; set; }
         public string ClassName { get; set; }
@@ -20,14 +19,9 @@ namespace Goose
         public long VitaCost { get; set; }
         public long ManaCost { get; set; }
 
-        public Class()
-        {
-            this.levels = new Hashtable();
-        }
-
         public ClassLevel GetLevel(int level)
         {
-            return (ClassLevel)this.levels[level];
+            return this.levels.TryGetValue(level, out var classLevel) ? classLevel : null;
         }
 
         public void AddLevel(ClassLevel c)

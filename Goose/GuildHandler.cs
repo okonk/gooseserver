@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -15,17 +14,8 @@ namespace Goose
      */
     public class GuildHandler
     {
-        Hashtable guilds;
-        List<Guild> newguilds;
-
-        /**
-         * Constructor
-         */
-        public GuildHandler()
-        {
-            guilds = new Hashtable();
-            newguilds = new List<Guild>();
-        }
+        private Dictionary<int, Guild> guilds = new();
+        private List<Guild> newguilds = new();
 
         /**
          * LoadGuilds, loads all guild data
@@ -80,7 +70,7 @@ namespace Goose
          */
         public Guild GetGuild(int id)
         {
-            return (Guild)this.guilds[id];
+            return this.guilds.TryGetValue(id, out var guild) ? guild : null;
         }
 
         /**

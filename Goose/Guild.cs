@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -31,7 +30,7 @@ namespace Goose
          * PlayerGuildStatus, holds information about a guild member
          *
          */
-        class PlayerGuildStatus
+        public class PlayerGuildStatus
         {
             public int PlayerID { get; set; }
             public GuildRanks Rank { get; set; }
@@ -39,7 +38,7 @@ namespace Goose
             public bool JustAdded { get; set; }
         }
 
-        public Hashtable Members { get; set; }
+        public Dictionary<int, PlayerGuildStatus> Members { get; set; }
 
         public int ID { get; set; }
         public string MOTD { get; set; }
@@ -54,7 +53,7 @@ namespace Goose
          */
         public Guild()
         {
-            this.Members = new Hashtable();
+            this.Members = new Dictionary<int, PlayerGuildStatus>();
             this.OnlineMembers = new List<Player>();
             this.Dirty = false;
         }
@@ -104,9 +103,9 @@ namespace Goose
          */
         public GuildRanks GetRank(Player player)
         {
-            if (!this.Members.ContainsKey(player.PlayerID)) return GuildRanks.Deleted;
+            if (!this.Members.TryGetValue(player.PlayerID, out var status)) return GuildRanks.Deleted;
 
-            return ((PlayerGuildStatus)this.Members[player.PlayerID]).Rank;
+            return status.Rank;
         }
 
         /**
@@ -164,10 +163,10 @@ namespace Goose
          */
         public void RemoveMember(int playerid)
         {
-            if (!this.Members.ContainsKey(playerid)) return;
+            if (!this.Members.TryGetValue(playerid, out var status)) return;
 
-            ((PlayerGuildStatus)this.Members[playerid]).Dirty = true;
-            ((PlayerGuildStatus)this.Members[playerid]).Rank = GuildRanks.Deleted;
+            status.Dirty = true;
+            status.Rank = GuildRanks.Deleted;
             this.Dirty = true;
         }
 
@@ -215,11 +214,8 @@ namespace Goose
             }
 
             List<int> removed = new List<int>();
-            PlayerGuildStatus status;
-            foreach (Object obj in this.Members.Values)
+            foreach (var status in this.Members.Values)
             {
-                status = (PlayerGuildStatus)obj;
-
                 if (status.Dirty)
                 {
                     if (status.Rank == GuildRanks.Deleted)
@@ -272,10 +268,16 @@ namespace Goose
          */
         public void ChangeOwner(Player leader, Player newleader, GameWorld world)
         {
-            ((PlayerGuildStatus)this.Members[leader.PlayerID]).Rank = GuildRanks.Member;
-            ((PlayerGuildStatus)this.Members[leader.PlayerID]).Dirty = true;
-            ((PlayerGuildStatus)this.Members[newleader.PlayerID]).Rank = GuildRanks.Leader;
-            ((PlayerGuildStatus)this.Members[newleader.PlayerID]).Dirty = true;
+            if (this.Members.TryGetValue(leader.PlayerID, out var leaderStatus))
+            {
+                leaderStatus.Rank = GuildRanks.Member;
+                leaderStatus.Dirty = true;
+            }
+            if (this.Members.TryGetValue(newleader.PlayerID, out var newLeaderStatus))
+            {
+                newLeaderStatus.Rank = GuildRanks.Leader;
+                newLeaderStatus.Dirty = true;
+            }
 
             this.Dirty = true;
 
@@ -288,8 +290,11 @@ namespace Goose
          */
         public void ChangeRank(Player player, GuildRanks rank, GameWorld world)
         {
-            ((PlayerGuildStatus)this.Members[player.PlayerID]).Rank = rank;
-            ((PlayerGuildStatus)this.Members[player.PlayerID]).Dirty = true;
+            if (this.Members.TryGetValue(player.PlayerID, out var status))
+            {
+                status.Rank = rank;
+                status.Dirty = true;
+            }
 
             switch (rank)
             {

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections;
 using System.Linq;
 using System.Text;
 using System.Net.Sockets;
@@ -19,11 +18,11 @@ namespace Goose
         /// <summary>
         /// A mapping of all player names to their corresponding Player object. Loaded on startup
         /// </summary>
-        Hashtable allNameToPlayer;
+        private Dictionary<string, Player> allNameToPlayer = new();
 
-        List<Player> players;
-        Hashtable sockToPlayer;
-        Player[] idToPlayer;
+        private List<Player> players = new();
+        private Dictionary<Socket, Player> sockToPlayer = new();
+        private Player[] idToPlayer = new Player[GameWorld.Settings.MaxPlayers];
 
         int currentdbid = 1;
         /// <summary>
@@ -34,26 +33,12 @@ namespace Goose
             get { return this.currentdbid; }
             set { this.currentdbid = value; }
         }
-        
-        /**
-         * Constructor
-         * 
-         * Constructs list/mapping
-         * 
-         */
-        public PlayerHandler()
-        {
-            this.players = new List<Player>();
-            this.sockToPlayer = new Hashtable();
-            this.idToPlayer = new Player[GameWorld.Settings.MaxPlayers];
-            this.allNameToPlayer = new Hashtable();
-        }
 
         /**
          * AddPlayer, adds a player to the handler
          * 
          * Takes a Player, adds the player to Players list
-         * Also adds a key to the hashtable to map Socket to Player
+         * Also adds a key to the dictionary to map Socket to Player
          * 
          * Automatically gives a player an ID
          * 
@@ -75,8 +60,7 @@ namespace Goose
          */
         public void RemovePlayer(Socket sock)
         {
-            Player player = (Player)this.sockToPlayer[sock];
-            if (player != null)
+            if (this.sockToPlayer.TryGetValue(sock, out var player))
             {
                 this.RemovePlayer(player);
             }
@@ -85,7 +69,7 @@ namespace Goose
         /**
          * RemovePlayer, removes a player from the PlayerHandler by Player
          * 
-         * Removes the Player from our hashtable and list.
+         * Removes the Player from our dictionary and list.
          * 
          */
         public void RemovePlayer(Player player)
@@ -126,7 +110,10 @@ namespace Goose
          */
         public Player GetPlayer(Socket sock)
         {
-            return (Player)this.sockToPlayer[sock];
+            if (this.sockToPlayer.TryGetValue(sock, out var player))
+                return player;
+
+            return null;
         }
 
         /**
@@ -195,7 +182,10 @@ namespace Goose
         {
             name = name.ToLower();
 
-            return (Player)this.allNameToPlayer[name];
+            if (this.allNameToPlayer.TryGetValue(name, out var player))
+                return player;
+
+            return null;
         }
 
         public void LoadPlayerData(GameWorld world)
@@ -237,7 +227,7 @@ namespace Goose
 
         public List<Player> GetAllPlayerData()
         {
-            return this.allNameToPlayer.Values.Cast<Player>().ToList();
+            return this.allNameToPlayer.Values.ToList();
         }
     }
 }

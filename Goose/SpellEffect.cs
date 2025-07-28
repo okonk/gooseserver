@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-using System.Collections;
 using Goose.Scripting;
 
 namespace Goose
@@ -1313,7 +1312,7 @@ namespace Goose
             char op;
             decimal value;
 
-            Hashtable symbolToValue = new Hashtable();
+            var symbolToValue = new Dictionary<string, decimal>();
             symbolToValue.Add("%cchp", caster.CurrentHP);
             symbolToValue.Add("%ccmp", caster.CurrentMP);
             symbolToValue.Add("%ccsp", caster.CurrentSP);
@@ -1345,7 +1344,7 @@ namespace Goose
                     {
                         if (buffer[0] == '%')
                         {
-                            value = Convert.ToDecimal(symbolToValue[buffer]);
+                            value = symbolToValue[buffer];
                             // bad symbol
                             // needa log here
                             //if (value == null)
@@ -1381,7 +1380,7 @@ namespace Goose
                     {
                         if (buffer[0] == '%')
                         {
-                            value = Convert.ToDecimal(symbolToValue[buffer]);
+                            value = symbolToValue[buffer];
                             // bad symbol
                             // needa log here
                             //if (value == null)
@@ -1455,7 +1454,7 @@ namespace Goose
                     {
                         if (buffer[0] == '%')
                         {
-                            value = Convert.ToDecimal(symbolToValue[buffer]);
+                            value = symbolToValue[buffer];
                             // bad symbol
                             // needa log here
                             //if (value == null)
@@ -1492,7 +1491,7 @@ namespace Goose
             {
                 if (buffer[0] == '%')
                 {
-                    value = Convert.ToDecimal(symbolToValue[buffer]);
+                    value = symbolToValue[buffer];
                     // bad symbol
                     // needa log here
                     //if (value == null)

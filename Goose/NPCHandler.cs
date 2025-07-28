@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -14,20 +13,9 @@ namespace Goose
      */
     public class NPCHandler
     {
-        Dictionary<int, NPCTemplate> templates;
-        List<NPC> npcs;
-        Hashtable idToNPC;
-
-        /**
-         * Constructor
-         * 
-         */
-        public NPCHandler()
-        {
-            this.templates = new Dictionary<int, NPCTemplate>();
-            this.npcs = new List<NPC>();
-            this.idToNPC = new Hashtable();
-        }
+        private Dictionary<int, NPCTemplate> templates = new();
+        private List<NPC> npcs = new();
+        private Dictionary<int, NPC> idToNPC = new();
 
         public IEnumerable<NPCTemplate> GetTemplates()
         {
@@ -243,16 +231,16 @@ namespace Goose
             do
             {
                 id = world.Random.Next(GameWorld.Settings.MaxPlayers + 1, GameWorld.Settings.MaxNPCs);
-            } while (this.idToNPC[id] != null);
+            } while (this.idToNPC.ContainsKey(id));
 
             return id;
         }
 
         public void AssignNewId(GameWorld world, NPC npc)
         {
-            if (npc.LoginID != 0 && this.idToNPC[npc.LoginID] != null)
+            if (npc.LoginID != 0 && this.idToNPC.ContainsKey(npc.LoginID))
             {
-                this.idToNPC[npc.LoginID] = null;
+                this.idToNPC.Remove(npc.LoginID);
             }
 
             npc.LoginID = this.GetNewID(world);

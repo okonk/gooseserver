@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections;
 using System.Linq;
 using System.Text;
 using System.Data;
@@ -20,7 +19,7 @@ namespace Goose
         /// <summary>
         /// Maps Login IDs to pet objects
         /// </summary>
-        public static Hashtable LoginIDToPet = new Hashtable();
+        public static Dictionary<int, Pet> LoginIDToPet = new Dictionary<int, Pet>();
         /// <summary>
         /// Returns the first empty login id for a pet
         /// </summary>
@@ -30,7 +29,7 @@ namespace Goose
             int startpoint = GameWorld.Settings.MaxPlayers + GameWorld.Settings.MaxNPCs + 1;
             for (int i = startpoint; ; i++)
             {
-                if (Pet.LoginIDToPet[i] == null) return i;
+                if (!Pet.LoginIDToPet.ContainsKey(i)) return i;
             }
         }
 
@@ -513,7 +512,7 @@ namespace Goose
 
             this.State = States.NotLoggedIn;
 
-            Pet.LoginIDToPet[this.LoginID] = null;
+            Pet.LoginIDToPet.Remove(this.LoginID);
             this.Map.SetCharacter(null, this.MapX, this.MapY);
             this.Map = null;
         }

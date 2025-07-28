@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,16 +8,8 @@ namespace Goose
 {
     public class CombinationHandler
     {
-        Hashtable combinations;
+        private Dictionary<int, Combination> combinations = new();
 
-        /**
-         * Constructor
-         * 
-         */
-        public CombinationHandler()
-        {
-            this.combinations = new Hashtable();
-        }
 
         /**
          * LoadCombinations, loads all combinations from the database
@@ -124,7 +115,7 @@ namespace Goose
         public int Count { get { return this.combinations.Keys.Count; } }
 
         /**
-         * GetMatch, takes a hashtable and tries to match the ingredients with an existing combination
+         * GetMatch, takes a dictionary and tries to match the ingredients with an existing combination
          * 
          * Returns the combination found, or null if none
          * 

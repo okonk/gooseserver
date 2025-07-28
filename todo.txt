@@ -28,7 +28,6 @@ Readd server browser stuff
 /help command
 Global chat
 convert decimals -> doubles
-convert hashtables -> Dictionaries
 look into wrath etc spawns what can be done to make training better but not encourage macroing
 logging everywhere
 increase bank slot item
@@ -118,6 +117,7 @@ sanitise user names to only alphabetical
 Move packet creation to it's own class
 Refactor settings
 update to .net 7
+convert hashtables -> Dictionaries
 
 
 

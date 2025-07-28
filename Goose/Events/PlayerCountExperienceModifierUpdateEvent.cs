@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Collections;
 
 namespace Goose.Events
 {
@@ -10,7 +9,7 @@ namespace Goose.Events
     {
         public override void Ready(GameWorld world)
         {
-            Hashtable uniquenonafkips = new Hashtable();
+            var uniquenonafkips = new HashSet<string>();
 
             foreach (Player player in world.PlayerHandler.Players)
             {
@@ -23,7 +22,7 @@ namespace Goose.Events
                             string IP = player.Sock.RemoteEndPoint.ToString();
                             IP = IP.Substring(0, IP.IndexOf(":"));
 
-                            uniquenonafkips[IP] = null;
+                            uniquenonafkips.Add(IP);
                         }
                         catch (ObjectDisposedException)
                         {
