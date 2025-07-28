@@ -16,6 +16,9 @@ scp Goose/bin/Debug/Goose.dll root@game.illutia.net:/root/StagingGooseServer
 scp -r Goose/Data/Illutia/Scripts/ root@game.illutia.net:/root/StagingGooseServer/Data/Illutia
 
 
+scp root@game.illutia.net:/root/GooseServer/IllutiaGoose.db /run/user/1000/gvfs/smb-share:server=bloom.local,share=media/Dump/Goose/IllutiaGoose_2025-01-10.db
+
+
 change droprate to double
 spell to see monster info
 Change guilds to not update DB itself

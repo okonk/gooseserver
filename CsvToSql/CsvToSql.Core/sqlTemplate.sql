@@ -23,7 +23,7 @@ CREATE TABLE item_templates (
   min_level SMALLINT DEFAULT 0 NOT NULL,
   max_experience BIGINT DEFAULT 0 NOT NULL,
   max_level SMALLINT DEFAULT 0 NOT NULL,
-  weapon_damage SMALLINT DEFAULT 0 NOT NULL,
+  weapon_damage INT DEFAULT 0 NOT NULL,
   weapon_delay SMALLINT DEFAULT 10 NOT NULL,
   item_slot SMALLINT DEFAULT 20 NOT NULL,
   item_type SMALLINT DEFAULT 0 NOT NULL,
