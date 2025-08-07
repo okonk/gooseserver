@@ -78,9 +78,8 @@ namespace Goose.Events
                         item.LoadFromTemplate(statsSlot.Item.Template);
                         item.StatMultiplier = statsSlot.Item.StatMultiplier;
                         item.BaseStats = statsSlot.Item.BaseStats.Clone();
-                        item.TotalStats = item.Template.BaseStats;
-                        item.TotalStats *= item.StatMultiplier;
-                        item.TotalStats += item.BaseStats;
+                        item.TotalStats = statsSlot.Item.TotalStats.Clone();
+                        item.TotalWeaponDamage = statsSlot.Item.TotalWeaponDamage;
                         item.BodyState = lookSlot.Item.BodyState;
                         item.GraphicEquipped = lookSlot.Item.GraphicEquipped;
                         item.GraphicR = r;
@@ -93,10 +92,13 @@ namespace Goose.Events
                         item.Description = "Custom created by " + this.Player.Name;
                         item.IsBound = statsSlot.Item.IsBound;
                         item.ScriptParams = statsSlot.Item.ScriptParams;
+
                         if (statsSlot.Item.ItemProperties.TryGetValue(ItemProperty.TitleId, out object titleId))
                             item.ItemProperties[ItemProperty.TitleId] = titleId;
+
                         if (statsSlot.Item.ItemProperties.TryGetValue(ItemProperty.SurnameId, out object surnameId))
                             item.ItemProperties[ItemProperty.SurnameId] = surnameId;
+
                         world.ItemHandler.AddAndAssignId(item, world);
 
                         long newTicketStack = ticketSlot.Stack - 1;
