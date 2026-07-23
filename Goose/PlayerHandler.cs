@@ -22,7 +22,8 @@ namespace Goose
 
         private List<Player> players = new();
         private Dictionary<Socket, Player> sockToPlayer = new();
-        private Player[] idToPlayer = new Player[GameWorld.Settings.MaxPlayers];
+        // Support LoginIDs 1..MaxPlayers inclusive; index 0 unused (LoginID 0 = none / full)
+        private Player[] idToPlayer = new Player[GameWorld.Settings.MaxPlayers + 1];
 
         int currentdbid = 1;
         /// <summary>
@@ -48,7 +49,8 @@ namespace Goose
             player.LoginID = this.GetNewID(world);
             this.players.Add(player);
             this.sockToPlayer[player.Sock] = player;
-            this.idToPlayer[player.LoginID] = player;
+            if (player.LoginID != 0)
+                this.idToPlayer[player.LoginID] = player;
         }
 
         /**
@@ -76,30 +78,32 @@ namespace Goose
         {
             this.sockToPlayer.Remove(player.Sock);
             this.players.Remove(player);
-            this.idToPlayer[player.LoginID] = null;
+            if (player.LoginID != 0 && player.LoginID < this.idToPlayer.Length)
+                this.idToPlayer[player.LoginID] = null;
+            player.LoginID = 0;
         }
 
-
+        /// <summary>
+        /// Returns the lowest free LoginID in 1..MaxPlayers, or 0 if the server is full.
+        /// </summary>
         public int GetNewID(GameWorld world)
         {
-            int id;
-            do
+            for (int id = 1; id <= GameWorld.Settings.MaxPlayers; id++)
             {
-                id = world.Random.Next(1, GameWorld.Settings.MaxPlayers);
-            } while (this.idToPlayer[id] != null);
-
-            return id;
+                if (this.idToPlayer[id] == null)
+                    return id;
+            }
+            return 0;
         }
 
         public void AssignNewId(GameWorld world, Player player)
         {
-            if (player.LoginID != 0 && this.idToPlayer[player.LoginID] != null)
-            {
+            if (player.LoginID != 0 && player.LoginID < this.idToPlayer.Length)
                 this.idToPlayer[player.LoginID] = null;
-            }
 
             player.LoginID = this.GetNewID(world);
-            this.idToPlayer[player.LoginID] = player;
+            if (player.LoginID != 0)
+                this.idToPlayer[player.LoginID] = player;
         }
 
         /**
