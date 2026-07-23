@@ -37,7 +37,7 @@ namespace Goose.Events
                         daysToBan = 1000;
 
                     player.Access = Player.AccessStatus.Banned;
-                    this.Player.UnbanDate = DateTime.Now.AddDays(daysToBan);
+                    player.UnbanDate = DateTime.Now.AddDays(daysToBan);
 
                     world.Send(this.Player, P.ServerMessage("Banned " + tokens[1] + " for " + daysToBan + " days."));
 

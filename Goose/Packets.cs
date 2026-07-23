@@ -49,7 +49,7 @@ namespace Goose
                 percent = (long)(((float)(exp - prev) / (next - prev)) * 100);
             }
 
-            return "TNL" + Math.Max(100, percent) + "," + exp + "," + tnl + "," + player.ExperienceSold;
+            return "TNL" + Math.Min(100, percent) + "," + exp + "," + tnl + "," + player.ExperienceSold;
         };
 
         public static Func<int, string> EraseCharacter = (loginId) => { return "ERC" + loginId; };
