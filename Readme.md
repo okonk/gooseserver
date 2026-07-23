@@ -10,7 +10,7 @@ Updated Goose Server. New features:
 
 ### 1. Install .NET
 
-Download and install the [.NET 8 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/8.0)
+Download and install the [.NET 10 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/10.0)
 
 ### 2. Copy the data sheet
 
