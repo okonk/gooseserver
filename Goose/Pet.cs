@@ -361,8 +361,9 @@ namespace Goose
                     command.Parameters.Add(new SQLiteParameter("@petTitle", DbType.String) { Value = petTitle });
                     command.Parameters.Add(new SQLiteParameter("@petSurname", DbType.String) { Value = petSurname });
                     command.ExecuteNonQuery();
+                    // Only clear after a successful insert so a failed first save can retry INSERT.
+                    this.AutoCreatedNotSaved = false;
                 });
-                this.AutoCreatedNotSaved = false;
             }
             else if (this.Delete)
             {

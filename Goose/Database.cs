@@ -21,6 +21,7 @@ namespace Goose
         private Task _loopTask;
         private int _dbThreadId;
         private volatile bool _started;
+        private volatile bool _stopping;
 
         private abstract class WorkItem { }
 
@@ -39,6 +40,10 @@ namespace Goose
             public Action<Exception> OnComplete;
         }
 
+        /// <summary>
+        /// Number of work items waiting in the queue. Does not include the item currently
+        /// executing on the DB thread (in-flight). Stop() waits for both queued and in-flight work.
+        /// </summary>
         public int PendingCount => _queue.Count;
 
         public void Start(string databaseName)
@@ -70,6 +75,20 @@ namespace Goose
                 catch (Exception e)
                 {
                     startError = e;
+                    // Open/pragma failed before Loop runs; dispose connection here so it is not leaked.
+                    try
+                    {
+                        _connection?.Close();
+                        _connection?.Dispose();
+                    }
+                    catch (Exception disposeEx)
+                    {
+                        log.Error(disposeEx, "Failed to dispose SQLite connection after Start error");
+                    }
+                    finally
+                    {
+                        _connection = null;
+                    }
                 }
                 finally
                 {
@@ -86,9 +105,13 @@ namespace Goose
             ready.Dispose();
 
             if (startError != null)
+            {
+                _loopTask = null;
                 throw startError;
+            }
 
             _started = true;
+            _stopping = false;
         }
 
         private void Loop()
@@ -206,9 +229,34 @@ namespace Goose
             if (!_started && _loopTask == null)
                 return;
 
-            _queue.CompleteAdding();
-            _loopTask?.Wait(TimeSpan.FromMinutes(2));
+            // Idempotent: CompleteAdding may only be called once.
+            if (_stopping)
+                return;
+            _stopping = true;
+
+            try
+            {
+                if (!_queue.IsAddingCompleted)
+                    _queue.CompleteAdding();
+            }
+            catch (InvalidOperationException)
+            {
+                // Already completed (race with another stop path).
+            }
+
+            if (_loopTask != null)
+            {
+                // Wait drains queued work and the in-flight item currently executing.
+                if (!_loopTask.Wait(TimeSpan.FromMinutes(2)))
+                {
+                    log.Error("Database.Stop timed out after 2 minutes waiting for DB thread to finish; queue may still have work or an in-flight item.");
+                    // Do not claim a clean stop; leave _started as-is so callers can detect the failed shutdown.
+                    return;
+                }
+            }
+
             _started = false;
+            _loopTask = null;
         }
     }
 }

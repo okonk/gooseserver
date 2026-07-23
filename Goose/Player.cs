@@ -909,8 +909,6 @@ namespace Goose
                     this.MacroCheckFailures +
                     ")";
 
-                this.AutoCreatedNotSaved = false;
-
                 world.Database.Enqueue(conn =>
                 {
                     using var command = conn.CreateCommand();
@@ -920,6 +918,8 @@ namespace Goose
                     command.Parameters.Add(new SQLiteParameter("@playerSurname", DbType.String) { Value = playerSurname });
                     command.Parameters.Add(new SQLiteParameter("@unbanDate", DbType.DateTime2) { Value = unbanDate, IsNullable = true });
                     command.ExecuteNonQuery();
+                    // Only clear after a successful insert so a failed first save can retry INSERT.
+                    this.AutoCreatedNotSaved = false;
                 });
             }
             else
