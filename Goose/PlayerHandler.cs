@@ -194,24 +194,27 @@ namespace Goose
 
         public void LoadPlayerData(GameWorld world)
         {
-            var command = world.SqlConnection.CreateCommand();
-            command.CommandText = "SELECT * FROM players";
-            var reader = command.ExecuteReader();
-
-            while (reader.Read())
+            world.Database.Execute(conn =>
             {
-                Player player = new Player(0);
-                player.LoadFromReader(world, reader);
+                using var command = conn.CreateCommand();
+                command.CommandText = "SELECT * FROM players";
+                using var reader = command.ExecuteReader();
 
-                if (player.PlayerID >= this.CurrentID)
+                while (reader.Read())
                 {
-                    this.CurrentID = player.PlayerID + 1;
+                    Player player = new Player(0);
+                    player.LoadFromReader(world, reader);
+
+                    if (player.PlayerID >= this.CurrentID)
+                    {
+                        this.CurrentID = player.PlayerID + 1;
+                    }
+
+                    if (player.Access == Player.AccessStatus.Deleted) continue;
+
+                    this.allNameToPlayer[player.Name.ToLower()] = player;
                 }
-
-                if (player.Access == Player.AccessStatus.Deleted) continue;
-
-                this.allNameToPlayer[player.Name.ToLower()] = player;
-            }
+            });
 
             foreach (Player player in this.allNameToPlayer.Values)
             {

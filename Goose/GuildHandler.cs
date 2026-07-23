@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Data.SqlClient;
 
 using Goose.Events;
 
@@ -23,39 +22,40 @@ namespace Goose
          */
         public void LoadGuilds(GameWorld world)
         {
-            var command = world.SqlConnection.CreateCommand();
-            command.CommandText = "SELECT * FROM guilds";
-            var reader = command.ExecuteReader();
-
-            while (reader.Read())
+            world.Database.Execute(conn =>
             {
-                Guild guild = new Guild();
-                guild.ID = Convert.ToInt32(reader["guild_id"]);
-                guild.Name = Convert.ToString(reader["guild_name"]);
-                guild.MOTD = Convert.ToString(reader["guild_motd"]);
-
-                guilds[guild.ID] = guild;
-            }
-
-            reader.Close();
-
-            int playerid;
-            Guild.GuildRanks rank;
-            foreach (Guild guild in this.guilds.Values)
-            {
-                command = world.SqlConnection.CreateCommand();
-                command.CommandText = "SELECT * FROM guild_members WHERE guild_id=" + guild.ID;
-                reader = command.ExecuteReader();
-
-                while (reader.Read())
+                using (var command = conn.CreateCommand())
                 {
-                    playerid = Convert.ToInt32(reader["player_id"]);
-                    rank = (Guild.GuildRanks) Convert.ToInt32(reader["guild_rank"]);
-                    guild.AddMember(playerid, rank);
+                    command.CommandText = "SELECT * FROM guilds";
+                    using var reader = command.ExecuteReader();
+
+                    while (reader.Read())
+                    {
+                        Guild guild = new Guild();
+                        guild.ID = Convert.ToInt32(reader["guild_id"]);
+                        guild.Name = Convert.ToString(reader["guild_name"]);
+                        guild.MOTD = Convert.ToString(reader["guild_motd"]);
+
+                        guilds[guild.ID] = guild;
+                    }
                 }
 
-                reader.Close();
-            }
+                int playerid;
+                Guild.GuildRanks rank;
+                foreach (Guild guild in this.guilds.Values)
+                {
+                    using var command = conn.CreateCommand();
+                    command.CommandText = "SELECT * FROM guild_members WHERE guild_id=" + guild.ID;
+                    using var reader = command.ExecuteReader();
+
+                    while (reader.Read())
+                    {
+                        playerid = Convert.ToInt32(reader["player_id"]);
+                        rank = (Guild.GuildRanks) Convert.ToInt32(reader["guild_rank"]);
+                        guild.AddMember(playerid, rank);
+                    }
+                }
+            });
         }
 
         /**

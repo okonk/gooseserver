@@ -2,9 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Data;
-using System.Data.SqlClient;
-using System.Data.SQLite;
 
 namespace Goose
 {
@@ -20,17 +17,18 @@ namespace Goose
 
         public void LoadFilter(GameWorld world)
         {
-            var command = world.SqlConnection.CreateCommand();
-            command.CommandText = "SELECT word,filtered FROM wordfilter";
-            var reader = command.ExecuteReader();
-
-            while (reader.Read())
+            world.Database.Execute(conn =>
             {
-                WordFilter.Add(Convert.ToString(reader["word"]),
-                    Convert.ToString(reader["filtered"]));
-            }
+                using var command = conn.CreateCommand();
+                command.CommandText = "SELECT word,filtered FROM wordfilter";
+                using var reader = command.ExecuteReader();
 
-            reader.Close();
+                while (reader.Read())
+                {
+                    WordFilter.Add(Convert.ToString(reader["word"]),
+                        Convert.ToString(reader["filtered"]));
+                }
+            });
         }
 
         public string Filter(string input)

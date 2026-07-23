@@ -31,10 +31,24 @@ namespace Goose.Events
                     try
                     {
                         var sqlData = CsvToSql.Core.CsvToSqlConverter.Convert(GameWorld.Settings.DataLinkId);
-                        var command = world.SqlConnection.CreateCommand();
-                        command.CommandText = sqlData;
 
-                        world.DatabaseWriter.Add(command, (e) => UpdateCompletedCallback(e, world));
+                        world.Database.Enqueue(conn =>
+                        {
+                            using var tx = conn.BeginTransaction();
+                            try
+                            {
+                                using var command = conn.CreateCommand();
+                                command.Transaction = tx;
+                                command.CommandText = sqlData;
+                                command.ExecuteNonQuery();
+                                tx.Commit();
+                            }
+                            catch
+                            {
+                                tx.Rollback();
+                                throw;
+                            }
+                        }, (e) => UpdateCompletedCallback(e, world));
 
                         log.Info("Added sql command to queue");
                     }
@@ -49,12 +63,10 @@ namespace Goose.Events
 
         private void UpdateCompletedCallback(Exception error, GameWorld world)
         {
+            // Transaction is committed/rolled back inside the Enqueue work item.
+            // Do not call Database.Execute from this completion callback (deadlock risk).
             if (error != null)
             {
-                var command = world.SqlConnection.CreateCommand();
-                command.CommandText = "ROLLBACK";
-                command.ExecuteNonQuery();
-
                 log.Error(error, "Updating sql failed");
                 world.Send(this.Player, "$7Failed updating sql: " + error.Message);
             }

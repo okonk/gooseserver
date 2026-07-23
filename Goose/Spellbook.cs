@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Data.SqlClient;
 using System.Data;
 using System.Data.SQLite;
 
@@ -36,9 +35,11 @@ namespace Goose
          */
         public void Load(GameWorld world)
         {
-            using (var query = world.SqlConnection.CreateCommand())
+            int playerId = this.player.PlayerID;
+            world.Database.Execute(conn =>
             {
-                query.CommandText = "SELECT serialized_data FROM spellbook WHERE player_id=" + this.player.PlayerID;
+                using var query = conn.CreateCommand();
+                query.CommandText = "SELECT serialized_data FROM spellbook WHERE player_id=" + playerId;
                 string serialized_data = Convert.ToString(query.ExecuteScalar());
                 var spellIds = JsonHelper.Deserialize<int[]>(serialized_data);
 
@@ -50,7 +51,7 @@ namespace Goose
 
                     this.spells[i] = world.SpellHandler.GetSpell(spellId);
                 }
-            }
+            });
         }
 
         /**
@@ -59,13 +60,18 @@ namespace Goose
          */
         public void Save(GameWorld world)
         {
-            var saveSpellbookCommand = world.SqlConnection.CreateCommand();
-            saveSpellbookCommand.CommandText =
-                @"INSERT INTO spellbook (player_id, serialized_data) VALUES (@player_id, @serialized_data)
-                  ON CONFLICT(PLAYER_ID) DO UPDATE SET serialized_data=@serialized_data WHERE player_id=@player_id;";
-            saveSpellbookCommand.Parameters.Add(new SQLiteParameter("@player_id", DbType.Int32) { Value = this.player.PlayerID });
-            saveSpellbookCommand.Parameters.Add(new SQLiteParameter("@serialized_data", DbType.String) { Value = JsonHelper.Serialize(spells.Select(s => (s == null ? 0 : s.ID)).ToArray()) });
-            world.DatabaseWriter.Add(saveSpellbookCommand);
+            int playerId = this.player.PlayerID;
+            string serialized = JsonHelper.Serialize(spells.Select(s => (s == null ? 0 : s.ID)).ToArray());
+            world.Database.Enqueue(conn =>
+            {
+                using var saveSpellbookCommand = conn.CreateCommand();
+                saveSpellbookCommand.CommandText =
+                    @"INSERT INTO spellbook (player_id, serialized_data) VALUES (@player_id, @serialized_data)
+                      ON CONFLICT(PLAYER_ID) DO UPDATE SET serialized_data=@serialized_data WHERE player_id=@player_id;";
+                saveSpellbookCommand.Parameters.Add(new SQLiteParameter("@player_id", DbType.Int32) { Value = playerId });
+                saveSpellbookCommand.Parameters.Add(new SQLiteParameter("@serialized_data", DbType.String) { Value = serialized });
+                saveSpellbookCommand.ExecuteNonQuery();
+            });
         }
 
         public int NextFreeSlot(int lowerBound)

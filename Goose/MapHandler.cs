@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Data.SqlClient;
 
 using Goose.Events;
 using Goose.Scripting;
@@ -36,42 +35,43 @@ namespace Goose
          */
         public void LoadMaps(GameWorld world)
         {
-            var command = world.SqlConnection.CreateCommand();
-            command.CommandText = "SELECT * FROM maps";
-            var reader = command.ExecuteReader();
-
-            while (reader.Read())
+            world.Database.Execute(conn =>
             {
-                Map map = new Map();
-                map.ID = Convert.ToInt32(reader["map_id"]);
-                map.Name = Convert.ToString(reader["map_name"]);
-                map.FileName = Convert.ToString(reader["map_filename"]);
+                using var command = conn.CreateCommand();
+                command.CommandText = "SELECT * FROM maps";
+                using var reader = command.ExecuteReader();
 
-                map.MinLevel = Convert.ToInt32(reader["min_level"]);
-                map.MaxLevel = Convert.ToInt32(reader["max_level"]);
-                map.MinExperience = Convert.ToInt64(reader["min_experience"]);
-                map.MaxExperience = Convert.ToInt64(reader["max_experience"]);
-
-                map.CanAuction = ("0".Equals(Convert.ToString(reader["auction_enabled"])) ? false : true);
-                map.CanPVP = ("0".Equals(Convert.ToString(reader["pvp_enabled"])) ? false : true);
-                map.CanChat = ("0".Equals(Convert.ToString(reader["chat_enabled"])) ? false : true);
-                map.CanShout = ("0".Equals(Convert.ToString(reader["shout_enabled"])) ? false : true);
-                map.CanUseItems = ("0".Equals(Convert.ToString(reader["items_enabled"])) ? false : true);
-                map.CanCast = ("0".Equals(Convert.ToString(reader["spells_enabled"])) ? false : true);
-                map.CanBind = ("0".Equals(Convert.ToString(reader["bind_enabled"])) ? false : true);
-                map.CanSpawnPets = ("0".Equals(Convert.ToString(reader["pets_enabled"])) ? false : true);
-
-                string scriptPath = Convert.ToString(reader["script_path"]);
-                if (!string.IsNullOrEmpty(scriptPath))
+                while (reader.Read())
                 {
-                    map.Script = world.ScriptHandler.GetScript<IMapScript>(scriptPath);
-                    map.ScriptParams = Convert.ToString(reader["script_params"]);
+                    Map map = new Map();
+                    map.ID = Convert.ToInt32(reader["map_id"]);
+                    map.Name = Convert.ToString(reader["map_name"]);
+                    map.FileName = Convert.ToString(reader["map_filename"]);
+
+                    map.MinLevel = Convert.ToInt32(reader["min_level"]);
+                    map.MaxLevel = Convert.ToInt32(reader["max_level"]);
+                    map.MinExperience = Convert.ToInt64(reader["min_experience"]);
+                    map.MaxExperience = Convert.ToInt64(reader["max_experience"]);
+
+                    map.CanAuction = ("0".Equals(Convert.ToString(reader["auction_enabled"])) ? false : true);
+                    map.CanPVP = ("0".Equals(Convert.ToString(reader["pvp_enabled"])) ? false : true);
+                    map.CanChat = ("0".Equals(Convert.ToString(reader["chat_enabled"])) ? false : true);
+                    map.CanShout = ("0".Equals(Convert.ToString(reader["shout_enabled"])) ? false : true);
+                    map.CanUseItems = ("0".Equals(Convert.ToString(reader["items_enabled"])) ? false : true);
+                    map.CanCast = ("0".Equals(Convert.ToString(reader["spells_enabled"])) ? false : true);
+                    map.CanBind = ("0".Equals(Convert.ToString(reader["bind_enabled"])) ? false : true);
+                    map.CanSpawnPets = ("0".Equals(Convert.ToString(reader["pets_enabled"])) ? false : true);
+
+                    string scriptPath = Convert.ToString(reader["script_path"]);
+                    if (!string.IsNullOrEmpty(scriptPath))
+                    {
+                        map.Script = world.ScriptHandler.GetScript<IMapScript>(scriptPath);
+                        map.ScriptParams = Convert.ToString(reader["script_params"]);
+                    }
+
+                    this.maps.Add(map);
                 }
-
-                this.maps.Add(map);
-            }
-
-            reader.Close();
+            });
 
             foreach (Map map in this.maps)
             {

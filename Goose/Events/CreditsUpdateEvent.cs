@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Data.SqlClient;
 
 namespace Goose.Events
 {
@@ -14,39 +13,51 @@ namespace Goose.Events
             Player player;
             int credits;
 
-            var command = world.SqlConnection.CreateCommand();
-            command.CommandText = "SELECT txn_id, player_name, credits FROM paypal_payments WHERE redeemed='0';";
-            var reader = command.ExecuteReader();
-            while (reader.Read())
-            {
-                player = world.PlayerHandler.GetPlayerFromData(reader["player_name"].ToString());
+            var pendingSaves = new List<(Player Player, int Credits, string TxnId)>();
 
-                if (player != null)
+            world.Database.Execute(conn =>
+            {
+                using (var command = conn.CreateCommand())
                 {
-                    credits = Convert.ToInt32(reader["credits"]);
-                    player.Credits += credits;
-
-                    if (player.State == Player.States.Ready)
+                    command.CommandText = "SELECT txn_id, player_name, credits FROM paypal_payments WHERE redeemed='0';";
+                    using var reader = command.ExecuteReader();
+                    while (reader.Read())
                     {
-                        world.Send(player, P.ServerMessage("You have gained " + credits + " donation credits."));
-                    }
-                    else
-                    {
-                        player.SaveToDatabase(world);
-                    }
+                        player = world.PlayerHandler.GetPlayerFromData(reader["player_name"].ToString());
 
-                    redeemed.Add(reader["txn_id"].ToString());
+                        if (player != null)
+                        {
+                            credits = Convert.ToInt32(reader["credits"]);
+                            player.Credits += credits;
 
-                    world.LogHandler.Log(Log.Types.ReceivedCredits,
-                        player.PlayerID, credits.ToString());
+                            if (player.State == Player.States.Ready)
+                            {
+                                world.Send(player, P.ServerMessage("You have gained " + credits + " donation credits."));
+                            }
+                            else
+                            {
+                                pendingSaves.Add((player, credits, reader["txn_id"].ToString()));
+                            }
+
+                            redeemed.Add(reader["txn_id"].ToString());
+
+                            world.LogHandler.Log(Log.Types.ReceivedCredits,
+                                player.PlayerID, credits.ToString());
+                        }
+                    }
                 }
-            }
-            reader.Close();
 
-            foreach (string r in redeemed)
+                foreach (string r in redeemed)
+                {
+                    using var command = conn.CreateCommand();
+                    command.CommandText = "UPDATE paypal_payments SET redeemed='1' WHERE txn_id='" + r + "';";
+                    command.ExecuteNonQuery();
+                }
+            });
+
+            foreach (var (p, _, _) in pendingSaves)
             {
-                command.CommandText = "UPDATE paypal_payments SET redeemed='1' WHERE txn_id='" + r + "';";
-                command.ExecuteNonQuery();
+                p.SaveToDatabase(world);
             }
 
             this.Ticks += world.TimerFrequency * GameWorld.Settings.CreditUpdateInterval;

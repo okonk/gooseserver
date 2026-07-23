@@ -12,7 +12,6 @@ using System.Threading;
 using Goose.Scripting;
 using System.IO;
 using System.Data.SQLite;
-using System.Data.Common;
 using System.Diagnostics;
 
 namespace Goose
@@ -37,7 +36,6 @@ namespace Goose
         public MapHandler MapHandler { get; set; }
         public NPCHandler NPCHandler { get; set; }
         public ClassHandler ClassHandler { get; set; }
-        public DbConnection SqlConnection { get; set; }
         public GameServer GameServer { get; set; }
         public ItemHandler ItemHandler { get; set; }
         public SpellHandler SpellHandler { get; set; }
@@ -48,7 +46,7 @@ namespace Goose
         public LogHandler LogHandler { get; set; }
         internal QuestHandler QuestHandler { get; set; }
         public ScriptHandler ScriptHandler { get; set; }
-        public DatabaseWriter DatabaseWriter { get; set; }
+        public Database Database { get; private set; }
         public static GooseSettings Settings { get; set; }
 
         public Dictionary<string, int> CharactersCreatedPerIP { get; set; }
@@ -106,67 +104,48 @@ namespace Goose
             this.LogHandler = new LogHandler();
             this.QuestHandler = new QuestHandler();
             this.ScriptHandler = new ScriptHandler();
-            this.DatabaseWriter = new DatabaseWriter();
+            this.Database = new Database();
 
             this.ExperienceModifier = GameWorld.Settings.ExperienceModifier;
 
             //this.LaunchServerBrowserUpdateThread();
-            this.LaunchDatabaseWriterThread();
         }
 
-        private DbConnection CreateDbConnection()
+        private void CreateDatabaseSchema()
         {
-            try
+            this.Database.Execute(conn =>
             {
-                var connection = new SQLiteConnection(string.Format("Data Source={0}.db; Version=3; FailIfMissing=True;", Settings.DatabaseName));
-                connection.Open();
-                return connection;
-            }
-            catch (Exception e)
-            {
-                log.Info("DB file not found, creating...");
-                return CreateDatabase();
-            }
-        }
-
-        private DbConnection CreateDatabase()
-        {
-            var connection = new SQLiteConnection(string.Format("Data Source={0}.db; Version=3;", Settings.DatabaseName));
-            connection.Open();
-
-            ExecuteSql(connection, File.ReadAllText("sql/items.sql", Encoding.UTF8));
-            ExecuteSql(connection, File.ReadAllText("sql/maps.sql", Encoding.UTF8));
-            ExecuteSql(connection, File.ReadAllText("sql/classes.sql", Encoding.UTF8));
-            ExecuteSql(connection, File.ReadAllText("sql/npcs.sql", Encoding.UTF8));
-            ExecuteSql(connection, File.ReadAllText("sql/players.sql", Encoding.UTF8));
-            ExecuteSql(connection, File.ReadAllText("sql/spells.sql", Encoding.UTF8));
-            ExecuteSql(connection, File.ReadAllText("sql/banks.sql", Encoding.UTF8));
-            ExecuteSql(connection, File.ReadAllText("sql/quests.sql", Encoding.UTF8));
-            ExecuteSql(connection, File.ReadAllText("sql/combinations.sql", Encoding.UTF8));
-            ExecuteSql(connection, File.ReadAllText("sql/logs.sql", Encoding.UTF8));
-            ExecuteSql(connection, File.ReadAllText("sql/pets.sql", Encoding.UTF8));
-            ExecuteSql(connection, File.ReadAllText("sql/guilds.sql", Encoding.UTF8));
-            ExecuteSql(connection, File.ReadAllText("sql/warptiles.sql", Encoding.UTF8));
-            ExecuteSql(connection, File.ReadAllText("sql/wordfilter.sql", Encoding.UTF8));
-            ExecuteSql(connection, File.ReadAllText("sql/paypal.sql", Encoding.UTF8));
+                ExecuteSql(conn, File.ReadAllText("sql/items.sql", Encoding.UTF8));
+                ExecuteSql(conn, File.ReadAllText("sql/maps.sql", Encoding.UTF8));
+                ExecuteSql(conn, File.ReadAllText("sql/classes.sql", Encoding.UTF8));
+                ExecuteSql(conn, File.ReadAllText("sql/npcs.sql", Encoding.UTF8));
+                ExecuteSql(conn, File.ReadAllText("sql/players.sql", Encoding.UTF8));
+                ExecuteSql(conn, File.ReadAllText("sql/spells.sql", Encoding.UTF8));
+                ExecuteSql(conn, File.ReadAllText("sql/banks.sql", Encoding.UTF8));
+                ExecuteSql(conn, File.ReadAllText("sql/quests.sql", Encoding.UTF8));
+                ExecuteSql(conn, File.ReadAllText("sql/combinations.sql", Encoding.UTF8));
+                ExecuteSql(conn, File.ReadAllText("sql/logs.sql", Encoding.UTF8));
+                ExecuteSql(conn, File.ReadAllText("sql/pets.sql", Encoding.UTF8));
+                ExecuteSql(conn, File.ReadAllText("sql/guilds.sql", Encoding.UTF8));
+                ExecuteSql(conn, File.ReadAllText("sql/warptiles.sql", Encoding.UTF8));
+                ExecuteSql(conn, File.ReadAllText("sql/wordfilter.sql", Encoding.UTF8));
+                ExecuteSql(conn, File.ReadAllText("sql/paypal.sql", Encoding.UTF8));
+            });
 
             if (!string.IsNullOrEmpty(Settings.DataLinkId))
             {
                 log.Info("Importing data from Google Docs");
                 string sql = CsvToSql.Core.CsvToSqlConverter.Convert(Settings.DataLinkId);
                 File.WriteAllText("GooseData.sql", sql);
-                ExecuteSql(connection, sql);
+                this.Database.Execute(conn => ExecuteSql(conn, sql));
             }
-
-            return connection;
         }
 
-        private void ExecuteSql(DbConnection connection, string sqlFile)
+        private static void ExecuteSql(SQLiteConnection connection, string sqlFile)
         {
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = sqlFile;
-
                 command.ExecuteNonQuery();
             }
         }
@@ -185,7 +164,13 @@ namespace Goose
             log.Info("Opening Database ({0}): ", GameWorld.Settings.DatabaseName);
             try
             {
-                this.SqlConnection = CreateDbConnection();
+                bool createNew = !File.Exists(Settings.DatabaseName + ".db");
+                this.Database.Start(Settings.DatabaseName);
+                if (createNew)
+                {
+                    log.Info("DB file not found, creating...");
+                    CreateDatabaseSchema();
+                }
 
                 log.Info("Connected.");
             }
@@ -202,12 +187,14 @@ namespace Goose
                 try
                 {
                     var sqlData = CsvToSql.Core.CsvToSqlConverter.Convert(GameWorld.Settings.DataLinkId);
-                    using (var command = this.SqlConnection.CreateCommand())
+                    this.Database.Execute(conn =>
                     {
-                        command.CommandText = sqlData;
-
-                        command.ExecuteNonQuery();
-                    }
+                        using (var command = conn.CreateCommand())
+                        {
+                            command.CommandText = sqlData;
+                            command.ExecuteNonQuery();
+                        }
+                    });
                 }
                 catch (Exception e)
                 {
@@ -462,10 +449,11 @@ namespace Goose
             }
 
             log.Info("Waiting for database writes.");
-            while (this.DatabaseWriter.Count > 0)
+            while (this.Database.PendingCount > 0)
             {
-                Thread.Sleep(1000);
+                Thread.Sleep(100);
             }
+            this.Database.Stop();
 
             log.Info("Finished shutting down.");
         }
@@ -671,14 +659,6 @@ namespace Goose
                 var script = this.ScriptHandler.GetScript<IGlobalScript>(scriptPath.Substring(Settings.DataPath.Length + 1));
                 script.Object.OnLoaded(this);
             }
-        }
-
-        public void LaunchDatabaseWriterThread()
-        {
-            Task.Factory.StartNew(() =>
-            {
-                this.DatabaseWriter.Run(this);
-            }, TaskCreationOptions.LongRunning);
         }
 
         public bool RollChance(double chance)

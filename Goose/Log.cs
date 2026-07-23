@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Data;
-using System.Data.SqlClient;
 using System.Data.SQLite;
 
 namespace Goose
@@ -71,23 +70,32 @@ namespace Goose
 
         public void SaveToDatabase(GameWorld world)
         {
-            var logTextParam = new SQLiteParameter("@logText", DbType.String) { Value = this.Text };
-            var logDateParam = new SQLiteParameter("@logDate", DbType.DateTime2) { Value = this.Time };
+            string text = this.Text;
+            DateTime time = this.Time;
+            int type = (int)this.Type;
+            int playerId = this.PlayerID;
+            int otherId = this.OtherID;
+            int mapId = this.MapID;
+            int mapX = this.MapX;
+            int mapY = this.MapY;
 
             string query = "INSERT INTO logs (text, log_date, log_type, playerid, otherid, mapid, mapx, mapy) VALUES (@logText, @logDate, ";
-            query += (int)this.Type + ", ";
-            query += this.PlayerID + ", ";
-            query += this.OtherID + ", ";
-            query += this.MapID + ", ";
-            query += this.MapX + ", ";
-            query += this.MapY;
+            query += type + ", ";
+            query += playerId + ", ";
+            query += otherId + ", ";
+            query += mapId + ", ";
+            query += mapX + ", ";
+            query += mapY;
             query += ");";
 
-            var command = world.SqlConnection.CreateCommand();
-            command.CommandText = query;
-            command.Parameters.Add(logTextParam);
-            command.Parameters.Add(logDateParam);
-            world.DatabaseWriter.Add(command);
+            world.Database.Enqueue(conn =>
+            {
+                using var command = conn.CreateCommand();
+                command.CommandText = query;
+                command.Parameters.Add(new SQLiteParameter("@logText", DbType.String) { Value = text });
+                command.Parameters.Add(new SQLiteParameter("@logDate", DbType.DateTime2) { Value = time });
+                command.ExecuteNonQuery();
+            });
         }
     }
 }

@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Data.SqlClient;
 using System.Data;
 using System.Data.SQLite;
 
@@ -178,87 +177,93 @@ namespace Goose
          */
         public void Save(GameWorld world)
         {
-            var guildNameParam = new SQLiteParameter("@name", DbType.String) { Value = this.Name };
-            var guildMOTDParam = new SQLiteParameter("@motd", DbType.String) { Value = this.MOTD };
-
-            bool justsaved = false;
-            string query;
-            var command = world.SqlConnection.CreateCommand();
-            if (this.ID == 0)
+            // Must be sync: new guilds need last_insert_rowid before return.
+            world.Database.Execute(conn =>
             {
-                query = "INSERT INTO guilds (guild_name, guild_motd) VALUES (@name, @motd)";
-                command.CommandText = query;
-                command.Parameters.Add(guildNameParam);
-                command.Parameters.Add(guildMOTDParam);
-                command.ExecuteNonQuery();
+                string name = this.Name;
+                string motd = this.MOTD;
+                bool justsaved = false;
+                string query;
 
-                command.CommandText = "SELECT last_insert_rowid()";
-                this.ID = Convert.ToInt32(command.ExecuteScalar());
-
-                justsaved = true;
-
-                foreach (Player player in this.OnlineMembers)
+                if (this.ID == 0)
                 {
-                    player.GuildID = this.ID;
-                }
-            }
-
-            if (!justsaved)
-            {
-                query = "UPDATE guilds SET guild_name=@name, guild_motd=@motd WHERE guild_id=" + this.ID;
-                command = world.SqlConnection.CreateCommand();
-                command.CommandText = query;
-                command.Parameters.Add(guildNameParam);
-                command.Parameters.Add(guildMOTDParam);
-                command.ExecuteNonQuery();
-            }
-
-            List<int> removed = new List<int>();
-            foreach (var status in this.Members.Values)
-            {
-                if (status.Dirty)
-                {
-                    if (status.Rank == GuildRanks.Deleted)
+                    using (var command = conn.CreateCommand())
                     {
-                        query = "DELETE FROM guild_members WHERE guild_id=" + this.ID +
-                            " AND player_id=" + status.PlayerID;
-                        command = world.SqlConnection.CreateCommand();
+                        query = "INSERT INTO guilds (guild_name, guild_motd) VALUES (@name, @motd)";
                         command.CommandText = query;
+                        command.Parameters.Add(new SQLiteParameter("@name", DbType.String) { Value = name });
+                        command.Parameters.Add(new SQLiteParameter("@motd", DbType.String) { Value = motd });
                         command.ExecuteNonQuery();
 
-                        removed.Add(status.PlayerID);
+                        command.CommandText = "SELECT last_insert_rowid()";
+                        this.ID = Convert.ToInt32(command.ExecuteScalar());
                     }
-                    else
+
+                    justsaved = true;
+
+                    foreach (Player player in this.OnlineMembers)
                     {
-                        if (status.JustAdded)
+                        player.GuildID = this.ID;
+                    }
+                }
+
+                if (!justsaved)
+                {
+                    using var command = conn.CreateCommand();
+                    query = "UPDATE guilds SET guild_name=@name, guild_motd=@motd WHERE guild_id=" + this.ID;
+                    command.CommandText = query;
+                    command.Parameters.Add(new SQLiteParameter("@name", DbType.String) { Value = name });
+                    command.Parameters.Add(new SQLiteParameter("@motd", DbType.String) { Value = motd });
+                    command.ExecuteNonQuery();
+                }
+
+                List<int> removed = new List<int>();
+                foreach (var status in this.Members.Values)
+                {
+                    if (status.Dirty)
+                    {
+                        if (status.Rank == GuildRanks.Deleted)
                         {
-                            query = "INSERT INTO guild_members (guild_id, player_id, guild_rank) VALUES (" +
-                                this.ID + ", " + status.PlayerID + ", " + (int)status.Rank + ")";
-                            command = world.SqlConnection.CreateCommand();
+                            query = "DELETE FROM guild_members WHERE guild_id=" + this.ID +
+                                " AND player_id=" + status.PlayerID;
+                            using var command = conn.CreateCommand();
                             command.CommandText = query;
                             command.ExecuteNonQuery();
 
-                            status.JustAdded = false;
+                            removed.Add(status.PlayerID);
                         }
                         else
                         {
-                            query = "UPDATE guild_members SET guild_rank=" + (int)status.Rank +
-                                " WHERE guild_id=" + this.ID + " AND player_id=" + status.PlayerID;
-                            command = world.SqlConnection.CreateCommand();
-                            command.CommandText = query;
-                            command.ExecuteNonQuery();
+                            if (status.JustAdded)
+                            {
+                                query = "INSERT INTO guild_members (guild_id, player_id, guild_rank) VALUES (" +
+                                    this.ID + ", " + status.PlayerID + ", " + (int)status.Rank + ")";
+                                using var command = conn.CreateCommand();
+                                command.CommandText = query;
+                                command.ExecuteNonQuery();
+
+                                status.JustAdded = false;
+                            }
+                            else
+                            {
+                                query = "UPDATE guild_members SET guild_rank=" + (int)status.Rank +
+                                    " WHERE guild_id=" + this.ID + " AND player_id=" + status.PlayerID;
+                                using var command = conn.CreateCommand();
+                                command.CommandText = query;
+                                command.ExecuteNonQuery();
+                            }
                         }
+
+                        status.Dirty = false;
                     }
-
-                    status.Dirty = false;
                 }
-            }
-            foreach (int i in removed)
-            {
-                this.Members.Remove(i);
-            }
+                foreach (int i in removed)
+                {
+                    this.Members.Remove(i);
+                }
 
-            this.Dirty = false;
+                this.Dirty = false;
+            });
         }
 
 

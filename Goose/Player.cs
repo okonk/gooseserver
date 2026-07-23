@@ -4,13 +4,12 @@ using System.Linq;
 using System.Text;
 using System.Net.Sockets;
 using System.Data;
-using System.Data.SqlClient;
+using System.Data.Common;
 using System.Security.Cryptography;
 
 using Goose.Events;
 using Goose.Quests;
 using System.Threading.Tasks;
-using System.Data.Common;
 using System.Data.SQLite;
 
 namespace Goose
@@ -781,23 +780,27 @@ namespace Goose
         /// <param name="world"></param>
         public void LoadPets(GameWorld world)
         {
-            var query = world.SqlConnection.CreateCommand();
-            query.CommandText = "SELECT * FROM pets WHERE owner_id=" + this.PlayerID;
-            var reader = query.ExecuteReader();
-
-            while (reader.Read())
+            int playerId = this.PlayerID;
+            world.Database.Execute(conn =>
             {
-                this.AddPet(Pet.FromReader(reader, world));
-            }
+                using var query = conn.CreateCommand();
+                query.CommandText = "SELECT * FROM pets WHERE owner_id=" + playerId;
+                using var reader = query.ExecuteReader();
 
-            reader.Close();
+                while (reader.Read())
+                {
+                    this.AddPet(Pet.FromReader(reader, world));
+                }
+            });
         }
 
         public void LoadQuests(GameWorld world)
         {
-            using (var query = world.SqlConnection.CreateCommand())
+            int playerId = this.PlayerID;
+            world.Database.Execute(conn =>
             {
-                query.CommandText = "SELECT serialized_data FROM quest_status WHERE player_id=" + this.PlayerID;
+                using var query = conn.CreateCommand();
+                query.CommandText = "SELECT serialized_data FROM quest_status WHERE player_id=" + playerId;
                 string serialized_data = Convert.ToString(query.ExecuteScalar());
                 var questStatus = JsonHelper.Deserialize<QuestStatus>(serialized_data);
 
@@ -827,7 +830,7 @@ namespace Goose
 
                     this.QuestProgress.Add(new QuestProgress { Requirement = requirement, Value = progress.Progress });
                 }
-            }
+            });
         }
 
         /**
@@ -836,16 +839,10 @@ namespace Goose
          */
         public virtual void SaveToDatabase(GameWorld world)
         {
-            var playerNameParam = new SQLiteParameter("@playerName", DbType.String) { Value = this.Name };
-            var playerTitleParam = new SQLiteParameter("@playerTitle", DbType.String) { Value = this.Title };
-            var playerSurnameParam = new SQLiteParameter("@playerSurname", DbType.String) { Value = this.Surname };
-
-            var unbanDateParam = new SQLiteParameter("@unbanDate", DbType.DateTime2);
-            if (this.UnbanDate.HasValue)
-                unbanDateParam.Value = this.UnbanDate.Value;
-            else
-                unbanDateParam.Value = DBNull.Value;
-            unbanDateParam.IsNullable = true;
+            string playerName = this.Name;
+            string playerTitle = this.Title;
+            string playerSurname = this.Surname;
+            object unbanDate = this.UnbanDate.HasValue ? (object)this.UnbanDate.Value : DBNull.Value;
 
             if (this.GuildID == 0 && this.Guild != null) this.Guild.Save(world);
 
@@ -914,14 +911,16 @@ namespace Goose
 
                 this.AutoCreatedNotSaved = false;
 
-                var command = world.SqlConnection.CreateCommand();
-                command.CommandText = query;
-                command.Parameters.Add(playerNameParam);
-                command.Parameters.Add(playerTitleParam);
-                command.Parameters.Add(playerSurnameParam);
-                command.Parameters.Add(unbanDateParam);
-
-                world.DatabaseWriter.Add(command);
+                world.Database.Enqueue(conn =>
+                {
+                    using var command = conn.CreateCommand();
+                    command.CommandText = query;
+                    command.Parameters.Add(new SQLiteParameter("@playerName", DbType.String) { Value = playerName });
+                    command.Parameters.Add(new SQLiteParameter("@playerTitle", DbType.String) { Value = playerTitle });
+                    command.Parameters.Add(new SQLiteParameter("@playerSurname", DbType.String) { Value = playerSurname });
+                    command.Parameters.Add(new SQLiteParameter("@unbanDate", DbType.DateTime2) { Value = unbanDate, IsNullable = true });
+                    command.ExecuteNonQuery();
+                });
             }
             else
             {
@@ -980,14 +979,16 @@ namespace Goose
                     "macrocheck_failures=" + this.MacroCheckFailures + " " +
                     "WHERE player_id=" + this.PlayerID;
 
-                var command = world.SqlConnection.CreateCommand();
-                command.CommandText = query;
-                command.Parameters.Add(playerNameParam);
-                command.Parameters.Add(playerTitleParam);
-                command.Parameters.Add(playerSurnameParam);
-                command.Parameters.Add(unbanDateParam);
-
-                world.DatabaseWriter.Add(command);
+                world.Database.Enqueue(conn =>
+                {
+                    using var command = conn.CreateCommand();
+                    command.CommandText = query;
+                    command.Parameters.Add(new SQLiteParameter("@playerName", DbType.String) { Value = playerName });
+                    command.Parameters.Add(new SQLiteParameter("@playerTitle", DbType.String) { Value = playerTitle });
+                    command.Parameters.Add(new SQLiteParameter("@playerSurname", DbType.String) { Value = playerSurname });
+                    command.Parameters.Add(new SQLiteParameter("@unbanDate", DbType.DateTime2) { Value = unbanDate, IsNullable = true });
+                    command.ExecuteNonQuery();
+                });
             }
 
             this.Inventory.Save(world);
@@ -1002,7 +1003,7 @@ namespace Goose
             this.SaveQuests(world);
         }
 
-        /// <summary>
+                /// <summary>
         /// Player, or Player's Group or Pet killed the given npc
         /// </summary>
         /// <param name="npc"></param>
@@ -1039,13 +1040,18 @@ namespace Goose
             questStatus.Started = this.QuestsStarted.Select(q => q.Id).ToArray();
             questStatus.Progress = this.QuestProgress.Select(q => new QuestStatus.QuestProgress(q.Requirement.Quest.Id, q.Requirement.Id, q.Value)).ToArray();
 
-            var saveQuestStatusCommand = world.SqlConnection.CreateCommand();
-            saveQuestStatusCommand.CommandText =
-                @"INSERT INTO quest_status (player_id, serialized_data) VALUES (@player_id, @serialized_data)
-                  ON CONFLICT(player_id) DO UPDATE SET serialized_data=@serialized_data WHERE player_id=@player_id;";
-            saveQuestStatusCommand.Parameters.Add(new SQLiteParameter("@player_id", DbType.Int32) { Value = this.PlayerID });
-            saveQuestStatusCommand.Parameters.Add(new SQLiteParameter("@serialized_data", DbType.String) { Value = JsonHelper.Serialize(questStatus) });
-            world.DatabaseWriter.Add(saveQuestStatusCommand);
+            int playerId = this.PlayerID;
+            string serialized = JsonHelper.Serialize(questStatus);
+            world.Database.Enqueue(conn =>
+            {
+                using var saveQuestStatusCommand = conn.CreateCommand();
+                saveQuestStatusCommand.CommandText =
+                    @"INSERT INTO quest_status (player_id, serialized_data) VALUES (@player_id, @serialized_data)
+                      ON CONFLICT(player_id) DO UPDATE SET serialized_data=@serialized_data WHERE player_id=@player_id;";
+                saveQuestStatusCommand.Parameters.Add(new SQLiteParameter("@player_id", DbType.Int32) { Value = playerId });
+                saveQuestStatusCommand.Parameters.Add(new SQLiteParameter("@serialized_data", DbType.String) { Value = serialized });
+                saveQuestStatusCommand.ExecuteNonQuery();
+            });
         }
 
         /**
