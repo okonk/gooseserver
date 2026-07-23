@@ -7,7 +7,6 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
 
 namespace Goose.Scripting
 {
@@ -32,9 +31,13 @@ namespace Goose.Scripting
             string scriptContents = File.ReadAllText(this.FilePath);
 
             var scriptOptions = ScriptOptions.Default
-                .WithReferences(Assembly.GetExecutingAssembly(), typeof(JsonConvert).GetType().Assembly)
-                .WithImports("System", "System.Collections.Generic", "System.Linq",
-                    "Goose", "Goose.Events", "Goose.Quests", "Goose.Scripting", "Newtonsoft.Json");
+                .WithReferences(
+                    Assembly.GetExecutingAssembly(),
+                    typeof(System.Text.Json.JsonSerializer).Assembly)
+                .WithImports(
+                    "System", "System.Collections.Generic", "System.Linq",
+                    "System.Text.Json",
+                    "Goose", "Goose.Events", "Goose.Quests", "Goose.Scripting");
 
             var script = CSharpScript.Create(scriptContents, scriptOptions);
             script.Compile();

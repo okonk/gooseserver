@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Goose;
 using Goose.Scripting;
-using Newtonsoft.Json;
+using System.Text.Json;
 
 public class ItemModifierScript : BaseItemModifierScript
 {
@@ -44,7 +44,7 @@ public class ItemModifierScript : BaseItemModifierScript
 
     public override void OnExecuteEvent(ItemModifier modifier, Item item, GameWorld world)
     {
-        var operations = JsonConvert.DeserializeObject<ModifierOperation[]>(modifier.ScriptParams);
+        var operations = JsonSerializer.Deserialize<ModifierOperation[]>(modifier.ScriptParams, JsonHelper.DatabaseOptions);
 
         foreach (var operation in operations)
         {

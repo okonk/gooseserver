@@ -4,7 +4,6 @@ using System.Linq;
 using System.Text;
 using System.Data.SqlClient;
 using System.Data;
-using Newtonsoft.Json;
 using System.Data.SQLite;
 
 namespace Goose
@@ -41,7 +40,7 @@ namespace Goose
             {
                 query.CommandText = "SELECT serialized_data FROM spellbook WHERE player_id=" + this.player.PlayerID;
                 string serialized_data = Convert.ToString(query.ExecuteScalar());
-                var spellIds = JsonConvert.DeserializeObject<int[]>(serialized_data, GameWorld.JsonSerializerSettings);
+                var spellIds = JsonHelper.Deserialize<int[]>(serialized_data);
 
                 for (int i = 1; i < this.spells.Length; i++)
                 {
@@ -65,7 +64,7 @@ namespace Goose
                 @"INSERT INTO spellbook (player_id, serialized_data) VALUES (@player_id, @serialized_data)
                   ON CONFLICT(PLAYER_ID) DO UPDATE SET serialized_data=@serialized_data WHERE player_id=@player_id;";
             saveSpellbookCommand.Parameters.Add(new SQLiteParameter("@player_id", DbType.Int32) { Value = this.player.PlayerID });
-            saveSpellbookCommand.Parameters.Add(new SQLiteParameter("@serialized_data", DbType.String) { Value = JsonConvert.SerializeObject(spells.Select(s => (s == null ? 0 : s.ID)).ToArray(), GameWorld.JsonSerializerSettings) });
+            saveSpellbookCommand.Parameters.Add(new SQLiteParameter("@serialized_data", DbType.String) { Value = JsonHelper.Serialize(spells.Select(s => (s == null ? 0 : s.ID)).ToArray()) });
             world.DatabaseWriter.Add(saveSpellbookCommand);
         }
 

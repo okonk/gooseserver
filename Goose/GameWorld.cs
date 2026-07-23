@@ -11,7 +11,6 @@ using System.Threading.Tasks;
 using System.Threading;
 using Goose.Scripting;
 using System.IO;
-using Newtonsoft.Json;
 using System.Data.SQLite;
 using System.Data.Common;
 using System.Diagnostics;
@@ -74,16 +73,8 @@ namespace Goose
 
         public decimal ExperienceModifier { get; set; }
 
-        public static JsonSerializerSettings JsonSerializerSettings { get; set; }
-
         static GameWorld()
         {
-            JsonSerializerSettings = new JsonSerializerSettings
-            {
-                DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate,
-                NullValueHandling = NullValueHandling.Ignore,
-            };
-
             Settings = System.Text.Json.JsonSerializer.Deserialize<GooseSettings>(
                 File.ReadAllText("GooseSettings.json", Encoding.UTF8),
                 JsonHelper.SettingsOptions);

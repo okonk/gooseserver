@@ -6,6 +6,7 @@ using System.Data.SqlClient;
 using System.Data;
 using Goose.Scripting;
 using System.ComponentModel;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Goose
@@ -177,10 +178,17 @@ namespace Goose
 
         public T GetProperty<T>(ItemProperty prop)
         {
-            if (this.ItemProperties.TryGetValue(prop, out object value))
-                return (T)value;
+            if (!this.ItemProperties.TryGetValue(prop, out object value) || value is null)
+                return default;
 
-            return default(T);
+            if (value is T typed)
+                return typed;
+
+            // System.Text.Json deserializes Dictionary<..., object> values as JsonElement.
+            if (value is JsonElement element)
+                return element.Deserialize<T>();
+
+            return (T)Convert.ChangeType(value, typeof(T));
         }
 
         public bool HasProperty(ItemProperty prop)

@@ -5,7 +5,6 @@ using System.Linq;
 using System.Text;
 using System.Data.SqlClient;
 using System.Data;
-using Newtonsoft.Json;
 using System.Data.SQLite;
 
 namespace Goose
@@ -856,7 +855,7 @@ namespace Goose
                 @"INSERT INTO inventory (player_id, serialized_data) VALUES (@player_id, @serialized_data)
                   ON CONFLICT(player_id) DO UPDATE SET serialized_data=@serialized_data WHERE player_id=@player_id;";
             saveInventoryCommand.Parameters.Add(new SQLiteParameter("@player_id", DbType.Int32) { Value = this.player.PlayerID });
-            saveInventoryCommand.Parameters.Add(new SQLiteParameter("@serialized_data", DbType.String) { Value = JsonConvert.SerializeObject(inventory, GameWorld.JsonSerializerSettings) });
+            saveInventoryCommand.Parameters.Add(new SQLiteParameter("@serialized_data", DbType.String) { Value = JsonHelper.Serialize(inventory) });
             world.DatabaseWriter.Add(saveInventoryCommand);
 
             var saveEquippedCommand = world.SqlConnection.CreateCommand();
@@ -864,7 +863,7 @@ namespace Goose
                 @"INSERT INTO equipped (player_id, serialized_data) VALUES (@player_id, @serialized_data)
                   ON CONFLICT(player_id) DO UPDATE SET serialized_data=@serialized_data WHERE player_id=@player_id;";
             saveEquippedCommand.Parameters.Add(new SQLiteParameter("@player_id", DbType.Int32) { Value = this.player.PlayerID });
-            saveEquippedCommand.Parameters.Add(new SQLiteParameter("@serialized_data", DbType.String) { Value = JsonConvert.SerializeObject(equipped, GameWorld.JsonSerializerSettings) });
+            saveEquippedCommand.Parameters.Add(new SQLiteParameter("@serialized_data", DbType.String) { Value = JsonHelper.Serialize(equipped) });
             world.DatabaseWriter.Add(saveEquippedCommand);
 
             var saveCombineBagCommand = world.SqlConnection.CreateCommand();
@@ -872,7 +871,7 @@ namespace Goose
                 @"INSERT INTO combinebag (player_id, serialized_data) VALUES (@player_id, @serialized_data)
                   ON CONFLICT(player_id) DO UPDATE SET serialized_data=@serialized_data WHERE player_id=@player_id;";
             saveCombineBagCommand.Parameters.Add(new SQLiteParameter("@player_id", DbType.Int32) { Value = this.player.PlayerID });
-            saveCombineBagCommand.Parameters.Add(new SQLiteParameter("@serialized_data", DbType.String) { Value = JsonConvert.SerializeObject(combineContainer, GameWorld.JsonSerializerSettings) });
+            saveCombineBagCommand.Parameters.Add(new SQLiteParameter("@serialized_data", DbType.String) { Value = JsonHelper.Serialize(combineContainer) });
             world.DatabaseWriter.Add(saveCombineBagCommand);
         }
 
@@ -886,7 +885,7 @@ namespace Goose
             {
                 query.CommandText = "SELECT serialized_data FROM inventory WHERE player_id=" + this.player.PlayerID;
                 string serialized_data = Convert.ToString(query.ExecuteScalar());
-                this.inventory = JsonConvert.DeserializeObject<ItemSlot[]>(serialized_data, GameWorld.JsonSerializerSettings);
+                this.inventory = JsonHelper.Deserialize<ItemSlot[]>(serialized_data);
 
                 foreach (var invSlot in this.inventory)
                 {
@@ -905,7 +904,7 @@ namespace Goose
             {
                 query.CommandText = "SELECT serialized_data FROM equipped WHERE player_id=" + this.player.PlayerID;
                 string serialized_data = Convert.ToString(query.ExecuteScalar());
-                this.equipped = JsonConvert.DeserializeObject<ItemSlot[]>(serialized_data, GameWorld.JsonSerializerSettings);
+                this.equipped = JsonHelper.Deserialize<ItemSlot[]>(serialized_data);
 
                 foreach (var equipSlot in equipped)
                 {
@@ -936,7 +935,7 @@ namespace Goose
             {
                 query.CommandText = "SELECT serialized_data FROM combinebag WHERE player_id=" + this.player.PlayerID;
                 string serialized_data = Convert.ToString(query.ExecuteScalar());
-                var combineSlots = JsonConvert.DeserializeObject<ItemSlot[]>(serialized_data, GameWorld.JsonSerializerSettings);
+                var combineSlots = JsonHelper.Deserialize<ItemSlot[]>(serialized_data);
 
                 for (int i = 0; i < combineSlots.Length; i++)
                 {

@@ -1,5 +1,4 @@
-﻿using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
@@ -40,7 +39,7 @@ namespace Goose
 
                     ItemContainer container = GetOrCreateContainer(player, npc_id);
 
-                    var containerSlots = JsonConvert.DeserializeObject<ItemSlot[]>(serialized_data, GameWorld.JsonSerializerSettings);
+                    var containerSlots = JsonHelper.Deserialize<ItemSlot[]>(serialized_data);
                     for (int i = 0; i < containerSlots.Length; i++)
                     {
                         var containerSlot = containerSlots[i];
@@ -70,7 +69,7 @@ namespace Goose
                   ON CONFLICT(npc_id, player_id) DO UPDATE SET serialized_data=@serialized_data WHERE npc_id=@npc_id AND player_id=@player_id;";
                 saveContainerCommand.Parameters.Add(new SQLiteParameter("@npc_id", DbType.Int32) { Value = npc_id });
                 saveContainerCommand.Parameters.Add(new SQLiteParameter("@player_id", DbType.Int32) { Value = player.PlayerID });
-                saveContainerCommand.Parameters.Add(new SQLiteParameter("@serialized_data", DbType.String) { Value = JsonConvert.SerializeObject(container, GameWorld.JsonSerializerSettings) });
+                saveContainerCommand.Parameters.Add(new SQLiteParameter("@serialized_data", DbType.String) { Value = JsonHelper.Serialize(container) });
                 world.DatabaseWriter.Add(saveContainerCommand);
             }
         }

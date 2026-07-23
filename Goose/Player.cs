@@ -10,7 +10,6 @@ using System.Security.Cryptography;
 using Goose.Events;
 using Goose.Quests;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
 using System.Data.Common;
 using System.Data.SQLite;
 
@@ -800,7 +799,7 @@ namespace Goose
             {
                 query.CommandText = "SELECT serialized_data FROM quest_status WHERE player_id=" + this.PlayerID;
                 string serialized_data = Convert.ToString(query.ExecuteScalar());
-                var questStatus = JsonConvert.DeserializeObject<QuestStatus>(serialized_data, GameWorld.JsonSerializerSettings);
+                var questStatus = JsonHelper.Deserialize<QuestStatus>(serialized_data);
 
                 foreach (var started in questStatus.Started)
                 {
@@ -1045,7 +1044,7 @@ namespace Goose
                 @"INSERT INTO quest_status (player_id, serialized_data) VALUES (@player_id, @serialized_data)
                   ON CONFLICT(player_id) DO UPDATE SET serialized_data=@serialized_data WHERE player_id=@player_id;";
             saveQuestStatusCommand.Parameters.Add(new SQLiteParameter("@player_id", DbType.Int32) { Value = this.PlayerID });
-            saveQuestStatusCommand.Parameters.Add(new SQLiteParameter("@serialized_data", DbType.String) { Value = JsonConvert.SerializeObject(questStatus, GameWorld.JsonSerializerSettings) });
+            saveQuestStatusCommand.Parameters.Add(new SQLiteParameter("@serialized_data", DbType.String) { Value = JsonHelper.Serialize(questStatus) });
             world.DatabaseWriter.Add(saveQuestStatusCommand);
         }
 
