@@ -16,7 +16,7 @@ namespace Goose
     {
         public Item Item { get; set; }
         [DefaultValue(1)]
-        public long Stack { get; set; }
+        public long Stack { get; set; } = 1;
 
         /**
          * CanStack, returns true if other slot can stack with this slot

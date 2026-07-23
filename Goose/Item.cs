@@ -5,8 +5,8 @@ using System.Text;
 using System.Data.SqlClient;
 using System.Data;
 using Goose.Scripting;
-using Newtonsoft.Json;
 using System.ComponentModel;
+using System.Text.Json.Serialization;
 
 namespace Goose
 {
@@ -25,34 +25,34 @@ namespace Goose
      */
     public class Item : IItem
     {
-        [JsonProperty(PropertyName = "id")]
+        [JsonPropertyName("id")]
         public int ItemID { get; set; }
-        [JsonProperty(PropertyName = "tid")]
+        [JsonPropertyName("tid")]
         public int TemplateID { get; set; }
         [JsonIgnore]
         public ItemTemplate Template { get; set; }
 
         public string Name { get; set; }
-        [JsonProperty(PropertyName = "desc")]
+        [JsonPropertyName("desc")]
         [DefaultValue("")]
         public string Description { get; set; }
 
-        [JsonProperty(PropertyName = "ge")]
+        [JsonPropertyName("ge")]
         public int GraphicEquipped { get; set; }
-        [JsonProperty(PropertyName = "gt")]
+        [JsonPropertyName("gt")]
         public int GraphicTile { get; set; }
-        [JsonProperty(PropertyName = "gf")]
+        [JsonPropertyName("gf")]
         public int GraphicFile { get; set; }
-        [JsonProperty(PropertyName = "r")]
+        [JsonPropertyName("r")]
         public int GraphicR { get; set; }
-        [JsonProperty(PropertyName = "g")]
+        [JsonPropertyName("g")]
         public int GraphicG { get; set; }
-        [JsonProperty(PropertyName = "b")]
+        [JsonPropertyName("b")]
         public int GraphicB { get; set; }
-        [JsonProperty(PropertyName = "a")]
+        [JsonPropertyName("a")]
         public int GraphicA { get; set; }
 
-        [JsonProperty(PropertyName = "wdmg")]
+        [JsonPropertyName("wdmg")]
         public int WeaponDamage { get; set; }
 
         [JsonIgnore]
@@ -60,7 +60,7 @@ namespace Goose
 
         [DefaultValue(3)]
         public int BodyState { get; set; }
-        [JsonProperty(PropertyName = "stats")]
+        [JsonPropertyName("stats")]
         public AttributeSet BaseStats { get; set; }
 
         [JsonIgnore]
@@ -73,7 +73,7 @@ namespace Goose
 
         public bool IsBound { get; set; }
 
-        [JsonProperty(PropertyName = "props")]
+        [JsonPropertyName("props")]
         public Dictionary<ItemProperty, object> ItemProperties;
 
         /**

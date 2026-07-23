@@ -84,7 +84,9 @@ namespace Goose
                 NullValueHandling = NullValueHandling.Ignore,
             };
 
-            Settings = JsonConvert.DeserializeObject<GooseSettings>(File.ReadAllText("GooseSettings.json", Encoding.UTF8));
+            Settings = System.Text.Json.JsonSerializer.Deserialize<GooseSettings>(
+                File.ReadAllText("GooseSettings.json", Encoding.UTF8),
+                JsonHelper.SettingsOptions);
         }
 
         /**
