@@ -35,7 +35,7 @@ namespace Goose
         public string Name { get; set; }
         [JsonPropertyName("desc")]
         [DefaultValue("")]
-        public string Description { get; set; }
+        public string Description { get; set; } = "";
 
         [JsonPropertyName("ge")]
         public int GraphicEquipped { get; set; }
@@ -59,7 +59,7 @@ namespace Goose
         public int TotalWeaponDamage { get; set; }
 
         [DefaultValue(3)]
-        public int BodyState { get; set; }
+        public int BodyState { get; set; } = 3;
         [JsonPropertyName("stats")]
         public AttributeSet BaseStats { get; set; }
 
@@ -74,7 +74,7 @@ namespace Goose
         public bool IsBound { get; set; }
 
         [JsonPropertyName("props")]
-        public Dictionary<ItemProperty, object> ItemProperties;
+        public Dictionary<ItemProperty, object> ItemProperties { get; set; }
 
         /**
          * These properties are read only and just pass along from the templates properties
@@ -134,7 +134,7 @@ namespace Goose
         public Script<IItemScript> Script { get { return this.Template.Script; } }
 
         [DefaultValue("")]
-        public string ScriptParams { get; set; }
+        public string ScriptParams { get; set; } = "";
 
         public Item()
         {
