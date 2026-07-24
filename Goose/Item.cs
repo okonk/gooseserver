@@ -5,8 +5,9 @@ using System.Text;
 using System.Data.SqlClient;
 using System.Data;
 using Goose.Scripting;
-using Newtonsoft.Json;
 using System.ComponentModel;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Goose
 {
@@ -25,42 +26,42 @@ namespace Goose
      */
     public class Item : IItem
     {
-        [JsonProperty(PropertyName = "id")]
+        [JsonPropertyName("id")]
         public int ItemID { get; set; }
-        [JsonProperty(PropertyName = "tid")]
+        [JsonPropertyName("tid")]
         public int TemplateID { get; set; }
         [JsonIgnore]
         public ItemTemplate Template { get; set; }
 
         public string Name { get; set; }
-        [JsonProperty(PropertyName = "desc")]
+        [JsonPropertyName("desc")]
         [DefaultValue("")]
-        public string Description { get; set; }
+        public string Description { get; set; } = "";
 
-        [JsonProperty(PropertyName = "ge")]
+        [JsonPropertyName("ge")]
         public int GraphicEquipped { get; set; }
-        [JsonProperty(PropertyName = "gt")]
+        [JsonPropertyName("gt")]
         public int GraphicTile { get; set; }
-        [JsonProperty(PropertyName = "gf")]
+        [JsonPropertyName("gf")]
         public int GraphicFile { get; set; }
-        [JsonProperty(PropertyName = "r")]
+        [JsonPropertyName("r")]
         public int GraphicR { get; set; }
-        [JsonProperty(PropertyName = "g")]
+        [JsonPropertyName("g")]
         public int GraphicG { get; set; }
-        [JsonProperty(PropertyName = "b")]
+        [JsonPropertyName("b")]
         public int GraphicB { get; set; }
-        [JsonProperty(PropertyName = "a")]
+        [JsonPropertyName("a")]
         public int GraphicA { get; set; }
 
-        [JsonProperty(PropertyName = "wdmg")]
+        [JsonPropertyName("wdmg")]
         public int WeaponDamage { get; set; }
 
         [JsonIgnore]
         public int TotalWeaponDamage { get; set; }
 
         [DefaultValue(3)]
-        public int BodyState { get; set; }
-        [JsonProperty(PropertyName = "stats")]
+        public int BodyState { get; set; } = 3;
+        [JsonPropertyName("stats")]
         public AttributeSet BaseStats { get; set; }
 
         [JsonIgnore]
@@ -73,8 +74,8 @@ namespace Goose
 
         public bool IsBound { get; set; }
 
-        [JsonProperty(PropertyName = "props")]
-        public Dictionary<ItemProperty, object> ItemProperties;
+        [JsonPropertyName("props")]
+        public Dictionary<ItemProperty, object> ItemProperties { get; set; }
 
         /**
          * These properties are read only and just pass along from the templates properties
@@ -134,7 +135,7 @@ namespace Goose
         public Script<IItemScript> Script { get { return this.Template.Script; } }
 
         [DefaultValue("")]
-        public string ScriptParams { get; set; }
+        public string ScriptParams { get; set; } = "";
 
         public Item()
         {
@@ -177,10 +178,17 @@ namespace Goose
 
         public T GetProperty<T>(ItemProperty prop)
         {
-            if (this.ItemProperties.TryGetValue(prop, out object value))
-                return (T)value;
+            if (!this.ItemProperties.TryGetValue(prop, out object value) || value is null)
+                return default;
 
-            return default(T);
+            if (value is T typed)
+                return typed;
+
+            // System.Text.Json deserializes Dictionary<..., object> values as JsonElement.
+            if (value is JsonElement element)
+                return element.Deserialize<T>();
+
+            return (T)Convert.ChangeType(value, typeof(T));
         }
 
         public bool HasProperty(ItemProperty prop)

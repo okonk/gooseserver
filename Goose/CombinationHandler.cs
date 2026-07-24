@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Data.SqlClient;
 
 namespace Goose
 {
@@ -17,10 +16,12 @@ namespace Goose
          */
         public void LoadCombinations(GameWorld world)
         {
-            var command = world.SqlConnection.CreateCommand();
+            world.Database.Execute(conn =>
+            {
+            using var command = conn.CreateCommand();
             command.CommandText = "SELECT * FROM combinations";
-            var reader = command.ExecuteReader();
-
+            using (var reader = command.ExecuteReader())
+            {
             while (reader.Read())
             {
                 Combination comb = new Combination();
@@ -34,7 +35,7 @@ namespace Goose
 
                 this.combinations[comb.ID] = comb;
             }
-            reader.Close();
+            }
 
             int itemid;
             ItemTemplate template;
@@ -46,7 +47,8 @@ namespace Goose
 
                 command.CommandText = "SELECT item_template_id FROM combination_item_required " + 
                     "WHERE combination_id=" + comb.ID;
-                reader = command.ExecuteReader();
+                using (var reader = command.ExecuteReader())
+                {
                 count = 0;
                 while (reader.Read())
                 {
@@ -75,14 +77,15 @@ namespace Goose
                         comb.RequiredHash[itemid] = (int)comb.RequiredHash[itemid] + 1;
                     }
                 }
-                reader.Close();
+                }
 
                 // Load resulting items
                 comb.ResultItems = new List<ItemTemplate>();
 
                 command.CommandText = "SELECT item_template_id FROM combination_item_results " +
                     "WHERE combination_id=" + comb.ID;
-                reader = command.ExecuteReader();
+                using (var reader = command.ExecuteReader())
+                {
                 count = 0;
                 while (reader.Read())
                 {
@@ -104,8 +107,9 @@ namespace Goose
 
                     comb.ResultItems.Add(template);
                 }
-                reader.Close();
+                }
             }
+            });
         }
 
         /**

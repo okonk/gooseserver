@@ -3,10 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Data;
-using System.Data.SqlClient;
+using System.Data.Common;
 
 using Goose.Events;
-using System.Data.Common;
 using System.Data.SQLite;
 
 namespace Goose
@@ -295,9 +294,9 @@ namespace Goose
 
         public override void SaveToDatabase(GameWorld world)
         {
-            var petNameParam = new SQLiteParameter("@petName", DbType.String) { Value = this.Name };
-            var petTitleParam = new SQLiteParameter("@petTitle", DbType.String) { Value = this.Title };
-            var petSurnameParam = new SQLiteParameter("@petSurname", DbType.String) { Value = this.Surname };
+            string petName = this.Name;
+            string petTitle = this.Title;
+            string petSurname = this.Surname;
 
             if (this.AutoCreatedNotSaved)
             {
@@ -354,21 +353,27 @@ namespace Goose
                     this.BaseStats.MPStaticRegen + ", " +
                     this.Owner.PlayerID +
                     ")";
-                var command = world.SqlConnection.CreateCommand();
-                command.CommandText = query;
-                command.Parameters.Add(petNameParam);
-                command.Parameters.Add(petTitleParam);
-                command.Parameters.Add(petSurnameParam);
-                world.DatabaseWriter.Add(command);
-                this.AutoCreatedNotSaved = false;
+                world.Database.Enqueue(conn =>
+                {
+                    using var command = conn.CreateCommand();
+                    command.CommandText = query;
+                    command.Parameters.Add(new SQLiteParameter("@petName", DbType.String) { Value = petName });
+                    command.Parameters.Add(new SQLiteParameter("@petTitle", DbType.String) { Value = petTitle });
+                    command.Parameters.Add(new SQLiteParameter("@petSurname", DbType.String) { Value = petSurname });
+                    command.ExecuteNonQuery();
+                    // Only clear after a successful insert so a failed first save can retry INSERT.
+                    this.AutoCreatedNotSaved = false;
+                });
             }
             else if (this.Delete)
             {
                 string query = "DELETE FROM pets WHERE pet_id=" + this.PetID;
-
-                var command = world.SqlConnection.CreateCommand();
-                command.CommandText = query;
-                world.DatabaseWriter.Add(command);
+                world.Database.Enqueue(conn =>
+                {
+                    using var command = conn.CreateCommand();
+                    command.CommandText = query;
+                    command.ExecuteNonQuery();
+                });
             }
             else
             {
@@ -420,12 +425,15 @@ namespace Goose
                     "owner_id=" + this.Owner.PlayerID + " " +
                     "WHERE pet_id=" + this.PetID;
 
-                var command = world.SqlConnection.CreateCommand();
-                command.CommandText = query;
-                command.Parameters.Add(petNameParam);
-                command.Parameters.Add(petTitleParam);
-                command.Parameters.Add(petSurnameParam);
-                world.DatabaseWriter.Add(command);
+                world.Database.Enqueue(conn =>
+                {
+                    using var command = conn.CreateCommand();
+                    command.CommandText = query;
+                    command.Parameters.Add(new SQLiteParameter("@petName", DbType.String) { Value = petName });
+                    command.Parameters.Add(new SQLiteParameter("@petTitle", DbType.String) { Value = petTitle });
+                    command.Parameters.Add(new SQLiteParameter("@petSurname", DbType.String) { Value = petSurname });
+                    command.ExecuteNonQuery();
+                });
             }
         }
 

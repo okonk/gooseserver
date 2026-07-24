@@ -1,8 +1,8 @@
-﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace Goose.Quests
@@ -14,12 +14,14 @@ namespace Goose.Quests
     {
         public class QuestProgress
         {
-            [JsonProperty(PropertyName = "id")]
+            [JsonPropertyName("id")]
             public int QuestId { get; set; }
-            [JsonProperty(PropertyName = "rid")]
+            [JsonPropertyName("rid")]
             public int RequirementId { get; set; }
-            [JsonProperty(PropertyName = "p")]
+            [JsonPropertyName("p")]
             public long Progress { get; set; }
+
+            public QuestProgress() { }
 
             public QuestProgress(int questId, int requirementId, long progress)
             {

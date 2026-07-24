@@ -22,7 +22,8 @@ namespace Goose
 
         private List<Player> players = new();
         private Dictionary<Socket, Player> sockToPlayer = new();
-        private Player[] idToPlayer = new Player[GameWorld.Settings.MaxPlayers];
+        // Support LoginIDs 1..MaxPlayers inclusive; index 0 unused (LoginID 0 = none / full)
+        private Player[] idToPlayer = new Player[GameWorld.Settings.MaxPlayers + 1];
 
         int currentdbid = 1;
         /// <summary>
@@ -48,7 +49,8 @@ namespace Goose
             player.LoginID = this.GetNewID(world);
             this.players.Add(player);
             this.sockToPlayer[player.Sock] = player;
-            this.idToPlayer[player.LoginID] = player;
+            if (player.LoginID != 0)
+                this.idToPlayer[player.LoginID] = player;
         }
 
         /**
@@ -76,30 +78,32 @@ namespace Goose
         {
             this.sockToPlayer.Remove(player.Sock);
             this.players.Remove(player);
-            this.idToPlayer[player.LoginID] = null;
+            if (player.LoginID != 0 && player.LoginID < this.idToPlayer.Length)
+                this.idToPlayer[player.LoginID] = null;
+            player.LoginID = 0;
         }
 
-
+        /// <summary>
+        /// Returns the lowest free LoginID in 1..MaxPlayers, or 0 if the server is full.
+        /// </summary>
         public int GetNewID(GameWorld world)
         {
-            int id;
-            do
+            for (int id = 1; id <= GameWorld.Settings.MaxPlayers; id++)
             {
-                id = world.Random.Next(1, GameWorld.Settings.MaxPlayers);
-            } while (this.idToPlayer[id] != null);
-
-            return id;
+                if (this.idToPlayer[id] == null)
+                    return id;
+            }
+            return 0;
         }
 
         public void AssignNewId(GameWorld world, Player player)
         {
-            if (player.LoginID != 0 && this.idToPlayer[player.LoginID] != null)
-            {
+            if (player.LoginID != 0 && player.LoginID < this.idToPlayer.Length)
                 this.idToPlayer[player.LoginID] = null;
-            }
 
             player.LoginID = this.GetNewID(world);
-            this.idToPlayer[player.LoginID] = player;
+            if (player.LoginID != 0)
+                this.idToPlayer[player.LoginID] = player;
         }
 
         /**
@@ -190,24 +194,27 @@ namespace Goose
 
         public void LoadPlayerData(GameWorld world)
         {
-            var command = world.SqlConnection.CreateCommand();
-            command.CommandText = "SELECT * FROM players";
-            var reader = command.ExecuteReader();
-
-            while (reader.Read())
+            world.Database.Execute(conn =>
             {
-                Player player = new Player(0);
-                player.LoadFromReader(world, reader);
+                using var command = conn.CreateCommand();
+                command.CommandText = "SELECT * FROM players";
+                using var reader = command.ExecuteReader();
 
-                if (player.PlayerID >= this.CurrentID)
+                while (reader.Read())
                 {
-                    this.CurrentID = player.PlayerID + 1;
+                    Player player = new Player(0);
+                    player.LoadFromReader(world, reader);
+
+                    if (player.PlayerID >= this.CurrentID)
+                    {
+                        this.CurrentID = player.PlayerID + 1;
+                    }
+
+                    if (player.Access == Player.AccessStatus.Deleted) continue;
+
+                    this.allNameToPlayer[player.Name.ToLower()] = player;
                 }
-
-                if (player.Access == Player.AccessStatus.Deleted) continue;
-
-                this.allNameToPlayer[player.Name.ToLower()] = player;
-            }
+            });
 
             foreach (Player player in this.allNameToPlayer.Values)
             {

@@ -1,11 +1,11 @@
 using Goose;
 using Goose.Scripting;
-using Newtonsoft.Json;
+using System.Text.Json;
 
 private class HealerParams
 {
-    public int spellId;
-    public int[] healIds;
+    public int spellId { get; set; }
+    public int[] healIds { get; set; }
 }
 
 public class HealerNPC : BaseNPCScript
@@ -15,7 +15,7 @@ public class HealerNPC : BaseNPCScript
 
     public override void OnSpawnEvent(NPC npc, GameWorld world)
 	{
-		var p = JsonConvert.DeserializeObject<HealerParams>(npc.ScriptParams);
+		var p = JsonSerializer.Deserialize<HealerParams>(npc.ScriptParams, JsonHelper.DatabaseOptions);
         HealerNPC.healIds = p.healIds;
         HealerNPC.spell = world.SpellHandler.GetSpellEffect(p.spellId);
     }

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
 
@@ -17,53 +16,62 @@ namespace Goose.Quests
 
         public void LoadQuests(GameWorld world)
         {
-            var command = world.SqlConnection.CreateCommand();
-            command.CommandText = "SELECT * FROM quests";
-            using (var reader = command.ExecuteReader())
+            world.Database.Execute(conn =>
             {
-                while (reader.Read())
+                using (var command = conn.CreateCommand())
                 {
-                    var quest = Quest.FromReader(reader, this.Quests);
-                    this.Quests[quest.Id] = quest;
-                }
-            }
-
-            foreach (var quest in this.Quests.Values)
-            {
-                var requirements = new List<QuestRequirement>();
-
-                command = world.SqlConnection.CreateCommand();
-                command.CommandText = "SELECT * FROM quest_requirements WHERE quest_id=" + quest.Id;
-                using (var reader = command.ExecuteReader())
-                {
-                    while (reader.Read())
+                    command.CommandText = "SELECT * FROM quests";
+                    using (var reader = command.ExecuteReader())
                     {
-                        var req = QuestRequirement.FromReader(reader);
-                        req.Quest = quest;
-                        requirements.Add(req);
+                        while (reader.Read())
+                        {
+                            var quest = Quest.FromReader(reader, this.Quests);
+                            this.Quests[quest.Id] = quest;
+                        }
                     }
                 }
 
-                quest.Requirements = requirements;
-            }
-
-            foreach (var quest in this.Quests.Values)
-            {
-                var rewards = new List<QuestReward>();
-
-                command = world.SqlConnection.CreateCommand();
-                command.CommandText = "SELECT * FROM quest_rewards WHERE quest_id=" + quest.Id;
-                using (var reader = command.ExecuteReader())
+                foreach (var quest in this.Quests.Values)
                 {
-                    while (reader.Read())
+                    var requirements = new List<QuestRequirement>();
+
+                    using (var command = conn.CreateCommand())
                     {
-                        var reward = QuestReward.FromReader(reader);
-                        rewards.Add(reward);
+                        command.CommandText = "SELECT * FROM quest_requirements WHERE quest_id=" + quest.Id;
+                        using (var reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                var req = QuestRequirement.FromReader(reader);
+                                req.Quest = quest;
+                                requirements.Add(req);
+                            }
+                        }
                     }
+
+                    quest.Requirements = requirements;
                 }
 
-                quest.Rewards = rewards;
-            }
+                foreach (var quest in this.Quests.Values)
+                {
+                    var rewards = new List<QuestReward>();
+
+                    using (var command = conn.CreateCommand())
+                    {
+                        command.CommandText = "SELECT * FROM quest_rewards WHERE quest_id=" + quest.Id;
+                        using (var reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                var reward = QuestReward.FromReader(reader);
+                                rewards.Add(reward);
+                            }
+                        }
+                    }
+
+                    quest.Rewards = rewards;
+                }
+            });
         }
 
         public Quest Get(int questId)

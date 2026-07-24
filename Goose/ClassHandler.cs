@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Data.SqlClient;
 
 namespace Goose
 {
@@ -42,10 +41,12 @@ namespace Goose
          */
         public void LoadClasses(GameWorld world)
         {
-            var command = world.SqlConnection.CreateCommand();
+            world.Database.Execute(conn =>
+            {
+            using var command = conn.CreateCommand();
             command.CommandText = "SELECT * FROM classes";
-            var reader = command.ExecuteReader();
-
+            using (var reader = command.ExecuteReader())
+            {
             while (reader.Read())
             {
                 Class c = new Class();
@@ -60,12 +61,11 @@ namespace Goose
 
                 world.RankHandler.AddClass(c);
             }
-            reader.Close();
+            }
 
-            command = world.SqlConnection.CreateCommand();
             command.CommandText = "SELECT * FROM class_info";
-            reader = command.ExecuteReader();
-
+            using (var reader = command.ExecuteReader())
+            {
             while (reader.Read())
             {
                 ClassLevel c = new ClassLevel();
@@ -112,13 +112,11 @@ namespace Goose
 
                 cl.AddLevel(c);
             }
+            }
 
-            reader.Close();
-
-            command = world.SqlConnection.CreateCommand();
             command.CommandText = "SELECT * FROM classes_levelup_spells";
-            reader = command.ExecuteReader();
-
+            using (var reader = command.ExecuteReader())
+            {
             Class clas;
             ClassLevel level;
             Spell spell;
@@ -148,8 +146,8 @@ namespace Goose
 
                 level.Spells.Add(spell);
             }
-
-            reader.Close();
+            }
+            });
         }
 
         /**

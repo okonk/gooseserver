@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Data.SqlClient;
 using System.IO;
 using Goose.Scripting;
 
@@ -481,41 +480,45 @@ namespace Goose
                     AsperetaMapLoader(mapReader, this, world);
             }
 
-            var command = world.SqlConnection.CreateCommand();
-            command.CommandText = "SELECT * FROM warptiles WHERE map_id=" + this.ID;
-            var reader = command.ExecuteReader();
-
-            while (reader.Read())
+            int mapId = this.ID;
+            world.Database.Execute(conn =>
             {
-                WarpTile warp = new WarpTile();
-                warp.WarpMap = world.MapHandler.GetMap(Convert.ToInt32(reader["warp_id"]));
-                warp.WarpX = Convert.ToInt32(reader["warp_x"]);
-                warp.WarpY = Convert.ToInt32(reader["warp_y"]);
+                using (var command = conn.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM warptiles WHERE map_id=" + mapId;
+                    using var reader = command.ExecuteReader();
 
-                int x = Convert.ToInt32(reader["map_x"]);
-                int y = Convert.ToInt32(reader["map_y"]);
+                    while (reader.Read())
+                    {
+                        WarpTile warp = new WarpTile();
+                        warp.WarpMap = world.MapHandler.GetMap(Convert.ToInt32(reader["warp_id"]));
+                        warp.WarpX = Convert.ToInt32(reader["warp_x"]);
+                        warp.WarpY = Convert.ToInt32(reader["warp_y"]);
 
-                this.tiles[y * this.Width + x] = warp;
-            }
+                        int x = Convert.ToInt32(reader["map_x"]);
+                        int y = Convert.ToInt32(reader["map_y"]);
 
-            reader.Close();
+                        this.tiles[y * this.Width + x] = warp;
+                    }
+                }
 
-            command = world.SqlConnection.CreateCommand();
-            command.CommandText = "SELECT * FROM map_required_items WHERE map_id=" + this.ID;
-            reader = command.ExecuteReader();
+                using (var command = conn.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM map_required_items WHERE map_id=" + mapId;
+                    using var reader = command.ExecuteReader();
 
-            while (reader.Read())
-            {
-                this.requiredItems.Add(Convert.ToInt32(reader["item_template_id"]));
-            }
+                    while (reader.Read())
+                    {
+                        this.requiredItems.Add(Convert.ToInt32(reader["item_template_id"]));
+                    }
+                }
+            });
 
             try
             {
                 this.Script?.Object.OnFinishedLoad(this, world);
             }
             catch (Exception e) { }
-
-            reader.Close();
         }
 
         /**

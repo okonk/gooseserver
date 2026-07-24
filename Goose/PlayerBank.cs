@@ -1,8 +1,6 @@
-﻿using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Data.SqlClient;
 using System.Data.SQLite;
 using System.Linq;
 using System.Text;
@@ -28,11 +26,13 @@ namespace Goose
 
         public void Load(GameWorld world, Player player)
         {
-            var command = world.SqlConnection.CreateCommand();
-            command.CommandText = "SELECT * FROM bank_items WHERE player_id=" + player.PlayerID;
-
-            using (var reader = command.ExecuteReader())
+            int playerId = player.PlayerID;
+            world.Database.Execute(conn =>
             {
+                using var command = conn.CreateCommand();
+                command.CommandText = "SELECT * FROM bank_items WHERE player_id=" + playerId;
+
+                using var reader = command.ExecuteReader();
                 while (reader.Read())
                 {
                     int npc_id = Convert.ToInt32(reader["npc_id"]);
@@ -40,7 +40,7 @@ namespace Goose
 
                     ItemContainer container = GetOrCreateContainer(player, npc_id);
 
-                    var containerSlots = JsonConvert.DeserializeObject<ItemSlot[]>(serialized_data, GameWorld.JsonSerializerSettings);
+                    var containerSlots = JsonHelper.Deserialize<ItemSlot[]>(serialized_data);
                     for (int i = 0; i < containerSlots.Length; i++)
                     {
                         var containerSlot = containerSlots[i];
@@ -54,25 +54,31 @@ namespace Goose
                         container.SetSlot(i, containerSlots[i]);
                     }
                 }
-            }
+            });
         }
 
         public void Save(GameWorld world, Player player)
         {
-            foreach (var kvp in this.bankContainers)
-            {
-                int npc_id = kvp.Key;
-                ItemContainer container = kvp.Value;
+            int playerId = player.PlayerID;
+            // Snapshot container data before enqueue so later mutations don't race the DB thread.
+            var snapshots = this.bankContainers
+                .Select(kvp => (NpcId: kvp.Key, Json: JsonHelper.Serialize(kvp.Value)))
+                .ToList();
 
-                var saveContainerCommand = world.SqlConnection.CreateCommand();
-                saveContainerCommand.CommandText =
-                @"INSERT INTO bank_items (npc_id, player_id, serialized_data) VALUES (@npc_id, @player_id, @serialized_data)
-                  ON CONFLICT(npc_id, player_id) DO UPDATE SET serialized_data=@serialized_data WHERE npc_id=@npc_id AND player_id=@player_id;";
-                saveContainerCommand.Parameters.Add(new SQLiteParameter("@npc_id", DbType.Int32) { Value = npc_id });
-                saveContainerCommand.Parameters.Add(new SQLiteParameter("@player_id", DbType.Int32) { Value = player.PlayerID });
-                saveContainerCommand.Parameters.Add(new SQLiteParameter("@serialized_data", DbType.String) { Value = JsonConvert.SerializeObject(container, GameWorld.JsonSerializerSettings) });
-                world.DatabaseWriter.Add(saveContainerCommand);
-            }
+            world.Database.Enqueue(conn =>
+            {
+                foreach (var (npcId, json) in snapshots)
+                {
+                    using var saveContainerCommand = conn.CreateCommand();
+                    saveContainerCommand.CommandText =
+                    @"INSERT INTO bank_items (npc_id, player_id, serialized_data) VALUES (@npc_id, @player_id, @serialized_data)
+                      ON CONFLICT(npc_id, player_id) DO UPDATE SET serialized_data=@serialized_data WHERE npc_id=@npc_id AND player_id=@player_id;";
+                    saveContainerCommand.Parameters.Add(new SQLiteParameter("@npc_id", DbType.Int32) { Value = npcId });
+                    saveContainerCommand.Parameters.Add(new SQLiteParameter("@player_id", DbType.Int32) { Value = playerId });
+                    saveContainerCommand.Parameters.Add(new SQLiteParameter("@serialized_data", DbType.String) { Value = json });
+                    saveContainerCommand.ExecuteNonQuery();
+                }
+            });
         }
 
         public ItemContainer GetOrCreateContainer(Player player, int npc_id)

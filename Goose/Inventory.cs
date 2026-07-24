@@ -3,9 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Data.SqlClient;
 using System.Data;
-using Newtonsoft.Json;
 using System.Data.SQLite;
 
 namespace Goose
@@ -851,29 +849,43 @@ namespace Goose
          */
         public void Save(GameWorld world)
         {
-            var saveInventoryCommand = world.SqlConnection.CreateCommand();
-            saveInventoryCommand.CommandText =
-                @"INSERT INTO inventory (player_id, serialized_data) VALUES (@player_id, @serialized_data)
-                  ON CONFLICT(player_id) DO UPDATE SET serialized_data=@serialized_data WHERE player_id=@player_id;";
-            saveInventoryCommand.Parameters.Add(new SQLiteParameter("@player_id", DbType.Int32) { Value = this.player.PlayerID });
-            saveInventoryCommand.Parameters.Add(new SQLiteParameter("@serialized_data", DbType.String) { Value = JsonConvert.SerializeObject(inventory, GameWorld.JsonSerializerSettings) });
-            world.DatabaseWriter.Add(saveInventoryCommand);
+            int playerId = this.player.PlayerID;
+            string inventoryJson = JsonHelper.Serialize(inventory);
+            string equippedJson = JsonHelper.Serialize(equipped);
+            string combineJson = JsonHelper.Serialize(combineContainer);
 
-            var saveEquippedCommand = world.SqlConnection.CreateCommand();
-            saveEquippedCommand.CommandText =
-                @"INSERT INTO equipped (player_id, serialized_data) VALUES (@player_id, @serialized_data)
-                  ON CONFLICT(player_id) DO UPDATE SET serialized_data=@serialized_data WHERE player_id=@player_id;";
-            saveEquippedCommand.Parameters.Add(new SQLiteParameter("@player_id", DbType.Int32) { Value = this.player.PlayerID });
-            saveEquippedCommand.Parameters.Add(new SQLiteParameter("@serialized_data", DbType.String) { Value = JsonConvert.SerializeObject(equipped, GameWorld.JsonSerializerSettings) });
-            world.DatabaseWriter.Add(saveEquippedCommand);
+            world.Database.Enqueue(conn =>
+            {
+                using (var saveInventoryCommand = conn.CreateCommand())
+                {
+                    saveInventoryCommand.CommandText =
+                        @"INSERT INTO inventory (player_id, serialized_data) VALUES (@player_id, @serialized_data)
+                          ON CONFLICT(player_id) DO UPDATE SET serialized_data=@serialized_data WHERE player_id=@player_id;";
+                    saveInventoryCommand.Parameters.Add(new SQLiteParameter("@player_id", DbType.Int32) { Value = playerId });
+                    saveInventoryCommand.Parameters.Add(new SQLiteParameter("@serialized_data", DbType.String) { Value = inventoryJson });
+                    saveInventoryCommand.ExecuteNonQuery();
+                }
 
-            var saveCombineBagCommand = world.SqlConnection.CreateCommand();
-            saveCombineBagCommand.CommandText =
-                @"INSERT INTO combinebag (player_id, serialized_data) VALUES (@player_id, @serialized_data)
-                  ON CONFLICT(player_id) DO UPDATE SET serialized_data=@serialized_data WHERE player_id=@player_id;";
-            saveCombineBagCommand.Parameters.Add(new SQLiteParameter("@player_id", DbType.Int32) { Value = this.player.PlayerID });
-            saveCombineBagCommand.Parameters.Add(new SQLiteParameter("@serialized_data", DbType.String) { Value = JsonConvert.SerializeObject(combineContainer, GameWorld.JsonSerializerSettings) });
-            world.DatabaseWriter.Add(saveCombineBagCommand);
+                using (var saveEquippedCommand = conn.CreateCommand())
+                {
+                    saveEquippedCommand.CommandText =
+                        @"INSERT INTO equipped (player_id, serialized_data) VALUES (@player_id, @serialized_data)
+                          ON CONFLICT(player_id) DO UPDATE SET serialized_data=@serialized_data WHERE player_id=@player_id;";
+                    saveEquippedCommand.Parameters.Add(new SQLiteParameter("@player_id", DbType.Int32) { Value = playerId });
+                    saveEquippedCommand.Parameters.Add(new SQLiteParameter("@serialized_data", DbType.String) { Value = equippedJson });
+                    saveEquippedCommand.ExecuteNonQuery();
+                }
+
+                using (var saveCombineBagCommand = conn.CreateCommand())
+                {
+                    saveCombineBagCommand.CommandText =
+                        @"INSERT INTO combinebag (player_id, serialized_data) VALUES (@player_id, @serialized_data)
+                          ON CONFLICT(player_id) DO UPDATE SET serialized_data=@serialized_data WHERE player_id=@player_id;";
+                    saveCombineBagCommand.Parameters.Add(new SQLiteParameter("@player_id", DbType.Int32) { Value = playerId });
+                    saveCombineBagCommand.Parameters.Add(new SQLiteParameter("@serialized_data", DbType.String) { Value = combineJson });
+                    saveCombineBagCommand.ExecuteNonQuery();
+                }
+            });
         }
 
         /**
@@ -882,77 +894,81 @@ namespace Goose
          */
         public void Load(GameWorld world)
         {
-            using (var query = world.SqlConnection.CreateCommand())
+            int playerId = this.player.PlayerID;
+            world.Database.Execute(conn =>
             {
-                query.CommandText = "SELECT serialized_data FROM inventory WHERE player_id=" + this.player.PlayerID;
-                string serialized_data = Convert.ToString(query.ExecuteScalar());
-                this.inventory = JsonConvert.DeserializeObject<ItemSlot[]>(serialized_data, GameWorld.JsonSerializerSettings);
-
-                foreach (var invSlot in this.inventory)
+                using (var query = conn.CreateCommand())
                 {
-                    if (invSlot == null) continue;
+                    query.CommandText = "SELECT serialized_data FROM inventory WHERE player_id=" + playerId;
+                    string serialized_data = Convert.ToString(query.ExecuteScalar());
+                    this.inventory = JsonHelper.Deserialize<ItemSlot[]>(serialized_data);
 
-                    world.ItemHandler.AddItem(invSlot.Item, world);
-
-                    invSlot.Item.Template = world.ItemHandler.GetTemplate(invSlot.Item.TemplateID);
-                    if (invSlot.Item.Template == null)
-                        log.Warn("ItemTemplate '{}' was not found", invSlot.Item.TemplateID);
-                    invSlot.Item.RefreshStats();
-                }
-            }
-
-            using (var query = world.SqlConnection.CreateCommand())
-            {
-                query.CommandText = "SELECT serialized_data FROM equipped WHERE player_id=" + this.player.PlayerID;
-                string serialized_data = Convert.ToString(query.ExecuteScalar());
-                this.equipped = JsonConvert.DeserializeObject<ItemSlot[]>(serialized_data, GameWorld.JsonSerializerSettings);
-
-                foreach (var equipSlot in equipped)
-                {
-                    if (equipSlot == null) continue;
-
-                    world.ItemHandler.AddItem(equipSlot.Item, world);
-
-                    equipSlot.Item.Template = world.ItemHandler.GetTemplate(equipSlot.Item.TemplateID);
-                    if (equipSlot.Item.Template == null)
-                        log.Warn("ItemTemplate '{}' was not found", equipSlot.Item.TemplateID);
-                    equipSlot.Item.RefreshStats();
-
-                    this.player.AddStats(equipSlot.Item.TotalStats, world);
-                    if (equipSlot.Item.SpellEffect != null)
+                    foreach (var invSlot in this.inventory)
                     {
-                        Buff buff = new Buff();
-                        buff.Caster = this.player;
-                        buff.Target = this.player;
-                        buff.ItemBuff = true;
-                        buff.SpellEffect = equipSlot.Item.SpellEffect;
+                        if (invSlot == null) continue;
 
-                        this.player.AddBuff(buff, world, false);
+                        world.ItemHandler.AddItem(invSlot.Item, world);
+
+                        invSlot.Item.Template = world.ItemHandler.GetTemplate(invSlot.Item.TemplateID);
+                        if (invSlot.Item.Template == null)
+                            log.Warn("ItemTemplate '{}' was not found", invSlot.Item.TemplateID);
+                        invSlot.Item.RefreshStats();
                     }
                 }
-            }
 
-            using (var query = world.SqlConnection.CreateCommand())
-            {
-                query.CommandText = "SELECT serialized_data FROM combinebag WHERE player_id=" + this.player.PlayerID;
-                string serialized_data = Convert.ToString(query.ExecuteScalar());
-                var combineSlots = JsonConvert.DeserializeObject<ItemSlot[]>(serialized_data, GameWorld.JsonSerializerSettings);
-
-                for (int i = 0; i < combineSlots.Length; i++)
+                using (var query = conn.CreateCommand())
                 {
-                    var combineSlot = combineSlots[i];
-                    if (combineSlot == null) continue;
+                    query.CommandText = "SELECT serialized_data FROM equipped WHERE player_id=" + playerId;
+                    string serialized_data = Convert.ToString(query.ExecuteScalar());
+                    this.equipped = JsonHelper.Deserialize<ItemSlot[]>(serialized_data);
 
-                    world.ItemHandler.AddItem(combineSlot.Item, world);
+                    foreach (var equipSlot in equipped)
+                    {
+                        if (equipSlot == null) continue;
 
-                    combineSlot.Item.Template = world.ItemHandler.GetTemplate(combineSlot.Item.TemplateID);
-                    if (combineSlot.Item.Template == null)
-                        log.Warn("ItemTemplate '{}' was not found", combineSlot.Item.TemplateID);
-                    combineSlot.Item.RefreshStats();
+                        world.ItemHandler.AddItem(equipSlot.Item, world);
 
-                    this.combineContainer.SetSlot(i, combineSlot);
+                        equipSlot.Item.Template = world.ItemHandler.GetTemplate(equipSlot.Item.TemplateID);
+                        if (equipSlot.Item.Template == null)
+                            log.Warn("ItemTemplate '{}' was not found", equipSlot.Item.TemplateID);
+                        equipSlot.Item.RefreshStats();
+
+                        this.player.AddStats(equipSlot.Item.TotalStats, world);
+                        if (equipSlot.Item.SpellEffect != null)
+                        {
+                            Buff buff = new Buff();
+                            buff.Caster = this.player;
+                            buff.Target = this.player;
+                            buff.ItemBuff = true;
+                            buff.SpellEffect = equipSlot.Item.SpellEffect;
+
+                            this.player.AddBuff(buff, world, false);
+                        }
+                    }
                 }
-            }
+
+                using (var query = conn.CreateCommand())
+                {
+                    query.CommandText = "SELECT serialized_data FROM combinebag WHERE player_id=" + playerId;
+                    string serialized_data = Convert.ToString(query.ExecuteScalar());
+                    var combineSlots = JsonHelper.Deserialize<ItemSlot[]>(serialized_data);
+
+                    for (int i = 0; i < combineSlots.Length; i++)
+                    {
+                        var combineSlot = combineSlots[i];
+                        if (combineSlot == null) continue;
+
+                        world.ItemHandler.AddItem(combineSlot.Item, world);
+
+                        combineSlot.Item.Template = world.ItemHandler.GetTemplate(combineSlot.Item.TemplateID);
+                        if (combineSlot.Item.Template == null)
+                            log.Warn("ItemTemplate '{}' was not found", combineSlot.Item.TemplateID);
+                        combineSlot.Item.RefreshStats();
+
+                        this.combineContainer.SetSlot(i, combineSlot);
+                    }
+                }
+            });
         }
 
         /**

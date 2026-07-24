@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Collections;
-using System.Data.SqlClient;
 using Goose.Scripting;
 
 namespace Goose
@@ -29,9 +28,11 @@ namespace Goose
          */
         public void LoadSpellEffects(GameWorld world)
         {
-            var command = world.SqlConnection.CreateCommand();
+            world.Database.Execute(conn =>
+            {
+            using var command = conn.CreateCommand();
             command.CommandText = "SELECT * FROM spell_effects";
-            var reader = command.ExecuteReader();
+            using var reader = command.ExecuteReader();
 
             while (reader.Read())
             {
@@ -145,8 +146,6 @@ namespace Goose
                 this.effects[effect.ID] = effect;
             }
 
-            reader.Close();
-
             foreach (SpellEffect s in this.effects.Values)
             {
                 s.OnMeleeAttackSpell = this.GetSpellEffect(s.OnMeleeAttackSpellID);
@@ -191,6 +190,7 @@ namespace Goose
                     }
                 }
             }
+            });
         }
 
         /**
@@ -215,9 +215,11 @@ namespace Goose
          */
         public void LoadSpells(GameWorld world)
         {
-            var command = world.SqlConnection.CreateCommand();
+            world.Database.Execute(conn =>
+            {
+            using var command = conn.CreateCommand();
             command.CommandText = "SELECT * FROM spells";
-            var reader = command.ExecuteReader();
+            using var reader = command.ExecuteReader();
 
             while (reader.Read())
             {
@@ -253,8 +255,7 @@ namespace Goose
 
                 this.spells[spell.ID] = spell;
             }
-
-            reader.Close();
+            });
         }
 
         /**

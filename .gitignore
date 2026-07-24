@@ -10,3 +10,5 @@ FodyWeavers.xsd
 bin/
 obj/
 
+
+.worktrees/
