@@ -520,18 +520,7 @@ namespace Goose
          */
         public void LoadFromAutoCreate(string name, string password, GameWorld world)
         {
-            byte[] saltBytes = new byte[16];
-            RNGCryptoServiceProvider rng = new RNGCryptoServiceProvider();
-            rng.GetNonZeroBytes(saltBytes);
-
-            string salt = Encoding.ASCII.GetString(saltBytes);
-            string base64Salt = Convert.ToBase64String(saltBytes);
-
-            MD5CryptoServiceProvider md5 = new MD5CryptoServiceProvider();
-            byte[] data = Encoding.ASCII.GetBytes(salt + password + GameWorld.Settings.ServerName);
-            data = md5.ComputeHash(data);
-
-            string passwordHash = BitConverter.ToString(data).Replace("-", "").ToLower();
+            var (passwordHash, base64Salt) = PasswordHasher.Create(password);
 
             this.AutoCreatedNotSaved = true;
             this.PlayerID = world.PlayerHandler.CurrentID;
@@ -2328,6 +2317,8 @@ namespace Goose
 
         public void Send()
         {
+            if (this.sock == null || this.SendBuffer == null) return;
+
             lock (socketLock)
             {
                 var bytesSent = this.sock.Send(this.SendBuffer.ToArray());
@@ -2337,17 +2328,7 @@ namespace Goose
 
         public void SetPassword(string password)
         {
-            var saltBytes = new byte[16];
-            var rng = new RNGCryptoServiceProvider();
-            rng.GetNonZeroBytes(saltBytes);
-
-            var salt = Encoding.ASCII.GetString(saltBytes);
-            var base64Salt = Convert.ToBase64String(saltBytes);
-
-            var md5 = new MD5CryptoServiceProvider();
-            var data = Encoding.ASCII.GetBytes(salt + password + GameWorld.Settings.ServerName);
-
-            var passwordHash = BitConverter.ToString(md5.ComputeHash(data)).Replace("-", "").ToLower();
+            var (passwordHash, base64Salt) = PasswordHasher.Create(password);
 
             this.PasswordHash = passwordHash;
             this.PasswordSalt = base64Salt;

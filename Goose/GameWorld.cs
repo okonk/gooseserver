@@ -51,6 +51,13 @@ namespace Goose
 
         public Dictionary<string, int> CharactersCreatedPerIP { get; set; }
 
+        /**
+         * Largest amount of unparsed data held for a single connection before it is
+         * dropped. Packets are far smaller than this; the cap exists to stop a client
+         * from exhausting memory by never sending a packet delimiter.
+         */
+        private const int MaxReceiveBufferSize = 64 * 1024;
+
         long timerfreq;
         public long TimerFrequency { get { return this.timerfreq; } }
         Random rng;
@@ -523,6 +530,21 @@ namespace Goose
             if (player != null)
             {
                 player.Received(data);
+
+                // The client delimits packets with \x1 and ParseData only trims up to the
+                // last one. A client that never sends a delimiter would otherwise grow this
+                // buffer without limit, and because Buffer is a string each append recopies
+                // the whole thing on the game loop thread.
+                if (player.Buffer.Length > MaxReceiveBufferSize)
+                {
+                    log.Warn("Dropping connection for " + player.Name + ": receive buffer exceeded " +
+                             MaxReceiveBufferSize + " bytes with no packet delimiter.");
+
+                    player.Buffer = "";
+                    this.LostConnection(sock);
+                    return;
+                }
+
                 this.ParseData(player);
             }
             else

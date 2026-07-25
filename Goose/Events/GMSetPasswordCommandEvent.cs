@@ -43,9 +43,9 @@ namespace Goose.Events
                     world.Send(this.Player, P.ServerMessage("Password needs to be more than 3 characters long."));
                     return;
                 }
-                if (password.Length > 10)
+                if (password.Length > 16)
                 {
-                    world.Send(this.Player, P.ServerMessage("Password needs to be less than 10 characters long."));
+                    world.Send(this.Player, P.ServerMessage("Password needs to be 16 characters or fewer."));
                     return;
                 }
 
