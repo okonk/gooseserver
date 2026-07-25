@@ -221,6 +221,7 @@ namespace Goose
             ItemSlot slot2 = this.GetSlot(id2);
 
             if (slot1 == null) return;
+            if (stackSize <= 0) return;
             if (stackSize > slot1.Stack) return;
 
             if (slot2 == null)

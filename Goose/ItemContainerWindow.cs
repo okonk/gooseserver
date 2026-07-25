@@ -83,7 +83,10 @@ namespace Goose
 
         public virtual bool ValidateSlotIndex(int index)
         {
-            return (index > 0 && index <= ItemContainer.MaxSlots);
+            // Slots are 1-based and containers are allocated as size+1, so the last
+            // usable index is MaxSlots-1. Using <= here let a client address one past
+            // the end of the backing array.
+            return (index > 0 && index < ItemContainer.MaxSlots);
         }
     }
 }

@@ -164,15 +164,8 @@ namespace Goose.Events
                 this.Player = player;
                 this.Player.Sock = sock;
 
-                string salt = Encoding.ASCII.GetString(Convert.FromBase64String(this.Player.PasswordSalt));
-
-                MD5CryptoServiceProvider md5 = new MD5CryptoServiceProvider();
-                byte[] data = Encoding.ASCII.GetBytes(salt + password + GameWorld.Settings.ServerName);
-                data = md5.ComputeHash(data);
-                string hash = BitConverter.ToString(data).Replace("-", "").ToLower();
-
                 // Incorrect password
-                if (!this.Player.PasswordHash.Equals(hash))
+                if (!PasswordHasher.Verify(password, this.Player.PasswordHash, this.Player.PasswordSalt))
                 {
                     world.LogHandler.Log(Log.Types.InvalidPassword, this.Player.PlayerID, IP);
 
@@ -180,7 +173,15 @@ namespace Goose.Events
                     world.GameServer.Disconnect(this.Player.Sock);
                     return;
                 }
-                else if (player.Access == Player.AccessStatus.Banned)
+
+                // Password was correct. If the stored hash predates the current work
+                // factor, transparently upgrade it now that we have the cleartext.
+                if (PasswordHasher.NeedsRehash(this.Player.PasswordHash))
+                {
+                    this.Player.SetPassword(password);
+                }
+
+                if (player.Access == Player.AccessStatus.Banned)
                 {
                     string banRemaining = "";
                     if (player.UnbanDate.HasValue)

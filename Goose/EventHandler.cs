@@ -14,6 +14,8 @@ namespace Goose
      */
     public class EventHandler
     {
+        private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
+
         /**
          * SortedList acts like a priority queue
          *
@@ -225,7 +227,19 @@ namespace Goose
             {
                 Event ev = readyEvents[i];
 
-                ev?.Ready(world);
+                try
+                {
+                    ev?.Ready(world);
+                }
+                catch (Exception e)
+                {
+                    // An exception here used to unwind the whole game loop and restart the
+                    // world. Contain it to the offending event so one client cannot take
+                    // the server down. The event is still removed below.
+                    log.Error(e, "Unhandled exception in {0} for player {1}",
+                        ev?.GetType().Name ?? "null event",
+                        ev?.Player?.Name ?? "none");
+                }
 
                 if ((index = this.events.IndexOfValue(ev)) < readyEvents.Count && index > -1)
                 {

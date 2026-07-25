@@ -14,6 +14,14 @@ namespace Goose
      */
     public class GameServer
     {
+        private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
+
+        /**
+         * How many ticks in a row GameWorld.Update may throw before we stop containing
+         * the error and let the world restart.
+         */
+        private const int MaxConsecutiveUpdateFailures = 10;
+
         private Socket listen;
         private List<Socket> sockets;
 
@@ -106,57 +114,101 @@ namespace Goose
          */
         public void GameLoop()
         {
-            while (this.gameworld.Running) 
+            int updateFailures = 0;
+
+            while (this.gameworld.Running)
             {
                 System.Threading.Thread.Sleep(1);
 
                 var readList = this.sockets.ToList();
-                var writeList = this.sockets.Where(s => gameworld.PlayerHandler.GetPlayer(s)?.SendBuffer.Count > 0).ToList();
+                var writeList = this.sockets.Where(s => gameworld.PlayerHandler.GetPlayer(s)?.SendBuffer?.Count > 0).ToList();
 
                 Socket.Select(readList, writeList, null, 2000);
 
                 foreach (var writeSocket in writeList)
                 {
-                    var player = gameworld.PlayerHandler.GetPlayer(writeSocket);
-                    
-                    player?.Send();
+                    try
+                    {
+                        var player = gameworld.PlayerHandler.GetPlayer(writeSocket);
+
+                        player?.Send();
+                    }
+                    catch (Exception e)
+                    {
+                        log.Error(e, "Error sending to socket, dropping connection.");
+                        this.DropSocket(writeSocket);
+                    }
                 }
 
                 foreach (Socket sock in readList)
                 {
                     if (sock == this.listen)
                     {
-                        var newSocket = this.listen.Accept();
-                        newSocket.Blocking = false;
-                        this.sockets.Add(newSocket);
+                        Socket newSocket = null;
+                        try
+                        {
+                            newSocket = this.listen.Accept();
+                            newSocket.Blocking = false;
+                            this.sockets.Add(newSocket);
 
-                        this.gameworld.NewConnection(newSocket);
+                            this.gameworld.NewConnection(newSocket);
+                        }
+                        catch (Exception e)
+                        {
+                            // A peer that resets between select and accept must not take
+                            // the server down.
+                            log.Error(e, "Error accepting connection.");
+                            if (newSocket != null) this.DropSocket(newSocket);
+                        }
                     }
                     else
                     {
-                        var buffer = new byte[8192];
-                        int bytesRead = 0;
                         try
                         {
-                            bytesRead = sock.Receive(buffer);
-                        }
-                        catch (SocketException)
-                        {
-                        }
+                            var buffer = new byte[8192];
+                            int bytesRead = 0;
+                            try
+                            {
+                                bytesRead = sock.Receive(buffer);
+                            }
+                            catch (SocketException)
+                            {
+                            }
 
-                        if (bytesRead <= 0)
-                        {
-                            this.gameworld.LostConnection(sock);
+                            if (bytesRead <= 0)
+                            {
+                                this.gameworld.LostConnection(sock);
+                            }
+                            else
+                            {
+                                string strBuffer = Encoding.ASCII.GetString(buffer, 0, bytesRead);
+                                this.gameworld.Received(sock, strBuffer);
+                            }
                         }
-                        else
+                        catch (Exception e)
                         {
-                            string strBuffer = Encoding.ASCII.GetString(buffer, 0, bytesRead);
-                            this.gameworld.Received(sock, strBuffer);
+                            log.Error(e, "Error receiving from socket, dropping connection.");
+                            this.DropSocket(sock);
                         }
                     }
                 }
 
-                this.gameworld.Update();
+                try
+                {
+                    this.gameworld.Update();
+                    updateFailures = 0;
+                }
+                catch (Exception e)
+                {
+                    // EventHandler.Update contains per-event exceptions itself; this is the
+                    // backstop for everything else in the tick so one bad tick does not
+                    // rebuild the world. Persistent failure means the world really is
+                    // broken, so fall through to the restart path rather than spinning.
+                    updateFailures++;
+                    log.Error(e, "Unhandled exception in GameWorld.Update ({0} consecutive).", updateFailures);
+
+                    if (updateFailures >= MaxConsecutiveUpdateFailures) throw;
+                }
             }
 
             if (!stopping)
@@ -193,6 +245,38 @@ namespace Goose
         public void Disconnect(Socket sock)
         {
             sock.Close();
+            this.sockets.Remove(sock);
+        }
+
+        /**
+         * DropSocket, best effort teardown of a single connection after an error
+         *
+         * Runs the normal LostConnection path so the player is logged out, then
+         * guarantees the socket is closed and removed from the select list even if
+         * that path threw part way through.
+         *
+         */
+        private void DropSocket(Socket sock)
+        {
+            if (sock == null) return;
+
+            try
+            {
+                this.gameworld.LostConnection(sock);
+            }
+            catch (Exception e)
+            {
+                log.Error(e, "Error handling lost connection.");
+            }
+
+            try
+            {
+                sock.Close();
+            }
+            catch (Exception)
+            {
+            }
+
             this.sockets.Remove(sock);
         }
     }
