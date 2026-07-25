@@ -227,8 +227,7 @@ namespace Goose
             if (slot2 == null)
             {
                 var newStack = new ItemSlot();
-                newStack.Item = new Item();
-                newStack.Item.LoadFromTemplate(slot1.Item.Template);
+                newStack.Item = slot1.Item.CloneWithoutId();
                 newStack.Stack = stackSize;
 
                 if (newStack.Item.IsBindOnPickup) newStack.Item.IsBound = true;
@@ -978,19 +977,17 @@ namespace Goose
          */
         public void Combine(Window combineBagWindow, GameWorld world)
         {
-            Dictionary<int, int> combineHash = new Dictionary<int, int>();
+            // Count the actual quantity of each ingredient, not the number of slots it
+            // occupies. The consumption loop below works in stack quantities, so matching
+            // on slot counts let a single slot satisfy a requirement for several items.
+            Dictionary<int, long> combineHash = new Dictionary<int, long>();
             foreach (ItemSlot slot in this.combineContainer)
             {
                 if (slot == null) continue;
+                if (slot.Stack <= 0) continue;
 
-                if (!combineHash.ContainsKey(slot.Item.TemplateID))
-                {
-                    combineHash[slot.Item.TemplateID] = 1;
-                }
-                else
-                {
-                    combineHash[slot.Item.TemplateID] = combineHash[slot.Item.TemplateID] + 1;
-                }
+                combineHash.TryGetValue(slot.Item.TemplateID, out long have);
+                combineHash[slot.Item.TemplateID] = have + slot.Stack;
             }
 
             Combination match = world.CombinationHandler.GetMatch(combineHash);
@@ -1058,8 +1055,9 @@ namespace Goose
                 else count = 0;
                 if (count > 0)
                 {
-                    // lower required by how many we have, don't care if it's negative
-                    // since the check above catches it
+                    // Lower the outstanding requirement by what this slot supplies. This
+                    // can go negative, which just means the requirement is now satisfied;
+                    // GetMatch has already guaranteed the bag holds enough in total.
                     reqhash[item.TemplateID] = (int)(count - slotcount);
                     // lower the amount in the stack/slot by how many we actually needed
                     slotcount -= count;
