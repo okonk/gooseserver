@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Net;
 using System.Net.Sockets;
+using Goose.ConsoleCommands;
 
 namespace Goose
 {
@@ -43,6 +44,12 @@ namespace Goose
 
         private GameWorld gameworld;
 
+        /**
+         * Console commands. Created once and started before the restart loop below,
+         * since a second reader thread would compete for stdin.
+         */
+        private readonly ConsoleCommandHandler consoleCommands = new();
+
         private bool stopping = false;
 
         private class ConnectionInfo
@@ -65,6 +72,8 @@ namespace Goose
 
         public void Run()
         {
+            this.consoleCommands.Start();
+
             while (true)
             {
                 try
@@ -228,6 +237,8 @@ namespace Goose
                 }
 
                 this.SweepPreLoginConnections();
+
+                this.consoleCommands.Update(this.gameworld);
 
                 try
                 {
