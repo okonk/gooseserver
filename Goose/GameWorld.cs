@@ -52,6 +52,11 @@ namespace Goose
         public Dictionary<string, int> CharactersCreatedPerIP { get; set; }
 
         /**
+         * Rate limits failed login attempts by source IP and by account name.
+         */
+        public LoginThrottle LoginThrottle { get; set; }
+
+        /**
          * Largest amount of unparsed data held for a single connection before it is
          * dropped. Packets are far smaller than this; the cap exists to stop a client
          * from exhausting memory by never sending a packet delimiter.
@@ -398,6 +403,7 @@ namespace Goose
             log.Info(this.ChatFilter.Count.ToString() + " words loaded.");
 
             this.CharactersCreatedPerIP = new Dictionary<string, int>();
+            this.LoginThrottle = new LoginThrottle();
             Event clearCreatedHistory = new ClearCreatedHistoryEvent();
             clearCreatedHistory.Ticks += this.TimerFrequency * 24 * 60 * 60;
             this.EventHandler.AddEvent(clearCreatedHistory);
@@ -453,6 +459,19 @@ namespace Goose
                 {
                     player.SaveToDatabase(this);
                 }
+            }
+
+            // LogHandler buffers in memory and is otherwise only flushed on a 10 minute
+            // cadence, so without this every shutdown discarded up to that much of the
+            // audit trail - including the logs used to investigate dupes.
+            log.Info("Saving logs.");
+            try
+            {
+                this.LogHandler.Save(this);
+            }
+            catch (Exception e)
+            {
+                log.Error(e, "Failed to save buffered logs during shutdown.");
             }
 
             log.Info("Waiting for database writes.");

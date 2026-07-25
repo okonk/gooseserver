@@ -227,8 +227,7 @@ namespace Goose
             if (slot2 == null)
             {
                 var newStack = new ItemSlot();
-                newStack.Item = new Item();
-                newStack.Item.LoadFromTemplate(slot1.Item.Template);
+                newStack.Item = slot1.Item.CloneWithoutId();
                 newStack.Stack = stackSize;
 
                 if (newStack.Item.IsBindOnPickup) newStack.Item.IsBound = true;
@@ -850,12 +849,25 @@ namespace Goose
          */
         public void Save(GameWorld world)
         {
+            world.Database.Enqueue(this.BuildSave());
+        }
+
+        /**
+         * BuildSave, snapshots state and returns the work to persist it
+         *
+         * Returned rather than enqueued so a full player save can run every part inside
+         * one transaction. Serialization happens here, on the game thread, so later
+         * mutations do not race the DB thread.
+         *
+         */
+        public Action<SQLiteConnection> BuildSave()
+        {
             int playerId = this.player.PlayerID;
             string inventoryJson = JsonHelper.Serialize(inventory);
             string equippedJson = JsonHelper.Serialize(equipped);
             string combineJson = JsonHelper.Serialize(combineContainer);
 
-            world.Database.Enqueue(conn =>
+            return conn =>
             {
                 using (var saveInventoryCommand = conn.CreateCommand())
                 {
@@ -886,7 +898,7 @@ namespace Goose
                     saveCombineBagCommand.Parameters.Add(new SQLiteParameter("@serialized_data", DbType.String) { Value = combineJson });
                     saveCombineBagCommand.ExecuteNonQuery();
                 }
-            });
+            };
         }
 
         /**
@@ -978,19 +990,17 @@ namespace Goose
          */
         public void Combine(Window combineBagWindow, GameWorld world)
         {
-            Dictionary<int, int> combineHash = new Dictionary<int, int>();
+            // Count the actual quantity of each ingredient, not the number of slots it
+            // occupies. The consumption loop below works in stack quantities, so matching
+            // on slot counts let a single slot satisfy a requirement for several items.
+            Dictionary<int, long> combineHash = new Dictionary<int, long>();
             foreach (ItemSlot slot in this.combineContainer)
             {
                 if (slot == null) continue;
+                if (slot.Stack <= 0) continue;
 
-                if (!combineHash.ContainsKey(slot.Item.TemplateID))
-                {
-                    combineHash[slot.Item.TemplateID] = 1;
-                }
-                else
-                {
-                    combineHash[slot.Item.TemplateID] = combineHash[slot.Item.TemplateID] + 1;
-                }
+                combineHash.TryGetValue(slot.Item.TemplateID, out long have);
+                combineHash[slot.Item.TemplateID] = have + slot.Stack;
             }
 
             Combination match = world.CombinationHandler.GetMatch(combineHash);
@@ -1058,8 +1068,9 @@ namespace Goose
                 else count = 0;
                 if (count > 0)
                 {
-                    // lower required by how many we have, don't care if it's negative
-                    // since the check above catches it
+                    // Lower the outstanding requirement by what this slot supplies. This
+                    // can go negative, which just means the requirement is now satisfied;
+                    // GetMatch has already guaranteed the bag holds enough in total.
                     reqhash[item.TemplateID] = (int)(count - slotcount);
                     // lower the amount in the stack/slot by how many we actually needed
                     slotcount -= count;

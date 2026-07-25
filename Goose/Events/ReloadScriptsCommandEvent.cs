@@ -21,8 +21,7 @@ namespace Goose.Events
 
         public override void Ready(GameWorld world)
         {
-            if (this.Player.State == Player.States.Ready &&
-                this.Player.HasPrivilege(AccessPrivilege.ReloadScripts))
+            if (this.Player.State == Player.States.Ready)
             {
                 Task.Run(() =>
                 {

@@ -124,9 +124,9 @@ namespace Goose
          * Returns the combination found, or null if none
          * 
          */
-        public Combination GetMatch(Dictionary<int, int> combine)
+        public Combination GetMatch(Dictionary<int, long> combine)
         {
-            int c;
+            long c;
             bool matched;
 
             foreach (Combination comb in this.combinations.Values)
@@ -135,9 +135,13 @@ namespace Goose
 
                 foreach (KeyValuePair<int, int> req in comb.RequiredHash)
                 {
-                    if (combine.ContainsKey(req.Key)) c = combine[req.Key];
-                    else c = 0;
-                    if (c <= 0 || req.Value < c)
+                    if (!combine.TryGetValue(req.Key, out c)) c = 0;
+
+                    // The player must actually have at least the required quantity. This
+                    // previously accepted any count in [1, req.Value], so a recipe calling
+                    // for three of an ingredient could be completed with one. Surplus is
+                    // allowed and returned to the combine bag by the consumption loop.
+                    if (c < req.Value)
                     {
                         matched = false;
                         break;

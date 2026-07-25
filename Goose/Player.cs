@@ -835,6 +835,8 @@ namespace Goose
 
             if (this.GuildID == 0 && this.Guild != null) this.Guild.Save(world);
 
+            Action<SQLiteConnection> savePlayerRow;
+
             if (this.AutoCreatedNotSaved)
             {
                 string query = "INSERT INTO players (player_id, player_name, player_title, player_surname, " +
@@ -898,7 +900,7 @@ namespace Goose
                     this.MacroCheckFailures +
                     ")";
 
-                world.Database.Enqueue(conn =>
+                savePlayerRow = conn =>
                 {
                     using var command = conn.CreateCommand();
                     command.CommandText = query;
@@ -909,7 +911,7 @@ namespace Goose
                     command.ExecuteNonQuery();
                     // Only clear after a successful insert so a failed first save can retry INSERT.
                     this.AutoCreatedNotSaved = false;
-                });
+                };
             }
             else
             {
@@ -968,7 +970,7 @@ namespace Goose
                     "macrocheck_failures=" + this.MacroCheckFailures + " " +
                     "WHERE player_id=" + this.PlayerID;
 
-                world.Database.Enqueue(conn =>
+                savePlayerRow = conn =>
                 {
                     using var command = conn.CreateCommand();
                     command.CommandText = query;
@@ -977,19 +979,35 @@ namespace Goose
                     command.Parameters.Add(new SQLiteParameter("@playerSurname", DbType.String) { Value = playerSurname });
                     command.Parameters.Add(new SQLiteParameter("@unbanDate", DbType.DateTime2) { Value = unbanDate, IsNullable = true });
                     command.ExecuteNonQuery();
-                });
+                };
             }
 
-            this.Inventory.Save(world);
-            this.Spellbook.Save(world);
-            this.Bank.Save(world, this);
+            // Build every part of the save on the game thread, snapshotting state as we go,
+            // then run the whole set inside one transaction. These used to be six or more
+            // independent work items each committing on its own, so a crash partway through
+            // could persist the players row against a stale inventory - buy an item, crash,
+            // and keep both the gold and the item.
+            var work = new List<Action<SQLiteConnection>>();
+
+            work.Add(savePlayerRow);
+            work.Add(this.Inventory.BuildSave());
+            work.Add(this.Spellbook.BuildSave());
+            work.Add(this.Bank.BuildSave(this));
 
             foreach (Pet pet in this.Pets)
             {
-                pet.SaveToDatabase(world);
+                work.Add(pet.BuildSave());
             }
 
-            this.SaveQuests(world);
+            work.Add(this.BuildSaveQuests());
+
+            world.Database.EnqueueTransaction(conn =>
+            {
+                foreach (var part in work)
+                {
+                    part(conn);
+                }
+            });
         }
 
                 /// <summary>
@@ -1022,7 +1040,7 @@ namespace Goose
             }
         }
 
-        private void SaveQuests(GameWorld world)
+        private Action<SQLiteConnection> BuildSaveQuests()
         {
             var questStatus = new QuestStatus();
             questStatus.Completed = this.QuestsCompleted.Select(q => q.Id).ToArray();
@@ -1031,7 +1049,8 @@ namespace Goose
 
             int playerId = this.PlayerID;
             string serialized = JsonHelper.Serialize(questStatus);
-            world.Database.Enqueue(conn =>
+
+            return conn =>
             {
                 using var saveQuestStatusCommand = conn.CreateCommand();
                 saveQuestStatusCommand.CommandText =
@@ -1040,7 +1059,7 @@ namespace Goose
                 saveQuestStatusCommand.Parameters.Add(new SQLiteParameter("@player_id", DbType.Int32) { Value = playerId });
                 saveQuestStatusCommand.Parameters.Add(new SQLiteParameter("@serialized_data", DbType.String) { Value = serialized });
                 saveQuestStatusCommand.ExecuteNonQuery();
-            });
+            };
         }
 
         /**

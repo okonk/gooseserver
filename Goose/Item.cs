@@ -176,6 +176,54 @@ namespace Goose
             this.ScriptParams = this.Template.ScriptParams;
         }
 
+        /**
+         * CloneWithoutId, copies every per item value onto a new Item
+         *
+         * Used when a stack is split, where the new slot must be the same item rather
+         * than a fresh one built from the template. Rebuilding from the template loses
+         * everything that made this specific item what it is - most importantly IsBound,
+         * which let a player launder a bound item into a freely tradeable one by
+         * splitting it, but also rolled stats, description and title/surname properties.
+         *
+         * ItemID is deliberately not copied. The caller must assign a new one via
+         * ItemHandler.AddAndAssignId so the two stacks remain distinct items.
+         *
+         */
+        public Item CloneWithoutId()
+        {
+            var copy = new Item();
+
+            copy.Template = this.Template;
+            copy.TemplateID = this.TemplateID;
+
+            copy.Name = this.Name;
+            copy.Description = this.Description;
+
+            copy.GraphicEquipped = this.GraphicEquipped;
+            copy.GraphicTile = this.GraphicTile;
+            copy.GraphicFile = this.GraphicFile;
+            copy.GraphicR = this.GraphicR;
+            copy.GraphicG = this.GraphicG;
+            copy.GraphicB = this.GraphicB;
+            copy.GraphicA = this.GraphicA;
+
+            copy.WeaponDamage = this.WeaponDamage;
+            copy.TotalWeaponDamage = this.TotalWeaponDamage;
+            copy.BodyState = this.BodyState;
+
+            copy.BaseStats = new AttributeSet() + this.BaseStats;
+            copy.TotalStats = new AttributeSet() + this.TotalStats;
+            copy.StatMultiplier = this.StatMultiplier;
+
+            copy.Value = this.Value;
+            copy.IsBound = this.IsBound;
+            copy.ScriptParams = this.ScriptParams;
+
+            copy.ItemProperties = new Dictionary<ItemProperty, object>(this.ItemProperties);
+
+            return copy;
+        }
+
         public T GetProperty<T>(ItemProperty prop)
         {
             if (!this.ItemProperties.TryGetValue(prop, out object value) || value is null)

@@ -18,8 +18,7 @@ namespace Goose.Events
 
         public override void Ready(GameWorld world)
         {
-            if (this.Player.State == Player.States.Ready &&
-                this.Player.HasPrivilege(AccessPrivilege.GiveExperience))
+            if (this.Player.State == Player.States.Ready)
             {
                 string packet = (string)this.Data;
                 string[] tokens = packet.Split(" ".ToCharArray());

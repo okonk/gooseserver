@@ -60,9 +60,23 @@ namespace Goose
          */
         public void Save(GameWorld world)
         {
+            world.Database.Enqueue(this.BuildSave());
+        }
+
+        /**
+         * BuildSave, snapshots state and returns the work to persist it
+         *
+         * Returned rather than enqueued so a full player save can run every part inside
+         * one transaction. Snapshotting happens here, on the game thread, so later
+         * mutations do not race the DB thread.
+         *
+         */
+        public Action<SQLiteConnection> BuildSave()
+        {
             int playerId = this.player.PlayerID;
             string serialized = JsonHelper.Serialize(spells.Select(s => (s == null ? 0 : s.ID)).ToArray());
-            world.Database.Enqueue(conn =>
+
+            return conn =>
             {
                 using var saveSpellbookCommand = conn.CreateCommand();
                 saveSpellbookCommand.CommandText =
@@ -71,7 +85,7 @@ namespace Goose
                 saveSpellbookCommand.Parameters.Add(new SQLiteParameter("@player_id", DbType.Int32) { Value = playerId });
                 saveSpellbookCommand.Parameters.Add(new SQLiteParameter("@serialized_data", DbType.String) { Value = serialized });
                 saveSpellbookCommand.ExecuteNonQuery();
-            });
+            };
         }
 
         public int NextFreeSlot(int lowerBound)

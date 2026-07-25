@@ -22,12 +22,34 @@ namespace Goose
          */
         private const int MaxConsecutiveUpdateFailures = 10;
 
+        /**
+         * How often we sweep for connections that were accepted but never logged in.
+         */
+        private static readonly TimeSpan PreLoginSweepInterval = TimeSpan.FromSeconds(5);
+
         private Socket listen;
         private List<Socket> sockets;
+
+        /**
+         * Tracks the source address and accept time of every open connection.
+         *
+         * The address is captured at accept because RemoteEndPoint throws once a socket
+         * has been torn down, and we still need it to decrement the per-IP count.
+         */
+        private Dictionary<Socket, ConnectionInfo> connections;
+        private Dictionary<string, int> connectionsPerIP;
+
+        private DateTime lastPreLoginSweep = DateTime.UtcNow;
 
         private GameWorld gameworld;
 
         private bool stopping = false;
+
+        private class ConnectionInfo
+        {
+            public string IP;
+            public DateTime AcceptedAt;
+        }
 
         /**
          * Constructor, constructs the GameWorld
@@ -48,6 +70,8 @@ namespace Goose
                 try
                 {
                     this.sockets = new();
+                    this.connections = new();
+                    this.connectionsPerIP = new();
                     this.gameworld = new GameWorld(this);
                     this.Start();
                     this.GameLoop();
@@ -149,9 +173,19 @@ namespace Goose
                         {
                             newSocket = this.listen.Accept();
                             newSocket.Blocking = false;
-                            this.sockets.Add(newSocket);
 
-                            this.gameworld.NewConnection(newSocket);
+                            if (this.TryRegisterConnection(newSocket))
+                            {
+                                this.sockets.Add(newSocket);
+                                this.gameworld.NewConnection(newSocket);
+                            }
+                            else
+                            {
+                                // Over a limit. Close immediately without adding it to the
+                                // select list so it costs us nothing further.
+                                try { newSocket.Close(); } catch (Exception) { }
+                                newSocket = null;
+                            }
                         }
                         catch (Exception e)
                         {
@@ -192,6 +226,8 @@ namespace Goose
                         }
                     }
                 }
+
+                this.SweepPreLoginConnections();
 
                 try
                 {
@@ -246,6 +282,122 @@ namespace Goose
         {
             sock.Close();
             this.sockets.Remove(sock);
+            this.UnregisterConnection(sock);
+        }
+
+        /**
+         * RequestShutdown, asks the game loop to stop at the end of the current tick
+         *
+         * Safe to call from a signal handler on another thread: it only sets a flag, and
+         * the loop then exits and runs the normal Stop path, which saves players and
+         * drains the database queue.
+         *
+         */
+        public void RequestShutdown()
+        {
+            var world = this.gameworld;
+
+            if (world == null) return;
+
+            log.Info("Shutdown requested.");
+            world.Running = false;
+        }
+
+        /**
+         * TryRegisterConnection, applies the connection limits to a freshly accepted socket
+         *
+         * Returns false if the server is at its overall connection ceiling or this source
+         * address already holds too many connections, in which case the caller should
+         * close the socket without tracking it.
+         *
+         * MaxPlayers is only enforced when a LoginID is assigned, long after the socket is
+         * accepted, so without this a flood of sockets that never log in was unbounded and
+         * every one of them was walked twice per Socket.Select.
+         *
+         */
+        private bool TryRegisterConnection(Socket sock)
+        {
+            if (this.sockets.Count >= GameWorld.Settings.MaxConnections)
+            {
+                log.Warn("Refusing connection: at MaxConnections (" + GameWorld.Settings.MaxConnections + ").");
+                return false;
+            }
+
+            string ip;
+            try
+            {
+                ip = ((IPEndPoint)sock.RemoteEndPoint).Address.ToString();
+            }
+            catch (Exception)
+            {
+                // Already gone between select and accept.
+                return false;
+            }
+
+            this.connectionsPerIP.TryGetValue(ip, out int count);
+            if (count >= GameWorld.Settings.MaxConnectionsPerIP)
+            {
+                log.Warn("Refusing connection from " + ip + ": at MaxConnectionsPerIP (" +
+                         GameWorld.Settings.MaxConnectionsPerIP + ").");
+                return false;
+            }
+
+            this.connectionsPerIP[ip] = count + 1;
+            this.connections[sock] = new ConnectionInfo { IP = ip, AcceptedAt = DateTime.UtcNow };
+
+            return true;
+        }
+
+        /**
+         * UnregisterConnection, drops our bookkeeping for a closed socket
+         *
+         */
+        private void UnregisterConnection(Socket sock)
+        {
+            if (!this.connections.TryGetValue(sock, out ConnectionInfo info)) return;
+
+            this.connections.Remove(sock);
+
+            if (this.connectionsPerIP.TryGetValue(info.IP, out int count))
+            {
+                if (count <= 1) this.connectionsPerIP.Remove(info.IP);
+                else this.connectionsPerIP[info.IP] = count - 1;
+            }
+        }
+
+        /**
+         * SweepPreLoginConnections, drops connections that were accepted but never logged in
+         *
+         * The ping timeout only covers logged in players, so a socket that connects and
+         * then says nothing previously sat in the select list forever.
+         *
+         */
+        private void SweepPreLoginConnections()
+        {
+            DateTime now = DateTime.UtcNow;
+
+            if (now - this.lastPreLoginSweep < PreLoginSweepInterval) return;
+            this.lastPreLoginSweep = now;
+
+            var timeout = TimeSpan.FromSeconds(Math.Max(1, GameWorld.Settings.PreLoginTimeoutSeconds));
+
+            List<Socket> stale = null;
+
+            foreach (var pair in this.connections)
+            {
+                if (now - pair.Value.AcceptedAt < timeout) continue;
+                if (this.gameworld.PlayerHandler.GetPlayer(pair.Key) != null) continue;
+
+                (stale ??= new List<Socket>()).Add(pair.Key);
+            }
+
+            if (stale == null) return;
+
+            foreach (Socket sock in stale)
+            {
+                log.Info("Dropping connection that never logged in.");
+                this.DropSocket(sock);
+            }
         }
 
         /**
@@ -278,6 +430,7 @@ namespace Goose
             }
 
             this.sockets.Remove(sock);
+            this.UnregisterConnection(sock);
         }
     }
 }

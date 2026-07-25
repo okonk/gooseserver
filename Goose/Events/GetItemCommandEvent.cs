@@ -24,8 +24,6 @@ namespace Goose.Events
         {
             if (this.Player.State == Player.States.Ready)
             {
-                if (!this.Player.HasPrivilege(AccessPrivilege.SpawnItem)) return;
-
                 int id = 0;
                 int stack = 1;
                 bool powerful = false;

@@ -107,6 +107,19 @@ namespace Goose.Events
                 return;
             }
 
+            // Refuse before touching any account state if this source or this account has
+            // been guessing. Checked here rather than after the password compare so a
+            // locked out attacker also learns nothing new about which names exist.
+            int retryAfter;
+            if (world.LoginThrottle.IsLocked(IP, out retryAfter) ||
+                world.LoginThrottle.IsLocked("name:" + name, out retryAfter))
+            {
+                world.Send(new Player() { Sock = sock },
+                    P.LoginDenied("Too many failed login attempts. Try again in " + retryAfter + " seconds."));
+                world.GameServer.Disconnect(sock);
+                return;
+            }
+
             if (world.PlayerHandler.IsLoggedIn(name.ToLower()))
             {
                 world.Send(new Player() { Sock = sock }, P.LoginDenied("Character is already logged in."));
@@ -169,10 +182,16 @@ namespace Goose.Events
                 {
                     world.LogHandler.Log(Log.Types.InvalidPassword, this.Player.PlayerID, IP);
 
+                    world.LoginThrottle.RecordFailure(IP);
+                    world.LoginThrottle.RecordFailure("name:" + name);
+
                     world.Send(this.Player, P.LoginDenied("Wrong password for character."));
                     world.GameServer.Disconnect(this.Player.Sock);
                     return;
                 }
+
+                world.LoginThrottle.Clear(IP);
+                world.LoginThrottle.Clear("name:" + name);
 
                 // Password was correct. If the stored hash predates the current work
                 // factor, transparently upgrade it now that we have the cleartext.

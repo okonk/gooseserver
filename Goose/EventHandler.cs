@@ -26,8 +26,31 @@ namespace Goose
          * StringToEvent, converts a string to an event creator delegate
          *
          */
-        Dictionary<string, CreateEvent> stringToEvent;
+        Dictionary<string, CommandDefinition> stringToEvent;
         public delegate Event CreateEvent(Player player, Object data);
+
+        /**
+         * CommandDefinition, a dispatch table entry
+         *
+         * RequiredPrivilege is null for commands any player may use. Anything else is
+         * refused by AddEvent unless the caller holds that privilege.
+         *
+         */
+        private sealed class CommandDefinition
+        {
+            public CreateEvent Create;
+            public AccessPrivilege? RequiredPrivilege;
+        }
+
+        private static CommandDefinition Open(CreateEvent create)
+        {
+            return new CommandDefinition { Create = create, RequiredPrivilege = null };
+        }
+
+        private static CommandDefinition Restricted(CreateEvent create, AccessPrivilege privilege)
+        {
+            return new CommandDefinition { Create = create, RequiredPrivilege = privilege };
+        }
 
         /**
          * Constructor, constructs sortedlist
@@ -36,123 +59,181 @@ namespace Goose
         public EventHandler()
         {
             this.events = new SortedList<long, Event>();
-            this.stringToEvent = new Dictionary<string, CreateEvent>
+            // Every entry states its access requirement, either Open or Restricted. The
+            // dispatcher used to hold bare delegates and perform no authorization at all,
+            // leaving every check to the individual handler - which is how /hax shipped
+            // ungated. Requiring the decision here means a newly added command cannot
+            // silently default to being reachable by anyone.
+            //
+            // This table is now the only place a command's access requirement is stated.
+            // The duplicate HasPrivilege checks the handlers used to carry have been
+            // removed, so an entry that is wrong here is wrong everywhere - see
+            // RegisterEvent, which refuses to downgrade a restricted entry for that reason.
+            //
+            // Commands whose requirement varies by argument rather than by command
+            // (/toggle, /custom, /givecredits) are Open here and enforce the finer rule
+            // themselves. Handlers still check Player.State; the dispatcher does not.
+            this.stringToEvent = new Dictionary<string, CommandDefinition>
             {
-                { "LOGIN", LoginEvent.Create },
-                { "LCNT", LoginContinuedEvent.Create },
-                { "DLM", DoneLoadingMapEvent.Create },
-                { ";", ChatEvent.Create },
-                { "M1", MoveEvent.Create },
-                { "M2", MoveEvent.Create },
-                { "M3", MoveEvent.Create },
-                { "M4", MoveEvent.Create },
-                { "F1", FacingEvent.Create },
-                { "F2", FacingEvent.Create },
-                { "F3", FacingEvent.Create },
-                { "F4", FacingEvent.Create },
-                { "/tell ", TellEvent.Create },
-                { "/who", WhoEvent.Create },
-                { "/summon ", SummonEvent.Create },
-                { "/warp ", WarpEvent.Create },
-                { "/approach ", ApproachEvent.Create },
-                { "CHANGE", InventoryChangeSlotEvent.Create },
-                { "SPLIT", InventorySplitEvent.Create },
-                { "USE", InventoryUseEvent.Create },
-                { "GET", PickupItemEvent.Create },
-                { "DRP", PlayerDropItemEvent.Create },
-                { "/dropgold ", PlayerDropGoldEvent.Create },
-                { "ATT", PlayerAttackEvent.Create },
-                { "PONG", PlayerPongEvent.Create },
-                { "/shutdown", ShutdownCommandEvent.Create },
-                { "/location", LocationEvent.Create },
-                { "RPU", RefreshPositionEvent.Create },
-                { "/refresh", RefreshPositionEvent.Create },
-                { "CAST", PlayerCastSpellEvent.Create },
-                { "/getitem ", GetItemCommandEvent.Create },
-                { "/hax ", HaxCommandEvent.Create },
-                { "/gmhax ", GMHaxCommandEvent.Create },
-                { "/togglegroup", ToggleGroupCommandEvent.Create },
-                { "/group ", GroupChatEvent.Create },
-                { "/invite ", GroupAddEvent.Create },
-                { "/groupadd ", GroupAddEvent.Create },
-                { "/disband", GroupRemoveEvent.Create },
-                { "/groupremove", GroupRemoveEvent.Create },
-                { "RC", PlayerRightClickEvent.Create },
-                { "WBC", WindowButtonClickEvent.Create },
-                { "VPI", VendorPurchaseInventoryEvent.Create },
-                { "VSI", VendorSellInventoryEvent.Create },
-                { "/ban ", BanCommandEvent.Create },
-                { "/kick ", KickCommandEvent.Create },
-                { "/shout ", ShoutCommandEvent.Create },
-                { "/auction ", AuctionCommandEvent.Create },
-                { "/random", RandomCommandEvent.Create },
-                { "/broadcast ", BroadcastCommandEvent.Create },
-                { "EMOT", EmoteEvent.Create },
-                { "/buyvita", BuyVitaCommandEvent.Create },
-                { "/buymana", BuyManaCommandEvent.Create },
-                { "DITM", DestroyItemEvent.Create },
-                { "DSPL", DestroySpellEvent.Create },
-                { "SWAP", SpellbookSwapEvent.Create },
-                { "OCB", OpenCombineBagEvent.Create },
-                { "ITW", InventoryToWindowEvent.Create },
-                { "WTI", WindowToInventoryEvent.Create },
-                { "/charinfo", CharacterInfoCommandEvent.Create },
-                { "/guildcreate ", GuildCreateCommandEvent.Create },
-                { "/guildadd ", GuildAddCommandEvent.Create },
-                { "/guildremove", GuildRemoveCommandEvent.Create },
-                { "/guildmotd", GuildMotdCommandEvent.Create },
-                { "/guildowner ", GuildOwnerCommandEvent.Create },
-                { "/guildofficer ", GuildOfficerCommandEvent.Create },
-                { "/guild ", GuildChatCommandEvent.Create },
-                { "/rank", RankCommandEvent.Create },
-                { "/setconfig ", SetConfigCommandEvent.Create },
-                { "/saveconfig", SaveConfigCommandEvent.Create },
-                { "/respawnmap", RespawnMapCommandEvent.Create },
-                { "/changepassword ", ChangePasswordCommandEvent.Create },
-                { "KBUF", KillBuffEvent.Create },
-                { "/toggle ", ToggleCommandEvent.Create },
-                { "/aether ", AetherCommandEvent.Create },
-                { "/petlist", PetListCommandEvent.Create },
-                { "/petspawn ", PetSpawnCommandEvent.Create },
-                { "/petinfo ", PetInfoCommandEvent.Create },
-                { "/petdamage ", PetDamageCommandEvent.Create },
-                { "/petvita ", PetVitaCommandEvent.Create },
-                { "/petdelete ", PetDeleteCommandEvent.Create },
-                { "/unban ", UnbanCommandEvent.Create },
-                { "/checkname ", CheckNameCommandEvent.Create },
-                { "/changeclass ", ChangeClassCommandEvent.Create },
-                { "/changename ", ChangeNameCommandEvent.Create },
-                { "/giveexperience ", GiveExperienceCommandEvent.Create },
-                { "/credits", CreditsCommandEvent.Create },
-                { "/playtime", PlaytimeCommandEvent.Create },
-                { "/settitle ", SetTitleCommandEvent.Create },
-                { "/setsurname ", SetSurnameCommandEvent.Create },
-                { "/givecredits ", GiveCreditsCommandEvent.Create },
-                { "/hairdye", HairdyeCommandEvent.Create },
-                { "SBN", SpellbookNextEvent.Create },
-                { "SBB", SpellbookBackEvent.Create },
-                { "LC", PlayerLeftClickEvent.Create },
-                { "/spawnnpc ", SpawnNPCCommandEvent.Create },
-                { "/search ", SearchCommandEvent.Create },
-                { "WTW", WindowToWindowEvent.Create },
-                { "/custom", CustomCommandEvent.Create },
-                { "SID", SpellInfoEvent.Create },
-                { "/mutemap", MuteMapEvent.Create },
-                { "/setaccess", SetAccessCommandEvent.Create },
-                { "/macrocheck ", MacroCheckCommandEvent.Create },
-                { "/mc ", MacroConfirmCommandEvent.Create },
-                { "/reloadscripts", ReloadScriptsCommandEvent.Create },
-                { "/reloadsql", ReloadSqlCommandEvent.Create },
-                { "/updatesql", UpdateSqlCommandEvent.Create },
-                { "/placespawn", PlaceSpawnCommandEvent.Create },
-                { "/playerinfo ", PlayerInfoCommandEvent.Create },
-                { "/setpassword ", GMSetPasswordCommandEvent.Create }
+                { "LOGIN", Open(LoginEvent.Create) },
+                { "LCNT", Open(LoginContinuedEvent.Create) },
+                { "DLM", Open(DoneLoadingMapEvent.Create) },
+                { ";", Open(ChatEvent.Create) },
+                { "M1", Open(MoveEvent.Create) },
+                { "M2", Open(MoveEvent.Create) },
+                { "M3", Open(MoveEvent.Create) },
+                { "M4", Open(MoveEvent.Create) },
+                { "F1", Open(FacingEvent.Create) },
+                { "F2", Open(FacingEvent.Create) },
+                { "F3", Open(FacingEvent.Create) },
+                { "F4", Open(FacingEvent.Create) },
+                { "/tell ", Open(TellEvent.Create) },
+                { "/who", Open(WhoEvent.Create) },
+                { "/summon ", Restricted(SummonEvent.Create, AccessPrivilege.Summon) },
+                { "/warp ", Restricted(WarpEvent.Create, AccessPrivilege.Warp) },
+                { "/approach ", Restricted(ApproachEvent.Create, AccessPrivilege.Approach) },
+                { "CHANGE", Open(InventoryChangeSlotEvent.Create) },
+                { "SPLIT", Open(InventorySplitEvent.Create) },
+                { "USE", Open(InventoryUseEvent.Create) },
+                { "GET", Open(PickupItemEvent.Create) },
+                { "DRP", Open(PlayerDropItemEvent.Create) },
+                { "/dropgold ", Open(PlayerDropGoldEvent.Create) },
+                { "ATT", Open(PlayerAttackEvent.Create) },
+                { "PONG", Open(PlayerPongEvent.Create) },
+                { "/shutdown", Restricted(ShutdownCommandEvent.Create, AccessPrivilege.Shutdown) },
+                { "/location", Open(LocationEvent.Create) },
+                { "RPU", Open(RefreshPositionEvent.Create) },
+                { "/refresh", Open(RefreshPositionEvent.Create) },
+                { "CAST", Open(PlayerCastSpellEvent.Create) },
+                { "/getitem ", Restricted(GetItemCommandEvent.Create, AccessPrivilege.SpawnItem) },
+                { "/hax ", Restricted(HaxCommandEvent.Create, AccessPrivilege.Debug) },
+                { "/gmhax ", Restricted(GMHaxCommandEvent.Create, AccessPrivilege.Debug) },
+                { "/togglegroup", Open(ToggleGroupCommandEvent.Create) },
+                { "/group ", Open(GroupChatEvent.Create) },
+                { "/invite ", Open(GroupAddEvent.Create) },
+                { "/groupadd ", Open(GroupAddEvent.Create) },
+                { "/disband", Open(GroupRemoveEvent.Create) },
+                { "/groupremove", Open(GroupRemoveEvent.Create) },
+                { "RC", Open(PlayerRightClickEvent.Create) },
+                { "WBC", Open(WindowButtonClickEvent.Create) },
+                { "VPI", Open(VendorPurchaseInventoryEvent.Create) },
+                { "VSI", Open(VendorSellInventoryEvent.Create) },
+                { "/ban ", Restricted(BanCommandEvent.Create, AccessPrivilege.Ban) },
+                { "/kick ", Restricted(KickCommandEvent.Create, AccessPrivilege.Kick) },
+                { "/shout ", Open(ShoutCommandEvent.Create) },
+                { "/auction ", Open(AuctionCommandEvent.Create) },
+                { "/random", Open(RandomCommandEvent.Create) },
+                { "/broadcast ", Restricted(BroadcastCommandEvent.Create, AccessPrivilege.Broadcast) },
+                { "EMOT", Open(EmoteEvent.Create) },
+                { "/buyvita", Open(BuyVitaCommandEvent.Create) },
+                { "/buymana", Open(BuyManaCommandEvent.Create) },
+                { "DITM", Open(DestroyItemEvent.Create) },
+                { "DSPL", Open(DestroySpellEvent.Create) },
+                { "SWAP", Open(SpellbookSwapEvent.Create) },
+                { "OCB", Open(OpenCombineBagEvent.Create) },
+                { "ITW", Open(InventoryToWindowEvent.Create) },
+                { "WTI", Open(WindowToInventoryEvent.Create) },
+                { "/charinfo", Open(CharacterInfoCommandEvent.Create) },
+                { "/guildcreate ", Open(GuildCreateCommandEvent.Create) },
+                { "/guildadd ", Open(GuildAddCommandEvent.Create) },
+                { "/guildremove", Open(GuildRemoveCommandEvent.Create) },
+                { "/guildmotd", Open(GuildMotdCommandEvent.Create) },
+                { "/guildowner ", Open(GuildOwnerCommandEvent.Create) },
+                { "/guildofficer ", Open(GuildOfficerCommandEvent.Create) },
+                { "/guild ", Open(GuildChatCommandEvent.Create) },
+                { "/rank", Open(RankCommandEvent.Create) },
+                { "/setconfig ", Restricted(SetConfigCommandEvent.Create, AccessPrivilege.SetConfig) },
+                { "/saveconfig", Restricted(SaveConfigCommandEvent.Create, AccessPrivilege.SetConfig) },
+                { "/respawnmap", Restricted(RespawnMapCommandEvent.Create, AccessPrivilege.RespawnMap) },
+                { "/changepassword ", Open(ChangePasswordCommandEvent.Create) },
+                { "KBUF", Open(KillBuffEvent.Create) },
+                { "/toggle ", Open(ToggleCommandEvent.Create) },
+                { "/aether ", Open(AetherCommandEvent.Create) },
+                { "/petlist", Open(PetListCommandEvent.Create) },
+                { "/petspawn ", Open(PetSpawnCommandEvent.Create) },
+                { "/petinfo ", Open(PetInfoCommandEvent.Create) },
+                { "/petdamage ", Open(PetDamageCommandEvent.Create) },
+                { "/petvita ", Open(PetVitaCommandEvent.Create) },
+                { "/petdelete ", Open(PetDeleteCommandEvent.Create) },
+                { "/unban ", Restricted(UnbanCommandEvent.Create, AccessPrivilege.Ban) },
+                { "/checkname ", Restricted(CheckNameCommandEvent.Create, AccessPrivilege.ChangeName) },
+                { "/changeclass ", Restricted(ChangeClassCommandEvent.Create, AccessPrivilege.ClassChange) },
+                { "/changename ", Restricted(ChangeNameCommandEvent.Create, AccessPrivilege.ChangeName) },
+                { "/giveexperience ", Restricted(GiveExperienceCommandEvent.Create, AccessPrivilege.GiveExperience) },
+                { "/credits", Open(CreditsCommandEvent.Create) },
+                { "/playtime", Open(PlaytimeCommandEvent.Create) },
+                { "/settitle ", Restricted(SetTitleCommandEvent.Create, AccessPrivilege.SetTitle) },
+                { "/setsurname ", Restricted(SetSurnameCommandEvent.Create, AccessPrivilege.SetSurname) },
+                { "/givecredits ", Open(GiveCreditsCommandEvent.Create) },
+                { "/hairdye", Open(HairdyeCommandEvent.Create) },
+                { "SBN", Open(SpellbookNextEvent.Create) },
+                { "SBB", Open(SpellbookBackEvent.Create) },
+                { "LC", Open(PlayerLeftClickEvent.Create) },
+                { "/spawnnpc ", Restricted(SpawnNPCCommandEvent.Create, AccessPrivilege.SpawnNPC) },
+                { "/search ", Restricted(SearchCommandEvent.Create, AccessPrivilege.Search) },
+                { "WTW", Open(WindowToWindowEvent.Create) },
+                { "/custom", Open(CustomCommandEvent.Create) },
+                { "SID", Open(SpellInfoEvent.Create) },
+                { "/mutemap", Restricted(MuteMapEvent.Create, AccessPrivilege.MuteMap) },
+                { "/setaccess", Restricted(SetAccessCommandEvent.Create, AccessPrivilege.SetAccess) },
+                { "/macrocheck ", Restricted(MacroCheckCommandEvent.Create, AccessPrivilege.MacroCheck) },
+                { "/mc ", Open(MacroConfirmCommandEvent.Create) },
+                { "/reloadscripts", Restricted(ReloadScriptsCommandEvent.Create, AccessPrivilege.ReloadScripts) },
+                { "/reloadsql", Restricted(ReloadSqlCommandEvent.Create, AccessPrivilege.ReloadSQL) },
+                { "/updatesql", Restricted(UpdateSqlCommandEvent.Create, AccessPrivilege.ReloadSQL) },
+                { "/placespawn", Restricted(PlaceSpawnCommandEvent.Create, AccessPrivilege.PlaceSpawn) },
+                { "/playerinfo ", Restricted(PlayerInfoCommandEvent.Create, AccessPrivilege.PlayerInfoCheck) },
+                { "/setpassword ", Restricted(GMSetPasswordCommandEvent.Create, AccessPrivilege.SetPassword) }
             };
         }
 
+        /**
+         * RegisterEvent, registers a command any player may use
+         *
+         * Used by global scripts, which get the whole GameWorld and so can reach this.
+         * Kept unprivileged to match how scripts already rely on it; use the overload
+         * below for anything that should be restricted.
+         *
+         * Refuses to overwrite a restricted entry, because this used to be an
+         * unconditional assignment: a global script registering a key that is already
+         * restricted - by accident or otherwise - would replace it with an open one and
+         * hand the command to every player. The handlers no longer carry duplicate
+         * privilege checks, so nothing downstream would catch it.
+         *
+         */
         public void RegisterEvent(string key, CreateEvent action)
         {
-            this.stringToEvent[key] = action;
+            if (this.stringToEvent.TryGetValue(key, out CommandDefinition existing) &&
+                existing.RequiredPrivilege.HasValue)
+            {
+                log.Error("Refusing to register {0} unprivileged: it already requires {1}. " +
+                    "Use the RegisterEvent overload that states a privilege.",
+                    key, existing.RequiredPrivilege.Value);
+
+                return;
+            }
+
+            this.stringToEvent[key] = Open(action);
+        }
+
+        /**
+         * RegisterEvent, registers a command requiring a privilege
+         *
+         * Overwriting is allowed here since the caller has stated a requirement, but a
+         * change to an existing entry is logged - re-pointing a built-in command at
+         * script code is worth a line in the log either way.
+         *
+         */
+        public void RegisterEvent(string key, CreateEvent action, AccessPrivilege privilege)
+        {
+            if (this.stringToEvent.TryGetValue(key, out CommandDefinition existing) &&
+                existing.RequiredPrivilege != privilege)
+            {
+                log.Warn("Re-registering {0}: privilege changed from {1} to {2}.",
+                    key, existing.RequiredPrivilege?.ToString() ?? "none", privilege);
+            }
+
+            this.stringToEvent[key] = Restricted(action, privilege);
         }
 
         /**
@@ -171,14 +252,26 @@ namespace Goose
          */
         public bool AddEvent(Player player, string packet)
         {
-            foreach (string key in this.stringToEvent.Keys)
+            foreach (var entry in this.stringToEvent)
             {
-                if (packet.StartsWith(key))
+                if (!packet.StartsWith(entry.Key)) continue;
+
+                CommandDefinition definition = entry.Value;
+
+                if (definition.RequiredPrivilege.HasValue &&
+                    (player == null || !AccessLevels.HasPrivilege(player, definition.RequiredPrivilege.Value)))
                 {
-                    Event e = this.stringToEvent[key](player, packet);
-                    this.AddEvent(e);
+                    // Matched but refused. Swallowed rather than answered so an
+                    // unprivileged player cannot probe which commands exist.
+                    log.Debug("Refused {0} for {1}: missing {2}.",
+                        entry.Key, player?.Name ?? "unknown", definition.RequiredPrivilege.Value);
+
                     return true;
                 }
+
+                Event e = definition.Create(player, packet);
+                this.AddEvent(e);
+                return true;
             }
 
             return false;

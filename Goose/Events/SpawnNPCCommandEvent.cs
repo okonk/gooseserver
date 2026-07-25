@@ -23,7 +23,6 @@ namespace Goose.Events
         public override void Ready(GameWorld world)
         {
             if (this.Player.State != Player.States.Ready) return;
-            if (!this.Player.HasPrivilege(AccessPrivilege.SpawnNPC)) return;
 
             int id = 0;
 

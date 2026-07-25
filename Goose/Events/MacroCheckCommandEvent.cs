@@ -19,8 +19,7 @@ namespace Goose.Events
 
         public override void Ready(GameWorld world)
         {
-            if (this.Player.State == Player.States.Ready &&
-                this.Player.HasPrivilege(AccessPrivilege.MacroCheck))
+            if (this.Player.State == Player.States.Ready)
             {
                 string name = ((string)this.Data).Substring("/macrocheck ".Length);
                 Player player = world.PlayerHandler.GetPlayer(name);

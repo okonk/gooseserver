@@ -114,6 +114,20 @@
     "DefaultAetherThreshold": 0,
     "DefaultToggleSettings": 0,
     "NewCharactersPerDayPerIP": 3,
+
+    // Connection and login abuse limits.
+    // MaxConnections bounds all accepted sockets including ones not yet logged in;
+    // MaxPlayers above only bounds logged in players.
+    "MaxConnections": 1000,
+    "MaxConnectionsPerIP": 8,
+    "PreLoginTimeoutSeconds": 30,
+    // A key (source IP, and separately the account name) is locked out for
+    // LoginLockoutSeconds after LoginFailureLimit failures within
+    // LoginFailureWindowSeconds.
+    "LoginFailureLimit": 8,
+    "LoginFailureWindowSeconds": 300,
+    "LoginLockoutSeconds": 300,
+
     "MaxNPCs": 15000,
     "PetVitaBuyAmount": 50,
     "IncreasePetVitaBuyCost": 100000,

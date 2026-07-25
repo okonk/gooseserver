@@ -21,6 +21,20 @@ Fixed in the working tree since this review was written:
 | H6 (partial) — unguarded send | `Player.Send()` null-guards `sock` and `SendBuffer`; `GameServer` write predicate uses `?.SendBuffer?.Count` |
 | Exception isolation | `EventHandler.Update` contains per-event exceptions; `GameServer.GameLoop` wraps accept/receive/send per socket and drops only the offending connection via a new `DropSocket`. `GameWorld.Update` has a backstop that escalates to the restart path after 10 consecutive failures |
 
+Fixed in a second round:
+
+| Finding | Fix |
+|---|---|
+| H3 — crafting cost bypass | `CombinationHandler.GetMatch` requires at least the recipe quantity; `Inventory.Combine` tallies stack quantities rather than slot counts, so matching and consumption finally agree on units |
+| H7 — bind laundering via split | New `Item.CloneWithoutId` copies all per-item state (`IsBound`, rolled stats, description, title/surname) instead of rebuilding from the template |
+| H5 — no connection cap, no rate limiting | New `LoginThrottle` locks out by IP and by account name after repeated failures; `GameServer` enforces `MaxConnections`, `MaxConnectionsPerIP` and a pre-login timeout |
+| M6 — no cross-entity transaction | New `Database.EnqueueTransaction`; each sub-save became a `BuildSave` returning composable work, and a full player save now commits as one transaction |
+| M5 — no signal handling | `Console.CancelKeyPress` and a SIGTERM `PosixSignalRegistration` request a graceful stop; `GameWorld.Stop` now flushes `LogHandler`; `Console.ReadKey` is guarded behind `IsInputRedirected` |
+| M1 — `/hax` ungated, and its root cause | Authorization moved into the `EventHandler` dispatch table: every entry declares Open or Restricted, so a new command cannot default to open. `/hax` and `/gmhax` now require the new `AccessPrivilege.Debug` |
+| Architectural note at the end of the appendix — every check duplicated per-handler | The 27 handler checks that merely restated their table entry were removed, making the table the single authority. `RegisterEvent`'s unprivileged overload now refuses to overwrite a restricted entry, since global scripts reach it via `GameWorld` and nothing downstream would catch a downgrade. Checks that are finer than the command (`TalkWhileMuted`, `DropBoundItem`, `GMInvisible`, `WhoInvisible`) stay in their handlers |
+
+**Still open and deliberately skipped:** H1, `/changepassword` requires no current password, so a hijacked live session remains a full account takeover.
+
 Password storage changed format with **no migration path** — this was accepted because there was no production data to preserve. Any pre-existing `password_hash` values are now unverifiable and those accounts must have passwords reset. The password length cap was also raised from 10 to 16 characters (the client protocol's password field width).
 
 Everything else below remains open.
@@ -579,5 +593,7 @@ Note: `CustomCommandEvent.cs` is *not* the dispatcher — it is the `/custom` it
 All checks use `HasPrivilege(...)` set-membership or `Access == GameMaster`. The only ordinal comparison in the codebase is `WhoEvent.cs:68` (`this.Player.Access < player.Access`, hiding higher-ranked invisible staff); its direction is correct given the enum ordering at `Player.cs:75-84` (Deleted=0, Banned=1, Normal=2, Helper=3, EventMaster=6, Guide=7, GameMaster=9).
 
 **Architectural note:** the dispatcher performs no authorization and no state gating, so every check is duplicated per-handler. That design is why M1 exists, and it means any future command defaults to open. A privilege annotation on the dispatch table would make omissions structurally impossible rather than review-dependent.
+
+> **Since fixed.** The dispatch table now carries the annotation and the duplicated handler checks are gone, so the `Check location` column above records the pre-fix state and its line numbers are stale. The audit's command-to-privilege mapping still holds, with one deliberate change: `/summon ` no longer has the `Warp`-on-map-28/30 branch that let `EventMaster` and `Helper` summon on those two maps, so it is now `Summon` only. Handlers still gate on `Player.State`; the dispatcher does not.
 
 **One `/setconfig` nit** (Low, GM-only): `SetConfigCommandEvent.cs:27` splits into at most 2 tokens with no length check, then indexes `tokens[1]` at `:46` and `:56`. `/setconfig Foo` with no value throws `IndexOutOfRangeException` out of `Ready()`, which — per the architectural note — restarts the server. Self-inflicted, but trivially fixed.
