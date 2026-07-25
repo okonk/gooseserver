@@ -41,6 +41,12 @@ namespace Goose
         SetConfig,
         SetPassword,
         Shutdown,
+
+        /**
+         * Raw packet injection debug commands (/hax, /gmhax). GameMaster only, since
+         * GameMaster is granted every privilege and no other level lists this one.
+         */
+        Debug,
     }
 
     public static class AccessLevels
