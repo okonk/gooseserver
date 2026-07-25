@@ -19,8 +19,7 @@ namespace Goose.Events
 
         public override void Ready(GameWorld world)
         {
-            if (this.Player.State == Player.States.Ready &&
-                this.Player.HasPrivilege(AccessPrivilege.SetConfig))
+            if (this.Player.State == Player.States.Ready)
             {
                 string data = ((string)this.Data).Substring(11);
 

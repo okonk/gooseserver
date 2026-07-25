@@ -22,8 +22,7 @@ namespace Goose.Events
 
         public override void Ready(GameWorld world)
         {
-            if (this.Player.State == Player.States.Ready &&
-                this.Player.HasPrivilege(AccessPrivilege.MuteMap))
+            if (this.Player.State == Player.States.Ready)
             {
                 this.Player.Map.Muted = !this.Player.Map.Muted;
 

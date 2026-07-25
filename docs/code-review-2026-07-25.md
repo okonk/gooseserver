@@ -31,6 +31,7 @@ Fixed in a second round:
 | M6 — no cross-entity transaction | New `Database.EnqueueTransaction`; each sub-save became a `BuildSave` returning composable work, and a full player save now commits as one transaction |
 | M5 — no signal handling | `Console.CancelKeyPress` and a SIGTERM `PosixSignalRegistration` request a graceful stop; `GameWorld.Stop` now flushes `LogHandler`; `Console.ReadKey` is guarded behind `IsInputRedirected` |
 | M1 — `/hax` ungated, and its root cause | Authorization moved into the `EventHandler` dispatch table: every entry declares Open or Restricted, so a new command cannot default to open. `/hax` and `/gmhax` now require the new `AccessPrivilege.Debug` |
+| Architectural note at the end of the appendix — every check duplicated per-handler | The 27 handler checks that merely restated their table entry were removed, making the table the single authority. `RegisterEvent`'s unprivileged overload now refuses to overwrite a restricted entry, since global scripts reach it via `GameWorld` and nothing downstream would catch a downgrade. Checks that are finer than the command (`TalkWhileMuted`, `DropBoundItem`, `GMInvisible`, `WhoInvisible`) stay in their handlers |
 
 **Still open and deliberately skipped:** H1, `/changepassword` requires no current password, so a hijacked live session remains a full account takeover.
 
@@ -592,5 +593,7 @@ Note: `CustomCommandEvent.cs` is *not* the dispatcher — it is the `/custom` it
 All checks use `HasPrivilege(...)` set-membership or `Access == GameMaster`. The only ordinal comparison in the codebase is `WhoEvent.cs:68` (`this.Player.Access < player.Access`, hiding higher-ranked invisible staff); its direction is correct given the enum ordering at `Player.cs:75-84` (Deleted=0, Banned=1, Normal=2, Helper=3, EventMaster=6, Guide=7, GameMaster=9).
 
 **Architectural note:** the dispatcher performs no authorization and no state gating, so every check is duplicated per-handler. That design is why M1 exists, and it means any future command defaults to open. A privilege annotation on the dispatch table would make omissions structurally impossible rather than review-dependent.
+
+> **Since fixed.** The dispatch table now carries the annotation and the duplicated handler checks are gone, so the `Check location` column above records the pre-fix state and its line numbers are stale. The audit's command-to-privilege mapping still holds, with one deliberate change: `/summon ` no longer has the `Warp`-on-map-28/30 branch that let `EventMaster` and `Helper` summon on those two maps, so it is now `Summon` only. Handlers still gate on `Player.State`; the dispatcher does not.
 
 **One `/setconfig` nit** (Low, GM-only): `SetConfigCommandEvent.cs:27` splits into at most 2 tokens with no length check, then indexes `tokens[1]` at `:46` and `:56`. `/setconfig Foo` with no value throws `IndexOutOfRangeException` out of `Ready()`, which — per the architectural note — restarts the server. Self-inflicted, but trivially fixed.

@@ -65,9 +65,14 @@ namespace Goose
             // ungated. Requiring the decision here means a newly added command cannot
             // silently default to being reachable by anyone.
             //
-            // Handlers keep their own checks as defence in depth, and commands whose
-            // requirement varies by argument (/toggle, /custom, /givecredits) are Open
-            // here and enforce the finer rule themselves.
+            // This table is now the only place a command's access requirement is stated.
+            // The duplicate HasPrivilege checks the handlers used to carry have been
+            // removed, so an entry that is wrong here is wrong everywhere - see
+            // RegisterEvent, which refuses to downgrade a restricted entry for that reason.
+            //
+            // Commands whose requirement varies by argument rather than by command
+            // (/toggle, /custom, /givecredits) are Open here and enforce the finer rule
+            // themselves. Handlers still check Player.State; the dispatcher does not.
             this.stringToEvent = new Dictionary<string, CommandDefinition>
             {
                 { "LOGIN", Open(LoginEvent.Create) },
@@ -185,17 +190,49 @@ namespace Goose
         /**
          * RegisterEvent, registers a command any player may use
          *
-         * Used by global scripts. Kept unprivileged to match how scripts already rely on
-         * it; use the overload below for anything that should be restricted.
+         * Used by global scripts, which get the whole GameWorld and so can reach this.
+         * Kept unprivileged to match how scripts already rely on it; use the overload
+         * below for anything that should be restricted.
+         *
+         * Refuses to overwrite a restricted entry, because this used to be an
+         * unconditional assignment: a global script registering a key that is already
+         * restricted - by accident or otherwise - would replace it with an open one and
+         * hand the command to every player. The handlers no longer carry duplicate
+         * privilege checks, so nothing downstream would catch it.
          *
          */
         public void RegisterEvent(string key, CreateEvent action)
         {
+            if (this.stringToEvent.TryGetValue(key, out CommandDefinition existing) &&
+                existing.RequiredPrivilege.HasValue)
+            {
+                log.Error("Refusing to register {0} unprivileged: it already requires {1}. " +
+                    "Use the RegisterEvent overload that states a privilege.",
+                    key, existing.RequiredPrivilege.Value);
+
+                return;
+            }
+
             this.stringToEvent[key] = Open(action);
         }
 
+        /**
+         * RegisterEvent, registers a command requiring a privilege
+         *
+         * Overwriting is allowed here since the caller has stated a requirement, but a
+         * change to an existing entry is logged - re-pointing a built-in command at
+         * script code is worth a line in the log either way.
+         *
+         */
         public void RegisterEvent(string key, CreateEvent action, AccessPrivilege privilege)
         {
+            if (this.stringToEvent.TryGetValue(key, out CommandDefinition existing) &&
+                existing.RequiredPrivilege != privilege)
+            {
+                log.Warn("Re-registering {0}: privilege changed from {1} to {2}.",
+                    key, existing.RequiredPrivilege?.ToString() ?? "none", privilege);
+            }
+
             this.stringToEvent[key] = Restricted(action, privilege);
         }
 
