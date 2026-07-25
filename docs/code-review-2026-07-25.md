@@ -21,6 +21,19 @@ Fixed in the working tree since this review was written:
 | H6 (partial) — unguarded send | `Player.Send()` null-guards `sock` and `SendBuffer`; `GameServer` write predicate uses `?.SendBuffer?.Count` |
 | Exception isolation | `EventHandler.Update` contains per-event exceptions; `GameServer.GameLoop` wraps accept/receive/send per socket and drops only the offending connection via a new `DropSocket`. `GameWorld.Update` has a backstop that escalates to the restart path after 10 consecutive failures |
 
+Fixed in a second round:
+
+| Finding | Fix |
+|---|---|
+| H3 — crafting cost bypass | `CombinationHandler.GetMatch` requires at least the recipe quantity; `Inventory.Combine` tallies stack quantities rather than slot counts, so matching and consumption finally agree on units |
+| H7 — bind laundering via split | New `Item.CloneWithoutId` copies all per-item state (`IsBound`, rolled stats, description, title/surname) instead of rebuilding from the template |
+| H5 — no connection cap, no rate limiting | New `LoginThrottle` locks out by IP and by account name after repeated failures; `GameServer` enforces `MaxConnections`, `MaxConnectionsPerIP` and a pre-login timeout |
+| M6 — no cross-entity transaction | New `Database.EnqueueTransaction`; each sub-save became a `BuildSave` returning composable work, and a full player save now commits as one transaction |
+| M5 — no signal handling | `Console.CancelKeyPress` and a SIGTERM `PosixSignalRegistration` request a graceful stop; `GameWorld.Stop` now flushes `LogHandler`; `Console.ReadKey` is guarded behind `IsInputRedirected` |
+| M1 — `/hax` ungated, and its root cause | Authorization moved into the `EventHandler` dispatch table: every entry declares Open or Restricted, so a new command cannot default to open. `/hax` and `/gmhax` now require the new `AccessPrivilege.Debug` |
+
+**Still open and deliberately skipped:** H1, `/changepassword` requires no current password, so a hijacked live session remains a full account takeover.
+
 Password storage changed format with **no migration path** — this was accepted because there was no production data to preserve. Any pre-existing `password_hash` values are now unverifiable and those accounts must have passwords reset. The password length cap was also raised from 10 to 16 characters (the client protocol's password field width).
 
 Everything else below remains open.
