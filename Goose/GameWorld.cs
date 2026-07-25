@@ -461,6 +461,19 @@ namespace Goose
                 }
             }
 
+            // LogHandler buffers in memory and is otherwise only flushed on a 10 minute
+            // cadence, so without this every shutdown discarded up to that much of the
+            // audit trail - including the logs used to investigate dupes.
+            log.Info("Saving logs.");
+            try
+            {
+                this.LogHandler.Save(this);
+            }
+            catch (Exception e)
+            {
+                log.Error(e, "Failed to save buffered logs during shutdown.");
+            }
+
             log.Info("Waiting for database writes.");
             while (this.Database.PendingCount > 0)
             {

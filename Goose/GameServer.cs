@@ -286,6 +286,24 @@ namespace Goose
         }
 
         /**
+         * RequestShutdown, asks the game loop to stop at the end of the current tick
+         *
+         * Safe to call from a signal handler on another thread: it only sets a flag, and
+         * the loop then exits and runs the normal Stop path, which saves players and
+         * drains the database queue.
+         *
+         */
+        public void RequestShutdown()
+        {
+            var world = this.gameworld;
+
+            if (world == null) return;
+
+            log.Info("Shutdown requested.");
+            world.Running = false;
+        }
+
+        /**
          * TryRegisterConnection, applies the connection limits to a freshly accepted socket
          *
          * Returns false if the server is at its overall connection ceiling or this source

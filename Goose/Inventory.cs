@@ -849,12 +849,25 @@ namespace Goose
          */
         public void Save(GameWorld world)
         {
+            world.Database.Enqueue(this.BuildSave());
+        }
+
+        /**
+         * BuildSave, snapshots state and returns the work to persist it
+         *
+         * Returned rather than enqueued so a full player save can run every part inside
+         * one transaction. Serialization happens here, on the game thread, so later
+         * mutations do not race the DB thread.
+         *
+         */
+        public Action<SQLiteConnection> BuildSave()
+        {
             int playerId = this.player.PlayerID;
             string inventoryJson = JsonHelper.Serialize(inventory);
             string equippedJson = JsonHelper.Serialize(equipped);
             string combineJson = JsonHelper.Serialize(combineContainer);
 
-            world.Database.Enqueue(conn =>
+            return conn =>
             {
                 using (var saveInventoryCommand = conn.CreateCommand())
                 {
@@ -885,7 +898,7 @@ namespace Goose
                     saveCombineBagCommand.Parameters.Add(new SQLiteParameter("@serialized_data", DbType.String) { Value = combineJson });
                     saveCombineBagCommand.ExecuteNonQuery();
                 }
-            });
+            };
         }
 
         /**

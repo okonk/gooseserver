@@ -224,6 +224,55 @@ namespace Goose
             _queue.Add(new AsyncWork { Action = action, OnComplete = onComplete });
         }
 
+        /// <summary>
+        /// Queues work to run inside a single transaction. Either every statement the
+        /// action issues commits, or none of them do.
+        ///
+        /// Use this whenever one logical change spans more than one table. A player save
+        /// touches players, inventory, equipped, bank_items, spellbook, quest_status and
+        /// pets; issuing those as separate work items meant a crash between them could
+        /// persist new gold against an old inventory, which is an item dupe.
+        /// </summary>
+        public void EnqueueTransaction(Action<SQLiteConnection> action)
+        {
+            if (action == null) throw new ArgumentNullException(nameof(action));
+
+            Enqueue(conn =>
+            {
+                // Driven as raw SQL rather than BeginTransaction because the commands the
+                // action creates do not set SQLiteCommand.Transaction. SQLite transactions
+                // are connection scoped, so every statement issued on this connection
+                // between BEGIN and COMMIT is included regardless.
+                RunSql(conn, "BEGIN;");
+
+                try
+                {
+                    action(conn);
+                    RunSql(conn, "COMMIT;");
+                }
+                catch (Exception)
+                {
+                    try
+                    {
+                        RunSql(conn, "ROLLBACK;");
+                    }
+                    catch (Exception rollbackEx)
+                    {
+                        log.Error(rollbackEx, "Failed to roll back transaction");
+                    }
+
+                    throw;
+                }
+            });
+        }
+
+        private static void RunSql(SQLiteConnection conn, string sql)
+        {
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = sql;
+            cmd.ExecuteNonQuery();
+        }
+
         public void Stop()
         {
             if (!_started && _loopTask == null)

@@ -59,13 +59,25 @@ namespace Goose
 
         public void Save(GameWorld world, Player player)
         {
+            world.Database.Enqueue(this.BuildSave(player));
+        }
+
+        /**
+         * BuildSave, snapshots state and returns the work to persist it
+         *
+         * Returned rather than enqueued so a full player save can run every part inside
+         * one transaction.
+         *
+         */
+        public Action<SQLiteConnection> BuildSave(Player player)
+        {
             int playerId = player.PlayerID;
             // Snapshot container data before enqueue so later mutations don't race the DB thread.
             var snapshots = this.bankContainers
                 .Select(kvp => (NpcId: kvp.Key, Json: JsonHelper.Serialize(kvp.Value)))
                 .ToList();
 
-            world.Database.Enqueue(conn =>
+            return conn =>
             {
                 foreach (var (npcId, json) in snapshots)
                 {
@@ -78,7 +90,7 @@ namespace Goose
                     saveContainerCommand.Parameters.Add(new SQLiteParameter("@serialized_data", DbType.String) { Value = json });
                     saveContainerCommand.ExecuteNonQuery();
                 }
-            });
+            };
         }
 
         public ItemContainer GetOrCreateContainer(Player player, int npc_id)

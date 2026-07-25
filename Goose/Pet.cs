@@ -294,6 +294,18 @@ namespace Goose
 
         public override void SaveToDatabase(GameWorld world)
         {
+            world.Database.Enqueue(this.BuildSave());
+        }
+
+        /**
+         * BuildSave, snapshots state and returns the work to persist this pet
+         *
+         * Returned rather than enqueued so the owning player's save can run every part,
+         * pets included, inside one transaction.
+         *
+         */
+        public Action<SQLiteConnection> BuildSave()
+        {
             string petName = this.Name;
             string petTitle = this.Title;
             string petSurname = this.Surname;
@@ -353,7 +365,7 @@ namespace Goose
                     this.BaseStats.MPStaticRegen + ", " +
                     this.Owner.PlayerID +
                     ")";
-                world.Database.Enqueue(conn =>
+                return conn =>
                 {
                     using var command = conn.CreateCommand();
                     command.CommandText = query;
@@ -363,17 +375,17 @@ namespace Goose
                     command.ExecuteNonQuery();
                     // Only clear after a successful insert so a failed first save can retry INSERT.
                     this.AutoCreatedNotSaved = false;
-                });
+                };
             }
             else if (this.Delete)
             {
                 string query = "DELETE FROM pets WHERE pet_id=" + this.PetID;
-                world.Database.Enqueue(conn =>
+                return conn =>
                 {
                     using var command = conn.CreateCommand();
                     command.CommandText = query;
                     command.ExecuteNonQuery();
-                });
+                };
             }
             else
             {
@@ -425,7 +437,7 @@ namespace Goose
                     "owner_id=" + this.Owner.PlayerID + " " +
                     "WHERE pet_id=" + this.PetID;
 
-                world.Database.Enqueue(conn =>
+                return conn =>
                 {
                     using var command = conn.CreateCommand();
                     command.CommandText = query;
@@ -433,7 +445,7 @@ namespace Goose
                     command.Parameters.Add(new SQLiteParameter("@petTitle", DbType.String) { Value = petTitle });
                     command.Parameters.Add(new SQLiteParameter("@petSurname", DbType.String) { Value = petSurname });
                     command.ExecuteNonQuery();
-                });
+                };
             }
         }
 
