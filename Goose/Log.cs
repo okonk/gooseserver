@@ -37,6 +37,7 @@ namespace Goose
             GetItem = 10001,
             ClassChange,
             GiveExperience,
+            GiveGold,
             RespawnMap,
             SpawnedNPC,
             MacroCheck,

@@ -33,6 +33,7 @@ namespace Goose
         PlaceSpawn,
         SpawnItem,
         GiveExperience,
+        GiveGold,
         ClassChange,
         ReloadScripts,
         ReloadSQL,

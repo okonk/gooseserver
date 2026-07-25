@@ -160,6 +160,7 @@ namespace Goose
                 { "/changeclass ", Restricted(ChangeClassCommandEvent.Create, AccessPrivilege.ClassChange) },
                 { "/changename ", Restricted(ChangeNameCommandEvent.Create, AccessPrivilege.ChangeName) },
                 { "/giveexperience ", Restricted(GiveExperienceCommandEvent.Create, AccessPrivilege.GiveExperience) },
+                { "/givegold ", Restricted(GiveGoldCommandEvent.Create, AccessPrivilege.GiveGold) },
                 { "/credits", Open(CreditsCommandEvent.Create) },
                 { "/playtime", Open(PlaytimeCommandEvent.Create) },
                 { "/settitle ", Restricted(SetTitleCommandEvent.Create, AccessPrivilege.SetTitle) },
