@@ -25,6 +25,8 @@ namespace Goose.ConsoleCommands
      */
     public static class SetAccessCommand
     {
+        private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
+
         public const string Usage = "/setaccess <playername> [level]";
         public const string Description =
             "Set a player's access level. Defaults to GameMaster. Works on offline players.";
@@ -58,6 +60,41 @@ namespace Goose.ConsoleCommands
 
             request = new SetAccessRequest { Name = args[0], Level = level };
             return true;
+        }
+
+        /**
+         * Run, resolves the player and applies the access change
+         *
+         */
+        public static void Run(GameWorld world, string[] args)
+        {
+            if (!TryParse(args, out SetAccessRequest request, out string error))
+            {
+                Console.WriteLine(error);
+                return;
+            }
+
+            Player player = world.PlayerHandler.GetPlayerFromData(request.Name);
+            if (player == null)
+            {
+                Console.WriteLine("No player named '" + request.Name + "'.");
+                log.Info("Console /setaccess failed: no player named {0}.", request.Name);
+                return;
+            }
+
+            Player.AccessStatus previous = player.Access;
+            player.Access = request.Level;
+
+            // Logged in players are covered by the periodic save. An offline one
+            // would otherwise hold the change in memory until something else wrote
+            // the row, and a restart before then would silently lose the grant.
+            if (player.State == Player.States.NotLoggedIn)
+            {
+                player.SaveToDatabase(world);
+            }
+
+            Console.WriteLine("Set " + player.Name + " from " + previous + " to " + player.Access + ".");
+            log.Info("Console /setaccess: {0} {1} -> {2}", player.Name, previous, player.Access);
         }
 
         /**
