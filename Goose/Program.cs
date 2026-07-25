@@ -49,13 +49,9 @@ namespace Goose
 
             server.Run();
 
-            // Only wait on a key when there is a console to read from. Under systemd or
-            // Docker stdin is redirected and this threw, turning a clean shutdown into a
-            // crash exit.
-            if (!Console.IsInputRedirected)
-            {
-                Console.ReadKey(); // so console doesn't close when server closes
-            }
+            // Interactive stdin is owned by the console command reader thread (started when
+            // input is not redirected). Waiting for a key here would hang after clean exit
+            // because that thread permanently blocks on Console.ReadLine().
         }
     }
 }
