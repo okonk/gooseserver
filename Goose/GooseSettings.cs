@@ -95,6 +95,25 @@ namespace Goose
         public int DefaultAetherThreshold { get; set; }
         public int DefaultToggleSettings { get; set; }
         public int NewCharactersPerDayPerIP { get; set; }
+
+        /**
+         * Connection and login abuse limits.
+         *
+         * These carry defaults rather than relying on the JSON, so an existing
+         * GooseSettings.json without them stays protected instead of deserializing to
+         * zero and disabling every limit.
+         *
+         * MaxConnections is a ceiling on accepted sockets, including ones that have not
+         * logged in yet. MaxPlayers only bounds logged in players, so without this a
+         * flood of idle connections was unbounded.
+         */
+        public int MaxConnections { get; set; } = 1000;
+        public int MaxConnectionsPerIP { get; set; } = 8;
+        public int PreLoginTimeoutSeconds { get; set; } = 30;
+        public int LoginFailureLimit { get; set; } = 8;
+        public int LoginFailureWindowSeconds { get; set; } = 300;
+        public int LoginLockoutSeconds { get; set; } = 300;
+
         public int MaxNPCs { get; set; }
         public int PetVitaBuyAmount { get; set; }
         public int IncreasePetVitaBuyCost { get; set; }
