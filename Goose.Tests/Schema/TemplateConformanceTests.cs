@@ -13,6 +13,19 @@ namespace Goose.Tests.Schema
     /// observes them (DDL is still template-driven, and the baseline test only sees names,
     /// order and kind).
     ///
+    /// Columns are matched to the template BY NAME, not by position — do not "fix" this back
+    /// to index-matching. Descriptor order is dictated by the worksheet (descriptor index i
+    /// reads worksheet cell i + 1, see CsvToSqlBase.Convert), not by the template, and the two
+    /// genuinely disagree: `quests` declares `description, fail_text, pass_text` in
+    /// sqlTemplate.sql but the worksheet supplies `description, pass_text, fail_text`. Both are
+    /// TEXT DEFAULT '' NOT NULL, so nothing is broken — the generated INSERTs name their
+    /// columns, making template column order cosmetic. Reordering the descriptors to match the
+    /// template would write the pass-text cell into the fail_text column. Order is already
+    /// protected by CsvToSqlBaselineTests, which sees any shift as a changed INSERT column
+    /// list; this test's job is per-column SqlType, DEFAULT, nullability and primary-key-ness,
+    /// none of which depend on order. It still asserts the two NAME SETS are equal in both
+    /// directions, so a missing or extra column cannot slip through.
+    ///
     /// THIS WHOLE FILE IS TEMPORARY. It is deleted in Task 8, when DDL becomes
     /// descriptor-generated and sqlTemplate.sql goes away. The converter-type -> table-name
     /// map below duplicates the private mapping in CsvToSqlConverter.BuildConverterMapping()
@@ -76,13 +89,28 @@ namespace Goose.Tests.Schema
                 $"Descriptors: {string.Join(", ", descriptors.Select(d => d.Name))}. " +
                 $"Template: {string.Join(", ", template.Select(c => c.Name))}.");
 
-            for (var i = 0; i < descriptors.Length; i++)
-            {
-                var d = descriptors[i];
-                var t = template[i];
+            // Both directions, so an extra descriptor and a missing one cannot cancel out under
+            // the equal-count assertion above.
+            var descriptorNames = descriptors.Select(d => d.Name).ToList();
+            var templateNames = template.Select(c => c.Name).ToList();
 
-                Assert.True(d.Name == t.Name,
-                    $"[{table}] column {i}: descriptor name '{d.Name}' != template name '{t.Name}'.");
+            var missing = templateNames.Except(descriptorNames).ToList();
+            Assert.True(missing.Count == 0,
+                $"[{table}] template declares column(s) with no descriptor: {string.Join(", ", missing)}.");
+
+            var extra = descriptorNames.Except(templateNames).ToList();
+            Assert.True(extra.Count == 0,
+                $"[{table}] descriptor(s) with no template column: {string.Join(", ", extra)}.");
+
+            var duplicates = descriptorNames.GroupBy(n => n).Where(g => g.Count() > 1).Select(g => g.Key).ToList();
+            Assert.True(duplicates.Count == 0,
+                $"[{table}] duplicate descriptor name(s), so name-matching is ambiguous: {string.Join(", ", duplicates)}.");
+
+            var byName = template.ToDictionary(c => c.Name);
+
+            foreach (var d in descriptors)
+            {
+                var t = byName[d.Name];
 
                 Assert.True(d.Type.Sql == t.SqlType,
                     $"[{table}].{t.Name}: descriptor type '{d.Type.Sql}' != template type '{t.SqlType}'.");

@@ -1,34 +1,20 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.IO;
+using CsvToSql.Core.Schema;
 
 namespace CsvToSql
 {
     public class QuestRewardsCsvToSql : CsvToSqlBase
     {
-        protected override string[] GetColumns()
+        public override Column[] GetColumnDescriptors() => new[]
         {
-            return new[] {
-                "id", "quest_id", "reward_type", "long_value", "long_value2", "string_value"
-            };
-        }
+            Col.Id("id", SqlType.Integer).PrimaryKey(),
+            Col.Id("quest_id", SqlType.Int).Ref("Quests"),
+            Col.Enum<RewardType>("reward_type", SqlType.Int),
+            Col.Int("long_value", SqlType.BigInt, def: 0).Nullable(),
+            Col.Int("long_value2", SqlType.BigInt, def: 0).Nullable(),
+            Col.Text("string_value", def: "''").Nullable(),
+        };
 
-        protected override string TransformValue(string columnName, string value)
-        {
-            switch (columnName)
-            {
-                case "string_value":
-                    return EscapeString(value);
-                case "reward_type":
-                    return ConvertEnum(value, typeof(RewardType));
-                default:
-                    return value;
-            }
-        }
-
-        enum RewardType
+        public enum RewardType
         {
             Gold,
             Item,
