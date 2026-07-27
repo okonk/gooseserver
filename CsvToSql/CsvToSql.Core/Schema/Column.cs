@@ -14,6 +14,11 @@ namespace CsvToSql.Core.Schema
         public ColumnKind Kind { get; }
         public SqlType Type { get; }
         public string Default { get; private set; }
+
+        /// <summary>The spreadsheet cell must be non-empty. Not the same as NOT NULL — every
+        /// column is NOT NULL. This means there is no SQL DEFAULT to fall back on, and
+        /// CsvToSqlBase omits empty cells from the INSERT, so an empty cell would be rejected.
+        /// Always the exact complement of <see cref="Default"/> being set.</summary>
         public bool IsRequired { get; private set; }
         public bool IsPrimaryKey { get; private set; }
         public string RefSheet { get; private set; }
@@ -29,6 +34,9 @@ namespace CsvToSql.Core.Schema
             Default = def;
         }
 
+        /// <summary>Drops any DEFAULT — a column cannot both have one and require a cell value.
+        /// Only needed for a column that would otherwise get a default; Col.* already marks a
+        /// column required when no `def` is passed.</summary>
         public Column Required() { IsRequired = true; Default = null; return this; }
         public Column Ref(string sheet) { RefSheet = sheet; return this; }
 
