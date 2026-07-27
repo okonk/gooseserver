@@ -46,6 +46,17 @@ public class TableDdlTests
     }
 
     [Fact]
+    public void Empty_index_list_emits_no_index()
+    {
+        // SchemaRegistry normalises null to an empty array, so this is the branch
+        // 19 of the 21 tables actually take.
+        var ddl = TableDdl.Emit("t", new[] { Col.Int("stack") }, indexes: Array.Empty<string>());
+
+        Assert.DoesNotContain("CREATE INDEX", ddl);
+        Assert.EndsWith(");\n", ddl);
+    }
+
+    [Fact]
     public void Text_default_is_quoted_by_caller()
     {
         var ddl = TableDdl.Emit("t", new[] { Col.Text("script_path", def: "''") }, indexes: null);

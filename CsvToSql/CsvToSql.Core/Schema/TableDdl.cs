@@ -7,6 +7,10 @@ namespace CsvToSql.Core.Schema
     /// Replaces the hand-maintained sqlTemplate.sql.</summary>
     public static class TableDdl
     {
+        /// <param name="columns">Each column's Default is emitted verbatim — the caller owns
+        /// any quoting, so a text default must arrive already quoted (see Col.Text).</param>
+        /// <param name="indexes">Bare column names, not index names. Each becomes a
+        /// single-column index named {table}_{column}_idx. Null or empty emits none.</param>
         public static string Emit(string table, IReadOnlyList<Column> columns,
                                   IReadOnlyList<string> indexes)
         {
