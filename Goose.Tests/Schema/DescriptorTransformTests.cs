@@ -8,7 +8,7 @@ public class DescriptorTransformTests
     public void Text_is_escaped_and_quotes_doubled()
     {
         Assert.Equal("'Bob''s Hat'",
-            DescriptorTransform.Apply(Col.Text("item_name").Required(), "Bob's Hat"));
+            DescriptorTransform.Apply(Col.Text("item_name"), "Bob's Hat"));
     }
 
     [Fact]

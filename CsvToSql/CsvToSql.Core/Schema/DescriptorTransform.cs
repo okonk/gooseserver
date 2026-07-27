@@ -1,5 +1,3 @@
-using System;
-
 namespace CsvToSql.Core.Schema
 {
     /// <summary>Derives SQL literal escaping from a column's kind. Replaces each converter's
@@ -14,9 +12,24 @@ namespace CsvToSql.Core.Schema
                 case ColumnKind.Bool:
                     return Escape(value);
                 case ColumnKind.Enum:
-                    return ((int)System.Enum.Parse(column.EnumType, value)).ToString();
+                    return ParseEnum(column, value);
                 default:
                     return value;
+            }
+        }
+
+        /// <summary>Same as the old ConvertEnum, but names the offending column — otherwise a
+        /// bad cell reports only its value, with no clue which of 21 sheets it came from.</summary>
+        private static string ParseEnum(Column column, string value)
+        {
+            try
+            {
+                return ((int)System.Enum.Parse(column.EnumType, value)).ToString();
+            }
+            catch (System.ArgumentException e)
+            {
+                throw new System.ArgumentException(
+                    $"Column '{column.Name}' has no {column.EnumType.Name} member named '{value}'.", e);
             }
         }
 

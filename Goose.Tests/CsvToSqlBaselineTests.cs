@@ -26,7 +26,22 @@ public class CsvToSqlBaselineTests
         var actual = CsvToSqlConverter.ConvertWorkbook(fs);
         var expected = File.ReadAllText(Path.Combine(FixtureDir, "baseline.sql"));
 
-        Assert.Equal(Normalise(expected), Normalise(actual));
+        AssertSameLines(Normalise(expected), Normalise(actual));
+    }
+
+    /// <summary>Compares line by line rather than as one 900 KB string. Every generated line is
+    /// a whole INSERT or VALUES clause, so the first mismatch names the table and shows the bad
+    /// value — where Assert.Equal would report only a character offset.</summary>
+    private static void AssertSameLines(string expected, string actual)
+    {
+        var e = expected.Split('\n');
+        var a = actual.Split('\n');
+
+        for (int i = 0; i < Math.Min(e.Length, a.Length); i++)
+            Assert.True(e[i] == a[i],
+                $"line {i + 1} differs:\n  expected: {e[i]}\n  actual:   {a[i]}");
+
+        Assert.Equal(e.Length, a.Length);
     }
 
     private static string Normalise(string sql) => sql.Replace("\r\n", "\n");
