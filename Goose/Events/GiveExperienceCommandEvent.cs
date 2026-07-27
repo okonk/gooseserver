@@ -43,7 +43,9 @@ namespace Goose.Events
                     return;
                 }
 
+                // Grant exact amount (no exp modifiers/caps) then run level-up pipeline
                 player.Experience += exp;
+                player.ProcessLevelUp(world);
 
                 world.Send(this.Player, P.ServerMessage("Added experience successfully."));
 

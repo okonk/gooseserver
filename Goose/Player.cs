@@ -1646,6 +1646,15 @@ namespace Goose
                 }
             }
 
+            this.ProcessLevelUp(world);
+        }
+
+        /**
+         * ProcessLevelUp, applies any pending level-ups from current Experience
+         * (stats, spells, vitals, client updates). Safe for offline players.
+         */
+        public void ProcessLevelUp(GameWorld world)
+        {
             long levelup;
             int levels = 0;
 
@@ -1690,12 +1699,15 @@ namespace Goose
             if (levels == 1) world.Send(this, P.ServerMessage("You have gained a level."));
             else world.Send(this, P.ServerMessage("You have gained " + levels + " levels."));
 
-            List<Player> range = this.Map.GetPlayersInRange(this);
             string packet = P.BattleTextYellow(this, "Level Up!");
             world.Send(this, packet);
-            foreach (Player player in range)
+            if (this.Map != null)
             {
-                world.Send(player, packet);
+                List<Player> range = this.Map.GetPlayersInRange(this);
+                foreach (Player player in range)
+                {
+                    world.Send(player, packet);
+                }
             }
 
             if (this.Level == this.Class.MaxLevel)
