@@ -2,6 +2,9 @@ using CsvToSql.Core.Schema;
 
 namespace CsvToSql
 {
+    /// <summary>item_titles and item_surnames have identical column sets. Kept as separate
+    /// literal lists rather than a shared array, because Column's fluent methods mutate —
+    /// check SurnameCsvToSql before changing anything here.</summary>
     public class TitleCsvToSql : CsvToSqlBase
     {
         public override Column[] GetColumnDescriptors() => new[]
