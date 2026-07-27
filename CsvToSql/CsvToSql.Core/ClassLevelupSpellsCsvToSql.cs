@@ -1,25 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.IO;
+using CsvToSql.Core.Schema;
 
 namespace CsvToSql
 {
     class ClassLevelupSpellsCsvToSql : CsvToSqlBase
     {
-        protected override string[] GetColumns()
+        public override Column[] GetColumnDescriptors() => new[]
         {
-            return new[] { "class_id", "level", "spell_id" };
-        }
-
-        protected override string TransformValue(string columnName, string value)
-        {
-            switch (columnName)
-            {
-                default:
-                    return value;
-            }
-        }
+            Col.Id("class_id", SqlType.Int).Ref("Classes"),
+            Col.Int("level", SqlType.SmallInt),
+            Col.Id("spell_id", SqlType.Int).Ref("Spells"),
+        };
     }
 }

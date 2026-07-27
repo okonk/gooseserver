@@ -1,25 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.IO;
+using CsvToSql.Core.Schema;
 
 namespace CsvToSql
 {
     class WarpTilesCsvToSql : CsvToSqlBase
     {
-        protected override string[] GetColumns()
+        public override Column[] GetColumnDescriptors() => new[]
         {
-            return new[] { "map_id", "map_x", "map_y", "warp_id", "warp_x", "warp_y" };
-        }
-
-        protected override string TransformValue(string columnName, string value)
-        {
-            switch (columnName)
-            {
-                default:
-                    return value;
-            }
-        }
+            Col.Id("map_id", SqlType.SmallInt).Ref("Maps"),
+            Col.Int("map_x", SqlType.SmallInt),
+            Col.Int("map_y", SqlType.SmallInt),
+            Col.Id("warp_id", SqlType.SmallInt).Ref("Maps"),
+            Col.Int("warp_x", SqlType.SmallInt),
+            Col.Int("warp_y", SqlType.SmallInt),
+        };
     }
 }

@@ -1,25 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.IO;
+using CsvToSql.Core.Schema;
 
 namespace CsvToSql
 {
     class MapRequiredItemsCsvToSql : CsvToSqlBase
     {
-        protected override string[] GetColumns()
+        public override Column[] GetColumnDescriptors() => new[]
         {
-            return new[] { "map_id", "item_template_id" };
-        }
-
-        protected override string TransformValue(string columnName, string value)
-        {
-            switch (columnName)
-            {
-                default:
-                    return value;
-            }
-        }
+            Col.Id("map_id", SqlType.Int).Ref("Maps"),
+            Col.Id("item_template_id", SqlType.Int).Ref("Items"),
+        };
     }
 }

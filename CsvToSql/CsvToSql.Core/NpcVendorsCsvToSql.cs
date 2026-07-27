@@ -1,28 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.IO;
+using CsvToSql.Core.Schema;
 
 namespace CsvToSql
 {
     class NpcVendorsCsvToSql : CsvToSqlBase
     {
-        protected override string[] GetColumns()
+        public override Column[] GetColumnDescriptors() => new[]
         {
-            return new[] { "npc_template_id", "item_template_id", "stack", "stats_visible", "slot" };
-        }
-
-        protected override string TransformValue(string columnName, string value)
-        {
-            switch (columnName)
-            {
-                case "stats_visible":
-                    // booleans
-                    return EscapeString(value);
-                default:
-                    return value;
-            }
-        }
+            Col.Id("npc_template_id", SqlType.Int).Ref("NPCs"),
+            Col.Id("item_template_id", SqlType.Int).Ref("Items"),
+            Col.Int("stack", SqlType.Int, def: 1),
+            Col.Bool("stats_visible", def: true),
+            Col.Int("slot", SqlType.Int),
+        };
     }
 }
