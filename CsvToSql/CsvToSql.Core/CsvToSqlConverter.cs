@@ -12,7 +12,42 @@ namespace CsvToSql.Core
     {
         public static string Convert(string dataLinkId)
         {
-            var converterMapping = new Dictionary<string, dynamic>()
+            var url = $"https://docs.google.com/spreadsheets/u/0/d/{dataLinkId}/export?format=xlsx&id={dataLinkId}";
+            var spreadsheet = new MemoryStream(new HttpClient().GetByteArrayAsync(url).Result);
+
+            return ConvertWorkbook(spreadsheet);
+        }
+
+        /// <summary>Converts an already-loaded .xlsx stream. Exists so tests can run against a
+        /// committed fixture instead of the network.</summary>
+        public static string ConvertWorkbook(Stream spreadsheet)
+        {
+            var converterMapping = BuildConverterMapping();
+
+            var assembly = typeof(CsvToSqlConverter).GetTypeInfo().Assembly;
+            var resource = assembly.GetManifestResourceStream($"CsvToSql.Core.sqlTemplate.sql");
+            using var streamReader = new StreamReader(resource, Encoding.UTF8);
+
+            string sqlTemplate = streamReader.ReadToEnd();
+
+            using (var workbook = new XLWorkbook(spreadsheet))
+            {
+                foreach (var worksheet in workbook.Worksheets)
+                {
+                    dynamic dyn = null;
+                    if (converterMapping.TryGetValue(worksheet.Name, out dyn))
+                    {
+                        sqlTemplate = dyn.Converter.Convert(worksheet, sqlTemplate, dyn.Table);
+                    }
+                }
+            }
+
+            return sqlTemplate;
+        }
+
+        private static Dictionary<string, dynamic> BuildConverterMapping()
+        {
+            return new Dictionary<string, dynamic>()
             {
                 { "Items", new { Converter = new ItemsCsvToSql(), Table = "item_templates" } },
                 { "NPC Drops", new { Converter = new NpcDropsCsvToSql(), Table = "npc_drops" } },
@@ -36,29 +71,6 @@ namespace CsvToSql.Core
                 { "Class Info", new { Converter = new ClassInfoCsvToSql(), Table = "class_info" } },
                 { "Class Levelup Spells", new { Converter = new ClassLevelupSpellsCsvToSql(), Table = "classes_levelup_spells" } },
             };
-
-            var url = $"https://docs.google.com/spreadsheets/u/0/d/{dataLinkId}/export?format=xlsx&id={dataLinkId}";
-            var spreadsheet = new MemoryStream(new HttpClient().GetByteArrayAsync(url).Result);
-
-            var assembly = typeof(CsvToSqlConverter).GetTypeInfo().Assembly;
-            var resource = assembly.GetManifestResourceStream($"CsvToSql.Core.sqlTemplate.sql");
-            using var streamReader = new StreamReader(resource, Encoding.UTF8);
-
-            string sqlTemplate = streamReader.ReadToEnd();
-
-            using (var workbook = new XLWorkbook(spreadsheet))
-            {
-                foreach (var worksheet in workbook.Worksheets)
-                {
-                    dynamic dyn = null;
-                    if (converterMapping.TryGetValue(worksheet.Name, out dyn))
-                    {
-                        sqlTemplate = dyn.Converter.Convert(worksheet, sqlTemplate, dyn.Table);
-                    }
-                }
-            }
-
-            return sqlTemplate;
         }
     }
 }
