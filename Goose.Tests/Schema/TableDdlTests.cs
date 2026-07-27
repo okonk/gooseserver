@@ -46,6 +46,28 @@ public class TableDdlTests
     }
 
     [Fact]
+    public void Nullable_column_keeps_default_and_drops_not_null()
+    {
+        var ddl = TableDdl.Emit("quests", new[]
+        {
+            Col.Int("class_restrictions", SqlType.BigInt, def: 0).Nullable(),
+            Col.Int("stack"),
+        }, indexes: null);
+
+        Assert.Contains("  class_restrictions BIGINT DEFAULT 0,\n", ddl);
+        Assert.DoesNotContain("class_restrictions BIGINT DEFAULT 0 NOT NULL", ddl);
+        Assert.Contains("  stack INT NOT NULL\n", ddl);
+    }
+
+    [Fact]
+    public void Nullable_column_without_default_emits_bare_type()
+    {
+        var ddl = TableDdl.Emit("t", new[] { Col.Text("note").Required().Nullable() }, indexes: null);
+
+        Assert.Contains("  note TEXT\n", ddl);
+    }
+
+    [Fact]
     public void Empty_index_list_emits_no_index()
     {
         // SchemaRegistry normalises null to an empty array, so this is the branch

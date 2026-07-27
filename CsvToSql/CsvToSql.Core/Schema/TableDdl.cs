@@ -30,7 +30,7 @@ namespace CsvToSql.Core.Schema
                 else
                 {
                     if (c.Default != null) sb.Append(" DEFAULT ").Append(c.Default);
-                    sb.Append(" NOT NULL");
+                    if (!c.IsNullable) sb.Append(" NOT NULL");
                 }
 
                 if (i < columns.Count - 1) sb.Append(',');

@@ -90,6 +90,11 @@ namespace Goose.Tests.Schema
                 Assert.True(d.Default == t.Default,
                     $"[{table}].{t.Name}: descriptor default {Show(d.Default)} != template default {Show(t.Default)}.");
 
+                Assert.True(d.IsNullable == t.IsNullable,
+                    $"[{table}].{t.Name}: descriptor IsNullable={d.IsNullable} but template " +
+                    $"{(t.IsNullable ? "does not declare" : "declares")} NOT NULL. " +
+                    "Add or remove .Nullable() on the descriptor to match.");
+
                 Assert.True(d.IsPrimaryKey == t.IsPrimaryKey,
                     $"[{table}].{t.Name}: descriptor IsPrimaryKey={d.IsPrimaryKey} but template " +
                     $"{(t.IsPrimaryKey ? "declares" : "does not declare")} PRIMARY KEY.");
@@ -112,7 +117,8 @@ namespace Goose.Tests.Schema
                 .OrderBy(t => t.Name)
                 .ToList();
 
-        private sealed record TemplateColumn(string Name, string SqlType, string? Default, bool IsPrimaryKey);
+        private sealed record TemplateColumn(
+            string Name, string SqlType, string? Default, bool IsPrimaryKey, bool IsNullable);
 
         private static string? _template;
 
@@ -158,11 +164,16 @@ namespace Goose.Tests.Schema
                 // spaces, e.g. '0,*,0,*,0,*') or a bare token (0, 100, 'Scripts/...').
                 var def = Regex.Match(mods, @"\bDEFAULT\s+(?<value>'(?:[^']|'')*'|\S+)", RegexOptions.IgnoreCase);
 
+                // A PRIMARY KEY column carries no NOT NULL in the template but is not nullable
+                // in the descriptor sense either — PrimaryKey() handles it.
+                var isNullable = !isPk && !Regex.IsMatch(mods, @"\bNOT\s+NULL\b", RegexOptions.IgnoreCase);
+
                 columns.Add(new TemplateColumn(
                     parts.Groups["name"].Value,
                     parts.Groups["type"].Value,
                     def.Success ? def.Groups["value"].Value : null,
-                    isPk));
+                    isPk,
+                    isNullable));
             }
 
             Assert.True(columns.Count > 0, $"[{table}] CREATE TABLE block parsed to zero columns.");

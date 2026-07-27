@@ -35,6 +35,22 @@ public class ColumnTests
     }
 
     [Fact]
+    public void Nullable_marks_column_without_touching_required_or_default()
+    {
+        var c = Col.Int("min_level", SqlType.Int, def: 0).Nullable();
+
+        Assert.True(c.IsNullable);
+        Assert.False(c.IsRequired);
+        Assert.Equal("0", c.Default);
+    }
+
+    [Fact]
+    public void Columns_are_not_nullable_by_default()
+    {
+        Assert.False(Col.Int("stack").IsNullable);
+    }
+
+    [Fact]
     public void Ref_records_target_sheet()
     {
         var c = Col.Id("npc_template_id").Ref("NPCs");

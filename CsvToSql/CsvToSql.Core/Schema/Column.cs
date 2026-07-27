@@ -15,11 +15,17 @@ namespace CsvToSql.Core.Schema
         public SqlType Type { get; }
         public string Default { get; private set; }
 
-        /// <summary>The spreadsheet cell must be non-empty. Not the same as NOT NULL — every
-        /// column is NOT NULL. This means there is no SQL DEFAULT to fall back on, and
-        /// CsvToSqlBase omits empty cells from the INSERT, so an empty cell would be rejected.
-        /// Always the exact complement of <see cref="Default"/> being set.</summary>
+        /// <summary>The spreadsheet cell must be non-empty. Not the same as the absence of
+        /// NOT NULL — see <see cref="IsNullable"/>. This means there is no SQL DEFAULT to fall
+        /// back on, and CsvToSqlBase omits empty cells from the INSERT, so an empty cell would
+        /// be rejected. Always the exact complement of <see cref="Default"/> being set.</summary>
         public bool IsRequired { get; private set; }
+
+        /// <summary>Purely a DDL fact: this column omits NOT NULL. Independent of
+        /// <see cref="IsRequired"/> and not its opposite — the 25 columns that need this all
+        /// have a DEFAULT, so they are already IsRequired == false, which is why IsRequired
+        /// cannot stand in for it. The DEFAULT is still emitted.</summary>
+        public bool IsNullable { get; private set; }
         public bool IsPrimaryKey { get; private set; }
         public string RefSheet { get; private set; }
         public Type EnumType { get; private set; }
@@ -38,6 +44,10 @@ namespace CsvToSql.Core.Schema
         /// Only needed for a column that would otherwise get a default; Col.* already marks a
         /// column required when no `def` is passed.</summary>
         public Column Required() { IsRequired = true; Default = null; return this; }
+        /// <summary>Suppresses NOT NULL in the generated DDL, matching a template column that
+        /// declares only a DEFAULT.</summary>
+        public Column Nullable() { IsNullable = true; return this; }
+
         public Column Ref(string sheet) { RefSheet = sheet; return this; }
 
         public Column PrimaryKey()
