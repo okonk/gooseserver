@@ -7,7 +7,7 @@ using System.Text;
 
 namespace CsvToSql
 {
-    abstract class CsvToSqlBase
+    public abstract class CsvToSqlBase
     {
         public string Convert(IXLWorksheet worksheet, string template, string tableName)
         {

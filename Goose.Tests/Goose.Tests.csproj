@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Goose\Goose.csproj" />
+    <ProjectReference Include="..\CsvToSql\CsvToSql.Core\CsvToSql.Core.csproj" />
   </ItemGroup>
 
 </Project>
