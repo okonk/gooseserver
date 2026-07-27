@@ -1,4 +1,5 @@
 ﻿using ClosedXML.Excel;
+using CsvToSql.Core.Schema;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -9,9 +10,19 @@ namespace CsvToSql
 {
     public abstract class CsvToSqlBase
     {
+        /// <summary>Descriptors for this sheet, or null while the converter still uses the
+        /// legacy string[] path. Ordered 1:1 with worksheet columns.</summary>
+        public virtual Column[] GetColumnDescriptors() => null;
+
+        /// <summary>Editor-facing composite annotations. Does not affect column order.</summary>
+        public virtual Composite[] GetComposites() => null;
+
         public string Convert(IXLWorksheet worksheet, string template, string tableName)
         {
-            string[] allColumns = GetColumns();
+            var descriptors = GetColumnDescriptors();
+            string[] allColumns = descriptors != null
+                ? descriptors.Select(d => d.Name).ToArray()
+                : GetColumns();
 
             var sqlBuilder = new StringBuilder();
 
@@ -26,7 +37,9 @@ namespace CsvToSql
                     if (value.Length == 0) continue;
 
                     columns.Add(allColumns[i]);
-                    values.Add(TransformValue(allColumns[i], value));
+                    values.Add(descriptors != null
+                        ? DescriptorTransform.Apply(descriptors[i], value)
+                        : TransformValue(allColumns[i], value));
                 }
 
                 sqlBuilder.AppendFormat("INSERT INTO {0} (", tableName);
@@ -49,7 +62,7 @@ namespace CsvToSql
             return ((int)Enum.Parse(enumType, value)).ToString();
         }
 
-        protected abstract string TransformValue(string columnName, string value);
-        protected abstract string[] GetColumns();
+        protected virtual string TransformValue(string columnName, string value) => value;
+        protected virtual string[] GetColumns() => null;
     }
 }

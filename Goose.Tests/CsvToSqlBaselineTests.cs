@@ -18,4 +18,16 @@ public class CsvToSqlBaselineTests
             AppContext.BaseDirectory, "..", "..", "..", "Fixtures", "baseline.sql");
         File.WriteAllText(Path.GetFullPath(target), sql);
     }
+
+    [Fact]
+    public void Output_matches_recorded_baseline()
+    {
+        using var fs = File.OpenRead(Path.Combine(FixtureDir, "aspereta-data.xlsx"));
+        var actual = CsvToSqlConverter.ConvertWorkbook(fs);
+        var expected = File.ReadAllText(Path.Combine(FixtureDir, "baseline.sql"));
+
+        Assert.Equal(Normalise(expected), Normalise(actual));
+    }
+
+    private static string Normalise(string sql) => sql.Replace("\r\n", "\n");
 }
