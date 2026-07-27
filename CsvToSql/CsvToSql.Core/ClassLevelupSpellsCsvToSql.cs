@@ -2,7 +2,7 @@ using CsvToSql.Core.Schema;
 
 namespace CsvToSql
 {
-    class ClassLevelupSpellsCsvToSql : CsvToSqlBase
+    public class ClassLevelupSpellsCsvToSql : CsvToSqlBase
     {
         public override Column[] GetColumnDescriptors() => new[]
         {

@@ -6,7 +6,7 @@ using System.IO;
 
 namespace CsvToSql
 {
-    class QuestRequirementsCsvToSql : CsvToSqlBase
+    public class QuestRequirementsCsvToSql : CsvToSqlBase
     {
         protected override string[] GetColumns()
         {

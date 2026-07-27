@@ -6,7 +6,7 @@ using System.IO;
 
 namespace CsvToSql
 {
-    class ClassesCsvToSql : CsvToSqlBase
+    public class ClassesCsvToSql : CsvToSqlBase
     {
         protected override string[] GetColumns()
         {

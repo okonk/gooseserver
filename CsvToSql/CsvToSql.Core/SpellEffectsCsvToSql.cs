@@ -5,7 +5,7 @@ using System.Text;
 
 namespace CsvToSql
 {
-    class SpellEffectsCsvToSql : CsvToSqlBase
+    public class SpellEffectsCsvToSql : CsvToSqlBase
     {
         protected override string[] GetColumns()
         {

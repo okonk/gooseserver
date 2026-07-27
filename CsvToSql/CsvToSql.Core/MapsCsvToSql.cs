@@ -6,7 +6,7 @@ using System.IO;
 
 namespace CsvToSql
 {
-    class MapsCsvToSql : CsvToSqlBase
+    public class MapsCsvToSql : CsvToSqlBase
     {
         protected override string[] GetColumns()
         {
