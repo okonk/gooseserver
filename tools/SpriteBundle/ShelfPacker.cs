@@ -5,13 +5,17 @@ public readonly record struct Placement(int Index, int X, int Y);
 public sealed record PackResult(int Width, int Height, IReadOnlyList<Placement> Placements);
 
 /// <summary>Shelf (row) packing: sort tallest-first, fill a fixed-width row left to right,
-/// start a new row when a sprite will not fit. Row height is its tallest sprite. Measured
-/// 95-98% area efficiency on the real sprite sets, which is close enough to optimal that a
-/// full bin packer is not worth the dependency.</summary>
+/// start a new row when a sprite will not fit. Row height is its tallest sprite, so sorting
+/// tallest-first leaves only the ragged right edge of each row unused — close enough to optimal
+/// that a full bin packer is not worth the dependency.</summary>
 public static class ShelfPacker
 {
     public static PackResult Pack(IReadOnlyList<(int W, int H)> sizes, int width)
     {
+        if (width <= 0)
+            throw new ArgumentOutOfRangeException(
+                nameof(width), width, "atlas width must be positive");
+
         var order = Enumerable.Range(0, sizes.Count)
             .OrderByDescending(i => sizes[i].H)
             .ThenBy(i => i)          // stable, so output is deterministic

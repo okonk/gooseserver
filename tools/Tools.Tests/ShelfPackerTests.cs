@@ -56,16 +56,23 @@ public class ShelfPackerTests
         }
     }
 
+    /// <summary>Task 5 allocates the atlas image from Width/Height, so every sprite must fall
+    /// inside those bounds and none may be silently dropped — the overlap test passes trivially
+    /// if placements go missing.</summary>
     [Fact]
-    public void Nothing_exceeds_the_configured_width()
+    public void Every_sprite_is_placed_within_the_reported_bounds()
     {
         var rng = new Random(99);
         var sizes = Enumerable.Range(0, 300).Select(_ => (rng.Next(8, 200), rng.Next(8, 80))).ToList();
 
         var packed = ShelfPacker.Pack(sizes, width: 512);
 
+        Assert.Equal(sizes.Count, packed.Placements.Count);
         foreach (var p in packed.Placements)
+        {
             Assert.True(p.X + sizes[p.Index].Item1 <= 512);
+            Assert.True(p.Y + sizes[p.Index].Item2 <= packed.Height);
+        }
     }
 
     [Fact]
@@ -100,5 +107,18 @@ public class ShelfPackerTests
         Assert.Contains("sprite 1", e.Message);
         Assert.Contains("600", e.Message);
         Assert.Contains("512", e.Message);
+    }
+
+    /// <summary>A non-positive width is the caller's error; failing at the boundary keeps it
+    /// from surfacing as a misleading complaint about the first sprite, or as a 0x0 atlas.</summary>
+    [Fact]
+    public void Non_positive_width_is_rejected()
+    {
+        var e = Assert.Throws<ArgumentOutOfRangeException>(
+            () => ShelfPacker.Pack(Sizes((10, 10)), width: 0));
+        Assert.Equal("width", e.ParamName);
+
+        Assert.Throws<ArgumentOutOfRangeException>(
+            () => ShelfPacker.Pack(Array.Empty<(int, int)>(), width: -1));
     }
 }
