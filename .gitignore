@@ -12,4 +12,6 @@ obj/
 
 
 .worktrees/
-CsvToSql/CsvToSql.Console/illutiaData.sql
+# CsvToSql.Console writes this to the current working directory, not the project
+# directory, so it must not be anchored to a path.
+illutiaData.sql
