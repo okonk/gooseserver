@@ -74,8 +74,6 @@ namespace CsvToSql
             Col.Int("body_b", SqlType.SmallInt, def: 0),
             Col.Int("body_a", SqlType.SmallInt, def: 0),
 
-            // Stuff for teleport. teleport_map is a real map id — SpellEffect.cs:447 looks it
-            // up with MapHandler.GetMap — so it gets a reference like any other foreign key.
             Col.Id("teleport_map", SqlType.Int, def: 1).Ref("Maps"),
             Col.Int("teleport_x", SqlType.Int, def: 50),
             Col.Int("teleport_y", SqlType.Int, def: 50),
@@ -95,8 +93,6 @@ namespace CsvToSql
 
             Col.Decimal("random_join_chance", SqlType.Decimal52, def: "0"),
 
-            // 0 means "none" for both of these. That is not a reason to omit .Ref — the
-            // editor treats a zero foreign key as none and skips the existence check.
             Col.Id("on_hit_spell_effect_id", SqlType.Int, def: 0).Ref("Spell Effects"),
             Col.Decimal("on_hit_spell_chance", SqlType.Decimal52, def: "100"),
             Col.Id("on_attack_spell_effect_id", SqlType.Int, def: 0).Ref("Spell Effects"),
