@@ -1,49 +1,65 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.IO;
+﻿using CsvToSql.Core.Schema;
 
 namespace CsvToSql
 {
     public class ItemsCsvToSql : CsvToSqlBase
     {
-        protected override string[] GetColumns()
+        public override Column[] GetColumnDescriptors() => new[]
         {
-            return new[] { "item_template_id", "item_usetype", "item_name", "item_description", "player_hp", "player_mp",
-                "player_sp", "stat_ac", "stat_str", "stat_sta", "stat_dex", "stat_int", "res_fire", "res_water", "res_spirit", "res_air",
-                "res_earth", "min_experience", "min_level", "max_experience", "max_level", "weapon_damage", "weapon_delay", "item_slot",
-                "item_type", "item_value", "lore", "bindonpickup", "bindonequip", "event", "graphic_tile", "graphic_file", "graphic_equip",
-                "graphic_r", "graphic_g", "graphic_b", "graphic_a", "class_restrictions", "stack_size", "body_state", "spell_effect_id",
-                "spell_effect_chance", "learn_spell_id", "credits_value", "script_path", "script_params"
-            };
-        }
+            Col.Id("item_template_id", SqlType.Integer).PrimaryKey(),
+            Col.Enum<UseTypes>("item_usetype", SqlType.SmallInt),
+            Col.Text("item_name"),
+            Col.Text("item_description", def: "''"),
+            Col.Int("player_hp", SqlType.Int, def: 0),
+            Col.Int("player_mp", SqlType.Int, def: 0),
+            Col.Int("player_sp", SqlType.Int, def: 0),
+            Col.Int("stat_ac", SqlType.SmallInt, def: 0),
+            Col.Int("stat_str", SqlType.SmallInt, def: 0),
+            Col.Int("stat_sta", SqlType.SmallInt, def: 0),
+            Col.Int("stat_dex", SqlType.SmallInt, def: 0),
+            Col.Int("stat_int", SqlType.SmallInt, def: 0),
+            Col.Int("res_fire", SqlType.SmallInt, def: 0),
+            Col.Int("res_water", SqlType.SmallInt, def: 0),
+            Col.Int("res_spirit", SqlType.SmallInt, def: 0),
+            Col.Int("res_air", SqlType.SmallInt, def: 0),
+            Col.Int("res_earth", SqlType.SmallInt, def: 0),
+            Col.Int("min_experience", SqlType.BigInt, def: 0),
+            Col.Int("min_level", SqlType.SmallInt, def: 0),
+            Col.Int("max_experience", SqlType.BigInt, def: 0),
+            Col.Int("max_level", SqlType.SmallInt, def: 0),
+            Col.Int("weapon_damage", SqlType.Int, def: 0),
+            Col.Int("weapon_delay", SqlType.SmallInt, def: 10),
+            Col.Enum<ItemSlots>("item_slot", SqlType.SmallInt, def: 20),
+            Col.Enum<ItemTypes>("item_type", SqlType.SmallInt, def: 0),
+            Col.Int("item_value", SqlType.BigInt, def: 0),
+            Col.Bool("lore", def: false),
+            Col.Bool("bindonpickup", def: false),
+            Col.Bool("bindonequip", def: false),
+            Col.Bool("event", def: false),
+            Col.Int("graphic_tile", SqlType.Int),
+            Col.Int("graphic_file", SqlType.Int, def: 0),
+            Col.Int("graphic_equip", SqlType.SmallInt, def: 0),
+            Col.Int("graphic_r", SqlType.SmallInt, def: 0),
+            Col.Int("graphic_g", SqlType.SmallInt, def: 0),
+            Col.Int("graphic_b", SqlType.SmallInt, def: 0),
+            Col.Int("graphic_a", SqlType.SmallInt, def: 0),
+            Col.Int("class_restrictions", SqlType.BigInt, def: 0),
+            Col.Int("stack_size", SqlType.SmallInt, def: 1),
+            Col.Int("body_state", SqlType.SmallInt, def: 3),
+            Col.Int("spell_effect_id", SqlType.Int, def: 0),
+            Col.Decimal("spell_effect_chance", SqlType.Decimal94, def: "100"),
+            Col.Int("learn_spell_id", SqlType.Int, def: 0),
+            Col.Int("credits_value", SqlType.Int, def: 0),
+            Col.Text("script_path", def: "''"),
+            Col.Text("script_params", def: "''"),
+        };
 
-        protected override string TransformValue(string columnName, string value)
+        public override Composite[] GetComposites() => new[]
         {
-            switch (columnName)
-            {
-                case "item_description":
-                case "item_name":
-                case "script_path":
-                case "script_params":
-                    return EscapeString(value);
-                case "lore":
-                case "bindonpickup":
-                case "bindonequip":
-                case "event":
-                    // booleans
-                    return EscapeString(value);
-                case "item_usetype":
-                    return ConvertEnum(value, typeof(UseTypes));
-                case "item_slot":
-                    return ConvertEnum(value, typeof(ItemSlots));
-                case "item_type":
-                    return ConvertEnum(value, typeof(ItemTypes));
-                default:
-                    return value;
-            }
-        }
+            Composite.Graphic(tile: "graphic_tile", file: "graphic_file"),
+            Composite.Rgba(r: "graphic_r", g: "graphic_g", b: "graphic_b", a: "graphic_a"),
+            Composite.Bitmask("class_restrictions", from: "Classes"),
+        };
 
         public enum UseTypes
         {

@@ -1,34 +1,35 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.IO;
+﻿using CsvToSql.Core.Schema;
 
 namespace CsvToSql
 {
     public class SpellsCsvToSql : CsvToSqlBase
     {
-        protected override string[] GetColumns()
+        public override Column[] GetColumnDescriptors() => new[]
         {
-            return new[] {
-                "spell_id", "spell_name", "spell_description", "spell_target", "class_restrictions", "spell_aether", "spellbook_graphic", "spellbook_graphic_file", "hp_static_cost", "hp_percent_cost",
-                "mp_static_cost", "mp_percent_cost", "sp_static_cost", "sp_percent_cost", "spell_effect_id"
-            };
-        }
+            Col.Id("spell_id", SqlType.Integer).PrimaryKey(),
+            Col.Text("spell_name"),
+            Col.Text("spell_description", def: "''"),
+            Col.Enum<SpellTargets>("spell_target", SqlType.Int),
+            Col.Int("class_restrictions", SqlType.BigInt, def: 0), // if bit not set class id can cast
+            Col.Int("spell_aether", SqlType.BigInt, def: 100), // Aether in milliseconds
+            Col.Int("spellbook_graphic", SqlType.Int),
+            Col.Int("spellbook_graphic_file", SqlType.Int, def: 0),
 
-        protected override string TransformValue(string columnName, string value)
+            Col.Int("hp_static_cost", SqlType.Int, def: 0),
+            Col.Decimal("hp_percent_cost", SqlType.Decimal94, def: "0"),
+            Col.Int("mp_static_cost", SqlType.Int, def: 0),
+            Col.Decimal("mp_percent_cost", SqlType.Decimal94, def: "0"),
+            Col.Int("sp_static_cost", SqlType.Int, def: 0),
+            Col.Decimal("sp_percent_cost", SqlType.Decimal94, def: "0"),
+
+            Col.Int("spell_effect_id", SqlType.Int),
+        };
+
+        public override Composite[] GetComposites() => new[]
         {
-            switch (columnName)
-            {
-                case "spell_name":
-                case "spell_description":
-                    return EscapeString(value);
-                case "spell_target":
-                    return ConvertEnum(value, typeof(SpellTargets));
-                default:
-                    return value;
-            }
-        }
+            Composite.Bitmask("class_restrictions", from: "Classes"),
+            Composite.Graphic(tile: "spellbook_graphic", file: "spellbook_graphic_file"),
+        };
 
         public enum SpellTargets
         {

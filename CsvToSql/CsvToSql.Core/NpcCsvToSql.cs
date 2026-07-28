@@ -1,53 +1,84 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.IO;
+﻿using CsvToSql.Core.Schema;
 
 namespace CsvToSql
 {
     public class NpcCsvToSql : CsvToSqlBase
     {
-        protected override string[] GetColumns()
+        public override Column[] GetColumnDescriptors() => new[]
         {
-            return new[] {"npc_id", "npc_type", "npc_name", "npc_title", "npc_surname", "respawn_time", "npc_facing", "npc_level", "experience", "aggro_range",
-                "attack_range", "attack_speed", "move_speed", "stationary", "stunnable", "rootable", "slowable", "invincible", "npc_hp", "npc_mp", "npc_sp",
-                "class_id", "stat_ac", "stat_str", "stat_sta", "stat_dex", "stat_int", "res_fire", "res_water", "res_spirit", "res_air", "res_earth", "body_state",
-                "body_id", "body_r", "body_g", "body_b", "body_a", "face_id", "hair_id", "hair_r", "hair_g", "hair_b", "hair_a", "equipped_items", "weapon_damage",
-                "armor_pierce", "hp_percent_regen", "hp_static_regen", "mp_percent_regen", "mp_static_regen", "npc_alliance", "stuck_behaviour", "stuck_timeout",
-                "credit_dealer", "quest_ids", "script_path", "script_params"
-            };
-        }
+            Col.Id("npc_id", SqlType.Integer).PrimaryKey(),
+            Col.Enum<Types>("npc_type", SqlType.SmallInt, def: 2),
+            Col.Text("npc_name"),
+            Col.Text("npc_title", def: "''"),
+            Col.Text("npc_surname", def: "''"),
+            Col.Int("respawn_time", SqlType.Int, def: 0),
+            Col.Int("npc_facing", SqlType.SmallInt, def: 3),
+            Col.Int("npc_level", SqlType.SmallInt, def: 1),
+            Col.Int("experience", SqlType.BigInt, def: 0),
+            Col.Int("aggro_range", SqlType.SmallInt, def: 0),
+            Col.Int("attack_range", SqlType.SmallInt, def: 0),
+            Col.Decimal("attack_speed", SqlType.Decimal94, def: "2"),
+            Col.Decimal("move_speed", SqlType.Decimal94, def: "2"),
+            Col.Bool("stationary", def: false),
+            Col.Bool("stunnable", def: false),
+            Col.Bool("rootable", def: false),
+            Col.Bool("slowable", def: false),
+            Col.Bool("invincible", def: false),
 
-        protected override string TransformValue(string columnName, string value)
+            Col.Int("npc_hp", SqlType.Int, def: 0),
+            Col.Int("npc_mp", SqlType.Int, def: 0),
+            Col.Int("npc_sp", SqlType.Int, def: 0),
+            Col.Id("class_id", SqlType.SmallInt, def: 1).Ref("Classes"),
+            Col.Int("stat_ac", SqlType.SmallInt, def: 0),
+            Col.Int("stat_str", SqlType.SmallInt, def: 0),
+            Col.Int("stat_sta", SqlType.SmallInt, def: 0),
+            Col.Int("stat_dex", SqlType.SmallInt, def: 0),
+            Col.Int("stat_int", SqlType.SmallInt, def: 0),
+            Col.Int("res_fire", SqlType.SmallInt, def: 0),
+            Col.Int("res_water", SqlType.SmallInt, def: 0),
+            Col.Int("res_spirit", SqlType.SmallInt, def: 0),
+            Col.Int("res_air", SqlType.SmallInt, def: 0),
+            Col.Int("res_earth", SqlType.SmallInt, def: 0),
+
+            Col.Int("body_state", SqlType.SmallInt, def: 1),
+            Col.Int("body_id", SqlType.SmallInt, def: 1),
+            Col.Int("body_r", SqlType.SmallInt, def: 0),
+            Col.Int("body_g", SqlType.SmallInt, def: 0),
+            Col.Int("body_b", SqlType.SmallInt, def: 0),
+            Col.Int("body_a", SqlType.SmallInt, def: 0),
+            Col.Int("face_id", SqlType.SmallInt, def: 0),
+            Col.Int("hair_id", SqlType.SmallInt, def: 0),
+            Col.Int("hair_r", SqlType.SmallInt, def: 0),
+            Col.Int("hair_g", SqlType.SmallInt, def: 0),
+            Col.Int("hair_b", SqlType.SmallInt, def: 0),
+            Col.Int("hair_a", SqlType.SmallInt, def: 0),
+            Col.Text("equipped_items", def: "'0,*,0,*,0,*,0,*,0,*,0,*'"),
+
+            Col.Int("weapon_damage", SqlType.Int, def: 1),
+            // Worksheet order. sqlTemplate.sql lists armor_pierce last, after script_params —
+            // do not "fix" this to match it: cells are read positionally, so moving it would
+            // write every later column's value into the wrong column.
+            Col.Int("armor_pierce", SqlType.Int, def: 0),
+            Col.Decimal("hp_percent_regen", SqlType.Decimal94, def: "0"),
+            Col.Int("hp_static_regen", SqlType.Int, def: 0),
+            Col.Decimal("mp_percent_regen", SqlType.Decimal94, def: "0"),
+            Col.Int("mp_static_regen", SqlType.Int, def: 0),
+            Col.Text("npc_alliance", def: "''"),
+            Col.Enum<BehaviourTypes>("stuck_behaviour", SqlType.SmallInt, def: 0),
+            Col.Int("stuck_timeout", SqlType.Int, def: 20), // Time since last attack to do behaviour in seconds
+            Col.Bool("credit_dealer", def: false),
+            Col.Text("quest_ids", def: "''"),
+            Col.Text("script_path", def: "'Scripts/NPC/BaseNPC.csx'"),
+            Col.Text("script_params", def: "''"),
+        };
+
+        public override Composite[] GetComposites() => new[]
         {
-            switch (columnName)
-            {
-                case "npc_name":
-                case "npc_title":
-                case "npc_surname":
-                case "quest_ids":
-                case "equipped_items":
-                case "npc_alliance":
-                case "script_path":
-                case "script_params":
-                    return EscapeString(value);
-                case "stationary":
-                case "stunnable":
-                case "rootable":
-                case "slowable":
-                case "invincible":
-                case "credit_dealer":
-                    // booleans
-                    return EscapeString(value);
-                case "npc_type":
-                    return ConvertEnum(value, typeof(Types));
-                case "stuck_behaviour":
-                    return ConvertEnum(value, typeof(BehaviourTypes));
-                default:
-                    return value;
-            }
-        }
+            Composite.Rgba(r: "body_r", g: "body_g", b: "body_b", a: "body_a"),
+            Composite.Rgba(r: "hair_r", g: "hair_g", b: "hair_b", a: "hair_a"),
+            Composite.EquipSlots("equipped_items"),
+            Composite.IdList("quest_ids", refSheet: "Quests"),
+        };
 
         public enum Types
         {
