@@ -36,7 +36,7 @@ namespace CsvToSql.Core
                     // blank line separating one block from the next.
                     sb.Append(TableDdl.Emit(schema.Table, schema.Columns, schema.Indexes));
                     sb.Append('\n');
-                    sb.Append(schema.Converter.BuildInserts(worksheet, schema.Table));
+                    sb.Append(schema.Converter.BuildInserts(worksheet, schema.Table, schema.Columns));
                     sb.Append('\n');
                 }
             }

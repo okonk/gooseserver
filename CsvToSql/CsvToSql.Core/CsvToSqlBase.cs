@@ -16,10 +16,13 @@ namespace CsvToSql
         public virtual Composite[] GetComposites() => null;
 
         /// <summary>Renders one INSERT per non-empty worksheet row. An empty cell is omitted
-        /// from its statement entirely, so the column's declared default applies.</summary>
-        public string BuildInserts(IXLWorksheet worksheet, string tableName)
+        /// from its statement entirely, so the column's declared default applies.
+        ///
+        /// Takes the descriptors rather than re-reading them, so the INSERTs and the DDL are
+        /// provably built from the same list rather than from two lists that merely agree.</summary>
+        public string BuildInserts(IXLWorksheet worksheet, string tableName,
+                                   IReadOnlyList<Column> descriptors)
         {
-            var descriptors = GetColumnDescriptors();
             var sqlBuilder = new StringBuilder();
 
             foreach (var row in worksheet.Rows().Skip(1).Where(r => !r.IsEmpty()))
@@ -27,7 +30,7 @@ namespace CsvToSql
                 List<string> columns = new List<string>();
                 List<string> values = new List<string>();
 
-                for (int i = 0; i < descriptors.Length; i++)
+                for (int i = 0; i < descriptors.Count; i++)
                 {
                     string value = row.Cell(i + 1).GetValue<string>();
                     if (value.Length == 0) continue;
