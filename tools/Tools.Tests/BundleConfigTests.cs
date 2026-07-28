@@ -2,10 +2,29 @@ using Goose.Tools.SpriteBundle;
 
 namespace Tools.Tests;
 
-public class BundleConfigTests
+public class BundleConfigTests : IDisposable
 {
+    private readonly List<string> _tempDirs = [];
+
+    public void Dispose()
+    {
+        foreach (var dir in _tempDirs)
+            Directory.Delete(dir, recursive: true);
+    }
+
     private static string ConfigPath => Path.Combine(
         AppContext.BaseDirectory, "sheets.json");
+
+    /// <summary>Writes a throwaway config; the directory is removed in Dispose.</summary>
+    private string WriteTempConfig(string json)
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "bundle-config-tests-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        _tempDirs.Add(dir);
+        var path = Path.Combine(dir, "sheets.json");
+        File.WriteAllText(path, json);
+        return path;
+    }
 
     [Fact]
     public void Loads_the_checked_in_config()
@@ -71,44 +90,66 @@ public class BundleConfigTests
         Assert.Contains(config.EffectsCategory, config.PartCategories);
     }
 
+    /// <summary>The icons bundle skips any listed sheet the manifest does not have, silently and
+    /// without a count discrepancy. That would leave the file's whole purpose — hand-adding
+    /// sheets to widen the palette before the data references them — with no feedback loop, so
+    /// the check lives here instead. Passes today; only fires on a bad hand-edit.</summary>
+    [SkippableFact]
+    public void Every_icon_sheet_exists_in_the_client_manifest()
+    {
+        Skip.If(ManifestTests.AssetRoot is null, "client assets not available");
+
+        var config = BundleConfig.Load(ConfigPath);
+        var manifest = Manifest.Load(ManifestTests.AssetRoot!);
+
+        var missing = config.IconSheets.Where(s => !manifest.Sheets.ContainsKey(s)).ToArray();
+
+        Assert.True(missing.Length == 0,
+            $"sheets.json lists sheets absent from the manifest: {string.Join(", ", missing)}");
+    }
+
     [Fact]
     public void A_missing_file_names_the_path()
     {
         var path = Path.Combine(AppContext.BaseDirectory, "no-such-config.json");
 
-        var ex = Assert.Throws<InvalidDataException>(() => BundleConfig.Load(path));
-        Assert.Contains(path, ex.Message);
+        var e = Assert.Throws<InvalidDataException>(() => BundleConfig.Load(path));
+
+        Assert.Contains(path, e.Message);
     }
 
     [Fact]
     public void Malformed_json_names_the_path()
     {
-        var path = Path.Combine(Path.GetTempPath(), $"bundle-config-{Guid.NewGuid():N}.json");
-        File.WriteAllText(path, "{ not json");
-        try
-        {
-            var ex = Assert.Throws<InvalidDataException>(() => BundleConfig.Load(path));
-            Assert.Contains(path, ex.Message);
-        }
-        finally
-        {
-            File.Delete(path);
-        }
+        var path = WriteTempConfig("{ not json");
+
+        var e = Assert.Throws<InvalidDataException>(() => BundleConfig.Load(path));
+
+        Assert.Contains(path, e.Message);
     }
 
     [Fact]
     public void A_json_null_document_names_the_path()
     {
-        var path = Path.Combine(Path.GetTempPath(), $"bundle-config-{Guid.NewGuid():N}.json");
-        File.WriteAllText(path, "null");
-        try
-        {
-            var ex = Assert.Throws<InvalidDataException>(() => BundleConfig.Load(path));
-            Assert.Contains(path, ex.Message);
-        }
-        finally
-        {
-            File.Delete(path);
-        }
+        var path = WriteTempConfig("null");
+
+        var e = Assert.Throws<InvalidDataException>(() => BundleConfig.Load(path));
+
+        Assert.Contains(path, e.Message);
+    }
+
+    /// <summary>A zero or missing atlasWidth would reach the packer as a degenerate width
+    /// rather than failing at the boundary.</summary>
+    [Theory]
+    [InlineData("""{"atlasWidth":0}""")]
+    [InlineData("""{"atlasWidth":-1}""")]
+    public void Non_positive_atlas_width_names_the_path(string json)
+    {
+        var path = WriteTempConfig(json);
+
+        var e = Assert.Throws<InvalidDataException>(() => BundleConfig.Load(path));
+
+        Assert.Contains(path, e.Message);
+        Assert.Contains("atlasWidth", e.Message);
     }
 }

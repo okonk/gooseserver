@@ -16,8 +16,10 @@ public static class Program
         }
     }
 
-    /// <summary>Prints the union of icon sheets referenced by the given databases, ready to paste
-    /// into sheets.json. Run once per dataset; the file itself stays checked in.</summary>
+    /// <summary>Prints the union of icon sheets referenced by the given databases, wrapped to
+    /// match the checked-in file so the body pastes straight into the "iconSheets" array. Pass
+    /// every dataset at once — `derive-sheets &lt;db1&gt; &lt;db2&gt;` — rather than running per
+    /// dataset and merging by hand.</summary>
     private static int DeriveSheets(string[] dbPaths)
     {
         if (dbPaths.Length == 0)
@@ -43,7 +45,7 @@ public static class Program
         }
 
         Console.Error.WriteLine($"union: {sheets.Count} sheets");
-        Console.WriteLine(string.Join(", ", sheets));
+        Console.WriteLine(SheetDeriver.Format(sheets));
         return 0;
     }
 }

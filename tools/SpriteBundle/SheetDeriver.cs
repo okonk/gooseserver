@@ -1,9 +1,11 @@
 using System.Data.SQLite;
+using System.Text;
 
 namespace Goose.Tools.SpriteBundle;
 
-/// <summary>Derives the icon sheet list from a built game database. Run once per dataset and
-/// union the results into sheets.json.</summary>
+/// <summary>Derives the icon sheet list a dataset references, from its built game database.
+/// Callers pass every dataset's database in one go and union the results; sheets.json itself
+/// stays checked in, so this only ever seeds or refreshes it.</summary>
 public static class SheetDeriver
 {
     private static readonly string[] Queries =
@@ -53,5 +55,37 @@ public static class SheetDeriver
         }
 
         return sheets;
+    }
+
+    /// <summary>Renders a sheet list as the body of sheets.json's "iconSheets" array: four-space
+    /// indent, wrapped at the same width the checked-in file uses, so it pastes without
+    /// reflowing.</summary>
+    public static string Format(IEnumerable<int> sheets)
+    {
+        const string Indent = "    ";
+        const int Width = 72;
+
+        // Commas ride along with the value they follow, so wrapping never orphans one.
+        var list = sheets.ToList();
+        var tokens = list.Select((s, i) => i == list.Count - 1 ? $"{s}" : $"{s},").ToList();
+
+        var lines = new List<string>();
+        var line = new StringBuilder(Indent);
+
+        foreach (var token in tokens)
+        {
+            var separator = line.Length > Indent.Length ? " " : "";
+            if (line.Length + separator.Length + token.Length > Width)
+            {
+                lines.Add(line.ToString());
+                line = new StringBuilder(Indent);
+                separator = "";
+            }
+
+            line.Append(separator).Append(token);
+        }
+
+        if (line.Length > Indent.Length) lines.Add(line.ToString());
+        return string.Join('\n', lines);
     }
 }

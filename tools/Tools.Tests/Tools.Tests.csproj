@@ -15,7 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="../SpriteBundle/sheets.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../SpriteBundle/sheets.json" Link="sheets.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
