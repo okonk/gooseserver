@@ -35,30 +35,59 @@ public sealed class BuiltAtlas : IDisposable
 /// asset must not take down a bundle build.</summary>
 public static class AtlasBuilder
 {
-    public static BuiltAtlas Build(Manifest manifest, IReadOnlyList<SpriteRef> sources, int width)
+    /// <summary>One sprite as the packing core sees it, after the caller has said where its
+    /// source rect comes from. Unresolved is non-null when the caller could not produce a rect at
+    /// all; it is carried through rather than dropped so the key still gets a Skipped entry (and
+    /// still participates in duplicate detection).</summary>
+    private readonly record struct Candidate(
+        string Key, int Sheet, SpriteRect Rect, string? Unresolved);
+
+    /// <summary>Packs sprites whose rects live in the manifest, keyed by sheet and graphic id.</summary>
+    public static BuiltAtlas Build(Manifest manifest, IReadOnlyList<SpriteRef> sources, int width) =>
+        BuildCore(manifest, sources.Select(s =>
+            manifest.TryGetRect(s.Sheet, s.Graphic, out var rect)
+                ? new Candidate(s.Key, s.Sheet, rect, null)
+                : new Candidate(s.Key, s.Sheet, default,
+                    $"sheet {s.Sheet} has no graphic {s.Graphic} in the manifest")),
+            sources.Count, width, nameof(sources));
+
+    /// <summary>Packs frames whose rects are already known (they come from a .tres) rather than
+    /// looked up in the manifest. Everything after that — bounds validation against the real PNG,
+    /// duplicate detection, packing, sheet-grouped decode, pixel copy — is shared with Build, so
+    /// both entry points behave identically on bad input.</summary>
+    public static BuiltAtlas BuildFromFrames(Manifest manifest,
+        IReadOnlyList<(string Key, TresFrame Frame)> frames, int width) =>
+        BuildCore(manifest, frames.Select(f => new Candidate(
+                f.Key, f.Frame.Sheet, new SpriteRect(f.Frame.X, f.Frame.Y, f.Frame.W, f.Frame.H),
+                null)),
+            frames.Count, width, nameof(frames));
+
+    private static BuiltAtlas BuildCore(Manifest manifest, IEnumerable<Candidate> candidates,
+                                       int count, int width, string paramName)
     {
-        var resolved = new List<(SpriteRef Ref, SpriteRect Rect)>(sources.Count);
+        var resolved = new List<Candidate>(count);
         var skipped = new List<SkippedSprite>();
-        var keys = new HashSet<string>(sources.Count);
+        var keys = new HashSet<string>(count);
 
         // Sheets are shared by many sprites (~104k sprites over ~7.4k sheets in the client
         // corpus), so probe each PNG's header once. Null means the file is absent.
         var sheetSizes = new Dictionary<int, (int W, int H)?>();
 
-        foreach (var s in sources)
+        foreach (var s in candidates)
         {
             // A duplicate key would pack the sprite twice and leave Rects pointing at only one
             // copy — and if the two instances disagreed on resolvability, put the key in both
             // Rects and Skipped. Cheaper to reject than to define semantics for.
             if (!keys.Add(s.Key))
-                throw new ArgumentException($"duplicate sprite key '{s.Key}'", nameof(sources));
+                throw new ArgumentException($"duplicate sprite key '{s.Key}'", paramName);
 
-            if (!manifest.TryGetRect(s.Sheet, s.Graphic, out var rect))
+            if (s.Unresolved is { } reason)
             {
-                skipped.Add(new SkippedSprite(
-                    s.Key, $"sheet {s.Sheet} has no graphic {s.Graphic} in the manifest"));
+                skipped.Add(new SkippedSprite(s.Key, reason));
                 continue;
             }
+
+            var rect = s.Rect;
 
             if (!sheetSizes.TryGetValue(s.Sheet, out var size))
             {
@@ -106,7 +135,7 @@ public static class AtlasBuilder
                 continue;
             }
 
-            resolved.Add((s, rect));
+            resolved.Add(s);
         }
 
         var packed = ShelfPacker.Pack(
@@ -119,19 +148,19 @@ public static class AtlasBuilder
         try
         {
             // Group by sheet so each PNG is decoded once.
-            foreach (var group in packed.Placements.GroupBy(p => resolved[p.Index].Ref.Sheet))
+            foreach (var group in packed.Placements.GroupBy(p => resolved[p.Index].Sheet))
             {
                 using var sheet = Image.Load<Rgba32>(manifest.SheetPath(group.Key));
 
                 foreach (var p in group)
                 {
-                    var (sref, src) = resolved[p.Index];
+                    var src = resolved[p.Index].Rect;
 
                     for (int y = 0; y < src.H; y++)
                     for (int x = 0; x < src.W; x++)
                         atlas[p.X + x, p.Y + y] = sheet[src.X + x, src.Y + y];
 
-                    rects[sref.Key] = new SpriteRect(p.X, p.Y, src.W, src.H);
+                    rects[resolved[p.Index].Key] = new SpriteRect(p.X, p.Y, src.W, src.H);
                 }
             }
         }

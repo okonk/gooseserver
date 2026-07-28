@@ -296,4 +296,111 @@ public class AtlasBuilderTests : IDisposable
         Assert.Equal(Red, built.Image[left.X, left.Y]);
         Assert.Equal(Green, built.Image[right.X, right.Y]);
     }
+
+    // ---- BuildFromFrames ------------------------------------------------------------------
+    //
+    // Parts and effects carry their rects on the .tres frame instead of looking them up in the
+    // manifest. Everything after that lookup is shared with Build, so these tests cover the
+    // difference plus one case per hardening guard to pin that the sharing is real.
+
+    [Fact]
+    public void Frames_are_packed_from_their_own_rects_not_the_manifest()
+    {
+        var dir = NewAssetDir();
+
+        using (var img = new Image<Rgba32>(8, 8))
+        {
+            for (int y = 0; y < 8; y++)
+            for (int x = 0; x < 8; x++)
+                img[x, y] = x < 4 ? Red : Green;
+            img.Save(Path.Combine(dir, "sheets", "1.png"));
+        }
+
+        // The manifest has no graphics at all: BuildFromFrames must not consult it for rects.
+        File.WriteAllText(Path.Combine(dir, "manifest.json"),
+            """{"tileSize":32,"sheets":{"1":{}}}""");
+
+        var manifest = Manifest.Load(dir);
+        using var built = AtlasBuilder.BuildFromFrames(manifest,
+            [("left", new TresFrame(1, 0, 0, 4, 8)), ("right", new TresFrame(1, 4, 0, 4, 8))],
+            width: 8);
+
+        Assert.Empty(built.Skipped);
+        Assert.Equal(Red, built.Image[built.Rects["left"].X, built.Rects["left"].Y]);
+        Assert.Equal(Green, built.Image[built.Rects["right"].X, built.Rects["right"].Y]);
+    }
+
+    [Fact]
+    public void Frames_pack_across_several_sheets()
+    {
+        var manifest = WriteAssets(
+            (1, 8, 8, Red, []), (2, 8, 8, Green, []));
+
+        using var built = AtlasBuilder.BuildFromFrames(manifest,
+            [("a", new TresFrame(1, 0, 0, 4, 4)), ("b", new TresFrame(2, 4, 4, 4, 4))],
+            width: 64);
+
+        Assert.Empty(built.Skipped);
+        Assert.Equal(Red, PixelAt(built, "a"));
+        Assert.Equal(Green, PixelAt(built, "b"));
+    }
+
+    [Fact]
+    public void Frames_produce_a_usable_empty_atlas()
+    {
+        var manifest = WriteAssets((1, 8, 8, Red, []));
+
+        using var built = AtlasBuilder.BuildFromFrames(manifest, [], width: 64);
+
+        Assert.Equal(1, built.Image.Height);
+        Assert.Empty(built.Rects);
+    }
+
+    /// <summary>The plan's original BuildFromFrames validated only File.Exists, so an out-of-
+    /// bounds .tres rect would have thrown an opaque ImageSharp range error mid-copy.</summary>
+    [Fact]
+    public void Frames_skip_and_explain_a_rect_that_overruns_its_sheet()
+    {
+        var manifest = WriteAssets((1, 8, 8, Red, []));
+
+        using var built = AtlasBuilder.BuildFromFrames(manifest,
+            [("a", new TresFrame(1, 4, 4, 8, 8))], width: 64);
+
+        Assert.Empty(built.Rects);
+        Assert.Contains("does not fit sheet 1 (8x8)", Assert.Single(built.Skipped).Reason);
+    }
+
+    [Fact]
+    public void Frames_skip_and_explain_a_sheet_with_no_png()
+    {
+        var manifest = WriteAssets((1, null, null, default, []));
+
+        using var built = AtlasBuilder.BuildFromFrames(manifest,
+            [("a", new TresFrame(1, 0, 0, 4, 4))], width: 64);
+
+        Assert.Contains("no PNG", Assert.Single(built.Skipped).Reason);
+    }
+
+    [Fact]
+    public void Frames_skip_and_explain_a_sprite_wider_than_the_atlas()
+    {
+        var manifest = WriteAssets((1, 64, 8, Red, []));
+
+        using var built = AtlasBuilder.BuildFromFrames(manifest,
+            [("a", new TresFrame(1, 0, 0, 64, 8))], width: 32);
+
+        Assert.Contains("wider than the 32px atlas", Assert.Single(built.Skipped).Reason);
+    }
+
+    [Fact]
+    public void Frames_with_a_duplicate_key_throw_naming_the_key()
+    {
+        var manifest = WriteAssets((1, 8, 8, Red, []));
+
+        var e = Assert.Throws<ArgumentException>(() => AtlasBuilder.BuildFromFrames(manifest,
+            [("dup", new TresFrame(1, 0, 0, 4, 4)), ("dup", new TresFrame(1, 4, 0, 4, 4))],
+            width: 64));
+
+        Assert.Contains("'dup'", e.Message);
+    }
 }
