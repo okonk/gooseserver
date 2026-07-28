@@ -42,8 +42,10 @@ Current output (2026-07-29):
 The tool reports skips grouped by sheet. Two groups are expected today, and both are bugs in the
 client's art, not in the tool. Do not re-investigate:
 
-- **Sheet 421 loses 19 icons.** The manifest's rects for it start at x=288, but `sheets/421.png`
-  is only 288x288, so every one of them lies entirely outside the image.
+- **Sheet 421 loses 19 icons.** The manifest lays it out as a 10x10 grid of 32px cells — a
+  320x320 sheet — but `sheets/421.png` is 288x288, one row and one column short. The 10 rects at
+  x=288 and the 10 at y=288 (sharing a corner) fall outside the image; the other 81 icons are
+  unaffected.
 - **Sheet 4589 has no PNG at all.** Its 20 frames are the whole of effect 290370, so that effect
   is absent from `sprites-effects.html` entirely.
 
@@ -93,7 +95,7 @@ catching a truncated write or an accidental deletion. This asymmetry is delibera
 ### Merge conflicts on the bundles
 
 `.gitattributes` marks `sprites-*.html` as generated, non-diffable and `-merge`. Each embeds its
-atlas as one ~1.6 MB base64 line, which cannot be merged textually. A conflict there is resolved by
+atlas as a single base64 line of 0.8-1.8 MB, which cannot be merged textually. A conflict there is resolved by
 regenerating the bundles, never by hand-editing them.
 
 ## Deploying to Apps Script
