@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Goose.Tools.SchemaGen;
 
 namespace Tools.Tests;
@@ -27,23 +28,52 @@ public class SchemaJsTests
     [Fact]
     public void Omits_null_optional_fields()
     {
-        var js = SchemaJs.Render(SchemaModel.Build());
+        using var doc = ParseBody(SchemaJs.Render(SchemaModel.Build()));
 
-        // Non-enum, non-FK columns should not carry empty keys.
-        Assert.DoesNotContain("\"enumNames\": null", js);
-        Assert.DoesNotContain("\"ref\": null", js);
+        // item_description is neither an enum nor a foreign key, so those keys must be absent
+        // entirely rather than present and null.
+        var column = doc.RootElement.GetProperty("sheets").EnumerateArray()
+            .Single(s => s.GetProperty("sheet").GetString() == "Items")
+            .GetProperty("columns").EnumerateArray()
+            .Single(c => c.GetProperty("name").GetString() == "item_description");
+
+        Assert.False(column.TryGetProperty("enumNames", out _));
+        Assert.False(column.TryGetProperty("ref", out _));
     }
 
     [Fact]
     public void Body_is_parseable_json()
     {
-        var js = SchemaJs.Render(SchemaModel.Build());
-
-        var start = js.IndexOf('{');
-        var end = js.LastIndexOf('}');
-        var json = js[start..(end + 1)];
-        var doc = System.Text.Json.JsonDocument.Parse(json);
+        using var doc = ParseBody(SchemaJs.Render(SchemaModel.Build()));
 
         Assert.Equal(21, doc.RootElement.GetProperty("sheets").GetArrayLength());
+    }
+
+    [Fact]
+    public void Checked_in_schema_js_is_up_to_date()
+    {
+        var path = Path.Combine(RepoRoot(), "tools", "DataEditor", "schema.js");
+        Assert.True(File.Exists(path), $"Expected the generated schema at {path}.");
+
+        Assert.True(
+            File.ReadAllText(path) == SchemaJs.Render(SchemaModel.Build()),
+            "tools/DataEditor/schema.js is stale. Re-run: " +
+            "dotnet run --project tools/SchemaGen -- tools/DataEditor/schema.js");
+    }
+
+    /// <summary>The test binary sits at tools/Tools.Tests/bin/&lt;config&gt;/net10.0.</summary>
+    private static string RepoRoot()
+    {
+        var root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
+        Assert.True(Directory.Exists(Path.Combine(root, "tools", "SchemaGen")),
+            $"Could not resolve the repo root from {AppContext.BaseDirectory} (got {root}).");
+        return root;
+    }
+
+    private static JsonDocument ParseBody(string js)
+    {
+        var start = js.IndexOf('{');
+        var end = js.LastIndexOf('}');
+        return JsonDocument.Parse(js[start..(end + 1)]);
     }
 }
