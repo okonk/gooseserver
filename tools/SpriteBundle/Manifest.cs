@@ -34,8 +34,19 @@ public sealed class Manifest
     {
         var path = Path.Combine(assetRoot, "manifest.json");
         using var fs = File.OpenRead(path);
-        var root = JsonSerializer.Deserialize<Root>(fs)
-                   ?? throw new InvalidDataException($"{path} did not deserialise");
+
+        Root? root;
+        try
+        {
+            root = JsonSerializer.Deserialize<Root>(fs);
+        }
+        catch (JsonException ex)
+        {
+            throw new InvalidDataException($"{path} is not valid JSON: {ex.Message}", ex);
+        }
+
+        if (root is null)
+            throw new InvalidDataException($"{path} did not deserialise");
 
         if (root.TileSize <= 0)
             throw new InvalidDataException(
