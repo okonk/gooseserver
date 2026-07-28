@@ -45,6 +45,10 @@ public static class TresParser
     private static readonly Regex FrameRef = new(
         @"SubResource\(""([^""]+)""\)", RegexOptions.Compiled);
 
+    /// <summary>Counts declared clips independently of Clip. This marker appears nowhere else in
+    /// the corpus, so it is an exact oracle for how many clips the file should yield.</summary>
+    private static readonly Regex ClipName = new(@"""name"": &""", RegexOptions.Compiled);
+
     /// <summary>Malformed input fails loudly, naming the file: these resources are generated, so
     /// anything unparseable means the client's format moved and a silently empty (or short) clip
     /// list would surface much later as a missing sprite rather than a build error.</summary>
@@ -93,6 +97,15 @@ public static class TresParser
 
         if (clips.Count == 0)
             throw new InvalidDataException($"{path} declares no animations");
+
+        // A clip Clip cannot match is not merely dropped: its frames get absorbed into the next
+        // clip that does match, which then reports the wrong first frame. Nor does a duplicate
+        // name survive the dictionary. Both show up as a count that disagrees with the file.
+        var declared = ClipName.Matches(text).Count;
+        if (declared != clips.Count)
+            throw new InvalidDataException(
+                $"{path} declares {declared} animations but {clips.Count} parsed; a clip is "
+                + "malformed or its name is duplicated");
 
         return new TresFile { Clips = clips };
     }

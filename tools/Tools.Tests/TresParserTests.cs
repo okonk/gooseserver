@@ -99,6 +99,8 @@ public class TresParserTests : IDisposable
         return path;
     }
 
+    /// <summary>Atlas_0's region uses the bare-integer form and Atlas_1's the float form; Godot
+    /// writes both, and the assertions on Atlas_1 are what cover the truncating parse.</summary>
     private static string Fixture(string animations) => $"""
         [gd_resource type="SpriteFrames" format=3]
 
@@ -111,7 +113,7 @@ public class TresParserTests : IDisposable
 
         [sub_resource type="AtlasTexture" id="Atlas_1"]
         atlas = ExtResource("Tex_1")
-        region = Rect2(24, 96, 24, 48)
+        region = Rect2(24.0, 96.0, 24.0, 48.0)
 
         [sub_resource type="AtlasTexture" id="Atlas_orphan"]
         atlas = ExtResource("Tex_missing")
@@ -180,7 +182,8 @@ public class TresParserTests : IDisposable
 
         var parts = TresParser.Parse(path);
 
-        Assert.Single(parts.Clips);
+        Assert.True(parts.TryGetFirstFrame("walk", out var frame));
+        Assert.Equal(new TresFrame(115, 0, 48, 24, 48), frame);
     }
 
     [Fact]
@@ -192,6 +195,34 @@ public class TresParserTests : IDisposable
 
         Assert.Contains("animations.tres", e.Message);
         Assert.Contains("Atlas_orphan", e.Message);
+    }
+
+    /// <summary>The lazy frames group is bounded only by the newline, so a clip the regex cannot
+    /// match is not merely skipped: the match starting at its '{"frames": [' runs through it and
+    /// terminates on the NEXT clip's tail, handing that clip the broken clip's frames. The result
+    /// is a confident wrong sprite, so the clip count must be checked against the file.</summary>
+    [Fact]
+    public void A_malformed_clip_cannot_silently_donate_its_frames_to_the_next()
+    {
+        var broken = Clip("first", "Atlas_0").Replace("\"speed\": 8.0", "\"speed\": null");
+        var path = WriteTres(Fixture(string.Join(", ", broken, Clip("second", "Atlas_1"))));
+
+        var e = Assert.Throws<InvalidDataException>(() => TresParser.Parse(path));
+
+        Assert.Contains("animations.tres", e.Message);
+    }
+
+    /// <summary>Two clips sharing a name would overwrite each other in the dictionary, losing one
+    /// silently. The same count check catches it.</summary>
+    [Fact]
+    public void A_duplicate_clip_name_names_the_file()
+    {
+        var path = WriteTres(Fixture(
+            string.Join(", ", Clip("walk", "Atlas_0"), Clip("walk", "Atlas_1"))));
+
+        var e = Assert.Throws<InvalidDataException>(() => TresParser.Parse(path));
+
+        Assert.Contains("animations.tres", e.Message);
     }
 
     [Fact]
