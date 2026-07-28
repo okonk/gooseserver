@@ -1,43 +1,28 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.IO;
+using CsvToSql.Core.Schema;
 
 namespace CsvToSql
 {
     public class MapsCsvToSql : CsvToSqlBase
     {
-        protected override string[] GetColumns()
+        public override Column[] GetColumnDescriptors() => new[]
         {
-            return new[] {
-                "map_id", "map_name", "map_filename", "min_level", "max_level", "min_experience", "max_experience", "pvp_enabled", "chat_enabled", "auction_enabled", "shout_enabled", "spells_enabled", "bind_enabled", "items_enabled", "pets_enabled",
-                "script_path", "script_params",
-            };
-        }
-
-        protected override string TransformValue(string columnName, string value)
-        {
-            switch (columnName)
-            {
-                case "map_name":
-                case "map_filename":
-                case "script_path":
-                case "script_params":
-                    return EscapeString(value);
-                case "pvp_enabled":
-                case "chat_enabled":
-                case "auction_enabled":
-                case "shout_enabled":
-                case "spells_enabled":
-                case "bind_enabled":
-                case "items_enabled":
-                case "pets_enabled":
-                    // booleans
-                    return EscapeString(value);
-                default:
-                    return value;
-            }
-        }
+            Col.Id("map_id", SqlType.Integer).PrimaryKey(),
+            Col.Text("map_name"),
+            Col.Text("map_filename"),
+            Col.Int("min_level", SqlType.SmallInt, def: 0),
+            Col.Int("max_level", SqlType.SmallInt, def: 0),
+            Col.Int("min_experience", SqlType.BigInt, def: 0),
+            Col.Int("max_experience", SqlType.BigInt, def: 0),
+            Col.Bool("pvp_enabled", def: false),
+            Col.Bool("chat_enabled", def: true),
+            Col.Bool("auction_enabled", def: true),
+            Col.Bool("shout_enabled", def: true),
+            Col.Bool("spells_enabled", def: true),
+            Col.Bool("bind_enabled", def: false),
+            Col.Bool("items_enabled", def: true),
+            Col.Bool("pets_enabled", def: true),
+            Col.Text("script_path", def: "''"),
+            Col.Text("script_params", def: "''"),
+        };
     }
 }

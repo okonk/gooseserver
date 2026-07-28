@@ -1,29 +1,23 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.IO;
+using CsvToSql.Core.Schema;
 
 namespace CsvToSql
 {
     public class CombinationsCsvToSql : CsvToSqlBase
     {
-        protected override string[] GetColumns()
+        public override Column[] GetColumnDescriptors() => new[]
         {
-            return new[] {
-               "combination_id", "combination_name", "min_level", "max_level", "min_experience", "max_experience", "class_restrictions"
-            };
-        }
+            Col.Id("combination_id", SqlType.Integer).PrimaryKey(),
+            Col.Text("combination_name", SqlType.Varchar64),
+            Col.Int("min_level", SqlType.Int, def: 1),
+            Col.Int("max_level", SqlType.Int, def: 50),
+            Col.Int("min_experience", SqlType.BigInt, def: 0),
+            Col.Int("max_experience", SqlType.BigInt, def: 0),
+            Col.Int("class_restrictions", SqlType.BigInt, def: 0),
+        };
 
-        protected override string TransformValue(string columnName, string value)
+        public override Composite[] GetComposites() => new[]
         {
-            switch (columnName)
-            {
-                case "combination_name":
-                    return EscapeString(value);
-                default:
-                    return value;
-            }
-        }
+            Composite.Bitmask("class_restrictions", from: "Classes"),
+        };
     }
 }
