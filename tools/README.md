@@ -1,18 +1,42 @@
-# Generators
+# Data editor generators
 
 Both tools produce inputs for the Apps Script data editor in `tools/DataEditor/`. Their outputs
 (`schema.js` and the three `sprites-*.html`) are **checked in**, so the editor front end can be
-developed without a client checkout. Both are byte-reproducible: regenerating without changing
-any input leaves the working tree clean.
+developed without a client checkout. Both are byte-reproducible: regenerating without changing any
+input leaves the working tree clean.
+
+Design and rationale: `docs/plans/2026-07-27-game-data-editor-part2-generators.md`.
+
+Paths below are one machine's. Substitute your own checkout locations; the commands assume you run
+them from the repo root.
+
+## What the front end receives
+
+The generated files assign exactly two globals.
+
+`GOOSE_SCHEMA.sheets[]` — one entry per spreadsheet sheet, `{sheet, table, columns[], composites[],
+indexes[]}`. Each column is `{name, kind, sql, required, pk}` plus optional `default`, `ref` and
+`enumNames`.
+
+`GOOSE_SPRITES[name]` for `name` in `icons`, `parts`, `effects` — `{width, height, png, rects}`.
+`png` is a `data:image/png;base64,…` atlas; `rects` maps a sprite key to `[x, y, w, h]` in atlas
+pixel coordinates. The three key formats are minted in `tools/SpriteBundle/Bundles.cs`:
+
+| bundle    | key                      | example                  |
+| --------- | ------------------------ | ------------------------ |
+| `icons`   | `<sheet>:<graphic>`      | `104:50744`              |
+| `parts`   | `<category>:<id>:<clip>` | `Bodies:10101:idle-down` |
+| `effects` | `<id>:<frameIndex>`      | `1080:0`                 |
+
+Drawing a sprite is a canvas `drawImage` with the rect as source coordinates. Tinting applies
+`mix(rgb, tint.rgb, tint.a)` with alpha preserved, matching `Scripts/UI/Icon.cs` in the client.
 
 ## SchemaGen
 
-Emits `schema.js` from the column descriptors in `CsvToSql.Core`. Run after adding or changing
-any column:
+Emits `schema.js` from the column descriptors in `CsvToSql.Core`. Run after adding or changing any
+column:
 
     dotnet run --project tools/SchemaGen -- tools/DataEditor/schema.js
-
-    Wrote .../tools/DataEditor/schema.js (69,483 bytes, 21 sheets)
 
 `Checked_in_schema_js_is_up_to_date` fails if you forget.
 
@@ -21,33 +45,38 @@ any column:
 Emits three sprite atlases as inlined HTML. Needs the client repo checked out. Run when the
 client's art changes:
 
-    dotnet run --project tools/SpriteBundle -- \
-      /home/hayden/code/Goose2ClientGodot/Assets/Sprites tools/DataEditor
+    CLIENT=/home/hayden/code/Goose2ClientGodot/Assets/Sprites
+    dotnet run --project tools/SpriteBundle -- "$CLIENT" tools/DataEditor
 
 Give the client an **absolute path**, or one relative to your shell's cwd. A `../Goose2ClientGodot`
 style path does not work from a git worktree, where the repo root is `.worktrees/<branch>/` and the
 sibling checkout is two levels further up.
 
-Current output (2026-07-29):
+Output as of 2026-07-29, on one machine with a warm cache:
 
     icons      4827 sprites  2048x3140  98.1% efficient  1.67 MB html
     parts      3261 sprites  2048x6903  96.0% efficient  1.89 MB html
     effects    2412 sprites  2048x4097  95.3% efficient  0.83 MB html
     Total 4.39 MB of HTML in 2.3s
 
-4.39 MB combined, comfortably inside the ~10 MB Apps Script project ceiling.
+Roughly 4.4 MB combined, comfortably inside the ~10 MB Apps Script project ceiling.
+
+"Efficient" is the share of the atlas's area covered by sprites — the rest is packing waste that
+still costs PNG bytes. Around 95% is the accepted floor. **Nothing enforces it**: no test asserts
+it on real assets, so it is a number a human reads here. A drop much below 95% usually means a new
+outsized sprite is forcing tall, half-empty shelves; worth a look, but it will never fail a build
+for you.
 
 ### Known upstream asset defects
 
 The tool reports skips grouped by sheet. Two groups are expected today, and both are bugs in the
 client's art, not in the tool. Do not re-investigate:
 
-- **Sheet 421 loses 19 icons.** The manifest lays it out as a 10x10 grid of 32px cells — a
-  320x320 sheet — but `sheets/421.png` is 288x288, one row and one column short. The 10 rects at
-  x=288 and the 10 at y=288 (sharing a corner) fall outside the image; the other 81 icons are
-  unaffected.
-- **Sheet 4589 has no PNG at all.** Its 20 frames are the whole of effect 290370, so that effect
-  is absent from `sprites-effects.html` entirely.
+- **Sheet 421 loses 19 icons.** The manifest lays it out as a 10x10 grid of 32px cells — a 320x320
+  sheet — but `sheets/421.png` is 288x288, one row and one column short. The 10 rects at x=288 and
+  the 10 at y=288 (sharing a corner) fall outside the image; the other 81 icons are unaffected.
+- **Sheet 4589 has no PNG at all.** Its 20 frames are the whole of effect 290370, so that effect is
+  absent from `sprites-effects.html` entirely.
 
 ### Adding graphics the data has not referenced yet
 
@@ -55,8 +84,8 @@ client's art, not in the tool. Do not re-investigate:
 sheets the two datasets reference, so a sheet nobody has used will not appear and its graphics
 cannot be picked in the editor. To add one, put its number in `iconSheets` and regenerate.
 
-To re-derive the list from built databases, pass **every** dataset in one invocation — the tool
-unions them itself:
+To re-derive the list, pass **every** dataset's database in one invocation — the tool unions them
+itself:
 
     dotnet run --project tools/SpriteBundle -- derive-sheets \
       Goose/bin/Debug/IllutiaGoose.db \
@@ -70,15 +99,22 @@ Counts go to stderr; stdout is the `iconSheets` array body, indented and wrapped
 over the existing one unedited. Running it against a single database and pasting that output would
 silently drop the other dataset's sheets — the checked-in list covers both Illutia and Aspereta.
 
+Those `.db` files are **server build artifacts**, so a fresh worktree has none until you build and
+run there (see `Readme.md`, "Connecting to the database"). Their names come from `DatabaseName` in
+`GooseSettings.json`, so Illutia and Aspereta are the same server run under two different configs —
+which is why the two paths above point at two different checkouts rather than sitting side by side.
+Use whatever paths your own builds produced.
+
 ## Tests
 
-    GOOSE_CLIENT_ASSETS=/home/hayden/code/Goose2ClientGodot/Assets/Sprites \
-      dotnet test tools/Tools.Tests
+    CLIENT=/home/hayden/code/Goose2ClientGodot/Assets/Sprites
+    GOOSE_CLIENT_ASSETS="$CLIENT" dotnet test tools/Tools.Tests
 
 `GOOSE_CLIENT_ASSETS` points the asset-gated tests at the client. Without it (and without a sibling
-checkout at the default location) 20 of the 124 tests **skip** — they assert nothing, and a green
-run proves nothing about the sprite pipeline. A `GOOSE_CLIENT_ASSETS` that is set but wrong fails
-loudly rather than skipping, so a typo cannot masquerade as a checkout-less machine.
+checkout at the default location) around 20 tests **skip** — a green run then proves nothing about
+the sprite *builder*, though `BundleArtifactTests` still covers the committed bundles. A
+`GOOSE_CLIENT_ASSETS` that is set but wrong fails loudly rather than skipping, so a typo cannot
+masquerade as a checkout-less machine.
 
 ### Why schema.js has a drift guard and the bundles do not
 
@@ -95,8 +131,8 @@ catching a truncated write or an accidental deletion. This asymmetry is delibera
 ### Merge conflicts on the bundles
 
 `.gitattributes` marks `sprites-*.html` as generated, non-diffable and `-merge`. Each embeds its
-atlas as a single base64 line of 0.8-1.8 MB, which cannot be merged textually. A conflict there is resolved by
-regenerating the bundles, never by hand-editing them.
+atlas as a single base64 line around a megabyte long, which cannot be merged textually. A conflict
+there is resolved by regenerating the bundles, never by hand-editing them.
 
 ## Deploying to Apps Script
 

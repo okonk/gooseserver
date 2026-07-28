@@ -120,9 +120,9 @@ public static class Program
     }
 
     /// <summary>Prints the union of icon sheets referenced by the given databases, indented and
-    /// wrapped so the body pastes straight into the "iconSheets" array. Pass
-    /// every dataset at once — `derive-sheets &lt;db1&gt; &lt;db2&gt;` — rather than running per
-    /// dataset and merging by hand.</summary>
+    /// wrapped so the body pastes straight into the "iconSheets" array. Pass every dataset at
+    /// once — `derive-sheets &lt;db1&gt; &lt;db2&gt;` — rather than running per dataset and merging
+    /// by hand.</summary>
     private static int DeriveSheets(string[] dbPaths)
     {
         if (dbPaths.Length == 0)

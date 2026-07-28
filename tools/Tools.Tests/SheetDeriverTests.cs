@@ -158,8 +158,8 @@ public class SheetDeriverTests : IDisposable
     }
 
     /// <summary>The derive output exists to be pasted into sheets.json, which wraps its array
-    /// too — an unwrapped single line means a human reflows it by hand. The width need not match
-    /// the checked-in file's (72 here, up to 82 there), only be narrow enough to read.</summary>
+    /// too — an unwrapped single line means a human reflows it by hand. Nothing depends on
+    /// matching the checked-in file's width.</summary>
     [Fact]
     public void Formatted_output_wraps_within_the_indented_width()
     {
