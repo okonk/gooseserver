@@ -25,6 +25,7 @@ namespace CsvToSql
             Col.Bool("slowable", def: false),
             Col.Bool("invincible", def: false),
 
+            // Stats
             Col.Int("npc_hp", SqlType.Int, def: 0),
             Col.Int("npc_mp", SqlType.Int, def: 0),
             Col.Int("npc_sp", SqlType.Int, def: 0),
@@ -40,6 +41,7 @@ namespace CsvToSql
             Col.Int("res_air", SqlType.SmallInt, def: 0),
             Col.Int("res_earth", SqlType.SmallInt, def: 0),
 
+            // Appearance
             Col.Int("body_state", SqlType.SmallInt, def: 1),
             Col.Int("body_id", SqlType.SmallInt, def: 1),
             Col.Int("body_r", SqlType.SmallInt, def: 0),
@@ -54,18 +56,25 @@ namespace CsvToSql
             Col.Int("hair_a", SqlType.SmallInt, def: 0),
             Col.Text("equipped_items", def: "'0,*,0,*,0,*,0,*,0,*,0,*'"),
 
+            // Combat
             Col.Int("weapon_damage", SqlType.Int, def: 1),
             // Worksheet order. sqlTemplate.sql lists armor_pierce last, after script_params —
             // do not "fix" this to match it: cells are read positionally, so moving it would
             // write every later column's value into the wrong column.
             Col.Int("armor_pierce", SqlType.Int, def: 0),
+
+            // Regeneration
             Col.Decimal("hp_percent_regen", SqlType.Decimal94, def: "0"),
             Col.Int("hp_static_regen", SqlType.Int, def: 0),
             Col.Decimal("mp_percent_regen", SqlType.Decimal94, def: "0"),
             Col.Int("mp_static_regen", SqlType.Int, def: 0),
+
+            // Behaviour
             Col.Text("npc_alliance", def: "''"),
             Col.Enum<BehaviourTypes>("stuck_behaviour", SqlType.SmallInt, def: 0),
             Col.Int("stuck_timeout", SqlType.Int, def: 20), // Time since last attack to do behaviour in seconds
+
+            // Vendor, quests and scripting
             Col.Bool("credit_dealer", def: false),
             Col.Text("quest_ids", def: "''"),
             Col.Text("script_path", def: "'Scripts/NPC/BaseNPC.csx'"),

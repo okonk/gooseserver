@@ -24,7 +24,7 @@ namespace CsvToSql
             Col.Bool("do_attack_animation", def: false),
             Col.Bool("do_cast_animation", def: true),
             Col.Bool("spell_damage_effects", def: false), // does spell damage/crit effect this spell
-            Col.Enum<EnergyTypes>("spell_energy_type", SqlType.Int, def: 0), // bitfield fire, water, spirit, air, earth, none?
+            Col.Enum<EnergyTypes>("spell_energy_type", SqlType.Int, def: 0), // bitfield, see EnergyTypes
 
             // for damage/heal kinda spells
             // change_formulas are what to do to the effected person's stat, for damage/heals
@@ -74,7 +74,8 @@ namespace CsvToSql
             Col.Int("body_b", SqlType.SmallInt, def: 0),
             Col.Int("body_a", SqlType.SmallInt, def: 0),
 
-            // Stuff for teleport
+            // Stuff for teleport. teleport_map uses 1 as its "none" sentinel, so it is
+            // not declared as a foreign key.
             Col.Int("teleport_map", SqlType.Int, def: 1),
             Col.Int("teleport_x", SqlType.Int, def: 50),
             Col.Int("teleport_y", SqlType.Int, def: 50),
@@ -82,6 +83,7 @@ namespace CsvToSql
             // Aggro for taunt
             Col.Int("taunt_aggro", SqlType.Int, def: 0),
 
+            // Buffs. Duration comes from effect_duration above.
             Col.Bool("works_in_pvp", def: true),
             Col.Bool("works_not_in_pvp", def: false),
 
@@ -93,6 +95,8 @@ namespace CsvToSql
 
             Col.Decimal("random_join_chance", SqlType.Decimal52, def: "0"),
 
+            // 0 is the "none" sentinel for these two spell effect ids, so they are not
+            // declared as foreign keys.
             Col.Int("on_hit_spell_effect_id", SqlType.Int, def: 0),
             Col.Decimal("on_hit_spell_chance", SqlType.Decimal52, def: "100"),
             Col.Int("on_attack_spell_effect_id", SqlType.Int, def: 0),
