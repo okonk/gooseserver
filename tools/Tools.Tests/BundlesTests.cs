@@ -125,14 +125,21 @@ public class BundlesTests : IDisposable
     // of the PNG. Directory.EnumerateDirectories returns filesystem order — on the real asset
     // tree that is hash order, which differs by machine. Both walks must sort.
     //
-    // The fixtures name directories so that ordinal order disagrees with both creation order and
-    // numeric order, so the assertion fails unless the sort is actually applied.
+    // The fixtures create their directories in ordinal order ("1", "10", "2") on purpose. That
+    // reads backwards, but it is what makes these tests live rather than vacuous: a small temp
+    // directory here enumerates in reverse creation order, so creating them already-sorted is what
+    // hands the walk an unsorted sequence. Creating them unsorted would have the filesystem hand
+    // back a sorted one, and the assertion would hold with or without the sort under test.
+    // Verified by mutation in both directions.
+    //
+    // This is still a filesystem behaviour, not a guarantee — Ordering_is_stable_against_the_
+    // client_assets below is the test that cannot be fooled, but it needs a client checkout.
 
     [Fact]
     public void Parts_returns_part_directories_in_ordinal_order()
     {
         var root = NewAssetDir();
-        foreach (var id in new[] { "2", "10", "1" })
+        foreach (var id in new[] { "1", "10", "2" })
             WriteTres(root, "Bodies", id, ("idle-down", [(7, 0, 0, 4, 4)]));
 
         var parts = Bundles.Parts(root, Config(partCategories: ["Bodies"], partClips: ["idle-down"]));
@@ -146,7 +153,7 @@ public class BundlesTests : IDisposable
     public void Effects_returns_effect_directories_in_ordinal_order()
     {
         var root = NewAssetDir();
-        foreach (var id in new[] { "2", "10", "1" })
+        foreach (var id in new[] { "1", "10", "2" })
             WriteTres(root, "Effects", id, (id, [(7, 0, 0, 4, 4)]));
 
         var effects = Bundles.Effects(root, Config());
