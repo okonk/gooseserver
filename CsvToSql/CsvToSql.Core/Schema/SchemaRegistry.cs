@@ -10,7 +10,11 @@ namespace CsvToSql.Core.Schema
     {
         public string Sheet { get; }
         public string Table { get; }
+
+        /// <summary>The importer that reads this sheet. Behaviour, not schema — SchemaGen
+        /// does not serialise it.</summary>
         public CsvToSqlBase Converter { get; }
+
         public IReadOnlyList<Column> Columns { get; }
         public IReadOnlyList<Composite> Composites { get; }
 
@@ -23,7 +27,11 @@ namespace CsvToSql.Core.Schema
             Sheet = sheet;
             Table = table;
             Converter = converter;
-            Columns = converter.GetColumnDescriptors();
+            // Throw rather than default to empty: a converter with no descriptors is a bug,
+            // and defaulting would launder it into a silently column-less table.
+            Columns = converter.GetColumnDescriptors()
+                ?? throw new InvalidOperationException(
+                    $"{converter.GetType().Name} ({sheet} -> {table}) returned no column descriptors.");
             Composites = converter.GetComposites() ?? Array.Empty<Composite>();
             Indexes = indexes ?? Array.Empty<string>();
         }

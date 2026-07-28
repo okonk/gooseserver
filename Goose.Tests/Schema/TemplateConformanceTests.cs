@@ -28,36 +28,16 @@ namespace Goose.Tests.Schema
     ///
     /// THIS WHOLE FILE IS TEMPORARY. It is deleted in Task 8, when DDL becomes
     /// descriptor-generated and sqlTemplate.sql goes away. The converter-type -> table-name
-    /// map below duplicates the private mapping in CsvToSqlConverter.BuildConverterMapping()
-    /// on purpose: that mapping becomes a typed SchemaRegistry in Task 7, and until then
-    /// duplicating it here is cheaper than opening it up.
+    /// map is now derived from SchemaRegistry rather than duplicated — it was a hand-written
+    /// literal only while the mapping lived in a private dictionary.
     /// </summary>
     public class TemplateConformanceTests
     {
-        private static readonly Dictionary<string, string> TableNames = new()
-        {
-            [nameof(ItemsCsvToSql)] = "item_templates",
-            [nameof(NpcDropsCsvToSql)] = "npc_drops",
-            [nameof(NpcSpawnsCsvToSql)] = "npc_spawns",
-            [nameof(NpcVendorsCsvToSql)] = "npc_vendor_items",
-            [nameof(NpcCsvToSql)] = "npc_templates",
-            [nameof(SpellEffectsCsvToSql)] = "spell_effects",
-            [nameof(SpellsCsvToSql)] = "spells",
-            [nameof(WarpTilesCsvToSql)] = "warptiles",
-            [nameof(QuestsCsvToSql)] = "quests",
-            [nameof(QuestRequirementsCsvToSql)] = "quest_requirements",
-            [nameof(QuestRewardsCsvToSql)] = "quest_rewards",
-            [nameof(MapsCsvToSql)] = "maps",
-            [nameof(MapRequiredItemsCsvToSql)] = "map_required_items",
-            [nameof(CombinationsCsvToSql)] = "combinations",
-            [nameof(CombinationItemRequiredCsvToSql)] = "combination_item_required",
-            [nameof(CombinationItemResultsCsvToSql)] = "combination_item_results",
-            [nameof(TitleCsvToSql)] = "item_titles",
-            [nameof(SurnameCsvToSql)] = "item_surnames",
-            [nameof(ClassesCsvToSql)] = "classes",
-            [nameof(ClassInfoCsvToSql)] = "class_info",
-            [nameof(ClassLevelupSpellsCsvToSql)] = "classes_levelup_spells",
-        };
+        /// <summary>Derived from the registry rather than duplicated. SchemaRegistryTests pins
+        /// the registry's own sheet -> table pairs against the pre-registry mapping, so this
+        /// still bottoms out in what actually worked before the refactor.</summary>
+        private static readonly Dictionary<string, string> TableNames =
+            SchemaRegistry.Tables.ToDictionary(t => t.Converter.GetType().Name, t => t.Table);
 
         public static TheoryData<string> MigratedConverters()
         {
@@ -77,9 +57,9 @@ namespace Goose.Tests.Schema
 
             Assert.True(
                 TableNames.TryGetValue(converterTypeName, out var table),
-                $"{converterTypeName} has migrated to GetColumnDescriptors() but has no entry in " +
-                $"{nameof(TemplateConformanceTests)}.{nameof(TableNames)}. Add its target table name " +
-                "there so its descriptors are checked against sqlTemplate.sql.");
+                $"{converterTypeName} has migrated to GetColumnDescriptors() but is not in " +
+                "SchemaRegistry.Tables, so its descriptors are never checked against " +
+                "sqlTemplate.sql. Register it there.");
 
             var template = ParseCreateTable(table!);
 

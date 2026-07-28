@@ -4,35 +4,44 @@ namespace Goose.Tests.Schema
 {
     public class SchemaRegistryTests
     {
-        /// <summary>The 21 worksheet names the pre-registry CsvToSqlConverter.BuildConverterMapping()
-        /// keyed on. Captured as a literal so the registry is pinned against what actually worked.</summary>
-        private static readonly string[] LegacySheets =
+        /// <summary>The 21 sheet -> table pairs the pre-registry
+        /// CsvToSqlConverter.BuildConverterMapping() carried, captured as literals so the
+        /// registry is pinned against what actually worked rather than against the plan.
+        /// This is a migration artefact: delete it in Task 8 alongside TemplateConformanceTests
+        /// rather than hand-maintaining it as a mirror of the registry.</summary>
+        private static readonly string[] LegacyPairs =
         {
-            "Items", "NPC Drops", "NPC Spawns", "NPC Vendor Items", "NPCs", "Spell Effects",
-            "Spells", "Warptiles", "Quests", "Quest Reqs", "Quest Rewards", "Maps",
-            "Map Required Items", "Combinations", "Combination Item Required",
-            "Combination Item Result", "Titles", "Surnames", "Classes", "Class Info",
-            "Class Levelup Spells",
-        };
-
-        /// <summary>The 21 target table names from the same mapping.</summary>
-        private static readonly string[] LegacyTables =
-        {
-            "item_templates", "npc_drops", "npc_spawns", "npc_vendor_items", "npc_templates",
-            "spell_effects", "spells", "warptiles", "quests", "quest_requirements",
-            "quest_rewards", "maps", "map_required_items", "combinations",
-            "combination_item_required", "combination_item_results", "item_titles",
-            "item_surnames", "classes", "class_info", "classes_levelup_spells",
+            "Items -> item_templates",
+            "NPC Drops -> npc_drops",
+            "NPC Spawns -> npc_spawns",
+            "NPC Vendor Items -> npc_vendor_items",
+            "NPCs -> npc_templates",
+            "Spell Effects -> spell_effects",
+            "Spells -> spells",
+            "Warptiles -> warptiles",
+            "Quests -> quests",
+            "Quest Reqs -> quest_requirements",
+            "Quest Rewards -> quest_rewards",
+            "Maps -> maps",
+            "Map Required Items -> map_required_items",
+            "Combinations -> combinations",
+            "Combination Item Required -> combination_item_required",
+            "Combination Item Result -> combination_item_results",
+            "Titles -> item_titles",
+            "Surnames -> item_surnames",
+            "Classes -> classes",
+            "Class Info -> class_info",
+            "Class Levelup Spells -> classes_levelup_spells",
         };
 
         [Fact]
-        public void Covers_all_twenty_one_sheets()
+        public void Has_twenty_one_tables()
         {
             Assert.Equal(21, SchemaRegistry.Tables.Count);
         }
 
         [Fact]
-        public void Every_table_has_descriptors()
+        public void Every_table_is_fully_populated()
         {
             foreach (var t in SchemaRegistry.Tables)
             {
@@ -94,13 +103,12 @@ namespace Goose.Tests.Schema
         [Fact]
         public void Covers_exactly_the_sheets_and_tables_of_the_legacy_mapping()
         {
+            // Compare the PAIRS, not sheets and tables independently — sorting the two lists
+            // separately would let a mis-pairing (Titles -> item_surnames) pass unnoticed.
             Assert.Equal(
-                LegacySheets.OrderBy(x => x, StringComparer.Ordinal).ToArray(),
-                SchemaRegistry.Tables.Select(t => t.Sheet).OrderBy(x => x, StringComparer.Ordinal).ToArray());
-
-            Assert.Equal(
-                LegacyTables.OrderBy(x => x, StringComparer.Ordinal).ToArray(),
-                SchemaRegistry.Tables.Select(t => t.Table).OrderBy(x => x, StringComparer.Ordinal).ToArray());
+                LegacyPairs.OrderBy(x => x, StringComparer.Ordinal).ToArray(),
+                SchemaRegistry.Tables.Select(t => $"{t.Sheet} -> {t.Table}")
+                    .OrderBy(x => x, StringComparer.Ordinal).ToArray());
         }
     }
 }
