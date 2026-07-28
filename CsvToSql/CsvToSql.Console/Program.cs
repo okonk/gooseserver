@@ -1,17 +1,22 @@
-﻿using System;
+using System;
 using System.IO;
 
 namespace CsvToSql.Console
 {
     class Program
     {
-        static void Main(string[] args)
+        static int Main(string[] args)
         {
-            File.Delete("illutiaData.sql");
+            if (args.Length != 1)
+            {
+                System.Console.Error.WriteLine("usage: CsvToSql.Console <google-sheet-id>");
+                return 1;
+            }
 
-            var sqlTemplate = CsvToSql.Core.CsvToSqlConverter.Convert("https://docs.google.com/spreadsheets/u/0/d/1AE7SKm46KuAdr5mJk_u-Qn20C1Myg4Q6eyzxTb3Wqpo/export?format=xlsx&id=1AE7SKm46KuAdr5mJk_u-Qn20C1Myg4Q6eyzxTb3Wqpo");
-
-            File.WriteAllText("illutiaData.sql", sqlTemplate);
+            var sql = CsvToSql.Core.CsvToSqlConverter.Convert(args[0]);
+            File.WriteAllText("illutiaData.sql", sql);
+            System.Console.WriteLine($"Wrote illutiaData.sql ({sql.Length} bytes)");
+            return 0;
         }
     }
 }

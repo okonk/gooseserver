@@ -12,3 +12,4 @@ obj/
 
 
 .worktrees/
+CsvToSql/CsvToSql.Console/illutiaData.sql
