@@ -119,8 +119,8 @@ public static class Program
         return bytes;
     }
 
-    /// <summary>Prints the union of icon sheets referenced by the given databases, wrapped to
-    /// match the checked-in file so the body pastes straight into the "iconSheets" array. Pass
+    /// <summary>Prints the union of icon sheets referenced by the given databases, indented and
+    /// wrapped so the body pastes straight into the "iconSheets" array. Pass
     /// every dataset at once — `derive-sheets &lt;db1&gt; &lt;db2&gt;` — rather than running per
     /// dataset and merging by hand.</summary>
     private static int DeriveSheets(string[] dbPaths)

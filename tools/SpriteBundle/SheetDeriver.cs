@@ -58,8 +58,9 @@ public static class SheetDeriver
     }
 
     /// <summary>Renders a sheet list as the body of sheets.json's "iconSheets" array: four-space
-    /// indent, wrapped at the same width the checked-in file uses, so it pastes without
-    /// reflowing.</summary>
+    /// indent, wrapped at 72 columns so it pastes without a human reflowing it. That is narrower
+    /// than the checked-in file's longest line (82), which is fine — the paste is readable as-is
+    /// and nothing depends on the two widths matching.</summary>
     public static string Format(IEnumerable<int> sheets)
     {
         const string Indent = "    ";

@@ -138,8 +138,9 @@ public class BundleConfigTests : IDisposable
         Assert.Contains(path, e.Message);
     }
 
-    /// <summary>A zero or missing atlasWidth would reach the packer as a degenerate width
-    /// rather than failing at the boundary.</summary>
+    /// <summary>A zero or negative atlasWidth would reach the packer as a degenerate width
+    /// rather than failing at the boundary. (A missing one is fine: it deserialises to the
+    /// property default of 2048.)</summary>
     [Theory]
     [InlineData("""{"atlasWidth":0}""")]
     [InlineData("""{"atlasWidth":-1}""")]
