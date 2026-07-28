@@ -12,7 +12,18 @@ namespace Goose.Tests;
 /// pass_text/fail_text, npc_templates' armor_pierce). Column ORDER is therefore the one thing
 /// this test deliberately tolerates; everything else — a missing/extra table or index, a
 /// missing/extra column, a changed type, default, or nullability, a missing/extra row, or any
-/// changed cell value — still fails it.</summary>
+/// changed cell value that survives SQLite's type affinity — still fails it.
+///
+/// THE FIXTURE IS FROZEN. `Fixtures/baseline.sql` was recorded at commit 06e2648, before any
+/// descriptor work. Never regenerate it from this branch's generator — that would make this
+/// test compare the generator against itself and silently pass. If it is ever lost, restore it
+/// with `git show 06e2648:Goose.Tests/Fixtures/baseline.sql`.
+///
+/// THIS IS A MIGRATION GATE, NOT A PERMANENT TEST. It proves the descriptor rewrite changed
+/// nothing. Delete it the first time the schema *intentionally* diverges from the pre-descriptor
+/// schema — do not add exemptions to keep it passing. The natural successor is a regenerable
+/// checked-in snapshot of ConvertWorkbook's output, so an intentional schema change shows up as
+/// a reviewable diff rather than as a wall to knock down.</summary>
 public class CsvToSqlEquivalenceTests
 {
     private static string FixtureDir => Path.Combine(AppContext.BaseDirectory, "Fixtures");
@@ -47,13 +58,14 @@ public class CsvToSqlEquivalenceTests
         }
     }
 
+    /// <summary>Only reached once every common line has already matched, so the difference is
+    /// always the first line past the shorter snapshot.</summary>
     private static string FirstDifference(List<string> e, List<string> a)
     {
-        for (int i = 0; i < Math.Min(e.Count, a.Count); i++)
-            if (e[i] != a[i]) return $"line {i + 1}: expected '{e[i]}' got '{a[i]}'";
+        var shared = Math.Min(e.Count, a.Count);
         var longer = e.Count > a.Count ? e : a;
         var side = e.Count > a.Count ? "only in expected" : "only in actual";
-        return $"line {Math.Min(e.Count, a.Count) + 1} {side}: '{longer[Math.Min(e.Count, a.Count)]}'";
+        return $"line {shared + 1} {side}: '{longer[shared]}'";
     }
 
     /// <summary>Executes a script into a temp database and returns object name -> its schema

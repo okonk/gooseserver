@@ -32,6 +32,8 @@ namespace CsvToSql.Core
                         throw new InvalidOperationException(
                             $"Spreadsheet is missing required worksheet '{schema.Sheet}'.");
 
+                    // Emit and BuildInserts each already end in \n; the appends below are the
+                    // blank line separating one block from the next.
                     sb.Append(TableDdl.Emit(schema.Table, schema.Columns, schema.Indexes));
                     sb.Append('\n');
                     sb.Append(schema.Converter.BuildInserts(worksheet, schema.Table));
