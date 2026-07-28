@@ -212,6 +212,29 @@ public class AtlasBuilderTests : IDisposable
         Assert.Contains("does not fit sheet 1 (8x8)", s.Reason);
     }
 
+    /// <summary>Every skip carries its sheet as a field. The reason strings for a bad rect embed
+    /// the rect itself, so they are distinct per sprite; without the sheet the only way to group
+    /// nineteen skips onto the one broken sheet that caused them is to parse the prose.</summary>
+    [Fact]
+    public void Every_skip_reason_carries_its_sheet_number()
+    {
+        var manifest = WriteAssets(
+            (1, 8, 8, Red, [(10, new SpriteRect(4, 4, 8, 8))]),   // rect overruns the sheet
+            (2, null, null, default, G(20, 0, 0, 4, 4)),          // no PNG
+            (3, 64, 8, Red, G(30, 0, 0, 64, 8)));                 // wider than the atlas
+
+        using var built = AtlasBuilder.Build(manifest,
+            [
+                new SpriteRef("overrun", 1, 10), new SpriteRef("nopng", 2, 20),
+                new SpriteRef("wide", 3, 30), new SpriteRef("missing", 1, 99),
+            ],
+            width: 32);
+
+        Assert.Equal(
+            new[] { ("missing", 1), ("nopng", 2), ("overrun", 1), ("wide", 3) },
+            built.Skipped.Select(s => (s.Key, s.Sheet)).Order().ToArray());
+    }
+
     /// <summary>Latent in the current corpus, guarded anyway: a negative origin would throw the
     /// same opaque range error as an overrun.</summary>
     [Fact]

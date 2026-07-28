@@ -118,6 +118,93 @@ public class BundlesTests : IDisposable
         Assert.Equal("Bodies:1:idle-down", Assert.Single(parts).Key);
     }
 
+    // ---- Determinism ----------------------------------------------------------------------
+    //
+    // The emitted fragments are committed, and ShelfPacker breaks height ties by list index, so
+    // the order these methods return sprites in decides the atlas layout and therefore every byte
+    // of the PNG. Directory.EnumerateDirectories returns filesystem order — on the real asset
+    // tree that is hash order, which differs by machine. Both walks must sort.
+    //
+    // The fixtures name directories so that ordinal order disagrees with both creation order and
+    // numeric order, so the assertion fails unless the sort is actually applied.
+
+    [Fact]
+    public void Parts_returns_part_directories_in_ordinal_order()
+    {
+        var root = NewAssetDir();
+        foreach (var id in new[] { "2", "10", "1" })
+            WriteTres(root, "Bodies", id, ("idle-down", [(7, 0, 0, 4, 4)]));
+
+        var parts = Bundles.Parts(root, Config(partCategories: ["Bodies"], partClips: ["idle-down"]));
+
+        Assert.Equal(
+            new[] { "Bodies:1:idle-down", "Bodies:10:idle-down", "Bodies:2:idle-down" },
+            parts.Select(p => p.Key).ToArray());
+    }
+
+    [Fact]
+    public void Effects_returns_effect_directories_in_ordinal_order()
+    {
+        var root = NewAssetDir();
+        foreach (var id in new[] { "2", "10", "1" })
+            WriteTres(root, "Effects", id, (id, [(7, 0, 0, 4, 4)]));
+
+        var effects = Bundles.Effects(root, Config());
+
+        Assert.Equal(new[] { "1:0", "10:0", "2:0" }, effects.Select(e => e.Key).ToArray());
+    }
+
+    /// <summary>The real corpus is the case that matters: a temp dir with three entries may well
+    /// enumerate in creation order anyway, so it cannot prove the sort is load-bearing.</summary>
+    [SkippableFact]
+    public void Ordering_is_stable_against_the_client_assets()
+    {
+        Skip.If(ManifestTests.AssetRoot is null, "client assets not available");
+        var root = ManifestTests.AssetRoot!;
+        var config = BundleConfig.Load(ConfigPath);
+
+        // Parts keys are "<category>:<id>:<clip>": ids must ascend within each category.
+        foreach (var category in Bundles.Parts(root, config)
+                     .Select(p => p.Key.Split(':')).GroupBy(k => k[0]))
+        {
+            var ids = category.Select(k => k[1]).Distinct().ToArray();
+            Assert.Equal(ids.Order(StringComparer.Ordinal).ToArray(), ids);
+        }
+
+        // Effects keys are "<id>:<frameIndex>".
+        var effectIds = Bundles.Effects(root, config)
+            .Select(e => e.Key.Split(':')[0]).Distinct().ToArray();
+
+        Assert.Equal(effectIds.Order(StringComparer.Ordinal).ToArray(), effectIds);
+    }
+
+    /// <summary>The property the fragments actually need: two builds in one process must produce
+    /// byte-identical output, rects and PNG payload alike.</summary>
+    [SkippableFact]
+    public void Bundles_render_reproducibly_against_the_client_assets()
+    {
+        Skip.If(ManifestTests.AssetRoot is null, "client assets not available");
+        var root = ManifestTests.AssetRoot!;
+        var config = BundleConfig.Load(ConfigPath);
+        var manifest = Manifest.Load(root);
+
+        Assert.Equal(RenderAll(manifest, root, config), RenderAll(manifest, root, config));
+    }
+
+    private static string RenderAll(Manifest manifest, string root, BundleConfig config)
+    {
+        using var icons = AtlasBuilder.Build(
+            manifest, Bundles.Icons(manifest, config), config.AtlasWidth);
+        using var parts = AtlasBuilder.BuildFromFrames(
+            manifest, Bundles.Parts(root, config), config.AtlasWidth);
+        using var effects = AtlasBuilder.BuildFromFrames(
+            manifest, Bundles.Effects(root, config), config.AtlasWidth);
+
+        return BundleWriter.Render("icons", icons.Image, icons.Rects)
+             + BundleWriter.Render("parts", parts.Image, parts.Rects)
+             + BundleWriter.Render("effects", effects.Image, effects.Rects);
+    }
+
     // ---- Effects ------------------------------------------------------------------------
 
     [Fact]
@@ -185,8 +272,9 @@ public class BundlesTests : IDisposable
         Assert.DoesNotContain(parts, p => p.Key.StartsWith(config.EffectsCategory + ":"));
     }
 
-    private static string ConfigPath => Path.GetFullPath(Path.Combine(
-        AppContext.BaseDirectory, "..", "..", "..", "..", "SpriteBundle", "sheets.json"));
+    /// <summary>SpriteBundle.csproj copies sheets.json into the test output; matches
+    /// BundleConfigTests.</summary>
+    private static string ConfigPath => Path.Combine(AppContext.BaseDirectory, "sheets.json");
 
     // ---- Fixtures -------------------------------------------------------------------------
 
@@ -243,14 +331,23 @@ public class BundlesTests : IDisposable
                             + $"region = Rect2({f.X}, {f.Y}, {f.W}, {f.H})\n");
             }
 
+        // Written with an explicit loop rather than a Select closing over a running index: that
+        // would silently depend on the sequence being enumerated exactly once, in order.
         text.Append("\n[resource]\nanimations = [");
         var i = 0;
-        text.Append(string.Join(",", clips.Select(c =>
+        var written = 0;
+        foreach (var (clip, clipFrames) in clips)
         {
-            var refs = string.Join(", ", c.Frames.Select(_ =>
-                $"{{\"duration\": 1.0,\"texture\": SubResource(\"{ids[i++]}\")}}"));
-            return $"{{\"frames\": [{refs}],\"loop\": true,\"name\": &\"{c.Clip}\",\"speed\": 8.0}}";
-        })));
+            if (written++ > 0) text.Append(',');
+
+            var refs = new List<string>(clipFrames.Length);
+            foreach (var _ in clipFrames)
+                refs.Add($"{{\"duration\": 1.0,\"texture\": SubResource(\"{ids[i++]}\")}}");
+
+            text.Append($"{{\"frames\": [{string.Join(", ", refs)}],\"loop\": true,"
+                        + $"\"name\": &\"{clip}\",\"speed\": 8.0}}");
+        }
+
         text.Append("]\n");
 
         File.WriteAllText(Path.Combine(dir, "animations.tres"), text.ToString());

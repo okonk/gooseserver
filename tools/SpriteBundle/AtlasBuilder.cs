@@ -9,8 +9,13 @@ public readonly record struct SpriteRef(string Key, int Sheet, int Graphic);
 /// <summary>A sprite that could not be packed, and why. The reason is carried rather than
 /// inferred because the causes need different responses: a missing manifest entry usually means a
 /// stale graphic id in the game data, whereas a rect that does not fit its own sheet is an
-/// asset-pipeline bug. Collapsing them into a bare count hides the second behind the first.</summary>
-public sealed record SkippedSprite(string Key, string Reason);
+/// asset-pipeline bug. Collapsing them into a bare count hides the second behind the first.
+///
+/// Sheet is a field rather than something to read out of Reason because skips cluster by sheet,
+/// not by message: a bad-rect reason embeds the rect, so nineteen sprites off the end of one sheet
+/// produce nineteen distinct strings and grouping by Reason reports the same sheet nineteen
+/// times.</summary>
+public sealed record SkippedSprite(string Key, int Sheet, string Reason);
 
 public sealed class BuiltAtlas : IDisposable
 {
@@ -40,7 +45,7 @@ public static class AtlasBuilder
     /// all; it is carried through rather than dropped so the key still gets a Skipped entry (and
     /// still participates in duplicate detection).</summary>
     private readonly record struct Candidate(
-        string Key, int Sheet, SpriteRect Rect, string? Unresolved);
+        string Key, int Sheet, SpriteRect Rect, string? UnresolvedReason);
 
     /// <summary>Packs sprites whose rects live in the manifest, keyed by sheet and graphic id.</summary>
     public static BuiltAtlas Build(Manifest manifest, IReadOnlyList<SpriteRef> sources, int width) =>
@@ -81,9 +86,9 @@ public static class AtlasBuilder
             if (!keys.Add(s.Key))
                 throw new ArgumentException($"duplicate sprite key '{s.Key}'", paramName);
 
-            if (s.Unresolved is { } reason)
+            if (s.UnresolvedReason is { } reason)
             {
-                skipped.Add(new SkippedSprite(s.Key, reason));
+                skipped.Add(new SkippedSprite(s.Key, s.Sheet, reason));
                 continue;
             }
 
@@ -108,7 +113,8 @@ public static class AtlasBuilder
             if (size is not { } sheetSize)
             {
                 skipped.Add(new SkippedSprite(
-                    s.Key, $"sheet {s.Sheet} has no PNG at {manifest.SheetPath(s.Sheet)}"));
+                    s.Key, s.Sheet,
+                    $"sheet {s.Sheet} has no PNG at {manifest.SheetPath(s.Sheet)}"));
                 continue;
             }
 
@@ -120,7 +126,7 @@ public static class AtlasBuilder
                 rect.X + rect.W > sheetSize.W || rect.Y + rect.H > sheetSize.H)
             {
                 skipped.Add(new SkippedSprite(
-                    s.Key,
+                    s.Key, s.Sheet,
                     $"rect ({rect.X},{rect.Y},{rect.W},{rect.H}) does not fit sheet {s.Sheet} " +
                     $"({sheetSize.W}x{sheetSize.H})"));
                 continue;
@@ -131,7 +137,8 @@ public static class AtlasBuilder
             if (rect.W > width)
             {
                 skipped.Add(new SkippedSprite(
-                    s.Key, $"sprite is {rect.W}px wide, wider than the {width}px atlas"));
+                    s.Key, s.Sheet,
+                    $"sprite is {rect.W}px wide, wider than the {width}px atlas"));
                 continue;
             }
 

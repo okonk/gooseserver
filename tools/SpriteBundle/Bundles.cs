@@ -34,7 +34,7 @@ public static class Bundles
     /// parsing every one of the ~560 files that Effects is about to parse again.</summary>
     public static List<(string Key, TresFrame Frame)> Parts(string assetRoot, BundleConfig config)
     {
-        var frames = new List<(string, TresFrame)>();
+        var frames = new List<(string Key, TresFrame Frame)>();
 
         foreach (var category in config.PartCategories)
         {
@@ -43,7 +43,7 @@ public static class Bundles
             var dir = Path.Combine(assetRoot, category);
             if (!Directory.Exists(dir)) continue;
 
-            foreach (var partDir in Directory.EnumerateDirectories(dir))
+            foreach (var partDir in Ordered(dir))
             {
                 var tres = Path.Combine(partDir, "animations.tres");
                 if (!File.Exists(tres)) continue;
@@ -70,11 +70,11 @@ public static class Bundles
     /// survived would not even be deterministic. Fail loudly instead.</summary>
     public static List<(string Key, TresFrame Frame)> Effects(string assetRoot, BundleConfig config)
     {
-        var frames = new List<(string, TresFrame)>();
+        var frames = new List<(string Key, TresFrame Frame)>();
         var dir = Path.Combine(assetRoot, config.EffectsCategory);
         if (!Directory.Exists(dir)) return frames;
 
-        foreach (var effectDir in Directory.EnumerateDirectories(dir))
+        foreach (var effectDir in Ordered(dir))
         {
             var tres = Path.Combine(effectDir, "animations.tres");
             if (!File.Exists(tres)) continue;
@@ -87,11 +87,22 @@ public static class Bundles
                     $"{tres}: effect '{id}' has {parsed.Clips.Count} animations, but the "
                     + "'<id>:<frameIndex>' bundle key assumes exactly one");
 
-            var clipFrames = parsed.Clips.Single().Value;
+            var clipFrames = parsed.Clips.First().Value;
             for (var i = 0; i < clipFrames.Count; i++)
                 frames.Add(($"{id}:{i}", clipFrames[i]));
         }
 
         return frames;
     }
+
+    /// <summary>Subdirectories in a fixed order. Directory.EnumerateDirectories returns
+    /// filesystem order, which on the client's asset tree is hash order and so differs from
+    /// machine to machine. That order is not cosmetic: ShelfPacker breaks height ties by position
+    /// in the list these methods return, so it decides the atlas layout and therefore every byte
+    /// of the rendered PNG. The fragments are committed, so an unsorted walk would give every
+    /// teammate's rebuild a whole-file diff.
+    ///
+    /// Sorting whole paths is the same as sorting the ids: they share a directory prefix.</summary>
+    private static IEnumerable<string> Ordered(string dir) =>
+        Directory.EnumerateDirectories(dir).Order(StringComparer.Ordinal);
 }
