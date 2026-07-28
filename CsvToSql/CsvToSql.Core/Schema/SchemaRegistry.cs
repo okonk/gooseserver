@@ -27,11 +27,7 @@ namespace CsvToSql.Core.Schema
             Sheet = sheet;
             Table = table;
             Converter = converter;
-            // Throw rather than default to empty: a converter with no descriptors is a bug,
-            // and defaulting would launder it into a silently column-less table.
-            Columns = converter.GetColumnDescriptors()
-                ?? throw new InvalidOperationException(
-                    $"{converter.GetType().Name} ({sheet} -> {table}) returned no column descriptors.");
+            Columns = converter.GetColumnDescriptors();
             Composites = converter.GetComposites() ?? Array.Empty<Composite>();
             Indexes = indexes ?? Array.Empty<string>();
         }
@@ -39,9 +35,9 @@ namespace CsvToSql.Core.Schema
 
     public static class SchemaRegistry
     {
-        /// <summary>Declaration order is emission order in the generated script, matching
-        /// sqlTemplate.sql's table order (not the alphabetical order of the old
-        /// converterMapping dictionary) so the normalised text diff stays small.</summary>
+        /// <summary>Declaration order is emission order in the generated script. It preserves
+        /// the pre-descriptor schema's table order, which is also creation order: dependants
+        /// follow the tables they reference.</summary>
         public static IReadOnlyList<TableSchema> Tables { get; } = new[]
         {
             new TableSchema("Items", "item_templates", new ItemsCsvToSql()),

@@ -58,7 +58,8 @@ namespace CsvToSql
 
             // Combat
             Col.Int("weapon_damage", SqlType.Int, def: 1),
-            // Worksheet order. sqlTemplate.sql lists armor_pierce last, after script_params —
+            // Worksheet order. The pre-descriptor schema listed armor_pierce last, after
+            // script_params —
             // do not "fix" this to match it: cells are read positionally, so moving it would
             // write every later column's value into the wrong column.
             Col.Int("armor_pierce", SqlType.Int, def: 0),

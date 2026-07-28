@@ -7,8 +7,10 @@ namespace Goose.Tests.Schema
         /// <summary>The 21 sheet -> table pairs the pre-registry
         /// CsvToSqlConverter.BuildConverterMapping() carried, captured as literals so the
         /// registry is pinned against what actually worked rather than against the plan.
-        /// This is a migration artefact: delete it in Task 8 alongside TemplateConformanceTests
-        /// rather than hand-maintaining it as a mirror of the registry.</summary>
+        /// Kept deliberately past the migration: it is the only remaining record of which
+        /// worksheet feeds which table, and nothing else pins it — the equivalence test sees
+        /// table names but never sheet names, so a mis-pairing would silently import the wrong
+        /// sheet. Update it only alongside a genuine, intended sheet or table rename.</summary>
         private static readonly string[] LegacyPairs =
         {
             "Items -> item_templates",

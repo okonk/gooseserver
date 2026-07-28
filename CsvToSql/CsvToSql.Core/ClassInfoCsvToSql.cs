@@ -4,7 +4,7 @@ namespace CsvToSql
 {
     public class ClassInfoCsvToSql : CsvToSqlBase
     {
-        // No primary key — sqlTemplate.sql declares none for class_info.
+        // No primary key — the pre-descriptor schema declared none for class_info.
         public override Column[] GetColumnDescriptors() => new[]
         {
             Col.Id("class_id", SqlType.Int).Ref("Classes"),

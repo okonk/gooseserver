@@ -4,7 +4,7 @@ using System.Text;
 namespace CsvToSql.Core.Schema
 {
     /// <summary>Renders DROP/CREATE/CREATE INDEX for one table from its column descriptors.
-    /// Replaces the hand-maintained sqlTemplate.sql.</summary>
+    /// Replaces the hand-maintained schema template this project used to carry.</summary>
     public static class TableDdl
     {
         /// <param name="columns">Each column's Default is emitted verbatim — the caller owns

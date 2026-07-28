@@ -3,7 +3,6 @@ using CsvToSql.Core.Schema;
 using System;
 using System.IO;
 using System.Net.Http;
-using System.Reflection;
 using System.Text;
 
 namespace CsvToSql.Core
@@ -22,11 +21,8 @@ namespace CsvToSql.Core
         /// committed fixture instead of the network.</summary>
         public static string ConvertWorkbook(Stream spreadsheet)
         {
-            var assembly = typeof(CsvToSqlConverter).GetTypeInfo().Assembly;
-            var resource = assembly.GetManifestResourceStream($"CsvToSql.Core.sqlTemplate.sql");
-            using var streamReader = new StreamReader(resource, Encoding.UTF8);
-
-            string sqlTemplate = streamReader.ReadToEnd();
+            var sb = new StringBuilder();
+            sb.Append("BEGIN TRANSACTION;\n\n");
 
             using (var workbook = new XLWorkbook(spreadsheet))
             {
@@ -36,11 +32,15 @@ namespace CsvToSql.Core
                         throw new InvalidOperationException(
                             $"Spreadsheet is missing required worksheet '{schema.Sheet}'.");
 
-                    sqlTemplate = schema.Converter.Convert(worksheet, sqlTemplate, schema.Table);
+                    sb.Append(TableDdl.Emit(schema.Table, schema.Columns, schema.Indexes));
+                    sb.Append('\n');
+                    sb.Append(schema.Converter.BuildInserts(worksheet, schema.Table));
+                    sb.Append('\n');
                 }
             }
 
-            return sqlTemplate;
+            sb.Append("COMMIT;\n");
+            return sb.ToString();
         }
     }
 }
