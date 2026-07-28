@@ -59,11 +59,11 @@ namespace CsvToSql
             Col.Int("stack_size", SqlType.SmallInt, def: 1),
             Col.Int("body_state", SqlType.SmallInt, def: 3),
 
-            // 0 is the "none" sentinel for these two spell ids, so they are not
-            // declared as foreign keys.
-            Col.Int("spell_effect_id", SqlType.Int, def: 0),
+            // 0 means "none" for both of these. That is not a reason to omit .Ref — the
+            // editor treats a zero foreign key as none and skips the existence check.
+            Col.Id("spell_effect_id", SqlType.Int, def: 0).Ref("Spell Effects"),
             Col.Decimal("spell_effect_chance", SqlType.Decimal94, def: "100"),
-            Col.Int("learn_spell_id", SqlType.Int, def: 0),
+            Col.Id("learn_spell_id", SqlType.Int, def: 0).Ref("Spells"),
 
             Col.Int("credits_value", SqlType.Int, def: 0),
             Col.Text("script_path", def: "''"),

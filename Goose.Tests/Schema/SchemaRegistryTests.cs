@@ -85,6 +85,36 @@ namespace Goose.Tests.Schema
                     Assert.Contains(c.RefSheet, sheets);
         }
 
+        /// <summary>Columns named *_id that legitimately have no .Ref, with the reason. These
+        /// are sprite indices into the client's graphics, not rows in any worksheet, so there
+        /// is nothing for the editor to offer a picker over.</summary>
+        private static readonly HashSet<string> NonReferenceIdColumns = new()
+        {
+            "npc_templates.body_id", "npc_templates.face_id", "npc_templates.hair_id",
+            "spell_effects.body_id", "spell_effects.face_id", "spell_effects.hair_id",
+        };
+
+        /// <summary>Every_foreign_key_targets_a_known_sheet only checks references that were
+        /// declared, so it cannot see one that was forgotten — and a missing .Ref is silent:
+        /// the SQL is identical, only the editor loses its picker and its validation. This
+        /// catches the omission by name instead. Note the heuristic is name-based, so a foreign
+        /// key not ending in _id (spell_effects.teleport_map) still relies on review.</summary>
+        [Fact]
+        public void Every_id_column_either_references_a_sheet_or_is_a_known_exception()
+        {
+            foreach (var t in SchemaRegistry.Tables)
+                foreach (var c in t.Columns)
+                {
+                    if (!c.Name.EndsWith("_id", StringComparison.Ordinal)) continue;
+                    if (c.IsPrimaryKey || c.RefSheet != null) continue;
+
+                    Assert.True(NonReferenceIdColumns.Contains($"{t.Table}.{c.Name}"),
+                        $"[{t.Table}].{c.Name} looks like a foreign key but declares no .Ref(). " +
+                        "Add one so the editor can offer a picker and validate it, or add it to " +
+                        $"{nameof(NonReferenceIdColumns)} with the reason it is not a reference.");
+                }
+        }
+
         /// <summary>A Composite names its columns by string, so a typo is silently inert.</summary>
         [Fact]
         public void Every_composite_references_a_real_column()
