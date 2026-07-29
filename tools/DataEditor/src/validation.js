@@ -14,8 +14,28 @@ var Validation = (function () {
     BIGINT: [-9223372036854775808, 9223372036854775807],
   };
 
-  function isNumericSql(sql) {
-    return RANGES[sql] !== undefined || sql.indexOf('DECIMAL') === 0;
+  // The BIGINT bounds above do not survive Number formatting (they render as
+  // -9223372036854776000), so error messages use the exact literals instead.
+  var RANGE_TEXT = {
+    BIGINT: ['-9223372036854775808', '9223372036854775807'],
+  };
+
+  function rangeText(sql, index) {
+    return RANGE_TEXT[sql] ? RANGE_TEXT[sql][index] : String(RANGES[sql][index]);
+  }
+
+  // "DECIMAL(5,2)" -> { precision: 5, scale: 2 }. Anything else -> null.
+  function decimalSpec(sql) {
+    var m = /^DECIMAL\((\d+),\s*(\d+)\)$/.exec(sql || '');
+    if (!m) return null;
+    return { precision: Number(m[1]), scale: Number(m[2]) };
+  }
+
+  // Largest magnitude a DECIMAL(p,s) can hold, as a display string: p - s integer
+  // digits then s fraction digits, all nines.
+  function decimalMax(spec) {
+    var whole = new Array(spec.precision - spec.scale + 1).join('9') || '0';
+    return spec.scale > 0 ? whole + '.' + new Array(spec.scale + 1).join('9') : whole;
   }
 
   function validateCell(column, raw, idSets) {
@@ -51,29 +71,53 @@ var Validation = (function () {
       return { ok: true, write: true };
     }
 
-    // Numeric kinds: Id, Int, Decimal.
-    if (isNumericSql(column.sql) || column.kind !== 'Text') {
-      if (!/^-?\d+(\.\d+)?$/.test(value)) {
-        return { ok: false, write: true, message: column.name + ' must be a number' };
-      }
+    // Numeric kinds: Id, Int, Decimal. ColumnKind is closed (Column.cs:7) and the other
+    // three kinds have all returned above, so everything reaching here is numeric.
+    var parts = /^-?(\d+)(?:\.(\d+))?$/.exec(value);
+    if (!parts) {
+      return { ok: false, write: true, message: column.name + ' must be a number' };
+    }
 
-      var range = RANGES[column.sql];
-      if (range) {
-        var n = Number(value);
-        if (!Number.isInteger(n)) {
-          return { ok: false, write: true, message: column.name + ' must be a whole number' };
-        }
-        if (n < range[0] || n > range[1]) {
-          return {
-            ok: false, write: true,
-            message: column.name + ' must be between ' + range[0] + ' and ' + range[1] +
-                     ' (' + column.sql + ')',
-          };
-        }
+    var range = RANGES[column.sql];
+    if (range) {
+      var n = Number(value);
+      if (!Number.isInteger(n)) {
+        return { ok: false, write: true, message: column.name + ' must be a whole number' };
+      }
+      if (n < range[0] || n > range[1]) {
+        return {
+          ok: false, write: true,
+          message: column.name + ' must be between ' + rangeText(column.sql, 0) + ' and ' +
+                   rangeText(column.sql, 1) + ' (' + column.sql + ')',
+        };
       }
     }
 
-    // Foreign key: 0 and blank both mean "none".
+    // DECIMAL(p,s) is checked by digit count, not magnitude: MySQL rejects (or silently
+    // rounds, outside strict mode) a value with too many integer or fraction digits.
+    var spec = decimalSpec(column.sql);
+    if (spec) {
+      var whole = parts[1].replace(/^0+(?=\d)/, '');
+      var fraction = parts[2] || '';
+      if (whole.length > spec.precision - spec.scale) {
+        return {
+          ok: false, write: true,
+          message: column.name + ' must be between -' + decimalMax(spec) + ' and ' +
+                   decimalMax(spec) + ' (' + column.sql + ')',
+        };
+      }
+      if (fraction.length > spec.scale) {
+        return {
+          ok: false, write: true,
+          message: column.name + ' allows at most ' + spec.scale + ' decimal place' +
+                   (spec.scale === 1 ? '' : 's') + ' (' + column.sql + ')',
+        };
+      }
+    }
+
+    // Foreign key: 0 and blank both mean "none". An unknown ref sheet is allowed through
+    // deliberately — idSets may be partially loaded, and failing closed would block saves
+    // on rows the user has not touched.
     if (column.ref && idSets && value !== '0') {
       var known = idSets[column.ref];
       if (known && !known.has(Number(value))) {
@@ -88,9 +132,11 @@ var Validation = (function () {
   }
 
   function validateId(raw, existingIds, ownId) {
-    var value = String(raw || '').trim();
+    var value = (raw === null || raw === undefined) ? '' : String(raw).trim();
     if (value === '') return { ok: false, message: 'id is required' };
-    if (!/^\d+$/.test(value)) return { ok: false, message: 'id must be a whole number' };
+    if (!/^\d+$/.test(value) || Number(value) < 1) {
+      return { ok: false, message: 'id must be a positive whole number' };
+    }
 
     var n = Number(value);
     if (existingIds.has(n) && n !== ownId) {
@@ -99,11 +145,22 @@ var Validation = (function () {
     return { ok: true };
   }
 
+  // Accepts an array or a Set. Junk cells in the id column are ignored rather than
+  // poisoning the result with NaN.
   function nextId(ids) {
-    if (!ids || ids.length === 0) return 1;
-    return Math.max.apply(null, ids) + 1;
+    if (!ids) return 1;
+    var list = (typeof Array.from === 'function') ? Array.from(ids) : ids;
+    var max = 0;
+    for (var i = 0; i < list.length; i++) {
+      var n = Number(list[i]);
+      if (Number.isFinite(n) && n > max) max = n;
+    }
+    return max + 1;
   }
 
+  // idSets is keyed by referenced sheet name and holds that sheet's id Set; the reserved
+  // key __self holds the current sheet's own ids, used for duplicate detection. ownId is
+  // the id of the row being edited (null when adding), exempted from that check.
   function validateRecord(columns, values, idSets, ownId) {
     var errors = [];
 

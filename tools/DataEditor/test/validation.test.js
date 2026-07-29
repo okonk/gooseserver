@@ -9,7 +9,7 @@ const col = (over = {}) => ({
 });
 
 test('blank optional value is valid and writes nothing', () => {
-  const r = Validation.validateCell(col({ default: '0' }), '');
+  const r = Validation.validateCell(col(), '');
   assert.equal(r.ok, true);
   assert.equal(r.write, false);
 });
@@ -100,4 +100,94 @@ test('validateRecord collects every failure', () => {
   assert.equal(r.ok, false);
   assert.equal(r.errors.length, 2);
   assert.deepEqual(r.errors.map((e) => e.column).sort(), ['kind', 'name']);
+});
+
+// --- Decimal precision and scale -------------------------------------------------
+
+test('decimal within DECIMAL(5,2) is accepted', () => {
+  const c = col({ kind: 'Decimal', sql: 'DECIMAL(5,2)' });
+  assert.equal(Validation.validateCell(c, '999.99').ok, true);
+  assert.equal(Validation.validateCell(c, '-999.99').ok, true);
+  assert.equal(Validation.validateCell(c, '12').ok, true);
+});
+
+test('decimal exceeding DECIMAL(5,2) integer digits is rejected', () => {
+  const c = col({ name: 'snare_percent', kind: 'Decimal', sql: 'DECIMAL(5,2)' });
+  const r = Validation.validateCell(c, '1000');
+  assert.equal(r.ok, false);
+  assert.match(r.message, /snare_percent/);
+  assert.match(r.message, /999\.99/);
+});
+
+test('decimal exceeding DECIMAL(5,4) integer digits is rejected', () => {
+  const c = col({ name: 'chance', kind: 'Decimal', sql: 'DECIMAL(5,4)' });
+  assert.equal(Validation.validateCell(c, '9.9999').ok, true);
+  const r = Validation.validateCell(c, '12.5');
+  assert.equal(r.ok, false);
+  assert.match(r.message, /9\.9999/);
+});
+
+test('decimal with too many fraction digits is rejected', () => {
+  const c = col({ kind: 'Decimal', sql: 'DECIMAL(5,2)' });
+  const r = Validation.validateCell(c, '99999.99999');
+  assert.equal(r.ok, false);
+  const s = Validation.validateCell(c, '1.234');
+  assert.equal(s.ok, false);
+  assert.match(s.message, /2 decimal place/);
+});
+
+// --- Edge cases ------------------------------------------------------------------
+
+test('whitespace-only input is treated as blank', () => {
+  assert.equal(Validation.validateCell(col(), '   ').write, false);
+  const r = Validation.validateCell(col({ required: true }), '   ');
+  assert.equal(r.ok, false);
+  assert.match(r.message, /required/i);
+});
+
+test('negative values are accepted in a signed integer column', () => {
+  assert.equal(Validation.validateCell(col({ sql: 'INT' }), '-5').ok, true);
+  assert.equal(Validation.validateCell(col({ sql: 'SMALLINT' }), '-32768').ok, true);
+  assert.equal(Validation.validateCell(col({ sql: 'SMALLINT' }), '-32769').ok, false);
+});
+
+test('a required FK left blank is rejected before the lookup', () => {
+  const c = col({ name: 'item_id', kind: 'Id', ref: 'Items', required: true });
+  const r = Validation.validateCell(c, '', { Items: new Set([1]) });
+  assert.equal(r.ok, false);
+  assert.match(r.message, /required/i);
+});
+
+test('validateId reports 0 as out of range, not as missing', () => {
+  const r = Validation.validateId(0, new Set(), null);
+  assert.equal(r.ok, false);
+  assert.doesNotMatch(r.message, /required/i);
+  const neg = Validation.validateId('-1', new Set(), null);
+  assert.equal(neg.ok, false);
+  assert.match(neg.message, /positive/i);
+});
+
+test('nextId ignores non-numeric entries and accepts a Set', () => {
+  assert.equal(Validation.nextId([1, 'a', 3]), 4);
+  assert.equal(Validation.nextId(new Set([1, 2, 3])), 4);
+  assert.equal(Validation.nextId(['x']), 1);
+  assert.equal(Validation.nextId(null), 1);
+});
+
+// --- validateRecord id seam ------------------------------------------------------
+
+test('validateRecord rejects an id already used in the sheet', () => {
+  const columns = [col({ name: 'id', kind: 'Id', pk: true, required: true })];
+  const idSets = { __self: new Set([1, 2, 3]) };
+  const r = Validation.validateRecord(columns, { id: '2' }, idSets, null);
+  assert.equal(r.ok, false);
+  assert.equal(r.errors[0].column, 'id');
+  assert.match(r.errors[0].message, /already used/);
+});
+
+test('validateRecord allows a row to keep its own id', () => {
+  const columns = [col({ name: 'id', kind: 'Id', pk: true, required: true })];
+  const idSets = { __self: new Set([1, 2, 3]) };
+  assert.equal(Validation.validateRecord(columns, { id: '2' }, idSets, 2).ok, true);
+  assert.equal(Validation.validateRecord(columns, { id: '4' }, idSets, 2).ok, true);
 });
