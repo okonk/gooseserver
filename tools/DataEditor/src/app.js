@@ -31,11 +31,28 @@ var App = (function () {
   var MAX_PROBLEMS = 1000;
   var SHOWN_PROBLEMS = 100;
 
+  // EVERY SERVER CALL IS ASYNCHRONOUS AND EVERY CALLBACK WRITES INTO ONE SHARED `state`, so a
+  // callback that arrives after the user has moved on must not be allowed to write anything. Two
+  // generation counters are the guard, and the rule is the same for both: capture the counter
+  // when the request goes out, and return without touching `state` if it has moved on by the
+  // time the answer comes back.
+  //
+  //   sheetToken — bumped by openSheet. A stale readSheet reply would otherwise leave sheet A's
+  //     rows under sheet B's schema, and the next Save writes A's record into B. Nothing
+  //     downstream can catch it: the row is well formed, the width matches and the id is free.
+  //     A counter rather than a `state.sheetName !== sheetName` comparison because A -> B -> A
+  //     must also discard B's reply, and by name that reply looks current.
+  //   formToken — bumped by renderForm. Same failure one level down: two records opened while a
+  //     bundle is decoding, and the LAST decode to land renders its record's values into the
+  //     row slot of the other one.
   var state = {
     schema: null,
     sheetName: null,
+    sheetToken: 0,
+    formToken: 0,
+    saving: false,
+    loading: {},       // bundle name -> callbacks waiting on one in-flight decode
     rows: [],
-    header: [],
     rowNumber: 0,
     ids: [],
     idSets: {},
@@ -94,16 +111,28 @@ var App = (function () {
 
     state.bundles[name] = GOOSE_SPRITES[name];
 
+    // One decode per bundle, ever. The state.images check above only closes the window AFTER the
+    // first decode lands; two records opened before that both pass it, and two Images for a
+    // multi-megabyte data URI then race to render the same slot. Waiters queue instead.
+    if (state.loading[name]) { state.loading[name].push(done); return; }
+    state.loading[name] = [done];
+
+    function finish() {
+      var waiting = state.loading[name] || [];
+      delete state.loading[name];
+      waiting.forEach(function (fn) { fn(); });
+    }
+
     var img = new Image();
     img.onload = function () {
       state.images[name] = img;
       imagesChanged();
-      done();
+      finish();
     };
     img.onerror = function () {
       if (state.bundleErrors.indexOf(name) === -1) state.bundleErrors.push(name);
       status(bundleWarning(), true);
-      done();
+      finish();
     };
     img.src = GOOSE_SPRITES[name].png;
   }
@@ -143,9 +172,11 @@ var App = (function () {
     return 1;
   }
 
+  // No missing-element guard, matching renderList/renderForm/renderPreviews/save/publishCheck:
+  // every one of the nine ids is in Editor.html, and a page missing one is broken in a way that
+  // should fail loudly on the first call rather than run on silently with no status line.
   function status(message, isError) {
     var el = document.getElementById('status');
-    if (!el) return;
     el.textContent = message;
     el.className = isError ? 'error' : '';
   }
@@ -154,21 +185,37 @@ var App = (function () {
   // interval outlives the canvas, and the canvas outlives the record.
   function clearPreviews() {
     if (state.stopEffect) { state.stopEffect(); state.stopEffect = null; }
-    var host = document.getElementById('previews');
-    if (host) host.innerHTML = '';
+    document.getElementById('previews').innerHTML = '';
     state.previewKey = null;
   }
 
   // Depth-first over real elements. Not querySelectorAll: __frozen is a JS property, not an
   // attribute, so there is no selector that finds it.
   function walk(node) {
+    // An explicit stack, pushing into ONE array: `out = out.concat(walk(child))` reallocated the
+    // whole list at every node, which is quadratic on a 76-column form.
     var out = [];
-    var kids = node.children || [];
-    for (var i = 0; i < kids.length; i++) {
-      out.push(kids[i]);
-      out = out.concat(walk(kids[i]));
+    var stack = [node];
+    while (stack.length) {
+      var kids = stack.pop().children || [];
+      for (var i = 0; i < kids.length; i++) {
+        out.push(kids[i]);
+        stack.push(kids[i]);
+      }
     }
     return out;
+  }
+
+  // Empties the form and forgets the record it held. Both halves, always together: leaving the
+  // previous sheet's controls in the DOM lets Forms.collect harvest whatever COLUMN NAMES the
+  // two sheets share, and Save then appends that as a new record. Combination Item Required and
+  // Combination Item Result share both of their columns, as do Class Levelup Spells and Class
+  // Info, so the harvested row validates clean and appends — and with no pk, Code.gs's duplicate
+  // scan is disabled by design and cannot see it either.
+  function clearForm() {
+    document.getElementById('form').innerHTML = '';
+    state.loaded = {};
+    state.rowNumber = 0;
   }
 
   /// Loads a sheet and rebuilds the record list. `selectRow` is a spreadsheet row number to
@@ -181,19 +228,28 @@ var App = (function () {
     // reached. Leaving it to renderPreviews alone would run the previous sheet's animation
     // forever, with its canvas still on screen above the new sheet's empty form.
     clearPreviews();
+    clearForm();
     state.sheetName = sheetName;
     state.schema = schemaFor(sheetName);
-    state.rowNumber = 0;
 
     if (!state.schema) { status('No schema for sheet ' + sheetName, true); return; }
 
+    var token = ++state.sheetToken;
+    var current = function () { return token === state.sheetToken; };
+
     google.script.run
-      .withFailureHandler(function (e) { status(e.message, true); })
+      .withFailureHandler(function (e) { if (current()) status(e.message, true); })
       .withSuccessHandler(function (data) {
-        state.header = data.header;
+        if (!current()) return;
         state.rows = data.rows;
         collectIds();
         loadReferencedSheets(function () {
+          // The one place staleness is decided for the referenced-sheet phase. Its own handlers
+          // do NOT guard: an id + name list is sheet-agnostic and worth keeping whatever the
+          // user did while it was in flight. What must not happen is RENDERING it — the picker
+          // replies for sheet A can land after the user has moved to sheet B, and done() would
+          // then draw A's records under B's schema.
+          if (!current()) return;
           renderList();
           // `note` keeps the save confirmation on screen through the reload that follows it —
           // otherwise the record count overwrites it and the save looks like it did nothing.
@@ -312,23 +368,28 @@ var App = (function () {
     // previous record cannot redraw into a detached node.
     state.imageCallbacks = [];
 
+    // Captured BEFORE the bundles are asked for. Opening a second record while the first is
+    // still waiting on a decode would otherwise let the earlier render land last, putting one
+    // record's values on screen under the other record's rowNumber and stored values — so Save
+    // would write what you see into the row you cannot see.
+    var token = ++state.formToken;
+
     loadBundles(bundlesFor(state.schema), function () {
+      if (token !== state.formToken) return;
       var container = document.getElementById('form');
       Forms.render(container, state.schema, values, ctx());
       renderPreviews(container, values);
     });
   }
 
-  // The values the previews actually READ, as one string. Two mechanisms ask for a redraw and
-  // both can fire for a single keystroke — a composite's __onChange at the target, then the
-  // delegated listener as the same event bubbles to the form — so the redraw is deduplicated by
-  // CONTENT rather than by trying to reason about listener order. That also means typing in
-  // item_name or npc_title, which no preview reads, rebuilds nothing.
+  // The values the previews actually READ, as one string. The redraw is deduplicated by CONTENT:
+  // typing in item_name or npc_title, which no preview reads, rebuilds nothing, and a keystroke
+  // that reaches the delegated listener more than once still renders once.
   //
-  // It is what makes the frozen case come out right for free: while an equip slot holds a typo
-  // the composite does not write its cell, so the key does not move and the preview does not
-  // either — the same guarantee notify() gives, without a second frozen test that could drift
-  // out of step with the first.
+  // It is also what makes the frozen case come out right for free: while an equip slot holds a
+  // typo the composite does not write its cell, so the key does not move and the preview does
+  // not either — the same guarantee notify() gives, without a second frozen test that could
+  // drift out of step with the first.
   function previewKey(values) {
     var parts = ['body_id', 'body_r', 'body_g', 'body_b', 'body_a', 'hair_id', 'hair_r',
                  'hair_g', 'hair_b', 'hair_a', 'face_id', 'body_state', 'equipped_items',
@@ -357,24 +418,13 @@ var App = (function () {
     if (state.stopEffect) { state.stopEffect(); state.stopEffect = null; }
 
 
-    // Every composite control notifies through __onChange on the node Composites.control
-    // returned, and Task 8's contract names that as the preview's redraw signal. Set on EVERY
-    // node rather than on the ones that LOOK like composites: only a composite ever calls it,
-    // the property is inert everywhere else, and sniffing for a class name would silently stop
-    // working the day a control is renamed.
-    //
-    // It is currently REDUNDANT, and honestly so: every composite writes its cell from an
-    // `input` or `change` handler, and those bubble to the delegated listener in init(), so a
-    // mutation sweep cannot kill this line. It stays for the path that does not bubble —
-    // idListControl's chip buttons write the cell from a `click` — which today touches only
-    // quest_ids, a column no preview reads. The day a composite changes a previewed cell from a
-    // button, this is the only thing that would notice.
-    //
-    // Both routes end in refreshPreviews, which is keyed on content, so one keystroke arriving
-    // twice still redraws once. A rejected equip-slot typo redraws NEITHER way: the composite
-    // skips notify while frozen, and the cell it did not write leaves the key unmoved.
-    var redraw = function () { refreshPreviews(container); };
-    walk(container).forEach(function (node) { node.__onChange = redraw; });
+    // NO __onChange BROADCAST. Task 8's contract offers it as the preview's redraw signal, but
+    // every composite writes its cell from an `input` or `change` handler and those bubble to
+    // the delegated listener in init() — so setting it would be a second mechanism that could
+    // not be told apart from the first by any test. One mechanism. If a composite ever needs to
+    // drive a previewed cell from a path that does not bubble (idListControl's chip buttons are
+    // the only such path today, and they write quest_ids, which no preview reads), the fix is to
+    // make that path dispatch an event, not to revive this.
 
     if (state.schema.columns.some(function (c) { return c.name === 'body_id'; })) {
       var canvas = Forms.el('canvas',
@@ -400,7 +450,8 @@ var App = (function () {
     if (effectColumn) {
       var effectId = num(values[effectColumn]);
       if (effectId > 0) {
-        var anim = Forms.el('canvas', { width: 96, height: 96, class: 'effect' });
+        var anim = Forms.el('canvas',
+          { width: Preview.EFFECT_SIZE, height: Preview.EFFECT_SIZE, class: 'effect' });
         host.appendChild(anim);
         state.stopEffect = Preview.effect(anim, effectId, ctx());
       }
@@ -435,6 +486,13 @@ var App = (function () {
 
   function save() {
     if (!state.schema) return;
+
+    // publishCheck has state.checking; this is the same guard for the same reason, and it
+    // matters more. Two clicks before the round-trip resolves issue two writeRow calls, and on
+    // the nine sheets with no pk idColumnIndex is -1, so Code.gs's duplicate scan is disabled BY
+    // DESIGN and both of them append. There is no second line of defence for those sheets.
+    if (state.saving) { status('Still saving — one moment', true); return; }
+
     var container = document.getElementById('form');
 
     if (frozen(container)) {
@@ -473,9 +531,17 @@ var App = (function () {
     var idIndex = pk ? state.schema.columns.indexOf(pk) : -1;
 
     status('Saving…');
+    state.saving = true;
     google.script.run
-      .withFailureHandler(function (e) { status(e.message, true); })
+      .withFailureHandler(function (e) { state.saving = false; status(e.message, true); })
       .withSuccessHandler(function (written) {
+        state.saving = false;
+        // The sheet just changed, so its cached id + name list is out of date. Left alone, a new
+        // record is invisible to every FK pointing at this sheet until the page is reloaded —
+        // and that failure is CLOSED, not open: validation.js waves through an absent id set but
+        // reports a real id as missing from a stale one.
+        delete state.pickerData[state.sheetName];
+        delete state.idSets[state.sheetName];
         openSheet(state.sheetName, written && written.row,
                   'Saved. Run /updatesql then /reloadsql in game to publish.');
       })
@@ -490,7 +556,10 @@ var App = (function () {
   /// item ids against, say, the Maps id set and report every row as broken.
   function publishCheck() {
     var panel = document.getElementById('publish-results');
-    if (state.checking) return;
+    // Says so, rather than doing nothing: the run is 21 sequential round-trips, so a user who
+    // clicks again after a few seconds of apparent silence gets an answer instead of the same
+    // silence.
+    if (state.checking) { status('Still checking all 21 sheets…'); return; }
     state.checking = true;
 
     var sheets = GOOSE_SCHEMA.sheets.slice();

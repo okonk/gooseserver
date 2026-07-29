@@ -58,6 +58,9 @@ const NPC = (id, name, extra) => rowFor('NPCs', Object.assign({
   npc_id: id, npc_name: name, npc_type: 'Monster', body_id: 1, body_state: 1,
   equipped_items: '0,*,0,*,0,*,0,*,0,*,0,*',
 }, extra || {}));
+const MAP = (id, name) => rowFor('Maps', { map_id: id, map_name: name, map_filename: name + '.map' });
+const COMBO = (sheet, comboId, itemId) => rowFor(sheet,
+  { combination_id: comboId, item_template_id: itemId });
 const DROP = (npcId, itemId) => rowFor('NPC Drops', {
   npc_template_id: npcId, item_template_id: itemId, stack: 1, droprate: '0.10',
 });
@@ -68,10 +71,20 @@ function makeServer(sheets, options) {
   const opts = options || {};
   const writes = [];
 
+  // Per-call answers for one sheet, so two requests for the SAME sheet are distinguishable —
+  // which is what separates "guard by generation" from "guard by sheet name".
+  const perCall = opts.perCall || {};
+  const seen = {};
+
   const server = {
     readSheet(name) {
       if (opts.failOn === name) throw new Error('boom: ' + name);
-      const rows = sheets[name] || [];
+      let rows = sheets[name] || [];
+      if (perCall[name]) {
+        const at = seen[name] || 0;
+        seen[name] = at + 1;
+        rows = perCall[name][Math.min(at, perCall[name].length - 1)];
+      }
       return {
         sheet: name,
         header: schemaOf(name).columns.map((c) => c.name),
@@ -123,9 +136,10 @@ function boot(sheets, options) {
   const run = installGoogleScriptRun(server);
 
   Object.assign(App.__state, {
-    schema: null, sheetName: null, rows: [], header: [], rowNumber: 0, ids: [], bundleErrors: [],
+    schema: null, sheetName: null, rows: [], rowNumber: 0, ids: [], bundleErrors: [],
     idSets: {}, pickerData: {}, bundles: {}, images: {}, imageCallbacks: [],
     loaded: {}, stopEffect: null, previewKey: null, checking: false,
+    sheetToken: 0, formToken: 0, saving: false, loading: {},
   });
 
   App.init();
@@ -890,6 +904,298 @@ test('the gate does not fire on a sheet with no EquipSlots composite', () => {
   assert.equal(h.writes.length, 1);
 });
 
+// --- asynchrony: no callback may write into a state the user has moved on from -------------
+
+test('a stale readSheet reply cannot put one sheet\'s rows under another sheet\'s schema', () => {
+  // The failure this prevents: open Items, switch to Maps, let the replies land out of order,
+  // and Items' rows sit under Maps' schema. Saving then writes an Items record into Maps — well
+  // formed, correct width, unique id, so no guard in Code.gs can see it.
+  const h = boot({ Items: [ITEM(7, 'Sword')], Maps: [MAP(1, 'Town')] }, { hold: true });
+  h.settle();
+
+  h.get('sheet-picker').value = 'Maps';
+  fire(h.get('sheet-picker'), 'change');
+  h.get('sheet-picker').value = 'Items';
+  fire(h.get('sheet-picker'), 'change');
+
+  // Maps was asked for first but answers last.
+  h.run.queue.reverse();
+  h.settle();
+
+  assert.equal(App.__state.sheetName, 'Items');
+  assert.equal(App.__state.rows[0][0], '7', 'the rows are Items\' rows');
+  assert.equal(h.get('records').children[0].textContent, '7 — Sword');
+
+  fire(h.get('records').children[0], 'click');
+  h.settle();
+  fire(h.get('save'), 'click');
+  h.settle();
+
+  assert.equal(h.writes.length, 1);
+  assert.equal(h.writes[0].sheet, 'Items');
+  assert.equal(h.writes[0].cells.length, schemaOf('Items').columns.length);
+});
+
+test('the staleness guard is a generation counter, so A -> B -> A still discards B', () => {
+  // By NAME, the first Maps reply looks current the moment the user has gone back to Maps. Only
+  // a counter distinguishes "the sheet I asked for" from "the request I am waiting on" — so the
+  // server answers each Maps request differently and the stale answer is identifiable.
+  const h = boot({ Items: [ITEM(7, 'Sword')] }, {
+    hold: true,
+    // Answers go out in the order the requests are SERVED, and the queue below is reversed —
+    // so the current (third-issued) request is served first and the stale one last.
+    perCall: { Maps: [[MAP(1, 'Town'), MAP(2, 'Cave')], [MAP(1, 'Stale')]] },
+  });
+  h.settle();
+
+  h.get('sheet-picker').value = 'Maps';
+  fire(h.get('sheet-picker'), 'change');
+  h.get('sheet-picker').value = 'Items';
+  fire(h.get('sheet-picker'), 'change');
+  h.get('sheet-picker').value = 'Maps';
+  fire(h.get('sheet-picker'), 'change');
+
+  // The FIRST Maps request answers last; the current one is the third.
+  h.run.queue.reverse();
+  h.settle();
+
+  assert.equal(App.__state.sheetName, 'Maps');
+  assert.equal(h.get('records').children.length, 2, 'the CURRENT request won');
+  assert.equal(h.get('records').children[0].textContent, '1 — Town');
+});
+
+test('picker replies that land after a sheet switch do not render the old sheet', () => {
+  // The referenced-sheet phase is the second round-trip, and its done() renders. Switch sheets
+  // while it is in flight and, unguarded, NPC Drops\' rows are drawn under Items\' schema.
+  const h = boot({
+    Items: [ITEM(1, 'Gold')], NPCs: [NPC(1, 'Rat')],
+    'NPC Drops': [DROP(1, 1), DROP(1, 1), DROP(1, 1)],
+  }, { hold: true });
+  h.settle();
+
+  h.get('sheet-picker').value = 'NPC Drops';
+  fire(h.get('sheet-picker'), 'change');
+  h.run.step();          // NPC Drops' rows arrive; its two readSheetIndex calls go out
+
+  h.get('sheet-picker').value = 'Items';
+  fire(h.get('sheet-picker'), 'change');
+
+  // The window that matters: NPC Drops' picker replies land while state.rows still holds NPC
+  // Drops' rows and state.schema is already Items. An unguarded done() renders three buttons
+  // built from one sheet under the other sheet's schema — and clicking one of them opens a form
+  // of NPC Drops values that Save would write into an Items row.
+  h.run.step();
+  h.run.step();
+  assert.equal(h.get('records').children.length, 1, 'the list did not change under us');
+  assert.equal(h.get('records').children[0].textContent, '1 — Gold');
+
+  h.settle();
+  assert.equal(App.__state.sheetName, 'Items');
+  assert.equal(h.get('records').children.length, 1);
+  assert.equal(h.get('records').children[0].textContent, '1 — Gold');
+});
+
+test('switching sheets empties the form, so Save cannot append a phantom row', () => {
+  // Combination Item Required and Combination Item Result have the SAME two columns, and
+  // neither has a pk — so a form left in the DOM across a sheet switch is harvested whole by
+  // Forms.collect, validates clean, and appends. idColumnIndex is -1 for both, by design, so
+  // Code.gs\'s duplicate scan is disabled and cannot catch it either.
+  const h = boot({
+    Combinations: [rowFor('Combinations', { combination_id: 5, combination_name: 'Bread' })],
+    Items: [ITEM(9, 'Flour')],
+    'Combination Item Required': [COMBO('Combination Item Required', 5, 9)],
+    'Combination Item Result': [],
+  });
+
+  h.get('sheet-picker').value = 'Combination Item Required';
+  fire(h.get('sheet-picker'), 'change');
+  h.settle();
+  fire(h.get('records').children[0], 'click');
+  h.settle();
+  assert.equal(h.get('form').querySelector('[name="item_template_id"]').value, '9');
+
+  h.get('sheet-picker').value = 'Combination Item Result';
+  fire(h.get('sheet-picker'), 'change');
+  h.settle();
+
+  assert.equal(h.get('form').children.length, 0, 'the previous sheet\'s form is gone');
+  assert.deepEqual(App.__state.loaded, {}, 'and so is the record it held');
+
+  fire(h.get('save'), 'click');
+  h.settle();
+  assert.equal(h.writes.length, 0);
+  assert.match(h.status(), /problem\(s\)/);
+});
+
+test('two Save clicks in flight issue ONE write', () => {
+  // On the nine sheets with no pk, idColumnIndex is -1 and Code.gs\'s duplicate scan is
+  // disabled by design — both writes would append.
+  const h = boot({
+    NPCs: [NPC(1, 'Rat')], Items: [ITEM(1, 'Gold')],
+    'NPC Drops': [DROP(1, 1)],
+  });
+  h.get('sheet-picker').value = 'NPC Drops';
+  fire(h.get('sheet-picker'), 'change');
+  h.settle();
+  fire(h.get('records').children[0], 'click');
+  h.settle();
+
+  fire(h.get('save'), 'click');
+  fire(h.get('save'), 'click');   // before the first round-trip resolves
+  h.settle();
+
+  assert.equal(h.writes.length, 1);
+});
+
+test('Save is available again after the write resolves', () => {
+  const h = boot({ Items: [ITEM(1, 'Gold')] });
+  fire(h.get('records').children[0], 'click');
+  h.settle();
+  fire(h.get('save'), 'click');
+  h.settle();
+  fire(h.get('save'), 'click');
+  h.settle();
+  assert.equal(h.writes.length, 2);
+});
+
+test('Save stays available after a FAILED write', () => {
+  const h = boot({ Items: [ITEM(1, 'Gold')] }, { writeFails: true });
+  fire(h.get('records').children[0], 'click');
+  h.settle();
+  fire(h.get('save'), 'click');
+  h.settle();
+  fire(h.get('save'), 'click');
+  h.settle();
+  assert.equal(h.writes.length, 2, 'a failed save must not wedge the button');
+});
+
+test('a bundle decodes ONCE however many records are opened while it is in flight', () => {
+  const h = boot({ NPCs: [NPC(1, 'Rat'), NPC(2, 'Bat')] }, { hold: true });
+  h.settle();
+
+  h.get('sheet-picker').value = 'NPCs';
+  fire(h.get('sheet-picker'), 'change');
+  h.settle();
+
+  fire(h.get('records').children[0], 'click');
+  h.run.flush();
+  assert.equal(h.img.pending.length, 1, 'parts is decoding');
+
+  fire(h.get('records').children[1], 'click');
+  h.run.flush();
+  assert.equal(h.img.pending.length, 1, 'the second record waits on the SAME decode');
+});
+
+test('a stale bundle decode cannot render the previous record into this record\'s slot', () => {
+  // Both renders are waiting on one decode. The one that lands must be the record the user is
+  // actually on — otherwise the form shows Rat while rowNumber and state.loaded are Bat\'s, and
+  // Save writes what is on screen into the row that is not.
+  const h = boot({ NPCs: [NPC(1, 'Rat'), NPC(2, 'Bat')] }, { hold: true });
+  h.settle();
+  h.get('sheet-picker').value = 'NPCs';
+  fire(h.get('sheet-picker'), 'change');
+  h.settle();
+
+  fire(h.get('records').children[0], 'click');   // Rat, waits on parts
+  h.run.flush();
+  fire(h.get('records').children[1], 'click');   // Bat, waits on the same decode
+  h.run.flush();
+
+  // Both renders are queued behind the one decode. Only the current one may run — rendering
+  // both would put Rat on screen first, and any listener or measurement taken in between would
+  // see a form that belongs to no record the user asked for.
+  const realRender = Forms.render;
+  let renders = 0;
+  Forms.render = function () { renders += 1; return realRender.apply(this, arguments); };
+  try {
+    h.settle();
+  } finally {
+    Forms.render = realRender;
+  }
+  assert.equal(renders, 1, 'the superseded render was dropped, not merely overwritten');
+
+  assert.equal(h.get('form').querySelector('[name="npc_name"]').value, 'Bat');
+  assert.equal(App.__state.rowNumber, 3);
+  assert.equal(App.__state.loaded.npc_id, '2');
+
+  fire(h.get('save'), 'click');
+  h.settle();
+  const at = schemaOf('NPCs').columns.findIndex((c) => c.name === 'npc_name');
+  assert.equal(h.writes[0].rowNumber, 3);
+  assert.equal(h.writes[0].cells[at], 'Bat');
+});
+
+test('a successful save drops that sheet\'s cached id list', () => {
+  // validation.js fails OPEN on a missing id set and CLOSED on a stale one, so a cached Items
+  // list that stops at 651 reports a real item 652 as nonexistent.
+  const h = boot({
+    NPCs: [NPC(1, 'Rat')], Items: [ITEM(1, 'Gold')],
+    'NPC Drops': [DROP(1, 1)],
+  });
+
+  h.get('sheet-picker').value = 'NPC Drops';
+  fire(h.get('sheet-picker'), 'change');
+  h.settle();
+  assert.ok(App.__state.pickerData.Items, 'Items is cached');
+
+  h.get('sheet-picker').value = 'Items';
+  fire(h.get('sheet-picker'), 'change');
+  h.settle();
+  fire(h.get('records').children[0], 'click');
+  h.settle();
+  fire(h.get('save'), 'click');
+  h.settle();
+
+  assert.equal(App.__state.pickerData.Items, undefined, 'the cache entry is gone');
+  assert.equal(App.__state.idSets.Items, undefined);
+
+  const before = serverCalls(h.run, 'readSheetIndex').length;
+  h.get('sheet-picker').value = 'NPC Drops';
+  fire(h.get('sheet-picker'), 'change');
+  h.settle();
+  assert.ok(serverCalls(h.run, 'readSheetIndex').some((c) => c.args[0] === 'Items'),
+            'and it is fetched again');
+  assert.ok(serverCalls(h.run, 'readSheetIndex').length > before);
+});
+
+// --- the paths the sweep found unasserted ---------------------------------------------------
+
+test('an unknown sheet name is refused before any server call', () => {
+  const h = boot({ Items: [ITEM(1, 'Gold')] });
+  const before = serverCalls(h.run, 'readSheet').length;
+
+  App.openSheet('Not A Sheet');
+  h.settle();
+
+  assert.equal(h.status(), 'No schema for sheet Not A Sheet');
+  assert.equal(h.get('status').className, 'error');
+  assert.equal(serverCalls(h.run, 'readSheet').length, before, 'no readSheet was issued');
+});
+
+test('nameIndex reads the schema, not the shipping data', () => {
+  // Every shipped sheet has an Id in column A, so a loop starting at 0 would still answer 1 for
+  // all 21 — the property has to be checked against a schema that could tell the difference.
+  assert.equal(App.nameIndex({ columns: [{ name: 'a', kind: 'Text' }, { name: 'b', kind: 'Text' }] }), 1);
+  assert.equal(App.nameIndex({ columns: [{ name: 'a', kind: 'Id' }, { name: 'b', kind: 'Int' },
+                                         { name: 'c', kind: 'Text' }] }), 2);
+  assert.equal(App.nameIndex({ columns: [{ name: 'a', kind: 'Id' }] }), 1);
+});
+
+test('a Spells record with no effect draws no canvas at all', () => {
+  const h = boot({
+    Spells: [rowFor('Spells', { spell_id: 1, spell_name: 'Nothing', spell_target: 'Self',
+                                spellbook_graphic: 1, spell_effect_id: 0 })],
+  });
+  h.get('sheet-picker').value = 'Spells';
+  fire(h.get('sheet-picker'), 'change');
+  h.settle();
+  fire(h.get('records').children[0], 'click');
+  h.settle();
+
+  // Not "no timer" — an empty 96x96 box with nothing in it is its own kind of wrong.
+  assert.equal(h.get('previews').children.length, 0);
+});
+
 // --- publish check --------------------------------------------------------------------------
 
 test('the publish check reads every sheet and reports clean data as clean', () => {
@@ -980,14 +1286,19 @@ test('a second publish check cannot start while one is running', () => {
 });
 
 test('the problem list is capped and says how many are hidden', () => {
+  // 400 rows x 3 missing required cells = 1,200 problems, past MAX_PROBLEMS — so this exercises
+  // the DROPPED counter as well as the shown/hidden split. A smaller fixture leaves the
+  // overflow arithmetic unexecuted.
   const rows = [];
-  for (let i = 0; i < 140; i++) rows.push(rowFor('Items', { item_template_id: i + 1 }));
+  for (let i = 0; i < 400; i++) rows.push(rowFor('Items', { item_template_id: i + 1 }));
   const h = boot({ Items: rows });
   fire(h.get('publish-check'), 'click');
   h.settle();
 
   const panel = h.get('publish-results');
   assert.equal(panel.querySelectorAll('[class="problem"]').length, 100);
-  // Two problems per row (item_usetype and item_name are both required, graphic_tile too).
-  assert.match(panel.textContent, /more not shown/);
+  // 1,200 problems, 1,000 kept and 200 dropped at the cap; the count is reported as "1000+" so
+  // it never claims to be exact, and the hidden tail is 1000 - 100 shown + 200 dropped.
+  assert.match(panel.textContent, /1000\+ problem\(s\)/);
+  assert.match(panel.textContent, /and 1100 more not shown/);
 });

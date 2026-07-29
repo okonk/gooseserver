@@ -18,6 +18,10 @@ var Preview = (function () {
   var CANVAS_H = 112;
   var ORIGIN_Y = 88;   // where the feet land
   var FRAME_MS = 125;  // speed 8.0 in the .tres clips
+  // The effect canvas is square and smaller than the character canvas; that CANVAS_H is 112 and
+  // this is 96 is not a relationship, and a caller reaching for CANVAS_W/H here would be relying
+  // on a coincidence.
+  var EFFECT_SIZE = 96;
 
   // parseInt(v, 10), matching Equipped.num(), Appearance.num(), Sprites.num() and
   // Composites.num() so no two modules disagree about what a spreadsheet cell means.
@@ -60,7 +64,10 @@ var Preview = (function () {
       if (!rect) return;
 
       var dx = Math.floor((canvas.width - rect[2]) / 2);
-      var dy = ORIGIN_Y + Appearance.offsetY(rect[3]) - Math.trunc(rect[3] / 2);
+      // Math.floor throughout this file's own centring maths. Appearance.offsetY uses
+      // Math.trunc because it is porting C# integer division; here every height is positive, so
+      // the two agree, and one rule is easier to check than two.
+      var dy = ORIGIN_Y + Appearance.offsetY(rect[3]) - Math.floor(rect[3] / 2);
 
       Sprites.draw(c, image, rect, dx, dy, layer);
       drawn += 1;
@@ -108,6 +115,7 @@ var Preview = (function () {
     isArmed: isArmed,
     CANVAS_W: CANVAS_W,
     CANVAS_H: CANVAS_H,
+    EFFECT_SIZE: EFFECT_SIZE,
     ORIGIN_Y: ORIGIN_Y,
     FRAME_MS: FRAME_MS,
   };
