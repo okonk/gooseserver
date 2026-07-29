@@ -1195,7 +1195,15 @@ var GOOSE_SCHEMA = {
           "pk": false
         }
       ],
-      "composites": [],
+      "composites": [
+        {
+          "kind": "Bitmask",
+          "columns": [
+            "class_restrictions"
+          ],
+          "source": "Classes"
+        }
+      ],
       "indexes": []
     },
     {
