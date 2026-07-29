@@ -13,9 +13,11 @@
 // CONTRACT WITH TASK 11, two halves:
 //
 //   1. Every control calls `wrapper.__onChange()` after a change it accepted, if the property is
-//      set. That is how the preview learns to redraw. It is a plain property rather than a
-//      dispatched Event because nothing else in this editor listens to the DOM, and a synthetic
-//      Event would need a constructor the Apps Script sandbox and the test fake both lack.
+//      set. NOTHING SETS IT TODAY — app.js:451-457 declines it and drives the preview from a
+//      delegated input/change listener on the form container instead, so one mechanism does the
+//      job rather than two. The call is kept because a control that writes its cell from a
+//      `click` (idListControl's chip buttons) does not bubble to that listener, and would need
+//      either this hook or a dispatched Event the day such a cell becomes preview-relevant.
 //
 //   2. THE SAVE PATH MUST REFUSE WHILE AN EQUIP SLOT IS FLAGGED. equipSlotsControl freezes the
 //      whole cell while any of the six graphic fields holds a typo — it has to, because
