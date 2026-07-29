@@ -78,16 +78,40 @@ var Pickers = (function () {
     return exact.concat(idPrefix.slice(0, room - reserved), nameHit).slice(0, LIMIT);
   }
 
+  // True when `node` is the list or anything inside it. Walks parentNode rather than using
+  // Node.contains, which the test DOM does not model.
+  function within(container, node) {
+    for (var at = node; at; at = at.parentNode) {
+      if (at === container) return true;
+    }
+    return false;
+  }
+
   // FK control: a text input holding the id, a live label showing the resolved name, and a
   // results list. Writes only the id back to the sheet.
+  //
+  // The list is a COMBOBOX in the aria-activedescendant style: focus never leaves the input, and
+  // which row is current is stated by an attribute rather than by where focus is. That is what
+  // makes the two input paths agree — the mouse path keeps focus on the input by cancelling
+  // mousedown (see below), so a keyboard path that moved focus into the list would need the
+  // opposite behaviour from the same blur handler.
   function fkControl(column, value, ctx) {
     var wrap = Forms.el('div', { class: 'picker' });
+    var listId = 'f-' + column.name + '-list';
     var input = Forms.el('input', {
       name: column.name,
       id: 'f-' + column.name,
       type: 'text',
       autocomplete: 'off',
       placeholder: Forms.placeholderFor(column),
+      // role=combobox rather than a bare text input: without it a screen reader announces an
+      // ordinary field and never mentions that a list of suggestions appeared underneath it.
+      // aria-autocomplete=list is the honest value — typing filters the list and does NOT
+      // complete the field's text, which 'both' would promise.
+      role: 'combobox',
+      'aria-autocomplete': 'list',
+      'aria-expanded': 'false',
+      'aria-controls': listId,
     });
     // str(), not `value || ''`: a stored 0 means "none" and is a REAL value. Blanking it here
     // would write blank on the next save, and blank means "use the SQL default" — which for
@@ -95,8 +119,14 @@ var Pickers = (function () {
     input.value = str(value);
 
     var label = Forms.el('span', { class: 'resolved' });
-    var list = Forms.el('div', { class: 'results' });
+    var list = Forms.el('div', { class: 'results', id: listId, role: 'listbox' });
     list.hidden = true;
+
+    // The rows currently in the list, in list order, and which of them is active. -1 is a real
+    // state, not "nothing yet": the list opens with NO active row, so the first Enter after a
+    // keystroke does nothing rather than silently accepting whichever row happened to be first.
+    var rows = [];
+    var active = -1;
 
     // Read through to ctx on every use rather than capturing the array once.
     // App.loadReferencedSheets fills pickerData over google.script.run, and a control built
@@ -144,26 +174,79 @@ var Pickers = (function () {
       label.className = loaded ? 'resolved bad' : 'resolved';
     }
 
+    // Both halves of "is the list showing" move together — the attribute is what a screen reader
+    // reads, and hiding without clearing it would announce an open list that is not there.
+    // Closing also drops the active row: reopening starts from no selection again.
+    function setOpen(open) {
+      list.hidden = !open;
+      input.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (!open) setActive(-1);
+    }
+
+    // Marks one row current WITHOUT moving focus. Any index outside the list means "none", so
+    // callers can pass -1 or an index into a list that has just been rebuilt.
+    function setActive(next) {
+      if (rows[active]) {
+        rows[active].className = 'result';
+        rows[active].removeAttribute('aria-selected');
+      }
+
+      active = (next >= 0 && next < rows.length) ? next : -1;
+      if (active < 0) {
+        input.removeAttribute('aria-activedescendant');
+        return;
+      }
+
+      var row = rows[active];
+      row.className = 'result active';
+      row.setAttribute('aria-selected', 'true');
+      // The class is what a sighted user sees and aria-activedescendant is what a screen reader
+      // follows; both are needed, and neither moves focus off the input.
+      input.setAttribute('aria-activedescendant', row.id);
+      // .results is a 200px box over as many as LIMIT rows, so arrowing past the fifth one walks
+      // out of view without this.
+      row.scrollIntoView({ block: 'nearest' });
+    }
+
+    // Writes the CANONICAL id, so picking ' 042 ' from a hand-edited sheet stores '42'. Reads it
+    // back off the row rather than from a closure so the mouse and keyboard paths are the same
+    // code and cannot drift apart.
+    function accept(row) {
+      input.value = row.getAttribute('data-id');
+      setOpen(false);
+      resolve();
+    }
+
     function refresh() {
       var results = search(entries(), input.value);
       // Drops the previous rows and, with them, their click handlers: the nodes are
       // unreachable afterwards, so nothing is left listening and nothing leaks.
       list.innerHTML = '';
+      // Before the rows are replaced, so aria-activedescendant never names a detached node and
+      // the new list opens with nothing active.
+      setActive(-1);
+      rows = [];
 
-      results.forEach(function (e) {
+      results.forEach(function (e, index) {
         var id = key(e.id);
-        var row = Forms.el('button', { type: 'button', class: 'result', 'data-id': id },
-                           id + ' — ' + str(e.name));
-        // Writes the CANONICAL id, so picking ' 042 ' from a hand-edited sheet stores '42'.
-        row.addEventListener('click', function () {
-          input.value = id;
-          list.hidden = true;
-          resolve();
-        });
+        var row = Forms.el('button', {
+          type: 'button',
+          class: 'result',
+          'data-id': id,
+          // An id per row, because aria-activedescendant can only point at one.
+          id: listId + '-' + index,
+          role: 'option',
+          // LOAD-BEARING, not just an ARIA nicety: these are <button>s, so they are focusable by
+          // default, and Tab out of the input would otherwise walk through up to LIMIT of them
+          // one at a time before reaching the next field.
+          tabindex: '-1',
+        }, id + ' — ' + str(e.name));
+        row.addEventListener('click', function () { accept(row); });
+        rows.push(row);
         list.appendChild(row);
       });
 
-      list.hidden = results.length === 0;
+      setOpen(results.length > 0);
     }
 
     input.addEventListener('input', function () { refresh(); resolve(); });
@@ -171,13 +254,65 @@ var Pickers = (function () {
     // in here?" without the user having to guess a first character.
     input.addEventListener('focus', refresh);
 
+    input.addEventListener('keydown', function (event) {
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        // Otherwise the arrow key ALSO moves the caret to the far end of the field, so walking
+        // the list scrambles where the next typed character lands.
+        event.preventDefault();
+        // Reopens a list dismissed with Escape, rather than making the user retype a character.
+        if (list.hidden) refresh();
+        if (!rows.length) return;
+
+        var step = event.key === 'ArrowDown' ? 1 : -1;
+        // Wraps, and enters from the correct end: with nothing active, Down takes the first row
+        // and Up the last.
+        setActive(active < 0 ? (step === 1 ? 0 : rows.length - 1)
+                             : (active + step + rows.length) % rows.length);
+        return;
+      }
+
+      if (event.key === 'Enter') {
+        // Only when a row is actually current. Enter on a hand-typed id is left entirely alone —
+        // it is not this control's key, and swallowing it would break whatever the form does with
+        // it.
+        if (active >= 0) {
+          event.preventDefault();
+          accept(rows[active]);
+        }
+        return;
+      }
+
+      if (event.key === 'Escape') {
+        // Guarded, because Escape with the list already shut belongs to the dialog or the sidebar
+        // around this control, not to us.
+        if (!list.hidden) {
+          event.preventDefault();
+          setOpen(false);
+        }
+        return;
+      }
+
+      // Tab with a row current takes it, then lets focus move on as normal (no preventDefault):
+      // having arrowed to a row, leaving the field is a commitment, not a cancellation. With no
+      // row current, Tab is an ordinary Tab and blur closes the list.
+      if (event.key === 'Tab' && active >= 0) accept(rows[active]);
+    });
+
     // Cancelling mousedown is what makes this safe: moving focus is the DEFAULT ACTION of
     // mousedown, so preventing it keeps focus on the input and blur never fires — the click
     // then lands on a list that is still there. The alternative (hide on blur after a ~150ms
     // timer, hoping the click wins) is a race that loses on a slow frame, and losing it means
     // the user's click silently does nothing.
     list.addEventListener('mousedown', function (event) { event.preventDefault(); });
-    input.addEventListener('blur', function () { list.hidden = true; });
+
+    // relatedTarget is the node focus is moving TO. The mouse path above means focus normally
+    // never leaves the input at all, so this covers the other ways focus can land on a row —
+    // a row.focus() from assistive tech, or a browser that focuses the mousedown target anyway —
+    // where hiding the list would pull it out from under the focus that just arrived in it.
+    input.addEventListener('blur', function (event) {
+      if (event && within(list, event.relatedTarget)) return;
+      setOpen(false);
+    });
 
     resolve();
     wrap.appendChild(input);

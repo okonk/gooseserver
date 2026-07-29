@@ -80,6 +80,12 @@
 //     rather than firing it; the controller's load()/fail() drain the queue, so a test decides
 //     when parts arrives relative to icons. That ordering is the whole point — it is what made
 //     the shared image-callback queue testable.
+//   * EVENT INIT — fire(node, type, { key, relatedTarget }), for the FK picker's keyboard path.
+//     `key` is what the keydown handler switches on; `relatedTarget` is what a blur handler reads
+//     to tell "focus moved into my own dropdown" from "focus left the control". Any OTHER field
+//     throws, so a typo in the init object cannot dispatch an event with an undefined `key` and
+//     pass because no branch matched.
+//   * scrollIntoView(): recorded per node in `scrollCalls`. See below.
 //   * installGoogleScriptRun(server): the Apps Script client stub, modelled on the real
 //     contract. withSuccessHandler/withFailureHandler return A NEW RUNNER carrying the handler
 //     (they do NOT mutate google.script.run, which would leak handlers between calls), calling a
@@ -114,6 +120,7 @@ class FakeNode {
     this._checked = false;
     this._dirtyChecked = false;
     this.selectedIndex = -1;
+    this.scrollCalls = [];
   }
 
   get checked() {
@@ -188,6 +195,15 @@ class FakeNode {
 
   set height(value) {
     this.setAttribute('height', value);
+  }
+
+  // Recorded rather than implemented: this fake has no geometry, so there is nothing to scroll.
+  // It exists because the FK picker's keyboard navigation scrolls the active option into view,
+  // and .results is a 200px box over as many as 50 rows — a missing method would throw, and a
+  // control that stopped calling it would leave a keyboard user arrowing into rows they cannot
+  // see. The array is the assertion surface for "the active row was scrolled to".
+  scrollIntoView(...args) {
+    this.scrollCalls.push(args);
   }
 
   // Memoised, like the real thing: two getContext('2d') calls on one canvas return the SAME
@@ -413,13 +429,28 @@ const EVENT_FLAGS = {
   mouseleave: { bubbles: false, cancelable: false },
 };
 
+// Fields a test may put on the event it fires. Anything else THROWS, so `fire(input, 'keydown',
+// { keys: 'Enter' })` fails loudly instead of dispatching an event whose `key` is undefined and
+// passing because no branch matched:
+//
+//   * `key` — the KeyboardEvent key value ('ArrowDown', 'Enter', 'Escape', 'Tab', 'a').
+//   * `relatedTarget` — for focus/blur, the node focus is moving TO. A blur with no
+//     relatedTarget is the real thing's "focus left for nothing in this document".
+const EVENT_INIT = ['key', 'relatedTarget'];
+
 // Builds an event and dispatches it from `node`. Returns false only if a handler cancelled a
 // CANCELABLE event, exactly as dispatchEvent does.
-export function fire(node, type) {
+export function fire(node, type, init) {
   const flags = EVENT_FLAGS[String(type)];
   if (!flags) throw new Error('fake DOM does not know the flags for event type: ' + type);
+  Object.keys(init || {}).forEach((k) => {
+    if (!EVENT_INIT.includes(k)) throw new Error('fake DOM does not model event field: ' + k);
+  });
 
   const event = {
+    key: undefined,
+    relatedTarget: null,
+    ...(init || {}),
     type: String(type),
     target: null,
     currentTarget: null,

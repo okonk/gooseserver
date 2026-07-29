@@ -358,6 +358,252 @@ test('blur hides the list immediately', () => {
   assert.equal(list.hidden, true);
 });
 
+test('blur into the list itself leaves it open', () => {
+  // The mousedown cancel above means focus normally never leaves the input, so this is the other
+  // routes in: assistive tech calling row.focus(), or a browser that focuses the mousedown target
+  // regardless. Hiding then would pull the list out from under the focus that just arrived.
+  const wrap = Pickers.fkControl(refColumn, '', ctxWith({ Items: entries }));
+  const { input, list } = parts(wrap);
+
+  fire(input, 'focus');
+  fire(input, 'blur', { relatedTarget: list.children[1] });
+  assert.equal(list.hidden, false);
+
+  // …and focus moving anywhere else still closes it.
+  fire(input, 'blur', { relatedTarget: parts(wrap).label });
+  assert.equal(list.hidden, true);
+});
+
+// --- fkControl: keyboard --------------------------------------------------------------------
+
+const DOWN = { key: 'ArrowDown' };
+const UP = { key: 'ArrowUp' };
+
+// Which row the arrow keys have made current. The class is what a sighted user sees, and
+// aria-activedescendant is what a screen reader follows — a fix that set one and not the other
+// would leave half the users it was for with no cursor at all.
+function activeRow(wrap) {
+  const { input, list } = parts(wrap);
+  const marked = list.children.filter((row) => row.className === 'result active');
+  assert.ok(marked.length <= 1, 'at most one row may be active');
+  const pointer = input.getAttribute('aria-activedescendant');
+
+  if (!marked.length) {
+    assert.equal(pointer, null, 'aria-activedescendant must be cleared when no row is active');
+    return null;
+  }
+  assert.equal(pointer, marked[0].getAttribute('id'), 'the two markers must name the same row');
+  assert.equal(marked[0].getAttribute('aria-selected'), 'true');
+  return marked[0];
+}
+
+test('the fkControl input and list carry the combobox ARIA a screen reader needs', () => {
+  const wrap = Pickers.fkControl(refColumn, '', ctxWith({ Items: entries }));
+  const { input, list } = parts(wrap);
+
+  assert.equal(input.getAttribute('role'), 'combobox');
+  // 'list', not 'both': typing filters the list and never completes the field's text.
+  assert.equal(input.getAttribute('aria-autocomplete'), 'list');
+  assert.equal(input.getAttribute('aria-controls'), list.getAttribute('id'));
+  assert.equal(list.getAttribute('role'), 'listbox');
+  // A closed list is announced as closed, not left unsaid.
+  assert.equal(input.getAttribute('aria-expanded'), 'false');
+
+  fire(input, 'focus');
+  assert.equal(input.getAttribute('aria-expanded'), 'true');
+  assert.deepEqual(list.children.map((row) => row.getAttribute('role')),
+    ['option', 'option', 'option', 'option']);
+  // Rows are <button>s, so without tabindex=-1 a Tab out of the input walks through every one of
+  // them (up to LIMIT) before reaching the next field.
+  assert.deepEqual(list.children.map((row) => row.getAttribute('tabindex')),
+    ['-1', '-1', '-1', '-1']);
+  // aria-activedescendant can only point at one row, so each needs an id of its own.
+  assert.equal(new Set(list.children.map((row) => row.getAttribute('id'))).size, 4);
+});
+
+test('the list opens with no row active, so the first Enter cannot pick one by accident', () => {
+  const wrap = Pickers.fkControl(refColumn, '', ctxWith({ Items: entries }));
+  const { input } = parts(wrap);
+
+  fire(input, 'focus');
+  assert.equal(activeRow(wrap), null);
+  assert.equal(fire(input, 'keydown', { key: 'Enter' }), true, 'Enter must not be swallowed');
+  assert.equal(input.value, '');
+});
+
+test('ArrowDown and ArrowUp walk the list and wrap', () => {
+  const wrap = Pickers.fkControl(refColumn, '', ctxWith({ Items: entries }));
+  const { input } = parts(wrap);
+  fire(input, 'focus');
+
+  const walk = (init, times) => {
+    for (let i = 0; i < times; i++) {
+      // preventDefault, or the arrow ALSO jumps the caret to the end of the field and the next
+      // typed character lands somewhere the user did not ask for.
+      assert.equal(fire(input, 'keydown', init), false, 'the arrow default must be prevented');
+    }
+    return activeRow(wrap).getAttribute('data-id');
+  };
+
+  assert.equal(walk(DOWN, 1), '1');
+  assert.equal(walk(DOWN, 2), '43');
+  assert.equal(walk(DOWN, 2), '1', 'past the last row wraps to the first');
+  assert.equal(walk(UP, 1), '100', 'before the first row wraps to the last');
+});
+
+test('ArrowUp with nothing active enters the list from the bottom', () => {
+  const wrap = Pickers.fkControl(refColumn, '', ctxWith({ Items: entries }));
+  const { input } = parts(wrap);
+
+  fire(input, 'focus');
+  fire(input, 'keydown', UP);
+  assert.equal(activeRow(wrap).getAttribute('data-id'), '100');
+});
+
+test('the active row is scrolled into view', () => {
+  // .results is a 200px box over as many as LIMIT rows, so arrowing past the fifth one walks out
+  // of sight otherwise.
+  const wrap = Pickers.fkControl(refColumn, '', ctxWith({ Items: entries }));
+  const { input, list } = parts(wrap);
+
+  fire(input, 'focus');
+  fire(input, 'keydown', DOWN);
+  fire(input, 'keydown', DOWN);
+  assert.deepEqual(list.children[1].scrollCalls, [[{ block: 'nearest' }]]);
+  assert.deepEqual(list.children[0].scrollCalls, [[{ block: 'nearest' }]]);
+});
+
+test('Enter on the active row writes the canonical id, resolves it and closes the list', () => {
+  const wrap = Pickers.fkControl(refColumn, '', ctxWith({ Items: [{ id: ' 042 ', name: 'Iron Sword' }] }));
+  const { input, label, list } = parts(wrap);
+
+  fire(input, 'focus');
+  fire(input, 'keydown', DOWN);
+  // Prevented, so Enter does not also do whatever the surrounding form does with it.
+  assert.equal(fire(input, 'keydown', { key: 'Enter' }), false);
+
+  assert.equal(input.value, '42');
+  assert.equal(label.textContent, 'Iron Sword');
+  assert.equal(list.hidden, true);
+  assert.equal(input.getAttribute('aria-expanded'), 'false');
+  assert.equal(activeRow(wrap), null, 'closing the list clears the cursor');
+});
+
+test('the keyboard and mouse paths accept a row through the same code', () => {
+  // Both read the id back off the row, so a picked value cannot depend on how it was picked.
+  const pick = (howToPick) => {
+    const wrap = Pickers.fkControl(refColumn, '', ctxWith({ Items: entries }));
+    const { input, list } = parts(wrap);
+    fire(input, 'focus');
+    howToPick(input, list);
+    return input.value;
+  };
+
+  assert.equal(pick((input, list) => fire(list.children[2], 'click')), '43');
+  assert.equal(pick((input) => {
+    fire(input, 'keydown', DOWN);
+    fire(input, 'keydown', DOWN);
+    fire(input, 'keydown', DOWN);
+    fire(input, 'keydown', { key: 'Enter' });
+  }), '43');
+});
+
+test('Escape closes the list without touching the typed value', () => {
+  const wrap = Pickers.fkControl(refColumn, '', ctxWith({ Items: entries }));
+  const { input, list } = parts(wrap);
+
+  input.value = 'iron';
+  fire(input, 'input');
+  fire(input, 'keydown', DOWN);
+  assert.equal(fire(input, 'keydown', { key: 'Escape' }), false);
+
+  assert.equal(list.hidden, true);
+  assert.equal(input.value, 'iron', 'Escape dismisses the list, it does not revert the field');
+  assert.equal(activeRow(wrap), null);
+});
+
+test('Escape with the list already closed is left to whatever encloses the control', () => {
+  // The editor runs in a Sheets sidebar; swallowing an idle Escape would break its own handling.
+  const wrap = Pickers.fkControl(refColumn, '', ctxWith({ Items: entries }));
+  const { input } = parts(wrap);
+
+  assert.equal(fire(input, 'keydown', { key: 'Escape' }), true);
+});
+
+test('an arrow key reopens a list dismissed with Escape', () => {
+  // Without this the only way back is to retype a character, which for a field already holding
+  // the right id means deleting and retyping it.
+  const wrap = Pickers.fkControl(refColumn, '', ctxWith({ Items: entries }));
+  const { input, list } = parts(wrap);
+
+  fire(input, 'focus');
+  fire(input, 'keydown', { key: 'Escape' });
+  assert.equal(list.hidden, true);
+
+  fire(input, 'keydown', DOWN);
+  assert.equal(list.hidden, false);
+  assert.equal(activeRow(wrap).getAttribute('data-id'), '1');
+});
+
+test('arrow keys on an empty result list do nothing at all', () => {
+  const wrap = Pickers.fkControl(refColumn, '', ctxWith({ Items: entries }));
+  const { input, list } = parts(wrap);
+
+  input.value = 'zzz';
+  fire(input, 'input');
+  assert.equal(list.hidden, true);
+
+  fire(input, 'keydown', DOWN);
+  fire(input, 'keydown', UP);
+  assert.equal(list.hidden, true);
+  assert.equal(activeRow(wrap), null);
+  assert.equal(input.value, 'zzz');
+});
+
+test('Tab with a row active accepts it and still lets focus move on', () => {
+  const wrap = Pickers.fkControl(refColumn, '', ctxWith({ Items: entries }));
+  const { input, list } = parts(wrap);
+
+  fire(input, 'focus');
+  fire(input, 'keydown', DOWN);
+  // NOT prevented: having arrowed to a row, leaving the field commits it — but Tab must still
+  // move focus, or the user is trapped in the control.
+  assert.equal(fire(input, 'keydown', { key: 'Tab' }), true);
+  assert.equal(input.value, '1');
+  assert.equal(list.hidden, true);
+});
+
+test('Tab with no row active is an ordinary Tab', () => {
+  const wrap = Pickers.fkControl(refColumn, '', ctxWith({ Items: entries }));
+  const { input } = parts(wrap);
+
+  input.value = '999';
+  fire(input, 'input');
+  assert.equal(fire(input, 'keydown', { key: 'Tab' }), true);
+  assert.equal(input.value, '999', 'a hand-typed id must survive tabbing out');
+});
+
+test('typing after arrowing to a row clears the cursor rather than leaving it on a stale row', () => {
+  // refresh() replaces every row, so an active index kept across a keystroke would point at a
+  // detached node — and aria-activedescendant would name an id no longer in the document.
+  const wrap = Pickers.fkControl(refColumn, '', ctxWith({ Items: entries }));
+  const { input, list } = parts(wrap);
+
+  fire(input, 'focus');
+  fire(input, 'keydown', DOWN);
+  const stale = activeRow(wrap);
+
+  input.value = 'iron';
+  fire(input, 'input');
+  assert.equal(stale.parentNode, null);
+  assert.equal(activeRow(wrap), null);
+
+  // And the cursor works again on the NEW rows, from their own top.
+  fire(input, 'keydown', DOWN);
+  assert.equal(activeRow(wrap).getAttribute('data-id'), '42');
+  assert.equal(list.children.indexOf(activeRow(wrap)), 0);
+});
+
 test('fkControl shows the SQL default as its placeholder, like every other control', () => {
   const wrap = Pickers.fkControl(optionalColumn, '', ctxWith({}));
   assert.equal(parts(wrap).input.getAttribute('placeholder'), 'default 0');
