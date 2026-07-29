@@ -231,13 +231,16 @@ function readSheetIndex(sheetName, nameColumnIndex) {
   var lastRow = sheet.getLastRow();
   if (lastRow < 2) return { sheet: sheetName, entries: [] };
 
-  // Read out to the name column; a sheet narrower than that yields undefined names.
+  // Read out to the name column. nameIndex comes from GOOSE_SCHEMA, so it is always inside
+  // the sheet's real width; a span past the grid would throw rather than yield undefined.
   var span = Math.max(2, nameIndex + 1);
   var values = sheet.getRange(2, 1, lastRow - 1, span).getDisplayValues();
   var entries = [];
   for (var i = 0; i < values.length; i++) {
-    if (values[i][0] === '') continue;
-    entries.push({ id: values[i][0], name: values[i][nameIndex] || '' });
+    // "Is this id absent" is idKey_'s question, not isBlank_'s — a whitespace-only cell would
+    // otherwise enter the picker and become a phantom id 0 in the client's FK validation set.
+    if (idKey_(values[i][0]) === '') continue;
+    entries.push({ id: values[i][0], name: values[i][nameIndex] });
   }
 
   return { sheet: sheetName, entries: entries };
@@ -291,6 +294,14 @@ function writeRow(sheetName, rowNumber, cells, idColumnIndex) {
   // google.script.run does not preserve types, so a client that read the row off a DOM
   // attribute sends "1", and every strict test below — including the header guard —
   // would pass it through. Normalise once, here.
+  //
+  // Reject empty-ish values rather than letting Number() fold them to 0: "", null, false and
+  // [] all coerce to 0, which is the append sentinel, so a client reading a missing DOM
+  // attribute would silently append a duplicate instead of editing the row it meant.
+  if (typeof rowNumber !== 'number' &&
+      !(typeof rowNumber === 'string' && rowNumber.trim() !== '')) {
+    throw new Error('writeRow: invalid row ' + rowNumber);
+  }
   var requestedRow = Number(rowNumber);
   if (!isFinite(requestedRow) || Math.floor(requestedRow) !== requestedRow || requestedRow < 0) {
     throw new Error('writeRow: invalid row ' + rowNumber);
