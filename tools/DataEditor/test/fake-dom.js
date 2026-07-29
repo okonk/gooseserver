@@ -98,20 +98,12 @@
 // there is no layout engine in here and none of these tries to be one. Each is covered by
 // test/fake-dom.test.js:
 //
-//   * `indeterminate` — the third checkbox flag, independent of `.checked`. A browser clears it
-//     on click as a default action; this fake has NO default actions, so a tri-state control
-//     must clear it itself, which is the behaviour worth testing anyway.
-//   * `getBoundingClientRect()` — reads assignable `__rect`, all zeroes by default, padded out
-//     to every DOMRect field so a missing one reads 0 rather than turning maths into NaN.
-//   * `style` — a plain bag of round-tripping keys. Not CSSStyleDeclaration: nothing is parsed
-//     and nothing reflects onto a style attribute.
-//   * `scrollTop` / `clientHeight` / `scrollHeight` — plain numbers, plus a `scroll` event that
-//     does not bubble (an element's does not; only the document's does). Setting scrollTop does
-//     NOT fire scroll here, and nothing recomputes scrollHeight when children change: a
-//     windowing test states the geometry it means.
-//   * `setTransform` and `imageSmoothingEnabled` on the 2d context, both in the call log —
-//     smoothing is a property but it is an instruction like any other, and a scaled preview
-//     that forgot to disable it draws the same shapes, blurrily, which only the log can see.
+//   * `indeterminate` — the third checkbox flag, independent of `.checked`.
+//   * `getBoundingClientRect()` — reads the assignable `rect`, all zeroes by default.
+//   * `style` — a plain bag of round-tripping keys, not a CSSStyleDeclaration.
+//   * `scrollTop` / `clientHeight` / `scrollHeight`, plus a non-bubbling `scroll` event.
+//   * `clientX` / `clientY` on fired events, so pointer maths against a rect is testable.
+//   * `setTransform` and `imageSmoothingEnabled` on the 2d context, both in the call log.
 
 class FakeNode {
   constructor(tag) {
@@ -148,7 +140,7 @@ class FakeNode {
     this.scrollCalls = [];
     // Test-assignable geometry. There is no layout in here, so a rect is state, not a
     // measurement — see getBoundingClientRect.
-    this.__rect = null;
+    this.rect = null;
     this.scrollTop = 0;
     this.clientHeight = 0;
     this.scrollHeight = 0;
@@ -159,12 +151,18 @@ class FakeNode {
     this.style = {};
   }
 
-  // Returns the rect a test put in `__rect`, padded out to every DOMRect field so a reader
-  // reaching for one the test omitted gets 0 rather than undefined — arithmetic on undefined
-  // yields NaN, and NaN offsets pass any assertion phrased as "it moved".
+  // Returns the rect a test put in `rect`, completed to every DOMRect field. The redundant
+  // fields are DERIVED rather than zero-filled: a test writing { left: 20, width: 200 } means
+  // right === 220, and a rect reporting right === 0 there is one no browser could produce, so
+  // pointer maths against it would be wrong in a way that still looks like a number.
   getBoundingClientRect() {
+    const r = this.rect || {};
+    const left = r.left !== undefined ? r.left : (r.x || 0);
+    const top = r.top !== undefined ? r.top : (r.y || 0);
+    const width = r.width || 0;
+    const height = r.height || 0;
     return {
-      x: 0, y: 0, left: 0, top: 0, right: 0, bottom: 0, width: 0, height: 0, ...(this.__rect || {}),
+      x: left, y: top, left, top, width, height, right: left + width, bottom: top + height,
     };
   }
 
@@ -494,7 +492,9 @@ const EVENT_FLAGS = {
 //   * `key` — the KeyboardEvent key value ('ArrowDown', 'Enter', 'Escape', 'Tab', 'a').
 //   * `relatedTarget` — for focus/blur, the node focus is moving TO. A blur with no
 //     relatedTarget is the real thing's "focus left for nothing in this document".
-const EVENT_INIT = ['key', 'relatedTarget'];
+//   * `clientX` / `clientY` — viewport pointer coordinates, default 0. Paired with an element's
+//     assignable `rect`, they are what makes "click at x within this track" testable.
+const EVENT_INIT = ['key', 'relatedTarget', 'clientX', 'clientY'];
 
 // Builds an event and dispatches it from `node`. Returns false only if a handler cancelled a
 // CANCELABLE event, exactly as dispatchEvent does.
@@ -508,6 +508,8 @@ export function fire(node, type, init) {
   const event = {
     key: undefined,
     relatedTarget: null,
+    clientX: 0,
+    clientY: 0,
     ...(init || {}),
     type: String(type),
     target: null,

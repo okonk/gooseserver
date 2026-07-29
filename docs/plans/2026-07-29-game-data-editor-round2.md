@@ -59,7 +59,7 @@ each task's diff to its own module.
 
 1. `input.indeterminate` — a plain boolean property, independent of `.checked`, cleared by a user
    click in a real browser. Model the property; the *clearing* is the control's job, not the DOM's.
-2. `element.getBoundingClientRect()` — returns a rect from assignable `__rect` test state,
+2. `element.getBoundingClientRect()` — returns a rect from assignable `rect` test state,
    defaulting to all zeroes. The colour picker's pointer maths is a pure function taking a rect, so
    this only needs to be settable, not simulated.
 3. `element.style` — a plain object whose keys round-trip. The gallery sets `style.height` and
