@@ -655,10 +655,10 @@ const graphicColumn = { name: 'graphic_tile', kind: 'Id', sql: 'INTEGER', requir
 const fileColumn = { name: 'graphic_file', kind: 'Id', sql: 'INTEGER', required: false, default: '0' };
 
 const bundles = {
-  // A non-square rect with ODD dimensions, for two reasons at once: with a 32x32 sprite on a
-  // 48x48 canvas the two centring offsets are both 8, so swapping width for height would go
-  // unnoticed — and with even dimensions the centring divides exactly, so dropping Math.floor
-  // would go unnoticed as well. 31x17 on 48x48 gives 8.5 and 15.5 before flooring.
+  // A non-square rect with ODD dimensions, for two reasons at once: on a square box the two
+  // centring offsets would be equal, so swapping width for height would go unnoticed — and with
+  // even dimensions the centring divides exactly, so dropping Math.floor would go unnoticed as
+  // well. 31x17 in a 64 box gives 16.5 and 23.5 before flooring.
   icons: { rects: { '20107:810003': [96, 0, 31, 17] } },
 };
 
@@ -705,8 +705,10 @@ test('graphicControl draws the resolved icon centred on the canvas', () => {
   const ctx2d = gparts(wrap).canvas.getContext('2d');
 
   assert.deepEqual(ctx2d.calls, [
-    ['clearRect', 0, 0, 48, 48],
-    ['drawImage', 'ICONS', 96, 0, 31, 17, 8, 15, 31, 17],
+    ['setTransform', 2, 0, 0, 2, 0, 0],
+    ['imageSmoothingEnabled', false],
+    ['clearRect', 0, 0, 64, 64],
+    ['drawImage', 'ICONS', 96, 0, 31, 17, 16, 23, 31, 17],
   ]);
 });
 
@@ -752,7 +754,7 @@ test('graphicControl redraws as either field is edited', () => {
   file.value = '20107';
   fire(file, 'input');
   assert.deepEqual(ctx2d.calls.filter((c) => c[0] === 'drawImage'),
-    [['drawImage', 'ICONS', 96, 0, 31, 17, 8, 15, 31, 17]]);
+    [['drawImage', 'ICONS', 96, 0, 31, 17, 16, 23, 31, 17]]);
 });
 
 test('graphicControl coerces exactly once, leaving the rule to Sprites', () => {
@@ -763,7 +765,7 @@ test('graphicControl coerces exactly once, leaving the rule to Sprites', () => {
   const wrap = Pickers.graphicControl(graphicColumn, fileColumn,
     { graphic_tile: '0810003', graphic_file: '20107abc' }, gctx());
   assert.deepEqual(gparts(wrap).canvas.getContext('2d').calls.filter((c) => c[0] === 'drawImage'),
-    [['drawImage', 'ICONS', 96, 0, 31, 17, 8, 15, 31, 17]]);
+    [['drawImage', 'ICONS', 96, 0, 31, 17, 16, 23, 31, 17]]);
   assert.equal(gparts(wrap).status.textContent, 'graphic and sheet must be whole numbers');
 });
 
@@ -771,7 +773,7 @@ test('graphicControl accepts a leading-zero pair, as Sprites and Validation both
   const wrap = Pickers.graphicControl(graphicColumn, fileColumn,
     { graphic_tile: '0810003', graphic_file: '020107' }, gctx());
   assert.deepEqual(gparts(wrap).canvas.getContext('2d').calls.filter((c) => c[0] === 'drawImage'),
-    [['drawImage', 'ICONS', 96, 0, 31, 17, 8, 15, 31, 17]]);
+    [['drawImage', 'ICONS', 96, 0, 31, 17, 16, 23, 31, 17]]);
   assert.equal(gparts(wrap).status.textContent, '');
 });
 
@@ -840,7 +842,7 @@ test('graphicControl redraws when the bundle image finishes decoding', () => {
   ctx.images.icons = 'ICONS';
   ctx.__ready[0]();
   assert.deepEqual(ctx2d.calls.filter((c) => c[0] === 'drawImage'),
-    [['drawImage', 'ICONS', 96, 0, 31, 17, 8, 15, 31, 17]]);
+    [['drawImage', 'ICONS', 96, 0, 31, 17, 16, 23, 31, 17]]);
 });
 
 test('graphicControl survives a ctx with no bundles, images or ready hook', () => {
@@ -929,5 +931,15 @@ test('a padded cell is not mistaken for a typo', () => {
     { graphic_tile: ' 810003 ', graphic_file: ' 20107 ' }, gctx());
   assert.equal(gparts(wrap).status.textContent, '');
   assert.deepEqual(gparts(wrap).canvas.getContext('2d').calls.filter((c) => c[0] === 'drawImage'),
-    [['drawImage', 'ICONS', 96, 0, 31, 17, 8, 15, 31, 17]]);
+    [['drawImage', 'ICONS', 96, 0, 31, 17, 16, 23, 31, 17]]);
+});
+
+test('the icon preview canvas is a 64 logical box drawn at 2x', () => {
+  // 128 CSS pixels of canvas for a 64-pixel box. 64 rather than 48 because the bundle holds
+  // sprites up to 128x128 and 48 clipped them; bigger still clips, which is a bundle fact.
+  const wrap = Pickers.graphicControl(graphicColumn, fileColumn, {}, gctx());
+  const canvas = gparts(wrap).canvas;
+  assert.equal(canvas.width, 128);
+  assert.equal(canvas.height, 128);
+  assert.deepEqual(canvas.getContext('2d').calls[0], ['setTransform', 2, 0, 0, 2, 0, 0]);
 });

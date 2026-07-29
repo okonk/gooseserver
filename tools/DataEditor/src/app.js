@@ -529,7 +529,8 @@ var App = (function () {
 
     if (state.schema.columns.some(function (c) { return c.name === 'body_id'; })) {
       var canvas = Forms.el('canvas',
-        { width: Preview.CANVAS_W, height: Preview.CANVAS_H, class: 'appearance' });
+        { width: Preview.CANVAS_W * Preview.CHARACTER_SCALE,
+          height: Preview.CANVAS_H * Preview.CHARACTER_SCALE, class: 'appearance' });
       host.appendChild(canvas);
 
       Preview.character(canvas, {
@@ -542,7 +543,7 @@ var App = (function () {
         // reads as armed, matching the NPCs default of 1.
         bodyState: values.body_state,
         equippedItems: values.equipped_items || '',
-      }, ctx());
+      }, ctx(), Preview.CHARACTER_SCALE);
     }
 
     var effectColumn = state.sheetName === 'Spells' ? 'spell_effect_id'
@@ -552,9 +553,10 @@ var App = (function () {
       var effectId = num(values[effectColumn]);
       if (effectId > 0) {
         var anim = Forms.el('canvas',
-          { width: Preview.EFFECT_SIZE, height: Preview.EFFECT_SIZE, class: 'effect' });
+          { width: Preview.EFFECT_SIZE * Preview.EFFECT_SCALE,
+            height: Preview.EFFECT_SIZE * Preview.EFFECT_SCALE, class: 'effect' });
         host.appendChild(anim);
-        state.stopEffect = Preview.effect(anim, effectId, ctx());
+        state.stopEffect = Preview.effect(anim, effectId, ctx(), Preview.EFFECT_SCALE);
       }
     }
   }

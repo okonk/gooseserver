@@ -23,6 +23,11 @@ var Preview = (function () {
   // on a coincidence.
   var EFFECT_SIZE = 96;
 
+  // How much bigger than logical each preview's canvas is drawn, so app.js and this file agree
+  // on the number. 96x112 at 4x is 384x448; 96x96 at 2x is 192x192.
+  var CHARACTER_SCALE = 4;
+  var EFFECT_SCALE = 2;
+
   // parseInt(v, 10), matching Equipped.num(), Appearance.num(), Sprites.num() and
   // Composites.num() so no two modules disagree about what a spreadsheet cell means.
   function num(value) {
@@ -46,9 +51,14 @@ var Preview = (function () {
   /// way the client does. Returns { layers, drawn }: layers is what the data asks for, drawn is
   /// what the bundle actually had art for, and a gap between the two is a missing sprite rather
   /// than a bug in the maths.
-  function character(canvas, appearance, ctx) {
+  /// `scale` scales the CONTEXT, not the maths: the caller sizes the canvas CANVAS_W * scale by
+  /// CANVAS_H * scale and everything below stays in logical pixels. Smoothing stays off — a
+  /// scaled context resamples by default, and a blurry 4x sprite is worse than a small sharp one.
+  function character(canvas, appearance, ctx, scale) {
+    var s = scale || 1;
     var c = canvas.getContext('2d');
-    c.clearRect(0, 0, canvas.width, canvas.height);
+    c.setTransform(s, 0, 0, s, 0, 0);
+    c.clearRect(0, 0, CANVAS_W, CANVAS_H);
     c.imageSmoothingEnabled = false;
 
     var layers = Appearance.layers(appearance);
@@ -63,7 +73,7 @@ var Preview = (function () {
       // than defensive: the centring below reads rect[2] before Sprites.draw ever sees it.
       if (!rect) return;
 
-      var dx = Math.floor((canvas.width - rect[2]) / 2);
+      var dx = Math.floor((CANVAS_W - rect[2]) / 2);
       // Math.floor throughout this file's own centring maths. Appearance.offsetY uses
       // Math.trunc because it is porting C# integer division; here every height is positive, so
       // the two agree, and one rule is easier to check than two.
@@ -79,14 +89,17 @@ var Preview = (function () {
   /// Effect animation: loops the effect's frames. Returns a stop function, which the caller MUST
   /// keep and call before starting another one or navigating away — an abandoned interval keeps
   /// drawing onto a canvas that is no longer in the tree.
-  function effect(canvas, effectId, ctx) {
+  function effect(canvas, effectId, ctx, scale) {
+    var s = scale || 1;
     var frames = Sprites.effectFrames((ctx && ctx.bundles) || {}, effectId);
     var image = (ctx && ctx.images) ? ctx.images.effects : null;
     var c = canvas.getContext('2d');
+    // Same bargain as character(): the context carries the scale, the maths does not.
+    c.setTransform(s, 0, 0, s, 0, 0);
     c.imageSmoothingEnabled = false;
 
     if (!frames.length) {
-      c.clearRect(0, 0, canvas.width, canvas.height);
+      c.clearRect(0, 0, EFFECT_SIZE, EFFECT_SIZE);
       return function () {};
     }
 
@@ -97,10 +110,10 @@ var Preview = (function () {
       var rect = frames[i % frames.length];
       i += 1;
 
-      c.clearRect(0, 0, canvas.width, canvas.height);
+      c.clearRect(0, 0, EFFECT_SIZE, EFFECT_SIZE);
       Sprites.draw(c, image, rect,
-                   Math.floor((canvas.width - rect[2]) / 2),
-                   Math.floor((canvas.height - rect[3]) / 2), null);
+                   Math.floor((EFFECT_SIZE - rect[2]) / 2),
+                   Math.floor((EFFECT_SIZE - rect[3]) / 2), null);
     }
 
     step();
@@ -116,6 +129,8 @@ var Preview = (function () {
     CANVAS_W: CANVAS_W,
     CANVAS_H: CANVAS_H,
     EFFECT_SIZE: EFFECT_SIZE,
+    CHARACTER_SCALE: CHARACTER_SCALE,
+    EFFECT_SCALE: EFFECT_SCALE,
     ORIGIN_Y: ORIGIN_Y,
     FRAME_MS: FRAME_MS,
   };

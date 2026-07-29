@@ -46,6 +46,12 @@ var Composites = (function () {
 
   var WHOLE = /^\d+$/;
 
+  // The equip-slot preview's logical box, and the factor its canvas backing store is scaled by
+  // so the sprite is legible on screen. The maths is unchanged; only the context is scaled.
+  var SLOT_W = 40;
+  var SLOT_H = 56;
+  var SLOT_SCALE = 2;
+
   // parseInt(v, 10), matching Equipped.num(), Appearance.num() and Sprites.num() so the modules
   // cannot disagree about what a cell means.
   function num(value) {
@@ -406,12 +412,18 @@ var Composites = (function () {
       });
       input.value = String(slots[index].graphic);
 
-      var canvas = Forms.el('canvas', { width: 40, height: 56, class: 'preview' });
+      var canvas = Forms.el('canvas', { width: SLOT_W * SLOT_SCALE, height: SLOT_H * SLOT_SCALE,
+                                        class: 'preview' });
       var status = Forms.el('span', { class: 'status' });
 
       function redraw() {
         var target = canvas.getContext('2d');
-        target.clearRect(0, 0, canvas.width, canvas.height);
+        // The context is scaled, so the maths below stays in logical pixels; only the backing
+        // store knows about SLOT_SCALE. Smoothing off: a scaled context resamples by default and
+        // a blurry 2x sprite is worse than a small sharp one.
+        target.setTransform(SLOT_SCALE, 0, 0, SLOT_SCALE, 0, 0);
+        target.imageSmoothingEnabled = false;
+        target.clearRect(0, 0, SLOT_W, SLOT_H);
 
         // Appearance.CATEGORY is the one mapping from slot to sprite folder — Shield and Weapon
         // both land on 'Hands'. Repeating it here would be a second copy to keep in step.
@@ -422,8 +434,8 @@ var Composites = (function () {
         if (!rect) return;
 
         Sprites.draw(target, (ctx && ctx.images) ? ctx.images.parts : null, rect,
-                     Math.floor((canvas.width - rect[2]) / 2),
-                     Math.floor((canvas.height - rect[3]) / 2),
+                     Math.floor((SLOT_W - rect[2]) / 2),
+                     Math.floor((SLOT_H - rect[3]) / 2),
                      slots[index]);
       }
 

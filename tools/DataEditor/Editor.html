@@ -9,7 +9,7 @@
   body { font: 13px/1.5 -apple-system, system-ui, sans-serif; margin: 0; color: #222; }
   header { display: flex; gap: 8px; align-items: center; padding: 8px; flex-wrap: wrap;
            border-bottom: 1px solid #ddd; position: sticky; top: 0; background: #fff; z-index: 5; }
-  main { display: grid; grid-template-columns: 200px 1fr 220px; gap: 12px; padding: 12px; }
+  main { display: grid; grid-template-columns: 200px 1fr 400px; gap: 12px; padding: 12px; }
 
   /* A Sheets sidebar (Code.gs showSidebar) is about 300px wide, and the three-column grid needs
      456px before the form column gets a single pixel. One of the two shipped entry points is
@@ -45,6 +45,8 @@
   canvas.preview, canvas.appearance, canvas.effect { image-rendering: pixelated;
     border: 1px solid #eee; background: repeating-conic-gradient(#f4f4f4 0% 25%, #fff 0% 50%)
     50% / 12px 12px; }
+  /* A 384px character canvas in a ~300px Sheets sidebar shrinks rather than overflowing. */
+  #previews canvas { max-width: 100%; height: auto; }
   .picker { position: relative; }
   .results { position: absolute; z-index: 10; background: #fff; border: 1px solid #ccc;
              max-height: 200px; overflow: auto; width: 100%; }

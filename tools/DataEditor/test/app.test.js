@@ -350,7 +350,7 @@ test('an NPC record draws a character preview', () => {
 
   const canvas = h.get('previews').children[0];
   assert.equal(canvas.tagName, 'CANVAS');
-  assert.equal(canvas.width, Preview.CANVAS_W);
+  assert.equal(canvas.width, Preview.CANVAS_W * Preview.CHARACTER_SCALE);
   assert.equal(canvas.getContext('2d').calls.filter((c) => c[0] === 'drawImage').length, 1);
 });
 

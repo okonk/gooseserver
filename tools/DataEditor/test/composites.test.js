@@ -945,3 +945,21 @@ test('rgba names the four cells it writes, and the slider names its own', () => 
   assert.equal(node.querySelector('[class="hint"]').textContent, 'body_r body_g body_b body_a');
   assert.equal(node.querySelector('[class="blend-label"]').textContent, 'body_a');
 });
+
+test('the equip slot preview is scaled, with its centring still in logical pixels', () => {
+  // 11x13 in a 40x56 box: (40-11)/2 = 14.5 and (56-13)/2 = 21.5 before flooring, so a preview
+  // that centred on the 80x112 BACKING STORE instead would put the sprite somewhere else.
+  const bundles = { parts: { rects: { 'Chest:1:idle-no-equip-down': [0, 0, 11, 13] } } };
+  const node = Composites.control(EQUIP, byName(EQUIP.columns),
+    { equipped_items: RAW_EQUIP }, ctx({ bundles, images: { parts: 'PARTS' } }));
+  const canvas = node.querySelectorAll('[class="preview"]')[0];
+
+  assert.equal(canvas.width, 80);
+  assert.equal(canvas.height, 112);
+  assert.deepEqual(canvas.getContext('2d').calls, [
+    ['setTransform', 2, 0, 0, 2, 0, 0],
+    ['imageSmoothingEnabled', false],
+    ['clearRect', 0, 0, 40, 56],
+    ['drawImage', 'PARTS', 0, 0, 11, 13, 14, 21, 11, 13],
+  ]);
+});

@@ -133,7 +133,9 @@ test('the canvas is cleared before anything is drawn', () => {
   Preview.character(node, { bodyId: 1, bodyState: 1 },
                     partsBundle({ 'Bodies:1:idle-down': [0, 0, 48, 48] }));
   const calls = node.getContext('2d').calls;
-  assert.deepEqual(calls[0], ['clearRect', 0, 0, Preview.CANVAS_W, Preview.CANVAS_H]);
+  // The transform comes first — it decides what the clearRect's logical size means.
+  assert.deepEqual(calls[0], ['setTransform', 1, 0, 0, 1, 0, 0]);
+  assert.deepEqual(calls[1], ['clearRect', 0, 0, Preview.CANVAS_W, Preview.CANVAS_H]);
 });
 
 test('the tint travels with the layer', () => {
@@ -252,6 +254,7 @@ test('an effect with no frames clears the canvas and starts no timer', () => {
     const stop = Preview.effect(node, 999, effectsCtx);
     assert.equal(timers.size, 0);
     assert.deepEqual(node.getContext('2d').calls, [
+      ['setTransform', 1, 0, 0, 1, 0, 0],
       ['imageSmoothingEnabled', false],
       ['clearRect', 0, 0, 96, 96],
     ]);
@@ -276,4 +279,44 @@ test('constants are pinned', () => {
   assert.equal(Preview.CANVAS_H, 112);
   assert.equal(Preview.ORIGIN_Y, 88);
   assert.equal(Preview.FRAME_MS, 125);
+});
+
+// --- scaled previews -------------------------------------------------------------------------
+// The bargain: the canvas backing store grows, the context is scaled once, and NONE of the
+// anchoring or centring arithmetic changes. So the test for a scaled preview is that the
+// drawImage destinations are byte-for-byte the ones the unscaled preview produced.
+
+test('character scales the CONTEXT and leaves the destinations alone', () => {
+  const rects = { 'Bodies:1:idle-equip-down': [0, 0, 31, 61] };
+  const plain = canvas();
+  Preview.character(plain, { bodyId: 1, bodyState: 1 }, partsBundle(rects));
+
+  const big = canvas(Preview.CANVAS_W * 4, Preview.CANVAS_H * 4);
+  Preview.character(big, { bodyId: 1, bodyState: 1 }, partsBundle(rects), 4);
+
+  const calls = big.getContext('2d').calls;
+  assert.deepEqual(calls[0], ['setTransform', 4, 0, 0, 4, 0, 0]);
+  assert.deepEqual(calls[1], ['clearRect', 0, 0, Preview.CANVAS_W, Preview.CANVAS_H]);
+  assert.deepEqual(drawCalls(big), drawCalls(plain));
+  assert.equal(big.getContext('2d').imageSmoothingEnabled, false);
+});
+
+test('effect scales the CONTEXT and leaves the destinations alone', () => {
+  withFakeTimers(() => {
+    const plain = canvas(96, 96);
+    Preview.effect(plain, 4, effectsCtx)();
+
+    const big = canvas(Preview.EFFECT_SIZE * 2, Preview.EFFECT_SIZE * 2);
+    Preview.effect(big, 4, effectsCtx, 2)();
+
+    const calls = big.getContext('2d').calls;
+    assert.deepEqual(calls[0], ['setTransform', 2, 0, 0, 2, 0, 0]);
+    assert.deepEqual(drawCalls(big), drawCalls(plain));
+    assert.equal(big.getContext('2d').imageSmoothingEnabled, false);
+  });
+});
+
+test('the two preview scales are exported so app.js and preview.js agree', () => {
+  assert.equal(Preview.CHARACTER_SCALE, 4);
+  assert.equal(Preview.EFFECT_SCALE, 2);
 });

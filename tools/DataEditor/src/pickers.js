@@ -9,6 +9,11 @@ var Pickers = (function () {
   // stays scannable instead of becoming a second copy of the sheet.
   var LIMIT = 50;
 
+  // The icon preview's logical box, and the factor the canvas backing store is scaled by so it
+  // is legible on screen. See graphicControl for why the box is 64.
+  var ICON_BOX = 64;
+  var ICON_SCALE = 2;
+
   // Slots inside LIMIT that name hits keep even when id-prefix hits could fill the whole list.
   // Without it, one digit typed against Items produces >100 id-prefix hits (1, 10-19, 100-199,
   // …) and slicing after concatenation would hide EVERY name match behind them — so a designer
@@ -339,7 +344,12 @@ var Pickers = (function () {
   // all and does it silently, so the order is asserted in the tests.
   function graphicControl(graphicColumn, fileColumn, values, ctx) {
     var wrap = Forms.el('div', { class: 'graphic' });
-    var canvas = Forms.el('canvas', { width: 48, height: 48, class: 'preview' });
+    // A 64-pixel logical box drawn at 2x, so 128 CSS pixels of canvas. The box grew from 48
+    // because the median icon is 32x32 but the bundle holds sprites up to 128x128 and 48 clipped
+    // them; 64 covers the common large sizes. Anything bigger is still clipped — a bundle fact,
+    // not a regression, and preferable to a 128 box leaving every 32px icon adrift in whitespace.
+    var canvas = Forms.el('canvas',
+      { width: ICON_BOX * ICON_SCALE, height: ICON_BOX * ICON_SCALE, class: 'preview' });
 
     function cell(column, fallback) {
       var node = Forms.el('input', {
@@ -418,7 +428,12 @@ var Pickers = (function () {
       wrap.__graphicError = state.block ? (graphicColumn.name + ': ' + state.text) : null;
 
       var target = canvas.getContext('2d');
-      target.clearRect(0, 0, canvas.width, canvas.height);
+      // The context is scaled, so everything below is in logical pixels: only the backing store
+      // knows about ICON_SCALE. imageSmoothingEnabled off because a scaled context resamples by
+      // default and a blurry 2x sprite is worse than a small sharp one.
+      target.setTransform(ICON_SCALE, 0, 0, ICON_SCALE, 0, 0);
+      target.imageSmoothingEnabled = false;
+      target.clearRect(0, 0, ICON_BOX, ICON_BOX);
       // Load-bearing, not defensive: Sprites.draw would ignore a null rect happily, but the
       // centring below reads rect[2] first and would throw before ever reaching it.
       if (!rect) return;
@@ -426,8 +441,8 @@ var Pickers = (function () {
       // Sprites.draw is a no-op while the bundle PNG is still decoding, which is why redraw is
       // also registered below rather than only run once here.
       Sprites.draw(target, (ctx && ctx.images) ? ctx.images.icons : null, rect,
-                   Math.floor((canvas.width - rect[2]) / 2),
-                   Math.floor((canvas.height - rect[3]) / 2),
+                   Math.floor((ICON_BOX - rect[2]) / 2),
+                   Math.floor((ICON_BOX - rect[3]) / 2),
                    null);
     }
 
