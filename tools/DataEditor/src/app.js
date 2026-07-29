@@ -218,6 +218,23 @@ var App = (function () {
     state.rowNumber = 0;
   }
 
+  // Everything derived from the OPEN sheet's rows. The token scheme guards what a reply may
+  // write; this guards the interval BEFORE the reply, which it cannot reach: openSheet swaps
+  // state.schema synchronously, so from that moment until the rows land, every record button
+  // still on screen is a button over ANOTHER sheet's row under this sheet's schema. Clicking one
+  // builds a form out of the old row and Save writes it into this sheet — the same payload the
+  // stale-callback bug produced, by a different route.
+  //
+  // It is not only a window. A failed read shows its error and returns without ever rebuilding
+  // the list, so without this the editor would sit indefinitely on the previous sheet's records
+  // with the new sheet's schema behind them, one click from a cross-sheet write.
+  function clearRecords() {
+    document.getElementById('records').innerHTML = '';
+    state.rows = [];
+    state.ids = [];
+    state.idSets.__self = new Set();
+  }
+
   /// Loads a sheet and rebuilds the record list. `selectRow` is a spreadsheet row number to
   /// re-open once the list is up — used after a save, so the record the user was editing is
   /// still in front of them instead of the form vanishing.
@@ -229,6 +246,7 @@ var App = (function () {
     // forever, with its canvas still on screen above the new sheet's empty form.
     clearPreviews();
     clearForm();
+    clearRecords();
     state.sheetName = sheetName;
     state.schema = schemaFor(sheetName);
 
@@ -293,6 +311,13 @@ var App = (function () {
       if (comp.source) needed[comp.source] = true;
     });
 
+    // NOT de-duplicated across calls, and the handlers below store unconditionally, so two
+    // in-flight requests for ONE sheet name are last-writer-wins. Reachable in principle now
+    // that a save drops a cache entry: if the older reply lands last it reinstates the pre-save
+    // snapshot, and an FK to the record just created reads "does not exist" until the next sheet
+    // open. Left as a note rather than a guard — the reviewer's attempt to construct it did not
+    // produce two concurrent requests for one name, and a guard for a race nobody can
+    // demonstrate is a guard nobody can test. It is self-healing either way.
     var names = Object.keys(needed).filter(function (n) { return !state.pickerData[n]; });
     if (!names.length) { done(); return; }
 
@@ -335,6 +360,11 @@ var App = (function () {
   // rows[i] is spreadsheet row i + 2: readSheet returns values.slice(1), so index 0 is row 2.
   // Code.gs refuses row 1 (the header) and anything past lastRow + 1.
   function editRow(index) {
+    // A record button outlives the rows it was built from only if something has gone wrong, but
+    // "wrong" here means rowToValues(undefined) quietly producing an all-blank record under a
+    // real rowNumber — a form that looks like an empty record and saves like a wipe of row N.
+    // Refuse instead.
+    if (!state.rows[index]) return;
     state.rowNumber = index + 2;
     renderForm(rowToValues(state.rows[index]));
   }
@@ -532,20 +562,35 @@ var App = (function () {
 
     status('Saving…');
     state.saving = true;
+    // The write is bound to the sheet it was composed against, not to whatever is open when it
+    // answers. Without this, saving Items and then switching to Maps ends with the Maps cache
+    // untouched, the Items cache intact, the user's own in-flight Maps load discarded, and an
+    // arbitrary Maps record opened under a "Saved." message.
+    var savedSheet = state.sheetName;
+    var savedToken = state.sheetToken;
     google.script.run
-      .withFailureHandler(function (e) { state.saving = false; status(e.message, true); })
+      .withFailureHandler(function (e) {
+        state.saving = false;
+        if (savedToken === state.sheetToken) status(e.message, true);
+      })
       .withSuccessHandler(function (written) {
         state.saving = false;
         // The sheet just changed, so its cached id + name list is out of date. Left alone, a new
         // record is invisible to every FK pointing at this sheet until the page is reloaded —
         // and that failure is CLOSED, not open: validation.js waves through an absent id set but
-        // reports a real id as missing from a stale one.
-        delete state.pickerData[state.sheetName];
-        delete state.idSets[state.sheetName];
-        openSheet(state.sheetName, written && written.row,
+        // reports a real id as missing from a stale one. Dropped whatever the user is looking at
+        // now: the sheet that CHANGED is the sheet whose cache is stale.
+        delete state.pickerData[savedSheet];
+        delete state.idSets[savedSheet];
+
+        // But only re-open when nothing has superseded it. Re-opening unconditionally would
+        // cancel the load the user asked for and select a row number that means nothing in the
+        // sheet now on screen.
+        if (savedToken !== state.sheetToken) return;
+        openSheet(savedSheet, written && written.row,
                   'Saved. Run /updatesql then /reloadsql in game to publish.');
       })
-      .writeRow(state.sheetName, state.rowNumber, cells, idIndex);
+      .writeRow(savedSheet, state.rowNumber, cells, idIndex);
   }
 
   /// Publish check: validate every record on every sheet before telling the user to publish.

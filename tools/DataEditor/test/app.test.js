@@ -980,14 +980,14 @@ test('picker replies that land after a sheet switch do not render the old sheet'
   h.get('sheet-picker').value = 'Items';
   fire(h.get('sheet-picker'), 'change');
 
-  // The window that matters: NPC Drops' picker replies land while state.rows still holds NPC
-  // Drops' rows and state.schema is already Items. An unguarded done() renders three buttons
-  // built from one sheet under the other sheet's schema — and clicking one of them opens a form
-  // of NPC Drops values that Save would write into an Items row.
+  // NPC Drops' picker replies land while Items is still loading. Its done() renders and writes
+  // the status line, so unguarded it announces "0 records" for a sheet that has not answered
+  // yet — and, before openSheet learned to clear the list, drew NPC Drops' rows under Items'
+  // schema, one click away from a cross-sheet write.
   h.run.step();
   h.run.step();
-  assert.equal(h.get('records').children.length, 1, 'the list did not change under us');
-  assert.equal(h.get('records').children[0].textContent, '1 — Gold');
+  assert.equal(h.status(), 'Loading Items…', 'the abandoned load did not report on Items');
+  assert.equal(h.get('records').children.length, 0);
 
   h.settle();
   assert.equal(App.__state.sheetName, 'Items');
@@ -1156,6 +1156,143 @@ test('a successful save drops that sheet\'s cached id list', () => {
   assert.ok(serverCalls(h.run, 'readSheetIndex').some((c) => c.args[0] === 'Items'),
             'and it is fetched again');
   assert.ok(serverCalls(h.run, 'readSheetIndex').length > before);
+});
+
+// --- the interval between a request and its reply -------------------------------------------
+
+test('the record list is emptied the moment a sheet switch is requested', () => {
+  // state.schema swaps synchronously; the rows do not. Every button left on screen in between
+  // is a row of the OLD sheet under the schema of the NEW one.
+  const h = boot({ Items: [ITEM(7, 'Sword')], Maps: [MAP(3, 'Town')] }, { hold: true });
+  h.settle();
+  assert.equal(h.get('records').children.length, 1);
+
+  h.get('sheet-picker').value = 'Maps';
+  fire(h.get('sheet-picker'), 'change');
+
+  assert.equal(h.get('records').children.length, 0, 'nothing stale is clickable');
+  assert.deepEqual(App.__state.rows, []);
+  assert.deepEqual(App.__state.ids, []);
+  assert.equal(App.__state.idSets.__self.size, 0);
+
+  h.settle();
+  assert.equal(h.get('records').children.length, 1);
+  assert.equal(h.get('records').children[0].textContent, '3 — Town');
+});
+
+test('a FAILED read leaves nothing of the previous sheet behind — permanently', () => {
+  // The failure handler reports and returns; it never rebuilds the list. Without the clear, the
+  // editor would sit indefinitely on Items' records with Maps' schema behind them, and one
+  // click plus Save writes an Items record into Maps. Transient Apps Script errors are ordinary.
+  const h = boot({ Items: [ITEM(7, 'Sword')], Maps: [MAP(3, 'Town')] }, { failOn: 'Maps' });
+  assert.equal(h.get('records').children.length, 1);
+
+  h.get('sheet-picker').value = 'Maps';
+  fire(h.get('sheet-picker'), 'change');
+  h.settle();
+
+  assert.equal(h.status(), 'boom: Maps');
+  assert.equal(h.get('records').children.length, 0);
+  assert.equal(h.get('form').children.length, 0);
+
+  // Nothing to click, nothing loaded, and Save writes nothing.
+  fire(h.get('save'), 'click');
+  h.settle();
+  assert.equal(h.writes.length, 0);
+});
+
+test('editRow refuses an index the rows do not have', () => {
+  // rowToValues(undefined) builds an all-blank record under a real rowNumber — a form that
+  // looks empty and saves like a wipe of that row.
+  const h = boot({ Items: [ITEM(7, 'Sword')] });
+  App.editRow(99);
+  h.settle();
+  assert.equal(h.get('form').children.length, 0);
+  assert.equal(App.__state.rowNumber, 0);
+});
+
+test('New during an in-flight read does not suggest an id from the previous sheet', () => {
+  const h = boot({ Items: [ITEM(602, 'Sword')], Maps: [MAP(3, 'Town')] }, { hold: true });
+  h.settle();
+
+  h.get('sheet-picker').value = 'Maps';
+  fire(h.get('sheet-picker'), 'change');
+  fire(h.get('new-record'), 'click');
+  h.settle();
+
+  // 1 from an empty id set, not 603 from Items'.
+  assert.equal(h.get('form').querySelector('[name="map_id"]').value, '1');
+});
+
+test('a save that answers after a sheet switch does not hijack the new sheet', () => {
+  const h = boot({ Items: [ITEM(7, 'Sword')], Maps: [MAP(3, 'Town'), MAP(4, 'Cave')] },
+                 { hold: true });
+  h.settle();
+
+  fire(h.get('records').children[0], 'click');
+  h.settle();
+  fire(h.get('save'), 'click');          // writeRow queued, answering for Items
+
+  h.get('sheet-picker').value = 'Maps';
+  fire(h.get('sheet-picker'), 'change'); // the user moves on
+  h.settle();
+
+  assert.equal(h.writes.length, 1);
+  assert.equal(h.writes[0].sheet, 'Items', 'the write itself was always bound to Items');
+
+  // Maps is what the user asked for and Maps is what they get — no record force-opened under a
+  // row number that belongs to another sheet.
+  assert.equal(App.__state.sheetName, 'Maps');
+  assert.equal(h.get('records').children.length, 2);
+  assert.equal(h.get('form').children.length, 0);
+  assert.equal(App.__state.rowNumber, 0);
+});
+
+test('a save that FAILS after a sheet switch does not overwrite the new sheet\'s status', () => {
+  // The error belongs to a sheet the user has left. Reporting it against the sheet now on screen
+  // reads as "loading Maps failed", which is a different and untrue thing.
+  const h = boot({ Items: [ITEM(7, 'Sword')], Maps: [MAP(3, 'Town')] },
+                 { hold: true, writeFails: true });
+  h.settle();
+  fire(h.get('records').children[0], 'click');
+  h.settle();
+
+  fire(h.get('save'), 'click');
+  h.get('sheet-picker').value = 'Maps';
+  fire(h.get('sheet-picker'), 'change');
+  // Maps finishes first and the doomed write answers last — the order in which a late error
+  // would be the last thing written to the status line.
+  h.run.queue.reverse();
+  h.settle();
+
+  assert.equal(h.status(), '1 records');
+  assert.equal(App.__state.saving, false, 'and the button is free again');
+});
+
+test('a save that answers after a sheet switch still invalidates the RIGHT cache', () => {
+  const h = boot({
+    NPCs: [NPC(1, 'Rat')], Items: [ITEM(1, 'Gold')], Maps: [MAP(3, 'Town')],
+    'NPC Drops': [DROP(1, 1)],
+  }, { hold: true });
+  h.settle();
+
+  // Cache Items by opening a sheet that references it, then edit Items itself.
+  h.get('sheet-picker').value = 'NPC Drops';
+  fire(h.get('sheet-picker'), 'change');
+  h.settle();
+  h.get('sheet-picker').value = 'Items';
+  fire(h.get('sheet-picker'), 'change');
+  h.settle();
+  fire(h.get('records').children[0], 'click');
+  h.settle();
+
+  fire(h.get('save'), 'click');
+  h.get('sheet-picker').value = 'Maps';
+  fire(h.get('sheet-picker'), 'change');
+  h.settle();
+
+  assert.equal(App.__state.pickerData.Items, undefined, 'the sheet that CHANGED was dropped');
+  assert.equal(App.__state.pickerData.Maps, undefined, 'and Maps was never cached to begin with');
 });
 
 // --- the paths the sweep found unasserted ---------------------------------------------------
