@@ -93,13 +93,18 @@ var Validation = (function () {
       }
     }
 
-    // DECIMAL(p,s) is checked by digit count, not magnitude: MySQL rejects (or silently
-    // rounds, outside strict mode) a value with too many integer or fraction digits.
+    // DECIMAL(p,s) is checked by digit count, not magnitude: p total digits, s of them
+    // after the point, so p - s before it. Too many integer digits is a MySQL error.
+    // Too many fraction digits is not — MySQL truncates with a warning — but silently
+    // rounding someone's Titles.chance is worse than telling them, so we reject.
+    // Zeros that only pad the display are stripped from both ends first.
     var spec = decimalSpec(column.sql);
     if (spec) {
       var whole = parts[1].replace(/^0+(?=\d)/, '');
-      var fraction = parts[2] || '';
-      if (whole.length > spec.precision - spec.scale) {
+      var fraction = (parts[2] || '').replace(/0+$/, '');
+      // DECIMAL(p,p) holds only a fraction, so "0" is the only legal integer part.
+      if (spec.precision === spec.scale ? whole !== '0'
+                                        : whole.length > spec.precision - spec.scale) {
         return {
           ok: false, write: true,
           message: column.name + ' must be between -' + decimalMax(spec) + ' and ' +
@@ -146,13 +151,16 @@ var Validation = (function () {
   }
 
   // Accepts an array or a Set. Junk cells in the id column are ignored rather than
-  // poisoning the result with NaN.
+  // poisoning the result with NaN. Ids are positive whole numbers by contract (see
+  // validateId), so the running max floors at 0 and truncates: the suggestion must be
+  // something validateId will then accept, and max+1 over a negative or fractional max
+  // would hand the user an id its own validation refuses.
   function nextId(ids) {
     if (!ids) return 1;
     var list = (typeof Array.from === 'function') ? Array.from(ids) : ids;
     var max = 0;
     for (var i = 0; i < list.length; i++) {
-      var n = Number(list[i]);
+      var n = Math.floor(Number(list[i]));
       if (Number.isFinite(n) && n > max) max = n;
     }
     return max + 1;

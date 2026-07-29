@@ -136,6 +136,22 @@ test('decimal with too many fraction digits is rejected', () => {
   assert.match(s.message, /2 decimal place/);
 });
 
+test('padding zeros do not make a representable decimal fail', () => {
+  // A cell number-formatted to a fixed width reads back as "0.500"; that is still
+  // exactly DECIMAL(5,2), so only the display is wider.
+  assert.equal(Validation.validateCell(col({ kind: 'Decimal', sql: 'DECIMAL(5,2)' }), '0.500').ok,
+               true);
+  assert.equal(Validation.validateCell(col({ kind: 'Decimal', sql: 'DECIMAL(5,4)' }), '0000.5').ok,
+               true);
+});
+
+test('a scale-only decimal allows just the fraction', () => {
+  // DECIMAL(4,4) holds 0.9999 and nothing above 1.
+  const c = col({ kind: 'Decimal', sql: 'DECIMAL(4,4)' });
+  assert.equal(Validation.validateCell(c, '0.9999').ok, true);
+  assert.equal(Validation.validateCell(c, '1.0').ok, false);
+});
+
 // --- Edge cases ------------------------------------------------------------------
 
 test('whitespace-only input is treated as blank', () => {
@@ -172,6 +188,10 @@ test('nextId ignores non-numeric entries and accepts a Set', () => {
   assert.equal(Validation.nextId(new Set([1, 2, 3])), 4);
   assert.equal(Validation.nextId(['x']), 1);
   assert.equal(Validation.nextId(null), 1);
+  // The suggestion must be something validateId will accept, so a negative or
+  // fractional maximum cannot propagate into it.
+  assert.equal(Validation.nextId([-5, -2]), 1);
+  assert.equal(Validation.nextId([1.5]), 2);
 });
 
 // --- validateRecord id seam ------------------------------------------------------
