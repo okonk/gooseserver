@@ -1,6 +1,6 @@
 // A DOM small enough to read in one sitting and faithful in the two places forms.js can be
-// wrong: <select>.value refusing a value no <option> carries, and setAttribute NOT changing
-// an <input>'s live value. Everything else is the minimum the module touches.
+// wrong: <select>.value refusing a value no <option> carries, and an <input>'s DIRTY VALUE
+// FLAG. Everything else is the minimum the module touches.
 //
 // Install with installFakeDom(); it sets globalThis.document and returns it.
 
@@ -11,9 +11,14 @@ class FakeNode {
     this.children = [];
     this.parentNode = null;
     this._text = '';
-    // Real inputs keep a live value distinct from the value ATTRIBUTE. Real selects derive
-    // theirs from the selected option, which is why _value is unused for them.
+    // An input's live value tracks its `value` CONTENT ATTRIBUTE until something assigns to
+    // .value, which raises the dirty value flag and decouples the two for good (HTML,
+    // "value" IDL attribute / dirty value flag). Task 10's bitmask checkboxes are built as
+    // el('input', { value: id }) and then read back through .value, so a fake that ignored
+    // the attribute would report '' for every one of them. Selects derive their value from
+    // the selected option, so _value is unused for them.
     this._value = '';
+    this._dirty = false;
     this.selectedIndex = -1;
   }
 
@@ -75,7 +80,10 @@ class FakeNode {
       const attr = this.getAttribute('value');
       return attr === null ? this.textContent : attr;
     }
-    return this._value;
+    // Clean input: the value IS the content attribute. Dirty: the attribute is ignored.
+    if (this._dirty) return this._value;
+    const attr = this.getAttribute('value');
+    return attr === null ? '' : attr;
   }
 
   set value(next) {
@@ -87,6 +95,7 @@ class FakeNode {
       return;
     }
     this._value = text;
+    this._dirty = true;
   }
 
   getElementsByTagName(tag) {

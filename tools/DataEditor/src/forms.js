@@ -94,7 +94,11 @@ var Forms = (function () {
   function render(container, schema, values, ctx) {
     container.innerHTML = '';
 
-    var byName = {};
+    // Prototype-free, for the reason layout.js:118-121 gives and then one worse: with a plain
+    // object, a column named 'toString' reads truthy from Object.prototype in BOTH claimed and
+    // leaders, the two compare equal, and the name is treated as a composite leader — handing
+    // Composites.control a function where a composite should be.
+    var byName = Object.create(null);
     schema.columns.forEach(function (c) { byName[c.name] = c; });
 
     // Composites claim their columns so no duplicate control is rendered. The leader is the
@@ -102,8 +106,8 @@ var Forms = (function () {
     // naming a column the descriptors dropped would otherwise elect an absent leader, and
     // every one of its siblings would then be skipped as "rendered by its leader" by a
     // control that never rendered, quietly making those columns uneditable.
-    var claimed = {};
-    var leaders = {};
+    var claimed = Object.create(null);
+    var leaders = Object.create(null);
     (schema.composites || []).forEach(function (comp) {
       var leader = null;
       comp.columns.forEach(function (n) {
@@ -156,6 +160,10 @@ var Forms = (function () {
   // Named controls nested inside a composite are swept up here too; Composites.collect runs
   // afterwards and is the authority on its own columns.
   function collect(container, schema) {
+    // A plain object deliberately, unlike render's internal maps: this one is handed back to
+    // the caller and travels over google.script.run, so it stays an ordinary serialisable
+    // object. It is safe as one because EVERY schema column is seeded below before anything
+    // reads it, so no lookup can ever fall through to Object.prototype.
     var values = {};
     schema.columns.forEach(function (c) { values[c.name] = ''; });
 
@@ -177,7 +185,9 @@ var Forms = (function () {
   // rather than by building a selector out of the column name.
   function showErrors(container, errors) {
     var slots = container.querySelectorAll('[data-error-for]');
-    var byColumn = {};
+    // Prototype-free: `if (!byColumn['toString'])` is false on a plain object, so a column of
+    // that name would never have its slot recorded and its error would be silently dropped.
+    var byColumn = Object.create(null);
     for (var i = 0; i < slots.length; i++) {
       slots[i].textContent = '';
       var key = slots[i].getAttribute('data-error-for');

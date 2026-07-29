@@ -112,8 +112,9 @@ test("placeholderFor names the empty-string default rather than trailing off", (
 });
 
 test('placeholderFor strips quotes only as a matched pair', () => {
-  // An unpaired quote is part of the value; stripping one end would advertise a default the
-  // database does not have.
+  // No column in today's schema.js has an unpaired quote in its default, so this is guarding
+  // the rule rather than a live defect: an unpaired quote is part of the value, and stripping
+  // one end of it would advertise a default the database does not have.
   assert.equal(Forms.placeholderFor({ required: false, default: "it's" }), "default it's");
   assert.equal(Forms.placeholderFor({ required: false, default: "'unterminated" }),
     "default 'unterminated");
@@ -268,11 +269,27 @@ test('Text, Int, Id and Decimal all render a text input', () => {
 });
 
 test('an input value is set live, not merely as an attribute', () => {
-  // setAttribute('value', x) does not move the cursor value in a real browser; collect() reads
-  // .value, so an attribute-only write would collect as ''.
+  // A clean input mirrors its value CONTENT ATTRIBUTE, so an attribute-only write would read
+  // back correctly — right up until the user types, which raises the dirty value flag and
+  // decouples the two. render() assigns .value and emits no value attribute at all, so the
+  // two can never disagree about what is in the field.
   const control = Forms.scalarControl(column('Items', 'item_name'), 'Rusty Sword');
   assert.equal(control.value, 'Rusty Sword');
   assert.equal(control.getAttribute('value'), null);
+});
+
+test('the fake input models the dirty value flag', () => {
+  // Guards Task 10, whose bitmask checkboxes are built as el('input', { value: id }) and read
+  // back through .value: a fake that ignored the attribute would report '' for every one.
+  const clean = document.createElement('input');
+  clean.setAttribute('value', '7');
+  assert.equal(clean.value, '7');
+
+  clean.value = '9';               // raises the dirty flag
+  clean.setAttribute('value', '7');
+  assert.equal(clean.value, '9');  // the attribute no longer speaks for the field
+
+  assert.equal(document.createElement('input').value, '');
 });
 
 test('a column absent from the values map renders blank, not "undefined"', () => {
@@ -374,14 +391,30 @@ test('a composite renders once, at its leader, and its siblings are skipped', ()
 });
 
 test('a composite naming a column the schema lacks still renders its real columns', () => {
-  // columns[0] blindly as leader would elect the absent column, and every sibling would be
-  // skipped as "rendered by its leader" by a control that never rendered — quietly making
-  // those columns uneditable.
+  // Hardening, not a live defect: every composite in today's schema.js has its columns[0]
+  // present. But taking columns[0] as leader on faith means that the day a descriptor drops a
+  // composite column, the absent column is elected leader, nothing renders, and every sibling
+  // is skipped as "rendered by its leader" — the columns go quietly uneditable rather than
+  // failing loudly.
   const host = div();
   Forms.render(host, {
     sheet: 'Toybox',
     columns: [{ name: 'r', kind: 'Int', required: false }],
     composites: [{ kind: 'Rgba', columns: ['ghost', 'r'] }],
+  }, {}, {});
+  assert.deepEqual(labels(host), ['r']);
+  assert.equal(host.querySelectorAll('[data-composite]').length, 1);
+});
+
+test('a composite naming an Object.prototype member as its first column', () => {
+  // The nastiest form of the missing-leader case: byName['toString'] reads truthy from the
+  // prototype of a plain object, so the absent column would be elected leader and the one
+  // column that DOES exist would be skipped as already rendered — an empty form.
+  const host = div();
+  Forms.render(host, {
+    sheet: 'Toybox',
+    columns: [{ name: 'r', kind: 'Int', required: false }],
+    composites: [{ kind: 'Rgba', columns: ['toString', 'r'] }],
   }, {}, {});
   assert.deepEqual(labels(host), ['r']);
   assert.equal(host.querySelectorAll('[data-composite]').length, 1);
@@ -413,11 +446,12 @@ test('a composite spanning two Layout groups renders in the leader group only', 
   const names = labels(host);
   assert.equal(names.filter((n) => n === 'graphic_tile').length, 1);
   assert.equal(names.filter((n) => n === 'item_name').length, 0);
-  // The leader is the first SCHEMA-present column of the composite, so the control sits in
-  // Identity (where item_name lives) — not in Graphics.
-  const identity = host.getElementsByTagName('section')
-    .find((s) => s.getElementsByTagName('h3')[0].textContent === 'Graphics');
-  assert.equal(identity.querySelectorAll('[data-composite]').length, 1);
+  // The leader is graphic_tile — the composite's first schema-present column — so the single
+  // control sits in Graphics, where Layout puts graphic_tile, and NOT in Identity.
+  const sections = host.getElementsByTagName('section');
+  const titled = (t) => sections.find((s) => s.getElementsByTagName('h3')[0].textContent === t);
+  assert.equal(titled('Graphics').querySelectorAll('[data-composite]').length, 1);
+  assert.equal(titled('Identity').querySelectorAll('[data-composite]').length, 0);
 });
 
 test('a group left empty by a composite claim renders no heading', () => {
@@ -521,7 +555,9 @@ test('collect finds a control by name even when it has no id', () => {
 test('collect coerces whatever a control hands back to a string', () => {
   const host = div();
   Forms.render(host, TOY, {}, {});
-  host.querySelector('[name="a"]')._value = 5;   // bypass the setter's own coercion
+  const control = host.querySelector('[name="a"]');
+  control._value = 5;              // bypass the setter's own coercion
+  control._dirty = true;
   assert.deepEqual(Forms.collect(host, TOY).a, '5');
 });
 
@@ -541,6 +577,27 @@ test('every real sheet round-trips blank through render and collect', () => {
       s.sheet);
     Object.keys(out).forEach((k) => assert.equal(out[k], '', `${s.sheet}.${k}`));
   });
+});
+
+test('a column named after an Object.prototype member is handled like any other', () => {
+  // A plain-object lookup reads truthy for 'toString' from the prototype: claimed and leaders
+  // would both answer Object.prototype.toString, compare equal, and the column would be
+  // rendered as a composite — handing Composites.control a function.
+  const evil = {
+    sheet: 'Toybox',
+    columns: [
+      { name: 'toString', kind: 'Text', required: false },
+      { name: 'constructor', kind: 'Text', required: false },
+    ],
+  };
+  const host = div();
+  Forms.render(host, evil, { toString: 'x', constructor: 'y' }, {});
+  assert.deepEqual(labels(host), ['toString', 'constructor']);
+  assert.equal(host.querySelectorAll('[data-composite]').length, 0);
+  assert.deepEqual(Forms.collect(host, evil), { toString: 'x', constructor: 'y' });
+
+  Forms.showErrors(host, [{ column: 'toString', message: 'nope' }]);
+  assert.equal(host.querySelector('[data-error-for="toString"]').textContent, 'nope');
 });
 
 // ---------------------------------------------------------------- showErrors
