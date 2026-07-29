@@ -783,6 +783,137 @@ test('equip slots notifies its wrapper hook', () => {
   assert.equal(calls, 1);
 });
 
+// --- equip slot COLOURS ---------------------------------------------------------------------
+//
+// equipped_items has carried r,g,b,a per slot all along and Equipped.parse has been reading it;
+// until now there was no way to change it. Each slot row owns a picker, so these drive it
+// through the row rather than through the control — swatchOf and friends take whatever node
+// they are given.
+
+const TINTABLE = '12,*,2,*,3,*,4,*,5,*,6,*';
+
+function slotRows(node) {
+  return node.querySelectorAll('[class="equip-slot"]');
+}
+
+function statusOf(row) {
+  return row.querySelector('[class="status"]');
+}
+
+test('equip slots gives every slot a blend-capable picker', () => {
+  const node = Composites.control(EQUIP, byName(EQUIP.columns),
+    { equipped_items: TINTABLE }, ctx());
+  const rows = slotRows(node);
+  assert.equal(rows.length, 6);
+  rows.forEach((row) => {
+    assert.ok(swatchOf(row), 'a swatch per slot');
+    assert.ok(row.querySelector('[class="cp-alpha"]'), 'the blend strip, since a is a channel');
+  });
+});
+
+test('equip slots seeds each picker from the stored slot colour and does NOT write', () => {
+  // Six pickers built at construction must not, between them, rewrite the cell — the same rule
+  // that keeps a malformed row openable.
+  const raw = '1,164,51,31,128,2,*,3,*,4,*,5,*,6,*';
+  const node = Composites.control(EQUIP, byName(EQUIP.columns), { equipped_items: raw }, ctx());
+  assert.equal(named(node, 'equipped_items').value, raw, 'written back verbatim');
+  assert.equal(swatchOf(slotRows(node)[0]).getAttribute('data-color'), '#a4331f');
+  assert.equal(swatchOf(slotRows(node)[1]).getAttribute('data-color'), '#000000');
+});
+
+test('equip slots writes the five-token form when a slot colour changes', () => {
+  const node = Composites.control(EQUIP, byName(EQUIP.columns),
+    { equipped_items: TINTABLE }, ctx());
+  const chest = slotRows(node)[0];
+  setBlend(chest, 128);
+  setColour(chest, '#a4331f');
+  assert.equal(named(node, 'equipped_items').value, '12,164,51,31,128,2,*,3,*,4,*,5,*,6,*');
+});
+
+test('equip slots leaves the other five slots alone when one is tinted', () => {
+  const node = Composites.control(EQUIP, byName(EQUIP.columns),
+    { equipped_items: TINTABLE }, ctx());
+  setBlend(slotRows(node)[4], 200);
+  setColour(slotRows(node)[4], '#00ff00');
+  assert.equal(named(node, 'equipped_items').value, '12,*,2,*,3,*,4,*,5,0,255,0,200,6,*');
+});
+
+test('equip slots discards the colour when the blend drops to 0, and says so', () => {
+  // Equipped.format collapses a zero-alpha slot to the compact form, so a parked colour behind
+  // a zero blend is genuinely gone. The row has to say that while the swatch still shows it.
+  const node = Composites.control(EQUIP, byName(EQUIP.columns),
+    { equipped_items: TINTABLE }, ctx());
+  const chest = slotRows(node)[0];
+  setBlend(chest, 128);
+  setColour(chest, '#a4331f');
+  assert.equal(statusOf(chest).textContent, '');
+
+  setBlend(chest, 0);
+  assert.equal(named(node, 'equipped_items').value, '12,*,2,*,3,*,4,*,5,*,6,*');
+  assert.match(statusOf(chest).textContent, /colour not stored while blend is 0/);
+
+  setBlend(chest, 5);
+  assert.equal(named(node, 'equipped_items').value, '12,164,51,31,5,2,*,3,*,4,*,5,*,6,*');
+  assert.equal(statusOf(chest).textContent, '');
+});
+
+test('a graphic typo outranks the zero-blend note on the same row', () => {
+  // The typo is the blocking condition; burying it under an informational note would hide the
+  // reason the cell has stopped updating.
+  const node = Composites.control(EQUIP, byName(EQUIP.columns),
+    { equipped_items: TINTABLE }, ctx());
+  const chest = slotRows(node)[0];
+  setBlend(chest, 0);
+  assert.match(statusOf(chest).textContent, /blend is 0/);
+
+  const input = chest.querySelector('[class="slot-graphic"]');
+  input.value = 'abc';
+  fire(input, 'input');
+  assert.match(chest.querySelector('[class="status bad"]').textContent, /whole number/);
+
+  input.value = '12';
+  fire(input, 'input');
+  assert.match(statusOf(chest).textContent, /blend is 0/, 'the note comes back');
+});
+
+test('equip slots notifies its wrapper hook on a colour change too', () => {
+  const node = Composites.control(EQUIP, byName(EQUIP.columns),
+    { equipped_items: TINTABLE }, ctx());
+  let calls = 0;
+  node.__onChange = () => { calls++; };
+  setBlend(slotRows(node)[0], 90);
+  assert.equal(calls, 1);
+});
+
+test('equip slots repaints the slot preview with the new tint', () => {
+  // Sprites.draw takes the offscreen (three-argument drawImage) path only when a blend factor
+  // is present, so the argument count is the proof the tint reached it.
+  const bundles = { parts: { rects: { 'Chest:12:idle-no-equip-down': [0, 0, 2, 2] } } };
+  const node = Composites.control(EQUIP, byName(EQUIP.columns),
+    { equipped_items: TINTABLE }, ctx({ bundles, images: { parts: { fake: true } } }));
+  const chest = slotRows(node)[0];
+  const calls = () => chest.querySelector('[class="preview"]').getContext('2d').calls
+    .filter((c) => c[0] === 'drawImage');
+
+  assert.equal(calls().length, 1);
+  assert.equal(calls()[0].length, 10, 'untinted: the bundle is blitted directly');
+
+  setBlend(chest, 128);
+  const after = calls();
+  assert.equal(after.length, 2, 'the colour change redrew the preview');
+  assert.equal(after[1].length, 4, 'expected the offscreen (tinted) blit');
+});
+
+test('equip slots anchors the slot pickers to the right of their track', () => {
+  // The swatch sits in a 28px track mid-row; a left-anchored 182px popover would hang off the
+  // edge of the sidebar.
+  const node = Composites.control(EQUIP, byName(EQUIP.columns),
+    { equipped_items: TINTABLE }, ctx());
+  slotRows(node).forEach((row) => {
+    assert.equal(row.querySelector('[class="colorpicker"]').getAttribute('data-align'), 'right');
+  });
+});
+
 // --- control dispatch -----------------------------------------------------------------------
 
 test('control routes Graphic to the picker, in the schema column order', () => {

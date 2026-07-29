@@ -332,7 +332,8 @@ var Composites = (function () {
     return wrap;
   }
 
-  // EquipSlots: six labelled graphic fields with previews, over the equipped_items token stream.
+  // EquipSlots: six labelled rows over the equipped_items token stream — a graphic field, a
+  // colour picker for the slot's tint, and a preview of the two together.
   function equipSlotsControl(comp, values, ctx) {
     var column = comp.columns[0];
     var wrap = Forms.el('div', { class: 'equip' });
@@ -389,6 +390,26 @@ var Composites = (function () {
                                         class: 'preview' });
       var status = Forms.el('span', { class: 'status' });
 
+      // Whether this slot's blend is sitting at 0 having been MOVED there. Not read from the
+      // stored value: every untinted slot arrives as `id,*` with a === 0, and six rows warning
+      // about a colour nobody chose is noise.
+      var discarding = false;
+
+      // One writer for the row's status line, because two conditions share it. The typo wins:
+      // it is the one that has frozen the cell, and burying it under an informational note
+      // would hide the reason the field has stopped saving.
+      function showStatus() {
+        if (bad[index]) {
+          status.textContent = 'graphic must be a whole number';
+          status.className = 'status bad';
+          return;
+        }
+        // Plain .status, not .bad — a blend of 0 is a legal value, and the note describes what
+        // it does rather than refusing it.
+        status.textContent = discarding ? 'colour not stored while blend is 0' : '';
+        status.className = 'status';
+      }
+
       function redraw() {
         // Scaled context, so the maths below stays in logical pixels; only the backing store
         // knows about SLOT_SCALE. Sprites.scaled owns the rest of that bargain.
@@ -412,25 +433,51 @@ var Composites = (function () {
         var text = str(input.value).trim();
         if (text !== '' && !WHOLE.test(text)) {
           bad[index] = true;
-          status.textContent = 'graphic must be a whole number';
-          status.className = 'status bad';
+          showStatus();
           // Through sync() rather than returning outright, so __frozen is raised the moment the
           // typo appears — not on the next good edit, by which time a save has already happened.
           sync();
           return;
         }
         delete bad[index];
-        status.textContent = '';
-        status.className = 'status';
+        showStatus();
         slots[index].graphic = num(text);
         sync();
         redraw();
+      });
+
+      // The colour half of the slot. There is no freeze gate here and does not need to be: the
+      // picker reports whole bytes or nothing, so a colour cannot be typo'd the way a graphic
+      // field can. app.js's unfaithful-row gate still covers the whole cell, colour included.
+      //
+      // `tinted` tracks the blend, which is what keeps Equipped.format honest: it collapses a
+      // zero-alpha slot to `id,*`, so pulling the blend to 0 genuinely DISCARDS the colour. The
+      // status line says so at the moment it happens rather than leaving a designer to find the
+      // colour gone tomorrow.
+      var picker = ColorPicker.control({
+        r: slots[index].r, g: slots[index].g, b: slots[index].b, a: slots[index].a,
+        withAlpha: true,
+        // The swatch sits in a 28px track partway along the row, so a popover anchored to its
+        // left edge would hang off the side of the sidebar.
+        align: 'right',
+        onChange: function (colour) {
+          slots[index].r = colour.r;
+          slots[index].g = colour.g;
+          slots[index].b = colour.b;
+          slots[index].a = colour.a;
+          slots[index].tinted = colour.a > 0;
+          discarding = !slots[index].tinted;
+          showStatus();
+          sync();
+          redraw();
+        },
       });
 
       redraw();
       if (ctx && typeof ctx.onImagesReady === 'function') ctx.onImagesReady(redraw);
 
       row.appendChild(input);
+      row.appendChild(picker.node);
       row.appendChild(canvas);
       row.appendChild(status);
       wrap.appendChild(row);

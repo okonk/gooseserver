@@ -123,7 +123,9 @@
   .graphic, .bitmask, .idlist, .rgba, .equip { display: block; }
   /* Same story as #previews canvas: the 128px icon preview and the 80px slot preview shrink to
      fit a ~300px sidebar rather than pushing the form wider than the column. */
-  .graphic canvas, .equip canvas { vertical-align: middle; max-width: 100%; height: auto;
+     .equip is scoped to .preview rather than to `canvas`: an .equip-slot now also holds a
+     ColorPicker, whose three canvases are fixed-size gradients that must not be rubber-banded. */
+  .graphic canvas, .equip .preview { vertical-align: middle; max-width: 100%; height: auto;
     box-sizing: border-box; }
   .unsupported { border: 1px dashed #b00; padding: 4px; }
 
@@ -133,7 +135,8 @@
   /* The preview track holds the 80px-wide slot canvas (40 logical at 2x) with room to spare. It
      has to be stated: a canvas is a replaced element, so in grid its min-width is auto — a track
      narrower than the canvas does not clip, it blows out and eats the 1fr graphic column. */
-  .equip-slot { display: grid; grid-template-columns: 60px 1fr 84px auto; gap: 4px;
+     The 28px track is the colour swatch: label, graphic, swatch, preview, status. */
+  .equip-slot { display: grid; grid-template-columns: 60px 1fr 28px 84px auto; gap: 4px;
                 align-items: center; }
   .check { display: block; font-size: 11px; }
   .check input { width: auto; margin-right: 4px; }

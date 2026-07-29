@@ -939,6 +939,31 @@ test('EDITING a malformed equipped_items is refused, and says what is stored', (
   assert.match(h.status(), /Stored value: 4,\*,0,\*/);
 });
 
+test('setting a slot COLOUR on a malformed equipped_items is refused too', () => {
+  // Gate 2 is about the whole cell, not about the graphic fields: a colour edit reformats all
+  // six slots from the same best guess a graphic edit would.
+  const raw = '4,*,0,*';
+  const h = boot({ NPCs: [NPC(1, 'Rat', { equipped_items: raw })] });
+  h.get('sheet-picker').value = 'NPCs';
+  fire(h.get('sheet-picker'), 'change');
+  h.settle();
+  fire(h.get('records').children[0], 'click');
+  h.settle();
+
+  const row = h.get('form').querySelectorAll('[class="equip-slot"]')[0];
+  fire(row.querySelector('[class="swatch"]'), 'click');
+  const strip = row.querySelector('[class="cp-alpha"]');
+  strip.rect = { left: 0, top: 0, width: 14, height: 255 };
+  fire(strip, 'mousedown', { clientX: 0, clientY: 127 });
+
+  fire(h.get('save'), 'click');
+  h.settle();
+
+  assert.equal(h.writes.length, 0);
+  assert.match(h.status(), /malformed/);
+  assert.match(h.status(), /Stored value: 4,\*,0,\*/);
+});
+
 test('a WELL-FORMED equipped_items may be edited freely', () => {
   const raw = '4,*,0,*,0,*,0,*,0,*,0,*';
   assert.equal(Equipped.isFaithful(raw), true);
