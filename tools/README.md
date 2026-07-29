@@ -139,7 +139,11 @@ there is resolved by regenerating the bundles, never by hand-editing them.
 Apps Script sources live in `tools/DataEditor/`. Pure logic is under `src/` as plain `.js` so it
 can be unit-tested:
 
-    node --test tools/DataEditor/test
+    node --test "tools/DataEditor/test/*.test.js"
+
+Pass the glob, not the bare directory. With no `package.json` anywhere above it, Node reads a
+positional directory as a module entrypoint and fails with `MODULE_NOT_FOUND` rather than
+recursing into it.
 
 Apps Script has no `.js` file type, so build wraps each module into `dist/*.html`, alongside copies
 of `schema.js` and the sprite bundles:
