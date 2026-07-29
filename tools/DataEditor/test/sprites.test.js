@@ -26,7 +26,7 @@ const real = (() => {
 // assertion that only holds because the real atlas happens not to contain the key.
 const bundles = {
   icons: { width: 64, height: 64, png: 'data:image/png;base64,AAA', rects: { '20107:810003': [96, 0, 32, 32], '0:810003': [1, 1, 1, 1], '20107:0': [2, 2, 2, 2], '0:0': [3, 3, 3, 3] } },
-  parts: { width: 64, height: 64, png: 'data:image/png;base64,AAA', rects: { 'Bodies:1:idle-down': [0, 48, 24, 48], 'Bodies:0:idle-down': [4, 4, 4, 4] } },
+  parts: { width: 64, height: 64, png: 'data:image/png;base64,AAA', rects: { 'Bodies:1:idle-down': [0, 48, 24, 48], 'Bodies:0:idle-down': [4, 4, 4, 4], 'Bodies:2:mounted-idle-down': [8, 8, 24, 48], 'Bodies:0:mounted-idle-down': [6, 6, 6, 6] } },
   effects: { width: 64, height: 64, png: 'data:image/png;base64,AAA', rects: { '1080:0': [0, 0, 16, 16], '1080:1': [16, 0, 16, 16], '0:0': [5, 5, 5, 5] } },
 };
 
@@ -319,4 +319,44 @@ test('a tinted draw sizes the offscreen canvas to the rect and blits the tinted 
   assert.deepEqual(offscreen.ctx.calls[2], ['putImageData', [0, 0, 0, 255, 0, 0, 0, 0]]);
   // ...and the offscreen canvas, already the right size, goes down at dx/dy.
   assert.deepEqual(ctx.calls, [['drawImage', offscreen, 5, 6]]);
+});
+
+// --- mount ---------------------------------------------------------------------------------
+
+test('mount looks up the mounted-idle-down clip', () => {
+  assert.deepEqual(Sprites.mount(bundles, 2), [8, 8, 24, 48]);
+});
+
+test('mount does not fall back to a standing clip', () => {
+  // Bodies:1 has every idle clip and no mounted one. Substituting idle would draw a standing
+  // body where the mount should be.
+  assert.equal(Sprites.mount(bundles, 1), null);
+});
+
+test('mount treats 0, a negative id and junk as no mount', () => {
+  assert.equal(Sprites.mount(bundles, 0), null);
+  assert.equal(Sprites.mount(bundles, '0'), null);
+  assert.equal(Sprites.mount(bundles, -2), null);
+  assert.equal(Sprites.mount(bundles, 'abc'), null);
+});
+
+test('mount coerces string cells', () => {
+  assert.deepEqual(Sprites.mount(bundles, '2'), [8, 8, 24, 48]);
+  assert.deepEqual(Sprites.mount(bundles, '02'), [8, 8, 24, 48]);
+  assert.deepEqual(Sprites.mount(bundles, ' 2'), [8, 8, 24, 48]);
+});
+
+test('mount survives an absent parts bundle', () => {
+  assert.equal(Sprites.mount({}, 2), null);
+});
+
+test('mount resolves against the real bundle', () => {
+  // Exactly four Bodies ids ship a mounted-idle-down clip; 1 is one of them and 10101 is not.
+  assert.deepEqual(Sprites.mount(real, 1), real.parts.rects['Bodies:1:mounted-idle-down']);
+  assert.equal(Sprites.mount(real, 10101), null);
+
+  const mounts = Object.keys(real.parts.rects)
+    .filter((k) => k.startsWith('Bodies:') && k.endsWith(':mounted-idle-down'));
+  assert.equal(mounts.length, 4, 'bundle changed: expected four mountable bodies');
+  for (const key of mounts) assert.deepEqual(Sprites.mount(real, key.split(':')[1]), real.parts.rects[key]);
 });

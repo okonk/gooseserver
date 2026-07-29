@@ -2,10 +2,17 @@
 // key schemes are minted in tools/SpriteBundle/Bundles.cs and are the contract with this file:
 // icons "<sheet>:<graphic>", parts "<category>:<id>:<clip>", effects "<id>:<frameIndex>".
 //
-// The committed bundles only carry the four down-facing resting clips (idle-down,
-// idle-no-equip-down, idle-equip-down, mounted-idle-down), which is exactly what a static
-// south-facing preview needs. Nothing here has a direction or motion parameter because there is
-// no other art to select; adding a facing control means regenerating the bundle first.
+// WHAT THE BUNDLE CONSTRAINS. The committed bundles carry ONLY the four down-facing resting
+// clips: idle-down, idle-no-equip-down, idle-equip-down and mounted-idle-down. That is exactly
+// what a static south-facing preview needs, and it fixes two signatures here:
+//
+//   * No function takes a direction or a motion. There is no walk, attack, cast or non-down art
+//     in the bundle to select, so a facing or animation control means REGENERATING THE BUNDLE
+//     (tools/SpriteBundle, via its PartClips config) before it means changing this file.
+//   * part() takes a BOOLEAN `equipped`, not the client's bodyState. bodyState's 4/5/6/7 weapon
+//     variants only ever distinguish attack clips (AnimationNames.AttackVariant), and there are
+//     no attack clips here — so the only thing the resting pose can use is armed vs unarmed.
+//     Callers compute it as `bodyState !== 3`; this file has no reason to know that encoding.
 var Sprites = (function () {
   // Every id here can arrive as a spreadsheet cell, i.e. a STRING, and the key is built by
   // concatenation — so '01', ' 1' and 1 must all resolve to the same sprite instead of missing.
@@ -58,6 +65,26 @@ var Sprites = (function () {
     // deliberately NOT a fallback: the one Chest id that has only a mounted sheet would
     // otherwise draw a mounted pose on a standing character.
     return null;
+  }
+
+  // The mounted resting pose for a body id. Mounts are just bodies (Appearance.CATEGORY maps
+  // Mount -> Bodies), and only four of the 305 body ids ship a mounted-idle-down clip.
+  //
+  // NOTHING IN THIS EDITOR'S DATA CURRENTLY PRODUCES A MOUNT: appearance.js's closing note
+  // explains why — the client reserves equipped slot 6 for one, but ParseEquippedItems only
+  // fills slots 0-5 and the NPCs sheet has no mount column, so Appearance.layers never emits a
+  // Mount layer. This is here because the mount is still a fact about the client and the
+  // preview's mount branch calls it; it is deliberate, not forgotten.
+  //
+  // Never falls back to a standing clip: substituting idle-down would draw a body on foot in
+  // the place the mount belongs.
+  function mount(bundles, id) {
+    var n = num(id);
+    if (n <= 0) return null;
+
+    var b = bundles.parts;
+    if (!b) return null;
+    return b.rects['Bodies:' + n + ':mounted-idle-down'] || null;
   }
 
   // Frames of an effect animation, in order. Each effect is a single clip whose frames are
@@ -139,7 +166,7 @@ var Sprites = (function () {
   }
 
   return {
-    icon: icon, part: part, effectFrames: effectFrames,
+    icon: icon, part: part, mount: mount, effectFrames: effectFrames,
     applyTint: applyTint, tintPixels: tintPixels, draw: draw, clipCandidates: clipCandidates,
   };
 })();
