@@ -64,10 +64,29 @@
 //   * fire() refuses an event type whose bubbles/cancelable flags are not in EVENT_FLAGS.
 //   * stopImmediatePropagation does not exist.
 //
-// And two that are simply absent: there are NO DEFAULT ACTIONS — a click does not focus,
-// submit, or toggle anything, so anything relying on one has to be driven explicitly — and
-// `document` is { createElement } alone, so Task 11's document.getElementById and
-// document.addEventListener will throw until someone gives this fake a document tree.
+// And one that is simply absent: there are NO DEFAULT ACTIONS — a click does not focus, submit,
+// or toggle anything, so anything relying on one has to be driven explicitly.
+//
+// ADDED FOR TASK 11 (app shell), because app.js drives the page rather than one control:
+//
+//   * A DOCUMENT TREE. `document` is now a node in its own right — an element of tag #document
+//     that carries createElement, appendChild, the event model and getElementById, plus a `body`
+//     child, so App.init's five getElementById lookups and document-level listeners work. It is
+//     a real node rather than an object with a lookup table so that a detached element genuinely
+//     is NOT findable: getElementById walks the tree, exactly as a browser does, which is what
+//     makes "the previous form's canvas is gone" observable.
+//   * `id` REFLECTED onto the content attribute, both ways, like className and hidden.
+//   * installFakeImage(): the async decode of a sprite bundle. Assigning `.src` queues the load
+//     rather than firing it; the controller's load()/fail() drain the queue, so a test decides
+//     when parts arrives relative to icons. That ordering is the whole point — it is what made
+//     the shared image-callback queue testable.
+//   * installGoogleScriptRun(server): the Apps Script client stub, modelled on the real
+//     contract. withSuccessHandler/withFailureHandler return A NEW RUNNER carrying the handler
+//     (they do NOT mutate google.script.run, which would leak handlers between calls), calling a
+//     server function returns undefined and is ASYNCHRONOUS, the success handler receives the
+//     server's return value, and the failure handler receives the thrown Error. Calls queue;
+//     flush() drains them, including calls made from inside a handler, so a whole cascade
+//     resolves deterministically with no timers.
 
 class FakeNode {
   constructor(tag) {
@@ -128,6 +147,21 @@ class FakeNode {
   set hidden(value) {
     if (value) this.setAttribute('hidden', '');
     else this.removeAttribute('hidden');
+  }
+
+  get id() {
+    return this.getAttribute('id') || '';
+  }
+
+  set id(value) {
+    this.setAttribute('id', String(value));
+  }
+
+  // Walks the tree, as a browser does — an element removed from the document is not findable,
+  // and the FIRST match in tree order wins when a page has a duplicate id.
+  getElementById(id) {
+    const want = String(id);
+    return this._descendants().find((n) => n.getAttribute('id') === want) || null;
   }
 
   get className() {
@@ -406,8 +440,117 @@ export function fire(node, type) {
 }
 
 export function installFakeDom() {
-  globalThis.document = { createElement: (tag) => new FakeNode(tag) };
-  return globalThis.document;
+  const doc = new FakeNode('#document');
+  doc.createElement = (tag) => new FakeNode(tag);
+  doc.body = doc.appendChild(new FakeNode('body'));
+  globalThis.document = doc;
+  return doc;
+}
+
+// An <img> whose decode is under the test's control. `new Image()` gives a node with the usual
+// onload/onerror properties; assigning .src ENQUEUES the load instead of performing it, so a
+// test can land `icons` before `parts` (or never land one at all) and see what the module does.
+export function installFakeImage() {
+  const pending = [];
+
+  class FakeImage {
+    constructor() {
+      this.onload = null;
+      this.onerror = null;
+      this._src = '';
+    }
+
+    get src() { return this._src; }
+
+    set src(value) {
+      this._src = String(value);
+      pending.push(this);
+    }
+  }
+
+  globalThis.Image = FakeImage;
+
+  return {
+    pending,
+    // Decodes everything queued so far, oldest first. Handlers that queue more images do NOT
+    // run in this pass — call again — which keeps each step of a cascade separately observable.
+    load() {
+      const batch = pending.splice(0, pending.length);
+      batch.forEach((img) => { if (img.onload) img.onload(); });
+      return batch.length;
+    },
+    fail() {
+      const batch = pending.splice(0, pending.length);
+      batch.forEach((img) => { if (img.onerror) img.onerror(); });
+      return batch.length;
+    },
+  };
+}
+
+// google.script.run, modelled on its real contract rather than on what is convenient:
+//
+//   * withSuccessHandler / withFailureHandler return a runner FOR CHAINING and do not mutate the
+//     one they were called on. (In Apps Script the returned object is a new runner; a stub that
+//     mutated a single shared object would let one call's handler fire for the next call.)
+//   * a server call returns undefined and completes ASYNCHRONOUSLY.
+//   * the success handler receives the server function's return value; the failure handler
+//     receives the Error it threw.
+//   * a call with no handler is legal and its result is dropped.
+//
+// `server` maps function name -> implementation. Calls are recorded in `calls` before they run,
+// so a test can assert on the ARGUMENTS even for a function that throws.
+export function installGoogleScriptRun(server) {
+  const queue = [];
+  const calls = [];
+
+  function makeRunner(onSuccess, onFailure) {
+    const runner = {
+      withSuccessHandler: (fn) => makeRunner(fn, onFailure),
+      withFailureHandler: (fn) => makeRunner(onSuccess, fn),
+    };
+
+    Object.keys(server).forEach((name) => {
+      runner[name] = (...args) => {
+        calls.push({ name, args });
+        queue.push(() => {
+          let value;
+          try {
+            value = server[name](...args);
+          } catch (error) {
+            if (onFailure) onFailure(error);
+            return;
+          }
+          if (onSuccess) onSuccess(value);
+        });
+        return undefined;
+      };
+    });
+
+    return runner;
+  }
+
+  globalThis.google = { script: { run: makeRunner(null, null) } };
+
+  return {
+    calls,
+    queue,
+    // Drains until nothing is left, so a handler that issues the next call is followed through.
+    // The cap turns a cycle into a failed test rather than a hung one.
+    flush(limit = 500) {
+      let ran = 0;
+      while (queue.length) {
+        if (++ran > limit) throw new Error('google.script.run stub: too many chained calls');
+        queue.shift()();
+      }
+      return ran;
+    },
+    // One step, for asserting on intermediate state.
+    step() {
+      if (!queue.length) return false;
+      queue.shift()();
+      return true;
+    },
+  };
 }
 
 export function createElement(tag) {

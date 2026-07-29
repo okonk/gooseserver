@@ -1,0 +1,87 @@
+<!-- Assembled by build.mjs; modules are inlined because Apps Script has no .js file type. -->
+<style>
+  body { font: 13px/1.5 -apple-system, system-ui, sans-serif; margin: 0; color: #222; }
+  header { display: flex; gap: 8px; align-items: center; padding: 8px;
+           border-bottom: 1px solid #ddd; position: sticky; top: 0; background: #fff; }
+  main { display: grid; grid-template-columns: 200px 1fr 220px; gap: 12px; padding: 12px; }
+  #records { display: flex; flex-direction: column; gap: 2px; max-height: 80vh; overflow: auto; }
+  .record { text-align: left; padding: 4px 6px; border: 1px solid #eee; background: #fafafa;
+            cursor: pointer; }
+  section { border: 1px solid #eee; padding: 8px; margin-bottom: 10px; }
+  section h3 { margin: 0 0 6px; font-size: 12px; text-transform: uppercase; color: #666; }
+  .field { display: grid; grid-template-columns: 160px 1fr; gap: 6px; align-items: center;
+           margin-bottom: 4px; }
+  .field label { color: #444; font-family: ui-monospace, monospace; font-size: 11px; }
+  input, select { padding: 3px 5px; border: 1px solid #ccc; width: 100%; box-sizing: border-box; }
+  .error { color: #b00; font-size: 11px; grid-column: 2; }
+  .warn { background: #fff6d8; border: 1px solid #e8cf7a; padding: 6px; margin-bottom: 10px; }
+  .ok { color: #060; }
+  .problem { font-size: 11px; border-bottom: 1px solid #eee; padding: 2px 0; }
+  canvas.preview, canvas.appearance, canvas.effect { image-rendering: pixelated;
+    border: 1px solid #eee; background: repeating-conic-gradient(#f4f4f4 0% 25%, #fff 0% 50%)
+    50% / 12px 12px; }
+  .picker { position: relative; }
+  .results { position: absolute; z-index: 10; background: #fff; border: 1px solid #ccc;
+             max-height: 200px; overflow: auto; width: 100%; }
+  .result { display: block; width: 100%; text-align: left; border: 0; background: none;
+            padding: 3px 6px; cursor: pointer; }
+  .resolved { font-size: 11px; color: #555; }
+  .resolved.bad { color: #b00; }
+  .status.bad { color: #b00; }
+  .chip { display: inline-flex; gap: 4px; background: #eef; border: 1px solid #ccd;
+          padding: 1px 4px; margin: 1px; }
+  .equip-slot { display: grid; grid-template-columns: 60px 1fr 44px; gap: 4px;
+                align-items: center; }
+  .check { display: block; font-size: 11px; }
+  @media (prefers-color-scheme: dark) {
+    body { background: #1c1c1c; color: #eee; }
+    header, section, .record, .results { background: #242424; border-color: #3a3a3a; }
+    input, select { background: #2c2c2c; color: #eee; border-color: #444; }
+  }
+</style>
+
+<header>
+  <select id="sheet-picker"></select>
+  <button type="button" id="new-record">New</button>
+  <button type="button" id="save">Save</button>
+  <button type="button" id="publish-check">Check all sheets</button>
+  <span id="status"></span>
+</header>
+
+<main>
+  <div id="records"></div>
+  <div id="form"></div>
+  <div>
+    <div id="previews"></div>
+    <div id="publish-results"></div>
+  </div>
+</main>
+
+<!--
+  Include order. Every module is an IIFE that resolves the others as FREE GLOBALS at CALL time,
+  so strictly only the data files have to come first — but the order below is the real dependency
+  graph anyway, which is the order to keep it in:
+    appearance -> Equipped
+    composites -> Forms, Pickers, Sprites, Equipped, Appearance
+    forms      -> Layout, Composites, Pickers
+    preview    -> Appearance, Sprites
+    app        -> everything
+  All ten src/ modules are listed. build.mjs emits one dist/<name>.html per src/*.js, so a module
+  added there and not added here is simply never on the page.
+-->
+<?!= include('schema'); ?>
+<?!= include('sprites-icons'); ?>
+<?!= include('sprites-parts'); ?>
+<?!= include('sprites-effects'); ?>
+<?!= include('validation'); ?>
+<?!= include('equipped'); ?>
+<?!= include('appearance'); ?>
+<?!= include('sprites'); ?>
+<?!= include('layout'); ?>
+<?!= include('pickers'); ?>
+<?!= include('composites'); ?>
+<?!= include('forms'); ?>
+<?!= include('preview'); ?>
+<?!= include('app'); ?>
+
+<script>App.init();</script>
