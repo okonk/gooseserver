@@ -986,6 +986,9 @@ test('picker replies that land after a sheet switch do not render the old sheet'
   // schema, one click away from a cross-sheet write.
   h.run.step();
   h.run.step();
+  // THIS assertion is the one that kills the done() guard mutant, and it carries the test alone.
+  // Do not "tidy" it away: the children check below is vacuous now that openSheet clears the
+  // list — both the guarded and unguarded paths leave it at 0.
   assert.equal(h.status(), 'Loading Items…', 'the abandoned load did not report on Items');
   assert.equal(h.get('records').children.length, 0);
 
