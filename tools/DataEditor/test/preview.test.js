@@ -135,7 +135,9 @@ test('the canvas is cleared before anything is drawn', () => {
   const calls = node.getContext('2d').calls;
   // The transform comes first — it decides what the clearRect's logical size means.
   assert.deepEqual(calls[0], ['setTransform', 1, 0, 0, 1, 0, 0]);
-  assert.deepEqual(calls[1], ['clearRect', 0, 0, Preview.CANVAS_W, Preview.CANVAS_H]);
+  assert.deepEqual(calls[2], ['clearRect', 0, 0, Preview.CANVAS_W, Preview.CANVAS_H]);
+  // …and before any drawing. Sprites.scaled puts imageSmoothingEnabled between the two.
+  assert.equal(calls.findIndex((c) => c[0] === 'drawImage'), 3);
 });
 
 test('the tint travels with the layer', () => {
@@ -250,13 +252,13 @@ test('the returned stop function really stops the timer', () => {
 
 test('an effect with no frames clears the canvas and starts no timer', () => {
   withFakeTimers(({ timers }) => {
-    const node = canvas(96, 96);
+    const node = canvas(Preview.EFFECT_SIZE, Preview.EFFECT_SIZE);
     const stop = Preview.effect(node, 999, effectsCtx);
     assert.equal(timers.size, 0);
     assert.deepEqual(node.getContext('2d').calls, [
       ['setTransform', 1, 0, 0, 1, 0, 0],
       ['imageSmoothingEnabled', false],
-      ['clearRect', 0, 0, 96, 96],
+      ['clearRect', 0, 0, Preview.EFFECT_SIZE, Preview.EFFECT_SIZE],
     ]);
     assert.equal(typeof stop, 'function');
     stop();   // must be safe to call
@@ -296,14 +298,14 @@ test('character scales the CONTEXT and leaves the destinations alone', () => {
 
   const calls = big.getContext('2d').calls;
   assert.deepEqual(calls[0], ['setTransform', 4, 0, 0, 4, 0, 0]);
-  assert.deepEqual(calls[1], ['clearRect', 0, 0, Preview.CANVAS_W, Preview.CANVAS_H]);
+  assert.deepEqual(calls[2], ['clearRect', 0, 0, Preview.CANVAS_W, Preview.CANVAS_H]);
   assert.deepEqual(drawCalls(big), drawCalls(plain));
   assert.equal(big.getContext('2d').imageSmoothingEnabled, false);
 });
 
 test('effect scales the CONTEXT and leaves the destinations alone', () => {
   withFakeTimers(() => {
-    const plain = canvas(96, 96);
+    const plain = canvas(Preview.EFFECT_SIZE, Preview.EFFECT_SIZE);
     Preview.effect(plain, 4, effectsCtx)();
 
     const big = canvas(Preview.EFFECT_SIZE * 2, Preview.EFFECT_SIZE * 2);

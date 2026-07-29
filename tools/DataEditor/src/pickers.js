@@ -10,7 +10,12 @@ var Pickers = (function () {
   var LIMIT = 50;
 
   // The icon preview's logical box, and the factor the canvas backing store is scaled by so it
-  // is legible on screen. See graphicControl for why the box is 64.
+  // is legible on screen — 64 at 2x, so 128 CSS pixels of canvas.
+  //
+  // THE BOX IS 64 because the median icon is 32x32 but the bundle holds sprites up to 128x128,
+  // and the previous 48 clipped them; 64 covers the common large sizes. Anything bigger is still
+  // clipped — a bundle fact, not a regression, and preferable to a 128 box leaving every 32px
+  // icon adrift in whitespace.
   var ICON_BOX = 64;
   var ICON_SCALE = 2;
 
@@ -344,10 +349,7 @@ var Pickers = (function () {
   // all and does it silently, so the order is asserted in the tests.
   function graphicControl(graphicColumn, fileColumn, values, ctx) {
     var wrap = Forms.el('div', { class: 'graphic' });
-    // A 64-pixel logical box drawn at 2x, so 128 CSS pixels of canvas. The box grew from 48
-    // because the median icon is 32x32 but the bundle holds sprites up to 128x128 and 48 clipped
-    // them; 64 covers the common large sizes. Anything bigger is still clipped — a bundle fact,
-    // not a regression, and preferable to a 128 box leaving every 32px icon adrift in whitespace.
+    // A 64-pixel logical box drawn at 2x — see ICON_BOX for why 64.
     var canvas = Forms.el('canvas',
       { width: ICON_BOX * ICON_SCALE, height: ICON_BOX * ICON_SCALE, class: 'preview' });
 
@@ -427,13 +429,9 @@ var Pickers = (function () {
       // truthiness check on a property most nodes do not have at all.
       wrap.__graphicError = state.block ? (graphicColumn.name + ': ' + state.text) : null;
 
-      var target = canvas.getContext('2d');
-      // The context is scaled, so everything below is in logical pixels: only the backing store
-      // knows about ICON_SCALE. imageSmoothingEnabled off because a scaled context resamples by
-      // default and a blurry 2x sprite is worse than a small sharp one.
-      target.setTransform(ICON_SCALE, 0, 0, ICON_SCALE, 0, 0);
-      target.imageSmoothingEnabled = false;
-      target.clearRect(0, 0, ICON_BOX, ICON_BOX);
+      // Scaled context, so everything below is in logical pixels: only the backing store knows
+      // about ICON_SCALE. Sprites.scaled owns the rest of that bargain.
+      var target = Sprites.scaled(canvas, ICON_SCALE, ICON_BOX, ICON_BOX);
       // Load-bearing, not defensive: Sprites.draw would ignore a null rect happily, but the
       // centring below reads rect[2] first and would throw before ever reaching it.
       if (!rect) return;

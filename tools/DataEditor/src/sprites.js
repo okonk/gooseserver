@@ -150,6 +150,35 @@ var Sprites = (function () {
     }
   }
 
+  // Prepares a canvas for a preview drawn at `scale` and hands back the context to draw on.
+  // Every preview in the editor is a small sprite blown up, so every one of them needs the same
+  // three things, and they are here rather than copied into each caller:
+  //
+  //   * The BACKING STORE is sized from the logical box and the scale, so the two cannot drift.
+  //     A canvas sized at 4x whose context is scaled 1x is a small sprite adrift in a big box,
+  //     and nothing about the drawing itself would look wrong.
+  //   * The CONTEXT carries the scale, so every caller's anchoring and centring arithmetic stays
+  //     in logical pixels — the scale is a display concern and never enters the maths.
+  //   * SMOOTHING IS OFF. A scaled context resamples by default, and a blurry 2x sprite is worse
+  //     than a small sharp one. This is pixel art; it is meant to be seen as pixels.
+  //
+  // The clear is in logical units too, for the same reason: it follows the transform.
+  //
+  // Only resizes when the size is actually wrong. Assigning canvas.width resets the whole
+  // context — transform, smoothing and all — so doing it unconditionally would make a redraw on
+  // every keystroke throw away state this function is about to set anyway.
+  function scaled(canvas, scale, w, h) {
+    var s = scale || 1;
+    if (canvas.width !== w * s) canvas.width = w * s;
+    if (canvas.height !== h * s) canvas.height = h * s;
+
+    var c = canvas.getContext('2d');
+    c.setTransform(s, 0, 0, s, 0, 0);
+    c.imageSmoothingEnabled = false;
+    c.clearRect(0, 0, w, h);
+    return c;
+  }
+
   // Draws one rect from a bundle onto a canvas context, applying the tint per-pixel when needed.
   // Tinting requires pixel access, so it goes through an offscreen canvas.
   function draw(ctx, image, rect, dx, dy, tint) {
@@ -178,7 +207,8 @@ var Sprites = (function () {
 
   return {
     icon: icon, part: part, mount: mount, effectFrames: effectFrames,
-    applyTint: applyTint, tintPixels: tintPixels, draw: draw, clipCandidates: clipCandidates,
+    applyTint: applyTint, tintPixels: tintPixels, draw: draw, scaled: scaled,
+    clipCandidates: clipCandidates,
   };
 })();
 

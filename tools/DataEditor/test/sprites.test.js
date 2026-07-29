@@ -390,3 +390,66 @@ test('draw with no image yet is a no-op on both paths', () => {
   assert.deepEqual(ctx.calls, []);
   assert.equal(offscreen, null, 'no offscreen canvas should have been created');
 });
+
+// --- scaled ---------------------------------------------------------------------------------
+
+// A <canvas> stub with the four things scaled() touches. width/height are plain properties, so
+// the test can see both what it was told and what scaled() changed it to.
+function scalableCanvas(w, h) {
+  const calls = [];
+  const ctx = {
+    calls,
+    clearRect: (...args) => calls.push(['clearRect', ...args]),
+    setTransform: (...args) => calls.push(['setTransform', ...args]),
+    set imageSmoothingEnabled(v) { calls.push(['imageSmoothingEnabled', v]); },
+  };
+  return { width: w, height: h, getContext: () => ctx };
+}
+
+test('scaled sizes the backing store from the scale and prepares the context', () => {
+  // The point of the helper: the canvas dimensions and the transform cannot disagree, because
+  // one function computes both from the same scale.
+  const node = scalableCanvas(0, 0);
+  const c = Sprites.scaled(node, 4, 96, 112);
+
+  assert.equal(node.width, 384);
+  assert.equal(node.height, 448);
+  assert.deepEqual(c.calls, [
+    ['setTransform', 4, 0, 0, 4, 0, 0],
+    ['imageSmoothingEnabled', false],
+    // In LOGICAL units — it follows the transform, so clearing 96x112 clears the whole 384x448.
+    ['clearRect', 0, 0, 96, 112],
+  ]);
+});
+
+test('scaled corrects a canvas that was sized for a different scale', () => {
+  const node = scalableCanvas(96, 112);
+  Sprites.scaled(node, 2, 96, 112);
+  assert.equal(node.width, 192);
+  assert.equal(node.height, 224);
+});
+
+test('scaled leaves an already-correct size alone', () => {
+  // Assigning canvas.width resets the context in a real DOM, so a redraw on every keystroke
+  // must not touch it. The stub records assignments to prove it does not.
+  const node = scalableCanvas(0, 0);
+  const written = [];
+  Object.defineProperty(node, 'width', {
+    get: () => 128, set: (v) => written.push(['width', v]),
+  });
+  Object.defineProperty(node, 'height', {
+    get: () => 128, set: (v) => written.push(['height', v]),
+  });
+
+  Sprites.scaled(node, 2, 64, 64);
+  assert.deepEqual(written, []);
+});
+
+test('scaled treats a missing scale as 1x', () => {
+  // The unscaled callers (and every test that omits the argument) go through the same path.
+  const node = scalableCanvas(0, 0);
+  const c = Sprites.scaled(node, undefined, 40, 56);
+  assert.equal(node.width, 40);
+  assert.equal(node.height, 56);
+  assert.deepEqual(c.calls[0], ['setTransform', 1, 0, 0, 1, 0, 0]);
+});

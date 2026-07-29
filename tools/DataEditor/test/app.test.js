@@ -351,6 +351,7 @@ test('an NPC record draws a character preview', () => {
   const canvas = h.get('previews').children[0];
   assert.equal(canvas.tagName, 'CANVAS');
   assert.equal(canvas.width, Preview.CANVAS_W * Preview.CHARACTER_SCALE);
+  assert.equal(canvas.height, Preview.CANVAS_H * Preview.CHARACTER_SCALE);
   assert.equal(canvas.getContext('2d').calls.filter((c) => c[0] === 'drawImage').length, 1);
 });
 
@@ -525,6 +526,64 @@ test('a rejected equip-slot typo does NOT redraw the preview', () => {
   fire(slot, 'input');
 
   assert.equal(h.get('previews').children[0], before);
+});
+
+// The canvas size and the scale the context is given are two expressions that must agree: a
+// canvas sized at 4x whose context is scaled 1x is a small sprite adrift in a big box, and
+// nothing about the drawing itself looks wrong. Sprites.scaled now derives the size FROM the
+// scale, so they cannot disagree — these assert that from the outside, on the real app path.
+test('the character preview canvas is sized by the scale its context is given', () => {
+  const h = boot({ NPCs: [NPC(1, 'Rat')] });
+  h.get('sheet-picker').value = 'NPCs';
+  fire(h.get('sheet-picker'), 'change');
+  h.settle();
+  fire(h.get('records').children[0], 'click');
+  h.settle();
+
+  const canvas = h.get('previews').children[0];
+  const transform = canvas.getContext('2d').calls.find((c) => c[0] === 'setTransform');
+  const scale = transform[1];
+  assert.equal(scale, Preview.CHARACTER_SCALE);
+  assert.deepEqual(transform, ['setTransform', scale, 0, 0, scale, 0, 0]);
+  assert.equal(canvas.width, Preview.CANVAS_W * scale);
+  assert.equal(canvas.height, Preview.CANVAS_H * scale);
+});
+
+test('the effect preview canvas is sized by the scale its context is given', () => {
+  const realSet = globalThis.setInterval;
+  const realClear = globalThis.clearInterval;
+  globalThis.setInterval = () => 1;
+  globalThis.clearInterval = () => {};
+
+  try {
+    globalThis.GOOSE_SPRITES.effects.rects = { '4:0': [0, 0, 16, 16] };
+    const h = boot({
+      Spells: [rowFor('Spells', { spell_id: 1, spell_name: 'Fire', spell_target: 'Self',
+                                  spellbook_graphic: 1, spell_effect_id: 4 })],
+      'Spell Effects': [rowFor('Spell Effects', {
+        spell_effect_id: 4, spell_effect_name: 'Flame', effect_type: 'Instant',
+        spell_effected: 'Anyone',
+      })],
+    });
+
+    h.get('sheet-picker').value = 'Spells';
+    fire(h.get('sheet-picker'), 'change');
+    h.settle();
+    fire(h.get('records').children[0], 'click');
+    h.settle();
+
+    const canvas = h.get('previews').querySelector('[class="effect"]');
+    const transform = canvas.getContext('2d').calls.find((c) => c[0] === 'setTransform');
+    const scale = transform[1];
+    assert.equal(scale, Preview.EFFECT_SCALE);
+    assert.deepEqual(transform, ['setTransform', scale, 0, 0, scale, 0, 0]);
+    assert.equal(canvas.width, Preview.EFFECT_SIZE * scale);
+    assert.equal(canvas.height, Preview.EFFECT_SIZE * scale);
+  } finally {
+    globalThis.GOOSE_SPRITES.effects.rects = {};
+    globalThis.setInterval = realSet;
+    globalThis.clearInterval = realClear;
+  }
 });
 
 test('changing spell_effect_id restarts the effect animation live', () => {

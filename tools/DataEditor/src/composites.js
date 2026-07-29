@@ -417,13 +417,9 @@ var Composites = (function () {
       var status = Forms.el('span', { class: 'status' });
 
       function redraw() {
-        var target = canvas.getContext('2d');
-        // The context is scaled, so the maths below stays in logical pixels; only the backing
-        // store knows about SLOT_SCALE. Smoothing off: a scaled context resamples by default and
-        // a blurry 2x sprite is worse than a small sharp one.
-        target.setTransform(SLOT_SCALE, 0, 0, SLOT_SCALE, 0, 0);
-        target.imageSmoothingEnabled = false;
-        target.clearRect(0, 0, SLOT_W, SLOT_H);
+        // Scaled context, so the maths below stays in logical pixels; only the backing store
+        // knows about SLOT_SCALE. Sprites.scaled owns the rest of that bargain.
+        var target = Sprites.scaled(canvas, SLOT_SCALE, SLOT_W, SLOT_H);
 
         // Appearance.CATEGORY is the one mapping from slot to sprite folder — Shield and Weapon
         // both land on 'Hands'. Repeating it here would be a second copy to keep in step.

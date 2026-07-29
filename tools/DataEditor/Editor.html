@@ -12,9 +12,16 @@
   main { display: grid; grid-template-columns: 200px 1fr 400px; gap: 12px; padding: 12px; }
 
   /* A Sheets sidebar (Code.gs showSidebar) is about 300px wide, and the three-column grid needs
-     456px before the form column gets a single pixel. One of the two shipped entry points is
-     that sidebar, so the narrow layout is not a nicety. */
-  @media (max-width: 700px) {
+     636px before the form column gets a single pixel: 200 + 400 of fixed columns, 2 * 12px of
+     gaps and 2 * 12px of padding. One of the two shipped entry points is that sidebar, so the
+     narrow layout is not a nicety.
+
+     THE BREAKPOINT IS WELL ABOVE THAT 636, deliberately. At 636 the form column is zero pixels
+     wide and at 700 it is 40 — a three-column layout that technically fits and is unusable. 900
+     leaves it 252px, about what the 400px preview column gets, which is the narrowest the form
+     is worth showing beside the other two. Below it everything stacks and each column gets the
+     full width. */
+  @media (max-width: 900px) {
     main { grid-template-columns: 1fr; }
     #records { max-height: 30vh; }
     .field { grid-template-columns: 1fr; }
@@ -69,13 +76,18 @@
      cell it moves. */
   .blend-label { font-size: 11px; color: #555; margin-left: 6px; }
   .graphic, .bitmask, .idlist, .rgba, .equip { display: block; }
-  .graphic canvas, .equip canvas { vertical-align: middle; }
+  /* Same story as #previews canvas: the 128px icon preview and the 80px slot preview shrink to
+     fit a ~300px sidebar rather than pushing the form wider than the column. */
+  .graphic canvas, .equip canvas { vertical-align: middle; max-width: 100%; height: auto; }
   .unsupported { border: 1px dashed #b00; padding: 4px; }
 
   .chip { display: inline-flex; gap: 4px; background: #eef; border: 1px solid #ccd;
           color: #222; padding: 1px 4px; margin: 1px; }
   .chip .remove { border: 0; background: none; color: inherit; cursor: pointer; padding: 0 2px; }
-  .equip-slot { display: grid; grid-template-columns: 60px 1fr 44px auto; gap: 4px;
+  /* The preview track holds the 80px-wide slot canvas (40 logical at 2x) with room to spare. It
+     has to be stated: a canvas is a replaced element, so in grid its min-width is auto — a track
+     narrower than the canvas does not clip, it blows out and eats the 1fr graphic column. */
+  .equip-slot { display: grid; grid-template-columns: 60px 1fr 84px auto; gap: 4px;
                 align-items: center; }
   .check { display: block; font-size: 11px; }
   .check input { width: auto; margin-right: 4px; }

@@ -51,15 +51,10 @@ var Preview = (function () {
   /// way the client does. Returns { layers, drawn }: layers is what the data asks for, drawn is
   /// what the bundle actually had art for, and a gap between the two is a missing sprite rather
   /// than a bug in the maths.
-  /// `scale` scales the CONTEXT, not the maths: the caller sizes the canvas CANVAS_W * scale by
-  /// CANVAS_H * scale and everything below stays in logical pixels. Smoothing stays off — a
-  /// scaled context resamples by default, and a blurry 4x sprite is worse than a small sharp one.
+  /// `scale` scales the CONTEXT, not the maths: Sprites.scaled sizes the canvas CANVAS_W * scale
+  /// by CANVAS_H * scale and everything below stays in logical pixels.
   function character(canvas, appearance, ctx, scale) {
-    var s = scale || 1;
-    var c = canvas.getContext('2d');
-    c.setTransform(s, 0, 0, s, 0, 0);
-    c.clearRect(0, 0, CANVAS_W, CANVAS_H);
-    c.imageSmoothingEnabled = false;
+    var c = Sprites.scaled(canvas, scale, CANVAS_W, CANVAS_H);
 
     var layers = Appearance.layers(appearance);
     var equipped = isArmed(appearance.bodyState);
@@ -90,18 +85,13 @@ var Preview = (function () {
   /// keep and call before starting another one or navigating away — an abandoned interval keeps
   /// drawing onto a canvas that is no longer in the tree.
   function effect(canvas, effectId, ctx, scale) {
-    var s = scale || 1;
     var frames = Sprites.effectFrames((ctx && ctx.bundles) || {}, effectId);
     var image = (ctx && ctx.images) ? ctx.images.effects : null;
-    var c = canvas.getContext('2d');
-    // Same bargain as character(): the context carries the scale, the maths does not.
-    c.setTransform(s, 0, 0, s, 0, 0);
-    c.imageSmoothingEnabled = false;
+    // Same bargain as character(): the context carries the scale, the maths does not. The clear
+    // Sprites.scaled does is also the whole of the no-frames case below.
+    var c = Sprites.scaled(canvas, scale, EFFECT_SIZE, EFFECT_SIZE);
 
-    if (!frames.length) {
-      c.clearRect(0, 0, EFFECT_SIZE, EFFECT_SIZE);
-      return function () {};
-    }
+    if (!frames.length) return function () {};
 
     var i = 0;
     // Drawn once up front as well as on the interval, so the first frame is on screen
