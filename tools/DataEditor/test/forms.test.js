@@ -120,6 +120,9 @@ test('placeholderFor strips quotes only as a matched pair', () => {
     "default 'unterminated");
   assert.equal(Forms.placeholderFor({ required: false, default: "'it''s'" }),
     "default it''s");
+  // Anchored at both ends: quotes in the MIDDLE are content, not delimiters.
+  assert.equal(Forms.placeholderFor({ required: false, default: "a'b'" }), "default a'b'");
+  assert.equal(Forms.placeholderFor({ required: false, default: "'a'b" }), "default 'a'b");
 });
 
 test('placeholderFor covers every default in the real schema without producing junk', () => {
@@ -164,6 +167,15 @@ test('the FIRST enum name is recognised, not duplicated as unknown', () => {
   assert.deepEqual(control.getElementsByTagName('option').map((o) => o.value),
     [...c.enumNames]);
   assert.equal(control.value, c.enumNames[0]);
+});
+
+test('the LAST enum name is recognised, not duplicated as unknown', () => {
+  const c = column('Items', 'item_usetype');
+  const last = c.enumNames[c.enumNames.length - 1];
+  const control = Forms.scalarControl(c, last);
+  assert.deepEqual(control.getElementsByTagName('option').map((o) => o.value),
+    [...c.enumNames]);
+  assert.equal(control.value, last);
 });
 
 test('an Enum value that is not in enumNames survives instead of blanking', () => {
@@ -327,6 +339,13 @@ test('every scalar label points at its own control', () => {
   assert.ok(targets.length > 20, `expected many labelled scalars, saw ${targets.length}`);
   targets.forEach((t) => assert.ok(ids.has(t), `label for="${t}" points at nothing`));
   assert.equal(new Set(targets).size, targets.length, 'duplicate for= targets');
+});
+
+test('the class hooks Task 11 styles against are present', () => {
+  const host = div();
+  Forms.render(host, TOY, {}, {});
+  assert.equal(host.querySelectorAll('[class="field"]').length, 3);
+  assert.equal(host.querySelectorAll('[class="error"]').length, 3);
 });
 
 test('render clears whatever was there before', () => {
@@ -552,6 +571,20 @@ test('collect finds a control by name even when it has no id', () => {
   assert.deepEqual(Forms.collect(host, TOY), { a: '', b: 'from a composite', c: '' });
 });
 
+test('collect coerces a non-string handed back by Composites', () => {
+  // A packed bitmask is the obvious shape for Composites.collect to return, and it is a
+  // NUMBER. Everything downstream — Validation, writeRow — is written against strings.
+  const host = div();
+  Forms.render(host, COMPOSITE_TOY, {}, {});
+  const previous = globalThis.Composites.collect;
+  globalThis.Composites.collect = () => ({ r: 255, g: 0, b: 0 });
+  try {
+    assert.deepEqual(Forms.collect(host, COMPOSITE_TOY), { a: '', r: '255', g: '0', b: '0' });
+  } finally {
+    globalThis.Composites.collect = previous;
+  }
+});
+
 test('collect coerces whatever a control hands back to a string', () => {
   const host = div();
   Forms.render(host, TOY, {}, {});
@@ -561,11 +594,32 @@ test('collect coerces whatever a control hands back to a string', () => {
   assert.deepEqual(Forms.collect(host, TOY).a, '5');
 });
 
-test('collect ignores stray named nodes for columns the schema does not have', () => {
+test('collect returns exactly the schema columns, dropping stray named nodes', () => {
+  // A composite is free to name its sub-controls whatever it likes (a hex box, a search
+  // field). Those must not arrive in the record as if they were columns.
   const host = div();
   Forms.render(host, TOY, { a: '1', b: '', c: '' }, {});
+  const stray = document.createElement('input');
+  stray.setAttribute('name', 'not_a_column');
+  stray.value = 'leaked';
+  host.appendChild(stray);
+
   const out = Forms.collect(host, TOY);
   assert.deepEqual(Object.keys(out).sort(), ['a', 'b', 'c']);
+  assert.equal(out.a, '1');
+});
+
+test('collect drops a key Composites.collect invents', () => {
+  const host = div();
+  Forms.render(host, COMPOSITE_TOY, {}, {});
+  const previous = globalThis.Composites.collect;
+  globalThis.Composites.collect = () => ({ r: '1', hex: '#ff0000' });
+  try {
+    assert.deepEqual(Object.keys(Forms.collect(host, COMPOSITE_TOY)).sort(),
+      ['a', 'b', 'g', 'r']);
+  } finally {
+    globalThis.Composites.collect = previous;
+  }
 });
 
 test('every real sheet round-trips blank through render and collect', () => {

@@ -41,7 +41,7 @@ var Forms = (function () {
   // enumNames — a renamed enum member, a typo, a hand-edited row — that is silent data loss:
   // the field looks empty and the next save writes blank over it. Keep the stored value as a
   // real option, flagged, so it round-trips and Validation gets to report it.
-  function withUnknown(select, value) {
+  function preserveUnknownValue(select, value) {
     if (value === '') return;
     var options = select.getElementsByTagName('option');
     for (var i = 0; i < options.length; i++) {
@@ -59,7 +59,7 @@ var Forms = (function () {
       (column.enumNames || []).forEach(function (n) {
         select.appendChild(el('option', { value: n }, n));
       });
-      withUnknown(select, value);
+      preserveUnknownValue(select, value);
       select.value = value;
       return select;
     }
@@ -69,7 +69,7 @@ var Forms = (function () {
       box.appendChild(el('option', { value: '' }, ''));
       box.appendChild(el('option', { value: '0' }, 'No'));
       box.appendChild(el('option', { value: '1' }, 'Yes'));
-      withUnknown(box, value);
+      preserveUnknownValue(box, value);
       box.value = value;
       return box;
     }
@@ -157,7 +157,9 @@ var Forms = (function () {
   }
 
   // Reads the form back into a name -> string map. Missing and blank both come back as ''.
-  // Named controls nested inside a composite are swept up here too; Composites.collect runs
+  // The result holds EXACTLY the schema's columns: a stray [name] in the tree, or a key
+  // Composites.collect invents, is dropped rather than smuggled into the record. Named
+  // controls nested inside a composite are swept up here too, and Composites.collect runs
   // afterwards and is the authority on its own columns.
   function collect(container, schema) {
     // A plain object deliberately, unlike render's internal maps: this one is handed back to
@@ -167,14 +169,20 @@ var Forms = (function () {
     var values = {};
     schema.columns.forEach(function (c) { values[c.name] = ''; });
 
+    // hasOwnProperty against the seeding above, not `k in values` — the question is "is this a
+    // column of this sheet", and a composite may name a sub-control anything it likes.
+    function keep(name, value) {
+      if (Object.prototype.hasOwnProperty.call(values, name)) values[name] = str(value);
+    }
+
     var inputs = container.querySelectorAll('[name]');
     for (var i = 0; i < inputs.length; i++) {
-      values[inputs[i].getAttribute('name')] = str(inputs[i].value);
+      keep(inputs[i].getAttribute('name'), inputs[i].value);
     }
 
     (schema.composites || []).forEach(function (comp) {
       var claimed = Composites.collect(comp, container);
-      Object.keys(claimed).forEach(function (k) { values[k] = str(claimed[k]); });
+      Object.keys(claimed).forEach(function (k) { keep(k, claimed[k]); });
     });
 
     return values;

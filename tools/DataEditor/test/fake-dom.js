@@ -3,6 +3,10 @@
 // FLAG. Everything else is the minimum the module touches.
 //
 // Install with installFakeDom(); it sets globalThis.document and returns it.
+//
+// One deliberate infidelity: querySelectorAll and getElementsByTagName return real Arrays,
+// not NodeList/HTMLCollection, so .map/.filter/.find work on them HERE and would throw in a
+// browser. Module code must keep using index loops.
 
 class FakeNode {
   constructor(tag) {
@@ -12,11 +16,13 @@ class FakeNode {
     this.parentNode = null;
     this._text = '';
     // An input's live value tracks its `value` CONTENT ATTRIBUTE until something assigns to
-    // .value, which raises the dirty value flag and decouples the two for good (HTML,
-    // "value" IDL attribute / dirty value flag). Task 10's bitmask checkboxes are built as
-    // el('input', { value: id }) and then read back through .value, so a fake that ignored
-    // the attribute would report '' for every one of them. Selects derive their value from
-    // the selected option, so _value is unused for them.
+    // .value, which raises the dirty value flag and decouples the two for good (HTML, "value"
+    // IDL attribute / dirty value flag). Modelled because Task 10's bitmask control carries
+    // each class id in the value ATTRIBUTE of a checkbox — el('input', { value: id }) — and
+    // reads it back through .value; a fake that ignored the attribute would report '' for
+    // every id. (Whether such a box is TICKED is .checked, a separate thing this fake does
+    // not model at all — Task 10 will have to add it.) Selects derive their value from the
+    // selected option, so _value is unused for them.
     this._value = '';
     this._dirty = false;
     this.selectedIndex = -1;
@@ -83,7 +89,11 @@ class FakeNode {
     // Clean input: the value IS the content attribute. Dirty: the attribute is ignored.
     if (this._dirty) return this._value;
     const attr = this.getAttribute('value');
-    return attr === null ? '' : attr;
+    if (attr !== null) return attr;
+    // A checkbox or radio with no value attribute reads back as 'on', not '' — its value mode
+    // is "default/on". Everything else defaults to the empty string.
+    const type = String(this.getAttribute('type') || '').toLowerCase();
+    return (type === 'checkbox' || type === 'radio') ? 'on' : '';
   }
 
   set value(next) {
