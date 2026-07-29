@@ -793,8 +793,9 @@ test("an Rgba field's label is the tint, not its red channel", () => {
     `no tint label among ${JSON.stringify(names)}`);
   assert.equal(names.filter((n) => n === 'graphic_r').length, 0);
 
-  // The four cells must still be findable from the field, or a designer cannot locate them in
-  // the sheet. The stub composite control writes one [name] per column, as the real one does.
+  // Renaming the label must not cost the field its composite control: the stub emits one [name]
+  // per column, so this only guards that forms.js still renders the control here. That the real
+  // control reaches all four cells is composites.test.js's job.
   const field = host.getElementsByTagName('label')
     .find((l) => l.textContent === 'graphic tint').parentNode;
   ['graphic_r', 'graphic_g', 'graphic_b', 'graphic_a'].forEach((n) => {

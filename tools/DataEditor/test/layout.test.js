@@ -190,7 +190,7 @@ test('every composite in schema.js gets an honest label', () => {
     const label = Layout.labelFor(comp, columns[0]);
     const where = `${name} ${comp.kind} [${columns.join(', ')}]`;
 
-    assert.ok(label && label.trim() === label && label !== '',
+    assert.ok(label && label.trim() === label,
       `${where} produced a blank or padded label: ${JSON.stringify(label)}`);
 
     // Every word that looks like a column name must BE one — the label may not invent a cell.
@@ -213,7 +213,7 @@ test('every composite in schema.js gets an honest label', () => {
   });
 });
 
-test('the four shipped tints read as tints, not as red channels', () => {
+test('the three shipped tint prefixes read as tints, not as red channels', () => {
   const label = (kind, columns) => Layout.labelFor({ kind, columns }, columns[0]);
   assert.equal(label('Rgba', ['graphic_r', 'graphic_g', 'graphic_b', 'graphic_a']),
     'graphic tint');
@@ -233,7 +233,7 @@ test('a tint whose columns share no prefix keeps the leader name', () => {
 test('labelFor falls back to the leader the form actually rendered', () => {
   // forms.js elects the first SCHEMA-PRESENT column as leader, which is not always columns[0].
   assert.equal(Layout.labelFor({ kind: 'Graphic', columns: ['ghost', 'graphic_file'] },
-    'graphic_file'), 'graphic_file + sheet');
+    'graphic_file'), 'graphic_file');
   assert.equal(Layout.labelFor({ kind: 'IdList', columns: ['quest_ids'] }, 'quest_ids'),
     'quest_ids');
 });

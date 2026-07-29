@@ -135,7 +135,9 @@ var Layout = (function () {
       var prefix = sharedPrefix(columns);
       return prefix ? prefix + ' tint' : name;
     }
-    if (comp.kind === 'Graphic') return name + ' + sheet';
+    // ' + sheet' is only true when the leader IS the tile column; if the descriptors dropped it
+    // and the form led with the sheet column instead, the promise would name the sheet twice.
+    if (comp.kind === 'Graphic') return leader === columns[0] ? name + ' + sheet' : name;
     return name;
   }
 
