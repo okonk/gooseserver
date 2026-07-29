@@ -153,4 +153,77 @@ public class BundleConfigTests : IDisposable
         Assert.Contains(path, e.Message);
         Assert.Contains("atlasWidth", e.Message);
     }
+
+    /// <summary>System.Text.Json does not enforce nullable annotations: an explicit `null` calls
+    /// the setter and blows straight past the `= []` initialiser, so a null collection reached
+    /// Bundles as a NullReferenceException rather than a named build error. Missing and empty are
+    /// folded into the same check — all three mean "this bundle would be built from nothing",
+    /// which silently overwrote the committed artifact with an empty one and exited 0.</summary>
+    [Theory]
+    [InlineData("iconSheets", "null")]
+    [InlineData("iconSheets", "[]")]
+    [InlineData("iconSheets", null)]
+    [InlineData("partCategories", "null")]
+    [InlineData("partCategories", "[]")]
+    [InlineData("partCategories", null)]
+    [InlineData("partClips", "null")]
+    [InlineData("partClips", "[]")]
+    [InlineData("partClips", null)]
+    public void An_empty_or_null_or_missing_collection_names_the_path_and_the_property(
+        string property, string? value)
+    {
+        var path = WriteTempConfig(Config(property, value));
+
+        var e = Assert.Throws<InvalidDataException>(() => BundleConfig.Load(path));
+
+        Assert.Contains(path, e.Message);
+        Assert.Contains(property, e.Message);
+    }
+
+    /// <summary>A null or blank category would reach Path.Combine and silently resolve to the
+    /// asset root itself. (Absent is fine: it deserialises to the property default, "Effects".)</summary>
+    [Theory]
+    [InlineData("null")]
+    [InlineData("\"\"")]
+    [InlineData("\"   \"")]
+    public void A_null_or_blank_effects_category_names_the_path_and_the_property(string value)
+    {
+        var path = WriteTempConfig(Config("effectsCategory", value));
+
+        var e = Assert.Throws<InvalidDataException>(() => BundleConfig.Load(path));
+
+        Assert.Contains(path, e.Message);
+        Assert.Contains("effectsCategory", e.Message);
+    }
+
+    [Fact]
+    public void A_config_with_every_required_property_loads()
+    {
+        var path = WriteTempConfig(Config("atlasWidth", "512"));
+
+        var config = BundleConfig.Load(path);
+
+        Assert.Equal(512, config.AtlasWidth);
+        Assert.Equal("Effects", config.EffectsCategory);
+    }
+
+    /// <summary>An otherwise-valid config with one property overridden, or — when
+    /// <paramref name="value"/> is null — omitted entirely.</summary>
+    private static string Config(string property, string? value)
+    {
+        var fields = new Dictionary<string, string>
+        {
+            ["atlasWidth"] = "2048",
+            ["iconSheets"] = "[1]",
+            ["partCategories"] = "[\"Bodies\"]",
+            ["partClips"] = "[\"idle-down\"]",
+        };
+
+        if (value is null)
+            fields.Remove(property);
+        else
+            fields[property] = value;
+
+        return "{" + string.Join(",", fields.Select(f => $"\"{f.Key}\":{f.Value}")) + "}";
+    }
 }

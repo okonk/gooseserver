@@ -49,17 +49,23 @@ public static class Program
             var sw = Stopwatch.StartNew();
             long total = 0;
 
-            total += Emit("icons", outDir,
+            // Disposed before the move on any failure, so a build that dies partway leaves all
+            // three committed fragments exactly as they were.
+            using var stage = new BundleStage(outDir);
+
+            total += Emit("icons", stage,
                 () => AtlasBuilder.Build(manifest, Bundles.Icons(manifest, config),
                                          config.AtlasWidth));
 
-            total += Emit("parts", outDir,
+            total += Emit("parts", stage,
                 () => AtlasBuilder.BuildFromFrames(manifest, Bundles.Parts(assetRoot, config),
                                                    config.AtlasWidth));
 
-            total += Emit("effects", outDir,
+            total += Emit("effects", stage,
                 () => AtlasBuilder.BuildFromFrames(manifest, Bundles.Effects(assetRoot, config),
                                                    config.AtlasWidth));
+
+            stage.Commit();
 
             Console.WriteLine(
                 $"Total {total / 1024.0 / 1024.0:F2} MB of HTML in {sw.Elapsed.TotalSeconds:F1}s");
@@ -79,16 +85,18 @@ public static class Program
         }
     }
 
-    private static long Emit(string name, string outDir, Func<BuiltAtlas> build)
+    /// <summary>Builds, renders and stages one bundle, then reports it. Everything stays inside the
+    /// `using`, and the rendered html is handed straight to Stage rather than held: only one
+    /// atlas and one ~1.5 MB fragment are alive at a time, even though all three are now staged
+    /// before any is moved into place. Stage returns the size on disk, which the console line
+    /// used to read back with FileInfo after the final write.</summary>
+    private static long Emit(string name, BundleStage stage, Func<BuiltAtlas> build)
     {
         using var built = build();
-        var html = BundleWriter.Render(name, built.Image, built.Rects);
-        var path = Path.Combine(outDir, $"sprites-{name}.html");
-        File.WriteAllText(path, html);
+        var bytes = stage.Stage(name, BundleWriter.Render(name, built.Image, built.Rects));
 
         var used = built.Rects.Values.Sum(r => (long)r.W * r.H);
         var area = (long)built.Image.Width * built.Image.Height;
-        var bytes = new FileInfo(path).Length;
 
         Console.WriteLine(
             $"{name,-8} {built.Rects.Count,6} sprites  " +

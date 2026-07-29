@@ -59,6 +59,25 @@ public sealed class BundleConfig
             throw new InvalidDataException(
                 $"{path} has no positive 'atlasWidth' (got {config.AtlasWidth})");
 
+        // Absent, explicitly null and empty are all rejected together: each means the bundle would
+        // be built from nothing, which used to overwrite the committed artifact with an empty one
+        // and exit 0. Null is not hypothetical despite the non-nullable annotations above — System
+        // .Text.Json does not enforce NRTs, so a JSON null calls the setter and blows past the
+        // `= []` initialiser, exactly as it did to Manifest's nested collections.
+        Require(config.IconSheets, "iconSheets");
+        Require(config.PartCategories, "partCategories");
+        Require(config.PartClips, "partClips");
+
+        // A blank category would reach Path.Combine and silently resolve to the asset root itself.
+        if (string.IsNullOrWhiteSpace(config.EffectsCategory))
+            throw new InvalidDataException($"{path} has no 'effectsCategory'");
+
         return config;
+
+        void Require<T>(IReadOnlyList<T> values, string property)
+        {
+            if (values is not { Count: > 0 })
+                throw new InvalidDataException($"{path} has no '{property}' entries");
+        }
     }
 }
