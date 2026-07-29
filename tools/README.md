@@ -151,6 +151,39 @@ wrong: that a cell's value is its stored value rather than its formatting, and t
 writes only the cells that changed. What it assumes about Apps Script is listed at the top of that
 file; the checks that genuinely need a live spreadsheet are still listed in `Code.gs`'s own header.
 
+### The colour picker and the gallery
+
+Two modules exist only to make a raw column value pickable by eye, and both sit behind `pickers.js`.
+
+`src/colorpicker.js` is the popover for the RGBA columns: a saturation/value square, a hue strip,
+and — the reason it exists rather than an `<input type="color">` — a **blend** strip for the alpha
+channel. That channel is not opacity. `Scripts/UI/Icon.cs` does `mix(sprite.rgb, tint.rgb, tint.a)`,
+so alpha is how far the sprite is dragged towards the tint, and a blend of zero means no tint at all
+with the stored r/g/b ignored. The popover paints its previews through `Sprites.applyTint`, so what
+it shows is what the client will draw.
+
+`src/gallery.js` is the windowed grid over a sprite bundle: it renders only the rows in view, so
+opening `icons` does not pay for 4827 sprites up front. Open it with
+
+    Gallery.open({bundle, bundles, filter, current, onPick, opener})
+
+`bundle` is `'icons' | 'parts' | 'effects'` and selects which key format the gallery parses out of
+`bundles` (the `GOOSE_SPRITES` object). `filter` narrows the candidates up front — `{sheet}` for
+icons, `{category, locked}` for parts, where `locked` means the caller's category is fixed and the
+chooser is not offered. `current` is in the same shape `onPick` reports, so a caller round-trips its
+own cells, and `opener` is the Browse button focus returns to on close.
+
+`onPick` reports the pieces of the key rather than the key itself, one shape per bundle:
+
+| bundle    | `onPick` argument   |
+| --------- | ------------------- |
+| `icons`   | `{sheet, graphic}`  |
+| `parts`   | `{category, id}`    |
+| `effects` | `{id}`              |
+
+Parts and effects drop the per-clip and per-frame suffix on the way out: a caller picks a part or an
+effect, not one of its frames.
+
 Apps Script has no `.js` file type, so build wraps each module into `dist/*.html`, alongside copies
 of `schema.js` and the sprite bundles:
 
