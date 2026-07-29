@@ -381,9 +381,15 @@ var ColorPicker = (function () {
 
       swatch.setAttribute('data-color', text);
       swatch.style.background = text;
-      swatch.setAttribute('aria-label', withAlpha
+      var label = withAlpha
         ? 'colour ' + text + ', ' + state.a + ' / 255 blend'
-        : 'colour ' + text);
+        : 'colour ' + text;
+      swatch.setAttribute('aria-label', label);
+      // Mirrored into a title so the blend is reachable with the popover shut and no readout in
+      // sight: the swatch background is the OPAQUE colour, so two slots at blend 12 and 200 are
+      // otherwise pixel-identical. Callers with room for a visible readout still want this;
+      // callers without one depend on it.
+      swatch.setAttribute('title', label);
 
       if (!keepHexText) hex.value = text;
       channels.textContent = 'R ' + c.r + '  G ' + c.g + '  B ' + c.b

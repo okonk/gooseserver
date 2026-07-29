@@ -86,28 +86,53 @@ test('every CSS comment in the stylesheet is terminated', () => {
 
 // Comments gone, so a rule swallowed by an unterminated comment simply is not here to match.
 const css = style.replace(/\/\*[\s\S]*?\*\//g, '');
+// @media blocks are cut out whole before the flat prelude/body regex runs below: that regex
+// cannot parse a nested block (it reads the at-rule prelude as a selector and the first inner
+// rule as its body, then self-recovers on the stray `}` — which is why the top-level rules AFTER
+// a media query still match today, by accident rather than by rule). Removing the blocks with a
+// brace counter makes the parse honest. The consequence is that a selector moved INSIDE an
+// @media block stops being found — hence the third cause named in every lookup's message.
+const stripAtBlocks = (text) => {
+  let out = '';
+  for (let i = 0; i < text.length;) {
+    if (!text.startsWith('@media', i)) { out += text[i]; i += 1; continue; }
+    const open = text.indexOf('{', i);
+    if (open === -1) break;
+    let depth = 0;
+    let j = open;
+    for (; j < text.length; j++) {
+      if (text[j] === '{') depth += 1;
+      else if (text[j] === '}' && --depth === 0) { j += 1; break; }
+    }
+    i = j;
+  }
+  return out;
+};
+const topLevelCss = stripAtBlocks(css);
+const NOT_FOUND = 'unterminated comment above it, a renamed selector, '
+  + 'or a selector moved inside an @media block';
 const ruleFor = (selector) => {
-  const rules = [...css.matchAll(/([^{}]+){([^}]*)}/g)];
+  const rules = [...topLevelCss.matchAll(/([^{}]+){([^}]*)}/g)];
   return rules.find((r) => r[1].trim() === selector);
 };
 
 test('the equipment slot row is a live grid with a track for every cell it holds', () => {
   // Five cells per slot: label, graphic FK, colour swatch, preview canvas, status.
   const rule = ruleFor('.equip-slot');
-  assert.ok(rule, '.equip-slot has no rule of its own — check for an unterminated comment above it');
+  assert.ok(rule, `.equip-slot has no rule of its own — check for an ${NOT_FOUND}`);
   assert.match(rule[2], /display:\s*grid/);
   assert.match(rule[2], /grid-template-columns:\s*60px\s+1fr\s+28px\s+84px\s+auto/);
 });
 
 test('the icon and slot previews are still rubber-banded to their column', () => {
   const rule = ruleFor('.graphic canvas, .equip .preview');
-  assert.ok(rule, 'the preview sizing rule was dropped — check for an unterminated comment above it');
+  assert.ok(rule, `the preview sizing rule was dropped — check for an ${NOT_FOUND}`);
   assert.match(rule[2], /max-width:\s*100%/);
 });
 
 test('the colour swatch fits the 28px track it sits in inside an equipment slot', () => {
   // The default .swatch is 40px, which would overflow the 28px track into the preview column.
   const rule = ruleFor('.equip .swatch');
-  assert.ok(rule, '.equip .swatch has no rule — the 40px default overflows the 28px track');
+  assert.ok(rule, `.equip .swatch has no rule (the 40px default overflows the 28px track) — check for an ${NOT_FOUND}`);
   assert.match(rule[2], /width:\s*28px/);
 });

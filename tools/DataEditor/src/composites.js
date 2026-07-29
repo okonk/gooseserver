@@ -347,7 +347,10 @@ var Composites = (function () {
 
     // bodyState only distinguishes armed from unarmed in a resting pose (Sprites.part's note).
     // 3 is unarmed; Items defaults to 3 and NPCs to 1. Read once, at build time: the control
-    // has no handle on the body_state field, and Task 11's preview is what re-renders the form.
+    // has no handle on the body_state field, so a body_state edited after the form is built
+    // leaves these six clips stale until the form is rebuilt. Following it live needs a
+    // cross-field change notification the control can subscribe to — whatever ctx grows for
+    // that is where redraw() would hook in; deliberately not wired here.
     //
     // A BLANK cell means "use the SQL default", which forms.js is scrupulous about and this is
     // not: num('') is 0, not the descriptor's 1. The answer comes out right for the only sheet
@@ -393,6 +396,12 @@ var Composites = (function () {
       // Whether this slot's blend is sitting at 0 having been MOVED there. Not read from the
       // stored value: every untinted slot arrives as `id,*` with a === 0, and six rows warning
       // about a colour nobody chose is noise.
+      //
+      // The other stored shape that WOULD lose something — a real colour parked behind a zero
+      // blend, `12,164,51,31,0` — never reaches this note: Equipped.scan flags that exact shape
+      // unfaithful (src/equipped.js zero-alpha check), so app.js's faithfulness gate refuses
+      // every edit to the row and the control is read-only. Relax that check and this row
+      // silently stops warning.
       var discarding = false;
 
       // One writer for the row's status line, because two conditions share it. The typo wins:
@@ -454,6 +463,11 @@ var Composites = (function () {
       // zero-alpha slot to `id,*`, so pulling the blend to 0 genuinely DISCARDS the colour. The
       // status line says so at the moment it happens rather than leaving a designer to find the
       // colour gone tomorrow.
+      //
+      // Unlike rgbaControl there is no VISIBLE blend readout: this row has five cells in a fixed
+      // grid and no track to spare for a sixth. The blend surfaces here are the popover, the
+      // swatch's title tooltip and its aria-label — all three carry "N / 255 blend", so the
+      // number is reachable with the popover shut, just not glanceable across six rows at once.
       var picker = ColorPicker.control({
         r: slots[index].r, g: slots[index].g, b: slots[index].b, a: slots[index].a,
         withAlpha: true,
