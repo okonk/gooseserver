@@ -84,6 +84,32 @@ public class BundleStageTests : IDisposable
         Assert.Equal(3, Directory.GetFiles(dir).Length);
     }
 
+    /// <summary>A write that fails partway still creates the file, so the temp has to be
+    /// registered before the write rather than after it — otherwise the one case that produces
+    /// debris (disk full, now with three fragments in flight) is the one Dispose cannot clean up.
+    /// A read-only temp stands in for the full disk: the open fails, the file survives.</summary>
+    [Fact]
+    public void A_failed_write_leaves_no_temp_behind()
+    {
+        var dir = TempDir();
+        var temp = Of(dir, "icons") + ".tmp";
+        File.WriteAllText(temp, "leftover from a killed run");
+        File.SetUnixFileMode(temp, UnixFileMode.UserRead);
+
+        try
+        {
+            using var stage = new BundleStage(dir);
+            stage.Stage("icons", "new icons");
+            Assert.Fail("expected the write to the read-only temp to throw");
+        }
+        catch (UnauthorizedAccessException)
+        {
+            // The write failing is the scenario; what it leaves behind is what is asserted.
+        }
+
+        Assert.Empty(Directory.GetFiles(dir));
+    }
+
     /// <summary>Stage returns the byte count the console line reports, which used to come from
     /// FileInfo.Length after the final write.</summary>
     [Fact]

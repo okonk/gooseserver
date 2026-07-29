@@ -99,7 +99,7 @@ public static class AtlasBuilder
                 var probePath = manifest.SheetPath(s.Sheet);
                 if (File.Exists(probePath))
                 {
-                    var info = Image.Identify(probePath);
+                    var info = ReadPng(probePath, () => Image.Identify(probePath));
                     size = (info.Width, info.Height);
                 }
                 else
@@ -157,7 +157,8 @@ public static class AtlasBuilder
             // Group by sheet so each PNG is decoded once.
             foreach (var group in packed.Placements.GroupBy(p => resolved[p.Index].Sheet))
             {
-                using var sheet = Image.Load<Rgba32>(manifest.SheetPath(group.Key));
+                var sheetPath = manifest.SheetPath(group.Key);
+                using var sheet = ReadPng(sheetPath, () => Image.Load<Rgba32>(sheetPath));
 
                 foreach (var p in group)
                 {
@@ -180,5 +181,27 @@ public static class AtlasBuilder
         }
 
         return new BuiltAtlas { Image = atlas, Rects = rects, Skipped = skipped };
+    }
+
+    /// <summary>Names the sheet in an unreadable-PNG failure, the way Manifest.Load names its
+    /// file. ImageFormatException — the base of ImageSharp's unknown-format and invalid-content
+    /// errors — is not an IOException, so it escaped the CLI's catch as an unhandled stack trace,
+    /// and its message carries no path, so catching it up there could not have said which of
+    /// thousands of sheets was bad.
+    ///
+    /// A truncated PNG is the realistic input: the sheets come from a separate client checkout and
+    /// an interrupted fetch truncates rather than deletes, so the graceful skip for a missing file
+    /// does not cover it. Both the header probe and the full decode are wrapped — the probe reads
+    /// only the IHDR, so a file truncated inside the pixel data passes it and fails later.</summary>
+    private static T ReadPng<T>(string path, Func<T> read)
+    {
+        try
+        {
+            return read();
+        }
+        catch (ImageFormatException ex)
+        {
+            throw new InvalidDataException($"{path} is not a readable PNG: {ex.Message}", ex);
+        }
     }
 }

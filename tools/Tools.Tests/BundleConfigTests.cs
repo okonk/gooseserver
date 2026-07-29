@@ -180,6 +180,23 @@ public class BundleConfigTests : IDisposable
         Assert.Contains(property, e.Message);
     }
 
+    /// <summary>An element null survives the count check and then reaches Path.Combine, whose
+    /// "Value cannot be null. (Parameter 'path2')" names neither this file nor the property.</summary>
+    [Theory]
+    [InlineData("partCategories", """["Bodies",null]""")]
+    [InlineData("partCategories", """["Bodies","  "]""")]
+    [InlineData("partClips", """["idle-down",null]""")]
+    [InlineData("partClips", """["idle-down",""]""")]
+    public void A_blank_entry_names_the_path_and_the_property(string property, string value)
+    {
+        var path = WriteTempConfig(Config(property, value));
+
+        var e = Assert.Throws<InvalidDataException>(() => BundleConfig.Load(path));
+
+        Assert.Contains(path, e.Message);
+        Assert.Contains(property, e.Message);
+    }
+
     /// <summary>A null or blank category would reach Path.Combine and silently resolve to the
     /// asset root itself. (Absent is fine: it deserialises to the property default, "Effects".)</summary>
     [Theory]

@@ -235,6 +235,50 @@ public class AtlasBuilderTests : IDisposable
             built.Skipped.Select(s => (s.Key, s.Sheet)).Order().ToArray());
     }
 
+    /// <summary>A missing sheet is a graceful skip, so a truncated one — what an interrupted fetch
+    /// of the client checkout actually leaves — is the case that used to stack-trace: ImageSharp's
+    /// ImageFormatException is not an IOException and escaped the CLI's catch.</summary>
+    [Fact]
+    public void A_truncated_sheet_png_names_the_file()
+    {
+        var manifest = WriteAssets((1, 8, 8, Red, G(10, 0, 0, 4, 4)));
+        var path = manifest.SheetPath(1);
+        File.WriteAllBytes(path, File.ReadAllBytes(path)[..8]);
+
+        var e = Assert.Throws<InvalidDataException>(
+            () => AtlasBuilder.Build(manifest, [new SpriteRef("a", 1, 10)], width: 64));
+
+        Assert.Contains(path, e.Message);
+    }
+
+    /// <summary>Reaches the second decode site. Sheets are read twice — a header probe for the
+    /// dimensions, then a full decode for the pixels — and the two fail on different inputs:
+    /// truncation short of the IHDR fails the probe, whereas an intact header over damaged pixel
+    /// data gets all the way to the decode. Both need wrapping, and only this input proves the
+    /// second one is.</summary>
+    [Fact]
+    public void A_sheet_png_with_corrupt_pixel_data_names_the_file()
+    {
+        var manifest = WriteAssets((1, 8, 8, Red, G(10, 0, 0, 4, 4)));
+        var path = manifest.SheetPath(1);
+
+        // Past the IHDR and short of the IEND, so the damage lands in the compressed pixel data
+        // and leaves the dimensions readable.
+        var bytes = File.ReadAllBytes(path);
+        for (var i = 40; i < bytes.Length - 12; i++)
+            bytes[i] ^= 0xFF;
+        File.WriteAllBytes(path, bytes);
+
+        // Guards the point of the test: if this ever starts throwing, the corruption has moved
+        // into the header and the case has silently collapsed into the truncation one above.
+        Assert.Equal(8, Image.Identify(path).Width);
+
+        var e = Assert.Throws<InvalidDataException>(
+            () => AtlasBuilder.Build(manifest, [new SpriteRef("a", 1, 10)], width: 64));
+
+        Assert.Contains(path, e.Message);
+    }
+
     /// <summary>Latent in the current corpus, guarded anyway: a negative origin would throw the
     /// same opaque range error as an overrun.</summary>
     [Fact]
