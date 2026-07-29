@@ -15,18 +15,21 @@ await mkdir(dist, { recursive: true });
 
 // An HTML parser ends a <script> block at the first literal `</script`, wherever it
 // appears — including inside a JS string or comment, where it would silently truncate
-// the module. The escape is valid inside string and regex literals and inert elsewhere.
+// the module. `\/` collapses to `/` in string and regex literals, so the escape is
+// invisible there. The two exceptions are String.raw templates, which preserve the
+// backslash, and a `<` immediately followed by a regex literal starting `script`.
 const wrap = (code) => `<script>\n${code.replaceAll('</script', '<\\/script')}\n</script>\n`;
 
 // 1. Wrap each pure-JS module in <script> tags. Apps Script has no .js file type.
-const modules = existsSync(src)
-  ? (await readdir(src)).filter((f) => f.endsWith('.js')).sort()
-  : [];
-if (!existsSync(src)) console.warn('WARNING: src/ missing — no modules to build');
+let modules = [];
+if (existsSync(src)) modules = (await readdir(src)).filter((f) => f.endsWith('.js')).sort();
+else console.warn('WARNING: src/ missing — no modules to build');
+
 for (const file of modules) {
   const code = await readFile(join(src, file), 'utf8');
   const name = basename(file, '.js');
-  await writeFile(join(dist, `${name}.html`), wrap(`// Built from src/${file}. Do not edit.\n${code}`));
+  const banner = `// Built from src/${file}. Do not edit.`;
+  await writeFile(join(dist, `${name}.html`), wrap(`${banner}\n${code}`));
 }
 
 // 2. Part 2 emits schema.js, which also needs wrapping.
