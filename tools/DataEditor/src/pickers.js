@@ -382,8 +382,8 @@ var Pickers = (function () {
   // resolves nothing at all and does it silently. Named, the swap is not expressible; the tests
   // still assert the resolution order anyway.
   //
-  // `opts.tintColumns` is Layout.tintColumns(sheet, graphicColumn.name) — the four cells whose colour
-  // the game blends into this graphic, or null for a graphic it draws plain. They belong to
+  // `opts.tintColumns` is Layout.tintColumns(sheet, graphicColumn.name) — the four cells whose
+  // colour the game blends into this graphic, or null for a graphic it draws plain. They belong to
   // ANOTHER control (the Rgba composite's hidden inputs), so they cannot be read from this
   // control's own two fields; ctx.onFormChange is how the current values arrive after an edit.
   function graphicControl(opts) {
@@ -629,7 +629,6 @@ var Pickers = (function () {
     partControl: partControl,
     LIMIT: LIMIT,
     ICON_BOX: ICON_BOX,
-    ICON_SCALE: ICON_SCALE,
     PART_W: PART_W,
     PART_H: PART_H,
     PART_SCALE: PART_SCALE,

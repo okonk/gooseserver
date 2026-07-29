@@ -415,10 +415,11 @@ test('bitmask PRESERVES a set bit that belongs to no class', () => {
 test('bitmask preserves a CLEAR foreign bit just as carefully', () => {
   // The other four shipped masks — 22, 34, 38, 50 — leave bit 0 clear. Setting it would be the
   // same rewrite in the other direction, and no test using only bit-0-set masks would see it.
+  // 22 is Small Hammer: Warrior + Priest may use it.
   const node = Composites.control({
     comp: BITMASK, byName: byName(BITMASK.columns), values: { class_restrictions: '22' },
     ctx: ctx(),
-  });   // Small Hammer: Warrior + Priest may use it
+  });
   assert.deepEqual(boxes(node).filter((b) => b.checked).map((b) => b.value), ['1', '2', '4']);
   const priest = boxes(node).find((b) => b.value === '5');
   priest.checked = true;

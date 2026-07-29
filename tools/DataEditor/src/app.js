@@ -302,6 +302,13 @@ var App = (function () {
     // the code and not only of the happy path.
     state.imageCallbacks = [];
     state.formCallbacks = [];
+    // AND THE FORM TOKEN, for the callbacks that are in neither registry. renderForm's bundle
+    // continuations are closures in loadBundle's waiter list, so emptying the registries cannot
+    // reach them; only a token they no longer match can. Without this a parts decode landing after
+    // a sheet switch collected {} off the emptied container, read the NEW sheet's schema, and
+    // appended a blank character canvas under an empty form. It is also what makes renderForm's
+    // second token check reachable, and therefore testable, at all.
+    state.formToken++;
   }
 
   // Everything derived from the OPEN sheet's rows. The token scheme guards what a reply may

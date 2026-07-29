@@ -52,11 +52,15 @@ var Composites = (function () {
   // READ THROUGH TO Pickers rather than restated. An .equip-slot row and Pickers.partControl show
   // the SAME thing — one equipped sprite in the form column — and two different boxes for it would
   // make the form look uneven for no reason, so the numbers have to agree. They now cannot fail to:
-  // there is one copy. Editor.html includes pickers ahead of composites, which is what makes this
-  // legal at IIFE-evaluation time rather than only at call time like the Pickers.* uses below.
-  var SLOT_W = Pickers.PART_W;
-  var SLOT_H = Pickers.PART_H;
-  var SLOT_SCALE = Pickers.PART_SCALE;
+  // there is one copy.
+  //
+  // A FUNCTION, not three `var`s in this IIFE's body. Reading Pickers here at evaluation time
+  // would make composites.js throw ReferenceError unless Editor.html happened to include pickers
+  // first — a dead page from an include reorder, and a coupling no test could see. Every other
+  // cross-module use in this file resolves as a free global at CALL time; this now does too.
+  function slotBox() {
+    return { w: Pickers.PART_W, h: Pickers.PART_H, scale: Pickers.PART_SCALE };
+  }
 
   // parseInt(v, 10), matching Equipped.num(), Appearance.num() and Sprites.num() so the modules
   // cannot disagree about what a cell means.
@@ -345,6 +349,10 @@ var Composites = (function () {
     var wrap = Forms.el('div', { class: 'equip' });
     var raw = str(values[column]);
     var slots = Equipped.parse(raw);
+    var box = slotBox();
+    var SLOT_W = box.w;
+    var SLOT_H = box.h;
+    var SLOT_SCALE = box.scale;
 
     var hidden = Forms.el('input', { type: 'hidden', name: column });
     // Blank is the one value that cannot stand: it emits ",," into the MakeCharacter packet and

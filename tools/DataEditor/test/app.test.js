@@ -1374,35 +1374,50 @@ test('a bundle decodes ONCE however many records are opened while it is in fligh
   assert.equal(h.img.pending.length, 1, 'the second record waits on the SAME decode');
 });
 
-test('a stale bundle decode cannot repaint the previous record into this record\'s panel', () => {
-  // Both records are opened while the parts bundle is still decoding, so BOTH leave a queued
-  // post-decode continuation behind. Only the current record's may run: the superseded one would
-  // repaint the preview panel from a form it no longer owns, and any measurement taken in between
-  // would see a record the user never asked for.
-  const h = boot({ NPCs: [NPC(1, 'Rat'), NPC(2, 'Bat')] }, { hold: true });
-  h.settle();
+test('a stale ICONS decode cannot render the previous record over this one', () => {
+  // Both records are opened while icons is still decoding, so both leave a queued continuation on
+  // it — the one that builds the form and paints the panel. Only the current record's may run.
+  //
+  // THE PANEL, NOT Forms.render, is the probe. Counting renders cannot tell a dropped
+  // continuation from a live one — with icons already decoded both records render synchronously
+  // on click, so the count is zero either way. Preview.character carries the body_id it was asked
+  // to draw, so a superseded continuation is visible as Rat's 7 turning up in Bat's panel.
+  //
+  // THE FAILED FIRST DECODE is what makes the icons half of that reachable at all. loadBundle
+  // caches on success, so after a normal boot no second icons decode exists to race; a bundle
+  // that failed to decode is retried by every renderForm, which is the one state where two
+  // records can be opened with icons in flight.
+  const h = boot({
+    NPCs: [NPC(1, 'Rat', { body_id: 7 }), NPC(2, 'Bat', { body_id: 9 })],
+  }, { hold: true });
+  h.img.fail();          // the boot decode of icons; init still opens the first sheet
+  h.run.flush();
   h.get('sheet-picker').value = 'NPCs';
   fire(h.get('sheet-picker'), 'change');
-  h.settle();
-
-  fire(h.get('records').children[0], 'click');   // Rat
   h.run.flush();
-  fire(h.get('records').children[1], 'click');   // Bat, before parts decoded
-  h.run.flush();
-  assert.equal(h.get('form').querySelector('[name="npc_name"]').value, 'Bat');
+  assert.equal(h.get('records').children.length, 2);
 
-  // Both forms rendered as they were opened — that is the point of not waiting on parts. What must
-  // not happen is Rat's continuation rendering a THIRD time, over Bat.
-  const realRender = Forms.render;
-  let renders = 0;
-  Forms.render = function () { renders += 1; return realRender.apply(this, arguments); };
+  const realCharacter = Preview.character;
+  const drawn = [];
+  Preview.character = function (canvas, values) {
+    drawn.push(String(values.bodyId));
+    return realCharacter.apply(this, arguments);
+  };
   try {
+    fire(h.get('records').children[0], 'click');   // Rat
+    h.run.flush();
+    fire(h.get('records').children[1], 'click');   // Bat, before either bundle decoded
+    h.run.flush();
+    assert.deepEqual(drawn, [], 'nothing is painted until icons decodes');
     h.settle();
   } finally {
-    Forms.render = realRender;
+    Preview.character = realCharacter;
   }
-  assert.equal(renders, 0, 'the superseded continuation was dropped, not merely overwritten');
 
+  // Two paints, both Bat's: one when icons lands and the form is built, one when parts lands and
+  // the panel is repainted from the form. Rat's two continuations were dropped, not merely
+  // overwritten — a 7 anywhere in this list is Rat's record painted into Bat's panel.
+  assert.deepEqual(drawn, ['9', '9']);
   assert.equal(h.get('form').querySelector('[name="npc_name"]').value, 'Bat');
   assert.equal(App.__state.rowNumber, 3);
   assert.equal(App.__state.loaded.npc_id, '2');
@@ -1412,6 +1427,65 @@ test('a stale bundle decode cannot repaint the previous record into this record\
   const at = schemaOf('NPCs').columns.findIndex((c) => c.name === 'npc_name');
   assert.equal(h.writes[0].rowNumber, 3);
   assert.equal(h.writes[0].cells[at], 'Bat');
+});
+
+test('a stale PARTS decode cannot repaint the previous record into this record\'s panel', () => {
+  // The other half of the token scheme, and the one that needs a different window: Rat is opened
+  // and icons lands, so Rat's parts continuation is queued; Bat is then opened with icons already
+  // cached, so it renders synchronously and queues a parts continuation of its own. When parts
+  // lands, Rat's must be dropped rather than allowed to repaint the panel over Bat's form.
+  const h = boot({
+    NPCs: [NPC(1, 'Rat', { body_id: 7 }), NPC(2, 'Bat', { body_id: 9 })],
+  }, { hold: true });
+  h.settle();
+  h.get('sheet-picker').value = 'NPCs';
+  fire(h.get('sheet-picker'), 'change');
+  h.settle();
+
+  const realCharacter = Preview.character;
+  const drawn = [];
+  Preview.character = function (canvas, values) {
+    drawn.push(String(values.bodyId));
+    return realCharacter.apply(this, arguments);
+  };
+  try {
+    fire(h.get('records').children[0], 'click');   // Rat: form and panel, parts in flight
+    h.run.flush();
+    assert.deepEqual(drawn, ['7']);
+    assert.equal(h.img.pending.length, 1, 'parts is decoding');
+
+    fire(h.get('records').children[1], 'click');   // Bat, before parts decoded
+    h.run.flush();
+    h.settle();
+  } finally {
+    Preview.character = realCharacter;
+  }
+
+  // Rat once, Bat twice — its own render, then its own post-parts repaint. A fourth entry is
+  // Rat's superseded continuation repainting the panel it no longer owns.
+  assert.deepEqual(drawn, ['7', '9', '9']);
+  assert.equal(h.get('form').querySelector('[name="npc_name"]').value, 'Bat');
+  assert.equal(App.__state.rowNumber, 3);
+});
+
+test('a bundle landing after a SHEET SWITCH paints no panel for a record that is not open', () => {
+  // The third window, and the one clearForm has to close. A record is open with parts in flight,
+  // then the user switches sheet: the form is emptied but the queued continuation is neither in
+  // imageCallbacks nor formCallbacks — it is a closure in loadBundle's waiter list — so nothing
+  // but the form token can stop it. Left unbumped it collected {} off the emptied container, read
+  // the NEW sheet's schema, and appended a blank character canvas under an empty form.
+  const h = boot({ Items: [ITEM(1, 'Gold')], NPCs: [NPC(1, 'Rat')] });
+  fire(h.get('records').children[0], 'click');
+  h.run.flush();
+  assert.equal(h.img.pending.length, 1, 'parts is decoding');
+  assert.ok(h.get('previews').children.length > 0, 'the Items panel is up');
+
+  h.get('sheet-picker').value = 'NPCs';
+  fire(h.get('sheet-picker'), 'change');
+  h.settle();
+
+  assert.equal(h.get('form').children.length, 0, 'no record is open');
+  assert.equal(h.get('previews').children.length, 0, 'and so no panel is drawn');
 });
 
 test('a successful save drops that sheet\'s cached id list', () => {
