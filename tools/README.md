@@ -175,3 +175,31 @@ It is gitignored, because the script id differs per spreadsheet. There is delibe
 already push just the manifest and the `.html` files. Note that `.claspignore` patterns are matched
 relative to `rootDir`, not to the project directory — a pattern written as `dist/**` would match
 nothing here.
+
+`rootDir` is not a convenience. A pushed file is named by its path relative to `rootDir`, so
+pushing from the project directory would upload `dist/app` rather than `app`, and every
+`include('app')` in `Editor.html` would fail to resolve.
+
+On Arch and Manjaro the `nodejs-google-clasp` package installs the binary as **`gclasp`**, not
+`clasp` — the name `clasp` was already taken. Every `clasp` command here is `gclasp` on those
+systems; nothing else differs.
+
+First-time setup, once per machine:
+
+    gclasp login                 # browser OAuth, writes ~/.clasprc.json
+    gclasp login --status        # confirms which account
+
+`clasp push` also needs the Apps Script API switched on for that Google account, once, at
+<https://script.google.com/home/usersettings>. Without it, push fails with a "User has not enabled
+the Apps Script API" error that says nothing about where to go.
+
+The script id comes from the spreadsheet, not from clasp: open it, **Extensions → Apps Script**
+(which creates the bound project on first use), then **Project Settings → IDs**. With `.clasp.json`
+written, a deploy is:
+
+    node tools/DataEditor/build.mjs
+    cd tools/DataEditor && gclasp push
+
+`clasp push` uploads the sources. Turning them into a reachable web app is still a one-time manual
+step in the Apps Script editor — **Deploy → New deployment → Web app**, execute as *user accessing*,
+access *anyone with a Google account*. Later pushes update the code behind that deployment.
