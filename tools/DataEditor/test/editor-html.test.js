@@ -69,3 +69,45 @@ test('the right-anchored popover the colour picker can ask for is styled', () =>
   assert.match(picker, /data-align/);
   assert.match(html, /\[data-align="right"\][^{]*\.cp-pop\s*{[^}]*right:\s*0/);
 });
+
+// The stylesheet is heavily commented, and a stray `*/` is invisible: the tokens after it become
+// part of the NEXT rule's prelude, which makes the prelude an invalid selector list, which per CSS
+// error handling drops that whole rule. The regex assertions above cannot see it — they match the
+// declaration text whether or not the rule it sits in is live.
+const style = html.match(/<style>([\s\S]*?)<\/style>/)[1];
+
+test('every CSS comment in the stylesheet is terminated', () => {
+  assert.equal(
+    (style.match(/\/\*/g) || []).length,
+    (style.match(/\*\//g) || []).length,
+    'unbalanced /* and */ in <style> — a stray marker silently kills the following rule',
+  );
+});
+
+// Comments gone, so a rule swallowed by an unterminated comment simply is not here to match.
+const css = style.replace(/\/\*[\s\S]*?\*\//g, '');
+const ruleFor = (selector) => {
+  const rules = [...css.matchAll(/([^{}]+){([^}]*)}/g)];
+  return rules.find((r) => r[1].trim() === selector);
+};
+
+test('the equipment slot row is a live grid with a track for every cell it holds', () => {
+  // Five cells per slot: label, graphic FK, colour swatch, preview canvas, status.
+  const rule = ruleFor('.equip-slot');
+  assert.ok(rule, '.equip-slot has no rule of its own — check for an unterminated comment above it');
+  assert.match(rule[2], /display:\s*grid/);
+  assert.match(rule[2], /grid-template-columns:\s*60px\s+1fr\s+28px\s+84px\s+auto/);
+});
+
+test('the icon and slot previews are still rubber-banded to their column', () => {
+  const rule = ruleFor('.graphic canvas, .equip .preview');
+  assert.ok(rule, 'the preview sizing rule was dropped — check for an unterminated comment above it');
+  assert.match(rule[2], /max-width:\s*100%/);
+});
+
+test('the colour swatch fits the 28px track it sits in inside an equipment slot', () => {
+  // The default .swatch is 40px, which would overflow the 28px track into the preview column.
+  const rule = ruleFor('.equip .swatch');
+  assert.ok(rule, '.equip .swatch has no rule — the 40px default overflows the 28px track');
+  assert.match(rule[2], /width:\s*28px/);
+});

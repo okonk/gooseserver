@@ -122,7 +122,8 @@
                     cursor: pointer; }
   .graphic, .bitmask, .idlist, .rgba, .equip { display: block; }
   /* Same story as #previews canvas: the 128px icon preview and the 80px slot preview shrink to
-     fit a ~300px sidebar rather than pushing the form wider than the column. */
+     fit a ~300px sidebar rather than pushing the form wider than the column.
+
      .equip is scoped to .preview rather than to `canvas`: an .equip-slot now also holds a
      ColorPicker, whose three canvases are fixed-size gradients that must not be rubber-banded. */
   .graphic canvas, .equip .preview { vertical-align: middle; max-width: 100%; height: auto;
@@ -134,10 +135,16 @@
   .chip .remove { border: 0; background: none; color: inherit; cursor: pointer; padding: 0 2px; }
   /* The preview track holds the 80px-wide slot canvas (40 logical at 2x) with room to spare. It
      has to be stated: a canvas is a replaced element, so in grid its min-width is auto — a track
-     narrower than the canvas does not clip, it blows out and eats the 1fr graphic column. */
-     The 28px track is the colour swatch: label, graphic, swatch, preview, status. */
+     narrower than the canvas does not clip, it blows out and eats the 1fr graphic column.
+
+     The 28px track is the colour swatch: label, graphic, swatch, preview, status. The default
+     .swatch is 40px, so it is narrowed HERE rather than the track being widened to 40: the row
+     is already 60 + 28 + 84 + gaps of fixed width against a ~258px sidebar column, and every
+     pixel given to the swatch comes off the 1fr graphic dropdown, which needs the room more —
+     a 28px swatch still reads as a colour, a truncated graphic name does not. */
   .equip-slot { display: grid; grid-template-columns: 60px 1fr 28px 84px auto; gap: 4px;
                 align-items: center; }
+  .equip .swatch { width: 28px; }
   .check { display: block; font-size: 11px; }
   .check input { width: auto; margin-right: 4px; }
 
