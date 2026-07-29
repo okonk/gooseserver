@@ -192,9 +192,25 @@ test('a full-alpha tint replaces rgb outright', () => {
                    [200, 100, 50, 40]);
 });
 
-test('applyTint clamps out-of-range channels', () => {
+test('applyTint clamps out-of-range colour channels before blending', () => {
+  // Partial alpha is the ONLY case where the input clamp is observable: at a=255 the blend is
+  // f=1 and the output clamp gives 255 either way. At a=128, r=500 blends to 251 unclamped
+  // against the 128 a valid byte would produce.
+  assert.deepEqual(Sprites.applyTint([0, 0, 0, 255], { r: 500, g: -500, b: 300, a: 128 }),
+                   [128, 0, 128, 255]);
   assert.deepEqual(Sprites.applyTint([0, 0, 0, 255], { r: 500, g: -500, b: 0, a: 255 }),
                    [255, 0, 0, 255]);
+});
+
+test('a negative blend alpha is a no-op, not a blend away from the tint', () => {
+  // A negative alpha is truthy, so the `!tint.a` guard does not catch it. The lower clamp on f
+  // is what stops it: unclamped, a=-100 gives f=-0.392 and drags each channel AWAY from the
+  // tint and straight out of byte range (0 -> -100), which is also why the blend needs no
+  // output clamp of its own. The delta has to be large enough that rounding cannot hide it.
+  assert.deepEqual(Sprites.applyTint([0, 0, 0, 255], { r: 255, g: 255, b: 255, a: -100 }),
+                   [0, 0, 0, 255]);
+  assert.deepEqual(Sprites.applyTint([100, 100, 100, 255], { r: 0, g: 0, b: 0, a: -1 }),
+                   [100, 100, 100, 255]);
 });
 
 test('tintPixels rewrites an RGBA buffer in place', () => {
@@ -263,7 +279,7 @@ function stubCanvas() {
       calls.push(['getImageData', x, y, w, h]);
       return { data: pixels.slice(0, w * h * 4) };
     },
-    putImageData: (img) => calls.push(['putImageData', [...img.data]]),
+    putImageData: (img, x, y) => calls.push(['putImageData', x, y, [...img.data]]),
   };
   return ctx;
 }
@@ -316,7 +332,10 @@ test('a tinted draw sizes the offscreen canvas to the rect and blits the tinted 
   assert.deepEqual(offscreen.ctx.calls[0], ['drawImage', 'img', 10, 20, 2, 1, 0, 0, 2, 1]);
   // Read back the whole rect, width then height — transposing it reads the wrong pixels.
   assert.deepEqual(offscreen.ctx.calls[1], ['getImageData', 0, 0, 2, 1]);
-  assert.deepEqual(offscreen.ctx.calls[2], ['putImageData', [0, 0, 0, 255, 0, 0, 0, 0]]);
+  // Written back to the offscreen ORIGIN, not to dx/dy: the offscreen canvas is only as big as
+  // the rect, so writing at dx/dy puts every tinted pixel off its edge and the sprite renders
+  // untinted.
+  assert.deepEqual(offscreen.ctx.calls[2], ['putImageData', 0, 0, [0, 0, 0, 255, 0, 0, 0, 0]]);
   // ...and the offscreen canvas, already the right size, goes down at dx/dy.
   assert.deepEqual(ctx.calls, [['drawImage', offscreen, 5, 6]]);
 });
@@ -359,4 +378,15 @@ test('mount resolves against the real bundle', () => {
     .filter((k) => k.startsWith('Bodies:') && k.endsWith(':mounted-idle-down'));
   assert.equal(mounts.length, 4, 'bundle changed: expected four mountable bodies');
   for (const key of mounts) assert.deepEqual(Sprites.mount(real, key.split(':')[1]), real.parts.rects[key]);
+});
+
+test('draw with no image yet is a no-op on both paths', () => {
+  // Task 11 loads the three bundle PNGs lazily; a redraw while one is still decoding must skip
+  // that layer, not take down the whole render with a TypeError from drawImage(null, ...).
+  const ctx = stubCanvas();
+  offscreen = null;
+  Sprites.draw(ctx, null, [10, 20, 30, 40], 5, 6, null);
+  Sprites.draw(ctx, undefined, [10, 20, 30, 40], 5, 6, { r: 1, g: 2, b: 3, a: 255 });
+  assert.deepEqual(ctx.calls, []);
+  assert.equal(offscreen, null, 'no offscreen canvas should have been created');
 });

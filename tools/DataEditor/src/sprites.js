@@ -28,7 +28,7 @@ var Sprites = (function () {
   }
 
   // Resting-pose clip preference, from AnimationNames.Candidates("idle", bodyState, Down)
-  // (Scripts/Character/AnimationNames.cs:41-42): the unarmed list ends with -equip because Hands
+  // (Scripts/Character/AnimationNames.cs:44-45): the unarmed list ends with -equip because Hands
   // weapon and shield sheets only ever ship idle-equip. bodyState's 4/5/6/7 weapon variants only
   // affect attack clips, so a boolean is all the resting pose can use.
   function clipCandidates(equipped) {
@@ -114,20 +114,26 @@ var Sprites = (function () {
   function applyTint(px, tint) {
     if (!tint || !tint.a) return [px[0], px[1], px[2], px[3]];
 
-    // Appearance already clamps what it emits, but applyTint is public and a hand-built tint
-    // can be out of range; a channel outside 0-255 would silently wrap in a Uint8ClampedArray's
-    // neighbours' favour rather than erroring.
+    // Appearance already clamps what it emits, but applyTint is public and a hand-built tint can
+    // be out of range. Both clamps below are load-bearing and each covers a different failure:
+    // an unclamped f leaves [0,1] and pushes the result PAST the tint colour (or, for a negative
+    // alpha, away from it); an unclamped tint channel does the same at partial alpha, where the
+    // byte range alone would not catch it.
+    //
+    // The OUTPUT needs no clamp: with f in [0,1] and the tint channel in [0,255], each result is
+    // a convex combination of two valid bytes and so is one itself.
     var f = channel(tint.a) / 255;
     return [
-      channel(Math.round(px[0] + (channel(tint.r) - px[0]) * f)),
-      channel(Math.round(px[1] + (channel(tint.g) - px[1]) * f)),
-      channel(Math.round(px[2] + (channel(tint.b) - px[2]) * f)),
+      Math.round(px[0] + (channel(tint.r) - px[0]) * f),
+      Math.round(px[1] + (channel(tint.g) - px[1]) * f),
+      Math.round(px[2] + (channel(tint.b) - px[2]) * f),
       px[3],
     ];
   }
 
-  // Tints an RGBA byte buffer in place. Split out of draw() so the pixel maths is reachable
-  // without a DOM: draw() itself is only canvas plumbing around this.
+  // Tints an RGBA byte buffer in place. Split out of draw() so that draw() is nothing but canvas
+  // plumbing and the per-pixel assertions have somewhere to live that does not need a canvas at
+  // all. (Not for reachability: the stub canvas in the tests drives draw() end to end.)
   function tintPixels(data, tint) {
     // Pure optimisation, not a rule: applyTint already treats a missing or zero blend factor as
     // the identity, so removing this line changes only how long a full-sprite no-op takes.
@@ -145,7 +151,10 @@ var Sprites = (function () {
   // Draws one rect from a bundle onto a canvas context, applying the tint per-pixel when needed.
   // Tinting requires pixel access, so it goes through an offscreen canvas.
   function draw(ctx, image, rect, dx, dy, tint) {
-    if (!rect) return;
+    // No rect means the id has no art; no image means its bundle PNG has not decoded yet. Both
+    // skip the layer. drawImage(null, ...) is a TypeError in a real DOM, which would abort the
+    // whole render over one not-yet-loaded bundle rather than leaving one layer blank.
+    if (!rect || !image) return;
 
     if (!tint || !tint.a) {
       ctx.drawImage(image, rect[0], rect[1], rect[2], rect[3], dx, dy, rect[2], rect[3]);
