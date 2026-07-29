@@ -143,13 +143,21 @@
      has to be stated: a canvas is a replaced element, so in grid its min-width is auto — a track
      narrower than the canvas does not clip, it blows out and eats the 1fr graphic column.
 
-     The 28px track is the colour swatch: label, graphic, swatch, preview, status. The default
-     .swatch is 40px, so it is narrowed HERE rather than the track being widened to 40: the row
-     is already 60 + 28 + 84 + gaps of fixed width against a ~258px sidebar column, and every
-     pixel given to the swatch comes off the 1fr graphic dropdown, which needs the room more —
-     a 28px swatch still reads as a colour, a truncated graphic name does not. */
-  .equip-slot { display: grid; grid-template-columns: 60px 1fr 28px 84px auto; gap: 4px;
+     The five tracks are label, graphic, browse, swatch, preview. The default .swatch is 40px, so
+     it is narrowed HERE rather than the track being widened to 40: the row is already
+     60 + 28 + 28 + 84 + gaps of fixed width against a ~258px sidebar column, and every pixel given
+     to the swatch comes off the 1fr graphic field, which needs the room more — a 28px swatch still
+     reads as a colour, a truncated graphic id does not.
+
+     THE STATUS LINE IS NO LONGER A TRACK. It was the one cell with no width budget — an `auto`
+     track holding a string that has since grown ("colour not stored while blend is 0") — and a
+     Browse button had to be paid for from somewhere. Moving the status onto its own full-width row
+     buys the 28px track for the button without taking a pixel from the 1fr graphic field, the
+     swatch (already narrowed once) or the preview, AND gives the message the whole row rather than
+     whatever an unbudgeted `auto` track could squeeze out of a ~258px sidebar column. */
+  .equip-slot { display: grid; grid-template-columns: 60px 1fr 28px 28px 84px; gap: 4px;
                 align-items: center; }
+  .equip-slot .status { grid-column: 1 / -1; }
   .equip .swatch { width: 28px; }
   .check { display: block; font-size: 11px; }
   .check input { width: auto; margin-right: 4px; }
@@ -164,6 +172,52 @@
   .boolean input[type="checkbox"] { width: auto; margin: 0; }
   .boolean .clear { border: 0; background: none; color: #555; cursor: pointer; padding: 0 2px; }
 
+  /* The Browse buttons pickers.js and composites.js put beside every graphic field. Compact and
+     non-stretching: `input { width: 100% }` above does not reach a button, but the .equip-slot grid
+     would otherwise stretch it across its track. */
+  .browse { border: 1px solid #ccc; background: #f4f4f4; color: #222; cursor: pointer;
+            padding: 1px 6px; font-size: 11px; }
+  .browse[disabled] { color: #999; cursor: default; }
+  .equip-slot .browse { padding: 1px 0; width: 100%; }
+
+  /* THE GRAPHIC BROWSER. #modal is the backdrop and the dialog's positioning context; Gallery.open
+     owns everything inside it and leaves it empty on close.
+
+     z-index 20 over the sticky header's 5 — a dialog under the header is a dialog with its title
+     bar bitten off. `position: fixed` rather than absolute so it covers the page whatever the form
+     column has scrolled to. */
+  #modal { position: fixed; inset: 0; z-index: 20; background: rgba(0, 0, 0, 0.45);
+           display: flex; align-items: center; justify-content: center; }
+  /* [hidden] loses to `display: flex` on specificity-equal ground — same selector weight, later
+     rule wins — so the modal would be permanently on screen without this. */
+  #modal[hidden] { display: none; }
+  .gal { background: #fff; border: 1px solid #ccc; padding: 8px; max-width: calc(100vw - 16px);
+         max-height: calc(100vh - 16px); display: flex; flex-direction: column; gap: 6px;
+         box-sizing: border-box; }
+  .gal-head { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .gal h2 { margin: 0; font-size: 12px; text-transform: uppercase; color: #666; }
+  /* The one control in the header that may grow, so the header never demands more width than the
+     grid below it (4 * 64 + 3 * 4 = 268). */
+  .gal-head input { width: 60px; }
+  .gal-locked { font-size: 11px; color: #555; }
+  /* THE SCROLLER IS THE ONLY THING THAT SCROLLS. The grid is a fixed 268px wide, so in a ~300px
+     Sheets sidebar it fits, and a narrower viewport still scrolls HERE rather than turning the whole
+     page into a horizontal scroller — the same rule #previews canvas and .cp-pop are written to. */
+  .gal-scroll { overflow: auto; flex: 1 1 auto; min-height: 120px; }
+  .gal-grid { display: grid; grid-template-columns: repeat(4, 64px); gap: 4px; }
+  /* Every tile is one 64px cell whose background is a window onto the bundle atlas — no canvas, no
+     drawImage. gallery.js sets background-size and background-position per tile; the PNG itself
+     comes from a rule it injects, once, so the data URI is not copied 4,827 times.
+
+     The 4px gap plus this 64px box IS Gallery.ROW_HEIGHT (68), which is the number its windowing
+     arithmetic uses to decide which row a scroll offset lands on. The two cannot drift apart
+     silently: a mismatch shows up as tiles landing outside the viewport. */
+  .gal-tile { width: 64px; height: 64px; padding: 0; border: 1px solid #eee; cursor: pointer;
+              background-repeat: no-repeat; background-color: transparent;
+              image-rendering: pixelated; }
+  .gal-tile[aria-selected="true"] { border-color: #4a76c8; box-shadow: 0 0 0 1px #4a76c8; }
+  .gal-count { font-size: 11px; color: #555; }
+
   @media (prefers-color-scheme: dark) {
     body { background: #1c1c1c; color: #eee; }
     header, section, .record, .result, .results, .cp-pop { background: #242424;
@@ -176,6 +230,12 @@
     .record, .result { color: #eee; }
     .result.active { background: #33415c; }
     .chip { background: #2b2b3a; border-color: #43435a; color: #eee; }
+    /* Buttons do not inherit colour, so both of these are stated rather than left to the cascade. */
+    .browse { background: #2c2c2c; color: #eee; border-color: #444; }
+    .browse[disabled] { color: #777; }
+    .gal { background: #242424; border-color: #3a3a3a; }
+    .gal h2, .gal-locked, .gal-count { color: #aaa; }
+    .gal-tile { border-color: #3a3a3a; }
     /* #060 and #b00 sit at roughly 1.7:1 and 2.5:1 on #1c1c1c, against a 4.5:1 target — and
        .error carries every validation message there is. */
     .ok { color: #6ede8a; }
@@ -205,18 +265,24 @@
   </div>
 </main>
 
+<!-- The graphic browser's host, and the only one on the page. Gallery.open fills it, Gallery.close
+     empties it: a modal left holding 4,827 tiles behind `hidden` costs the same memory as one on
+     screen, and app.js rebuilds the form for every record opened. -->
+<div id="modal" hidden></div>
+
 <!--
   Include order. Every module is an IIFE that resolves the others as FREE GLOBALS at CALL time,
   so strictly only the data files have to come first — but the order below is the real dependency
   graph anyway, which is the order to keep it in:
     appearance  -> Equipped
     colorpicker -> Forms, Sprites
-    composites  -> Forms, Pickers, Sprites, Equipped, Appearance, ColorPicker, Layout
+    gallery     -> Forms, Sprites
+    composites  -> Forms, Pickers, Sprites, Equipped, Appearance, ColorPicker, Layout, Gallery
     forms       -> Layout, Composites, Pickers
     preview     -> Appearance, Sprites, Equipped
-    pickers     -> Forms, Sprites, Appearance, Preview
+    pickers     -> Forms, Sprites, Appearance, Preview, Gallery
     app         -> everything
-  All eleven src/ modules are listed. build.mjs emits one dist/<name>.html per src/*.js, so a
+  All twelve src/ modules are listed. build.mjs emits one dist/<name>.html per src/*.js, so a
   module added there and not added here is simply never on the page.
 -->
 <?!= include('schema'); ?>
@@ -231,6 +297,7 @@
 <?!= include('preview'); ?>
 <?!= include('pickers'); ?>
 <?!= include('colorpicker'); ?>
+<?!= include('gallery'); ?>
 <?!= include('composites'); ?>
 <?!= include('forms'); ?>
 <?!= include('app'); ?>

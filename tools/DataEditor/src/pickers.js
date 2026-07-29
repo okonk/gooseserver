@@ -120,6 +120,38 @@ var Pickers = (function () {
     return exact.concat(idPrefix.slice(0, room - reserved), nameHit).slice(0, LIMIT);
   }
 
+  // The graphic browser, or null when it is not on the page. Resolved at CALL time — like every
+  // other cross-module reference in this file — and overridable through the control's options
+  // object, which is what Task 6's collapse to options objects was for: a test can hand one control
+  // a spy without reaching for a global, and a build that omits gallery.html degrades to a form
+  // with no Browse buttons rather than a form that throws on the first click.
+  //
+  // ColorPicker.within/Pickers.within already set the precedent for a two-line helper duplicated
+  // across modules with a stated reason; composites.js carries the same one.
+  function galleryOf(opts) {
+    if (opts && opts.gallery) return opts.gallery;
+    return (typeof Gallery !== 'undefined' && Gallery) ? Gallery : null;
+  }
+
+  // A Browse button beside a graphic field. `onOpen(button)` does the opening — each control states
+  // its own bundle, filter and callback — so this is only the button, its accessible name, and the
+  // handle the gallery hands focus back to.
+  //
+  // `text` is what is DRAWN, and it is not always the label: the six equip-slot rows have 28px to
+  // spare and the word "Browse" does not fit in it. aria-label and title carry the real name in
+  // both cases, so a screen reader and a hover tooltip say "browse Head graphics" either way — the
+  // same call Forms.boolControl's × button makes, for the same reason.
+  //
+  // A <button type="button">, not a link: it opens a dialog and submits nothing.
+  function browseButton(label, text, onOpen) {
+    var button = Forms.el('button', {
+      type: 'button', class: 'browse', title: label, 'aria-label': label,
+      'aria-haspopup': 'dialog',
+    }, text);
+    button.addEventListener('click', function () { onOpen(button); });
+    return button;
+  }
+
   // True when `node` is the list or anything inside it. Walks parentNode rather than using
   // Node.contains, which the test DOM does not model.
   function within(container, node) {
@@ -414,6 +446,40 @@ var Pickers = (function () {
     var fInput = cell(fileColumn, 'sheet');
     var status = Forms.el('span', { class: 'status' });
 
+    // WHICH ATLAS THIS COLUMN'S NUMBER INDEXES. 'icons' for every graphic pair but Spell Effects'
+    // spell_animation, which is an effect id — read from Layout by the caller rather than decided
+    // here, so nothing in this file names a sheet.
+    var galleryBundle = opts.galleryBundle || 'icons';
+
+    // A pick writes BOTH cells of an icons pair, which is exactly what makes "graphic and sheet must
+    // both be set" hard to trip from the browser. An EFFECT pick has no sheet to write, so the file
+    // cell is left alone — spell_animation_file is stored 0 in 176 of the 259 shipped rows and the
+    // server sends both cells through verbatim, so filling it in would be inventing data.
+    var browse = browseButton('browse ' + galleryBundle + ' for ' + graphicColumn.name, 'Browse',
+      function (button) {
+        var gallery = galleryOf(opts);
+        if (!gallery) return;
+        gallery.open({
+          bundle: galleryBundle,
+          bundles: (ctx && ctx.bundles) || {},
+          opener: button,
+          // Read at CLICK time, not at build time: a designer who has just typed a different sheet
+          // number expects the browser to open on that sheet.
+          filter: galleryBundle === 'icons' ? { sheet: fInput.value } : {},
+          current: galleryBundle === 'icons'
+            ? { sheet: fInput.value, graphic: gInput.value }
+            : { id: gInput.value },
+          onPick: function (choice) {
+            gInput.value = choice.graphic !== undefined ? choice.graphic : choice.id;
+            if (choice.sheet !== undefined) fInput.value = choice.sheet;
+            // ONE dispatched event does both jobs: it runs this control's own `input` listener (so
+            // the preview and the status line follow) and bubbles to app.js's delegated listener
+            // (so the panel previews do too). Calling redraw() as well would draw twice.
+            gInput.dispatchEvent(new Event('input', { bubbles: true }));
+          },
+        });
+      });
+
     // The last form state seen, which the tint is read out of. Seeded with the record's own values
     // so the FIRST draw is tinted too — a preview that only picked the tint up after an unrelated
     // keystroke would show every freshly opened record plain.
@@ -516,6 +582,7 @@ var Pickers = (function () {
     wrap.appendChild(canvas);
     wrap.appendChild(gInput);
     wrap.appendChild(fInput);
+    wrap.appendChild(browse);
     wrap.appendChild(status);
     return wrap;
   }
@@ -562,12 +629,51 @@ var Pickers = (function () {
     var status = Forms.el('span', { class: 'status' });
     var latest = values;
 
+    // The sprite folder for whatever the row's slot column currently says, or null when the slot is
+    // not drawn on the character. Read from the LIVE form for the reason redraw() gives.
+    function category() {
+      var slot = Appearance.slotFor(latest[spec.categoryFrom]);
+      return slot ? Appearance.CATEGORY[slot] : null;
+    }
+
+    // LOCKED TO THE ROW'S OWN CATEGORY, always. The folder comes from item_slot, so browsing Helms
+    // for a Feet item would offer a sprite the client would never draw there — the gallery renders
+    // no chooser at all in that case rather than a disabled one.
+    //
+    // With no category there is nothing to browse: the button is disabled and says why. A Mount is
+    // the other missing case — its art is a mounted clip, which the gallery does not index because
+    // Sprites.part deliberately never falls back to one — so Bodies would list 305 standing bodies
+    // of which four have the mounted pose this cell actually needs. Better to offer nothing.
+    var browse = browseButton('browse character parts for ' + column.name, 'Browse',
+      function (button) {
+        var gallery = galleryOf(opts);
+        var folder = category();
+        if (!gallery || !folder || Appearance.slotFor(latest[spec.categoryFrom]) === 'Mount') return;
+        gallery.open({
+          bundle: 'parts',
+          bundles: (ctx && ctx.bundles) || {},
+          opener: button,
+          filter: { category: folder, locked: true },
+          current: { category: folder, id: input.value },
+          onPick: function (choice) {
+            input.value = choice.id;
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+          },
+        });
+      });
+
     function redraw() {
       var target = Sprites.scaled(canvas, PART_SCALE, PART_W, PART_H);
       var text = str(input.value).trim();
       // The slot is read from the LIVE form, so changing item_slot from Helmet to Shoes moves this
       // preview into another folder without the record being reopened.
       var slot = Appearance.slotFor(latest[spec.categoryFrom]);
+
+      // Kept in step with the slot on every edit, not decided once at build time: changing
+      // item_slot from Ring to Helmet must make the button work, and the reverse must stop it.
+      // The click handler guards too — `disabled` is a hint to the user, not a lock.
+      if (slot && slot !== 'Mount') browse.removeAttribute('disabled');
+      else browse.setAttribute('disabled', '');
 
       function say(message, bad) {
         status.textContent = message;
@@ -618,6 +724,7 @@ var Pickers = (function () {
 
     wrap.appendChild(canvas);
     wrap.appendChild(input);
+    wrap.appendChild(browse);
     wrap.appendChild(status);
     return wrap;
   }

@@ -1209,3 +1209,135 @@ test('the equip slot preview is scaled, with its centring still in logical pixel
     ['drawImage', 'PARTS', 0, 0, 11, 13, 14, 21, 11, 13],
   ]);
 });
+
+// --- the equip-slot Browse buttons -------------------------------------------------------------
+//
+// A SPY GALLERY, as in pickers.test.js: what matters here is the seam and the write path, not the
+// browser itself.
+
+function spyGallery() {
+  const opens = [];
+  return {
+    opens,
+    open(options) { opens.push(options); return { close() {} }; },
+    pick(choice) { opens[opens.length - 1].onPick(choice); },
+  };
+}
+
+function browseOf(row) {
+  return row.querySelector('[class="browse"]');
+}
+
+test('every equip slot gets a Browse button locked to its own sprite folder', () => {
+  const gallery = spyGallery();
+  const node = Composites.control({
+    comp: EQUIP, byName: byName(EQUIP.columns), values: { equipped_items: RAW_EQUIP },
+    ctx: ctx(), gallery,
+  });
+
+  const rows = slotRows(node);
+  assert.equal(rows.length, 6);
+  rows.forEach((row, i) => {
+    const button = browseOf(row);
+    assert.ok(button, 'slot ' + i + ' has no Browse button');
+    assert.equal(button.getAttribute('aria-haspopup'), 'dialog');
+    // The compact label is '…' because the row has 28px; the accessible name is the real one.
+    assert.equal(button.textContent, '…');
+    assert.match(button.getAttribute('aria-label'), /^browse \w+ graphics$/);
+  });
+
+  // Equipped.SLOTS order, through the client's own slot -> folder map: Shield and Weapon both
+  // render from Hands.
+  const folders = rows.map((row) => {
+    fire(browseOf(row), 'click');
+    return gallery.opens[gallery.opens.length - 1].filter;
+  });
+  assert.deepEqual(folders, Equipped.SLOTS.map((name) => ({
+    category: Appearance.CATEGORY[name], locked: true,
+  })));
+});
+
+test('a Browse button sits in the row, in grid track order, with the status below it', () => {
+  const node = Composites.control({
+    comp: EQUIP, byName: byName(EQUIP.columns), values: { equipped_items: RAW_EQUIP }, ctx: ctx(),
+  });
+  const row = slotRows(node)[0];
+  // label, graphic, browse, swatch, preview, status — the five declared tracks plus the status
+  // line, which spans the whole row underneath (see .equip-slot in Editor.html).
+  assert.deepEqual(row.children.map((c) => c.className),
+    ['', 'slot-graphic', 'browse', 'colorpicker', 'preview', 'status']);
+});
+
+test('picking a slot graphic writes the cell and redraws, on the typed-id path', () => {
+  const gallery = spyGallery();
+  const node = Composites.control({
+    comp: EQUIP, byName: byName(EQUIP.columns), values: { equipped_items: RAW_EQUIP },
+    ctx: ctx(), gallery,
+  });
+  const row = slotRows(node)[0];
+  const canvas = row.querySelector('[class="preview"]');
+  const before = canvas.getContext('2d').calls.length;
+
+  fire(browseOf(row), 'click');
+  assert.deepEqual(gallery.opens[0].current, { category: 'Chest', id: '1' });
+  gallery.pick({ category: 'Chest', id: '9' });
+
+  assert.equal(slotInputs(node)[0].value, '9');
+  // Through the input's own `input` event, so the typo check, the freeze gate, the cell write and
+  // the redraw all run on the one path a typed id runs on.
+  assert.equal(Equipped.parse(named(node, 'equipped_items').value)[0].graphic, 9);
+  assert.ok(canvas.getContext('2d').calls.length > before, 'the slot preview did not redraw');
+});
+
+test('a slot pick bubbles, so app.js\'s delegated preview listener sees it', () => {
+  const gallery = spyGallery();
+  const node = Composites.control({
+    comp: EQUIP, byName: byName(EQUIP.columns), values: { equipped_items: RAW_EQUIP },
+    ctx: ctx(), gallery,
+  });
+  const container = document.createElement('div');
+  container.appendChild(node);
+  let seen = 0;
+  container.addEventListener('input', () => { seen++; });
+
+  fire(browseOf(slotRows(node)[0]), 'click');
+  gallery.pick({ category: 'Chest', id: '9' });
+  assert.equal(seen, 1);
+});
+
+test('the equip slots survive a build with no gallery on the page', () => {
+  const saved = globalThis.Gallery;
+  delete globalThis.Gallery;
+  try {
+    const node = Composites.control({
+      comp: EQUIP, byName: byName(EQUIP.columns), values: { equipped_items: RAW_EQUIP }, ctx: ctx(),
+    });
+    fire(browseOf(slotRows(node)[0]), 'click');
+  } finally {
+    if (saved !== undefined) globalThis.Gallery = saved;
+  }
+});
+
+test('a Graphic composite asks Layout which atlas its browser shows', () => {
+  const gallery = spyGallery();
+  const comp = { kind: 'Graphic', columns: ['spell_animation', 'spell_animation_file'] };
+  const node = Composites.control({
+    comp, byName: byName(comp.columns), sheet: 'Spell Effects',
+    values: { spell_animation: '4', spell_animation_file: '0' }, ctx: ctx(), gallery,
+  });
+
+  fire(node.querySelector('[class="browse"]'), 'click');
+  assert.equal(gallery.opens[0].bundle, 'effects');
+});
+
+test('every other Graphic composite browses the inventory icons', () => {
+  const gallery = spyGallery();
+  const comp = { kind: 'Graphic', columns: ['graphic_tile', 'graphic_file'] };
+  const node = Composites.control({
+    comp, byName: byName(comp.columns), sheet: 'Items',
+    values: { graphic_tile: '1', graphic_file: '2' }, ctx: ctx(), gallery,
+  });
+
+  fire(node.querySelector('[class="browse"]'), 'click');
+  assert.equal(gallery.opens[0].bundle, 'icons');
+});

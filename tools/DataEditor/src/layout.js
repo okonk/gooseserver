@@ -108,6 +108,18 @@ var Layout = (function () {
     },
   };
 
+  // WHICH SPRITE BUNDLE A GRAPHIC COLUMN'S BROWSER SHOWS, where it is not the inventory icons.
+  //
+  // Presentation, so it is here rather than in the descriptors: nothing about the COLUMN says which
+  // atlas its number indexes. Every Graphic composite in the editor is an inventory icon except
+  // one — Spell Effects' spell_animation is an EFFECT id (app.js draws it through Preview.effect,
+  // and Sprites.effectFrames is the lookup) — so the table has exactly one entry and the default is
+  // 'icons'. A second sheet gaining an animation column gets its browser from here rather than from
+  // a name spelled out in pickers.js.
+  var GALLERIES = {
+    'Spell Effects': { spell_animation: 'effects' },
+  };
+
   // Own-property lookups throughout: a sheet named 'constructor' is not a thing, but neither is
   // reaching Object.prototype for one, and the rest of this file is prototype-free for the same
   // reason.
@@ -130,6 +142,13 @@ var Layout = (function () {
   /// The part-graphic spec for one column, or null when the column is not a character part.
   function partGraphic(sheet, column) {
     return twoLevel(PART_GRAPHICS, sheet, column);
+  }
+
+  /// Which sprite bundle the graphic browser should show for one column. Never null: 'icons' is the
+  /// answer for every graphic column but the one in GALLERIES, so callers need no fallback of their
+  /// own and cannot disagree about what it is.
+  function galleryBundle(sheet, column) {
+    return twoLevel(GALLERIES, sheet, column) || 'icons';
   }
 
   // ReloadSQLCommandEvent.cs:30-40 reloads spell effects, spells, item templates, quests and NPC
@@ -241,12 +260,14 @@ var Layout = (function () {
     needsRestart: needsRestart,
     tintColumns: tintColumns,
     partGraphic: partGraphic,
+    galleryBundle: galleryBundle,
     RESTART_ONLY: deepFreeze(RESTART_ONLY),
     LAYOUTS: deepFreeze(LAYOUTS),
     // Exported for the same reason LAYOUTS is: a name here for a column that does not exist is
     // invisible to every consumer, which simply reads null and draws no tint.
     TINTS: deepFreeze(TINTS),
     PART_GRAPHICS: deepFreeze(PART_GRAPHICS),
+    GALLERIES: deepFreeze(GALLERIES),
   };
 })();
 

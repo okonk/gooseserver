@@ -140,11 +140,73 @@ test('the at-block stripper removes any nested at-rule, not only @media', () => 
 });
 
 test('the equipment slot row is a live grid with a track for every cell it holds', () => {
-  // Five cells per slot: label, graphic FK, colour swatch, preview canvas, status.
+  // Five tracks per slot: label, graphic id, Browse button, colour swatch, preview canvas. The
+  // status line is the sixth child and has NO track of its own — it spans the whole row underneath,
+  // which is where the Browse button's 28px came from (it was the one cell with no width budget,
+  // and it now holds a longer string than it used to).
   const rule = ruleFor('.equip-slot');
   assert.ok(rule, `.equip-slot has no rule of its own — check for an ${NOT_FOUND}`);
   assert.match(rule[2], /display:\s*grid/);
-  assert.match(rule[2], /grid-template-columns:\s*60px\s+1fr\s+28px\s+84px\s+auto/);
+  assert.match(rule[2], /grid-template-columns:\s*60px\s+1fr\s+28px\s+28px\s+84px/);
+
+  const status = ruleFor('.equip-slot .status');
+  assert.ok(status, `.equip-slot .status has no rule — without it the status line takes a sixth `
+    + `track that the grid does not declare, and lands in the next row's label cell. Check for `
+    + `an ${NOT_FOUND}`);
+  assert.match(status[2], /grid-column:\s*1\s*\/\s*-1/);
+});
+
+test('the graphic browser is a modal that covers the sticky header', () => {
+  const modal = ruleFor('#modal');
+  assert.ok(modal, `#modal has no rule of its own — check for an ${NOT_FOUND}`);
+  // A dialog under the header is a dialog with its title bar bitten off.
+  const header = ruleFor('header');
+  const z = (rule) => Number(/z-index:\s*(\d+)/.exec(rule[2])[1]);
+  assert.ok(z(modal) > z(header), 'the modal must stack above the sticky header');
+  assert.match(modal[2], /position:\s*fixed/);
+
+  // `display: flex` on #modal beats [hidden]'s display:none on equal specificity, so without a
+  // rule of its own the browser would be permanently on screen. Nothing else in the suite could
+  // see that: gallery.js sets `hidden` correctly either way.
+  const off = ruleFor('#modal[hidden]');
+  assert.ok(off, `#modal[hidden] has no rule — the modal would never hide. Check for an ${NOT_FOUND}`);
+  assert.match(off[2], /display:\s*none/);
+});
+
+test('the tile grid matches the arithmetic gallery.js windows with', async () => {
+  const { Gallery } = await import('../src/gallery.js');
+  const grid = ruleFor('.gal-grid');
+  assert.ok(grid, `.gal-grid has no rule of its own — check for an ${NOT_FOUND}`);
+  const tile = ruleFor('.gal-tile');
+  assert.ok(tile, `.gal-tile has no rule of its own — check for an ${NOT_FOUND}`);
+
+  // The stylesheet and the module have to agree on all three numbers or a scroll offset lands on
+  // the wrong row: windowFor() computes the slice from COLUMNS and ROW_HEIGHT, and only the CSS
+  // decides where a tile actually goes.
+  assert.match(grid[2], new RegExp(`repeat\\(${Gallery.COLUMNS},\\s*${Gallery.CELL}px\\)`));
+  assert.match(grid[2], new RegExp(`gap:\\s*${Gallery.GAP}px`));
+  assert.match(tile[2], new RegExp(`width:\\s*${Gallery.CELL}px`));
+  assert.match(tile[2], new RegExp(`height:\\s*${Gallery.CELL}px`));
+  assert.equal(Gallery.ROW_HEIGHT, Gallery.CELL + Gallery.GAP);
+  // Pixel art, blown up. A smoothed tile is a blurry one.
+  assert.match(tile[2], /image-rendering:\s*pixelated/);
+  // background-repeat, because a 32px sprite in a 64px cell would otherwise tile four times.
+  assert.match(tile[2], /background-repeat:\s*no-repeat/);
+});
+
+test('the selected tile is visibly marked', () => {
+  // gallery.js sets aria-selected and nothing else: with no rule for it a sighted keyboard user
+  // has no idea which tile Enter would pick.
+  const rule = ruleFor('.gal-tile[aria-selected="true"]');
+  assert.ok(rule, `.gal-tile[aria-selected="true"] has no rule — check for an ${NOT_FOUND}`);
+  assert.match(rule[2], /border-color|box-shadow|outline/);
+});
+
+test('the Browse buttons the graphic controls emit are styled', () => {
+  const rule = ruleFor('.browse');
+  assert.ok(rule, `.browse has no rule of its own — check for an ${NOT_FOUND}`);
+  const pickers = readFileSync(join(root, 'src', 'pickers.js'), 'utf8');
+  assert.match(pickers, /class: 'browse'/);
 });
 
 test('the two Items canvases are laid out as a row, not stacked with baseline gaps', () => {

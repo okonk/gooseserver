@@ -260,6 +260,44 @@ test('the new tables cannot be mutated by a consumer either', () => {
   assert.throws(() => { Layout.TINTS.Items = {}; }, TypeError);
   assert.throws(() => Layout.TINTS.Items.graphic_tile.push('x'), TypeError);
   assert.throws(() => { Layout.PART_GRAPHICS.Items.graphic_equip.categoryFrom = 'x'; }, TypeError);
+  assert.throws(() => { Layout.GALLERIES['Spell Effects'].spell_animation = 'x'; }, TypeError);
+});
+
+// ---------------------------------------------------------------- GALLERIES
+
+test('galleryBundle answers icons for every graphic column but the animation ones', () => {
+  assert.equal(Layout.galleryBundle('Spell Effects', 'spell_animation'), 'effects');
+  // The buff graphic on the SAME sheet is an inventory icon, so the table is per column and not
+  // per sheet.
+  assert.equal(Layout.galleryBundle('Spell Effects', 'buff_graphic'), 'icons');
+  assert.equal(Layout.galleryBundle('Items', 'graphic_tile'), 'icons');
+  assert.equal(Layout.galleryBundle('Spells', 'spellbook_graphic'), 'icons');
+  // Never null: callers need no fallback of their own, so none of them can disagree about it.
+  assert.equal(Layout.galleryBundle('No Such Sheet', 'no_such_column'), 'icons');
+});
+
+test('every gallery entry names a real column that a Graphic composite leads', () => {
+  Object.keys(Layout.GALLERIES).forEach((name) => {
+    const real = sheet(name).columns.map((c) => c.name);
+    Object.keys(Layout.GALLERIES[name]).forEach((column) => {
+      assert.ok(real.includes(column), `${name} has no column ${column}`);
+      // The entry is read by Composites.control for a Graphic composite's LEADER. Named on any
+      // other column it would be a table nothing consults, which no other test could see.
+      const led = [...(sheet(name).composites || [])]
+        .filter((c) => c.kind === 'Graphic' && c.columns[0] === column);
+      assert.equal(led.length, 1, `${name}.${column} leads no Graphic composite`);
+    });
+  });
+});
+
+test('every bundle a gallery entry names is one the editor actually ships', () => {
+  const bundles = ['icons', 'parts', 'effects'];
+  Object.keys(Layout.GALLERIES).forEach((name) => {
+    Object.keys(Layout.GALLERIES[name]).forEach((column) => {
+      assert.ok(bundles.includes(Layout.GALLERIES[name][column]),
+        `${name}.${column} names a bundle that does not exist`);
+    });
+  });
 });
 
 // ---------------------------------------------------------------- labelFor

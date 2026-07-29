@@ -1426,3 +1426,179 @@ test('partControl redraws when the parts bundle finishes decoding', () => {
   ready[0]();
   assert.equal(drawnFrom(wrap), 10);
 });
+
+// --- the Browse button ------------------------------------------------------------------------
+//
+// A SPY GALLERY, not the real module: what these assert is the SEAM — that the control hands over
+// the right bundle, filter and current graphic, and that what comes back reaches both cells and
+// triggers a redraw. gallery.test.js owns whether the browser itself works.
+
+function spyGallery() {
+  const opens = [];
+  return {
+    opens,
+    open(options) { opens.push(options); return { close() {} }; },
+    // The last onPick handed over, so a test can pick without a DOM.
+    pick(choice) { opens[opens.length - 1].onPick(choice); },
+  };
+}
+
+function browseOf(wrap) {
+  return wrap.querySelectorAll('[class="browse"]')[0];
+}
+
+test('graphicControl offers a Browse button over the icons bundle, on the current sheet', () => {
+  const gallery = spyGallery();
+  const wrap = Pickers.graphicControl({
+    graphicColumn, fileColumn, ctx: gctx(), gallery,
+    values: { graphic_tile: '810003', graphic_file: '20107' },
+  });
+
+  const button = browseOf(wrap);
+  assert.equal(button.tagName, 'BUTTON');
+  assert.equal(button.getAttribute('aria-haspopup'), 'dialog');
+
+  fire(button, 'click');
+  assert.equal(gallery.opens.length, 1);
+  const opened = gallery.opens[0];
+  assert.equal(opened.bundle, 'icons');
+  assert.equal(opened.bundles, bundles);
+  assert.equal(opened.opener, button, 'focus has to have somewhere to return to');
+  // The sheet the record already names, so the browser opens on this item's neighbourhood.
+  assert.deepEqual(opened.filter, { sheet: '20107' });
+  assert.deepEqual(opened.current, { sheet: '20107', graphic: '810003' });
+});
+
+test('the sheet the browser opens on follows the field, not the stored record', () => {
+  const gallery = spyGallery();
+  const wrap = Pickers.graphicControl({
+    graphicColumn, fileColumn, ctx: gctx(), gallery,
+    values: { graphic_tile: '810003', graphic_file: '20107' },
+  });
+
+  gparts(wrap).file.value = '999';
+  fire(browseOf(wrap), 'click');
+  assert.deepEqual(gallery.opens[0].filter, { sheet: '999' });
+});
+
+test('an icon pick writes BOTH cells and triggers a redraw', () => {
+  const gallery = spyGallery();
+  const wrap = Pickers.graphicControl({
+    graphicColumn, fileColumn, ctx: gctx(), gallery, values: {},
+  });
+  const { graphic, file, canvas, status } = gparts(wrap);
+  // Half a pair is legal but does not resolve, so the control starts out complaining.
+  assert.equal(status.textContent, 'no graphic');
+  const before = canvas.getContext('2d').calls.length;
+
+  fire(browseOf(wrap), 'click');
+  gallery.pick({ sheet: '20107', graphic: '810003' });
+
+  assert.equal(graphic.value, '810003');
+  assert.equal(file.value, '20107');
+  // Both cells at once is what makes "graphic and sheet must both be set" hard to trip.
+  assert.equal(status.textContent, '');
+  assert.ok(canvas.getContext('2d').calls.length > before, 'the preview did not redraw');
+});
+
+test('an icon pick bubbles an input event, so the panel previews follow too', () => {
+  const gallery = spyGallery();
+  const wrap = Pickers.graphicControl({
+    graphicColumn, fileColumn, ctx: gctx(), gallery, values: {},
+  });
+  // app.js listens on the form container, above the control.
+  const container = document.createElement('div');
+  container.appendChild(wrap);
+  let seen = 0;
+  container.addEventListener('input', () => { seen++; });
+
+  fire(browseOf(wrap), 'click');
+  gallery.pick({ sheet: '20107', graphic: '810003' });
+  assert.equal(seen, 1);
+});
+
+test('a graphic column over the effects bundle browses effects and writes only the id', () => {
+  const gallery = spyGallery();
+  const wrap = Pickers.graphicControl({
+    graphicColumn, fileColumn, ctx: gctx(), gallery, galleryBundle: 'effects',
+    values: { graphic_tile: '9', graphic_file: '0' },
+  });
+
+  fire(browseOf(wrap), 'click');
+  assert.equal(gallery.opens[0].bundle, 'effects');
+  assert.deepEqual(gallery.opens[0].current, { id: '9' });
+
+  gallery.pick({ id: '44' });
+  assert.equal(gparts(wrap).graphic.value, '44');
+  // 176 of the 259 shipped spell_animation rows store 0 in the file cell and the server sends both
+  // through verbatim, so filling it in would be inventing data.
+  assert.equal(gparts(wrap).file.value, '0');
+});
+
+test('graphicControl without a gallery renders a button that does nothing rather than throwing', () => {
+  const saved = globalThis.Gallery;
+  delete globalThis.Gallery;
+  try {
+    const wrap = Pickers.graphicControl({ graphicColumn, fileColumn, ctx: gctx(), values: {} });
+    fire(browseOf(wrap), 'click');
+  } finally {
+    if (saved !== undefined) globalThis.Gallery = saved;
+  }
+});
+
+test('partControl browses the parts bundle locked to the slot the row names', () => {
+  const gallery = spyGallery();
+  const wrap = Pickers.partControl({
+    column: equipColumn, values: { graphic_equip: '5', item_slot: 'Shoes' }, ctx: pctx(),
+    spec: SPEC, tintColumns: null, gallery,
+  });
+
+  fire(browseOf(wrap), 'click');
+  const opened = gallery.opens[0];
+  assert.equal(opened.bundle, 'parts');
+  // Shoes -> Feet -> the Feet folder, through the client's own map.
+  assert.deepEqual(opened.filter, { category: 'Feet', locked: true });
+  assert.deepEqual(opened.current, { category: 'Feet', id: '5' });
+
+  gallery.pick({ category: 'Feet', id: '77' });
+  assert.equal(pparts(wrap).input.value, '77');
+});
+
+test('the locked category follows a live edit of item_slot', () => {
+  const gallery = spyGallery();
+  const ctx = pctx();
+  const wrap = Pickers.partControl({
+    column: equipColumn, values: { graphic_equip: '5', item_slot: 'Shoes' }, ctx,
+    spec: SPEC, tintColumns: null, gallery,
+  });
+
+  ctx.emit({ graphic_equip: '5', item_slot: 'Helmet' });
+  fire(browseOf(wrap), 'click');
+  assert.deepEqual(gallery.opens[0].filter, { category: 'Helms', locked: true });
+});
+
+test('a slot the character never draws has nothing to browse', () => {
+  const gallery = spyGallery();
+  const wrap = Pickers.partControl({
+    column: equipColumn, values: { graphic_equip: '5', item_slot: 'Ring' }, ctx: pctx(),
+    spec: SPEC, tintColumns: null, gallery,
+  });
+
+  assert.equal(browseOf(wrap).getAttribute('disabled'), '');
+  fire(browseOf(wrap), 'click');
+  assert.equal(gallery.opens.length, 0, 'disabled is a hint; the handler has to guard too');
+});
+
+test('a Mount has nothing to browse either, because the gallery indexes no mounted clips', () => {
+  // Sprites.part deliberately never falls back to a mounted clip, so the Bodies folder would offer
+  // 305 standing bodies of which four have the pose this cell needs.
+  const gallery = spyGallery();
+  const wrap = Pickers.partControl({
+    column: equipColumn, values: { graphic_equip: '5', item_slot: 'Mount' }, ctx: pctx(),
+    spec: SPEC, tintColumns: null, gallery,
+  });
+
+  assert.equal(browseOf(wrap).getAttribute('disabled'), '');
+  fire(browseOf(wrap), 'click');
+  assert.equal(gallery.opens.length, 0);
+});

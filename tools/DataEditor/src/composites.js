@@ -344,7 +344,7 @@ var Composites = (function () {
 
   // EquipSlots: six labelled rows over the equipped_items token stream — a graphic field, a
   // colour picker for the slot's tint, and a preview of the two together.
-  function equipSlotsControl(comp, values, ctx) {
+  function equipSlotsControl(comp, values, ctx, galleryOverride) {
     var column = comp.columns[0];
     var wrap = Forms.el('div', { class: 'equip' });
     var raw = str(values[column]);
@@ -407,6 +407,38 @@ var Composites = (function () {
       var canvas = Forms.el('canvas', { width: SLOT_W * SLOT_SCALE, height: SLOT_H * SLOT_SCALE,
                                         class: 'preview' });
       var status = Forms.el('span', { class: 'status' });
+
+      // The graphic browser for this slot, LOCKED to the slot's own sprite folder — picking a Helms
+      // sprite for a Feet slot is never right, and Appearance.CATEGORY is the client's own map from
+      // one to the other (Shield and Weapon both land on Hands).
+      //
+      // The button draws '…' rather than 'Browse': this row is five cells in a fixed grid against a
+      // ~258px sidebar column, and the 28px it gets came from moving the status line onto its own
+      // full-width row rather than off the graphic field. title and aria-label carry the real name.
+      //
+      // A pick goes in through the input's own `input` event rather than by calling sync() here, so
+      // the typo check, the freeze gate, the redraw and app.js's delegated preview all run on the
+      // one path they already run on for a typed id.
+      var browse = Forms.el('button', {
+        type: 'button', class: 'browse', 'aria-haspopup': 'dialog',
+        title: 'browse ' + slotName + ' graphics', 'aria-label': 'browse ' + slotName + ' graphics',
+      }, '…');
+      browse.addEventListener('click', function () {
+        var gallery = galleryOverride
+          || ((typeof Gallery !== 'undefined' && Gallery) ? Gallery : null);
+        if (!gallery) return;
+        gallery.open({
+          bundle: 'parts',
+          bundles: (ctx && ctx.bundles) || {},
+          opener: browse,
+          filter: { category: Appearance.CATEGORY[slotName], locked: true },
+          current: { category: Appearance.CATEGORY[slotName], id: input.value },
+          onPick: function (choice) {
+            input.value = choice.id;
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+          },
+        });
+      });
 
       // Whether this slot's blend is sitting at 0 having been MOVED there. Not read from the
       // stored value: every untinted slot arrives as `id,*` with a === 0, and six rows warning
@@ -505,6 +537,9 @@ var Composites = (function () {
       if (ctx && typeof ctx.onImagesReady === 'function') ctx.onImagesReady(redraw);
 
       row.appendChild(input);
+      // In grid track order: label, graphic, browse, swatch, preview — and the status line below,
+      // spanning the whole row.
+      row.appendChild(browse);
       row.appendChild(picker.node);
       row.appendChild(canvas);
       row.appendChild(status);
@@ -563,12 +598,16 @@ var Composites = (function () {
           fileColumn: byName[comp.columns[1]],
           values: values, ctx: ctx,
           tintColumns: Layout.tintColumns(sheet, comp.columns[0]),
+          // Which atlas the browser shows. Layout answers 'icons' for everything but Spell Effects'
+          // spell_animation, so the control needs no fallback of its own.
+          galleryBundle: Layout.galleryBundle(sheet, comp.columns[0]),
+          gallery: opts.gallery,
         });
         break;
       case 'Rgba': node = rgbaControl(comp, values); break;
       case 'Bitmask': node = bitmaskControl(comp, values, ctx); break;
       case 'IdList': node = idListControl(comp, values, ctx); break;
-      case 'EquipSlots': node = equipSlotsControl(comp, values, ctx); break;
+      case 'EquipSlots': node = equipSlotsControl(comp, values, ctx, opts.gallery); break;
       default: node = unsupportedControl(comp, byName, values); break;
     }
     return addErrorSlots(node, comp, byName);

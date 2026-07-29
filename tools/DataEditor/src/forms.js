@@ -189,6 +189,10 @@ var Forms = (function () {
       return Pickers.partControl({
         column: column, values: values, ctx: ctx, spec: part,
         tintColumns: Layout.tintColumns(sheet, column.name),
+        // The graphic browser, if the caller has one to name. Undefined is the normal case and
+        // means "use the Gallery global"; ctx is the carrier so no signature here grows a parameter
+        // that every caller but a test would leave blank.
+        gallery: ctx && ctx.gallery,
       });
     }
 
@@ -251,7 +255,7 @@ var Forms = (function () {
         // presentation table can never be consulted for a different sheet than the one on screen.
         row.appendChild(comp
           ? Composites.control({ comp: comp, byName: byName, values: values, ctx: ctx,
-                                 sheet: schema.sheet })
+                                 sheet: schema.sheet, gallery: ctx && ctx.gallery })
           : columnControl({ column: column, ctx: ctx, sheet: schema.sheet, values: values }));
 
         row.appendChild(el('div', { class: 'error', 'data-error-for': name }));
