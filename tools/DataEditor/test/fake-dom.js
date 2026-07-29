@@ -28,12 +28,21 @@
 //     in a browser) whose calls array is the assertion surface for Sprites.draw. Anything that
 //     is not a canvas, or any type but '2d', returns null.
 //
-// STILL MISSING (Task 10's prerequisite): checkedness, appendChild does not detach from a
-// previous parent, no input value sanitization, ask-for-reset does not skip disabled options,
-// no removeChild, no classList.
-
-// Real focus/blur do not bubble; every other event this fake is asked to carry does.
-const NON_BUBBLING = new Set(['focus', 'blur']);
+// STILL MISSING. Structural (Task 10's prerequisite): checkedness, appendChild does not detach
+// from a previous parent, no input value sanitization, ask-for-reset does not skip disabled
+// options, no removeChild, no classList.
+//
+// In the event model specifically — each of these THROWS rather than diverging quietly, so a
+// test that needs one fails loudly instead of passing for the wrong reason:
+//
+//   * addEventListener/removeEventListener options (capture, once, passive) are refused.
+//   * fire() refuses an event type whose bubbles/cancelable flags are not in EVENT_FLAGS.
+//   * stopImmediatePropagation does not exist.
+//
+// And two that are simply absent: there are NO DEFAULT ACTIONS — a click does not focus,
+// submit, or toggle anything, so anything relying on one has to be driven explicitly — and
+// `document` is { createElement } alone, so Task 11's document.getElementById and
+// document.addEventListener will throw until someone gives this fake a document tree.
 
 class FakeNode {
   constructor(tag) {
@@ -114,7 +123,14 @@ class FakeNode {
     return this._context;
   }
 
+  // THROWS on a third argument rather than dropping it. `true`/`{ capture: true }` would make
+  // the listener run BEFORE the target's, and `{ once: true }` would make it run exactly once
+  // — a fake that silently ignored either would pass a test the browser fails. Refusing is the
+  // loud direction; implement them here the day a module needs one.
   addEventListener(type, handler) {
+    if (arguments.length > 2) {
+      throw new Error('fake DOM does not model addEventListener options (capture/once/passive)');
+    }
     const key = String(type);
     if (!this._listeners.has(key)) this._listeners.set(key, []);
     const list = this._listeners.get(key);
@@ -124,6 +140,9 @@ class FakeNode {
   }
 
   removeEventListener(type, handler) {
+    if (arguments.length > 2) {
+      throw new Error('fake DOM does not model removeEventListener options (capture)');
+    }
     const list = this._listeners.get(String(type));
     if (!list) return;
     const at = list.indexOf(handler);
@@ -131,18 +150,26 @@ class FakeNode {
   }
 
   // Returns false when the default was prevented, as dispatchEvent does.
+  //
+  // Whether the event travels up the tree is the EVENT's business, not a table kept in here:
+  // `new Event(type)` does not bubble unless you ask it to, and the per-type defaults live in
+  // fire() where the type is known. A hardcoded "everything except focus and blur bubbles"
+  // would deliver a mouseenter dispatched on a child to an ancestor's listener.
   dispatchEvent(event) {
     if (!event.target) event.target = this;
     let node = this;
     while (node) {
       const list = node._listeners.get(event.type);
-      // A copy: a handler that rebuilds the list must not change who else is called for THIS
-      // event.
+      // A copy, so a handler that rebuilds the list does not change who else is called for
+      // THIS event — but a listener REMOVED during the dispatch must not fire, so the live
+      // list is re-checked before each call. Both halves are real DOM behaviour.
       if (list) for (const handler of list.slice()) {
+        const live = node._listeners.get(event.type);
+        if (!live || !live.includes(handler)) continue;
         event.currentTarget = node;
         handler.call(node, event);
       }
-      if (NON_BUBBLING.has(event.type)) break;
+      if (!event.bubbles || event.propagationStopped) break;
       node = node.parentNode;
     }
     return !event.defaultPrevented;
@@ -268,14 +295,48 @@ function recordingContext() {
   };
 }
 
-// Builds an event and dispatches it from `node`. Returns false if a handler cancelled it.
+// Per-type event flags, from the HTML and UI Events specs. A type that is not here THROWS
+// rather than being guessed at: guessing wrong about bubbling or cancelability is exactly the
+// kind of divergence that makes a fake pass what a browser fails.
+const EVENT_FLAGS = {
+  click: { bubbles: true, cancelable: true },
+  mousedown: { bubbles: true, cancelable: true },
+  mouseup: { bubbles: true, cancelable: true },
+  keydown: { bubbles: true, cancelable: true },
+  keyup: { bubbles: true, cancelable: true },
+  submit: { bubbles: true, cancelable: true },
+  // input and change bubble but are NOT cancelable — preventDefault on them does nothing at
+  // all, so dispatchEvent still returns true.
+  input: { bubbles: true, cancelable: false },
+  change: { bubbles: true, cancelable: false },
+  focus: { bubbles: false, cancelable: false },
+  blur: { bubbles: false, cancelable: false },
+  mouseenter: { bubbles: false, cancelable: false },
+  mouseleave: { bubbles: false, cancelable: false },
+};
+
+// Builds an event and dispatches it from `node`. Returns false only if a handler cancelled a
+// CANCELABLE event, exactly as dispatchEvent does.
 export function fire(node, type) {
+  const flags = EVENT_FLAGS[String(type)];
+  if (!flags) throw new Error('fake DOM does not know the flags for event type: ' + type);
+
   const event = {
     type: String(type),
     target: null,
     currentTarget: null,
+    bubbles: flags.bubbles,
+    cancelable: flags.cancelable,
     defaultPrevented: false,
-    preventDefault() { this.defaultPrevented = true; },
+    propagationStopped: false,
+    preventDefault() {
+      // A non-cancelable event ignores this outright — it does not even set the flag.
+      if (this.cancelable) this.defaultPrevented = true;
+    },
+    // Stops the walk to the ancestors, but lets the remaining listeners on THIS node run.
+    // stopImmediatePropagation is deliberately absent: calling it throws rather than quietly
+    // doing the weaker thing.
+    stopPropagation() { this.propagationStopped = true; },
   };
   return node.dispatchEvent(event);
 }

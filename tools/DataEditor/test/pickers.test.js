@@ -122,8 +122,8 @@ test('the reserve never lets the result exceed LIMIT', () => {
   for (let i = 100; i < 400; i++) many.push({ id: String(i), name: 'sword mk1' });
   const hits = Pickers.search(many, '1');
   assert.equal(hits.length, Pickers.LIMIT);
-  // 100-199 are id-prefix hits, 200-399 are name hits: 40 ids and the 10 reserved names.
-  assert.deepEqual([hits[39].id, hits[40].id], ['139', '200']);
+  // 100-199 are id-prefix hits, 200-399 are name hits: 25 ids and the 25 reserved names.
+  assert.deepEqual([hits[24].id, hits[25].id], ['124', '200']);
 });
 
 test('the exact hit is charged against the budget, not added on top of it', () => {
@@ -133,9 +133,9 @@ test('the exact hit is charged against the budget, not added on top of it', () =
 
   const hits = Pickers.search(many, '1').map((e) => e.id);
   assert.equal(hits.length, Pickers.LIMIT);
-  // 1 exact + 39 id-prefix (49 of budget less the 10 reserved) + 10 reserved name hits.
-  assert.deepEqual([hits[0], hits[1], hits[39], hits[40], hits[49]],
-    ['1', '100', '138', '200', '209']);
+  // 1 exact + 29 id-prefix (49 of budget less the 20 name hits held back) + those 20.
+  assert.deepEqual([hits[0], hits[1], hits[29], hits[30], hits[49]],
+    ['1', '100', '128', '200', '219']);
 });
 
 test('search does not mutate or alias the entry list', () => {
@@ -259,6 +259,10 @@ test('fkControl lists results on focus, before any keystroke', () => {
   assert.equal(list.hidden, false);
   assert.deepEqual(list.children.map((c) => c.textContent),
     ['1 — Gold', '42 — Iron Sword', '43 — Iron Shield', '100 — Steel Sword']);
+  // type=button, not the default submit: these rows sit inside the record form, and a submit
+  // button would submit it on every single result click.
+  assert.deepEqual(list.children.map((c) => c.getAttribute('type')),
+    ['button', 'button', 'button', 'button']);
 });
 
 test('fkControl filters as you type', () => {
@@ -307,10 +311,14 @@ test('clicking a result writes the canonical id, not the raw cell text', () => {
   const wrap = Pickers.fkControl(refColumn, '', messy);
   const { input, list } = parts(wrap);
 
+  const { label } = parts(wrap);
   fire(input, 'focus');
   assert.equal(list.children[0].textContent, '42 — Iron Sword');
   fire(list.children[0], 'click');
   assert.equal(input.value, '42');
+  // The LABEL too: resolving '42' against a stored ' 042 ' is the lookup's own canonicalisation,
+  // and without this the row text alone would pass with a raw string comparison in find().
+  assert.equal(label.textContent, 'Iron Sword');
 });
 
 test('rebuilding the list detaches the old rows entirely', () => {
@@ -373,9 +381,11 @@ const graphicColumn = { name: 'graphic_tile', kind: 'Id', sql: 'INTEGER', requir
 const fileColumn = { name: 'graphic_file', kind: 'Id', sql: 'INTEGER', required: false, default: '0' };
 
 const bundles = {
-  // A non-square rect: with a 32x32 sprite on a 48x48 canvas the two centring
-  // offsets are both 8, and swapping width for height would go unnoticed.
-  icons: { rects: { '20107:810003': [96, 0, 32, 16] } },
+  // A non-square rect with ODD dimensions, for two reasons at once: with a 32x32 sprite on a
+  // 48x48 canvas the two centring offsets are both 8, so swapping width for height would go
+  // unnoticed — and with even dimensions the centring divides exactly, so dropping Math.floor
+  // would go unnoticed as well. 31x17 on 48x48 gives 8.5 and 15.5 before flooring.
+  icons: { rects: { '20107:810003': [96, 0, 31, 17] } },
 };
 
 function gctx(values) {
@@ -422,7 +432,7 @@ test('graphicControl draws the resolved icon centred on the canvas', () => {
 
   assert.deepEqual(ctx2d.calls, [
     ['clearRect', 0, 0, 48, 48],
-    ['drawImage', 'ICONS', 96, 0, 32, 16, 8, 16, 32, 16],
+    ['drawImage', 'ICONS', 96, 0, 31, 17, 8, 15, 31, 17],
   ]);
 });
 
@@ -468,7 +478,7 @@ test('graphicControl redraws as either field is edited', () => {
   file.value = '20107';
   fire(file, 'input');
   assert.deepEqual(ctx2d.calls.filter((c) => c[0] === 'drawImage'),
-    [['drawImage', 'ICONS', 96, 0, 32, 16, 8, 16, 32, 16]]);
+    [['drawImage', 'ICONS', 96, 0, 31, 17, 8, 15, 31, 17]]);
 });
 
 test('graphicControl coerces exactly once, leaving the rule to Sprites', () => {
@@ -479,7 +489,7 @@ test('graphicControl coerces exactly once, leaving the rule to Sprites', () => {
   const wrap = Pickers.graphicControl(graphicColumn, fileColumn,
     { graphic_tile: '0810003', graphic_file: '20107abc' }, gctx());
   assert.deepEqual(gparts(wrap).canvas.getContext('2d').calls.filter((c) => c[0] === 'drawImage'),
-    [['drawImage', 'ICONS', 96, 0, 32, 16, 8, 16, 32, 16]]);
+    [['drawImage', 'ICONS', 96, 0, 31, 17, 8, 15, 31, 17]]);
   assert.equal(gparts(wrap).status.textContent, 'graphic and sheet must be whole numbers');
 });
 
@@ -487,7 +497,7 @@ test('graphicControl accepts a leading-zero pair, as Sprites and Validation both
   const wrap = Pickers.graphicControl(graphicColumn, fileColumn,
     { graphic_tile: '0810003', graphic_file: '020107' }, gctx());
   assert.deepEqual(gparts(wrap).canvas.getContext('2d').calls.filter((c) => c[0] === 'drawImage'),
-    [['drawImage', 'ICONS', 96, 0, 32, 16, 8, 16, 32, 16]]);
+    [['drawImage', 'ICONS', 96, 0, 31, 17, 8, 15, 31, 17]]);
   assert.equal(gparts(wrap).status.textContent, '');
 });
 
@@ -514,6 +524,16 @@ test('graphicControl reports a non-numeric graphic id rather than silently showi
 test('graphicControl reports half a pair as incomplete', () => {
   const wrap = Pickers.graphicControl(graphicColumn, fileColumn,
     { graphic_tile: '810003', graphic_file: '' }, gctx());
+  assert.equal(gparts(wrap).status.textContent, 'graphic and sheet must both be set');
+  assert.equal(gparts(wrap).status.className, 'status bad');
+});
+
+test('graphicControl reports half a pair as incomplete the other way round too', () => {
+  // A BLANK cell is half a pair, not a typo — in either position. Testing only one of the two
+  // lets `(g !== '' && !isWhole(g))` decay to `!isWhole(g)`, which calls a blank graphic a
+  // malformed number.
+  const wrap = Pickers.graphicControl(graphicColumn, fileColumn,
+    { graphic_tile: '', graphic_file: '20107' }, gctx());
   assert.equal(gparts(wrap).status.textContent, 'graphic and sheet must both be set');
   assert.equal(gparts(wrap).status.className, 'status bad');
 });
@@ -546,7 +566,7 @@ test('graphicControl redraws when the bundle image finishes decoding', () => {
   ctx.images.icons = 'ICONS';
   ctx.__ready[0]();
   assert.deepEqual(ctx2d.calls.filter((c) => c[0] === 'drawImage'),
-    [['drawImage', 'ICONS', 96, 0, 32, 16, 8, 16, 32, 16]]);
+    [['drawImage', 'ICONS', 96, 0, 31, 17, 8, 15, 31, 17]]);
 });
 
 test('graphicControl survives a ctx with no bundles, images or ready hook', () => {
@@ -586,5 +606,5 @@ test('a padded cell is not mistaken for a typo', () => {
     { graphic_tile: ' 810003 ', graphic_file: ' 20107 ' }, gctx());
   assert.equal(gparts(wrap).status.textContent, '');
   assert.deepEqual(gparts(wrap).canvas.getContext('2d').calls.filter((c) => c[0] === 'drawImage'),
-    [['drawImage', 'ICONS', 96, 0, 32, 16, 8, 16, 32, 16]]);
+    [['drawImage', 'ICONS', 96, 0, 31, 17, 8, 15, 31, 17]]);
 });

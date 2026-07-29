@@ -13,7 +13,16 @@ var Pickers = (function () {
   // Without it, one digit typed against Items produces >100 id-prefix hits (1, 10-19, 100-199,
   // …) and slicing after concatenation would hide EVERY name match behind them — so a designer
   // hunting "Sword" who typed "1" first would be told, wrongly, that there is nothing else.
-  var NAME_RESERVE = 10;
+  //
+  // 25 IS MEASURED, NOT GUESSED. Over 8,144 realistic queries against indexes built from the
+  // real IllutiaGoose.db (Items 1595 rows, NPCs 655, Spell Effects 623), the reserve wasted a
+  // slot in zero of them, and exactly ten (sheet, query) pairs saturated it: Items 1-5, NPCs
+  // 1/3/4/5 and Spell Effects 2. Saturation is not a graceful degradation here, because name
+  // hits are kept in SHEET ROW ORDER — the ten that survived a reserve of 10 were reliably the
+  // least useful ones, so Items "1" showed "Hair Cut: 1" and "Face: 16" while hiding "Flame
+  // Sword - 1H Graphic". At 25 all ten cases show every name hit they have (163 of 163), and
+  // the cost is 15 id-prefix rows out of buckets of 100-716 that the user has to refine anyway.
+  var NAME_RESERVE = 25;
 
   function str(value) {
     return (value === undefined || value === null) ? '' : String(value);
@@ -25,6 +34,13 @@ var Pickers = (function () {
   // picker say "not found in Items" for a value the validator is perfectly happy to save.
   // Anything that is not an integer literal is left exactly as it is: it is not an id, and
   // Validation will report it as such under the field.
+  //
+  // ONE KNOWN DIVERGENCE from Validation, in the safe direction: '42.0' passes
+  // Validation.validateCell (its numeric regex allows a fraction, and Number('42.0') is 42)
+  // but is not an integer literal here, so the picker calls it "not found" while the validator
+  // would save it. It takes a TEXT-FORMATTED cell to produce one — Sheets hands back a numeric
+  // 42.0 as 42 — and over-reporting is the right way round: the label is a hint, the error
+  // slot under the field is the authority.
   function key(value) {
     var text = str(value).trim();
     return /^-?\d+$/.test(text) ? String(Number(text)) : text;
@@ -103,6 +119,10 @@ var Pickers = (function () {
       // Blank and the literal '0' are "none" — the same two Validation.validateCell exempts
       // from its FK check, trim included. '00' is deliberately NOT among them: Validation
       // looks that one up and reports it, so the picker must not quietly call it none.
+      //
+      // A blank REQUIRED fk also reads "none", in the neutral style, where validateCell says
+      // "is required". Deliberate: this label answers "what does this id point at", and the
+      // error slot Forms.showErrors fills is what says whether the cell may stay that way.
       if (v === '' || v === '0') {
         label.textContent = 'none';
         label.className = 'resolved';
