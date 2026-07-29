@@ -631,8 +631,8 @@ var Pickers = (function () {
     var latest = values;
 
     // The sprite folder this row can be BROWSED in, or null when there is nothing to browse. One
-    // function for the whole question, because it is asked from three places (the click handler, the
-    // enable/disable branch, and the preview's status line) and three spellings of it could drift.
+    // function for the whole question, because it is asked from two places (the click handler and
+    // the enable/disable branch) and two spellings of it could drift.
     //
     // A Mount is null even though it HAS a folder: its art is a mounted clip, which the gallery does
     // not index because Sprites.part deliberately never falls back to one — so Bodies would list 305

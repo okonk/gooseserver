@@ -205,10 +205,11 @@ class FakeNode {
   // out 5984 against a true 6800. A scroll to the last row therefore lands SHORT by the rendered
   // window's height (here 200px, about three rows).
   //
-  // Gallery's own open-on-current test (gallery.test.js) passes on that short offset only because
-  // the missing rows fall inside OVERSCAN: ceil((6120 + 480) / 68) = 98, + 2 = 100 = rowCount, so
-  // the last row is inside the window exactly. Lowering OVERSCAN would fail that test's
-  // aria-activedescendant assertion for this reason and not for the change being made.
+  // No test opens on the last row today, so nothing currently depends on that. A test that did
+  // would pass on the short offset only because OVERSCAN covers the gap exactly:
+  // ceil((6120 + 480) / 68) = 98, + 2 = 100 = rowCount, so the last row lands inside the window
+  // with nothing to spare. Such a test would break on a lowered OVERSCAN because of this fake's
+  // clamp and not because of whatever the change to OVERSCAN was for.
   get scrollHeight() {
     let flow = 0;
     for (const child of this.children) {
