@@ -487,6 +487,35 @@ test('closing the popover remembers the colour, most recent first and deduplicat
   assert.deepEqual(ColorPicker.recent(), ['#111111', '#222222']);
 });
 
+test('opening and closing without touching anything remembers nothing', () => {
+  // The list is module-global, shared by every control on the page, and Task 5 puts six of these
+  // in one form. A designer opening six slot pickers just to LOOK would otherwise evict the whole
+  // list and replace it with eight colours they never chose.
+  const c = make();
+  open(c);
+  fire(c.swatch, 'click');
+  assert.deepEqual(ColorPicker.recent(), []);
+
+  // Nor does closing by clicking away, or by Escape. (Not deepEqual: an outside click closes
+  // every open popover on the page, including any a previous test left up.)
+  open(c);
+  fire(document, 'mousedown');
+  open(c);
+  fire(c.pop, 'keydown', { key: 'Escape' });
+  assert.ok(ColorPicker.recent().indexOf('#a4331f') === -1, 'the seeded colour was remembered');
+});
+
+test('a control that was moved remembers its colour on close', () => {
+  // The other direction: any live movement is a choice, so the colour is worth keeping.
+  const c = make();
+  open(c);
+  const sv = c.find('cp-sv');
+  sv.rect = { left: 0, top: 0, width: 100, height: 100 };
+  fire(sv, 'mousedown', { clientX: 100, clientY: 0 });
+  fire(c.swatch, 'click');
+  assert.deepEqual(ColorPicker.recent(), [c.swatch.getAttribute('data-color')]);
+});
+
 test('the recent list keeps the last eight and no more', () => {
   const c = make();
   for (let i = 0; i < 12; i++) {
@@ -533,6 +562,126 @@ test('clicking a recent colour reports it and keeps the blend', () => {
   c.seen.length = 0;
   fire(c.find('cp-recent').children[0], 'click');
   assert.deepEqual(c.seen, [{ r: 171, g: 205, b: 239, a: 128 }]);
+});
+
+test('a control can ask for a popover anchored to its right edge', () => {
+  // The popover is ~182px wide and hangs off the LEFT of the swatch, which is right for a control
+  // at the left of its column (.rgba) and wrong for one in the last, auto-sized track of an
+  // .equip-slot row, where there is no 182px to the right of the swatch. The stylesheet keys off
+  // this attribute; nothing in the JS reads it back.
+  assert.equal(make().node.getAttribute('data-align'), null);
+  assert.equal(make({ align: 'right' }).node.getAttribute('data-align'), 'right');
+});
+
+// --- the visible cursors ----------------------------------------------------------------------
+//
+// The dots are the only part of the control that says WHERE the current colour is. Nothing else
+// in this file looks at them, so an offset here — a percentage against the wrong maximum, or a
+// centring margin that only half applies — is invisible to every other test.
+
+// In document order: the SV cursor, the hue cursor, and (with a blend strip) the blend cursor.
+function dots(c) {
+  return c.node.querySelectorAll('[class="cp-dot"]');
+}
+
+// A percentage as a number. The hue axis divides by 359 what it multiplied by 359, so the string
+// is within float noise of the round number rather than equal to it.
+function pct(value) {
+  assert.match(value, /^-?[0-9.e+-]+%$/);
+  return parseFloat(value);
+}
+
+function near(value, want) {
+  assert.ok(Math.abs(pct(value) - want) < 1e-6, `${value} is not ${want}%`);
+}
+
+test('the strip cursors are centred across their strips, not hung off the left edge', () => {
+  // .cp-dot pulls itself back by half its width in BOTH axes, which is only a centring if both
+  // axes are positioned. A strip dot with no `left` resolves to x=0 and straddles the border.
+  const c = open(make());
+  const [, hueDot, alphaDot] = dots(c);
+  assert.equal(hueDot.style.left, '50%');
+  assert.equal(alphaDot.style.left, '50%');
+});
+
+test('a click on the SV square moves the SV cursor to the point clicked', () => {
+  const c = open(make());
+  const sv = c.find('cp-sv');
+  sv.rect = { left: 0, top: 0, width: 100, height: 100 };
+
+  fire(sv, 'mousedown', { clientX: 25, clientY: 75 });
+  const [svDot] = dots(c);
+  // Saturation runs left to right, brightness bottom to top: a quarter across is 25%, and three
+  // quarters DOWN is a brightness of 0.25, which is 75% from the top.
+  near(svDot.style.left, 25);
+  near(svDot.style.top, 75);
+
+  fire(sv, 'mousedown', { clientX: 100, clientY: 0 });
+  near(svDot.style.left, 100);
+  near(svDot.style.top, 0);
+});
+
+test('a click on the hue strip moves the hue cursor to the point clicked', () => {
+  const c = open(make());
+  const hue = c.find('cp-hue');
+  hue.rect = { left: 0, top: 0, width: 14, height: 100 };
+  const hueDot = dots(c)[1];
+
+  // The strip is painted across 0..359, so the cursor must be measured against the same 359 —
+  // dividing by 360 instead leaves the dot short of where the click landed.
+  fire(hue, 'mousedown', { clientY: 40, clientX: 0 });
+  assert.equal(hue.getAttribute('aria-valuenow'), String(Math.round(0.4 * 359)));
+  near(hueDot.style.top, 40);
+
+  fire(hue, 'mousedown', { clientY: 100, clientX: 0 });
+  near(hueDot.style.top, 100);
+  fire(hue, 'mousedown', { clientY: 0, clientX: 0 });
+  near(hueDot.style.top, 0);
+});
+
+test('the hue cursor stays on the strip when the keyboard wraps past the last degree', () => {
+  // ArrowDown wraps modulo 360, so state.h can sit between 359 and 360 — above the 359 the strip
+  // is painted with. The dot must stop at the bottom rather than hang below it.
+  const c = open(make());
+  const hue = c.find('cp-hue');
+  hue.rect = { left: 0, top: 0, width: 14, height: 100 };
+  fire(hue, 'mousedown', { clientY: 100, clientX: 0 }); // 359
+  fire(hue, 'keydown', { key: 'ArrowDown', shiftKey: true }); // 369 % 360 -> 9
+  fire(hue, 'keydown', { key: 'ArrowUp' }); // 8
+  fire(hue, 'keydown', { key: 'ArrowUp', shiftKey: true }); // -2 -> 358
+  fire(hue, 'keydown', { key: 'ArrowDown' }); // 359
+
+  near(dots(c)[1].style.top, 100);
+  // ...and the announced value never exceeds the maximum it is announced against.
+  assert.equal(hue.getAttribute('aria-valuemax'), '359');
+  assert.ok(Number(hue.getAttribute('aria-valuenow')) <= 359);
+});
+
+test('aria-valuenow never rounds past aria-valuemax', () => {
+  const c = open(make());
+  const hue = c.find('cp-hue');
+  hue.rect = { left: 0, top: 0, width: 14, height: 1000 };
+  // 358.64 degrees, then one ArrowDown: 359.64, which Math.round alone announces as 360 against
+  // a maximum of 359.
+  fire(hue, 'mousedown', { clientY: 999, clientX: 0 });
+  fire(hue, 'keydown', { key: 'ArrowDown' });
+  assert.equal(hue.getAttribute('aria-valuenow'), '359');
+});
+
+test('a click on the blend strip moves the blend cursor to the point clicked', () => {
+  const c = open(make());
+  const alpha = c.find('cp-alpha');
+  alpha.rect = { left: 0, top: 0, width: 14, height: 100 };
+  const alphaDot = dots(c)[2];
+
+  // Full blend at the top, none at the bottom.
+  fire(alpha, 'mousedown', { clientY: 0, clientX: 0 });
+  assert.equal(alpha.getAttribute('aria-valuenow'), '255');
+  near(alphaDot.style.top, 0);
+
+  fire(alpha, 'mousedown', { clientY: 100, clientX: 0 });
+  assert.equal(alpha.getAttribute('aria-valuenow'), '0');
+  near(alphaDot.style.top, 100);
 });
 
 // --- set() ------------------------------------------------------------------------------------

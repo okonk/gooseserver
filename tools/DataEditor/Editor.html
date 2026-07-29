@@ -77,9 +77,28 @@
      with none — following the same .picker/.results pattern as the FK dropdown above. */
   .colorpicker { position: relative; display: inline-block; vertical-align: middle; }
   .swatch { width: 40px; height: 20px; border: 1px solid #ccc; padding: 0; cursor: pointer; }
+  /* THE POPOVER IS SIZED FOR THE ~258px FORM COLUMN OF A SHEETS SIDEBAR, not for the 400px
+     preview column, because the sidebar is the narrower of the two shipped entry points and a
+     popover that overflows it turns the whole page into a horizontal scroller — the same failure
+     `#previews canvas` and `.graphic canvas` above are written to avoid.
+
+     One flex row of the four parts would be 128 (square) + 14 (hue) + 14 (blend) + 120 (fields)
+     + 3 gaps + 12 padding + 2 border = ~308. So the three canvases keep their row and the fields
+     wrap under them: 128 + 14 + 14 + 2 gaps + padding + border = 182, which fits the sidebar
+     column, the preview column, and the 84px track of an .equip-slot row alike. It also gives
+     the hex field 168px instead of 120.
+
+     Which SIDE it hangs off cannot be decided in CSS — it depends on where the swatch sits in
+     its column, and there is no container query for "am I about to overflow". So the default is
+     left-anchored, for a swatch at the left of its column (.rgba), and a control that knows it
+     sits at the right of a row (the equipment slots) asks for the other with align: 'right'. */
   .cp-pop { position: absolute; z-index: 10; top: 100%; left: 0; background: #fff;
-            border: 1px solid #ccc; padding: 6px; }
-  .cp-grid { display: flex; gap: 6px; align-items: flex-start; }
+            border: 1px solid #ccc; padding: 6px; box-sizing: border-box;
+            max-width: calc(100vw - 24px); }
+  .colorpicker[data-align="right"] .cp-pop { left: auto; right: 0; }
+  /* justify-content: start, or the auto columns stretch and the gaps between the strips grow. */
+  .cp-grid { display: grid; grid-template-columns: auto auto auto; gap: 6px;
+             align-items: start; justify-content: start; }
   /* The cursor dots are positioned in PERCENTAGES of these boxes, so each canvas needs a
      positioned box of its own that is exactly the canvas's size. */
   .cp-field { position: relative; line-height: 0; }
@@ -87,7 +106,10 @@
             border: 1px solid #000; box-shadow: 0 0 0 1px #fff inset; border-radius: 50%;
             pointer-events: none; }
   .cp-sv, .cp-hue, .cp-alpha { display: block; cursor: crosshair; }
-  .cp-fields { display: flex; flex-direction: column; gap: 4px; width: 120px; }
+  /* Its own row, under the canvases rather than beside them — see .cp-pop. 1 / -1 spans all
+     three columns whether or not the blend strip is there. */
+  .cp-fields { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 4px;
+               min-width: 0; }
   .cp-hex { font-family: ui-monospace, monospace; }
   .cp-note { font-size: 11px; color: #666; }
   .cp-channels, .cp-blend { font-size: 11px; color: #555; font-family: ui-monospace, monospace; }

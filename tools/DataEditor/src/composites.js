@@ -126,29 +126,6 @@ var Composites = (function () {
     return !!(tint && num(tint.a));
   }
 
-  // Clamped, then padded to exactly two digits. Neither is optional: 0 renders as one digit and
-  // 300 as three, and taking the last two characters of either keeps the WRONG end.
-  function toHex(r, g, b) {
-    function pair(value) {
-      var text = channel(value).toString(16);
-      return text.length < 2 ? '0' + text : text;
-    }
-    return '#' + pair(r) + pair(g) + pair(b);
-  }
-
-  // null, not a zeroed colour, for anything that is not six hex digits: "I could not read this"
-  // and "this is black" are different answers, and the caller uses the difference to leave the
-  // stored cells alone.
-  function fromHex(hex) {
-    var m = /^#?([0-9a-fA-F]{6})$/.exec(str(hex).trim());
-    if (!m) return null;
-    return {
-      r: parseInt(m[1].slice(0, 2), 16),
-      g: parseInt(m[1].slice(2, 4), 16),
-      b: parseInt(m[1].slice(4, 6), 16),
-    };
-  }
-
   function notify(wrap) {
     if (typeof wrap.__onChange === 'function') wrap.__onChange();
   }
@@ -513,7 +490,7 @@ var Composites = (function () {
     control: control, collect: collect, KINDS: KINDS,
     bitsToIds: bitsToIds, idsToBits: idsToBits,
     parseIdList: parseIdList, formatIdList: formatIdList,
-    isTinted: isTinted, toHex: toHex, fromHex: fromHex,
+    isTinted: isTinted,
   };
 })();
 

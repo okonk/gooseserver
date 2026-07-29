@@ -49,3 +49,23 @@ test('every element id app.js looks up exists in the markup', () => {
   const absent = [...new Set(ids)].filter((id) => !declared.has(id));
   assert.deepEqual(absent, [], 'app.js reads an element Editor.html does not declare');
 });
+
+test('the colour popover fits the narrowest column it ships in', () => {
+  // The shipped Sheets sidebar is ~300px; after the page padding and a section's padding and
+  // border the form column is ~258. A popover laid out as one flex row is 128 (square) + 14
+  // (hue) + 14 (blend) + 120 (fields) + gaps + padding = ~308, which overflows it and turns the
+  // whole page into a horizontal scroller. The fields row therefore drops BELOW the three
+  // canvases rather than sitting beside them.
+  assert.match(html, /\.cp-fields\s*{[^}]*grid-column:\s*1\s*\/\s*-1/);
+  assert.match(html, /\.cp-grid\s*{[^}]*display:\s*grid/);
+  // ...and a last-resort cap for anything narrower still.
+  assert.match(html, /\.cp-pop\s*{[^}]*max-width:/);
+});
+
+test('the right-anchored popover the colour picker can ask for is styled', () => {
+  // colorpicker.js sets data-align="right" on the wrapper and never reads it back: if the
+  // stylesheet has no rule for it, the option is a no-op that looks implemented.
+  const picker = readFileSync(join(root, 'src', 'colorpicker.js'), 'utf8');
+  assert.match(picker, /data-align/);
+  assert.match(html, /\[data-align="right"\][^{]*\.cp-pop\s*{[^}]*right:\s*0/);
+});

@@ -473,6 +473,12 @@ function recordingContext() {
       calls.push(['imageSmoothingEnabled', smoothing]);
     },
     drawImage(...args) { calls.push(['drawImage', ...args]); },
+    // A blank frame of the asked-for size, which is what a caller about to write every pixel
+    // wants — no readback of a frame it is going to overwrite.
+    createImageData(w, h) {
+      calls.push(['createImageData', w, h]);
+      return { width: w, height: h, data: new Array(w * h * 4).fill(0) };
+    },
     getImageData(x, y, w, h) {
       calls.push(['getImageData', x, y, w, h]);
       return { data: new Array(w * h * 4).fill(0) };

@@ -155,41 +155,6 @@ test('rgba blend alpha of zero means no tint', () => {
   assert.equal(Composites.isTinted({}), false);
 });
 
-test('hex conversion round-trips', () => {
-  assert.equal(Composites.toHex(255, 128, 0), '#ff8000');
-  assert.deepEqual(Composites.fromHex('#ff8000'), { r: 255, g: 128, b: 0 });
-});
-
-test('toHex always emits exactly six digits', () => {
-  // '0'.toString(16) is one digit and 300 is three; slicing to the last two silently keeps
-  // the WRONG end ('12c' -> '2c').
-  assert.equal(Composites.toHex(0, 0, 0), '#000000');
-  assert.equal(Composites.toHex(300, 300, 300), '#ffffff');
-  assert.equal(Composites.toHex(-5, -5, -5), '#000000');
-  assert.equal(Composites.toHex('15', '15', '15'), '#0f0f0f');
-  assert.equal(Composites.toHex(undefined, null, 'abc'), '#000000');
-  [0, 1, 15, 16, 128, 254, 255].forEach((v) => {
-    assert.equal(Composites.toHex(v, v, v).length, 7);
-  });
-});
-
-test('fromHex refuses a malformed colour rather than inventing channels', () => {
-  assert.equal(Composites.fromHex('#fff'), null);
-  assert.equal(Composites.fromHex(''), null);
-  assert.equal(Composites.fromHex(null), null);
-  assert.equal(Composites.fromHex('#gggggg'), null);
-  assert.equal(Composites.fromHex('#ff80000'), null);
-  // The '#' is optional and case does not matter.
-  assert.deepEqual(Composites.fromHex('FF8000'), { r: 255, g: 128, b: 0 });
-});
-
-test('every byte triple survives toHex/fromHex', () => {
-  for (let v = 0; v <= 255; v++) {
-    assert.deepEqual(Composites.fromHex(Composites.toHex(v, 255 - v, (v * 7) % 256)),
-      { r: v, g: 255 - v, b: (v * 7) % 256 });
-  }
-});
-
 // --- control plumbing -----------------------------------------------------------------------
 
 function named(node, name) {

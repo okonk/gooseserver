@@ -20,6 +20,11 @@ var ColorPicker = (function () {
   var STRIP_W = 14;
   var STRIP_H = 128;
 
+  // The last hue the strip can show. ONE number for three jobs — the hue the bottom pixel is
+  // painted, the hue a click at the bottom reads, and the fraction the cursor sits at — because
+  // three separate spellings of "the end of the strip" are three things to keep in step.
+  var HUE_MAX = 359;
+
   // Session memory only, and deliberately not localStorage: the editor also runs inside a Sheets
   // sidebar iframe, where storage access can THROW rather than return null. A picker that dies on
   // a storage exception is worse than one that forgets.
@@ -95,9 +100,10 @@ var ColorPicker = (function () {
     };
   }
 
-  // null, not black, for anything that is not six hex digits — the same distinction
-  // Composites.fromHex draws, and for the same reason: "I could not read this" and "this is
-  // black" are different answers, and a half-typed hex field must not repaint the control.
+  // null, not black, for anything that is not six hex digits: "I could not read this" and "this is
+  // black" are different answers, and a half-typed hex field must not repaint the control. This
+  // pair is the editor's ONLY definition of a hex colour — composites.js had a duplicate, and two
+  // answers to "what is a hex colour" in one editor is one too many.
   function parseHex(text) {
     var m = /^#?([0-9a-fA-F]{6})$/.exec(
       (text === undefined || text === null ? '' : String(text)).trim());
@@ -146,7 +152,9 @@ var ColorPicker = (function () {
   // only pixels can be asserted on.
   function paint(canvas, w, h, pixel) {
     var ctx = canvas.getContext('2d');
-    var image = ctx.getImageData(0, 0, w, h);
+    // createImageData, not getImageData: every one of the four bytes of every pixel is written
+    // below, so reading the old frame back off the GPU is a copy nobody looks at.
+    var image = ctx.createImageData(w, h);
     var data = image.data;
     for (var y = 0; y < h; y++) {
       for (var x = 0; x < w; x++) {
@@ -181,7 +189,7 @@ var ColorPicker = (function () {
     return false;
   }
 
-  // ColorPicker.control({ r, g, b, a, withAlpha, onChange }) -> { node, set }
+  // ColorPicker.control({ r, g, b, a, withAlpha, align, onChange }) -> { node, set }
   //
   // `node` is the WRAPPER, not the swatch button: the popover is absolutely positioned and needs a
   // positioned ancestor of its own (.rgba is a plain block), and a <button> cannot legally contain
@@ -200,11 +208,19 @@ var ColorPicker = (function () {
     // strip to red the moment a colour went black or grey and lose the user's place.
     var state = { h: 0, s: 0, v: 0, a: 255 };
     var open = false;
+    // Whether anything has MOVED this control. The recent list is module-global and shared by
+    // every picker on the page, so a form of six of them, opened and closed just to look, must
+    // not evict eight remembered colours in favour of eight seeded ones.
+    var touched = false;
     // The hue the SV square was last painted at, so a drag inside the square does not repaint it.
     // NaN never equals anything, so the first paint always happens.
     var paintedHue = NaN;
 
     var wrap = el('div', { class: 'colorpicker' });
+    // The popover hangs off the LEFT of the swatch by default, which is right for a control at
+    // the left of its column and wrong for one in the last track of a row — there is no CSS for
+    // "am I about to overflow", so the caller that knows says so. Read only by the stylesheet.
+    if (opts.align === 'right') wrap.setAttribute('data-align', 'right');
     var swatch = el('button', {
       type: 'button',
       class: 'swatch',
@@ -230,9 +246,15 @@ var ColorPicker = (function () {
 
     var hue = el('canvas', {
       class: 'cp-hue', width: STRIP_W, height: STRIP_H, tabindex: '0',
-      role: 'slider', 'aria-label': 'hue', 'aria-valuemin': '0', 'aria-valuemax': '359',
+      role: 'slider', 'aria-label': 'hue', 'aria-valuemin': '0',
+      'aria-valuemax': String(HUE_MAX),
     });
     var hueDot = el('div', { class: 'cp-dot' });
+    // The strips are one-dimensional, so only `top` ever moves — but .cp-dot centres itself by
+    // pulling back half its width in BOTH axes, and a dot with no `left` at all resolves to x=0
+    // and straddles the strip's left border. Stated here rather than in the stylesheet because
+    // it is the same "where is the cursor" arithmetic as the `top` beside it.
+    hueDot.style.left = '50%';
     var hueWrap = el('div', { class: 'cp-field' });
     hueWrap.appendChild(hue);
     hueWrap.appendChild(hueDot);
@@ -246,6 +268,7 @@ var ColorPicker = (function () {
         role: 'slider', 'aria-label': 'blend', 'aria-valuemin': '0', 'aria-valuemax': '255',
       });
       alphaDot = el('div', { class: 'cp-dot' });
+      alphaDot.style.left = '50%';
       alphaWrap = el('div', { class: 'cp-field' });
       alphaWrap.appendChild(alpha);
       alphaWrap.appendChild(alphaDot);
@@ -293,6 +316,7 @@ var ColorPicker = (function () {
     }
 
     function fire() {
+      touched = true;
       if (!onChange) return;
       var c = rgb();
       onChange({ r: c.r, g: c.g, b: c.b, a: state.a });
@@ -311,7 +335,7 @@ var ColorPicker = (function () {
     // the wheel" and also mean "down the strip", rather than one of the two.
     function paintHue() {
       paint(hue, STRIP_W, STRIP_H, function (x, y) {
-        var c = hsvToRgb((y / (STRIP_H - 1)) * 359, 1, 1);
+        var c = hsvToRgb((y / (STRIP_H - 1)) * HUE_MAX, 1, 1);
         return [c.r, c.g, c.b];
       });
     }
@@ -346,10 +370,10 @@ var ColorPicker = (function () {
       });
     }
 
-    // Repaints everything the state can affect. `fromHex` is true when the hex FIELD is what
+    // Repaints everything the state can affect. `keepHexText` is true when the hex FIELD is what
     // changed, in which case its text is left exactly as typed — rewriting it mid-keystroke would
     // fight the user for the caret.
-    function refresh(fromHex) {
+    function refresh(keepHexText) {
       var c = rgb();
       var text = formatHex(c.r, c.g, c.b);
 
@@ -359,13 +383,17 @@ var ColorPicker = (function () {
         ? 'colour ' + text + ', ' + state.a + ' / 255 blend'
         : 'colour ' + text);
 
-      if (!fromHex) hex.value = text;
+      if (!keepHexText) hex.value = text;
       channels.textContent = 'R ' + c.r + '  G ' + c.g + '  B ' + c.b
         + (withAlpha ? '  A ' + state.a : '');
       if (blend) blend.textContent = state.a + ' / 255 blend';
 
-      hue.setAttribute('aria-valuenow', String(Math.round(state.h)));
-      hueDot.style.top = (state.h / 360) * 100 + '%';
+      // Clamped to the strip's own maximum in BOTH places. The keyboard wraps modulo 360, so
+      // state.h can sit between HUE_MAX and 360: unclamped that announces a 360 against an
+      // aria-valuemax of 359, and hangs the cursor off the bottom of the strip.
+      var hueAt = state.h > HUE_MAX ? 1 : state.h / HUE_MAX;
+      hue.setAttribute('aria-valuenow', String(Math.min(HUE_MAX, Math.round(state.h))));
+      hueDot.style.top = hueAt * 100 + '%';
       svDot.style.left = state.s * 100 + '%';
       svDot.style.top = (1 - state.v) * 100 + '%';
       if (alpha) {
@@ -418,9 +446,10 @@ var ColorPicker = (function () {
         return;
       }
       document.removeEventListener('mousedown', outside);
-      // Closing is the commit point for the recent list. Doing it per movement would fill all
-      // eight slots from a single drag across the square.
-      remember(currentHex());
+      // Closing is the commit point for the recent list — doing it per movement would fill all
+      // eight slots from a single drag across the square — but only for a control that was
+      // actually moved.
+      if (touched) remember(currentHex());
     }
 
     function close() {
@@ -444,7 +473,7 @@ var ColorPicker = (function () {
 
     function fromHueStrip(event) {
       var at = pointToValue(hue.getBoundingClientRect(), event.clientX, event.clientY);
-      state.h = at.y * 359;
+      state.h = at.y * HUE_MAX;
       refresh(false);
       fire();
     }
