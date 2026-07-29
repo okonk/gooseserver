@@ -25,8 +25,6 @@
 // entries "Armor"/"Weapon"/"NoUse". nameIndex() derives it from the schema rather than listing
 // the exceptions, so a new sheet cannot be forgotten.
 var App = (function () {
-  var BUNDLES = ['icons', 'parts', 'effects'];
-
   // How many problems the publish check keeps. The panel shows 100; the rest are counted. The
   // cap is on the ARRAY, so a sheet with a systematically broken column cannot grow it without
   // bound (NPC Spawns alone is 4,322 rows).
@@ -47,6 +45,7 @@ var App = (function () {
     imageCallbacks: [],
     loaded: {},        // the values map the open form was rendered from, verbatim
     stopEffect: null,
+    previewKey: null,
     checking: false,
     // Bundles whose PNG failed to decode. Kept rather than only reported at the moment of
     // failure: loadBundle's done() runs straight into openSheet, whose own status line would
@@ -151,6 +150,15 @@ var App = (function () {
     el.className = isError ? 'error' : '';
   }
 
+  // Stops any running effect animation and empties the preview panel. Both halves matter: the
+  // interval outlives the canvas, and the canvas outlives the record.
+  function clearPreviews() {
+    if (state.stopEffect) { state.stopEffect(); state.stopEffect = null; }
+    var host = document.getElementById('previews');
+    if (host) host.innerHTML = '';
+    state.previewKey = null;
+  }
+
   // Depth-first over real elements. Not querySelectorAll: __frozen is a JS property, not an
   // attribute, so there is no selector that finds it.
   function walk(node) {
@@ -168,6 +176,11 @@ var App = (function () {
   /// still in front of them instead of the form vanishing.
   function openSheet(sheetName, selectRow, note) {
     status('Loading ' + sheetName + '…');
+    // A sheet switch usually ends without a form — openSheet stops at renderList unless
+    // selectRow is given — so renderPreviews, which is the other place this happens, is never
+    // reached. Leaving it to renderPreviews alone would run the previous sheet's animation
+    // forever, with its canvas still on screen above the new sheet's empty form.
+    clearPreviews();
     state.sheetName = sheetName;
     state.schema = schemaFor(sheetName);
     state.rowNumber = 0;
@@ -306,29 +319,60 @@ var App = (function () {
     });
   }
 
-  // Re-renders the previews from the CURRENT form contents, which is what every composite's
-  // __onChange asks for. Reading the form back rather than the stored row is the point: the
-  // preview has to show the edit, not the record.
+  // The values the previews actually READ, as one string. Two mechanisms ask for a redraw and
+  // both can fire for a single keystroke — a composite's __onChange at the target, then the
+  // delegated listener as the same event bubbles to the form — so the redraw is deduplicated by
+  // CONTENT rather than by trying to reason about listener order. That also means typing in
+  // item_name or npc_title, which no preview reads, rebuilds nothing.
+  //
+  // It is what makes the frozen case come out right for free: while an equip slot holds a typo
+  // the composite does not write its cell, so the key does not move and the preview does not
+  // either — the same guarantee notify() gives, without a second frozen test that could drift
+  // out of step with the first.
+  function previewKey(values) {
+    var parts = ['body_id', 'body_r', 'body_g', 'body_b', 'body_a', 'hair_id', 'hair_r',
+                 'hair_g', 'hair_b', 'hair_a', 'face_id', 'body_state', 'equipped_items',
+                 'spell_effect_id', 'spell_animation'].map(function (name) {
+      return name + '=' + str(values[name]);
+    });
+    return state.sheetName + '\u0000' + parts.join('\u0000');
+  }
+
+  // Re-renders the previews from the CURRENT form contents. Reading the form back rather than
+  // the stored row is the point: the preview has to show the edit, not the record.
   function refreshPreviews(container) {
-    renderPreviews(container, Forms.collect(container, state.schema));
+    var values = Forms.collect(container, state.schema);
+    if (previewKey(values) === state.previewKey) return;
+    renderPreviews(container, values);
   }
 
   function renderPreviews(container, values) {
     var host = document.getElementById('previews');
     host.innerHTML = '';
+    state.previewKey = previewKey(values);
 
     // Unconditional, not inside the effect branch: switching to a record with no effect would
     // otherwise leave the previous animation's interval running forever, drawing into a canvas
     // that is no longer in the tree.
     if (state.stopEffect) { state.stopEffect(); state.stopEffect = null; }
 
+
     // Every composite control notifies through __onChange on the node Composites.control
-    // returned, and that is the redraw signal. A rejected equip-slot typo deliberately does NOT
-    // fire it — the cell genuinely did not change, so the preview must not move either.
+    // returned, and Task 8's contract names that as the preview's redraw signal. Set on EVERY
+    // node rather than on the ones that LOOK like composites: only a composite ever calls it,
+    // the property is inert everywhere else, and sniffing for a class name would silently stop
+    // working the day a control is renamed.
     //
-    // Set on EVERY node rather than on the ones that look like composites: only a composite ever
-    // calls it, the property is inert everywhere else, and sniffing for a class name would
-    // silently stop working the day a control is renamed.
+    // It is currently REDUNDANT, and honestly so: every composite writes its cell from an
+    // `input` or `change` handler, and those bubble to the delegated listener in init(), so a
+    // mutation sweep cannot kill this line. It stays for the path that does not bubble —
+    // idListControl's chip buttons write the cell from a `click` — which today touches only
+    // quest_ids, a column no preview reads. The day a composite changes a previewed cell from a
+    // button, this is the only thing that would notice.
+    //
+    // Both routes end in refreshPreviews, which is keyed on content, so one keystroke arriving
+    // twice still redraws once. A rejected equip-slot typo redraws NEITHER way: the composite
+    // skips notify while frozen, and the cell it did not write leaves the key unmoved.
     var redraw = function () { refreshPreviews(container); };
     walk(container).forEach(function (node) { node.__onChange = redraw; });
 
@@ -579,6 +623,19 @@ var App = (function () {
     document.getElementById('save').addEventListener('click', save);
     document.getElementById('publish-check').addEventListener('click', publishCheck);
 
+    // Delegated preview refresh, registered ONCE on the form container — which outlives every
+    // record, so registering it per render would stack a handler per record opened.
+    //
+    // Delegated because __onChange only ever reaches COMPOSITES: body_id, hair_id, face_id and
+    // body_state belong to no composite on NPCs, so forms.js renders them as plain text inputs
+    // with no listener of their own, and without this, typing 150 into body_id changes nothing
+    // on screen until the record is saved and re-opened. `input` and `change` both bubble;
+    // `input` covers typing, `change` covers a <select> and a value committed without one.
+    var form = document.getElementById('form');
+    function onEdit() { if (state.schema) refreshPreviews(form); }
+    form.addEventListener('input', onEdit);
+    form.addEventListener('change', onEdit);
+
     loadBundle('icons', function () { openSheet(GOOSE_SCHEMA.sheets[0].sheet); });
   }
 
@@ -593,7 +650,6 @@ var App = (function () {
     publishCheck: publishCheck,
     nameIndex: nameIndex,
     bundlesFor: bundlesFor,
-    BUNDLES: BUNDLES,
     __state: state,
   };
 })();

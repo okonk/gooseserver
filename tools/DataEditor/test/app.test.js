@@ -125,7 +125,7 @@ function boot(sheets, options) {
   Object.assign(App.__state, {
     schema: null, sheetName: null, rows: [], header: [], rowNumber: 0, ids: [], bundleErrors: [],
     idSets: {}, pickerData: {}, bundles: {}, images: {}, imageCallbacks: [],
-    loaded: {}, stopEffect: null, checking: false,
+    loaded: {}, stopEffect: null, previewKey: null, checking: false,
   });
 
   App.init();
@@ -380,6 +380,109 @@ test('a composite change redraws the preview through __onChange', () => {
   assert.notEqual(after, before, 'the preview was rebuilt');
 });
 
+test('typing in body_id updates the character preview live (smoke items 12 and 13)', () => {
+  // body_id, hair_id, face_id and body_state belong to NO composite on NPCs, so __onChange
+  // never reaches them — they are plain text inputs. Without a delegated listener on the form,
+  // typing 150 here changes nothing until the record is saved and re-opened.
+  const h = boot({ NPCs: [NPC(1, 'Rat', { hair_id: 5 })] });
+  h.get('sheet-picker').value = 'NPCs';
+  fire(h.get('sheet-picker'), 'change');
+  h.settle();
+  fire(h.get('records').children[0], 'click');
+  h.settle();
+
+  const layers = () => {
+    const calls = h.get('previews').children[0].getContext('2d').calls;
+    return calls.filter((c) => c[0] === 'drawImage').length;
+  };
+  assert.equal(layers(), 1, 'body 1 has art; hair 5 and the underwear legs do not');
+
+  const bodyId = h.get('form').querySelector('[name="body_id"]');
+  bodyId.value = '150';
+  fire(bodyId, 'input');
+
+  // A monster body draws alone — and body 150 has no art in the test bundle, so the proof is
+  // that the canvas is a NEW one showing nothing, not the old one still showing body 1.
+  assert.equal(layers(), 0);
+  assert.equal(App.__state.previewKey.indexOf('body_id=150') !== -1, true);
+});
+
+test('a value committed with `change` alone still refreshes the preview', () => {
+  // Both event types are delegated. `input` covers typing; `change` covers what a <select>, an
+  // autofill or a paste-then-blur commits — a browser fires `change` there whether or not an
+  // `input` preceded it, and a handler wired for only one of the two silently misses it.
+  const h = boot({ NPCs: [NPC(1, 'Rat')] });
+  h.get('sheet-picker').value = 'NPCs';
+  fire(h.get('sheet-picker'), 'change');
+  h.settle();
+  fire(h.get('records').children[0], 'click');
+  h.settle();
+
+  const before = h.get('previews').children[0];
+  const bodyId = h.get('form').querySelector('[name="body_id"]');
+  bodyId.value = '150';
+  fire(bodyId, 'change');
+
+  assert.notEqual(h.get('previews').children[0], before);
+  assert.ok(App.__state.previewKey.indexOf('body_id=150') !== -1);
+});
+
+test('the delegated listeners are registered once, not once per record opened', () => {
+  // The form container outlives every record — Forms.render empties it rather than replacing
+  // it — so a per-render registration would stack a handler for every record ever opened.
+  const h = boot({ Items: [ITEM(1, 'Gold'), ITEM(2, 'Sword')] });
+  const form = h.get('form');
+  const count = () => form._listeners.get('input').length + form._listeners.get('change').length;
+
+  fire(h.get('records').children[0], 'click');
+  h.settle();
+  const first = count();
+
+  for (let i = 0; i < 5; i++) {
+    fire(h.get('records').children[i % 2], 'click');
+    h.settle();
+  }
+  assert.equal(count(), first);
+  assert.equal(first, 2);
+});
+
+test('a field no preview reads does not rebuild the preview', () => {
+  // Content-keyed, so the two redraw paths cannot double-fire for one keystroke either.
+  const h = boot({ NPCs: [NPC(1, 'Rat')] });
+  h.get('sheet-picker').value = 'NPCs';
+  fire(h.get('sheet-picker'), 'change');
+  h.settle();
+  fire(h.get('records').children[0], 'click');
+  h.settle();
+
+  const before = h.get('previews').children[0];
+  const name = h.get('form').querySelector('[name="npc_name"]');
+  name.value = 'Giant Rat';
+  fire(name, 'input');
+  assert.equal(h.get('previews').children[0], before);
+});
+
+test('a composite edit redraws exactly once, not twice', () => {
+  // The composite calls __onChange at the target and the same event then bubbles to the
+  // delegated listener. Both ask for a redraw; only one may happen.
+  const h = boot({ NPCs: [NPC(1, 'Rat')] });
+  h.get('sheet-picker').value = 'NPCs';
+  fire(h.get('sheet-picker'), 'change');
+  h.settle();
+  fire(h.get('records').children[0], 'click');
+  h.settle();
+
+  let renders = 0;
+  const host = h.get('previews');
+  const realAppend = host.appendChild.bind(host);
+  host.appendChild = (child) => { if (child.tagName === 'CANVAS') renders++; return realAppend(child); };
+
+  const slot = h.get('form').querySelectorAll('[class="slot-graphic"]')[0];
+  slot.value = '1';
+  fire(slot, 'input');
+  assert.equal(renders, 1);
+});
+
 test('a rejected equip-slot typo does NOT redraw the preview', () => {
   // Composites deliberately skips __onChange while frozen: the cell genuinely did not change.
   const h = boot({ NPCs: [NPC(1, 'Rat')] });
@@ -395,6 +498,96 @@ test('a rejected equip-slot typo does NOT redraw the preview', () => {
   fire(slot, 'input');
 
   assert.equal(h.get('previews').children[0], before);
+});
+
+test('changing spell_effect_id restarts the effect animation live', () => {
+  const realSet = globalThis.setInterval;
+  const realClear = globalThis.clearInterval;
+  const live = new Set();
+  let next = 1;
+  globalThis.setInterval = () => { live.add(next); return next++; };
+  globalThis.clearInterval = (id) => { live.delete(id); };
+
+  try {
+    globalThis.GOOSE_SPRITES.effects.rects = { '4:0': [0, 0, 16, 16], '9:0': [16, 0, 16, 16] };
+    const h = boot({
+      Spells: [rowFor('Spells', { spell_id: 1, spell_name: 'Fire', spell_target: 'Self',
+                                  spellbook_graphic: 1, spell_effect_id: 4 })],
+      'Spell Effects': [rowFor('Spell Effects', {
+        spell_effect_id: 4, spell_effect_name: 'Flame', effect_type: 'Instant',
+        spell_effected: 'Anyone',
+      }), rowFor('Spell Effects', {
+        spell_effect_id: 9, spell_effect_name: 'Frost', effect_type: 'Instant',
+        spell_effected: 'Anyone',
+      })],
+    });
+
+    h.get('sheet-picker').value = 'Spells';
+    fire(h.get('sheet-picker'), 'change');
+    h.settle();
+    fire(h.get('records').children[0], 'click');
+    h.settle();
+    assert.equal(live.size, 1, 'effect 4 is animating');
+    const first = [...live][0];
+
+    // Retargeting the field must stop the old animation and start the new one — which only
+    // happens if spell_effect_id is part of what the preview watches.
+    const field = h.get('form').querySelector('[name="spell_effect_id"]');
+    field.value = '9';
+    fire(field, 'input');
+
+    assert.equal(live.size, 1, 'exactly one animation is running');
+    assert.equal(live.has(first), false, 'and it is not the old one');
+    // The new canvas is drawing effect 9's frame, at sx 16.
+    const calls = h.get('previews').children[0].getContext('2d').calls;
+    assert.equal(calls.filter((c) => c[0] === 'drawImage')[0][2], 16);
+  } finally {
+    globalThis.GOOSE_SPRITES.effects.rects = {};
+    globalThis.setInterval = realSet;
+    globalThis.clearInterval = realClear;
+  }
+});
+
+test('switching SHEETS stops the previous sheet\'s animation and clears the panel', () => {
+  const realSet = globalThis.setInterval;
+  const realClear = globalThis.clearInterval;
+  const live = new Set();
+  let next = 1;
+  globalThis.setInterval = () => { live.add(next); return next++; };
+  globalThis.clearInterval = (id) => { live.delete(id); };
+
+  try {
+    globalThis.GOOSE_SPRITES.effects.rects = { '4:0': [0, 0, 16, 16] };
+    const h = boot({
+      Items: [ITEM(1, 'Gold')],
+      Spells: [rowFor('Spells', { spell_id: 1, spell_name: 'Fire', spell_target: 'Self',
+                                  spellbook_graphic: 1, spell_effect_id: 4 })],
+      'Spell Effects': [rowFor('Spell Effects', {
+        spell_effect_id: 4, spell_effect_name: 'Flame', effect_type: 'Instant',
+        spell_effected: 'Anyone',
+      })],
+    });
+
+    h.get('sheet-picker').value = 'Spells';
+    fire(h.get('sheet-picker'), 'change');
+    h.settle();
+    fire(h.get('records').children[0], 'click');
+    h.settle();
+    assert.equal(live.size, 1);
+
+    // openSheet stops at renderList — no record is selected, so renderPreviews is never
+    // reached and cannot be the thing that stops the timer.
+    h.get('sheet-picker').value = 'Items';
+    fire(h.get('sheet-picker'), 'change');
+    h.settle();
+
+    assert.equal(live.size, 0, 'the animation stopped');
+    assert.equal(h.get('previews').children.length, 0, 'and its canvas is gone');
+  } finally {
+    globalThis.GOOSE_SPRITES.effects.rects = {};
+    globalThis.setInterval = realSet;
+    globalThis.clearInterval = realClear;
+  }
 });
 
 test('switching to a record with no effect stops the previous animation', () => {
