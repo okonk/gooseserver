@@ -152,7 +152,7 @@ function boot(sheets, options) {
     // otherwise still be distrusted in the next, and the save gate would refuse a save the
     // test never broke.
     refErrors: [], retrying: false,
-    idSets: {}, pickerData: {}, bundles: {}, images: {}, imageCallbacks: [],
+    idSets: {}, pickerData: {}, bundles: {}, images: {}, imageCallbacks: [], formCallbacks: [],
     loaded: {}, stopEffect: null, previewKey: null, checking: false,
     sheetToken: 0, formToken: 0, saving: false, loading: {},
   });
@@ -261,7 +261,10 @@ test('New suggests max + 1 and writes as an append', () => {
 });
 
 test('bundlesFor loads parts only for the sheets that draw a character', () => {
-  assert.deepEqual(App.bundlesFor(schemaOf('Items')), ['icons']);
+  // Items joined this list when graphic_equip gained a preview: it has neither body_id nor an
+  // EquipSlots composite, but its worn preview and its partControl both draw a character sprite,
+  // so without parts they would sit blank with "no character art loaded" forever.
+  assert.deepEqual(App.bundlesFor(schemaOf('Items')), ['icons', 'parts']);
   assert.deepEqual(App.bundlesFor(schemaOf('NPCs')), ['icons', 'parts']);
   assert.deepEqual(App.bundlesFor(schemaOf('Spells')), ['icons', 'effects']);
   assert.deepEqual(App.bundlesFor(schemaOf('Spell Effects')), ['icons', 'parts', 'effects']);
@@ -386,11 +389,162 @@ test('the NPC preview uses the row\'s body_state to pick the clip (#15)', () => 
   }
 });
 
-test('Items draws no character preview', () => {
+test('Items draws no NPC character preview — it draws its own two canvases', () => {
+  // Items has no body_id, so the body_id branch must not fire. What it gets instead is the item
+  // pair: the inventory icon and the worn sprite.
   const h = boot({ Items: [ITEM(1, 'Gold')] });
   fire(h.get('records').children[0], 'click');
   h.settle();
-  assert.equal(h.get('previews').children.length, 0);
+
+  const classes = h.get('previews').children.map((n) => n.className);
+  assert.deepEqual(classes, ['item-icon', 'worn']);
+  assert.equal(classes.indexOf('appearance'), -1, 'not the NPC character preview');
+});
+
+// --- the Items preview panel -----------------------------------------------------------------
+
+// An item that resolves in the test bundle both ways: icon 20107:810003 and a Helms sprite.
+const WEARABLE = (values) => rowFor('Items', Object.assign({
+  item_template_id: 1, item_usetype: 'Armor', item_name: 'Helm', item_slot: 'Helmet',
+  graphic_tile: 810003, graphic_file: 20107, graphic_equip: 5, body_state: 1,
+}, values || {}));
+
+// The extra rects the Items panel needs, installed around one test at a time so the shared bundle
+// stays what every other test in this file expects.
+function withItemArt(body) {
+  const icons = globalThis.GOOSE_SPRITES.icons.rects;
+  const parts = globalThis.GOOSE_SPRITES.parts.rects;
+  globalThis.GOOSE_SPRITES.icons.rects = Object.assign({ '20107:810003': [0, 0, 16, 16] }, icons);
+  globalThis.GOOSE_SPRITES.parts.rects = Object.assign({ 'Helms:5:idle-down': [10, 0, 24, 32] },
+    parts);
+  try { body(); } finally {
+    globalThis.GOOSE_SPRITES.icons.rects = icons;
+    globalThis.GOOSE_SPRITES.parts.rects = parts;
+  }
+}
+
+function openItem(row) {
+  const h = boot({ Items: [row] });
+  fire(h.get('records').children[0], 'click');
+  h.settle();
+  return h;
+}
+
+const drewOn = (canvas) => canvas.getContext('2d').calls.filter((c) => c[0] === 'drawImage');
+
+test('an Items record draws the icon and the worn sprite, in that order', () => {
+  withItemArt(() => {
+    const h = openItem(WEARABLE());
+    const [icon, worn] = h.get('previews').children;
+
+    assert.equal(icon.className, 'item-icon');
+    assert.equal(icon.width, Preview.ICON_BOX * Preview.ICON_SCALE);
+    assert.equal(drewOn(icon).length, 1, 'the inventory tile');
+
+    assert.equal(worn.className, 'worn');
+    assert.equal(worn.width, Preview.CANVAS_W * Preview.CHARACTER_SCALE);
+    // Body 1, its underwear legs (no art in this bundle), and the helmet.
+    assert.deepEqual(drewOn(worn).map((c) => c[2]), [0, 10]);
+  });
+});
+
+test('a Quests record draws neither of them', () => {
+  // The branch is keyed on the sheet, so a sheet with none of these columns must not reach it —
+  // Forms.collect would hand it blanks and the panel would show a bare body for no reason.
+  const h = boot({ Quests: [rowFor('Quests', { quest_id: 1, quest_name: 'Errand' })] });
+  h.get('sheet-picker').value = 'Quests';
+  fire(h.get('sheet-picker'), 'change');
+  h.settle();
+  fire(h.get('records').children[0], 'click');
+  h.settle();
+  assert.deepEqual(h.get('previews').children.map((n) => n.className), []);
+});
+
+test('the worn canvas is there even for an item nothing wears', () => {
+  // A Misc item still gets the panel; the worn canvas shows the bare body, which reads as "not
+  // worn" where a missing canvas would read as a broken preview.
+  withItemArt(() => {
+    const h = openItem(WEARABLE({ item_slot: 'Misc' }));
+    const [icon, worn] = h.get('previews').children;
+    assert.equal(drewOn(icon).length, 1, 'the icon is unaffected by the slot');
+    assert.deepEqual(drewOn(worn).map((c) => c[2]), [0], 'the body alone');
+  });
+});
+
+test('a tint edit rebuilds the Items panel', () => {
+  // The complaint this task exists for: graphic_r/g/b/a visibly affected nothing.
+  withItemArt(() => {
+    const h = openItem(WEARABLE());
+    const before = h.get('previews').children[0];
+
+    const red = h.get('form').querySelector('[name="graphic_r"]');
+    const alpha = h.get('form').querySelector('[name="graphic_a"]');
+    red.value = '255';
+    alpha.value = '255';
+    fire(alpha, 'change');
+
+    const [icon, worn] = h.get('previews').children;
+    assert.notEqual(icon, before, 'the panel was rebuilt');
+    // A tinted draw goes through an offscreen canvas: drawImage(node, dx, dy).
+    assert.equal(drewOn(icon).filter((c) => c.length === 4).length, 1, 'the tile is tinted');
+    assert.equal(drewOn(worn).filter((c) => c.length === 4).length, 1, 'and so is the helmet');
+  });
+});
+
+test('changing item_slot moves the worn preview into another folder', () => {
+  withItemArt(() => {
+    const h = openItem(WEARABLE());
+    assert.deepEqual(drewOn(h.get('previews').children[1]).map((c) => c[2]), [0, 10]);
+
+    const slot = h.get('form').querySelector('[name="item_slot"]');
+    slot.value = 'Ring';
+    fire(slot, 'change');
+    assert.deepEqual(drewOn(h.get('previews').children[1]).map((c) => c[2]), [0],
+      'a ring is not drawn on the character');
+  });
+});
+
+// --- previewKey ------------------------------------------------------------------------------
+
+test('previewKey moves for every cell the Items panel reads', () => {
+  withItemArt(() => {
+    const h = openItem(WEARABLE());
+    const form = h.get('form');
+    const edit = (name, value) => {
+      const node = form.querySelector('[name="' + name + '"]');
+      assert.ok(node, name + ' has no control in the form');
+      const was = App.__state.previewKey;
+      node.value = value;
+      fire(node, 'change');
+      assert.notEqual(App.__state.previewKey, was, name + ' must move the preview key');
+    };
+
+    ['graphic_tile', 'graphic_file', 'graphic_equip', 'graphic_r', 'graphic_g', 'graphic_b',
+     'graphic_a', 'body_state'].forEach((name, i) => edit(name, String(11 + i)));
+    edit('item_slot', 'Shoes');
+  });
+});
+
+test('previewKey ignores the cells no preview reads', () => {
+  // The key is what stops a keystroke in item_description from rebuilding two canvases forty
+  // times a second, so a column added to it by accident is a real cost.
+  withItemArt(() => {
+    const h = openItem(WEARABLE());
+    const form = h.get('form');
+    ['item_name', 'item_description', 'item_value', 'weapon_damage', 'stat_str', 'min_level']
+      .forEach((name) => {
+        const node = form.querySelector('[name="' + name + '"]');
+        assert.ok(node, name + ' has no control in the form');
+        const was = App.__state.previewKey;
+        // Node IDENTITY, not the array: renderPreviews empties the host and builds fresh canvases,
+        // so the same node still being there is the proof that it did not run.
+        const icon = h.get('previews').children[0];
+        node.value = 'x1';
+        fire(node, 'change');
+        assert.equal(App.__state.previewKey, was, name + ' must not move the preview key');
+        assert.equal(h.get('previews').children[0], icon, name + ' rebuilt the panel');
+      });
+  });
 });
 
 test('a composite change redraws the preview through __onChange', () => {

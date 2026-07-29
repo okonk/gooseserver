@@ -162,10 +162,25 @@ var Forms = (function () {
   // the only module that renders a whole record, and losing every field of a sheet because one
   // include is missing is a far worse failure than 26 columns falling back to a text box that
   // still holds, validates and saves the right value.
-  function columnControl(column, value, ctx) {
+  //
+  // A PART GRAPHIC is routed the same way and for the same reason. Layout.partGraphic(sheet, name)
+  // answers non-null for a column holding a character-part sprite id — graphic_equip is the only
+  // one — and Pickers.partControl gives it the preview it otherwise has none of. It is a plain Int
+  // column with no composite, so nothing else would ever route it anywhere but scalarControl.
+  //
+  // partControl needs the whole values map, not just this cell: the sprite folder comes from
+  // another column (item_slot). Hence the extra parameter, which the fk branch has no use for.
+  function columnControl(column, value, ctx, sheet, values) {
     if (column.ref && typeof Pickers !== 'undefined' && Pickers && Pickers.fkControl) {
       return Pickers.fkControl(column, value, ctx);
     }
+
+    var part = Layout.partGraphic(sheet, column.name);
+    if (part && typeof Pickers !== 'undefined' && Pickers && Pickers.partControl) {
+      return Pickers.partControl(column, values, ctx, part,
+                                 Layout.tintColumns(sheet, column.name));
+    }
+
     return scalarControl(column, value);
   }
 
@@ -221,8 +236,10 @@ var Forms = (function () {
         row.appendChild(comp ? el('label', null, Layout.labelFor(comp, name))
                              : el('label', { for: 'f-' + name }, name));
 
-        row.appendChild(comp ? Composites.control(comp, byName, values, ctx)
-                             : columnControl(column, values[name], ctx));
+        // The sheet is threaded from the schema being rendered rather than read off ctx, so the
+        // presentation table can never be consulted for a different sheet than the one on screen.
+        row.appendChild(comp ? Composites.control(comp, byName, values, ctx, schema.sheet)
+                             : columnControl(column, values[name], ctx, schema.sheet, values));
 
         row.appendChild(el('div', { class: 'error', 'data-error-for': name }));
         section.appendChild(row);

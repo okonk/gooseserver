@@ -336,3 +336,63 @@ test('vertical anchor: every height at or above 48 collapses to -24', () => {
   for (let h = 48; h <= 400; h++) assert.equal(Appearance.offsetY(h), -24, 'height ' + h);
   assert.equal(Appearance.offsetY(0), 0);
 });
+
+// --- item_slot -> character slot (Inventory.cs:602-655, :692) --------------------------------
+
+test('each of the seven drawn item slots maps to its client folder', () => {
+  // The pair the plan names: Inventory.cs's slot map, and the six slots that reach
+  // EquippedDisplay. Asserted all the way through to the FOLDER, because the folder is what the
+  // bundle is keyed on and a slot name that maps to the wrong one looks perfectly plausible.
+  const folder = (itemSlot) => Appearance.CATEGORY[Appearance.slotFor(itemSlot)];
+  assert.equal(folder('Helmet'), 'Helms');
+  assert.equal(folder('Chest'), 'Chest');
+  assert.equal(folder('Pants'), 'Legs');
+  assert.equal(folder('Shoes'), 'Feet');
+  // A shield and a weapon share the Hands folder — three item slots, one folder.
+  assert.equal(folder('Shield'), 'Hands');
+  assert.equal(folder('OneHanded'), 'Hands');
+  assert.equal(folder('TwoHanded'), 'Hands');
+  // A mount is just a body, drawn from a mounted clip.
+  assert.equal(folder('Mount'), 'Bodies');
+});
+
+test('the shield and the two weapon slots are distinguishable despite sharing a folder', () => {
+  // They differ in DRAW ORDER, which is why they are separate slots rather than one 'Hands'.
+  assert.equal(Appearance.slotFor('Shield'), 'Shield');
+  assert.equal(Appearance.slotFor('OneHanded'), 'Weapon');
+  assert.ok(Appearance.sortOrder('Weapon') > Appearance.sortOrder('Shield'));
+});
+
+test('the seven slots the client never draws answer null rather than a guess', () => {
+  ['Ring', 'Necklace', 'Pauldrons', 'Cloak', 'Belt', 'Gloves', 'Misc'].forEach((slot) => {
+    assert.equal(Appearance.slotFor(slot), null, slot);
+  });
+});
+
+test('the table covers exactly the item_slot enum, all fifteen members', () => {
+  // Pinned against the schema so a renamed or added enum member cannot slip through as "not
+  // drawn" — which is the failure mode that looks like working software.
+  const enumNames = ['Helmet', 'Shield', 'OneHanded', 'TwoHanded', 'Ring', 'Necklace',
+    'Pauldrons', 'Cloak', 'Belt', 'Gloves', 'Chest', 'Pants', 'Shoes', 'Mount', 'Misc'];
+  const drawn = enumNames.filter((n) => Appearance.slotFor(n));
+  assert.equal(drawn.length, 8, 'eight item slots, six character slots');
+  assert.deepEqual(Object.keys(Appearance.EQUIP_SLOT).filter((k) => !enumNames.includes(k)), [],
+    'EQUIP_SLOT names something that is not an item_slot value');
+});
+
+test('a blank, numeric or unrecognised item_slot is "not drawn", not a guess', () => {
+  // The cell holds the enum MEMBER NAME (DescriptorTransform.cs:24), so a 0 is not a Helmet.
+  assert.equal(Appearance.slotFor(''), null);
+  assert.equal(Appearance.slotFor(undefined), null);
+  assert.equal(Appearance.slotFor(null), null);
+  assert.equal(Appearance.slotFor(0), null);
+  assert.equal(Appearance.slotFor('helmet'), null, 'the enum names are case-sensitive');
+  assert.equal(Appearance.slotFor('Nonsense'), null);
+  // Object.prototype must not leak a slot.
+  assert.equal(Appearance.slotFor('constructor'), null);
+  assert.equal(Appearance.slotFor('toString'), null);
+});
+
+test('a padded cell still resolves, as every other id-bearing cell does', () => {
+  assert.equal(Appearance.slotFor(' Helmet '), 'Helm');
+});

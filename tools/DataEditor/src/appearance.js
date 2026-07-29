@@ -29,6 +29,32 @@ var Appearance = (function () {
     Helm: 'Helms', Legs: 'Legs', Feet: 'Feet', Shield: 'Hands', Weapon: 'Hands',
   };
 
+  // Which character slot an ITEM's equip slot renders into — Goose/Inventory.cs:602-655 for the
+  // mapping and :692 for which of them reach EquippedDisplay at all. Combined with CATEGORY above
+  // this is the whole route from an item_slot cell to a sprite folder, and it is the client's own
+  // route: Helmet -> Helm -> Helms, Shield and both weapon slots -> Hands, Mount -> Bodies.
+  //
+  // KEYED ON THE ENUM MEMBER NAME, not the number. The spreadsheet cell holds "Helmet"
+  // (DescriptorTransform.cs:24), so an index-keyed table would miss every row.
+  //
+  // THE ABSENT SLOTS ARE THE POINT. Ring, Necklace, Pauldrons, Cloak, Belt, Gloves and Misc are
+  // never drawn on the character — the client has no layer for them — so they are left OUT rather
+  // than mapped to a plausible-looking folder, and slotFor answers null. An empty or unrecognised
+  // cell gets the same answer for the same reason: "not drawn" is honest, and guessing a category
+  // would put a shield sprite on a ring.
+  var EQUIP_SLOT = {
+    Helmet: 'Helm', Chest: 'Chest', Pants: 'Legs', Shoes: 'Feet',
+    Shield: 'Shield', OneHanded: 'Weapon', TwoHanded: 'Weapon', Mount: 'Mount',
+  };
+
+  /// The character slot an item_slot value renders into, or null when the slot is not drawn.
+  /// Own-property lookup: 'constructor' is not an item_slot, and reaching Object.prototype for one
+  /// would hand the caller a function where a slot name belongs.
+  function slotFor(itemSlot) {
+    var name = (itemSlot === undefined || itemSlot === null) ? '' : String(itemSlot).trim();
+    return Object.prototype.hasOwnProperty.call(EQUIP_SLOT, name) ? EQUIP_SLOT[name] : null;
+  }
+
   // Every field here can arrive as a spreadsheet cell, i.e. a STRING. `'11' === 11` is false, so
   // without this the underwear and monster-body rules would silently stop firing for real rows.
   // parseInt, not Number or parseFloat: these are C# ints on the wire, and a graphic id indexes a
@@ -154,7 +180,10 @@ var Appearance = (function () {
   // MakeCharacterPacket.ParseEquippedItems only ever fills slots 0-5, and the NPCs sheet has no
   // mount column — so nothing in this editor's data can produce one. Mount stays in SLOT_INDEX
   // and CATEGORY because the draw order and folder for it are still facts about the client.
-  return { layers: layers, offsetY: offsetY, sortOrder: sortOrder, CATEGORY: CATEGORY };
+  return {
+    layers: layers, offsetY: offsetY, sortOrder: sortOrder, slotFor: slotFor,
+    CATEGORY: CATEGORY, EQUIP_SLOT: EQUIP_SLOT,
+  };
 })();
 
 if (typeof module !== 'undefined') module.exports = { Appearance: Appearance };

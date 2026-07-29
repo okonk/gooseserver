@@ -72,6 +72,7 @@ var App = (function () {
     bundles: {},
     images: {},
     imageCallbacks: [],
+    formCallbacks: [],
     loaded: {},        // the values map the open form was rendered from, verbatim
     stopEffect: null,
     previewKey: null,
@@ -116,6 +117,21 @@ var App = (function () {
       // the next form is rendered, so callbacks never accumulate across records.
       onImagesReady: function (fn) {
         if (typeof fn === 'function') state.imageCallbacks.push(fn);
+      },
+      // CROSS-FIELD CHANGE NOTIFICATION. A control redraws from its own inputs, so it cannot see
+      // a cell that belongs to another control — Pickers.graphicControl needs graphic_r/g/b/a
+      // (the Rgba composite's hidden inputs) and Pickers.partControl needs item_slot and
+      // body_state. `fn(values)` is called with the whole collected form on every edit.
+      //
+      // ONLY ON SUBSEQUENT EDITS, never immediately: every control is handed `values` at build
+      // time and does its own first draw from them, so invoking here would draw twice. Cleared in
+      // renderForm exactly as imageCallbacks is, so a callback holding the previous record's
+      // canvas can never redraw into a detached node.
+      //
+      // It reuses the ONE collect() the delegated listener already does for refreshPreviews —
+      // one traversal of a 76-column form per keystroke, two consumers.
+      onFormChange: function (fn) {
+        if (typeof fn === 'function') state.formCallbacks.push(fn);
       },
     };
   }
@@ -458,7 +474,14 @@ var App = (function () {
     var names = ['icons'];
     var hasBody = schema.columns.some(function (c) { return c.name === 'body_id'; });
     var hasEquip = (schema.composites || []).some(function (c) { return c.kind === 'EquipSlots'; });
-    if (hasBody || hasEquip) names.push('parts');
+    // A part graphic draws a character sprite too — Items has no body_id and no EquipSlots
+    // composite, so without this its worn preview and its graphic_equip control would both sit
+    // blank with "no character art loaded" forever. Read from the table rather than named here, so
+    // a second sheet gaining one cannot be forgotten.
+    var hasPart = schema.columns.some(function (c) {
+      return !!Layout.partGraphic(schema.sheet, c.name);
+    });
+    if (hasBody || hasEquip || hasPart) names.push('parts');
     if (['Spells', 'Spell Effects'].indexOf(schema.sheet) !== -1) names.push('effects');
     return names;
   }
@@ -468,6 +491,7 @@ var App = (function () {
     // Dropped BEFORE the new controls register theirs, so a callback holding a canvas from the
     // previous record cannot redraw into a detached node.
     state.imageCallbacks = [];
+    state.formCallbacks = [];
 
     // Captured BEFORE the bundles are asked for. Opening a second record while the first is
     // still waiting on a decode would otherwise let the earlier render land last, putting one
@@ -494,7 +518,12 @@ var App = (function () {
   function previewKey(values) {
     var parts = ['body_id', 'body_r', 'body_g', 'body_b', 'body_a', 'hair_id', 'hair_r',
                  'hair_g', 'hair_b', 'hair_a', 'face_id', 'body_state', 'equipped_items',
-                 'spell_effect_id', 'spell_animation'].map(function (name) {
+                 'spell_effect_id', 'spell_animation',
+                 // The Items panel: the icon pair, the worn graphic, the tint the game applies to
+                 // both, and the slot that decides which sprite folder the worn one comes from.
+                 // body_state is already above, and picks the pose.
+                 'graphic_tile', 'graphic_file', 'graphic_equip', 'item_slot',
+                 'graphic_r', 'graphic_g', 'graphic_b', 'graphic_a'].map(function (name) {
       return name + '=' + str(values[name]);
     });
     return state.sheetName + '\u0000' + parts.join('\u0000');
@@ -504,6 +533,14 @@ var App = (function () {
   // the stored row is the point: the preview has to show the edit, not the record.
   function refreshPreviews(container) {
     var values = Forms.collect(container, state.schema);
+
+    // Before the previewKey short-circuit, and deliberately NOT behind it. The two consumers
+    // answer different questions: previewKey asks "would the panel look different", while a
+    // control that subscribed asked "has any cell moved" — a control's own field is not in the
+    // key, so gating this on the key would drop the very edit the subscriber is watching for.
+    // Each callback owns its own cheapness.
+    state.formCallbacks.forEach(function (fn) { fn(values); });
+
     if (previewKey(values) === state.previewKey) return;
     renderPreviews(container, values);
   }
@@ -543,6 +580,38 @@ var App = (function () {
         // reads as armed, matching the NPCs default of 1.
         bodyState: values.body_state,
         equippedItems: values.equipped_items || '',
+      }, ctx(), Preview.CHARACTER_SCALE);
+    }
+
+    // ITEMS: two canvases, because an item is two sprites and the pair is the point. The tile is
+    // what a player sees in their bag; the equip graphic is what they see on their character, and
+    // the same graphic_r/g/b/a tints both. Keyed on the sheet rather than on a column, matching the
+    // effect branch below — the Items branch draws a WORN ITEM, which is a different thing from the
+    // character the body_id branch above draws, not a variation on it.
+    if (state.sheetName === 'Items') {
+      var tint = {
+        r: values.graphic_r, g: values.graphic_g, b: values.graphic_b, a: values.graphic_a,
+      };
+
+      var icon = Forms.el('canvas',
+        { width: Preview.ICON_BOX * Preview.ICON_SCALE,
+          height: Preview.ICON_BOX * Preview.ICON_SCALE, class: 'item-icon' });
+      host.appendChild(icon);
+      Preview.itemIcon(icon, {
+        graphic: values.graphic_tile, file: values.graphic_file,
+        r: tint.r, g: tint.g, b: tint.b, a: tint.a,
+      }, ctx(), Preview.ICON_SCALE);
+
+      // Drawn even when graphic_equip is empty or the slot is undrawn: the canvas then shows the
+      // bare base body, which is a legible "this item is not worn" rather than a gap in the panel
+      // that reads as a broken preview.
+      var worn = Forms.el('canvas',
+        { width: Preview.CANVAS_W * Preview.CHARACTER_SCALE,
+          height: Preview.CANVAS_H * Preview.CHARACTER_SCALE, class: 'worn' });
+      host.appendChild(worn);
+      Preview.wornItem(worn, {
+        id: values.graphic_equip, slot: values.item_slot, bodyState: values.body_state,
+        r: tint.r, g: tint.g, b: tint.b, a: tint.a,
       }, ctx(), Preview.CHARACTER_SCALE);
     }
 

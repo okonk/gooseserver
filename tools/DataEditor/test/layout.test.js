@@ -176,6 +176,92 @@ test('a real sheet therefore needs no Other group', () => {
   });
 });
 
+// ---------------------------------------------------------------- TINTS / PART_GRAPHICS
+
+test('the tint table names only columns the sheet really has', () => {
+  Object.keys(Layout.TINTS).forEach((name) => {
+    const real = sheet(name).columns.map((c) => c.name);
+    Object.keys(Layout.TINTS[name]).forEach((graphic) => {
+      assert.ok(real.includes(graphic), `${name} tints a column that does not exist: ${graphic}`);
+      Layout.TINTS[name][graphic].forEach((source) => {
+        assert.ok(real.includes(source),
+          `${name}.${graphic} reads a tint column that does not exist: ${source}`);
+      });
+    });
+  });
+});
+
+test('no sheet has a tint column the table forgets', () => {
+  // The other direction, which is the one a typo hides in: a graphic column whose sheet DOES carry
+  // graphic_r/g/b/a but which is absent from TINTS draws plain, and a plain preview looks fine.
+  SCHEMA.sheets.forEach((s) => {
+    const names = [...s.columns].map((c) => c.name);
+    const tintish = names.filter((n) => /_[rgba]$/.test(n));
+    if (!tintish.length) return;
+
+    // Only the tint of an item's own graphic is in scope: body_/hair_ tints belong to the
+    // character preview, which reads them through Appearance.layers and not through this table.
+    const graphicTints = tintish.filter((n) => n.indexOf('graphic_') === 0);
+    if (!graphicTints.length) return;
+
+    const table = Layout.TINTS[s.sheet] || {};
+    const covered = Object.keys(table);
+    assert.ok(covered.length > 0,
+      `${s.sheet} has ${graphicTints.join(', ')} but no entry in TINTS — its graphics draw plain`);
+    // Every graphic column of that sheet is tinted, not just the first one found.
+    const graphics = names.filter((n) => /^graphic(_tile|_equip)?$/.test(n));
+    assert.deepEqual([...graphics].sort(), [...covered].sort(),
+      `${s.sheet} tints some of its graphics and not others`);
+  });
+});
+
+test('tintColumns answers per sheet and per column, and null for everything else', () => {
+  assert.deepEqual(Layout.tintColumns('Items', 'graphic_tile'),
+    ['graphic_r', 'graphic_g', 'graphic_b', 'graphic_a']);
+  assert.deepEqual(Layout.tintColumns('Items', 'graphic_equip'),
+    ['graphic_r', 'graphic_g', 'graphic_b', 'graphic_a']);
+  // Spells has a graphic and no tint columns: the game draws its spellbook icon plain.
+  assert.equal(Layout.tintColumns('Spells', 'spellbook_graphic'), null);
+  assert.equal(Layout.tintColumns('Spell Effects', 'spell_animation'), null);
+  assert.equal(Layout.tintColumns('Items', 'item_name'), null);
+  assert.equal(Layout.tintColumns('Quests', 'graphic_tile'), null);
+});
+
+test('partGraphic marks graphic_equip a character part and nothing else', () => {
+  assert.deepEqual(Layout.partGraphic('Items', 'graphic_equip'), { categoryFrom: 'item_slot' });
+  // graphic_tile is an inventory ICON, drawn from the icons bundle, not a character part.
+  assert.equal(Layout.partGraphic('Items', 'graphic_tile'), null);
+  assert.equal(Layout.partGraphic('NPCs', 'graphic_equip'), null);
+});
+
+test('every part-graphic spec names real columns', () => {
+  Object.keys(Layout.PART_GRAPHICS).forEach((name) => {
+    const real = sheet(name).columns.map((c) => c.name);
+    Object.keys(Layout.PART_GRAPHICS[name]).forEach((column) => {
+      assert.ok(real.includes(column), `${name} has no column ${column}`);
+      const from = Layout.PART_GRAPHICS[name][column].categoryFrom;
+      assert.ok(real.includes(from), `${name}.${column} reads a missing column: ${from}`);
+    });
+  });
+});
+
+test('a part graphic is claimed by no composite, which is why it needs its own route', () => {
+  // If a Graphic composite ever claimed graphic_equip, forms.js would render it through
+  // Composites.control and partControl would never be reached — silently.
+  Object.keys(Layout.PART_GRAPHICS).forEach((name) => {
+    const claimed = [...(sheet(name).composites || [])].flatMap((c) => [...c.columns]);
+    Object.keys(Layout.PART_GRAPHICS[name]).forEach((column) => {
+      assert.ok(!claimed.includes(column), `${name}.${column} is claimed by a composite`);
+    });
+  });
+});
+
+test('the new tables cannot be mutated by a consumer either', () => {
+  assert.throws(() => { Layout.TINTS.Items = {}; }, TypeError);
+  assert.throws(() => Layout.TINTS.Items.graphic_tile.push('x'), TypeError);
+  assert.throws(() => { Layout.PART_GRAPHICS.Items.graphic_equip.categoryFrom = 'x'; }, TypeError);
+});
+
 // ---------------------------------------------------------------- labelFor
 
 // Every composite in schema.js, whatever kind, whatever sheet.

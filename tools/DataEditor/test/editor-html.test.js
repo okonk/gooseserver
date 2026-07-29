@@ -86,16 +86,26 @@ test('every CSS comment in the stylesheet is terminated', () => {
 
 // Comments gone, so a rule swallowed by an unterminated comment simply is not here to match.
 const css = style.replace(/\/\*[\s\S]*?\*\//g, '');
-// @media blocks are cut out whole before the flat prelude/body regex runs below: that regex
-// cannot parse a nested block (it reads the at-rule prelude as a selector and the first inner
-// rule as its body, then self-recovers on the stray `}` — which is why the top-level rules AFTER
-// a media query still match today, by accident rather than by rule). Removing the blocks with a
-// brace counter makes the parse honest. The consequence is that a selector moved INSIDE an
-// @media block stops being found — hence the third cause named in every lookup's message.
+// Nested at-rule blocks (@media today, @keyframes or @supports tomorrow) are cut out whole before
+// the flat prelude/body regex runs below: that regex cannot parse a nested block (it reads the
+// at-rule prelude as a selector and the first inner rule as its body, then self-recovers on the
+// stray `}` — which is why the top-level rules AFTER a media query still match today, by accident
+// rather than by rule). Removing the blocks with a brace counter makes the parse honest. The
+// consequence is that a selector moved INSIDE an @media block stops being found — hence the third
+// cause named in every lookup's message.
+//
+// The prefix test is ANY at-rule, not @media alone: a @keyframes block dropped in above one of the
+// rules queried below would otherwise resurrect exactly the mis-parse this helper exists to
+// prevent. A statement at-rule with no block (@import, @charset) has no `{` before the next rule's
+// one, so it takes its successor's braces with it — none is used here, and adding one would fail
+// loudly in the lookups rather than silently.
+const AT_RULE = /^@[a-z-]+/;
 const stripAtBlocks = (text) => {
   let out = '';
   for (let i = 0; i < text.length;) {
-    if (!text.startsWith('@media', i)) { out += text[i]; i += 1; continue; }
+    if (text[i] !== '@' || !AT_RULE.test(text.slice(i, i + 16))) {
+      out += text[i]; i += 1; continue;
+    }
     const open = text.indexOf('{', i);
     if (open === -1) break;
     let depth = 0;
@@ -115,6 +125,19 @@ const ruleFor = (selector) => {
   const rules = [...topLevelCss.matchAll(/([^{}]+){([^}]*)}/g)];
   return rules.find((r) => r[1].trim() === selector);
 };
+
+test('the at-block stripper removes any nested at-rule, not only @media', () => {
+  // Directly, because the consequence in the lookups below is invisible until someone adds the
+  // second kind of at-rule: a surviving @keyframes block hands the flat regex a nested body and
+  // the rule immediately after it stops being found.
+  const stripped = stripAtBlocks('@keyframes spin { from { opacity: 0 } to { opacity: 1 } }\n'
+    + '.after { color: red }');
+  assert.equal(stripped.indexOf('keyframes'), -1);
+  assert.equal(stripped.indexOf('opacity'), -1);
+  const rules = [...stripped.matchAll(/([^{}]+){([^}]*)}/g)];
+  assert.equal(rules.length, 1);
+  assert.equal(rules[0][1].trim(), '.after');
+});
 
 test('the equipment slot row is a live grid with a track for every cell it holds', () => {
   // Five cells per slot: label, graphic FK, colour swatch, preview canvas, status.

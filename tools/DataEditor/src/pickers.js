@@ -19,6 +19,15 @@ var Pickers = (function () {
   var ICON_BOX = 64;
   var ICON_SCALE = 2;
 
+  // The worn-part preview's logical box and its scale, so the canvas is 80x112. Deliberately the
+  // same numbers as Composites' SLOT_W/SLOT_H/SLOT_SCALE: this shows one equipped sprite in the
+  // form column, which is exactly what an equip-slot row shows, and two different boxes for the
+  // same thing would make the form look uneven for no reason. Taller than the icon box because a
+  // character part is tall and narrow where an icon is square.
+  var PART_W = 40;
+  var PART_H = 56;
+  var PART_SCALE = 2;
+
   // Slots inside LIMIT that name hits keep even when id-prefix hits could fill the whole list.
   // Without it, one digit typed against Items produces >100 id-prefix hits (1, 10-19, 100-199,
   // …) and slicing after concatenation would hide EVERY name match behind them — so a designer
@@ -58,6 +67,31 @@ var Pickers = (function () {
 
   function isWhole(text) {
     return /^\d+$/.test(text);
+  }
+
+  // parseInt(v, 10), matching Sprites.num(), Appearance.num(), Equipped.num(), Preview.num() and
+  // Composites.num() so no two modules disagree about what a spreadsheet cell means.
+  function num(value) {
+    var n = parseInt(value, 10);
+    return isNaN(n) ? 0 : n;
+  }
+
+  // The tint a set of tint columns currently asks for, read out of a collected form. Null when
+  // the graphic has no tint columns at all (Layout.TINTS says which do), which is not the same as
+  // a tint of zero: Sprites.draw treats both as "draw it plain", so the distinction is only about
+  // whether there is anything to read.
+  //
+  // No clamping and no zero-alpha collapse here — Sprites.applyTint clamps every channel and
+  // treats a zero blend factor as NoTint, colour and all, exactly as Icon.cs does. A second copy
+  // of either rule is a second rule that can drift.
+  function tintFrom(tintColumns, values) {
+    if (!tintColumns) return null;
+    return {
+      r: num(values[tintColumns[0]]),
+      g: num(values[tintColumns[1]]),
+      b: num(values[tintColumns[2]]),
+      a: num(values[tintColumns[3]]),
+    };
   }
 
   // Three buckets, best first: exact id, then id prefix, then name substring. An entry lands in
@@ -347,7 +381,12 @@ var Pickers = (function () {
   // [graphic, file] (graphic_tile + graphic_file, spell_animation + spell_animation_file, …)
   // while Sprites.icon takes (bundles, SHEET, graphic). Swapping the two resolves nothing at
   // all and does it silently, so the order is asserted in the tests.
-  function graphicControl(graphicColumn, fileColumn, values, ctx) {
+  //
+  // `tintColumns` is Layout.tintColumns(sheet, graphicColumn.name) — the four cells whose colour
+  // the game blends into this graphic, or null for a graphic it draws plain. They belong to
+  // ANOTHER control (the Rgba composite's hidden inputs), so they cannot be read from this
+  // control's own two fields; ctx.onFormChange is how the current values arrive after an edit.
+  function graphicControl(graphicColumn, fileColumn, values, ctx, tintColumns) {
     var wrap = Forms.el('div', { class: 'graphic' });
     // A 64-pixel logical box drawn at 2x — see ICON_BOX for why 64.
     var canvas = Forms.el('canvas',
@@ -368,6 +407,11 @@ var Pickers = (function () {
     var gInput = cell(graphicColumn, 'graphic');
     var fInput = cell(fileColumn, 'sheet');
     var status = Forms.el('span', { class: 'status' });
+
+    // The last form state seen, which the tint is read out of. Seeded with the record's own values
+    // so the FIRST draw is tinted too — a preview that only picked the tint up after an unrelated
+    // keystroke would show every freshly opened record plain.
+    var latest = values;
 
     // Says WHY nothing is on the canvas. A blank preview is otherwise indistinguishable from a
     // typo, and nothing else catches one: the cells are optional, so Validation passes a graphic
@@ -441,7 +485,7 @@ var Pickers = (function () {
       Sprites.draw(target, (ctx && ctx.images) ? ctx.images.icons : null, rect,
                    Math.floor((ICON_BOX - rect[2]) / 2),
                    Math.floor((ICON_BOX - rect[3]) / 2),
-                   null);
+                   tintFrom(tintColumns, latest));
     }
 
     gInput.addEventListener('input', redraw);
@@ -449,6 +493,12 @@ var Pickers = (function () {
 
     redraw();
     if (ctx && typeof ctx.onImagesReady === 'function') ctx.onImagesReady(redraw);
+    // Only worth subscribing when there is a cross-field cell to watch. An untinted graphic redraws
+    // from its own two `input` handlers and nothing else can change what it shows, so registering
+    // unconditionally would run a redraw per keystroke in item_description for no reason at all.
+    if (tintColumns && ctx && typeof ctx.onFormChange === 'function') {
+      ctx.onFormChange(function (current) { latest = current; redraw(); });
+    }
 
     wrap.appendChild(canvas);
     wrap.appendChild(gInput);
@@ -457,7 +507,109 @@ var Pickers = (function () {
     return wrap;
   }
 
-  return { search: search, fkControl: fkControl, graphicControl: graphicControl, LIMIT: LIMIT };
+  // Part control: one id field over a CHARACTER PART sprite rather than an inventory icon, plus a
+  // preview and a status line. graphic_equip is the only such column today — a plain Int with no
+  // composite, which is why it had no preview at all and why forms.js routes it here explicitly.
+  //
+  // WHAT MAKES IT DIFFERENT FROM graphicControl: there is no sheet cell. The sprite FOLDER comes
+  // from another column entirely (`spec.categoryFrom`, i.e. item_slot), through the client's own
+  // slot map in Appearance.slotFor — so the same id is a helmet or a pair of boots depending on a
+  // cell this control does not own. That, plus the tint and the armed/unarmed pose, is three
+  // cross-field reads, and all three arrive through ctx.onFormChange.
+  //
+  // NO SAVE GATE. graphicControl publishes __graphicError because the design rule for an inventory
+  // icon is that a complete pair must resolve, and every shipped pair does. Nothing of the kind has
+  // been established for graphic_equip, so refusing a save on it would be inventing a rule and
+  // could lock rows that ship today. The status line reports a miss; that is all it does.
+  function partControl(column, values, ctx, spec, tintColumns) {
+    var wrap = Forms.el('div', { class: 'graphic' });
+    var canvas = Forms.el('canvas',
+      { width: PART_W * PART_SCALE, height: PART_H * PART_SCALE, class: 'preview' });
+
+    var input = Forms.el('input', {
+      name: column.name,
+      id: 'f-' + column.name,
+      type: 'text',
+      autocomplete: 'off',
+      placeholder: Forms.placeholderFor(column) || 'graphic',
+    });
+    // str(), not `value || ''`: a stored 0 is "no equip graphic" and a REAL value, and blanking it
+    // would write blank — which means "use the SQL default" — on the next save.
+    input.value = str(values[column.name]);
+
+    var status = Forms.el('span', { class: 'status' });
+    var latest = values;
+
+    function redraw() {
+      var target = Sprites.scaled(canvas, PART_SCALE, PART_W, PART_H);
+      var text = str(input.value).trim();
+      // The slot is read from the LIVE form, so changing item_slot from Helmet to Shoes moves this
+      // preview into another folder without the record being reopened.
+      var slot = Appearance.slotFor(latest[spec.categoryFrom]);
+
+      function say(message, bad) {
+        status.textContent = message;
+        status.className = bad ? 'status bad' : 'status';
+      }
+
+      // First, because it is a fact about the ROW and not about this cell: an id in a slot the
+      // client never draws is not an error, and calling it one would flag most of the Ring and
+      // Misc rows in the sheet. The canvas stays blank and the line says why it is blank.
+      if (!slot) { say('this slot is not drawn on the character', false); return; }
+
+      if (text === '' || text === '0') { say('no graphic', false); return; }
+      // A non-whole cell already fails Validation's numeric check on the column itself, which
+      // reports it under the field — same reasoning as graphicControl's `block`-narrower-than-`bad`
+      // note, so this is shown and not gated.
+      if (!isWhole(text)) { say('graphic must be a whole number', true); return; }
+
+      var category = Appearance.CATEGORY[slot];
+      var bundles = (ctx && ctx.bundles) || {};
+      if (!bundles.parts || !bundles.parts.rects) {
+        say('cannot check ' + category + ' graphic ' + text + ' — no character art loaded', true);
+        return;
+      }
+
+      // A mount is a body in a MOUNTED clip, and Sprites.part deliberately never falls back to
+      // one — so the two lookups are genuinely different functions, not one with a flag.
+      var rect = slot === 'Mount' ? Sprites.mount(bundles, text)
+        : Sprites.part(bundles, category, text, Preview.isArmed(latest.body_state));
+
+      if (!rect) { say('no art for ' + category + ' graphic ' + text, true); return; }
+      say('', false);
+
+      Sprites.draw(target, (ctx && ctx.images) ? ctx.images.parts : null, rect,
+                   Math.floor((PART_W - rect[2]) / 2),
+                   Math.floor((PART_H - rect[3]) / 2),
+                   tintFrom(tintColumns, latest));
+    }
+
+    input.addEventListener('input', redraw);
+
+    redraw();
+    if (ctx && typeof ctx.onImagesReady === 'function') ctx.onImagesReady(redraw);
+    // Unconditional, unlike graphicControl's: the category alone is a cross-field read, so this
+    // control has something to follow whether or not it is tinted.
+    if (ctx && typeof ctx.onFormChange === 'function') {
+      ctx.onFormChange(function (current) { latest = current; redraw(); });
+    }
+
+    wrap.appendChild(canvas);
+    wrap.appendChild(input);
+    wrap.appendChild(status);
+    return wrap;
+  }
+
+  return {
+    search: search,
+    fkControl: fkControl,
+    graphicControl: graphicControl,
+    partControl: partControl,
+    LIMIT: LIMIT,
+    PART_W: PART_W,
+    PART_H: PART_H,
+    PART_SCALE: PART_SCALE,
+  };
 })();
 
 if (typeof module !== 'undefined') module.exports = { Pickers: Pickers };

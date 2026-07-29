@@ -348,9 +348,10 @@ var Composites = (function () {
     // bodyState only distinguishes armed from unarmed in a resting pose (Sprites.part's note).
     // 3 is unarmed; Items defaults to 3 and NPCs to 1. Read once, at build time: the control
     // has no handle on the body_state field, so a body_state edited after the form is built
-    // leaves these six clips stale until the form is rebuilt. Following it live needs a
-    // cross-field change notification the control can subscribe to — whatever ctx grows for
-    // that is where redraw() would hook in; deliberately not wired here.
+    // leaves these six clips stale until the form is rebuilt. `ctx.onFormChange(fn)` is the
+    // cross-field notification that would fix it — fn(values) fires on every edit, so recomputing
+    // `equipped` from values.body_state and redrawing all six is where this would hook in.
+    // Deliberately not wired here: nothing in the task that added onFormChange asked for it.
     //
     // A BLANK cell means "use the SQL default", which forms.js is scrupulous about and this is
     // not: num('') is 0, not the descriptor's 1. The answer comes out right for the only sheet
@@ -399,9 +400,8 @@ var Composites = (function () {
       //
       // The other stored shape that WOULD lose something — a real colour parked behind a zero
       // blend, `12,164,51,31,0` — never reaches this note: Equipped.scan flags that exact shape
-      // unfaithful (src/equipped.js zero-alpha check), so app.js's faithfulness gate refuses
-      // every edit to the row and the control is read-only. Relax that check and this row
-      // silently stops warning.
+      // unfaithful (src/equipped.js zero-alpha check), so app.js's faithfulness gate refuses any
+      // save that changes the row. Relax that check and this row silently stops warning.
       var discarding = false;
 
       // One writer for the row's status line, because two conditions share it. The typo wins:
@@ -527,12 +527,16 @@ var Composites = (function () {
     return node;
   }
 
-  function control(comp, byName, values, ctx) {
+  // `sheet` is only for the presentation tables in Layout — which graphic this sheet tints, today.
+  // A caller that omits it gets the untinted control, which is what every sheet but Items gets
+  // anyway.
+  function control(comp, byName, values, ctx, sheet) {
     var node;
     switch (comp.kind) {
       case 'Graphic':
         node = Pickers.graphicControl(byName[comp.columns[0]], byName[comp.columns[1]],
-                                      values, ctx);
+                                      values, ctx,
+                                      Layout.tintColumns(sheet, comp.columns[0]));
         break;
       case 'Rgba': node = rgbaControl(comp, values); break;
       case 'Bitmask': node = bitmaskControl(comp, values, ctx); break;

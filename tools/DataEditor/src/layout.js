@@ -80,6 +80,58 @@ var Layout = (function () {
     ],
   };
 
+  // WHICH COLUMNS TINT WHICH GRAPHIC. The game applies an item's graphic_r/g/b/a to BOTH the
+  // inventory tile and the worn sprite, so both of Items' graphics take the same four columns —
+  // which is why a tint edit had to visibly change nothing in the editor to be a bug worth fixing.
+  //
+  // ONLY ITEMS, and that is the whole table rather than an omission. Spells' spellbook_graphic and
+  // Spell Effects' four graphics have NO tint columns in their sheets at all, so there is nothing
+  // to read; inventing a source for them would tint a preview the game draws plain, which is worse
+  // than the untinted preview it replaced. layout.test.js asserts every name here exists in that
+  // sheet's schema, and — for the tint columns — that the sheet has no tint column this table
+  // leaves out.
+  var TINTS = {
+    Items: {
+      graphic_tile: ['graphic_r', 'graphic_g', 'graphic_b', 'graphic_a'],
+      graphic_equip: ['graphic_r', 'graphic_g', 'graphic_b', 'graphic_a'],
+    },
+  };
+
+  // Columns holding a CHARACTER PART graphic rather than an inventory icon, and where the sprite
+  // folder for one comes from. graphic_equip is a plain Int column with no composite, so without
+  // an entry here forms.js renders it as a text box with no preview at all — which is the
+  // complaint. `categoryFrom` names the column whose value picks the folder; the mapping from that
+  // value to a folder is a CLIENT fact and lives in appearance.js, not here.
+  var PART_GRAPHICS = {
+    Items: {
+      graphic_equip: { categoryFrom: 'item_slot' },
+    },
+  };
+
+  // Own-property lookups throughout: a sheet named 'constructor' is not a thing, but neither is
+  // reaching Object.prototype for one, and the rest of this file is prototype-free for the same
+  // reason.
+  function own(table, key) {
+    return Object.prototype.hasOwnProperty.call(table, key) ? table[key] : undefined;
+  }
+
+  function twoLevel(table, sheet, column) {
+    var forSheet = own(table, String(sheet));
+    if (!forSheet) return null;
+    var hit = own(forSheet, String(column));
+    return hit === undefined ? null : hit;
+  }
+
+  /// The tint columns for one graphic column, or null when that graphic is drawn plain.
+  function tintColumns(sheet, column) {
+    return twoLevel(TINTS, sheet, column);
+  }
+
+  /// The part-graphic spec for one column, or null when the column is not a character part.
+  function partGraphic(sheet, column) {
+    return twoLevel(PART_GRAPHICS, sheet, column);
+  }
+
   // ReloadSQLCommandEvent.cs:30-40 reloads spell effects, spells, item templates, quests and NPC
   // templates. LoadMaps, LoadClasses, LoadNPCs and LoadCombinations are commented out, so edits
   // to the sheets those loaders read need a full server restart, not /reloadsql.
@@ -187,8 +239,14 @@ var Layout = (function () {
     groupsFor: groupsFor,
     labelFor: labelFor,
     needsRestart: needsRestart,
+    tintColumns: tintColumns,
+    partGraphic: partGraphic,
     RESTART_ONLY: deepFreeze(RESTART_ONLY),
     LAYOUTS: deepFreeze(LAYOUTS),
+    // Exported for the same reason LAYOUTS is: a name here for a column that does not exist is
+    // invisible to every consumer, which simply reads null and draws no tint.
+    TINTS: deepFreeze(TINTS),
+    PART_GRAPHICS: deepFreeze(PART_GRAPHICS),
   };
 })();
 

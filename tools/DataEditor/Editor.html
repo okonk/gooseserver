@@ -49,7 +49,7 @@
   .ok { color: #060; }
   .problem { font-size: 11px; border-bottom: 1px solid #eee; padding: 2px 0; }
   #publish-results { max-height: 60vh; overflow: auto; }
-  canvas.preview, canvas.appearance, canvas.effect { image-rendering: pixelated;
+  canvas.preview, canvas.appearance, canvas.effect, canvas.item-icon, canvas.worn { image-rendering: pixelated;
     border: 1px solid #eee; background: repeating-conic-gradient(#f4f4f4 0% 25%, #fff 0% 50%)
     50% / 12px 12px; }
   /* A 384px character canvas in a ~300px Sheets sidebar shrinks rather than overflowing. */
@@ -176,7 +176,7 @@
     .error, .resolved.bad, .status.bad { color: #ff8f80; }
     .warn { background: #3a3218; border-color: #6b5c22; color: #f3e6b8; }
     .problem { border-bottom-color: #333; }
-    canvas.preview, canvas.appearance, canvas.effect { border-color: #3a3a3a;
+    canvas.preview, canvas.appearance, canvas.effect, canvas.item-icon, canvas.worn { border-color: #3a3a3a;
       background: repeating-conic-gradient(#2a2a2a 0% 25%, #202020 0% 50%) 50% / 12px 12px; }
     .unsupported { border-color: #ff8f80; }
   }
@@ -205,9 +205,10 @@
   graph anyway, which is the order to keep it in:
     appearance  -> Equipped
     colorpicker -> Forms, Sprites
-    composites  -> Forms, Pickers, Sprites, Equipped, Appearance, ColorPicker
+    composites  -> Forms, Pickers, Sprites, Equipped, Appearance, ColorPicker, Layout
     forms       -> Layout, Composites, Pickers
-    preview     -> Appearance, Sprites
+    preview     -> Appearance, Sprites, Equipped
+    pickers     -> Forms, Sprites, Appearance, Preview
     app         -> everything
   All eleven src/ modules are listed. build.mjs emits one dist/<name>.html per src/*.js, so a
   module added there and not added here is simply never on the page.
@@ -221,11 +222,11 @@
 <?!= include('appearance'); ?>
 <?!= include('sprites'); ?>
 <?!= include('layout'); ?>
+<?!= include('preview'); ?>
 <?!= include('pickers'); ?>
 <?!= include('colorpicker'); ?>
 <?!= include('composites'); ?>
 <?!= include('forms'); ?>
-<?!= include('preview'); ?>
 <?!= include('app'); ?>
 
 <script>App.init();</script>

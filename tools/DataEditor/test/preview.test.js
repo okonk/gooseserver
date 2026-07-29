@@ -37,8 +37,9 @@ test('isArmed is bodyState !== 3, through parseInt', () => {
   assert.equal(Preview.isArmed('3'), false);
   assert.equal(Preview.isArmed(1), true);
   assert.equal(Preview.isArmed(7), true);
-  // A blank cell is 0, which is armed — matching the NPCs column default of 1. Items defaults
-  // to 3, but Items has no character preview.
+  // A blank cell is 0, which is armed — matching the NPCs column default of 1. Items DEFAULTS to
+  // 3, so a blank body_state on an Items row previews armed where the database says unarmed; the
+  // divergence is documented at isArmed and shared with equipSlotsControl.
   assert.equal(Preview.isArmed(''), true);
   assert.equal(Preview.isArmed(undefined), true);
 });
@@ -321,4 +322,202 @@ test('effect scales the CONTEXT and leaves the destinations alone', () => {
 test('the two preview scales are exported so app.js and preview.js agree', () => {
   assert.equal(Preview.CHARACTER_SCALE, 4);
   assert.equal(Preview.EFFECT_SCALE, 2);
+});
+
+// --- itemIcon --------------------------------------------------------------------------------
+
+function iconsBundle(rects) {
+  return { bundles: { icons: { rects } }, images: { icons: 'ICONS' } };
+}
+
+test('itemIcon centres the resolved icon in a 64 box', () => {
+  const node = canvas(Preview.ICON_BOX * 4, Preview.ICON_BOX * 4);
+  // Odd, non-square dimensions: on a square rect the two offsets would agree, and with even ones
+  // a dropped Math.floor would go unnoticed.
+  const out = Preview.itemIcon(node, { graphic: '810003', file: '20107' },
+    iconsBundle({ '20107:810003': [96, 0, 31, 17] }), 4);
+
+  assert.deepEqual(out, { drawn: 1 });
+  assert.deepEqual(node.getContext('2d').calls, [
+    ['setTransform', 4, 0, 0, 4, 0, 0],
+    ['imageSmoothingEnabled', false],
+    ['clearRect', 0, 0, 64, 64],
+    ['drawImage', 'ICONS', 96, 0, 31, 17, 16, 23, 31, 17],
+  ]);
+});
+
+test('itemIcon takes (file, graphic) in the schema\'s order, not Sprites\'', () => {
+  // The Graphic composite declares [graphic_tile, graphic_file] while Sprites.icon takes
+  // (bundles, sheet, graphic). Swapping them resolves nothing at all, silently.
+  const node = canvas(256, 256);
+  const out = Preview.itemIcon(node, { graphic: '20107', file: '810003' },
+    iconsBundle({ '20107:810003': [96, 0, 31, 17] }), 4);
+  assert.deepEqual(out, { drawn: 0 });
+  assert.deepEqual(drawCalls(node), []);
+});
+
+test('itemIcon with no art clears the canvas and draws nothing', () => {
+  const node = canvas(256, 256);
+  const out = Preview.itemIcon(node, { graphic: '9', file: '9' }, iconsBundle({}), 4);
+  assert.deepEqual(out, { drawn: 0 });
+  assert.deepEqual(drawCalls(node), []);
+  assert.ok(node.getContext('2d').calls.some((c) => c[0] === 'clearRect'));
+});
+
+test('itemIcon tints, and a zero blend draws plain', () => {
+  const rects = { '20107:810003': [0, 0, 2, 1] };
+  const tinted = canvas(256, 256);
+  Preview.itemIcon(tinted, { graphic: '810003', file: '20107', r: 255, g: 0, b: 0, a: 255 },
+    iconsBundle(rects), 4);
+  // A tinted draw goes through an offscreen canvas: drawImage(node, dx, dy), three arguments.
+  assert.equal(drawCalls(tinted).filter((c) => c.length === 4).length, 1);
+
+  const plain = canvas(256, 256);
+  Preview.itemIcon(plain, { graphic: '810003', file: '20107', r: 255, g: 0, b: 0, a: 0 },
+    iconsBundle(rects), 4);
+  assert.equal(drawCalls(plain).filter((c) => c.length === 10).length, 1);
+});
+
+// --- wornItem --------------------------------------------------------------------------------
+
+// Body 1 plus one sprite per folder, each at its own source x so the drawn rect names the folder.
+const WORN_RECTS = {
+  'Bodies:1:idle-down': [0, 0, 48, 48],
+  'Helms:5:idle-down': [10, 0, 24, 32],
+  'Chest:5:idle-down': [20, 0, 24, 32],
+  'Legs:5:idle-down': [30, 0, 24, 32],
+  'Feet:5:idle-down': [40, 0, 24, 32],
+  'Hands:5:idle-down': [50, 0, 24, 32],
+  'Bodies:5:mounted-idle-down': [60, 0, 24, 32],
+  // Body 1's underwear legs (CharacterLayout.cs:58), which the client draws only into an EMPTY
+  // Legs slot.
+  'Legs:3:idle-down': [90, 0, 24, 32],
+};
+
+const wornCanvas = () => canvas(Preview.CANVAS_W * 4, Preview.CANVAS_H * 4);
+const sourceXs = (node) => drawCalls(node).map((c) => c[2]);
+
+test('the worn preview draws the base body even with no equip graphic', () => {
+  // A blank panel would read as a broken preview; the bare body reads as "this item is not worn".
+  const node = wornCanvas();
+  const out = Preview.wornItem(node, { id: '', slot: 'Helmet' }, partsBundle(WORN_RECTS), 4);
+  assert.equal(out.drawn, 2, 'body 1 and its underwear legs');
+  assert.deepEqual(sourceXs(node), [0, 90]);
+});
+
+test('the base body is body 1, the shipped player body with underwear', () => {
+  assert.equal(Preview.BASE_BODY, 1);
+});
+
+test('a helmet is drawn OVER the body, in the client\'s draw order', () => {
+  // The whole point of the second canvas: an equip graphic alone is a shape floating in space.
+  const node = wornCanvas();
+  const out = Preview.wornItem(node, { id: '5', slot: 'Helmet' }, partsBundle(WORN_RECTS), 4);
+  assert.equal(out.slot, 'Helm');
+  // Body (order 3), underwear legs (6), helm (9) — last is nearest the viewer.
+  assert.deepEqual(sourceXs(node), [0, 90, 10]);
+});
+
+test('a shield and a weapon share the Hands folder but keep their own slots', () => {
+  // Which matters because they have DIFFERENT draw orders — collapsing the two item slots onto one
+  // 'Hands' slot would put a shield in front of a two-hander.
+  const bundle = partsBundle(WORN_RECTS);
+  const of = (slot) => Preview.wornItem(wornCanvas(), { id: '5', slot }, bundle, 4).slot;
+  assert.equal(of('Shield'), 'Shield');
+  assert.equal(of('OneHanded'), 'Weapon');
+  assert.equal(of('TwoHanded'), 'Weapon');
+  assert.ok(Appearance.sortOrder('Weapon') > Appearance.sortOrder('Shield'));
+  // Both resolve out of Hands: the same rect is drawn either way.
+  const node = wornCanvas();
+  Preview.wornItem(node, { id: '5', slot: 'Shield' }, bundle, 4);
+  assert.deepEqual(sourceXs(node), [0, 90, 50]);
+});
+
+test('a leg item REPLACES the underwear rather than fighting it for the same order', () => {
+  // The reason the item goes through Appearance.layers with the body instead of being appended
+  // afterwards: the client only draws underwear into an EMPTY Legs slot, and two layers at one
+  // sort order would render unpredictably.
+  const node = wornCanvas();
+  Preview.wornItem(node, { id: '5', slot: 'Pants' }, partsBundle(WORN_RECTS), 4);
+  assert.deepEqual(sourceXs(node), [0, 30], 'the body and the trousers — no underwear');
+});
+
+test('a mount is drawn BEHIND the body, from its mounted clip', () => {
+  // equipped_items has six slots and Mount is not one of them, so it is added as a layer of its
+  // own — at order 2, which CharacterLayout puts behind the body at 3.
+  const node = wornCanvas();
+  const out = Preview.wornItem(node, { id: '5', slot: 'Mount' }, partsBundle(WORN_RECTS), 4);
+  assert.equal(out.slot, 'Mount');
+  assert.deepEqual(sourceXs(node), [60, 0, 90], 'mount first, then the body');
+});
+
+test('a mount never falls back to a standing clip', () => {
+  const rects = { 'Bodies:1:idle-down': [0, 0, 48, 48], 'Bodies:5:idle-down': [70, 0, 24, 32] };
+  const node = wornCanvas();
+  Preview.wornItem(node, { id: '5', slot: 'Mount' }, partsBundle(rects), 4);
+  assert.deepEqual(sourceXs(node), [0], 'the body alone — no standing body in the mount slot');
+});
+
+test('an undrawn item slot shows the bare body and says nothing about the item', () => {
+  ['Ring', 'Necklace', 'Misc', '', undefined, 'Nonsense'].forEach((slot) => {
+    const node = wornCanvas();
+    const out = Preview.wornItem(node, { id: '5', slot }, partsBundle(WORN_RECTS), 4);
+    assert.equal(out.slot, null, String(slot));
+    assert.deepEqual(sourceXs(node), [0, 90], String(slot));
+  });
+});
+
+test('body_state picks the worn clip for the whole preview', () => {
+  const rects = {
+    'Bodies:1:idle-equip-down': [0, 0, 48, 48],
+    'Bodies:1:idle-no-equip-down': [8, 0, 48, 48],
+    'Helms:5:idle-equip-down': [10, 0, 24, 32],
+    'Helms:5:idle-no-equip-down': [18, 0, 24, 32],
+  };
+  const armed = wornCanvas();
+  Preview.wornItem(armed, { id: '5', slot: 'Helmet', bodyState: 1 }, partsBundle(rects), 4);
+  assert.deepEqual(sourceXs(armed), [0, 10]);
+
+  const unarmed = wornCanvas();
+  Preview.wornItem(unarmed, { id: '5', slot: 'Helmet', bodyState: 3 }, partsBundle(rects), 4);
+  assert.deepEqual(sourceXs(unarmed), [8, 18]);
+});
+
+test('the item tint reaches the worn sprite and nothing else', () => {
+  // Underwear is never tinted (Character.cs:227-229) and neither is the base body, so exactly one
+  // of the three layers takes the offscreen tinting path.
+  const node = wornCanvas();
+  Preview.wornItem(node, { id: '5', slot: 'Helmet', r: 255, g: 0, b: 0, a: 255 },
+    partsBundle(WORN_RECTS), 4);
+  const calls = drawCalls(node);
+  assert.equal(calls.length, 3);
+  assert.equal(calls.filter((c) => c.length === 4).length, 1, 'one tinted layer');
+  assert.equal(calls.filter((c) => c.length === 10).length, 2, 'body and underwear plain');
+});
+
+test('a zero blend draws the worn sprite plain', () => {
+  const node = wornCanvas();
+  Preview.wornItem(node, { id: '5', slot: 'Helmet', r: 255, g: 0, b: 0, a: 0 },
+    partsBundle(WORN_RECTS), 4);
+  assert.equal(drawCalls(node).filter((c) => c.length === 4).length, 0);
+});
+
+test('the worn sprite is anchored on the tile, like every other character layer', () => {
+  // Same origin and the same CharacterAnchor conversion character() uses: a 32-high sprite lands
+  // at ORIGIN_Y + offsetY(32) - 16.
+  const node = wornCanvas();
+  Preview.wornItem(node, { id: '5', slot: 'Helmet' }, partsBundle(WORN_RECTS), 4);
+  const helm = drawCalls(node)[2];
+  // drawImage(image, sx, sy, sw, sh, dx, dy, dw, dh) — dx and dy are at 6 and 7.
+  assert.equal(helm[6], Math.floor((Preview.CANVAS_W - 24) / 2), 'centred horizontally');
+  assert.equal(helm[7], Preview.ORIGIN_Y + Appearance.offsetY(32) - 16);
+  assert.equal(helm[7], 56, 'pinned, so a sign slip in the anchor cannot follow the formula');
+});
+
+test('a negative or zero equip graphic draws no item layer', () => {
+  ['0', 0, '-1', 'abc'].forEach((id) => {
+    const node = wornCanvas();
+    Preview.wornItem(node, { id, slot: 'Helmet' }, partsBundle(WORN_RECTS), 4);
+    assert.deepEqual(sourceXs(node), [0, 90], String(id));
+  });
 });
