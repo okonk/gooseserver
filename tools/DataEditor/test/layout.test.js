@@ -128,8 +128,9 @@ test('each wide sheet keeps its own designed groups', () => {
   assert.deepEqual(Layout.groupsFor('NPCs', []).map((g) => g.title),
     ['Identity', 'Appearance', 'Combat', 'Behaviour', 'Regen', 'Links', 'Scripting']);
   assert.deepEqual(Layout.groupsFor('Spell Effects', []).map((g) => g.title),
-    ['Identity', 'Graphics', 'Targeting', 'Damage', 'Modifiers', 'Appearance override', 'Buff',
-      'Teleport', 'Chained effects', 'Scripting']);
+    ['Identity', 'Graphics', 'Targeting', 'Damage', 'Stat modifiers', 'Regen modifiers',
+      'Combat modifiers', 'Appearance override', 'Buff', 'Teleport', 'Chained effects',
+      'Scripting']);
 });
 
 // Every name the table itself lists for a sheet, in table order — read from LAYOUTS, NOT from
@@ -140,7 +141,7 @@ function laidOut(name) {
 }
 
 test('the layout table names no column that does not exist', () => {
-  ['Items', 'Spells', 'NPCs', 'Spell Effects'].forEach((name) => {
+  Object.keys(Layout.LAYOUTS).forEach((name) => {
     const real = sheet(name).columns.map((c) => c.name);
     const phantom = laidOut(name).filter((n) => !real.includes(n));
     assert.deepEqual(phantom, [],
@@ -149,7 +150,7 @@ test('the layout table names no column that does not exist', () => {
 });
 
 test('the layout table leaves no real column unmentioned', () => {
-  ['Items', 'Spells', 'NPCs', 'Spell Effects'].forEach((name) => {
+  Object.keys(Layout.LAYOUTS).forEach((name) => {
     const placed = laidOut(name);
     // Spread: schema arrays come from the vm realm, whose Array.prototype strict deepEqual
     // rejects against a host-realm literal.
@@ -160,7 +161,7 @@ test('the layout table leaves no real column unmentioned', () => {
 });
 
 test('no column is laid out twice', () => {
-  ['Items', 'Spells', 'NPCs', 'Spell Effects'].forEach((name) => {
+  Object.keys(Layout.LAYOUTS).forEach((name) => {
     const placed = laidOut(name);
     assert.equal(new Set(placed).size, placed.length, `${name} lists a column in two groups`);
   });
@@ -168,7 +169,7 @@ test('no column is laid out twice', () => {
 
 test('a real sheet therefore needs no Other group', () => {
   // The consequence the form builder depends on, asserted end to end through groupsFor.
-  ['Items', 'Spells', 'NPCs', 'Spell Effects'].forEach((name) => {
+  Object.keys(Layout.LAYOUTS).forEach((name) => {
     const groups = Layout.groupsFor(name, sheet(name).columns);
     assert.equal(groups.find((g) => g.title === 'Other'), undefined, name);
     assert.equal(groups.flatMap((g) => g.columns).length, sheet(name).columns.length, name);

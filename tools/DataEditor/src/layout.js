@@ -40,14 +40,14 @@ var Layout = (function () {
           'equipped_items'] },
       { title: 'Combat', columns: ['npc_hp', 'npc_mp', 'npc_sp', 'stat_ac', 'stat_str',
           'stat_sta', 'stat_dex', 'stat_int', 'res_fire', 'res_water', 'res_spirit', 'res_air',
-          'res_earth', 'weapon_damage', 'armor_pierce', 'attack_range', 'attack_speed',
-          'experience'] },
+          'res_earth', 'weapon_damage', 'armor_pierce', 'attack_range', 'attack_speed'] },
       { title: 'Behaviour', columns: ['npc_facing', 'aggro_range', 'move_speed', 'stationary',
           'stunnable', 'rootable', 'slowable', 'invincible', 'stuck_behaviour', 'stuck_timeout',
           'respawn_time'] },
       { title: 'Regen', columns: ['hp_percent_regen', 'hp_static_regen', 'mp_percent_regen',
           'mp_static_regen'] },
-      { title: 'Links', columns: ['class_id', 'quest_ids', 'credit_dealer'] },
+      // experience is the XP reward for killing this NPC, not a combat stat of its own.
+      { title: 'Links', columns: ['class_id', 'quest_ids', 'credit_dealer', 'experience'] },
       { title: 'Scripting', columns: ['script_path', 'script_params'] },
     ],
     'Spell Effects': [
@@ -59,11 +59,15 @@ var Layout = (function () {
           'min_level_effected', 'max_level_effected', 'only_hits_one_npc'] },
       { title: 'Damage', columns: ['spell_energy_type', 'spell_damage_effects',
           'hp_change_formula', 'mp_change_formula', 'sp_change_formula'] },
-      { title: 'Modifiers', columns: ['hp', 'mp', 'sp', 'stat_ac', 'stat_str', 'stat_sta',
-          'stat_dex', 'stat_int', 'res_fire', 'res_water', 'res_spirit', 'res_air', 'res_earth',
-          'hp_percent_regen', 'hp_static_regen', 'mp_percent_regen', 'mp_static_regen', 'haste',
-          'spell_damage', 'spell_crit', 'melee_damage', 'melee_crit', 'damage_reduce',
-          'move_speed', 'snare_percent'] },
+      // Split three ways rather than one 25-column block. A heading that long is a wall of
+      // fields, which is the problem this whole table exists to solve.
+      { title: 'Stat modifiers', columns: ['hp', 'mp', 'sp', 'stat_ac', 'stat_str', 'stat_sta',
+          'stat_dex', 'stat_int', 'res_fire', 'res_water', 'res_spirit', 'res_air',
+          'res_earth'] },
+      { title: 'Regen modifiers', columns: ['hp_percent_regen', 'hp_static_regen',
+          'mp_percent_regen', 'mp_static_regen'] },
+      { title: 'Combat modifiers', columns: ['haste', 'spell_damage', 'spell_crit',
+          'melee_damage', 'melee_crit', 'damage_reduce', 'move_speed', 'snare_percent'] },
       { title: 'Appearance override', columns: ['body_id', 'body_r', 'body_g', 'body_b',
           'body_a', 'face_id', 'hair_id', 'hair_r', 'hair_g', 'hair_b', 'hair_a'] },
       { title: 'Buff', columns: ['buff_removable', 'buff_doesnt_stack_over', 'buff_stacks_over',
@@ -111,7 +115,10 @@ var Layout = (function () {
 
     if (!layout) return [{ title: 'Fields', columns: names }];
 
-    var placed = {};
+    // Prototype-free: a column named 'constructor' or 'toString' would otherwise read truthy
+    // from Object.prototype, drop out of the leftover filter, and vanish from the form —
+    // defeating the one safety net that exists for a column nobody anticipated.
+    var placed = Object.create(null);
     var groups = layout.map(function (g) {
       var present = g.columns.filter(function (n) { return names.indexOf(n) !== -1; });
       present.forEach(function (n) { placed[n] = true; });
