@@ -111,13 +111,14 @@ test('every schema sheet is classified, and RESTART_ONLY names real sheets', () 
   ]);
 });
 
-test('RESTART_ONLY cannot be mutated through the export', () => {
-  Layout.RESTART_ONLY.push('Items');
-  try {
-    assert.equal(Layout.needsRestart('Items'), false);
-  } finally {
-    Layout.RESTART_ONLY.pop();
-  }
+test('the exported tables cannot be mutated by a consumer', () => {
+  // Frozen, so one consumer's stray write can change neither needsRestart nor what the next
+  // consumer reads. Strict mode makes the write throw.
+  assert.throws(() => Layout.RESTART_ONLY.push('Items'), TypeError);
+  assert.equal(Layout.needsRestart('Items'), false);
+  assert.throws(() => { Layout.LAYOUTS.Items = []; }, TypeError);
+  assert.throws(() => Layout.LAYOUTS.Items.push({ title: 'x', columns: [] }), TypeError);
+  assert.throws(() => Layout.LAYOUTS.Items[0].columns.push('x'), TypeError);
 });
 
 test('each wide sheet keeps its own designed groups', () => {
@@ -131,24 +132,45 @@ test('each wide sheet keeps its own designed groups', () => {
       'Teleport', 'Chained effects', 'Scripting']);
 });
 
-test('every laid-out name is a real column of that sheet', () => {
+// Every name the table itself lists for a sheet, in table order — read from LAYOUTS, NOT from
+// groupsFor, which filters unknown names out and so can only ever see the schema->layout
+// direction.
+function laidOut(name) {
+  return Layout.LAYOUTS[name].flatMap((g) => g.columns);
+}
+
+test('the layout table names no column that does not exist', () => {
   ['Items', 'Spells', 'NPCs', 'Spell Effects'].forEach((name) => {
     const real = sheet(name).columns.map((c) => c.name);
-    const placed = Layout.groupsFor(name, sheet(name).columns).flatMap((g) => g.columns);
-    // groupsFor only emits present columns, so ask the table itself.
-    Layout.groupsFor(name, real.map((n) => ({ name: n }))).forEach((g) => {
-      assert.notEqual(g.title, 'Other',
-        `${name} leaves ${g.columns.join(', ')} out of the layout`);
-    });
-    assert.deepEqual([...placed].sort(), [...real].sort(),
-      `${name} must place every real column exactly once`);
-    assert.equal(placed.length, real.length, `${name} places a column twice`);
+    const phantom = laidOut(name).filter((n) => !real.includes(n));
+    assert.deepEqual(phantom, [],
+      `${name} lays out columns that schema.js does not have: ${phantom.join(', ')}`);
   });
 });
 
-test('a phantom layout name would be caught', () => {
-  // Guards the guard: the cross-check above only bites because groupsFor drops unknown names.
-  const groups = Layout.groupsFor('Items', [{ name: 'item_name' }]);
-  const identity = groups.find((g) => g.title === 'Identity');
-  assert.deepEqual(identity.columns, ['item_name']);
+test('the layout table leaves no real column unmentioned', () => {
+  ['Items', 'Spells', 'NPCs', 'Spell Effects'].forEach((name) => {
+    const placed = laidOut(name);
+    // Spread: schema arrays come from the vm realm, whose Array.prototype strict deepEqual
+    // rejects against a host-realm literal.
+    const missing = [...sheet(name).columns].map((c) => c.name).filter((n) => !placed.includes(n));
+    assert.deepEqual(missing, [],
+      `${name} would drop these into "Other": ${missing.join(', ')}`);
+  });
+});
+
+test('no column is laid out twice', () => {
+  ['Items', 'Spells', 'NPCs', 'Spell Effects'].forEach((name) => {
+    const placed = laidOut(name);
+    assert.equal(new Set(placed).size, placed.length, `${name} lists a column in two groups`);
+  });
+});
+
+test('a real sheet therefore needs no Other group', () => {
+  // The consequence the form builder depends on, asserted end to end through groupsFor.
+  ['Items', 'Spells', 'NPCs', 'Spell Effects'].forEach((name) => {
+    const groups = Layout.groupsFor(name, sheet(name).columns);
+    assert.equal(groups.find((g) => g.title === 'Other'), undefined, name);
+    assert.equal(groups.flatMap((g) => g.columns).length, sheet(name).columns.length, name);
+  });
 });

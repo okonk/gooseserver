@@ -124,9 +124,25 @@ var Layout = (function () {
     return groups;
   }
 
-  // A copy: callers hold this array for as long as they like, and a stray push must not change
-  // what needsRestart() answers.
-  return { groupsFor: groupsFor, needsRestart: needsRestart, RESTART_ONLY: RESTART_ONLY.slice() };
+  // Frozen, not copied: callers hold these for as long as they like, and a stray push must change
+  // neither what needsRestart() answers nor what the next consumer reads. A copy handed out once
+  // would still be shared between consumers.
+  function deepFreeze(value) {
+    if (value && typeof value === 'object') {
+      Object.keys(value).forEach(function (k) { deepFreeze(value[k]); });
+      Object.freeze(value);
+    }
+    return value;
+  }
+
+  // LAYOUTS is exported so the table can be checked against schema.js in BOTH directions: a name
+  // here for a column that does not exist is invisible to groupsFor, which simply filters it out.
+  return {
+    groupsFor: groupsFor,
+    needsRestart: needsRestart,
+    RESTART_ONLY: deepFreeze(RESTART_ONLY),
+    LAYOUTS: deepFreeze(LAYOUTS),
+  };
 })();
 
 if (typeof module !== 'undefined') module.exports = { Layout: Layout };
