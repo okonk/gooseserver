@@ -127,12 +127,56 @@ test('scrollTop, clientHeight and scrollHeight default to 0 and are assignable',
   assert.equal(box.clientHeight, 0);
   assert.equal(box.scrollHeight, 0);
 
-  box.scrollTop = 120;
   box.clientHeight = 300;
   box.scrollHeight = 4000;
+  box.scrollTop = 120;
   assert.equal(box.scrollTop, 120);
   assert.equal(box.clientHeight, 300);
   assert.equal(box.scrollHeight, 4000);
+});
+
+test('scrollTop is clamped to the scrollable range, as a browser clamps it', () => {
+  const box = createElement('div');
+  box.clientHeight = 300;
+  box.scrollHeight = 1000;
+
+  // Past the end lands ON the end, not past it.
+  box.scrollTop = 5000;
+  assert.equal(box.scrollTop, 700);
+  box.scrollTop = -20;
+  assert.equal(box.scrollTop, 0);
+
+  // And a box with nothing in it yet cannot be scrolled at all: scrollHeight equals clientHeight,
+  // so every assignment is 0. This is what makes "it scrolled to the selected row before the row
+  // existed" a failing test rather than a passing one.
+  const empty = createElement('div');
+  empty.clientHeight = 300;
+  empty.scrollTop = 400;
+  assert.equal(empty.scrollTop, 0);
+});
+
+test('scrollHeight derives a lower bound from the children declared heights', () => {
+  const box = createElement('div');
+  box.clientHeight = 100;
+  const pad = box.appendChild(createElement('div'));
+  const content = box.appendChild(createElement('div'));
+  box.appendChild(createElement('div')).style.height = '40px';
+
+  // No declared height contributes nothing — there is no layout in here.
+  assert.equal(box.scrollHeight, 100);
+
+  pad.style.height = '300px';
+  content.style.height = '60.5px';
+  assert.equal(box.scrollHeight, 400.5);
+  // Which is what makes the box scrollable, without a test having to state a scrollHeight.
+  box.scrollTop = 999;
+  assert.equal(box.scrollTop, 300.5);
+
+  // An assigned scrollHeight is a floor, not an override: the taller of the two wins.
+  box.scrollHeight = 200;
+  assert.equal(box.scrollHeight, 400.5);
+  box.scrollHeight = 900;
+  assert.equal(box.scrollHeight, 900);
 });
 
 test('a scroll event dispatches to its own listeners and does not bubble', () => {
@@ -142,6 +186,8 @@ test('a scroll event dispatches to its own listeners and does not bubble', () =>
   box.addEventListener('scroll', (e) => seen.push(e.currentTarget));
   parent.addEventListener('scroll', (e) => seen.push(e.currentTarget));
 
+  box.clientHeight = 100;
+  box.scrollHeight = 500;
   box.scrollTop = 40;
   assert.equal(fire(box, 'scroll'), true);
   // scroll on an element does not bubble, so the ancestor's listener must not run.

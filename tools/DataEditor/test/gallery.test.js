@@ -352,6 +352,44 @@ test('the parts filter locked to a category never lists another one', () => {
   assert.deepEqual(tiles().map((t) => t.getAttribute('data-id')), ['1']);
 });
 
+test('a locked browser counts against its own category, not the whole bundle', () => {
+  const bundle = {
+    width: 64, height: 64, png: 'x',
+    rects: {
+      'Helms:1:idle-down': [0, 0, 8, 8], 'Helms:2:idle-down': [8, 0, 8, 8],
+      'Feet:1:idle-down': [16, 0, 8, 8],
+    },
+  };
+  Gallery.open({
+    bundle: 'parts', bundles: { parts: bundle }, opener: opener(),
+    filter: { category: 'Helms', locked: true },
+  });
+
+  // Three parts in the bundle, but the Feet one is behind a filter the user cannot change, so
+  // "2 of 3" would be counting a sprite no amount of clicking will show.
+  assert.ok(node('count').textContent.indexOf('2 of 2') === 0, node('count').textContent);
+
+  const search = node('search');
+  search.value = '2';
+  fire(search, 'input');
+  assert.ok(node('count').textContent.indexOf('1 of 2') === 0, node('count').textContent);
+});
+
+test('an unlocked browser counts against the whole bundle, which the chooser can reach', () => {
+  const bundle = {
+    width: 64, height: 64, png: 'x',
+    rects: {
+      'Helms:1:idle-down': [0, 0, 8, 8], 'Helms:2:idle-down': [8, 0, 8, 8],
+      'Feet:1:idle-down': [16, 0, 8, 8],
+    },
+  };
+  Gallery.open({
+    bundle: 'parts', bundles: { parts: bundle }, opener: opener(),
+    filter: { category: 'Helms' },
+  });
+  assert.ok(node('count').textContent.indexOf('2 of 3') === 0, node('count').textContent);
+});
+
 test('an unlocked parts filter offers every category', () => {
   const bundle = {
     width: 64, height: 64, png: 'x',
@@ -456,6 +494,24 @@ test('ArrowDown in the search field moves into the grid', () => {
   assert.equal(node('scroll').focusCalls, 1);
 });
 
+test('Enter in the search field picks the highlighted tile', () => {
+  // Focus starts in the search field, so this is the first keystroke a user is most likely to
+  // press: type the id, press Enter, take the tile the grid is already showing as selected.
+  const picked = [];
+  Gallery.open({
+    bundle: 'icons', bundles: { icons: iconFixture }, opener: opener(),
+    filter: { sheet: '104' }, onPick: (v) => picked.push(v),
+  });
+
+  const search = node('search');
+  search.value = '12';
+  fire(search, 'input');
+  fire(search, 'keydown', { key: 'Enter' });
+
+  assert.deepEqual(picked, [{ sheet: '104', graphic: '12' }]);
+  assert.equal(modal.hidden, true);
+});
+
 test('a search that matches nothing says so and picks nothing on Enter', () => {
   let picks = 0;
   Gallery.open({
@@ -469,6 +525,7 @@ test('a search that matches nothing says so and picks nothing on Enter', () => {
   assert.equal(tiles().length, 0);
   assert.ok(node('count').textContent.indexOf('0') !== -1);
   fire(node('scroll'), 'keydown', { key: 'Enter' });
+  fire(search, 'keydown', { key: 'Enter' });
   assert.equal(picks, 0);
 });
 

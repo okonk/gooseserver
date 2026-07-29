@@ -110,6 +110,9 @@
 //   * `getBoundingClientRect()` — reads the assignable `rect`, all zeroes by default.
 //   * `style` — a plain bag of round-tripping keys, not a CSSStyleDeclaration.
 //   * `scrollTop` / `clientHeight` / `scrollHeight`, plus a non-bubbling `scroll` event.
+//     `clientHeight` is plain state; the other two are NOT — an assignment to `scrollTop` is
+//     clamped to [0, scrollHeight - clientHeight] like a browser's, and `scrollHeight` derives a
+//     lower bound from the direct children's declared style heights. See the accessors.
 //   * `clientX` / `clientY` on fired events, so pointer maths against a rect is testable.
 //   * `setTransform` and `imageSmoothingEnabled` on the 2d context, both in the call log.
 //   * `focus()` — counted per node in `focusCalls`. There is still no activeElement.
@@ -156,9 +159,11 @@ class FakeNode {
     // Test-assignable geometry. There is no layout in here, so a rect is state, not a
     // measurement — see getBoundingClientRect.
     this.rect = null;
-    this.scrollTop = 0;
+    this._scrollTop = 0;
     this.clientHeight = 0;
-    this.scrollHeight = 0;
+    // The floor under scrollHeight, which a test may raise directly. See the getter: the derived
+    // height wins when it is taller.
+    this._scrollHeight = 0;
     // A plain bag whose keys round-trip. NOT CSSStyleDeclaration: nothing is parsed, nothing is
     // reflected onto a style attribute, and a bad value is kept rather than dropped. It exists
     // so "this tile was positioned" is observable at all, which a `style` that swallowed every
@@ -179,6 +184,48 @@ class FakeNode {
     return {
       x: left, y: top, left, top, width, height, right: left + width, bottom: top + height,
     };
+  }
+
+  // SCROLL GEOMETRY. There is no layout in here, so scrollHeight is not measured — it is the
+  // LARGEST of three things a test or the code under test can actually state:
+  //
+  //   * whatever a test assigned, which is how a windowing test says "this box is 4,000px of
+  //     content" without building the content;
+  //   * clientHeight, because a real scrollHeight is never smaller than the visible box;
+  //   * the sum of the DIRECT children's DECLARED style.height in px — a one-level block flow,
+  //     and the only derivation this fake can honestly make. It is here because the thing worth
+  //     testing about a windowed grid is that its spacer divs, whose heights ARE declared that
+  //     way, make the scroller scrollable at all.
+  //
+  // That derivation is a LOWER BOUND, and knowingly so: a child with no declared height (the tile
+  // grid itself) contributes 0, where a browser would count the rows it laid out. The error is in
+  // the strict direction — this fake clamps a scrollTop a browser would have allowed, so a test
+  // fails rather than passing on geometry the browser does not have.
+  get scrollHeight() {
+    let flow = 0;
+    for (const child of this.children) {
+      const h = /^(\d+(?:\.\d+)?)px$/.exec(String(child.style.height || ''));
+      if (h) flow += Number(h[1]);
+    }
+    return Math.max(this._scrollHeight, this.clientHeight, flow);
+  }
+
+  set scrollHeight(value) {
+    this._scrollHeight = Number(value) || 0;
+  }
+
+  get scrollTop() {
+    return this._scrollTop;
+  }
+
+  // CLAMPED TO [0, scrollHeight - clientHeight], as a browser clamps it. This is the fidelity
+  // that matters most about a scroller: an element with no content yet CANNOT be scrolled, so an
+  // assignment made before the content exists silently becomes 0 — which is exactly how a grid
+  // that scrolls itself to a selected row before rendering that row opens at the top instead.
+  // A fake where scrollTop were a plain number could not fail that test.
+  set scrollTop(value) {
+    const max = Math.max(0, this.scrollHeight - this.clientHeight);
+    this._scrollTop = Math.min(Math.max(0, Number(value) || 0), max);
   }
 
   get checked() {

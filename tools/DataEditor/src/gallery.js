@@ -400,6 +400,9 @@ var Gallery = (function () {
     // only writer of either.
     var shown = [];
     var cursor = 0;
+    // The list the count is measured against: everything the user could reach by working the
+    // controls, which for a locked category is that category alone.
+    var reachable = locked ? filterEntries(all, { category: wanted.category }) : all;
 
     function viewport() {
       return scroll.clientHeight > 0 ? scroll.clientHeight : DEFAULT_VIEWPORT;
@@ -418,7 +421,11 @@ var Gallery = (function () {
         count.textContent = 'the ' + bundleName + ' sprite bundle has not loaded — nothing to show';
         return;
       }
-      count.textContent = shown.length + ' of ' + all.length + ' — click a tile to use it';
+      // "of" WHAT THE USER CAN REACH, not what the bundle holds. Every other filter here is a
+      // control they can change, so the whole bundle is the honest total — but a LOCKED category
+      // is one they cannot leave, and "2 of 3" in a Helms browser counts two sprites that no
+      // amount of clicking will show.
+      count.textContent = shown.length + ' of ' + reachable.length + ' — click a tile to use it';
     }
 
     function render() {
@@ -471,6 +478,12 @@ var Gallery = (function () {
       }
     }
 
+    // ensureVisible BEFORE render here, unlike on open, and that is safe rather than lucky: both
+    // of these run after a render, so the spacers already carry a height and the scroller is
+    // already scrollable — there is nothing for a browser's scrollTop clamp to swallow. In
+    // refilter's case the cursor is additionally reset to 0 (no caller passes keepCursor), so the
+    // only offset it ever asks for is a SMALLER one, which no clamp can refuse. Rendering first
+    // would work too; it would just build a window twice for no gain.
     function refilter(keepCursor) {
       shown = filterEntries(all, currentFilter());
       if (!keepCursor) cursor = 0;
@@ -505,12 +518,22 @@ var Gallery = (function () {
         return;
       }
 
-      // Not on the search field: a designer typing an id must be able to use Enter for nothing at
-      // all rather than have it commit whichever tile the filter happened to leave first.
+      // The search field answers two keys of its own and leaves the rest to the input handler, so
+      // the arrows still move the caret through the id being typed.
+      //
+      // ENTER PICKS HERE TOO. Focus starts in this field, and the tile the grid is already showing
+      // as selected is highlighted right next to it — "type 42, press Enter" is the shortest path
+      // through this whole dialog, and an Enter that did nothing would make the listbox's own
+      // "Enter picks" label a lie for the first keystroke after open.
       if (event.target === search) {
         if (key === 'ArrowDown') {
           event.preventDefault();
           scroll.focus();
+          return;
+        }
+        if (key === 'Enter') {
+          event.preventDefault();
+          pick(cursor);
         }
         return;
       }
@@ -581,6 +604,13 @@ var Gallery = (function () {
     // sprite the record already names rather than at the top of a list of 4,827.
     cursor = indexOf(shown, bundleName, opts.current);
     describe();
+    // RENDERED TWICE, AND THE FIRST ONE IS NOT WASTE. A browser clamps an assignment to scrollTop
+    // to scrollHeight - clientHeight, and before the first render the two spacers have no height
+    // at all — so the scroller is not yet scrollable and ensureVisible's offset would clamp to 0,
+    // opening the grid at row 0 with the selected tile outside the window and no
+    // aria-activedescendant at all. The first render gives the spacers their height; only then can
+    // the scroller be scrolled; the second render builds the window that offset lands on.
+    render();
     ensureVisible();
     render();
     // Focus into the search field, which is the one control that does something useful with the
