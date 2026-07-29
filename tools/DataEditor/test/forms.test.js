@@ -1,0 +1,616 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { createContext, runInContext } from 'node:vm';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { installFakeDom } from './fake-dom.js';
+
+installFakeDom();
+
+const { Layout } = await import('../src/layout.js');
+globalThis.Layout = Layout;
+
+// Composites is Task 10 and does not exist yet. forms.js resolves it as a free global at CALL
+// time, exactly as the built page does (Editor.html includes composites.html first), so a stub
+// installed here is enough — and every stub call is recorded so the contract can be asserted.
+const compositeCalls = { control: [], collect: [] };
+globalThis.Composites = {
+  control(comp, byName, values, ctx) {
+    compositeCalls.control.push({ comp, byName, values, ctx });
+    const node = document.createElement('div');
+    node.setAttribute('data-composite', comp.kind);
+    comp.columns.forEach((name) => {
+      const input = document.createElement('input');
+      input.setAttribute('name', name);
+      input.value = values[name] === undefined ? '' : String(values[name]);
+      node.appendChild(input);
+    });
+    return node;
+  },
+  collect(comp, container) {
+    compositeCalls.collect.push({ comp, container });
+    const out = {};
+    comp.columns.forEach((name) => {
+      const found = container.querySelector('[name="' + name + '"]');
+      out[name] = found ? found.value : '';
+    });
+    return out;
+  },
+};
+
+const { Forms } = await import('../src/forms.js');
+
+const schemaPath = fileURLToPath(new URL('../schema.js', import.meta.url));
+const schemaContext = createContext({});
+runInContext(readFileSync(schemaPath, 'utf8'), schemaContext);
+const SCHEMA = schemaContext.GOOSE_SCHEMA;
+
+function sheet(name) {
+  const s = SCHEMA.sheets.find((x) => x.sheet === name);
+  assert.ok(s, `schema.js has no sheet named ${JSON.stringify(name)}`);
+  return s;
+}
+
+function column(sheetName, columnName) {
+  const c = sheet(sheetName).columns.find((x) => x.name === columnName);
+  assert.ok(c, `${sheetName} has no column ${columnName}`);
+  return c;
+}
+
+const div = () => document.createElement('div');
+const labels = (node) => node.getElementsByTagName('label').map((l) => l.textContent);
+const named = (node) => node.querySelectorAll('[name]').map((n) => n.getAttribute('name'));
+
+// ---------------------------------------------------------------- el
+
+test('el sets attributes and text, and tolerates null attrs', () => {
+  const node = Forms.el('div', { class: 'warn', 'data-error-for': 'x' }, 'boom');
+  assert.equal(node.tagName, 'DIV');
+  assert.equal(node.getAttribute('class'), 'warn');
+  assert.equal(node.getAttribute('data-error-for'), 'x');
+  assert.equal(node.textContent, 'boom');
+
+  const bare = Forms.el('h3', null, 'Identity');
+  assert.equal(bare.textContent, 'Identity');
+  assert.equal(bare.getAttribute('class'), null);
+
+  // No text argument must leave the node empty rather than writing "undefined".
+  assert.equal(Forms.el('div').textContent, '');
+});
+
+// ---------------------------------------------------------------- placeholderFor
+
+test('placeholderFor: required beats any default', () => {
+  assert.equal(Forms.placeholderFor(column('Items', 'item_template_id')), 'required');
+  assert.equal(Forms.placeholderFor({ name: 'x', required: true, default: '7' }), 'required');
+});
+
+test('placeholderFor accepts a default that is not already a string', () => {
+  assert.equal(Forms.placeholderFor({ required: false, default: 0 }), 'default 0');
+});
+
+test('placeholderFor: no default gives no placeholder', () => {
+  assert.equal(Forms.placeholderFor({ name: 'x', required: false }), '');
+  assert.equal(Forms.placeholderFor({ name: 'x', required: false, default: null }), '');
+});
+
+test('placeholderFor shows a bare numeric default as-is', () => {
+  assert.equal(Forms.placeholderFor(column('Items', 'player_hp')), 'default 0');
+  assert.equal(Forms.placeholderFor({ required: false, default: '100' }), 'default 100');
+});
+
+test("placeholderFor unwraps a quoted SQL string default", () => {
+  assert.equal(Forms.placeholderFor({ required: false, default: "'0'" }), 'default 0');
+  assert.equal(Forms.placeholderFor({ required: false, default: "'Scripts/NPC/BaseNPC.csx'" }),
+    'default Scripts/NPC/BaseNPC.csx');
+});
+
+test("placeholderFor names the empty-string default rather than trailing off", () => {
+  // item_description's descriptor default is the SQL literal '' — an empty string, not "unset".
+  assert.equal(column('Items', 'item_description').default, "''");
+  assert.equal(Forms.placeholderFor(column('Items', 'item_description')), 'default (blank)');
+});
+
+test('placeholderFor strips quotes only as a matched pair', () => {
+  // An unpaired quote is part of the value; stripping one end would advertise a default the
+  // database does not have.
+  assert.equal(Forms.placeholderFor({ required: false, default: "it's" }), "default it's");
+  assert.equal(Forms.placeholderFor({ required: false, default: "'unterminated" }),
+    "default 'unterminated");
+  assert.equal(Forms.placeholderFor({ required: false, default: "'it''s'" }),
+    "default it''s");
+});
+
+test('placeholderFor covers every default in the real schema without producing junk', () => {
+  let checked = 0;
+  [...SCHEMA.sheets].forEach((s) => [...s.columns].forEach((c) => {
+    const text = Forms.placeholderFor(c);
+    if (c.required) { assert.equal(text, 'required'); return; }
+    if (c.default === undefined) { assert.equal(text, ''); return; }
+    checked++;
+    assert.ok(text.length > 'default '.length, `${c.name}: ${JSON.stringify(text)}`);
+    assert.ok(!/'$/.test(text), `${c.name} kept a trailing quote: ${text}`);
+  }));
+  assert.ok(checked > 100, `expected many defaulted columns, saw ${checked}`);
+});
+
+// ---------------------------------------------------------------- scalarControl
+
+test('Enum renders a select with a blank option when optional', () => {
+  const c = column('NPCs', 'npc_type');
+  assert.equal(c.kind, 'Enum');
+  const control = Forms.scalarControl({ ...c, required: false }, c.enumNames[1]);
+  assert.equal(control.tagName, 'SELECT');
+  assert.equal(control.getAttribute('name'), c.name);
+  const options = control.getElementsByTagName('option').map((o) => o.value);
+  assert.deepEqual(options, ['', ...c.enumNames]);
+  assert.equal(control.value, c.enumNames[1]);
+});
+
+test('a required Enum has no blank option', () => {
+  const c = column('Items', 'item_usetype');
+  assert.equal(c.required, true);
+  const control = Forms.scalarControl(c, 'Weapon');
+  assert.notEqual(c.enumNames[0], 'Weapon');
+  const options = control.getElementsByTagName('option').map((o) => o.value);
+  assert.deepEqual(options, [...c.enumNames]);
+  assert.equal(control.value, 'Weapon');
+});
+
+test('the FIRST enum name is recognised, not duplicated as unknown', () => {
+  const c = column('Items', 'item_usetype');
+  const control = Forms.scalarControl(c, c.enumNames[0]);
+  assert.deepEqual(control.getElementsByTagName('option').map((o) => o.value),
+    [...c.enumNames]);
+  assert.equal(control.value, c.enumNames[0]);
+});
+
+test('an Enum value that is not in enumNames survives instead of blanking', () => {
+  // A browser select silently shows nothing for a value it has no option for, and then reads
+  // back as '' — so a renamed enum member would be saved as blank, destroying the cell.
+  const c = column('Items', 'item_usetype');
+  assert.equal(c.enumNames.indexOf('Antique'), -1);
+  const control = Forms.scalarControl(c, 'Antique');
+  assert.equal(control.value, 'Antique');
+  const last = control.getElementsByTagName('option').pop();
+  assert.equal(last.value, 'Antique');
+  assert.match(last.textContent, /not a valid value/);
+});
+
+test('the fake select really does refuse an unlisted value', () => {
+  // Guards the test above: if this assertion ever passes trivially, the fake DOM has stopped
+  // reproducing the hazard and the data-loss test is worthless.
+  const select = document.createElement('select');
+  const option = document.createElement('option');
+  option.setAttribute('value', 'Armor');
+  select.appendChild(option);
+  select.value = 'Antique';
+  assert.equal(select.value, '');
+});
+
+test('a blank value never invents an option', () => {
+  // A required Enum has no blank option by design; manufacturing one for a blank cell would
+  // let "nothing chosen" be saved as a legitimate-looking choice.
+  const c = column('Items', 'item_usetype');
+  const control = Forms.scalarControl(c, '');
+  assert.deepEqual(control.getElementsByTagName('option').map((o) => o.value),
+    [...c.enumNames]);
+  assert.equal(control.value, '');
+
+  const bool = Forms.scalarControl(column('Items', 'lore'), '');
+  assert.deepEqual(bool.getElementsByTagName('option').map((o) => o.value), ['', '0', '1']);
+});
+
+test('the unknown-value option is in place BEFORE the value is assigned', () => {
+  // Appending it afterwards would not help: a select with nothing selected snaps to its first
+  // option when an option is added, so the stored value would still be lost.
+  const select = document.createElement('select');
+  const known = document.createElement('option');
+  known.setAttribute('value', 'Armor');
+  select.appendChild(known);
+  select.value = 'Antique';
+  const late = document.createElement('option');
+  late.setAttribute('value', 'Antique');
+  select.appendChild(late);
+  assert.equal(select.value, 'Armor');
+});
+
+test('an Enum with no enumNames still renders', () => {
+  const control = Forms.scalarControl({ name: 'x', kind: 'Enum', required: false }, '');
+  assert.deepEqual(control.getElementsByTagName('option').map((o) => o.value), ['']);
+  assert.equal(control.value, '');
+});
+
+test('Bool renders blank/No/Yes and keeps a stored 0', () => {
+  const c = column('Items', 'lore');
+  assert.equal(c.kind, 'Bool');
+  const control = Forms.scalarControl(c, '0');
+  assert.equal(control.tagName, 'SELECT');
+  assert.deepEqual(control.getElementsByTagName('option').map((o) => o.value), ['', '0', '1']);
+  assert.deepEqual(control.getElementsByTagName('option').map((o) => o.textContent),
+    ['', 'No', 'Yes']);
+  assert.equal(control.value, '0');
+  assert.equal(Forms.scalarControl(c, '1').value, '1');
+  assert.equal(Forms.scalarControl(c, '').value, '');
+});
+
+test('a NUMERIC 0 from the Sheets API is not mistaken for blank', () => {
+  // Sheets hands back a JS number for a numeric cell. `value || ''` would turn 0 into '',
+  // which means "use the default" on write — silently losing an explicit 0.
+  assert.equal(Forms.scalarControl(column('Items', 'lore'), 0).value, '0');
+  assert.equal(Forms.scalarControl(column('Items', 'player_hp'), 0).value, '0');
+});
+
+test('an out-of-range Bool value survives instead of blanking', () => {
+  const control = Forms.scalarControl(column('Items', 'lore'), '2');
+  assert.equal(control.value, '2');
+});
+
+test('Text, Int, Id and Decimal all render a text input', () => {
+  const cases = [
+    ['Items', 'item_name', 'Text'],
+    ['Items', 'player_hp', 'Int'],
+    ['Items', 'item_template_id', 'Id'],
+    ['Titles', 'chance', 'Decimal'],
+  ];
+  cases.forEach(([sheetName, columnName, kind]) => {
+    const c = column(sheetName, columnName);
+    assert.equal(c.kind, kind, `${columnName} kind`);
+    const control = Forms.scalarControl(c, '12');
+    assert.equal(control.tagName, 'INPUT', columnName);
+    // Never type="number": it reads back '' for input it cannot parse, and '' means "use the
+    // SQL default", so a typo would silently write the default instead of being reported.
+    assert.equal(control.getAttribute('type'), 'text', columnName);
+    assert.equal(control.getAttribute('autocomplete'), 'off');
+    assert.equal(control.getAttribute('placeholder'), Forms.placeholderFor(c));
+    assert.equal(control.value, '12');
+  });
+});
+
+test('an input value is set live, not merely as an attribute', () => {
+  // setAttribute('value', x) does not move the cursor value in a real browser; collect() reads
+  // .value, so an attribute-only write would collect as ''.
+  const control = Forms.scalarControl(column('Items', 'item_name'), 'Rusty Sword');
+  assert.equal(control.value, 'Rusty Sword');
+  assert.equal(control.getAttribute('value'), null);
+});
+
+test('a column absent from the values map renders blank, not "undefined"', () => {
+  assert.equal(Forms.scalarControl(column('Items', 'item_name'), undefined).value, '');
+  assert.equal(Forms.scalarControl(column('Items', 'item_name'), null).value, '');
+});
+
+// ---------------------------------------------------------------- render
+
+const TOY = {
+  sheet: 'Toybox',
+  columns: [
+    { name: 'a', kind: 'Int', required: false, default: '0' },
+    { name: 'b', kind: 'Text', required: false },
+    { name: 'c', kind: 'Text', required: false },
+  ],
+};
+
+test('render lays out every column with a label, control and error slot', () => {
+  const host = div();
+  Forms.render(host, TOY, { a: '1', b: 'two', c: '' }, {});
+  assert.deepEqual(labels(host), ['a', 'b', 'c']);
+  assert.deepEqual(named(host), ['a', 'b', 'c']);
+  assert.deepEqual(host.querySelectorAll('[data-error-for]').map(
+    (n) => n.getAttribute('data-error-for')), ['a', 'b', 'c']);
+  assert.equal(host.getElementsByTagName('h3').length, 1);
+});
+
+test('every scalar label points at its own control', () => {
+  const host = div();
+  Forms.render(host, sheet('Items'), {}, {});
+  const ids = new Set(host.querySelectorAll('[id]').map((n) => n.getAttribute('id')));
+  const targets = host.getElementsByTagName('label')
+    .map((l) => l.getAttribute('for')).filter((f) => f !== null);
+  assert.ok(targets.length > 20, `expected many labelled scalars, saw ${targets.length}`);
+  targets.forEach((t) => assert.ok(ids.has(t), `label for="${t}" points at nothing`));
+  assert.equal(new Set(targets).size, targets.length, 'duplicate for= targets');
+});
+
+test('render clears whatever was there before', () => {
+  const host = div();
+  host.appendChild(Forms.el('p', null, 'stale'));
+  Forms.render(host, TOY, {}, {});
+  assert.equal(host.getElementsByTagName('p').length, 0);
+  Forms.render(host, TOY, {}, {});
+  assert.deepEqual(named(host), ['a', 'b', 'c']);
+});
+
+test('the restart warning appears exactly for RESTART_ONLY sheets', () => {
+  const warned = [];
+  [...SCHEMA.sheets].forEach((s) => {
+    const host = div();
+    Forms.render(host, s, {}, {});
+    const warn = host.querySelector('[class="warn"]');
+    if (warn) {
+      warned.push(s.sheet);
+      assert.equal(warn.textContent,
+        'Changes to ' + s.sheet + ' need a full server restart — /reloadsql does not ' +
+        'reload this table.');
+    }
+  });
+  const expected = [...SCHEMA.sheets].map((s) => s.sheet).filter(Layout.needsRestart);
+  assert.deepEqual(warned, expected);
+  assert.ok(expected.length > 0 && expected.length < SCHEMA.sheets.length);
+});
+
+test('a live sheet gets no warning', () => {
+  const host = div();
+  Forms.render(host, sheet('Items'), {}, {});
+  assert.equal(host.querySelector('[class="warn"]'), null);
+});
+
+// ---------------------------------------------------------------- composites
+
+const COMPOSITE_TOY = {
+  sheet: 'Toybox',
+  columns: [
+    { name: 'a', kind: 'Int', required: false },
+    { name: 'r', kind: 'Int', required: false },
+    { name: 'g', kind: 'Int', required: false },
+    { name: 'b', kind: 'Int', required: false },
+  ],
+  composites: [{ kind: 'Rgba', columns: ['r', 'g', 'b'] }],
+};
+
+test('a composite renders once, at its leader, and its siblings are skipped', () => {
+  compositeCalls.control.length = 0;
+  const host = div();
+  Forms.render(host, COMPOSITE_TOY, { a: '1', r: '255', g: '0', b: '0' }, { tag: 'ctx' });
+  assert.deepEqual(labels(host), ['a', 'r']);
+  assert.equal(compositeCalls.control.length, 1);
+  assert.equal(host.querySelectorAll('[data-composite]').length, 1);
+
+  const call = compositeCalls.control[0];
+  assert.equal(call.comp, COMPOSITE_TOY.composites[0]);
+  assert.equal(call.byName.g.name, 'g');
+  assert.deepEqual(call.values, { a: '1', r: '255', g: '0', b: '0' });
+  assert.deepEqual(call.ctx, { tag: 'ctx' });
+});
+
+test('a composite naming a column the schema lacks still renders its real columns', () => {
+  // columns[0] blindly as leader would elect the absent column, and every sibling would be
+  // skipped as "rendered by its leader" by a control that never rendered — quietly making
+  // those columns uneditable.
+  const host = div();
+  Forms.render(host, {
+    sheet: 'Toybox',
+    columns: [{ name: 'r', kind: 'Int', required: false }],
+    composites: [{ kind: 'Rgba', columns: ['ghost', 'r'] }],
+  }, {}, {});
+  assert.deepEqual(labels(host), ['r']);
+  assert.equal(host.querySelectorAll('[data-composite]').length, 1);
+});
+
+test('a composite whose columns are all absent renders nothing at all', () => {
+  const host = div();
+  Forms.render(host, {
+    sheet: 'Toybox',
+    columns: [{ name: 'a', kind: 'Int', required: false }],
+    composites: [{ kind: 'Rgba', columns: ['ghost'] }],
+  }, {}, {});
+  assert.deepEqual(labels(host), ['a']);
+  assert.equal(host.querySelectorAll('[data-composite]').length, 0);
+});
+
+test('a composite spanning two Layout groups renders in the leader group only', () => {
+  // Items puts graphic_tile and item_name in different groups; a composite across them must
+  // still produce exactly one control, and no orphan label in the other group.
+  compositeCalls.control.length = 0;
+  const host = div();
+  const items = sheet('Items');
+  Forms.render(host, {
+    sheet: 'Items',
+    columns: items.columns,
+    composites: [{ kind: 'Fake', columns: ['graphic_tile', 'item_name'] }],
+  }, {}, {});
+  assert.equal(compositeCalls.control.length, 1);
+  const names = labels(host);
+  assert.equal(names.filter((n) => n === 'graphic_tile').length, 1);
+  assert.equal(names.filter((n) => n === 'item_name').length, 0);
+  // The leader is the first SCHEMA-present column of the composite, so the control sits in
+  // Identity (where item_name lives) — not in Graphics.
+  const identity = host.getElementsByTagName('section')
+    .find((s) => s.getElementsByTagName('h3')[0].textContent === 'Graphics');
+  assert.equal(identity.querySelectorAll('[data-composite]').length, 1);
+});
+
+test('a group left empty by a composite claim renders no heading', () => {
+  const host = div();
+  Forms.render(host, {
+    sheet: 'Items',
+    columns: [
+      { name: 'item_name', kind: 'Text', required: true },
+      { name: 'graphic_tile', kind: 'Int', required: false },
+    ],
+    composites: [{ kind: 'Fake', columns: ['item_name', 'graphic_tile'] }],
+  }, {}, {});
+  assert.deepEqual(host.getElementsByTagName('h3').map((h) => h.textContent), ['Identity']);
+});
+
+test('a composite label carries no dangling for=', () => {
+  const host = div();
+  Forms.render(host, COMPOSITE_TOY, {}, {});
+  const composite = host.getElementsByTagName('label').find((l) => l.textContent === 'r');
+  assert.equal(composite.getAttribute('for'), null);
+});
+
+test('the real Items sheet renders every column exactly once', () => {
+  const host = div();
+  const items = sheet('Items');
+  Forms.render(host, items, {}, {});
+  const claimed = new Set([...items.composites].flatMap((c) => [...c.columns]));
+  const leaders = new Set([...items.composites].map((c) => c.columns[0]));
+  const expected = [...items.columns].map((c) => c.name)
+    .filter((n) => !claimed.has(n) || leaders.has(n));
+  assert.deepEqual(labels(host).sort(), expected.sort());
+});
+
+// ---------------------------------------------------------------- collect
+
+test('collect round-trips what render produced', () => {
+  const host = div();
+  const values = { a: '1', b: 'two', c: '' };
+  Forms.render(host, TOY, values, {});
+  assert.deepEqual(Forms.collect(host, TOY), values);
+});
+
+test('collect returns blank for every column with no control', () => {
+  const host = div();
+  assert.deepEqual(Forms.collect(host, TOY), { a: '', b: '', c: '' });
+});
+
+test('collect round-trips a real Items row through the form', () => {
+  const host = div();
+  const items = sheet('Items');
+  const values = {};
+  [...items.columns].forEach((c, i) => {
+    values[c.name] = c.kind === 'Enum' ? c.enumNames[0]
+      : c.kind === 'Bool' ? String(i % 2)
+      : c.kind === 'Text' ? 'text ' + i
+      : String(i);
+  });
+  Forms.render(host, items, values, {});
+  assert.deepEqual(Forms.collect(host, items), values);
+});
+
+test('collect asks Composites for the columns it owns and lets it win', () => {
+  compositeCalls.collect.length = 0;
+  const host = div();
+  Forms.render(host, COMPOSITE_TOY, { a: '1', r: '255', g: '0', b: '0' }, {});
+  const out = Forms.collect(host, COMPOSITE_TOY);
+  assert.deepEqual(out, { a: '1', r: '255', g: '0', b: '0' });
+  assert.equal(compositeCalls.collect.length, 1);
+  assert.equal(compositeCalls.collect[0].comp, COMPOSITE_TOY.composites[0]);
+  assert.equal(compositeCalls.collect[0].container, host);
+});
+
+test('Composites.collect outranks the named inputs inside its own control', () => {
+  // A composite is free to render raw sub-inputs (an RGBA picker's four channels, a hex box)
+  // and hand back a canonicalised value. Whatever it returns must be what is saved, including
+  // when the sub-input for that very column says something else.
+  const host = div();
+  Forms.render(host, COMPOSITE_TOY, { a: '1', r: 'ff', g: '0', b: '0' }, {});
+  const previous = globalThis.Composites.collect;
+  globalThis.Composites.collect = () => ({ r: '255', g: '0', b: '0' });
+  try {
+    assert.equal(host.querySelector('[name="r"]').value, 'ff');
+    assert.deepEqual(Forms.collect(host, COMPOSITE_TOY), { a: '1', r: '255', g: '0', b: '0' });
+  } finally {
+    globalThis.Composites.collect = previous;
+  }
+});
+
+test('collect finds a control by name even when it has no id', () => {
+  // Composite sub-controls are named after their columns but carry no id; keying the sweep on
+  // anything but [name] would skip them.
+  const host = div();
+  const input = document.createElement('input');
+  input.setAttribute('name', 'b');
+  input.value = 'from a composite';
+  host.appendChild(input);
+  assert.equal(input.getAttribute('id'), null);
+  assert.deepEqual(Forms.collect(host, TOY), { a: '', b: 'from a composite', c: '' });
+});
+
+test('collect coerces whatever a control hands back to a string', () => {
+  const host = div();
+  Forms.render(host, TOY, {}, {});
+  host.querySelector('[name="a"]')._value = 5;   // bypass the setter's own coercion
+  assert.deepEqual(Forms.collect(host, TOY).a, '5');
+});
+
+test('collect ignores stray named nodes for columns the schema does not have', () => {
+  const host = div();
+  Forms.render(host, TOY, { a: '1', b: '', c: '' }, {});
+  const out = Forms.collect(host, TOY);
+  assert.deepEqual(Object.keys(out).sort(), ['a', 'b', 'c']);
+});
+
+test('every real sheet round-trips blank through render and collect', () => {
+  [...SCHEMA.sheets].forEach((s) => {
+    const host = div();
+    Forms.render(host, s, {}, {});
+    const out = Forms.collect(host, s);
+    assert.deepEqual(Object.keys(out).sort(), [...s.columns].map((c) => c.name).sort(),
+      s.sheet);
+    Object.keys(out).forEach((k) => assert.equal(out[k], '', `${s.sheet}.${k}`));
+  });
+});
+
+// ---------------------------------------------------------------- showErrors
+
+test('showErrors writes each message into its own slot', () => {
+  const host = div();
+  Forms.render(host, TOY, {}, {});
+  Forms.showErrors(host, [{ column: 'b', message: 'b is required' }]);
+  assert.equal(host.querySelector('[data-error-for="b"]').textContent, 'b is required');
+  assert.equal(host.querySelector('[data-error-for="a"]').textContent, '');
+});
+
+test('showErrors clears previous messages before writing new ones', () => {
+  const host = div();
+  Forms.render(host, TOY, {}, {});
+  Forms.showErrors(host, [{ column: 'a', message: 'first' }]);
+  Forms.showErrors(host, [{ column: 'c', message: 'second' }]);
+  assert.equal(host.querySelector('[data-error-for="a"]').textContent, '');
+  assert.equal(host.querySelector('[data-error-for="c"]').textContent, 'second');
+  Forms.showErrors(host, []);
+  assert.equal(host.querySelector('[data-error-for="c"]').textContent, '');
+});
+
+test('showErrors tolerates an error for a column with no slot', () => {
+  const host = div();
+  Forms.render(host, TOY, {}, {});
+  Forms.showErrors(host, [
+    { column: 'nonexistent', message: 'ignored' },
+    { column: 'a', message: 'kept' },
+  ]);
+  assert.equal(host.querySelector('[data-error-for="a"]').textContent, 'kept');
+});
+
+test('showErrors reaches a column claimed by a composite', () => {
+  const host = div();
+  Forms.render(host, COMPOSITE_TOY, {}, {});
+  Forms.showErrors(host, [
+    { column: 'r', message: 'bad red' },
+    { column: 'g', message: 'no slot for me' },
+  ]);
+  assert.equal(host.querySelector('[data-error-for="r"]').textContent, 'bad red');
+});
+
+test('a duplicated slot resolves to the first in document order', () => {
+  // Task 10 may well give a composite its own per-column error slot, which would sit inside
+  // the control and duplicate the row's. The message must go to exactly one of them, and to
+  // the same one every time — the innermost, which is the one next to the offending field.
+  const host = div();
+  Forms.render(host, COMPOSITE_TOY, {}, {});
+  const inner = Forms.el('div', { 'data-error-for': 'r' });
+  host.querySelector('[data-composite]').appendChild(inner);
+  const outer = host.querySelectorAll('[data-error-for="r"]').filter((n) => n !== inner)[0];
+
+  Forms.showErrors(host, [{ column: 'r', message: 'bad red' }]);
+  const slots = host.querySelectorAll('[data-error-for="r"]');
+  assert.equal(slots[0], inner);
+  assert.equal(slots[1], outer);
+  assert.equal(slots[0].textContent, 'bad red');
+  assert.equal(slots[1].textContent, '');
+});
+
+test('every Validation error for a real sheet lands somewhere or is knowingly dropped', () => {
+  const items = sheet('Items');
+  const host = div();
+  Forms.render(host, items, {}, {});
+  const slots = new Set(host.querySelectorAll('[data-error-for]')
+    .map((n) => n.getAttribute('data-error-for')));
+  const claimed = new Set([...items.composites].flatMap((c) => [...c.columns]));
+  [...items.columns].forEach((c) => {
+    assert.ok(slots.has(c.name) || claimed.has(c.name),
+      `${c.name} can produce an error with nowhere to show it`);
+  });
+});
