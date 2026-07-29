@@ -7,6 +7,33 @@
 // One deliberate infidelity: querySelectorAll and getElementsByTagName return real Arrays,
 // not NodeList/HTMLCollection, so .map/.filter/.find work on them HERE and would throw in a
 // browser. Module code must keep using index loops.
+//
+// ADDED FOR TASK 9 (pickers), each because pickers.js would otherwise be untestable or, worse,
+// testably wrong in a way the browser would not be:
+//
+//   * An EVENT MODEL — addEventListener/removeEventListener/dispatchEvent, with propagation up
+//     the parentNode chain and a preventDefault that dispatchEvent reports. `focus` and `blur`
+//     do NOT bubble, as in a real DOM; that is load-bearing for a picker that listens on the
+//     input and on the results list at once. Use fire(node, type) to build and send one.
+//   * `hidden` REFLECTED onto the content attribute. This is the fidelity that matters most
+//     here: a fake where `hidden` were a plain own property would let `el('div', { hidden:
+//     'hidden' })` followed by `node.hidden = false` "show" a list that a browser still hides,
+//     because the attribute would still be there.
+//   * `className` reflected onto the class attribute, same reason in the other direction.
+//   * `removeAttribute`, which reflection needs.
+//   * `width`/`height` reflected on a <canvas> AS NUMBERS — setAttribute('width', 48) really
+//     does set canvas.width, and centring maths reading undefined would silently produce NaN
+//     offsets that no assertion about "it drew" would catch.
+//   * `getContext('2d')` on a <canvas>: a memoised recording stub (same object every call, as
+//     in a browser) whose calls array is the assertion surface for Sprites.draw. Anything that
+//     is not a canvas, or any type but '2d', returns null.
+//
+// STILL MISSING (Task 10's prerequisite): checkedness, appendChild does not detach from a
+// previous parent, no input value sanitization, ask-for-reset does not skip disabled options,
+// no removeChild, no classList.
+
+// Real focus/blur do not bubble; every other event this fake is asked to carry does.
+const NON_BUBBLING = new Set(['focus', 'blur']);
 
 class FakeNode {
   constructor(tag) {
@@ -14,6 +41,8 @@ class FakeNode {
     this.attributes = new Map();
     this.children = [];
     this.parentNode = null;
+    this._listeners = new Map();
+    this._context = null;
     this._text = '';
     // An input's live value tracks its `value` CONTENT ATTRIBUTE until something assigns to
     // .value, which raises the dirty value flag and decouples the two for good (HTML, "value"
@@ -34,6 +63,89 @@ class FakeNode {
 
   getAttribute(name) {
     return this.attributes.has(String(name)) ? this.attributes.get(String(name)) : null;
+  }
+
+  removeAttribute(name) {
+    this.attributes.delete(String(name));
+  }
+
+  // A boolean attribute: PRESENT means hidden, whatever its value — hidden="" and
+  // hidden="false" both hide. Assigning false must therefore remove it, not blank it.
+  get hidden() {
+    return this.getAttribute('hidden') !== null;
+  }
+
+  set hidden(value) {
+    if (value) this.setAttribute('hidden', '');
+    else this.removeAttribute('hidden');
+  }
+
+  get className() {
+    return this.getAttribute('class') || '';
+  }
+
+  set className(value) {
+    this.setAttribute('class', String(value));
+  }
+
+  // Only a <canvas> reflects width/height as numbers; on anything else the property does not
+  // exist, exactly as in a browser.
+  get width() {
+    return this.tagName === 'CANVAS' ? Number(this.getAttribute('width') || 0) : undefined;
+  }
+
+  set width(value) {
+    this.setAttribute('width', value);
+  }
+
+  get height() {
+    return this.tagName === 'CANVAS' ? Number(this.getAttribute('height') || 0) : undefined;
+  }
+
+  set height(value) {
+    this.setAttribute('height', value);
+  }
+
+  // Memoised, like the real thing: two getContext('2d') calls on one canvas return the SAME
+  // context, so a module that fetches it twice still draws onto one surface.
+  getContext(type) {
+    if (this.tagName !== 'CANVAS' || type !== '2d') return null;
+    if (!this._context) this._context = recordingContext();
+    return this._context;
+  }
+
+  addEventListener(type, handler) {
+    const key = String(type);
+    if (!this._listeners.has(key)) this._listeners.set(key, []);
+    const list = this._listeners.get(key);
+    // The real DOM discards a duplicate (type, handler, capture) registration rather than
+    // calling the handler twice.
+    if (!list.includes(handler)) list.push(handler);
+  }
+
+  removeEventListener(type, handler) {
+    const list = this._listeners.get(String(type));
+    if (!list) return;
+    const at = list.indexOf(handler);
+    if (at !== -1) list.splice(at, 1);
+  }
+
+  // Returns false when the default was prevented, as dispatchEvent does.
+  dispatchEvent(event) {
+    if (!event.target) event.target = this;
+    let node = this;
+    while (node) {
+      const list = node._listeners.get(event.type);
+      // A copy: a handler that rebuilds the list must not change who else is called for THIS
+      // event.
+      if (list) for (const handler of list.slice()) {
+        event.currentTarget = node;
+        handler.call(node, event);
+      }
+      if (NON_BUBBLING.has(event.type)) break;
+      node = node.parentNode;
+    }
+    return !event.defaultPrevented;
   }
 
   appendChild(child) {
@@ -138,6 +250,34 @@ class FakeNode {
   querySelector(selector) {
     return this.querySelectorAll(selector)[0] || null;
   }
+}
+
+// Records every call so a test can assert what was drawn, and returns pixel data of the size
+// asked for. Deliberately NOT a canvas: it knows nothing about compositing.
+function recordingContext() {
+  const calls = [];
+  return {
+    calls,
+    clearRect(...args) { calls.push(['clearRect', ...args]); },
+    drawImage(...args) { calls.push(['drawImage', ...args]); },
+    getImageData(x, y, w, h) {
+      calls.push(['getImageData', x, y, w, h]);
+      return { data: new Array(w * h * 4).fill(0) };
+    },
+    putImageData(image, x, y) { calls.push(['putImageData', x, y, [...image.data]]); },
+  };
+}
+
+// Builds an event and dispatches it from `node`. Returns false if a handler cancelled it.
+export function fire(node, type) {
+  const event = {
+    type: String(type),
+    target: null,
+    currentTarget: null,
+    defaultPrevented: false,
+    preventDefault() { this.defaultPrevented = true; },
+  };
+  return node.dispatchEvent(event);
 }
 
 export function installFakeDom() {
