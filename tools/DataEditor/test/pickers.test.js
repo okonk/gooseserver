@@ -691,8 +691,10 @@ function gparts(wrap) {
 }
 
 test('graphicControl renders both cells, named for Forms.collect', () => {
-  const wrap = Pickers.graphicControl(graphicColumn, fileColumn,
-    { graphic_tile: '810003', graphic_file: '20107' }, gctx());
+  const wrap = Pickers.graphicControl({
+    graphicColumn: graphicColumn, fileColumn: fileColumn,
+    values: { graphic_tile: '810003', graphic_file: '20107' }, ctx: gctx(),
+  });
   const { graphic, file } = gparts(wrap);
 
   assert.equal(graphic.value, '810003');
@@ -701,15 +703,19 @@ test('graphicControl renders both cells, named for Forms.collect', () => {
 });
 
 test('graphicControl keeps a stored 0 rather than blanking it', () => {
-  const wrap = Pickers.graphicControl(graphicColumn, fileColumn,
-    { graphic_tile: 0, graphic_file: 0 }, gctx());
+  const wrap = Pickers.graphicControl({
+    graphicColumn: graphicColumn, fileColumn: fileColumn,
+    values: { graphic_tile: 0, graphic_file: 0 }, ctx: gctx(),
+  });
   assert.equal(gparts(wrap).graphic.value, '0');
   assert.equal(gparts(wrap).file.value, '0');
 });
 
 test('graphicControl draws the resolved icon centred on the canvas', () => {
-  const wrap = Pickers.graphicControl(graphicColumn, fileColumn,
-    { graphic_tile: '810003', graphic_file: '20107' }, gctx());
+  const wrap = Pickers.graphicControl({
+    graphicColumn: graphicColumn, fileColumn: fileColumn,
+    values: { graphic_tile: '810003', graphic_file: '20107' }, ctx: gctx(),
+  });
   const ctx2d = gparts(wrap).canvas.getContext('2d');
 
   assert.deepEqual(ctx2d.calls, [
@@ -723,16 +729,20 @@ test('graphicControl draws the resolved icon centred on the canvas', () => {
 test('graphicControl passes sheet and graphic in the right order', () => {
   // The Graphic composite declares [graphic, file] (schema.js: graphic_tile+graphic_file) and
   // Sprites.icon takes (bundles, sheet, graphic). Swapping them resolves nothing, silently.
-  const wrap = Pickers.graphicControl(graphicColumn, fileColumn,
-    { graphic_tile: '20107', graphic_file: '810003' }, gctx());
+  const wrap = Pickers.graphicControl({
+    graphicColumn: graphicColumn, fileColumn: fileColumn,
+    values: { graphic_tile: '20107', graphic_file: '810003' }, ctx: gctx(),
+  });
   const drew = gparts(wrap).canvas.getContext('2d').calls
     .filter((c) => c[0] === 'drawImage');
   assert.deepEqual(drew, [], 'the reversed pair must not resolve');
 });
 
 test('graphicControl redraws when the graphic alone is edited', () => {
-  const wrap = Pickers.graphicControl(graphicColumn, fileColumn,
-    { graphic_tile: '810003', graphic_file: '20107' }, gctx());
+  const wrap = Pickers.graphicControl({
+    graphicColumn: graphicColumn, fileColumn: fileColumn,
+    values: { graphic_tile: '810003', graphic_file: '20107' }, ctx: gctx(),
+  });
   const { graphic, status } = gparts(wrap);
 
   graphic.value = '999';
@@ -741,8 +751,10 @@ test('graphicControl redraws when the graphic alone is edited', () => {
 });
 
 test('graphicControl redraws when the sheet alone is edited', () => {
-  const wrap = Pickers.graphicControl(graphicColumn, fileColumn,
-    { graphic_tile: '810003', graphic_file: '20107' }, gctx());
+  const wrap = Pickers.graphicControl({
+    graphicColumn: graphicColumn, fileColumn: fileColumn,
+    values: { graphic_tile: '810003', graphic_file: '20107' }, ctx: gctx(),
+  });
   const { file, status } = gparts(wrap);
 
   file.value = '999';
@@ -751,7 +763,9 @@ test('graphicControl redraws when the sheet alone is edited', () => {
 });
 
 test('graphicControl redraws as either field is edited', () => {
-  const wrap = Pickers.graphicControl(graphicColumn, fileColumn, {}, gctx());
+  const wrap = Pickers.graphicControl({
+    graphicColumn: graphicColumn, fileColumn: fileColumn, values: {}, ctx: gctx(),
+  });
   const { canvas, graphic, file } = gparts(wrap);
   const ctx2d = canvas.getContext('2d');
 
@@ -770,44 +784,56 @@ test('graphicControl coerces exactly once, leaving the rule to Sprites', () => {
   // well is a SECOND rule for what a cell means, and the two disagree: Number('20107abc') is
   // NaN and finds nothing, parseInt is 20107 and finds the icon. The preview shows what the
   // lookup key actually resolves; the status line is what says the cell is still a typo.
-  const wrap = Pickers.graphicControl(graphicColumn, fileColumn,
-    { graphic_tile: '0810003', graphic_file: '20107abc' }, gctx());
+  const wrap = Pickers.graphicControl({
+    graphicColumn: graphicColumn, fileColumn: fileColumn,
+    values: { graphic_tile: '0810003', graphic_file: '20107abc' }, ctx: gctx(),
+  });
   assert.deepEqual(gparts(wrap).canvas.getContext('2d').calls.filter((c) => c[0] === 'drawImage'),
     [['drawImage', 'ICONS', 96, 0, 31, 17, 16, 23, 31, 17]]);
   assert.equal(gparts(wrap).status.textContent, 'graphic and sheet must be whole numbers');
 });
 
 test('graphicControl accepts a leading-zero pair, as Sprites and Validation both do', () => {
-  const wrap = Pickers.graphicControl(graphicColumn, fileColumn,
-    { graphic_tile: '0810003', graphic_file: '020107' }, gctx());
+  const wrap = Pickers.graphicControl({
+    graphicColumn: graphicColumn, fileColumn: fileColumn,
+    values: { graphic_tile: '0810003', graphic_file: '020107' }, ctx: gctx(),
+  });
   assert.deepEqual(gparts(wrap).canvas.getContext('2d').calls.filter((c) => c[0] === 'drawImage'),
     [['drawImage', 'ICONS', 96, 0, 31, 17, 16, 23, 31, 17]]);
   assert.equal(gparts(wrap).status.textContent, '');
 });
 
 test('graphicControl reports both cells blank as "no graphic", not as an error', () => {
-  const wrap = Pickers.graphicControl(graphicColumn, fileColumn,
-    { graphic_tile: '', graphic_file: '' }, gctx());
+  const wrap = Pickers.graphicControl({
+    graphicColumn: graphicColumn, fileColumn: fileColumn,
+    values: { graphic_tile: '', graphic_file: '' }, ctx: gctx(),
+  });
   assert.equal(gparts(wrap).status.textContent, 'no graphic');
   assert.equal(gparts(wrap).status.className, 'status');
 
-  const zeros = Pickers.graphicControl(graphicColumn, fileColumn,
-    { graphic_tile: '0', graphic_file: '0' }, gctx());
+  const zeros = Pickers.graphicControl({
+    graphicColumn: graphicColumn, fileColumn: fileColumn,
+    values: { graphic_tile: '0', graphic_file: '0' }, ctx: gctx(),
+  });
   assert.equal(gparts(zeros).status.textContent, 'no graphic');
 });
 
 test('graphicControl reports a non-numeric graphic id rather than silently showing nothing', () => {
   // Prerequisite #13: neither Equipped.format nor isFaithful catches a UI typo, so the field
   // that accepts it has to say so.
-  const wrap = Pickers.graphicControl(graphicColumn, fileColumn,
-    { graphic_tile: '81o003', graphic_file: '20107' }, gctx());
+  const wrap = Pickers.graphicControl({
+    graphicColumn: graphicColumn, fileColumn: fileColumn,
+    values: { graphic_tile: '81o003', graphic_file: '20107' }, ctx: gctx(),
+  });
   assert.equal(gparts(wrap).status.textContent, 'graphic and sheet must be whole numbers');
   assert.equal(gparts(wrap).status.className, 'status bad');
 });
 
 test('graphicControl reports half a pair as incomplete', () => {
-  const wrap = Pickers.graphicControl(graphicColumn, fileColumn,
-    { graphic_tile: '810003', graphic_file: '' }, gctx());
+  const wrap = Pickers.graphicControl({
+    graphicColumn: graphicColumn, fileColumn: fileColumn,
+    values: { graphic_tile: '810003', graphic_file: '' }, ctx: gctx(),
+  });
   assert.equal(gparts(wrap).status.textContent, 'graphic and sheet must both be set');
   assert.equal(gparts(wrap).status.className, 'status bad');
 });
@@ -816,22 +842,28 @@ test('graphicControl reports half a pair as incomplete the other way round too',
   // A BLANK cell is half a pair, not a typo — in either position. Testing only one of the two
   // lets `(g !== '' && !isWhole(g))` decay to `!isWhole(g)`, which calls a blank graphic a
   // malformed number.
-  const wrap = Pickers.graphicControl(graphicColumn, fileColumn,
-    { graphic_tile: '', graphic_file: '20107' }, gctx());
+  const wrap = Pickers.graphicControl({
+    graphicColumn: graphicColumn, fileColumn: fileColumn,
+    values: { graphic_tile: '', graphic_file: '20107' }, ctx: gctx(),
+  });
   assert.equal(gparts(wrap).status.textContent, 'graphic and sheet must both be set');
   assert.equal(gparts(wrap).status.className, 'status bad');
 });
 
 test('graphicControl reports a pair with no art in the bundle', () => {
-  const wrap = Pickers.graphicControl(graphicColumn, fileColumn,
-    { graphic_tile: '9', graphic_file: '8' }, gctx());
+  const wrap = Pickers.graphicControl({
+    graphicColumn: graphicColumn, fileColumn: fileColumn,
+    values: { graphic_tile: '9', graphic_file: '8' }, ctx: gctx(),
+  });
   assert.equal(gparts(wrap).status.textContent, 'no art for sheet 8 graphic 9');
   assert.equal(gparts(wrap).status.className, 'status bad');
 });
 
 test('graphicControl clears the status once the pair resolves', () => {
-  const wrap = Pickers.graphicControl(graphicColumn, fileColumn,
-    { graphic_tile: '810003', graphic_file: '20107' }, gctx());
+  const wrap = Pickers.graphicControl({
+    graphicColumn: graphicColumn, fileColumn: fileColumn,
+    values: { graphic_tile: '810003', graphic_file: '20107' }, ctx: gctx(),
+  });
   assert.equal(gparts(wrap).status.textContent, '');
   assert.equal(gparts(wrap).status.className, 'status');
 });
@@ -839,8 +871,10 @@ test('graphicControl clears the status once the pair resolves', () => {
 test('graphicControl redraws when the bundle image finishes decoding', () => {
   const ctx = gctx();
   ctx.images = {};
-  const wrap = Pickers.graphicControl(graphicColumn, fileColumn,
-    { graphic_tile: '810003', graphic_file: '20107' }, ctx);
+  const wrap = Pickers.graphicControl({
+    graphicColumn: graphicColumn, fileColumn: fileColumn,
+    values: { graphic_tile: '810003', graphic_file: '20107' }, ctx: ctx,
+  });
   const ctx2d = gparts(wrap).canvas.getContext('2d');
 
   assert.deepEqual(ctx2d.calls.filter((c) => c[0] === 'drawImage'), [],
@@ -854,8 +888,10 @@ test('graphicControl redraws when the bundle image finishes decoding', () => {
 });
 
 test('graphicControl survives a ctx with no bundles, images or ready hook', () => {
-  const wrap = Pickers.graphicControl(graphicColumn, fileColumn,
-    { graphic_tile: '810003', graphic_file: '20107' }, {});
+  const wrap = Pickers.graphicControl({
+    graphicColumn: graphicColumn, fileColumn: fileColumn,
+    values: { graphic_tile: '810003', graphic_file: '20107' }, ctx: {},
+  });
   // "cannot check", not "no art": with no bundle there is nothing to have checked against, and
   // the save gate must not read a missing include as 800 broken records.
   assert.equal(gparts(wrap).status.textContent,
@@ -866,14 +902,18 @@ test('graphicControl survives a ctx with no bundles, images or ready hook', () =
 // --- what the save gate reads (review #2) ----------------------------------------------------
 
 test('an unresolvable pair is published for the save gate, named by its column', () => {
-  const wrap = Pickers.graphicControl(graphicColumn, fileColumn,
-    { graphic_tile: '9', graphic_file: '8' }, gctx());
+  const wrap = Pickers.graphicControl({
+    graphicColumn: graphicColumn, fileColumn: fileColumn,
+    values: { graphic_tile: '9', graphic_file: '8' }, ctx: gctx(),
+  });
   assert.equal(wrap.__graphicError, 'graphic_tile: no art for sheet 8 graphic 9');
 });
 
 test('the gate flag is raised and cleared as the cells are edited', () => {
-  const wrap = Pickers.graphicControl(graphicColumn, fileColumn,
-    { graphic_tile: '810003', graphic_file: '20107' }, gctx());
+  const wrap = Pickers.graphicControl({
+    graphicColumn: graphicColumn, fileColumn: fileColumn,
+    values: { graphic_tile: '810003', graphic_file: '20107' }, ctx: gctx(),
+  });
   assert.equal(wrap.__graphicError, null);
 
   const { graphic } = gparts(wrap);
@@ -887,29 +927,39 @@ test('the gate flag is raised and cleared as the cells are edited', () => {
 });
 
 test('a blank or zero pair publishes nothing to gate on', () => {
-  const blank = Pickers.graphicControl(graphicColumn, fileColumn, {}, gctx());
-  const zeros = Pickers.graphicControl(graphicColumn, fileColumn,
-    { graphic_tile: '0', graphic_file: '0' }, gctx());
+  const blank = Pickers.graphicControl({
+    graphicColumn: graphicColumn, fileColumn: fileColumn, values: {}, ctx: gctx(),
+  });
+  const zeros = Pickers.graphicControl({
+    graphicColumn: graphicColumn, fileColumn: fileColumn,
+    values: { graphic_tile: '0', graphic_file: '0' }, ctx: gctx(),
+  });
   assert.equal(blank.__graphicError, null);
   assert.equal(zeros.__graphicError, null);
 });
 
 test('half a pair is SHOWN but not gated on — 176 shipped Spell Effects rows are half pairs', () => {
-  const wrap = Pickers.graphicControl(graphicColumn, fileColumn,
-    { graphic_tile: '815015', graphic_file: '0' }, gctx());
+  const wrap = Pickers.graphicControl({
+    graphicColumn: graphicColumn, fileColumn: fileColumn,
+    values: { graphic_tile: '815015', graphic_file: '0' }, ctx: gctx(),
+  });
   assert.equal(gparts(wrap).status.className, 'status bad');
   assert.equal(wrap.__graphicError, null);
 });
 
 test('a non-numeric cell is not gated on either — Validation reports it under the field', () => {
-  const wrap = Pickers.graphicControl(graphicColumn, fileColumn,
-    { graphic_tile: 'abc', graphic_file: '20107' }, gctx());
+  const wrap = Pickers.graphicControl({
+    graphicColumn: graphicColumn, fileColumn: fileColumn,
+    values: { graphic_tile: 'abc', graphic_file: '20107' }, ctx: gctx(),
+  });
   assert.equal(gparts(wrap).status.className, 'status bad');
   assert.equal(wrap.__graphicError, null);
 });
 
 test('graphicControl shows each column default as its placeholder', () => {
-  const wrap = Pickers.graphicControl(graphicColumn, fileColumn, {}, gctx());
+  const wrap = Pickers.graphicControl({
+    graphicColumn: graphicColumn, fileColumn: fileColumn, values: {}, ctx: gctx(),
+  });
   assert.equal(gparts(wrap).graphic.getAttribute('placeholder'), 'default 0');
   assert.equal(gparts(wrap).file.getAttribute('placeholder'), 'default 0');
 });
@@ -917,13 +967,17 @@ test('graphicControl shows each column default as its placeholder', () => {
 test('a column with no default still gets a useful placeholder', () => {
   const bare = { name: 'graphic_tile', kind: 'Id', sql: 'INTEGER', required: false };
   const bareFile = { name: 'graphic_file', kind: 'Id', sql: 'INTEGER', required: false };
-  const wrap = Pickers.graphicControl(bare, bareFile, {}, gctx());
+  const wrap = Pickers.graphicControl({
+    graphicColumn: bare, fileColumn: bareFile, values: {}, ctx: gctx(),
+  });
   assert.equal(gparts(wrap).graphic.getAttribute('placeholder'), 'graphic');
   assert.equal(gparts(wrap).file.getAttribute('placeholder'), 'sheet');
 });
 
 test('the graphic cells carry the same id and attributes as every other control', () => {
-  const wrap = Pickers.graphicControl(graphicColumn, fileColumn, {}, gctx());
+  const wrap = Pickers.graphicControl({
+    graphicColumn: graphicColumn, fileColumn: fileColumn, values: {}, ctx: gctx(),
+  });
   const { graphic, file } = gparts(wrap);
 
   assert.equal(graphic.getAttribute('id'), 'f-graphic_tile');
@@ -935,8 +989,10 @@ test('the graphic cells carry the same id and attributes as every other control'
 test('a padded cell is not mistaken for a typo', () => {
   // Sheets hands back whatever was typed. Sprites.icon's parseInt tolerates the padding, so
   // the status line has to as well or it contradicts the preview sitting next to it.
-  const wrap = Pickers.graphicControl(graphicColumn, fileColumn,
-    { graphic_tile: ' 810003 ', graphic_file: ' 20107 ' }, gctx());
+  const wrap = Pickers.graphicControl({
+    graphicColumn: graphicColumn, fileColumn: fileColumn,
+    values: { graphic_tile: ' 810003 ', graphic_file: ' 20107 ' }, ctx: gctx(),
+  });
   assert.equal(gparts(wrap).status.textContent, '');
   assert.deepEqual(gparts(wrap).canvas.getContext('2d').calls.filter((c) => c[0] === 'drawImage'),
     [['drawImage', 'ICONS', 96, 0, 31, 17, 16, 23, 31, 17]]);
@@ -945,7 +1001,9 @@ test('a padded cell is not mistaken for a typo', () => {
 test('the icon preview canvas is a 64 logical box drawn at 2x', () => {
   // 128 CSS pixels of canvas for a 64-pixel box. 64 rather than 48 because the bundle holds
   // sprites up to 128x128 and 48 clipped them; bigger still clips, which is a bundle fact.
-  const wrap = Pickers.graphicControl(graphicColumn, fileColumn, {}, gctx());
+  const wrap = Pickers.graphicControl({
+    graphicColumn: graphicColumn, fileColumn: fileColumn, values: {}, ctx: gctx(),
+  });
   const canvas = gparts(wrap).canvas;
   assert.equal(canvas.width, 128);
   assert.equal(canvas.height, 128);
@@ -978,9 +1036,11 @@ const plainDraws = (canvas) => canvas.getContext('2d').calls
 test('an untinted graphic control ignores the tint cells entirely', () => {
   // Spells' spellbook_graphic has no tint columns, so Layout.tintColumns answers null and the
   // control is handed null. A stray graphic_r in the values map must not tint it.
-  const wrap = Pickers.graphicControl(graphicColumn, fileColumn,
-    { graphic_tile: '810003', graphic_file: '20107', graphic_r: 255, graphic_a: 255 },
-    tctx(), null);
+  const wrap = Pickers.graphicControl({
+    graphicColumn: graphicColumn, fileColumn: fileColumn,
+    values: { graphic_tile: '810003', graphic_file: '20107', graphic_r: 255, graphic_a: 255 },
+    ctx: tctx(), tintColumns: null,
+  });
   assert.equal(tintedDraws(gparts(wrap).canvas).length, 0);
   assert.equal(plainDraws(gparts(wrap).canvas).length, 1);
 });
@@ -988,27 +1048,33 @@ test('an untinted graphic control ignores the tint cells entirely', () => {
 test('a graphic with no tint columns does not subscribe to form changes at all', () => {
   // Otherwise every keystroke in item_description would run a redraw that cannot change anything.
   const c = tctx();
-  Pickers.graphicControl(graphicColumn, fileColumn,
-    { graphic_tile: '810003', graphic_file: '20107' }, c, null);
+  Pickers.graphicControl({
+    graphicColumn: graphicColumn, fileColumn: fileColumn,
+    values: { graphic_tile: '810003', graphic_file: '20107' }, ctx: c, tintColumns: null,
+  });
   assert.equal(c.__changed.length, 0);
 });
 
 test('the stored tint is applied on the FIRST draw, not only after an edit', () => {
   // A preview that picked the tint up only from onFormChange would show every freshly opened
   // record plain, and the tint would appear on the first unrelated keystroke.
-  const wrap = Pickers.graphicControl(graphicColumn, fileColumn,
-    { graphic_tile: '810003', graphic_file: '20107',
-      graphic_r: 255, graphic_g: 0, graphic_b: 0, graphic_a: 255 },
-    tctx(), TINT_COLUMNS);
+  const wrap = Pickers.graphicControl({
+    graphicColumn: graphicColumn, fileColumn: fileColumn,
+    values: { graphic_tile: '810003', graphic_file: '20107',
+              graphic_r: 255, graphic_g: 0, graphic_b: 0, graphic_a: 255 },
+    ctx: tctx(), tintColumns: TINT_COLUMNS,
+  });
   assert.equal(tintedDraws(gparts(wrap).canvas).length, 1);
 });
 
 test('a zero blend is drawn plain, colour and all', () => {
   // Icon.cs:23 mixes BY the alpha, so a parked colour behind a zero blend never renders.
-  const wrap = Pickers.graphicControl(graphicColumn, fileColumn,
-    { graphic_tile: '810003', graphic_file: '20107',
-      graphic_r: 255, graphic_g: 0, graphic_b: 0, graphic_a: 0 },
-    tctx(), TINT_COLUMNS);
+  const wrap = Pickers.graphicControl({
+    graphicColumn: graphicColumn, fileColumn: fileColumn,
+    values: { graphic_tile: '810003', graphic_file: '20107',
+              graphic_r: 255, graphic_g: 0, graphic_b: 0, graphic_a: 0 },
+    ctx: tctx(), tintColumns: TINT_COLUMNS,
+  });
   assert.equal(tintedDraws(gparts(wrap).canvas).length, 0);
   assert.equal(plainDraws(gparts(wrap).canvas).length, 1);
 });
@@ -1017,8 +1083,10 @@ test('a tint edit in another control redraws the tile with the new tint', () => 
   // THE BUG THIS FIXES: graphic_r/g/b/a live in the Rgba composite's hidden inputs, so this
   // control cannot see them and the tile visibly ignored every tint edit.
   const c = tctx();
-  const wrap = Pickers.graphicControl(graphicColumn, fileColumn,
-    { graphic_tile: '810003', graphic_file: '20107' }, c, TINT_COLUMNS);
+  const wrap = Pickers.graphicControl({
+    graphicColumn: graphicColumn, fileColumn: fileColumn,
+    values: { graphic_tile: '810003', graphic_file: '20107' }, ctx: c, tintColumns: TINT_COLUMNS,
+  });
   const canvas = gparts(wrap).canvas;
 
   assert.equal(tintedDraws(canvas).length, 0, 'no tint stored, so the first draw is plain');
@@ -1035,9 +1103,11 @@ test('a tint edit in another control redraws the tile with the new tint', () => 
 
 test('a tint edit that clears the blend goes back to a plain draw', () => {
   const c = tctx();
-  const wrap = Pickers.graphicControl(graphicColumn, fileColumn,
-    { graphic_tile: '810003', graphic_file: '20107', graphic_r: 255, graphic_a: 255 },
-    c, TINT_COLUMNS);
+  const wrap = Pickers.graphicControl({
+    graphicColumn: graphicColumn, fileColumn: fileColumn,
+    values: { graphic_tile: '810003', graphic_file: '20107', graphic_r: 255, graphic_a: 255 },
+    ctx: c, tintColumns: TINT_COLUMNS,
+  });
   const canvas = gparts(wrap).canvas;
   assert.equal(tintedDraws(canvas).length, 1);
 
@@ -1050,7 +1120,10 @@ test('editing the graphic cell keeps the tint that arrived through onFormChange'
   // The two redraw paths share one `latest`; if the input handler read the build-time values map
   // instead, typing a new id would silently drop the tint.
   const c = tctx();
-  const wrap = Pickers.graphicControl(graphicColumn, fileColumn, {}, c, TINT_COLUMNS);
+  const wrap = Pickers.graphicControl({
+    graphicColumn: graphicColumn, fileColumn: fileColumn, values: {}, ctx: c,
+    tintColumns: TINT_COLUMNS,
+  });
   const { canvas, graphic, file } = gparts(wrap);
 
   c.emit({ graphic_r: 255, graphic_g: 0, graphic_b: 0, graphic_a: 255 });
@@ -1110,8 +1183,10 @@ function drawnFrom(wrap) {
 }
 
 test('partControl renders the cell named for Forms.collect, and nothing else named', () => {
-  const wrap = Pickers.partControl(equipColumn, { graphic_equip: '5', item_slot: 'Helmet' },
-    pctx(), SPEC, null);
+  const wrap = Pickers.partControl({
+    column: equipColumn, values: { graphic_equip: '5', item_slot: 'Helmet' }, ctx: pctx(),
+    spec: SPEC, tintColumns: null,
+  });
   assert.equal(pparts(wrap).input.value, '5');
   assert.equal(pparts(wrap).input.getAttribute('id'), 'f-graphic_equip');
   assert.equal(wrap.querySelectorAll('[name]').length, 1);
@@ -1120,13 +1195,17 @@ test('partControl renders the cell named for Forms.collect, and nothing else nam
 test('partControl keeps a stored 0 rather than blanking it', () => {
   // Blank means "use the SQL default"; 0 means "no equip graphic". Writing one for the other
   // would silently change the row.
-  const wrap = Pickers.partControl(equipColumn, { graphic_equip: 0, item_slot: 'Helmet' },
-    pctx(), SPEC, null);
+  const wrap = Pickers.partControl({
+    column: equipColumn, values: { graphic_equip: 0, item_slot: 'Helmet' }, ctx: pctx(),
+    spec: SPEC, tintColumns: null,
+  });
   assert.equal(pparts(wrap).input.value, '0');
 });
 
 test('the worn preview canvas is a 40x56 logical box drawn at 2x', () => {
-  const wrap = Pickers.partControl(equipColumn, {}, pctx(), SPEC, null);
+  const wrap = Pickers.partControl({
+    column: equipColumn, values: {}, ctx: pctx(), spec: SPEC, tintColumns: null,
+  });
   const canvas = pparts(wrap).canvas;
   assert.equal(canvas.width, 80);
   assert.equal(canvas.height, 112);
@@ -1136,8 +1215,10 @@ test('the worn preview canvas is a 40x56 logical box drawn at 2x', () => {
 test('each of the seven drawn item slots resolves to its own sprite folder', () => {
   // Asserted through the DRAWN RECT, not through a returned category: the rect is what a designer
   // sees, and each folder here carries a different source x so a wrong folder cannot pass.
-  const from = (slot) => drawnFrom(Pickers.partControl(equipColumn,
-    { graphic_equip: '5', item_slot: slot }, pctx(), SPEC, null));
+  const from = (slot) => drawnFrom(Pickers.partControl({
+    column: equipColumn, values: { graphic_equip: '5', item_slot: slot }, ctx: pctx(), spec: SPEC,
+    tintColumns: null,
+  }));
 
   assert.equal(from('Helmet'), 10, 'Helms');
   assert.equal(from('Chest'), 20, 'Chest');
@@ -1154,8 +1235,10 @@ test('each of the seven drawn item slots resolves to its own sprite folder', () 
 test('all seven drawn slots report no problem', () => {
   ['Helmet', 'Chest', 'Pants', 'Shoes', 'Shield', 'OneHanded', 'TwoHanded', 'Mount']
     .forEach((slot) => {
-      const wrap = Pickers.partControl(equipColumn, { graphic_equip: '5', item_slot: slot },
-        pctx(), SPEC, null);
+      const wrap = Pickers.partControl({
+        column: equipColumn, values: { graphic_equip: '5', item_slot: slot }, ctx: pctx(),
+        spec: SPEC, tintColumns: null,
+      });
       assert.equal(pparts(wrap).status.textContent, '', slot);
       assert.equal(pparts(wrap).status.className, 'status', slot);
     });
@@ -1165,8 +1248,10 @@ test('the seven undrawn slots say so, and are not called an error', () => {
   // A ring with a graphic id is not a broken row — the client simply has no layer for it. Calling
   // it bad would flag most of the Ring and Misc rows in the sheet.
   ['Ring', 'Necklace', 'Pauldrons', 'Cloak', 'Belt', 'Gloves', 'Misc'].forEach((slot) => {
-    const wrap = Pickers.partControl(equipColumn, { graphic_equip: '5', item_slot: slot },
-      pctx(), SPEC, null);
+    const wrap = Pickers.partControl({
+      column: equipColumn, values: { graphic_equip: '5', item_slot: slot }, ctx: pctx(),
+      spec: SPEC, tintColumns: null,
+    });
     assert.equal(pparts(wrap).status.textContent, 'this slot is not drawn on the character', slot);
     assert.equal(pparts(wrap).status.className, 'status', slot);
     assert.equal(drawnFrom(wrap), null, slot + ' must draw nothing');
@@ -1175,8 +1260,10 @@ test('the seven undrawn slots say so, and are not called an error', () => {
 
 test('an empty or unrecognised item_slot is "not drawn" rather than a guessed folder', () => {
   [undefined, '', 'Nonsense', 0, 'helmet'].forEach((slot) => {
-    const wrap = Pickers.partControl(equipColumn, { graphic_equip: '5', item_slot: slot },
-      pctx(), SPEC, null);
+    const wrap = Pickers.partControl({
+      column: equipColumn, values: { graphic_equip: '5', item_slot: slot }, ctx: pctx(),
+      spec: SPEC, tintColumns: null,
+    });
     assert.equal(pparts(wrap).status.textContent, 'this slot is not drawn on the character',
       String(slot));
     assert.equal(drawnFrom(wrap), null);
@@ -1186,15 +1273,19 @@ test('an empty or unrecognised item_slot is "not drawn" rather than a guessed fo
 test('the undrawn-slot message wins over a blank graphic', () => {
   // It is a fact about the ROW, not about this cell: "no graphic" would invite the designer to
   // type an id that could never be drawn.
-  const wrap = Pickers.partControl(equipColumn, { graphic_equip: '', item_slot: 'Ring' },
-    pctx(), SPEC, null);
+  const wrap = Pickers.partControl({
+    column: equipColumn, values: { graphic_equip: '', item_slot: 'Ring' }, ctx: pctx(),
+    spec: SPEC, tintColumns: null,
+  });
   assert.equal(pparts(wrap).status.textContent, 'this slot is not drawn on the character');
 });
 
 test('a blank or zero graphic in a drawn slot is "no graphic", not an error', () => {
   ['', '0', ' '].forEach((value) => {
-    const wrap = Pickers.partControl(equipColumn, { graphic_equip: value, item_slot: 'Helmet' },
-      pctx(), SPEC, null);
+    const wrap = Pickers.partControl({
+      column: equipColumn, values: { graphic_equip: value, item_slot: 'Helmet' }, ctx: pctx(),
+      spec: SPEC, tintColumns: null,
+    });
     assert.equal(pparts(wrap).status.textContent, 'no graphic', JSON.stringify(value));
     assert.equal(pparts(wrap).status.className, 'status');
     assert.equal(drawnFrom(wrap), null);
@@ -1202,8 +1293,10 @@ test('a blank or zero graphic in a drawn slot is "no graphic", not an error', ()
 });
 
 test('a non-whole graphic is reported, and names the column\'s own rule', () => {
-  const wrap = Pickers.partControl(equipColumn, { graphic_equip: '1o', item_slot: 'Helmet' },
-    pctx(), SPEC, null);
+  const wrap = Pickers.partControl({
+    column: equipColumn, values: { graphic_equip: '1o', item_slot: 'Helmet' }, ctx: pctx(),
+    spec: SPEC, tintColumns: null,
+  });
   assert.equal(pparts(wrap).status.textContent, 'graphic must be a whole number');
   assert.equal(pparts(wrap).status.className, 'status bad');
 });
@@ -1211,15 +1304,19 @@ test('a non-whole graphic is reported, and names the column\'s own rule', () => 
 test('a graphic with no art names the folder it looked in', () => {
   // The folder is the half of the lookup the designer cannot see in the form, so a bare "no art"
   // would leave them unable to tell a missing sprite from a wrong item_slot.
-  const wrap = Pickers.partControl(equipColumn, { graphic_equip: '999', item_slot: 'Helmet' },
-    pctx(), SPEC, null);
+  const wrap = Pickers.partControl({
+    column: equipColumn, values: { graphic_equip: '999', item_slot: 'Helmet' }, ctx: pctx(),
+    spec: SPEC, tintColumns: null,
+  });
   assert.equal(pparts(wrap).status.textContent, 'no art for Helms graphic 999');
   assert.equal(pparts(wrap).status.className, 'status bad');
 });
 
 test('a missing parts bundle is reported as unknown, not as missing art', () => {
-  const wrap = Pickers.partControl(equipColumn, { graphic_equip: '5', item_slot: 'Helmet' },
-    pctx({ bundles: {} }), SPEC, null);
+  const wrap = Pickers.partControl({
+    column: equipColumn, values: { graphic_equip: '5', item_slot: 'Helmet' },
+    ctx: pctx({ bundles: {} }), spec: SPEC, tintColumns: null,
+  });
   assert.equal(pparts(wrap).status.textContent,
     'cannot check Helms graphic 5 — no character art loaded');
 });
@@ -1227,14 +1324,18 @@ test('a missing parts bundle is reported as unknown, not as missing art', () => 
 test('partControl publishes no save gate — that rule is graphicControl\'s alone', () => {
   // A missing equip sprite is reported, not refused: no design rule has been established for
   // graphic_equip, and inventing one could lock rows that ship today.
-  const wrap = Pickers.partControl(equipColumn, { graphic_equip: '999', item_slot: 'Helmet' },
-    pctx(), SPEC, null);
+  const wrap = Pickers.partControl({
+    column: equipColumn, values: { graphic_equip: '999', item_slot: 'Helmet' }, ctx: pctx(),
+    spec: SPEC, tintColumns: null,
+  });
   assert.equal(wrap.__graphicError, undefined);
 });
 
 test('editing the id redraws from the same folder', () => {
-  const wrap = Pickers.partControl(equipColumn, { graphic_equip: '999', item_slot: 'Helmet' },
-    pctx(), SPEC, null);
+  const wrap = Pickers.partControl({
+    column: equipColumn, values: { graphic_equip: '999', item_slot: 'Helmet' }, ctx: pctx(),
+    spec: SPEC, tintColumns: null,
+  });
   const { input, status } = pparts(wrap);
   assert.equal(status.textContent, 'no art for Helms graphic 999');
 
@@ -1248,8 +1349,10 @@ test('changing item_slot moves the preview into the new folder, live', () => {
   // THE OTHER HALF OF THE COMPLAINT: item_slot is a <select> in another field, so without
   // onFormChange the preview keeps showing a helmet after the item became a pair of boots.
   const c = pctx();
-  const wrap = Pickers.partControl(equipColumn, { graphic_equip: '5', item_slot: 'Helmet' },
-    c, SPEC, null);
+  const wrap = Pickers.partControl({
+    column: equipColumn, values: { graphic_equip: '5', item_slot: 'Helmet' }, ctx: c, spec: SPEC,
+    tintColumns: null,
+  });
   assert.equal(drawnFrom(wrap), 10, 'Helms');
 
   c.emit({ graphic_equip: '5', item_slot: 'Shoes' });
@@ -1261,7 +1364,7 @@ test('changing item_slot moves the preview into the new folder, live', () => {
 
 test('partControl subscribes even when untinted — the folder alone is cross-field', () => {
   const c = pctx();
-  Pickers.partControl(equipColumn, {}, c, SPEC, null);
+  Pickers.partControl({ column: equipColumn, values: {}, ctx: c, spec: SPEC, tintColumns: null });
   assert.equal(c.__changed.length, 1);
 });
 
@@ -1271,8 +1374,10 @@ test('body_state picks the clip, live, by the same rule as an equip slot', () =>
   const rects = { 'Hands:5:idle-equip-down': [70, 0, 8, 8],
                   'Hands:5:idle-no-equip-down': [80, 0, 8, 8] };
   const c = pctx({ bundles: { parts: { rects } } });
-  const wrap = Pickers.partControl(equipColumn,
-    { graphic_equip: '5', item_slot: 'OneHanded', body_state: 1 }, c, SPEC, null);
+  const wrap = Pickers.partControl({
+    column: equipColumn, values: { graphic_equip: '5', item_slot: 'OneHanded', body_state: 1 },
+    ctx: c, spec: SPEC, tintColumns: null,
+  });
   assert.equal(drawnFrom(wrap), 70, 'body_state 1 is armed');
 
   c.emit({ graphic_equip: '5', item_slot: 'OneHanded', body_state: 3 });
@@ -1281,10 +1386,12 @@ test('body_state picks the clip, live, by the same rule as an equip slot', () =>
 
 test('the worn preview is tinted by the same four columns as the tile', () => {
   const c = pctx();
-  const wrap = Pickers.partControl(equipColumn,
-    { graphic_equip: '5', item_slot: 'Helmet',
-      graphic_r: 255, graphic_g: 0, graphic_b: 0, graphic_a: 255 },
-    c, SPEC, TINT_COLUMNS);
+  const wrap = Pickers.partControl({
+    column: equipColumn,
+    values: { graphic_equip: '5', item_slot: 'Helmet',
+              graphic_r: 255, graphic_g: 0, graphic_b: 0, graphic_a: 255 },
+    ctx: c, spec: SPEC, tintColumns: TINT_COLUMNS,
+  });
   assert.equal(tintedDraws(pparts(wrap).canvas).length, 1);
 
   c.emit({ graphic_equip: '5', item_slot: 'Helmet', graphic_a: 0 });
@@ -1294,8 +1401,10 @@ test('the worn preview is tinted by the same four columns as the tile', () => {
 
 test('partControl survives a ctx with no bundles, images or hooks', () => {
   // Same contract as graphicControl's: a missing bundle leaves the form usable without art.
-  const wrap = Pickers.partControl(equipColumn, { graphic_equip: '5', item_slot: 'Helmet' },
-    {}, SPEC, TINT_COLUMNS);
+  const wrap = Pickers.partControl({
+    column: equipColumn, values: { graphic_equip: '5', item_slot: 'Helmet' }, ctx: {}, spec: SPEC,
+    tintColumns: TINT_COLUMNS,
+  });
   assert.equal(pparts(wrap).status.textContent,
     'cannot check Helms graphic 5 — no character art loaded');
 });
@@ -1305,8 +1414,10 @@ test('partControl redraws when the parts bundle finishes decoding', () => {
   // the preview stays blank until the record is reopened.
   const ready = [];
   const images = {};
-  const wrap = Pickers.partControl(equipColumn, { graphic_equip: '5', item_slot: 'Helmet' },
-    pctx({ images, onImagesReady(fn) { ready.push(fn); } }), SPEC, null);
+  const wrap = Pickers.partControl({
+    column: equipColumn, values: { graphic_equip: '5', item_slot: 'Helmet' },
+    ctx: pctx({ images, onImagesReady(fn) { ready.push(fn); } }), spec: SPEC, tintColumns: null,
+  });
   // Sprites.draw is a no-op with no image, so nothing has landed on the canvas yet.
   assert.equal(drawnFrom(wrap), null);
   assert.equal(ready.length, 1);

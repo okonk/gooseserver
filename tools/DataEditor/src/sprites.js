@@ -70,12 +70,15 @@ var Sprites = (function () {
   // The mounted resting pose for a body id. Mounts are just bodies (Appearance.CATEGORY maps
   // Mount -> Bodies), and only four of the 305 body ids ship a mounted-idle-down clip.
   //
-  // ITS CALLER IS Preview.wornItem, and only that. Appearance.layers still never emits a Mount
-  // layer — appearance.js's closing note explains why — so the CHARACTER preview cannot reach this.
-  // What can is an Items row whose item_slot is Mount: that is a real, editable row, and
-  // Inventory.cs:602-655 renders it from a mounted clip, so wornItem builds the layer itself.
-  // (It went several tasks with no caller at all, kept because the mount is a real fact about the
-  // client's atlas. This is the column that finally needed it.)
+  // WHAT REACHES IT is an Items row whose item_slot is Mount, from either of the two places that
+  // row is drawn: Preview.wornItem, for the preview panel, and Pickers.partControl, for the small
+  // preview beside graphic_equip. Both branch on the slot themselves rather than passing a flag.
+  //
+  // Appearance.layers still never emits a Mount layer — appearance.js's closing note explains why —
+  // so the CHARACTER preview cannot reach this at all. The mount is instead a real, editable Items
+  // row that Inventory.cs:602-655 renders from a mounted clip, which is what the two callers above
+  // are reproducing. (This function went several tasks with no caller whatever, kept because the
+  // mount is a fact about the client's atlas; graphic_equip is the column that needed it.)
   //
   // Never falls back to a standing clip: substituting idle-down would draw a body on foot in
   // the place the mount belongs.

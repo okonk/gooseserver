@@ -53,9 +53,9 @@ function rowFor(sheet, values) {
   return schemaOf(sheet).columns.map((c) => (values[c.name] === undefined ? '' : String(values[c.name])));
 }
 
-const ITEM = (id, name) => rowFor('Items', {
+const ITEM = (id, name, extra) => rowFor('Items', Object.assign({
   item_template_id: id, item_usetype: 'NoUse', item_name: name, graphic_tile: 1,
-});
+}, extra || {}));
 const NPC = (id, name, extra) => rowFor('NPCs', Object.assign({
   npc_id: id, npc_name: name, npc_type: 'Monster', body_id: 1, body_state: 1,
   equipped_items: '0,*,0,*,0,*,0,*,0,*,0,*',
@@ -271,26 +271,50 @@ test('bundlesFor loads parts only for the sheets that draw a character', () => {
   assert.deepEqual(App.bundlesFor(schemaOf('NPC Drops')), ['icons']);
 });
 
-test('the form is rendered only once every bundle it needs has decoded', () => {
-  // The plan's nested loadBundle('icons' | 'parts') idiom re-requested icons as a no-op and
-  // depended on a shared callback queue that the FIRST bundle emptied. Rendering after the
-  // sequence completes is what makes the ordering assertable at all.
-  const h = boot({ NPCs: [NPC(1, 'Rat')] }, { hold: true });
-  h.settle();
+test('the form renders as soon as icons has decoded, without waiting on the parts bundle', () => {
+  // THE COST OF THE OTHER ORDER. Waiting on every bundle put a second multi-megabyte PNG decode
+  // (parts, 1.98MB, on top of icons' 1.75MB) in front of the FIRST FIELD of the first Items record
+  // of a session — the most-used sheet, and normally the first one opened. The art is not the
+  // urgent half: the fields are, and every control that needs a sprite subscribes to
+  // onImagesReady, so parts landing afterwards fills its canvas in place.
+  const h = boot({ Items: [ITEM(1, 'Gold', { graphic_equip: 5, item_slot: 'Helmet' })] });
 
-  h.get('sheet-picker').value = 'NPCs';
-  fire(h.get('sheet-picker'), 'change');
-  h.settle();
   fire(h.get('records').children[0], 'click');
-
-  // The record was clicked; parts is still decoding, so nothing has been rendered yet.
+  // The server reply only: the record's values are in hand, and icons decoded during init.
   h.run.flush();
-  assert.ok(!App.__state.images.parts, 'parts still decoding');
-  assert.equal(h.get('form').children.length, 0, 'the form waits for it');
 
+  assert.ok(!App.__state.images.parts, 'the parts bundle is still decoding');
+  assert.ok(h.get('form').children.length > 0, 'and the form is already on screen');
+  // walk(), not a class selector: the fake DOM parses attribute selectors only.
+  const status = () => walk(h.get('form').querySelector('[name="graphic_equip"]').parentNode)
+    .filter((n) => /^status/.test(n.getAttribute('class') || ''))[0].textContent;
+  assert.match(status(), /no character art loaded/,
+               'the one canvas that needs parts says so rather than the form being absent');
+
+  const before = h.get('form').children.length;
   h.settle();
   assert.ok(App.__state.images.parts, 'parts decoded');
-  assert.ok(h.get('form').children.length > 0, 'and then the form appears');
+  assert.equal(h.get('form').children.length, before, 'the same form, not a second render');
+  assert.ok(!/no character art loaded/.test(status()),
+            'and the late bundle reached the control through imagesChanged');
+});
+
+test('a late parts bundle reaches the preview panel too, not only the form controls', () => {
+  // The panel canvases cannot subscribe to onImagesReady — renderPreviews runs on every keystroke,
+  // so a registration inside it would stack one callback per edit — so renderForm pushes the late
+  // bundle to them instead. Without that the worn preview stays blank until the next keystroke.
+  const h = boot({ Items: [ITEM(1, 'Gold', { graphic_equip: 1, item_slot: 'Chest' })] });
+
+  fire(h.get('records').children[0], 'click');
+  h.run.flush();
+  const wornCanvas = () => walk(h.doc.getElementById('previews'))
+    .filter((n) => n.getAttribute('class') === 'worn')[0];
+  const draws = () => wornCanvas().getContext('2d').calls
+    .filter((c) => c[0] === 'drawImage').length;
+  assert.equal(draws(), 0, 'nothing to draw with yet');
+
+  h.settle();
+  assert.ok(draws() > 0, 'the base body was drawn once parts landed');
 });
 
 test('image callbacks do not accumulate as records are opened', () => {
@@ -1350,24 +1374,25 @@ test('a bundle decodes ONCE however many records are opened while it is in fligh
   assert.equal(h.img.pending.length, 1, 'the second record waits on the SAME decode');
 });
 
-test('a stale bundle decode cannot render the previous record into this record\'s slot', () => {
-  // Both renders are waiting on one decode. The one that lands must be the record the user is
-  // actually on — otherwise the form shows Rat while rowNumber and state.loaded are Bat\'s, and
-  // Save writes what is on screen into the row that is not.
+test('a stale bundle decode cannot repaint the previous record into this record\'s panel', () => {
+  // Both records are opened while the parts bundle is still decoding, so BOTH leave a queued
+  // post-decode continuation behind. Only the current record's may run: the superseded one would
+  // repaint the preview panel from a form it no longer owns, and any measurement taken in between
+  // would see a record the user never asked for.
   const h = boot({ NPCs: [NPC(1, 'Rat'), NPC(2, 'Bat')] }, { hold: true });
   h.settle();
   h.get('sheet-picker').value = 'NPCs';
   fire(h.get('sheet-picker'), 'change');
   h.settle();
 
-  fire(h.get('records').children[0], 'click');   // Rat, waits on parts
+  fire(h.get('records').children[0], 'click');   // Rat
   h.run.flush();
-  fire(h.get('records').children[1], 'click');   // Bat, waits on the same decode
+  fire(h.get('records').children[1], 'click');   // Bat, before parts decoded
   h.run.flush();
+  assert.equal(h.get('form').querySelector('[name="npc_name"]').value, 'Bat');
 
-  // Both renders are queued behind the one decode. Only the current one may run — rendering
-  // both would put Rat on screen first, and any listener or measurement taken in between would
-  // see a form that belongs to no record the user asked for.
+  // Both forms rendered as they were opened — that is the point of not waiting on parts. What must
+  // not happen is Rat's continuation rendering a THIRD time, over Bat.
   const realRender = Forms.render;
   let renders = 0;
   Forms.render = function () { renders += 1; return realRender.apply(this, arguments); };
@@ -1376,7 +1401,7 @@ test('a stale bundle decode cannot render the previous record into this record\'
   } finally {
     Forms.render = realRender;
   }
-  assert.equal(renders, 1, 'the superseded render was dropped, not merely overwritten');
+  assert.equal(renders, 0, 'the superseded continuation was dropped, not merely overwritten');
 
   assert.equal(h.get('form').querySelector('[name="npc_name"]').value, 'Bat');
   assert.equal(App.__state.rowNumber, 3);

@@ -14,8 +14,9 @@
 //
 // What reaches a mount is the ITEMS side: an item whose item_slot is Mount is a real, editable row,
 // and Inventory.cs:602-655 renders it from the Bodies folder's mounted clip. wornItem therefore
-// builds that layer itself rather than waiting for layers() to grow one, which is also what finally
-// gave Sprites.mount a caller.
+// builds that layer itself rather than waiting for layers() to grow one. (Sprites.mount has a
+// second caller besides this one — Pickers.partControl draws the same row beside graphic_equip;
+// see the note on mount() itself, which is where the callers are listed.)
 var Preview = (function () {
   var CANVAS_W = 96;
   var CANVAS_H = 112;
@@ -27,7 +28,10 @@ var Preview = (function () {
   var EFFECT_SIZE = 96;
 
   // The item icon's logical box. 64 for the reason Pickers.ICON_BOX gives — the median icon is
-  // 32x32 but the bundle holds sprites up to 128x128, and a 48 box clipped them.
+  // 32x32 but the bundle holds sprites up to 128x128, and a 48 box clipped them. Deliberately the
+  // same NUMBER as Pickers.ICON_BOX, and it cannot read it: pickers.js already depends on this
+  // module (tintFrom, isArmed), so a dependency the other way would be a cycle at load time.
+  // preview.test.js asserts the two are equal instead, so the agreement is checked and not hoped.
   var ICON_BOX = 64;
 
   // The body the worn preview draws the item on. 1 is the shipped player body, and the one
@@ -56,6 +60,8 @@ var Preview = (function () {
   // coercion Appearance.channel does before Appearance.layers emits a tint, so the two agree.
   //
   // Clamping is left to Sprites.applyTint, which does it for every caller and does it once.
+  // Also the ONE coercion boundary for a tint out of cells: Pickers.tintFrom, which reads four
+  // COLUMN NAMES out of a collected form rather than named fields off an item, reduces to this.
   function tintOf(item) {
     return { r: num(item.r), g: num(item.g), b: num(item.b), a: num(item.a) };
   }
@@ -161,11 +167,15 @@ var Preview = (function () {
 
     // A mount is not an equipped slot, so it is appended and the list re-sorted. Every order is
     // distinct per slot, so the sort stays total and its stability never matters.
+    //
+    // Appearance.layer, not an object literal: it is the same builder layers() pushes through, so
+    // this layer gets the channel clamping and the alpha-0-collapses-the-colour rule rather than a
+    // second, quietly divergent idea of what a layer is. Non-null here because `worn` already
+    // required id > 0, which is the only thing it returns null for.
     if (worn && slot === 'Mount') {
-      layers = layers.concat([Object.assign({
-        slot: slot, category: Appearance.CATEGORY[slot], id: id,
-        order: Appearance.sortOrder(slot),
-      }, tintOf(item))]);
+      layers = layers.concat([
+        Appearance.layer(slot, id, item.r, item.g, item.b, item.a),
+      ]);
       layers.sort(function (x, y) { return x.order - y.order; });
     }
 
@@ -226,6 +236,7 @@ var Preview = (function () {
     character: character,
     effect: effect,
     itemIcon: itemIcon,
+    tintOf: tintOf,
     wornItem: wornItem,
     isArmed: isArmed,
     CANVAS_W: CANVAS_W,

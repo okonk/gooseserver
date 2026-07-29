@@ -73,6 +73,31 @@ var Appearance = (function () {
     return Math.min(255, Math.max(0, num(value)));
   }
 
+  // ONE layer object, or null for a slot that draws nothing. Every rule about what a layer IS
+  // lives here: the <=0 drop, the channel clamping, the zero-alpha collapse and the sort order.
+  //
+  // Exported because layers() is not the only thing that builds one. Preview.wornItem has to add a
+  // Mount layer by hand — equipped_items has six slots and Mount is not one of them, so it cannot
+  // go through layers() at all (see the closing note) — and a hand-built object literal there
+  // would be a SECOND way to make a layer, free to drift from the clamping and collapse above.
+  function layer(slot, id, r, g, b, alpha) {
+    var graphic = num(id);
+    if (graphic <= 0) return null;
+    // Character.cs:251-258 — a tint with alpha 0 is NoTint, colour and all. The alpha is a
+    // blend factor, not opacity, so a "parked" colour behind a zero alpha never renders.
+    var a2 = channel(alpha);
+    return {
+      slot: slot,
+      category: CATEGORY[slot],
+      id: graphic,
+      r: a2 > 0 ? channel(r) : 0,
+      g: a2 > 0 ? channel(g) : 0,
+      b: a2 > 0 ? channel(b) : 0,
+      a: a2,
+      order: sortOrder(slot),
+    };
+  }
+
   // Down-facing draw order, back to front. Higher is nearer the viewer. Deliberately unguarded:
   // an unknown slot name gives NaN, which is a caller bug (the slot names are a closed set) and
   // shows up immediately rather than silently sorting to a plausible-looking position.
@@ -135,21 +160,8 @@ var Appearance = (function () {
     // Character.cs:264 removes any slot whose graphic is <= 0, so a 0 (empty) or a negative id
     // (Equipped.parse does not clamp, and neither does a spreadsheet cell) draws nothing.
     function push(slot, id, r, g, b, alpha) {
-      var graphic = num(id);
-      if (graphic <= 0) return;
-      // Character.cs:251-258 — a tint with alpha 0 is NoTint, colour and all. The alpha is a
-      // blend factor, not opacity, so a "parked" colour behind a zero alpha never renders.
-      var a2 = channel(alpha);
-      out.push({
-        slot: slot,
-        category: CATEGORY[slot],
-        id: graphic,
-        r: a2 > 0 ? channel(r) : 0,
-        g: a2 > 0 ? channel(g) : 0,
-        b: a2 > 0 ? channel(b) : 0,
-        a: a2,
-        order: sortOrder(slot),
-      });
+      var built = layer(slot, id, r, g, b, alpha);
+      if (built) out.push(built);
     }
 
     function pushEquip(slot) {
@@ -181,7 +193,7 @@ var Appearance = (function () {
   // mount column — so nothing in this editor's data can produce one. Mount stays in SLOT_INDEX
   // and CATEGORY because the draw order and folder for it are still facts about the client.
   return {
-    layers: layers, offsetY: offsetY, sortOrder: sortOrder, slotFor: slotFor,
+    layers: layers, layer: layer, offsetY: offsetY, sortOrder: sortOrder, slotFor: slotFor,
     CATEGORY: CATEGORY, EQUIP_SLOT: EQUIP_SLOT,
   };
 })();

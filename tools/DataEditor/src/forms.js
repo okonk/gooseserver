@@ -168,17 +168,28 @@ var Forms = (function () {
   // one — and Pickers.partControl gives it the preview it otherwise has none of. It is a plain Int
   // column with no composite, so nothing else would ever route it anywhere but scalarControl.
   //
-  // partControl needs the whole values map, not just this cell: the sprite folder comes from
-  // another column (item_slot). Hence the extra parameter, which the fk branch has no use for.
-  function columnControl(column, value, ctx, sheet, values) {
+  // ONE options object, `{ column, ctx, sheet, values }` — and NO separate `value`. partControl
+  // needs the whole values map, not just this cell (the sprite folder comes from item_slot), so a
+  // cell parameter alongside it meant the same cell arriving twice by two routes, with the copy
+  // going unread in that branch. `values[column.name]` is the single route now; the two were
+  // always the same value, because render() passed values[name] for the column named `name`.
+  function columnControl(opts) {
+    var column = opts.column;
+    var ctx = opts.ctx;
+    var sheet = opts.sheet;
+    var values = opts.values || {};
+    var value = values[column.name];
+
     if (column.ref && typeof Pickers !== 'undefined' && Pickers && Pickers.fkControl) {
       return Pickers.fkControl(column, value, ctx);
     }
 
     var part = Layout.partGraphic(sheet, column.name);
     if (part && typeof Pickers !== 'undefined' && Pickers && Pickers.partControl) {
-      return Pickers.partControl(column, values, ctx, part,
-                                 Layout.tintColumns(sheet, column.name));
+      return Pickers.partControl({
+        column: column, values: values, ctx: ctx, spec: part,
+        tintColumns: Layout.tintColumns(sheet, column.name),
+      });
     }
 
     return scalarControl(column, value);
@@ -238,8 +249,10 @@ var Forms = (function () {
 
         // The sheet is threaded from the schema being rendered rather than read off ctx, so the
         // presentation table can never be consulted for a different sheet than the one on screen.
-        row.appendChild(comp ? Composites.control(comp, byName, values, ctx, schema.sheet)
-                             : columnControl(column, values[name], ctx, schema.sheet, values));
+        row.appendChild(comp
+          ? Composites.control({ comp: comp, byName: byName, values: values, ctx: ctx,
+                                 sheet: schema.sheet })
+          : columnControl({ column: column, ctx: ctx, sheet: schema.sheet, values: values }));
 
         row.appendChild(el('div', { class: 'error', 'data-error-for': name }));
         section.appendChild(row);

@@ -52,6 +52,12 @@
   canvas.preview, canvas.appearance, canvas.effect, canvas.item-icon, canvas.worn { image-rendering: pixelated;
     border: 1px solid #eee; background: repeating-conic-gradient(#f4f4f4 0% 25%, #fff 0% 50%)
     50% / 12px 12px; }
+  /* Items shows TWO canvases, and they are meant to be read side by side — the icon in the bag next
+     to the same item on a character. Without a display they are inline-level, so 256 + 384 = 640 in
+     a ~400px column wraps into a stacked pair with baseline whitespace between them. flex-wrap
+     keeps that stacking available for a genuinely narrow sidebar; flex-start stops the shorter icon
+     canvas from being stretched to the character canvas's height. */
+  #previews { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-start; }
   /* A 384px character canvas in a ~300px Sheets sidebar shrinks rather than overflowing. */
   #previews canvas { max-width: 100%; height: auto; box-sizing: border-box; }
   .picker { position: relative; }

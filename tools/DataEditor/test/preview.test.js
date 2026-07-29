@@ -12,6 +12,10 @@ const { Sprites } = await import('../src/sprites.js');
 globalThis.Sprites = Sprites;
 
 const { Preview } = await import('../src/preview.js');
+// Only for the box-size agreement assertion below. pickers.js resolves Preview as a free global at
+// call time, so importing it after Preview is the same order Editor.html includes them in.
+globalThis.Preview = Preview;
+const { Pickers } = await import('../src/pickers.js');
 
 // A bundle carrying one rect per (category, id, clip) the tests need. Rects are
 // [x, y, w, h] in the bundle PNG, the shape tools/SpriteBundle emits.
@@ -449,6 +453,42 @@ test('a mount is drawn BEHIND the body, from its mounted clip', () => {
   const out = Preview.wornItem(node, { id: '5', slot: 'Mount' }, partsBundle(WORN_RECTS), 4);
   assert.equal(out.slot, 'Mount');
   assert.deepEqual(sourceXs(node), [60, 0, 90], 'mount first, then the body');
+});
+
+test('a tinted mount is tinted, and its layer is built by the same rules as every other', () => {
+  // The Mount layer is the one wornItem builds itself, so it is the one that could quietly miss
+  // the rules layers() applies. Appearance.layer is what it goes through, so it gets them: the
+  // tint reaches the draw, and an alpha of 0 collapses the colour with it rather than leaving a
+  // parked red behind a zero blend factor.
+  const tinted = wornCanvas();
+  Preview.wornItem(tinted, { id: '5', slot: 'Mount', r: 255, g: 0, b: 0, a: 255 },
+    partsBundle(WORN_RECTS), 4);
+  const calls = drawCalls(tinted);
+  assert.equal(calls.length, 3, 'the mount, the body and its underwear');
+  assert.equal(calls.filter((c) => c.length === 4).length, 1, 'the mount alone is tinted');
+
+  const plain = wornCanvas();
+  Preview.wornItem(plain, { id: '5', slot: 'Mount', r: 255, g: 0, b: 0, a: 0 },
+    partsBundle(WORN_RECTS), 4);
+  assert.equal(drawCalls(plain).filter((c) => c.length === 4).length, 0,
+               'a zero blend draws the mount plain');
+});
+
+test('the Mount layer is clamped and collapsed exactly as Appearance.layers would', () => {
+  // Directly on the layer, not through a draw: an out-of-range channel and a zero-alpha colour are
+  // both invisible in the call trail, and a hand-built object literal here was free to skip them.
+  assert.deepEqual(Appearance.layer('Mount', '5', 300, -4, 8, 200),
+    { slot: 'Mount', category: 'Bodies', id: 5, r: 255, g: 0, b: 8, a: 200,
+      order: Appearance.sortOrder('Mount') });
+  assert.deepEqual(Appearance.layer('Mount', '5', 255, 255, 255, 0).r, 0);
+  assert.equal(Appearance.layer('Mount', 0, 0, 0, 0, 0), null);
+});
+
+test('the item icon box is the same number the graphic control uses', () => {
+  // Two constants a comment requires to agree, with nothing else able to enforce it: pickers.js
+  // already depends on this module, so Preview cannot read Pickers.ICON_BOX without a load-time
+  // cycle. Asserted instead, so the agreement is checked rather than hoped for.
+  assert.equal(Preview.ICON_BOX, Pickers.ICON_BOX);
 });
 
 test('a mount never falls back to a standing clip', () => {

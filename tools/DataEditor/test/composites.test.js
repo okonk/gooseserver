@@ -229,25 +229,33 @@ test('rgba writes the four cells VERBATIM until the user touches the control', (
   // zero-alpha tint with non-zero rgb is real data; blanking all four cells on a zero blend
   // would destroy exactly that.
   const values = { body_r: '12', body_g: '34', body_b: '56', body_a: 0 };
-  const node = Composites.control(RGBA, byName(RGBA.columns), values, ctx());
+  const node = Composites.control({
+    comp: RGBA, byName: byName(RGBA.columns), values: values, ctx: ctx(),
+  });
   assert.deepEqual(valuesOf(node, RGBA.columns), ['12', '34', '56', '0']);
 });
 
 test('rgba leaves blank cells blank until touched', () => {
-  const node = Composites.control(RGBA, byName(RGBA.columns), {}, ctx());
+  const node = Composites.control({
+    comp: RGBA, byName: byName(RGBA.columns), values: {}, ctx: ctx(),
+  });
   assert.deepEqual(valuesOf(node, RGBA.columns), ['', '', '', '']);
 });
 
 test('rgba shows the stored colour in the swatch', () => {
   const values = { body_r: 255, body_g: 128, body_b: 0, body_a: 64 };
-  const node = Composites.control(RGBA, byName(RGBA.columns), values, ctx());
+  const node = Composites.control({
+    comp: RGBA, byName: byName(RGBA.columns), values: values, ctx: ctx(),
+  });
   assert.equal(swatchOf(node).getAttribute('data-color'), '#ff8000');
   assert.equal(node.querySelector('[class="readout"]').textContent, '64 / 255 blend');
 });
 
 test('rgba clamps an out-of-range stored channel into the swatch', () => {
   const values = { body_r: 999, body_g: -4, body_b: 'x', body_a: 900 };
-  const node = Composites.control(RGBA, byName(RGBA.columns), values, ctx());
+  const node = Composites.control({
+    comp: RGBA, byName: byName(RGBA.columns), values: values, ctx: ctx(),
+  });
   assert.equal(swatchOf(node).getAttribute('data-color'), '#ff0000');
   assert.equal(node.querySelector('[class="readout"]').textContent, '255 / 255 blend');
   // ...but the cells still hold the originals, because nothing was touched.
@@ -256,27 +264,35 @@ test('rgba clamps an out-of-range stored channel into the swatch', () => {
 
 test('rgba writes all four cells once the blend moves', () => {
   const values = { body_r: '12', body_g: '34', body_b: '56', body_a: '0' };
-  const node = Composites.control(RGBA, byName(RGBA.columns), values, ctx());
+  const node = Composites.control({
+    comp: RGBA, byName: byName(RGBA.columns), values: values, ctx: ctx(),
+  });
   setBlend(node, 200);
   assert.deepEqual(valuesOf(node, RGBA.columns), ['12', '34', '56', '200']);
 });
 
 test('rgba at blend zero keeps the colour rather than blanking it', () => {
   const values = { body_r: '12', body_g: '34', body_b: '56', body_a: '9' };
-  const node = Composites.control(RGBA, byName(RGBA.columns), values, ctx());
+  const node = Composites.control({
+    comp: RGBA, byName: byName(RGBA.columns), values: values, ctx: ctx(),
+  });
   setBlend(node, 0);
   assert.deepEqual(valuesOf(node, RGBA.columns), ['12', '34', '56', '0']);
 });
 
 test('rgba writes the swatch colour when the colour moves', () => {
-  const node = Composites.control(RGBA, byName(RGBA.columns), {}, ctx());
+  const node = Composites.control({
+    comp: RGBA, byName: byName(RGBA.columns), values: {}, ctx: ctx(),
+  });
   setColour(node, '#0080ff');
   assert.deepEqual(valuesOf(node, RGBA.columns), ['0', '128', '255', '0']);
 });
 
 test('rgba readout names the blend, not opacity', () => {
   // Icon.cs:9-11 — the alpha channel is a blend FACTOR against the sprite, not transparency.
-  const node = Composites.control(RGBA, byName(RGBA.columns), { body_a: '64' }, ctx());
+  const node = Composites.control({
+    comp: RGBA, byName: byName(RGBA.columns), values: { body_a: '64' }, ctx: ctx(),
+  });
   const readout = node.querySelector('[class="readout"]');
   assert.match(readout.textContent, /64/);
   assert.match(readout.textContent, /blend/);
@@ -284,13 +300,17 @@ test('rgba readout names the blend, not opacity', () => {
 });
 
 test('rgba readout follows the blend strip', () => {
-  const node = Composites.control(RGBA, byName(RGBA.columns), {}, ctx());
+  const node = Composites.control({
+    comp: RGBA, byName: byName(RGBA.columns), values: {}, ctx: ctx(),
+  });
   setBlend(node, 31);
   assert.match(node.querySelector('[class="readout"]').textContent, /31/);
 });
 
 test('rgba notifies its wrapper hook on change', () => {
-  const node = Composites.control(RGBA, byName(RGBA.columns), {}, ctx());
+  const node = Composites.control({
+    comp: RGBA, byName: byName(RGBA.columns), values: {}, ctx: ctx(),
+  });
   let calls = 0;
   node.__onChange = () => { calls++; };
   setBlend(node, 12);
@@ -299,7 +319,9 @@ test('rgba notifies its wrapper hook on change', () => {
 });
 
 test('rgba survives no wrapper hook', () => {
-  const node = Composites.control(RGBA, byName(RGBA.columns), {}, ctx());
+  const node = Composites.control({
+    comp: RGBA, byName: byName(RGBA.columns), values: {}, ctx: ctx(),
+  });
   setBlend(node, 0);
   assert.deepEqual(valuesOf(node, RGBA.columns), ['0', '0', '0', '0']);
 });
@@ -307,7 +329,9 @@ test('rgba survives no wrapper hook', () => {
 test('rgba has no native colour input or range slider left', () => {
   // The whole point of the swap: <input type="color"> opens the OS picker, and the range slider
   // that used to carry the blend beside it is now inside the popover.
-  const node = Composites.control(RGBA, byName(RGBA.columns), {}, ctx());
+  const node = Composites.control({
+    comp: RGBA, byName: byName(RGBA.columns), values: {}, ctx: ctx(),
+  });
   assert.equal(node.querySelector('[type="color"]'), null);
   assert.equal(node.querySelector('[type="range"]'), null);
 });
@@ -321,32 +345,42 @@ function boxes(node) {
 test('bitmask ticks the restricted classes, not the permitted ones', () => {
   // 31 restricts everything except Priest (class 5) and the Game Master (6) — the shipped
   // Scroll: Healing mask. Bit 0 is set too and belongs to no class, so it gets no box.
-  const node = Composites.control(BITMASK, byName(BITMASK.columns),
-    { class_restrictions: 31 }, ctx());
+  const node = Composites.control({
+    comp: BITMASK, byName: byName(BITMASK.columns), values: { class_restrictions: 31 },
+    ctx: ctx(),
+  });
   const ticked = boxes(node).filter((b) => b.checked).map((b) => b.value);
   assert.deepEqual(ticked, ['1', '2', '3', '4']);
 });
 
 test('bitmask labels each class by id and name', () => {
-  const node = Composites.control(BITMASK, byName(BITMASK.columns), {}, ctx());
+  const node = Composites.control({
+    comp: BITMASK, byName: byName(BITMASK.columns), values: {}, ctx: ctx(),
+  });
   assert.match(node.textContent, /5 Priest/);
   assert.match(node.textContent, /cannot use/i);
 });
 
 test('bitmask writes the mask verbatim until a box is touched', () => {
-  const node = Composites.control(BITMASK, byName(BITMASK.columns),
-    { class_restrictions: 31 }, ctx());
+  const node = Composites.control({
+    comp: BITMASK, byName: byName(BITMASK.columns), values: { class_restrictions: 31 },
+    ctx: ctx(),
+  });
   assert.equal(named(node, 'class_restrictions').value, '31');
 });
 
 test('bitmask leaves a blank cell blank until touched', () => {
-  const node = Composites.control(BITMASK, byName(BITMASK.columns), {}, ctx());
+  const node = Composites.control({
+    comp: BITMASK, byName: byName(BITMASK.columns), values: {}, ctx: ctx(),
+  });
   assert.equal(named(node, 'class_restrictions').value, '');
 });
 
 test('bitmask sets the bit when a class is ticked', () => {
-  const node = Composites.control(BITMASK, byName(BITMASK.columns),
-    { class_restrictions: '0' }, ctx());
+  const node = Composites.control({
+    comp: BITMASK, byName: byName(BITMASK.columns), values: { class_restrictions: '0' },
+    ctx: ctx(),
+  });
   const priest = boxes(node).find((b) => b.value === '5');
   priest.checked = true;
   fire(priest, 'change');
@@ -354,8 +388,10 @@ test('bitmask sets the bit when a class is ticked', () => {
 });
 
 test('bitmask clears the bit when a class is unticked', () => {
-  const node = Composites.control(BITMASK, byName(BITMASK.columns),
-    { class_restrictions: '31' }, ctx());
+  const node = Composites.control({
+    comp: BITMASK, byName: byName(BITMASK.columns), values: { class_restrictions: '31' },
+    ctx: ctx(),
+  });
   const magus = boxes(node).find((b) => b.value === '4');
   magus.checked = false;
   fire(magus, 'change');
@@ -366,8 +402,10 @@ test('bitmask clears the bit when a class is unticked', () => {
 test('bitmask PRESERVES a set bit that belongs to no class', () => {
   // Bit 0 is set by 9 of the 13 shipped item/spell masks (426 rows) and there is no class 0.
   // Rebuilding the mask from the checkboxes alone would drop it and rewrite all of them.
-  const node = Composites.control(BITMASK, byName(BITMASK.columns),
-    { class_restrictions: '31' }, ctx());
+  const node = Composites.control({
+    comp: BITMASK, byName: byName(BITMASK.columns), values: { class_restrictions: '31' },
+    ctx: ctx(),
+  });
   const priest = boxes(node).find((b) => b.value === '5');
   priest.checked = true;
   fire(priest, 'change');
@@ -377,8 +415,10 @@ test('bitmask PRESERVES a set bit that belongs to no class', () => {
 test('bitmask preserves a CLEAR foreign bit just as carefully', () => {
   // The other four shipped masks — 22, 34, 38, 50 — leave bit 0 clear. Setting it would be the
   // same rewrite in the other direction, and no test using only bit-0-set masks would see it.
-  const node = Composites.control(BITMASK, byName(BITMASK.columns),
-    { class_restrictions: '22' }, ctx());   // Small Hammer: Warrior + Priest may use it
+  const node = Composites.control({
+    comp: BITMASK, byName: byName(BITMASK.columns), values: { class_restrictions: '22' },
+    ctx: ctx(),
+  });   // Small Hammer: Warrior + Priest may use it
   assert.deepEqual(boxes(node).filter((b) => b.checked).map((b) => b.value), ['1', '2', '4']);
   const priest = boxes(node).find((b) => b.value === '5');
   priest.checked = true;
@@ -391,8 +431,10 @@ test('bitmask preserves a foreign bit ABOVE the class range', () => {
   // only high foreign bit in the data, and every other control test here uses bit 0 alone — so
   // without this case the whole `foreign` filter can be replaced by "keep bit 0" unnoticed.
   // It is what must hold if a 7th class is ever added to the Classes sheet.
-  const node = Composites.control(BITMASK, byName(BITMASK.columns),
-    { class_restrictions: '253' }, ctx());
+  const node = Composites.control({
+    comp: BITMASK, byName: byName(BITMASK.columns), values: { class_restrictions: '253' },
+    ctx: ctx(),
+  });
   assert.deepEqual(boxes(node).filter((b) => b.checked).map((b) => b.value),
     ['2', '3', '4', '5', '6']);
   const rogue = boxes(node).find((b) => b.value === '1');
@@ -403,8 +445,10 @@ test('bitmask preserves a foreign bit ABOVE the class range', () => {
 });
 
 test('bitmask keeps a foreign bit even when every class box is cleared', () => {
-  const node = Composites.control(BITMASK, byName(BITMASK.columns),
-    { class_restrictions: '31' }, ctx());
+  const node = Composites.control({
+    comp: BITMASK, byName: byName(BITMASK.columns), values: { class_restrictions: '31' },
+    ctx: ctx(),
+  });
   boxes(node).forEach((b) => { b.checked = false; });
   fire(boxes(node)[0], 'change');
   assert.equal(named(node, 'class_restrictions').value, '1');
@@ -414,8 +458,10 @@ test('bitmask writes 0, not blank, when everything is unticked', () => {
   // Blank means "use the SQL default". class_restrictions defaults to 0, so blank would be
   // right by luck here — but "no restrictions" is a decision the user just made and it should
   // be stored as one.
-  const node = Composites.control(BITMASK, byName(BITMASK.columns),
-    { class_restrictions: '6' }, ctx());
+  const node = Composites.control({
+    comp: BITMASK, byName: byName(BITMASK.columns), values: { class_restrictions: '6' },
+    ctx: ctx(),
+  });
   boxes(node).forEach((b) => { b.checked = false; });
   const first = boxes(node)[0];
   fire(first, 'change');
@@ -424,8 +470,10 @@ test('bitmask writes 0, not blank, when everything is unticked', () => {
 
 test('bitmask falls back to a raw mask field when the source sheet has not loaded', () => {
   // Checkboxes built from an empty list would be an empty, uneditable control forever.
-  const node = Composites.control(BITMASK, byName(BITMASK.columns),
-    { class_restrictions: '223' }, ctx({ pickerData: {} }));
+  const node = Composites.control({
+    comp: BITMASK, byName: byName(BITMASK.columns), values: { class_restrictions: '223' },
+    ctx: ctx({ pickerData: {} }),
+  });
   assert.equal(boxes(node).length, 0);
   const raw = named(node, 'class_restrictions');
   assert.equal(raw.value, '223');
@@ -434,12 +482,16 @@ test('bitmask falls back to a raw mask field when the source sheet has not loade
 });
 
 test('bitmask survives a ctx with no pickerData at all', () => {
-  const node = Composites.control(BITMASK, byName(BITMASK.columns), {}, {});
+  const node = Composites.control({
+    comp: BITMASK, byName: byName(BITMASK.columns), values: {}, ctx: {},
+  });
   assert.equal(named(node, 'class_restrictions').value, '');
 });
 
 test('bitmask notifies its wrapper hook', () => {
-  const node = Composites.control(BITMASK, byName(BITMASK.columns), {}, ctx());
+  const node = Composites.control({
+    comp: BITMASK, byName: byName(BITMASK.columns), values: {}, ctx: ctx(),
+  });
   let calls = 0;
   node.__onChange = () => { calls++; };
   fire(boxes(node)[0], 'change');
@@ -453,14 +505,16 @@ function chips(node) {
 }
 
 test('idList writes its cell verbatim until touched', () => {
-  const node = Composites.control(IDLIST, byName(IDLIST.columns),
-    { quest_ids: '10,11' }, ctx());
+  const node = Composites.control({
+    comp: IDLIST, byName: byName(IDLIST.columns), values: { quest_ids: '10,11' }, ctx: ctx(),
+  });
   assert.equal(named(node, 'quest_ids').value, '10,11');
 });
 
 test('idList shows one chip per id, resolved against the source sheet', () => {
-  const node = Composites.control(IDLIST, byName(IDLIST.columns),
-    { quest_ids: '10 11' }, ctx());
+  const node = Composites.control({
+    comp: IDLIST, byName: byName(IDLIST.columns), values: { quest_ids: '10 11' }, ctx: ctx(),
+  });
   const text = chips(node).map((c) => c.textContent);
   assert.equal(text.length, 2);
   assert.match(text[0], /10/);
@@ -469,8 +523,9 @@ test('idList shows one chip per id, resolved against the source sheet', () => {
 });
 
 test('idList adds an id and rewrites the cell space-separated', () => {
-  const node = Composites.control(IDLIST, byName(IDLIST.columns),
-    { quest_ids: '10,11' }, ctx());
+  const node = Composites.control({
+    comp: IDLIST, byName: byName(IDLIST.columns), values: { quest_ids: '10,11' }, ctx: ctx(),
+  });
   const add = node.querySelector('[class="add"]');
   add.value = '12';
   fire(add, 'change');
@@ -480,7 +535,9 @@ test('idList adds an id and rewrites the cell space-separated', () => {
 });
 
 test('idList adds through the button too', () => {
-  const node = Composites.control(IDLIST, byName(IDLIST.columns), {}, ctx());
+  const node = Composites.control({
+    comp: IDLIST, byName: byName(IDLIST.columns), values: {}, ctx: ctx(),
+  });
   node.querySelector('[class="add"]').value = '10';
   fire(node.querySelector('[class="add-button"]'), 'click');
   assert.equal(named(node, 'quest_ids').value, '10');
@@ -488,7 +545,9 @@ test('idList adds through the button too', () => {
 
 test('idList dedupes by NUMERIC id, not by text', () => {
   // '1' and '01' are the same quest. Two chips for it would write it into the list twice.
-  const node = Composites.control(IDLIST, byName(IDLIST.columns), { quest_ids: '1' }, ctx());
+  const node = Composites.control({
+    comp: IDLIST, byName: byName(IDLIST.columns), values: { quest_ids: '1' }, ctx: ctx(),
+  });
   const add = node.querySelector('[class="add"]');
   add.value = '01';
   fire(add, 'change');
@@ -497,7 +556,9 @@ test('idList dedupes by NUMERIC id, not by text', () => {
 });
 
 test('idList ignores a blank or non-numeric addition', () => {
-  const node = Composites.control(IDLIST, byName(IDLIST.columns), {}, ctx());
+  const node = Composites.control({
+    comp: IDLIST, byName: byName(IDLIST.columns), values: {}, ctx: ctx(),
+  });
   const add = node.querySelector('[class="add"]');
   ['', '   ', 'abc', '-1', '1.5'].forEach((text) => {
     add.value = text;
@@ -509,7 +570,9 @@ test('idList ignores a blank or non-numeric addition', () => {
 
 test('idList leaves a rejected entry in the field to be fixed', () => {
   // Clearing it would make the id vanish with no explanation at all.
-  const node = Composites.control(IDLIST, byName(IDLIST.columns), {}, ctx());
+  const node = Composites.control({
+    comp: IDLIST, byName: byName(IDLIST.columns), values: {}, ctx: ctx(),
+  });
   const add = node.querySelector('[class="add"]');
   add.value = 'abc';
   fire(add, 'change');
@@ -517,7 +580,9 @@ test('idList leaves a rejected entry in the field to be fixed', () => {
 });
 
 test('idList clears the field after swallowing a duplicate', () => {
-  const node = Composites.control(IDLIST, byName(IDLIST.columns), { quest_ids: '10' }, ctx());
+  const node = Composites.control({
+    comp: IDLIST, byName: byName(IDLIST.columns), values: { quest_ids: '10' }, ctx: ctx(),
+  });
   const add = node.querySelector('[class="add"]');
   add.value = '10';
   fire(add, 'change');
@@ -526,8 +591,10 @@ test('idList clears the field after swallowing a duplicate', () => {
 
 test('idList removes the chip that was clicked, not the one at a stale index', () => {
   // Each render closes over an index; without a rebuild the second removal takes the wrong id.
-  const node = Composites.control(IDLIST, byName(IDLIST.columns),
-    { quest_ids: '10 11 12 13' }, ctx());
+  const node = Composites.control({
+    comp: IDLIST, byName: byName(IDLIST.columns), values: { quest_ids: '10 11 12 13' },
+    ctx: ctx(),
+  });
   fire(chips(node)[1].querySelector('[class="remove"]'), 'click');
   assert.equal(named(node, 'quest_ids').value, '10 12 13');
   fire(chips(node)[1].querySelector('[class="remove"]'), 'click');
@@ -537,7 +604,9 @@ test('idList removes the chip that was clicked, not the one at a stale index', (
 });
 
 test('idList writes blank when the last id is removed', () => {
-  const node = Composites.control(IDLIST, byName(IDLIST.columns), { quest_ids: '10' }, ctx());
+  const node = Composites.control({
+    comp: IDLIST, byName: byName(IDLIST.columns), values: { quest_ids: '10' }, ctx: ctx(),
+  });
   fire(chips(node)[0].querySelector('[class="remove"]'), 'click');
   assert.equal(named(node, 'quest_ids').value, '');
 });
@@ -546,7 +615,9 @@ test('idList reads its source sheet at use time, not at build time', () => {
   // App.loadReferencedSheets fills pickerData over google.script.run; a control built first
   // must still resolve names once the sheet lands.
   const c = ctx({ pickerData: {} });
-  const node = Composites.control(IDLIST, byName(IDLIST.columns), { quest_ids: '10' }, c);
+  const node = Composites.control({
+    comp: IDLIST, byName: byName(IDLIST.columns), values: { quest_ids: '10' }, ctx: c,
+  });
   // Not "not found": an empty list is a sheet that has not arrived, not a bad id.
   assert.match(chips(node)[0].textContent, /…/);
   c.pickerData.Quests = [{ id: '10', name: 'Rat Hunt' }];
@@ -557,7 +628,9 @@ test('idList reads its source sheet at use time, not at build time', () => {
 });
 
 test('idList notifies its wrapper hook', () => {
-  const node = Composites.control(IDLIST, byName(IDLIST.columns), {}, ctx());
+  const node = Composites.control({
+    comp: IDLIST, byName: byName(IDLIST.columns), values: {}, ctx: ctx(),
+  });
   let calls = 0;
   node.__onChange = () => { calls++; };
   const add = node.querySelector('[class="add"]');
@@ -577,28 +650,33 @@ function slotInputs(node) {
 test('equip slots writes the stored string VERBATIM until touched', () => {
   // Five rows in the shipped data are malformed; opening one and saving must not rewrite it.
   const odd = '1,*,2,*,3,*,4,*,5,*,6,*,999';
-  const node = Composites.control(EQUIP, byName(EQUIP.columns),
-    { equipped_items: odd }, ctx());
+  const node = Composites.control({
+    comp: EQUIP, byName: byName(EQUIP.columns), values: { equipped_items: odd }, ctx: ctx(),
+  });
   assert.equal(named(node, 'equipped_items').value, odd);
 });
 
 test('equip slots canonicalises a BLANK cell immediately', () => {
   // Goose/Packets.cs:161 splices the value + ',', so a blank cell desynchronises the packet.
   // Repairing it is the one rewrite that is always right.
-  const node = Composites.control(EQUIP, byName(EQUIP.columns), { equipped_items: '' }, ctx());
+  const node = Composites.control({
+    comp: EQUIP, byName: byName(EQUIP.columns), values: { equipped_items: '' }, ctx: ctx(),
+  });
   assert.equal(named(node, 'equipped_items').value, '0,*,0,*,0,*,0,*,0,*,0,*');
 });
 
 test('equip slots shows one labelled field per slot, in Equipped.SLOTS order', () => {
-  const node = Composites.control(EQUIP, byName(EQUIP.columns),
-    { equipped_items: RAW_EQUIP }, ctx());
+  const node = Composites.control({
+    comp: EQUIP, byName: byName(EQUIP.columns), values: { equipped_items: RAW_EQUIP }, ctx: ctx(),
+  });
   assert.deepEqual(slotInputs(node).map((i) => i.value), ['1', '2', '3', '4', '5', '6']);
   Equipped.SLOTS.forEach((name) => assert.match(node.textContent, new RegExp(name)));
 });
 
 test('equip slots rewrites the cell when a graphic changes', () => {
-  const node = Composites.control(EQUIP, byName(EQUIP.columns),
-    { equipped_items: RAW_EQUIP }, ctx());
+  const node = Composites.control({
+    comp: EQUIP, byName: byName(EQUIP.columns), values: { equipped_items: RAW_EQUIP }, ctx: ctx(),
+  });
   const chest = slotInputs(node)[0];
   chest.value = '77';
   fire(chest, 'input');
@@ -606,8 +684,9 @@ test('equip slots rewrites the cell when a graphic changes', () => {
 });
 
 test('equip slots treats a cleared field as slot 0', () => {
-  const node = Composites.control(EQUIP, byName(EQUIP.columns),
-    { equipped_items: RAW_EQUIP }, ctx());
+  const node = Composites.control({
+    comp: EQUIP, byName: byName(EQUIP.columns), values: { equipped_items: RAW_EQUIP }, ctx: ctx(),
+  });
   const helm = slotInputs(node)[1];
   helm.value = '';
   fire(helm, 'input');
@@ -617,8 +696,9 @@ test('equip slots treats a cleared field as slot 0', () => {
 test('equip slots REFUSES to write a typo rather than coercing it to 0', () => {
   // Equipped.format coerces silently and isFaithful only inspects stored strings, so nothing
   // else in the stack catches a typo. Task 9 solved the equivalent problem with a status line.
-  const node = Composites.control(EQUIP, byName(EQUIP.columns),
-    { equipped_items: RAW_EQUIP }, ctx());
+  const node = Composites.control({
+    comp: EQUIP, byName: byName(EQUIP.columns), values: { equipped_items: RAW_EQUIP }, ctx: ctx(),
+  });
   const chest = slotInputs(node)[0];
   chest.value = 'abc';
   fire(chest, 'input');
@@ -629,8 +709,9 @@ test('equip slots REFUSES to write a typo rather than coercing it to 0', () => {
 });
 
 test('equip slots recovers once the typo is corrected', () => {
-  const node = Composites.control(EQUIP, byName(EQUIP.columns),
-    { equipped_items: RAW_EQUIP }, ctx());
+  const node = Composites.control({
+    comp: EQUIP, byName: byName(EQUIP.columns), values: { equipped_items: RAW_EQUIP }, ctx: ctx(),
+  });
   const chest = slotInputs(node)[0];
   chest.value = 'abc';
   fire(chest, 'input');
@@ -643,8 +724,9 @@ test('equip slots recovers once the typo is corrected', () => {
 test('equip slots raises __frozen the moment a typo appears, not on the next good edit', () => {
   // The contract Task 11's save path blocks on. Raising it late would leave a window in which
   // Save looks fine and silently writes a stale cell.
-  const node = Composites.control(EQUIP, byName(EQUIP.columns),
-    { equipped_items: RAW_EQUIP }, ctx());
+  const node = Composites.control({
+    comp: EQUIP, byName: byName(EQUIP.columns), values: { equipped_items: RAW_EQUIP }, ctx: ctx(),
+  });
   assert.equal(node.__frozen, false);
   const [chest, helm] = slotInputs(node);
   chest.value = 'abc';
@@ -664,8 +746,9 @@ test('equip slots raises __frozen the moment a typo appears, not on the next goo
 });
 
 test('equip slots blocks the write while ANY slot is bad', () => {
-  const node = Composites.control(EQUIP, byName(EQUIP.columns),
-    { equipped_items: RAW_EQUIP }, ctx());
+  const node = Composites.control({
+    comp: EQUIP, byName: byName(EQUIP.columns), values: { equipped_items: RAW_EQUIP }, ctx: ctx(),
+  });
   const [chest, helm] = slotInputs(node);
   chest.value = 'x';
   fire(chest, 'input');
@@ -679,8 +762,9 @@ test('equip slots blocks the write while ANY slot is bad', () => {
 
 test('equip slots preserves a stored tint through an unrelated edit', () => {
   const raw = '1,255,0,0,128,2,*,3,*,4,*,5,*,6,*';
-  const node = Composites.control(EQUIP, byName(EQUIP.columns),
-    { equipped_items: raw }, ctx());
+  const node = Composites.control({
+    comp: EQUIP, byName: byName(EQUIP.columns), values: { equipped_items: raw }, ctx: ctx(),
+  });
   const helm = slotInputs(node)[1];
   helm.value = '9';
   fire(helm, 'input');
@@ -709,8 +793,10 @@ test('equip slots draws each slot from the category Appearance already maps', ()
     return stubbed(b, category, id, equipped);
   };
   try {
-    Composites.control(EQUIP, byName(EQUIP.columns),
-      { equipped_items: RAW_EQUIP, body_state: '3' }, ctx({ bundles }));
+    Composites.control({
+      comp: EQUIP, byName: byName(EQUIP.columns),
+      values: { equipped_items: RAW_EQUIP, body_state: '3' }, ctx: ctx({ bundles }),
+    });
   } finally {
     Sprites.part = stubbed;
   }
@@ -725,10 +811,14 @@ test('equip slots derives the equipped pose from body_state, not a hardcoded tru
   const stubbed = Sprites.part;
   Sprites.part = (b, category, id, equipped) => { seen.push(equipped); return null; };
   try {
-    Composites.control(EQUIP, byName(EQUIP.columns),
-      { equipped_items: RAW_EQUIP, body_state: '3' }, ctx());
-    Composites.control(EQUIP, byName(EQUIP.columns),
-      { equipped_items: RAW_EQUIP, body_state: '1' }, ctx());
+    Composites.control({
+      comp: EQUIP, byName: byName(EQUIP.columns),
+      values: { equipped_items: RAW_EQUIP, body_state: '3' }, ctx: ctx(),
+    });
+    Composites.control({
+      comp: EQUIP, byName: byName(EQUIP.columns),
+      values: { equipped_items: RAW_EQUIP, body_state: '1' }, ctx: ctx(),
+    });
   } finally {
     Sprites.part = stubbed;
   }
@@ -740,8 +830,9 @@ test('equip slots redraws when the bundle images arrive', () => {
   const ready = [];
   const bundles = { parts: { rects: { 'Chest:1:idle-no-equip-down': [0, 0, 10, 10] } } };
   const c = ctx({ bundles, images: { parts: null }, onImagesReady: (fn) => ready.push(fn) });
-  const node = Composites.control(EQUIP, byName(EQUIP.columns),
-    { equipped_items: RAW_EQUIP }, c);
+  const node = Composites.control({
+    comp: EQUIP, byName: byName(EQUIP.columns), values: { equipped_items: RAW_EQUIP }, ctx: c,
+  });
   assert.equal(ready.length, 6, 'one redraw per slot');
   const canvas = node.querySelectorAll('[class="preview"]')[0];
   const drawn = () => canvas.getContext('2d').calls.filter((k) => k[0] === 'drawImage').length;
@@ -755,9 +846,11 @@ test('equip slots hands the slot TINT to the preview', () => {
   // Sprites.draw takes the tinted path only when a blend factor is present, and that path is
   // the offscreen canvas. Passing null instead would preview the wrong colour entirely.
   const bundles = { parts: { rects: { 'Chest:1:idle-no-equip-down': [0, 0, 2, 2] } } };
-  const node = Composites.control(EQUIP, byName(EQUIP.columns),
-    { equipped_items: '1,255,0,0,128,2,*,3,*,4,*,5,*,6,*' },
-    ctx({ bundles, images: { parts: { fake: true } } }));
+  const node = Composites.control({
+    comp: EQUIP, byName: byName(EQUIP.columns),
+    values: { equipped_items: '1,255,0,0,128,2,*,3,*,4,*,5,*,6,*' },
+    ctx: ctx({ bundles, images: { parts: { fake: true } } }),
+  });
   // The tinted path composites offscreen and blits the result: drawImage(off, dx, dy), three
   // arguments. The untinted path blits the bundle directly, with all nine.
   const drawn = node.querySelectorAll('[class="preview"]')[0].getContext('2d').calls
@@ -767,14 +860,16 @@ test('equip slots hands the slot TINT to the preview', () => {
 });
 
 test('equip slots survives a ctx with no onImagesReady', () => {
-  const node = Composites.control(EQUIP, byName(EQUIP.columns),
-    { equipped_items: RAW_EQUIP }, {});
+  const node = Composites.control({
+    comp: EQUIP, byName: byName(EQUIP.columns), values: { equipped_items: RAW_EQUIP }, ctx: {},
+  });
   assert.equal(named(node, 'equipped_items').value, RAW_EQUIP);
 });
 
 test('equip slots notifies its wrapper hook', () => {
-  const node = Composites.control(EQUIP, byName(EQUIP.columns),
-    { equipped_items: RAW_EQUIP }, ctx());
+  const node = Composites.control({
+    comp: EQUIP, byName: byName(EQUIP.columns), values: { equipped_items: RAW_EQUIP }, ctx: ctx(),
+  });
   let calls = 0;
   node.__onChange = () => { calls++; };
   const chest = slotInputs(node)[0];
@@ -801,8 +896,9 @@ function statusOf(row) {
 }
 
 test('equip slots gives every slot a blend-capable picker', () => {
-  const node = Composites.control(EQUIP, byName(EQUIP.columns),
-    { equipped_items: TINTABLE }, ctx());
+  const node = Composites.control({
+    comp: EQUIP, byName: byName(EQUIP.columns), values: { equipped_items: TINTABLE }, ctx: ctx(),
+  });
   const rows = slotRows(node);
   assert.equal(rows.length, 6);
   rows.forEach((row) => {
@@ -815,15 +911,18 @@ test('equip slots seeds each picker from the stored slot colour and does NOT wri
   // Six pickers built at construction must not, between them, rewrite the cell — the same rule
   // that keeps a malformed row openable.
   const raw = '1,164,51,31,128,2,*,3,*,4,*,5,*,6,*';
-  const node = Composites.control(EQUIP, byName(EQUIP.columns), { equipped_items: raw }, ctx());
+  const node = Composites.control({
+    comp: EQUIP, byName: byName(EQUIP.columns), values: { equipped_items: raw }, ctx: ctx(),
+  });
   assert.equal(named(node, 'equipped_items').value, raw, 'written back verbatim');
   assert.equal(swatchOf(slotRows(node)[0]).getAttribute('data-color'), '#a4331f');
   assert.equal(swatchOf(slotRows(node)[1]).getAttribute('data-color'), '#000000');
 });
 
 test('equip slots writes the five-token form when a slot colour changes', () => {
-  const node = Composites.control(EQUIP, byName(EQUIP.columns),
-    { equipped_items: TINTABLE }, ctx());
+  const node = Composites.control({
+    comp: EQUIP, byName: byName(EQUIP.columns), values: { equipped_items: TINTABLE }, ctx: ctx(),
+  });
   const chest = slotRows(node)[0];
   setBlend(chest, 128);
   setColour(chest, '#a4331f');
@@ -831,8 +930,9 @@ test('equip slots writes the five-token form when a slot colour changes', () => 
 });
 
 test('equip slots leaves the other five slots alone when one is tinted', () => {
-  const node = Composites.control(EQUIP, byName(EQUIP.columns),
-    { equipped_items: TINTABLE }, ctx());
+  const node = Composites.control({
+    comp: EQUIP, byName: byName(EQUIP.columns), values: { equipped_items: TINTABLE }, ctx: ctx(),
+  });
   setBlend(slotRows(node)[4], 200);
   setColour(slotRows(node)[4], '#00ff00');
   assert.equal(named(node, 'equipped_items').value, '12,*,2,*,3,*,4,*,5,0,255,0,200,6,*');
@@ -841,8 +941,9 @@ test('equip slots leaves the other five slots alone when one is tinted', () => {
 test('equip slots discards the colour when the blend drops to 0, and says so', () => {
   // Equipped.format collapses a zero-alpha slot to the compact form, so a parked colour behind
   // a zero blend is genuinely gone. The row has to say that while the swatch still shows it.
-  const node = Composites.control(EQUIP, byName(EQUIP.columns),
-    { equipped_items: TINTABLE }, ctx());
+  const node = Composites.control({
+    comp: EQUIP, byName: byName(EQUIP.columns), values: { equipped_items: TINTABLE }, ctx: ctx(),
+  });
   const chest = slotRows(node)[0];
   setBlend(chest, 128);
   setColour(chest, '#a4331f');
@@ -860,8 +961,9 @@ test('equip slots discards the colour when the blend drops to 0, and says so', (
 test('a graphic typo outranks the zero-blend note on the same row', () => {
   // The typo is the blocking condition; burying it under an informational note would hide the
   // reason the cell has stopped updating.
-  const node = Composites.control(EQUIP, byName(EQUIP.columns),
-    { equipped_items: TINTABLE }, ctx());
+  const node = Composites.control({
+    comp: EQUIP, byName: byName(EQUIP.columns), values: { equipped_items: TINTABLE }, ctx: ctx(),
+  });
   const chest = slotRows(node)[0];
   setBlend(chest, 0);
   assert.match(statusOf(chest).textContent, /blend is 0/);
@@ -877,8 +979,9 @@ test('a graphic typo outranks the zero-blend note on the same row', () => {
 });
 
 test('equip slots notifies its wrapper hook on a colour change too', () => {
-  const node = Composites.control(EQUIP, byName(EQUIP.columns),
-    { equipped_items: TINTABLE }, ctx());
+  const node = Composites.control({
+    comp: EQUIP, byName: byName(EQUIP.columns), values: { equipped_items: TINTABLE }, ctx: ctx(),
+  });
   let calls = 0;
   node.__onChange = () => { calls++; };
   setBlend(slotRows(node)[0], 90);
@@ -889,8 +992,10 @@ test('equip slots repaints the slot preview with the new tint', () => {
   // Sprites.draw takes the offscreen (three-argument drawImage) path only when a blend factor
   // is present, so the argument count is the proof the tint reached it.
   const bundles = { parts: { rects: { 'Chest:12:idle-no-equip-down': [0, 0, 2, 2] } } };
-  const node = Composites.control(EQUIP, byName(EQUIP.columns),
-    { equipped_items: TINTABLE }, ctx({ bundles, images: { parts: { fake: true } } }));
+  const node = Composites.control({
+    comp: EQUIP, byName: byName(EQUIP.columns), values: { equipped_items: TINTABLE },
+    ctx: ctx({ bundles, images: { parts: { fake: true } } }),
+  });
   const chest = slotRows(node)[0];
   const calls = () => chest.querySelector('[class="preview"]').getContext('2d').calls
     .filter((c) => c[0] === 'drawImage');
@@ -907,8 +1012,9 @@ test('equip slots repaints the slot preview with the new tint', () => {
 test('equip slots anchors the slot pickers to the right of their track', () => {
   // The swatch sits in a 28px track mid-row; a left-anchored 182px popover would hang off the
   // edge of the sidebar.
-  const node = Composites.control(EQUIP, byName(EQUIP.columns),
-    { equipped_items: TINTABLE }, ctx());
+  const node = Composites.control({
+    comp: EQUIP, byName: byName(EQUIP.columns), values: { equipped_items: TINTABLE }, ctx: ctx(),
+  });
   slotRows(node).forEach((row) => {
     assert.equal(row.querySelector('[class="colorpicker"]').getAttribute('data-align'), 'right');
   });
@@ -922,9 +1028,10 @@ test('control routes Graphic to the picker, in the schema column order', () => {
   // sheet 2 graphic 5 has art, and 5:2 does not.
   const comp = { kind: 'Graphic', columns: ['graphic_tile', 'graphic_file'] };
   const bundles = { icons: { rects: { '2:5': [0, 0, 8, 8] } } };
-  const node = Composites.control(comp, byName(comp.columns),
-    { graphic_tile: '5', graphic_file: '2' },
-    ctx({ bundles, images: { icons: { fake: true } } }));
+  const node = Composites.control({
+    comp: comp, byName: byName(comp.columns), values: { graphic_tile: '5', graphic_file: '2' },
+    ctx: ctx({ bundles, images: { icons: { fake: true } } }),
+  });
 
   assert.equal(node.getAttribute('class'), 'graphic');
   assert.equal(named(node, 'graphic_tile').value, '5');
@@ -938,8 +1045,9 @@ test('an unknown composite kind still renders every one of its columns', () => {
   // The default branch must not make columns uneditable — a control with no [name] would drop
   // them from Forms.collect and blank them on the next save.
   const comp = { kind: 'Nonesuch', columns: ['body_r', 'body_g'] };
-  const node = Composites.control(comp, byName(comp.columns),
-    { body_r: '1', body_g: '2' }, ctx());
+  const node = Composites.control({
+    comp: comp, byName: byName(comp.columns), values: { body_r: '1', body_g: '2' }, ctx: ctx(),
+  });
   assert.match(node.textContent, /Nonesuch/);
   assert.deepEqual(valuesOf(node, comp.columns), ['1', '2']);
 });
@@ -954,27 +1062,33 @@ test('a composite renders an error slot for each NON-leader column', () => {
   // Forms.render appends exactly one slot, keyed on the leader, so body_g/b/a would have
   // nowhere to report. The slots here come FIRST in document order, and Forms.showErrors
   // keeps the first slot it finds per column.
-  const node = Composites.control(RGBA, byName(RGBA.columns), {}, ctx());
+  const node = Composites.control({
+    comp: RGBA, byName: byName(RGBA.columns), values: {}, ctx: ctx(),
+  });
   const slots = node.querySelectorAll('[data-error-for]');
   assert.deepEqual(slots.map((s) => s.getAttribute('data-error-for')),
     ['body_g', 'body_b', 'body_a']);
 });
 
 test('a single-column composite renders no extra error slot', () => {
-  const node = Composites.control(BITMASK, byName(BITMASK.columns), {}, ctx());
+  const node = Composites.control({
+    comp: BITMASK, byName: byName(BITMASK.columns), values: {}, ctx: ctx(),
+  });
   assert.equal(node.querySelectorAll('[data-error-for]').length, 0);
 });
 
 test('a composite naming a column the schema does not have gets no slot for it', () => {
   const comp = { kind: 'Rgba', columns: ['body_r', 'body_g', 'body_b', 'body_a'] };
   const map = byName(['body_r', 'body_g']);
-  const node = Composites.control(comp, map, {}, ctx());
+  const node = Composites.control({ comp: comp, byName: map, values: {}, ctx: ctx() });
   assert.deepEqual(node.querySelectorAll('[data-error-for]').map((s) =>
     s.getAttribute('data-error-for')), ['body_g']);
 });
 
 test('collect returns nothing — every composite writes named cells', () => {
-  const node = Composites.control(RGBA, byName(RGBA.columns), {}, ctx());
+  const node = Composites.control({
+    comp: RGBA, byName: byName(RGBA.columns), values: {}, ctx: ctx(),
+  });
   assert.deepEqual(Composites.collect(RGBA, node), {});
 });
 
@@ -1069,7 +1183,9 @@ test('rgba names the four cells it writes', () => {
   // The field's <label> now says "body tint", so the column names have to live in the control
   // or a designer cannot find the cells in the sheet. This is the only place they appear: the
   // blend slider that used to carry body_a's name went into the picker's popover.
-  const node = Composites.control(RGBA, byName(RGBA.columns), {}, ctx());
+  const node = Composites.control({
+    comp: RGBA, byName: byName(RGBA.columns), values: {}, ctx: ctx(),
+  });
   assert.equal(node.querySelector('[class="hint"]').textContent, 'body_r body_g body_b body_a');
 });
 
@@ -1077,8 +1193,10 @@ test('the equip slot preview is scaled, with its centring still in logical pixel
   // 11x13 in a 40x56 box: (40-11)/2 = 14.5 and (56-13)/2 = 21.5 before flooring, so a preview
   // that centred on the 80x112 BACKING STORE instead would put the sprite somewhere else.
   const bundles = { parts: { rects: { 'Chest:1:idle-no-equip-down': [0, 0, 11, 13] } } };
-  const node = Composites.control(EQUIP, byName(EQUIP.columns),
-    { equipped_items: RAW_EQUIP }, ctx({ bundles, images: { parts: 'PARTS' } }));
+  const node = Composites.control({
+    comp: EQUIP, byName: byName(EQUIP.columns), values: { equipped_items: RAW_EQUIP },
+    ctx: ctx({ bundles, images: { parts: 'PARTS' } }),
+  });
   const canvas = node.querySelectorAll('[class="preview"]')[0];
 
   assert.equal(canvas.width, 80);

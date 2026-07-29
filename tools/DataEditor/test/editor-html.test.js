@@ -147,6 +147,29 @@ test('the equipment slot row is a live grid with a track for every cell it holds
   assert.match(rule[2], /grid-template-columns:\s*60px\s+1fr\s+28px\s+84px\s+auto/);
 });
 
+test('the two Items canvases are laid out as a row, not stacked with baseline gaps', () => {
+  // #previews holds two canvases on Items and the pair IS the point. With no display they are
+  // inline-level and 256 + 384 overflows the column into a stacked pair.
+  const rule = ruleFor('#previews');
+  assert.ok(rule, `#previews has no rule of its own — check for an ${NOT_FOUND}`);
+  assert.match(rule[2], /display:\s*flex/);
+  assert.match(rule[2], /flex-wrap:\s*wrap/);
+});
+
+test('both Items preview canvases are styled by class name', () => {
+  // The classes app.js gives these two canvases are the only thing joining them to the pixelated
+  // rendering and the checkerboard backdrop. A typo in either name leaves that canvas looking like
+  // a plain smoothed image, which nothing else in this suite would notice.
+  const rule = [...topLevelCss.matchAll(/([^{}]+){([^}]*)}/g)]
+    .find((r) => /canvas\.preview/.test(r[1]));
+  assert.ok(rule, `the canvas rendering rule was dropped — check for an ${NOT_FOUND}`);
+  ['canvas.item-icon', 'canvas.worn'].forEach((selector) => {
+    assert.ok(rule[1].split(',').some((part) => part.trim() === selector),
+              `${selector} is not in the canvas rendering rule`);
+  });
+  assert.match(rule[2], /image-rendering:\s*pixelated/);
+});
+
 test('the icon and slot previews are still rubber-banded to their column', () => {
   const rule = ruleFor('.graphic canvas, .equip .preview');
   assert.ok(rule, `the preview sizing rule was dropped — check for an ${NOT_FOUND}`);

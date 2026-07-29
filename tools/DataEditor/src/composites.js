@@ -48,9 +48,15 @@ var Composites = (function () {
 
   // The equip-slot preview's logical box, and the factor its canvas backing store is scaled by
   // so the sprite is legible on screen. The maths is unchanged; only the context is scaled.
-  var SLOT_W = 40;
-  var SLOT_H = 56;
-  var SLOT_SCALE = 2;
+  //
+  // READ THROUGH TO Pickers rather than restated. An .equip-slot row and Pickers.partControl show
+  // the SAME thing — one equipped sprite in the form column — and two different boxes for it would
+  // make the form look uneven for no reason, so the numbers have to agree. They now cannot fail to:
+  // there is one copy. Editor.html includes pickers ahead of composites, which is what makes this
+  // legal at IIFE-evaluation time rather than only at call time like the Pickers.* uses below.
+  var SLOT_W = Pickers.PART_W;
+  var SLOT_H = Pickers.PART_H;
+  var SLOT_SCALE = Pickers.PART_SCALE;
 
   // parseInt(v, 10), matching Equipped.num(), Appearance.num() and Sprites.num() so the modules
   // cannot disagree about what a cell means.
@@ -527,16 +533,29 @@ var Composites = (function () {
     return node;
   }
 
+  // Takes one options object, `{ comp, byName, values, ctx, sheet }`. Named rather than positional
+  // because four of the five are maps or descriptor bags with no order a reader could infer from a
+  // call site, and every kind below reads a different subset of them.
+  //
   // `sheet` is only for the presentation tables in Layout — which graphic this sheet tints, today.
   // A caller that omits it gets the untinted control, which is what every sheet but Items gets
   // anyway.
-  function control(comp, byName, values, ctx, sheet) {
+  function control(opts) {
+    var comp = opts.comp;
+    var byName = opts.byName;
+    var values = opts.values || {};
+    var ctx = opts.ctx;
+    var sheet = opts.sheet;
+
     var node;
     switch (comp.kind) {
       case 'Graphic':
-        node = Pickers.graphicControl(byName[comp.columns[0]], byName[comp.columns[1]],
-                                      values, ctx,
-                                      Layout.tintColumns(sheet, comp.columns[0]));
+        node = Pickers.graphicControl({
+          graphicColumn: byName[comp.columns[0]],
+          fileColumn: byName[comp.columns[1]],
+          values: values, ctx: ctx,
+          tintColumns: Layout.tintColumns(sheet, comp.columns[0]),
+        });
         break;
       case 'Rgba': node = rgbaControl(comp, values); break;
       case 'Bitmask': node = bitmaskControl(comp, values, ctx); break;

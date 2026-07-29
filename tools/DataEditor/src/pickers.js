@@ -69,29 +69,27 @@ var Pickers = (function () {
     return /^\d+$/.test(text);
   }
 
-  // parseInt(v, 10), matching Sprites.num(), Appearance.num(), Equipped.num(), Preview.num() and
-  // Composites.num() so no two modules disagree about what a spreadsheet cell means.
-  function num(value) {
-    var n = parseInt(value, 10);
-    return isNaN(n) ? 0 : n;
-  }
-
   // The tint a set of tint columns currently asks for, read out of a collected form. Null when
   // the graphic has no tint columns at all (Layout.TINTS says which do), which is not the same as
   // a tint of zero: Sprites.draw treats both as "draw it plain", so the distinction is only about
   // whether there is anything to read.
   //
-  // No clamping and no zero-alpha collapse here — Sprites.applyTint clamps every channel and
-  // treats a zero blend factor as NoTint, colour and all, exactly as Icon.cs does. A second copy
-  // of either rule is a second rule that can drift.
+  // The COERCION is Preview.tintOf's and not a copy of it. Four cells to a tint object is one
+  // boundary, not two: the hazard it exists for (Sprites.draw's no-tint shortcut is `!tint.a`,
+  // and the string '0' is truthy, so a raw cell would take the per-pixel path to compute an
+  // identity blend) is stated once, there, along with why clamping is left to Sprites.applyTint.
+  // Only the SIGNATURES differ — tintOf reads named fields off an item, this reads four column
+  // names out of a form — so this is the adapter and nothing more.
+  //
+  // Preview is resolved as a free global at call time, exactly as it is for isArmed below.
   function tintFrom(tintColumns, values) {
     if (!tintColumns) return null;
-    return {
-      r: num(values[tintColumns[0]]),
-      g: num(values[tintColumns[1]]),
-      b: num(values[tintColumns[2]]),
-      a: num(values[tintColumns[3]]),
-    };
+    return Preview.tintOf({
+      r: values[tintColumns[0]],
+      g: values[tintColumns[1]],
+      b: values[tintColumns[2]],
+      a: values[tintColumns[3]],
+    });
   }
 
   // Three buckets, best first: exact id, then id prefix, then name substring. An entry lands in
@@ -377,16 +375,24 @@ var Pickers = (function () {
   // Graphic control: the graphic and sheet cells side by side, a canvas preview, and a status
   // line. Blank or 0 in both means "no graphic".
   //
-  // ARGUMENT ORDER IS THE SCHEMA'S, NOT Sprites'. The Graphic composite declares its columns
+  // ONE OPTIONS OBJECT, not five positionals: `{ graphicColumn, fileColumn, values, ctx,
+  // tintColumns }`. The two columns are the reason. The Graphic composite declares them
   // [graphic, file] (graphic_tile + graphic_file, spell_animation + spell_animation_file, …)
-  // while Sprites.icon takes (bundles, SHEET, graphic). Swapping the two resolves nothing at
-  // all and does it silently, so the order is asserted in the tests.
+  // while Sprites.icon takes (bundles, SHEET, graphic) — so a positional call swapping the two
+  // resolves nothing at all and does it silently. Named, the swap is not expressible; the tests
+  // still assert the resolution order anyway.
   //
-  // `tintColumns` is Layout.tintColumns(sheet, graphicColumn.name) — the four cells whose colour
+  // `opts.tintColumns` is Layout.tintColumns(sheet, graphicColumn.name) — the four cells whose colour
   // the game blends into this graphic, or null for a graphic it draws plain. They belong to
   // ANOTHER control (the Rgba composite's hidden inputs), so they cannot be read from this
   // control's own two fields; ctx.onFormChange is how the current values arrive after an edit.
-  function graphicControl(graphicColumn, fileColumn, values, ctx, tintColumns) {
+  function graphicControl(opts) {
+    var graphicColumn = opts.graphicColumn;
+    var fileColumn = opts.fileColumn;
+    var values = opts.values || {};
+    var ctx = opts.ctx;
+    var tintColumns = opts.tintColumns;
+
     var wrap = Forms.el('div', { class: 'graphic' });
     // A 64-pixel logical box drawn at 2x — see ICON_BOX for why 64.
     var canvas = Forms.el('canvas',
@@ -496,6 +502,13 @@ var Pickers = (function () {
     // Only worth subscribing when there is a cross-field cell to watch. An untinted graphic redraws
     // from its own two `input` handlers and nothing else can change what it shows, so registering
     // unconditionally would run a redraw per keystroke in item_description for no reason at all.
+    //
+    // A TINTED ONE THEREFORE REDRAWS TWICE PER KEYSTROKE IN ITS OWN FIELD, and that is known, not
+    // a mystery to be rediscovered: app.js's delegated listener fires on `input`, so typing in
+    // graphic_tile runs redraw() from the handler above and again from this callback. Left alone
+    // deliberately — dropping the direct handlers would make the preview depend on a subscription
+    // this control cannot see the state of, and the cost is one extra draw of one small canvas.
+    // partControl has the same shape for the same reason.
     if (tintColumns && ctx && typeof ctx.onFormChange === 'function') {
       ctx.onFormChange(function (current) { latest = current; redraw(); });
     }
@@ -511,6 +524,9 @@ var Pickers = (function () {
   // preview and a status line. graphic_equip is the only such column today — a plain Int with no
   // composite, which is why it had no preview at all and why forms.js routes it here explicitly.
   //
+  // Takes one options object, `{ column, values, ctx, spec, tintColumns }`, for graphicControl's
+  // reason: several same-typed arguments in a row that no reader can order from the call site.
+  //
   // WHAT MAKES IT DIFFERENT FROM graphicControl: there is no sheet cell. The sprite FOLDER comes
   // from another column entirely (`spec.categoryFrom`, i.e. item_slot), through the client's own
   // slot map in Appearance.slotFor — so the same id is a helmet or a pair of boots depending on a
@@ -521,7 +537,13 @@ var Pickers = (function () {
   // icon is that a complete pair must resolve, and every shipped pair does. Nothing of the kind has
   // been established for graphic_equip, so refusing a save on it would be inventing a rule and
   // could lock rows that ship today. The status line reports a miss; that is all it does.
-  function partControl(column, values, ctx, spec, tintColumns) {
+  function partControl(opts) {
+    var column = opts.column;
+    var values = opts.values || {};
+    var ctx = opts.ctx;
+    var spec = opts.spec;
+    var tintColumns = opts.tintColumns;
+
     var wrap = Forms.el('div', { class: 'graphic' });
     var canvas = Forms.el('canvas',
       { width: PART_W * PART_SCALE, height: PART_H * PART_SCALE, class: 'preview' });
@@ -606,6 +628,8 @@ var Pickers = (function () {
     graphicControl: graphicControl,
     partControl: partControl,
     LIMIT: LIMIT,
+    ICON_BOX: ICON_BOX,
+    ICON_SCALE: ICON_SCALE,
     PART_W: PART_W,
     PART_H: PART_H,
     PART_SCALE: PART_SCALE,

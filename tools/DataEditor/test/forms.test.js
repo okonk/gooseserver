@@ -15,8 +15,8 @@ globalThis.Layout = Layout;
 // installed here is enough — and every stub call is recorded so the contract can be asserted.
 const compositeCalls = { control: [], collect: [] };
 globalThis.Composites = {
-  control(comp, byName, values, ctx) {
-    compositeCalls.control.push({ comp, byName, values, ctx });
+  control({ comp, byName, values, ctx, sheet }) {
+    compositeCalls.control.push({ comp, byName, values, ctx, sheet });
     const node = document.createElement('div');
     node.setAttribute('data-composite', comp.kind);
     comp.columns.forEach((name) => {

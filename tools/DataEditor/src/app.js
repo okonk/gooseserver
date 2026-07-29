@@ -111,10 +111,12 @@ var App = (function () {
       pickerData: state.pickerData,
       // So an fk label can say "could not load Items" rather than "loading Items…" forever.
       refErrors: state.refErrors,
-      // Queued, never invoked immediately: renderForm loads every bundle the sheet needs BEFORE
-      // Forms.render runs, so a control's own build-time redraw already has its images. The
-      // queue is what covers a bundle that arrives late (or not at all), and it is emptied when
-      // the next form is rendered, so callbacks never accumulate across records.
+      // Queued, never invoked immediately: a control does its own first draw at build time, from
+      // whatever art has decoded by then. That is ICONS AND ONLY ICONS — renderForm renders the
+      // form as soon as the icons bundle is in hand and asks for the rest afterwards — so for a
+      // control over a character part this queue is the NORMAL path to its first sprite, not just
+      // the fallback for a slow bundle. Emptied when the next form is rendered and by clearForm,
+      // so callbacks never accumulate across records or outlive the nodes they draw into.
       onImagesReady: function (fn) {
         if (typeof fn === 'function') state.imageCallbacks.push(fn);
       },
@@ -292,6 +294,14 @@ var App = (function () {
     document.getElementById('form').innerHTML = '';
     state.loaded = {};
     state.rowNumber = 0;
+    // The two callback registries go with the nodes they close over. renderForm also clears them,
+    // which covers opening one record after another — but clearForm is the path that empties the
+    // form WITHOUT rendering a new one (a sheet switch, a failed load), and a bundle decoding after
+    // one of those would otherwise hand imagesChanged() a callback whose canvas is already
+    // detached. That is what makes onFormChange's "can never redraw into a detached node" true of
+    // the code and not only of the happy path.
+    state.imageCallbacks = [];
+    state.formCallbacks = [];
   }
 
   // Everything derived from the OPEN sheet's rows. The token scheme guards what a reply may
@@ -467,6 +477,27 @@ var App = (function () {
     renderForm(values);
   }
 
+  // The sheet's part-graphic column and its spec — `{ name, spec }` — or null. ONE lookup, used by
+  // both consumers: bundlesFor, to decide whether the parts bundle is needed, and renderPreviews,
+  // to decide whether the worn-item panel is drawn. Those two must agree, and naming 'Items' in
+  // either of them is what makes them able to disagree: a second sheet gaining a graphic_equip
+  // would get the bundle and the control from the table and then silently get no preview panel.
+  function partGraphicOf(schema) {
+    for (var i = 0; i < schema.columns.length; i++) {
+      var spec = Layout.partGraphic(schema.sheet, schema.columns[i].name);
+      if (spec) return { name: schema.columns[i].name, spec: spec };
+    }
+    return null;
+  }
+
+  // The sheet's first Graphic composite, or null — the inventory-icon pair the panel shows beside
+  // the worn sprite. First, not "the one for Items": Spell Effects has two, and no sheet that has a
+  // part graphic has more than one today.
+  function graphicPairOf(schema) {
+    var comps = (schema.composites || []).filter(function (c) { return c.kind === 'Graphic'; });
+    return comps.length ? comps[0] : null;
+  }
+
   // Which bundles this sheet's controls will ask for. Every sheet gets icons (the Graphic
   // composite and its previews); parts only where a character is drawn; effects only where an
   // animation is.
@@ -478,10 +509,7 @@ var App = (function () {
     // composite, so without this its worn preview and its graphic_equip control would both sit
     // blank with "no character art loaded" forever. Read from the table rather than named here, so
     // a second sheet gaining one cannot be forgotten.
-    var hasPart = schema.columns.some(function (c) {
-      return !!Layout.partGraphic(schema.sheet, c.name);
-    });
-    if (hasBody || hasEquip || hasPart) names.push('parts');
+    if (hasBody || hasEquip || partGraphicOf(schema)) names.push('parts');
     if (['Spells', 'Spell Effects'].indexOf(schema.sheet) !== -1) names.push('effects');
     return names;
   }
@@ -499,11 +527,32 @@ var App = (function () {
     // would write what you see into the row you cannot see.
     var token = ++state.formToken;
 
-    loadBundles(bundlesFor(state.schema), function () {
+    // ICONS AND NOTHING ELSE BEFORE THE FORM. Waiting on every bundle this sheet needs put a
+    // SECOND multi-megabyte PNG decode (parts is 1.98MB, icons 1.75MB) in front of the first field
+    // of the first Items record of a session — on the sheet that is opened most, and usually first.
+    // The download was already paid either way; sprites-parts.html is an unconditional include.
+    //
+    // The rest are asked for afterwards and land through imagesChanged(), which is exactly the path
+    // onImagesReady exists for: every control that needs art subscribes, so a bundle that arrives
+    // late fills a blank canvas rather than being missed. A form is far more useful with its fields
+    // present and one small canvas blank for a moment than absent entirely.
+    var rest = bundlesFor(state.schema).filter(function (n) { return n !== 'icons'; });
+
+    loadBundle('icons', function () {
       if (token !== state.formToken) return;
       var container = document.getElementById('form');
       Forms.render(container, state.schema, values, ctx());
       renderPreviews(container, values);
+
+      if (!rest.length) return;
+      loadBundles(rest, function () {
+        if (token !== state.formToken) return;
+        // The PANEL canvases are pushed the late bundle from here rather than subscribing through
+        // onImagesReady: renderPreviews runs on every keystroke, so a registration inside it would
+        // stack one callback per edit. The form's own controls need no such help — they subscribed
+        // once, at build time, and imagesChanged() has already reached them.
+        renderPreviews(container, Forms.collect(container, state.schema));
+      });
     });
   }
 
@@ -583,36 +632,50 @@ var App = (function () {
       }, ctx(), Preview.CHARACTER_SCALE);
     }
 
-    // ITEMS: two canvases, because an item is two sprites and the pair is the point. The tile is
-    // what a player sees in their bag; the equip graphic is what they see on their character, and
-    // the same graphic_r/g/b/a tints both. Keyed on the sheet rather than on a column, matching the
-    // effect branch below — the Items branch draws a WORN ITEM, which is a different thing from the
-    // character the body_id branch above draws, not a variation on it.
-    if (state.sheetName === 'Items') {
-      var tint = {
-        r: values.graphic_r, g: values.graphic_g, b: values.graphic_b, a: values.graphic_a,
+    // A PART-GRAPHIC SHEET: two canvases, because such an item is two sprites and the pair is the
+    // point. The tile is what a player sees in their bag; the equip graphic is what they see on
+    // their character, and the same tint columns colour both. Items is the only such sheet today.
+    //
+    // Driven off Layout.PART_GRAPHICS and the schema, NOT off the sheet name — the same table
+    // bundlesFor reads, and for the same reason: a second sheet gaining a part graphic gets the
+    // parts bundle and a partControl from the table automatically, so a name spelled out here
+    // would leave exactly that sheet with a control and no panel. previewKey below still lists its
+    // column names literally; that is a cheap dedup key, and a new sheet's cells missing from it
+    // costs a skipped redraw, not a wrong picture.
+    var part = partGraphicOf(state.schema);
+    if (part) {
+      // Read out of Layout.TINTS, like every other tint in the editor. null there means the game
+      // draws this graphic plain, and Preview reads a missing channel as 0, which is untinted.
+      var tintColumns = Layout.tintColumns(state.schema.sheet, part.name) || [];
+      var tint = function (item) {
+        return Object.assign(item, {
+          r: values[tintColumns[0]], g: values[tintColumns[1]],
+          b: values[tintColumns[2]], a: values[tintColumns[3]],
+        });
       };
 
-      var icon = Forms.el('canvas',
-        { width: Preview.ICON_BOX * Preview.ICON_SCALE,
-          height: Preview.ICON_BOX * Preview.ICON_SCALE, class: 'item-icon' });
-      host.appendChild(icon);
-      Preview.itemIcon(icon, {
-        graphic: values.graphic_tile, file: values.graphic_file,
-        r: tint.r, g: tint.g, b: tint.b, a: tint.a,
-      }, ctx(), Preview.ICON_SCALE);
+      var pair = graphicPairOf(state.schema);
+      if (pair) {
+        var icon = Forms.el('canvas',
+          { width: Preview.ICON_BOX * Preview.ICON_SCALE,
+            height: Preview.ICON_BOX * Preview.ICON_SCALE, class: 'item-icon' });
+        host.appendChild(icon);
+        Preview.itemIcon(icon, tint({
+          graphic: values[pair.columns[0]], file: values[pair.columns[1]],
+        }), ctx(), Preview.ICON_SCALE);
+      }
 
-      // Drawn even when graphic_equip is empty or the slot is undrawn: the canvas then shows the
+      // Drawn even when the part graphic is empty or the slot is undrawn: the canvas then shows the
       // bare base body, which is a legible "this item is not worn" rather than a gap in the panel
       // that reads as a broken preview.
       var worn = Forms.el('canvas',
         { width: Preview.CANVAS_W * Preview.CHARACTER_SCALE,
           height: Preview.CANVAS_H * Preview.CHARACTER_SCALE, class: 'worn' });
       host.appendChild(worn);
-      Preview.wornItem(worn, {
-        id: values.graphic_equip, slot: values.item_slot, bodyState: values.body_state,
-        r: tint.r, g: tint.g, b: tint.b, a: tint.a,
-      }, ctx(), Preview.CHARACTER_SCALE);
+      Preview.wornItem(worn, tint({
+        id: values[part.name], slot: values[part.spec.categoryFrom],
+        bodyState: values.body_state,
+      }), ctx(), Preview.CHARACTER_SCALE);
     }
 
     var effectColumn = state.sheetName === 'Spells' ? 'spell_effect_id'
