@@ -342,9 +342,22 @@ var Composites = (function () {
     return wrap;
   }
 
+  // The graphic browser, or null when it is not on the page. Resolved at CALL time and overridable
+  // through the control's options object, exactly as Pickers.galleryOf does it — pickers.js:123
+  // states the reason a two-line helper is duplicated across modules rather than shared, and this
+  // is the copy it names.
+  function galleryOf(opts) {
+    if (opts && opts.gallery) return opts.gallery;
+    return (typeof Gallery !== 'undefined' && Gallery) ? Gallery : null;
+  }
+
   // EquipSlots: six labelled rows over the equipped_items token stream — a graphic field, a
   // colour picker for the slot's tint, and a preview of the two together.
-  function equipSlotsControl(comp, values, ctx, galleryOverride) {
+  //
+  // `opts` is the same options bag Pickers' controls take — { gallery } today. Threaded whole
+  // rather than as a bare `gallery` positional so this seam has the shape every other gallery seam
+  // in the round has, and so a second option costs no signature.
+  function equipSlotsControl(comp, values, ctx, opts) {
     var column = comp.columns[0];
     var wrap = Forms.el('div', { class: 'equip' });
     var raw = str(values[column]);
@@ -424,8 +437,7 @@ var Composites = (function () {
         title: 'browse ' + slotName + ' graphics', 'aria-label': 'browse ' + slotName + ' graphics',
       }, '…');
       browse.addEventListener('click', function () {
-        var gallery = galleryOverride
-          || ((typeof Gallery !== 'undefined' && Gallery) ? Gallery : null);
+        var gallery = galleryOf(opts);
         if (!gallery) return;
         gallery.open({
           bundle: 'parts',
@@ -607,7 +619,7 @@ var Composites = (function () {
       case 'Rgba': node = rgbaControl(comp, values); break;
       case 'Bitmask': node = bitmaskControl(comp, values, ctx); break;
       case 'IdList': node = idListControl(comp, values, ctx); break;
-      case 'EquipSlots': node = equipSlotsControl(comp, values, ctx, opts.gallery); break;
+      case 'EquipSlots': node = equipSlotsControl(comp, values, ctx, { gallery: opts.gallery }); break;
       default: node = unsupportedControl(comp, byName, values); break;
     }
     return addErrorSlots(node, comp, byName);

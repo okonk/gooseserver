@@ -455,7 +455,8 @@ var Pickers = (function () {
     // both be set" hard to trip from the browser. An EFFECT pick has no sheet to write, so the file
     // cell is left alone — spell_animation_file is stored 0 in 176 of the 259 shipped rows and the
     // server sends both cells through verbatim, so filling it in would be inventing data.
-    var browse = browseButton('browse ' + galleryBundle + ' for ' + graphicColumn.name, 'Browse',
+    var browse = browseButton('browse the ' + galleryBundle + ' atlas for ' + graphicColumn.name,
+      'Browse',
       function (button) {
         var gallery = galleryOf(opts);
         if (!gallery) return;
@@ -629,26 +630,32 @@ var Pickers = (function () {
     var status = Forms.el('span', { class: 'status' });
     var latest = values;
 
-    // The sprite folder for whatever the row's slot column currently says, or null when the slot is
-    // not drawn on the character. Read from the LIVE form for the reason redraw() gives.
-    function category() {
+    // The sprite folder this row can be BROWSED in, or null when there is nothing to browse. One
+    // function for the whole question, because it is asked from three places (the click handler, the
+    // enable/disable branch, and the preview's status line) and three spellings of it could drift.
+    //
+    // A Mount is null even though it HAS a folder: its art is a mounted clip, which the gallery does
+    // not index because Sprites.part deliberately never falls back to one — so Bodies would list 305
+    // standing bodies of which four have the mounted pose this cell actually needs.
+    //
+    // Read from the LIVE form for the reason redraw() gives.
+    function browsableCategory() {
       var slot = Appearance.slotFor(latest[spec.categoryFrom]);
-      return slot ? Appearance.CATEGORY[slot] : null;
+      if (!slot || slot === 'Mount') return null;
+      return Appearance.CATEGORY[slot] || null;
     }
 
     // LOCKED TO THE ROW'S OWN CATEGORY, always. The folder comes from item_slot, so browsing Helms
     // for a Feet item would offer a sprite the client would never draw there — the gallery renders
     // no chooser at all in that case rather than a disabled one.
     //
-    // With no category there is nothing to browse: the button is disabled and says why. A Mount is
-    // the other missing case — its art is a mounted clip, which the gallery does not index because
-    // Sprites.part deliberately never falls back to one — so Bodies would list 305 standing bodies
-    // of which four have the mounted pose this cell actually needs. Better to offer nothing.
-    var browse = browseButton('browse character parts for ' + column.name, 'Browse',
+    // With no browsable folder there is nothing to open: the button is disabled and the status line
+    // says why. See browsableCategory for which slots have none.
+    var browse = browseButton('browse the character parts atlas for ' + column.name, 'Browse',
       function (button) {
         var gallery = galleryOf(opts);
-        var folder = category();
-        if (!gallery || !folder || Appearance.slotFor(latest[spec.categoryFrom]) === 'Mount') return;
+        var folder = browsableCategory();
+        if (!gallery || !folder) return;
         gallery.open({
           bundle: 'parts',
           bundles: (ctx && ctx.bundles) || {},
@@ -671,8 +678,8 @@ var Pickers = (function () {
 
       // Kept in step with the slot on every edit, not decided once at build time: changing
       // item_slot from Ring to Helmet must make the button work, and the reverse must stop it.
-      // The click handler guards too — `disabled` is a hint to the user, not a lock.
-      if (slot && slot !== 'Mount') browse.removeAttribute('disabled');
+      // The click handler guards on the same function — `disabled` is a hint to the user, not a lock.
+      if (browsableCategory()) browse.removeAttribute('disabled');
       else browse.setAttribute('disabled', '');
 
       function say(message, bad) {

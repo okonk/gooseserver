@@ -85,6 +85,9 @@ var Gallery = (function () {
       var bits = key.split(':');
       if (bits.length !== 2) return;
       out.push({
+        // `graphic` AND `id` hold the same string on purpose, and neither is spare: filterEntries's
+        // id search reads e.id across all three bundles, and indexOf compares an icon on e.graphic
+        // because that is the cell name the caller round-trips.
         key: key, rect: rects[key], sheet: bits[0], graphic: bits[1], id: bits[1],
         label: 'sheet ' + bits[0] + ' graphic ' + bits[1],
         pick: { sheet: bits[0], graphic: bits[1] },
@@ -97,9 +100,13 @@ var Gallery = (function () {
 
   /// The 125 sheet files with their counts, in NUMERIC order — '104' before '1006', which a string
   /// sort gets backwards.
-  function iconSheets(bundle) {
+  ///
+  /// Takes the ENTRIES, not the bundle: open() has already built and sorted them, and re-indexing
+  /// 4,827 keys to count them would be the second full pass in a module whose opening argument is
+  /// that the naive approach is too expensive. Still pure — it reads the array and nothing else.
+  function iconSheets(entries) {
     var counts = Object.create(null);
-    iconEntries(bundle).forEach(function (e) {
+    entries.forEach(function (e) {
       counts[e.sheet] = (counts[e.sheet] || 0) + 1;
     });
     return Object.keys(counts)
@@ -150,9 +157,11 @@ var Gallery = (function () {
 
   /// The 8 categories with their counts, alphabetically — which is also the order the folders are
   /// listed in everywhere else (Appearance.CATEGORY, the bundle config).
-  function partCategories(bundle) {
+  ///
+  /// Takes the ENTRIES for the reason iconSheets does.
+  function partCategories(entries) {
     var counts = Object.create(null);
-    partEntries(bundle).forEach(function (e) {
+    entries.forEach(function (e) {
       counts[e.category] = (counts[e.category] || 0) + 1;
     });
     return Object.keys(counts).sort().map(function (category) {
@@ -212,8 +221,18 @@ var Gallery = (function () {
   /// stand in for the rest. Pure arithmetic over a uniform row height — no element is measured, so
   /// this is the whole of the windowing logic and it is testable without a layout engine.
   ///
-  /// The three heights always add up to the full list height. They have to: a spacer that came out
-  /// short would make the scrollbar jump under the user's thumb on every re-render.
+  /// The three heights always add up to rowCount * ROW_HEIGHT, whatever the offset. They have to: a
+  /// spacer that came out short would make the scrollbar jump under the user's thumb on every
+  /// re-render, and a spacer that came out short by a DIFFERENT amount each time would do it
+  /// visibly.
+  ///
+  /// That total is one GAP taller than the grid actually is — the real grid is
+  /// rowCount * ROW_HEIGHT - GAP, since there is no trailing gap after the last row. Constant, 4px,
+  /// and identical on every render, so it cannot make the scrollbar move; it just means the scroller
+  /// ends 4px below its content.
+  ///
+  /// `rowCount` and `firstRow` are returned for tests to assert against; render() reads only
+  /// first/last/topPad/bottomPad, so nothing in production depends on them.
   function windowFor(count, scrollTop, viewport) {
     var rowCount = Math.ceil(count / COLUMNS);
     var view = viewport > 0 ? viewport : DEFAULT_VIEWPORT;
@@ -318,7 +337,10 @@ var Gallery = (function () {
     // out-of-memory.
     if (bundle && bundle.png) {
       host.appendChild(el('style', { 'data-gal': 'atlas' },
-        '#modal .gal-tile { background-image: url("' + bundle.png + '"); }'));
+        // The selector is built from the host's OWN id rather than spelled again: the tests assert
+        // the URI is in the rule text, not that the selector matches anything, so a host that moved
+        // would leave every tile without art and no test would see it.
+        '#' + host.id + ' .gal-tile { background-image: url("' + bundle.png + '"); }'));
     }
 
     var dialog = el('div', {
@@ -338,7 +360,7 @@ var Gallery = (function () {
 
     if (bundleName === 'icons') {
       sheetChooser = el('select', { 'data-gal': 'sheet', 'aria-label': 'sheet file' });
-      iconSheets(bundle).forEach(function (s) {
+      iconSheets(all).forEach(function (s) {
         sheetChooser.appendChild(el('option', { value: s.sheet },
           s.sheet + ' (' + s.count + ')'));
       });
@@ -356,7 +378,7 @@ var Gallery = (function () {
         wanted.category + ' only — the slot decides'));
     } else if (bundleName === 'parts') {
       categoryChooser = el('select', { 'data-gal': 'category', 'aria-label': 'category' });
-      partCategories(bundle).forEach(function (c) {
+      partCategories(all).forEach(function (c) {
         categoryChooser.appendChild(el('option', { value: c.category },
           c.category + ' (' + c.count + ')'));
       });
@@ -457,12 +479,12 @@ var Gallery = (function () {
         grid.appendChild(tile);
       }
 
-      var active = grid.getElementsByTagName('button')[cursor - w.first];
-      if (active && cursor >= w.first && cursor < w.last) {
-        scroll.setAttribute('aria-activedescendant', active.getAttribute('id'));
-      } else {
-        scroll.removeAttribute('aria-activedescendant');
-      }
+      // The RANGE TEST FIRST, then the subscript: `cursor - w.first` is negative for a cursor above
+      // the window, and a negative subscript is a question worth not asking.
+      var active = (cursor >= w.first && cursor < w.last)
+        ? grid.getElementsByTagName('button')[cursor - w.first] : null;
+      if (active) scroll.setAttribute('aria-activedescendant', active.getAttribute('id'));
+      else scroll.removeAttribute('aria-activedescendant');
     }
 
     // Keeps the cursor's row inside the viewport by arithmetic rather than by measurement — the
@@ -505,6 +527,11 @@ var Gallery = (function () {
       if (!entry) return;
       // Closed BEFORE the callback, so a caller whose onPick re-renders the form (which is most of
       // them) is not writing into a DOM this dialog still holds a cursor into.
+      //
+      // THE FOCUS RESTORE RIDES INSIDE THAT CLOSE, so the opener is focused before onPick runs.
+      // Correct for every shipped onPick — they only dispatch `input` on a field — but one that
+      // REBUILT the form would detach the button just focused and drop focus to <body>. Such a
+      // caller has to refocus something itself; this dialog no longer exists by then.
       instance.close(true);
       if (onPick) onPick(entry.pick);
     }

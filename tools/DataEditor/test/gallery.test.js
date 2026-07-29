@@ -36,7 +36,7 @@ test('the icon index groups every key in the real bundle into its sheet file', (
   assert.equal(entries.length, 4827);
   assert.equal(Object.keys(real.icons.rects).length, 4827);
 
-  const sheets = Gallery.iconSheets(real.icons);
+  const sheets = Gallery.iconSheets(entries);
   assert.equal(sheets.length, 125);
   // The counts partition the bundle: no key is dropped and none is counted twice.
   assert.equal(sheets.reduce((sum, s) => sum + s.count, 0), 4827);
@@ -47,7 +47,7 @@ test('the icon index groups every key in the real bundle into its sheet file', (
 });
 
 test('the sheet list is in numeric order, not string order', () => {
-  const sheets = Gallery.iconSheets(real.icons).map((s) => Number(s.sheet));
+  const sheets = Gallery.iconSheets(Gallery.iconEntries(real.icons)).map((s) => Number(s.sheet));
   const sorted = sheets.slice().sort((a, b) => a - b);
   assert.deepEqual(sheets, sorted);
 });
@@ -66,7 +66,7 @@ test('the part index deduplicates the four clips down to one tile per id', () =>
   const keys = new Set(entries.map((e) => e.category + ':' + e.id));
   assert.equal(keys.size, entries.length, 'a category:id appears twice');
 
-  const categories = Gallery.partCategories(real.parts);
+  const categories = Gallery.partCategories(entries);
   assert.deepEqual(categories.map((c) => c.category),
     ['Bodies', 'Chest', 'Eyes', 'Feet', 'Hair', 'Hands', 'Helms', 'Legs']);
   assert.equal(categories.reduce((sum, c) => sum + c.count, 0), entries.length);

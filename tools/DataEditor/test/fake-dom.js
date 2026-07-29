@@ -198,9 +198,17 @@ class FakeNode {
   //     way, make the scroller scrollable at all.
   //
   // That derivation is a LOWER BOUND, and knowingly so: a child with no declared height (the tile
-  // grid itself) contributes 0, where a browser would count the rows it laid out. The error is in
-  // the strict direction — this fake clamps a scrollTop a browser would have allowed, so a test
-  // fails rather than passing on geometry the browser does not have.
+  // grid itself) contributes 0, where a browser would count the rows it laid out. So this fake
+  // clamps scrollTop harder than a browser would, and THAT IS NOT ALWAYS THE SAFE DIRECTION.
+  // Measured, on a 400-icon bundle opened with `current` on the last row: rowCount 100, the ideal
+  // scrollTop 6320, the clamped one 6120 — the grid's own rows contribute 0, so scrollHeight comes
+  // out 5984 against a true 6800. A scroll to the last row therefore lands SHORT by the rendered
+  // window's height (here 200px, about three rows).
+  //
+  // Gallery's own open-on-current test (gallery.test.js) passes on that short offset only because
+  // the missing rows fall inside OVERSCAN: ceil((6120 + 480) / 68) = 98, + 2 = 100 = rowCount, so
+  // the last row is inside the window exactly. Lowering OVERSCAN would fail that test's
+  // aria-activedescendant assertion for this reason and not for the change being made.
   get scrollHeight() {
     let flow = 0;
     for (const child of this.children) {

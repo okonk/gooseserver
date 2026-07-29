@@ -145,9 +145,12 @@
 
      The five tracks are label, graphic, browse, swatch, preview. The default .swatch is 40px, so
      it is narrowed HERE rather than the track being widened to 40: the row is already
-     60 + 28 + 28 + 84 + gaps of fixed width against a ~258px sidebar column, and every pixel given
-     to the swatch comes off the 1fr graphic field, which needs the room more — a 28px swatch still
-     reads as a colour, a truncated graphic id does not.
+     60 + 28 + 28 + 84 + four 4px gaps is 216px of fixed width against a ~258px sidebar column, so
+     the 1fr graphic field gets about 42px — roughly two digits of content. Part ids reach three
+     (Bodies runs past 300), so AT THE NARROWEST COLUMN A 3-DIGIT ID STILL SCROLLS INSIDE ITS FIELD
+     rather than showing whole; the field is the one track that grows the moment there is more room.
+     Every pixel given to the swatch comes off it, which is why the swatch is 28px and not more: a
+     28px swatch still reads as a colour, and the id has none to spare.
 
      THE STATUS LINE IS NO LONGER A TRACK. It was the one cell with no width budget — an `auto`
      track holding a string that has since grown ("colour not stored while blend is 0") — and a
