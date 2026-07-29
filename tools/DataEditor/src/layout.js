@@ -102,6 +102,43 @@ var Layout = (function () {
                       'Combination Item Required', 'Combination Item Result', 'Titles',
                       'Surnames'];
 
+  // The longest shared leading text of every name, cut back to the last '_' it contains and
+  // with that '_' dropped: ['graphic_r','graphic_g','graphic_b','graphic_a'] -> 'graphic'.
+  // Cutting at '_' rather than taking the raw prefix is what stops a coincidental shared letter
+  // — ['red','reg','reb'] — from being read as a field name.
+  function sharedPrefix(names) {
+    if (names.length < 2) return '';
+    var prefix = names[0];
+    names.forEach(function (name) {
+      var i = 0;
+      while (i < prefix.length && i < name.length && prefix.charAt(i) === name.charAt(i)) i++;
+      prefix = prefix.slice(0, i);
+    });
+    var cut = prefix.lastIndexOf('_');
+    return cut === -1 ? '' : prefix.slice(0, cut);
+  }
+
+  // What the form calls a composite. A composite spans several columns, so naming it after the
+  // leader — the first column it claims — is honest only for the three kinds that claim exactly
+  // one. For Rgba the leader is the RED CHANNEL, so the tint on Items read 'graphic_r'; for
+  // Graphic the leader is the tile, which hides the sheet column entirely.
+  //
+  // `leader` is the column the form actually rendered the control at, which is not always
+  // columns[0] (forms.js skips a column the descriptors dropped). Everything falls back to it,
+  // so a composite whose names share no prefix can never produce a label like ' tint'.
+  function labelFor(comp, leader) {
+    var columns = (comp && comp.columns) || [];
+    var name = leader || columns[0] || '';
+    if (!comp) return name;
+
+    if (comp.kind === 'Rgba') {
+      var prefix = sharedPrefix(columns);
+      return prefix ? prefix + ' tint' : name;
+    }
+    if (comp.kind === 'Graphic') return name + ' + sheet';
+    return name;
+  }
+
   function needsRestart(sheet) {
     return RESTART_ONLY.indexOf(sheet) !== -1;
   }
@@ -146,6 +183,7 @@ var Layout = (function () {
   // here for a column that does not exist is invisible to groupsFor, which simply filters it out.
   return {
     groupsFor: groupsFor,
+    labelFor: labelFor,
     needsRestart: needsRestart,
     RESTART_ONLY: deepFreeze(RESTART_ONLY),
     LAYOUTS: deepFreeze(LAYOUTS),

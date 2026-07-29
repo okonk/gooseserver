@@ -175,3 +175,69 @@ test('a real sheet therefore needs no Other group', () => {
     assert.equal(groups.flatMap((g) => g.columns).length, sheet(name).columns.length, name);
   });
 });
+
+// ---------------------------------------------------------------- labelFor
+
+// Every composite in schema.js, whatever kind, whatever sheet.
+const ALL_COMPOSITES = SCHEMA.sheets.flatMap((s) =>
+  [...(s.composites || [])].map((c) => ({ sheet: s.sheet, comp: c })));
+
+test('every composite in schema.js gets an honest label', () => {
+  assert.ok(ALL_COMPOSITES.length > 0, 'schema.js declares no composites at all');
+
+  ALL_COMPOSITES.forEach(({ sheet: name, comp }) => {
+    const columns = [...comp.columns];
+    const label = Layout.labelFor(comp, columns[0]);
+    const where = `${name} ${comp.kind} [${columns.join(', ')}]`;
+
+    assert.ok(label && label.trim() === label && label !== '',
+      `${where} produced a blank or padded label: ${JSON.stringify(label)}`);
+
+    // Every word that looks like a column name must BE one — the label may not invent a cell.
+    const known = new Set([...sheet(name).columns].map((c) => c.name));
+    label.split(' ').forEach((word) => {
+      if (word.indexOf('_') === -1) return;
+      assert.ok(known.has(word), `${where} names a column that does not exist: ${word}`);
+    });
+
+    if (comp.kind === 'Rgba') {
+      // The bug: the tint was labelled after its RED CHANNEL.
+      assert.ok(!/_[rgba]\b/.test(label), `${where} is still labelled after a channel: ${label}`);
+      assert.match(label, /^\S+ tint$/, where);
+    } else if (comp.kind === 'Graphic') {
+      assert.equal(label, columns[0] + ' + sheet', where);
+    } else {
+      assert.equal(columns.length, 1, `${where} claims more than one column`);
+      assert.equal(label, columns[0], where);
+    }
+  });
+});
+
+test('the four shipped tints read as tints, not as red channels', () => {
+  const label = (kind, columns) => Layout.labelFor({ kind, columns }, columns[0]);
+  assert.equal(label('Rgba', ['graphic_r', 'graphic_g', 'graphic_b', 'graphic_a']),
+    'graphic tint');
+  assert.equal(label('Rgba', ['body_r', 'body_g', 'body_b', 'body_a']), 'body tint');
+  assert.equal(label('Rgba', ['hair_r', 'hair_g', 'hair_b', 'hair_a']), 'hair tint');
+});
+
+test('a tint whose columns share no prefix keeps the leader name', () => {
+  // Nothing may produce " tint" with an empty prefix in front of it.
+  assert.equal(Layout.labelFor({ kind: 'Rgba', columns: ['r', 'g', 'b', 'a'] }, 'r'), 'r');
+  assert.equal(Layout.labelFor({ kind: 'Rgba', columns: ['red_x', 'green_y'] }, 'red_x'),
+    'red_x');
+  // A coincidental shared letter is not a field name either.
+  assert.equal(Layout.labelFor({ kind: 'Rgba', columns: ['red', 'reg', 'reb'] }, 'red'), 'red');
+});
+
+test('labelFor falls back to the leader the form actually rendered', () => {
+  // forms.js elects the first SCHEMA-PRESENT column as leader, which is not always columns[0].
+  assert.equal(Layout.labelFor({ kind: 'Graphic', columns: ['ghost', 'graphic_file'] },
+    'graphic_file'), 'graphic_file + sheet');
+  assert.equal(Layout.labelFor({ kind: 'IdList', columns: ['quest_ids'] }, 'quest_ids'),
+    'quest_ids');
+});
+
+test('an unknown kind is labelled after its leader rather than guessed at', () => {
+  assert.equal(Layout.labelFor({ kind: 'Fake', columns: ['a', 'b'] }, 'a'), 'a');
+});

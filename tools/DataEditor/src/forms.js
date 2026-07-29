@@ -158,7 +158,7 @@ var Forms = (function () {
         var row = el('div', { class: 'field' });
         // A composite is several controls; there is no single id to point a label at, so it
         // gets a plain label rather than a `for` that resolves to nothing.
-        row.appendChild(comp ? el('label', null, name)
+        row.appendChild(comp ? el('label', null, Layout.labelFor(comp, name))
                              : el('label', { for: 'f-' + name }, name));
 
         row.appendChild(comp ? Composites.control(comp, byName, values, ctx)

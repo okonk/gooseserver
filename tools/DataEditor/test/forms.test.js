@@ -554,8 +554,11 @@ test('the real Items sheet renders every column exactly once', () => {
   Forms.render(host, items, {}, {});
   const claimed = new Set([...items.composites].flatMap((c) => [...c.columns]));
   const leaders = new Set([...items.composites].map((c) => c.columns[0]));
+  const compFor = new Map([...items.composites].map((c) => [c.columns[0], c]));
   const expected = [...items.columns].map((c) => c.name)
-    .filter((n) => !claimed.has(n) || leaders.has(n));
+    .filter((n) => !claimed.has(n) || leaders.has(n))
+    // A composite's label names the whole field, not its leader column.
+    .map((n) => (compFor.has(n) ? Layout.labelFor(compFor.get(n), n) : n));
   assert.deepEqual(labels(host).sort(), expected.sort());
 });
 
@@ -778,5 +781,23 @@ test('every Validation error for a real sheet lands somewhere or is knowingly dr
   [...items.columns].forEach((c) => {
     assert.ok(slots.has(c.name) || claimed.has(c.name),
       `${c.name} can produce an error with nowhere to show it`);
+  });
+});
+
+test("an Rgba field's label is the tint, not its red channel", () => {
+  const host = div();
+  const items = sheet('Items');
+  Forms.render(host, items, {}, {});
+  const names = labels(host);
+  assert.ok(names.includes('graphic tint'),
+    `no tint label among ${JSON.stringify(names)}`);
+  assert.equal(names.filter((n) => n === 'graphic_r').length, 0);
+
+  // The four cells must still be findable from the field, or a designer cannot locate them in
+  // the sheet. The stub composite control writes one [name] per column, as the real one does.
+  const field = host.getElementsByTagName('label')
+    .find((l) => l.textContent === 'graphic tint').parentNode;
+  ['graphic_r', 'graphic_g', 'graphic_b', 'graphic_a'].forEach((n) => {
+    assert.ok(named(field).includes(n), `${n} is not reachable from the tint field`);
   });
 });

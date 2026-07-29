@@ -200,9 +200,15 @@ var Composites = (function () {
     blend.addEventListener('input', sync);
 
     describe();
+    // The field's own <label> says "graphic tint" (Layout.labelFor) — deliberately not a column
+    // name, because this one control writes four cells. These two lines are what let a designer
+    // still find those cells in the sheet: the slider is named for the channel it moves, and the
+    // hint lists all four in order.
     wrap.appendChild(swatch);
+    wrap.appendChild(Forms.el('span', { class: 'blend-label' }, cols[3]));
     wrap.appendChild(blend);
     wrap.appendChild(readout);
+    wrap.appendChild(Forms.el('div', { class: 'hint' }, cols.join(' ')));
     hidden.forEach(function (node) { wrap.appendChild(node); });
     return wrap;
   }

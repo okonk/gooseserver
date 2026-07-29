@@ -937,3 +937,11 @@ test('the whole NPCs row round-trips through render and collect unchanged', () =
   assert.deepEqual(Forms.collect(container, schema), values);
   assert.ok(walk(container).length > 0);
 });
+
+test('rgba names the four cells it writes, and the slider names its own', () => {
+  // The field's <label> now says "body tint", so the column names have to live in the control
+  // or a designer cannot find the cells in the sheet.
+  const node = Composites.control(RGBA, byName(RGBA.columns), {}, ctx());
+  assert.equal(node.querySelector('[class="hint"]').textContent, 'body_r body_g body_b body_a');
+  assert.equal(node.querySelector('[class="blend-label"]').textContent, 'body_a');
+});
