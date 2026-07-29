@@ -368,7 +368,7 @@ test('bitmask clears the bit when a class is unticked', () => {
 });
 
 test('bitmask PRESERVES a set bit that belongs to no class', () => {
-  // Bit 0 is set by 9 of the 13 shipped item/spell masks (~230 rows) and there is no class 0.
+  // Bit 0 is set by 9 of the 13 shipped item/spell masks (426 rows) and there is no class 0.
   // Rebuilding the mask from the checkboxes alone would drop it and rewrite all of them.
   const node = Composites.control(BITMASK, byName(BITMASK.columns),
     { class_restrictions: '31' }, ctx());
@@ -388,6 +388,22 @@ test('bitmask preserves a CLEAR foreign bit just as carefully', () => {
   priest.checked = true;
   fire(priest, 'change');
   assert.equal(named(node, 'class_restrictions').value, '54');
+});
+
+test('bitmask preserves a foreign bit ABOVE the class range', () => {
+  // 253 = 0b11111101, the shipped Quests value: bit 0 AND bit 7 set, bit 1 clear. Bit 7 is the
+  // only high foreign bit in the data, and every other control test here uses bit 0 alone — so
+  // without this case the whole `foreign` filter can be replaced by "keep bit 0" unnoticed.
+  // It is what must hold if a 7th class is ever added to the Classes sheet.
+  const node = Composites.control(BITMASK, byName(BITMASK.columns),
+    { class_restrictions: '253' }, ctx());
+  assert.deepEqual(boxes(node).filter((b) => b.checked).map((b) => b.value),
+    ['2', '3', '4', '5', '6']);
+  const rogue = boxes(node).find((b) => b.value === '1');
+  rogue.checked = true;
+  fire(rogue, 'change');
+  // 253 + 2 = 255: every class restricted, with bits 0 and 7 carried through untouched.
+  assert.equal(named(node, 'class_restrictions').value, '255');
 });
 
 test('bitmask keeps a foreign bit even when every class box is cleared', () => {

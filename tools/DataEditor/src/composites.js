@@ -229,7 +229,7 @@ var Composites = (function () {
 
     // Bits belonging to no listed row are kept exactly as they are, SET OR CLEAR. This is not
     // hypothetical and it is not a constant: bit 0 belongs to no class, 9 of the 13 shipped
-    // item/spell masks set it (~230 rows) and the other four — 22, 34, 38, 50 — leave it clear.
+    // item/spell masks set it (426 rows) and the other four — 22, 34, 38, 50 — leave it clear.
     // Rebuilding the mask from the checkboxes alone would rewrite every row in the first group;
     // OR-ing in a fixed bit 0 would rewrite every row in the second.
     var stored = bitsToIds(values[column]);
