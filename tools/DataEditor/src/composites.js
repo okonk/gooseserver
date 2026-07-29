@@ -10,10 +10,20 @@
 // a value the server can use at all (Goose/Packets.cs:161 splices it into the packet); repairing
 // that one is always right.
 //
-// CONTRACT WITH TASK 11: every control calls `wrapper.__onChange()` after a change it accepted,
-// if the property is set. That is how the preview learns to redraw. It is a plain property
-// rather than a dispatched Event because nothing else in this editor listens to the DOM, and a
-// synthetic Event would need a constructor the Apps Script sandbox and the test fake both lack.
+// CONTRACT WITH TASK 11, two halves:
+//
+//   1. Every control calls `wrapper.__onChange()` after a change it accepted, if the property is
+//      set. That is how the preview learns to redraw. It is a plain property rather than a
+//      dispatched Event because nothing else in this editor listens to the DOM, and a synthetic
+//      Event would need a constructor the Apps Script sandbox and the test fake both lack.
+//
+//   2. THE SAVE PATH MUST REFUSE WHILE AN EQUIP SLOT IS FLAGGED. equipSlotsControl freezes the
+//      whole cell while any of the six graphic fields holds a typo — it has to, because
+//      Equipped.format would coerce the typo to 0 and Equipped.isFaithful only ever inspects
+//      STORED strings, so a save would look clean. The cost is that edits to the OTHER five
+//      slots, made while the field is frozen, are held in memory and never reach the cell:
+//      saving then silently discards them. `wrapper.__frozen` is true exactly while that is the
+//      case; Save must block on it and say so, not just refuse quietly.
 var Composites = (function () {
   // The kinds SchemaGen emits. Pinned so a new kind arriving in schema.js is caught by a test
   // rather than by a designer finding an unrenderable field.
@@ -21,7 +31,15 @@ var Composites = (function () {
 
   // class_restrictions is a BIGINT, but every bit above 52 is past Number's integer range and
   // could not be read back out of a spreadsheet cell faithfully anyway. Stopping here keeps the
-  // arithmetic exact; the shipped masks use bits 0-7.
+  // arithmetic exact; the shipped masks use bits 0-5, and bit 7 only in Quests (which declares
+  // the column but has no Bitmask composite).
+  //
+  // A bit above 52 is therefore DROPPED SILENTLY, and the cell collapses to the truncated value
+  // on the first interaction. Nothing in the shipped data comes near it and the column has no
+  // room for such a mask in practice, but the silence is the risk, not the truncation: if this
+  // control ever meets a real 64-bit mask it will quietly shorten it. Reporting it needs a
+  // status line and a decision about what the user is supposed to do, which is why it is a note
+  // here rather than a guess in code.
   var MAX_BIT = 52;
 
   var WHOLE = /^\d+$/;
@@ -197,9 +215,9 @@ var Composites = (function () {
     // empty control forever — the field would be silently uneditable. Fall back to the raw
     // number so the row is never held hostage by a load order.
     if (entries.length === 0) {
-      var raw = Forms.el('input', {
-        type: 'text', name: column, id: 'f-' + column, autocomplete: 'off',
-      });
+      // No id: Forms.render gives a composite a plain <label> with no `for`, because a
+      // composite has no single control to point one at. An id here would resolve to nothing.
+      var raw = Forms.el('input', { type: 'text', name: column, autocomplete: 'off' });
       raw.value = str(values[column]);
       wrap.appendChild(raw);
       wrap.appendChild(Forms.el('span', { class: 'status' },
@@ -209,9 +227,11 @@ var Composites = (function () {
 
     var hidden = cell(column, values);
 
-    // Bits belonging to no listed row are kept as they are. Every shipped mask sets bit 0 and
-    // bit 7 and there is no class 0 or 7; rebuilding the mask from the checkboxes alone would
-    // drop them and rewrite every restricted row in the sheet.
+    // Bits belonging to no listed row are kept exactly as they are, SET OR CLEAR. This is not
+    // hypothetical and it is not a constant: bit 0 belongs to no class, 9 of the 13 shipped
+    // item/spell masks set it (~230 rows) and the other four — 22, 34, 38, 50 — leave it clear.
+    // Rebuilding the mask from the checkboxes alone would rewrite every row in the first group;
+    // OR-ing in a fixed bit 0 would rewrite every row in the second.
     var stored = bitsToIds(values[column]);
     var known = Object.create(null);
     entries.forEach(function (e) { known[num(e.id)] = true; });
@@ -340,9 +360,17 @@ var Composites = (function () {
     // bodyState only distinguishes armed from unarmed in a resting pose (Sprites.part's note).
     // 3 is unarmed; Items defaults to 3 and NPCs to 1. Read once, at build time: the control
     // has no handle on the body_state field, and Task 11's preview is what re-renders the form.
+    //
+    // A BLANK cell means "use the SQL default", which forms.js is scrupulous about and this is
+    // not: num('') is 0, not the descriptor's 1. The answer comes out right for the only sheet
+    // that has this composite — 0 !== 3, same as 1 !== 3 — but by luck, not by rule. Fixing it
+    // properly means reading the column descriptor, which this function is not given; it takes
+    // the values map alone. Left as-is deliberately, and flagged so a second sheet with an
+    // unarmed default does not inherit the luck.
     var equipped = num(values.body_state) !== 3;
 
     var bad = Object.create(null);
+    wrap.__frozen = false;
 
     function anyBad() {
       return Object.keys(bad).length > 0;
@@ -351,7 +379,11 @@ var Composites = (function () {
     // Refuses to write while any field holds a typo. Equipped.format would coerce 'abc' to 0
     // and isFaithful only ever inspects STORED strings, so nothing else in the stack catches
     // one — the row would save clean with the slot silently emptied.
+    //
+    // While frozen, edits to the OTHER five slots go into `slots` and stop there, so a save
+    // would drop them. __frozen is what the save path blocks on; see the contract at the top.
     function sync() {
+      wrap.__frozen = anyBad();
       if (anyBad()) return;
       hidden.value = Equipped.format(slots);
       notify(wrap);
@@ -393,6 +425,9 @@ var Composites = (function () {
           bad[index] = true;
           status.textContent = 'graphic must be a whole number';
           status.className = 'status bad';
+          // Through sync() rather than returning outright, so __frozen is raised the moment the
+          // typo appears — not on the next good edit, by which time a save has already happened.
+          sync();
           return;
         }
         delete bad[index];

@@ -34,14 +34,28 @@
 //     attribute (which supplies only the default) and from `.value` (which on a checkbox is the
 //     id it carries). Assigning it raises the dirty checkedness flag. The bitmask control reads
 //     all three and a fake that conflated them would pass on a mask it got wrong.
-//   * The VALUE SANITIZATION ALGORITHM for `color` and `range` only. A colour input reads back
-//     nothing but lowercase #rrggbb, and a range input clamps to min/max — the rgba control
-//     reads both back, so without this the tests would exercise inputs a browser cannot make.
+//   * PART of the VALUE SANITIZATION ALGORITHM, for `color` and `range` only. A colour input
+//     reads back nothing but lowercase #rrggbb, and a range input clamps to min/max — the rgba
+//     control reads both back, so without this the tests would exercise inputs a browser cannot
+//     make. Colour is complete; RANGE IS NOT — see below.
 //
 // STILL MISSING. Structural: appendChild does not detach from a previous parent, value
 // sanitization for every OTHER type (a text input strips CR/LF in a browser and does not here),
 // ask-for-reset does not skip disabled options, no removeChild, no classList, and a checkbox has
 // no radio-group or form-reset behaviour.
+//
+// And THREE DIVERGENCES INSIDE the range sanitization that is here, each of which a browser gets
+// right and this does not:
+//
+//   * No STEP SNAPPING. On range(min=0, max=255), `.value = '3.7'` reads back '3.7' here and '4'
+//     in a browser, because the default step is 1 and the value is snapped to it.
+//   * EXPONENT NOTATION is rejected. '1e2' is a valid HTML floating-point number and a browser
+//     reads it back as 100; this returns the midpoint, 127.5, as if it were garbage.
+//   * NO RE-SANITIZATION when `min`, `max` or `type` is changed AFTER `.value` was assigned. A
+//     browser re-runs the algorithm on an attribute change; this keeps the old value.
+//
+// None is reachable from composites.js, which only ever assigns whole numbers already inside
+// the range. Task 11 could reach all three.
 //
 // In the event model specifically — each of these THROWS rather than diverging quietly, so a
 // test that needs one fails loudly instead of passing for the wrong reason:
@@ -69,9 +83,8 @@ class FakeNode {
     // IDL attribute / dirty value flag). Modelled because Task 10's bitmask control carries
     // each class id in the value ATTRIBUTE of a checkbox — el('input', { value: id }) — and
     // reads it back through .value; a fake that ignored the attribute would report '' for
-    // every id. (Whether such a box is TICKED is .checked, a separate thing this fake does
-    // not model at all — Task 10 will have to add it.) Selects derive their value from the
-    // selected option, so _value is unused for them.
+    // every id. (Whether such a box is TICKED is .checked, a separate thing — see below.)
+    // Selects derive their value from the selected option, so _value is unused for them.
     this._value = '';
     this._dirty = false;
     // Checkedness, the IDL attribute — a DIFFERENT thing from the `checked` content attribute
