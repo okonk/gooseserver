@@ -147,7 +147,7 @@ var ColorPicker = (function () {
     return Forms.el(tag, attrs, text);
   }
 
-  // Fills a canvas from a per-pixel function. getImageData/putImageData rather than a CSS
+  // Fills a canvas from a per-pixel function. Per-pixel image data rather than a CSS
   // gradient: the gradient a browser interpolates is not the colour this code would compute, and
   // only pixels can be asserted on.
   function paint(canvas, w, h, pixel) {
@@ -295,7 +295,9 @@ var ColorPicker = (function () {
 
     var recentRow = el('div', { class: 'cp-recent' });
 
-    var grid = el('div', { class: 'cp-grid' });
+    // Without the blend strip the third track is empty, and an empty track still costs its gutter
+    // — 6px of dead space on the right of the popover. Drop the track rather than the content.
+    var grid = el('div', { class: withAlpha ? 'cp-grid' : 'cp-grid cp-grid-noalpha' });
     grid.appendChild(svWrap);
     grid.appendChild(hueWrap);
     if (alphaWrap) grid.appendChild(alphaWrap);

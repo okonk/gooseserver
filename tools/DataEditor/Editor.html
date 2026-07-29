@@ -99,6 +99,8 @@
   /* justify-content: start, or the auto columns stretch and the gaps between the strips grow. */
   .cp-grid { display: grid; grid-template-columns: auto auto auto; gap: 6px;
              align-items: start; justify-content: start; }
+  /* No blend strip, no third track: an empty track still renders its 6px gutter. */
+  .cp-grid-noalpha { grid-template-columns: auto auto; }
   /* The cursor dots are positioned in PERCENTAGES of these boxes, so each canvas needs a
      positioned box of its own that is exactly the canvas's size. */
   .cp-field { position: relative; line-height: 0; }
@@ -110,7 +112,9 @@
      three columns whether or not the blend strip is there. */
   .cp-fields { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 4px;
                min-width: 0; }
-  .cp-hex { font-family: ui-monospace, monospace; }
+  /* width: 100%, or the input's intrinsic ~20-character width (widened again by the monospace
+     face) is what sets the popover's width instead of the canvas row above it. */
+  .cp-hex { font-family: ui-monospace, monospace; width: 100%; box-sizing: border-box; }
   .cp-note { font-size: 11px; color: #666; }
   .cp-channels, .cp-blend { font-size: 11px; color: #555; font-family: ui-monospace, monospace; }
   .cp-recent { display: flex; gap: 3px; margin-top: 6px; }
