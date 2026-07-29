@@ -161,23 +161,23 @@ var Composites = (function () {
     return node;
   }
 
-  // RGBA: one swatch plus a blend slider over four cells.
+  // RGBA: one swatch over four cells. The colour AND the blend factor live in ColorPicker's
+  // popover — a native <input type="color"> opens the OS picker, which has nowhere to put the
+  // blend, so the two used to be a swatch and a separate range slider that named its own cell.
+  // One control now owns both, and the hint below is what still names the four cells.
   function rgbaControl(comp, values) {
     var cols = comp.columns;
     var wrap = Forms.el('div', { class: 'rgba' });
 
     var hidden = cols.map(function (name) { return cell(name, values); });
 
-    var swatch = Forms.el('input', { type: 'color' });
-    swatch.value = toHex(values[cols[0]], values[cols[1]], values[cols[2]]);
-
-    var blend = Forms.el('input', { type: 'range', min: '0', max: '255' });
-    blend.value = String(channel(values[cols[3]]));
-
+    // Outside the popover, because the blend factor is the one thing about this field worth
+    // seeing without opening anything: a tint at 0 renders as no tint at all, and the swatch
+    // beside it still shows a colour.
     var readout = Forms.el('span', { class: 'readout' });
 
-    function describe() {
-      readout.textContent = blend.value + ' / 255 blend';
+    function describe(a) {
+      readout.textContent = channel(a) + ' / 255 blend';
     }
 
     // Writes ALL FOUR cells, including at a blend of zero. Blanking r/g/b when the blend is 0
@@ -185,34 +185,30 @@ var Composites = (function () {
     // zero-alpha tint in equipped_items — and blanking the alpha would hand the cell back to
     // the SQL default rather than storing the decision the user just made.
     //
-    // Only ever reached from a listener, which is what keeps an untouched control from
-    // rewriting its row: the swatch shows a CLAMPED reading of the stored channels, and the
-    // cells keep the unclamped originals until something actually changes.
-    function sync() {
-      var rgb = fromHex(swatch.value);
-      // A colour input sanitises its own value, so this is unreachable in a browser. Bailing
-      // beats writing three zeroes over a colour on the strength of a value we cannot read.
-      if (rgb) {
-        hidden[0].value = String(rgb.r);
-        hidden[1].value = String(rgb.g);
-        hidden[2].value = String(rgb.b);
-      }
-      hidden[3].value = String(channel(blend.value));
-      describe();
-      notify(wrap);
-    }
+    // Only ever reached from an onChange, which is what keeps an untouched control from
+    // rewriting its row: the picker is SEEDED with a clamped reading of the stored channels and
+    // reports nothing until something moves, so the cells keep the unclamped originals.
+    var picker = ColorPicker.control({
+      r: channel(values[cols[0]]),
+      g: channel(values[cols[1]]),
+      b: channel(values[cols[2]]),
+      a: channel(values[cols[3]]),
+      withAlpha: true,
+      onChange: function (colour) {
+        hidden[0].value = String(colour.r);
+        hidden[1].value = String(colour.g);
+        hidden[2].value = String(colour.b);
+        hidden[3].value = String(colour.a);
+        describe(colour.a);
+        notify(wrap);
+      },
+    });
 
-    swatch.addEventListener('input', sync);
-    blend.addEventListener('input', sync);
-
-    describe();
+    describe(values[cols[3]]);
     // The field's own <label> says "graphic tint" (Layout.labelFor) — deliberately not a column
-    // name, because this one control writes four cells. These two lines are what let a designer
-    // still find those cells in the sheet: the slider is named for the channel it moves, and the
-    // hint lists all four in order.
-    wrap.appendChild(swatch);
-    wrap.appendChild(Forms.el('span', { class: 'blend-label' }, cols[3]));
-    wrap.appendChild(blend);
+    // name, because this one control writes four cells. The hint is what lets a designer still
+    // find those cells in the sheet: it lists all four, in order.
+    wrap.appendChild(picker.node);
     wrap.appendChild(readout);
     wrap.appendChild(Forms.el('div', { class: 'hint' }, cols.join(' ')));
     hidden.forEach(function (node) { wrap.appendChild(node); });

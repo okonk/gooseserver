@@ -72,9 +72,28 @@
   .status.bad { color: #b00; }
   .hint { font-size: 11px; color: #666; margin-bottom: 2px; }
   .readout { font-size: 11px; color: #555; margin-left: 4px; }
-  /* The tint field's label names the field, not a column, so the slider carries the name of the
-     cell it moves. */
-  .blend-label { font-size: 11px; color: #555; margin-left: 6px; }
+
+  /* The colour picker. The wrapper is the popover's positioning context — .rgba is a plain block
+     with none — following the same .picker/.results pattern as the FK dropdown above. */
+  .colorpicker { position: relative; display: inline-block; vertical-align: middle; }
+  .swatch { width: 40px; height: 20px; border: 1px solid #ccc; padding: 0; cursor: pointer; }
+  .cp-pop { position: absolute; z-index: 10; top: 100%; left: 0; background: #fff;
+            border: 1px solid #ccc; padding: 6px; }
+  .cp-grid { display: flex; gap: 6px; align-items: flex-start; }
+  /* The cursor dots are positioned in PERCENTAGES of these boxes, so each canvas needs a
+     positioned box of its own that is exactly the canvas's size. */
+  .cp-field { position: relative; line-height: 0; }
+  .cp-dot { position: absolute; width: 7px; height: 7px; margin: -4px 0 0 -4px;
+            border: 1px solid #000; box-shadow: 0 0 0 1px #fff inset; border-radius: 50%;
+            pointer-events: none; }
+  .cp-sv, .cp-hue, .cp-alpha { display: block; cursor: crosshair; }
+  .cp-fields { display: flex; flex-direction: column; gap: 4px; width: 120px; }
+  .cp-hex { font-family: ui-monospace, monospace; }
+  .cp-note { font-size: 11px; color: #666; }
+  .cp-channels, .cp-blend { font-size: 11px; color: #555; font-family: ui-monospace, monospace; }
+  .cp-recent { display: flex; gap: 3px; margin-top: 6px; }
+  .cp-recent-chip { width: 16px; height: 16px; border: 1px solid #ccc; padding: 0;
+                    cursor: pointer; }
   .graphic, .bitmask, .idlist, .rgba, .equip { display: block; }
   /* Same story as #previews canvas: the 128px icon preview and the 80px slot preview shrink to
      fit a ~300px sidebar rather than pushing the form wider than the column. */
@@ -105,10 +124,12 @@
 
   @media (prefers-color-scheme: dark) {
     body { background: #1c1c1c; color: #eee; }
-    header, section, .record, .result, .results { background: #242424; border-color: #3a3a3a; }
+    header, section, .record, .result, .results, .cp-pop { background: #242424;
+      border-color: #3a3a3a; }
+    .swatch, .cp-recent-chip { border-color: #444; }
     input, select { background: #2c2c2c; color: #eee; border-color: #444; }
-    section h3, .field label, .resolved, .status, .hint, .readout, .blend-label,
-    .boolean .clear { color: #aaa; }
+    section h3, .field label, .resolved, .status, .hint, .readout, .cp-note,
+    .cp-channels, .cp-blend, .boolean .clear { color: #aaa; }
     /* Buttons do not inherit colour, so both of these are stated, not left to the cascade. */
     .record, .result { color: #eee; }
     .result.active { background: #33415c; }
@@ -146,13 +167,14 @@
   Include order. Every module is an IIFE that resolves the others as FREE GLOBALS at CALL time,
   so strictly only the data files have to come first — but the order below is the real dependency
   graph anyway, which is the order to keep it in:
-    appearance -> Equipped
-    composites -> Forms, Pickers, Sprites, Equipped, Appearance
-    forms      -> Layout, Composites, Pickers
-    preview    -> Appearance, Sprites
-    app        -> everything
-  All ten src/ modules are listed. build.mjs emits one dist/<name>.html per src/*.js, so a module
-  added there and not added here is simply never on the page.
+    appearance  -> Equipped
+    colorpicker -> Forms, Sprites
+    composites  -> Forms, Pickers, Sprites, Equipped, Appearance, ColorPicker
+    forms       -> Layout, Composites, Pickers
+    preview     -> Appearance, Sprites
+    app         -> everything
+  All eleven src/ modules are listed. build.mjs emits one dist/<name>.html per src/*.js, so a
+  module added there and not added here is simply never on the page.
 -->
 <?!= include('schema'); ?>
 <?!= include('sprites-icons'); ?>
@@ -164,6 +186,7 @@
 <?!= include('sprites'); ?>
 <?!= include('layout'); ?>
 <?!= include('pickers'); ?>
+<?!= include('colorpicker'); ?>
 <?!= include('composites'); ?>
 <?!= include('forms'); ?>
 <?!= include('preview'); ?>

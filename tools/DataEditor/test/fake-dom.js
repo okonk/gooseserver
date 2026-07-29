@@ -112,6 +112,8 @@
 //   * `scrollTop` / `clientHeight` / `scrollHeight`, plus a non-bubbling `scroll` event.
 //   * `clientX` / `clientY` on fired events, so pointer maths against a rect is testable.
 //   * `setTransform` and `imageSmoothingEnabled` on the 2d context, both in the call log.
+//   * `focus()` — counted per node in `focusCalls`. There is still no activeElement.
+//   * `shiftKey` on fired events, and the `mousemove` type, both for a drag-and-arrow control.
 
 class FakeNode {
   constructor(tag) {
@@ -146,6 +148,11 @@ class FakeNode {
     this.indeterminate = false;
     this.selectedIndex = -1;
     this.scrollCalls = [];
+    // Recorded, not simulated: there is no focus ring or activeElement in here. It exists because
+    // a popover that closes MUST hand focus back to the control that opened it — a keyboard user
+    // whose focus is left on a detached node has nowhere to go — and "it called focus()" is the
+    // only way to observe that without an activeElement model.
+    this.focusCalls = 0;
     // Test-assignable geometry. There is no layout in here, so a rect is state, not a
     // measurement — see getBoundingClientRect.
     this.rect = null;
@@ -255,6 +262,10 @@ class FakeNode {
   // see. The array is the assertion surface for "the active row was scrolled to".
   scrollIntoView(...args) {
     this.scrollCalls.push(args);
+  }
+
+  focus() {
+    this.focusCalls++;
   }
 
   // Memoised, like the real thing: two getContext('2d') calls on one canvas return the SAME
@@ -477,6 +488,9 @@ const EVENT_FLAGS = {
   click: { bubbles: true, cancelable: true },
   mousedown: { bubbles: true, cancelable: true },
   mouseup: { bubbles: true, cancelable: true },
+  // A drag listens for these on the DOCUMENT, so that a pointer leaving the control mid-drag
+  // keeps steering it. Cancelable, like every other mouse event that is not mouseenter/leave.
+  mousemove: { bubbles: true, cancelable: true },
   keydown: { bubbles: true, cancelable: true },
   keyup: { bubbles: true, cancelable: true },
   submit: { bubbles: true, cancelable: true },
@@ -502,7 +516,10 @@ const EVENT_FLAGS = {
 //     relatedTarget is the real thing's "focus left for nothing in this document".
 //   * `clientX` / `clientY` — viewport pointer coordinates, default 0. Paired with an element's
 //     assignable `rect`, they are what makes "click at x within this track" testable.
-const EVENT_INIT = ['key', 'relatedTarget', 'clientX', 'clientY'];
+//   * `shiftKey` — the modifier, default false. It is what tells a coarse step from a fine one in
+//     a control whose arrow keys move by 1 and whose Shift+arrow moves by 10; without it the two
+//     paths could not be told apart at all.
+const EVENT_INIT = ['key', 'relatedTarget', 'clientX', 'clientY', 'shiftKey'];
 
 // THE event shape, and the only place preventDefault/stopPropagation are defined. It is exposed
 // to CODE UNDER TEST as globalThis.Event — the Bool control's clear button dispatches one of its
@@ -549,7 +566,7 @@ export function fire(node, type, init) {
   // are layered on top, and preventDefault/stopPropagation live on FakeEvent alone.
   const event = Object.assign(
     new FakeEvent(type, flags),
-    { key: undefined, relatedTarget: null, clientX: 0, clientY: 0 },
+    { key: undefined, relatedTarget: null, clientX: 0, clientY: 0, shiftKey: false },
     init || {},
   );
   return node.dispatchEvent(event);

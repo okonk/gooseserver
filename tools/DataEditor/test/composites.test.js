@@ -16,6 +16,8 @@ const { Appearance } = await import('../src/appearance.js');
 globalThis.Appearance = Appearance;
 const { Pickers } = await import('../src/pickers.js');
 globalThis.Pickers = Pickers;
+const { ColorPicker } = await import('../src/colorpicker.js');
+globalThis.ColorPicker = ColorPicker;
 
 const { Composites } = await import('../src/composites.js');
 globalThis.Composites = Composites;
@@ -226,6 +228,35 @@ function byName(names) {
   return map;
 }
 
+// The rgba control's colour and blend now live in a ColorPicker popover, so its tests drive it
+// the way a user does: open the swatch, then type a hex or click down the blend strip. The
+// picker's own behaviour is colorpicker.test.js's business; these only care that the four cells
+// follow.
+function swatchOf(node) {
+  return node.querySelector('[class="swatch"]');
+}
+
+function openPicker(node) {
+  const swatch = swatchOf(node);
+  if (node.querySelector('[class="cp-pop"]').hidden) fire(swatch, 'click');
+  return node;
+}
+
+function setColour(node, hex) {
+  openPicker(node);
+  const field = node.querySelector('[class="cp-hex"]');
+  field.value = hex;
+  fire(field, 'input');
+}
+
+function setBlend(node, blend) {
+  openPicker(node);
+  const strip = node.querySelector('[class="cp-alpha"]');
+  // A 255-tall strip with full blend at the top, so the click lands on a whole byte.
+  strip.rect = { left: 0, top: 0, width: 14, height: 255 };
+  fire(strip, 'mousedown', { clientX: 0, clientY: 255 - blend });
+}
+
 // --- rgbaControl ----------------------------------------------------------------------------
 
 test('rgba writes the four cells VERBATIM until the user touches the control', () => {
@@ -245,15 +276,15 @@ test('rgba leaves blank cells blank until touched', () => {
 test('rgba shows the stored colour in the swatch', () => {
   const values = { body_r: 255, body_g: 128, body_b: 0, body_a: 64 };
   const node = Composites.control(RGBA, byName(RGBA.columns), values, ctx());
-  assert.equal(node.querySelector('[type="color"]').value, '#ff8000');
-  assert.equal(node.querySelector('[type="range"]').value, '64');
+  assert.equal(swatchOf(node).getAttribute('data-color'), '#ff8000');
+  assert.equal(node.querySelector('[class="readout"]').textContent, '64 / 255 blend');
 });
 
 test('rgba clamps an out-of-range stored channel into the swatch', () => {
   const values = { body_r: 999, body_g: -4, body_b: 'x', body_a: 900 };
   const node = Composites.control(RGBA, byName(RGBA.columns), values, ctx());
-  assert.equal(node.querySelector('[type="color"]').value, '#ff0000');
-  assert.equal(node.querySelector('[type="range"]').value, '255');
+  assert.equal(swatchOf(node).getAttribute('data-color'), '#ff0000');
+  assert.equal(node.querySelector('[class="readout"]').textContent, '255 / 255 blend');
   // ...but the cells still hold the originals, because nothing was touched.
   assert.deepEqual(valuesOf(node, RGBA.columns), ['999', '-4', 'x', '900']);
 });
@@ -261,26 +292,20 @@ test('rgba clamps an out-of-range stored channel into the swatch', () => {
 test('rgba writes all four cells once the blend moves', () => {
   const values = { body_r: '12', body_g: '34', body_b: '56', body_a: '0' };
   const node = Composites.control(RGBA, byName(RGBA.columns), values, ctx());
-  const blend = node.querySelector('[type="range"]');
-  blend.value = '200';
-  fire(blend, 'input');
+  setBlend(node, 200);
   assert.deepEqual(valuesOf(node, RGBA.columns), ['12', '34', '56', '200']);
 });
 
 test('rgba at blend zero keeps the colour rather than blanking it', () => {
   const values = { body_r: '12', body_g: '34', body_b: '56', body_a: '9' };
   const node = Composites.control(RGBA, byName(RGBA.columns), values, ctx());
-  const blend = node.querySelector('[type="range"]');
-  blend.value = '0';
-  fire(blend, 'input');
+  setBlend(node, 0);
   assert.deepEqual(valuesOf(node, RGBA.columns), ['12', '34', '56', '0']);
 });
 
-test('rgba writes the swatch colour when the swatch moves', () => {
+test('rgba writes the swatch colour when the colour moves', () => {
   const node = Composites.control(RGBA, byName(RGBA.columns), {}, ctx());
-  const swatch = node.querySelector('[type="color"]');
-  swatch.value = '#0080ff';
-  fire(swatch, 'input');
+  setColour(node, '#0080ff');
   assert.deepEqual(valuesOf(node, RGBA.columns), ['0', '128', '255', '0']);
 });
 
@@ -293,11 +318,9 @@ test('rgba readout names the blend, not opacity', () => {
   assert.doesNotMatch(readout.textContent, /opacity|alpha/i);
 });
 
-test('rgba readout follows the slider', () => {
+test('rgba readout follows the blend strip', () => {
   const node = Composites.control(RGBA, byName(RGBA.columns), {}, ctx());
-  const blend = node.querySelector('[type="range"]');
-  blend.value = '31';
-  fire(blend, 'input');
+  setBlend(node, 31);
   assert.match(node.querySelector('[class="readout"]').textContent, /31/);
 });
 
@@ -305,15 +328,23 @@ test('rgba notifies its wrapper hook on change', () => {
   const node = Composites.control(RGBA, byName(RGBA.columns), {}, ctx());
   let calls = 0;
   node.__onChange = () => { calls++; };
-  fire(node.querySelector('[type="range"]'), 'input');
-  fire(node.querySelector('[type="color"]'), 'input');
+  setBlend(node, 12);
+  setColour(node, '#010203');
   assert.equal(calls, 2);
 });
 
 test('rgba survives no wrapper hook', () => {
   const node = Composites.control(RGBA, byName(RGBA.columns), {}, ctx());
-  fire(node.querySelector('[type="range"]'), 'input');
+  setBlend(node, 0);
   assert.deepEqual(valuesOf(node, RGBA.columns), ['0', '0', '0', '0']);
+});
+
+test('rgba has no native colour input or range slider left', () => {
+  // The whole point of the swap: <input type="color"> opens the OS picker, and the range slider
+  // that used to carry the blend beside it is now inside the popover.
+  const node = Composites.control(RGBA, byName(RGBA.columns), {}, ctx());
+  assert.equal(node.querySelector('[type="color"]'), null);
+  assert.equal(node.querySelector('[type="range"]'), null);
 });
 
 // --- bitmaskControl -------------------------------------------------------------------------
@@ -938,12 +969,12 @@ test('the whole NPCs row round-trips through render and collect unchanged', () =
   assert.ok(walk(container).length > 0);
 });
 
-test('rgba names the four cells it writes, and the slider names its own', () => {
+test('rgba names the four cells it writes', () => {
   // The field's <label> now says "body tint", so the column names have to live in the control
-  // or a designer cannot find the cells in the sheet.
+  // or a designer cannot find the cells in the sheet. This is the only place they appear: the
+  // blend slider that used to carry body_a's name went into the picker's popover.
   const node = Composites.control(RGBA, byName(RGBA.columns), {}, ctx());
   assert.equal(node.querySelector('[class="hint"]').textContent, 'body_r body_g body_b body_a');
-  assert.equal(node.querySelector('[class="blend-label"]').textContent, 'body_a');
 });
 
 test('the equip slot preview is scaled, with its centring still in logical pixels', () => {

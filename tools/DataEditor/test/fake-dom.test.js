@@ -165,3 +165,31 @@ test('the 2d context records setTransform and imageSmoothingEnabled', () => {
     ['imageSmoothingEnabled', false],
   ]);
 });
+
+test('focus() is counted rather than simulated', () => {
+  const swatch = createElement('button');
+  assert.equal(swatch.focusCalls, 0);
+  swatch.focus();
+  swatch.focus();
+  assert.equal(swatch.focusCalls, 2);
+});
+
+test('a fired event carries shiftKey, defaulting to false', () => {
+  const strip = createElement('canvas');
+  const seen = [];
+  strip.addEventListener('keydown', (e) => seen.push(e.shiftKey));
+
+  fire(strip, 'keydown', { key: 'ArrowUp', shiftKey: true });
+  fire(strip, 'keydown', { key: 'ArrowUp' });
+  assert.deepEqual(seen, [true, false]);
+});
+
+test('mousemove bubbles and is cancelable', () => {
+  const parent = createElement('div');
+  const child = parent.appendChild(createElement('canvas'));
+  const seen = [];
+  parent.addEventListener('mousemove', (e) => { seen.push(e.clientX); e.preventDefault(); });
+
+  assert.equal(fire(child, 'mousemove', { clientX: 9 }), false);
+  assert.deepEqual(seen, [9]);
+});
