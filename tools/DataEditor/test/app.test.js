@@ -704,6 +704,14 @@ test('a blank optional cell is written as null, not as its default', () => {
   const at = (name) => schemaOf('Items').columns.findIndex((c) => c.name === name);
   assert.equal(h.writes[0].cells[at('player_hp')], null);
   assert.equal(h.writes[0].cells[at('item_name')], 'Gold');
+
+  // The same rule for every Bool, which is what makes the checkbox tri-state: a two-state box
+  // reads back 0 or 1 and nothing else, so opening this record and saving it untouched would
+  // write 0 over all four of these and take them off the SQL default for good.
+  ['lore', 'bindonpickup', 'bindonequip', 'event'].forEach((name) => {
+    assert.equal(schemaOf('Items').columns[at(name)].kind, 'Bool', name);
+    assert.equal(h.writes[0].cells[at(name)], null, name);
+  });
 });
 
 test('an invalid record is refused and the message lands under the field', () => {

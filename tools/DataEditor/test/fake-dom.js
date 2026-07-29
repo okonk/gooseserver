@@ -99,6 +99,7 @@
 // test/fake-dom.test.js:
 //
 //   * `indeterminate` — the third checkbox flag, independent of `.checked`.
+//   * `Event` — a constructor, for code under test that dispatches its own event.
 //   * `getBoundingClientRect()` — reads the assignable `rect`, all zeroes by default.
 //   * `style` — a plain bag of round-tripping keys, not a CSSStyleDeclaration.
 //   * `scrollTop` / `clientHeight` / `scrollHeight`, plus a non-bubbling `scroll` event.
@@ -530,11 +531,39 @@ export function fire(node, type, init) {
   return node.dispatchEvent(event);
 }
 
+// fire() is for a TEST acting as the user. This is for CODE UNDER TEST that dispatches an event
+// of its own — the Bool control's clear button, which has to tell the delegated preview listener
+// that the cell moved. The flags come from the init dict alone, never from a per-type table:
+// `new Event('change')` does not bubble, and only `{ bubbles: true }` makes it travel, exactly as
+// the DOM says. That is also why dispatchEvent reads them off the event rather than looking the
+// type up itself.
+class FakeEvent {
+  constructor(type, init) {
+    Object.keys(init || {}).forEach((k) => {
+      if (!['bubbles', 'cancelable'].includes(k)) {
+        throw new Error('fake DOM does not model event init field: ' + k);
+      }
+    });
+    this.type = String(type);
+    this.bubbles = !!(init && init.bubbles);
+    this.cancelable = !!(init && init.cancelable);
+    this.target = null;
+    this.currentTarget = null;
+    this.defaultPrevented = false;
+    this.propagationStopped = false;
+  }
+
+  preventDefault() { if (this.cancelable) this.defaultPrevented = true; }
+
+  stopPropagation() { this.propagationStopped = true; }
+}
+
 export function installFakeDom() {
   const doc = new FakeNode('#document');
   doc.createElement = (tag) => new FakeNode(tag);
   doc.body = doc.appendChild(new FakeNode('body'));
   globalThis.document = doc;
+  globalThis.Event = FakeEvent;
   return doc;
 }
 

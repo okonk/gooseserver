@@ -36,6 +36,23 @@ test('a click does not clear indeterminate — that is the control\'s job', () =
   assert.equal(box.indeterminate, true);
 });
 
+test('new Event does not bubble unless the init dict asks it to', () => {
+  const parent = createElement('div');
+  const child = parent.appendChild(createElement('button'));
+  const heard = [];
+  parent.addEventListener('change', (e) => { heard.push(e.type); });
+
+  child.dispatchEvent(new Event('change'));
+  assert.deepEqual(heard, [], 'a plain Event stops at its target');
+
+  child.dispatchEvent(new Event('change', { bubbles: true }));
+  assert.deepEqual(heard, ['change']);
+});
+
+test('an Event init field the fake does not model throws rather than being ignored', () => {
+  assert.throws(() => new Event('change', { composed: true }), /composed/);
+});
+
 test('getBoundingClientRect is all zeroes until a test assigns rect', () => {
   const bar = createElement('div');
   assert.deepEqual(bar.getBoundingClientRect(), {

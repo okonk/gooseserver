@@ -53,6 +53,66 @@ var Forms = (function () {
     select.appendChild(el('option', { value: value }, value + ' (not a valid value)'));
   }
 
+  // A TRI-STATE checkbox over a hidden cell, which is the whole point of it. save() writes a
+  // cell only when Validation.validateCell says `write` (app.js), and a BLANK boolean means "use
+  // the SQL default" (CsvToSqlBase.cs:27) — so a two-state box, which can only ever read back 0
+  // or 1, would write 0 into every blank boolean on every save. Items has four blank-defaulted
+  // booleans and NPCs five; merely opening such a record and saving it would rewrite them all.
+  //
+  // The checkbox carries the id (so the field's <label for> lands on it) and NO name; the hidden
+  // input carries the name and IS the cell, seeded with the stored text verbatim, exactly as the
+  // composite controls seed theirs. collect()'s [name] sweep therefore reads the cell and never
+  // the box — a named checkbox would read back 'on' when ticked and its value attribute when not.
+  function boolControl(column, value) {
+    var wrap = el('span', { class: 'boolean' });
+
+    // A cell holding anything else has nowhere to go on a checkbox, and coercing it to ticked
+    // would silently rewrite it. Same shape and same reason as preserveUnknownValue: keep the
+    // value, flag it, and let Validation.validateCell report it.
+    if (value !== '' && value !== '0' && value !== '1') {
+      var raw = el('input', {
+        name: column.name, id: 'f-' + column.name, type: 'text', autocomplete: 'off',
+      });
+      raw.value = value;
+      wrap.appendChild(raw);
+      wrap.appendChild(el('span', { class: 'status bad' }, 'not a 0/1 value'));
+      return wrap;
+    }
+
+    var box = el('input', { id: 'f-' + column.name, type: 'checkbox' });
+    box.checked = value === '1';
+    box.indeterminate = value === '';
+
+    var hidden = el('input', { type: 'hidden', name: column.name });
+    hidden.value = value;
+
+    // No dispatch of our own: `change` bubbles, so app.js's delegated listener already sees it.
+    box.addEventListener('change', function () {
+      box.indeterminate = false;
+      hidden.value = box.checked ? '1' : '0';
+    });
+
+    wrap.appendChild(box);
+
+    // A required column may not be blank at all, so there is no third state to return to.
+    if (!column.required) {
+      var clear = el('button', { type: 'button', class: 'clear', title: 'use the default' }, '×');
+      // Dispatched from the BUTTON rather than the box: a change on the box would run the
+      // listener above and immediately write '0' back over the blank we just restored. It still
+      // reaches the delegated preview listener, which is on the form container above both.
+      clear.addEventListener('click', function () {
+        box.indeterminate = true;
+        box.checked = false;
+        hidden.value = '';
+        clear.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+      wrap.appendChild(clear);
+    }
+
+    wrap.appendChild(hidden);
+    return wrap;
+  }
+
   function scalarControl(column, rawValue) {
     var value = str(rawValue);
 
@@ -67,15 +127,7 @@ var Forms = (function () {
       return select;
     }
 
-    if (column.kind === 'Bool') {
-      var box = el('select', { name: column.name, id: 'f-' + column.name });
-      box.appendChild(el('option', { value: '' }, ''));
-      box.appendChild(el('option', { value: '0' }, 'No'));
-      box.appendChild(el('option', { value: '1' }, 'Yes'));
-      preserveUnknownValue(box, value);
-      box.value = value;
-      return box;
-    }
+    if (column.kind === 'Bool') return boolControl(column, value);
 
     // type="text" for numeric kinds too, deliberately. type="number" reads back '' for input
     // the browser cannot parse, so a typo'd "1o" would arrive here indistinguishable from a

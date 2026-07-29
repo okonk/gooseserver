@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createContext, runInContext } from 'node:vm';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { installFakeDom } from './fake-dom.js';
+import { installFakeDom, fire } from './fake-dom.js';
 
 installFakeDom();
 
@@ -209,9 +209,6 @@ test('a blank value never invents an option', () => {
   assert.deepEqual(control.getElementsByTagName('option').map((o) => o.value),
     [...c.enumNames]);
   assert.equal(control.value, '');
-
-  const bool = Forms.scalarControl(column('Items', 'lore'), '');
-  assert.deepEqual(bool.getElementsByTagName('option').map((o) => o.value), ['', '0', '1']);
 });
 
 test('the unknown-value option is in place BEFORE the value is assigned', () => {
@@ -234,29 +231,114 @@ test('an Enum with no enumNames still renders', () => {
   assert.equal(control.value, '');
 });
 
-test('Bool renders blank/No/Yes and keeps a stored 0', () => {
+// A Bool is a TRI-STATE checkbox over a hidden cell: blank means "use the SQL default", and a
+// two-state box would write 0 into every blank boolean on every save.
+const boolBox = (node) => node.querySelector('[type="checkbox"]');
+const boolCell = (node) => node.querySelector('[type="hidden"]');
+const boolClear = (node) => node.querySelector('[class="clear"]');
+
+// What Forms.collect would read back off this control, with no interaction in between.
+function collectOne(c, control) {
+  const host = div();
+  host.appendChild(control);
+  return Forms.collect(host, { columns: [c] })[c.name];
+}
+
+test('Bool renders a tri-state checkbox over a hidden cell', () => {
   const c = column('Items', 'lore');
   assert.equal(c.kind, 'Bool');
-  const control = Forms.scalarControl(c, '0');
-  assert.equal(control.tagName, 'SELECT');
-  assert.deepEqual(control.getElementsByTagName('option').map((o) => o.value), ['', '0', '1']);
-  assert.deepEqual(control.getElementsByTagName('option').map((o) => o.textContent),
-    ['', 'No', 'Yes']);
-  assert.equal(control.value, '0');
-  assert.equal(Forms.scalarControl(c, '1').value, '1');
-  assert.equal(Forms.scalarControl(c, '').value, '');
+
+  const blank = Forms.scalarControl(c, '');
+  assert.equal(blank.tagName, 'SPAN');
+  assert.equal(blank.getAttribute('class'), 'boolean');
+  assert.equal(boolBox(blank).indeterminate, true);
+  assert.equal(boolBox(blank).checked, false);
+  // The checkbox carries the id the field's <label for> points at — and NO name, so
+  // Forms.collect's [name] sweep reads the hidden cell rather than the box's 'on'.
+  assert.equal(boolBox(blank).getAttribute('id'), 'f-lore');
+  assert.equal(boolBox(blank).getAttribute('name'), null);
+  assert.equal(boolCell(blank).getAttribute('name'), 'lore');
+
+  const no = Forms.scalarControl(c, '0');
+  assert.equal(boolBox(no).indeterminate, false);
+  assert.equal(boolBox(no).checked, false);
+
+  const yes = Forms.scalarControl(c, '1');
+  assert.equal(boolBox(yes).indeterminate, false);
+  assert.equal(boolBox(yes).checked, true);
+});
+
+test('an untouched Bool collects back exactly what it was given', () => {
+  const c = column('Items', 'lore');
+  ['', '0', '1'].forEach((stored) => {
+    assert.equal(collectOne(c, Forms.scalarControl(c, stored)), stored, stored);
+  });
+  // A NUMERIC 0 from the Sheets API is the same cell as '0', not a blank.
+  assert.equal(collectOne(c, Forms.scalarControl(c, 0)), '0');
+});
+
+test('ticking a blank Bool writes 1, and untocking it writes 0', () => {
+  const c = column('Items', 'lore');
+  const control = Forms.scalarControl(c, '');
+  const box = boolBox(control);
+
+  // The fake DOM does not run a click's default action, so the test does what the browser
+  // would: flip .checked, then fire the change the flip causes.
+  box.checked = true;
+  fire(box, 'change');
+  assert.equal(box.indeterminate, false, 'the third state is gone once a decision is made');
+  assert.equal(collectOne(c, control), '1');
+
+  box.checked = false;
+  fire(box, 'change');
+  assert.equal(collectOne(c, control), '0');
+});
+
+test('the clear button hands a Bool back to the SQL default', () => {
+  const c = column('Items', 'lore');
+  const control = Forms.scalarControl(c, '1');
+  const box = boolBox(control);
+
+  // The preview must follow the clear, so the button dispatches a bubbling change of its own.
+  let heard = 0;
+  const host = div();
+  host.appendChild(control);
+  host.addEventListener('change', () => { heard++; });
+
+  fire(boolClear(control), 'click');
+  assert.equal(box.indeterminate, true);
+  assert.equal(box.checked, false);
+  assert.equal(Forms.collect(host, { columns: [c] })[c.name], '');
+  assert.equal(heard, 1);
+});
+
+test('a required Bool has no clear button — blank is not a value it may hold', () => {
+  const optional = column('Items', 'lore');
+  assert.equal(optional.required, false);
+  assert.ok(boolClear(Forms.scalarControl(optional, '')));
+
+  const required = { name: 'x', kind: 'Bool', required: true };
+  assert.equal(boolClear(Forms.scalarControl(required, '1')), null);
 });
 
 test('a NUMERIC 0 from the Sheets API is not mistaken for blank', () => {
   // Sheets hands back a JS number for a numeric cell. `value || ''` would turn 0 into '',
   // which means "use the default" on write — silently losing an explicit 0.
-  assert.equal(Forms.scalarControl(column('Items', 'lore'), 0).value, '0');
+  assert.equal(boolCell(Forms.scalarControl(column('Items', 'lore'), 0)).value, '0');
   assert.equal(Forms.scalarControl(column('Items', 'player_hp'), 0).value, '0');
 });
 
-test('an out-of-range Bool value survives instead of blanking', () => {
-  const control = Forms.scalarControl(column('Items', 'lore'), '2');
-  assert.equal(control.value, '2');
+test('an out-of-range Bool falls back to a text input instead of being normalised', () => {
+  // A checkbox has nowhere to put a 2. Coercing it to ticked would silently rewrite the cell;
+  // this keeps it, flags it, and lets Validation report it.
+  const c = column('Items', 'lore');
+  const control = Forms.scalarControl(c, '2');
+  assert.equal(boolBox(control), null);
+  const raw = control.querySelector('[name="lore"]');
+  assert.equal(raw.getAttribute('type'), 'text');
+  assert.equal(raw.getAttribute('id'), 'f-lore');
+  assert.equal(control.querySelector('[class="status bad"]').textContent, 'not a 0/1 value');
+  assert.equal(collectOne(c, control), '2');
 });
 
 test('Text, Int, Id and Decimal all render a text input', () => {

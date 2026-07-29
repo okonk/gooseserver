@@ -78,11 +78,20 @@
   .check { display: block; font-size: 11px; }
   .check input { width: auto; margin-right: 4px; }
 
+  /* The tri-state Bool control. `input { width: 100% }` above is written for text fields and
+     would stretch the checkbox across the whole row, so it is overridden HERE BY TYPE rather
+     than for the wrapper: a Bool cell holding something other than 0/1 falls back to a plain
+     text input inside this same span, and that one still wants the full width. */
+  .boolean { display: flex; gap: 6px; align-items: center; }
+  .boolean input[type="checkbox"] { width: auto; margin: 0; }
+  .boolean .clear { border: 0; background: none; color: #555; cursor: pointer; padding: 0 2px; }
+
   @media (prefers-color-scheme: dark) {
     body { background: #1c1c1c; color: #eee; }
     header, section, .record, .result, .results { background: #242424; border-color: #3a3a3a; }
     input, select { background: #2c2c2c; color: #eee; border-color: #444; }
-    section h3, .field label, .resolved, .status, .hint, .readout, .blend-label { color: #aaa; }
+    section h3, .field label, .resolved, .status, .hint, .readout, .blend-label,
+    .boolean .clear { color: #aaa; }
     /* Buttons do not inherit colour, so both of these are stated, not left to the cascade. */
     .record, .result { color: #eee; }
     .result.active { background: #33415c; }
