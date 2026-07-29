@@ -117,7 +117,7 @@ No further verification needed downstream.
   "runtimeVersion": "V8",
   "webapp": {
     "executeAs": "USER_ACCESSING",
-    "access": "ANYONE_WITH_GOOGLE_ACCOUNT"
+    "access": "ANYONE"
   },
   "oauthScopes": [
     "https://www.googleapis.com/auth/spreadsheets.currentonly",
@@ -125,6 +125,10 @@ No further verification needed downstream.
   ]
 }
 ```
+
+`access` takes one of `MYSELF`, `DOMAIN`, `ANYONE`, `ANYONE_ANONYMOUS` — nothing else is
+accepted. `ANYONE` is the "anyone with a Google account" level; `ANYONE_ANONYMOUS` is the one
+that drops the sign-in requirement, which this app must not do.
 
 `executeAs: USER_ACCESSING` means each editor acts as themselves, so sheet permissions are the
 access control and `Session.getActiveUser()` identifies who is editing.
