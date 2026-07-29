@@ -34,22 +34,30 @@
  *     A1:(getLastRow, getLastColumn) — so a stray value below the data shows up as
  *     trailing blank rows and an append lands after it, keeping both views consistent.
  *     Empty sheet returns header [] rather than [''].
- *   Live: TOP RISK — getDisplayValues() returns display TEXT, so a cell's formatting
- *     becomes its value on the next save, silently, for every field of that record.
- *     Ranked by real exposure in this data:
- *       1. Decimal precision loss. 32 DECIMAL(9,4)/(5,4)/(5,2) columns across 9
- *          sheets (verified against schema.js), with live values at 3dp (npc_templates.hp_percent_regen,
- *          spell_effects.spell_crit / spell_damage / damage_reduce). A designer setting
- *          a rate column to 2dp is an ordinary thing to do and the loss is invisible.
+ *   Checked: reads RAW values through cellText_, not display text. What that fixes, and
+ *     what each item was when this read getDisplayValues() and a save rewrote every cell
+ *     of the record from the text the client was holding:
+ *       1. Decimal precision loss. 32 DECIMAL(9,4)/(5,4)/(5,2) columns across 9 sheets
+ *          (verified against schema.js), with live values at 3dp
+ *          (npc_templates.hp_percent_regen, spell_effects.spell_crit / spell_damage /
+ *          damage_reduce). A rate column displayed to 2dp lost the other digits, and a
+ *          designer setting a column to 2dp is an ordinary thing to do. Raw values carry
+ *          full stored precision.
  *       2. Thousands separators. item_value (166 rows >= 1000), class_info.level_up_exp
- *          (237), npc_templates.experience (85). Survives in en-US via idKey_'s comma
- *          strip, but breaks Task 2's numeric validation, and in a non-US locale lands
- *          as text in an INT column.
- *       3. Formula re-interpretation. No value starts with '=' today, but
- *          spell_effects.hp_change_formula has 50 starting with '-'; one leading '='
- *          turns data into a formula.
- *       4. Bool. All 30 are CHAR(1); formatting one as a checkbox yields "TRUE".
- *     Spot-check a decimal column, a >=1000 integer, and a Bool against real values.
+ *          (237), npc_templates.experience (85) came back as "1,500" — survivable in
+ *          en-US via idKey_'s comma strip, text in an INT column anywhere else. A raw
+ *          number has no separators.
+ *       3. Formula re-interpretation, in both directions. Reading raw gives a formula's
+ *          RESULT, and writeRow's changed-cells-only write then leaves the formula
+ *          untouched; and Validation refuses a Text value the user has begun with '='
+ *          rather than storing data as a formula. (No value starts with '=' today;
+ *          spell_effects.hp_change_formula has 50 starting with '-', which is fine.)
+ *       4. Bool. All 30 are CHAR(1). A checkbox cell now reads back 'true' and is
+ *          reported as "must be 0 or 1" instead of being written back as "TRUE".
+ *   Live: spot-check a DECIMAL column displayed to fewer places than it stores, an
+ *     integer >= 1000 in a separator format, a Bool, and a formula cell — open the record,
+ *     save it UNCHANGED, and confirm every cell is byte-for-byte what it was. That last
+ *     one is the whole contract: a save must not alter a cell the user did not edit.
  *   Size: fine, but note the outlier — NPC Spawns is 4,322 x 4, 6.7x the rows of any
  *     other sheet (next: Items 649 x 46, Spell Effects 259 x 76). Row count is what
  *     drives the per-row duplicate scan, the readSheetIndex loop and client rendering.
@@ -82,6 +90,13 @@
  *       (e.g. two drops for one NPC) must both write
  *     - an id column with a numeric cell format, e.g. displaying "651.00" (idKey_
  *       must still catch the collision with 651)
+ *     - save an UNCHANGED record and confirm nothing was written: a formula cell still
+ *       holds its formula, a 4dp value displayed to 2dp still holds 4dp
+ *     - edit ONE field of a record whose neighbours hold a formula and a separator-
+ *       formatted integer: only that field's cell may change
+ *     - clear a field that had a value (a blank must still overwrite, not be skipped)
+ *     - edit two ADJACENT fields and two SEPARATED fields (the run-grouping above writes
+ *       one range for the first and two for the second; both must land)
  *   Residual risk, accepted per plan scope: the duplicate check and the write are NOT
  *     atomic. Two editors inside the same window can still collide. No LockService.
  * ---------------------------------------------------------------------------------
@@ -154,15 +169,52 @@ function isBlank_(value) {
 }
 
 /**
+ * Internal: a cell's value as the text the client edits. THE one definition of that —
+ * readSheet hands these to the client and writeRow compares against them to decide what
+ * changed, so a cell the user did not touch round-trips to itself by construction.
+ *
+ * RAW value, not the display value. getDisplayValues() returns the cell as FORMATTED,
+ * which the client then posts back as the new value, so a whole-row save silently
+ * rewrote every cell as its own formatting:
+ *   - a DECIMAL(9,4) shown to 2dp lost the other two digits (32 decimal columns across
+ *     9 sheets, with live values at 3dp)
+ *   - item_value 1500 came back as "1,500" — text in an INT column outside en-US
+ *   - a Bool formatted as a checkbox came back as "TRUE"
+ * The raw value has none of those: a number is a number, and String() on it is the full
+ * stored precision with no separators.
+ *
+ * The ONE case where the display value is closer is a Date, which no column in the schema
+ * is (every sql type is INT/BIGINT/SMALLINT/INTEGER/DECIMAL/CHAR(1)/VARCHAR/TEXT — checked
+ * against schema.js) and which String() would render as "Mon Jan 01 1900 ...". A
+ * date-formatted cell in a numeric column is already broken data; showing the user what
+ * the sheet shows them keeps it recognisable, and validation reports it either way.
+ *
+ * A boolean cell (a real checkbox) reads back as 'true'/'false' and Validation rejects it
+ * with "must be 0 or 1", which is the same outcome the display value's "TRUE" produced —
+ * deliberately NOT coerced to 0/1 here, because inventing a value for a cell whose type is
+ * wrong is how the formatting bug worked in the first place.
+ */
+function cellText_(raw, display) {
+  if (raw === null || raw === undefined || raw === '') return '';
+  // Not `raw instanceof Date`: that answers "was this made by MY realm's Date", which is false
+  // for a Date that crossed a context boundary, and the fallback would then be skipped in
+  // exactly the case it exists for. The tag test asks what the value IS.
+  if (Object.prototype.toString.call(raw) === '[object Date]') return String(display);
+  return String(raw);
+}
+
+/**
  * Internal: a comparable key for an id cell.
  *
- * The client sees ids as display strings (readSheet uses getDisplayValues) and sends
- * them back as strings, while the sheet holds them as numbers. A numeric cell format
- * on an id column is enough to make those disagree — the client reads "651.00", posts
- * "651.00", and a raw comparison against 651 misses a genuine collision, silently
- * passing the one check that stops two editors taking the same id. Both sides go
- * through here, so 651, "651", "651.00", "1,024" and " 651 " all collapse to the same
- * key. Non-numeric ids fall back to a trimmed string.
+ * The client sees ids as strings and sends them back as strings, while the sheet holds
+ * them as numbers, so a raw comparison compares a string with a number and misses every
+ * collision. Both sides go through here, so 651, "651", "651.00", "1,024" and " 651 " all
+ * collapse to the same key. Non-numeric ids fall back to a trimmed string.
+ *
+ * Still needed now that readSheet returns RAW values rather than display text: the client
+ * may hold an id it never read from the sheet at all (Validation.nextId's suggestion, or a
+ * hand-typed one), and the duplicate scan below reads the id column with getValues, so the
+ * two sides are a string and a number even when no cell format is involved.
  *
  * (Every id column in the schema is INTEGER/INT/SMALLINT, with live maxima in the
  * hundreds — item_templates 651, spell_effects 259 — so the hazard here is cell
@@ -197,7 +249,15 @@ function readSheet(sheetName) {
     return { sheet: sheetName, header: [], rows: [], lastRow: 0 };
   }
 
-  var values = sheet.getDataRange().getDisplayValues();
+  // Both, because cellText_ prefers the raw value and needs the display one only for a
+  // Date. Two reads of ONE range, not two ranges — they cannot disagree about extent.
+  var range = sheet.getDataRange();
+  var raw = range.getValues();
+  var shown = range.getDisplayValues();
+
+  var values = raw.map(function (row, r) {
+    return row.map(function (cell, c) { return cellText_(cell, shown[r][c]); });
+  });
 
   return {
     sheet: sheetName,
@@ -351,7 +411,42 @@ function writeRow(sheetName, rowNumber, cells, idColumnIndex) {
   if (target > maxRows) sheet.insertRowsAfter(maxRows, target - maxRows);
 
   var out = cells.map(function (c) { return isBlank_(c) ? '' : c; });
-  sheet.getRange(target, 1, 1, out.length).setValues([out]);
+
+  // A save posts the WHOLE record, every column, whether the user edited it or not — so
+  // writing the whole row unconditionally meant every cell was rewritten from the text the
+  // client happened to be holding. cellText_ removed the formatting half of that; this
+  // removes the rest, by never touching a cell whose value has not changed:
+  //   - a FORMULA cell keeps its formula. getValues() gives its RESULT, so the client can
+  //     only ever post the result back; comparing result to result finds them equal and the
+  //     cell is left alone. (Editing that field still replaces the formula, which is the
+  //     one case where that is what the user asked for.)
+  //   - a text cell holding something the sheet would re-parse on entry — "01", "-50",
+  //     anything Sheets reads as a number — keeps exactly what it has.
+  // A blank incoming cell still CLEARS a non-blank one: out[] has already folded null to
+  // '', so "the user emptied this field" compares unequal and is written.
+  //
+  // Only for a row that already exists. An append has nothing to compare against.
+  if (target <= lastRow) {
+    var before = sheet.getRange(target, 1, 1, width);
+    var beforeRaw = before.getValues()[0];
+    var beforeShown = before.getDisplayValues()[0];
+
+    // Contiguous runs, so an ordinary edit is one setValues call rather than one per column.
+    var runs = [];
+    for (var c = 0; c < width; c++) {
+      if (cellText_(beforeRaw[c], beforeShown[c]) === String(out[c])) continue;
+      var open = runs.length ? runs[runs.length - 1] : null;
+      if (open && open.at + open.values.length === c) open.values.push(out[c]);
+      else runs.push({ at: c, values: [out[c]] });
+    }
+
+    runs.forEach(function (run) {
+      sheet.getRange(target, run.at + 1, 1, run.values.length).setValues([run.values]);
+    });
+  } else {
+    sheet.getRange(target, 1, 1, out.length).setValues([out]);
+  }
+
   SpreadsheetApp.flush();
 
   return { row: target };

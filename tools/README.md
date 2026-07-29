@@ -145,6 +145,12 @@ Pass the glob, not the bare directory. With no `package.json` anywhere above it,
 positional directory as a module entrypoint and fails with `MODULE_NOT_FOUND` rather than
 recursing into it.
 
+`Code.gs` is covered too, via `test/fake-sheets.js` — a small `SpreadsheetApp` model that Code.gs
+runs against in a `vm` context. It exists for the two claims that reasoning alone kept getting
+wrong: that a cell's value is its stored value rather than its formatting, and that saving a record
+writes only the cells that changed. What it assumes about Apps Script is listed at the top of that
+file; the checks that genuinely need a live spreadsheet are still listed in `Code.gs`'s own header.
+
 Apps Script has no `.js` file type, so build wraps each module into `dist/*.html`, alongside copies
 of `schema.js` and the sprite bundles:
 

@@ -53,6 +53,30 @@ test('text is accepted as-is', () => {
   assert.equal(Validation.validateCell(col({ kind: 'Text', sql: 'TEXT' }), "Bob's Hat").ok, true);
 });
 
+test('text beginning with = is refused, because the sheet would store it as a formula', () => {
+  // The store is a spreadsheet: '=SUM(A1)' entered in a cell stops being text and becomes a
+  // formula, and the importer then reads whatever it computed to — or #NAME?.
+  const c = col({ name: 'hp_change_formula', kind: 'Text', sql: 'TEXT' });
+  const r = Validation.validateCell(c, '=SUM(A1)');
+  assert.equal(r.ok, false);
+  assert.match(r.message, /cannot start with "="/);
+
+  // Only a LEADING '='. An '=' inside the value is ordinary text, and so is a leading '-', which
+  // 50 rows of spell_effects.hp_change_formula actually have.
+  assert.equal(Validation.validateCell(c, 'hp=-5').ok, true);
+  assert.equal(Validation.validateCell(c, '-50').ok, true);
+  // Leading whitespace is trimmed before the test, so this is the same value.
+  assert.equal(Validation.validateCell(c, '  =A1').ok, false);
+});
+
+test('a leading = fails every other kind on its own terms', () => {
+  // Which is why the check above lives in the Text branch: nothing else can reach it.
+  assert.equal(Validation.validateCell(col({ sql: 'INT' }), '=A1').ok, false);
+  assert.equal(Validation.validateCell(col({ kind: 'Bool', sql: 'CHAR(1)' }), '=A1').ok, false);
+  assert.equal(Validation.validateCell(
+    col({ kind: 'Enum', enumNames: ['NoUse'] }), '=A1').ok, false);
+});
+
 test('empty optional FK is valid', () => {
   const c = col({ kind: 'Id', ref: 'Items' });
   const r = Validation.validateCell(c, '', { Items: new Set([1, 2]) });

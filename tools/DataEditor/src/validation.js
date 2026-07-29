@@ -68,6 +68,22 @@ var Validation = (function () {
     }
 
     if (column.kind === 'Text') {
+      // The store is a spreadsheet, and a cell entered as '=...' becomes a FORMULA — the
+      // sheet then holds a computed value, or #NAME?, where the importer expects the text.
+      // Refused rather than escaped: nothing in this data begins with '=' (the closest is
+      // spell_effects.hp_change_formula, 50 rows beginning with '-', which is ordinary text),
+      // so there is no legitimate value to rescue and an escaping scheme would be one more
+      // thing that has to round-trip exactly.
+      //
+      // Only Text can reach this. A leading '=' fails every other kind's own check first —
+      // the numeric regex, the enum name list, Bool's 0-or-1.
+      if (value.charAt(0) === '=') {
+        return {
+          ok: false, write: true,
+          message: column.name + ' cannot start with "=" — the spreadsheet would store it ' +
+                   'as a formula instead of as text',
+        };
+      }
       return { ok: true, write: true };
     }
 
@@ -123,6 +139,11 @@ var Validation = (function () {
     // Foreign key: 0 and blank both mean "none". An unknown ref sheet is allowed through
     // deliberately — idSets may be partially loaded, and failing closed would block saves
     // on rows the user has not touched.
+    //
+    // That is HALF a pair, and the other half is App.unverifiedRefs (app.js gate 3), which
+    // refuses to save a record whose fk columns point at a list that is missing. Fail open
+    // here so a load in flight does not report every id as broken; fail closed there so a
+    // load that FAILED cannot let a nonexistent id be written. Neither is safe alone.
     if (column.ref && idSets && value !== '0') {
       var known = idSets[column.ref];
       if (known && !known.has(Number(value))) {
