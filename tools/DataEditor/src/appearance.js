@@ -10,6 +10,11 @@
 // The preview faces Down, so Shield and Weapon keep their base order; only Right/Up/Left move
 // them (CharacterLayout.cs:25-36). If the preview ever gains a facing control, sortOrder() is the
 // one function that has to grow a direction argument.
+//
+// NOT ported: ApplySlot's second removal branch (Character.cs:266) drops any slot whose
+// animations.tres does not exist, so the client silently skips an id with no art. A layer here is
+// "what the data asks for", not "what can be drawn" — resolving an id to a sprite belongs to the
+// bundle lookup (Task 5) and the preview (Task 11), which decide what to do about a miss.
 var Appearance = (function () {
   // CharacterLayout.cs:6 — the enum's numeric order IS the base sort order.
   var SLOT_INDEX = {
@@ -26,27 +31,35 @@ var Appearance = (function () {
 
   // Every field here can arrive as a spreadsheet cell, i.e. a STRING. `'11' === 11` is false, so
   // without this the underwear and monster-body rules would silently stop firing for real rows.
+  // parseInt, not Number or parseFloat: these are C# ints on the wire, and a graphic id indexes a
+  // sprite table, so '1.9' must become 1 and not 1.9. Matches Equipped.num() so the two modules
+  // cannot disagree about what a cell means.
   function num(value) {
     var n = parseInt(value, 10);
     return isNaN(n) ? 0 : n;
   }
 
-  // Icon.cs:9-11 and the client's tint shader divide each channel by 255 without clamping — an
-  // out-of-range byte skews the blend rather than erroring. A canvas needs a valid byte, so clamp
-  // here. An out-of-range stored channel is a data defect; reporting it is validation.js's job.
+  // Icon.cs:23 divides each channel by 255 without clamping — an out-of-range byte skews the
+  // blend rather than erroring. A canvas needs a valid byte, so clamp here. num() first: a
+  // spreadsheet cell is a string, and Math.max(0, '') is 0 but Math.max(0, 'x') is NaN.
+  // An out-of-range stored channel is a data defect; reporting it is validation.js's job.
   function channel(value) {
     return Math.min(255, Math.max(0, num(value)));
   }
 
-  /// Down-facing draw order, back to front. Higher is nearer the viewer.
+  // Down-facing draw order, back to front. Higher is nearer the viewer. Deliberately unguarded:
+  // an unknown slot name gives NaN, which is a caller bug (the slot names are a closed set) and
+  // shows up immediately rather than silently sorting to a plausible-looking position.
   function sortOrder(slot) {
     return SLOT_INDEX[slot] + 2;
   }
 
-  /// CharacterAnchor.cs:13, taking a frame height in pixels. C# integer division truncates
-  /// toward zero, hence Math.trunc; for the non-negative heights AnimationHeights can produce
-  /// (it defaults to 64 when a clip is missing) Math.floor would agree, but trunc is what the
-  /// source says.
+  // CharacterAnchor.cs:13, taking a frame height in pixels. C# integer division truncates toward
+  // zero, hence Math.trunc — that is what the source says. Math.floor would in fact behave
+  // identically for every height that exists: trunc and floor differ only on negative
+  // non-integers, the first term is negative exactly when Math.max(..., 0) clamps it away, and
+  // the second is negative only for a negative height. No test can distinguish them, and none
+  // pretends to.
   function offsetY(height) {
     return Math.max(Math.trunc((height - 48) / 2), 0) - Math.trunc(height / 2);
   }
@@ -59,9 +72,12 @@ var Appearance = (function () {
       Feet: eq[3], Shield: eq[4], Weapon: eq[5],
     };
 
+    // bodyId is coerced here because the rules below COMPARE it (>= 100, === 1, === 11) and
+    // those comparisons are what a raw string breaks. hairId and faceId are only ever passed
+    // on, so push() — the single coercion boundary for every id — handles them.
     var bodyId = num(a.bodyId);
-    var hairId = num(a.hairId);
-    var faceId = num(a.faceId);
+    var hairId = a.hairId;
+    var faceId = a.faceId;
 
     // Character.cs:218-223 — a monster or morph body (>= 100) renders the body alone. The server
     // does not even send equipment for those rows (Goose/Packets.cs:161). The body's OWN tint
@@ -77,6 +93,11 @@ var Appearance = (function () {
     // CharacterLayout.cs:56-69 — the two player bodies get underwear in slots that are empty.
     // Every other body, monsters included, gets none. Underwear is never tinted
     // (Character.cs:227-229 forces NoTint).
+    //
+    // `=== 0`, not `<= 0`: the client's guard is `if (equippedLegsId != 0) return 0`
+    // (CharacterLayout.cs:58, :66), so a NEGATIVE stored id suppresses underwear too and then
+    // draws nothing itself (push() drops it). Widening this to `<= 0` would put underwear on a
+    // character the client leaves bare-legged.
     if (slots.Legs.graphic === 0) {
       if (bodyId === 1) slots.Legs = underwear(3);
       else if (bodyId === 11) slots.Legs = underwear(4);

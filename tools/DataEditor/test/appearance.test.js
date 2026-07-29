@@ -93,7 +93,7 @@ test('female body gets underwear legs 4 and chest 8', () => {
   const layers = Appearance.layers({ ...base, bodyId: 11 });
   assert.equal(find(layers, 'Legs').id, 4);
   assert.equal(find(layers, 'Chest').id, 8);
-  assert.deepEqual(find(layers, 'Chest').a, 0);
+  assert.equal(find(layers, 'Chest').a, 0);
 });
 
 test('any other sub-100 body gets no underwear at all', () => {
@@ -201,7 +201,7 @@ test('the eyes layer never picks up the body tint', () => {
   const layers = Appearance.layers({
     ...base, bodyId: 1, bodyR: 9, bodyG: 9, bodyB: 9, bodyA: 9,
   });
-  assert.deepEqual(find(layers, 'Eyes').a, 0);
+  assert.equal(find(layers, 'Eyes').a, 0);
 });
 
 test('a zero hair or face id drops that layer', () => {
@@ -263,7 +263,47 @@ test('a string monster body id still suppresses equipment', () => {
 
 test('missing appearance fields default to nothing rather than throwing', () => {
   assert.deepEqual(Appearance.layers({}), []);
-  assert.deepEqual(slotsOf(Appearance.layers({ bodyId: 1 })), ['Body', 'Legs']);
+  const layers = Appearance.layers({ bodyId: 1 });
+  assert.deepEqual(slotsOf(layers), ['Body', 'Legs']);
+  // An absent channel must come out 0, never NaN or undefined — Task 11 feeds these straight
+  // into a canvas rgba(), where NaN silently paints nothing.
+  for (const l of layers) {
+    assert.deepEqual([l.r, l.g, l.b, l.a], [0, 0, 0, 0], l.slot);
+  }
+});
+
+test('graphic ids are parsed as integers, never floats or hex', () => {
+  // A graphic id indexes a sprite table. parseFloat would keep 1.9; Number would read '0x10'
+  // as 16 and ' ' as 0-by-a-different-route.
+  assert.equal(find(Appearance.layers({ ...base, bodyId: '1.9' }), 'Body').id, 1);
+  // parseInt('0x10', 10) is 0, so the body drops out entirely rather than becoming id 16.
+  assert.equal(find(Appearance.layers({ ...base, bodyId: '0x10' }), 'Body'), undefined);
+  assert.equal(find(Appearance.layers({ ...base, hairId: '26.7' }), 'Hair').id, 26);
+  const layers = Appearance.layers({
+    ...base, bodyId: '11', faceId: '70.2', equippedItems: '5.5,*,0,*,0,*,0,*,0,*,0,*',
+  });
+  for (const l of layers) assert.ok(Number.isInteger(l.id), l.slot + ' id ' + l.id);
+});
+
+test('non-numeric channels become 0 rather than NaN', () => {
+  const body = find(Appearance.layers({
+    ...base, bodyId: 1, bodyR: 'abc', bodyG: '', bodyB: undefined, bodyA: '128',
+  }), 'Body');
+  assert.deepEqual([body.r, body.g, body.b, body.a], [0, 0, 0, 128]);
+});
+
+test('a negative legs id suppresses underwear and draws nothing', () => {
+  // CharacterLayout.cs:58 is `if (equippedLegsId != 0) return 0` — NOT `<= 0`. So a male body
+  // with a negative legs id gets no underwear, and push() then drops the legs slot itself.
+  assert.deepEqual(
+    slotsOf(Appearance.layers({ ...base, bodyId: 1, equippedItems: '0,*,0,*,-5,*,0,*,0,*,0,*' })),
+    ['Body', 'Eyes', 'Hair'],
+  );
+  // Same rule for the female underwear chest (CharacterLayout.cs:66).
+  assert.deepEqual(
+    slotsOf(Appearance.layers({ ...base, bodyId: 11, equippedItems: '-5,*,0,*,-5,*,0,*,0,*,0,*' })),
+    ['Body', 'Eyes', 'Hair'],
+  );
 });
 
 test('vertical anchor matches CharacterAnchor.OffsetY', () => {
@@ -274,21 +314,25 @@ test('vertical anchor matches CharacterAnchor.OffsetY', () => {
   assert.equal(Appearance.offsetY(96), -24);
 });
 
-test('vertical anchor over every height in the sprite bundle', () => {
-  // Distinct heights in Assets/Resources/AnimationHeights.txt, 95 being the only odd one.
+test('vertical anchor over every frame height in tools/DataEditor/sprites-parts.html', () => {
+  // Every distinct rect height in the editor's own sprite bundle — the heights Task 11 can
+  // actually hand this function. Six are odd: 15, 75, 79, 95 (and 49/63 appear in the
+  // client's wider AnimationHeights.txt but not in this bundle).
   const expected = {
-    20: -10, 32: -16, 44: -22, 48: -24, 50: -24, 60: -24,
-    80: -24, 95: -24, 96: -24, 128: -24, 288: -24,
+    15: -7, 16: -8, 24: -12, 30: -15, 32: -16, 36: -18, 40: -20, 42: -21, 44: -22, 46: -23,
+    48: -24, 50: -24, 60: -24, 64: -24, 68: -24, 75: -24, 79: -24, 80: -24, 86: -24, 94: -24,
+    95: -24, 96: -24, 128: -24, 160: -24, 164: -24, 180: -24, 192: -24, 256: -24, 320: -24,
   };
   for (const h of Object.keys(expected)) {
     assert.equal(Appearance.offsetY(Number(h)), expected[h], 'height ' + h);
   }
 });
 
-test('vertical anchor truncates toward zero like C# integer division', () => {
-  // 47 exercises both truncations with a negative numerator: C# gives (-1)/2 == 0 and
-  // -47/2 == -23. Math.floor would give -1 and -24.
-  assert.equal(Appearance.offsetY(47), -23);
-  assert.equal(Appearance.offsetY(49), -24);
+test('vertical anchor: every height at or above 48 collapses to -24', () => {
+  // CharacterAnchor.cs:7-13 states this identity, and it is what keeps a 320px sprite's feet
+  // on the tile. Sweeping the whole range catches an off-by-one in either division that a
+  // handful of sample heights would miss. Below 48 the table above enumerates the real
+  // heights; asserting a formula here would just restate the implementation.
+  for (let h = 48; h <= 400; h++) assert.equal(Appearance.offsetY(h), -24, 'height ' + h);
   assert.equal(Appearance.offsetY(0), 0);
 });

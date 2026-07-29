@@ -45,7 +45,7 @@ var Equipped = (function () {
     return n > 0 ? n : 0;
   }
 
-  // Icon.cs:9-11 divides each channel by 255 without clamping, so an out-of-range byte skews
+  // Icon.cs:23 divides each channel by 255 without clamping, so an out-of-range byte skews
   // the blend rather than erroring. Clamp here: the UI binds these to free-text inputs.
   // The clamp is deliberately silent because it is not the only line of defence — a stored
   // value that needed clamping is one isFaithful() reports, so the write-back gate raises it
@@ -150,7 +150,7 @@ var Equipped = (function () {
       var s = (slots && slots[i]) || empty();
       var graphic = graphicOf(s.graphic);
       var a = channelOf(s.a);
-      // a === 0 means no blend (Icon.cs:9-11 mixes by a), so emit the compact form — it
+      // a === 0 means no blend (Icon.cs:23 mixes by a), so emit the compact form — it
       // renders identically and matches how existing rows look.
       if (!s.tinted || !a) parts.push(graphic + ',*');
       else parts.push([graphic, channelOf(s.r), channelOf(s.g), channelOf(s.b), a].join(','));
