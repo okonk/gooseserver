@@ -120,8 +120,9 @@ var Sprites = (function () {
     // alpha, away from it); an unclamped tint channel does the same at partial alpha, where the
     // byte range alone would not catch it.
     //
-    // The OUTPUT needs no clamp: with f in [0,1] and the tint channel in [0,255], each result is
-    // a convex combination of two valid bytes and so is one itself.
+    // The OUTPUT needs no clamp: with f in [0,1], the tint channel in [0,255], and px in [0,255]
+    // (every caller feeds a Uint8ClampedArray), each result is a convex combination of two valid
+    // bytes and so is one itself. All three premises are needed — an out-of-range px would escape.
     var f = channel(tint.a) / 255;
     return [
       Math.round(px[0] + (channel(tint.r) - px[0]) * f),
