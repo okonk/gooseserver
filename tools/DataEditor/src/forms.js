@@ -87,16 +87,25 @@ var Forms = (function () {
     hidden.value = value;
 
     // No dispatch of our own: `change` bubbles, so app.js's delegated listener already sees it.
+    // The ordering is load-bearing — this listener is on the box itself, so it runs in the target
+    // phase and writes hidden.value BEFORE the event reaches the delegated listener on the form
+    // container, which therefore previews the new cell rather than the old one.
     box.addEventListener('change', function () {
       box.indeterminate = false;
       hidden.value = box.checked ? '1' : '0';
     });
 
     wrap.appendChild(box);
+    wrap.appendChild(hidden);
 
     // A required column may not be blank at all, so there is no third state to return to.
     if (!column.required) {
-      var clear = el('button', { type: 'button', class: 'clear', title: 'use the default' }, '×');
+      // aria-label as well as title: a button's text content OUTRANKS title in the accessible
+      // name computation, so without it a screen reader announces "multiplication sign button"
+      // and a touch user, who never sees a title tooltip, gets nothing at all.
+      var clear = el('button', {
+        type: 'button', class: 'clear', title: 'use the default', 'aria-label': 'use the default',
+      }, '×');
       // Dispatched from the BUTTON rather than the box: a change on the box would run the
       // listener above and immediately write '0' back over the blank we just restored. It still
       // reaches the delegated preview listener, which is on the form container above both.
@@ -109,7 +118,6 @@ var Forms = (function () {
       wrap.appendChild(clear);
     }
 
-    wrap.appendChild(hidden);
     return wrap;
   }
 

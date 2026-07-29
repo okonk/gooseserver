@@ -277,7 +277,7 @@ test('an untouched Bool collects back exactly what it was given', () => {
   assert.equal(collectOne(c, Forms.scalarControl(c, 0)), '0');
 });
 
-test('ticking a blank Bool writes 1, and untocking it writes 0', () => {
+test('ticking a blank Bool writes 1, and unticking it writes 0', () => {
   const c = column('Items', 'lore');
   const control = Forms.scalarControl(c, '');
   const box = boolBox(control);

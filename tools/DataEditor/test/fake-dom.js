@@ -2,7 +2,11 @@
 // wrong: <select>.value refusing a value no <option> carries, and an <input>'s DIRTY VALUE
 // FLAG. Everything else is the minimum the module touches.
 //
-// Install with installFakeDom(); it sets globalThis.document and returns it.
+// Install with installFakeDom(); it sets globalThis.document and returns it, and ALSO sets
+// globalThis.Event = FakeEvent. That second one is not like `Image` or `google`: `Event` is a
+// Node BUILT-IN (EventTarget and AbortSignal dispatch real Events), and every test file calls
+// installFakeDom() at module top level, so from then on the built-in is gone for the whole
+// process running that file. There is no uninstall.
 //
 // One deliberate infidelity: querySelectorAll and getElementsByTagName return real Arrays,
 // not NodeList/HTMLCollection, so .map/.filter/.find work on them HERE and would throw in a
@@ -99,7 +103,10 @@
 // test/fake-dom.test.js:
 //
 //   * `indeterminate` — the third checkbox flag, independent of `.checked`.
-//   * `Event` — a constructor, for code under test that dispatches its own event.
+//   * `Event` — a constructor, for code under test that dispatches its own event. installFakeDom
+//     CLOBBERS the Node built-in of that name process-wide for the file that calls it, and there
+//     is no uninstall; anything in the same process that needs a real Event (EventTarget,
+//     AbortSignal) will get this instead.
 //   * `getBoundingClientRect()` — reads the assignable `rect`, all zeroes by default.
 //   * `style` — a plain bag of round-tripping keys, not a CSSStyleDeclaration.
 //   * `scrollTop` / `clientHeight` / `scrollHeight`, plus a non-bubbling `scroll` event.
@@ -497,51 +504,18 @@ const EVENT_FLAGS = {
 //     assignable `rect`, they are what makes "click at x within this track" testable.
 const EVENT_INIT = ['key', 'relatedTarget', 'clientX', 'clientY'];
 
-// Builds an event and dispatches it from `node`. Returns false only if a handler cancelled a
-// CANCELABLE event, exactly as dispatchEvent does.
-export function fire(node, type, init) {
-  const flags = EVENT_FLAGS[String(type)];
-  if (!flags) throw new Error('fake DOM does not know the flags for event type: ' + type);
-  Object.keys(init || {}).forEach((k) => {
-    if (!EVENT_INIT.includes(k)) throw new Error('fake DOM does not model event field: ' + k);
-  });
-
-  const event = {
-    key: undefined,
-    relatedTarget: null,
-    clientX: 0,
-    clientY: 0,
-    ...(init || {}),
-    type: String(type),
-    target: null,
-    currentTarget: null,
-    bubbles: flags.bubbles,
-    cancelable: flags.cancelable,
-    defaultPrevented: false,
-    propagationStopped: false,
-    preventDefault() {
-      // A non-cancelable event ignores this outright — it does not even set the flag.
-      if (this.cancelable) this.defaultPrevented = true;
-    },
-    // Stops the walk to the ancestors, but lets the remaining listeners on THIS node run.
-    // stopImmediatePropagation is deliberately absent: calling it throws rather than quietly
-    // doing the weaker thing.
-    stopPropagation() { this.propagationStopped = true; },
-  };
-  return node.dispatchEvent(event);
-}
-
-// fire() is for a TEST acting as the user. This is for CODE UNDER TEST that dispatches an event
-// of its own — the Bool control's clear button, which has to tell the delegated preview listener
-// that the cell moved. The flags come from the init dict alone, never from a per-type table:
-// `new Event('change')` does not bubble, and only `{ bubbles: true }` makes it travel, exactly as
-// the DOM says. That is also why dispatchEvent reads them off the event rather than looking the
-// type up itself.
+// THE event shape, and the only place preventDefault/stopPropagation are defined. It is exposed
+// to CODE UNDER TEST as globalThis.Event — the Bool control's clear button dispatches one of its
+// own to tell the delegated preview listener that the cell moved — and fire() builds on it too,
+// so there is a single object for both paths. For a directly constructed event the flags come
+// from the init dict alone, never from a per-type table: `new Event('change')` does not bubble,
+// and only `{ bubbles: true }` makes it travel, exactly as the DOM says. That is also why
+// dispatchEvent reads the flags off the event rather than looking the type up itself.
 class FakeEvent {
   constructor(type, init) {
     Object.keys(init || {}).forEach((k) => {
       if (!['bubbles', 'cancelable'].includes(k)) {
-        throw new Error('fake DOM does not model event init field: ' + k);
+        throw new Error('fake DOM does not model event field: ' + k);
       }
     });
     this.type = String(type);
@@ -553,9 +527,32 @@ class FakeEvent {
     this.propagationStopped = false;
   }
 
+  // A non-cancelable event ignores this outright — it does not even set the flag.
   preventDefault() { if (this.cancelable) this.defaultPrevented = true; }
 
+  // Stops the walk to the ancestors, but lets the remaining listeners on THIS node run.
+  // stopImmediatePropagation is deliberately absent: calling it throws rather than quietly
+  // doing the weaker thing.
   stopPropagation() { this.propagationStopped = true; }
+}
+
+// Builds an event and dispatches it from `node`. Returns false only if a handler cancelled a
+// CANCELABLE event, exactly as dispatchEvent does.
+export function fire(node, type, init) {
+  const flags = EVENT_FLAGS[String(type)];
+  if (!flags) throw new Error('fake DOM does not know the flags for event type: ' + type);
+  Object.keys(init || {}).forEach((k) => {
+    if (!EVENT_INIT.includes(k)) throw new Error('fake DOM does not model event field: ' + k);
+  });
+
+  // One event shape in this file: the flags come from the per-type table above, the init fields
+  // are layered on top, and preventDefault/stopPropagation live on FakeEvent alone.
+  const event = Object.assign(
+    new FakeEvent(type, flags),
+    { key: undefined, relatedTarget: null, clientX: 0, clientY: 0 },
+    init || {},
+  );
+  return node.dispatchEvent(event);
 }
 
 export function installFakeDom() {

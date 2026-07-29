@@ -81,7 +81,9 @@
   /* The tri-state Bool control. `input { width: 100% }` above is written for text fields and
      would stretch the checkbox across the whole row, so it is overridden HERE BY TYPE rather
      than for the wrapper: a Bool cell holding something other than 0/1 falls back to a plain
-     text input inside this same span, and that one still wants the full width. */
+     text input inside this same span, and that one still wants to fill the row. (It gets most
+     of it rather than all of it — inside this flex container the 100% is a basis that shrinks
+     to leave room for the "not a 0/1 value" status beside it.) */
   .boolean { display: flex; gap: 6px; align-items: center; }
   .boolean input[type="checkbox"] { width: auto; margin: 0; }
   .boolean .clear { border: 0; background: none; color: #555; cursor: pointer; padding: 0 2px; }
