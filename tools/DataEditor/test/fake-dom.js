@@ -94,6 +94,25 @@
 //     flush() drains them, including calls made from inside a handler, so a whole cascade
 //     resolves deterministically with no timers.
 
+// ADDED FOR ROUND 2, all of it state a test sets rather than behaviour this fake simulates —
+// there is no layout engine in here and none of these tries to be one. Each is covered by
+// test/fake-dom.test.js:
+//
+//   * `indeterminate` — the third checkbox flag, independent of `.checked`. A browser clears it
+//     on click as a default action; this fake has NO default actions, so a tri-state control
+//     must clear it itself, which is the behaviour worth testing anyway.
+//   * `getBoundingClientRect()` — reads assignable `__rect`, all zeroes by default, padded out
+//     to every DOMRect field so a missing one reads 0 rather than turning maths into NaN.
+//   * `style` — a plain bag of round-tripping keys. Not CSSStyleDeclaration: nothing is parsed
+//     and nothing reflects onto a style attribute.
+//   * `scrollTop` / `clientHeight` / `scrollHeight` — plain numbers, plus a `scroll` event that
+//     does not bubble (an element's does not; only the document's does). Setting scrollTop does
+//     NOT fire scroll here, and nothing recomputes scrollHeight when children change: a
+//     windowing test states the geometry it means.
+//   * `setTransform` and `imageSmoothingEnabled` on the 2d context, both in the call log —
+//     smoothing is a property but it is an instruction like any other, and a scaled preview
+//     that forgot to disable it draws the same shapes, blurrily, which only the log can see.
+
 class FakeNode {
   constructor(tag) {
     this.tagName = String(tag).toUpperCase();
@@ -119,8 +138,34 @@ class FakeNode {
     // all three being distinct.
     this._checked = false;
     this._dirtyChecked = false;
+    // A THIRD checkbox flag, independent of both of the above: a box can be indeterminate while
+    // unticked, and ticked while indeterminate. A browser clears it as the DEFAULT ACTION of a
+    // click; this fake has no default actions at all, so a tri-state control must clear it
+    // itself — which is the behaviour worth testing anyway, since the flag is not submitted and
+    // a control that leaned on the browser would have nothing to read back.
+    this.indeterminate = false;
     this.selectedIndex = -1;
     this.scrollCalls = [];
+    // Test-assignable geometry. There is no layout in here, so a rect is state, not a
+    // measurement — see getBoundingClientRect.
+    this.__rect = null;
+    this.scrollTop = 0;
+    this.clientHeight = 0;
+    this.scrollHeight = 0;
+    // A plain bag whose keys round-trip. NOT CSSStyleDeclaration: nothing is parsed, nothing is
+    // reflected onto a style attribute, and a bad value is kept rather than dropped. It exists
+    // so "this tile was positioned" is observable at all, which a `style` that swallowed every
+    // assignment made impossible.
+    this.style = {};
+  }
+
+  // Returns the rect a test put in `__rect`, padded out to every DOMRect field so a reader
+  // reaching for one the test omitted gets 0 rather than undefined — arithmetic on undefined
+  // yields NaN, and NaN offsets pass any assertion phrased as "it moved".
+  getBoundingClientRect() {
+    return {
+      x: 0, y: 0, left: 0, top: 0, right: 0, bottom: 0, width: 0, height: 0, ...(this.__rect || {}),
+    };
   }
 
   get checked() {
@@ -397,9 +442,19 @@ class FakeNode {
 // asked for. Deliberately NOT a canvas: it knows nothing about compositing.
 function recordingContext() {
   const calls = [];
+  // Recorded like a call even though it is a property, because it is an instruction to the
+  // context in exactly the way setTransform is: a scaled preview that forgot to turn smoothing
+  // off draws the same shapes, blurrily, and only the log can tell the two apart.
+  let smoothing = true;
   return {
     calls,
     clearRect(...args) { calls.push(['clearRect', ...args]); },
+    setTransform(...args) { calls.push(['setTransform', ...args]); },
+    get imageSmoothingEnabled() { return smoothing; },
+    set imageSmoothingEnabled(value) {
+      smoothing = !!value;
+      calls.push(['imageSmoothingEnabled', smoothing]);
+    },
     drawImage(...args) { calls.push(['drawImage', ...args]); },
     getImageData(x, y, w, h) {
       calls.push(['getImageData', x, y, w, h]);
@@ -425,6 +480,9 @@ const EVENT_FLAGS = {
   change: { bubbles: true, cancelable: false },
   focus: { bubbles: false, cancelable: false },
   blur: { bubbles: false, cancelable: false },
+  // scroll fired at an ELEMENT does not bubble (only the one at the document does), and nothing
+  // can cancel a scroll that has already happened.
+  scroll: { bubbles: false, cancelable: false },
   mouseenter: { bubbles: false, cancelable: false },
   mouseleave: { bubbles: false, cancelable: false },
 };

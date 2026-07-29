@@ -251,7 +251,10 @@ test('an effect with no frames clears the canvas and starts no timer', () => {
     const node = canvas(96, 96);
     const stop = Preview.effect(node, 999, effectsCtx);
     assert.equal(timers.size, 0);
-    assert.deepEqual(node.getContext('2d').calls, [['clearRect', 0, 0, 96, 96]]);
+    assert.deepEqual(node.getContext('2d').calls, [
+      ['imageSmoothingEnabled', false],
+      ['clearRect', 0, 0, 96, 96],
+    ]);
     assert.equal(typeof stop, 'function');
     stop();   // must be safe to call
   });
