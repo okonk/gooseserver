@@ -1,7 +1,10 @@
 // Builds a record form from GOOSE_SCHEMA plus Layout's grouping. One control per column,
-// except where a composite claims several (see Composites, which must be defined before
-// render/collect are called — build.mjs emits composites.html and Editor.html includes it
-// ahead of forms.html).
+// except where a composite claims several (see Composites), and except a column with a `ref`,
+// which goes to Pickers.fkControl.
+//
+// Both are resolved as FREE GLOBALS at call time, not at load time — nothing here runs during
+// the script's own evaluation — so Editor.html may include composites.html and pickers.html in
+// any order relative to this file, as long as all three are on the page before render() runs.
 var Forms = (function () {
   function el(tag, attrs, text) {
     var node = document.createElement(tag);
@@ -90,6 +93,22 @@ var Forms = (function () {
     return input;
   }
 
+  // A column with a `ref` points at another sheet, and Pickers.fkControl is the typeahead for
+  // one. Routing happens HERE rather than inside scalarControl so that composites — which reach
+  // for Pickers themselves — are not routed twice.
+  //
+  // Pickers is resolved as a free global at call time, exactly as Composites is (Editor.html
+  // includes pickers.html ahead of forms.html). The guard is not defensive padding: forms.js is
+  // the only module that renders a whole record, and losing every field of a sheet because one
+  // include is missing is a far worse failure than 26 columns falling back to a text box that
+  // still holds, validates and saves the right value.
+  function columnControl(column, value, ctx) {
+    if (column.ref && typeof Pickers !== 'undefined' && Pickers && Pickers.fkControl) {
+      return Pickers.fkControl(column, value, ctx);
+    }
+    return scalarControl(column, value);
+  }
+
   // Renders the whole record. `ctx` carries idSets, sprite bundles and picker data.
   function render(container, schema, values, ctx) {
     container.innerHTML = '';
@@ -143,7 +162,7 @@ var Forms = (function () {
                              : el('label', { for: 'f-' + name }, name));
 
         row.appendChild(comp ? Composites.control(comp, byName, values, ctx)
-                             : scalarControl(column, values[name]));
+                             : columnControl(column, values[name], ctx));
 
         row.appendChild(el('div', { class: 'error', 'data-error-for': name }));
         section.appendChild(row);

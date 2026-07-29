@@ -28,9 +28,20 @@
 //     in a browser) whose calls array is the assertion surface for Sprites.draw. Anything that
 //     is not a canvas, or any type but '2d', returns null.
 //
-// STILL MISSING. Structural (Task 10's prerequisite): checkedness, appendChild does not detach
-// from a previous parent, no input value sanitization, ask-for-reset does not skip disabled
-// options, no removeChild, no classList.
+// ADDED FOR TASK 10 (composites):
+//
+//   * CHECKEDNESS — `.checked` as the IDL attribute, distinct from the `checked` content
+//     attribute (which supplies only the default) and from `.value` (which on a checkbox is the
+//     id it carries). Assigning it raises the dirty checkedness flag. The bitmask control reads
+//     all three and a fake that conflated them would pass on a mask it got wrong.
+//   * The VALUE SANITIZATION ALGORITHM for `color` and `range` only. A colour input reads back
+//     nothing but lowercase #rrggbb, and a range input clamps to min/max — the rgba control
+//     reads both back, so without this the tests would exercise inputs a browser cannot make.
+//
+// STILL MISSING. Structural: appendChild does not detach from a previous parent, value
+// sanitization for every OTHER type (a text input strips CR/LF in a browser and does not here),
+// ask-for-reset does not skip disabled options, no removeChild, no classList, and a checkbox has
+// no radio-group or form-reset behaviour.
 //
 // In the event model specifically — each of these THROWS rather than diverging quietly, so a
 // test that needs one fails loudly instead of passing for the wrong reason:
@@ -63,7 +74,24 @@ class FakeNode {
     // selected option, so _value is unused for them.
     this._value = '';
     this._dirty = false;
+    // Checkedness, the IDL attribute — a DIFFERENT thing from the `checked` content attribute
+    // (which only supplies the default) and from `.value` (which on a checkbox is the id it
+    // carries, defaulting to 'on'). Assigning .checked raises the dirty checkedness flag, after
+    // which the content attribute no longer has any say. Task 10's bitmask control depends on
+    // all three being distinct.
+    this._checked = false;
+    this._dirtyChecked = false;
     this.selectedIndex = -1;
+  }
+
+  get checked() {
+    if (this._dirtyChecked) return this._checked;
+    return this.getAttribute('checked') !== null;
+  }
+
+  set checked(value) {
+    this._checked = !!value;
+    this._dirtyChecked = true;
   }
 
   setAttribute(name, value) {
@@ -228,7 +256,7 @@ class FakeNode {
     // Clean input: the value IS the content attribute. Dirty: the attribute is ignored.
     if (this._dirty) return this._value;
     const attr = this.getAttribute('value');
-    if (attr !== null) return attr;
+    if (attr !== null) return this._sanitize(attr);
     // A checkbox or radio with no value attribute reads back as 'on', not '' — its value mode
     // is "default/on". Everything else defaults to the empty string.
     const type = String(this.getAttribute('type') || '').toLowerCase();
@@ -243,8 +271,31 @@ class FakeNode {
       this.selectedIndex = this._options().findIndex((o) => o.value === text);
       return;
     }
-    this._value = text;
+    this._value = this._sanitize(text);
     this._dirty = true;
+  }
+
+  // The VALUE SANITIZATION ALGORITHM, for the two types Task 10's rgba control reads back.
+  // Modelling it is load-bearing in both directions: a colour input NEVER reads back anything
+  // but #rrggbb lowercase, so a control that tried to parse arbitrary text there would be
+  // testing a case the browser cannot produce; and a range input CLAMPS, so a stored channel of
+  // 900 comes back as 255 rather than as 900. Every other type is left alone — in particular
+  // text inputs do NOT strip CR/LF here, which a browser does.
+  _sanitize(text) {
+    const type = String(this.getAttribute('type') || '').toLowerCase();
+    if (type === 'color') {
+      return /^#[0-9a-fA-F]{6}$/.test(text) ? text.toLowerCase() : '#000000';
+    }
+    if (type === 'range') {
+      const min = Number(this.getAttribute('min') || 0);
+      const max = Number(this.getAttribute('max') === null ? 100 : this.getAttribute('max'));
+      // "If the value is not a valid floating-point number, set it to the default value" —
+      // which for range is the midpoint, or min when the midpoint is above max.
+      const n = /^-?\d+(\.\d+)?$/.test(String(text).trim()) ? Number(text)
+        : Math.max(min, Math.min(max, min + (max - min) / 2));
+      return String(Math.max(min, Math.min(max, n)));
+    }
+    return text;
   }
 
   getElementsByTagName(tag) {

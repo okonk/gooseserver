@@ -381,6 +381,61 @@ test('a live sheet gets no warning', () => {
   assert.equal(host.querySelector('[class="warn"]'), null);
 });
 
+// ---------------------------------------------------------------- fk routing
+
+const FK_SHEET = {
+  sheet: 'NPCs',
+  columns: [{ name: 'quest_id', kind: 'Id', ref: 'Quests', required: false }],
+  composites: [],
+};
+
+test('render sends a column with a ref to Pickers.fkControl', () => {
+  const seen = [];
+  globalThis.Pickers = {
+    fkControl(column, value, ctx) {
+      seen.push({ column, value, ctx });
+      const node = document.createElement('input');
+      node.setAttribute('name', column.name);
+      node.value = String(value);
+      return node;
+    },
+  };
+  try {
+    const host = div();
+    const ctx = { pickerData: {} };
+    Forms.render(host, FK_SHEET, { quest_id: '10' }, ctx);
+    assert.equal(seen.length, 1);
+    assert.equal(seen[0].column.name, 'quest_id');
+    assert.equal(seen[0].value, '10');
+    assert.equal(seen[0].ctx, ctx, 'ctx is threaded through so the picker can read pickerData');
+  } finally {
+    delete globalThis.Pickers;
+  }
+});
+
+test('render leaves a column with no ref on the scalar control', () => {
+  globalThis.Pickers = { fkControl() { throw new Error('must not be called'); } };
+  try {
+    const host = div();
+    Forms.render(host, { sheet: 'NPCs', composites: [], columns: [column('NPCs', 'npc_name')] },
+      { npc_name: 'Rat' }, {});
+    assert.equal(host.querySelector('[name="npc_name"]').value, 'Rat');
+  } finally {
+    delete globalThis.Pickers;
+  }
+});
+
+test('render falls back to a text box when Pickers is not included', () => {
+  // Losing every field of a sheet to one missing include would be far worse than 26 columns
+  // rendering as plain text boxes that still hold, validate and save the right value.
+  assert.equal(typeof globalThis.Pickers, 'undefined');
+  const host = div();
+  Forms.render(host, FK_SHEET, { quest_id: '10' }, {});
+  const node = host.querySelector('[name="quest_id"]');
+  assert.equal(node.tagName, 'INPUT');
+  assert.equal(node.value, '10');
+});
+
 // ---------------------------------------------------------------- composites
 
 const COMPOSITE_TOY = {
