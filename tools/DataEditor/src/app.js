@@ -2,7 +2,7 @@
 // This is the only module that talks to the server (google.script.run) and the only one that
 // decides whether a record may be written.
 //
-// THE SAVE PATH HAS THREE GATES, in this order, and each exists because the layer below it
+// THE SAVE PATH HAS FOUR GATES, in this order, and each exists because the layer below it
 // cannot see the problem:
 //
 //   1. FROZEN COMPOSITES. Composites.equipSlotsControl raises `wrapper.__frozen` the instant one
@@ -17,7 +17,13 @@
 //      warned: the damage is silent, invisible in the form afterwards, and the fix — repairing
 //      the cell in the sheet itself — is available and takes seconds. A warning the user can
 //      click through would be a warning they click through.
-//   3. Validation.validateRecord, which is the ordinary per-column check.
+//   3. AN FK WITH NO LIST TO CHECK IT AGAINST. Validation.validateCell passes an fk whose id set
+//      is absent, because the sets load asynchronously and failing closed would block saves on
+//      rows the user never touched — so a readSheetIndex failure would otherwise let a
+//      nonexistent id through the only check there is for it. unverifiedRefs gates exactly the
+//      columns this record USES (blank and '0' mean "none" and are exempt either way), reports
+//      which sheet is missing, and re-requests it.
+//   4. Validation.validateRecord, which is the ordinary per-column check.
 //
 // THE NAME COLUMN IS NOT ALWAYS B. Code.gs cannot reach GOOSE_SCHEMA, so readSheetIndex takes a
 // 0-based nameColumnIndex from this side. Items has item_usetype in B and item_name at index 2
@@ -69,6 +75,17 @@ var App = (function () {
     // overwrite the message within the same tick and leave the user with a blank preview and no
     // explanation. Every later status line carries it until the bundle loads.
     bundleErrors: [],
+    // Referenced sheets whose id + name list failed to load, same reasoning as bundleErrors and
+    // one more besides: this one is a HOLE IN VALIDATION, not just a blank preview.
+    // Validation.validateCell waves an fk through when its id set is absent — it must, because
+    // the sets load asynchronously and failing closed would block saves on rows the user has not
+    // touched — so a transient failure here would let a nonexistent id be saved. unverifiedRefs()
+    // is what closes that, and the array is what tells it which sheets to distrust.
+    //
+    // MUTATED IN PLACE, never reassigned: ctx() hands this array to every picker so a control
+    // built before the failure still sees it.
+    refErrors: [],
+    retrying: false,
   };
 
   function num(value) {
@@ -85,6 +102,8 @@ var App = (function () {
       bundles: state.bundles,
       images: state.images,
       pickerData: state.pickerData,
+      // So an fk label can say "could not load Items" rather than "loading Items…" forever.
+      refErrors: state.refErrors,
       // Queued, never invoked immediately: renderForm loads every bundle the sheet needs BEFORE
       // Forms.render runs, so a control's own build-time redraw already has its images. The
       // queue is what covers a bundle that arrives late (or not at all), and it is emptied when
@@ -131,7 +150,7 @@ var App = (function () {
     };
     img.onerror = function () {
       if (state.bundleErrors.indexOf(name) === -1) state.bundleErrors.push(name);
-      status(bundleWarning(), true);
+      status(warnings(), true);
       finish();
     };
     img.src = GOOSE_SPRITES[name].png;
@@ -141,6 +160,41 @@ var App = (function () {
     if (!state.bundleErrors.length) return '';
     return 'Failed to decode the ' + state.bundleErrors.join(' and ') +
            ' sprite bundle — previews will be blank';
+  }
+
+  // Says which sheet, and says what it COSTS: an unloaded list is not a cosmetic loss, it is the
+  // id check for every fk pointing at that sheet.
+  function refWarning() {
+    if (!state.refErrors.length) return '';
+    return 'Could not load ' + state.refErrors.join(' or ') + ' — ids pointing there cannot be ' +
+           'checked, so records using them will not save until the list loads';
+  }
+
+  // Both warnings, for the one status line. Joined rather than one overwriting the other: they
+  // have independent causes and a user with both problems needs to know about both.
+  function warnings() {
+    return [bundleWarning(), refWarning()].filter(function (w) { return w; }).join(' — ');
+  }
+
+  // Re-requests only the lists that failed. loadReferencedSheets already skips names it has, so
+  // this asks for exactly the missing ones and nothing else.
+  //
+  // It does NOT re-render the open form, which would throw away whatever the user has typed. The
+  // fk pickers read pickerData at use time so they heal on their own; a Bitmask source reads its
+  // list at BUILD time, so a bitmask whose source arrives this late stays a raw number box until
+  // the record is reopened — which the message says.
+  // `wanted` is only for the message — loadReferencedSheets decides what to request, and it
+  // requests every list this sheet is missing, which is a superset of the ones being reported.
+  function retryReferencedSheets(wanted) {
+    if (state.retrying || !state.schema) return;
+    state.retrying = true;
+
+    loadReferencedSheets(function () {
+      state.retrying = false;
+      if (state.refErrors.length) { status(warnings(), true); return; }
+      status('Reloaded ' + wanted.join(' and ') + '. Save again — and reopen the record if a ' +
+             'checkbox list is still showing as a number.');
+    });
   }
 
   // Sequential, so `done` runs once after the last one. Duplicates in `names` are free —
@@ -271,7 +325,7 @@ var App = (function () {
           renderList();
           // `note` keeps the save confirmation on screen through the reload that follows it —
           // otherwise the record count overwrites it and the save looks like it did nothing.
-          var warning = bundleWarning();
+          var warning = warnings();
           status((note || (state.rows.length + ' records')) +
                  (warning ? ' — ' + warning : ''), !!warning);
           if (selectRow) {
@@ -324,10 +378,21 @@ var App = (function () {
     var remaining = names.length;
     names.forEach(function (name) {
       google.script.run
-        .withFailureHandler(function () { remaining -= 1; if (!remaining) done(); })
+        .withFailureHandler(function () {
+          // Recorded, not swallowed. done() still runs — the form must render, since every
+          // other field is editable and the fk fields are plain text inputs — but the record
+          // can no longer be SAVED past unverifiedRefs(), and the warning says so.
+          if (state.refErrors.indexOf(name) === -1) state.refErrors.push(name);
+          remaining -= 1;
+          if (!remaining) done();
+        })
         .withSuccessHandler(function (data) {
           state.pickerData[name] = data.entries;
           state.idSets[name] = new Set(data.entries.map(function (e) { return Number(e.id); }));
+          // A retry that succeeded clears the distrust for this sheet, so the save gate opens
+          // again without a reload.
+          var failedAt = state.refErrors.indexOf(name);
+          if (failedAt !== -1) state.refErrors.splice(failedAt, 1);
           remaining -= 1;
           if (!remaining) done();
         })
@@ -514,6 +579,30 @@ var App = (function () {
            'Stored value: ' + stored;
   }
 
+  // Gate 3: fk values this record cannot have checked. Validation.validateCell passes an fk whose
+  // id set is ABSENT — deliberately, because the sets arrive asynchronously and failing closed
+  // would block saves on rows the user never touched — so on its own that is a hole: a
+  // readSheetIndex failure would let a nonexistent id through the one check that exists for it.
+  //
+  // This is the closed half of that pair, and it is narrow on purpose. Only the columns this
+  // record actually USES are gated: blank and '0' mean "none" and validateCell exempts them
+  // anyway, so a Spells record with spell_effect_id = 0 saves normally even when the Spell Effects
+  // list is missing. What it refuses is exactly the case that would fail open — a real id with no
+  // list to check it against.
+  //
+  // It reads idSets rather than refErrors, so it also covers a list that never arrived for any
+  // other reason (a sheet missing from GOOSE_SCHEMA, a reply still in flight).
+  function unverifiedRefs(values) {
+    var sheets = [];
+    state.schema.columns.forEach(function (c) {
+      if (!c.ref || state.idSets[c.ref]) return;
+      var value = str(values[c.name]).trim();
+      if (value === '' || value === '0') return;
+      if (sheets.indexOf(c.ref) === -1) sheets.push(c.ref);
+    });
+    return sheets;
+  }
+
   function save() {
     if (!state.schema) return;
 
@@ -535,6 +624,18 @@ var App = (function () {
 
     var unfaithful = unfaithfulEdit(values);
     if (unfaithful) { status(unfaithful, true); return; }
+
+    var unverified = unverifiedRefs(values);
+    if (unverified.length) {
+      // Reloading here rather than behind a button the user has to find: the failure is usually
+      // transient, the fix needs no decision from them, and a save they have already asked for is
+      // the moment they care. The message stands until the reply lands and replaces it.
+      status('Cannot check this record\'s ids against ' + unverified.join(' and ') +
+             ' — that list failed to load, so saving now could store an id that does not exist. ' +
+             'Reloading it; try saving again in a moment.', true);
+      retryReferencedSheets(unverified);
+      return;
+    }
 
     // The row's own id is the one it was LOADED with, not the one now in the field. Reading the
     // field instead would exempt whatever the user just typed from the duplicate check — type an

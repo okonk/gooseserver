@@ -75,6 +75,7 @@ function makeServer(sheets, options) {
   // which is what separates "guard by generation" from "guard by sheet name".
   const perCall = opts.perCall || {};
   const seen = {};
+  const seenIndex = {};
 
   const server = {
     readSheet(name) {
@@ -93,6 +94,14 @@ function makeServer(sheets, options) {
       };
     },
     readSheetIndex(name, nameColumnIndex) {
+      // Fails a NAMED sheet's id + name list while every other one loads — the shape of a
+      // transient Apps Script error, and the shape that used to leave fk validation open.
+      // `indexFailsOnce` fails the first request and answers the retry, which is the case a
+      // retry has to be told apart from a permanent failure.
+      if (opts.failIndexOn === name) {
+        if (opts.indexFailsOnce && seenIndex[name]) { /* fall through: the retry succeeds */ }
+        else { seenIndex[name] = true; throw new Error('index boom: ' + name); }
+      }
       const rows = sheets[name] || [];
       const at = typeof nameColumnIndex === 'number' && nameColumnIndex >= 1 ? nameColumnIndex : 1;
       return {
@@ -137,6 +146,10 @@ function boot(sheets, options) {
 
   Object.assign(App.__state, {
     schema: null, sheetName: null, rows: [], rowNumber: 0, ids: [], bundleErrors: [],
+    // Reset like every other accumulator: a sheet that failed to load in one test would
+    // otherwise still be distrusted in the next, and the save gate would refuse a save the
+    // test never broke.
+    refErrors: [], retrying: false,
     idSets: {}, pickerData: {}, bundles: {}, images: {}, imageCallbacks: [],
     loaded: {}, stopEffect: null, previewKey: null, checking: false,
     sheetToken: 0, formToken: 0, saving: false, loading: {},
@@ -1159,6 +1172,160 @@ test('a successful save drops that sheet\'s cached id list', () => {
   assert.ok(serverCalls(h.run, 'readSheetIndex').some((c) => c.args[0] === 'Items'),
             'and it is fetched again');
   assert.ok(serverCalls(h.run, 'readSheetIndex').length > before);
+});
+
+// --- an fk whose id list never arrived ------------------------------------------------------
+//
+// Validation.validateCell passes an fk whose id set is ABSENT, and must: the sets load
+// asynchronously, so failing closed there would report every id as broken while a reply is in
+// flight. That makes a readSheetIndex FAILURE a hole — the id set is absent for good, so the only
+// check that exists for that column silently waves everything through. These cover the closed half.
+//
+// Items is the sheet for it: spell_effect_id and learn_spell_id are both OPTIONAL fks (default 0),
+// so the same record can be saved with the column unused and refused with it used.
+
+test('a failed id-list load still renders the record, but says so', () => {
+  const h = boot({ Items: [ITEM(1, 'Gold')] }, { failIndexOn: 'Spell Effects' });
+  fire(h.get('records').children[0], 'click');
+  h.settle();
+
+  // Rendered, deliberately: every other column is editable and an fk column is a text input, so
+  // refusing to draw the form would be a bigger loss than the one being reported.
+  assert.ok(h.get('form').children.length > 0, 'the form is still usable');
+  assert.deepEqual(App.__state.refErrors, ['Spell Effects']);
+  assert.match(h.status(), /Could not load Spell Effects/);
+  assert.match(h.status(), /will not save/);
+  assert.equal(h.get('status').className, 'error');
+});
+
+test('the fk label says the list failed rather than "loading" forever', () => {
+  const h = boot({ Items: [ITEM(1, 'Gold')] }, { failIndexOn: 'Spell Effects' });
+  fire(h.get('records').children[0], 'click');
+  h.settle();
+
+  const field = h.get('form').querySelector('[name="spell_effect_id"]');
+  field.value = '5';
+  fire(field, 'input');
+
+  const label = field.parentNode.querySelector('[class="resolved bad"]');
+  assert.equal(label.textContent, 'could not load Spell Effects');
+});
+
+test('a record that USES the unchecked fk is refused, and nothing is written', () => {
+  const h = boot({ Items: [ITEM(1, 'Gold')] }, { failIndexOn: 'Spell Effects' });
+  fire(h.get('records').children[0], 'click');
+  h.settle();
+
+  h.get('form').querySelector('[name="spell_effect_id"]').value = '9';
+  fire(h.get('save'), 'click');
+  // Before the retry it kicked off has answered: this is the message about the SAVE.
+  assert.match(h.status(), /Cannot check this record's ids against Spell Effects/);
+  assert.match(h.status(), /try saving again in a moment/);
+
+  h.settle();
+  assert.equal(h.writes.length, 0, 'an id nothing can check must not reach the sheet');
+  // And once the retry has failed too, the standing warning replaces it — still an error, still
+  // naming the sheet, and now saying the condition rather than the moment.
+  assert.match(h.status(), /Could not load Spell Effects/);
+  assert.equal(h.get('status').className, 'error');
+});
+
+test('a record that does not use it saves normally', () => {
+  // The gate is per-column and per-value, not per-sheet: blank and 0 mean "none", which
+  // validateCell exempts anyway, so there is nothing to fail open about.
+  const h = boot({ Items: [ITEM(1, 'Gold')] }, { failIndexOn: 'Spell Effects' });
+  fire(h.get('records').children[0], 'click');
+  h.settle();
+
+  h.get('form').querySelector('[name="item_name"]').value = 'Silver';
+  fire(h.get('save'), 'click');
+  h.settle();
+
+  assert.equal(h.writes.length, 1);
+  const at = schemaOf('Items').columns.findIndex((c) => c.name === 'item_name');
+  assert.equal(h.writes[0].cells[at], 'Silver');
+});
+
+test('an explicit 0 in the unchecked fk is exempt too, not just a blank', () => {
+  const h = boot({ Items: [ITEM(1, 'Gold')] }, { failIndexOn: 'Spell Effects' });
+  fire(h.get('records').children[0], 'click');
+  h.settle();
+
+  h.get('form').querySelector('[name="spell_effect_id"]').value = '0';
+  fire(h.get('save'), 'click');
+  h.settle();
+
+  assert.equal(h.writes.length, 1);
+});
+
+test('the refused save re-requests the list, and the next save goes through', () => {
+  const h = boot({ Items: [ITEM(1, 'Gold')], 'Spell Effects': [rowFor('Spell Effects',
+    { spell_effect_id: 9, spell_effect_name: 'Burn' })] },
+    { failIndexOn: 'Spell Effects', indexFailsOnce: true });
+  fire(h.get('records').children[0], 'click');
+  h.settle();
+
+  const before = serverCalls(h.run, 'readSheetIndex').filter((c) => c.args[0] === 'Spell Effects').length;
+  h.get('form').querySelector('[name="spell_effect_id"]').value = '9';
+  fire(h.get('save'), 'click');
+  h.settle();
+
+  assert.equal(h.writes.length, 0, 'the save that triggered the retry is still refused');
+  assert.ok(serverCalls(h.run, 'readSheetIndex')
+    .filter((c) => c.args[0] === 'Spell Effects').length > before, 'and the list is re-requested');
+  assert.deepEqual(App.__state.refErrors, [], 'a successful retry clears the distrust');
+  assert.match(h.status(), /Reloaded Spell Effects/);
+
+  // The user does what the message says. This time the id is checked — against a list that has
+  // it — and the record is written.
+  fire(h.get('save'), 'click');
+  h.settle();
+  assert.equal(h.writes.length, 1);
+});
+
+test('a retry that fails again reports it and keeps the gate shut', () => {
+  const h = boot({ Items: [ITEM(1, 'Gold')] }, { failIndexOn: 'Spell Effects' });
+  fire(h.get('records').children[0], 'click');
+  h.settle();
+
+  h.get('form').querySelector('[name="spell_effect_id"]').value = '9';
+  fire(h.get('save'), 'click');
+  h.settle();
+  fire(h.get('save'), 'click');
+  h.settle();
+
+  assert.equal(h.writes.length, 0);
+  assert.deepEqual(App.__state.refErrors, ['Spell Effects']);
+  assert.match(h.status(), /Could not load Spell Effects|Cannot check/);
+});
+
+test('a reloaded list checks ids again, so a bad one is still refused after a retry', () => {
+  // The gate opening must not mean the FK check stops happening — it means it starts happening.
+  const h = boot({ Items: [ITEM(1, 'Gold')], 'Spell Effects': [rowFor('Spell Effects',
+    { spell_effect_id: 9, spell_effect_name: 'Burn' })] },
+    { failIndexOn: 'Spell Effects', indexFailsOnce: true });
+  fire(h.get('records').children[0], 'click');
+  h.settle();
+
+  h.get('form').querySelector('[name="spell_effect_id"]').value = '404';
+  fire(h.get('save'), 'click');   // refused by the gate; kicks off the retry
+  h.settle();
+  fire(h.get('save'), 'click');   // refused by validation, which can now see the list
+  h.settle();
+
+  assert.equal(h.writes.length, 0);
+  assert.equal(h.get('form').querySelector('[data-error-for="spell_effect_id"]').textContent,
+               'spell_effect_id = 404 does not exist in Spell Effects');
+});
+
+test('both warnings are reported when a bundle and a list both fail', () => {
+  // Independent causes; one overwriting the other would leave a user fixing half a problem.
+  const h = boot({ Items: [ITEM(1, 'Gold')] }, { failIndexOn: 'Spell Effects', hold: true });
+  h.img.fail();
+  h.settle();
+
+  assert.match(h.status(), /sprite bundle/);
+  assert.match(h.status(), /Could not load Spell Effects/);
 });
 
 // --- the interval between a request and its reply -------------------------------------------

@@ -169,9 +169,18 @@ var Pickers = (function () {
       // An empty picker list means the sheet has not arrived yet, not that the id is wrong.
       // Saying "not found" then would accuse the user of a bad value on every freshly opened
       // record.
-      var loaded = entries().length > 0;
-      label.textContent = loaded ? 'not found in ' + column.ref : 'loading ' + column.ref + '…';
-      label.className = loaded ? 'resolved bad' : 'resolved';
+      if (entries().length > 0) {
+        label.textContent = 'not found in ' + column.ref;
+        label.className = 'resolved bad';
+        return;
+      }
+
+      // Except when it has already failed. "loading Items…" on a list that is never coming is a
+      // wait with no end, and it hides the reason the save is about to be refused. Marked bad,
+      // because it is: App's save gate will not write an id it cannot check.
+      var failed = (ctx && ctx.refErrors && ctx.refErrors.indexOf(column.ref) !== -1);
+      label.textContent = failed ? 'could not load ' + column.ref : 'loading ' + column.ref + '…';
+      label.className = failed ? 'resolved bad' : 'resolved';
     }
 
     // Both halves of "is the list showing" move together — the attribute is what a screen reader

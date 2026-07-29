@@ -230,6 +230,34 @@ test('fkControl says "loading" rather than "not found" before the sheet arrives'
   assert.notEqual(label.className, 'resolved bad');
 });
 
+test('fkControl says a list FAILED rather than waiting on it forever', () => {
+  // "loading Items…" on a list that is never coming is a wait with no end — and it hides the
+  // reason App is about to refuse the save. ctx.refErrors is the same array App mutates, so a
+  // control built before the failure sees it too.
+  const ctx = ctxWith({});
+  ctx.refErrors = [];
+  const wrap = Pickers.fkControl(refColumn, '42', ctx);
+  const { input, label } = parts(wrap);
+  assert.equal(label.textContent, 'loading Items…');
+
+  ctx.refErrors.push('Items');
+  fire(input, 'input');
+  assert.equal(label.textContent, 'could not load Items');
+  assert.equal(label.className, 'resolved bad');
+});
+
+test('a failed list does not make a resolvable id look broken', () => {
+  // Only reached when the lookup found nothing. A sheet that failed on a RETRY, after a first
+  // load succeeded, still has its entries — and an id in them still resolves.
+  const ctx = ctxWith({ Items: entries });
+  ctx.refErrors = ['Items'];
+  assert.equal(parts(Pickers.fkControl(refColumn, '42', ctx)).label.textContent, 'Iron Sword');
+  // …and one that is genuinely absent from a list we DO have is still "not found", not "could
+  // not load".
+  assert.equal(parts(Pickers.fkControl(refColumn, '999', ctx)).label.textContent,
+               'not found in Items');
+});
+
 test('fkControl reads pickerData at use time, not at construction', () => {
   // App.loadReferencedSheets fills pickerData asynchronously. Capturing the array in the
   // closure leaves the picker permanently empty if the control is built first.
