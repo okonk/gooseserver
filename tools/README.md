@@ -134,8 +134,34 @@ catching a truncated write or an accidental deletion. This asymmetry is delibera
 atlas as a single base64 line around a megabyte long, which cannot be merged textually. A conflict
 there is resolved by regenerating the bundles, never by hand-editing them.
 
+## DataEditor
+
+Apps Script sources live in `tools/DataEditor/`. Pure logic is under `src/` as plain `.js` so it
+can be unit-tested:
+
+    node --test tools/DataEditor/test
+
+Apps Script has no `.js` file type, so build wraps each module into `dist/*.html`, alongside copies
+of `schema.js` and the sprite bundles:
+
+    node tools/DataEditor/build.mjs
+
+`dist/` is generated and gitignored — every byte of it derives from checked-in sources.
+
 ## Deploying to Apps Script
 
 The editor is a container-bound script, so each spreadsheet has its own script id and needs its own
-deployment. Paste `schema.js` and the three `sprites-*.html` files into the Apps Script editor, or
-push with `clasp`. The sprite bundles change rarely; `schema.js` changes whenever a column does.
+deployment. Build first, then deploy `dist/` — either `clasp push` or paste the files into the
+Apps Script editor. Deploy once per spreadsheet. The sprite bundles change rarely; `schema.js`
+changes whenever a column does.
+
+For `clasp`, write a `tools/DataEditor/.clasp.json` pointing at that spreadsheet's script id, with
+`dist` as the root:
+
+    {"scriptId": "<this spreadsheet's script id>", "rootDir": "dist"}
+
+It is gitignored, because the script id differs per spreadsheet. There is deliberately no
+`.claspignore`: `dist/` is exactly the deployable set by construction, and clasp's default patterns
+already push just the manifest and the `.html` files. Note that `.claspignore` patterns are matched
+relative to `rootDir`, not to the project directory — a pattern written as `dist/**` would match
+nothing here.
