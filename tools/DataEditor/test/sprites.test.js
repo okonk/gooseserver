@@ -1,0 +1,322 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
+
+const { Sprites } = await import('../src/sprites.js');
+
+const here = path.dirname(fileURLToPath(import.meta.url));
+
+// The REAL bundles, loaded the same way the Apps Script HTML service will: the fragments are
+// plain <script> tags that assign into GOOSE_SPRITES. A toy fixture cannot tell us whether the
+// clip names in clipCandidates exist, so the fallback-chain tests below run against these.
+const real = (() => {
+  const ctx = vm.createContext({});
+  for (const name of ['icons', 'parts', 'effects']) {
+    const html = fs.readFileSync(path.join(here, '..', `sprites-${name}.html`), 'utf8');
+    vm.runInContext(html.replace(/<\/?script>/g, ''), ctx);
+  }
+  return ctx.GOOSE_SPRITES;
+})();
+
+// The `0:...` / `...:0:...` keys do not exist in the real bundles and never will — they are here
+// so that "id 0 means no sprite" is a rule this fixture can catch being broken, rather than an
+// assertion that only holds because the real atlas happens not to contain the key.
+const bundles = {
+  icons: { width: 64, height: 64, png: 'data:image/png;base64,AAA', rects: { '20107:810003': [96, 0, 32, 32], '0:810003': [1, 1, 1, 1], '20107:0': [2, 2, 2, 2], '0:0': [3, 3, 3, 3] } },
+  parts: { width: 64, height: 64, png: 'data:image/png;base64,AAA', rects: { 'Bodies:1:idle-down': [0, 48, 24, 48], 'Bodies:0:idle-down': [4, 4, 4, 4] } },
+  effects: { width: 64, height: 64, png: 'data:image/png;base64,AAA', rects: { '1080:0': [0, 0, 16, 16], '1080:1': [16, 0, 16, 16], '0:0': [5, 5, 5, 5] } },
+};
+
+test('icon lookup uses sheet:graphic', () => {
+  assert.deepEqual(Sprites.icon(bundles, 20107, 810003), [96, 0, 32, 32]);
+});
+
+test('missing icon returns null', () => {
+  assert.equal(Sprites.icon(bundles, 999, 1), null);
+});
+
+test('graphic 0 is treated as none', () => {
+  assert.equal(Sprites.icon(bundles, 0, 0), null);
+  assert.equal(Sprites.icon(bundles, 20107, 0), null);
+  assert.equal(Sprites.icon(bundles, 0, 810003), null);
+});
+
+test('part lookup falls back through the clip candidates', () => {
+  // AnimationNames.Candidates: unarmed prefers idle-no-equip, then idle, then idle-equip.
+  const r = Sprites.part(bundles, 'Bodies', 1, false);
+  assert.deepEqual(r, [0, 48, 24, 48]);
+});
+
+test('missing part returns null rather than a wrong sprite', () => {
+  assert.equal(Sprites.part(bundles, 'Helms', 999, false), null);
+});
+
+test('effect frames enumerate until a gap', () => {
+  assert.equal(Sprites.effectFrames(bundles, 1080).length, 2);
+  assert.equal(Sprites.effectFrames(bundles, 9999).length, 0);
+});
+
+test('tint blends rgb and preserves source alpha', () => {
+  // Icon.cs:9-11 — mix(t.rgb, tint.rgb, tint.a), COLOR.a = t.a.
+  const out = Sprites.applyTint([100, 100, 100, 200], { r: 200, g: 0, b: 0, a: 128 });
+  assert.equal(out[3], 200, 'alpha preserved');
+  assert.equal(out[0], Math.round(100 + (200 - 100) * (128 / 255)));
+  assert.equal(out[1], Math.round(100 + (0 - 100) * (128 / 255)));
+  assert.equal(out[2], Math.round(100 + (0 - 100) * (128 / 255)));
+});
+
+test('zero blend alpha leaves pixels untouched', () => {
+  assert.deepEqual(Sprites.applyTint([10, 20, 30, 40], { r: 255, g: 255, b: 255, a: 0 }),
+                   [10, 20, 30, 40]);
+});
+
+test('fully transparent pixels stay transparent', () => {
+  const out = Sprites.applyTint([0, 0, 0, 0], { r: 255, g: 0, b: 0, a: 255 });
+  assert.equal(out[3], 0);
+});
+
+// --- clip candidate ordering, pinned to the client ---------------------------------------
+
+test('clipCandidates orders by AnimationNames.Candidates("idle", ...)', () => {
+  assert.deepEqual(Sprites.clipCandidates(false),
+                   ['idle-no-equip-down', 'idle-down', 'idle-equip-down']);
+  assert.deepEqual(Sprites.clipCandidates(true),
+                   ['idle-equip-down', 'idle-down', 'idle-no-equip-down']);
+});
+
+test('every clipCandidates name exists in the real parts bundle', () => {
+  const present = new Set(Object.keys(real.parts.rects).map((k) => k.split(':').slice(2).join(':')));
+  for (const clip of Sprites.clipCandidates(false).concat(Sprites.clipCandidates(true))) {
+    assert.ok(present.has(clip), `${clip} missing from sprites-parts.html`);
+  }
+});
+
+test('the real bundle resolves a part for every category Appearance emits', () => {
+  // Appearance.CATEGORY's value set. A category name that is not a parts key means a whole
+  // slot silently never renders.
+  const categories = ['Bodies', 'Hair', 'Eyes', 'Chest', 'Helms', 'Legs', 'Feet', 'Hands'];
+  const first = {};
+  for (const key of Object.keys(real.parts.rects)) {
+    const [category, id] = key.split(':');
+    if (first[category] === undefined) first[category] = id;
+  }
+  for (const category of categories) {
+    assert.ok(first[category] !== undefined, `${category} absent from the bundle`);
+    assert.ok(Sprites.part(real, category, first[category], false), `${category} did not resolve`);
+    assert.ok(Sprites.part(real, category, first[category], true), `${category} equipped miss`);
+  }
+});
+
+test('the real bundle resolves the specific ids the plan cites', () => {
+  assert.deepEqual(Sprites.part(real, 'Bodies', 1, false), real.parts.rects['Bodies:1:idle-no-equip-down']);
+  assert.deepEqual(Sprites.part(real, 'Bodies', 1, true), real.parts.rects['Bodies:1:idle-equip-down']);
+  assert.equal(Sprites.icon(real, 104, 1), null);
+});
+
+test('a part with only a mounted clip resolves to null, not a mounted pose', () => {
+  // Chest has one id whose animations.tres carries mounted-idle-down and no idle-*-down.
+  const ids = {};
+  for (const key of Object.keys(real.parts.rects)) {
+    const [category, id, clip] = key.split(':');
+    if (category !== 'Chest') continue;
+    ids[id] = ids[id] || new Set();
+    ids[id].add(clip);
+  }
+  const mountedOnly = Object.keys(ids).filter((id) => ![...ids[id]].some((c) => c.startsWith('idle')));
+  assert.equal(mountedOnly.length, 1, 'bundle changed: expected exactly one mounted-only Chest id');
+  assert.equal(Sprites.part(real, 'Chest', mountedOnly[0], false), null);
+});
+
+test('real effect frame runs are contiguous from 0, so effectFrames returns them whole', () => {
+  const counts = {};
+  for (const key of Object.keys(real.effects.rects)) {
+    const [id] = key.split(':');
+    counts[id] = (counts[id] || 0) + 1;
+  }
+  const ids = Object.keys(counts);
+  assert.ok(ids.length > 100, 'expected the full effects corpus');
+  for (const id of ids) assert.equal(Sprites.effectFrames(real, id).length, counts[id], `effect ${id}`);
+});
+
+// --- spreadsheet cells arrive as strings ---------------------------------------------------
+
+test('ids and sheets coerce like the other modules, so string cells resolve', () => {
+  assert.deepEqual(Sprites.icon(bundles, '20107', '810003'), [96, 0, 32, 32]);
+  assert.deepEqual(Sprites.icon(bundles, ' 20107 ', '0810003'), [96, 0, 32, 32]);
+  assert.deepEqual(Sprites.part(bundles, 'Bodies', '01', false), [0, 48, 24, 48]);
+  assert.deepEqual(Sprites.part(bundles, 'Bodies', ' 1', false), [0, 48, 24, 48]);
+  assert.equal(Sprites.effectFrames(bundles, '01080').length, 2);
+});
+
+test('a non-numeric or zero cell is "none", not a lookup', () => {
+  assert.equal(Sprites.icon(bundles, '20107', 'abc'), null);
+  assert.equal(Sprites.icon(bundles, '0', '810003'), null);
+  assert.equal(Sprites.part(bundles, 'Bodies', '0', false), null);
+  assert.equal(Sprites.part(bundles, 'Bodies', '', false), null);
+  assert.equal(Sprites.effectFrames(bundles, '0').length, 0);
+  assert.equal(Sprites.effectFrames(bundles, 'x').length, 0);
+});
+
+test('a negative id draws nothing', () => {
+  assert.equal(Sprites.part(bundles, 'Bodies', -1, false), null);
+  assert.equal(Sprites.icon(bundles, 20107, -1), null);
+  assert.equal(Sprites.effectFrames(bundles, -1).length, 0);
+});
+
+// --- absent bundles --------------------------------------------------------------------------
+
+test('an absent bundle is a miss, not a crash', () => {
+  assert.equal(Sprites.icon({}, 20107, 810003), null);
+  assert.equal(Sprites.part({}, 'Bodies', 1, false), null);
+  assert.deepEqual(Sprites.effectFrames({}, 1080), []);
+});
+
+// --- tinting -----------------------------------------------------------------------------
+
+test('applyTint never aliases its input', () => {
+  const px = [10, 20, 30, 40];
+  assert.notEqual(Sprites.applyTint(px, { r: 1, g: 2, b: 3, a: 0 }), px);
+  assert.notEqual(Sprites.applyTint(px, null), px);
+});
+
+test('a missing tint is the identity', () => {
+  assert.deepEqual(Sprites.applyTint([10, 20, 30, 40], null), [10, 20, 30, 40]);
+  assert.deepEqual(Sprites.applyTint([10, 20, 30, 40], undefined), [10, 20, 30, 40]);
+});
+
+test('a full-alpha tint replaces rgb outright', () => {
+  assert.deepEqual(Sprites.applyTint([10, 20, 30, 40], { r: 200, g: 100, b: 50, a: 255 }),
+                   [200, 100, 50, 40]);
+});
+
+test('applyTint clamps out-of-range channels', () => {
+  assert.deepEqual(Sprites.applyTint([0, 0, 0, 255], { r: 500, g: -500, b: 0, a: 255 }),
+                   [255, 0, 0, 255]);
+});
+
+test('tintPixels rewrites an RGBA buffer in place', () => {
+  const buf = [10, 20, 30, 40, 0, 0, 0, 0];
+  Sprites.tintPixels(buf, { r: 200, g: 100, b: 50, a: 255 });
+  assert.deepEqual(buf, [200, 100, 50, 40, 200, 100, 50, 0]);
+});
+
+test('tintPixels with no blend alpha leaves the buffer alone', () => {
+  const buf = [10, 20, 30, 40];
+  Sprites.tintPixels(buf, { r: 255, g: 0, b: 0, a: 0 });
+  assert.deepEqual(buf, [10, 20, 30, 40]);
+  Sprites.tintPixels(buf, null);
+  assert.deepEqual(buf, [10, 20, 30, 40]);
+});
+
+test('a tint object with no alpha field is NoTint, not NaN', () => {
+  // Appearance always emits `a`, but a hand-built tint may not — and an undefined blend factor
+  // would otherwise propagate NaN into every channel.
+  assert.deepEqual(Sprites.applyTint([10, 20, 30, 40], { r: 255, g: 0, b: 0 }), [10, 20, 30, 40]);
+  const buf = [10, 20, 30, 40];
+  Sprites.tintPixels(buf, { r: 255, g: 0, b: 0 });
+  assert.deepEqual(buf, [10, 20, 30, 40]);
+});
+
+test('an out-of-range blend alpha clamps to a full blend, it does not overshoot', () => {
+  // Unclamped, a=300 gives f=1.18 and pushes the channel PAST the tint colour before the
+  // output clamp catches it — 100 -> 218, not 200.
+  assert.deepEqual(Sprites.applyTint([100, 100, 100, 40], { r: 200, g: 200, b: 200, a: 300 }),
+                   [200, 200, 200, 40]);
+});
+
+test('blend results round rather than truncate', () => {
+  // 10 * (13/255) = 0.5098 — Icon.cs blends in floats and the canvas byte is the nearest one.
+  assert.deepEqual(Sprites.applyTint([0, 0, 0, 255], { r: 10, g: 10, b: 10, a: 13 }),
+                   [1, 1, 1, 255]);
+});
+
+test('effectFrames returns the rects themselves, in frame order', () => {
+  assert.deepEqual(Sprites.effectFrames(bundles, 1080), [[0, 0, 16, 16], [16, 0, 16, 16]]);
+});
+
+test('part returns the matching rect, not merely something truthy', () => {
+  assert.deepEqual(Sprites.part(bundles, 'Bodies', 1, true), [0, 48, 24, 48]);
+});
+
+test('tintPixels blends each pixel against its own source channels', () => {
+  // A partial blend is the only case where mixing the source channels up is visible: at a=255
+  // the source contributes nothing at all.
+  const buf = [100, 0, 0, 255];
+  Sprites.tintPixels(buf, { r: 0, g: 0, b: 0, a: 128 });
+  assert.deepEqual(buf, [Math.round(100 - 100 * (128 / 255)), 0, 0, 255]);
+});
+
+// --- draw ----------------------------------------------------------------------------------
+//
+// draw() is canvas plumbing, but "plumbing" is exactly where a swapped rect argument hides, so
+// it runs here against a stub canvas rather than being left to the manual smoke test.
+
+function stubCanvas() {
+  const calls = [];
+  const ctx = {
+    calls,
+    drawImage: (...args) => calls.push(['drawImage', ...args]),
+    getImageData: (x, y, w, h) => {
+      calls.push(['getImageData', x, y, w, h]);
+      return { data: pixels.slice(0, w * h * 4) };
+    },
+    putImageData: (img) => calls.push(['putImageData', [...img.data]]),
+  };
+  return ctx;
+}
+
+let pixels = [];
+let offscreen = null;
+
+// The stub honours its arguments the way the real DOM does — createElement('div') has no 2d
+// context and getContext('webgl') is not a CanvasRenderingContext2D — so a wrong string here
+// fails rather than passing silently.
+globalThis.document = {
+  createElement: (tag) => {
+    if (tag !== 'canvas') return { getContext: () => null };
+    offscreen = {
+      tagName: 'canvas',
+      getContext: (type) => (type === '2d' ? (offscreen.ctx = offscreen.ctx || stubCanvas()) : null),
+    };
+    return offscreen;
+  },
+};
+
+test('draw with no rect is a no-op', () => {
+  const ctx = stubCanvas();
+  Sprites.draw(ctx, 'img', null, 5, 6, { r: 1, g: 2, b: 3, a: 255 });
+  assert.deepEqual(ctx.calls, []);
+});
+
+test('untinted draw blits the rect straight through at 1:1', () => {
+  const ctx = stubCanvas();
+  Sprites.draw(ctx, 'img', [10, 20, 30, 40], 5, 6, null);
+  assert.deepEqual(ctx.calls, [['drawImage', 'img', 10, 20, 30, 40, 5, 6, 30, 40]]);
+});
+
+test('a zero-alpha tint takes the untinted path — no offscreen canvas', () => {
+  const ctx = stubCanvas();
+  offscreen = null;
+  Sprites.draw(ctx, 'img', [10, 20, 30, 40], 5, 6, { r: 255, g: 0, b: 0, a: 0 });
+  assert.deepEqual(ctx.calls, [['drawImage', 'img', 10, 20, 30, 40, 5, 6, 30, 40]]);
+  assert.equal(offscreen, null, 'no offscreen canvas should have been created');
+});
+
+test('a tinted draw sizes the offscreen canvas to the rect and blits the tinted result', () => {
+  pixels = [100, 0, 0, 255, 0, 0, 0, 0];
+  const ctx = stubCanvas();
+  Sprites.draw(ctx, 'img', [10, 20, 2, 1], 5, 6, { r: 0, g: 0, b: 0, a: 255 });
+
+  assert.equal(offscreen.width, 2);
+  assert.equal(offscreen.height, 1);
+  // The source rect is copied to the offscreen origin, not to dx/dy.
+  assert.deepEqual(offscreen.ctx.calls[0], ['drawImage', 'img', 10, 20, 2, 1, 0, 0, 2, 1]);
+  // Read back the whole rect, width then height — transposing it reads the wrong pixels.
+  assert.deepEqual(offscreen.ctx.calls[1], ['getImageData', 0, 0, 2, 1]);
+  assert.deepEqual(offscreen.ctx.calls[2], ['putImageData', [0, 0, 0, 255, 0, 0, 0, 0]]);
+  // ...and the offscreen canvas, already the right size, goes down at dx/dy.
+  assert.deepEqual(ctx.calls, [['drawImage', offscreen, 5, 6]]);
+});
