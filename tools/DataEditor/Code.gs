@@ -25,8 +25,8 @@
  *   Live: both entry points render with no template error.
  *
  * include
- *   Checked: nothing. `name` comes from our own scriptlets but can reach any HTML file
- *     in the script project.
+ *   Checked: exposure is nil — it returns only this project's own HTML, already served
+ *     to that user — but it is reachable from google.script.run, not just our template.
  *   Live: every include resolves; no module global is defined twice.
  *
  * readSheet
@@ -34,37 +34,56 @@
  *     A1:(getLastRow, getLastColumn) — so a stray value below the data shows up as
  *     trailing blank rows and an append lands after it, keeping both views consistent.
  *     Empty sheet returns header [] rather than [''].
- *   Live: TOP RISK — getDisplayValues() returns display text, so any cell formatted as
- *     a date, percentage, or with separators reads back as its formatting and would be
- *     written back that way. Spot-check ids and numeric columns against real values.
- *   Size: not a concern. Largest sheets are Items 649x46 and Spell Effects 259x76,
- *     far inside the 6-minute and payload limits even for the 21-sheet publish check.
+ *   Live: TOP RISK — getDisplayValues() returns display TEXT, so a cell's formatting
+ *     becomes its value on the next save, silently, for every field of that record.
+ *     Ranked by real exposure in this data:
+ *       1. Decimal precision loss. 32 DECIMAL(9,4)/(5,4)/(5,2) columns across 9
+ *          sheets (verified against schema.js), with live values at 3dp (npc_templates.hp_percent_regen,
+ *          spell_effects.spell_crit / spell_damage / damage_reduce). A designer setting
+ *          a rate column to 2dp is an ordinary thing to do and the loss is invisible.
+ *       2. Thousands separators. item_value (166 rows >= 1000), class_info.level_up_exp
+ *          (237), npc_templates.experience (85). Survives in en-US via idKey_'s comma
+ *          strip, but breaks Task 2's numeric validation, and in a non-US locale lands
+ *          as text in an INT column.
+ *       3. Formula re-interpretation. No value starts with '=' today, but
+ *          spell_effects.hp_change_formula has 50 starting with '-'; one leading '='
+ *          turns data into a formula.
+ *       4. Bool. All 30 are CHAR(1); formatting one as a checkbox yields "TRUE".
+ *     Spot-check a decimal column, a >=1000 integer, and a Bool against real values.
+ *   Size: fine, but note the outlier — NPC Spawns is 4,322 x 4, 6.7x the rows of any
+ *     other sheet (next: Items 649 x 46, Spell Effects 259 x 76). Row count is what
+ *     drives the per-row duplicate scan, the readSheetIndex loop and client rendering.
+ *     Still inside the 6-minute and payload limits for the 21-sheet publish check.
  *
  * readSheetIndex
- *   Checked: the lastRow < 2 guard; blank-id rows are skipped.
- *   Live: assumes id in column A and name in column B for every FK target. Try a
- *     picker on a sheet whose column B is not a name.
+ *   Checked: the lastRow < 2 guard; blank-id rows are skipped. The name column is NOT
+ *     always B — Items and NPCs, the two most-referenced FK targets, hold an enum in B
+ *     — so the caller passes nameColumnIndex from GOOSE_SCHEMA.
+ *   Live: an FK picker onto Items shows item_name, not "Armor"/"Weapon" repeated; a
+ *     picker onto a six-default sheet (Maps, Spells, Quests, ...) still works with the
+ *     argument omitted.
  *
  * writeRow  (all guards are reasoning, never executed)
  *   Live, each one its own test:
  *     - append to a sheet trimmed to exactly its data (exercises insertRowsAfter)
  *     - overwrite with a cells array NARROWER than the header (must throw, not
  *       half-write leaving the previous record's trailing values in place)
- *     - a sheet carrying a stray column beyond the schema (must still write fine —
+ *     - a stray value BELOW row 1 past the last schema column (must still write fine —
  *       width comes from the header row, not the sheet's data extent)
- *     - writeRow with a blank id (must skip the duplicate check, not match every
- *       blank cell in the column)
- *     - the same id from two tabs (must throw the "just taken" error)
- *     - rowNumber = 1 (must refuse; it is the importer's column-order contract)
+ *     - a stray value IN row 1 past the last schema column (must throw: it inflates the
+ *       header width, and the error says to clear that cell)
+ *     - writeRow with a blank or whitespace-only id (must skip the duplicate check, not
+ *       match every blank id cell in the column)
+ *     - the same id from two tabs (must throw, naming the row that already has it)
+ *     - rowNumber = 1 AND rowNumber = "1" (both must refuse; google.script.run does not
+ *       preserve types, so the string form is the realistic one)
+ *     - rowNumber past the end of the sheet (must throw, not insert thousands of rows)
+ *     - one of the nine no-pk sheets with idColumnIndex = -1: two rows sharing column A
+ *       (e.g. two drops for one NPC) must both write
  *     - an id column with a numeric cell format, e.g. displaying "651.00" (idKey_
  *       must still catch the collision with 651)
  *   Residual risk, accepted per plan scope: the duplicate check and the write are NOT
  *     atomic. Two editors inside the same window can still collide. No LockService.
- *
- * whoAmI
- *   Checked: appsscript.json's explicit oauthScopes omits userinfo.email, so this can
- *     throw as well as return ''; both degrade to 'unknown'.
- *   Live: nothing calls it. Delete it if Task 11 still does not.
  * ---------------------------------------------------------------------------------
  */
 
@@ -92,9 +111,12 @@ function showSidebar() {
 }
 
 /**
- * Used by Editor.html to inline the built modules. `name` comes from a scriptlet in
- * our own template, never from user input, but note it can name any HTML file in the
- * script project — keep it to the dist/*.html modules.
+ * Used by Editor.html to inline the built modules. `name` normally comes from one of
+ * our own scriptlets, but every global here is reachable via google.script.run and
+ * doGet is deployed ANYONE_WITH_GOOGLE_ACCOUNT, so treat it as caller-supplied: it can
+ * name any HTML file in the script project. Exposure is nil — it returns only this
+ * project's own HTML, which is already served to that user — so no guard, but keep it
+ * that way and keep callers to the dist/*.html modules.
  */
 function include(name) {
   return HtmlService.createHtmlOutputFromFile(name).getContent();
@@ -113,8 +135,8 @@ function requireSheet_(sheetName) {
  * Not getLastColumn() — that is the last column with content anywhere in the sheet, so
  * a stray note parked to the right of the data would inflate it. The importer never
  * looks past the schema (CsvToSqlBase.BuildInserts loops the descriptors), so extra
- * columns are benign and must not break writes. Row 1 is the column-order contract
- * (CsvToSqlBase.cs:11-13), so it is the only correct reference for record width.
+ * columns are benign and must not break writes. Row 1 is the header the importer skips
+ * (CsvToSqlBase.cs:28, `.Rows().Skip(1)`), so it is the only correct width reference.
  */
 function headerWidth_(sheet) {
   var extent = sheet.getLastColumn();
@@ -139,8 +161,8 @@ function isBlank_(value) {
  * on an id column is enough to make those disagree — the client reads "651.00", posts
  * "651.00", and a raw comparison against 651 misses a genuine collision, silently
  * passing the one check that stops two editors taking the same id. Both sides go
- * through here, so 651, "651", "651.00" and " 651 " all collapse to the same key.
- * Non-numeric ids fall back to a trimmed string.
+ * through here, so 651, "651", "651.00", "1,024" and " 651 " all collapse to the same
+ * key. Non-numeric ids fall back to a trimmed string.
  *
  * (Every id column in the schema is INTEGER/INT/SMALLINT, with live maxima in the
  * hundreds — item_templates 651, spell_effects 259 — so the hazard here is cell
@@ -148,7 +170,9 @@ function isBlank_(value) {
  */
 function idKey_(value) {
   if (value === null || value === undefined) return '';
-  var text = String(value).trim();
+  // Strip thousands separators — a formatted id column displays 1024 as "1,024", which
+  // Number() reads as NaN. Safe here: every id column is INTEGER/INT/SMALLINT.
+  var text = String(value).trim().replace(/,/g, '');
   if (text === '') return '';
   var num = Number(text);
   return isNaN(num) ? text : String(num);
@@ -156,7 +180,7 @@ function idKey_(value) {
 
 /**
  * Reads a whole worksheet. Returns the header row separately from the data rows so the
- * client can map positionally — the importer reads cells by index (CsvToSqlBase.cs:26),
+ * client can map positionally — the importer reads cells by index (CsvToSqlBase.cs:35),
  * not by header name.
  *
  * Row i of `rows` is spreadsheet row i + 2, which is the numbering writeRow() expects.
@@ -183,18 +207,37 @@ function readSheet(sheetName) {
   };
 }
 
-/** Reads only the first two columns of a sheet, for FK pickers (id + name). */
-function readSheetIndex(sheetName) {
+/**
+ * Reads the id and label columns of a sheet, for FK pickers.
+ *
+ * The id is always column A. The label is NOT always column B: of the eight FK target
+ * sheets, the two most referenced put an enum there and the name one further along —
+ * Items has item_usetype in B and item_name at index 2 (5 inbound refs), NPCs has
+ * npc_type in B and npc_name at index 2 (3 refs). Hardcoding column B labels all 649
+ * Items entries "Armor"/"Weapon"/"NoUse", which is useless for picking.
+ *
+ * So the caller passes `nameColumnIndex`, a 0-based index into the row, taken from
+ * GOOSE_SCHEMA (which lives client-side and is not reachable from here). It defaults to
+ * 1 for the six sheets where column B is the name. Returns {id, name} either way, so
+ * only the argument changes for callers.
+ */
+function readSheetIndex(sheetName, nameColumnIndex) {
   var sheet = requireSheet_(sheetName);
+
+  var nameIndex = typeof nameColumnIndex === 'number' && nameColumnIndex >= 1
+    ? Math.floor(nameColumnIndex)
+    : 1;
 
   var lastRow = sheet.getLastRow();
   if (lastRow < 2) return { sheet: sheetName, entries: [] };
 
-  var values = sheet.getRange(2, 1, lastRow - 1, 2).getDisplayValues();
+  // Read out to the name column; a sheet narrower than that yields undefined names.
+  var span = Math.max(2, nameIndex + 1);
+  var values = sheet.getRange(2, 1, lastRow - 1, span).getDisplayValues();
   var entries = [];
   for (var i = 0; i < values.length; i++) {
     if (values[i][0] === '') continue;
-    entries.push({ id: values[i][0], name: values[i][1] });
+    entries.push({ id: values[i][0], name: values[i][nameIndex] || '' });
   }
 
   return { sheet: sheetName, entries: entries };
@@ -203,7 +246,18 @@ function readSheetIndex(sheetName) {
 /**
  * Writes one record. `cells` is an array aligned to column order; null, undefined or ''
  * entries are written as empty, which the importer treats as "use the SQL default"
- * (CsvToSqlBase.cs:27). rowNumber is 1-based including the header; pass 0 to append.
+ * (CsvToSqlBase.cs:36). rowNumber is 1-based including the header; pass 0 to append.
+ * It is normalised with Number() first: google.script.run forwards a string straight
+ * through, and a string row would defeat every strict comparison below — including the
+ * one guarding the header.
+ *
+ * `idColumnIndex` is 0-based and gates the duplicate-id check, the only integrity check
+ * in this file. Pass the index of the sheet's primary-key column, or -1 to disable the
+ * check. Twelve sheets have a single pk at index 0; the other nine (NPC Spawns, NPC
+ * Drops, NPC Vendor Items, Warptiles, Map Required Items, Combination Item Required,
+ * Combination Item Result, Class Info, Class Levelup Spells) have NO pk and MUST pass
+ * -1 — their column A is an Id-kind FK that legitimately repeats, so defaulting to 0
+ * would reject every second drop, spawn or level row.
  *
  * `cells` must be exactly as wide as the sheet. A shorter array would leave the trailing
  * columns holding the PREVIOUS record's values while the client believed it had written
@@ -219,7 +273,6 @@ function writeRow(sheetName, rowNumber, cells, idColumnIndex) {
   var sheet = requireSheet_(sheetName);
 
   if (!Array.isArray(cells)) throw new Error('writeRow: cells must be an array');
-  if (cells.length === 0) throw new Error('writeRow: cells is empty');
 
   // A sheet with no header has no column-order contract to write against, and nothing
   // bounds the write to the grid's width. Refuse rather than guess. (Schema sheets
@@ -230,26 +283,50 @@ function writeRow(sheetName, rowNumber, cells, idColumnIndex) {
   }
   if (cells.length !== width) {
     throw new Error(
-      'writeRow: got ' + cells.length + ' values for a header ' + width +
-      ' columns wide — refusing to write a partial record. Regenerate the schema.');
+      sheetName + ': got ' + cells.length + ' values for a header ' + width +
+      ' columns wide. Check for a stray value in row 1 past the last real column; ' +
+      'if row 1 is correct, the schema is out of date — re-run SchemaGen.');
   }
 
+  // google.script.run does not preserve types, so a client that read the row off a DOM
+  // attribute sends "1", and every strict test below — including the header guard —
+  // would pass it through. Normalise once, here.
+  var requestedRow = Number(rowNumber);
+  if (!isFinite(requestedRow) || Math.floor(requestedRow) !== requestedRow || requestedRow < 0) {
+    throw new Error('writeRow: invalid row ' + rowNumber);
+  }
   // Row 1 is the header the importer reads column order from; never overwrite it.
-  if (rowNumber === 1) throw new Error('writeRow: refusing to overwrite the header row');
-  if (rowNumber < 0) throw new Error('writeRow: invalid row ' + rowNumber);
+  if (requestedRow === 1) throw new Error('writeRow: refusing to overwrite the header row');
 
-  var target = rowNumber > 0 ? rowNumber : sheet.getLastRow() + 1;
+  var lastRow = sheet.getLastRow();
 
-  if (idColumnIndex >= 0 && idColumnIndex < cells.length && !isBlank_(cells[idColumnIndex])) {
-    var newId = idKey_(cells[idColumnIndex]);
-    var lastRow = sheet.getLastRow();
+  // A stale client holding the row of a record another editor deleted would otherwise
+  // insert thousands of blank rows and land the write nowhere near the intended record.
+  // Nine sheets have no pk, so the duplicate scan below cannot catch that for them.
+  if (requestedRow > lastRow + 1) {
+    throw new Error(
+      sheetName + ': row ' + requestedRow + ' is past the end of the sheet (' + lastRow +
+      ' rows) — reload and retry');
+  }
 
-    if (lastRow >= 2) {
-      var ids = sheet.getRange(2, idColumnIndex + 1, lastRow - 1, 1).getValues();
-      for (var i = 0; i < ids.length; i++) {
-        if (idKey_(ids[i][0]) === newId && (i + 2) !== target) {
-          throw new Error('id ' + newId + ' was just taken by another editor — reload and retry');
-        }
+  var target = requestedRow > 0 ? requestedRow : lastRow + 1;
+
+  // idKey_, not isBlank_: isBlank_ answers "write this cell empty", which is a different
+  // question from "is an id present". A whitespace-only id passes isBlank_ but keys to
+  // '', which then matches every blank id cell in the column.
+  //
+  // The typeof test is not decoration: `null >= 0` is true in JS, so a client passing
+  // null would silently check column A. undefined and NaN already fall through.
+  var idIndex = typeof idColumnIndex === 'number' && idColumnIndex >= 0 && idColumnIndex < cells.length
+    ? Math.floor(idColumnIndex)
+    : -1;
+  var newId = idIndex >= 0 ? idKey_(cells[idIndex]) : '';
+
+  if (newId !== '' && lastRow >= 2) {
+    var ids = sheet.getRange(2, idIndex + 1, lastRow - 1, 1).getValues();
+    for (var i = 0; i < ids.length; i++) {
+      if (idKey_(ids[i][0]) === newId && (i + 2) !== target) {
+        throw new Error(sheetName + ': id ' + newId + ' is already used by row ' + (i + 2));
       }
     }
   }
@@ -267,20 +344,4 @@ function writeRow(sheetName, rowNumber, cells, idColumnIndex) {
   SpreadsheetApp.flush();
 
   return { row: target };
-}
-
-/**
- * Who is editing, for the UI header.
- *
- * appsscript.json declares an explicit oauthScopes block that does NOT include
- * userinfo.email, which suppresses auto-scoping — so this can throw, not just return
- * '', and it returns '' anyway for users outside the domain. Widening the scopes is a
- * permissions decision and nothing currently calls this, so it just degrades.
- */
-function whoAmI() {
-  try {
-    return Session.getActiveUser().getEmail() || 'unknown';
-  } catch (e) {
-    return 'unknown';
-  }
 }
