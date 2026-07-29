@@ -361,7 +361,23 @@ var Pickers = (function () {
     // typo, and nothing else catches one: the cells are optional, so Validation passes a graphic
     // that names art the bundle does not have, and Equipped.format/isFaithful never see this
     // column at all.
-    function describe(rect) {
+    //
+    // Which is also why one of these states is not only shown but PUBLISHED, on
+    // wrap.__graphicError for the save path to gate on (see the contract at the top of app.js).
+    //
+    // ONE of them: `block` is narrower than `bad`, and deliberately.
+    //   - Not a whole number already fails Validation's numeric check on the column itself, which
+    //     reports it under the field. A second refusal would say the same thing twice.
+    //   - HALF A PAIR IS LEGAL AND SHIPPED. 176 of the 259 Spell Effects rows set spell_animation
+    //     with spell_animation_file left 0, and the server sends both to the client exactly as
+    //     stored (SpellEffect.cs:520). Refusing it would lock two thirds of that sheet.
+    //   - A complete pair naming art the bundle does not have is the one the design rule speaks
+    //     to — "a non-blank, non-zero graphic must resolve in the bundle" — and the one nothing
+    //     else can see: both cells are optional INTEGERs, so Validation passes a nonexistent
+    //     sheet:graphic as a perfectly good number and the only other signal is a blank canvas.
+    //     All 649 Items, 152 Spells and 146 buff graphics in the shipped data resolve, so this
+    //     refuses nothing that exists today.
+    function describe(rect, checkable) {
       var g = str(gInput.value).trim();
       var f = str(fInput.value).trim();
       var noGraphic = (g === '' || g === '0');
@@ -374,7 +390,14 @@ var Pickers = (function () {
         return { text: 'graphic and sheet must be whole numbers', bad: true };
       }
       if (noGraphic || noSheet) return { text: 'graphic and sheet must both be set', bad: true };
-      if (!rect) return { text: 'no art for sheet ' + f + ' graphic ' + g, bad: true };
+      // No bundle, no verdict. Blocking here would brick every sheet on a deploy where the
+      // 1.7MB icons include failed to load — and loadBundle is explicit that a missing bundle
+      // leaves the form usable without art rather than unusable.
+      if (!checkable) {
+        return { text: 'cannot check sheet ' + f + ' graphic ' + g + ' — no icon art loaded',
+                 bad: true };
+      }
+      if (!rect) return { text: 'no art for sheet ' + f + ' graphic ' + g, bad: true, block: true };
       return { text: '', bad: false };
     }
 
@@ -383,11 +406,16 @@ var Pickers = (function () {
       // Number() here as well would be a SECOND rule for what a cell means — and the two
       // disagree ('1e3' is 1000 to one and 1 to the other), so the preview could resolve a
       // different sprite from the one the lookup key names.
-      var rect = Sprites.icon((ctx && ctx.bundles) || {}, fInput.value, gInput.value);
+      var bundles = (ctx && ctx.bundles) || {};
+      var rect = Sprites.icon(bundles, fInput.value, gInput.value);
 
-      var state = describe(rect);
+      var state = describe(rect, !!(bundles.icons && bundles.icons.rects));
       status.textContent = state.text;
       status.className = state.bad ? 'status bad' : 'status';
+      // Named, because a form can hold several of these (Spell Effects has two) and "fix the
+      // graphic" would not say which. Null rather than '' so the save path's test is a plain
+      // truthiness check on a property most nodes do not have at all.
+      wrap.__graphicError = state.block ? (graphicColumn.name + ': ' + state.text) : null;
 
       var target = canvas.getContext('2d');
       target.clearRect(0, 0, canvas.width, canvas.height);

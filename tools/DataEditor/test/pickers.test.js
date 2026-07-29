@@ -846,7 +846,56 @@ test('graphicControl redraws when the bundle image finishes decoding', () => {
 test('graphicControl survives a ctx with no bundles, images or ready hook', () => {
   const wrap = Pickers.graphicControl(graphicColumn, fileColumn,
     { graphic_tile: '810003', graphic_file: '20107' }, {});
-  assert.equal(gparts(wrap).status.textContent, 'no art for sheet 20107 graphic 810003');
+  // "cannot check", not "no art": with no bundle there is nothing to have checked against, and
+  // the save gate must not read a missing include as 800 broken records.
+  assert.equal(gparts(wrap).status.textContent,
+    'cannot check sheet 20107 graphic 810003 — no icon art loaded');
+  assert.equal(wrap.__graphicError, null);
+});
+
+// --- what the save gate reads (review #2) ----------------------------------------------------
+
+test('an unresolvable pair is published for the save gate, named by its column', () => {
+  const wrap = Pickers.graphicControl(graphicColumn, fileColumn,
+    { graphic_tile: '9', graphic_file: '8' }, gctx());
+  assert.equal(wrap.__graphicError, 'graphic_tile: no art for sheet 8 graphic 9');
+});
+
+test('the gate flag is raised and cleared as the cells are edited', () => {
+  const wrap = Pickers.graphicControl(graphicColumn, fileColumn,
+    { graphic_tile: '810003', graphic_file: '20107' }, gctx());
+  assert.equal(wrap.__graphicError, null);
+
+  const { graphic } = gparts(wrap);
+  graphic.value = '999';
+  fire(graphic, 'input');
+  assert.equal(wrap.__graphicError, 'graphic_tile: no art for sheet 20107 graphic 999');
+
+  graphic.value = '810003';
+  fire(graphic, 'input');
+  assert.equal(wrap.__graphicError, null);
+});
+
+test('a blank or zero pair publishes nothing to gate on', () => {
+  const blank = Pickers.graphicControl(graphicColumn, fileColumn, {}, gctx());
+  const zeros = Pickers.graphicControl(graphicColumn, fileColumn,
+    { graphic_tile: '0', graphic_file: '0' }, gctx());
+  assert.equal(blank.__graphicError, null);
+  assert.equal(zeros.__graphicError, null);
+});
+
+test('half a pair is SHOWN but not gated on — 176 shipped Spell Effects rows are half pairs', () => {
+  const wrap = Pickers.graphicControl(graphicColumn, fileColumn,
+    { graphic_tile: '815015', graphic_file: '0' }, gctx());
+  assert.equal(gparts(wrap).status.className, 'status bad');
+  assert.equal(wrap.__graphicError, null);
+});
+
+test('a non-numeric cell is not gated on either — Validation reports it under the field', () => {
+  const wrap = Pickers.graphicControl(graphicColumn, fileColumn,
+    { graphic_tile: 'abc', graphic_file: '20107' }, gctx());
+  assert.equal(gparts(wrap).status.className, 'status bad');
+  assert.equal(wrap.__graphicError, null);
 });
 
 test('graphicControl shows each column default as its placeholder', () => {

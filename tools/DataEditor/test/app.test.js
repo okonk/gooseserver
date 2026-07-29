@@ -1328,6 +1328,77 @@ test('both warnings are reported when a bundle and a list both fail', () => {
   assert.match(h.status(), /Could not load Spell Effects/);
 });
 
+// --- save gate 4: a graphic with no art in the bundle (review #2) -----------------------------
+
+// The fake icons bundle holds exactly one rect, '1:1', so graphic_file 1 + graphic_tile 1
+// resolves and anything else does not.
+const ART_ITEM = (id, name) => rowFor('Items', {
+  item_template_id: id, item_usetype: 'NoUse', item_name: name, graphic_tile: 1, graphic_file: 1,
+});
+
+test('a save is REFUSED when a graphic pair names art the bundle does not have', () => {
+  const h = boot({ Items: [ART_ITEM(1, 'Gold')] });
+  fire(h.get('records').children[0], 'click');
+  h.settle();
+
+  const tile = h.get('form').querySelector('[name="graphic_tile"]');
+  tile.value = '999';
+  fire(tile, 'input');
+
+  fire(h.get('save'), 'click');
+  h.settle();
+
+  assert.equal(h.writes.length, 0);
+  // Named: Spell Effects carries two of these controls, so the column has to be in the message.
+  assert.match(h.status(), /graphic_tile: no art for sheet 1 graphic 999/);
+});
+
+test('the save goes through once the graphic resolves again', () => {
+  const h = boot({ Items: [ART_ITEM(1, 'Gold')] });
+  fire(h.get('records').children[0], 'click');
+  h.settle();
+
+  const tile = h.get('form').querySelector('[name="graphic_tile"]');
+  tile.value = '999';
+  fire(tile, 'input');
+  tile.value = '1';
+  fire(tile, 'input');
+
+  fire(h.get('save'), 'click');
+  h.settle();
+  assert.equal(h.writes.length, 1);
+});
+
+test('half a pair still saves — 176 shipped Spell Effects rows are half pairs', () => {
+  // ITEM leaves graphic_file blank. The control says so in red; the gate must not join in, or
+  // two thirds of Spell Effects becomes uneditable.
+  const h = boot({ Items: [ITEM(1, 'Gold')] });
+  fire(h.get('records').children[0], 'click');
+  h.settle();
+
+  fire(h.get('save'), 'click');
+  h.settle();
+  assert.equal(h.writes.length, 1);
+});
+
+test('a graphic nothing can be checked against does not block the save', () => {
+  // A deploy whose icons include failed to load. Every pair on every sheet would look broken,
+  // and refusing them all would brick an editor that is otherwise perfectly usable.
+  const saved = globalThis.GOOSE_SPRITES;
+  globalThis.GOOSE_SPRITES = { parts: saved.parts, effects: saved.effects };
+  try {
+    const h = boot({ Items: [ART_ITEM(1, 'Gold')] });
+    fire(h.get('records').children[0], 'click');
+    h.settle();
+
+    fire(h.get('save'), 'click');
+    h.settle();
+    assert.equal(h.writes.length, 1);
+  } finally {
+    globalThis.GOOSE_SPRITES = saved;
+  }
+});
+
 // --- the interval between a request and its reply -------------------------------------------
 
 test('the record list is emptied the moment a sheet switch is requested', () => {

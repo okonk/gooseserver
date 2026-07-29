@@ -23,7 +23,13 @@
 //      nonexistent id through the only check there is for it. unverifiedRefs gates exactly the
 //      columns this record USES (blank and '0' mean "none" and are exempt either way), reports
 //      which sheet is missing, and re-requests it.
-//   4. Validation.validateRecord, which is the ordinary per-column check.
+//   4. A GRAPHIC THAT DOES NOT RESOLVE. Pickers.graphicControl raises `wrapper.__graphicError`
+//      when a COMPLETE graphic/sheet pair names art the loaded bundle does not have — the design
+//      rule is that a non-blank, non-zero graphic must resolve in the bundle, and nothing below
+//      can see the breach: both cells are optional INTEGERs, so validateCell passes a nonexistent
+//      sheet:graphic as a perfectly good number and the only other signal is a blank canvas.
+//      The control's other complaints are shown but NOT gated on, and pickers.js says why.
+//   5. Validation.validateRecord, which is the ordinary per-column check.
 //
 // THE NAME COLUMN IS NOT ALWAYS B. Code.gs cannot reach GOOSE_SCHEMA, so readSheetIndex takes a
 // 0-based nameColumnIndex from this side. Items has item_usetype in B and item_name at index 2
@@ -243,8 +249,8 @@ var App = (function () {
     state.previewKey = null;
   }
 
-  // Depth-first over real elements. Not querySelectorAll: __frozen is a JS property, not an
-  // attribute, so there is no selector that finds it.
+  // Depth-first over real elements. Not querySelectorAll: __frozen and __graphicError are JS
+  // properties, not attributes, so there is no selector that finds them.
   function walk(node) {
     // An explicit stack, pushing into ONE array: `out = out.concat(walk(child))` reallocated the
     // whole list at every node, which is quadratic on a 76-column form.
@@ -603,6 +609,15 @@ var App = (function () {
     return sheets;
   }
 
+  // Gate 4: every graphic pair that cannot be resolved in the bundle. Collected rather than
+  // counted so the message can name the columns — Spell Effects carries two of these controls
+  // and "a graphic is invalid" would send the user hunting.
+  function graphicErrors(container) {
+    return walk(container)
+      .filter(function (n) { return !!n.__graphicError; })
+      .map(function (n) { return n.__graphicError; });
+  }
+
   function save() {
     if (!state.schema) return;
 
@@ -634,6 +649,12 @@ var App = (function () {
              ' — that list failed to load, so saving now could store an id that does not exist. ' +
              'Reloading it; try saving again in a moment.', true);
       retryReferencedSheets(unverified);
+      return;
+    }
+
+    var graphics = graphicErrors(container);
+    if (graphics.length) {
+      status('Fix the graphic before saving — ' + graphics.join('; '), true);
       return;
     }
 
