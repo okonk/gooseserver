@@ -536,6 +536,16 @@ var Gallery = (function () {
       if (onPick) onPick(entry.pick);
     }
 
+    // Whether a node is the scroller or inside it — the grid, a tile, a spacer. A tile takes
+    // focus on mousedown in real browsers, so its keydowns must still count as the grid's.
+    // Walked by parentNode because the test DOM has no Node.contains.
+    function inGrid(node) {
+      for (var n = node; n; n = n.parentNode) {
+        if (n === scroll) return true;
+      }
+      return false;
+    }
+
     function onKey(event) {
       var key = event.key;
 
@@ -564,6 +574,15 @@ var Gallery = (function () {
         }
         return;
       }
+
+      // Everything below is GRID navigation, and it belongs to the grid alone. This listener
+      // sits on the DIALOG, so it also hears the chooser <select>s and the Close button — and
+      // answering for them stole their keys: Enter on Close PICKED the highlighted tile into the
+      // record the user was backing out of (preventDefault suppressed the button's own Enter
+      // activation), and the arrows moved the grid cursor instead of the chooser's option, which
+      // made the <select>s impossible to operate from the keyboard at all. Only Escape above is
+      // dialog-wide; every other key on a head control is that control's own business.
+      if (event.target !== scroll && !inGrid(event.target)) return;
 
       if (key === 'Enter') {
         event.preventDefault();

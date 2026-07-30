@@ -240,6 +240,40 @@ test('Enter picks the tile the cursor is on', () => {
   assert.deepEqual(picked, [{ sheet: '104', graphic: '2' }]);
 });
 
+test('Enter on the Close button is left to the button, and picks nothing', () => {
+  // The dialog-level listener used to answer it: preventDefault suppressed the button's own
+  // Enter activation and pick(cursor) wrote the highlighted tile into the record the user was
+  // explicitly backing out of.
+  let picks = 0;
+  Gallery.open({
+    bundle: 'icons', bundles: { icons: iconFixture }, opener: opener(), onPick: () => { picks++; },
+  });
+
+  assert.equal(fire(node('close'), 'keydown', { key: 'Enter' }), true,
+    'not preventDefault-ed, so the browser delivers the click that closes');
+  assert.equal(picks, 0);
+});
+
+test('arrow keys on the sheet chooser belong to the select, not the grid cursor', () => {
+  Gallery.open({
+    bundle: 'icons', bundles: { icons: iconFixture }, opener: opener(), filter: { sheet: '104' },
+  });
+  const current = () => tiles().find((t) => t.getAttribute('aria-selected') === 'true')
+    .getAttribute('data-id');
+
+  assert.equal(current(), '1');
+  assert.equal(fire(node('sheet'), 'keydown', { key: 'ArrowDown' }), true,
+    'not preventDefault-ed, so the select can change its option');
+  assert.equal(current(), '1', 'and the grid cursor did not move');
+  assert.equal(fire(node('sheet'), 'keydown', { key: 'Enter' }), true, 'Enter is also its own');
+});
+
+test('Escape still closes the dialog from any control in it', () => {
+  Gallery.open({ bundle: 'icons', bundles: { icons: iconFixture }, opener: opener() });
+  fire(node('close'), 'keydown', { key: 'Escape' });
+  assert.equal(modal.hidden, true);
+});
+
 test('the sheet chooser defaults to the sheet the record already names', () => {
   Gallery.open({
     bundle: 'icons', bundles: { icons: iconFixture }, opener: opener(),
