@@ -18,7 +18,7 @@ globalThis.Gallery = Gallery;
 const here = path.dirname(fileURLToPath(import.meta.url));
 
 // The REAL bundles, loaded exactly as sprites.test.js loads them and for the same reason: the
-// counts this module has to get right — 4,827 icons over 125 sheet files, 8 part categories, 560
+// counts this module has to get right — 4,827 icons over 125 sheet files, 8 part categories, 389
 // effects — are facts about the committed atlas, and a toy fixture cannot check them.
 const real = (() => {
   const ctx = vm.createContext({});
@@ -92,7 +92,7 @@ test('a part tile shows the clip Sprites.clipCandidates would pick', () => {
 
 test('the effect index is one tile per id, at frame 0', () => {
   const entries = Gallery.effectEntries(real.effects);
-  assert.equal(entries.length, 560);
+  assert.equal(entries.length, 389);
   entries.forEach((e) => {
     assert.deepEqual(e.rect, real.effects.rects[e.id + ':0']);
   });

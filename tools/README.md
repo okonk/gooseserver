@@ -52,12 +52,12 @@ Give the client an **absolute path**, or one relative to your shell's cwd. A `..
 style path does not work from a git worktree, where the repo root is `.worktrees/<branch>/` and the
 sibling checkout is two levels further up.
 
-Output as of 2026-07-29, on one machine with a warm cache:
+Output as of 2026-07-30, on one machine with a warm cache:
 
     icons      4827 sprites  2048x3140  98.1% efficient  1.67 MB html
     parts      3261 sprites  2048x6903  96.0% efficient  1.89 MB html
-    effects    2412 sprites  2048x4097  95.3% efficient  0.83 MB html
-    Total 4.39 MB of HTML in 2.3s
+    effects    1989 sprites  2048x3458  94.7% efficient  0.82 MB html
+    Total 4.38 MB of HTML in 2.2s
 
 Roughly 4.4 MB combined, comfortably inside the ~10 MB Apps Script project ceiling.
 
@@ -69,14 +69,17 @@ for you.
 
 ### Known upstream asset defects
 
-The tool reports skips grouped by sheet. Two groups are expected today, and both are bugs in the
+The tool reports skips grouped by sheet. One group is expected today, and it is a bug in the
 client's art, not in the tool. Do not re-investigate:
 
 - **Sheet 421 loses 19 icons.** The manifest lays it out as a 10x10 grid of 32px cells — a 320x320
   sheet — but `sheets/421.png` is 288x288, one row and one column short. The 10 rects at x=288 and
   the 10 at y=288 (sharing a corner) fall outside the image; the other 81 icons are unaffected.
-- **Sheet 4589 has no PNG at all.** Its 20 frames are the whole of effect 290370, so that effect is
-  absent from `sprites-effects.html` entirely.
+
+A second group used to sit here — **sheet 4589 had no PNG**, losing the 20 frames that were the
+whole of effect 290370. The 2026-07-30 client art dropped effect 290370 altogether, so nothing
+references sheet 4589 any more and the tool no longer reports it. Listed only so a reader of the
+older bundles knows where that effect went.
 
 ### Adding graphics the data has not referenced yet
 
