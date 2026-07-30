@@ -146,15 +146,6 @@ test('idList writes space-separated', () => {
 
 // --- colour ---------------------------------------------------------------------------------
 
-test('rgba blend alpha of zero means no tint', () => {
-  assert.equal(Composites.isTinted({ r: 255, g: 0, b: 0, a: 0 }), false);
-  assert.equal(Composites.isTinted({ r: 255, g: 0, b: 0, a: 1 }), true);
-  assert.equal(Composites.isTinted({ r: 255, g: 0, b: 0, a: '0' }), false);
-  assert.equal(Composites.isTinted({ r: 255, g: 0, b: 0, a: '128' }), true);
-  assert.equal(Composites.isTinted(null), false);
-  assert.equal(Composites.isTinted({}), false);
-});
-
 // --- control plumbing -----------------------------------------------------------------------
 
 function named(node, name) {
@@ -220,6 +211,24 @@ function setBlend(node, blend) {
   // A 255-tall strip with full blend at the top, so the click lands on a whole byte.
   strip.rect = { left: 0, top: 0, width: 14, height: 255 };
   fire(strip, 'mousedown', { clientX: 0, clientY: 255 - blend });
+}
+
+// --- the redraw signal ----------------------------------------------------------------------
+//
+// Half 1 of the contract at the top of composites.js: a change a control accepts has to reach the
+// FORM CONTAINER as a bubbling input/change event, because that one delegated listener in app.js
+// is the whole preview-redraw mechanism. So these tests mount the control in a container and
+// count what arrives there — the same thing app.js listens for — rather than asserting on any
+// hook. (There was a `wrapper.__onChange` here once; nothing ever set it, and tests that asserted
+// a control called it passed for a year while the previews sat stale.)
+
+function mounted(node) {
+  const container = document.createElement('div');
+  container.appendChild(node);
+  const seen = { input: 0, change: 0 };
+  container.addEventListener('input', () => { seen.input++; });
+  container.addEventListener('change', () => { seen.change++; });
+  return seen;
 }
 
 // --- rgbaControl ----------------------------------------------------------------------------
@@ -307,15 +316,16 @@ test('rgba readout follows the blend strip', () => {
   assert.match(node.querySelector('[class="readout"]').textContent, /31/);
 });
 
-test('rgba notifies its wrapper hook on change', () => {
+test('a tint change bubbles out of the control, once per movement', () => {
   const node = Composites.control({
     comp: RGBA, byName: byName(RGBA.columns), values: {}, ctx: ctx(),
   });
-  let calls = 0;
-  node.__onChange = () => { calls++; };
+  const seen = mounted(node);
   setBlend(node, 12);
   setColour(node, '#010203');
-  assert.equal(calls, 2);
+  // Two movements, two events — and EXACTLY two: the hex field's own native `input` is stopped
+  // inside the picker so a keystroke does not report itself twice.
+  assert.deepEqual(seen, { input: 2, change: 0 });
 });
 
 test('rgba survives no wrapper hook', () => {
@@ -489,14 +499,15 @@ test('bitmask survives a ctx with no pickerData at all', () => {
   assert.equal(named(node, 'class_restrictions').value, '');
 });
 
-test('bitmask notifies its wrapper hook', () => {
+test('a bitmask tick bubbles out of the control', () => {
+  // The checkbox's own `change` does this unaided, which is why bitmaskControl dispatches nothing
+  // of its own. The assertion is that it still ARRIVES, whoever produced it.
   const node = Composites.control({
     comp: BITMASK, byName: byName(BITMASK.columns), values: {}, ctx: ctx(),
   });
-  let calls = 0;
-  node.__onChange = () => { calls++; };
+  const seen = mounted(node);
   fire(boxes(node)[0], 'change');
-  assert.equal(calls, 1);
+  assert.deepEqual(seen, { input: 0, change: 1 });
 });
 
 // --- idListControl --------------------------------------------------------------------------
@@ -628,16 +639,17 @@ test('idList reads its source sheet at use time, not at build time', () => {
   assert.match(chips(node)[0].textContent, /Rat Hunt/);
 });
 
-test('idList notifies its wrapper hook', () => {
+test('removing a chip bubbles out of the control, though a click never would', () => {
+  // The one write path in this file the browser gives no bubbling event for: a chip's × is a
+  // button, and a click on it is not an edit as far as the DOM is concerned. Composites.notify
+  // dispatches the `change` by hand.
   const node = Composites.control({
-    comp: IDLIST, byName: byName(IDLIST.columns), values: {}, ctx: ctx(),
+    comp: IDLIST, byName: byName(IDLIST.columns), values: { quest_ids: '10 11' }, ctx: ctx(),
   });
-  let calls = 0;
-  node.__onChange = () => { calls++; };
-  const add = node.querySelector('[class="add"]');
-  add.value = '10';
-  fire(add, 'change');
-  assert.equal(calls, 1);
+  const seen = mounted(node);
+  fire(chips(node)[0].querySelector('[class="remove"]'), 'click');
+  assert.equal(named(node, 'quest_ids').value, '11');
+  assert.deepEqual(seen, { input: 0, change: 1 });
 });
 
 // --- equipSlotsControl ----------------------------------------------------------------------
@@ -867,16 +879,15 @@ test('equip slots survives a ctx with no onImagesReady', () => {
   assert.equal(named(node, 'equipped_items').value, RAW_EQUIP);
 });
 
-test('equip slots notifies its wrapper hook', () => {
+test('a slot graphic edit bubbles out of the control', () => {
   const node = Composites.control({
     comp: EQUIP, byName: byName(EQUIP.columns), values: { equipped_items: RAW_EQUIP }, ctx: ctx(),
   });
-  let calls = 0;
-  node.__onChange = () => { calls++; };
+  const seen = mounted(node);
   const chest = slotInputs(node)[0];
   chest.value = '7';
   fire(chest, 'input');
-  assert.equal(calls, 1);
+  assert.deepEqual(seen, { input: 1, change: 0 });
 });
 
 // --- equip slot COLOURS ---------------------------------------------------------------------
@@ -979,14 +990,15 @@ test('a graphic typo outranks the zero-blend note on the same row', () => {
   assert.match(statusOf(chest).textContent, /blend is 0/, 'the note comes back');
 });
 
-test('equip slots notifies its wrapper hook on a colour change too', () => {
+test('a slot COLOUR change bubbles out of the control too', () => {
+  // The path that was silent: a drag on the blend strip writes equipped_items, which the
+  // character preview reads, from a mousedown nothing else hears.
   const node = Composites.control({
     comp: EQUIP, byName: byName(EQUIP.columns), values: { equipped_items: TINTABLE }, ctx: ctx(),
   });
-  let calls = 0;
-  node.__onChange = () => { calls++; };
+  const seen = mounted(node);
   setBlend(slotRows(node)[0], 90);
-  assert.equal(calls, 1);
+  assert.deepEqual(seen, { input: 1, change: 0 });
 });
 
 test('equip slots repaints the slot preview with the new tint', () => {

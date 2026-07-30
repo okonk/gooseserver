@@ -684,28 +684,6 @@ test('a click on the blend strip moves the blend cursor to the point clicked', (
   near(alphaDot.style.top, 100);
 });
 
-// --- set() ------------------------------------------------------------------------------------
-
-test('set() moves the control without reporting a change', () => {
-  // For a caller with a colour from somewhere other than this control. It is not a user movement,
-  // so a callback here would rewrite cells nobody touched.
-  const c = make();
-  c.picker.set({ r: 0, g: 128, b: 255, a: 64 });
-  assert.equal(c.swatch.getAttribute('data-color'), '#0080ff');
-  assert.deepEqual(c.seen, []);
-
-  open(c);
-  assert.equal(c.find('cp-hex').value, '#0080ff');
-  assert.equal(c.find('cp-blend').textContent, '64 / 255 blend');
-});
-
-test('set() with no blend leaves the blend alone', () => {
-  const c = make();
-  c.picker.set({ r: 0, g: 0, b: 0 });
-  open(c);
-  assert.equal(c.find('cp-blend').textContent, '128 / 255 blend');
-});
-
 // --- structure --------------------------------------------------------------------------------
 
 test('everything in the popover is inside the wrapper', () => {

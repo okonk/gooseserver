@@ -10,14 +10,16 @@
 // a value the server can use at all (Goose/Packets.cs:161 splices it into the packet); repairing
 // that one is always right.
 //
-// CONTRACT WITH TASK 11, two halves:
+// CONTRACT WITH THE PREVIEW PANEL (app.js's renderPreviews and its delegated listener), two
+// halves:
 //
-//   1. Every control calls `wrapper.__onChange()` after a change it accepted, if the property is
-//      set. NOTHING SETS IT TODAY — app.js:451-457 declines it and drives the preview from a
-//      delegated input/change listener on the form container instead, so one mechanism does the
-//      job rather than two. The call is kept because a control that writes its cell from a
-//      `click` (idListControl's chip buttons) does not bubble to that listener, and would need
-//      either this hook or a dispatched Event the day such a cell becomes preview-relevant.
+//   1. A CHANGE THIS FILE ACCEPTS MUST REACH THE FORM CONTAINER AS A BUBBLING input/change EVENT.
+//      That one delegated listener is the whole redraw mechanism — there is no subscription hook
+//      (there was a `wrapper.__onChange` here for a while; nothing ever set it, so it read like a
+//      working signal twice over and is gone). Most paths get this for free from the browser: a
+//      checkbox fires `change`, a text field fires `input`. The paths that DO NOT are the ones to
+//      watch, and each has to dispatch for itself — ColorPicker.control does it for every colour
+//      movement (see fire() there), and notify() below does it for the chip buttons.
 //
 //   2. THE SAVE PATH MUST REFUSE WHILE AN EQUIP SLOT IS FLAGGED. equipSlotsControl freezes the
 //      whole cell while any of the six graphic fields holds a typo — it has to, because
@@ -130,14 +132,12 @@ var Composites = (function () {
     return (ids || []).join(' ');
   }
 
-  // Icon.cs:9-11 — the alpha channel is a BLEND FACTOR against the sprite, not opacity. Zero is
-  // NoTint, whatever r/g/b say.
-  function isTinted(tint) {
-    return !!(tint && num(tint.a));
-  }
-
+  // The redraw signal for a write the browser gives no event of its own — see half 1 of the
+  // contract at the top. `change` rather than `input`: these paths commit a whole value at once
+  // (a chip added or removed), which is what `change` describes. Dispatched from the control's
+  // wrapper, which is inside the form container the listener sits on.
   function notify(wrap) {
-    if (typeof wrap.__onChange === 'function') wrap.__onChange();
+    wrap.dispatchEvent(new Event('change', { bubbles: true }));
   }
 
   // A hidden input seeded with the stored text. Every control writes its column through one of
@@ -187,7 +187,10 @@ var Composites = (function () {
         hidden[2].value = String(colour.b);
         hidden[3].value = String(colour.a);
         describe(colour.a);
-        notify(wrap);
+        // No dispatch here: ColorPicker.control fires a bubbling `input` from its own wrapper
+        // immediately after this returns, which is how the previews hear about the four cells
+        // just written. One signal per movement, from the one place that knows a movement
+        // happened.
       },
     });
 
@@ -253,8 +256,9 @@ var Composites = (function () {
     function sync() {
       var ticked = boxes.filter(function (b) { return b.checked; })
         .map(function (b) { return b.value; });
+      // No dispatch: sync() only ever runs from a checkbox's own `change`, which bubbles to the
+      // delegated listener by itself once this returns.
       hidden.value = String(idsToBits(ticked.concat(foreign)));
-      notify(wrap);
     }
 
     wrap.appendChild(hidden);
@@ -405,7 +409,10 @@ var Composites = (function () {
       wrap.__frozen = anyBad();
       if (anyBad()) return;
       hidden.value = Equipped.format(slots);
-      notify(wrap);
+      // No dispatch, for the reason bitmaskControl gives: both callers already produce a bubbling
+      // event of their own — the graphic field's native `input`, and the `input` ColorPicker
+      // dispatches after the slot's onChange. Note that both fire even when this returned early
+      // on a typo; the listener then re-collects an UNCHANGED cell, so the previews stay put.
     }
 
     Equipped.SLOTS.forEach(function (slotName, index) {
@@ -633,7 +640,6 @@ var Composites = (function () {
     control: control, collect: collect, KINDS: KINDS,
     bitsToIds: bitsToIds, idsToBits: idsToBits,
     parseIdList: parseIdList, formatIdList: formatIdList,
-    isTinted: isTinted,
   };
 })();
 

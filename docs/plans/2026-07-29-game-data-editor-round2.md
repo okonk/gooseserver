@@ -483,8 +483,11 @@ triggers a redraw.
 
 - **No facing, no animation, no walk cycle.** The committed bundle carries four down-facing resting
   clips and nothing else; any of those means regenerating the bundle first.
-- **Icons above 128px are still clipped** by the 64-logical-pixel preview box. Widening the box to
-  fit the largest sprite in the bundle would strand every 32px icon in whitespace.
+- **Icons above 64 logical pixels are still clipped** by the preview box, which is 64 (drawn at 2x,
+  so 128 CSS pixels). The bundle holds sprites up to 128x128, so those are clipped by half; the box
+  went from 48 to 64 because that covers the common large sizes, and widening it to fit the largest
+  sprite in the bundle would strand every 32px icon in whitespace. `src/pickers.js` ICON_BOX states
+  the same thing.
 - **A zero blend alpha still discards the colour** on equipment slots, because that is what
   `Equipped.format` writes and what the wire format says. The picker warns; it does not work around
   it.

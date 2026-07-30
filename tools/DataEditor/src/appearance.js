@@ -1,6 +1,7 @@
 // Which sprites a character is built from, in draw order — a port of
 // Character.ApplyAppearance (Scripts/Character/Character.cs:202-245) for a static, south-facing
-// preview. Pure computation: no canvas, no image loading. Task 11 turns these layers into pixels.
+// preview. Pure computation: no canvas, no image loading. Preview.character turns these layers into
+// pixels (src/preview.js).
 //
 // The draw order is CharacterLayout.SortOrder ((int)slot + 2, CharacterLayout.cs:20-37), NOT the
 // order ApplySlot is called in at Character.cs:231-240. The call order puts Hair before Chest,
@@ -14,7 +15,8 @@
 // NOT ported: ApplySlot's second removal branch (Character.cs:266) drops any slot whose
 // animations.tres does not exist, so the client silently skips an id with no art. A layer here is
 // "what the data asks for", not "what can be drawn" — resolving an id to a sprite belongs to the
-// bundle lookup (Task 5) and the preview (Task 11), which decide what to do about a miss.
+// bundle lookup (Sprites.part) and the preview (Preview.character), which decide what to do about
+// a miss.
 var Appearance = (function () {
   // CharacterLayout.cs:6 — the enum's numeric order IS the base sort order.
   var SLOT_INDEX = {

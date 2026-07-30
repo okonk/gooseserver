@@ -189,15 +189,19 @@ var ColorPicker = (function () {
     return false;
   }
 
-  // ColorPicker.control({ r, g, b, a, withAlpha, align, onChange }) -> { node, set }
+  // ColorPicker.control({ r, g, b, a, withAlpha, align, onChange }) -> { node }
   //
   // `node` is the WRAPPER, not the swatch button: the popover is absolutely positioned and needs a
   // positioned ancestor of its own (.rgba is a plain block), and a <button> cannot legally contain
   // one. The swatch is node's first child and carries class="swatch".
   //
-  // onChange({r,g,b,a}) fires on EVERY live movement and on nothing else — never at construction,
-  // and never from set(). That is what lets Composites.rgbaControl keep its rule that an untouched
-  // control does not rewrite its cells: no interaction, no call, no write.
+  // onChange({r,g,b,a}) fires on EVERY live movement and on nothing else — never at construction.
+  // That is what lets Composites.rgbaControl keep its rule that an untouched control does not
+  // rewrite its cells: no interaction, no call, no write.
+  //
+  // EVERY MOVEMENT ALSO DISPATCHES A BUBBLING `input` FROM `node`, right after onChange. See
+  // fire(): without it the previews go stale, and the caller cannot supply it for itself because
+  // it has no idea when a drag is still in progress.
   function control(options) {
     var opts = options || {};
     var withAlpha = !!opts.withAlpha;
@@ -317,11 +321,31 @@ var ColorPicker = (function () {
       return formatHex(c.r, c.g, c.b);
     }
 
+    // Two halves, and the second is not optional. app.js drives every preview from ONE delegated
+    // input/change listener on the form container, and NOT ONE of this control's write paths
+    // produces an event that reaches it: the three canvases write from mousedown/mousemove and
+    // keydown, the recent chips from click. onChange alone therefore updated the cells and left
+    // the tile, the worn sprite and the character panel showing the old colour until some
+    // unrelated field fired — the exact regression against the native <input type="color"> and
+    // range slider this control replaced, both of which fired a bubbling `input`. So it fires one
+    // too, here, at the single point every path funnels through:
+    //
+    //   * AFTER onChange, because the listener re-collects the form — the caller's cells have to
+    //     be written before the event goes out or the previews redraw from stale values.
+    //   * `input`, not `change`: a drag reports continuously, and the value is not "committed" in
+    //     any sense a `change` would describe. app.js delegates both, so either would work; this
+    //     one says what is happening.
+    //   * From `wrap`, which is inside the form container, so it bubbles to that listener. Not
+    //     from the swatch — the swatch is a <button> and a click on it must stay a click.
+    //   * Unconditionally, even with no onChange: a caller that only wants the swatch still has
+    //     the control in a form whose previews may read cells this one does not own.
     function fire() {
       touched = true;
-      if (!onChange) return;
-      var c = rgb();
-      onChange({ r: c.r, g: c.g, b: c.b, a: state.a });
+      if (onChange) {
+        var c = rgb();
+        onChange({ r: c.r, g: c.g, b: c.b, a: state.a });
+      }
+      wrap.dispatchEvent(new Event('input', { bubbles: true }));
     }
 
     function paintSv() {
@@ -581,7 +605,13 @@ var ColorPicker = (function () {
       }
     });
 
-    hex.addEventListener('input', function () {
+    hex.addEventListener('input', function (event) {
+      // The hex field is the ONE part of this control whose native event already bubbles to
+      // app.js's delegated listener. Stopped here so a keystroke is one signal, not two — fire()
+      // dispatches the real one below, after the caller has written its cells, where this event
+      // would arrive before it. Other listeners on this same node still run: propagation stops,
+      // dispatch at the target does not.
+      event.stopPropagation();
       var c = parseHex(hex.value);
       // A half-typed hex is not a colour. Repainting from `null` would blank the control between
       // the third and sixth character.
@@ -620,18 +650,11 @@ var ColorPicker = (function () {
     paintHue();
     refresh(false);
 
-    return {
-      node: wrap,
-      // For a caller that has a new colour from somewhere other than this control — a record
-      // reopened into the same form, say. Silent by design: set() is not a user movement, and a
-      // control that called back here would rewrite cells nobody touched.
-      set: function (colour) {
-        var c = colour || {};
-        adopt({ r: channel(c.r), g: channel(c.g), b: channel(c.b) });
-        if (withAlpha && c.a !== undefined) state.a = channel(c.a);
-        refresh(false);
-      },
-    };
+    // No set(). It existed for "a record reopened into the same form", which never happens —
+    // app.js rebuilds the form from scratch per record, so every picker is constructed with the
+    // colour it should show. An unused setter on a control whose whole contract is "no write
+    // without a movement" is a way for a future caller to break that contract quietly.
+    return { node: wrap };
   }
 
   return {

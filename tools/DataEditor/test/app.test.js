@@ -495,23 +495,69 @@ test('the worn canvas is there even for an item nothing wears', () => {
   });
 });
 
-test('a tint edit rebuilds the Items panel', () => {
+// Driving the colour picker THE WAY A USER DOES. Every write path in that control is a
+// mousedown/mousemove drag, an arrow key on a focused strip, or a click on a recent chip — the
+// browser turns none of those into a bubbling input/change, so the picker dispatches one itself
+// and these helpers are what prove it arrives. This test used to set the hidden graphic_r cell by
+// hand and fire `change` ON A HIDDEN INPUT: an event no browser produces and nothing in the
+// editor dispatches, so it passed while the real path left every preview stale.
+function openPopover(host) {
+  fire(host.querySelector('[class="swatch"]'), 'click');
+}
+
+// A 255-tall strip with full blend at the top, so the click lands on a whole byte.
+function dragBlend(host, blend) {
+  const strip = host.querySelector('[class="cp-alpha"]');
+  strip.rect = { left: 0, top: 0, width: 14, height: 255 };
+  fire(strip, 'mousedown', { clientX: 0, clientY: 255 - blend });
+}
+
+function tintedDraws(canvas) {
+  // A tinted draw goes through an offscreen canvas: drawImage(node, dx, dy) — three arguments
+  // plus the method name. An untinted one passes the source rect too.
+  return drewOn(canvas).filter((c) => c.length === 4).length;
+}
+
+test('DRAGGING a tint rebuilds the Items panel', () => {
   // The complaint this task exists for: graphic_r/g/b/a visibly affected nothing.
   withItemArt(() => {
     const h = openItem(WEARABLE());
     const before = h.get('previews').children[0];
+    // .preview is graphicControl's own canvas, beside the graphic_tile field.
+    const tile = h.get('form').querySelector('[class="preview"]');
+    const tileTintsBefore = tintedDraws(tile);
 
-    const red = h.get('form').querySelector('[name="graphic_r"]');
-    const alpha = h.get('form').querySelector('[name="graphic_a"]');
-    red.value = '255';
-    alpha.value = '255';
-    fire(alpha, 'change');
+    const rgba = h.get('form').querySelector('[class="rgba"]');
+    openPopover(rgba);
+    dragBlend(rgba, 255);
+
+    assert.equal(h.get('form').querySelector('[name="graphic_a"]').value, '255',
+      'the drag wrote the cell');
 
     const [icon, worn] = h.get('previews').children;
     assert.notEqual(icon, before, 'the panel was rebuilt');
-    // A tinted draw goes through an offscreen canvas: drawImage(node, dx, dy).
-    assert.equal(drewOn(icon).filter((c) => c.length === 4).length, 1, 'the tile is tinted');
-    assert.equal(drewOn(worn).filter((c) => c.length === 4).length, 1, 'and so is the helmet');
+    assert.equal(tintedDraws(icon), 1, 'the tile is tinted');
+    assert.equal(tintedDraws(worn), 1, 'and so is the helmet');
+    // The graphic_tile control's own canvas, which redraws through state.formCallbacks rather
+    // than through the panel. Same delegated event, second consumer.
+    assert.ok(tintedDraws(tile) > tileTintsBefore, 'the control canvas followed the tint');
+  });
+});
+
+test('an ARROW KEY on the blend strip rebuilds the Items panel too', () => {
+  // The keyboard path writes the same cells from a `keydown`, which bubbles but is not an edit
+  // event — the delegated listener does not hear it, so it needs the same dispatch the drag does.
+  withItemArt(() => {
+    const h = openItem(WEARABLE({ graphic_r: 255, graphic_a: 100 }));
+    const before = h.get('previews').children[0];
+
+    const rgba = h.get('form').querySelector('[class="rgba"]');
+    openPopover(rgba);
+    fire(rgba.querySelector('[class="cp-alpha"]'), 'keydown', { key: 'ArrowUp' });
+
+    assert.equal(h.get('form').querySelector('[name="graphic_a"]').value, '101');
+    assert.notEqual(h.get('previews').children[0], before, 'the panel was rebuilt');
+    assert.equal(tintedDraws(h.get('previews').children[0]), 1, 'and still tinted');
   });
 });
 
@@ -571,7 +617,7 @@ test('previewKey ignores the cells no preview reads', () => {
   });
 });
 
-test('a composite change redraws the preview through __onChange', () => {
+test('a composite change redraws the preview', () => {
   const h = boot({ NPCs: [NPC(1, 'Rat')] });
   h.get('sheet-picker').value = 'NPCs';
   fire(h.get('sheet-picker'), 'change');
@@ -588,9 +634,36 @@ test('a composite change redraws the preview through __onChange', () => {
   assert.notEqual(after, before, 'the preview was rebuilt');
 });
 
+test('COLOURING an NPC slot updates the character panel', () => {
+  // The other half of the stale-preview bug. The slot row redraws its own 80x112 canvas from
+  // inside onChange, so the row looked right and the 384x448 character panel beside it did not
+  // move — the drag on the blend strip reaches it only through the dispatched `input`.
+  withItemArt(() => {
+    const h = boot({ NPCs: [NPC(1, 'Rat', { equipped_items: '0,*,5,*,0,*,0,*,0,*,0,*' })] });
+    h.get('sheet-picker').value = 'NPCs';
+    fire(h.get('sheet-picker'), 'change');
+    h.settle();
+    fire(h.get('records').children[0], 'click');
+    h.settle();
+
+    const before = h.get('previews').children[0];
+    assert.equal(tintedDraws(before), 0, 'the helm starts untinted');
+
+    const row = h.get('form').querySelectorAll('[class="equip-slot"]')[1];
+    openPopover(row);
+    dragBlend(row, 200);
+
+    assert.match(h.get('form').querySelector('[name="equipped_items"]').value,
+      /^0,\*,5,\d+,\d+,\d+,200,/, 'the drag wrote the Helm slot');
+    const after = h.get('previews').children[0];
+    assert.notEqual(after, before, 'the character panel was rebuilt');
+    assert.equal(tintedDraws(after), 1, 'and the helm is drawn tinted');
+  });
+});
+
 test('typing in body_id updates the character preview live (smoke items 12 and 13)', () => {
-  // body_id, hair_id, face_id and body_state belong to NO composite on NPCs, so __onChange
-  // never reaches them — they are plain text inputs. Without a delegated listener on the form,
+  // body_id, hair_id, face_id and body_state belong to NO composite on NPCs — they are plain
+  // text inputs, with no control-specific wiring. Without a delegated listener on the form,
   // typing 150 here changes nothing until the record is saved and re-opened.
   const h = boot({ NPCs: [NPC(1, 'Rat', { hair_id: 5 })] });
   h.get('sheet-picker').value = 'NPCs';
@@ -671,8 +744,8 @@ test('a field no preview reads does not rebuild the preview', () => {
 });
 
 test('a composite edit redraws exactly once, not twice', () => {
-  // The composite calls __onChange at the target and the same event then bubbles to the
-  // delegated listener. Both ask for a redraw; only one may happen.
+  // A slot edit redraws the row's own canvas directly AND bubbles to the delegated listener.
+  // Both ask for a redraw of the panel; only one may happen.
   const h = boot({ NPCs: [NPC(1, 'Rat')] });
   h.get('sheet-picker').value = 'NPCs';
   fire(h.get('sheet-picker'), 'change');
@@ -692,7 +765,8 @@ test('a composite edit redraws exactly once, not twice', () => {
 });
 
 test('a rejected equip-slot typo does NOT redraw the preview', () => {
-  // Composites deliberately skips __onChange while frozen: the cell genuinely did not change.
+  // The `input` still bubbles — the cell is what did not change, so previewKey is unmoved and
+  // renderPreviews short-circuits. A typo must not rebuild the panel.
   const h = boot({ NPCs: [NPC(1, 'Rat')] });
   h.get('sheet-picker').value = 'NPCs';
   fire(h.get('sheet-picker'), 'change');

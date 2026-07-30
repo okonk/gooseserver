@@ -612,13 +612,18 @@ var App = (function () {
     if (state.stopEffect) { state.stopEffect(); state.stopEffect = null; }
 
 
-    // NO __onChange BROADCAST. Task 8's contract offers it as the preview's redraw signal, but
-    // every composite writes its cell from an `input` or `change` handler and those bubble to
-    // the delegated listener in init() — so setting it would be a second mechanism that could
-    // not be told apart from the first by any test. One mechanism. If a composite ever needs to
-    // drive a previewed cell from a path that does not bubble (idListControl's chip buttons are
-    // the only such path today, and they write quest_ids, which no preview reads), the fix is to
-    // make that path dispatch an event, not to revive this.
+    // ONE REDRAW MECHANISM: the delegated input/change listener in init(). There is no
+    // subscription hook for a composite to register against — composites.js used to offer
+    // `wrapper.__onChange` and nothing here ever set it, so a control that "notified" it was
+    // notifying nobody. That silence cost a release: the colour picker writes graphic_r/g/b/a and
+    // equipped_items from mousedown, mousemove, keydown and click, none of which the browser
+    // turns into a bubbling input/change, and the previews sat stale through every one of them.
+    //
+    // So the rule for a control whose write path does not bubble is to DISPATCH a real bubbling
+    // event from a node inside this container (ColorPicker.control's fire() and
+    // Composites.notify() are the two that do), not to revive a hook. Half 1 of the contract at
+    // the top of composites.js states it; a preview-relevant cell written without one of those
+    // two is a stale panel, and no test of that control alone will see it.
 
     if (state.schema.columns.some(function (c) { return c.name === 'body_id'; })) {
       var canvas = Forms.el('canvas',
@@ -1003,9 +1008,10 @@ var App = (function () {
     // Delegated preview refresh, registered ONCE on the form container — which outlives every
     // record, so registering it per render would stack a handler per record opened.
     //
-    // Delegated because __onChange only ever reaches COMPOSITES: body_id, hair_id, face_id and
-    // body_state belong to no composite on NPCs, so forms.js renders them as plain text inputs
-    // with no listener of their own, and without this, typing 150 into body_id changes nothing
+    // Delegated rather than per-control, because a per-control subscription would only ever reach
+    // COMPOSITES: body_id, hair_id, face_id and body_state belong to no composite on NPCs, so
+    // forms.js renders them as plain text inputs with
+    // no listener of their own, and without this, typing 150 into body_id changes nothing
     // on screen until the record is saved and re-opened. `input` and `change` both bubble;
     // `input` covers typing, `change` covers a <select> and a value committed without one.
     var form = document.getElementById('form');
