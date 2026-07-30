@@ -63,6 +63,11 @@ var App = (function () {
     sheetToken: 0,
     formToken: 0,
     saving: false,
+    // True from renderForm until its form actually lands in the DOM. The bundle decode between
+    // the two is asynchronous, so in that window state.rowNumber already names the NEW record
+    // while the container still shows the OLD one — and a Save would collect the old fields
+    // under the new row number. save() refuses while this is up.
+    formPending: false,
     loading: {},       // bundle name -> callbacks waiting on one in-flight decode
     rows: [],
     rowNumber: 0,
@@ -151,6 +156,12 @@ var App = (function () {
   function loadBundle(name, done) {
     if (state.images[name]) { done(); return; }
     if (typeof GOOSE_SPRITES === 'undefined' || !GOOSE_SPRITES[name]) { done(); return; }
+    // A decode that FAILED is a result too. Retrying it on every record open re-attempted a
+    // multi-megabyte decode each time — and, worse, re-opened the async gap between editRow
+    // moving state.rowNumber and renderForm landing the new form, the one window where what the
+    // user sees and where a save writes can disagree. Recovering from a truly transient decode
+    // failure takes a page reload, which is what the bundleErrors warning amounts to anyway.
+    if (state.bundleErrors.indexOf(name) !== -1) { done(); return; }
 
     state.bundles[name] = GOOSE_SPRITES[name];
 
@@ -316,6 +327,10 @@ var App = (function () {
     // the code and not only of the happy path.
     state.imageCallbacks = [];
     state.formCallbacks = [];
+    // An emptied form is not a pending one: whatever render was in flight is now stale (the
+    // token bump below sees to its callback), and Save against the empty container is refused
+    // by its own guard rather than this one.
+    state.formPending = false;
     // AND THE FORM TOKEN, for the callbacks that are in neither registry. renderForm's bundle
     // continuations are closures in loadBundle's waiter list, so emptying the registries cannot
     // reach them; only a token they no longer match can. Without this a parts decode landing after
@@ -539,6 +554,12 @@ var App = (function () {
     // would write what you see into the row you cannot see.
     var token = ++state.formToken;
 
+    // Between here and the render below, rowNumber/loaded already describe the new record while
+    // the DOM still shows the previous one. save() refuses while this is up; the flag is only
+    // dropped by the render that owns the CURRENT token, by clearForm, or by a newer renderForm
+    // taking it over.
+    state.formPending = true;
+
     // ICONS AND NOTHING ELSE BEFORE THE FORM. Waiting on every bundle this sheet needs put a
     // SECOND multi-megabyte PNG decode (parts is 1.98MB, icons 1.75MB) in front of the first field
     // of the first Items record of a session — on the sheet that is opened most, and usually first.
@@ -555,6 +576,7 @@ var App = (function () {
       var container = document.getElementById('form');
       Forms.render(container, state.schema, values, ctx());
       renderPreviews(container, values);
+      state.formPending = false;
 
       if (!rest.length) return;
       loadBundles(rest, function () {
@@ -796,7 +818,19 @@ var App = (function () {
     // DESIGN and both of them append. There is no second line of defence for those sheets.
     if (state.saving) { status('Still saving — one moment', true); return; }
 
+    // The record is still rendering: rowNumber already names it but the DOM still holds the
+    // previous form, so collecting now would save the old record's fields under the new row.
+    if (state.formPending) { status('Still opening the record — one moment', true); return; }
+
     var container = document.getElementById('form');
+
+    // No record is open — a sheet was loaded but nothing clicked. Collecting the empty
+    // container fails every required column and reports "N problem(s)" with no form on screen
+    // to show them under, which reads as a broken editor rather than a missing step.
+    if (!container.children.length) {
+      status('Open a record first — click one in the list, or New record.', true);
+      return;
+    }
 
     if (frozen(container)) {
       status('An equipment slot holds an invalid graphic id — fix it before saving. Edits to ' +

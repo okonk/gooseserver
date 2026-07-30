@@ -160,7 +160,7 @@ function boot(sheets, options) {
     refErrors: [], retrying: false,
     idSets: {}, pickerData: {}, bundles: {}, images: {}, imageCallbacks: [], formCallbacks: [],
     loaded: {}, stopEffect: null, previewKey: null, checking: false,
-    sheetToken: 0, formToken: 0, saving: false, loading: {},
+    sheetToken: 0, formToken: 0, saving: false, formPending: false, loading: {},
   });
 
   App.init();
@@ -381,6 +381,24 @@ test('a bundle that fails to decode is reported and does not block the sheet', (
   // own status line would otherwise bury the only explanation for a page full of blank previews.
   assert.match(h.status(), /1 records — Failed to decode the icons sprite bundle/);
   assert.equal(h.get('status').className, 'error');
+});
+
+test('a failed bundle decode is cached — record opens render at once, with no re-decode', () => {
+  const h = boot({ Items: [ITEM(1, 'Gold'), ITEM(2, 'Sword')] }, { hold: true });
+  assert.equal(h.img.fail(), 1);       // the boot decode of icons fails
+  h.settle();
+
+  // The failure is a RESULT: the form renders synchronously off it, which both spares a
+  // multi-megabyte decode per record open and closes the async window in which rowNumber
+  // already names the new record while the DOM still shows the old one.
+  fire(h.get('records').children[0], 'click');
+  assert.ok(h.get('form').children.length > 0, 'the form rendered without waiting');
+  assert.equal(h.img.pending.length, 1, 'only the parts bundle is decoding');
+  assert.match(h.img.pending[0].src, /PARTS/);
+
+  fire(h.get('records').children[1], 'click');
+  assert.equal(h.get('form').querySelector('[name="item_name"]').value, 'Sword');
+  assert.equal(h.img.pending.length, 1, 'and no second icons decode was ever queued');
 });
 
 // --- previews -------------------------------------------------------------------------------
@@ -1273,6 +1291,42 @@ test('the row an append landed on becomes the open record, so a second save edit
     'and diffs against the record as it was saved');
 });
 
+test('a save during a record\'s render window is refused, not written to the wrong row', () => {
+  // Between clicking a record and its form landing, rowNumber names the NEW record while the
+  // DOM still holds the OLD one — a save in that window would collect the old fields under the
+  // new row number, and on a no-pk sheet nothing downstream could catch it.
+  const h = boot({ Items: [ITEM(1, 'Gold'), ITEM(2, 'Sword')] });
+  fire(h.get('records').children[0], 'click');
+  h.settle();
+
+  // Make the next render wait on a decode again, as the first open on a slow machine does.
+  delete App.__state.images.icons;
+  fire(h.get('records').children[1], 'click');
+
+  assert.equal(App.__state.rowNumber, 3, 'the bookkeeping has moved on');
+  assert.equal(h.get('form').querySelector('[name="item_name"]').value, 'Gold',
+    'but the old form is still on screen');
+
+  fire(h.get('save'), 'click');
+  assert.equal(h.writes.length, 0);
+  assert.match(h.status(), /Still opening the record/);
+
+  h.settle();                          // the decode lands and the new form renders
+  assert.equal(h.get('form').querySelector('[name="item_name"]').value, 'Sword');
+  fire(h.get('save'), 'click');
+  h.settle();
+  assert.equal(h.writes.length, 1);
+  assert.equal(h.writes[0].rowNumber, 3, 'the save that went through matches what was shown');
+});
+
+test('save with no record open says so instead of counting invisible problems', () => {
+  const h = boot({ Items: [ITEM(1, 'Gold')] });
+  fire(h.get('save'), 'click');
+  h.settle();
+  assert.equal(h.writes.length, 0);
+  assert.match(h.status(), /Open a record first/);
+});
+
 test('a server-side write failure is reported, not swallowed', () => {
   const h = boot({ Items: [ITEM(1, 'Gold')] }, { writeFails: true });
   fire(h.get('records').children[0], 'click');
@@ -1570,7 +1624,7 @@ test('switching sheets empties the form, so Save cannot append a phantom row', (
   fire(h.get('save'), 'click');
   h.settle();
   assert.equal(h.writes.length, 0);
-  assert.match(h.status(), /problem\(s\)/);
+  assert.match(h.status(), /Open a record first/);
 });
 
 test('two Save clicks in flight issue ONE write', () => {
@@ -1641,19 +1695,19 @@ test('a stale ICONS decode cannot render the previous record over this one', () 
   // on click, so the count is zero either way. Preview.character carries the body_id it was asked
   // to draw, so a superseded continuation is visible as Rat's 7 turning up in Bat's panel.
   //
-  // THE FAILED FIRST DECODE is what makes the icons half of that reachable at all. loadBundle
-  // caches on success, so after a normal boot no second icons decode exists to race; a bundle
-  // that failed to decode is retried by every renderForm, which is the one state where two
-  // records can be opened with icons in flight.
+  // THE DROPPED CACHE is what makes the icons half of that reachable at all. loadBundle caches
+  // success AND failure, so after boot no second icons decode ever exists to race — the window
+  // exists only while the FIRST decode is in flight, which is before any record can be clicked.
+  // Dropping the cached image below recreates exactly that first-open-on-a-slow-machine state
+  // with records already on screen.
   const h = boot({
     NPCs: [NPC(1, 'Rat', { body_id: 7 }), NPC(2, 'Bat', { body_id: 9 })],
-  }, { hold: true });
-  h.img.fail();          // the boot decode of icons; init still opens the first sheet
-  h.run.flush();
+  });
   h.get('sheet-picker').value = 'NPCs';
   fire(h.get('sheet-picker'), 'change');
-  h.run.flush();
+  h.settle();
   assert.equal(h.get('records').children.length, 2);
+  delete App.__state.images.icons;
 
   const realCharacter = Preview.character;
   const drawn = [];
