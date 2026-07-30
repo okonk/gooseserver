@@ -1010,9 +1010,9 @@ var App = (function () {
     //
     // Delegated rather than per-control, because a per-control subscription would only ever reach
     // COMPOSITES: body_id, hair_id, face_id and body_state belong to no composite on NPCs, so
-    // forms.js renders them as plain text inputs with
-    // no listener of their own, and without this, typing 150 into body_id changes nothing
-    // on screen until the record is saved and re-opened. `input` and `change` both bubble;
+    // forms.js renders them as plain text inputs with no listener of their own, and without this,
+    // typing 150 into body_id changes nothing on screen until the record is saved and re-opened.
+    // `input` and `change` both bubble;
     // `input` covers typing, `change` covers a <select> and a value committed without one.
     var form = document.getElementById('form');
     function onEdit() { if (state.schema) refreshPreviews(form); }

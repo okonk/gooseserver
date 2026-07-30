@@ -328,7 +328,7 @@ test('a tint change bubbles out of the control, once per movement', () => {
   assert.deepEqual(seen, { input: 2, change: 0 });
 });
 
-test('rgba survives no wrapper hook', () => {
+test('rgba survives a control that is not mounted', () => {
   const node = Composites.control({
     comp: RGBA, byName: byName(RGBA.columns), values: {}, ctx: ctx(),
   });
@@ -553,6 +553,31 @@ test('idList adds through the button too', () => {
   node.querySelector('[class="add"]').value = '10';
   fire(node.querySelector('[class="add-button"]'), 'click');
   assert.equal(named(node, 'quest_ids').value, '10');
+});
+
+test('idList reports an add exactly once, not twice', () => {
+  // Enter or blur on the add field fires a native `change` that bubbles, and sync() dispatches
+  // one from the wrapper. Two would run Forms.collect and every formCallback twice per add.
+  const node = Composites.control({
+    comp: IDLIST, byName: byName(IDLIST.columns), values: {}, ctx: ctx(),
+  });
+  const seen = mounted(node);
+  const add = node.querySelector('[class="add"]');
+  add.value = '12';
+  fire(add, 'change');
+  assert.deepEqual(seen, { input: 0, change: 1 });
+});
+
+test('idList reports a button add and a chip removal exactly once each', () => {
+  const node = Composites.control({
+    comp: IDLIST, byName: byName(IDLIST.columns), values: {}, ctx: ctx(),
+  });
+  const seen = mounted(node);
+  node.querySelector('[class="add"]').value = '10';
+  fire(node.querySelector('[class="add-button"]'), 'click');
+  assert.deepEqual(seen, { input: 0, change: 1 });
+  fire(chips(node)[0].querySelector('[class="remove"]'), 'click');
+  assert.deepEqual(seen, { input: 0, change: 2 });
 });
 
 test('idList dedupes by NUMERIC id, not by text', () => {

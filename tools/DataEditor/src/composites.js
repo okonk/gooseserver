@@ -336,7 +336,15 @@ var Composites = (function () {
     // id and then clicks Save would otherwise lose it to a race between blur and the click.
     var button = Forms.el('button', { type: 'button', class: 'add-button' }, 'add');
     button.addEventListener('click', addId);
-    add.addEventListener('change', addId);
+    // The add field's OWN native `change` is stopped here, exactly as the colour picker stops its
+    // hex field's `input`: sync() already dispatches a `change` from the wrapper, so letting the
+    // native one through as well would deliver two to the form container and run Forms.collect
+    // and every formCallback twice per add. The field carries no `name`, so nothing downstream
+    // wants the native event.
+    add.addEventListener('change', function (e) {
+      e.stopPropagation();
+      addId();
+    });
 
     renderChips();
     wrap.appendChild(chips);
