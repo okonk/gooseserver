@@ -342,15 +342,13 @@ var App = (function () {
     state.idSets.__self = new Set();
   }
 
-  /// Loads a sheet and rebuilds the record list. `selectRow` is a spreadsheet row number to
-  /// re-open once the list is up — used after a save, so the record the user was editing is
-  /// still in front of them instead of the form vanishing.
-  function openSheet(sheetName, selectRow, note) {
+  /// Loads a sheet and rebuilds the record list.
+  function openSheet(sheetName) {
     status('Loading ' + sheetName + '…');
-    // A sheet switch usually ends without a form — openSheet stops at renderList unless
-    // selectRow is given — so renderPreviews, which is the other place this happens, is never
-    // reached. Leaving it to renderPreviews alone would run the previous sheet's animation
-    // forever, with its canvas still on screen above the new sheet's empty form.
+    // A sheet switch ends without a form — openSheet stops at renderList — so renderPreviews,
+    // which is the other place this happens, is never reached. Leaving it to renderPreviews
+    // alone would run the previous sheet's animation forever, with its canvas still on screen
+    // above the new sheet's empty form.
     clearPreviews();
     clearForm();
     clearRecords();
@@ -376,15 +374,8 @@ var App = (function () {
           // then draw A's records under B's schema.
           if (!current()) return;
           renderList();
-          // `note` keeps the save confirmation on screen through the reload that follows it —
-          // otherwise the record count overwrites it and the save looks like it did nothing.
           var warning = warnings();
-          status((note || (state.rows.length + ' records')) +
-                 (warning ? ' — ' + warning : ''), !!warning);
-          if (selectRow) {
-            var index = num(selectRow) - 2;
-            if (index >= 0 && index < state.rows.length) editRow(index);
-          }
+          status(state.rows.length + ' records' + (warning ? ' — ' + warning : ''), !!warning);
         });
       })
       .readSheet(sheetName);
@@ -879,10 +870,11 @@ var App = (function () {
     state.saving = true;
     // The write is bound to the sheet it was composed against, not to whatever is open when it
     // answers. Without this, saving Items and then switching to Maps ends with the Maps cache
-    // untouched, the Items cache intact, the user's own in-flight Maps load discarded, and an
-    // arbitrary Maps record opened under a "Saved." message.
+    // untouched and the Items cache intact. savedFormToken is the same binding one level down:
+    // whether the record the save came FROM is still the record on screen.
     var savedSheet = state.sheetName;
     var savedToken = state.sheetToken;
+    var savedFormToken = state.formToken;
     google.script.run
       .withFailureHandler(function (e) {
         state.saving = false;
@@ -898,12 +890,45 @@ var App = (function () {
         delete state.pickerData[savedSheet];
         delete state.idSets[savedSheet];
 
-        // But only re-open when nothing has superseded it. Re-opening unconditionally would
-        // cancel the load the user asked for and select a row number that means nothing in the
-        // sheet now on screen.
+        // AND RE-REQUESTED, not just dropped. The sheet on screen may REFERENCE the saved one —
+        // the user moved to NPC Drops while an Items write was in flight, or is sitting on
+        // Spell Effects, which references itself. Its pickers read pickerData at use time and
+        // its saves are gated on idSets, so a dropped entry nothing re-requests is a picker
+        // stuck on "loading…" and a save refused as "failed to load" until
+        // retryReferencedSheets runs — which it only does AFTER a refused save.
+        // loadReferencedSheets asks for exactly the lists the open sheet is missing, which for
+        // most sheets is none.
+        if (state.schema) loadReferencedSheets(function () {});
+
         if (savedToken !== state.sheetToken) return;
-        openSheet(savedSheet, written && written.row,
-                  'Saved. Run /updatesql then /reloadsql in game to publish.');
+
+        // The write is patched into the LOCAL copy of the sheet rather than reloading it:
+        // openSheet runs clearForm(), and the user may have opened another record and typed
+        // into it while the write was in flight — a reload here silently threw that away and
+        // snapped the form back to the saved row. The patch keeps the list labels, the id set
+        // and the duplicate check current; other editors' rows refresh on the next sheet open,
+        // as they always did.
+        var row = num(written && written.row);
+        var index = row - 2;
+        if (index >= 0 && index <= state.rows.length) {
+          state.rows[index] = state.schema.columns.map(function (c) {
+            return str(values[c.name]);
+          });
+          collectIds();
+          renderList();
+        }
+
+        var warning = warnings();
+        status('Saved. Run /updatesql then /reloadsql in game to publish.' +
+               (warning ? ' — ' + warning : ''), !!warning);
+
+        // The record's own bookkeeping moves only while it is still the one on screen; after a
+        // record switch, rowNumber and loaded describe the NEW form and must be left alone.
+        // For an append this is what turns row 0 into the row the server chose, so a second
+        // Save edits the record instead of appending a duplicate.
+        if (savedFormToken !== state.formToken) return;
+        if (row >= 2) state.rowNumber = row;
+        state.loaded = values;
       })
       .writeRow(savedSheet, state.rowNumber, cells, idIndex,
                 { loaded: loadedCells, textColumns: textColumns });

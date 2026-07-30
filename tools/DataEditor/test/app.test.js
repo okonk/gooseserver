@@ -1192,15 +1192,85 @@ test('a duplicate id is refused, and a row keeping its own id is not', () => {
                /already used/);
 });
 
-test('after a save the sheet reloads and the same record is still open', () => {
+test('a save keeps the record open WITHOUT reloading the sheet', () => {
+  // The reload used to clearForm() and re-render — which also discarded anything typed after
+  // Save was clicked. The local patch keeps the form exactly as the user left it and still
+  // refreshes the list label, the id set and state.loaded.
   const h = boot({ Items: [ITEM(1, 'Gold'), ITEM(2, 'Sword')] });
   fire(h.get('records').children[1], 'click');
   h.settle();
+  const reads = serverCalls(h.run, 'readSheet').length;
+
+  const name = h.get('form').querySelector('[name="item_name"]');
+  name.value = 'Steel Sword';
+  fire(name, 'input');
   fire(h.get('save'), 'click');
   h.settle();
 
   assert.equal(App.__state.rowNumber, 3);
-  assert.equal(h.get('form').querySelector('[name="item_name"]').value, 'Sword');
+  assert.equal(h.get('form').querySelector('[name="item_name"]').value, 'Steel Sword');
+  assert.equal(serverCalls(h.run, 'readSheet').length, reads, 'no reload round-trip');
+  assert.equal(h.get('records').children[1].textContent, '2 — Steel Sword',
+    'the list label reflects the save');
+  assert.equal(App.__state.loaded.item_name, 'Steel Sword',
+    'loaded moves with the sheet, so the next save diffs against what is now stored');
+  assert.match(h.status(), /Saved\./);
+});
+
+test('a save landing after the user opened ANOTHER record leaves that record alone', () => {
+  // Batching edits: save record A, click record B, start typing. The reply used to force-reopen
+  // A, silently discarding everything typed into B.
+  const h = boot({ Items: [ITEM(1, 'Gold'), ITEM(2, 'Sword')] }, { hold: true });
+  h.settle();
+
+  fire(h.get('records').children[0], 'click');
+  h.settle();
+  const gold = h.get('form').querySelector('[name="item_name"]');
+  gold.value = 'Golden Coin';
+  fire(gold, 'input');
+  fire(h.get('save'), 'click');            // the write is now in flight
+
+  fire(h.get('records').children[1], 'click');  // the user moves on within the same sheet
+  const sword = h.get('form').querySelector('[name="item_name"]');
+  sword.value = 'Sword of Typing';
+  fire(sword, 'input');
+
+  h.settle();                              // the save answers
+
+  assert.equal(App.__state.rowNumber, 3, 'still on the record the user opened');
+  assert.equal(h.get('form').querySelector('[name="item_name"]').value, 'Sword of Typing',
+    'nothing typed into it was thrown away');
+  assert.equal(App.__state.loaded.item_name, 'Sword', 'loaded still describes the OPEN record');
+  assert.equal(h.get('records').children[0].textContent, '1 — Golden Coin',
+    'while the saved row still reached the list');
+});
+
+test('the row an append landed on becomes the open record, so a second save edits it', () => {
+  const h = boot({ Items: [ITEM(1, 'Gold')] });
+  fire(h.get('new-record'), 'click');
+  h.settle();
+  [['item_name', 'Dagger'], ['item_usetype', 'NoUse'], ['graphic_tile', '1']].forEach((pair) => {
+    const field = h.get('form').querySelector('[name="' + pair[0] + '"]');
+    field.value = pair[1];
+    fire(field, 'input');
+  });
+  fire(h.get('save'), 'click');
+  h.settle();
+
+  assert.equal(h.writes[0].rowNumber, 0, 'the first save appends');
+  assert.equal(App.__state.rowNumber, 3, 'and the form is now bound to the row it landed on');
+  assert.equal(h.get('records').children.length, 2, 'the list gained the new record');
+
+  const name = h.get('form').querySelector('[name="item_name"]');
+  name.value = 'Dirk';
+  fire(name, 'input');
+  fire(h.get('save'), 'click');
+  h.settle();
+
+  assert.equal(h.writes.length, 2);
+  assert.equal(h.writes[1].rowNumber, 3, 'the second save edits, not appends a duplicate');
+  assert.deepEqual(h.writes[1].options.loaded, h.writes[0].cells.map((c) => (c === null ? '' : c)),
+    'and diffs against the record as it was saved');
 });
 
 test('a server-side write failure is reported, not swallowed', () => {
@@ -2069,6 +2139,37 @@ test('a save that answers after a sheet switch still invalidates the RIGHT cache
 
   assert.equal(App.__state.pickerData.Items, undefined, 'the sheet that CHANGED was dropped');
   assert.equal(App.__state.pickerData.Maps, undefined, 'and Maps was never cached to begin with');
+});
+
+test('a save landing after a switch to a REFERENCING sheet refills the list it dropped', () => {
+  // The order that used to strand the pickers: NPC Drops loads while the Items write is in
+  // flight, sees Items cached and skips it; then the save's invalidation deletes the entry with
+  // nothing left to re-request it. Every item picker on the open sheet read "loading Items…"
+  // forever, and the first save was refused with "that list failed to load".
+  const h = boot({
+    NPCs: [NPC(1, 'Rat')], Items: [ITEM(1, 'Gold')], 'NPC Drops': [DROP(1, 1)],
+  }, { hold: true });
+  h.settle();
+
+  // Cache Items by opening NPC Drops once, then go edit Items itself.
+  h.get('sheet-picker').value = 'NPC Drops';
+  fire(h.get('sheet-picker'), 'change');
+  h.settle();
+  h.get('sheet-picker').value = 'Items';
+  fire(h.get('sheet-picker'), 'change');
+  h.settle();
+  fire(h.get('records').children[0], 'click');
+  h.settle();
+
+  fire(h.get('save'), 'click');            // writeRow queued
+  h.get('sheet-picker').value = 'NPC Drops';
+  fire(h.get('sheet-picker'), 'change');   // readSheet queued behind it
+  h.run.queue.reverse();                   // NPC Drops answers first and skips cached Items
+  h.settle();
+
+  assert.deepEqual(App.__state.pickerData.Items, [{ id: '1', name: 'Gold' }],
+    'the invalidated list was re-requested for the sheet on screen');
+  assert.ok(App.__state.idSets.Items.has(1), 'so FK validation has its id set back');
 });
 
 // --- the paths the sweep found unasserted ---------------------------------------------------
