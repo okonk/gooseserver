@@ -42,7 +42,13 @@ namespace CsvToSql
             Col.Int("res_earth", SqlType.SmallInt, def: 0),
 
             // Appearance
-            Col.Int("body_state", SqlType.SmallInt, def: 1),
+            // 3 is the UNARMED resting pose, and it is the default a designer wants: an NPC with no
+            // weapon drawn is the common case, and body_state's other values only ever pick a weapon
+            // clip (AnimationNames.AttackVariant). Items already declares 3; these two are the only
+            // sheets that carry the column, and them disagreeing about what a blank cell means was
+            // the surprise. NOTE THAT THIS MOVES THE DDL DEFAULT: an npc_templates row with a blank
+            // body_state cell imports as unarmed from here on, where it used to import as 1.
+            Col.Int("body_state", SqlType.SmallInt, def: 3),
             Col.Int("body_id", SqlType.SmallInt, def: 1),
             Col.Int("body_r", SqlType.SmallInt, def: 0),
             Col.Int("body_g", SqlType.SmallInt, def: 0),

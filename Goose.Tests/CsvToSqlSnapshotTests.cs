@@ -1,71 +1,120 @@
 using System.Data.SQLite;
+using System.Runtime.CompilerServices;
 using System.Text;
 using CsvToSql.Core;
 
 namespace Goose.Tests;
 
-/// <summary>Semantic gate on the generator: executes the recorded baseline script and the
-/// freshly generated script into separate SQLite databases and compares schema and every row.
+/// <summary>Semantic snapshot of the generator: executes the freshly generated script into a
+/// SQLite database and compares what SQLite ends up holding — every table, index, column
+/// definition and row — against a checked-in rendering of the same thing.
 ///
-/// Comparison is by column NAME, never by position, because two tables legitimately declare
-/// their columns in a different order than the pre-descriptor schema did (quests'
-/// pass_text/fail_text, npc_templates' armor_pierce). Column ORDER is therefore the one thing
-/// this test deliberately tolerates; everything else — a missing/extra table or index, a
-/// missing/extra column, a changed type, default, or nullability, a missing/extra row, or any
-/// changed cell value that survives SQLite's type affinity — still fails it.
+/// THIS REPLACES CsvToSqlEquivalenceTests, which compared the generator against a script recorded
+/// before the descriptor rewrite. That was a migration gate: it proved the rewrite changed nothing,
+/// and by construction it could only ever say "you have changed the schema", never "the change is
+/// the one you meant". The first intentional divergence (npc_templates.body_state defaulting to the
+/// unarmed 3) was therefore a wall to knock down rather than a review, which is exactly what its own
+/// doc said to expect. The successor it named is this file.
 ///
-/// THE FIXTURE IS FROZEN. `Fixtures/baseline.sql` was recorded at commit 06e2648, before any
-/// descriptor work. Never regenerate it from this branch's generator — that would make this
-/// test compare the generator against itself and silently pass. If it is ever lost, restore it
-/// with `git show 06e2648:Goose.Tests/Fixtures/baseline.sql`.
+/// WHAT IT STILL CATCHES is everything the gate did, because the comparison machinery below is the
+/// same: a missing or extra table, index, column or row, a changed type, default or nullability, and
+/// any changed cell value that survives SQLite's type affinity. Column ORDER is deliberately
+/// tolerated (definitions are sorted, rows are selected by sorted column name) — two tables
+/// legitimately declare their columns in a different order than the hand-written schema did, and
+/// order is not something the importer or the server can observe.
 ///
-/// THIS IS A MIGRATION GATE, NOT A PERMANENT TEST. It proves the descriptor rewrite changed
-/// nothing. Delete it the first time the schema *intentionally* diverges from the pre-descriptor
-/// schema — do not add exemptions to keep it passing. The natural successor is a regenerable
-/// checked-in snapshot of ConvertWorkbook's output, so an intentional schema change shows up as
-/// a reviewable diff rather than as a wall to knock down.</summary>
-public class CsvToSqlEquivalenceTests
+/// WHAT CHANGES is who the authority is. The snapshot is REGENERABLE, so an intentional schema
+/// change is a reviewable diff in this repository rather than a test to delete:
+///
+///     GOOSE_UPDATE_SNAPSHOT=1 dotnet test Goose.Tests --filter FullyQualifiedName~CsvToSqlSnapshot
+///
+/// then read the diff and commit it if it is what you meant. Regenerating without reading the diff
+/// is the one way to make this test worthless, and no flag can stop that — the review is the test.
+///
+/// THE INPUT IS FIXED: Fixtures/aspereta-data.xlsx, a real workbook. The snapshot is therefore a
+/// statement about the generator, not about today's game data.</summary>
+public class CsvToSqlSnapshotTests
 {
+    private const string SnapshotFile = "generated.snapshot";
+
     private static string FixtureDir => Path.Combine(AppContext.BaseDirectory, "Fixtures");
 
+    /// <summary>The fixture directory in the SOURCE tree, which is where a regenerated snapshot has
+    /// to land: FixtureDir above is the copy under bin/, and rewriting that one would "pass" until
+    /// the next build overwrote it from source. CallerFilePath is resolved by the compiler, so this
+    /// needs no assumption about how deep bin/Debug/net10.0 happens to be.</summary>
+    private static string SourceFixtureDir([CallerFilePath] string here = "") =>
+        Path.Combine(Path.GetDirectoryName(here)!, "Fixtures");
+
     [Fact]
-    public void Generated_script_produces_identical_database_to_baseline()
+    public void Generated_script_matches_the_recorded_snapshot()
     {
-        var baseline = File.ReadAllText(Path.Combine(FixtureDir, "baseline.sql"));
-
         using var fs = File.OpenRead(Path.Combine(FixtureDir, "aspereta-data.xlsx"));
-        var generated = CsvToSqlConverter.ConvertWorkbook(fs);
+        var actual = Render(Snapshot(CsvToSqlConverter.ConvertWorkbook(fs)));
 
-        var expected = Snapshot(baseline);
-        var actual = Snapshot(generated);
-
-        Assert.Equal(expected.Keys.OrderBy(k => k, StringComparer.Ordinal),
-                     actual.Keys.OrderBy(k => k, StringComparer.Ordinal));
-
-        foreach (var name in expected.Keys.OrderBy(k => k, StringComparer.Ordinal))
+        var sourcePath = Path.Combine(SourceFixtureDir(), SnapshotFile);
+        if (Environment.GetEnvironmentVariable("GOOSE_UPDATE_SNAPSHOT") == "1")
         {
-            var e = expected[name];
-            var a = actual[name];
-
-            for (int i = 0; i < Math.Min(e.Count, a.Count); i++)
-                if (e[i] != a[i])
-                    Assert.Fail(
-                        $"'{name}' line {i + 1} differs:\n  expected: {e[i]}\n  actual:   {a[i]}");
-
-            if (e.Count != a.Count)
-                Assert.Fail($"'{name}': expected {e.Count} snapshot lines, got {a.Count}. " +
-                            $"{FirstDifference(e, a)}");
+            File.WriteAllText(sourcePath, actual);
+            // Not a silent pass: a run that rewrote the fixture has verified nothing, and saying so
+            // is what keeps GOOSE_UPDATE_SNAPSHOT out of anyone's habitual test command.
+            Assert.Fail($"Rewrote {sourcePath}. Review the diff, commit it if it is what you meant, " +
+                        "then run the tests again without GOOSE_UPDATE_SNAPSHOT.");
         }
+
+        var path = Path.Combine(FixtureDir, SnapshotFile);
+        Assert.True(File.Exists(path),
+            $"No snapshot at {path}. Record one with GOOSE_UPDATE_SNAPSHOT=1 (see this class's doc).");
+
+        var expected = File.ReadAllText(path);
+        if (expected == actual) return;
+
+        // Reported as ONE line of difference rather than as two megabytes of string inequality:
+        // xUnit's own diff on a million-character string is unreadable, and the first divergence is
+        // what a reader needs — the schema is rendered before any row of any table, so a DDL change
+        // always surfaces ahead of the rows it moved.
+        Assert.Fail(Describe(Lines(expected), Lines(actual), sourcePath));
     }
 
-    /// <summary>Only reached once every common line has already matched, so the difference is
-    /// always the first line past the shorter snapshot.</summary>
-    private static string FirstDifference(List<string> e, List<string> a)
+    private static string[] Lines(string text) =>
+        text.Replace("\r\n", "\n").Split('\n');
+
+    private static string Describe(string[] expected, string[] actual, string sourcePath)
     {
-        var shared = Math.Min(e.Count, a.Count);
-        var longer = e.Count > a.Count ? e : a;
-        var side = e.Count > a.Count ? "only in expected" : "only in actual";
-        return $"line {shared + 1} {side}: '{longer[shared]}'";
+        var shared = Math.Min(expected.Length, actual.Length);
+        for (int i = 0; i < shared; i++)
+        {
+            if (expected[i] == actual[i]) continue;
+            return $"The generated schema no longer matches {SnapshotFile}.\n" +
+                   $"  line {i + 1} expected: {expected[i]}\n" +
+                   $"  line {i + 1} actual:   {actual[i]}\n" +
+                   $"({expected.Length} snapshot lines, {actual.Length} generated.)\n" +
+                   Regenerate(sourcePath);
+        }
+
+        var longer = expected.Length > actual.Length ? expected : actual;
+        var side = expected.Length > actual.Length ? "only in the snapshot" : "only in the generated";
+        return $"The generated schema no longer matches {SnapshotFile}.\n" +
+               $"  line {shared + 1} {side}: {longer[shared]}\n" +
+               $"({expected.Length} snapshot lines, {actual.Length} generated.)\n" +
+               Regenerate(sourcePath);
+    }
+
+    private static string Regenerate(string sourcePath) =>
+        $"If the change is intentional, rewrite {sourcePath} with GOOSE_UPDATE_SNAPSHOT=1 and " +
+        "review the diff.";
+
+    /// <summary>One deterministic text rendering of the whole snapshot: objects in name order, each
+    /// one's own lines in the order Snapshot built them. Text rather than a structure so the
+    /// checked-in artefact is something a human reviews in a diff, which is the whole point of the
+    /// successor.</summary>
+    private static string Render(Dictionary<string, List<string>> snapshot)
+    {
+        var sb = new StringBuilder();
+        foreach (var name in snapshot.Keys.OrderBy(k => k, StringComparer.Ordinal))
+            foreach (var line in snapshot[name])
+                sb.Append(line).Append('\n');
+        return sb.ToString();
     }
 
     /// <summary>Executes a script into a temp database and returns object name -> its schema
@@ -187,9 +236,9 @@ public class CsvToSqlEquivalenceTests
         return defs;
     }
 
-    /// <summary>Removes /* */ and -- comments, which the old hand-written schema carried and
-    /// the generator does not. They are annotations, not semantics — nothing this test is
-    /// meant to catch can hide in one.</summary>
+    /// <summary>Removes /* */ and -- comments. The generator emits none today, but the splitter
+    /// above is what reads a CREATE TABLE, and a comment introduced into one must not be able to
+    /// hide a column definition from it.</summary>
     private static string StripComments(string body)
     {
         var sb = new StringBuilder();
