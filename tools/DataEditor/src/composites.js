@@ -366,11 +366,12 @@ var Composites = (function () {
   // EquipSlots: six labelled rows over the equipped_items token stream — a graphic field, a
   // colour picker for the slot's tint, and a preview of the two together.
   //
-  // `opts` is the same options bag Pickers' controls take — { gallery } today. Threaded whole
-  // rather than as a bare `gallery` positional so this seam has the shape every other gallery seam
-  // in the round has, and so a second option costs no signature.
+  // `opts` is the same options bag Pickers' controls take — { gallery, byName } today. Threaded
+  // whole rather than as a bare `gallery` positional so this seam has the shape every other gallery
+  // seam in the round has, and so a second option costs no signature.
   function equipSlotsControl(comp, values, ctx, opts) {
     var column = comp.columns[0];
+    var byName = (opts && opts.byName) || Object.create(null);
     var wrap = Forms.el('div', { class: 'equip' });
     var raw = str(values[column]);
     var slots = Equipped.parse(raw);
@@ -385,20 +386,24 @@ var Composites = (function () {
     hidden.value = raw.trim() === '' ? Equipped.format(slots) : raw;
 
     // bodyState only distinguishes armed from unarmed in a resting pose (Sprites.part's note).
-    // 3 is unarmed; Items defaults to 3 and NPCs to 1. Read once, at build time: the control
-    // has no handle on the body_state field, so a body_state edited after the form is built
-    // leaves these six clips stale until the form is rebuilt. `ctx.onFormChange(fn)` is the
-    // cross-field notification that would fix it — fn(values) fires on every edit, so recomputing
-    // `equipped` from values.body_state and redrawing all six is where this would hook in.
-    // Deliberately not wired here: nothing in the task that added onFormChange asked for it.
+    // 3 is unarmed; Items defaults to 3 and NPCs to 1.
     //
-    // A BLANK cell means "use the SQL default", which forms.js is scrupulous about and this is
-    // not: num('') is 0, not the descriptor's 1. The answer comes out right for the only sheet
-    // that has this composite — 0 !== 3, same as 1 !== 3 — but by luck, not by rule. Fixing it
-    // properly means reading the column descriptor, which this function is not given; it takes
-    // the values map alone. Left as-is deliberately, and flagged so a second sheet with an
-    // unarmed default does not inherit the luck.
-    var equipped = num(values.body_state) !== 3;
+    // A BLANK cell means "use the SQL default", the way forms.js reads one — NOT 0. Reading it as
+    // 0 gave the right answer on the only sheet that has this composite (0 !== 3, same as 1 !== 3)
+    // but by luck rather than by rule, and a second sheet defaulting to an UNARMED 3 would have
+    // inherited the luck and lost. The descriptor arrives through opts.byName for this.
+    function armed(from) {
+      var text = str(from && from.body_state).trim();
+      var descriptor = byName.body_state;
+      return num(text !== '' ? text : (descriptor ? descriptor.default : '')) !== 3;
+    }
+
+    // NOT read once at build time. body_state lives outside this composite, so nothing in these
+    // six rows can see it change, and a character switched from armed to unarmed left every slot
+    // showing the pose it was built with. ctx.onFormChange is the cross-field notification, and
+    // the six redraws below are what it drives.
+    var equipped = armed(values);
+    var redraws = [];
 
     var bad = Object.create(null);
     wrap.__frozen = false;
@@ -561,6 +566,7 @@ var Composites = (function () {
       });
 
       redraw();
+      redraws.push(redraw);
       if (ctx && typeof ctx.onImagesReady === 'function') ctx.onImagesReady(redraw);
 
       row.appendChild(input);
@@ -572,6 +578,19 @@ var Composites = (function () {
       row.appendChild(status);
       wrap.appendChild(row);
     });
+
+    // The pose, kept current. GATED ON A CHANGE OF POSE, not run per notification: onFormChange
+    // fires on every edit anywhere in the form, and six part lookups plus six canvas redraws for
+    // a keystroke in an unrelated field is work nobody can see. body_state resolves to one of two
+    // poses, so the gate holds for every edit but the one that actually flips it.
+    if (ctx && typeof ctx.onFormChange === 'function') {
+      ctx.onFormChange(function (current) {
+        var next = armed(current);
+        if (next === equipped) return;
+        equipped = next;
+        redraws.forEach(function (fn) { fn(); });
+      });
+    }
 
     wrap.appendChild(hidden);
     return wrap;
@@ -634,7 +653,12 @@ var Composites = (function () {
       case 'Rgba': node = rgbaControl(comp, values); break;
       case 'Bitmask': node = bitmaskControl(comp, values, ctx); break;
       case 'IdList': node = idListControl(comp, values, ctx); break;
-      case 'EquipSlots': node = equipSlotsControl(comp, values, ctx, { gallery: opts.gallery }); break;
+      case 'EquipSlots':
+        // byName travels for body_state's descriptor: a blank cell means the SQL default, and the
+        // pose the six slot previews draw depends on knowing which default that is.
+        node = equipSlotsControl(comp, values, ctx,
+                                 { gallery: opts.gallery, byName: byName });
+        break;
       default: node = unsupportedControl(comp, byName, values); break;
     }
     return addErrorSlots(node, comp, byName);

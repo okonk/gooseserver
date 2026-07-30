@@ -216,12 +216,25 @@ popover, which no native control offers.
 **Public shape:**
 
 ```js
-ColorPicker.control({ r, g, b, a, withAlpha, onChange })  // -> { node, set(rgba) }
+ColorPicker.control({ r, g, b, a, withAlpha, onChange })  // -> { node }
 ```
 
-`node` is a swatch `<button>`; clicking or pressing Enter/Space opens a popover anchored under it.
+`node` is a wrapper `<div>` holding the swatch `<button>` and the popover; clicking the swatch or
+pressing Enter/Space on it opens the popover, anchored under it.
 `onChange({r,g,b,a})` fires on every live movement, so the caller writes cells and redraws previews
 exactly as it does today with `input`.
+
+> **Corrected after implementation.** This block originally specified `-> {node, set(rgba)}` with
+> `node` being the swatch button itself. Neither survived contact:
+>
+> - **No `set(rgba)`.** It was for "a record reopened into the same form", which never happens —
+>   `app.js` rebuilds the form from scratch per record, so every picker is *constructed* with the
+>   colour it should show and no caller can reach a setter. Shipping an unused one on a control
+>   whose contract is "no write without a movement" is a way for a later caller to break that
+>   contract quietly.
+> - **`node` is the wrapper, not the swatch.** The popover is positioned relative to it and the
+>   bubbling `input` event is dispatched from it, so returning the bare button would leave the
+>   caller holding a node the popover is not inside of.
 
 **Layout:**
 

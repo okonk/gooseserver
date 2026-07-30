@@ -442,14 +442,21 @@ var Pickers = (function () {
       return node;
     }
 
-    var gInput = cell(graphicColumn, 'graphic');
-    var fInput = cell(fileColumn, 'sheet');
-    var status = Forms.el('span', { class: 'status' });
-
     // WHICH ATLAS THIS COLUMN'S NUMBER INDEXES. 'icons' for every graphic pair but Spell Effects'
     // spell_animation, which is an effect id — read from Layout by the caller rather than decided
     // here, so nothing in this file names a sheet.
     var galleryBundle = opts.galleryBundle || 'icons';
+
+    // AN EFFECT IS NOT AN ICON, and the difference reaches further than the browse button. An
+    // effect id names a whole animation in the effects atlas and Sprites.effectFrames takes it
+    // ALONE — the file cell is not part of the lookup key. So for an effects column the sheet cell
+    // is stored and edited but never resolved against, which is why the preview, the status line
+    // and the save gate below all fork on this flag rather than only the gallery call.
+    var isEffects = galleryBundle === 'effects';
+
+    var gInput = cell(graphicColumn, isEffects ? 'effect' : 'graphic');
+    var fInput = cell(fileColumn, isEffects ? 'file' : 'sheet');
+    var status = Forms.el('span', { class: 'status' });
 
     // A pick writes BOTH cells of an icons pair, which is exactly what makes "graphic and sheet must
     // both be set" hard to trip from the browser. An EFFECT pick has no sheet to write, so the file
@@ -497,15 +504,19 @@ var Pickers = (function () {
     // ONE of them: `block` is narrower than `bad`, and deliberately.
     //   - Not a whole number already fails Validation's numeric check on the column itself, which
     //     reports it under the field. A second refusal would say the same thing twice.
-    //   - HALF A PAIR IS LEGAL AND SHIPPED. 176 of the 259 Spell Effects rows set spell_animation
-    //     with spell_animation_file left 0, and the server sends both to the client exactly as
-    //     stored (SpellEffect.cs:520). Refusing it would lock two thirds of that sheet.
+    //   - HALF A PAIR IS REPORTED, NOT REFUSED. No shipped row has one — all 1,595 item_templates
+    //     rows set graphic_tile and graphic_file together or set neither — so blocking would refuse
+    //     nothing that exists either. It stays a report because the server sends both cells to the
+    //     client exactly as stored (SpellEffect.cs:520), so a half pair is a value the game has a
+    //     defined reading of, and inventing a refusal for it is a rule nothing asked for.
     //   - A complete pair naming art the bundle does not have is the one the design rule speaks
     //     to — "a non-blank, non-zero graphic must resolve in the bundle" — and the one nothing
     //     else can see: both cells are optional INTEGERs, so Validation passes a nonexistent
     //     sheet:graphic as a perfectly good number and the only other signal is a blank canvas.
     //     All 649 Items, 152 Spells and 146 buff graphics in the shipped data resolve, so this
     //     refuses nothing that exists today.
+    //
+    // EFFECTS TAKE describeEffect INSTEAD — see there for why they get no `block` at all.
     function describe(rect, checkable) {
       var g = str(gInput.value).trim();
       var f = str(fInput.value).trim();
@@ -530,15 +541,49 @@ var Pickers = (function () {
       return { text: '', bad: false };
     }
 
+    // The same job for an effect id, and a SHORTER one: the file cell is not part of the lookup,
+    // so there is no pair to be half of and nothing to say about a sheet.
+    //
+    // NO SAVE GATE, for partControl's reason rather than graphicControl's — the design rule that
+    // justifies blocking an icon ("every shipped pair resolves") is simply not true here. 13 of the
+    // 183 shipped spell_effects rows that set spell_animation name an id the committed effects
+    // bundle does not have (267593, 267653, 267667, 267989, 268371, 282129, 285788 and 286986, the
+    // last on 6 rows). Blocking would lock those 13 rows out of saving over a cell the designer may
+    // not even be editing, and the bundle is a snapshot of client art rather than the authority on
+    // what the server will accept. So this reports the miss and stops there.
+    function describeEffect(rect, checkable) {
+      var g = str(gInput.value).trim();
+      if (g === '' || g === '0') return { text: 'no effect', bad: false };
+      if (!isWhole(g)) return { text: 'effect must be a whole number', bad: true };
+      if (!checkable) {
+        return { text: 'cannot check effect ' + g + ' — no effect art loaded', bad: true };
+      }
+      if (!rect) return { text: 'no art for effect ' + g, bad: true };
+      return { text: '', bad: false };
+    }
+
     function redraw() {
       // The raw cells go straight to Sprites, which does its own parseInt-based coercion. A
       // Number() here as well would be a SECOND rule for what a cell means — and the two
       // disagree ('1e3' is 1000 to one and 1 to the other), so the preview could resolve a
       // different sprite from the one the lookup key names.
       var bundles = (ctx && ctx.bundles) || {};
-      var rect = Sprites.icon(bundles, fInput.value, gInput.value);
+      // FRAME 0, not an animation. The gallery's effect tiles show the same resting frame for the
+      // same reason: this control is built per record and has no teardown hook to stop an interval
+      // with, so an animated inline preview would leave a timer drawing onto a detached canvas on
+      // every record change. The Spell Effects panel is where the animation lives (app.js keeps
+      // state.stopEffect precisely so it can stop it), and this only has to confirm which effect
+      // the cell names.
+      //
+      // Clipped at ICON_BOX like everything else here, which costs 2 of the 47 distinct shipped
+      // effects their edges (one 96x96, one 128x128; the median is 48x48) — the same bundle fact
+      // ICON_BOX already states, and the panel shows those two whole anyway.
+      var rect = isEffects ? (Sprites.effectFrames(bundles, gInput.value)[0] || null)
+                           : Sprites.icon(bundles, fInput.value, gInput.value);
 
-      var state = describe(rect, !!(bundles.icons && bundles.icons.rects));
+      var atlas = isEffects ? 'effects' : 'icons';
+      var checkable = !!(bundles[atlas] && bundles[atlas].rects);
+      var state = isEffects ? describeEffect(rect, checkable) : describe(rect, checkable);
       status.textContent = state.text;
       status.className = state.bad ? 'status bad' : 'status';
       // Named, because a form can hold several of these (Spell Effects has two) and "fix the
@@ -555,7 +600,7 @@ var Pickers = (function () {
 
       // Sprites.draw is a no-op while the bundle PNG is still decoding, which is why redraw is
       // also registered below rather than only run once here.
-      Sprites.draw(target, (ctx && ctx.images) ? ctx.images.icons : null, rect,
+      Sprites.draw(target, (ctx && ctx.images) ? ctx.images[atlas] : null, rect,
                    Math.floor((ICON_BOX - rect[2]) / 2),
                    Math.floor((ICON_BOX - rect[3]) / 2),
                    tintFrom(tintColumns, latest));

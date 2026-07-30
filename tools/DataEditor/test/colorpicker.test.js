@@ -314,7 +314,122 @@ test('without withAlpha there is no blend strip and no blend readout', () => {
 
 test('the channel readout names every channel it reports', () => {
   const c = open(make());
-  assert.equal(c.find('cp-channels').textContent, 'R 164  G 51  B 31  A 128');
+  // Off-screen rather than gone: an input's value is announced when focus arrives on it, not when
+  // a drag rewrites it, so this is still the only thing that speaks a moving colour.
+  assert.equal(c.find('cp-live').textContent, 'R 164  G 51  B 31  A 128');
+});
+
+// --- editable channels ------------------------------------------------------------------------
+
+// The four number fields, in R G B A order.
+function nums(c) {
+  return walk(c.node).filter((n) => n.className === 'cp-num');
+}
+
+test('the channels are editable fields, seeded with the colour', () => {
+  const c = open(make());
+  assert.deepEqual(nums(c).map((n) => n.value), ['164', '51', '31', '128']);
+  assert.deepEqual(nums(c).map((n) => n.getAttribute('aria-label')),
+    ['red', 'green', 'blue', 'blend']);
+});
+
+test('typing a channel moves the colour and reports it', () => {
+  const c = open(make());
+  const [r] = nums(c);
+
+  r.value = '200';
+  fire(r, 'input');
+
+  assert.deepEqual(c.seen, [{ r: 200, g: 51, b: 31, a: 128 }]);
+  // The other fields follow, and the hex with them.
+  assert.deepEqual(nums(c).map((n) => n.value), ['200', '51', '31', '128']);
+  assert.equal(c.find('cp-hex').value, ColorPicker.formatHex(200, 51, 31));
+});
+
+test('typing a blend is the whole point: 128 exactly, without touching the strip', () => {
+  // A hex is six digits wide, so this is the one value the rest of the control cannot express.
+  const c = open(make({ a: 255 }));
+  const a = nums(c)[3];
+
+  a.value = '128';
+  fire(a, 'input');
+
+  assert.equal(c.seen[0].a, 128);
+  assert.equal(c.find('cp-blend').textContent, '128 / 255 blend');
+});
+
+test('a channel field clamps to a byte rather than reporting a colour that is not one', () => {
+  const c = open(make());
+  const [, g] = nums(c);
+
+  g.value = '900';
+  fire(g, 'input');
+  assert.equal(c.seen[0].g, 255);
+});
+
+test('a half-typed channel is left alone, not read as a colour', () => {
+  const c = open(make());
+  const [r] = nums(c);
+
+  // Clearing 164 to type 200 passes through ''. Snapping to black on the way is the bug.
+  r.value = '';
+  fire(r, 'input');
+  assert.deepEqual(c.seen, [], 'an empty field must not be read as 0');
+
+  r.value = '2';
+  fire(r, 'input');
+  assert.deepEqual(c.seen, [{ r: 2, g: 51, b: 31, a: 128 }]);
+  assert.equal(r.value, '2', 'the field being typed in must keep its text');
+});
+
+test('a channel field left empty goes back to the real value on blur', () => {
+  const c = open(make());
+  const [r] = nums(c);
+
+  r.value = '';
+  fire(r, 'input');
+  fire(r, 'blur');
+  assert.equal(r.value, '164');
+});
+
+test('a channel edit fires one bubbling input event, not two', () => {
+  const c = open(make());
+  const host = document.createElement('div');
+  host.appendChild(c.node);
+  let seen = 0;
+  host.addEventListener('input', () => { seen++; });
+
+  const [r] = nums(c);
+  r.value = '200';
+  fire(r, 'input');
+
+  // The field's own native event is stopped; fire() dispatches the real one after onChange has
+  // written the caller's cells. Two would redraw the previews from stale values first.
+  assert.equal(seen, 1);
+});
+
+test('the channel fields follow a movement they did not cause', () => {
+  const c = open(make());
+  const hex = c.find('cp-hex');
+
+  hex.value = '#00ff00';
+  fire(hex, 'input');
+
+  assert.deepEqual(nums(c).map((n) => n.value), ['0', '255', '0', '128']);
+});
+
+test('a picker with no alpha has three channel fields, not four', () => {
+  const c = open(make({ withAlpha: false }));
+  assert.deepEqual(nums(c).map((n) => n.getAttribute('aria-label')), ['red', 'green', 'blue']);
+});
+
+test('a mousedown on a channel field keeps its default action, so it can take focus', () => {
+  const c = open(make());
+  // dispatchEvent reports !defaultPrevented, so true means the click still gets to move focus.
+  assert.equal(fire(nums(c)[0], 'mousedown'), true);
+  // ...where a click on the popover's own chrome is still cancelled, which is what keeps the
+  // popover from closing under a click inside it.
+  assert.equal(fire(c.find('cp-nums'), 'mousedown'), false);
 });
 
 // --- keyboard ---------------------------------------------------------------------------------

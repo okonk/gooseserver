@@ -1535,6 +1535,102 @@ test('a graphic column over the effects bundle browses effects and writes only t
   assert.equal(gparts(wrap).file.value, '0');
 });
 
+// An effects ctx: two frames of effect 44, so frame ORDER is observable and picking the wrong
+// frame cannot pass. Same odd non-square dimensions as the icons fixture, for the same reason.
+function ectx(values) {
+  return {
+    bundles: { effects: { rects: { '44:0': [8, 0, 31, 17], '44:1': [40, 0, 20, 20] } },
+               icons: bundles.icons },
+    images: { effects: 'EFFECTS', icons: 'ICONS' },
+    onImagesReady() {},
+    ...values,
+  };
+}
+
+test('an effects column resolves its preview in the effects atlas, not the icons one', () => {
+  const wrap = Pickers.graphicControl({
+    graphicColumn, fileColumn, ctx: ectx(), galleryBundle: 'effects',
+    values: { graphic_tile: '44', graphic_file: '0' },
+  });
+  const { canvas, status } = gparts(wrap);
+
+  // Frame 0, drawn from the EFFECTS image — the resting frame, as the gallery tiles show.
+  assert.deepEqual(canvas.getContext('2d').calls.filter((c) => c[0] === 'drawImage'),
+    [['drawImage', 'EFFECTS', 8, 0, 31, 17, 16, 23, 31, 17]]);
+  assert.equal(status.textContent, '');
+});
+
+test('an effects column ignores the file cell, which is not part of the lookup', () => {
+  // 181 of the 183 shipped rows that set spell_animation also set spell_animation_file, and
+  // Sprites.effectFrames takes the id alone. Resolving the pair as a sheet:graphic is what used
+  // to blank the preview and block the save on 179 of them.
+  const wrap = Pickers.graphicControl({
+    graphicColumn, fileColumn, ctx: ectx(), galleryBundle: 'effects',
+    values: { graphic_tile: '44', graphic_file: '4386' },
+  });
+  const { canvas, status } = gparts(wrap);
+
+  assert.deepEqual(canvas.getContext('2d').calls.filter((c) => c[0] === 'drawImage'),
+    [['drawImage', 'EFFECTS', 8, 0, 31, 17, 16, 23, 31, 17]]);
+  assert.equal(status.textContent, '');
+  assert.equal(wrap.__graphicError, null, 'a resolvable effect must not block the save');
+});
+
+test('an effects column never blocks the save, even on an effect the bundle lacks', () => {
+  // 13 shipped rows name an effect the committed bundle does not have. Blocking would lock them.
+  const wrap = Pickers.graphicControl({
+    graphicColumn, fileColumn, ctx: ectx(), galleryBundle: 'effects',
+    values: { graphic_tile: '286986', graphic_file: '4386' },
+  });
+  const { canvas, status } = gparts(wrap);
+
+  assert.equal(status.textContent, 'no art for effect 286986');
+  assert.equal(wrap.__graphicError, null);
+  assert.deepEqual(canvas.getContext('2d').calls.filter((c) => c[0] === 'drawImage'), []);
+});
+
+test('an effects column says nothing about a sheet, which it has no use for', () => {
+  const blank = Pickers.graphicControl({
+    graphicColumn, fileColumn, ctx: ectx(), galleryBundle: 'effects',
+    values: { graphic_tile: '0', graphic_file: '0' },
+  });
+  assert.equal(gparts(blank).status.textContent, 'no effect');
+
+  // The icons path would demand the sheet cell here. An effect has no pair to be half of.
+  const set = Pickers.graphicControl({
+    graphicColumn, fileColumn, ctx: ectx(), galleryBundle: 'effects',
+    values: { graphic_tile: '44', graphic_file: '' },
+  });
+  assert.equal(gparts(set).status.textContent, '');
+});
+
+test('an effects pick redraws the preview, not only the cell', () => {
+  const gallery = spyGallery();
+  const wrap = Pickers.graphicControl({
+    graphicColumn, fileColumn, ctx: ectx(), gallery, galleryBundle: 'effects',
+    values: { graphic_tile: '0', graphic_file: '0' },
+  });
+  const ctx2d = gparts(wrap).canvas.getContext('2d');
+  assert.deepEqual(ctx2d.calls.filter((c) => c[0] === 'drawImage'), []);
+
+  fire(browseOf(wrap), 'click');
+  gallery.pick({ id: '44' });
+
+  assert.deepEqual(ctx2d.calls.filter((c) => c[0] === 'drawImage'),
+    [['drawImage', 'EFFECTS', 8, 0, 31, 17, 16, 23, 31, 17]]);
+});
+
+test('an effects column with no effect art loaded reports it without blocking', () => {
+  const wrap = Pickers.graphicControl({
+    graphicColumn, fileColumn, galleryBundle: 'effects',
+    ctx: ectx({ bundles: { icons: bundles.icons } }),
+    values: { graphic_tile: '44', graphic_file: '0' },
+  });
+  assert.equal(gparts(wrap).status.textContent,
+    'cannot check effect 44 — no effect art loaded');
+  assert.equal(wrap.__graphicError, null);
+});
+
 test('graphicControl without a gallery renders a button that does nothing rather than throwing', () => {
   const saved = globalThis.Gallery;
   delete globalThis.Gallery;

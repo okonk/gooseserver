@@ -864,6 +864,84 @@ test('equip slots derives the equipped pose from body_state, not a hardcoded tru
   assert.deepEqual(seen.slice(6), [true, true, true, true, true, true]);
 });
 
+// EQUIP's own columns plus a body_state descriptor with the SQL default the caller names — the
+// map forms.js hands Composites.control, which covers the whole sheet rather than one composite.
+function equipByName(bodyDefault) {
+  const map = byName(EQUIP.columns);
+  map.body_state = { name: 'body_state', kind: 'Int', default: bodyDefault };
+  return map;
+}
+
+test('a blank body_state means the SQL default, not 0', () => {
+  // The bug this replaced read a blank cell as 0. That is unarmed-vs-armed by luck on a sheet
+  // defaulting to 1 (0 !== 3, same as 1 !== 3) and WRONG on one defaulting to an unarmed 3.
+  const seen = [];
+  const stubbed = Sprites.part;
+  Sprites.part = (b, category, id, equipped) => { seen.push(equipped); return null; };
+  try {
+    Composites.control({
+      comp: EQUIP, byName: equipByName('3'),
+      values: { equipped_items: RAW_EQUIP, body_state: '' }, ctx: ctx(),
+    });
+    Composites.control({
+      comp: EQUIP, byName: equipByName('1'),
+      values: { equipped_items: RAW_EQUIP, body_state: '' }, ctx: ctx(),
+    });
+  } finally {
+    Sprites.part = stubbed;
+  }
+  assert.deepEqual(seen.slice(0, 6), [false, false, false, false, false, false],
+    'a default of 3 is unarmed');
+  assert.deepEqual(seen.slice(6), [true, true, true, true, true, true]);
+});
+
+test('every slot preview follows a body_state edited after the form was built', () => {
+  const changed = [];
+  const c = ctx({ onFormChange: (fn) => changed.push(fn) });
+  const seen = [];
+  const stubbed = Sprites.part;
+  Sprites.part = (b, category, id, equipped) => { seen.push(equipped); return null; };
+  try {
+    Composites.control({
+      comp: EQUIP, byName: equipByName('1'),
+      values: { equipped_items: RAW_EQUIP, body_state: '1' }, ctx: c,
+    });
+    assert.deepEqual(seen, [true, true, true, true, true, true]);
+
+    // The character panel already follows body_state; before this, the six slot canvases kept
+    // drawing the pose they were constructed with until the record was reopened.
+    seen.length = 0;
+    changed.forEach((fn) => fn({ equipped_items: RAW_EQUIP, body_state: '3' }));
+    assert.deepEqual(seen, [false, false, false, false, false, false]);
+  } finally {
+    Sprites.part = stubbed;
+  }
+});
+
+test('an edit that does not change the pose redraws nothing', () => {
+  // onFormChange fires on every keystroke anywhere in the form. Six part lookups and six canvas
+  // redraws per keystroke in an unrelated field is work nobody can see.
+  const changed = [];
+  const c = ctx({ onFormChange: (fn) => changed.push(fn) });
+  const seen = [];
+  const stubbed = Sprites.part;
+  Sprites.part = (b, category, id, equipped) => { seen.push(equipped); return null; };
+  try {
+    Composites.control({
+      comp: EQUIP, byName: equipByName('1'),
+      values: { equipped_items: RAW_EQUIP, body_state: '1' }, ctx: c,
+    });
+    seen.length = 0;
+    changed.forEach((fn) => fn({ equipped_items: RAW_EQUIP, body_state: '1', npc_name: 'Rat' }));
+    assert.deepEqual(seen, [], 'the pose did not change, so nothing should redraw');
+
+    // ...and one subscription for the whole control, not one per slot.
+    assert.equal(changed.length, 1);
+  } finally {
+    Sprites.part = stubbed;
+  }
+});
+
 test('equip slots redraws when the bundle images arrive', () => {
   const ready = [];
   const bundles = { parts: { rects: { 'Chest:1:idle-no-equip-down': [0, 0, 10, 10] } } };

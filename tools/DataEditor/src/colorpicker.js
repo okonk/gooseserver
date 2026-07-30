@@ -282,12 +282,77 @@ var ColorPicker = (function () {
     // control cannot do, and the reason a designer can carry a colour in from anywhere else.
     var hex = el('input', { type: 'text', class: 'cp-hex', autocomplete: 'off',
                             'aria-label': 'hex colour', maxlength: '7' });
-    // aria-live, because the numbers are what the SV square cannot announce for itself.
-    var channels = el('span', { class: 'cp-channels', 'aria-live': 'polite' });
+    // THE CHANNELS ARE TYPEABLE, and hex is not a substitute for it. A hex covers r/g/b and
+    // nothing else — it is six digits wide, so the BLEND has no textual entry at all, and the one
+    // value a designer is most likely to have an exact figure for ("128, same as the other cape")
+    // could only be reached by nudging a 96px strip with arrow keys. Each channel is a number
+    // input holding 0-255.
+    //
+    // A SEPARATE aria-live READOUT survives alongside them, and is not redundant: a screen reader
+    // announces an input's value when focus lands on it, not when a drag across the SV square
+    // rewrites it underneath. So the live region is still the only thing that speaks the numbers
+    // as they move, and it is hidden from sight rather than deleted — the visible copy is now the
+    // fields themselves.
+    var channels = el('span', { class: 'cp-live', 'aria-live': 'polite' });
+
+    function channelInput(label, get, set) {
+      var input = el('input', {
+        type: 'number', class: 'cp-num', min: '0', max: '255', step: '1',
+        autocomplete: 'off', 'aria-label': label,
+      });
+      // `input`, not `change`: the strips and the square report every movement, and a channel
+      // typed into should feel the same rather than waiting for a blur.
+      input.addEventListener('input', function (event) {
+        // The hex field's reason, in full: this native event already bubbles to app.js's
+        // delegated listener, and fire() dispatches the real one after the caller's cells are
+        // written. Two signals per keystroke, the first from stale values.
+        event.stopPropagation();
+        var text = String(input.value === null || input.value === undefined ? '' : input.value)
+          .trim();
+        // An empty field is mid-edit, not a zero — a designer clearing 128 to type 200 passes
+        // through '' and should not see the colour snap to black on the way. Anything that is not
+        // plain digits is the same kind of nothing: a `number` input reports '' for text it
+        // rejects, and a browser that lets '-' or '1e3' through should not be read as 0 or 1000.
+        if (!/^\d+$/.test(text)) return;
+        set(channel(text));
+        // The HEX follows (it is not what is being typed in, and a stale hex beside a changed
+        // colour is the readout lying); this field alone keeps its text, for the caret's sake.
+        refresh(false, input);
+        fire();
+      });
+      // A cleared or out-of-range field is only ever transient. On blur it goes back to showing
+      // what the control actually holds, so no field is left lying about the colour.
+      input.addEventListener('blur', function () { input.value = String(get()); });
+      return input;
+    }
+
+    var rInput = channelInput('red', function () { return rgb().r; },
+                              function (v) { setRgb({ r: v }); });
+    var gInput = channelInput('green', function () { return rgb().g; },
+                              function (v) { setRgb({ g: v }); });
+    var bInput = channelInput('blue', function () { return rgb().b; },
+                              function (v) { setRgb({ b: v }); });
+    // "blend", never "alpha" or "opacity", for the aria-label's sake — the same word the strip uses.
+    var aInput = withAlpha
+      ? channelInput('blend', function () { return state.a; },
+                     function (v) { state.a = v; })
+      : null;
+
+    var nums = el('div', { class: 'cp-nums' });
+    [['R', rInput], ['G', gInput], ['B', bInput]].concat(aInput ? [['A', aInput]] : [])
+      .forEach(function (pair) {
+        // The letter is decoration: each input carries its own aria-label, so a <label> here would
+        // make a screen reader read "red red".
+        var cell = el('label', { class: 'cp-num-cell', 'aria-hidden': 'true' }, pair[0]);
+        cell.appendChild(pair[1]);
+        nums.appendChild(cell);
+      });
+
     var blend = withAlpha ? el('span', { class: 'cp-blend' }) : null;
 
     var fields = el('div', { class: 'cp-fields' });
     fields.appendChild(hex);
+    fields.appendChild(nums);
     fields.appendChild(channels);
     if (blend) {
       fields.appendChild(blend);
@@ -396,10 +461,27 @@ var ColorPicker = (function () {
       });
     }
 
-    // Repaints everything the state can affect. `keepHexText` is true when the hex FIELD is what
-    // changed, in which case its text is left exactly as typed — rewriting it mid-keystroke would
-    // fight the user for the caret.
-    function refresh(keepHexText) {
+    // Sets one or more rgb channels, leaving the others where they are. Goes through rgb() rather
+    // than keeping a parallel byte triple, because HSV is the state of record here: two writes to
+    // r would otherwise compound rounding, and the round trip is exact over the byte cube (see
+    // rgbToHsv) so reading back what was just written is safe.
+    function setRgb(partial) {
+      var c = rgb();
+      adopt({
+        r: partial.r === undefined ? c.r : partial.r,
+        g: partial.g === undefined ? c.g : partial.g,
+        b: partial.b === undefined ? c.b : partial.b,
+      });
+    }
+
+    // Repaints everything the state can affect.
+    //
+    // `keepHexText` is true when the hex FIELD is what changed, in which case its text is left
+    // exactly as typed — rewriting it mid-keystroke would fight the user for the caret. `typing`
+    // is the specific channel input being edited, if any, and is spared for the same reason: a
+    // designer typing 200 into a field holding 128 goes through '2', and rewriting that to '2'
+    // would be harmless while rewriting it to '0' (or moving the caret) would not.
+    function refresh(keepHexText, typing) {
       var c = rgb();
       var text = formatHex(c.r, c.g, c.b);
 
@@ -416,6 +498,10 @@ var ColorPicker = (function () {
       swatch.setAttribute('title', label);
 
       if (!keepHexText) hex.value = text;
+      if (rInput !== typing) rInput.value = String(c.r);
+      if (gInput !== typing) gInput.value = String(c.g);
+      if (bInput !== typing) bInput.value = String(c.b);
+      if (aInput && aInput !== typing) aInput.value = String(state.a);
       channels.textContent = 'R ' + c.r + '  G ' + c.g + '  B ' + c.b
         + (withAlpha ? '  A ' + state.a : '');
       if (blend) blend.textContent = state.a + ' / 255 blend';
@@ -639,8 +725,12 @@ var ColorPicker = (function () {
     // all: arrow keys only work on a focused strip.
     pop.addEventListener('mousedown', function (event) {
       var target = event.target;
-      var focusable = target === hex || (target && target.getAttribute
-                                         && target.getAttribute('tabindex') === '0');
+      // Every <input> in here, not just the hex one: the four channel fields need the click's
+      // default action to take focus and to place the caret, and they carry no tabindex of their
+      // own to be recognised by. Testing the tag is what keeps a fifth field from silently
+      // becoming unclickable.
+      var focusable = (target && target.tagName === 'INPUT')
+        || (target && target.getAttribute && target.getAttribute('tabindex') === '0');
       if (!focusable) event.preventDefault();
     });
 
