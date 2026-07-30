@@ -319,7 +319,9 @@ test('a late parts bundle reaches the preview panel too, not only the form contr
   // The panel canvases cannot subscribe to onImagesReady — renderPreviews runs on every keystroke,
   // so a registration inside it would stack one callback per edit — so renderForm pushes the late
   // bundle to them instead. Without that the worn preview stays blank until the next keystroke.
-  const h = boot({ Items: [ITEM(1, 'Gold', { graphic_equip: 1, item_slot: 'Chest' })] });
+  // Armor, because only a wearable record draws the worn canvas at all.
+  const h = boot({ Items: [ITEM(1, 'Gold',
+    { item_usetype: 'Armor', graphic_equip: 1, item_slot: 'Chest' })] });
 
   fire(h.get('records').children[0], 'click');
   h.run.flush();
@@ -449,14 +451,41 @@ test('the NPC preview uses the row\'s body_state to pick the clip (#15)', () => 
 
 test('Items draws no NPC character preview — it draws its own two canvases', () => {
   // Items has no body_id, so the body_id branch must not fire. What it gets instead is the item
-  // pair: the inventory icon and the worn sprite.
-  const h = boot({ Items: [ITEM(1, 'Gold')] });
+  // pair: the inventory icon and — for a wearable usetype — the worn sprite.
+  const h = boot({ Items: [ITEM(1, 'Gold', { item_usetype: 'Armor' })] });
   fire(h.get('records').children[0], 'click');
   h.settle();
 
   const classes = h.get('previews').children.map((n) => n.className);
   assert.deepEqual(classes, ['item-icon', 'worn']);
   assert.equal(classes.indexOf('appearance'), -1, 'not the NPC character preview');
+});
+
+test('an unwearable usetype gets the icon alone — no worn canvas, no equip fields', () => {
+  // A NoUse item is never drawn on a character, so the worn-character canvas and the
+  // graphic_equip / item_slot rows are noise; the cells still round-trip verbatim underneath.
+  const h = boot({ Items: [ITEM(1, 'Gold', { graphic_equip: 5, item_slot: 'Helmet' })] });
+  fire(h.get('records').children[0], 'click');
+  h.settle();
+
+  assert.deepEqual(h.get('previews').children.map((n) => n.className), ['item-icon']);
+  const rowOf = (name) => {
+    let n = h.get('form').querySelector('[name="' + name + '"]');
+    while (n && n.className !== 'field') n = n.parentNode;
+    return n;
+  };
+  assert.equal(rowOf('graphic_equip').hidden, true);
+  assert.equal(rowOf('item_slot').hidden, true);
+  assert.equal(rowOf('item_name').hidden, false, 'only the equip rows are gated');
+
+  // Flipping the usetype to Armor brings both back, live, with their stored values intact.
+  const usetype = h.get('form').querySelector('[name="item_usetype"]');
+  usetype.value = 'Armor';
+  fire(usetype, 'change');
+  assert.equal(rowOf('graphic_equip').hidden, false);
+  assert.equal(rowOf('item_slot').hidden, false);
+  assert.equal(h.get('form').querySelector('[name="graphic_equip"]').value, '5');
+  assert.deepEqual(h.get('previews').children.map((n) => n.className), ['item-icon', 'worn']);
 });
 
 // --- the Items preview panel -----------------------------------------------------------------

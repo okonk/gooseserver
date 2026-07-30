@@ -261,6 +261,32 @@ test('the new tables cannot be mutated by a consumer either', () => {
   assert.throws(() => Layout.TINTS.Items.graphic_tile.push('x'), TypeError);
   assert.throws(() => { Layout.PART_GRAPHICS.Items.graphic_equip.categoryFrom = 'x'; }, TypeError);
   assert.throws(() => { Layout.GALLERIES['Spell Effects'].spell_animation = 'x'; }, TypeError);
+  assert.throws(() => { Layout.WEARABLE.Items.column = 'x'; }, TypeError);
+});
+
+// ---------------------------------------------------------------- WEARABLE
+
+test('wearableGate answers for Items and nothing else', () => {
+  assert.deepEqual(Layout.wearableGate('Items'),
+    { column: 'item_usetype', values: ['Armor', 'Weapon'],
+      columns: ['graphic_equip', 'item_slot'] });
+  assert.equal(Layout.wearableGate('NPCs'), null);
+  assert.equal(Layout.wearableGate('constructor'), null);
+});
+
+test('every wearable gate names real columns and real enum values', () => {
+  // A typo'd name here fails silently in both consumers: forms.js gates no row and app.js
+  // never draws (or always draws) the worn canvas, and nothing on screen says why.
+  Object.keys(Layout.WEARABLE).forEach((name) => {
+    const columns = sheet(name).columns;
+    const real = columns.map((c) => c.name);
+    const gate = Layout.WEARABLE[name];
+    assert.ok(real.includes(gate.column), `${name} has no column ${gate.column}`);
+    gate.columns.forEach((c) => assert.ok(real.includes(c), `${name} has no column ${c}`));
+    const enumNames = columns.find((c) => c.name === gate.column).enumNames;
+    gate.values.forEach((v) =>
+      assert.ok(enumNames.includes(v), `${name}.${gate.column} has no value ${v}`));
+  });
 });
 
 // ---------------------------------------------------------------- GALLERIES

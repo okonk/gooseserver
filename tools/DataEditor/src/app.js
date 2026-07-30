@@ -603,9 +603,10 @@ var App = (function () {
                  'hair_g', 'hair_b', 'hair_a', 'face_id', 'body_state', 'equipped_items',
                  'spell_effect_id', 'spell_animation',
                  // The Items panel: the icon pair, the worn graphic, the tint the game applies to
-                 // both, and the slot that decides which sprite folder the worn one comes from.
+                 // both, the slot that decides which sprite folder the worn one comes from, and
+                 // the usetype that decides whether the worn canvas is drawn at all.
                  // body_state is already above, and picks the pose.
-                 'graphic_tile', 'graphic_file', 'graphic_equip', 'item_slot',
+                 'graphic_tile', 'graphic_file', 'graphic_equip', 'item_slot', 'item_usetype',
                  'graphic_r', 'graphic_g', 'graphic_b', 'graphic_a'].map(function (name) {
       return name + '=' + str(values[name]);
     });
@@ -704,17 +705,23 @@ var App = (function () {
         }), ctx(), Preview.ICON_SCALE);
       }
 
-      // Drawn even when the part graphic is empty or the slot is undrawn: the canvas then shows the
-      // bare base body, which is a legible "this item is not worn" rather than a gap in the panel
-      // that reads as a broken preview.
-      var worn = Forms.el('canvas',
-        { width: Preview.CANVAS_W * Preview.CHARACTER_SCALE,
-          height: Preview.CANVAS_H * Preview.CHARACTER_SCALE, class: 'worn' });
-      host.appendChild(worn);
-      Preview.wornItem(worn, tint({
-        id: values[part.name], slot: values[part.spec.categoryFrom],
-        bodyState: values.body_state,
-      }), ctx(), Preview.CHARACTER_SCALE);
+      // ONLY FOR A WEARABLE RECORD. A NoUse or Scroll item is never drawn on a character, so a
+      // worn-character canvas for one answers a question nobody asked — the same gate that hides
+      // the graphic_equip and item_slot rows in the form (Layout.wearableGate; forms.js applies
+      // it there). Within the gate it is still drawn even when the part graphic is empty or the
+      // slot is undrawn: the canvas then shows the bare base body, which is a legible "this item
+      // is not worn" rather than a gap in the panel that reads as a broken preview.
+      var gate = Layout.wearableGate(state.schema.sheet);
+      if (!gate || gate.values.indexOf(str(values[gate.column])) !== -1) {
+        var worn = Forms.el('canvas',
+          { width: Preview.CANVAS_W * Preview.CHARACTER_SCALE,
+            height: Preview.CANVAS_H * Preview.CHARACTER_SCALE, class: 'worn' });
+        host.appendChild(worn);
+        Preview.wornItem(worn, tint({
+          id: values[part.name], slot: values[part.spec.categoryFrom],
+          bodyState: values.body_state,
+        }), ctx(), Preview.CHARACTER_SCALE);
+      }
     }
 
     // WHICH ID SPACE: the effects atlas is keyed by ANIMATION id — the space Sprites.effectFrames

@@ -1427,7 +1427,7 @@ test('partControl redraws when the parts bundle finishes decoding', () => {
   assert.equal(drawnFrom(wrap), 10);
 });
 
-// --- the Browse button ------------------------------------------------------------------------
+// --- clicking a graphic field opens the browser -----------------------------------------------
 //
 // A SPY GALLERY, not the real module: what these assert is the SEAM — that the control hands over
 // the right bundle, filter and current graphic, and that what comes back reaches both cells and
@@ -1443,27 +1443,29 @@ function spyGallery() {
   };
 }
 
+// The clickable field itself — there is no separate Browse button; the graphic input opens the
+// dialog and is the opener focus returns to.
 function browseOf(wrap) {
-  return wrap.querySelectorAll('[class="browse"]')[0];
+  return wrap.querySelectorAll('[data-browse]')[0];
 }
 
-test('graphicControl offers a Browse button over the icons bundle, on the current sheet', () => {
+test('clicking the graphic field opens the icons browser on the current sheet', () => {
   const gallery = spyGallery();
   const wrap = Pickers.graphicControl({
     graphicColumn, fileColumn, ctx: gctx(), gallery,
     values: { graphic_tile: '810003', graphic_file: '20107' },
   });
 
-  const button = browseOf(wrap);
-  assert.equal(button.tagName, 'BUTTON');
-  assert.equal(button.getAttribute('aria-haspopup'), 'dialog');
+  const field = browseOf(wrap);
+  assert.equal(field, gparts(wrap).graphic, 'the graphic field itself is the opener');
+  assert.equal(field.getAttribute('aria-haspopup'), 'dialog');
 
-  fire(button, 'click');
+  fire(field, 'click');
   assert.equal(gallery.opens.length, 1);
   const opened = gallery.opens[0];
   assert.equal(opened.bundle, 'icons');
   assert.equal(opened.bundles, bundles);
-  assert.equal(opened.opener, button, 'focus has to have somewhere to return to');
+  assert.equal(opened.opener, field, 'focus has to have somewhere to return to');
   // The sheet the record already names, so the browser opens on this item's neighbourhood.
   assert.deepEqual(opened.filter, { sheet: '20107' });
   assert.deepEqual(opened.current, { sheet: '20107', graphic: '810003' });
@@ -1631,7 +1633,7 @@ test('an effects column with no effect art loaded reports it without blocking', 
   assert.equal(wrap.__graphicError, null);
 });
 
-test('graphicControl without a gallery renders a button that does nothing rather than throwing', () => {
+test('graphicControl without a gallery leaves the click doing nothing rather than throwing', () => {
   const saved = globalThis.Gallery;
   delete globalThis.Gallery;
   try {
@@ -1680,9 +1682,10 @@ test('a slot the character never draws has nothing to browse', () => {
     spec: SPEC, tintColumns: null, gallery,
   });
 
-  assert.equal(browseOf(wrap).getAttribute('disabled'), '');
+  // The field stays an ordinary text field — typing an id must still work — so the click
+  // handler's guard is the whole protection.
   fire(browseOf(wrap), 'click');
-  assert.equal(gallery.opens.length, 0, 'disabled is a hint; the handler has to guard too');
+  assert.equal(gallery.opens.length, 0);
 });
 
 test('a Mount has nothing to browse either, because the gallery indexes no mounted clips', () => {
@@ -1694,7 +1697,6 @@ test('a Mount has nothing to browse either, because the gallery indexes no mount
     spec: SPEC, tintColumns: null, gallery,
   });
 
-  assert.equal(browseOf(wrap).getAttribute('disabled'), '');
   fire(browseOf(wrap), 'click');
   assert.equal(gallery.opens.length, 0);
 });

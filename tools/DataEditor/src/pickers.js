@@ -133,23 +133,23 @@ var Pickers = (function () {
     return (typeof Gallery !== 'undefined' && Gallery) ? Gallery : null;
   }
 
-  // A Browse button beside a graphic field. `onOpen(button)` does the opening — each control states
-  // its own bundle, filter and callback — so this is only the button, its accessible name, and the
-  // handle the gallery hands focus back to.
+  // Makes a graphic field OPEN THE BROWSER ON CLICK — there is no separate Browse button. The
+  // field is where the designer's eye already is; the dialog's search field takes the first
+  // keystroke, so "click, type the id, Enter" is still the short path, and the field is the
+  // opener the dialog hands focus back to — so a hand-typed edit is one Escape away, and the
+  // keyboard path (Tab in, type) never opens anything.
   //
-  // `text` is what is DRAWN, and it is not always the label: the six equip-slot rows have 28px to
-  // spare and the word "Browse" does not fit in it. aria-label and title carry the real name in
-  // both cases, so a screen reader and a hover tooltip say "browse Head graphics" either way — the
-  // same call Forms.boolControl's × button makes, for the same reason.
-  //
-  // A <button type="button">, not a link: it opens a dialog and submits nothing.
-  function browseButton(label, text, onOpen) {
-    var button = Forms.el('button', {
-      type: 'button', class: 'browse', title: label, 'aria-label': label,
-      'aria-haspopup': 'dialog',
-    }, text);
-    button.addEventListener('click', function () { onOpen(button); });
-    return button;
+  // `label` lands on title and aria-label so both a hover tooltip and a screen reader say what
+  // the click does; aria-haspopup says a dialog is coming. `onOpen(input)` does the opening —
+  // each control states its own bundle, filter and callback. It may decline (partControl's
+  // undrawn slots have nothing to browse), which leaves the click an ordinary click.
+  function browseOnClick(input, label, onOpen) {
+    input.setAttribute('data-browse', '');
+    input.setAttribute('title', label);
+    input.setAttribute('aria-label', label);
+    input.setAttribute('aria-haspopup', 'dialog');
+    input.addEventListener('click', function () { onOpen(input); });
+    return input;
   }
 
   // True when `node` is the list or anything inside it. Walks parentNode rather than using
@@ -462,15 +462,14 @@ var Pickers = (function () {
     // both be set" hard to trip from the browser. An EFFECT pick has no sheet to write, so the file
     // cell is left alone — spell_animation_file is stored 0 in 176 of the 259 shipped rows and the
     // server sends both cells through verbatim, so filling it in would be inventing data.
-    var browse = browseButton('browse the ' + galleryBundle + ' atlas for ' + graphicColumn.name,
-      'Browse',
-      function (button) {
+    browseOnClick(gInput, 'browse the ' + galleryBundle + ' atlas for ' + graphicColumn.name,
+      function (input) {
         var gallery = galleryOf(opts);
         if (!gallery) return;
         gallery.open({
           bundle: galleryBundle,
           bundles: (ctx && ctx.bundles) || {},
-          opener: button,
+          opener: input,
           // Read at CLICK time, not at build time: a designer who has just typed a different sheet
           // number expects the browser to open on that sheet.
           filter: galleryBundle === 'icons' ? { sheet: fInput.value } : {},
@@ -628,7 +627,6 @@ var Pickers = (function () {
     wrap.appendChild(canvas);
     wrap.appendChild(gInput);
     wrap.appendChild(fInput);
-    wrap.appendChild(browse);
     wrap.appendChild(status);
     return wrap;
   }
@@ -694,17 +692,17 @@ var Pickers = (function () {
     // for a Feet item would offer a sprite the client would never draw there — the gallery renders
     // no chooser at all in that case rather than a disabled one.
     //
-    // With no browsable folder there is nothing to open: the button is disabled and the status line
-    // says why. See browsableCategory for which slots have none.
-    var browse = browseButton('browse the character parts atlas for ' + column.name, 'Browse',
-      function (button) {
+    // With no browsable folder there is nothing to open: the click stays an ordinary click and the
+    // status line says why the canvas is blank. See browsableCategory for which slots have none.
+    browseOnClick(input, 'browse the character parts atlas for ' + column.name,
+      function (opener) {
         var gallery = galleryOf(opts);
         var folder = browsableCategory();
         if (!gallery || !folder) return;
         gallery.open({
           bundle: 'parts',
           bundles: (ctx && ctx.bundles) || {},
-          opener: button,
+          opener: opener,
           filter: { category: folder, locked: true },
           current: { category: folder, id: input.value },
           onPick: function (choice) {
@@ -720,12 +718,6 @@ var Pickers = (function () {
       // The slot is read from the LIVE form, so changing item_slot from Helmet to Shoes moves this
       // preview into another folder without the record being reopened.
       var slot = Appearance.slotFor(latest[spec.categoryFrom]);
-
-      // Kept in step with the slot on every edit, not decided once at build time: changing
-      // item_slot from Ring to Helmet must make the button work, and the reverse must stop it.
-      // The click handler guards on the same function — `disabled` is a hint to the user, not a lock.
-      if (browsableCategory()) browse.removeAttribute('disabled');
-      else browse.setAttribute('disabled', '');
 
       function say(message, bad) {
         status.textContent = message;
@@ -776,7 +768,6 @@ var Pickers = (function () {
 
     wrap.appendChild(canvas);
     wrap.appendChild(input);
-    wrap.appendChild(browse);
     wrap.appendChild(status);
     return wrap;
   }

@@ -232,6 +232,12 @@ var Forms = (function () {
         'reload this table.'));
     }
 
+    // The rows only a wearable record has a use for — hidden, not skipped: their inputs stay in
+    // the tree so Forms.collect still reads the stored cells back verbatim, and flipping
+    // item_usetype to Armor mid-edit shows them again without a re-render.
+    var gate = Layout.wearableGate(schema.sheet);
+    var gatedRows = [];
+
     Layout.groupsFor(schema.sheet, schema.columns).forEach(function (group) {
       var section = el('section');
       section.appendChild(el('h3', null, group.title));
@@ -261,12 +267,26 @@ var Forms = (function () {
         row.appendChild(el('div', { class: 'error', 'data-error-for': name }));
         section.appendChild(row);
         rendered++;
+
+        if (gate && gate.columns.indexOf(name) !== -1) gatedRows.push(row);
       });
 
       // A group whose every column was claimed by a composite led from an earlier group would
       // otherwise leave a heading with nothing under it.
       if (rendered) container.appendChild(section);
     });
+
+    // Applied once from the stored values, then re-applied on every edit: the gate column is an
+    // ordinary field of this same form, so the rows follow it live. Hidden rows keep their
+    // values (see the note above), so toggling usetype back and forth loses nothing.
+    if (gate && gatedRows.length) {
+      var applyGate = function (current) {
+        var show = gate.values.indexOf(str(current[gate.column])) !== -1;
+        gatedRows.forEach(function (row) { row.hidden = !show; });
+      };
+      applyGate(values);
+      if (ctx && typeof ctx.onFormChange === 'function') ctx.onFormChange(applyGate);
+    }
   }
 
   // Reads the form back into a name -> string map. Missing and blank both come back as ''.

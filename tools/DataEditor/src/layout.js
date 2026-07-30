@@ -108,6 +108,17 @@ var Layout = (function () {
     },
   };
 
+  // FIELDS ONLY A WEARABLE ITEM HAS A USE FOR, and the cell that decides. Only Armor and Weapon
+  // items are ever drawn on a character, so for every other usetype graphic_equip and item_slot
+  // are noise — the form hides those rows and the preview panel skips the worn-character canvas.
+  // HIDDEN, NOT CLEARED: the cells keep whatever they store and round-trip verbatim through
+  // Forms.collect, honouring the rule that opening a record must not change it. The values are
+  // enum NAMES, which is what an Enum cell holds and what Forms.collect reads back.
+  var WEARABLE = {
+    Items: { column: 'item_usetype', values: ['Armor', 'Weapon'],
+             columns: ['graphic_equip', 'item_slot'] },
+  };
+
   // WHICH SPRITE BUNDLE A GRAPHIC COLUMN'S BROWSER SHOWS, where it is not the inventory icons.
   //
   // Presentation, so it is here rather than in the descriptors: nothing about the COLUMN says which
@@ -142,6 +153,14 @@ var Layout = (function () {
   /// The part-graphic spec for one column, or null when the column is not a character part.
   function partGraphic(sheet, column) {
     return twoLevel(PART_GRAPHICS, sheet, column);
+  }
+
+  /// The sheet's wearable gate — `{ column, values, columns }` — or null when everything on the
+  /// sheet is always relevant. One accessor for both consumers (forms.js hides the rows,
+  /// app.js skips the worn preview) so the two cannot disagree about what "wearable" means.
+  function wearableGate(sheet) {
+    var gate = own(WEARABLE, String(sheet));
+    return gate === undefined ? null : gate;
   }
 
   /// Which sprite bundle the graphic browser should show for one column. Never null: 'icons' is the
@@ -260,6 +279,7 @@ var Layout = (function () {
     needsRestart: needsRestart,
     tintColumns: tintColumns,
     partGraphic: partGraphic,
+    wearableGate: wearableGate,
     galleryBundle: galleryBundle,
     RESTART_ONLY: deepFreeze(RESTART_ONLY),
     LAYOUTS: deepFreeze(LAYOUTS),
@@ -267,6 +287,7 @@ var Layout = (function () {
     // invisible to every consumer, which simply reads null and draws no tint.
     TINTS: deepFreeze(TINTS),
     PART_GRAPHICS: deepFreeze(PART_GRAPHICS),
+    WEARABLE: deepFreeze(WEARABLE),
     GALLERIES: deepFreeze(GALLERIES),
   };
 })();

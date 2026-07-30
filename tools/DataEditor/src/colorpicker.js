@@ -348,18 +348,21 @@ var ColorPicker = (function () {
         nums.appendChild(cell);
       });
 
-    var blend = withAlpha ? el('span', { class: 'cp-blend' }) : null;
-
     var fields = el('div', { class: 'cp-fields' });
     fields.appendChild(hex);
     fields.appendChild(nums);
     fields.appendChild(channels);
-    if (blend) {
-      fields.appendChild(blend);
-      // Its own class, not the form's .hint: rgbaControl puts a .hint of its own (the four
-      // column names) beside this control, and one selector finding both is one of them lost.
+    // No "N / 255 blend" readout beside this: the A field above already shows the number, and a
+    // second copy of it was clutter. The standing NOTE stays — at a factor of 0 the swatch still
+    // shows a colour, and nothing else on screen explains why the sprite is untinted or why
+    // Equipped.format drops the colour entirely. "alpha", matching the A field and the sheet's
+    // *_a column names; "no tint", so nobody reads the factor as opacity.
+    //
+    // Its own class, not the form's .hint: rgbaControl puts a .hint of its own (the four
+    // column names) beside this control, and one selector finding both is one of them lost.
+    if (withAlpha) {
       fields.appendChild(el('div', { class: 'cp-note' },
-        'blend 0 means no tint at all — the colour is not stored'));
+        'alpha 0 means no tint at all — the colour is not stored'));
     }
 
     var recentRow = el('div', { class: 'cp-recent' });
@@ -370,8 +373,12 @@ var ColorPicker = (function () {
     grid.appendChild(svWrap);
     grid.appendChild(hueWrap);
     if (alphaWrap) grid.appendChild(alphaWrap);
-    grid.appendChild(fields);
     pop.appendChild(grid);
+    // The fields sit OUTSIDE the canvas grid, as a full-width block of the popover: inside it
+    // they could only ever be as wide as the three canvases (~168px), which squeezed the four
+    // channel inputs to a single visible digit. The popover's min-width (see .cp-pop) is what
+    // gives them room for three.
+    pop.appendChild(fields);
     pop.appendChild(recentRow);
 
     wrap.appendChild(swatch);
@@ -504,7 +511,6 @@ var ColorPicker = (function () {
       if (aInput && aInput !== typing) aInput.value = String(state.a);
       channels.textContent = 'R ' + c.r + '  G ' + c.g + '  B ' + c.b
         + (withAlpha ? '  A ' + state.a : '');
-      if (blend) blend.textContent = state.a + ' / 255 blend';
 
       // Clamped to the strip's own maximum in BOTH places. The keyboard wraps modulo 360, so
       // state.h can sit between HUE_MAX and 360: unclamped that announces a 360 against an

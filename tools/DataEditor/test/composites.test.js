@@ -1325,7 +1325,7 @@ test('the equip slot preview is scaled, with its centring still in logical pixel
   ]);
 });
 
-// --- the equip-slot Browse buttons -------------------------------------------------------------
+// --- clicking a slot's graphic field opens the browser ----------------------------------------
 //
 // A SPY GALLERY, as in pickers.test.js: what matters here is the seam and the write path, not the
 // browser itself.
@@ -1339,11 +1339,13 @@ function spyGallery() {
   };
 }
 
+// The clickable field itself — there is no separate Browse button; the slot's graphic input
+// opens the dialog and is the opener focus returns to.
 function browseOf(row) {
-  return row.querySelector('[class="browse"]');
+  return row.querySelector('[data-browse]');
 }
 
-test('every equip slot gets a Browse button locked to its own sprite folder', () => {
+test('every equip slot\'s graphic field opens a browser locked to its own sprite folder', () => {
   const gallery = spyGallery();
   const node = Composites.control({
     comp: EQUIP, byName: byName(EQUIP.columns), values: { equipped_items: RAW_EQUIP },
@@ -1353,12 +1355,11 @@ test('every equip slot gets a Browse button locked to its own sprite folder', ()
   const rows = slotRows(node);
   assert.equal(rows.length, 6);
   rows.forEach((row, i) => {
-    const button = browseOf(row);
-    assert.ok(button, 'slot ' + i + ' has no Browse button');
-    assert.equal(button.getAttribute('aria-haspopup'), 'dialog');
-    // The compact label is '…' because the row has 28px; the accessible name is the real one.
-    assert.equal(button.textContent, '…');
-    assert.match(button.getAttribute('aria-label'), /^browse \w+ graphics$/);
+    const field = browseOf(row);
+    assert.ok(field, 'slot ' + i + ' has no clickable graphic field');
+    assert.equal(field.className, 'slot-graphic', 'the graphic field itself is the opener');
+    assert.equal(field.getAttribute('aria-haspopup'), 'dialog');
+    assert.match(field.getAttribute('aria-label'), /^browse \w+ graphics$/);
   });
 
   // Equipped.SLOTS order, through the client's own slot -> folder map: Shield and Weapon both
@@ -1372,15 +1373,15 @@ test('every equip slot gets a Browse button locked to its own sprite folder', ()
   })));
 });
 
-test('a Browse button sits in the row, in grid track order, with the status below it', () => {
+test('the row keeps grid track order, with the status below it', () => {
   const node = Composites.control({
     comp: EQUIP, byName: byName(EQUIP.columns), values: { equipped_items: RAW_EQUIP }, ctx: ctx(),
   });
   const row = slotRows(node)[0];
-  // label, graphic, browse, swatch, preview, status — the five declared tracks plus the status
-  // line, which spans the whole row underneath (see .equip-slot in Editor.html).
+  // label, graphic, swatch, preview, status — the four declared tracks plus the status line,
+  // which spans the whole row underneath (see .equip-slot in Editor.html).
   assert.deepEqual(row.children.map((c) => c.className),
-    ['', 'slot-graphic', 'browse', 'colorpicker', 'preview', 'status']);
+    ['', 'slot-graphic', 'colorpicker', 'preview', 'status']);
 });
 
 test('picking a slot graphic writes the cell and redraws, on the typed-id path', () => {
@@ -1441,7 +1442,7 @@ test('a Graphic composite asks Layout which atlas its browser shows', () => {
     values: { spell_animation: '4', spell_animation_file: '0' }, ctx: ctx(), gallery,
   });
 
-  fire(node.querySelector('[class="browse"]'), 'click');
+  fire(node.querySelector('[data-browse]'), 'click');
   assert.equal(gallery.opens[0].bundle, 'effects');
 });
 
@@ -1453,6 +1454,6 @@ test('every other Graphic composite browses the inventory icons', () => {
     values: { graphic_tile: '1', graphic_file: '2' }, ctx: ctx(), gallery,
   });
 
-  fire(node.querySelector('[class="browse"]'), 'click');
+  fire(node.querySelector('[data-browse]'), 'click');
   assert.equal(gallery.opens[0].bundle, 'icons');
 });

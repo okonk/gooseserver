@@ -283,13 +283,59 @@ test('the sheet chooser defaults to the sheet the record already names', () => {
   assert.deepEqual(tiles().map((t) => t.getAttribute('data-id')), ['1']);
 });
 
-test('an unknown sheet falls back to the first one rather than showing nothing', () => {
+test('an unknown sheet falls back to all sheets rather than showing nothing', () => {
   Gallery.open({
     bundle: 'icons', bundles: { icons: iconFixture }, opener: opener(),
     filter: { sheet: '999' },
   });
-  assert.equal(node('sheet').value, '104');
-  assert.equal(tiles().length, 3);
+  assert.equal(node('sheet').value, '*');
+  assert.equal(tiles().length, 4);
+});
+
+test('the all-sheets mode lists the whole bundle in one grid', () => {
+  Gallery.open({
+    bundle: 'icons', bundles: { icons: iconFixture }, opener: opener(), filter: { sheet: '104' },
+  });
+
+  const chooser = node('sheet');
+  const first = chooser.getElementsByTagName('option')[0];
+  assert.equal(first.value, '*');
+  assert.ok(first.textContent.indexOf('all sheets (4)') !== -1, first.textContent);
+
+  assert.equal(tiles().length, 3, 'opens filtered to the record’s own sheet');
+  chooser.value = '*';
+  fire(chooser, 'change');
+  assert.equal(tiles().length, 4, 'the all mode shows every icon');
+  // The id search still works across the whole bundle: graphic 1 exists on both sheets.
+  const search = node('search');
+  search.value = '1';
+  fire(search, 'input');
+  assert.deepEqual(tiles().map((t) => t.getAttribute('data-id')).sort(), ['1', '1', '12']);
+});
+
+test('scrolling within the built window leaves the tiles alone instead of rebuilding them', () => {
+  const many = { width: 64, height: 64, png: 'x', rects: {} };
+  for (let i = 1; i <= 400; i++) many.rects['104:' + i] = [0, 0, 32, 32];
+  Gallery.open({
+    bundle: 'icons', bundles: { icons: many }, opener: opener(), filter: { sheet: '104' },
+  });
+
+  const scroll = node('scroll');
+  scroll.clientHeight = Gallery.ROW_HEIGHT * 5;
+  scroll.scrollTop = Gallery.ROW_HEIGHT * 10 + 10;
+  fire(scroll, 'scroll');
+
+  const before = tiles()[0];
+  // A few pixels of movement lands inside the same window, so the render must be a no-op:
+  // tearing the nodes down mid-scroll is the flash the user saw while dragging.
+  scroll.scrollTop = Gallery.ROW_HEIGHT * 10 + 20;
+  fire(scroll, 'scroll');
+  assert.equal(tiles()[0], before, 'the tiles were rebuilt for a scroll inside the window');
+
+  // A scroll that moves the window really does rebuild.
+  scroll.scrollTop = Gallery.ROW_HEIGHT * 50;
+  fire(scroll, 'scroll');
+  assert.notEqual(tiles()[0], before);
 });
 
 test('the current graphic is selected and scrolled to on open', () => {
@@ -346,20 +392,42 @@ test('a tile is a CSS atlas window, not a canvas', () => {
   const tile = tiles().find((t) => t.getAttribute('data-id') === '2');
   assert.equal(tile.tagName, 'BUTTON');
   assert.equal(modal.getElementsByTagName('canvas').length, 0);
+  // The art lives on an INNER element sized to exactly the scaled rect, so the padding around a
+  // small sprite can never show the atlas's neighbouring sprites.
+  const art = tile.children[0];
+  assert.equal(art.getAttribute('data-gal'), 'art');
+  assert.equal(art.style.width, '64px');
+  assert.equal(art.style.height, '64px');
   // 32px art in a 64px cell is drawn at 2x, so the whole 64x64 atlas is scaled to 128.
-  assert.equal(tile.style.backgroundSize, '128px 128px');
-  assert.equal(tile.style.backgroundPosition, '0px -64px');
-  // The atlas PNG is named ONCE, in a stylesheet, not copied into 4,827 inline styles.
+  assert.equal(art.style.backgroundSize, '128px 128px');
+  assert.equal(art.style.backgroundPosition, '0px -64px');
+  // The atlas PNG is named ONCE, in a stylesheet, not copied into 4,827 inline styles — and the
+  // rule targets the art element, which is the node the background now sits on.
   assert.ok(node('atlas').textContent.indexOf(iconFixture.png) !== -1);
+  assert.ok(node('atlas').textContent.indexOf('.gal-art') !== -1);
+});
+
+test('a small sprite gets an art element smaller than the cell, not a cell-wide window', () => {
+  // 8x6 art at the 2x cap is 16x12 — the other 48px of the cell used to be a window onto
+  // whatever sprites happened to pack beside it in the atlas.
+  const small = { width: 64, height: 64, png: 'x', rects: { '104:1': [8, 16, 8, 6] } };
+  Gallery.open({ bundle: 'icons', bundles: { icons: small }, opener: opener() });
+  const art = tiles()[0].children[0];
+  assert.equal(art.style.width, '16px');
+  assert.equal(art.style.height, '12px');
+  assert.equal(art.style.backgroundSize, '128px 128px');
+  assert.equal(art.style.backgroundPosition, '-16px -32px');
 });
 
 test('a sprite too big for the cell is scaled down rather than clipped', () => {
   const big = { width: 256, height: 256, png: 'x', rects: { '104:1': [0, 128, 128, 128] } };
   Gallery.open({ bundle: 'icons', bundles: { icons: big }, opener: opener() });
-  const tile = tiles()[0];
+  const art = tiles()[0].children[0];
   // 128 art into a 64 cell is 0.5x: the atlas halves and the offset halves with it.
-  assert.equal(tile.style.backgroundSize, '128px 128px');
-  assert.equal(tile.style.backgroundPosition, '0px -64px');
+  assert.equal(art.style.width, '64px');
+  assert.equal(art.style.height, '64px');
+  assert.equal(art.style.backgroundSize, '128px 128px');
+  assert.equal(art.style.backgroundPosition, '0px -64px');
 });
 
 test('the parts filter locked to a category never lists another one', () => {

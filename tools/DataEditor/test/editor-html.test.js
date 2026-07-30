@@ -54,12 +54,16 @@ test('the colour popover fits the narrowest column it ships in', () => {
   // The shipped Sheets sidebar is ~300px; after the page padding and a section's padding and
   // border the form column is ~258. A popover laid out as one flex row is 128 (square) + 14
   // (hue) + 14 (blend) + 120 (fields) + gaps + padding = ~308, which overflows it and turns the
-  // whole page into a horizontal scroller. The fields row therefore drops BELOW the three
-  // canvases rather than sitting beside them.
-  assert.match(html, /\.cp-fields\s*{[^}]*grid-column:\s*1\s*\/\s*-1/);
+  // whole page into a horizontal scroller. The fields block therefore sits BELOW the canvas
+  // grid, as a full-width child of the popover.
   assert.match(html, /\.cp-grid\s*{[^}]*display:\s*grid/);
-  // ...and a last-resort cap for anything narrower still.
+  assert.doesNotMatch(html, /\.cp-fields\s*{[^}]*grid-column/,
+    'the fields block must not live inside the canvas grid — the grid caps its width');
+  // Wide enough that the four channel fields hold three digits, capped for anything narrower.
+  assert.match(html, /\.cp-pop\s*{[^}]*min-width:\s*236px/);
   assert.match(html, /\.cp-pop\s*{[^}]*max-width:/);
+  // The number inputs' spinner buttons are hidden — they cost the width of two digits.
+  assert.match(html, /\.cp-num::-webkit-inner-spin-button/);
 });
 
 test('the right-anchored popover the colour picker can ask for is styled', () => {
@@ -140,14 +144,13 @@ test('the at-block stripper removes any nested at-rule, not only @media', () => 
 });
 
 test('the equipment slot row is a live grid with a track for every cell it holds', () => {
-  // Five tracks per slot: label, graphic id, Browse button, colour swatch, preview canvas. The
-  // status line is the sixth child and has NO track of its own — it spans the whole row underneath,
-  // which is where the Browse button's 28px came from (it was the one cell with no width budget,
-  // and it now holds a longer string than it used to).
+  // Four tracks per slot: label, graphic id, colour swatch, preview canvas — the graphic field
+  // opens the browser itself, so there is no Browse track. The status line is the fifth child and
+  // has NO track of its own — it spans the whole row underneath.
   const rule = ruleFor('.equip-slot');
   assert.ok(rule, `.equip-slot has no rule of its own — check for an ${NOT_FOUND}`);
   assert.match(rule[2], /display:\s*grid/);
-  assert.match(rule[2], /grid-template-columns:\s*60px\s+1fr\s+28px\s+28px\s+84px/);
+  assert.match(rule[2], /grid-template-columns:\s*60px\s+1fr\s+28px\s+84px/);
 
   const status = ruleFor('.equip-slot .status');
   assert.ok(status, `.equip-slot .status has no rule — without it the status line takes a sixth `
@@ -188,10 +191,25 @@ test('the tile grid matches the arithmetic gallery.js windows with', async () =>
   assert.match(tile[2], new RegExp(`width:\\s*${Gallery.CELL}px`));
   assert.match(tile[2], new RegExp(`height:\\s*${Gallery.CELL}px`));
   assert.equal(Gallery.ROW_HEIGHT, Gallery.CELL + Gallery.GAP);
+  // The tile centres an art element sized to exactly the sprite's rect, so the padding around a
+  // small sprite never shows the atlas's neighbouring sprites.
+  assert.match(tile[2], /display:\s*flex/);
+  const art = ruleFor('.gal-art');
+  assert.ok(art, `.gal-art has no rule of its own — check for an ${NOT_FOUND}`);
   // Pixel art, blown up. A smoothed tile is a blurry one.
-  assert.match(tile[2], /image-rendering:\s*pixelated/);
-  // background-repeat, because a 32px sprite in a 64px cell would otherwise tile four times.
-  assert.match(tile[2], /background-repeat:\s*no-repeat/);
+  assert.match(art[2], /image-rendering:\s*pixelated/);
+  // background-repeat, because a browser could otherwise tile the atlas across the element.
+  assert.match(art[2], /background-repeat:\s*no-repeat/);
+});
+
+test('the gallery scroller opts out of scroll anchoring', () => {
+  // The grid is windowed: every scroll rebuilds tiles and resizes the spacers, and the browser's
+  // scroll anchoring reads those mutations as content shifting and "corrects" scrollTop — the
+  // wheel-scroll-jumps-to-the-bottom bug. Nothing but this rule prevents it.
+  const rule = ruleFor('.gal-scroll');
+  assert.ok(rule, `.gal-scroll has no rule of its own — check for an ${NOT_FOUND}`);
+  assert.match(rule[2], /overflow-anchor:\s*none/);
+  assert.match(rule[2], /user-select:\s*none/);
 });
 
 test('the selected tile is visibly marked', () => {
@@ -202,11 +220,14 @@ test('the selected tile is visibly marked', () => {
   assert.match(rule[2], /border-color|box-shadow|outline/);
 });
 
-test('the Browse buttons the graphic controls emit are styled', () => {
-  const rule = ruleFor('.browse');
-  assert.ok(rule, `.browse has no rule of its own — check for an ${NOT_FOUND}`);
+test('the clickable graphic fields the controls emit are styled', () => {
+  // pickers.js and composites.js mark every gallery-opening field with data-browse; the pointer
+  // cursor is the one visual cue that a click does more than place a caret.
+  const rule = ruleFor('input[data-browse]');
+  assert.ok(rule, `input[data-browse] has no rule of its own — check for an ${NOT_FOUND}`);
+  assert.match(rule[2], /cursor:\s*pointer/);
   const pickers = readFileSync(join(root, 'src', 'pickers.js'), 'utf8');
-  assert.match(pickers, /class: 'browse'/);
+  assert.match(pickers, /data-browse/);
 });
 
 test('the two Items canvases are laid out as a row, not stacked with baseline gaps', () => {

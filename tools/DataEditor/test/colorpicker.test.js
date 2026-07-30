@@ -282,28 +282,27 @@ test('the blend strip sets the factor without touching the colour', () => {
   assert.deepEqual(c.seen, [{ r: 164, g: 51, b: 31, a: 200 }]);
 });
 
-test('the blend readout says blend, never opacity', () => {
+test('the blend surfaces say blend, never opacity, and there is no duplicate readout', () => {
   // Icon.cs:9-11 — the factor drags the sprite towards the tint. It is not transparency, and the
-  // word "opacity" anywhere here would teach the wrong thing about what a 128 does.
+  // word "opacity" anywhere here would teach the wrong thing about what a 128 does. The old
+  // "N / 255 blend" line is gone: the A field right beside it already shows the number.
   const c = open(make());
-  const blend = c.find('cp-blend');
-  assert.equal(blend.textContent, '128 / 255 blend');
-  assert.doesNotMatch(blend.textContent, /opacity/i);
+  assert.equal(c.find('cp-blend'), null);
   assert.equal(c.find('cp-alpha').getAttribute('aria-label'), 'blend');
+  assert.doesNotMatch(c.find('cp-note').textContent, /opacity/i);
 });
 
-test('the popover states that blend 0 stores no tint at all', () => {
-  // The standing note. At blend 0 the swatch still shows a colour, and nothing else on screen
-  // explains why the sprite is untinted or why Equipped.format drops the colour entirely.
+test('the popover states that alpha 0 stores no tint at all', () => {
+  // The standing note. At a factor of 0 the swatch still shows a colour, and nothing else on
+  // screen explains why the sprite is untinted or why Equipped.format drops the colour entirely.
   const c = open(make());
-  assert.match(c.find('cp-note').textContent, /blend 0 means no tint at all/);
+  assert.match(c.find('cp-note').textContent, /alpha 0 means no tint at all/);
   assert.match(c.find('cp-note').textContent, /not stored/);
 });
 
-test('without withAlpha there is no blend strip and no blend readout', () => {
+test('without withAlpha there is no blend strip and no note', () => {
   const c = open(make({ withAlpha: false }));
   assert.equal(c.find('cp-alpha'), null);
-  assert.equal(c.find('cp-blend'), null);
   assert.equal(c.find('cp-note'), null);
   // ...and the reports carry a full blend, since there is nothing to say otherwise.
   const sv = c.find('cp-sv');
@@ -355,7 +354,8 @@ test('typing a blend is the whole point: 128 exactly, without touching the strip
   fire(a, 'input');
 
   assert.equal(c.seen[0].a, 128);
-  assert.equal(c.find('cp-blend').textContent, '128 / 255 blend');
+  // The strip's accessible readout follows; there is no visible duplicate of the field.
+  assert.equal(c.find('cp-alpha').getAttribute('aria-valuetext'), '128 / 255 blend');
 });
 
 test('a channel field clamps to a byte rather than reporting a colour that is not one', () => {

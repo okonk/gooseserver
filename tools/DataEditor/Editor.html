@@ -90,9 +90,12 @@
 
      One flex row of the four parts would be 128 (square) + 14 (hue) + 14 (blend) + 120 (fields)
      + 3 gaps + 12 padding + 2 border = ~308. So the three canvases keep their row and the fields
-     wrap under them: 128 + 14 + 14 + 2 gaps + padding + border = 182, which fits the sidebar
-     column, the preview column, and the 84px track of an .equip-slot row alike. It also gives
-     the hex field 168px instead of 120.
+     sit below them as a full-width block.
+
+     min-width 236: the canvas row alone is ~182, and a popover that shrank to it squeezed the
+     four channel inputs (which share the fields row with their letters and gaps) down to a
+     single visible digit. 236 still fits the ~258px column, and gives each channel input room
+     for the three digits of 255.
 
      Which SIDE it hangs off cannot be decided in CSS — it depends on where the swatch sits in
      its column, and there is no container query for "am I about to overflow". So the default is
@@ -100,7 +103,7 @@
      sits at the right of a row (the equipment slots) asks for the other with align: 'right'. */
   .cp-pop { position: absolute; z-index: 10; top: 100%; left: 0; background: #fff;
             border: 1px solid #ccc; padding: 6px; box-sizing: border-box;
-            max-width: calc(100vw - 24px); }
+            min-width: 236px; max-width: calc(100vw - 24px); }
   .colorpicker[data-align="right"] .cp-pop { left: auto; right: 0; }
   /* justify-content: start, or the auto columns stretch and the gaps between the strips grow. */
   .cp-grid { display: grid; grid-template-columns: auto auto auto; gap: 6px;
@@ -114,10 +117,10 @@
             border: 1px solid #000; box-shadow: 0 0 0 1px #fff inset; border-radius: 50%;
             pointer-events: none; }
   .cp-sv, .cp-hue, .cp-alpha { display: block; cursor: crosshair; }
-  /* Its own row, under the canvases rather than beside them — see .cp-pop. 1 / -1 spans all
-     three columns whether or not the blend strip is there. */
-  .cp-fields { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 4px;
-               min-width: 0; }
+  /* A full-width block of the popover, under the canvas grid — see .cp-pop for the width it is
+     owed. margin-top rather than living inside the grid: a grid child could never be wider than
+     the canvas columns, which is what starved the channel fields of width. */
+  .cp-fields { display: flex; flex-direction: column; gap: 4px; min-width: 0; margin-top: 6px; }
   /* width: 100%, or the input's intrinsic ~20-character width (widened again by the monospace
      face) is what sets the popover's width instead of the canvas row above it. */
   .cp-hex { font-family: ui-monospace, monospace; width: 100%; box-sizing: border-box; }
@@ -128,12 +131,15 @@
   .cp-num-cell { flex: 1; min-width: 0; display: flex; align-items: center; gap: 2px;
                  font-size: 11px; color: #555; font-family: ui-monospace, monospace; }
   .cp-num { width: 100%; min-width: 0; box-sizing: border-box; font-family: ui-monospace, monospace;
-            font-size: 11px; padding: 1px 2px; }
+            font-size: 11px; padding: 1px 2px; appearance: textfield; -moz-appearance: textfield; }
+  /* The spinner buttons cost ~16px of a ~46px field — the difference between showing one digit
+     of 255 and all three. Arrow keys still step the value; the strips are the pointer path. */
+  .cp-num::-webkit-outer-spin-button, .cp-num::-webkit-inner-spin-button {
+    -webkit-appearance: none; margin: 0; }
   /* Announced, not shown: the visible numbers are the fields above. Clipped rather than
      display:none, which would take it out of the accessibility tree and silence it. */
   .cp-live { position: absolute; width: 1px; height: 1px; overflow: hidden;
              clip-path: inset(50%); white-space: nowrap; }
-  .cp-blend { font-size: 11px; color: #555; font-family: ui-monospace, monospace; }
   .cp-recent { display: flex; gap: 3px; margin-top: 6px; }
   .cp-recent-chip { width: 16px; height: 16px; border: 1px solid #ccc; padding: 0;
                     cursor: pointer; }
@@ -154,22 +160,19 @@
      has to be stated: a canvas is a replaced element, so in grid its min-width is auto — a track
      narrower than the canvas does not clip, it blows out and eats the 1fr graphic column.
 
-     The five tracks are label, graphic, browse, swatch, preview. The default .swatch is 40px, so
-     it is narrowed HERE rather than the track being widened to 40: the row is already
-     60 + 28 + 28 + 84 + four 4px gaps is 216px of fixed width against a ~258px sidebar column, so
-     the 1fr graphic field gets about 42px — roughly two digits of content. Part ids reach three
-     (Bodies runs past 300), so AT THE NARROWEST COLUMN A 3-DIGIT ID STILL SCROLLS INSIDE ITS FIELD
-     rather than showing whole; the field is the one track that grows the moment there is more room.
-     Every pixel given to the swatch comes off it, which is why the swatch is 28px and not more: a
-     28px swatch still reads as a colour, and the id has none to spare.
+     The four tracks are label, graphic, swatch, preview — the graphic field opens the browser
+     itself on click, so there is no Browse track to pay for. The default .swatch is 40px, so it
+     is narrowed HERE rather than the track being widened to 40: the row is
+     60 + 28 + 84 + three 4px gaps of fixed width against a ~258px sidebar column, and every
+     pixel given to the swatch comes off the 1fr graphic field — part ids reach three digits
+     (Bodies runs past 300), and the field is the one track that grows the moment there is more
+     room.
 
-     THE STATUS LINE IS NO LONGER A TRACK. It was the one cell with no width budget — an `auto`
-     track holding a string that has since grown ("colour not stored while blend is 0") — and a
-     Browse button had to be paid for from somewhere. Moving the status onto its own full-width row
-     buys the 28px track for the button without taking a pixel from the 1fr graphic field, the
-     swatch (already narrowed once) or the preview, AND gives the message the whole row rather than
-     whatever an unbudgeted `auto` track could squeeze out of a ~258px sidebar column. */
-  .equip-slot { display: grid; grid-template-columns: 60px 1fr 28px 28px 84px; gap: 4px;
+     THE STATUS LINE IS NOT A TRACK. It was the one cell with no width budget — an `auto` track
+     holding a string that has since grown ("colour not stored while blend is 0") — so it sits on
+     its own full-width row, where the message gets the whole row rather than whatever an
+     unbudgeted `auto` track could squeeze out of a ~258px sidebar column. */
+  .equip-slot { display: grid; grid-template-columns: 60px 1fr 28px 84px; gap: 4px;
                 align-items: center; }
   .equip-slot .status { grid-column: 1 / -1; }
   .equip .swatch { width: 28px; }
@@ -186,13 +189,10 @@
   .boolean input[type="checkbox"] { width: auto; margin: 0; }
   .boolean .clear { border: 0; background: none; color: #555; cursor: pointer; padding: 0 2px; }
 
-  /* The Browse buttons pickers.js and composites.js put beside every graphic field. Compact and
-     non-stretching: `input { width: 100% }` above does not reach a button, but the .equip-slot grid
-     would otherwise stretch it across its track. */
-  .browse { border: 1px solid #ccc; background: #f4f4f4; color: #222; cursor: pointer;
-            padding: 1px 6px; font-size: 11px; }
-  .browse[disabled] { color: #999; cursor: default; }
-  .equip-slot .browse { padding: 1px 0; width: 100%; }
+  /* A graphic field that opens the browser on click — pickers.js and composites.js mark every
+     such field with data-browse. The pointer says a click does something beyond placing a
+     caret; typing into the field still works (Tab in, or Escape out of the dialog it opens). */
+  input[data-browse] { cursor: pointer; }
 
   /* THE GRAPHIC BROWSER. #modal is the backdrop and the dialog's positioning context; Gallery.open
      owns everything inside it and leaves it empty on close.
@@ -216,19 +216,33 @@
   .gal-locked { font-size: 11px; color: #555; }
   /* THE SCROLLER IS THE ONLY THING THAT SCROLLS. The grid is a fixed 268px wide, so in a ~300px
      Sheets sidebar it fits, and a narrower viewport still scrolls HERE rather than turning the whole
-     page into a horizontal scroller — the same rule #previews canvas and .cp-pop are written to. */
-  .gal-scroll { overflow: auto; flex: 1 1 auto; min-height: 120px; }
+     page into a horizontal scroller — the same rule #previews canvas and .cp-pop are written to.
+
+     overflow-anchor: none, because the grid is WINDOWED: every scroll can rebuild the tiles and
+     resize the two spacers, and the browser's scroll anchoring reads those mutations as content
+     shifting under the user and "corrects" scrollTop — which is the jump-to-the-bottom-on-wheel
+     bug. user-select: none for the drag half of the same complaint: dragging across the grid
+     started a text selection over nodes the next render replaces, which flashed. */
+  .gal-scroll { overflow: auto; flex: 1 1 auto; min-height: 120px; overflow-anchor: none;
+                -webkit-user-select: none; user-select: none; }
   .gal-grid { display: grid; grid-template-columns: repeat(4, 64px); gap: 4px; }
-  /* Every tile is one 64px cell whose background is a window onto the bundle atlas — no canvas, no
-     drawImage. gallery.js sets background-size and background-position per tile; the PNG itself
-     comes from a rule it injects, once, so the data URI is not copied 4,827 times.
+  /* Every tile is one 64px cell holding a .gal-art element sized to exactly the sprite's scaled
+     rect — no canvas, no drawImage. gallery.js sets the art's size and background offset per
+     tile; the PNG itself comes from a rule it injects, once, so the data URI is not copied 4,827
+     times. The art is a separate, exactly-sized element rather than a background on the cell so
+     the padding around a small sprite shows the tile's own background and never the atlas's
+     neighbouring sprites; the flex rules are what centre it.
 
      The 4px gap plus this 64px box IS Gallery.ROW_HEIGHT (68), which is the number its windowing
      arithmetic uses to decide which row a scroll offset lands on. The two cannot drift apart
      silently: a mismatch shows up as tiles landing outside the viewport. */
   .gal-tile { width: 64px; height: 64px; padding: 0; border: 1px solid #eee; cursor: pointer;
-              background-repeat: no-repeat; background-color: transparent;
-              image-rendering: pixelated; }
+              background-color: transparent; display: flex;
+              align-items: center; justify-content: center; overflow: hidden; }
+  /* pointer-events: none keeps every click's event.target on the BUTTON, so the tile's click
+     handler and Gallery's inGrid walk never have to know the art element exists. */
+  .gal-art { background-repeat: no-repeat; image-rendering: pixelated; pointer-events: none;
+             flex: none; }
   .gal-tile[aria-selected="true"] { border-color: #4a76c8; box-shadow: 0 0 0 1px #4a76c8; }
   .gal-count { font-size: 11px; color: #555; }
 
@@ -239,14 +253,11 @@
     .swatch, .cp-recent-chip { border-color: #444; }
     input, select { background: #2c2c2c; color: #eee; border-color: #444; }
     section h3, .field label, .resolved, .status, .hint, .readout, .cp-note,
-    .cp-num-cell, .cp-blend, .boolean .clear { color: #aaa; }
+    .cp-num-cell, .boolean .clear { color: #aaa; }
     /* Buttons do not inherit colour, so both of these are stated, not left to the cascade. */
     .record, .result { color: #eee; }
     .result.active { background: #33415c; }
     .chip { background: #2b2b3a; border-color: #43435a; color: #eee; }
-    /* Buttons do not inherit colour, so both of these are stated rather than left to the cascade. */
-    .browse { background: #2c2c2c; color: #eee; border-color: #444; }
-    .browse[disabled] { color: #777; }
     .gal { background: #242424; border-color: #3a3a3a; }
     .gal h2, .gal-locked, .gal-count { color: #aaa; }
     .gal-tile { border-color: #3a3a3a; }

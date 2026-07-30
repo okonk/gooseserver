@@ -441,28 +441,27 @@ var Composites = (function () {
                                         class: 'preview' });
       var status = Forms.el('span', { class: 'status' });
 
-      // The graphic browser for this slot, LOCKED to the slot's own sprite folder — picking a Helms
-      // sprite for a Feet slot is never right, and Appearance.CATEGORY is the client's own map from
-      // one to the other (Shield and Weapon both land on Hands).
-      //
-      // The button draws '…' rather than 'Browse': this row is five cells in a fixed grid against a
-      // ~258px sidebar column, and the 28px it gets came from moving the status line onto its own
-      // full-width row rather than off the graphic field. title and aria-label carry the real name.
+      // CLICKING THE GRAPHIC FIELD OPENS THE BROWSER for this slot, LOCKED to the slot's own
+      // sprite folder — picking a Helms sprite for a Feet slot is never right, and
+      // Appearance.CATEGORY is the client's own map from one to the other (Shield and Weapon
+      // both land on Hands). No separate Browse button: the row is a fixed grid against a
+      // ~258px sidebar column and every track it loses goes back to this field. The field is
+      // the opener the dialog hands focus back to, so a hand-typed edit is one Escape away.
       //
       // A pick goes in through the input's own `input` event rather than by calling sync() here, so
       // the typo check, the freeze gate, the redraw and app.js's delegated preview all run on the
       // one path they already run on for a typed id.
-      var browse = Forms.el('button', {
-        type: 'button', class: 'browse', 'aria-haspopup': 'dialog',
-        title: 'browse ' + slotName + ' graphics', 'aria-label': 'browse ' + slotName + ' graphics',
-      }, '…');
-      browse.addEventListener('click', function () {
+      input.setAttribute('data-browse', '');
+      input.setAttribute('title', 'browse ' + slotName + ' graphics');
+      input.setAttribute('aria-label', 'browse ' + slotName + ' graphics');
+      input.setAttribute('aria-haspopup', 'dialog');
+      input.addEventListener('click', function () {
         var gallery = galleryOf(opts);
         if (!gallery) return;
         gallery.open({
           bundle: 'parts',
           bundles: (ctx && ctx.bundles) || {},
-          opener: browse,
+          opener: input,
           filter: { category: Appearance.CATEGORY[slotName], locked: true },
           current: { category: Appearance.CATEGORY[slotName], id: input.value },
           onPick: function (choice) {
@@ -570,9 +569,8 @@ var Composites = (function () {
       if (ctx && typeof ctx.onImagesReady === 'function') ctx.onImagesReady(redraw);
 
       row.appendChild(input);
-      // In grid track order: label, graphic, browse, swatch, preview — and the status line below,
+      // In grid track order: label, graphic, swatch, preview — and the status line below,
       // spanning the whole row.
-      row.appendChild(browse);
       row.appendChild(picker.node);
       row.appendChild(canvas);
       row.appendChild(status);

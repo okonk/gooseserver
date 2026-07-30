@@ -4,11 +4,12 @@
 //
 // THREE THINGS ABOUT IT ARE NOT NEGOTIABLE, and each is a decision the alternative silently loses:
 //
-//   1. TILES ARE CSS ATLAS WINDOWS, NOT CANVASES. Each tile is a <button> whose background is the
-//      bundle PNG, offset to the sprite's rect. The browser composites them; there is no per-tile
-//      canvas and no per-tile drawImage, which is what makes a thousand of them cheap. The PNG data
-//      URI is named ONCE, in an injected <style> rule — copying a 1.7MB URI into 4,827 inline
-//      styles would be several gigabytes of attribute text.
+//   1. TILES ARE CSS ATLAS WINDOWS, NOT CANVASES. Each tile is a <button> holding one element
+//      sized to exactly the sprite's scaled rect, whose background is the bundle PNG offset to
+//      that rect. The browser composites them; there is no per-tile canvas and no per-tile
+//      drawImage, which is what makes a thousand of them cheap. The PNG data URI is named ONCE,
+//      in an injected <style> rule — copying a 1.7MB URI into 4,827 inline styles would be
+//      several gigabytes of attribute text.
 //   2. WINDOWING IS NOT OPTIONAL. 4,827 tiles in the DOM is a hang inside an Apps Script iframe.
 //      Only the rows intersecting the viewport plus two rows of overscan are built; two spacer
 //      divs carry the rest of the height so the scrollbar is honest.
@@ -260,7 +261,10 @@ var Gallery = (function () {
   }
 
   // How a sprite's rect becomes a background window. `k` scales the WHOLE atlas, so the offset
-  // scales with it; the tile is then centred in the cell by adding the leftover half.
+  // scales with it. The element this lands on is sized to EXACTLY the scaled rect — the tile
+  // centres it with flexbox — so nothing outside the rect is ever visible: a background on the
+  // 64px cell itself showed slivers of the NEIGHBOURING sprites in the padding around any art
+  // smaller than the cell, which for the tightly packed parts atlas was most of it.
   //
   // Capped at MAX_SCALE so a 4x4 sprite is not blown up to fill 64 pixels, and floored by the fit
   // so a 128x128 one is not clipped.
@@ -268,11 +272,11 @@ var Gallery = (function () {
     var w = rect[2] || 1;
     var h = rect[3] || 1;
     var k = Math.min(MAX_SCALE, CELL / w, CELL / h);
-    var padX = (CELL - w * k) / 2;
-    var padY = (CELL - h * k) / 2;
     return {
+      width: (w * k) + 'px',
+      height: (h * k) + 'px',
       size: (bundle.width * k) + 'px ' + (bundle.height * k) + 'px',
-      position: (padX - rect[0] * k) + 'px ' + (padY - rect[1] * k) + 'px',
+      position: (-rect[0] * k) + 'px ' + (-rect[1] * k) + 'px',
     };
   }
 
@@ -308,8 +312,9 @@ var Gallery = (function () {
   ///             whatever cells it owns: icons { sheet, graphic }, parts { category, id },
   ///             effects { id }. Icons give BOTH cells, which is what makes "graphic and sheet must
   ///             both be set" hard to trip from the browser.
-  ///   opener  — the Browse button focus returns to on close. Passed rather than read from
-  ///             document.activeElement, which nothing in this editor's test DOM models.
+  ///   opener  — the control focus returns to on close (the graphic field that was clicked).
+  ///             Passed rather than read from document.activeElement, which nothing in this
+  ///             editor's test DOM models.
   function open(options) {
     var opts = options || {};
     // A second open REPLACES the first, and does not hand focus back to the first opener: the user
@@ -340,7 +345,7 @@ var Gallery = (function () {
         // The selector is built from the host's OWN id rather than spelled again: the tests assert
         // the URI is in the rule text, not that the selector matches anything, so a host that moved
         // would leave every tile without art and no test would see it.
-        '#' + host.id + ' .gal-tile { background-image: url("' + bundle.png + '"); }'));
+        '#' + host.id + ' .gal-art { background-image: url("' + bundle.png + '"); }'));
     }
 
     var dialog = el('div', {
@@ -360,18 +365,22 @@ var Gallery = (function () {
 
     if (bundleName === 'icons') {
       sheetChooser = el('select', { 'data-gal': 'sheet', 'aria-label': 'sheet file' });
+      // 'all sheets' first: one flat list over the whole bundle, for whoever would rather scroll
+      // than know which of 125 files an icon lives in. '*' rather than '' as its value so an
+      // ASSIGNMENT that matched no option (which reads back '') stays distinguishable from the
+      // user choosing this mode.
+      sheetChooser.appendChild(el('option', { value: '*' },
+        'all sheets (' + all.length + ')'));
       iconSheets(all).forEach(function (s) {
         sheetChooser.appendChild(el('option', { value: s.sheet },
           s.sheet + ' (' + s.count + ')'));
       });
       // Defaulted to the sheet the record already names, so opening the browser from an item shows
-      // that item's neighbourhood rather than whichever sheet sorts first. An unknown sheet — a
-      // blank cell, or one naming a file the bundle does not have — leaves the select on its first
-      // option rather than on nothing, which would read back as '' and filter the grid to empty.
+      // that item's neighbourhood rather than everything. An unknown sheet — a blank cell, or one
+      // naming a file the bundle does not have — falls back to 'all sheets' rather than to
+      // nothing, which would read back as '' and filter the grid to empty.
       if (str(wanted.sheet) !== '') sheetChooser.value = str(num(wanted.sheet));
-      if (sheetChooser.value === '' && sheetChooser.getElementsByTagName('option').length) {
-        sheetChooser.value = sheetChooser.getElementsByTagName('option')[0].value;
-      }
+      if (sheetChooser.value === '') sheetChooser.value = '*';
       head.appendChild(sheetChooser);
     } else if (bundleName === 'parts' && locked) {
       head.appendChild(el('span', { 'data-gal': 'locked', class: 'gal-locked' },
@@ -432,7 +441,8 @@ var Gallery = (function () {
 
     function currentFilter() {
       return {
-        sheet: sheetChooser ? sheetChooser.value : undefined,
+        // '*' is the all-sheets mode; filterEntries reads '' as "no sheet filter".
+        sheet: sheetChooser ? (sheetChooser.value === '*' ? '' : sheetChooser.value) : undefined,
         category: locked ? wanted.category : (categoryChooser ? categoryChooser.value : undefined),
         query: search.value,
       };
@@ -450,8 +460,19 @@ var Gallery = (function () {
       count.textContent = shown.length + ' of ' + reachable.length + ' — click a tile to use it';
     }
 
+    // What the grid currently holds, so a scroll event that lands inside the already-built
+    // window (wheel deltas and drag steps mostly do — the window carries two rows of overscan)
+    // does not tear the tiles down just to rebuild the identical set. That rebuild was not only
+    // waste: replacing the nodes under the pointer mid-drag made the grid visibly flash, and
+    // gave the browser's scroll anchoring a mutation to mis-anchor on.
+    var built = null;
+
     function render() {
       var w = windowFor(shown.length, scroll.scrollTop, viewport());
+      if (built && built.shown === shown && built.cursor === cursor
+          && built.first === w.first && built.last === w.last) return;
+      built = { shown: shown, cursor: cursor, first: w.first, last: w.last };
+
       padTop.style.height = w.topPad + 'px';
       padBottom.style.height = w.bottomPad + 'px';
       // Drops the previous tiles and, with them, their click handlers: the nodes are unreachable
@@ -466,9 +487,16 @@ var Gallery = (function () {
           title: entry.label, 'aria-label': entry.label,
         });
         if (bundle) {
+          // On an INNER element sized to exactly the scaled rect, not on the tile: a background
+          // on the whole 64px cell shows the atlas's neighbouring sprites in the padding around
+          // any art smaller than the cell. The tile centres it (see .gal-tile's flex rules).
+          var art = el('span', { 'data-gal': 'art', class: 'gal-art', role: 'presentation' });
           var s = tileStyle(bundle, entry.rect);
-          tile.style.backgroundSize = s.size;
-          tile.style.backgroundPosition = s.position;
+          art.style.width = s.width;
+          art.style.height = s.height;
+          art.style.backgroundSize = s.size;
+          art.style.backgroundPosition = s.position;
+          tile.appendChild(art);
         }
         if (i === cursor) tile.setAttribute('aria-selected', 'true');
         // `at` rather than `i`: the loop variable is function-scoped in ES5, so every handler
