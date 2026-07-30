@@ -154,6 +154,53 @@ test('search does not mutate or alias the entry list', () => {
   assert.equal(list.length, 4);
 });
 
+// --- browse ---------------------------------------------------------------------------------
+//
+// What a filled-in picker shows before the user types. THE COMPLAINT search() produced: a field
+// holding "42 — Iron Sword" searched on '42', so the list beside a selected value was that value
+// (plus whatever it is a prefix of) and the other rows could not be reached without clearing the
+// field first.
+
+test('browse lists the whole head of the list with the current id hoisted to the front', () => {
+  assert.deepEqual(Pickers.browse(entries, '43').map((e) => e.id), ['43', '1', '42', '100']);
+  // The alternatives are the point: every row is offered, not just the one already chosen.
+  assert.equal(Pickers.browse(entries, '43').length, entries.length);
+});
+
+test('browse keeps sheet order behind the hoisted row', () => {
+  assert.deepEqual(Pickers.browse(entries, '1').map((e) => e.id), ['1', '42', '43', '100']);
+});
+
+test('browse with no id, or an unknown one, is just the head of the list', () => {
+  ['', ' ', null, undefined, '999', 'nonsense'].forEach((id) => {
+    assert.deepEqual(Pickers.browse(entries, id).map((e) => e.id), ['1', '42', '43', '100'],
+      JSON.stringify(id));
+  });
+});
+
+test('browse compares ids canonically, like search and Validation do', () => {
+  assert.equal(Pickers.browse(entries, ' 042 ')[0].id, '42');
+  assert.equal(Pickers.browse([{ id: 42 }, { id: 1 }], '42')[0].id, 42);
+  assert.equal(Pickers.browse([{ id: ' 42 ' }, { id: '1' }], '42')[0].id, ' 42 ');
+});
+
+test('browse is capped at LIMIT, so it is the head of a big sheet and not a copy of it', () => {
+  // Items is 1,595 rows. Everything past the cap is reached by typing, which is search()'s job.
+  const many = Array.from({ length: 500 }, (_, i) => ({ id: String(i), name: 'x' + i }));
+  assert.equal(Pickers.browse(many, '3').length, Pickers.LIMIT);
+  // And the current row survives the cap even when it sits far past it — which is exactly why it
+  // is hoisted rather than left in place.
+  assert.equal(Pickers.browse(many, '480')[0].id, '480');
+});
+
+test('browse does not mutate or alias the entry list', () => {
+  const list = entries.slice();
+  const out = Pickers.browse(list, '42');
+  assert.notEqual(out, list);
+  out.length = 0;
+  assert.equal(list.length, 4);
+});
+
 // --- fkControl ------------------------------------------------------------------------------
 
 const refColumn = { name: 'item_template_id', kind: 'Id', sql: 'INTEGER', ref: 'Items', required: true };
@@ -293,139 +340,13 @@ test('fkControl reads pickerData at use time, not at construction', () => {
   const { input, label, list } = parts(wrap);
   fire(input, 'focus');
   assert.equal(list.hidden, false);
-  assert.deepEqual(list.children.map((c) => c.textContent), ['42 — Iron Sword']);
+  // The whole list, with the field's own id first — the control has not been typed into, so it is
+  // browsing (see the browse tests above). What this asserts is that the entries were read at
+  // FOCUS time: a control that captured them at construction would still be showing nothing.
+  assert.deepEqual(list.children.map((c) => c.textContent),
+    ['42 — Iron Sword', '1 — Gold', '43 — Iron Shield', '100 — Steel Sword']);
   fire(input, 'input');
   assert.equal(label.textContent, 'Iron Sword');
-});
-
-test('fkControl survives a ctx with no picker data at all', () => {
-  const wrap = Pickers.fkControl(refColumn, '42', {});
-  assert.equal(parts(wrap).label.textContent, 'loading Items…');
-});
-
-test('fkControl lists results on focus, before any keystroke', () => {
-  const wrap = Pickers.fkControl(refColumn, '', ctxWith({ Items: entries }));
-  const { input, list } = parts(wrap);
-  assert.equal(list.hidden, true);
-
-  fire(input, 'focus');
-  assert.equal(list.hidden, false);
-  assert.deepEqual(list.children.map((c) => c.textContent),
-    ['1 — Gold', '42 — Iron Sword', '43 — Iron Shield', '100 — Steel Sword']);
-  // type=button, not the default submit: these rows sit inside the record form, and a submit
-  // button would submit it on every single result click.
-  assert.deepEqual(list.children.map((c) => c.getAttribute('type')),
-    ['button', 'button', 'button', 'button']);
-});
-
-test('fkControl filters as you type', () => {
-  const wrap = Pickers.fkControl(refColumn, '', ctxWith({ Items: entries }));
-  const { input, list } = parts(wrap);
-
-  input.value = 'iron';
-  fire(input, 'input');
-  assert.deepEqual(list.children.map((c) => c.getAttribute('data-id')), ['42', '43']);
-});
-
-test('fkControl hides the list when nothing matches', () => {
-  const wrap = Pickers.fkControl(refColumn, '', ctxWith({ Items: entries }));
-  const { input, list } = parts(wrap);
-
-  fire(input, 'focus');
-  input.value = 'zzz';
-  fire(input, 'input');
-  assert.equal(list.hidden, true);
-  assert.equal(list.children.length, 0);
-});
-
-test('fkControl updates the resolved name as you type', () => {
-  const wrap = Pickers.fkControl(refColumn, '', ctxWith({ Items: entries }));
-  const { input, label } = parts(wrap);
-
-  input.value = '43';
-  fire(input, 'input');
-  assert.equal(label.textContent, 'Iron Shield');
-});
-
-test('clicking a result writes the id, resolves it and closes the list', () => {
-  const wrap = Pickers.fkControl(refColumn, '', ctxWith({ Items: entries }));
-  const { input, cell, label, list } = parts(wrap);
-
-  fire(input, 'focus');
-  fire(list.children[2], 'click');
-
-  assert.equal(cell.value, '43', 'the cell holds the bare id and nothing else');
-  assert.equal(input.value, '43 — Iron Shield');
-  assert.equal(label.textContent, '', 'the name is in the field, not repeated below it');
-  assert.equal(list.hidden, true);
-});
-
-test('clicking a result writes the canonical id, not the raw cell text', () => {
-  const messy = ctxWith({ Items: [{ id: ' 042 ', name: 'Iron Sword' }] });
-  const wrap = Pickers.fkControl(refColumn, '', messy);
-  const { input, cell, list } = parts(wrap);
-
-  fire(input, 'focus');
-  assert.equal(list.children[0].textContent, '42 — Iron Sword');
-  fire(list.children[0], 'click');
-  assert.equal(cell.value, '42');
-  // The DISPLAY too: resolving '42' against a stored ' 042 ' is the lookup's own
-  // canonicalisation, and without this the row text alone would pass with a raw string
-  // comparison in find().
-  assert.equal(input.value, '42 — Iron Sword');
-});
-
-test('rebuilding the list detaches the old rows entirely', () => {
-  // The rows are rebuilt on every keystroke. Each one closes over the input and its own entry,
-  // so a row left hanging in the tree would be a stale closure the user could still click.
-  const wrap = Pickers.fkControl(refColumn, '', ctxWith({ Items: entries }));
-  const { input, list } = parts(wrap);
-
-  fire(input, 'focus');
-  const stale = list.children[0];
-  input.value = 'iron';
-  fire(input, 'input');
-
-  assert.equal(list.children.indexOf(stale), -1);
-  assert.equal(stale.parentNode, null, 'the old row must be unreachable from the tree');
-  assert.deepEqual(list.children.map((c) => c.getAttribute('data-id')), ['42', '43']);
-});
-
-test('mousedown inside the list is cancelled so the click is never lost to blur', () => {
-  // The plan hid the list on a 150ms timer and hoped the click landed first. Cancelling
-  // mousedown keeps focus on the input, so blur does not fire at all — no timer, no race.
-  const wrap = Pickers.fkControl(refColumn, '', ctxWith({ Items: entries }));
-  const { input, list } = parts(wrap);
-
-  fire(input, 'focus');
-  const notCancelled = fire(list.children[0], 'mousedown');
-  assert.equal(notCancelled, false, 'mousedown default must be prevented');
-});
-
-test('blur hides the list immediately', () => {
-  const wrap = Pickers.fkControl(refColumn, '', ctxWith({ Items: entries }));
-  const { input, list } = parts(wrap);
-
-  fire(input, 'focus');
-  assert.equal(list.hidden, false);
-  fire(input, 'blur');
-  assert.equal(list.hidden, true);
-});
-
-test('blur into the list itself leaves it open', () => {
-  // The mousedown cancel above means focus normally never leaves the input, so this is the other
-  // routes in: assistive tech calling row.focus(), or a browser that focuses the mousedown target
-  // regardless. Hiding then would pull the list out from under the focus that just arrived.
-  const wrap = Pickers.fkControl(refColumn, '', ctxWith({ Items: entries }));
-  const { input, list } = parts(wrap);
-
-  fire(input, 'focus');
-  fire(input, 'blur', { relatedTarget: list.children[1] });
-  assert.equal(list.hidden, false);
-
-  // …and focus moving anywhere else still closes it.
-  fire(input, 'blur', { relatedTarget: parts(wrap).label });
-  assert.equal(list.hidden, true);
 });
 
 // --- fkControl: keyboard --------------------------------------------------------------------
@@ -724,6 +645,260 @@ test('fkControl labels an entry with a blank name rather than showing nothing', 
 test('the fkControl input is the only named node, so Forms.collect sees one value', () => {
   const wrap = Pickers.fkControl(refColumn, '42', ctxWith({ Items: entries }));
   assert.equal(wrap.querySelectorAll('[name]').length, 1);
+});
+
+// --- fkControl: a selected value does not filter the list to itself ---------------------------
+
+test('focusing a filled-in picker offers every other row, not just the one selected', () => {
+  // THE COMPLAINT. The field reads "42 — Iron Sword"; picking something else used to require
+  // clearing it first, because the display text was searched as a query.
+  const wrap = Pickers.fkControl(refColumn, '42', ctxWith({ Items: entries }));
+  const { input, list } = parts(wrap);
+
+  fire(input, 'focus');
+  assert.deepEqual(list.children.map((c) => c.getAttribute('data-id')),
+    ['42', '1', '43', '100']);
+});
+
+test('the selected row opens as the active one, so the arrows walk out from it', () => {
+  const wrap = Pickers.fkControl(refColumn, '42', ctxWith({ Items: entries }));
+  const { input } = parts(wrap);
+
+  fire(input, 'focus');
+  assert.equal(activeRow(wrap).getAttribute('data-id'), '42');
+  // Down moves to the next row rather than back to the first.
+  fire(input, 'keydown', DOWN);
+  assert.equal(activeRow(wrap).getAttribute('data-id'), '1');
+});
+
+test('a value that does not resolve marks no row, so nothing is offered as "current"', () => {
+  const wrap = Pickers.fkControl(refColumn, '999', ctxWith({ Items: entries }));
+  const { input, list } = parts(wrap);
+
+  fire(input, 'focus');
+  assert.deepEqual(list.children.map((c) => c.getAttribute('data-id')), ['1', '42', '43', '100']);
+  assert.equal(activeRow(wrap), null);
+});
+
+test('typing switches back to filtering, and the value is no longer hoisted', () => {
+  const wrap = Pickers.fkControl(refColumn, '42', ctxWith({ Items: entries }));
+  const { input, list } = parts(wrap);
+
+  fire(input, 'focus');
+  input.value = 'iron';
+  fire(input, 'input');
+  // The matches, in sheet order — 42 is a hit here on its own merits, not because it was selected.
+  assert.deepEqual(list.children.map((c) => c.getAttribute('data-id')), ['42', '43']);
+  assert.equal(activeRow(wrap), null, 'a query offers no row until the user picks one');
+
+  // And a query that matches nothing still says so, rather than falling back to the whole sheet.
+  input.value = 'zzz';
+  fire(input, 'input');
+  assert.equal(list.hidden, true);
+});
+
+test('a query left in the field goes back to browsing once the field is re-entered', () => {
+  // blur re-displays the field FROM THE CELL, and every keystroke has already written the cell
+  // verbatim — that is the control's existing contract, so 'iron' is now the stored value and
+  // Validation is what reports it. What this pins is that the list stops treating it as a query:
+  // re-focusing offers the sheet again rather than the two rows 'iron' matched.
+  const wrap = Pickers.fkControl(refColumn, '42', ctxWith({ Items: entries }));
+  const { input, cell } = parts(wrap);
+
+  fire(input, 'focus');
+  input.value = 'iron';
+  fire(input, 'input');
+  fire(input, 'blur');
+  assert.equal(cell.value, 'iron');
+  assert.equal(input.value, 'iron', 'nothing the user typed is rewritten under them');
+
+  fire(input, 'focus');
+  assert.deepEqual(parts(wrap).list.children.map((c) => c.getAttribute('data-id')),
+    ['1', '42', '43', '100']);
+  // Nothing is hoisted or marked: 'iron' is not a row of Items.
+  assert.equal(activeRow(wrap), null);
+  assert.equal(parts(wrap).label.textContent, 'not found in Items');
+});
+
+test('a hand-typed id that resolves on blur is then hoisted and marked', () => {
+  // The other half: display() turns '43' into "43 — Iron Shield" on blur, which makes it the
+  // current value — so the next focus browses from it, exactly as a picked row would.
+  const wrap = Pickers.fkControl(refColumn, '', ctxWith({ Items: entries }));
+  const { input } = parts(wrap);
+
+  input.value = '43';
+  fire(input, 'input');
+  fire(input, 'blur');
+  assert.equal(input.value, '43 — Iron Shield');
+
+  fire(input, 'focus');
+  assert.deepEqual(parts(wrap).list.children.map((c) => c.getAttribute('data-id')),
+    ['43', '1', '42', '100']);
+  assert.equal(activeRow(wrap).getAttribute('data-id'), '43');
+});
+
+test('picking a different row leaves the list browsing from the NEW value', () => {
+  const wrap = Pickers.fkControl(refColumn, '42', ctxWith({ Items: entries }));
+  const { input, list } = parts(wrap);
+
+  fire(input, 'focus');
+  fire(list.children[2], 'click');          // 43 — Iron Shield
+  assert.equal(parts(wrap).cell.value, '43');
+
+  fire(input, 'focus');
+  assert.deepEqual(parts(wrap).list.children.map((c) => c.getAttribute('data-id')),
+    ['43', '1', '42', '100']);
+});
+
+test('an empty picker still opens on the head of the list with nothing active', () => {
+  // Unchanged behaviour, asserted next to the new one: with no value there is nothing to hoist and
+  // no row to offer, so the "no row active" rule still holds where it always did.
+  const wrap = Pickers.fkControl(refColumn, '', ctxWith({ Items: entries }));
+  const { input, list } = parts(wrap);
+
+  fire(input, 'focus');
+  assert.deepEqual(list.children.map((c) => c.getAttribute('data-id')), ['1', '42', '43', '100']);
+  assert.equal(activeRow(wrap), null);
+});
+
+test('a stored 0 browses the list rather than hoisting a row', () => {
+  // 0 is "none", which is not a row of the referenced sheet at all.
+  const wrap = Pickers.fkControl(optionalColumn, '0', ctxWith({ 'Spell Effects': entries }));
+  const { input, list } = parts(wrap);
+
+  fire(input, 'focus');
+  assert.deepEqual(list.children.map((c) => c.getAttribute('data-id')), ['1', '42', '43', '100']);
+  assert.equal(activeRow(wrap), null);
+});
+
+test('fkControl survives a ctx with no picker data at all', () => {
+  const wrap = Pickers.fkControl(refColumn, '42', {});
+  assert.equal(parts(wrap).label.textContent, 'loading Items…');
+});
+
+test('fkControl lists results on focus, before any keystroke', () => {
+  const wrap = Pickers.fkControl(refColumn, '', ctxWith({ Items: entries }));
+  const { input, list } = parts(wrap);
+  assert.equal(list.hidden, true);
+
+  fire(input, 'focus');
+  assert.equal(list.hidden, false);
+  assert.deepEqual(list.children.map((c) => c.textContent),
+    ['1 — Gold', '42 — Iron Sword', '43 — Iron Shield', '100 — Steel Sword']);
+  // type=button, not the default submit: these rows sit inside the record form, and a submit
+  // button would submit it on every single result click.
+  assert.deepEqual(list.children.map((c) => c.getAttribute('type')),
+    ['button', 'button', 'button', 'button']);
+});
+
+test('fkControl filters as you type', () => {
+  const wrap = Pickers.fkControl(refColumn, '', ctxWith({ Items: entries }));
+  const { input, list } = parts(wrap);
+
+  input.value = 'iron';
+  fire(input, 'input');
+  assert.deepEqual(list.children.map((c) => c.getAttribute('data-id')), ['42', '43']);
+});
+
+test('fkControl hides the list when nothing matches', () => {
+  const wrap = Pickers.fkControl(refColumn, '', ctxWith({ Items: entries }));
+  const { input, list } = parts(wrap);
+
+  fire(input, 'focus');
+  input.value = 'zzz';
+  fire(input, 'input');
+  assert.equal(list.hidden, true);
+  assert.equal(list.children.length, 0);
+});
+
+test('fkControl updates the resolved name as you type', () => {
+  const wrap = Pickers.fkControl(refColumn, '', ctxWith({ Items: entries }));
+  const { input, label } = parts(wrap);
+
+  input.value = '43';
+  fire(input, 'input');
+  assert.equal(label.textContent, 'Iron Shield');
+});
+
+test('clicking a result writes the id, resolves it and closes the list', () => {
+  const wrap = Pickers.fkControl(refColumn, '', ctxWith({ Items: entries }));
+  const { input, cell, label, list } = parts(wrap);
+
+  fire(input, 'focus');
+  fire(list.children[2], 'click');
+
+  assert.equal(cell.value, '43', 'the cell holds the bare id and nothing else');
+  assert.equal(input.value, '43 — Iron Shield');
+  assert.equal(label.textContent, '', 'the name is in the field, not repeated below it');
+  assert.equal(list.hidden, true);
+});
+
+test('clicking a result writes the canonical id, not the raw cell text', () => {
+  const messy = ctxWith({ Items: [{ id: ' 042 ', name: 'Iron Sword' }] });
+  const wrap = Pickers.fkControl(refColumn, '', messy);
+  const { input, cell, list } = parts(wrap);
+
+  fire(input, 'focus');
+  assert.equal(list.children[0].textContent, '42 — Iron Sword');
+  fire(list.children[0], 'click');
+  assert.equal(cell.value, '42');
+  // The DISPLAY too: resolving '42' against a stored ' 042 ' is the lookup's own
+  // canonicalisation, and without this the row text alone would pass with a raw string
+  // comparison in find().
+  assert.equal(input.value, '42 — Iron Sword');
+});
+
+test('rebuilding the list detaches the old rows entirely', () => {
+  // The rows are rebuilt on every keystroke. Each one closes over the input and its own entry,
+  // so a row left hanging in the tree would be a stale closure the user could still click.
+  const wrap = Pickers.fkControl(refColumn, '', ctxWith({ Items: entries }));
+  const { input, list } = parts(wrap);
+
+  fire(input, 'focus');
+  const stale = list.children[0];
+  input.value = 'iron';
+  fire(input, 'input');
+
+  assert.equal(list.children.indexOf(stale), -1);
+  assert.equal(stale.parentNode, null, 'the old row must be unreachable from the tree');
+  assert.deepEqual(list.children.map((c) => c.getAttribute('data-id')), ['42', '43']);
+});
+
+test('mousedown inside the list is cancelled so the click is never lost to blur', () => {
+  // The plan hid the list on a 150ms timer and hoped the click landed first. Cancelling
+  // mousedown keeps focus on the input, so blur does not fire at all — no timer, no race.
+  const wrap = Pickers.fkControl(refColumn, '', ctxWith({ Items: entries }));
+  const { input, list } = parts(wrap);
+
+  fire(input, 'focus');
+  const notCancelled = fire(list.children[0], 'mousedown');
+  assert.equal(notCancelled, false, 'mousedown default must be prevented');
+});
+
+test('blur hides the list immediately', () => {
+  const wrap = Pickers.fkControl(refColumn, '', ctxWith({ Items: entries }));
+  const { input, list } = parts(wrap);
+
+  fire(input, 'focus');
+  assert.equal(list.hidden, false);
+  fire(input, 'blur');
+  assert.equal(list.hidden, true);
+});
+
+test('blur into the list itself leaves it open', () => {
+  // The mousedown cancel above means focus normally never leaves the input, so this is the other
+  // routes in: assistive tech calling row.focus(), or a browser that focuses the mousedown target
+  // regardless. Hiding then would pull the list out from under the focus that just arrived.
+  const wrap = Pickers.fkControl(refColumn, '', ctxWith({ Items: entries }));
+  const { input, list } = parts(wrap);
+
+  fire(input, 'focus');
+  fire(input, 'blur', { relatedTarget: list.children[1] });
+  assert.equal(list.hidden, false);
+
+  // …and focus moving anywhere else still closes it.
+  fire(input, 'blur', { relatedTarget: parts(wrap).label });
+  assert.equal(list.hidden, true);
 });
 
 // --- graphicControl -------------------------------------------------------------------------
@@ -1496,6 +1671,131 @@ test('partControl redraws when the parts bundle finishes decoding', () => {
   assert.equal(drawnFrom(wrap), 10);
 });
 
+// --- partControl over a FIXED category (body_id, hair_id, face_id) ---------------------------
+//
+// The other shape of Layout.partGraphic's spec: the folder is a fact about the COLUMN, not about
+// another cell. body_id is always a body, hair_id always hair, face_id always Eyes.
+
+const bodyColumn = { name: 'body_id', kind: 'Int', sql: 'SMALLINT', required: false, default: '1' };
+const hairColumn = { name: 'hair_id', kind: 'Int', sql: 'SMALLINT', required: false, default: '0' };
+const faceColumn = { name: 'face_id', kind: 'Int', sql: 'SMALLINT', required: false, default: '0' };
+
+// One rect per appearance folder, each with its own source x so the drawn sprite says which folder
+// the control resolved.
+const appearanceRects = {
+  'Bodies:5:idle-down': [100, 0, 24, 32],
+  'Hair:5:idle-down': [110, 0, 24, 32],
+  'Eyes:5:idle-down': [120, 0, 24, 32],
+};
+
+function actx(extra) {
+  return pctx({ bundles: { parts: { rects: appearanceRects } }, ...extra });
+}
+
+function aparts(wrap, name) {
+  return {
+    canvas: wrap.querySelector('[class="preview"]'),
+    input: wrap.querySelector(`[name="${name}"]`),
+    status: wrap.querySelectorAll('[class]').filter((n) => /^status/.test(n.className))[0],
+  };
+}
+
+test('each appearance id resolves to its own sprite folder', () => {
+  const from = (column, spec) => {
+    const wrap = Pickers.partControl({
+      column, values: { [column.name]: '5' }, ctx: actx(), spec, tintColumns: null,
+    });
+    const drew = aparts(wrap, column.name).canvas.getContext('2d').calls
+      .filter((c) => c[0] === 'drawImage');
+    return drew.length ? drew[drew.length - 1][2] : null;
+  };
+
+  assert.equal(from(bodyColumn, { category: 'Bodies' }), 100);
+  assert.equal(from(hairColumn, { category: 'Hair' }), 110);
+  // A FACE id draws from Eyes — the folder whose name does not follow from the column's.
+  assert.equal(from(faceColumn, { category: 'Eyes' }), 120);
+});
+
+test('a fixed-category control renders exactly its own cell, and reports no problem', () => {
+  const wrap = Pickers.partControl({
+    column: bodyColumn, values: { body_id: '5' }, ctx: actx(), spec: { category: 'Bodies' },
+    tintColumns: null,
+  });
+  const { input, status } = aparts(wrap, 'body_id');
+  assert.equal(input.value, '5');
+  assert.equal(input.getAttribute('id'), 'f-body_id');
+  assert.equal(wrap.querySelectorAll('[name]').length, 1);
+  assert.equal(status.textContent, '');
+});
+
+test('a fixed category is never "not drawn on the character" — there is no slot to read', () => {
+  // The undrawn-slot message belongs to graphic_equip, whose folder comes from item_slot. A body is
+  // always drawn, so an item_slot in the form (or the absence of one) may not reach this control.
+  ['Ring', '', undefined, 'Nonsense'].forEach((slot) => {
+    const wrap = Pickers.partControl({
+      column: bodyColumn, values: { body_id: '5', item_slot: slot }, ctx: actx(),
+      spec: { category: 'Bodies' }, tintColumns: null,
+    });
+    assert.equal(aparts(wrap, 'body_id').status.textContent, '', String(slot));
+  });
+});
+
+test('a fixed-category miss names the folder it looked in', () => {
+  const wrap = Pickers.partControl({
+    column: hairColumn, values: { hair_id: '999' }, ctx: actx(), spec: { category: 'Hair' },
+    tintColumns: null,
+  });
+  assert.equal(aparts(wrap, 'hair_id').status.textContent, 'no art for Hair graphic 999');
+  assert.equal(aparts(wrap, 'hair_id').status.className, 'status bad');
+  // Reported, not gated — the same rule the equip-graphic control follows.
+  assert.equal(wrap.__graphicError, undefined);
+});
+
+test('a blank or zero appearance id is "no graphic", not an error', () => {
+  ['', '0', ' '].forEach((value) => {
+    const wrap = Pickers.partControl({
+      column: faceColumn, values: { face_id: value }, ctx: actx(), spec: { category: 'Eyes' },
+      tintColumns: null,
+    });
+    assert.equal(aparts(wrap, 'face_id').status.textContent, 'no graphic', JSON.stringify(value));
+    assert.equal(aparts(wrap, 'face_id').status.className, 'status');
+  });
+});
+
+test('a body preview is tinted by the same four cells the character panel reads', () => {
+  const c = actx();
+  const wrap = Pickers.partControl({
+    column: bodyColumn,
+    values: { body_id: '5', body_r: 255, body_g: 0, body_b: 0, body_a: 255 },
+    ctx: c, spec: { category: 'Bodies' },
+    tintColumns: ['body_r', 'body_g', 'body_b', 'body_a'],
+  });
+  assert.equal(tintedDraws(aparts(wrap, 'body_id').canvas).length, 1);
+
+  // And it follows the tint live: the colour picker writes those cells from another control.
+  c.emit({ body_id: '5', body_a: 0 });
+  assert.equal(plainDraws(aparts(wrap, 'body_id').canvas).length, 1);
+});
+
+test('a fixed-category control still follows body_state, which is another field', () => {
+  const rects = { 'Bodies:5:idle-equip-down': [70, 0, 8, 8],
+                  'Bodies:5:idle-no-equip-down': [80, 0, 8, 8] };
+  const c = pctx({ bundles: { parts: { rects } } });
+  const wrap = Pickers.partControl({
+    column: bodyColumn, values: { body_id: '5', body_state: 1 }, ctx: c,
+    spec: { category: 'Bodies' }, tintColumns: null,
+  });
+  const at = () => {
+    const drew = aparts(wrap, 'body_id').canvas.getContext('2d').calls
+      .filter((x) => x[0] === 'drawImage');
+    return drew.length ? drew[drew.length - 1][2] : null;
+  };
+
+  assert.equal(at(), 70, 'body_state 1 is armed');
+  c.emit({ body_id: '5', body_state: 3 });
+  assert.equal(at(), 80, 'body_state 3 is unarmed');
+});
+
 // --- clicking a preview canvas opens the browser ----------------------------------------------
 //
 // A SPY GALLERY, not the real module: what these assert is the SEAM — that the control hands over
@@ -1779,6 +2079,51 @@ test('a slot the character never draws has nothing to browse', () => {
   // handler's guard is the whole protection.
   fire(browseOf(wrap), 'click');
   assert.equal(gallery.opens.length, 0);
+});
+
+test('an appearance id browses its own fixed folder, locked, and takes the pick', () => {
+  // The picker the NPC form was missing. Locked for the same reason an equip slot is: a Hair sprite
+  // in body_id is a sprite the client would never draw there.
+  const cases = [
+    [bodyColumn, { category: 'Bodies' }, 'Bodies'],
+    [hairColumn, { category: 'Hair' }, 'Hair'],
+    [faceColumn, { category: 'Eyes' }, 'Eyes'],
+  ];
+
+  cases.forEach(([column, spec, folder]) => {
+    const gallery = spyGallery();
+    const wrap = Pickers.partControl({
+      column, values: { [column.name]: '5' }, ctx: actx(), spec, tintColumns: null, gallery,
+    });
+
+    const opener = browseOf(wrap);
+    assert.equal(opener, aparts(wrap, column.name).canvas, 'the preview canvas is the opener');
+    fire(opener, 'click');
+
+    const opened = gallery.opens[0];
+    assert.equal(opened.bundle, 'parts', folder);
+    assert.deepEqual(opened.filter, { category: folder, locked: true });
+    assert.deepEqual(opened.current, { category: folder, id: '5' });
+
+    gallery.pick({ category: folder, id: '77' });
+    assert.equal(aparts(wrap, column.name).input.value, '77');
+  });
+});
+
+test('an appearance pick bubbles an input event, so the character panel follows', () => {
+  const gallery = spyGallery();
+  const wrap = Pickers.partControl({
+    column: bodyColumn, values: { body_id: '5' }, ctx: actx(), spec: { category: 'Bodies' },
+    tintColumns: null, gallery,
+  });
+  const container = document.createElement('div');
+  container.appendChild(wrap);
+  let seen = 0;
+  container.addEventListener('input', () => { seen++; });
+
+  fire(browseOf(wrap), 'click');
+  gallery.pick({ category: 'Bodies', id: '77' });
+  assert.equal(seen, 1);
 });
 
 test('a Mount has nothing to browse either, because the gallery indexes no mounted clips', () => {

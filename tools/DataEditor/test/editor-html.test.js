@@ -28,6 +28,25 @@ test('every src module is included, and every include exists', () => {
   assert.deepEqual(stale, [], 'Editor.html includes a file build.mjs does not emit');
 });
 
+test('the two big sprite bundles are fetched, not inlined — and app.js is what fetches them', () => {
+  // 2.8MB of base64 that most sheets never draw from, re-served on every sidebar open because an
+  // inlined bundle is part of the template output and not a resource the browser can cache. The
+  // fetch and the include list have to agree: an include restored here would double the page and
+  // hide the regression (the fetch would find the bundle already present and quietly do nothing),
+  // and a name dropped from LAZY_BUNDLES with the include gone leaves the sheet with no art at all.
+  const app = readFileSync(join(root, 'src', 'app.js'), 'utf8');
+  const lazy = /LAZY_BUNDLES\s*=\s*{([^}]*)}/.exec(app);
+  assert.ok(lazy, 'app.js no longer declares LAZY_BUNDLES');
+  const files = [...lazy[1].matchAll(/'([^']+)'/g)].map((m) => m[1]);
+
+  assert.deepEqual(files.sort(), ['sprites-effects', 'sprites-parts']);
+  files.forEach((name) => {
+    assert.ok(!included.includes(name), `${name} is inlined AND fetched — the page pays for it anyway`);
+  });
+  // Every sheet needs the icons bundle, so that one stays on the page.
+  assert.ok(included.includes('sprites-icons'));
+});
+
 test('no module is included twice', () => {
   assert.equal(new Set(included).size, included.length);
 });

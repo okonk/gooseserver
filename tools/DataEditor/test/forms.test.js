@@ -495,6 +495,73 @@ test('render sends a column with a ref to Pickers.fkControl', () => {
   }
 });
 
+test('render sends every part-graphic column to Pickers.partControl with its own spec', () => {
+  // The routing that gives graphic_equip and the three appearance ids a preview at all. Both spec
+  // shapes travel: the equip graphic's folder comes from item_slot, an appearance id's is fixed.
+  const seen = [];
+  globalThis.Pickers = {
+    partControl(opts) {
+      seen.push(opts);
+      const node = document.createElement('input');
+      node.setAttribute('name', opts.column.name);
+      node.value = String(opts.values[opts.column.name]);
+      return node;
+    },
+  };
+  try {
+    const host = div();
+    Forms.render(host, {
+      sheet: 'NPCs', composites: [],
+      columns: ['body_id', 'hair_id', 'face_id', 'npc_name'].map((n) => column('NPCs', n)),
+    }, { body_id: '5', hair_id: '6', face_id: '7', npc_name: 'Rat' }, {});
+
+    // In LAYOUT order, which is the sheet's own: face_id sits before hair_id in the Appearance
+    // group.
+    assert.deepEqual(seen.map((o) => o.column.name), ['body_id', 'face_id', 'hair_id']);
+    assert.deepEqual(seen.map((o) => o.spec.category), ['Bodies', 'Eyes', 'Hair']);
+    // The WHOLE values map, not just the cell: a part control reads other columns (body_state, and
+    // for graphic_equip the slot). And the tint columns come from Layout, per column.
+    assert.equal(seen[0].values.npc_name, 'Rat');
+    assert.deepEqual(seen[0].tintColumns, ['body_r', 'body_g', 'body_b', 'body_a']);
+    assert.deepEqual(seen[2].tintColumns, ['hair_r', 'hair_g', 'hair_b', 'hair_a']);
+    assert.equal(seen[1].tintColumns, null, 'the eyes layer is never tinted');
+    assert.equal(host.querySelector('[name="npc_name"]').tagName, 'INPUT');
+  } finally {
+    delete globalThis.Pickers;
+  }
+});
+
+test('the monster-body rows hide with the cell, and keep their values while hidden', () => {
+  // Two gates now feed the same mechanism (item_usetype on Items, body_id on NPCs). Hidden, not
+  // skipped: the inputs stay in the tree so Forms.collect still reads the stored cells verbatim.
+  const host = div();
+  const changed = [];
+  const ctx = { onFormChange(fn) { changed.push(fn); } };
+  const sheet = {
+    sheet: 'NPCs', composites: [],
+    columns: ['body_id', 'face_id', 'hair_id', 'npc_name'].map((n) => column('NPCs', n)),
+  };
+  const values = { body_id: '1', face_id: '70', hair_id: '26', npc_name: 'Rat' };
+  Forms.render(host, sheet, values, ctx);
+
+  const rowOf = (name) => {
+    let n = host.querySelector('[name="' + name + '"]');
+    while (n && n.className !== 'field') n = n.parentNode;
+    return n;
+  };
+  assert.equal(rowOf('face_id').hidden, false);
+
+  changed.forEach((fn) => fn({ body_id: '150' }));
+  assert.equal(rowOf('face_id').hidden, true);
+  assert.equal(rowOf('hair_id').hidden, true);
+  assert.equal(rowOf('body_id').hidden, false, 'the cell that decides must stay editable');
+  assert.equal(rowOf('npc_name').hidden, false);
+  assert.deepEqual(Forms.collect(host, sheet), values, 'a hidden row still collects its cell');
+
+  changed.forEach((fn) => fn({ body_id: '1' }));
+  assert.equal(rowOf('face_id').hidden, false);
+});
+
 test('render leaves a column with no ref on the scalar control', () => {
   globalThis.Pickers = { fkControl() { throw new Error('must not be called'); } };
   try {

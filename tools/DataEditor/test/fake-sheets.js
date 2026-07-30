@@ -29,6 +29,12 @@
 // Every setValues call is recorded in sheet.writes, in order, as { row, col, values }. That array
 // is the assertion surface for "an unchanged save wrote nothing" — the claim no amount of reading
 // the values back can make, because a rewrite with identical text is invisible in the values.
+//
+// Every READ is recorded the same way, in sheet.reads, as { kind: 'values' | 'display', row, col,
+// numRows, numCols }. A read costs a round trip to the Sheets service and nothing about the values
+// it returns can show how many were made, so this is the only way to state "the sheet is read once,
+// not twice" or "an ordinary field edit does not scan the id column" as a test rather than as a
+// claim in a comment.
 
 import { readFileSync } from 'node:fs';
 import { createContext, runInContext } from 'node:vm';
@@ -60,6 +66,7 @@ class FakeSheet {
   constructor(name, grid, options = {}) {
     this.name = name;
     this.writes = [];
+    this.reads = [];
     this.maxRows = options.maxRows === undefined ? grid.length : options.maxRows;
     this.maxCols = options.maxCols === undefined
       ? grid.reduce((w, row) => Math.max(w, row.length), 0)
@@ -153,9 +160,15 @@ class FakeRange {
     return out;
   }
 
-  getValues() { return this._map(rawOf); }
+  _read(kind) {
+    this.sheet.reads.push({
+      kind, row: this.row, col: this.col, numRows: this.numRows, numCols: this.numCols,
+    });
+  }
 
-  getDisplayValues() { return this._map(displayOf); }
+  getValues() { this._read('values'); return this._map(rawOf); }
+
+  getDisplayValues() { this._read('display'); return this._map(displayOf); }
 
   setNumberFormat(format) {
     this.sheet.writes.push({ row: this.row, col: this.col, format });

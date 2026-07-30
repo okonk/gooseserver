@@ -710,7 +710,7 @@ var GOOSE_SCHEMA = {
           "name": "body_state",
           "kind": "Int",
           "sql": "SMALLINT",
-          "default": "1",
+          "default": "3",
           "required": false,
           "pk": false
         },

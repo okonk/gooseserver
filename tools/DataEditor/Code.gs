@@ -54,10 +54,15 @@
  *          spell_effects.hp_change_formula has 50 starting with '-', which is fine.)
  *       4. Bool. All 30 are CHAR(1). A checkbox cell now reads back 'true' and is
  *          reported as "must be 0 or 1" instead of being written back as "TRUE".
+ *   Checked: ONE read of the sheet, not two. The display values exist for Date cells alone, so they
+ *     are fetched only when the raw scan finds one — which the shipped data never does. Same
+ *     isDate_ on both sides, so the values a cell needs are the values that were read.
  *   Live: spot-check a DECIMAL column displayed to fewer places than it stores, an
  *     integer >= 1000 in a separator format, a Bool, and a formula cell — open the record,
  *     save it UNCHANGED, and confirm every cell is byte-for-byte what it was. That last
  *     one is the whole contract: a save must not alter a cell the user did not edit.
+ *   Live: format a cell as a date and confirm the record still shows the sheet's own rendering of
+ *     it — that is the one path where the display pass is still fetched.
  *   Size: fine, but note the outlier — NPC Spawns is 4,322 x 4, 6.7x the rows of any
  *     other sheet (next: Items 649 x 46, Spell Effects 259 x 76). Row count is what
  *     drives the per-row duplicate scan, the readSheetIndex loop and client rendering.
@@ -87,6 +92,11 @@
  *     - writeRow with a blank or whitespace-only id (must skip the duplicate check, not
  *       match every blank id cell in the column)
  *     - the same id from two tabs (must throw, naming the row that already has it)
+ *     - EDIT a field other than the id on a pk sheet with a loaded snapshot, then RENUMBER a row
+ *       onto an id another row holds: the first must not read the id column at all, the second must
+ *       still be refused
+ *     - append a record whose id another row already has WITH a snapshot in the request (the
+ *       snapshot is null for an append, so the scan must still run)
  *     - rowNumber = 1 AND rowNumber = "1" (both must refuse; google.script.run does not
  *       preserve types, so the string form is the realistic one)
  *     - rowNumber past the end of the sheet (must throw, not insert thousands of rows)
@@ -181,6 +191,22 @@ function isBlank_(value) {
 }
 
 /**
+ * Internal: is this cell a Date?
+ *
+ * Not `value instanceof Date`: that answers "was this made by MY realm's Date", which is false for
+ * a Date that crossed a context boundary — exactly the case it would be asked about. The tag test
+ * asks what the value IS.
+ *
+ * ONE definition, shared by cellText_ (which needs the display value for a Date and for nothing
+ * else) and by readSheet (which decides whether to pay for the display values at all). They cannot
+ * drift: if this said no where cellText_ said yes, readSheet would hand it a display value it never
+ * read.
+ */
+function isDate_(value) {
+  return Object.prototype.toString.call(value) === '[object Date]';
+}
+
+/**
  * Internal: a cell's value as the text the client edits. THE one definition of that —
  * readSheet hands these to the client and writeRow compares against them to decide what
  * changed, so a cell the user did not touch round-trips to itself by construction.
@@ -205,13 +231,13 @@ function isBlank_(value) {
  * with "must be 0 or 1", which is the same outcome the display value's "TRUE" produced —
  * deliberately NOT coerced to 0/1 here, because inventing a value for a cell whose type is
  * wrong is how the formatting bug worked in the first place.
+ *
+ * `display` is therefore only ever READ for a Date, which is why readSheet is free not to fetch the
+ * display values at all when the sheet holds none — both sides ask isDate_.
  */
 function cellText_(raw, display) {
   if (raw === null || raw === undefined || raw === '') return '';
-  // Not `raw instanceof Date`: that answers "was this made by MY realm's Date", which is false
-  // for a Date that crossed a context boundary, and the fallback would then be skipped in
-  // exactly the case it exists for. The tag test asks what the value IS.
-  if (Object.prototype.toString.call(raw) === '[object Date]') return String(display);
+  if (isDate_(raw)) return String(display);
   return String(raw);
 }
 
@@ -261,14 +287,28 @@ function readSheet(sheetName) {
     return { sheet: sheetName, header: [], rows: [], lastRow: 0 };
   }
 
-  // Both, because cellText_ prefers the raw value and needs the display one only for a
-  // Date. Two reads of ONE range, not two ranges — they cannot disagree about extent.
+  // ONE PASS OVER THE SHEET, normally. cellText_ reads the display value for a Date cell and for
+  // nothing else, and no column in the schema is a date (every sql type is
+  // INT/BIGINT/SMALLINT/INTEGER/DECIMAL/CHAR(1)/VARCHAR/TEXT — checked against schema.js), so the
+  // second whole-sheet read was paid on every sheet open for a case that does not occur in the
+  // shipped data. It is not GONE: a stray date-formatted cell still gets its display text, because
+  // the raw values are scanned for the Date tag first and the display pass is fetched if one turns
+  // up. That scan is a local type test per cell, against a second round trip carrying the whole
+  // sheet again (Items is 649 x 46; NPC Spawns 4,322 x 4).
+  //
+  // Both reads are of ONE range, as before — they cannot disagree about extent.
   var range = sheet.getDataRange();
   var raw = range.getValues();
-  var shown = range.getDisplayValues();
 
-  var values = raw.map(function (row, r) {
-    return row.map(function (cell, c) { return cellText_(cell, shown[r][c]); });
+  var shown = null;
+  for (var r = 0; r < raw.length && !shown; r++) {
+    for (var c = 0; c < raw[r].length; c++) {
+      if (isDate_(raw[r][c])) { shown = range.getDisplayValues(); break; }
+    }
+  }
+
+  var values = raw.map(function (row, i) {
+    return row.map(function (cell, j) { return cellText_(cell, shown ? shown[i][j] : ''); });
   });
 
   return {
@@ -365,6 +405,9 @@ function readSheetIndex(sheetName, nameColumnIndex, extraColumnIndex) {
  * at the same time are unlikely to both take the same suggested id. This is a narrowing,
  * not a guarantee: the check and the write are not atomic, so a collision inside that
  * window still gets through. Fixing that properly needs LockService and is out of scope.
+ * The check is skipped when the posted id equals the one in `options.loaded` for a row that already
+ * exists — that save cannot take an id off anybody — so an ordinary field edit no longer reads the
+ * whole id column. See the scan itself for why the sheet's current id does not come into it.
  *
  * `options.loaded` is the record AS THE CLIENT READ IT, same width and encoding as `cells`.
  * With it, "what changed" is decided against what the USER saw, not against the sheet's
@@ -457,7 +500,25 @@ function writeRow(sheetName, rowNumber, cells, idColumnIndex, options) {
     : -1;
   var newId = idIndex >= 0 ? idKey_(cells[idIndex]) : '';
 
-  if (newId !== '' && lastRow >= 2) {
+  // NOT WHEN THE ID DID NOT MOVE. The scan reads the whole id column — 4,322 cells on NPC Spawns,
+  // 649 on Items — and it exists to catch an id being TAKEN: a new record, or a record renumbered
+  // onto one another row already has. Editing any other field of an existing row cannot introduce a
+  // collision, so re-reading the column to prove it is a round trip per save that can only ever
+  // answer "no".
+  //
+  // The three conditions are each load-bearing:
+  //   - `loaded`, because without the snapshot there is nothing to compare the id against. A caller
+  //     that predates it keeps the scan.
+  //   - target <= lastRow, so an APPEND is always scanned. An append takes a row nobody held.
+  //   - the ids matching by idKey_, the same folding the scan itself uses ('651' vs 651 vs '651.00').
+  // What it does NOT check is the id in the SHEET at that row: if another editor renumbered the row
+  // under us, the id cell is one this save posts unchanged and therefore never writes, so it still
+  // introduces no collision. A duplicate that was already in the column stays there either way —
+  // this save did not make it, and the publish check is what reports it.
+  var idUnchanged = loaded && idIndex >= 0 && target <= lastRow &&
+                    idKey_(loaded[idIndex]) === newId;
+
+  if (newId !== '' && lastRow >= 2 && !idUnchanged) {
     var ids = sheet.getRange(2, idIndex + 1, lastRow - 1, 1).getValues();
     for (var i = 0; i < ids.length; i++) {
       if (idKey_(ids[i][0]) === newId && (i + 2) !== target) {

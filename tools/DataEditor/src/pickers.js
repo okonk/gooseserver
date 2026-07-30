@@ -120,6 +120,30 @@ var Pickers = (function () {
     return exact.concat(idPrefix.slice(0, room - reserved), nameHit).slice(0, LIMIT);
   }
 
+  // The list to show for a field the user has NOT typed into — the id it already holds, first, then
+  // the head of the sheet. search() is the wrong function for that job and was the complaint: a
+  // field showing "42 — Iron Sword" searches on '42', which matches 42 and every id it prefixes, so
+  // a control with a value selected listed essentially that value and the user had to CLEAR the
+  // field before the sheet's other rows would appear at all.
+  //
+  // The current id is hoisted to the front rather than left in sheet order, for two reasons: it is
+  // the row the list opens on (refresh marks it active, so Down and Up walk out from it), and at 4
+  // rows on screen out of LIMIT it is the only way it is visible without scrolling.
+  //
+  // STILL CAPPED AT LIMIT, so this is the head of a big sheet and not a second copy of it — Items is
+  // 1,595 rows. Everything past the cap is reached by typing, which switches back to search().
+  function browse(entries, id) {
+    var wanted = key(id);
+    var exact = [], rest = [];
+
+    for (var i = 0; i < entries.length; i++) {
+      if (key(entries[i].id) === wanted) exact.push(entries[i]);
+      else rest.push(entries[i]);
+    }
+
+    return exact.concat(rest).slice(0, LIMIT);
+  }
+
   // The graphic browser, or null when it is not on the page. Resolved at CALL time — like every
   // other cross-module reference in this file — and overridable through the control's options
   // object, which is what Task 6's collapse to options objects was for: a test can hand one control
@@ -231,6 +255,16 @@ var Pickers = (function () {
     var rows = [];
     var active = -1;
 
+    // Whether the field still holds what display() put there, i.e. whether the user has typed since.
+    // It is what picks browse() over search() in refresh(), and the distinction is the fix for
+    // "a selected value filters the list down to itself": a field the user has not touched is not a
+    // QUERY, it is a value, and the list beside it should offer the alternatives.
+    //
+    // Set true by display() — which is every path that rewrites the field from the cell: build,
+    // accept, and blur — so a filter typed and then abandoned reverts to browsing when the field is
+    // focused again.
+    var pristine = true;
+
     // Read through to ctx on every use rather than capturing the array once.
     // App.loadReferencedSheets fills pickerData over google.script.run, and a control built
     // before its sheet lands would otherwise be an empty picker forever.
@@ -300,6 +334,9 @@ var Pickers = (function () {
       var v = str(hidden.value).trim();
       var hit = (v === '' || v === '0') ? null : find(v);
       input.value = hit ? key(v) + ' — ' + (str(hit.name) || '(unnamed)') : str(hidden.value);
+      // The field now holds the CELL rather than anything the user typed, so the next refresh
+      // browses. See `pristine`.
+      pristine = true;
       resolve();
     }
 
@@ -348,9 +385,15 @@ var Pickers = (function () {
     }
 
     function refresh() {
-      // Searched on idOf, not the raw text: focusing a field showing "42 — Iron Sword" should
-      // list that row, and the whole display string matches nothing.
-      var results = search(entries(), idOf(input.value));
+      // idOf, not the raw text: a field showing "42 — Iron Sword" is the id 42, and the whole
+      // display string matches nothing at all.
+      //
+      // WHICH LIST depends on whether the user has typed. Untouched, the field is a value and the
+      // list is the sheet with that value at the top (browse); typed into, it is a query and the
+      // list is the matches (search). Using search for both is what made a filled-in picker show
+      // only its own value.
+      var wanted = idOf(input.value);
+      var results = pristine ? browse(entries(), wanted) : search(entries(), wanted);
       // Drops the previous rows and, with them, their click handlers: the nodes are
       // unreachable afterwards, so nothing is left listening and nothing leaks.
       list.innerHTML = '';
@@ -379,6 +422,14 @@ var Pickers = (function () {
       });
 
       setOpen(results.length > 0);
+
+      // THE CURRENT VALUE OPENS AS THE ACTIVE ROW, and only in browse mode, where browse() has just
+      // put it at index 0. That is what makes the list navigable from where the record already is:
+      // Down moves to the next row rather than to the first, and Enter on it is a no-op re-accept of
+      // the value already in the cell — never the accident the "no row active" rule guards against,
+      // which is about a row the user did not choose. A blank or unresolvable field has no exact
+      // match, so results[0] is not it and nothing is marked.
+      if (pristine && rows.length && key(results[0].id) === key(wanted)) setActive(0);
     }
 
     // Every keystroke writes the cell: what the user typed, verbatim — exactly what the old
@@ -386,6 +437,8 @@ var Pickers = (function () {
     // idOf peels the display back to the id it stands for. So backspacing through the name half
     // never smuggles "42 — Iron Swor" into the sheet.
     input.addEventListener('input', function () {
+      // Before refresh(), which reads it: the field is now the user's text, so it is a query.
+      pristine = false;
       hidden.value = idOf(input.value);
       refresh();
       resolve();
@@ -699,18 +752,39 @@ var Pickers = (function () {
     return wrap;
   }
 
+  // The sprite folder one part-graphic cell draws from, as `{ category, mounted, drawn }`, for
+  // either shape of Layout.partGraphic's spec. THE WHOLE DIFFERENCE between an appearance id and an
+  // equip graphic lives in these eight lines, and everything below reads the answer rather than the
+  // spec:
+  //
+  //   `spec.category` — a FIXED folder (body_id is always a body). There is no cell to read, so it
+  //     is always drawn and never a mount: Appearance.layers pushes these three ids into the Body,
+  //     Hair and Eyes slots unconditionally.
+  //   `spec.categoryFrom` — the folder comes from another cell, through the client's own slot map in
+  //     Appearance.slotFor. `drawn: false` is the honest answer for Ring, Misc and a blank — the
+  //     client has no layer for them at all — and Mount is a body in a MOUNTED clip, which is a
+  //     different lookup rather than the same one in another folder.
+  //
+  // Read from the LIVE form, never from build-time values, for the reason redraw() gives.
+  function folderOf(spec, values) {
+    if (spec.category) return { category: spec.category, mounted: false, drawn: true };
+    var slot = Appearance.slotFor(values[spec.categoryFrom]);
+    if (!slot) return { category: null, mounted: false, drawn: false };
+    return { category: Appearance.CATEGORY[slot] || null, mounted: slot === 'Mount', drawn: true };
+  }
+
   // Part control: one id field over a CHARACTER PART sprite rather than an inventory icon, plus a
-  // preview and a status line. graphic_equip is the only such column today — a plain Int with no
-  // composite, which is why it had no preview at all and why forms.js routes it here explicitly.
+  // preview and a status line. Every such column is a plain Int with no composite — which is why
+  // they had no preview at all and why forms.js routes them here explicitly, off the same table
+  // (Layout.PART_GRAPHICS) that decides which folder each one draws from.
   //
   // Takes one options object, `{ column, values, ctx, spec, tintColumns }`, for graphicControl's
   // reason: several same-typed arguments in a row that no reader can order from the call site.
   //
-  // WHAT MAKES IT DIFFERENT FROM graphicControl: there is no sheet cell. The sprite FOLDER comes
-  // from another column entirely (`spec.categoryFrom`, i.e. item_slot), through the client's own
-  // slot map in Appearance.slotFor — so the same id is a helmet or a pair of boots depending on a
-  // cell this control does not own. That, plus the tint and the armed/unarmed pose, is three
-  // cross-field reads, and all three arrive through ctx.onFormChange.
+  // WHAT MAKES IT DIFFERENT FROM graphicControl: there is no sheet cell — the sprite FOLDER comes
+  // from the spec (see folderOf), which for graphic_equip means from another column entirely. That,
+  // plus the tint and the armed/unarmed pose, is up to three cross-field reads, and all of them
+  // arrive through ctx.onFormChange.
   //
   // NO SAVE GATE. graphicControl publishes __graphicError because the design rule for an inventory
   // icon is that a complete pair must resolve, and every shipped pair does. Nothing of the kind has
@@ -748,12 +822,10 @@ var Pickers = (function () {
     // A Mount is null even though it HAS a folder: its art is a mounted clip, which the gallery does
     // not index because Sprites.part deliberately never falls back to one — so Bodies would list 305
     // standing bodies of which four have the mounted pose this cell actually needs.
-    //
-    // Read from the LIVE form for the reason redraw() gives.
     function browsableCategory() {
-      var slot = Appearance.slotFor(latest[spec.categoryFrom]);
-      if (!slot || slot === 'Mount') return null;
-      return Appearance.CATEGORY[slot] || null;
+      var folder = folderOf(spec, latest);
+      if (!folder.drawn || folder.mounted) return null;
+      return folder.category;
     }
 
     // LOCKED TO THE ROW'S OWN CATEGORY, always. The folder comes from item_slot, so browsing Helms
@@ -785,9 +857,11 @@ var Pickers = (function () {
     function redraw() {
       var target = Sprites.scaled(canvas, PART_SCALE, PART_W, PART_H);
       var text = str(input.value).trim();
-      // The slot is read from the LIVE form, so changing item_slot from Helmet to Shoes moves this
-      // preview into another folder without the record being reopened.
-      var slot = Appearance.slotFor(latest[spec.categoryFrom]);
+      // The folder is read from the LIVE form, so changing item_slot from Helmet to Shoes moves this
+      // preview into another folder without the record being reopened. For a fixed-category column
+      // the answer never moves, which is why nothing here branches on which shape the spec is.
+      var folder = folderOf(spec, latest);
+      var category = folder.category;
 
       function say(message, bad) {
         status.textContent = message;
@@ -797,7 +871,8 @@ var Pickers = (function () {
       // First, because it is a fact about the ROW and not about this cell: an id in a slot the
       // client never draws is not an error, and calling it one would flag most of the Ring and
       // Misc rows in the sheet. The canvas stays blank and the line says why it is blank.
-      if (!slot) { say('this slot is not drawn on the character', false); return; }
+      // Unreachable for a fixed-category column, which is always drawn.
+      if (!folder.drawn) { say('this slot is not drawn on the character', false); return; }
 
       if (text === '' || text === '0') { say('no graphic', false); return; }
       // A non-whole cell already fails Validation's numeric check on the column itself, which
@@ -805,7 +880,6 @@ var Pickers = (function () {
       // note, so this is shown and not gated.
       if (!isWhole(text)) { say('graphic must be a whole number', true); return; }
 
-      var category = Appearance.CATEGORY[slot];
       var bundles = (ctx && ctx.bundles) || {};
       if (!bundles.parts || !bundles.parts.rects) {
         say('cannot check ' + category + ' graphic ' + text + ' — no character art loaded', true);
@@ -814,7 +888,7 @@ var Pickers = (function () {
 
       // A mount is a body in a MOUNTED clip, and Sprites.part deliberately never falls back to
       // one — so the two lookups are genuinely different functions, not one with a flag.
-      var rect = slot === 'Mount' ? Sprites.mount(bundles, text)
+      var rect = folder.mounted ? Sprites.mount(bundles, text)
         : Sprites.part(bundles, category, text, Preview.isArmed(latest.body_state));
 
       if (!rect) { say('no art for ' + category + ' graphic ' + text, true); return; }
@@ -844,6 +918,7 @@ var Pickers = (function () {
 
   return {
     search: search,
+    browse: browse,
     fkControl: fkControl,
     graphicControl: graphicControl,
     partControl: partControl,

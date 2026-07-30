@@ -154,6 +154,41 @@ wrong: that a cell's value is its stored value rather than its formatting, and t
 writes only the cells that changed. What it assumes about Apps Script is listed at the top of that
 file; the checks that genuinely need a live spreadsheet are still listed in `Code.gs`'s own header.
 
+### What the page ships, and what it fetches
+
+`Editor.html` inlines `schema`, `sprites-icons` and the twelve modules. It does **not** inline the
+other two sprite bundles. An inlined bundle is base64 inside the template output, so `HtmlService`
+re-evaluates and re-serves all of it on every sidebar open and the browser has no separate resource
+to cache — and `App.bundlesFor` says that 17 of the 21 sheets draw neither a character nor an
+animation, so `sprites-parts` (1.98 MB) and `sprites-effects` (860 KB) were most of a page that most
+designers could not use. `app.js` fetches those two with `google.script.run.include(...)` when a
+sheet asks for one (`LAZY_BUNDLES`), once per session each.
+
+The reply is the generated file, `<script>` tag and all, and `parseBundle` **parses** it rather than
+executing it: `tools/SpriteBundle` writes the assignment as a strict-JSON literal, so `JSON.parse` is
+enough and nothing is assigned into `GOOSE_SPRITES` — `state.bundles` is what the controls read, so a
+fetched bundle and an inlined one are the same thing downstream. A test parses the real
+`sprites-*.html` and compares it against the file *executed*, so a generator that emitted a trailing
+comma or a second statement fails there rather than in a deployed sidebar. A bundle that cannot be
+fetched, cannot be parsed or cannot be decoded is one warning on the status line and a form that
+still works; it is cached as a failure, so it is not re-attempted per record opened.
+
+Everything else about load and save time follows the same rule — do not send what nobody reads:
+
+* `readSheet` reads the sheet **once**. The display values exist for `Date` cells alone and no
+  schema column is a date, so they are fetched only if the raw scan finds one.
+* `writeRow` skips the duplicate-id scan when the posted id equals the one in the loaded snapshot for
+  a row that already exists. Editing a name cannot take an id off anybody, and the scan reads the
+  whole id column — 4,322 cells on NPC Spawns.
+* The publish check fires all 21 reads **concurrently**. Phase two needs every sheet before it can
+  validate anything, so ordering them only serialised 21 round trips. Replies land in slots and are
+  walked in schema order, so the report is diffable however the network interleaves them.
+
+Left undone deliberately: the record list still ships whole sheets (a narrow id + name read would cut
+the payload ~20x but costs a round trip per record opened, and it touches the local post-save patch,
+the id set and the no-reload-after-save behaviour); the list is not windowed (NPC Spawns is 4,322
+buttons); and `writeRow` still calls `SpreadsheetApp.flush()` it does not need.
+
 ### The colour picker and the gallery
 
 Two modules exist only to make a raw column value pickable by eye. `ColorPicker.control` is reached
@@ -205,6 +240,30 @@ own cells, and `opener` is the Browse button focus returns to on close.
 
 Parts and effects drop the `:clip` and `:frame` suffix of their key on the way out: a caller picks a
 part or an effect, not one of its frames.
+
+### Character sprites in the form, and the rows a monster body kills
+
+Four columns hold a **character part** id rather than an inventory graphic: `graphic_equip` on Items
+and `body_id` / `hair_id` / `face_id` on NPCs and Spell Effects. All four are plain `Int` columns
+belonging to no composite, so nothing about the schema says they are art at all —
+`Layout.PART_GRAPHICS` is what says so, and `Pickers.partControl` is what gives each one a preview
+and a click-to-browse over the `parts` atlas, locked to its own folder.
+
+The table has two shapes, and they are not interchangeable. `{categoryFrom}` means the sprite folder
+comes from **another cell** — the same `graphic_equip` id is a helmet or a boot depending on
+`item_slot`, through the client's own map in `Appearance.slotFor` — so it is read live and a slot the
+client never draws (Ring, Misc) has nothing to browse. `{category}` means the folder is fixed by the
+column: a body is always a body. Note `face_id` → **Eyes**, the one folder whose name does not follow
+from its column's.
+
+`Layout.MONSTER_BODY` is the other half of the client's appearance rule. `Character.cs` renders a
+body of **100 or more** alone — no hair, no face, no equipment, and the server does not even send
+equipment for such a row — so for `body_id >= 100` the form hides `face_id`, `hair_id`, the hair tint
+and `equipped_items`, live, as the cell is typed. Hiding does not clear: those cells round-trip
+verbatim, so changing your mind loses nothing. Saving a row that has **just crossed** into that range
+does clear them, which is the only place in the editor that writes a cell the user did not touch — it
+fires on the crossing alone (never on a row that was already a monster), says so on the status line,
+and re-renders the form afterwards so the equip-slot control cannot write the old equipment back.
 
 Apps Script has no `.js` file type, so build wraps each module into `dist/*.html`, alongside copies
 of `schema.js` and the sprite bundles:

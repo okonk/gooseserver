@@ -31,6 +31,12 @@
 //      The control's other complaints are shown but NOT gated on, and pickers.js says why.
 //   5. Validation.validateRecord, which is the ordinary per-column check.
 //
+// AND ONE THING THAT IS NOT A GATE: clearForMonsterBody, between gates 2 and 3. It does not refuse
+// the save, it changes what the save writes — the face id, the hair id and the equipment of a body
+// that has just crossed into the >= 100 range the client renders alone. It is the only place in the
+// editor that writes a cell the user did not touch, which is why it fires only on the crossing and
+// says on the status line what it did.
+//
 // THE NAME COLUMN IS NOT ALWAYS B. Code.gs cannot reach GOOSE_SCHEMA, so readSheetIndex takes a
 // 0-based nameColumnIndex from this side. Items has item_usetype in B and item_name at index 2
 // (5 inbound refs), NPCs has npc_type in B and npc_name at 2. Hardcoding 1 labels all 649 Items
@@ -150,50 +156,135 @@ var App = (function () {
     state.imageCallbacks.forEach(function (fn) { fn(); });
   }
 
-  /// Decodes a bundle's data URI once. Bundles load lazily: icons up front, parts and effects
-  /// only when a sheet needs them. done() is always called, exactly once, including on failure —
-  /// a missing bundle must leave the form renderable without art, not unrendered.
+  // The include file behind each bundle THE PAGE DOES NOT CARRY. Editor.html inlines
+  // sprites-icons and nothing else; these two are fetched, once each, by the sheets that need them.
+  //
+  // WHY: an inlined bundle is base64 inside the template output, so HtmlService re-serves all of it
+  // on every sidebar open and the browser cannot cache it as a resource of its own. parts is 1.98MB
+  // and effects 860KB, and bundlesFor already knows that 17 OF THE 21 SHEETS ask for neither — so
+  // most of the page every designer waited for, every time, was art their sheet cannot draw. Fetching
+  // costs one google.script.run per bundle per session, only from the sheets that draw a character
+  // or an animation, and the late-arrival path it lands through (imagesChanged / onImagesReady) is
+  // the same one the parts decode has always used.
+  var LAZY_BUNDLES = { parts: 'sprites-parts', effects: 'sprites-effects' };
+
+  /// The bundle in hand, or null: a fetched one, an inlined one, or nothing yet.
+  function bundleData(name) {
+    if (state.bundles[name]) return state.bundles[name];
+    if (typeof GOOSE_SPRITES !== 'undefined' && GOOSE_SPRITES[name]) return GOOSE_SPRITES[name];
+    return null;
+  }
+
+  /// The bundle file, as include() returns it, turned into the object it assigns — or null.
+  ///
+  /// tools/SpriteBundle emits `GOOSE_SPRITES["parts"] = { …literal… };` inside a <script> tag, and
+  /// that literal IS strict JSON: every key quoted, every value a number, string or array. So the
+  /// payload is PARSED rather than executed. A <script> element appended to the page would run it
+  /// (that is what the inlined path does) and eval would too, but neither is worth the exposure or
+  /// the "does the sandbox permit it" question when JSON.parse answers it. Nothing is assigned into
+  /// GOOSE_SPRITES either: state.bundles is what ctx() hands the controls, so a fetched bundle and
+  /// an inlined one are the same thing downstream.
+  ///
+  /// The parse is pinned against the REAL bundle files in test/app.test.js, so a change to the
+  /// generator's output breaks a test rather than the sidebar.
+  function parseBundle(name, html) {
+    var text = String(html === null || html === undefined ? '' : html);
+    var at = text.indexOf('GOOSE_SPRITES["' + name + '"]');
+    if (at === -1) return null;
+
+    var open = text.indexOf('{', at);
+    // The literal is the last thing in the file bar `};</script>`, so its closing brace is the last
+    // one there is.
+    var close = text.lastIndexOf('}');
+    if (open === -1 || close < open) return null;
+
+    var bundle;
+    try {
+      bundle = JSON.parse(text.slice(open, close + 1));
+    } catch (e) {
+      return null;
+    }
+    // A bundle with no png is a bundle nothing can be drawn from, and it would otherwise be cached
+    // as a success and leave every canvas blank with no explanation.
+    return bundle && bundle.png && bundle.rects ? bundle : null;
+  }
+
+  /// Puts a bundle in hand and decodes its data URI, exactly once each. done() is always called,
+  /// exactly once, including on failure — a missing bundle must leave the form renderable without
+  /// art, not unrendered.
   function loadBundle(name, done) {
     if (state.images[name]) { done(); return; }
-    if (typeof GOOSE_SPRITES === 'undefined' || !GOOSE_SPRITES[name]) { done(); return; }
-    // A decode that FAILED is a result too. Retrying it on every record open re-attempted a
-    // multi-megabyte decode each time — and, worse, re-opened the async gap between editRow
-    // moving state.rowNumber and renderForm landing the new form, the one window where what the
-    // user sees and where a save writes can disagree. Recovering from a truly transient decode
-    // failure takes a page reload, which is what the bundleErrors warning amounts to anyway.
+    // A bundle that FAILED is a result too, whether it failed to arrive or failed to decode.
+    // Retrying on every record open re-attempted a multi-megabyte fetch or decode each time — and,
+    // worse, re-opened the async gap between editRow moving state.rowNumber and renderForm landing
+    // the new form, the one window where what the user sees and where a save writes can disagree.
+    // Recovering from a truly transient failure takes a page reload, which is what the bundleErrors
+    // warning amounts to anyway.
     if (state.bundleErrors.indexOf(name) !== -1) { done(); return; }
 
-    state.bundles[name] = GOOSE_SPRITES[name];
+    var data = bundleData(name);
+    // Neither on the page nor fetchable: nothing to draw with, and the form still renders. That is
+    // the shape of a bundle the build did not emit at all.
+    if (!data && !LAZY_BUNDLES[name]) { done(); return; }
 
-    // One decode per bundle, ever. The state.images check above only closes the window AFTER the
-    // first decode lands; two records opened before that both pass it, and two Images for a
-    // multi-megabyte data URI then race to render the same slot. Waiters queue instead.
+    // One fetch and one decode per bundle, ever. The state.images check above only closes the window
+    // AFTER the first decode lands; two records opened before that both pass it, and two Images for
+    // a multi-megabyte data URI then race to render the same slot. Waiters queue instead — and the
+    // queue now spans the fetch as well, so two sheets asking for parts at once ask the server once.
     if (state.loading[name]) { state.loading[name].push(done); return; }
     state.loading[name] = [done];
 
-    function finish() {
-      var waiting = state.loading[name] || [];
-      delete state.loading[name];
-      waiting.forEach(function (fn) { fn(); });
-    }
+    if (data) decodeBundle(name, data);
+    else fetchBundle(name);
+  }
+
+  function finishBundle(name) {
+    var waiting = state.loading[name] || [];
+    delete state.loading[name];
+    waiting.forEach(function (fn) { fn(); });
+  }
+
+  function failBundle(name) {
+    if (state.bundleErrors.indexOf(name) === -1) state.bundleErrors.push(name);
+    status(warnings(), true);
+    finishBundle(name);
+  }
+
+  function decodeBundle(name, data) {
+    // Before the decode, not after: the rects are what a control reads to resolve an id, and they
+    // are usable the moment the bundle is in hand. Only the drawing waits on the PNG.
+    state.bundles[name] = data;
 
     var img = new Image();
     img.onload = function () {
       state.images[name] = img;
       imagesChanged();
-      finish();
+      finishBundle(name);
     };
-    img.onerror = function () {
-      if (state.bundleErrors.indexOf(name) === -1) state.bundleErrors.push(name);
-      status(warnings(), true);
-      finish();
-    };
-    img.src = GOOSE_SPRITES[name].png;
+    img.onerror = function () { failBundle(name); };
+    img.src = data.png;
+  }
+
+  function fetchBundle(name) {
+    google.script.run
+      .withFailureHandler(function () { failBundle(name); })
+      .withSuccessHandler(function (html) {
+        var data = parseBundle(name, html);
+        // A reply that arrived and cannot be read is the same outcome as no reply: reported once,
+        // not re-attempted per record. Silently treating it as "no art" would leave every canvas on
+        // the sheet blank with nothing on the status line.
+        if (!data) { failBundle(name); return; }
+        decodeBundle(name, data);
+      })
+      .include(LAZY_BUNDLES[name]);
   }
 
   function bundleWarning() {
     if (!state.bundleErrors.length) return '';
-    return 'Failed to decode the ' + state.bundleErrors.join(' and ') +
+    // "Load", not "decode": a bundle now fails at either of two steps — the fetch that brings a
+    // lazily loaded one over the wire, or the PNG decode — and the user's move is the same for both
+    // (reload the page), so the message does not pretend to tell them apart.
+    return 'Failed to load the ' + state.bundleErrors.join(' and ') +
            ' sprite bundle — previews will be blank';
   }
 
@@ -282,6 +373,26 @@ var App = (function () {
     var el = document.getElementById('status');
     el.textContent = message;
     el.className = isError ? 'error' : '';
+  }
+
+  /// Shows `message` and returns the function that takes it back down again.
+  ///
+  /// For work with no other symptom than a blank canvas — fetching a sprite bundle over the wire,
+  /// which is megabytes and seconds. The line it replaced is PUT BACK rather than left overwritten:
+  /// what it covers is usually "N records" or a save confirmation, and a record count that vanished
+  /// because some art was on its way reads as a broken editor.
+  function holdStatus(message) {
+    var el = document.getElementById('status');
+    var was = el.textContent;
+    var wasError = el.className === 'error';
+    status(message);
+
+    return function () {
+      // Only while OUR message is still the one on screen. Anything that has spoken since — a save,
+      // an error, another record — is newer news than the line this replaced.
+      if (el.textContent !== message) return;
+      status(was, wasError);
+    };
   }
 
   // Stops any running effect animation and empties the preview panel. Both halves matter: the
@@ -504,15 +615,26 @@ var App = (function () {
     renderForm(values);
   }
 
-  // The sheet's part-graphic column and its spec — `{ name, spec }` — or null. ONE lookup, used by
-  // both consumers: bundlesFor, to decide whether the parts bundle is needed, and renderPreviews,
-  // to decide whether the worn-item panel is drawn. Those two must agree, and naming 'Items' in
-  // either of them is what makes them able to disagree: a second sheet gaining a graphic_equip
-  // would get the bundle and the control from the table and then silently get no preview panel.
-  function partGraphicOf(schema) {
+  // Whether ANY column of this sheet draws a character part, which is exactly the question
+  // bundlesFor asks: one such control is enough to need the parts atlas. Read from the table rather
+  // than from a list of sheet names, so a sheet gaining a part graphic cannot be forgotten.
+  function hasPartGraphic(schema) {
+    return schema.columns.some(function (c) {
+      return !!Layout.partGraphic(schema.sheet, c.name);
+    });
+  }
+
+  // The sheet's WORN-ITEM graphic and its spec — `{ name, spec }` — or null. Narrower than
+  // hasPartGraphic above, and the narrowing is the point: this is what renderPreviews draws the
+  // item-icon-plus-worn-character pair from, and that pair only makes sense for an INVENTORY ITEM
+  // whose worn sprite hangs off another cell (`categoryFrom`, i.e. item_slot). The three appearance
+  // ids on NPCs and Spell Effects are part graphics too, but they are layers of the character canvas
+  // that panel already draws — asking for the item pair on those sheets would put a lone helmet
+  // canvas and an empty icon box beside a whole character. Items is the only such sheet today.
+  function wornGraphicOf(schema) {
     for (var i = 0; i < schema.columns.length; i++) {
       var spec = Layout.partGraphic(schema.sheet, schema.columns[i].name);
-      if (spec) return { name: schema.columns[i].name, spec: spec };
+      if (spec && spec.categoryFrom) return { name: schema.columns[i].name, spec: spec };
     }
     return null;
   }
@@ -536,7 +658,7 @@ var App = (function () {
     // composite, so without this its worn preview and its graphic_equip control would both sit
     // blank with "no character art loaded" forever. Read from the table rather than named here, so
     // a second sheet gaining one cannot be forgotten.
-    if (hasBody || hasEquip || partGraphicOf(schema)) names.push('parts');
+    if (hasBody || hasEquip || hasPartGraphic(schema)) names.push('parts');
     if (['Spells', 'Spell Effects'].indexOf(schema.sheet) !== -1) names.push('effects');
     return names;
   }
@@ -563,7 +685,8 @@ var App = (function () {
     // ICONS AND NOTHING ELSE BEFORE THE FORM. Waiting on every bundle this sheet needs put a
     // SECOND multi-megabyte PNG decode (parts is 1.98MB, icons 1.75MB) in front of the first field
     // of the first Items record of a session — on the sheet that is opened most, and usually first.
-    // The download was already paid either way; sprites-parts.html is an unconditional include.
+    // It is a stronger rule now than it was: parts and effects are FETCHED (see LAZY_BUNDLES), so
+    // waiting on them would put a server round trip there too.
     //
     // The rest are asked for afterwards and land through imagesChanged(), which is exactly the path
     // onImagesReady exists for: every control that needs art subscribes, so a bundle that arrives
@@ -579,7 +702,20 @@ var App = (function () {
       state.formPending = false;
 
       if (!rest.length) return;
+
+      // Said out loud only while it is genuinely in flight for the first time — a bundle already in
+      // hand decodes synchronously enough that announcing it would flicker. A failed one is not
+      // announced either: its own warning is already on the line and says more.
+      var fetching = rest.filter(function (n) {
+        return LAZY_BUNDLES[n] && !state.images[n] && !bundleData(n) &&
+               state.bundleErrors.indexOf(n) === -1;
+      });
+      var restore = fetching.length
+        ? holdStatus('Fetching ' + fetching.join(' and ') + ' art…')
+        : null;
+
       loadBundles(rest, function () {
+        if (restore) restore();
         if (token !== state.formToken) return;
         // The PANEL canvases are pushed the late bundle from here rather than subscribing through
         // onImagesReady: renderPreviews runs on every keystroke, so a registration inside it would
@@ -682,7 +818,7 @@ var App = (function () {
     // would leave exactly that sheet with a control and no panel. previewKey below still lists its
     // column names literally; that is a cheap dedup key, and a new sheet's cells missing from it
     // costs a skipped redraw, not a wrong picture.
-    var part = partGraphicOf(state.schema);
+    var part = wornGraphicOf(state.schema);
     if (part) {
       // Read out of Layout.TINTS, like every other tint in the editor. null there means the game
       // draws this graphic plain, and Preview reads a missing channel as 0, which is untinted.
@@ -783,6 +919,53 @@ var App = (function () {
            'Stored value: ' + stored;
   }
 
+  // A BODY THAT HAS BECOME A MONSTER TAKES THE DEAD CELLS WITH IT. Not a gate — it does not refuse
+  // the save, it changes what the save writes — and the only place in the editor that edits a cell
+  // the user did not: a body >= 100 renders alone (Character.cs:218-223, ported in
+  // Appearance.layers), so the face id, the hair id and all six equipment slots are cells the client
+  // will never read again, and forms.js has just hidden their rows. Leaving them behind stores
+  // equipment the NPC does not have.
+  //
+  // ONLY ON THE CROSSING, decided against the values the record was LOADED with. A row that was
+  // already a monster keeps whatever it stores: opening a record must not change it, and re-clearing
+  // on every save of an untouched row would rewrite cells the user never saw a field for. A new
+  // record loads blank, which reads as body 0 — a player body — so typing 150 into a new NPC counts
+  // as a crossing and clears, which is right.
+  //
+  // Mutates `values` in place, so everything downstream — validateRecord, the cells array, the
+  // loaded snapshot the next save diffs against — sees one record and not two. The FORM is left
+  // alone here; save()'s success handler re-renders it from these values, because the equip-slot
+  // composite holds its six slots in memory and would otherwise write the old equipment back on the
+  // next edit. Returns the columns it cleared, for that decision and for the status line.
+  function clearForMonsterBody(values) {
+    var gate = Layout.monsterBodyGate(state.sheetName);
+    if (!gate) return [];
+    if (!Layout.isMonsterBody(state.sheetName, values)) return [];
+    if (Layout.isMonsterBody(state.sheetName, state.loaded)) return [];
+
+    var byName = Object.create(null);
+    state.schema.columns.forEach(function (c) { byName[c.name] = c; });
+
+    var cleared = [];
+    gate.clear.forEach(function (name) {
+      if (!byName[name]) return;
+      // ZERO, not blank. Blank means "use the SQL default" (CsvToSqlBase.cs:36), which for face_id
+      // and hair_id is itself 0 — so this is not about what imports, it is about what a human
+      // reading the sheet sees: an explicit 0 is a cell someone decided about, where a blank is
+      // indistinguishable from one nobody has filled in yet.
+      //
+      // equipped_items cannot be either: a blank or '0' emits a malformed token stream into the
+      // MakeCharacter packet (Goose/Packets.cs:161), so its empty value is the six-slot form
+      // Equipped.format produces — which is also the column's own SQL default.
+      var empty = name === 'equipped_items' ? Equipped.format([]) : '0';
+      if (str(values[name]) === empty) return;
+      values[name] = empty;
+      cleared.push(name);
+    });
+
+    return cleared;
+  }
+
   // Gate 3: fk values this record cannot have checked. Validation.validateCell passes an fk whose
   // id set is ABSENT — deliberately, because the sets arrive asynchronously and failing closed
   // would block saves on rows the user never touched — so on its own that is a hole: a
@@ -849,6 +1032,13 @@ var App = (function () {
 
     var unfaithful = unfaithfulEdit(values);
     if (unfaithful) { status(unfaithful, true); return; }
+
+    // AFTER gate 2, deliberately. Clearing equipped_items rewrites the cell, so running it first
+    // would make a monster-body save on one of the five malformed rows look like the unfaithful edit
+    // gate 2 refuses — when it is the opposite: gate 2 exists because rewriting six slots from a
+    // GUESS loses equipment, and this writes the empty stream on a body that has no equipment at
+    // all. The guess is not involved.
+    var cleared = clearForMonsterBody(values);
 
     var unverified = unverifiedRefs(values);
     if (unverified.length) {
@@ -960,7 +1150,17 @@ var App = (function () {
         }
 
         var warning = warnings();
-        status('Saved. Run /updatesql then /reloadsql in game to publish.' +
+        // Says what was written that the user did not type. A cleared cell is invisible in the form
+        // afterwards — its row is hidden — so without this the save silently changed the record.
+        // The body is read through the gate's own column name rather than spelled here, so the
+        // message cannot come to name a cell the rule does not read. cleared.length > 0 is only
+        // possible when the gate exists.
+        var note = cleared.length
+          ? ' Cleared ' + cleared.join(', ') + ' — a body of ' +
+            str(values[Layout.monsterBodyGate(savedSheet).column]) +
+            ' renders alone, with no face, hair or equipment.'
+          : '';
+        status('Saved. Run /updatesql then /reloadsql in game to publish.' + note +
                (warning ? ' — ' + warning : ''), !!warning);
 
         // The record's own bookkeeping moves only while it is still the one on screen; after a
@@ -970,6 +1170,15 @@ var App = (function () {
         if (savedFormToken !== state.formToken) return;
         if (row >= 2) state.rowNumber = row;
         state.loaded = values;
+
+        // A CLEARED RECORD IS RE-RENDERED, and it is the only save that is. The cells above are the
+        // form's own inputs for every other save, so the DOM already agrees with the sheet — but
+        // clearForMonsterBody wrote cells behind the controls' backs, and one of them keeps state a
+        // fresh value cannot reach: equipSlotsControl parsed the six slots at build time and holds
+        // them in memory, so moving body_id back under 100 and touching a slot would write the
+        // equipment we just cleared straight back into the cell. Rebuilding from `values` is what
+        // makes the clear stick.
+        if (cleared.length) renderForm(values);
       })
       .writeRow(savedSheet, state.rowNumber, cells, idIndex,
                 { loaded: loadedCells, textColumns: textColumns });
@@ -983,9 +1192,9 @@ var App = (function () {
   /// item ids against, say, the Maps id set and report every row as broken.
   function publishCheck() {
     var panel = document.getElementById('publish-results');
-    // Says so, rather than doing nothing: the run is 21 sequential round-trips, so a user who
-    // clicks again after a few seconds of apparent silence gets an answer instead of the same
-    // silence.
+    // Says so, rather than doing nothing: the run is 21 round trips and a whole spreadsheet's worth
+    // of rows over the wire, so a user who clicks again after a few seconds of apparent silence
+    // gets an answer instead of the same silence.
     if (state.checking) { status('Still checking all 21 sheets…'); return; }
     state.checking = true;
 
@@ -1002,22 +1211,47 @@ var App = (function () {
       problems.push({ sheet: sheet, row: row, message: message });
     }
 
-    var index = 0;
-    function readNext() {
-      if (index >= sheets.length) { validateAll(); return; }
-      var schema = sheets[index];
-      index += 1;
+    // ALL 21 READS AT ONCE, not one after the next. Phase two cannot start until every sheet is in
+    // hand, so ordering them buys nothing and costs 21 serialised round trips end to end — which is
+    // most of the wall clock of the whole check, since each reply is only a sheet's rows and the
+    // validation itself is local. Fired together, the latencies overlap.
+    //
+    // ORDER IS RESTORED BY INDEX, never by arrival: each reply lands in its own slot and the slots
+    // are walked in schema order once the last one is in. A report whose order depended on which
+    // reply won the race would be a report nobody could compare with the previous run.
+    var results = [];
+    var failures = [];
+    var remaining = sheets.length;
 
-      google.script.run
-        .withFailureHandler(function (e) {
-          report(schema.sheet, '-', e.message);
-          readNext();
-        })
-        .withSuccessHandler(function (data) {
-          loaded.push({ schema: schema, rows: data.rows });
-          readNext();
-        })
-        .readSheet(schema.sheet);
+    function readAll() {
+      // Not reachable with the shipped schema (21 sheets), but a fan-out of nothing must still
+      // finish the run rather than wait for a reply that will never come.
+      if (!remaining) { collected(); return; }
+
+      sheets.forEach(function (schema, at) {
+        google.script.run
+          .withFailureHandler(function (e) {
+            // The message, not the Error: `failures[at]` being a string is what tells a failed slot
+            // from an untouched one below, and a sheet whose read failed must still be reported.
+            failures[at] = e && e.message ? e.message : String(e);
+            remaining -= 1;
+            if (!remaining) collected();
+          })
+          .withSuccessHandler(function (data) {
+            results[at] = { schema: schema, rows: data.rows };
+            remaining -= 1;
+            if (!remaining) collected();
+          })
+          .readSheet(schema.sheet);
+      });
+    }
+
+    function collected() {
+      sheets.forEach(function (schema, at) {
+        if (typeof failures[at] === 'string') report(schema.sheet, '-', failures[at]);
+        else if (results[at]) loaded.push(results[at]);
+      });
+      validateAll();
     }
 
     function validateAll() {
@@ -1105,7 +1339,7 @@ var App = (function () {
         'than /reloadsql: ' + Layout.RESTART_ONLY.join(', ')));
     }
 
-    readNext();
+    readAll();
   }
 
   function init() {

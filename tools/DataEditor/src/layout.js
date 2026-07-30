@@ -90,21 +90,64 @@ var Layout = (function () {
   // than the untinted preview it replaced. layout.test.js asserts every name here exists in that
   // sheet's schema, and — for the tint columns — that the sheet has no tint column this table
   // leaves out.
+  //
+  // THE BODY AND HAIR TINTS ARE HERE FOR THE SAME REASON, one level along: body_id and hair_id now
+  // carry a part preview of their own (see PART_GRAPHICS), and the character panel beside it draws
+  // both layers tinted — through Appearance.layers, which reads those cells itself. Two previews of
+  // one sprite disagreeing about its colour is exactly the bug the Items tint edit was, so the small
+  // one reads the same four cells. There is no face entry: Character.cs:233 forces NoTint on the
+  // eyes layer, so a tint for one is not a cell the game has.
   var TINTS = {
     Items: {
       graphic_tile: ['graphic_r', 'graphic_g', 'graphic_b', 'graphic_a'],
       graphic_equip: ['graphic_r', 'graphic_g', 'graphic_b', 'graphic_a'],
     },
+    NPCs: {
+      body_id: ['body_r', 'body_g', 'body_b', 'body_a'],
+      hair_id: ['hair_r', 'hair_g', 'hair_b', 'hair_a'],
+    },
+    'Spell Effects': {
+      body_id: ['body_r', 'body_g', 'body_b', 'body_a'],
+      hair_id: ['hair_r', 'hair_g', 'hair_b', 'hair_a'],
+    },
   };
 
   // Columns holding a CHARACTER PART graphic rather than an inventory icon, and where the sprite
-  // folder for one comes from. graphic_equip is a plain Int column with no composite, so without
-  // an entry here forms.js renders it as a text box with no preview at all — which is the
-  // complaint. `categoryFrom` names the column whose value picks the folder; the mapping from that
-  // value to a folder is a CLIENT fact and lives in appearance.js, not here.
+  // folder for one comes from. Such a column is a plain Int with no composite, so without an entry
+  // here forms.js renders it as a text box with no preview and no way to browse the art — which is
+  // the complaint, first for graphic_equip and now for the three appearance ids.
+  //
+  // TWO SHAPES, and which one a column takes is a fact about the column rather than a style choice:
+  //
+  //   `categoryFrom` — the folder comes from ANOTHER CELL. graphic_equip is a helmet or a pair of
+  //     boots depending on item_slot, so the same id resolves differently row by row and the folder
+  //     has to be read live. The mapping from that cell's value to a folder is a CLIENT fact and
+  //     lives in appearance.js (slotFor -> CATEGORY), not here.
+  //   `category` — the folder is FIXED by the column itself. body_id is always a body, hair_id
+  //     always hair, face_id always eyes: Appearance.layers pushes them into the Body, Hair and Eyes
+  //     slots unconditionally (Character.cs:218-233), so there is no cell to read and nothing about
+  //     the row can move them. The names are Appearance.CATEGORY's own values, which is what the
+  //     parts atlas is keyed by — Eyes for a FACE id being the one that does not read off the column
+  //     name, and exactly why it is stated once here rather than derived per consumer.
+  //
+  // Every column below is checked against the schema by layout.test.js, and every `category` against
+  // Appearance.CATEGORY's values — a folder that is not one of the eight the bundle holds would be a
+  // preview that is blank forever and a browser with no tiles.
   var PART_GRAPHICS = {
     Items: {
       graphic_equip: { categoryFrom: 'item_slot' },
+    },
+    NPCs: {
+      body_id: { category: 'Bodies' },
+      hair_id: { category: 'Hair' },
+      face_id: { category: 'Eyes' },
+    },
+    // The appearance OVERRIDE, which is the same three ids applied to whoever the effect hits — the
+    // client feeds them through the same ApplyAppearance path, so the same three folders answer.
+    'Spell Effects': {
+      body_id: { category: 'Bodies' },
+      hair_id: { category: 'Hair' },
+      face_id: { category: 'Eyes' },
     },
   };
 
@@ -117,6 +160,33 @@ var Layout = (function () {
   var WEARABLE = {
     Items: { column: 'item_usetype', values: ['Armor', 'Weapon'],
              columns: ['graphic_equip', 'item_slot'] },
+  };
+
+  // A MONSTER OR MORPH BODY RENDERS ALONE, and this is the cell that decides plus everything that
+  // decision makes dead. Character.cs:218-223 drops the hair id, the face id and all six equipment
+  // slots for a body >= 100, and the server does not even send equipment for such a row
+  // (Goose/Packets.cs:161) — so those cells are not "usually ignored", they are unreachable.
+  //
+  // >= 100, NOT > 100. The client's test is `CurrentBodyID >= 100` and Appearance.layers already
+  // ports it verbatim, so anything else here would put the form and the preview beside it into
+  // disagreement about body 100 itself.
+  //
+  // TWO LISTS, because hiding and clearing are different promises:
+  //   `columns` are HIDDEN, the way the wearable gate hides its rows — the cells keep their stored
+  //     text and round-trip verbatim, so typing 150 into body_id and thinking better of it loses
+  //     nothing. hair_r leads the hair tint composite, which is as dead as the id it colours.
+  //   `clear` is what a SAVE writes to zero once the row has actually crossed into monster
+  //     territory, which the user asked for and which the hidden rows cannot do for themselves:
+  //     leaving a face and a hair id behind on a body that will never draw them is data that reads
+  //     as equipment the NPC has. body_r/g/b/a are NOT cleared — the body's own tint survives the
+  //     client's rule (only the ids are zeroed) — and neither is the hair tint, which is a parked
+  //     colour rather than a thing that renders.
+  var MONSTER_BODY = {
+    NPCs: {
+      column: 'body_id', from: 100,
+      columns: ['face_id', 'hair_id', 'hair_r', 'equipped_items'],
+      clear: ['face_id', 'hair_id', 'equipped_items'],
+    },
   };
 
   // WHICH SPRITE BUNDLE A GRAPHIC COLUMN'S BROWSER SHOWS, where it is not the inventory icons.
@@ -161,6 +231,30 @@ var Layout = (function () {
   function wearableGate(sheet) {
     var gate = own(WEARABLE, String(sheet));
     return gate === undefined ? null : gate;
+  }
+
+  /// The sheet's monster-body rule — `{ column, from, columns, clear }` — or null when the sheet has
+  /// no such cell. One accessor for all three consumers (forms.js hides the rows, app.js clears the
+  /// cells on save, and both go through isMonsterBody below for the test itself) so no two of them
+  /// can disagree about which cells a monster body kills.
+  function monsterBodyGate(sheet) {
+    var gate = own(MONSTER_BODY, String(sheet));
+    return gate === undefined ? null : gate;
+  }
+
+  /// True when this record's body id is a monster or morph body, i.e. when the columns the gate
+  /// names are dead. False for every sheet without such a rule, so a caller needs no branch of its
+  /// own before asking.
+  ///
+  /// parseInt(v, 10), matching Appearance.num() — this is the same comparison Appearance.layers
+  /// makes, on the same cell, and the two must agree about what ' 150 ' means. A blank or
+  /// non-numeric cell reads 0, which is a PLAYER body: it means "use the SQL default", and the
+  /// default for both sheets that carry the column is 1.
+  function isMonsterBody(sheet, values) {
+    var gate = monsterBodyGate(sheet);
+    if (!gate) return false;
+    var n = parseInt((values || {})[gate.column], 10);
+    return !isNaN(n) && n >= gate.from;
   }
 
   /// Which sprite bundle the graphic browser should show for one column. Never null: 'icons' is the
@@ -280,6 +374,8 @@ var Layout = (function () {
     tintColumns: tintColumns,
     partGraphic: partGraphic,
     wearableGate: wearableGate,
+    monsterBodyGate: monsterBodyGate,
+    isMonsterBody: isMonsterBody,
     galleryBundle: galleryBundle,
     RESTART_ONLY: deepFreeze(RESTART_ONLY),
     LAYOUTS: deepFreeze(LAYOUTS),
@@ -288,6 +384,7 @@ var Layout = (function () {
     TINTS: deepFreeze(TINTS),
     PART_GRAPHICS: deepFreeze(PART_GRAPHICS),
     WEARABLE: deepFreeze(WEARABLE),
+    MONSTER_BODY: deepFreeze(MONSTER_BODY),
     GALLERIES: deepFreeze(GALLERIES),
   };
 })();

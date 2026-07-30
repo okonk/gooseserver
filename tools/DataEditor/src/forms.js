@@ -232,10 +232,35 @@ var Forms = (function () {
         'reload this table.'));
     }
 
-    // The rows only a wearable record has a use for — hidden, not skipped: their inputs stay in
-    // the tree so Forms.collect still reads the stored cells back verbatim, and flipping
-    // item_usetype to Armor mid-edit shows them again without a re-render.
-    var gate = Layout.wearableGate(schema.sheet);
+    // ROWS THAT ONLY SOME RECORDS OF THIS SHEET HAVE A USE FOR — hidden, not skipped: their inputs
+    // stay in the tree so Forms.collect still reads the stored cells back verbatim, and flipping the
+    // deciding cell back shows them again without a re-render.
+    //
+    // TWO GATES, and a sheet may be subject to both (no sheet is today):
+    //   the WEARABLE gate, on item_usetype — only Armor and Weapon items are drawn on a character,
+    //     so graphic_equip and item_slot are noise for every other usetype;
+    //   the MONSTER BODY gate, on body_id — a body >= 100 renders alone, so the face id, the hair id
+    //     and its tint, and all six equipment slots are cells the client will never read.
+    // Both are `{ columns, show(values) }` here and nothing below knows which is which; each table
+    // and the rule that reads it live in Layout, so app.js's save path and preview panel gate on the
+    // same answer this form does.
+    var wearable = Layout.wearableGate(schema.sheet);
+    var monster = Layout.monsterBodyGate(schema.sheet);
+    var gates = [];
+    if (wearable) {
+      gates.push({
+        columns: wearable.columns,
+        show: function (current) {
+          return wearable.values.indexOf(str(current[wearable.column])) !== -1;
+        },
+      });
+    }
+    if (monster) {
+      gates.push({
+        columns: monster.columns,
+        show: function (current) { return !Layout.isMonsterBody(schema.sheet, current); },
+      });
+    }
     var gatedRows = [];
 
     Layout.groupsFor(schema.sheet, schema.columns).forEach(function (group) {
@@ -268,7 +293,12 @@ var Forms = (function () {
         section.appendChild(row);
         rendered++;
 
-        if (gate && gate.columns.indexOf(name) !== -1) gatedRows.push(row);
+        // EVERY gate that claims this column, not the first: a row two gates disagree about must
+        // stay hidden, and one `hidden` flag written twice would leave whichever ran last in
+        // charge. No column is claimed twice today; this is what keeps that from being a
+        // precondition of the mechanism.
+        var owners = gates.filter(function (g) { return g.columns.indexOf(name) !== -1; });
+        if (owners.length) gatedRows.push({ row: row, gates: owners });
       });
 
       // A group whose every column was claimed by a composite led from an earlier group would
@@ -276,16 +306,19 @@ var Forms = (function () {
       if (rendered) container.appendChild(section);
     });
 
-    // Applied once from the stored values, then re-applied on every edit: the gate column is an
-    // ordinary field of this same form, so the rows follow it live. Hidden rows keep their
-    // values (see the note above), so toggling usetype back and forth loses nothing.
-    if (gate && gatedRows.length) {
-      var applyGate = function (current) {
-        var show = gate.values.indexOf(str(current[gate.column])) !== -1;
-        gatedRows.forEach(function (row) { row.hidden = !show; });
+    // Applied once from the stored values, then re-applied on every edit: every gate's deciding cell
+    // is an ordinary field of this same form, so the rows follow it live — typing 150 into body_id
+    // hides the face and hair rows there and then. Hidden rows keep their values (see the note
+    // above), so moving the cell back and forth loses nothing; app.js's save path is what turns a
+    // crossing into cleared cells, and only once the user actually saves.
+    if (gatedRows.length) {
+      var applyGates = function (current) {
+        gatedRows.forEach(function (entry) {
+          entry.row.hidden = entry.gates.some(function (g) { return !g.show(current); });
+        });
       };
-      applyGate(values);
-      if (ctx && typeof ctx.onFormChange === 'function') ctx.onFormChange(applyGate);
+      applyGates(values);
+      if (ctx && typeof ctx.onFormChange === 'function') ctx.onFormChange(applyGates);
     }
   }
 

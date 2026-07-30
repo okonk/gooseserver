@@ -90,6 +90,37 @@ test('readSheet names the sheet it could not find', () => {
   assert.throws(() => gs.readSheet('Nope'), /No worksheet named "Nope"/);
 });
 
+// --- readSheet: how many times the sheet crosses the wire -------------------------------------
+
+test('readSheet reads the sheet ONCE when no cell is a date', () => {
+  // The display values exist for Date cells alone, and no schema column is a date — so the second
+  // whole-sheet read was paid on every sheet open for a case the shipped data does not contain.
+  // ROW is the awkward one deliberately: a format-bearing decimal, a separator-formatted integer, a
+  // Bool and a formula all reach the client correctly from the raw values alone.
+  const gs = sheet([ROW, [8, 'Shield', 0, 0, 1, 0]]);
+  const data = gs.readSheet('Items');
+
+  assert.deepEqual(gs.sheets.Items.reads.map((r) => r.kind), ['values']);
+  assert.equal(data.rows[0][2], '0.1235', 'and the values are the same ones as before');
+  assert.equal(data.rows[0][3], '1500');
+});
+
+test('readSheet fetches the display values when a cell IS a date, for that sheet only', () => {
+  // The fallback is what keeps a stray date-formatted cell recognisable rather than showing the user
+  // 'Thu Jan 02 2026 00:00:00 GMT+0000 (…)'. It has to survive the single-pass read.
+  const gs = sheet([[1, 'x', { value: new Date(Date.UTC(2026, 0, 2)), display: '02/01/2026' }, 0, 0, 0]]);
+  const data = gs.readSheet('Items');
+
+  assert.deepEqual(gs.sheets.Items.reads.map((r) => r.kind), ['values', 'display']);
+  assert.equal(data.rows[0][2], '02/01/2026');
+  // One display read, not one per date cell: it is the whole range, fetched once.
+  const gs2 = loadCodeGs({ Items: [HEADER, [1, 'x',
+    { value: new Date(Date.UTC(2026, 0, 2)), display: '02/01/2026' },
+    { value: new Date(Date.UTC(2026, 0, 3)), display: '03/01/2026' }, 0, 0]] });
+  gs2.readSheet('Items');
+  assert.equal(gs2.sheets.Items.reads.filter((r) => r.kind === 'display').length, 1);
+});
+
 // --- writeRow: what it leaves alone ---------------------------------------------------------
 
 // What the client posts back for a record it has not edited: exactly what readSheet gave it.
@@ -390,6 +421,75 @@ test('the duplicate check compares ids by value, not by text', () => {
   const gs = sheet([ROW, [{ value: 8, display: '8.00' }, 'Shield', 0, 0, 0, 0]], { maxRows: 10 });
   assert.throws(() => gs.writeRow('Items', 0, ['8.00', 'Dagger', '0', '0', '0', '0'], 0),
     /id 8 is already used by row 3/);
+});
+
+// The id column read, which is the one the duplicate scan makes: column 1, rows 2..lastRow.
+function idColumnReads(sheetObject, rows) {
+  return sheetObject.reads.filter((r) => r.kind === 'values' && r.col === 1 && r.row === 2 &&
+                                        r.numCols === 1 && r.numRows === rows);
+}
+
+test('an edit that does not touch the id does not scan the id column at all', () => {
+  // The scan reads every id in the sheet — 4,322 cells on NPC Spawns — to answer a question this
+  // save cannot have changed the answer to: it is not taking an id, it is editing a name.
+  const gs = sheet([ROW, [8, 'Shield', 0, 0, 0, 0]], { maxRows: 10 });
+  const loaded = unedited(gs, 2);
+  const cells = loaded.slice();
+  cells[1] = 'Steel Sword';
+
+  gs.sheets.Items.reads.length = 0;
+  gs.writeRow('Items', 2, cells, 0, { loaded });
+
+  assert.deepEqual(idColumnReads(gs.sheets.Items, 2), []);
+  assert.deepEqual(gs.sheets.Items.writes, [{ row: 2, col: 2, values: [['Steel Sword']] }]);
+});
+
+test('RENUMBERING a row onto another row\'s id is still refused', () => {
+  // The skip is exactly "the id did not move". The moment it does, the scan is the only thing
+  // standing between two records and one id.
+  const gs = sheet([ROW, [8, 'Shield', 0, 0, 0, 0]], { maxRows: 10 });
+  const loaded = unedited(gs, 2);
+  const cells = loaded.slice();
+  cells[0] = '8';
+
+  assert.throws(() => gs.writeRow('Items', 2, cells, 0, { loaded }),
+    /id 8 is already used by row 3/);
+  assert.deepEqual(gs.sheets.Items.writes, []);
+});
+
+test('an id that changed only in FORMATTING counts as unchanged', () => {
+  // The client may hold '7.00' for a stored 7 and post it back verbatim. idKey_ folds both, on both
+  // sides of the comparison, so this is an ordinary edit and not a renumber.
+  const gs = sheet([ROW, [8, 'Shield', 0, 0, 0, 0]], { maxRows: 10 });
+  const loaded = unedited(gs, 2);
+  const cells = loaded.slice();
+  cells[0] = '7.00';
+  cells[1] = 'Steel Sword';
+
+  gs.sheets.Items.reads.length = 0;
+  gs.writeRow('Items', 2, cells, 0, { loaded });
+  assert.deepEqual(idColumnReads(gs.sheets.Items, 2), []);
+});
+
+test('an APPEND is scanned even when a snapshot is supplied', () => {
+  // app.js sends no snapshot for an append, but the skip must not rest on that: a new row takes an
+  // id nobody held, so there is nothing for a snapshot to prove.
+  const gs = sheet([ROW, [8, 'Shield', 0, 0, 0, 0]], { maxRows: 10 });
+  const loaded = unedited(gs, 2);
+  assert.throws(() => gs.writeRow('Items', 0, ['8', 'Dagger', '0', '0', '0', '0'], 0, { loaded }),
+    /id 8 is already used by row 3/);
+});
+
+test('without a snapshot the id column is still scanned', () => {
+  // A caller that predates options.loaded has nothing to compare the id against, so it keeps the
+  // scan rather than losing the check.
+  const gs = sheet([ROW, [8, 'Shield', 0, 0, 0, 0]], { maxRows: 10 });
+  const cells = unedited(gs, 2);
+  cells[1] = 'Steel Sword';
+
+  gs.sheets.Items.reads.length = 0;
+  gs.writeRow('Items', 2, cells, 0);
+  assert.equal(idColumnReads(gs.sheets.Items, 2).length, 1);
 });
 
 test('a whitespace id skips the duplicate check rather than matching every blank id cell', () => {
