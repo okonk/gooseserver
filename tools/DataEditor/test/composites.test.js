@@ -1233,8 +1233,9 @@ test('Forms.render routes an FK column to the picker', () => {
   const container = document.createElement('div');
   Forms.render(container, schema, { quest_id: '10' }, ctx());
   assert.ok(container.querySelector('[class="picker"]'), 'expected a picker wrapper');
+  // The [name] input is the hidden cell; the combobox beside it shows "id — name".
   assert.equal(container.querySelector('[name="quest_id"]').value, '10');
-  assert.equal(container.querySelector('[class="resolved"]').textContent, 'Rat Hunt');
+  assert.equal(container.querySelector('[role="combobox"]').value, '10 — Rat Hunt');
 });
 
 test('Forms.render leaves a non-FK column on the scalar control', () => {
@@ -1325,7 +1326,7 @@ test('the equip slot preview is scaled, with its centring still in logical pixel
   ]);
 });
 
-// --- clicking a slot's graphic field opens the browser ----------------------------------------
+// --- clicking a slot's preview canvas opens the browser ---------------------------------------
 //
 // A SPY GALLERY, as in pickers.test.js: what matters here is the seam and the write path, not the
 // browser itself.
@@ -1339,13 +1340,14 @@ function spyGallery() {
   };
 }
 
-// The clickable field itself — there is no separate Browse button; the slot's graphic input
-// opens the dialog and is the opener focus returns to.
+// The clickable preview canvas — there is no separate Browse button; the slot's picture opens
+// the dialog and is the opener focus returns to, while the graphic field stays an ordinary text
+// box a designer can click into and retype.
 function browseOf(row) {
   return row.querySelector('[data-browse]');
 }
 
-test('every equip slot\'s graphic field opens a browser locked to its own sprite folder', () => {
+test('every equip slot\'s preview canvas opens a browser locked to its own sprite folder', () => {
   const gallery = spyGallery();
   const node = Composites.control({
     comp: EQUIP, byName: byName(EQUIP.columns), values: { equipped_items: RAW_EQUIP },
@@ -1356,9 +1358,12 @@ test('every equip slot\'s graphic field opens a browser locked to its own sprite
   assert.equal(rows.length, 6);
   rows.forEach((row, i) => {
     const field = browseOf(row);
-    assert.ok(field, 'slot ' + i + ' has no clickable graphic field');
-    assert.equal(field.className, 'slot-graphic', 'the graphic field itself is the opener');
+    assert.ok(field, 'slot ' + i + ' has no clickable preview canvas');
+    assert.equal(field.className, 'preview', 'the preview canvas is the opener');
     assert.equal(field.getAttribute('aria-haspopup'), 'dialog');
+    // Through Pickers.browseOnClick, so the canvas is reachable and activable by keyboard.
+    assert.equal(field.getAttribute('role'), 'button');
+    assert.equal(field.getAttribute('tabindex'), '0');
     assert.match(field.getAttribute('aria-label'), /^browse \w+ graphics$/);
   });
 

@@ -166,21 +166,29 @@ function ctxWith(data) {
   return { pickerData: data, bundles: {}, images: {}, onImagesReady() {} };
 }
 
+// `input` is the visible combobox the user types into; `cell` is the hidden input that carries
+// the column and is what Forms.collect sweeps. They split when the display became "id — name":
+// the display is not a value the sheet may ever receive.
 function parts(wrap) {
   return {
-    input: wrap.querySelector('[name]'),
+    input: wrap.querySelector('[role="combobox"]'),
+    cell: wrap.querySelector('[name]'),
     label: wrap.querySelector('[class="resolved"]') || wrap.querySelector('[class="resolved bad"]'),
     list: wrap.querySelector('[class="results"]'),
   };
 }
 
-test('fkControl shows the input, the resolved name and a hidden result list', () => {
+test('fkControl shows "id — name" in the field, the cell in a named hidden input', () => {
   const wrap = Pickers.fkControl(refColumn, '42', ctxWith({ Items: entries }));
-  const { input, label, list } = parts(wrap);
+  const { input, cell, label, list } = parts(wrap);
 
-  assert.equal(input.value, '42');
-  assert.equal(input.getAttribute('name'), 'item_template_id');
-  assert.equal(label.textContent, 'Iron Sword');
+  assert.equal(input.value, '42 — Iron Sword');
+  assert.equal(input.getAttribute('name'), null,
+    'the display text must never reach Forms.collect');
+  assert.equal(cell.value, '42');
+  assert.equal(cell.getAttribute('name'), 'item_template_id');
+  // The name is IN the field, so a label repeating it underneath would say it twice.
+  assert.equal(label.textContent, '');
   assert.equal(label.className, 'resolved');
   assert.equal(list.hidden, true);
 });
@@ -202,7 +210,16 @@ test('fkControl keeps a stored 0 rather than blanking it', () => {
   // The falsy-zero bug: `value || ''` writes '' over a real 0, and blank means "use the SQL
   // default" on the next save.
   const wrap = Pickers.fkControl(optionalColumn, 0, ctxWith({}));
+  assert.equal(parts(wrap).cell.value, '0');
   assert.equal(parts(wrap).input.value, '0');
+});
+
+test('fkControl round-trips a padded stored id verbatim while displaying it canonically', () => {
+  // Opening a record must not change it: the CELL keeps ' 042 ' until the user edits something,
+  // even though the field reads back the canonical "42 — name".
+  const wrap = Pickers.fkControl(refColumn, ' 042 ', ctxWith({ Items: entries }));
+  assert.equal(parts(wrap).cell.value, ' 042 ');
+  assert.equal(parts(wrap).input.value, '42 — Iron Sword');
 });
 
 test('fkControl treats blank and 0 as none, exactly as Validation does', () => {
@@ -221,7 +238,7 @@ test('fkControl flags 00 as not found, because Validation does too', () => {
 
 test('fkControl resolves leading zeros the way Validation does', () => {
   const wrap = Pickers.fkControl(refColumn, '042', ctxWith({ Items: entries }));
-  assert.equal(parts(wrap).label.textContent, 'Iron Sword');
+  assert.equal(parts(wrap).input.value, '42 — Iron Sword');
 });
 
 test('fkControl marks an unresolved id bad', () => {
@@ -259,7 +276,7 @@ test('a failed list does not make a resolvable id look broken', () => {
   // load succeeded, still has its entries — and an id in them still resolves.
   const ctx = ctxWith({ Items: entries });
   ctx.refErrors = ['Items'];
-  assert.equal(parts(Pickers.fkControl(refColumn, '42', ctx)).label.textContent, 'Iron Sword');
+  assert.equal(parts(Pickers.fkControl(refColumn, '42', ctx)).input.value, '42 — Iron Sword');
   // …and one that is genuinely absent from a list we DO have is still "not found", not "could
   // not load".
   assert.equal(parts(Pickers.fkControl(refColumn, '999', ctx)).label.textContent,
@@ -332,29 +349,30 @@ test('fkControl updates the resolved name as you type', () => {
 
 test('clicking a result writes the id, resolves it and closes the list', () => {
   const wrap = Pickers.fkControl(refColumn, '', ctxWith({ Items: entries }));
-  const { input, label, list } = parts(wrap);
+  const { input, cell, label, list } = parts(wrap);
 
   fire(input, 'focus');
   fire(list.children[2], 'click');
 
-  assert.equal(input.value, '43');
-  assert.equal(label.textContent, 'Iron Shield');
+  assert.equal(cell.value, '43', 'the cell holds the bare id and nothing else');
+  assert.equal(input.value, '43 — Iron Shield');
+  assert.equal(label.textContent, '', 'the name is in the field, not repeated below it');
   assert.equal(list.hidden, true);
 });
 
 test('clicking a result writes the canonical id, not the raw cell text', () => {
   const messy = ctxWith({ Items: [{ id: ' 042 ', name: 'Iron Sword' }] });
   const wrap = Pickers.fkControl(refColumn, '', messy);
-  const { input, list } = parts(wrap);
+  const { input, cell, list } = parts(wrap);
 
-  const { label } = parts(wrap);
   fire(input, 'focus');
   assert.equal(list.children[0].textContent, '42 — Iron Sword');
   fire(list.children[0], 'click');
-  assert.equal(input.value, '42');
-  // The LABEL too: resolving '42' against a stored ' 042 ' is the lookup's own canonicalisation,
-  // and without this the row text alone would pass with a raw string comparison in find().
-  assert.equal(label.textContent, 'Iron Sword');
+  assert.equal(cell.value, '42');
+  // The DISPLAY too: resolving '42' against a stored ' 042 ' is the lookup's own
+  // canonicalisation, and without this the row text alone would pass with a raw string
+  // comparison in find().
+  assert.equal(input.value, '42 — Iron Sword');
 });
 
 test('rebuilding the list detaches the old rows entirely', () => {
@@ -511,15 +529,15 @@ test('the active row is scrolled into view', () => {
 
 test('Enter on the active row writes the canonical id, resolves it and closes the list', () => {
   const wrap = Pickers.fkControl(refColumn, '', ctxWith({ Items: [{ id: ' 042 ', name: 'Iron Sword' }] }));
-  const { input, label, list } = parts(wrap);
+  const { input, cell, list } = parts(wrap);
 
   fire(input, 'focus');
   fire(input, 'keydown', DOWN);
   // Prevented, so Enter does not also do whatever the surrounding form does with it.
   assert.equal(fire(input, 'keydown', { key: 'Enter' }), false);
 
-  assert.equal(input.value, '42');
-  assert.equal(label.textContent, 'Iron Sword');
+  assert.equal(cell.value, '42');
+  assert.equal(input.value, '42 — Iron Sword');
   assert.equal(list.hidden, true);
   assert.equal(input.getAttribute('aria-expanded'), 'false');
   assert.equal(activeRow(wrap), null, 'closing the list clears the cursor');
@@ -532,7 +550,7 @@ test('the keyboard and mouse paths accept a row through the same code', () => {
     const { input, list } = parts(wrap);
     fire(input, 'focus');
     howToPick(input, list);
-    return input.value;
+    return parts(wrap).cell.value;
   };
 
   assert.equal(pick((input, list) => fire(list.children[2], 'click')), '43');
@@ -598,14 +616,15 @@ test('arrow keys on an empty result list do nothing at all', () => {
 
 test('Tab with a row active accepts it and still lets focus move on', () => {
   const wrap = Pickers.fkControl(refColumn, '', ctxWith({ Items: entries }));
-  const { input, list } = parts(wrap);
+  const { input, cell, list } = parts(wrap);
 
   fire(input, 'focus');
   fire(input, 'keydown', DOWN);
   // NOT prevented: having arrowed to a row, leaving the field commits it — but Tab must still
   // move focus, or the user is trapped in the control.
   assert.equal(fire(input, 'keydown', { key: 'Tab' }), true);
-  assert.equal(input.value, '1');
+  assert.equal(cell.value, '1');
+  assert.equal(input.value, '1 — Gold');
   assert.equal(list.hidden, true);
 });
 
@@ -640,6 +659,56 @@ test('typing after arrowing to a row clears the cursor rather than leaving it on
   assert.equal(list.children.indexOf(activeRow(wrap)), 0);
 });
 
+test('a hand-typed id earns its display on blur, and the cell stays bare', () => {
+  const wrap = Pickers.fkControl(refColumn, '', ctxWith({ Items: entries }));
+  const { input, cell } = parts(wrap);
+
+  input.value = '43';
+  fire(input, 'input');
+  assert.equal(cell.value, '43');
+  assert.equal(input.value, '43', 'no reformatting mid-keystroke — it would fight the caret');
+
+  fire(input, 'blur');
+  assert.equal(input.value, '43 — Iron Shield');
+  assert.equal(cell.value, '43');
+});
+
+test('editing the formatted display keeps writing the bare id, never the display text', () => {
+  // Backspacing through "43 — Iron Shield" passes through "43 — Iron Shiel", "43 — ...": every
+  // one of those must reach the cell as '43', or a save mid-edit stores the display string.
+  const wrap = Pickers.fkControl(refColumn, '43', ctxWith({ Items: entries }));
+  const { input, cell } = parts(wrap);
+  assert.equal(input.value, '43 — Iron Shield');
+
+  input.value = '43 — Iron Shiel';
+  fire(input, 'input');
+  assert.equal(cell.value, '43');
+});
+
+test('unresolvable text is never rewritten under the user', () => {
+  const wrap = Pickers.fkControl(refColumn, '', ctxWith({ Items: entries }));
+  const { input, cell, label } = parts(wrap);
+
+  input.value = 'zzz';
+  fire(input, 'input');
+  fire(input, 'blur');
+  assert.equal(input.value, 'zzz');
+  assert.equal(cell.value, 'zzz', 'the typo reaches the cell verbatim, for Validation to report');
+  assert.equal(label.textContent, 'not found in Items');
+});
+
+test('the display heals when the referenced sheet arrives after a blur', () => {
+  // The list loads asynchronously; a record opened before it lands shows the raw id. The next
+  // time the user leaves the field, display() runs against the now-present entries.
+  const ctx = ctxWith({});
+  const wrap = Pickers.fkControl(refColumn, '42', ctx);
+  assert.equal(parts(wrap).input.value, '42');
+
+  ctx.pickerData.Items = entries;
+  fire(parts(wrap).input, 'blur');
+  assert.equal(parts(wrap).input.value, '42 — Iron Sword');
+});
+
 test('fkControl shows the SQL default as its placeholder, like every other control', () => {
   const wrap = Pickers.fkControl(optionalColumn, '', ctxWith({}));
   assert.equal(parts(wrap).input.getAttribute('placeholder'), 'default 0');
@@ -649,7 +718,7 @@ test('fkControl shows the SQL default as its placeholder, like every other contr
 
 test('fkControl labels an entry with a blank name rather than showing nothing', () => {
   const wrap = Pickers.fkControl(refColumn, '5', ctxWith({ Items: [{ id: '5', name: '' }] }));
-  assert.equal(parts(wrap).label.textContent, '(unnamed)');
+  assert.equal(parts(wrap).input.value, '5 — (unnamed)');
 });
 
 test('the fkControl input is the only named node, so Forms.collect sees one value', () => {
@@ -1427,7 +1496,7 @@ test('partControl redraws when the parts bundle finishes decoding', () => {
   assert.equal(drawnFrom(wrap), 10);
 });
 
-// --- clicking a graphic field opens the browser -----------------------------------------------
+// --- clicking a preview canvas opens the browser ----------------------------------------------
 //
 // A SPY GALLERY, not the real module: what these assert is the SEAM — that the control hands over
 // the right bundle, filter and current graphic, and that what comes back reaches both cells and
@@ -1443,13 +1512,14 @@ function spyGallery() {
   };
 }
 
-// The clickable field itself — there is no separate Browse button; the graphic input opens the
-// dialog and is the opener focus returns to.
+// The clickable preview canvas — there is no separate Browse button; the picture opens the
+// dialog and is the opener focus returns to, while the text field stays an ordinary field a
+// designer can click into and retype.
 function browseOf(wrap) {
   return wrap.querySelectorAll('[data-browse]')[0];
 }
 
-test('clicking the graphic field opens the icons browser on the current sheet', () => {
+test('clicking the preview canvas opens the icons browser on the current sheet', () => {
   const gallery = spyGallery();
   const wrap = Pickers.graphicControl({
     graphicColumn, fileColumn, ctx: gctx(), gallery,
@@ -1457,8 +1527,14 @@ test('clicking the graphic field opens the icons browser on the current sheet', 
   });
 
   const field = browseOf(wrap);
-  assert.equal(field, gparts(wrap).graphic, 'the graphic field itself is the opener');
+  assert.equal(field, gparts(wrap).canvas, 'the preview canvas is the opener');
+  assert.notEqual(field, gparts(wrap).graphic,
+    'the graphic field must stay an ordinary text box');
   assert.equal(field.getAttribute('aria-haspopup'), 'dialog');
+  // A canvas is not natively interactive: without these a keyboard user cannot reach or
+  // activate the browser at all.
+  assert.equal(field.getAttribute('role'), 'button');
+  assert.equal(field.getAttribute('tabindex'), '0');
 
   fire(field, 'click');
   assert.equal(gallery.opens.length, 1);
@@ -1469,6 +1545,23 @@ test('clicking the graphic field opens the icons browser on the current sheet', 
   // The sheet the record already names, so the browser opens on this item's neighbourhood.
   assert.deepEqual(opened.filter, { sheet: '20107' });
   assert.deepEqual(opened.current, { sheet: '20107', graphic: '810003' });
+});
+
+test('Enter and Space on the preview canvas open the browser too', () => {
+  // role=button promises button behaviour, and a canvas gets none of it natively: without this
+  // path a keyboard user can Tab to the canvas and then do nothing with it.
+  const gallery = spyGallery();
+  const wrap = Pickers.graphicControl({
+    graphicColumn, fileColumn, ctx: gctx(), gallery, values: {},
+  });
+
+  // Prevented, so Space does not also scroll the page — the suppression a real button gets free.
+  assert.equal(fire(browseOf(wrap), 'keydown', { key: 'Enter' }), false);
+  assert.equal(fire(browseOf(wrap), 'keydown', { key: ' ' }), false);
+  assert.equal(gallery.opens.length, 2);
+
+  fire(browseOf(wrap), 'keydown', { key: 'a' });
+  assert.equal(gallery.opens.length, 2, 'an ordinary key must not open anything');
 });
 
 test('the sheet the browser opens on follows the field, not the stored record', () => {

@@ -35,6 +35,11 @@
   section h3 { margin: 0 0 6px; font-size: 12px; text-transform: uppercase; color: #666; }
   .field { display: grid; grid-template-columns: 160px 1fr; gap: 6px; align-items: center;
            margin-bottom: 4px; }
+  /* forms.js hides the wearable-only rows (graphic_equip, item_slot) by setting `hidden` when
+     item_usetype is not Armor/Weapon. `display: grid` above is an AUTHOR rule and beats the UA
+     stylesheet's [hidden] { display: none } outright — so without this rule the gate sets the
+     attribute and the rows stay on screen anyway. Same trap as #modal[hidden] below. */
+  .field[hidden] { display: none; }
   .field label { color: #444; font-family: ui-monospace, monospace; font-size: 11px; }
   input, select { padding: 3px 5px; border: 1px solid #ccc; width: 100%; box-sizing: border-box; }
 
@@ -160,7 +165,7 @@
      has to be stated: a canvas is a replaced element, so in grid its min-width is auto — a track
      narrower than the canvas does not clip, it blows out and eats the 1fr graphic column.
 
-     The four tracks are label, graphic, swatch, preview — the graphic field opens the browser
+     The four tracks are label, graphic, swatch, preview — the preview canvas opens the browser
      itself on click, so there is no Browse track to pay for. The default .swatch is 40px, so it
      is narrowed HERE rather than the track being widened to 40: the row is
      60 + 28 + 84 + three 4px gaps of fixed width against a ~258px sidebar column, and every
@@ -189,10 +194,10 @@
   .boolean input[type="checkbox"] { width: auto; margin: 0; }
   .boolean .clear { border: 0; background: none; color: #555; cursor: pointer; padding: 0 2px; }
 
-  /* A graphic field that opens the browser on click — pickers.js and composites.js mark every
-     such field with data-browse. The pointer says a click does something beyond placing a
-     caret; typing into the field still works (Tab in, or Escape out of the dialog it opens). */
-  input[data-browse] { cursor: pointer; }
+  /* A preview canvas that opens the browser on click — pickers.js and composites.js mark every
+     such canvas with data-browse (role=button, tabindex=0 come with it). The pointer says a
+     click does something; the text field beside it stays an ordinary field to type into. */
+  [data-browse] { cursor: pointer; }
 
   /* THE GRAPHIC BROWSER. #modal is the backdrop and the dialog's positioning context; Gallery.open
      owns everything inside it and leaves it empty on close.
@@ -211,12 +216,13 @@
   .gal-head { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
   .gal h2 { margin: 0; font-size: 12px; text-transform: uppercase; color: #666; }
   /* The one control in the header that may grow, so the header never demands more width than the
-     grid below it (4 * 64 + 3 * 4 = 268). */
+     grid below it (4 * 128 + 3 * 4 = 524). */
   .gal-head input { width: 60px; }
   .gal-locked { font-size: 11px; color: #555; }
-  /* THE SCROLLER IS THE ONLY THING THAT SCROLLS. The grid is a fixed 268px wide, so in a ~300px
-     Sheets sidebar it fits, and a narrower viewport still scrolls HERE rather than turning the whole
-     page into a horizontal scroller — the same rule #previews canvas and .cp-pop are written to.
+  /* THE SCROLLER IS THE ONLY THING THAT SCROLLS. The grid is a fixed 524px wide — in a ~300px
+     Sheets sidebar it PANS in here (overflow covers both axes), and a narrower viewport still
+     scrolls HERE rather than turning the whole page into a horizontal scroller — the same rule
+     #previews canvas and .cp-pop are written to.
 
      overflow-anchor: none, because the grid is WINDOWED: every scroll can rebuild the tiles and
      resize the two spacers, and the browser's scroll anchoring reads those mutations as content
@@ -225,18 +231,18 @@
      started a text selection over nodes the next render replaces, which flashed. */
   .gal-scroll { overflow: auto; flex: 1 1 auto; min-height: 120px; overflow-anchor: none;
                 -webkit-user-select: none; user-select: none; }
-  .gal-grid { display: grid; grid-template-columns: repeat(4, 64px); gap: 4px; }
-  /* Every tile is one 64px cell holding a .gal-art element sized to exactly the sprite's scaled
+  .gal-grid { display: grid; grid-template-columns: repeat(4, 128px); gap: 4px; }
+  /* Every tile is one 128px cell holding a .gal-art element sized to exactly the sprite's scaled
      rect — no canvas, no drawImage. gallery.js sets the art's size and background offset per
      tile; the PNG itself comes from a rule it injects, once, so the data URI is not copied 4,827
      times. The art is a separate, exactly-sized element rather than a background on the cell so
      the padding around a small sprite shows the tile's own background and never the atlas's
      neighbouring sprites; the flex rules are what centre it.
 
-     The 4px gap plus this 64px box IS Gallery.ROW_HEIGHT (68), which is the number its windowing
-     arithmetic uses to decide which row a scroll offset lands on. The two cannot drift apart
-     silently: a mismatch shows up as tiles landing outside the viewport. */
-  .gal-tile { width: 64px; height: 64px; padding: 0; border: 1px solid #eee; cursor: pointer;
+     The 4px gap plus this 128px box IS Gallery.ROW_HEIGHT (132), which is the number its
+     windowing arithmetic uses to decide which row a scroll offset lands on. The two cannot drift
+     apart silently: a mismatch shows up as tiles landing outside the viewport. */
+  .gal-tile { width: 128px; height: 128px; padding: 0; border: 1px solid #eee; cursor: pointer;
               background-color: transparent; display: flex;
               align-items: center; justify-content: center; overflow: hidden; }
   /* pointer-events: none keeps every click's event.target on the BUTTON, so the tile's click

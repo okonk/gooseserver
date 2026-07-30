@@ -133,23 +133,35 @@ var Pickers = (function () {
     return (typeof Gallery !== 'undefined' && Gallery) ? Gallery : null;
   }
 
-  // Makes a graphic field OPEN THE BROWSER ON CLICK — there is no separate Browse button. The
-  // field is where the designer's eye already is; the dialog's search field takes the first
-  // keystroke, so "click, type the id, Enter" is still the short path, and the field is the
-  // opener the dialog hands focus back to — so a hand-typed edit is one Escape away, and the
-  // keyboard path (Tab in, type) never opens anything.
+  // Makes the PREVIEW CANVAS open the browser on click — there is no separate Browse button, and
+  // it is deliberately NOT the text field: a field that opens a dialog on click cannot be clicked
+  // into for a hand edit, so putting the browse on the picture leaves the field an ordinary text
+  // box (click in, type, done) while the canvas — the thing that LOOKS like art to change — does
+  // the browsing. The canvas is also the opener the dialog hands focus back to.
   //
-  // `label` lands on title and aria-label so both a hover tooltip and a screen reader say what
-  // the click does; aria-haspopup says a dialog is coming. `onOpen(input)` does the opening —
-  // each control states its own bundle, filter and callback. It may decline (partControl's
-  // undrawn slots have nothing to browse), which leaves the click an ordinary click.
-  function browseOnClick(input, label, onOpen) {
-    input.setAttribute('data-browse', '');
-    input.setAttribute('title', label);
-    input.setAttribute('aria-label', label);
-    input.setAttribute('aria-haspopup', 'dialog');
-    input.addEventListener('click', function () { onOpen(input); });
-    return input;
+  // A canvas is not natively interactive, so the click alone would leave keyboard and screen
+  // reader users with no path at all: role=button and tabindex=0 put it in the tab order as a
+  // button, and Enter/Space activate it the way they activate a real one. `label` lands on title
+  // and aria-label so both a hover tooltip and a screen reader say what it does; aria-haspopup
+  // says a dialog is coming. `onOpen(opener)` does the opening — each control states its own
+  // bundle, filter and callback. It may decline (partControl's undrawn slots have nothing to
+  // browse), which leaves the click an ordinary click.
+  function browseOnClick(canvas, label, onOpen) {
+    canvas.setAttribute('data-browse', '');
+    canvas.setAttribute('title', label);
+    canvas.setAttribute('aria-label', label);
+    canvas.setAttribute('aria-haspopup', 'dialog');
+    canvas.setAttribute('role', 'button');
+    canvas.setAttribute('tabindex', '0');
+    canvas.addEventListener('click', function () { onOpen(canvas); });
+    canvas.addEventListener('keydown', function (event) {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      // Space would otherwise also scroll the page — the same page-scroll default a real
+      // button's activation suppresses.
+      event.preventDefault();
+      onOpen(canvas);
+    });
+    return canvas;
   }
 
   // True when `node` is the list or anything inside it. Walks parentNode rather than using
@@ -161,8 +173,12 @@ var Pickers = (function () {
     return false;
   }
 
-  // FK control: a text input holding the id, a live label showing the resolved name, and a
-  // results list. Writes only the id back to the sheet.
+  // FK control: a combobox that DISPLAYS "id — name" once the id resolves, over a hidden input
+  // that carries the bare id. Writes only the id back to the sheet — the split exists because the
+  // display and the cell genuinely differ now: "42 — Iron Sword" is what a designer wants to see
+  // in the field, and is not a value the sheet may ever receive. The status label underneath is
+  // kept for what the field cannot say — none / not found / loading / failed — and cleared when
+  // the name is in the field, where it would say the same thing twice.
   //
   // The list is a COMBOBOX in the aria-activedescendant style: focus never leaves the input, and
   // which row is current is stated by an attribute rather than by where focus is. That is what
@@ -173,7 +189,8 @@ var Pickers = (function () {
     var wrap = Forms.el('div', { class: 'picker' });
     var listId = 'f-' + column.name + '-list';
     var input = Forms.el('input', {
-      name: column.name,
+      // NO name — Forms.collect must never sweep the display text into the record. The id keeps
+      // 'f-' + name so the field's <label for> still lands here, on the thing a user types into.
       id: 'f-' + column.name,
       type: 'text',
       autocomplete: 'off',
@@ -187,10 +204,22 @@ var Pickers = (function () {
       'aria-expanded': 'false',
       'aria-controls': listId,
     });
-    // str(), not `value || ''`: a stored 0 means "none" and is a REAL value. Blanking it here
-    // would write blank on the next save, and blank means "use the SQL default" — which for
-    // most of these columns is a different number entirely (see Forms.str).
-    input.value = str(value);
+
+    // THE CELL. Seeded verbatim — str(), not `value || ''`: a stored 0 means "none" and is a
+    // REAL value, and blank means "use the SQL default", a different number entirely. Verbatim
+    // also means a padded ' 042 ' round-trips through Forms.collect untouched until the user
+    // actually picks or types something, honouring "opening a record must not change it".
+    var hidden = Forms.el('input', { type: 'hidden', name: column.name });
+    hidden.value = str(value);
+
+    // What our own display() writes, and the only shape it writes: "<canonical id> — <name>".
+    // Text matching it is read back as its id; anything else is the user's own text, verbatim.
+    var FORMATTED = /^(-?\d+) — /;
+
+    function idOf(text) {
+      var m = FORMATTED.exec(str(text));
+      return m ? m[1] : str(text);
+    }
 
     var label = Forms.el('span', { class: 'resolved' });
     var list = Forms.el('div', { class: 'results', id: listId, role: 'listbox' });
@@ -219,7 +248,7 @@ var Pickers = (function () {
     }
 
     function resolve() {
-      var v = str(input.value).trim();
+      var v = str(hidden.value).trim();
       // Blank and the literal '0' are "none" — the same two Validation.validateCell exempts
       // from its FK check, trim included. '00' is deliberately NOT among them: Validation
       // looks that one up and reports it, so the picker must not quietly call it none.
@@ -235,7 +264,11 @@ var Pickers = (function () {
 
       var hit = find(v);
       if (hit) {
-        label.textContent = str(hit.name) || '(unnamed)';
+        // While the field holds the raw id (the user is typing), the label is the live "this is
+        // what that id means" feedback. Once display() has put "id — name" IN the field, the
+        // label saying the name again is the duplication this control was reworked to remove.
+        label.textContent = FORMATTED.test(str(input.value)) ? ''
+          : (str(hit.name) || '(unnamed)');
         label.className = 'resolved';
         return;
       }
@@ -255,6 +288,19 @@ var Pickers = (function () {
       var failed = (ctx && ctx.refErrors && ctx.refErrors.indexOf(column.ref) !== -1);
       label.textContent = failed ? 'could not load ' + column.ref : 'loading ' + column.ref + '…';
       label.className = failed ? 'resolved bad' : 'resolved';
+    }
+
+    // Rewrites the FIELD from the cell: "id — name" when the id resolves, the cell's own text
+    // verbatim when it does not (blank, none, a typo, a list that has not arrived). Runs at
+    // build, on accept and on blur — never per keystroke, which would fight the caret.
+    //
+    // The id half is CANONICAL (key()), so a stored ' 042 ' displays as "42 — Iron Sword" while
+    // the CELL keeps ' 042 ' until the user themselves changes something.
+    function display() {
+      var v = str(hidden.value).trim();
+      var hit = (v === '' || v === '0') ? null : find(v);
+      input.value = hit ? key(v) + ' — ' + (str(hit.name) || '(unnamed)') : str(hidden.value);
+      resolve();
     }
 
     // Both halves of "is the list showing" move together — the attribute is what a screen reader
@@ -291,17 +337,20 @@ var Pickers = (function () {
       row.scrollIntoView({ block: 'nearest' });
     }
 
-    // Writes the CANONICAL id, so picking ' 042 ' from a hand-edited sheet stores '42'. Reads it
-    // back off the row rather than from a closure so the mouse and keyboard paths are the same
-    // code and cannot drift apart.
+    // Writes the CANONICAL id into the cell, so picking ' 042 ' from a hand-edited sheet stores
+    // '42' — and puts "id — name" in the field through display(). Reads the id back off the row
+    // rather than from a closure so the mouse and keyboard paths are the same code and cannot
+    // drift apart.
     function accept(row) {
-      input.value = row.getAttribute('data-id');
+      hidden.value = row.getAttribute('data-id');
       setOpen(false);
-      resolve();
+      display();
     }
 
     function refresh() {
-      var results = search(entries(), input.value);
+      // Searched on idOf, not the raw text: focusing a field showing "42 — Iron Sword" should
+      // list that row, and the whole display string matches nothing.
+      var results = search(entries(), idOf(input.value));
       // Drops the previous rows and, with them, their click handlers: the nodes are
       // unreachable afterwards, so nothing is left listening and nothing leaks.
       list.innerHTML = '';
@@ -332,7 +381,15 @@ var Pickers = (function () {
       setOpen(results.length > 0);
     }
 
-    input.addEventListener('input', function () { refresh(); resolve(); });
+    // Every keystroke writes the cell: what the user typed, verbatim — exactly what the old
+    // single-input control stored — EXCEPT when they are editing our own "id — name" text, where
+    // idOf peels the display back to the id it stands for. So backspacing through the name half
+    // never smuggles "42 — Iron Swor" into the sheet.
+    input.addEventListener('input', function () {
+      hidden.value = idOf(input.value);
+      refresh();
+      resolve();
+    });
     // Focusing an empty field shows the head of the list, so the control answers "what can go
     // in here?" without the user having to guess a first character.
     input.addEventListener('focus', refresh);
@@ -392,13 +449,19 @@ var Pickers = (function () {
     // never leaves the input at all, so this covers the other ways focus can land on a row —
     // a row.focus() from assistive tech, or a browser that focuses the mousedown target anyway —
     // where hiding the list would pull it out from under the focus that just arrived in it.
+    //
+    // Leaving the field is also when a HAND-TYPED id earns its display: the user typed '43',
+    // moved on, and the field now reads "43 — Iron Shield". display() leaves unresolvable text
+    // exactly as typed, so nothing a user wrote is ever rewritten under them.
     input.addEventListener('blur', function (event) {
       if (event && within(list, event.relatedTarget)) return;
       setOpen(false);
+      display();
     });
 
-    resolve();
+    display();
     wrap.appendChild(input);
+    wrap.appendChild(hidden);
     wrap.appendChild(label);
     wrap.appendChild(list);
     return wrap;
@@ -462,14 +525,19 @@ var Pickers = (function () {
     // both be set" hard to trip from the browser. An EFFECT pick has no sheet to write, so the file
     // cell is left alone — spell_animation_file is stored 0 in 176 of the 259 shipped rows and the
     // server sends both cells through verbatim, so filling it in would be inventing data.
-    browseOnClick(gInput, 'browse the ' + galleryBundle + ' atlas for ' + graphicColumn.name,
-      function (input) {
+    //
+    // ON THE CANVAS, not the graphic field: the field stays a plain text box a designer can click
+    // into and retype, and the picture is what opens the picture browser (see browseOnClick).
+    browseOnClick(canvas, 'browse the ' + galleryBundle + ' atlas for ' + graphicColumn.name,
+      function (opener) {
         var gallery = galleryOf(opts);
         if (!gallery) return;
         gallery.open({
           bundle: galleryBundle,
           bundles: (ctx && ctx.bundles) || {},
-          opener: input,
+          // For the blank-icon filter alone; the tiles draw from the CSS atlas rule either way.
+          images: (ctx && ctx.images) || {},
+          opener: opener,
           // Read at CLICK time, not at build time: a designer who has just typed a different sheet
           // number expects the browser to open on that sheet.
           filter: galleryBundle === 'icons' ? { sheet: fInput.value } : {},
@@ -694,7 +762,9 @@ var Pickers = (function () {
     //
     // With no browsable folder there is nothing to open: the click stays an ordinary click and the
     // status line says why the canvas is blank. See browsableCategory for which slots have none.
-    browseOnClick(input, 'browse the character parts atlas for ' + column.name,
+    //
+    // ON THE CANVAS, for graphicControl's reason: the id field stays a plain text box.
+    browseOnClick(canvas, 'browse the character parts atlas for ' + column.name,
       function (opener) {
         var gallery = galleryOf(opts);
         var folder = browsableCategory();
@@ -777,6 +847,9 @@ var Pickers = (function () {
     fkControl: fkControl,
     graphicControl: graphicControl,
     partControl: partControl,
+    // For composites.equipSlotsControl, whose slot previews open the browser the same way — one
+    // definition of "a canvas that acts as a browse button" rather than a copy per module.
+    browseOnClick: browseOnClick,
     LIMIT: LIMIT,
     ICON_BOX: ICON_BOX,
     PART_W: PART_W,

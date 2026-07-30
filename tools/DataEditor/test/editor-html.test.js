@@ -144,7 +144,7 @@ test('the at-block stripper removes any nested at-rule, not only @media', () => 
 });
 
 test('the equipment slot row is a live grid with a track for every cell it holds', () => {
-  // Four tracks per slot: label, graphic id, colour swatch, preview canvas — the graphic field
+  // Four tracks per slot: label, graphic id, colour swatch, preview canvas — the preview canvas
   // opens the browser itself, so there is no Browse track. The status line is the fifth child and
   // has NO track of its own — it spans the whole row underneath.
   const rule = ruleFor('.equip-slot');
@@ -174,6 +174,17 @@ test('the graphic browser is a modal that covers the sticky header', () => {
   const off = ruleFor('#modal[hidden]');
   assert.ok(off, `#modal[hidden] has no rule — the modal would never hide. Check for an ${NOT_FOUND}`);
   assert.match(off[2], /display:\s*none/);
+});
+
+test('a hidden field row is actually hidden', () => {
+  // forms.js gates the wearable-only rows (graphic_equip, item_slot) by setting `hidden` on the
+  // .field row. `.field { display: grid }` is an author rule and beats the UA stylesheet's
+  // [hidden] { display: none }, so without a rule of its own the gate is a no-op the DOM-level
+  // tests cannot see: the attribute is set and the row stays on screen. Same trap, and same
+  // shape of fix, as #modal[hidden] above.
+  const rule = ruleFor('.field[hidden]');
+  assert.ok(rule, `.field[hidden] has no rule — the usetype gate would hide nothing. Check for an ${NOT_FOUND}`);
+  assert.match(rule[2], /display:\s*none/);
 });
 
 test('the tile grid matches the arithmetic gallery.js windows with', async () => {
@@ -220,11 +231,11 @@ test('the selected tile is visibly marked', () => {
   assert.match(rule[2], /border-color|box-shadow|outline/);
 });
 
-test('the clickable graphic fields the controls emit are styled', () => {
-  // pickers.js and composites.js mark every gallery-opening field with data-browse; the pointer
-  // cursor is the one visual cue that a click does more than place a caret.
-  const rule = ruleFor('input[data-browse]');
-  assert.ok(rule, `input[data-browse] has no rule of its own — check for an ${NOT_FOUND}`);
+test('the clickable preview canvases the controls emit are styled', () => {
+  // pickers.js and composites.js mark every gallery-opening canvas with data-browse; the pointer
+  // cursor is the one visual cue that a click on the picture does something.
+  const rule = ruleFor('[data-browse]');
+  assert.ok(rule, `[data-browse] has no rule of its own — check for an ${NOT_FOUND}`);
   assert.match(rule[2], /cursor:\s*pointer/);
   const pickers = readFileSync(join(root, 'src', 'pickers.js'), 'utf8');
   assert.match(pickers, /data-browse/);

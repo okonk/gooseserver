@@ -1891,7 +1891,9 @@ test('the fk label says the list failed rather than "loading" forever', () => {
   fire(h.get('records').children[0], 'click');
   h.settle();
 
-  const field = h.get('form').querySelector('[name="spell_effect_id"]');
+  // The visible combobox, not the [name] input — that one is the hidden cell now, and the fk
+  // control's own input listener lives on the field the user actually types into.
+  const field = h.get('form').querySelector('[id="f-spell_effect_id"]');
   field.value = '5';
   fire(field, 'input');
 

@@ -441,27 +441,25 @@ var Composites = (function () {
                                         class: 'preview' });
       var status = Forms.el('span', { class: 'status' });
 
-      // CLICKING THE GRAPHIC FIELD OPENS THE BROWSER for this slot, LOCKED to the slot's own
-      // sprite folder — picking a Helms sprite for a Feet slot is never right, and
-      // Appearance.CATEGORY is the client's own map from one to the other (Shield and Weapon
-      // both land on Hands). No separate Browse button: the row is a fixed grid against a
-      // ~258px sidebar column and every track it loses goes back to this field. The field is
-      // the opener the dialog hands focus back to, so a hand-typed edit is one Escape away.
+      // CLICKING THE SLOT'S PREVIEW CANVAS OPENS THE BROWSER, LOCKED to the slot's own sprite
+      // folder — picking a Helms sprite for a Feet slot is never right, and Appearance.CATEGORY
+      // is the client's own map from one to the other (Shield and Weapon both land on Hands). On
+      // the CANVAS rather than the graphic field, matching Pickers.browseOnClick and for its
+      // reason: a field that opens a dialog on click cannot be clicked into for a hand edit, so
+      // the picture browses and the field stays a plain text box. No separate Browse button
+      // either way: the row is a fixed grid against a ~258px sidebar column. The canvas is the
+      // opener the dialog hands focus back to.
       //
       // A pick goes in through the input's own `input` event rather than by calling sync() here, so
       // the typo check, the freeze gate, the redraw and app.js's delegated preview all run on the
       // one path they already run on for a typed id.
-      input.setAttribute('data-browse', '');
-      input.setAttribute('title', 'browse ' + slotName + ' graphics');
-      input.setAttribute('aria-label', 'browse ' + slotName + ' graphics');
-      input.setAttribute('aria-haspopup', 'dialog');
-      input.addEventListener('click', function () {
+      Pickers.browseOnClick(canvas, 'browse ' + slotName + ' graphics', function (opener) {
         var gallery = galleryOf(opts);
         if (!gallery) return;
         gallery.open({
           bundle: 'parts',
           bundles: (ctx && ctx.bundles) || {},
-          opener: input,
+          opener: opener,
           filter: { category: Appearance.CATEGORY[slotName], locked: true },
           current: { category: Appearance.CATEGORY[slotName], id: input.value },
           onPick: function (choice) {

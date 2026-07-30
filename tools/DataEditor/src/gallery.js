@@ -19,17 +19,22 @@
 // TILES ARE DRAWN UNTINTED, as decided for this round: the gallery answers "which sprite is this
 // id", and a tint belongs to the record, not to the atlas.
 //
-// SIZING. Every cell is CELL square and every tile is scaled to FIT it, at no more than 2x. The
-// median icon is 32x32, so the common case is exactly the 2x pixelated tile the design asked for;
-// the 128x128 outliers scale down instead of being clipped to an unrecognisable top-left corner,
-// which for a browser whose whole job is recognition would be the wrong trade. A uniform cell is
-// also what makes the row a scroll offset lands on pure arithmetic — no measurement, no per-filter
-// row height to keep in step with the CSS.
+// SIZING. Every cell is CELL square and every tile is scaled to FIT it, at no more than 2x.
+// THE CELL IS 128 SO THE COMMON SIZES ACTUALLY REACH THAT 2x: at the previous 64 the cap only
+// ever applied to the 32x32 icons — the dominant parts sprite (48x64, 1,762 of 3,261) and the
+// dominant effects frames (48x48 and 48x64) were squeezed to 1x-1.33x by the fit, which read as
+// "the tiles are too small" in every picker but the icons one. At 128 everything up to 64px in
+// both axes is drawn at exactly 2x, and the 96/128px outliers still scale down instead of being
+// clipped to an unrecognisable top-left corner — for a browser whose whole job is recognition,
+// the right trade. A uniform cell is also what makes the row a scroll offset lands on pure
+// arithmetic — no measurement, no per-filter row height to keep in step with the CSS.
 var Gallery = (function () {
-  // Four columns of 64px cells is 272px with the gaps, which fits the ~300px Sheets sidebar — the
-  // narrower of the two shipped entry points — without the grid scrolling sideways.
+  // Four 128px columns is 524px with the gaps — the doubled dialog width the design asked for.
+  // In the ~300px Sheets sidebar that no longer fits side to side; the grid then pans inside
+  // .gal-scroll (overflow: auto covers both axes) rather than turning the whole page into a
+  // horizontal scroller.
   var COLUMNS = 4;
-  var CELL = 64;
+  var CELL = 128;
   var GAP = 4;
   var ROW_HEIGHT = CELL + GAP;
   var MAX_SCALE = 2;
@@ -280,6 +285,64 @@ var Gallery = (function () {
     };
   }
 
+  // --- blank tiles ------------------------------------------------------------------------------
+
+  /// The keys whose rect holds NOT ONE opaque pixel, from the atlas's decoded pixels. The icon
+  /// sheets ship fully transparent tiles — grid slots the artist never drew — and every one of
+  /// them used to be a clickable, pickable square of nothing in the browser. `imageData` is
+  /// `{ width, data }` in the ImageData shape; rows are walked through the atlas stride, and the
+  /// scan stops at the first pixel with any alpha, so the total work is bounded by the atlas.
+  ///
+  /// Pure, and exported for the tests: the canvas readback that produces the pixels is
+  /// blankSetFor's, so this half needs no DOM at all.
+  function transparentKeys(rects, imageData) {
+    var out = new Set();
+    var stride = imageData.width * 4;
+    var data = imageData.data;
+
+    Object.keys(rects).forEach(function (key) {
+      var rect = rects[key];
+      for (var y = rect[1]; y < rect[1] + rect[3]; y++) {
+        var row = y * stride + rect[0] * 4;
+        for (var x = 0; x < rect[2]; x++) {
+          if (data[row + x * 4 + 3]) return;
+        }
+      }
+      out.add(key);
+    });
+    return out;
+  }
+
+  // One pixel readback per bundle, ever — the set is cached against the bundle OBJECT, so the
+  // multi-megabyte drawImage + getImageData runs on the first open and never again, and a test
+  // fixture under the same bundle name cannot collide with the real atlas.
+  //
+  // NULL MEANS "DON'T FILTER", and it is the answer whenever the pixels cannot be read: no
+  // decoded image yet (the gallery opened before the PNG landed), no canvas support, a readback
+  // that throws. Hiding nothing is the safe direction — a false "blank" would make real art
+  // unpickable, where a false "drawn" is one empty tile.
+  var blankCache = typeof WeakMap !== 'undefined' ? new WeakMap() : null;
+
+  function blankSetFor(bundle, image) {
+    if (!bundle || !bundle.rects || !image || !blankCache) return null;
+    if (blankCache.has(bundle)) return blankCache.get(bundle);
+
+    var set = null;
+    try {
+      var canvas = document.createElement('canvas');
+      canvas.width = bundle.width;
+      canvas.height = bundle.height;
+      var c = canvas.getContext('2d');
+      c.drawImage(image, 0, 0);
+      set = transparentKeys(bundle.rects,
+                            c.getImageData(0, 0, bundle.width, bundle.height));
+    } catch (e) {
+      set = null;
+    }
+    blankCache.set(bundle, set);
+    return set;
+  }
+
   // --- the dialog -------------------------------------------------------------------------------
 
   // The one open instance, or null. Module-global because there is one #modal: a second open must
@@ -297,12 +360,16 @@ var Gallery = (function () {
     if (live) live.close(true);
   }
 
-  /// Gallery.open({ bundle, bundles, filter, current, onPick, opener })
+  /// Gallery.open({ bundle, bundles, images, filter, current, onPick, opener })
   ///
   ///   bundle  — 'icons' | 'parts' | 'effects'
   ///   bundles — the GOOSE_SPRITES map, i.e. ctx.bundles. Passed rather than read as a global so a
   ///             caller can open the browser over a bundle that has not been installed globally,
   ///             and so a test needs no global at all.
+  ///   images  — ctx.images: the decoded atlas <img> per bundle name, optional. Only used to HIDE
+  ///             BLANK ICONS (blankSetFor); with no image the grid simply shows every rect, which
+  ///             is also why the tiles themselves never need it — they draw from the CSS atlas
+  ///             rule, not from the element.
   ///   filter  — { sheet } for icons, { category, locked } for parts. `locked` means the caller
   ///             OWNS the category (an item's item_slot, an equip slot's name) and no chooser is
   ///             rendered: picking a Helms sprite for a Feet slot is never right.
@@ -328,6 +395,17 @@ var Gallery = (function () {
     var bundleName = str(opts.bundle) || 'icons';
     var bundle = (opts.bundles || {})[bundleName] || null;
     var all = entriesFor(bundleName, bundle);
+
+    // BLANK ICONS ARE DROPPED BEFORE ANYTHING COUNTS THEM — the sheet chooser's totals, the
+    // "N of M" line and `reachable` all read `all`, so a filter applied any later would count
+    // tiles the grid never shows. ICONS ONLY, deliberately: the icon sheets are grids with
+    // undrawn slots, where a parts id exists only because an artist drew it — and an effect is
+    // judged by its FRAME 0, which can legitimately be transparent (a fade-in) while the
+    // animation is real, so hiding on it would hide the effect itself.
+    if (bundleName === 'icons') {
+      var blank = blankSetFor(bundle, (opts.images || {})[bundleName]);
+      if (blank) all = all.filter(function (e) { return !blank.has(e.key); });
+    }
     var onPick = typeof opts.onPick === 'function' ? opts.onPick : null;
     var opener = opts.opener || null;
     var wanted = opts.filter || {};
@@ -720,6 +798,7 @@ var Gallery = (function () {
     partCategories: partCategories,
     effectEntries: effectEntries,
     filterEntries: filterEntries,
+    transparentKeys: transparentKeys,
     windowFor: windowFor,
     tileStyle: tileStyle,
     COLUMNS: COLUMNS,

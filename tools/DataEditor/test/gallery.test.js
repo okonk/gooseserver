@@ -420,14 +420,14 @@ test('a small sprite gets an art element smaller than the cell, not a cell-wide 
 });
 
 test('a sprite too big for the cell is scaled down rather than clipped', () => {
-  const big = { width: 256, height: 256, png: 'x', rects: { '104:1': [0, 128, 128, 128] } };
+  const big = { width: 512, height: 512, png: 'x', rects: { '104:1': [0, 256, 256, 256] } };
   Gallery.open({ bundle: 'icons', bundles: { icons: big }, opener: opener() });
   const art = tiles()[0].children[0];
-  // 128 art into a 64 cell is 0.5x: the atlas halves and the offset halves with it.
-  assert.equal(art.style.width, '64px');
-  assert.equal(art.style.height, '64px');
-  assert.equal(art.style.backgroundSize, '128px 128px');
-  assert.equal(art.style.backgroundPosition, '0px -64px');
+  // 256 art into a 128 cell is 0.5x: the atlas halves and the offset halves with it.
+  assert.equal(art.style.width, '128px');
+  assert.equal(art.style.height, '128px');
+  assert.equal(art.style.backgroundSize, '256px 256px');
+  assert.equal(art.style.backgroundPosition, '0px -128px');
 });
 
 test('the parts filter locked to a category never lists another one', () => {
@@ -563,6 +563,11 @@ test('keyboard navigation walks the grid and clamps at both ends', () => {
   });
 
   const scroll = node('scroll');
+  // The fake DOM derives scrollHeight from the spacers' DECLARED heights alone — the grid's own
+  // rows contribute 0 (fake-dom.js's scroll-geometry note) — so it clamps scrollTop harder than
+  // a browser would, and End's jump to the last row lands short. Stating the true content height
+  // removes that artificial clamp instead of relying on OVERSCAN to cover the gap by luck.
+  scroll.scrollHeight = Math.ceil(40 / Gallery.COLUMNS) * Gallery.ROW_HEIGHT;
   const current = () => tiles().find((t) => t.getAttribute('aria-selected') === 'true')
     .getAttribute('data-id');
 
@@ -661,4 +666,76 @@ test('a stale scroll offset past the end of a narrowed list still renders the ta
   assert.equal(w.last, 8);
   assert.equal(w.topPad, 0);
   assert.equal(w.bottomPad, 0);
+});
+
+// --- blank icons ------------------------------------------------------------------------------
+
+test('transparentKeys reports exactly the rects with no opaque pixel', () => {
+  // A 4x2 atlas, stride 16: rect A (0,0 2x2) has one pixel with alpha, rect B (2,0 2x2) has
+  // none. The opaque pixel sits at (1,1) — the LAST pixel of A's scan — so an early-exit bug
+  // that stopped a row short would misreport A as blank.
+  const data = new Array(4 * 2 * 4).fill(0);
+  data[(1 * 4 + 1) * 4 + 3] = 7;
+  const blank = Gallery.transparentKeys(
+    { '104:1': [0, 0, 2, 2], '104:2': [2, 0, 2, 2] },
+    { width: 4, data },
+  );
+  assert.deepEqual([...blank], ['104:2']);
+});
+
+test('transparentKeys reads alpha through the atlas stride, not the rect width', () => {
+  // A rect NOT at x=0 in a wider atlas: its rows are 16 bytes apart, not rect[2]*4 = 8. An
+  // implementation that walked a packed rect-sized buffer would read the wrong pixels entirely.
+  const data = new Array(4 * 2 * 4).fill(0);
+  data[(2) * 4 + 3] = 255; // (x=2, y=0) — inside the rect at [2,0]
+  const blank = Gallery.transparentKeys(
+    { '104:2': [2, 0, 2, 2] },
+    { width: 4, data },
+  );
+  assert.equal(blank.size, 0);
+});
+
+test('blank icons are hidden from the grid, the counts and the sheet chooser', () => {
+  // The fake canvas reads back every pixel as alpha 0, so with an image supplied EVERY icon is
+  // blank — which makes the filter's reach observable end to end: no tiles, an honest count,
+  // and no sheet entries built from tiles the grid will never show.
+  const bundle = {
+    width: 4, height: 4, png: 'x',
+    rects: { '104:1': [0, 0, 2, 2], '104:2': [2, 0, 2, 2] },
+  };
+  Gallery.open({
+    bundle: 'icons', bundles: { icons: bundle }, images: { icons: 'IMG' }, opener: opener(),
+  });
+  assert.equal(tiles().length, 0);
+  assert.ok(node('count').textContent.indexOf('0 of 0') === 0, node('count').textContent);
+  // 'all sheets (0)' and no per-sheet options: the chooser counts what the grid can show.
+  assert.equal(node('sheet').getElementsByTagName('option').length, 1);
+});
+
+test('with no decoded image the grid shows every rect rather than guessing', () => {
+  // Hiding nothing is the safe direction: a false "blank" would make real art unpickable.
+  const bundle = {
+    width: 4, height: 4, png: 'x',
+    rects: { '104:1': [0, 0, 2, 2], '104:2': [2, 0, 2, 2] },
+  };
+  Gallery.open({ bundle: 'icons', bundles: { icons: bundle }, opener: opener() });
+  assert.equal(tiles().length, 2);
+});
+
+test('the parts and effects grids are never filtered by pixels', () => {
+  // A parts id exists only because an artist drew it, and an effect is judged by frame 0, which
+  // can legitimately be transparent (a fade-in) while the animation is real. The fake canvas
+  // calls everything blank, so surviving it proves the filter never ran.
+  Gallery.open({
+    bundle: 'parts', images: { parts: 'IMG' }, opener: opener(),
+    bundles: { parts: { width: 4, height: 4, png: 'x',
+                        rects: { 'Helms:1:idle-down': [0, 0, 2, 2] } } },
+  });
+  assert.equal(tiles().length, 1);
+
+  Gallery.open({
+    bundle: 'effects', images: { effects: 'IMG' }, opener: opener(),
+    bundles: { effects: { width: 4, height: 4, png: 'x', rects: { '9:0': [0, 0, 2, 2] } } },
+  });
+  assert.equal(tiles().length, 1);
 });
