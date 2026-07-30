@@ -13,8 +13,11 @@
 //     that is not written keeps its formula.
 //   * getRange() past the bottom of the grid throws rather than growing it.
 //
-// Everything Code.gs does not call is absent, deliberately: getFormulas, getUi, number formats,
-// merged cells, data validation, LockService.
+// Everything Code.gs does not call is absent, deliberately: getFormulas, getUi, merged cells,
+// data validation, LockService. setNumberFormat is present but only RECORDED (into
+// sheet.writes, as { row, col, format }), because what the tests pin is that writeRow asks for
+// the '@' pin on exactly the edited Text cells, and asks BEFORE writing the value — whether '@'
+// actually suppresses Sheets' entry parsing is a live check, not something this fake can model.
 //
 // A CELL is either a plain value (number, string, boolean, null for empty) or a descriptor:
 //
@@ -153,6 +156,10 @@ class FakeRange {
   getValues() { return this._map(rawOf); }
 
   getDisplayValues() { return this._map(displayOf); }
+
+  setNumberFormat(format) {
+    this.sheet.writes.push({ row: this.row, col: this.col, format });
+  }
 
   setValues(values) {
     if (values.length !== this.numRows || values.some((row) => row.length !== this.numCols)) {

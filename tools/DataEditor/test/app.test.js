@@ -118,8 +118,8 @@ function makeServer(sheets, options) {
           }),
       };
     },
-    writeRow(sheet, rowNumber, cells, idColumnIndex) {
-      writes.push({ sheet, rowNumber, cells, idColumnIndex });
+    writeRow(sheet, rowNumber, cells, idColumnIndex, options) {
+      writes.push({ sheet, rowNumber, cells, idColumnIndex, options });
       const target = Number(rowNumber) > 0 ? Number(rowNumber) : (sheets[sheet] || []).length + 2;
       if (opts.writeFails) throw new Error('write refused');
       return { row: target };
@@ -1065,6 +1065,43 @@ test('save writes the row it opened, with the pk column index', () => {
   assert.equal(h.writes[0].idColumnIndex, 0);
   assert.equal(h.writes[0].cells.length, schemaOf('Items').columns.length);
   assert.match(h.status(), /Saved\./);
+});
+
+test('save sends the loaded snapshot and the Text column indexes to writeRow', () => {
+  // The snapshot is what lets writeRow tell the user's edit from another editor's: without it a
+  // whole-record post silently reverts every cell someone else changed during the edit. The Text
+  // indexes are what let it pin '@' so "1-2" stays text rather than becoming a Date.
+  const h = boot({ Items: [ITEM(1, 'Gold'), ITEM(2, 'Sword')] });
+  fire(h.get('records').children[1], 'click');
+  h.settle();
+  const name = h.get('form').querySelector('[name="item_name"]');
+  name.value = 'Steel Sword';
+  fire(name, 'input');
+  fire(h.get('save'), 'click');
+  h.settle();
+
+  // As loaded — the pre-edit row — not as posted.
+  assert.deepEqual(h.writes[0].options.loaded, ITEM(2, 'Sword'));
+  assert.deepEqual(h.writes[0].options.textColumns,
+    schemaOf('Items').columns.reduce((out, c, i) => {
+      if (c.kind === 'Text') out.push(i);
+      return out;
+    }, []));
+
+  // An append has nothing loaded to compare against.
+  fire(h.get('new-record'), 'click');
+  h.settle();
+  [['item_name', 'Dagger'], ['item_usetype', 'NoUse'], ['graphic_tile', '1']].forEach((pair) => {
+    const field = h.get('form').querySelector('[name="' + pair[0] + '"]');
+    field.value = pair[1];
+    fire(field, 'input');
+  });
+  fire(h.get('save'), 'click');
+  h.settle();
+
+  assert.equal(h.writes.length, 2);
+  assert.equal(h.writes[1].rowNumber, 0);
+  assert.equal(h.writes[1].options.loaded, null);
 });
 
 test('a sheet with no pk writes idColumnIndex -1, not 0', () => {

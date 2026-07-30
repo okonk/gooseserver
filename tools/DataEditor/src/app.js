@@ -860,6 +860,21 @@ var App = (function () {
     // legitimately repeats, and 0 would make Code.gs reject every second drop, spawn or level.
     var idIndex = pk ? state.schema.columns.indexOf(pk) : -1;
 
+    // The record AS IT WAS LOADED, so writeRow can tell "the user edited this cell" from
+    // "someone else did": a cell where posted equals loaded is never written (a concurrent edit
+    // to it survives), and an edited cell whose sheet value matches neither is refused as a
+    // conflict instead of silently overwriting the other editor. An append has no snapshot.
+    var loadedCells = state.rowNumber > 0
+      ? state.schema.columns.map(function (c) { return str(state.loaded[c.name]); })
+      : null;
+
+    // The Text columns, so writeRow pins their format to plain text before writing — setValues
+    // parses strings like typed entry, so "1-2" in a description became a Date and "01" a 1.
+    var textColumns = [];
+    state.schema.columns.forEach(function (c, i) {
+      if (c.kind === 'Text') textColumns.push(i);
+    });
+
     status('Saving…');
     state.saving = true;
     // The write is bound to the sheet it was composed against, not to whatever is open when it
@@ -890,7 +905,8 @@ var App = (function () {
         openSheet(savedSheet, written && written.row,
                   'Saved. Run /updatesql then /reloadsql in game to publish.');
       })
-      .writeRow(savedSheet, state.rowNumber, cells, idIndex);
+      .writeRow(savedSheet, state.rowNumber, cells, idIndex,
+                { loaded: loadedCells, textColumns: textColumns });
   }
 
   /// Publish check: validate every record on every sheet before telling the user to publish.

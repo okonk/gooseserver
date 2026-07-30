@@ -193,6 +193,112 @@ test('a record posted back through readSheet round-trips to itself for every cel
   assert.deepEqual(gs.sheets.Items.writes, []);
 });
 
+// --- writeRow: two editors (the loaded snapshot) ----------------------------------------------
+
+test('a concurrent edit to a cell the user did NOT touch survives the save', () => {
+  // Editor A opens the row; editor B fixes `value`; A renames the item and saves. Diffing
+  // against the sheet's CURRENT values called B's fix "a change A posted" and reverted it.
+  const gs = sheet([ROW]);
+  const loaded = unedited(gs, 2);
+  gs.sheets.Items.cells[1][3] = 2000;                    // B's edit, after A loaded
+
+  const cells = loaded.slice();
+  cells[1] = 'Steel Sword';                              // A's edit
+  gs.writeRow('Items', 2, cells, 0, { loaded });
+
+  assert.deepEqual(gs.sheets.Items.writes, [{ row: 2, col: 2, values: [['Steel Sword']] }]);
+  assert.equal(gs.sheets.Items.raw()[1][3], 2000, "B's edit is still there");
+});
+
+test('a conflicting edit to the SAME cell is refused, naming the column, writing nothing', () => {
+  const gs = sheet([ROW]);
+  const loaded = unedited(gs, 2);
+  gs.sheets.Items.cells[1][1] = 'Renamed by B';
+
+  const cells = loaded.slice();
+  cells[1] = 'Renamed by A';
+  cells[2] = '0.5';                                      // an edit that WOULD be clean
+  assert.throws(() => gs.writeRow('Items', 2, cells, 0, { loaded }),
+    /Items row 2: name changed in the sheet while you were editing/);
+  assert.deepEqual(gs.sheets.Items.writes, [], 'the clean edit must not half-land');
+});
+
+test('both editors arriving at the same value is not a conflict', () => {
+  const gs = sheet([ROW]);
+  const loaded = unedited(gs, 2);
+  gs.sheets.Items.cells[1][1] = 'Steel Sword';
+
+  const cells = loaded.slice();
+  cells[1] = 'Steel Sword';
+  gs.writeRow('Items', 2, cells, 0, { loaded });
+  assert.deepEqual(gs.sheets.Items.writes, [], 'the cell already holds it');
+});
+
+test('a shifted row on a no-pk sheet is refused instead of overwritten', () => {
+  // The nine no-pk sheets have no duplicate scan, so a row inserted above a stale client used
+  // to hand its save a DIFFERENT record to overwrite wholesale. With the snapshot, the current
+  // row matches nothing the client loaded and the edited cell conflicts.
+  const gs = loadCodeGs(
+    { Drops: [['npc_id', 'item_id'], [5, 1], [9, 4]] }, { Drops: { maxRows: 10 } });
+  const loaded = ['9', '4'];                             // the client opened what WAS row 2...
+  gs.sheets.Drops.cells.splice(1, 0, [2, 7]);            // ...then someone inserted a row above
+
+  assert.throws(() => gs.writeRow('Drops', 2, ['9', '8'], -1, { loaded }),
+    /changed in the sheet while you were editing/);
+  assert.deepEqual(gs.sheets.Drops.writes, []);
+});
+
+test('writeRow refuses a loaded snapshot that is not the header width', () => {
+  const gs = sheet([ROW]);
+  assert.throws(() => gs.writeRow('Items', 2, unedited(gs, 2), 0, { loaded: ['7', 'x'] }),
+    /loaded snapshot is 2 values wide for a header 6/);
+});
+
+test('without a snapshot writeRow still diffs against the sheet, as before', () => {
+  const gs = sheet([ROW]);
+  const cells = unedited(gs, 2);
+  cells[1] = 'Steel Sword';
+  gs.writeRow('Items', 2, cells, 0);
+  assert.deepEqual(gs.sheets.Items.writes, [{ row: 2, col: 2, values: [['Steel Sword']] }]);
+});
+
+// --- writeRow: Text cells and Sheets' entry parsing -------------------------------------------
+
+test('an edited Text cell is pinned to plain text before its value is written', () => {
+  // setValues parses strings like typed entry: "1-2" becomes a Date, "01" becomes 1. The pin
+  // must come BEFORE the value lands and must touch only the edited Text cell.
+  const gs = sheet([ROW]);
+  const cells = unedited(gs, 2);
+  cells[1] = '1-2';
+  cells[3] = '9';                                        // an INT edit gets no pin
+
+  gs.writeRow('Items', 2, cells, 0, { textColumns: [1] });
+
+  assert.deepEqual(gs.sheets.Items.writes, [
+    { row: 2, col: 2, format: '@' },
+    { row: 2, col: 2, values: [['1-2']] },
+    { row: 2, col: 4, values: [['9']] },
+  ]);
+});
+
+test('an appended row pins its non-blank Text cells too', () => {
+  const gs = sheet([ROW], { maxRows: 10 });
+  gs.writeRow('Items', 0, ['8', '01', '1', '2', '0', '3'], 0, { textColumns: [1] });
+
+  assert.deepEqual(gs.sheets.Items.writes, [
+    { row: 3, col: 2, format: '@' },
+    { row: 3, col: 1, values: [['8', '01', '1', '2', '0', '3']] },
+  ]);
+});
+
+test('clearing a Text cell does not bother pinning a format onto a blank', () => {
+  const gs = sheet([ROW]);
+  const cells = unedited(gs, 2);
+  cells[1] = null;
+  gs.writeRow('Items', 2, cells, 0, { textColumns: [1] });
+  assert.deepEqual(gs.sheets.Items.writes, [{ row: 2, col: 2, values: [['']] }]);
+});
+
 // --- writeRow: appending --------------------------------------------------------------------
 
 test('an append writes the whole row, since there is nothing to compare against', () => {

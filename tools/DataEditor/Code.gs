@@ -101,8 +101,16 @@
  *     - clear a field that had a value (a blank must still overwrite, not be skipped)
  *     - edit two ADJACENT fields and two SEPARATED fields (the run-grouping above writes
  *       one range for the first and two for the second; both must land)
- *   Residual risk, accepted per plan scope: the duplicate check and the write are NOT
- *     atomic. Two editors inside the same window can still collide. No LockService.
+ *     - two editors on one row: A opens it, B edits cell X, A edits cell Y and saves —
+ *       X must keep B's value and Y must land (the loaded-snapshot merge)
+ *     - two editors on one CELL: B edits X, A also edits X and saves — A must be refused
+ *       with the message naming the column, and nothing else on the row written
+ *     - a Text cell edited to "1-2" and to "01" (must store the text, not a Date or a 1 —
+ *       the '@' format pin)
+ *   Residual risk, accepted per plan scope: none of check-then-write is atomic. Two
+ *     editors inside the same window can still take one id, and a conflicting edit that
+ *     lands between the row read and setValues still wins by ordering. No LockService.
+ *     The loaded-snapshot merge narrows the damage to the cells both sides edited.
  * ---------------------------------------------------------------------------------
  */
 
@@ -357,8 +365,26 @@ function readSheetIndex(sheetName, nameColumnIndex, extraColumnIndex) {
  * at the same time are unlikely to both take the same suggested id. This is a narrowing,
  * not a guarantee: the check and the write are not atomic, so a collision inside that
  * window still gets through. Fixing that properly needs LockService and is out of scope.
+ *
+ * `options.loaded` is the record AS THE CLIENT READ IT, same width and encoding as `cells`.
+ * With it, "what changed" is decided against what the USER saw, not against the sheet's
+ * current values — the difference is every cell another editor touched during the edit:
+ *   - a cell where posted equals loaded was never edited and is NEVER written, so a
+ *     concurrent edit to it survives instead of being silently reverted to the stale copy;
+ *   - a cell the user DID edit whose current value matches neither loaded nor posted was
+ *     ALSO changed by someone else — refused, naming the columns, before anything is
+ *     written. (On the nine no-pk sheets this is additionally what catches a row that
+ *     shifted under a stale rowNumber: the current row matches nothing the client loaded.)
+ * Without options.loaded the old current-value diff still runs, so a caller that predates
+ * the snapshot degrades to "last writer wins per cell" rather than breaking.
+ *
+ * `options.textColumns` lists the 0-based indexes of the schema's Text columns. A written
+ * cell in one of them gets its number format pinned to '@' (plain text) first, because
+ * setValues parses strings like typed entry: "1-2" in a description column became a Date,
+ * "01" became 1. Only cells actually being written are touched — pinning unwritten cells
+ * would alter formatting the user never asked about.
  */
-function writeRow(sheetName, rowNumber, cells, idColumnIndex) {
+function writeRow(sheetName, rowNumber, cells, idColumnIndex, options) {
   var sheet = requireSheet_(sheetName);
 
   if (!Array.isArray(cells)) throw new Error('writeRow: cells must be an array');
@@ -376,6 +402,18 @@ function writeRow(sheetName, rowNumber, cells, idColumnIndex) {
       ' columns wide. Check for a stray value in row 1 past the last real column; ' +
       'if row 1 is correct, the schema is out of date — re-run SchemaGen.');
   }
+
+  var opts = options || {};
+  var loaded = Array.isArray(opts.loaded) ? opts.loaded : null;
+  if (loaded && loaded.length !== width) {
+    throw new Error(
+      sheetName + ': the loaded snapshot is ' + loaded.length + ' values wide for a header ' +
+      width + ' columns wide — reload and retry');
+  }
+  var textColumns = {};
+  (Array.isArray(opts.textColumns) ? opts.textColumns : []).forEach(function (i) {
+    if (typeof i === 'number' && i >= 0 && i < width) textColumns[Math.floor(i)] = true;
+  });
 
   // google.script.run does not preserve types, so a client that read the row off a DOM
   // attribute sends "1", and every strict test below — including the header guard —
@@ -457,19 +495,54 @@ function writeRow(sheetName, rowNumber, cells, idColumnIndex) {
     var beforeRaw = before.getValues()[0];
     var beforeShown = before.getDisplayValues()[0];
 
+    // Which cells to write, decided for the WHOLE row before anything is written — a conflict
+    // must refuse the entire save, not land half of it first.
+    var writeAt = [];
+    var conflicts = [];
+    for (var c = 0; c < width; c++) {
+      var current = cellText_(beforeRaw[c], beforeShown[c]);
+      var posted = String(out[c]);
+      if (loaded) {
+        var was = isBlank_(loaded[c]) ? '' : String(loaded[c]);
+        if (posted === was) continue;              // never edited — theirs, not ours, to write
+        if (current === posted) continue;          // already holds what the user wants
+        if (current !== was) { conflicts.push(c); continue; }
+      } else if (current === posted) {
+        continue;
+      }
+      writeAt.push(c);
+    }
+
+    if (conflicts.length) {
+      var header = sheet.getRange(1, 1, 1, width).getDisplayValues()[0];
+      var names = conflicts.map(function (c) { return String(header[c]); });
+      throw new Error(
+        sheetName + ' row ' + target + ': ' + names.join(', ') + ' changed in the sheet while ' +
+        'you were editing — nothing was written. Reload the record and re-apply your edit.');
+    }
+
     // Contiguous runs, so an ordinary edit is one setValues call rather than one per column.
     var runs = [];
-    for (var c = 0; c < width; c++) {
-      if (cellText_(beforeRaw[c], beforeShown[c]) === String(out[c])) continue;
+    writeAt.forEach(function (c) {
       var open = runs.length ? runs[runs.length - 1] : null;
       if (open && open.at + open.values.length === c) open.values.push(out[c]);
       else runs.push({ at: c, values: [out[c]] });
-    }
+    });
 
     runs.forEach(function (run) {
+      run.values.forEach(function (value, k) {
+        if (textColumns[run.at + k] && !isBlank_(value)) {
+          sheet.getRange(target, run.at + k + 1).setNumberFormat('@');
+        }
+      });
       sheet.getRange(target, run.at + 1, 1, run.values.length).setValues([run.values]);
     });
   } else {
+    for (var t = 0; t < out.length; t++) {
+      if (textColumns[t] && !isBlank_(out[t])) {
+        sheet.getRange(target, t + 1).setNumberFormat('@');
+      }
+    }
     sheet.getRange(target, 1, 1, out.length).setValues([out]);
   }
 
