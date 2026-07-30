@@ -315,18 +315,11 @@
     app         -> everything
   All twelve src/ modules are listed. build.mjs emits one dist/<name>.html per src/*.js, so a
   module added there and not added here is simply never on the page.
-
-  ONE SPRITE BUNDLE IS INLINED, NOT THREE. sprites-icons is needed by every sheet — the Graphic
-  composite and its previews — so it comes down with the page. sprites-parts (1.98MB of base64) and
-  sprites-effects (860KB) are NOT: bundlesFor knows that only the handful of sheets drawing a
-  character or an animation want them, and an inlined bundle is re-served in full on every sidebar
-  open with no way for the browser to cache it separately. app.js fetches those two through
-  google.script.run.include when a sheet asks (see LAZY_BUNDLES), so most sheets never pay for them
-  at all. They are still checked-in files build.mjs copies into dist/ — they are simply not on the
-  page until they are wanted.
 -->
 <?!= include('schema'); ?>
 <?!= include('sprites-icons'); ?>
+<?!= include('sprites-parts'); ?>
+<?!= include('sprites-effects'); ?>
 <?!= include('validation'); ?>
 <?!= include('equipped'); ?>
 <?!= include('appearance'); ?>

@@ -154,26 +154,9 @@ wrong: that a cell's value is its stored value rather than its formatting, and t
 writes only the cells that changed. What it assumes about Apps Script is listed at the top of that
 file; the checks that genuinely need a live spreadsheet are still listed in `Code.gs`'s own header.
 
-### What the page ships, and what it fetches
+### Load and save time
 
-`Editor.html` inlines `schema`, `sprites-icons` and the twelve modules. It does **not** inline the
-other two sprite bundles. An inlined bundle is base64 inside the template output, so `HtmlService`
-re-evaluates and re-serves all of it on every sidebar open and the browser has no separate resource
-to cache — and `App.bundlesFor` says that 17 of the 21 sheets draw neither a character nor an
-animation, so `sprites-parts` (1.98 MB) and `sprites-effects` (860 KB) were most of a page that most
-designers could not use. `app.js` fetches those two with `google.script.run.include(...)` when a
-sheet asks for one (`LAZY_BUNDLES`), once per session each.
-
-The reply is the generated file, `<script>` tag and all, and `parseBundle` **parses** it rather than
-executing it: `tools/SpriteBundle` writes the assignment as a strict-JSON literal, so `JSON.parse` is
-enough and nothing is assigned into `GOOSE_SPRITES` — `state.bundles` is what the controls read, so a
-fetched bundle and an inlined one are the same thing downstream. A test parses the real
-`sprites-*.html` and compares it against the file *executed*, so a generator that emitted a trailing
-comma or a second statement fails there rather than in a deployed sidebar. A bundle that cannot be
-fetched, cannot be parsed or cannot be decoded is one warning on the status line and a form that
-still works; it is cached as a failure, so it is not re-attempted per record opened.
-
-Everything else about load and save time follows the same rule — do not send what nobody reads:
+The rule is "do not send what nobody reads":
 
 * `readSheet` reads the sheet **once**. The display values exist for `Date` cells alone and no
   schema column is a date, so they are fetched only if the raw scan finds one.
@@ -184,9 +167,19 @@ Everything else about load and save time follows the same rule — do not send w
   validate anything, so ordering them only serialised 21 round trips. Replies land in slots and are
   walked in schema order, so the report is diffable however the network interleaves them.
 
-Left undone deliberately: the record list still ships whole sheets (a narrow id + name read would cut
-the payload ~20x but costs a round trip per record opened, and it touches the local post-save patch,
-the id set and the no-reload-after-save behaviour); the list is not windowed (NPC Spawns is 4,322
+The page itself is 4.9 MB, and 4.6 MB of that is the three sprite bundles, inlined by `Editor.html`
+as base64 and therefore re-served in full on every sidebar open — the browser has no separate
+resource to cache. **Fetching the two big ones on demand was tried and reverted.** `sprites-parts`
+(1.98 MB) and `sprites-effects` (860 KB) are wanted by only 4 of the 21 sheets, so
+`google.script.run.include(...)` per sheet cut the page to 2.17 MB — and it did not make the editor
+feel better, which is the measurement that counts. It moved the wait rather than removing it: the
+sheets that do draw characters are the ones designers spend their time on, and they traded a slower
+page for a slower first record, plus a `Fetching parts art…` state and a second way for art to fail.
+Anything tried here next should be measured in the sidebar before it is kept.
+
+Also left undone: the record list still ships whole sheets (a narrow id + name read would cut the
+payload ~20x but costs a round trip per record opened, and it touches the local post-save patch, the
+id set and the no-reload-after-save behaviour); the list is not windowed (NPC Spawns is 4,322
 buttons); and `writeRow` still calls `SpreadsheetApp.flush()` it does not need.
 
 ### The colour picker and the gallery

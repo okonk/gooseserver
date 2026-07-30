@@ -156,135 +156,50 @@ var App = (function () {
     state.imageCallbacks.forEach(function (fn) { fn(); });
   }
 
-  // The include file behind each bundle THE PAGE DOES NOT CARRY. Editor.html inlines
-  // sprites-icons and nothing else; these two are fetched, once each, by the sheets that need them.
-  //
-  // WHY: an inlined bundle is base64 inside the template output, so HtmlService re-serves all of it
-  // on every sidebar open and the browser cannot cache it as a resource of its own. parts is 1.98MB
-  // and effects 860KB, and bundlesFor already knows that 17 OF THE 21 SHEETS ask for neither — so
-  // most of the page every designer waited for, every time, was art their sheet cannot draw. Fetching
-  // costs one google.script.run per bundle per session, only from the sheets that draw a character
-  // or an animation, and the late-arrival path it lands through (imagesChanged / onImagesReady) is
-  // the same one the parts decode has always used.
-  var LAZY_BUNDLES = { parts: 'sprites-parts', effects: 'sprites-effects' };
-
-  /// The bundle in hand, or null: a fetched one, an inlined one, or nothing yet.
-  function bundleData(name) {
-    if (state.bundles[name]) return state.bundles[name];
-    if (typeof GOOSE_SPRITES !== 'undefined' && GOOSE_SPRITES[name]) return GOOSE_SPRITES[name];
-    return null;
-  }
-
-  /// The bundle file, as include() returns it, turned into the object it assigns — or null.
-  ///
-  /// tools/SpriteBundle emits `GOOSE_SPRITES["parts"] = { …literal… };` inside a <script> tag, and
-  /// that literal IS strict JSON: every key quoted, every value a number, string or array. So the
-  /// payload is PARSED rather than executed. A <script> element appended to the page would run it
-  /// (that is what the inlined path does) and eval would too, but neither is worth the exposure or
-  /// the "does the sandbox permit it" question when JSON.parse answers it. Nothing is assigned into
-  /// GOOSE_SPRITES either: state.bundles is what ctx() hands the controls, so a fetched bundle and
-  /// an inlined one are the same thing downstream.
-  ///
-  /// The parse is pinned against the REAL bundle files in test/app.test.js, so a change to the
-  /// generator's output breaks a test rather than the sidebar.
-  function parseBundle(name, html) {
-    var text = String(html === null || html === undefined ? '' : html);
-    var at = text.indexOf('GOOSE_SPRITES["' + name + '"]');
-    if (at === -1) return null;
-
-    var open = text.indexOf('{', at);
-    // The literal is the last thing in the file bar `};</script>`, so its closing brace is the last
-    // one there is.
-    var close = text.lastIndexOf('}');
-    if (open === -1 || close < open) return null;
-
-    var bundle;
-    try {
-      bundle = JSON.parse(text.slice(open, close + 1));
-    } catch (e) {
-      return null;
-    }
-    // A bundle with no png is a bundle nothing can be drawn from, and it would otherwise be cached
-    // as a success and leave every canvas blank with no explanation.
-    return bundle && bundle.png && bundle.rects ? bundle : null;
-  }
-
-  /// Puts a bundle in hand and decodes its data URI, exactly once each. done() is always called,
-  /// exactly once, including on failure — a missing bundle must leave the form renderable without
-  /// art, not unrendered.
+  /// Decodes a bundle's data URI once. Bundles load lazily: icons up front, parts and effects
+  /// only when a sheet needs them. done() is always called, exactly once, including on failure —
+  /// a missing bundle must leave the form renderable without art, not unrendered.
   function loadBundle(name, done) {
     if (state.images[name]) { done(); return; }
-    // A bundle that FAILED is a result too, whether it failed to arrive or failed to decode.
-    // Retrying on every record open re-attempted a multi-megabyte fetch or decode each time — and,
-    // worse, re-opened the async gap between editRow moving state.rowNumber and renderForm landing
-    // the new form, the one window where what the user sees and where a save writes can disagree.
-    // Recovering from a truly transient failure takes a page reload, which is what the bundleErrors
-    // warning amounts to anyway.
+    if (typeof GOOSE_SPRITES === 'undefined' || !GOOSE_SPRITES[name]) { done(); return; }
+    // A decode that FAILED is a result too. Retrying it on every record open re-attempted a
+    // multi-megabyte decode each time — and, worse, re-opened the async gap between editRow
+    // moving state.rowNumber and renderForm landing the new form, the one window where what the
+    // user sees and where a save writes can disagree. Recovering from a truly transient decode
+    // failure takes a page reload, which is what the bundleErrors warning amounts to anyway.
     if (state.bundleErrors.indexOf(name) !== -1) { done(); return; }
 
-    var data = bundleData(name);
-    // Neither on the page nor fetchable: nothing to draw with, and the form still renders. That is
-    // the shape of a bundle the build did not emit at all.
-    if (!data && !LAZY_BUNDLES[name]) { done(); return; }
+    state.bundles[name] = GOOSE_SPRITES[name];
 
-    // One fetch and one decode per bundle, ever. The state.images check above only closes the window
-    // AFTER the first decode lands; two records opened before that both pass it, and two Images for
-    // a multi-megabyte data URI then race to render the same slot. Waiters queue instead — and the
-    // queue now spans the fetch as well, so two sheets asking for parts at once ask the server once.
+    // One decode per bundle, ever. The state.images check above only closes the window AFTER the
+    // first decode lands; two records opened before that both pass it, and two Images for a
+    // multi-megabyte data URI then race to render the same slot. Waiters queue instead.
     if (state.loading[name]) { state.loading[name].push(done); return; }
     state.loading[name] = [done];
 
-    if (data) decodeBundle(name, data);
-    else fetchBundle(name);
-  }
-
-  function finishBundle(name) {
-    var waiting = state.loading[name] || [];
-    delete state.loading[name];
-    waiting.forEach(function (fn) { fn(); });
-  }
-
-  function failBundle(name) {
-    if (state.bundleErrors.indexOf(name) === -1) state.bundleErrors.push(name);
-    status(warnings(), true);
-    finishBundle(name);
-  }
-
-  function decodeBundle(name, data) {
-    // Before the decode, not after: the rects are what a control reads to resolve an id, and they
-    // are usable the moment the bundle is in hand. Only the drawing waits on the PNG.
-    state.bundles[name] = data;
+    function finish() {
+      var waiting = state.loading[name] || [];
+      delete state.loading[name];
+      waiting.forEach(function (fn) { fn(); });
+    }
 
     var img = new Image();
     img.onload = function () {
       state.images[name] = img;
       imagesChanged();
-      finishBundle(name);
+      finish();
     };
-    img.onerror = function () { failBundle(name); };
-    img.src = data.png;
-  }
-
-  function fetchBundle(name) {
-    google.script.run
-      .withFailureHandler(function () { failBundle(name); })
-      .withSuccessHandler(function (html) {
-        var data = parseBundle(name, html);
-        // A reply that arrived and cannot be read is the same outcome as no reply: reported once,
-        // not re-attempted per record. Silently treating it as "no art" would leave every canvas on
-        // the sheet blank with nothing on the status line.
-        if (!data) { failBundle(name); return; }
-        decodeBundle(name, data);
-      })
-      .include(LAZY_BUNDLES[name]);
+    img.onerror = function () {
+      if (state.bundleErrors.indexOf(name) === -1) state.bundleErrors.push(name);
+      status(warnings(), true);
+      finish();
+    };
+    img.src = GOOSE_SPRITES[name].png;
   }
 
   function bundleWarning() {
     if (!state.bundleErrors.length) return '';
-    // "Load", not "decode": a bundle now fails at either of two steps — the fetch that brings a
-    // lazily loaded one over the wire, or the PNG decode — and the user's move is the same for both
-    // (reload the page), so the message does not pretend to tell them apart.
-    return 'Failed to load the ' + state.bundleErrors.join(' and ') +
+    return 'Failed to decode the ' + state.bundleErrors.join(' and ') +
            ' sprite bundle — previews will be blank';
   }
 
@@ -373,26 +288,6 @@ var App = (function () {
     var el = document.getElementById('status');
     el.textContent = message;
     el.className = isError ? 'error' : '';
-  }
-
-  /// Shows `message` and returns the function that takes it back down again.
-  ///
-  /// For work with no other symptom than a blank canvas — fetching a sprite bundle over the wire,
-  /// which is megabytes and seconds. The line it replaced is PUT BACK rather than left overwritten:
-  /// what it covers is usually "N records" or a save confirmation, and a record count that vanished
-  /// because some art was on its way reads as a broken editor.
-  function holdStatus(message) {
-    var el = document.getElementById('status');
-    var was = el.textContent;
-    var wasError = el.className === 'error';
-    status(message);
-
-    return function () {
-      // Only while OUR message is still the one on screen. Anything that has spoken since — a save,
-      // an error, another record — is newer news than the line this replaced.
-      if (el.textContent !== message) return;
-      status(was, wasError);
-    };
   }
 
   // Stops any running effect animation and empties the preview panel. Both halves matter: the
@@ -685,8 +580,7 @@ var App = (function () {
     // ICONS AND NOTHING ELSE BEFORE THE FORM. Waiting on every bundle this sheet needs put a
     // SECOND multi-megabyte PNG decode (parts is 1.98MB, icons 1.75MB) in front of the first field
     // of the first Items record of a session — on the sheet that is opened most, and usually first.
-    // It is a stronger rule now than it was: parts and effects are FETCHED (see LAZY_BUNDLES), so
-    // waiting on them would put a server round trip there too.
+    // The download was already paid either way; sprites-parts.html is an unconditional include.
     //
     // The rest are asked for afterwards and land through imagesChanged(), which is exactly the path
     // onImagesReady exists for: every control that needs art subscribes, so a bundle that arrives
@@ -702,20 +596,7 @@ var App = (function () {
       state.formPending = false;
 
       if (!rest.length) return;
-
-      // Said out loud only while it is genuinely in flight for the first time — a bundle already in
-      // hand decodes synchronously enough that announcing it would flicker. A failed one is not
-      // announced either: its own warning is already on the line and says more.
-      var fetching = rest.filter(function (n) {
-        return LAZY_BUNDLES[n] && !state.images[n] && !bundleData(n) &&
-               state.bundleErrors.indexOf(n) === -1;
-      });
-      var restore = fetching.length
-        ? holdStatus('Fetching ' + fetching.join(' and ') + ' art…')
-        : null;
-
       loadBundles(rest, function () {
-        if (restore) restore();
         if (token !== state.formToken) return;
         // The PANEL canvases are pushed the late bundle from here rather than subscribing through
         // onImagesReady: renderPreviews runs on every keystroke, so a registration inside it would
