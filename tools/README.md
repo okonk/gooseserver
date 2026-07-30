@@ -153,22 +153,41 @@ file; the checks that genuinely need a live spreadsheet are still listed in `Cod
 
 ### The colour picker and the gallery
 
-Two modules exist only to make a raw column value pickable by eye, and both sit behind `pickers.js`.
+Two modules exist only to make a raw column value pickable by eye. `ColorPicker.control` is reached
+from `composites.js` alone — the rgba control and `equipSlotsControl` are its only two call sites —
+while the gallery is opened from both `pickers.js` and `composites.js`.
 
 `src/colorpicker.js` is the popover for the RGBA columns: a saturation/value square, a hue strip,
 and — the reason it exists rather than an `<input type="color">` — a **blend** strip for the alpha
-channel. That channel is not opacity. `Scripts/UI/Icon.cs` does `mix(sprite.rgb, tint.rgb, tint.a)`,
-so alpha is how far the sprite is dragged towards the tint, and a blend of zero means no tint at all
-with the stored r/g/b ignored. The popover paints its previews through `Sprites.applyTint`, so what
-it shows is what the client will draw.
+channel. That channel is not opacity. `Scripts/UI/Icon.cs` in the client does
+`mix(sprite.rgb, tint.rgb, tint.a)`, so alpha is how far the sprite is dragged towards the tint, and
+a blend of zero means no tint at all. What happens to the r/g/b behind that zero differs by column:
+`Equipped.format` discards them, collapsing the slot to `id,*`, so for `equipped_items` the colour is
+not stored at all — which is why the popover's own note says so and why `Equipped.isFaithful` flags a
+colour parked behind a zero blend. The composites rgba control keeps all four cells instead,
+including at a blend of zero, and the game ignores the three it does not blend.
 
-`src/gallery.js` is the windowed grid over a sprite bundle: it renders only the rows in view, so
-opening `icons` does not pay for 4827 sprites up front. Open it with
+The square and the strip are painted from `hsvToRgb`; the blend strip alone goes through
+`Sprites.applyTint`, against a mid-grey stand-in rather than a checkerboard, so the strip and the
+sprite previews in the other modules cannot disagree about what a factor of 128 looks like. There are
+no sprite previews in the popover itself.
+
+`src/gallery.js` is the windowed grid over a sprite bundle: it builds only the rows in view plus two
+rows of overscan, so opening `icons` does not pay for 4,827 sprites up front. Open it with
 
     Gallery.open({bundle, bundles, filter, current, onPick, opener})
 
 `bundle` is `'icons' | 'parts' | 'effects'` and selects which key format the gallery parses out of
-`bundles` (the `GOOSE_SPRITES` object). `filter` narrows the candidates up front — `{sheet}` for
+`bundles` (the `GOOSE_SPRITES` object). The three formats, as `Bundles.cs` writes them:
+
+| bundle    | key format            | example      |
+| --------- | --------------------- | ------------ |
+| `icons`   | `sheet:graphic`       | `104:7`      |
+| `parts`   | `category:id:clip`    | `Bodies:12:idle-down` |
+| `effects` | `id:frame`            | `31:0`       |
+
+A key with the wrong number of parts is skipped rather than coerced. Parts are deduplicated by
+`category:id` across their four clips, and effects are taken at frame `0` only. `filter` narrows the candidates up front — `{sheet}` for
 icons, `{category, locked}` for parts, where `locked` means the caller's category is fixed and the
 chooser is not offered. `current` is in the same shape `onPick` reports, so a caller round-trips its
 own cells, and `opener` is the Browse button focus returns to on close.
@@ -181,8 +200,8 @@ own cells, and `opener` is the Browse button focus returns to on close.
 | `parts`   | `{category, id}`    |
 | `effects` | `{id}`              |
 
-Parts and effects drop the per-clip and per-frame suffix on the way out: a caller picks a part or an
-effect, not one of its frames.
+Parts and effects drop the `:clip` and `:frame` suffix of their key on the way out: a caller picks a
+part or an effect, not one of its frames.
 
 Apps Script has no `.js` file type, so build wraps each module into `dist/*.html`, alongside copies
 of `schema.js` and the sprite bundles:
