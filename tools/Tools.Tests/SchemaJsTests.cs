@@ -42,6 +42,15 @@ public class SchemaJsTests
     }
 
     [Fact]
+    public void Output_uses_lf_line_endings_on_every_platform()
+    {
+        // The serializer's NewLine defaults to Environment.NewLine, so without pinning it a
+        // Windows rebuild of the committed schema.js would interleave CRLF JSON with the \n
+        // header and fail Checked_in_schema_js_is_up_to_date on a current file.
+        Assert.DoesNotContain('\r', SchemaJs.Render(SchemaModel.Build()));
+    }
+
+    [Fact]
     public void Body_is_parseable_json()
     {
         using var doc = ParseBody(SchemaJs.Render(SchemaModel.Build()));

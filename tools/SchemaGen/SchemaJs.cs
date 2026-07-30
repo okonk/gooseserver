@@ -10,6 +10,10 @@ public static class SchemaJs
     private static readonly JsonSerializerOptions Options = new()
     {
         WriteIndented = true,
+        // Environment.NewLine by default, so a Windows rebuild of the committed schema.js would
+        // emit CRLF inside the JSON while the header and footer below stay \n — mixed endings, a
+        // whole-file diff, and a failing up-to-date check on a file that is semantically current.
+        NewLine = "\n",
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     };
