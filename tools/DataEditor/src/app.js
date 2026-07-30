@@ -238,6 +238,20 @@ var App = (function () {
     return GOOSE_SCHEMA.sheets.filter(function (s) { return s.sheet === sheetName; })[0];
   }
 
+  // The 0-based index of the ONE extra cell a sheet's picker entries carry, or -1. Only Spell
+  // Effects has one today: the effects atlas is keyed by ANIMATION id (spell_animation), not by
+  // effect row id, so the Spells preview must resolve spell_effect_id through the row it names —
+  // and the picker list is the only per-row data the client holds for a referenced sheet.
+  function extraIndex(sheetName) {
+    if (sheetName !== 'Spell Effects') return -1;
+    var schema = schemaFor(sheetName);
+    if (!schema) return -1;
+    for (var i = 0; i < schema.columns.length; i++) {
+      if (schema.columns[i].name === 'spell_animation') return i;
+    }
+    return -1;
+  }
+
   // The 0-based index of the column a human recognises the row by: the first Text column.
   // Column A is always the id, so index 0 is never the answer; 1 is the fallback, which is what
   // Code.gs defaults to. Checked against all eight FK targets: Items 2, NPCs 2, and 1 for
@@ -435,7 +449,7 @@ var App = (function () {
           remaining -= 1;
           if (!remaining) done();
         })
-        .readSheetIndex(name, nameIndex(schemaFor(name)));
+        .readSheetIndex(name, nameIndex(schemaFor(name)), extraIndex(name));
     });
   }
 
@@ -690,19 +704,37 @@ var App = (function () {
       }), ctx(), Preview.CHARACTER_SCALE);
     }
 
-    var effectColumn = state.sheetName === 'Spells' ? 'spell_effect_id'
-      : (state.sheetName === 'Spell Effects' ? 'spell_animation' : null);
+    // WHICH ID SPACE: the effects atlas is keyed by ANIMATION id — the space Sprites.effectFrames
+    // takes and the space spell_animation holds. Spell Effects has that cell in the form; Spells
+    // has spell_effect_id, the pk of a Spell Effects ROW, which must be resolved through that
+    // row's spell_animation (carried on its picker entries as `extra`). Drawing the row id AS an
+    // animation showed nothing for almost every spell — the two id spaces barely overlap — and an
+    // unrelated animation where they collided, which reads as "my id is wrong" to a designer whose
+    // id is right.
+    var effectId = 0;
+    if (state.sheetName === 'Spell Effects') effectId = num(values.spell_animation);
+    else if (state.sheetName === 'Spells') effectId = effectAnimation(values.spell_effect_id);
 
-    if (effectColumn) {
-      var effectId = num(values[effectColumn]);
-      if (effectId > 0) {
-        var anim = Forms.el('canvas',
-          { width: Preview.EFFECT_SIZE * Preview.EFFECT_SCALE,
-            height: Preview.EFFECT_SIZE * Preview.EFFECT_SCALE, class: 'effect' });
-        host.appendChild(anim);
-        state.stopEffect = Preview.effect(anim, effectId, ctx(), Preview.EFFECT_SCALE);
-      }
+    if (effectId > 0) {
+      var anim = Forms.el('canvas',
+        { width: Preview.EFFECT_SIZE * Preview.EFFECT_SCALE,
+          height: Preview.EFFECT_SIZE * Preview.EFFECT_SCALE, class: 'effect' });
+      host.appendChild(anim);
+      state.stopEffect = Preview.effect(anim, effectId, ctx(), Preview.EFFECT_SCALE);
     }
+  }
+
+  // Spells only: the animation behind a spell_effect_id, or 0 when the id is blank, names no
+  // known row, or the Spell Effects list has not arrived — a blank panel, never a wrong
+  // animation. `extra` is the row's spell_animation, requested via extraIndex().
+  function effectAnimation(effectRowId) {
+    var id = num(effectRowId);
+    if (id <= 0) return 0;
+    var entries = state.pickerData['Spell Effects'] || [];
+    for (var i = 0; i < entries.length; i++) {
+      if (num(entries[i].id) === id) return num(entries[i].extra);
+    }
+    return 0;
   }
 
   // Gate 1: any frozen composite. Composites.equipSlotsControl holds the cell while a graphic

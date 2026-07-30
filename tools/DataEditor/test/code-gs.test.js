@@ -343,3 +343,33 @@ test('readSheetIndex on a sheet with only a header returns no entries', () => {
   const gs = loadCodeGs({ Items: [['id', 'name']] });
   assert.deepEqual(gs.readSheetIndex('Items', 1).entries, []);
 });
+
+test('readSheetIndex ships the RAW id, not the display text', () => {
+  // The client builds its FK set with Number(entry.id), so a separator or decimal format on the
+  // id column would ship "1,024" / "651.00", read as NaN / mismatch, and block every save that
+  // references the sheet — FK validation fails closed. The label stays display text: it is only
+  // read by humans.
+  const gs = loadCodeGs({ Items: [
+    ['id', 'name'],
+    [{ value: 1024, display: '1,024' }, 'Crown'],
+    [{ value: 651, display: '651.00' }, 'Sword'],
+  ] });
+
+  assert.deepEqual(gs.readSheetIndex('Items', 1).entries,
+    [{ id: '1024', name: 'Crown' }, { id: '651', name: 'Sword' }]);
+});
+
+test('readSheetIndex returns the extra column raw when asked, and omits it otherwise', () => {
+  // The one caller today: the Spells preview resolves spell_effect_id to the row's
+  // spell_animation, the id space the effects atlas is keyed by.
+  const gs = loadCodeGs({ Effects: [
+    ['id', 'name', 'animation'],
+    [4, 'Flame', { value: 77, display: '77.00' }],
+    [9, 'Frost', null],
+  ] });
+
+  assert.deepEqual(gs.readSheetIndex('Effects', 1, 2).entries,
+    [{ id: '4', name: 'Flame', extra: '77' }, { id: '9', name: 'Frost', extra: '' }]);
+  assert.deepEqual(gs.readSheetIndex('Effects', 1).entries,
+    [{ id: '4', name: 'Flame' }, { id: '9', name: 'Frost' }]);
+});

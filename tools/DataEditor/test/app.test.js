@@ -95,7 +95,7 @@ function makeServer(sheets, options) {
         lastRow: rows.length + 1,
       };
     },
-    readSheetIndex(name, nameColumnIndex) {
+    readSheetIndex(name, nameColumnIndex, extraColumnIndex) {
       // Fails a NAMED sheet's id + name list while every other one loads — the shape of a
       // transient Apps Script error, and the shape that used to leave fk validation open.
       // `indexFailsOnce` fails the first request and answers the retry, which is the case a
@@ -106,10 +106,16 @@ function makeServer(sheets, options) {
       }
       const rows = sheets[name] || [];
       const at = typeof nameColumnIndex === 'number' && nameColumnIndex >= 1 ? nameColumnIndex : 1;
+      const xat = typeof extraColumnIndex === 'number' && extraColumnIndex >= 0
+        ? extraColumnIndex : -1;
       return {
         sheet: name,
         entries: rows.filter((r) => String(r[0]).trim() !== '')
-          .map((r) => ({ id: r[0], name: r[at] })),
+          .map((r) => {
+            const entry = { id: r[0], name: r[at] };
+            if (xat >= 0) entry.extra = r[xat];
+            return entry;
+          }),
       };
     },
     writeRow(sheet, rowNumber, cells, idColumnIndex) {
@@ -213,6 +219,16 @@ test('readSheetIndex is called with the name column index, not just the sheet', 
   assert.ok(calls.some((a) => a[0] === 'NPCs' && a[1] === 2), 'NPCs at index 2');
   assert.ok(calls.some((a) => a[0] === 'Classes' && a[1] === 1), 'Classes at the default');
   assert.deepEqual(App.__state.pickerData.Items, [{ id: '1', name: 'Gold' }]);
+
+  // Spell Effects alone is asked for one EXTRA cell — spell_animation, the id the effects atlas
+  // is actually keyed by, which the Spells preview resolves spell_effect_id through.
+  const animationAt = schemaOf('Spell Effects').columns
+    .map((c) => c.name).indexOf('spell_animation');
+  assert.ok(animationAt > 0, 'the schema still has spell_animation');
+  assert.ok(calls.some((a) => a[0] === 'Spell Effects' && a[2] === animationAt),
+    'Spell Effects requested with the spell_animation column');
+  assert.ok(calls.filter((a) => a[0] !== 'Spell Effects').every((a) => a[2] === -1),
+    'no other sheet asks for an extra column');
 });
 
 // --- the shell ------------------------------------------------------------------------------
@@ -810,13 +826,15 @@ test('the effect preview canvas is sized by the scale its context is given', () 
   globalThis.clearInterval = () => {};
 
   try {
-    globalThis.GOOSE_SPRITES.effects.rects = { '4:0': [0, 0, 16, 16] };
+    // The atlas is keyed by ANIMATION id (77), not by the effect row id (4) the Spells record
+    // holds — the preview must resolve one to the other through the Spell Effects list.
+    globalThis.GOOSE_SPRITES.effects.rects = { '77:0': [0, 0, 16, 16] };
     const h = boot({
       Spells: [rowFor('Spells', { spell_id: 1, spell_name: 'Fire', spell_target: 'Self',
                                   spellbook_graphic: 1, spell_effect_id: 4 })],
       'Spell Effects': [rowFor('Spell Effects', {
         spell_effect_id: 4, spell_effect_name: 'Flame', effect_type: 'Instant',
-        spell_effected: 'Anyone',
+        spell_effected: 'Anyone', spell_animation: 77,
       })],
     });
 
@@ -849,16 +867,16 @@ test('changing spell_effect_id restarts the effect animation live', () => {
   globalThis.clearInterval = (id) => { live.delete(id); };
 
   try {
-    globalThis.GOOSE_SPRITES.effects.rects = { '4:0': [0, 0, 16, 16], '9:0': [16, 0, 16, 16] };
+    globalThis.GOOSE_SPRITES.effects.rects = { '77:0': [0, 0, 16, 16], '88:0': [16, 0, 16, 16] };
     const h = boot({
       Spells: [rowFor('Spells', { spell_id: 1, spell_name: 'Fire', spell_target: 'Self',
                                   spellbook_graphic: 1, spell_effect_id: 4 })],
       'Spell Effects': [rowFor('Spell Effects', {
         spell_effect_id: 4, spell_effect_name: 'Flame', effect_type: 'Instant',
-        spell_effected: 'Anyone',
+        spell_effected: 'Anyone', spell_animation: 77,
       }), rowFor('Spell Effects', {
         spell_effect_id: 9, spell_effect_name: 'Frost', effect_type: 'Instant',
-        spell_effected: 'Anyone',
+        spell_effected: 'Anyone', spell_animation: 88,
       })],
     });
 
@@ -888,6 +906,65 @@ test('changing spell_effect_id restarts the effect animation live', () => {
   }
 });
 
+test('the Spells preview draws the row\'s ANIMATION, not the row id, when both exist in the atlas', () => {
+  // The regression this pins: spell_effect_id is the pk of a Spell Effects ROW, and the atlas is
+  // keyed by animation id. The two spaces overlap at small numbers, and drawing the row id used
+  // to play a completely unrelated animation — worse than a blank panel, because it tells a
+  // designer their correct id is wrong.
+  const realSet = globalThis.setInterval;
+  const realClear = globalThis.clearInterval;
+  globalThis.setInterval = () => 1;
+  globalThis.clearInterval = () => {};
+
+  try {
+    // Animation 4 EXISTS (at sx 0) — the collision — but row 4's animation is 77 (at sx 16).
+    globalThis.GOOSE_SPRITES.effects.rects = { '4:0': [0, 0, 16, 16], '77:0': [16, 0, 16, 16] };
+    const h = boot({
+      Spells: [rowFor('Spells', { spell_id: 1, spell_name: 'Fire', spell_target: 'Self',
+                                  spellbook_graphic: 1, spell_effect_id: 4 })],
+      'Spell Effects': [rowFor('Spell Effects', {
+        spell_effect_id: 4, spell_effect_name: 'Flame', effect_type: 'Instant',
+        spell_effected: 'Anyone', spell_animation: 77,
+      })],
+    });
+
+    h.get('sheet-picker').value = 'Spells';
+    fire(h.get('sheet-picker'), 'change');
+    h.settle();
+    fire(h.get('records').children[0], 'click');
+    h.settle();
+
+    const calls = h.get('previews').querySelector('[class="effect"]').getContext('2d').calls;
+    assert.equal(calls.filter((c) => c[0] === 'drawImage')[0][2], 16,
+      'the frame drawn is animation 77\'s, not animation 4\'s');
+  } finally {
+    globalThis.GOOSE_SPRITES.effects.rects = {};
+    globalThis.setInterval = realSet;
+    globalThis.clearInterval = realClear;
+  }
+});
+
+test('a spell_effect_id naming no known row shows no effect panel rather than a guess', () => {
+  globalThis.GOOSE_SPRITES.effects.rects = { '4:0': [0, 0, 16, 16] };
+  try {
+    const h = boot({
+      Spells: [rowFor('Spells', { spell_id: 1, spell_name: 'Fire', spell_target: 'Self',
+                                  spellbook_graphic: 1, spell_effect_id: 4 })],
+      // No Spell Effects rows at all: the list is empty, so row 4 cannot be resolved.
+    });
+
+    h.get('sheet-picker').value = 'Spells';
+    fire(h.get('sheet-picker'), 'change');
+    h.settle();
+    fire(h.get('records').children[0], 'click');
+    h.settle();
+
+    assert.equal(h.get('previews').querySelector('[class="effect"]'), null);
+  } finally {
+    globalThis.GOOSE_SPRITES.effects.rects = {};
+  }
+});
+
 test('switching SHEETS stops the previous sheet\'s animation and clears the panel', () => {
   const realSet = globalThis.setInterval;
   const realClear = globalThis.clearInterval;
@@ -897,14 +974,14 @@ test('switching SHEETS stops the previous sheet\'s animation and clears the pane
   globalThis.clearInterval = (id) => { live.delete(id); };
 
   try {
-    globalThis.GOOSE_SPRITES.effects.rects = { '4:0': [0, 0, 16, 16] };
+    globalThis.GOOSE_SPRITES.effects.rects = { '77:0': [0, 0, 16, 16] };
     const h = boot({
       Items: [ITEM(1, 'Gold')],
       Spells: [rowFor('Spells', { spell_id: 1, spell_name: 'Fire', spell_target: 'Self',
                                   spellbook_graphic: 1, spell_effect_id: 4 })],
       'Spell Effects': [rowFor('Spell Effects', {
         spell_effect_id: 4, spell_effect_name: 'Flame', effect_type: 'Instant',
-        spell_effected: 'Anyone',
+        spell_effected: 'Anyone', spell_animation: 77,
       })],
     });
 
@@ -941,7 +1018,7 @@ test('switching to a record with no effect stops the previous animation', () => 
   globalThis.clearInterval = (id) => { live.delete(id); };
 
   try {
-    globalThis.GOOSE_SPRITES.effects.rects = { '4:0': [0, 0, 16, 16] };
+    globalThis.GOOSE_SPRITES.effects.rects = { '77:0': [0, 0, 16, 16] };
     const h = boot({
       Spells: [
         rowFor('Spells', { spell_id: 1, spell_name: 'Fire', spell_target: 'Self',
@@ -951,7 +1028,7 @@ test('switching to a record with no effect stops the previous animation', () => 
       ],
       'Spell Effects': [rowFor('Spell Effects', {
         spell_effect_id: 4, spell_effect_name: 'Flame', effect_type: 'Instant',
-        spell_effected: 'Anyone',
+        spell_effected: 'Anyone', spell_animation: 77,
       })],
     });
 

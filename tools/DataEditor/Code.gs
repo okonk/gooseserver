@@ -66,10 +66,14 @@
  * readSheetIndex
  *   Checked: the lastRow < 2 guard; blank-id rows are skipped. The name column is NOT
  *     always B — Items and NPCs, the two most-referenced FK targets, hold an enum in B
- *     — so the caller passes nameColumnIndex from GOOSE_SCHEMA.
+ *     — so the caller passes nameColumnIndex from GOOSE_SCHEMA. Ids (and the optional
+ *     extra column) are RAW values through cellText_, matching readSheet: the client
+ *     does Number(entry.id), so a display value like "1,024" would poison the FK set
+ *     and block saves. Only the label is display text.
  *   Live: an FK picker onto Items shows item_name, not "Armor"/"Weapon" repeated; a
  *     picker onto a six-default sheet (Maps, Spells, Quests, ...) still works with the
- *     argument omitted.
+ *     argument omitted; format an FK target's id column with a separator and confirm
+ *     a referencing record still saves.
  *
  * writeRow  (all guards are reasoning, never executed)
  *   Live, each one its own test:
@@ -280,27 +284,49 @@ function readSheet(sheetName) {
  * GOOSE_SCHEMA (which lives client-side and is not reachable from here). It defaults to
  * 1 for the six sheets where column B is the name. Returns {id, name} either way, so
  * only the argument changes for callers.
+ *
+ * The ID IS THE RAW VALUE, through cellText_, for the same reason readSheet is: the client
+ * builds its FK validation set with Number(entry.id), so a thousands-separator format on the
+ * id column would ship "1,024", read as NaN, and every hand-typed 1024 in a referencing sheet
+ * would be refused as "does not exist" — validation here fails CLOSED, so a formatted column
+ * blocks saves. The NAME stays display text: it labels the picker, nothing parses it, and for
+ * a label what the sheet shows is what the user recognises.
+ *
+ * `extraColumnIndex` (0-based, optional) adds one more RAW cell per entry as `extra`. One
+ * caller today: the Spells preview needs spell_effect_id resolved to the Spell Effects row's
+ * spell_animation — the effects atlas is keyed by animation id, not by effect row id — and
+ * this list is the only per-row data the client holds for a referenced sheet.
  */
-function readSheetIndex(sheetName, nameColumnIndex) {
+function readSheetIndex(sheetName, nameColumnIndex, extraColumnIndex) {
   var sheet = requireSheet_(sheetName);
 
   var nameIndex = typeof nameColumnIndex === 'number' && nameColumnIndex >= 1
     ? Math.floor(nameColumnIndex)
     : 1;
+  var extraIndex = typeof extraColumnIndex === 'number' && extraColumnIndex >= 0
+    ? Math.floor(extraColumnIndex)
+    : -1;
 
   var lastRow = sheet.getLastRow();
   if (lastRow < 2) return { sheet: sheetName, entries: [] };
 
-  // Read out to the name column. nameIndex comes from GOOSE_SCHEMA, so it is always inside
-  // the sheet's real width; a span past the grid would throw rather than yield undefined.
-  var span = Math.max(2, nameIndex + 1);
-  var values = sheet.getRange(2, 1, lastRow - 1, span).getDisplayValues();
+  // Read out to the widest column asked for. Both indexes come from GOOSE_SCHEMA, so they are
+  // always inside the sheet's real width; a span past the grid would throw rather than yield
+  // undefined.
+  var span = Math.max(2, nameIndex + 1, extraIndex + 1);
+  var range = sheet.getRange(2, 1, lastRow - 1, span);
+  var raw = range.getValues();
+  var shown = range.getDisplayValues();
+
   var entries = [];
-  for (var i = 0; i < values.length; i++) {
+  for (var i = 0; i < raw.length; i++) {
+    var id = cellText_(raw[i][0], shown[i][0]);
     // "Is this id absent" is idKey_'s question, not isBlank_'s — a whitespace-only cell would
     // otherwise enter the picker and become a phantom id 0 in the client's FK validation set.
-    if (idKey_(values[i][0]) === '') continue;
-    entries.push({ id: values[i][0], name: values[i][nameIndex] });
+    if (idKey_(id) === '') continue;
+    var entry = { id: id, name: shown[i][nameIndex] };
+    if (extraIndex >= 0) entry.extra = cellText_(raw[i][extraIndex], shown[i][extraIndex]);
+    entries.push(entry);
   }
 
   return { sheet: sheetName, entries: entries };
