@@ -68,9 +68,10 @@ Effects and Combinations do), so every cell in a group table is a plain scalar o
 ### Rows with no resolvable parent
 
 A child row whose parent id is not in the parent sheet would become invisible under
-grouping. Instead it gets its own group, labelled `4471 — (unknown NPC)`, sorted last.
-Rows with a blank parent cell collect into one `(no parent)` group. Both are editable
-and deletable: this is dead data you want to find, not hide.
+grouping. Instead it gets its own group, labelled `4471 — (not in NPCs)` — the referenced
+sheet's own name, so no label needs a hand-written singular noun per sheet — sorted after
+the real groups. Rows with a blank parent cell collect into one `(no parent)` group, last.
+Both are editable and deletable: this is dead data you want to find, not hide.
 
 ## The group panel
 
@@ -270,7 +271,9 @@ fails on Node 22. Baseline on this branch: 911 tests, 901 pass, 10 skipped.
   op-diff builder — given a loaded group and an edited one, exactly which writes, appends
   and deletes come out, and that untouched rows produce none; pk allocation across several
   new Quest Reqs rows.
-- **`test/real-bundles.js`** picks up `src/groups.js` so the built bundle is under test.
+- **`Editor.html`** gains `<?!= include('groups'); ?>`. This is enforced, not remembered:
+  `test/editor-html.test.js` already asserts that every `src/*.js` appears in the include list,
+  so adding the module without the include fails an existing test.
 - **`test/forms.test.js` / `test/pickers.test.js`** cover the `ctx.idPrefix` change,
   including that the default keeps today's ids byte-identical.
 
