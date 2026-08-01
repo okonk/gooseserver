@@ -1,9 +1,8 @@
 ﻿using ClosedXML.Excel;
+using CsvToSql.Core.Schema;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Net.Http;
-using System.Reflection;
 using System.Text;
 
 namespace CsvToSql.Core
@@ -12,53 +11,38 @@ namespace CsvToSql.Core
     {
         public static string Convert(string dataLinkId)
         {
-            var converterMapping = new Dictionary<string, dynamic>()
-            {
-                { "Items", new { Converter = new ItemsCsvToSql(), Table = "item_templates" } },
-                { "NPC Drops", new { Converter = new NpcDropsCsvToSql(), Table = "npc_drops" } },
-                { "NPC Spawns", new { Converter = new NpcSpawnsCsvToSql(), Table = "npc_spawns" } },
-                { "NPC Vendor Items", new { Converter = new NpcVendorsCsvToSql(), Table = "npc_vendor_items" } },
-                { "NPCs", new { Converter = new NpcCsvToSql(), Table = "npc_templates" } },
-                { "Spell Effects", new { Converter = new SpellEffectsCsvToSql(), Table = "spell_effects" } },
-                { "Spells", new { Converter = new SpellsCsvToSql(), Table = "spells" } },
-                { "Warptiles", new { Converter = new WarpTilesCsvToSql(), Table = "warptiles" } },
-                { "Quests", new { Converter = new QuestsCsvToSql(), Table = "quests" } },
-                { "Quest Reqs", new { Converter = new QuestRequirementsCsvToSql(), Table = "quest_requirements" } },
-                { "Quest Rewards", new { Converter = new QuestRewardsCsvToSql(), Table = "quest_rewards" } },
-                { "Maps", new { Converter = new MapsCsvToSql(), Table = "maps" } },
-                { "Map Required Items", new { Converter = new MapRequiredItemsCsvToSql(), Table = "map_required_items" } },
-                { "Combinations", new { Converter = new CombinationsCsvToSql(), Table = "combinations" } },
-                { "Combination Item Required", new { Converter = new CombinationItemRequiredCsvToSql(), Table = "combination_item_required" } },
-                { "Combination Item Result", new { Converter = new CombinationItemResultsCsvToSql(), Table = "combination_item_results" } },
-                { "Titles", new { Converter = new TitleCsvToSql(), Table = "item_titles" } },
-                { "Surnames", new { Converter = new SurnameCsvToSql(), Table = "item_surnames" } },
-                { "Classes", new { Converter = new ClassesCsvToSql(), Table = "classes" } },
-                { "Class Info", new { Converter = new ClassInfoCsvToSql(), Table = "class_info" } },
-                { "Class Levelup Spells", new { Converter = new ClassLevelupSpellsCsvToSql(), Table = "classes_levelup_spells" } },
-            };
-
             var url = $"https://docs.google.com/spreadsheets/u/0/d/{dataLinkId}/export?format=xlsx&id={dataLinkId}";
             var spreadsheet = new MemoryStream(new HttpClient().GetByteArrayAsync(url).Result);
 
-            var assembly = typeof(CsvToSqlConverter).GetTypeInfo().Assembly;
-            var resource = assembly.GetManifestResourceStream($"CsvToSql.Core.sqlTemplate.sql");
-            using var streamReader = new StreamReader(resource, Encoding.UTF8);
+            return ConvertWorkbook(spreadsheet);
+        }
 
-            string sqlTemplate = streamReader.ReadToEnd();
+        /// <summary>Converts an already-loaded .xlsx stream. Exists so tests can run against a
+        /// committed fixture instead of the network.</summary>
+        public static string ConvertWorkbook(Stream spreadsheet)
+        {
+            var sb = new StringBuilder();
+            sb.Append("BEGIN TRANSACTION;\n\n");
 
             using (var workbook = new XLWorkbook(spreadsheet))
             {
-                foreach (var worksheet in workbook.Worksheets)
+                foreach (var schema in SchemaRegistry.Tables)
                 {
-                    dynamic dyn = null;
-                    if (converterMapping.TryGetValue(worksheet.Name, out dyn))
-                    {
-                        sqlTemplate = dyn.Converter.Convert(worksheet, sqlTemplate, dyn.Table);
-                    }
+                    if (!workbook.Worksheets.TryGetWorksheet(schema.Sheet, out var worksheet))
+                        throw new InvalidOperationException(
+                            $"Spreadsheet is missing required worksheet '{schema.Sheet}'.");
+
+                    // Emit and BuildInserts each already end in \n; the appends below are the
+                    // blank line separating one block from the next.
+                    sb.Append(TableDdl.Emit(schema.Table, schema.Columns, schema.Indexes));
+                    sb.Append('\n');
+                    sb.Append(schema.Converter.BuildInserts(worksheet, schema.Table, schema.Columns));
+                    sb.Append('\n');
                 }
             }
 
-            return sqlTemplate;
+            sb.Append("COMMIT;\n");
+            return sb.ToString();
         }
     }
 }

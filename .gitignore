@@ -12,3 +12,23 @@ obj/
 
 
 .worktrees/
+
+# The sprite atlases, which embed the client's art as base64 PNGs. That art is not this
+# repository's to redistribute, so the bundles are built locally and never committed —
+# regenerate them with tools/SpriteBundle against a client checkout (tools/README.md).
+# This is a licensing boundary, not a size or tidiness one: do not commit them with -f.
+tools/DataEditor/sprites-icons.html
+tools/DataEditor/sprites-parts.html
+tools/DataEditor/sprites-effects.html
+
+# `node tools/DataEditor/build.mjs` output. Every byte of it is derived from sources that
+# are either checked in or built locally, and it re-copies the ~4.4 MB of sprite bundles.
+tools/DataEditor/dist/
+
+# clasp's per-spreadsheet script id. The editor is container-bound, so every contributor's
+# differs and none of them is canonical.
+tools/DataEditor/.clasp.json
+
+# CsvToSql.Console writes this to the current working directory, not the project
+# directory, so it must not be anchored to a path.
+illutiaData.sql

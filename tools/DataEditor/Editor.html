@@ -1,0 +1,336 @@
+<!-- Assembled by build.mjs; modules are inlined because Apps Script has no .js file type. -->
+<style>
+  /* Both schemes are declared, so the UA styles form controls and BUTTONS for the scheme in
+     force. Without it a button keeps `buttontext` (black) whatever `color` the page sets on its
+     ancestors — buttons do not inherit colour — and the record list turns black-on-charcoal in
+     dark mode. Every colour below is then stated in both schemes rather than half-flipped. */
+  :root { color-scheme: light dark; }
+
+  body { font: 13px/1.5 -apple-system, system-ui, sans-serif; margin: 0; color: #222; }
+  header { display: flex; gap: 8px; align-items: center; padding: 8px; flex-wrap: wrap;
+           border-bottom: 1px solid #ddd; position: sticky; top: 0; background: #fff; z-index: 5; }
+  main { display: grid; grid-template-columns: 200px 1fr 400px; gap: 12px; padding: 12px; }
+
+  /* A Sheets sidebar (Code.gs showSidebar) is about 300px wide, and the three-column grid needs
+     648px before the form column gets a single pixel: 200 + 400 of fixed columns, 2 * 12px of
+     gaps and 2 * 12px of padding. One of the two shipped entry points is that sidebar, so the
+     narrow layout is not a nicety.
+
+     THE BREAKPOINT IS WELL ABOVE THAT 648, deliberately. At 648 the form column is zero pixels
+     wide and at 700 it is 52 — a three-column layout that technically fits and is unusable. 900
+     leaves it 252px, about what the 400px preview column gets, which is the narrowest the form
+     is worth showing beside the other two. Below it everything stacks and each column gets the
+     full width. */
+  @media (max-width: 900px) {
+    main { grid-template-columns: 1fr; }
+    #records { max-height: 30vh; }
+    .field { grid-template-columns: 1fr; }
+    .error { grid-column: 1; }
+  }
+
+  #records { display: flex; flex-direction: column; gap: 2px; max-height: 80vh; overflow: auto; }
+  .record { text-align: left; padding: 4px 6px; border: 1px solid #eee; background: #fafafa;
+            color: #222; cursor: pointer; }
+  section { border: 1px solid #eee; padding: 8px; margin-bottom: 10px; }
+  section h3 { margin: 0 0 6px; font-size: 12px; text-transform: uppercase; color: #666; }
+  .field { display: grid; grid-template-columns: 160px 1fr; gap: 6px; align-items: center;
+           margin-bottom: 4px; }
+  /* forms.js hides the wearable-only rows (graphic_equip, item_slot) by setting `hidden` when
+     item_usetype is not Armor/Weapon. `display: grid` above is an AUTHOR rule and beats the UA
+     stylesheet's [hidden] { display: none } outright — so without this rule the gate sets the
+     attribute and the rows stay on screen anyway. Same trap as #modal[hidden] below. */
+  .field[hidden] { display: none; }
+  .field label { color: #444; font-family: ui-monospace, monospace; font-size: 11px; }
+  input, select { padding: 3px 5px; border: 1px solid #ccc; width: 100%; box-sizing: border-box; }
+
+  /* .error is sized and placed for a form field. The header status line reuses the class for
+     its colour alone, so it opts back out of both. */
+  .error { color: #b00; font-size: 11px; grid-column: 2; }
+  #status { font-size: 12px; }
+  #status.error { grid-column: auto; font-size: 12px; }
+
+  .warn { background: #fff6d8; border: 1px solid #e8cf7a; color: #4a3c00; padding: 6px;
+          margin-bottom: 10px; }
+  .ok { color: #060; }
+  .problem { font-size: 11px; border-bottom: 1px solid #eee; padding: 2px 0; }
+  #publish-results { max-height: 60vh; overflow: auto; }
+  canvas.preview, canvas.appearance, canvas.effect, canvas.item-icon, canvas.worn { image-rendering: pixelated;
+    border: 1px solid #eee; background: repeating-conic-gradient(#f4f4f4 0% 25%, #fff 0% 50%)
+    50% / 12px 12px; }
+  /* Items shows TWO canvases, and they are meant to be read side by side — the icon in the bag next
+     to the same item on a character. Without a display they are inline-level, so 256 + 384 = 640 in
+     a ~400px column wraps into a stacked pair with baseline whitespace between them. flex-wrap
+     keeps that stacking available for a genuinely narrow sidebar; flex-start stops the shorter icon
+     canvas from being stretched to the character canvas's height. */
+  #previews { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-start; }
+  /* A 384px character canvas in a ~300px Sheets sidebar shrinks rather than overflowing. */
+  #previews canvas { max-width: 100%; height: auto; box-sizing: border-box; }
+  .picker { position: relative; }
+  .results { position: absolute; z-index: 10; background: #fff; border: 1px solid #ccc;
+             max-height: 200px; overflow: auto; width: 100%; }
+  .result { display: block; width: 100%; text-align: left; border: 0; background: none;
+            color: #222; padding: 3px 6px; cursor: pointer; }
+  /* The arrow-key cursor in the FK picker. Focus stays on the input (aria-activedescendant), so
+     :focus and :hover never mark the current row — this class is the only thing that does. */
+  .result.active { background: #dde9ff; }
+  .resolved { font-size: 11px; color: #555; }
+  .resolved.bad { color: #b00; }
+
+  /* Emitted by pickers.js and composites.js. Without rules of their own these inherit body text,
+     which for .unsupported — the marker for a composite kind this build cannot render — reads as
+     an ordinary field rather than as something to report. */
+  .status { font-size: 11px; color: #555; }
+  .status.bad { color: #b00; }
+  .hint { font-size: 11px; color: #666; margin-bottom: 2px; }
+  .readout { font-size: 11px; color: #555; margin-left: 4px; }
+
+  /* The colour picker. The wrapper is the popover's positioning context — .rgba is a plain block
+     with none — following the same .picker/.results pattern as the FK dropdown above. */
+  .colorpicker { position: relative; display: inline-block; vertical-align: middle; }
+  .swatch { width: 40px; height: 20px; border: 1px solid #ccc; padding: 0; cursor: pointer; }
+  /* THE POPOVER IS SIZED FOR THE ~258px FORM COLUMN OF A SHEETS SIDEBAR, not for the 400px
+     preview column, because the sidebar is the narrower of the two shipped entry points and a
+     popover that overflows it turns the whole page into a horizontal scroller — the same failure
+     `#previews canvas` and `.graphic canvas` above are written to avoid.
+
+     One flex row of the four parts would be 128 (square) + 14 (hue) + 14 (blend) + 120 (fields)
+     + 3 gaps + 12 padding + 2 border = ~308. So the three canvases keep their row and the fields
+     sit below them as a full-width block.
+
+     min-width 236: the canvas row alone is ~182, and a popover that shrank to it squeezed the
+     four channel inputs (which share the fields row with their letters and gaps) down to a
+     single visible digit. 236 still fits the ~258px column, and gives each channel input room
+     for the three digits of 255.
+
+     Which SIDE it hangs off cannot be decided in CSS — it depends on where the swatch sits in
+     its column, and there is no container query for "am I about to overflow". So the default is
+     left-anchored, for a swatch at the left of its column (.rgba), and a control that knows it
+     sits at the right of a row (the equipment slots) asks for the other with align: 'right'. */
+  .cp-pop { position: absolute; z-index: 10; top: 100%; left: 0; background: #fff;
+            border: 1px solid #ccc; padding: 6px; box-sizing: border-box;
+            min-width: 236px; max-width: calc(100vw - 24px); }
+  .colorpicker[data-align="right"] .cp-pop { left: auto; right: 0; }
+  /* justify-content: start, or the auto columns stretch and the gaps between the strips grow. */
+  .cp-grid { display: grid; grid-template-columns: auto auto auto; gap: 6px;
+             align-items: start; justify-content: start; }
+  /* No blend strip, no third track: an empty track still renders its 6px gutter. */
+  .cp-grid-noalpha { grid-template-columns: auto auto; }
+  /* The cursor dots are positioned in PERCENTAGES of these boxes, so each canvas needs a
+     positioned box of its own that is exactly the canvas's size. */
+  .cp-field { position: relative; line-height: 0; }
+  .cp-dot { position: absolute; width: 7px; height: 7px; margin: -4px 0 0 -4px;
+            border: 1px solid #000; box-shadow: 0 0 0 1px #fff inset; border-radius: 50%;
+            pointer-events: none; }
+  .cp-sv, .cp-hue, .cp-alpha { display: block; cursor: crosshair; }
+  /* A full-width block of the popover, under the canvas grid — see .cp-pop for the width it is
+     owed. margin-top rather than living inside the grid: a grid child could never be wider than
+     the canvas columns, which is what starved the channel fields of width. */
+  .cp-fields { display: flex; flex-direction: column; gap: 4px; min-width: 0; margin-top: 6px; }
+  /* width: 100%, or the input's intrinsic ~20-character width (widened again by the monospace
+     face) is what sets the popover's width instead of the canvas row above it. */
+  .cp-hex { font-family: ui-monospace, monospace; width: 100%; box-sizing: border-box; }
+  .cp-note { font-size: 11px; color: #666; }
+  /* The four channel fields share the row evenly. min-width: 0 on the cells, or a number input's
+     intrinsic width plus its spinner sets the popover's width the way .cp-hex would. */
+  .cp-nums { display: flex; gap: 4px; }
+  .cp-num-cell { flex: 1; min-width: 0; display: flex; align-items: center; gap: 2px;
+                 font-size: 11px; color: #555; font-family: ui-monospace, monospace; }
+  .cp-num { width: 100%; min-width: 0; box-sizing: border-box; font-family: ui-monospace, monospace;
+            font-size: 11px; padding: 1px 2px; appearance: textfield; -moz-appearance: textfield; }
+  /* The spinner buttons cost ~16px of a ~46px field — the difference between showing one digit
+     of 255 and all three. Arrow keys still step the value; the strips are the pointer path. */
+  .cp-num::-webkit-outer-spin-button, .cp-num::-webkit-inner-spin-button {
+    -webkit-appearance: none; margin: 0; }
+  /* Announced, not shown: the visible numbers are the fields above. Clipped rather than
+     display:none, which would take it out of the accessibility tree and silence it. */
+  .cp-live { position: absolute; width: 1px; height: 1px; overflow: hidden;
+             clip-path: inset(50%); white-space: nowrap; }
+  .cp-recent { display: flex; gap: 3px; margin-top: 6px; }
+  .cp-recent-chip { width: 16px; height: 16px; border: 1px solid #ccc; padding: 0;
+                    cursor: pointer; }
+  .graphic, .bitmask, .idlist, .rgba, .equip { display: block; }
+  /* Same story as #previews canvas: the 128px icon preview and the 80px slot preview shrink to
+     fit a ~300px sidebar rather than pushing the form wider than the column.
+
+     .equip is scoped to .preview rather than to `canvas`: an .equip-slot now also holds a
+     ColorPicker, whose three canvases are fixed-size gradients that must not be rubber-banded. */
+  .graphic canvas, .equip .preview { vertical-align: middle; max-width: 100%; height: auto;
+    box-sizing: border-box; }
+  .unsupported { border: 1px dashed #b00; padding: 4px; }
+
+  .chip { display: inline-flex; gap: 4px; background: #eef; border: 1px solid #ccd;
+          color: #222; padding: 1px 4px; margin: 1px; }
+  .chip .remove { border: 0; background: none; color: inherit; cursor: pointer; padding: 0 2px; }
+  /* The preview track holds the 80px-wide slot canvas (40 logical at 2x) with room to spare. It
+     has to be stated: a canvas is a replaced element, so in grid its min-width is auto — a track
+     narrower than the canvas does not clip, it blows out and eats the 1fr graphic column.
+
+     The four tracks are label, graphic, swatch, preview — the preview canvas opens the browser
+     itself on click, so there is no Browse track to pay for. The default .swatch is 40px, so it
+     is narrowed HERE rather than the track being widened to 40: the row is
+     60 + 28 + 84 + three 4px gaps of fixed width against a ~258px sidebar column, and every
+     pixel given to the swatch comes off the 1fr graphic field — part ids reach three digits
+     (Bodies runs past 300), and the field is the one track that grows the moment there is more
+     room.
+
+     THE STATUS LINE IS NOT A TRACK. It was the one cell with no width budget — an `auto` track
+     holding a string that has since grown ("colour not stored while blend is 0") — so it sits on
+     its own full-width row, where the message gets the whole row rather than whatever an
+     unbudgeted `auto` track could squeeze out of a ~258px sidebar column. */
+  .equip-slot { display: grid; grid-template-columns: 60px 1fr 28px 84px; gap: 4px;
+                align-items: center; }
+  .equip-slot .status { grid-column: 1 / -1; }
+  .equip .swatch { width: 28px; }
+  .check { display: block; font-size: 11px; }
+  .check input { width: auto; margin-right: 4px; }
+
+  /* The tri-state Bool control. `input { width: 100% }` above is written for text fields and
+     would stretch the checkbox across the whole row, so it is overridden HERE BY TYPE rather
+     than for the wrapper: a Bool cell holding something other than 0/1 falls back to a plain
+     text input inside this same span, and that one still wants to fill the row. (It gets most
+     of it rather than all of it — inside this flex container the 100% is a basis that shrinks
+     to leave room for the "not a 0/1 value" status beside it.) */
+  .boolean { display: flex; gap: 6px; align-items: center; }
+  .boolean input[type="checkbox"] { width: auto; margin: 0; }
+  .boolean .clear { border: 0; background: none; color: #555; cursor: pointer; padding: 0 2px; }
+
+  /* A preview canvas that opens the browser on click — pickers.js and composites.js mark every
+     such canvas with data-browse (role=button, tabindex=0 come with it). The pointer says a
+     click does something; the text field beside it stays an ordinary field to type into. */
+  [data-browse] { cursor: pointer; }
+
+  /* THE GRAPHIC BROWSER. #modal is the backdrop and the dialog's positioning context; Gallery.open
+     owns everything inside it and leaves it empty on close.
+
+     z-index 20 over the sticky header's 5 — a dialog under the header is a dialog with its title
+     bar bitten off. `position: fixed` rather than absolute so it covers the page whatever the form
+     column has scrolled to. */
+  #modal { position: fixed; inset: 0; z-index: 20; background: rgba(0, 0, 0, 0.45);
+           display: flex; align-items: center; justify-content: center; }
+  /* [hidden] loses to `display: flex` on specificity-equal ground — same selector weight, later
+     rule wins — so the modal would be permanently on screen without this. */
+  #modal[hidden] { display: none; }
+  .gal { background: #fff; border: 1px solid #ccc; padding: 8px; max-width: calc(100vw - 16px);
+         max-height: calc(100vh - 16px); display: flex; flex-direction: column; gap: 6px;
+         box-sizing: border-box; }
+  .gal-head { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .gal h2 { margin: 0; font-size: 12px; text-transform: uppercase; color: #666; }
+  /* The one control in the header that may grow, so the header never demands more width than the
+     grid below it (4 * 128 + 3 * 4 = 524). */
+  .gal-head input { width: 60px; }
+  .gal-locked { font-size: 11px; color: #555; }
+  /* THE SCROLLER IS THE ONLY THING THAT SCROLLS. The grid is a fixed 524px wide — in a ~300px
+     Sheets sidebar it PANS in here (overflow covers both axes), and a narrower viewport still
+     scrolls HERE rather than turning the whole page into a horizontal scroller — the same rule
+     #previews canvas and .cp-pop are written to.
+
+     overflow-anchor: none, because the grid is WINDOWED: every scroll can rebuild the tiles and
+     resize the two spacers, and the browser's scroll anchoring reads those mutations as content
+     shifting under the user and "corrects" scrollTop — which is the jump-to-the-bottom-on-wheel
+     bug. user-select: none for the drag half of the same complaint: dragging across the grid
+     started a text selection over nodes the next render replaces, which flashed. */
+  .gal-scroll { overflow: auto; flex: 1 1 auto; min-height: 120px; overflow-anchor: none;
+                -webkit-user-select: none; user-select: none; }
+  .gal-grid { display: grid; grid-template-columns: repeat(4, 128px); gap: 4px; }
+  /* Every tile is one 128px cell holding a .gal-art element sized to exactly the sprite's scaled
+     rect — no canvas, no drawImage. gallery.js sets the art's size and background offset per
+     tile; the PNG itself comes from a rule it injects, once, so the data URI is not copied 4,827
+     times. The art is a separate, exactly-sized element rather than a background on the cell so
+     the padding around a small sprite shows the tile's own background and never the atlas's
+     neighbouring sprites; the flex rules are what centre it.
+
+     The 4px gap plus this 128px box IS Gallery.ROW_HEIGHT (132), which is the number its
+     windowing arithmetic uses to decide which row a scroll offset lands on. The two cannot drift
+     apart silently: a mismatch shows up as tiles landing outside the viewport. */
+  .gal-tile { width: 128px; height: 128px; padding: 0; border: 1px solid #eee; cursor: pointer;
+              background-color: transparent; display: flex;
+              align-items: center; justify-content: center; overflow: hidden; }
+  /* pointer-events: none keeps every click's event.target on the BUTTON, so the tile's click
+     handler and Gallery's inGrid walk never have to know the art element exists. */
+  .gal-art { background-repeat: no-repeat; image-rendering: pixelated; pointer-events: none;
+             flex: none; }
+  .gal-tile[aria-selected="true"] { border-color: #4a76c8; box-shadow: 0 0 0 1px #4a76c8; }
+  .gal-count { font-size: 11px; color: #555; }
+
+  @media (prefers-color-scheme: dark) {
+    body { background: #1c1c1c; color: #eee; }
+    header, section, .record, .result, .results, .cp-pop { background: #242424;
+      border-color: #3a3a3a; }
+    .swatch, .cp-recent-chip { border-color: #444; }
+    input, select { background: #2c2c2c; color: #eee; border-color: #444; }
+    section h3, .field label, .resolved, .status, .hint, .readout, .cp-note,
+    .cp-num-cell, .boolean .clear { color: #aaa; }
+    /* Buttons do not inherit colour, so both of these are stated, not left to the cascade. */
+    .record, .result { color: #eee; }
+    .result.active { background: #33415c; }
+    .chip { background: #2b2b3a; border-color: #43435a; color: #eee; }
+    .gal { background: #242424; border-color: #3a3a3a; }
+    .gal h2, .gal-locked, .gal-count { color: #aaa; }
+    .gal-tile { border-color: #3a3a3a; }
+    /* #060 and #b00 sit at roughly 1.7:1 and 2.5:1 on #1c1c1c, against a 4.5:1 target — and
+       .error carries every validation message there is. */
+    .ok { color: #6ede8a; }
+    .error, .resolved.bad, .status.bad { color: #ff8f80; }
+    .warn { background: #3a3218; border-color: #6b5c22; color: #f3e6b8; }
+    .problem { border-bottom-color: #333; }
+    canvas.preview, canvas.appearance, canvas.effect, canvas.item-icon, canvas.worn { border-color: #3a3a3a;
+      background: repeating-conic-gradient(#2a2a2a 0% 25%, #202020 0% 50%) 50% / 12px 12px; }
+    .unsupported { border-color: #ff8f80; }
+  }
+</style>
+
+<header>
+  <select id="sheet-picker"></select>
+  <button type="button" id="new-record">New</button>
+  <button type="button" id="save">Save</button>
+  <button type="button" id="publish-check">Check all sheets</button>
+  <span id="status"></span>
+</header>
+
+<main>
+  <div id="records"></div>
+  <div id="form"></div>
+  <div>
+    <div id="previews"></div>
+    <div id="publish-results"></div>
+  </div>
+</main>
+
+<!-- The graphic browser's host, and the only one on the page. Gallery.open fills it, Gallery.close
+     empties it: a modal left holding 4,827 tiles behind `hidden` costs the same memory as one on
+     screen, and app.js rebuilds the form for every record opened. -->
+<div id="modal" hidden></div>
+
+<!--
+  Include order. Every module is an IIFE that resolves the others as FREE GLOBALS at CALL time,
+  so strictly only the data files have to come first — but the order below is the real dependency
+  graph anyway, which is the order to keep it in:
+    appearance  -> Equipped
+    colorpicker -> Forms, Sprites
+    gallery     -> Forms, Sprites
+    composites  -> Forms, Pickers, Sprites, Equipped, Appearance, ColorPicker, Layout, Gallery
+    forms       -> Layout, Composites, Pickers
+    preview     -> Appearance, Sprites, Equipped
+    pickers     -> Forms, Sprites, Appearance, Preview, Gallery
+    app         -> everything
+  All twelve src/ modules are listed. build.mjs emits one dist/<name>.html per src/*.js, so a
+  module added there and not added here is simply never on the page.
+-->
+<?!= include('schema'); ?>
+<?!= include('sprites-icons'); ?>
+<?!= include('sprites-parts'); ?>
+<?!= include('sprites-effects'); ?>
+<?!= include('validation'); ?>
+<?!= include('equipped'); ?>
+<?!= include('appearance'); ?>
+<?!= include('sprites'); ?>
+<?!= include('layout'); ?>
+<?!= include('preview'); ?>
+<?!= include('pickers'); ?>
+<?!= include('colorpicker'); ?>
+<?!= include('gallery'); ?>
+<?!= include('composites'); ?>
+<?!= include('forms'); ?>
+<?!= include('app'); ?>
+
+<script>App.init();</script>

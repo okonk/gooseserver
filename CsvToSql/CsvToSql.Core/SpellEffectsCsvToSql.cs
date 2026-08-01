@@ -1,64 +1,118 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using CsvToSql.Core.Schema;
 
 namespace CsvToSql
 {
-    class SpellEffectsCsvToSql : CsvToSqlBase
+    public class SpellEffectsCsvToSql : CsvToSqlBase
     {
-        protected override string[] GetColumns()
+        public override Column[] GetColumnDescriptors() => new[]
         {
-            return new[] { "spell_effect_id", "spell_effect_name", "spell_animation", "spell_animation_file", "spell_display", "target_type", "target_size", "spell_effected", 
-                "min_level_effected", "max_level_effected", "effect_type", "effect_duration", "do_attack_animation", "do_cast_animation", "spell_damage_effects", "spell_energy_type", 
-                "hp_change_formula", "mp_change_formula", "sp_change_formula", "hp", "mp", "sp", "stat_ac", "stat_str", "stat_sta", "stat_dex", "stat_int", "res_fire", "res_water", 
-                "res_spirit", "res_air", "res_earth", "hp_percent_regen", "hp_static_regen", "mp_percent_regen", "mp_static_regen", "haste", "spell_damage", "spell_crit", "melee_damage", 
-                "melee_crit", "damage_reduce", "move_speed", "body_id", "oneffect_text", "offeffect_text", "face_id", "hair_id", "hair_r", "hair_g", "hair_b", "hair_a", "body_r", "body_g", 
-                "body_b", "body_a", "teleport_map", "teleport_x", "teleport_y", "taunt_aggro", "works_in_pvp", "works_not_in_pvp", "buff_removable", "buff_graphic", "buff_graphic_file", 
-                "buff_doesnt_stack_over", "buff_stacks_over", "random_join_chance", "on_hit_spell_effect_id", "on_hit_spell_chance", "on_attack_spell_effect_id", "on_attack_spell_chance", 
-                "snare_percent", "only_hits_one_npc", "script_path", "script_params",
-            };
-        }
+            Col.Id("spell_effect_id", SqlType.Integer).PrimaryKey(),
+            Col.Text("spell_effect_name"),
+            Col.Int("spell_animation", SqlType.Int, def: 0),
+            Col.Int("spell_animation_file", SqlType.Int, def: 0),
+            Col.Enum<SpellDisplays>("spell_display", SqlType.Int, def: 0),
+            Col.Enum<TargetTypes>("target_type", SqlType.Int, def: 0),
+            Col.Int("target_size", SqlType.Int, def: 0),
 
-        protected override string TransformValue(string columnName, string value)
+            Col.Enum<SpellEffected>("spell_effected", SqlType.Int),
+            Col.Int("min_level_effected", SqlType.Int, def: 1),
+            Col.Int("max_level_effected", SqlType.Int, def: 50),
+
+            Col.Enum<EffectTypes>("effect_type", SqlType.Int),
+            Col.Int("effect_duration", SqlType.BigInt, def: 0),
+
+            Col.Bool("do_attack_animation", def: false),
+            Col.Bool("do_cast_animation", def: true),
+            Col.Bool("spell_damage_effects", def: false), // does spell damage/crit effect this spell
+            Col.Enum<EnergyTypes>("spell_energy_type", SqlType.Int, def: 0), // bitfield, see EnergyTypes
+
+            // for damage/heal kinda spells
+            // change_formulas are what to do to the effected person's stat, for damage/heals
+            Col.Text("hp_change_formula", def: "'0'"),
+            Col.Text("mp_change_formula", def: "'0'"),
+            Col.Text("sp_change_formula", def: "'0'"),
+
+            // Stuff for buffs/permanent
+            Col.Int("hp", SqlType.Int, def: 0),
+            Col.Int("mp", SqlType.Int, def: 0),
+            Col.Int("sp", SqlType.Int, def: 0),
+            Col.Int("stat_ac", SqlType.SmallInt, def: 0),
+            Col.Int("stat_str", SqlType.SmallInt, def: 0),
+            Col.Int("stat_sta", SqlType.SmallInt, def: 0),
+            Col.Int("stat_dex", SqlType.SmallInt, def: 0),
+            Col.Int("stat_int", SqlType.SmallInt, def: 0),
+            Col.Int("res_fire", SqlType.SmallInt, def: 0),
+            Col.Int("res_water", SqlType.SmallInt, def: 0),
+            Col.Int("res_spirit", SqlType.SmallInt, def: 0),
+            Col.Int("res_air", SqlType.SmallInt, def: 0),
+            Col.Int("res_earth", SqlType.SmallInt, def: 0),
+            Col.Decimal("hp_percent_regen", SqlType.Decimal94, def: "0"),
+            Col.Int("hp_static_regen", SqlType.Int, def: 0),
+            Col.Decimal("mp_percent_regen", SqlType.Decimal94, def: "0"),
+            Col.Int("mp_static_regen", SqlType.Int, def: 0),
+            Col.Decimal("haste", SqlType.Decimal94, def: "0"),
+            Col.Decimal("spell_damage", SqlType.Decimal94, def: "0"),
+            Col.Decimal("spell_crit", SqlType.Decimal94, def: "0"),
+            Col.Decimal("melee_damage", SqlType.Decimal94, def: "0"),
+            Col.Decimal("melee_crit", SqlType.Decimal94, def: "0"),
+            Col.Decimal("damage_reduce", SqlType.Decimal94, def: "0"),
+            Col.Int("move_speed", SqlType.SmallInt, def: 0),
+            Col.Int("body_id", SqlType.SmallInt, def: 0),
+
+            Col.Text("oneffect_text", def: "''"),
+            Col.Text("offeffect_text", def: "''"),
+
+            // For permanent
+            Col.Int("face_id", SqlType.SmallInt, def: 0),
+            Col.Int("hair_id", SqlType.SmallInt, def: 0),
+            Col.Int("hair_r", SqlType.SmallInt, def: 0),
+            Col.Int("hair_g", SqlType.SmallInt, def: 0),
+            Col.Int("hair_b", SqlType.SmallInt, def: 0),
+            Col.Int("hair_a", SqlType.SmallInt, def: 0),
+            Col.Int("body_r", SqlType.SmallInt, def: 0),
+            Col.Int("body_g", SqlType.SmallInt, def: 0),
+            Col.Int("body_b", SqlType.SmallInt, def: 0),
+            Col.Int("body_a", SqlType.SmallInt, def: 0),
+
+            Col.Id("teleport_map", SqlType.Int, def: 1).Ref("Maps"),
+            Col.Int("teleport_x", SqlType.Int, def: 50),
+            Col.Int("teleport_y", SqlType.Int, def: 50),
+
+            // Aggro for taunt
+            Col.Int("taunt_aggro", SqlType.Int, def: 0),
+
+            // Buffs. Duration comes from effect_duration above.
+            Col.Bool("works_in_pvp", def: true),
+            Col.Bool("works_not_in_pvp", def: false),
+
+            Col.Bool("buff_removable", def: true),
+            Col.Int("buff_graphic", SqlType.Int, def: 0),
+            Col.Int("buff_graphic_file", SqlType.Int, def: 0),
+            Col.Text("buff_doesnt_stack_over", def: "''"),
+            Col.Text("buff_stacks_over", def: "''"),
+
+            Col.Decimal("random_join_chance", SqlType.Decimal52, def: "0"),
+
+            Col.Id("on_hit_spell_effect_id", SqlType.Int, def: 0).Ref("Spell Effects"),
+            Col.Decimal("on_hit_spell_chance", SqlType.Decimal52, def: "100"),
+            Col.Id("on_attack_spell_effect_id", SqlType.Int, def: 0).Ref("Spell Effects"),
+            Col.Decimal("on_attack_spell_chance", SqlType.Decimal52, def: "100"),
+
+            Col.Decimal("snare_percent", SqlType.Decimal52, def: "0"),
+
+            Col.Bool("only_hits_one_npc", def: false),
+
+            Col.Text("script_path", def: "''"),
+            Col.Text("script_params", def: "''"),
+        };
+
+        public override Composite[] GetComposites() => new[]
         {
-            switch (columnName)
-            {
-                case "spell_effect_name":
-                case "buff_doesnt_stack_over":
-                case "buff_stacks_over":
-                case "oneffect_text":
-                case "offeffect_text":
-                case "hp_change_formula":
-                case "mp_change_formula":
-                case "sp_change_formula":
-                case "script_path":
-                case "script_params":
-                    return EscapeString(value);
-                case "do_attack_animation":
-                case "do_cast_animation":
-                case "spell_damage_effects":
-                case "works_in_pvp":
-                case "works_not_in_pvp":
-                case "buff_removable":
-                case "only_hits_one_npc":
-                    // booleans
-                    return EscapeString(value);
-
-                case "spell_display":
-                    return ConvertEnum(value, typeof(SpellDisplays));
-                case "target_type":
-                    return ConvertEnum(value, typeof(TargetTypes));
-                case "spell_effected":
-                    return ConvertEnum(value, typeof(SpellEffected));
-                case "effect_type":
-                    return ConvertEnum(value, typeof(EffectTypes));
-                case "spell_energy_type":
-                    return ConvertEnum(value, typeof(EnergyTypes));
-                default:
-                    return value;
-            }
-        }
+            Composite.Graphic(tile: "spell_animation", file: "spell_animation_file"),
+            Composite.Rgba(r: "hair_r", g: "hair_g", b: "hair_b", a: "hair_a"),
+            Composite.Rgba(r: "body_r", g: "body_g", b: "body_b", a: "body_a"),
+            Composite.Graphic(tile: "buff_graphic", file: "buff_graphic_file"),
+        };
 
         public enum SpellDisplays
         {

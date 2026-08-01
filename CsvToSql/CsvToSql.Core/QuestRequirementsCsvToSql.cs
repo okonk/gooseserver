@@ -1,35 +1,20 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.IO;
+using CsvToSql.Core.Schema;
 
 namespace CsvToSql
 {
-    class QuestRequirementsCsvToSql : CsvToSqlBase
+    public class QuestRequirementsCsvToSql : CsvToSqlBase
     {
-        protected override string[] GetColumns()
+        public override Column[] GetColumnDescriptors() => new[]
         {
-            return new[] {
-                "id", "quest_id", "requirement_type", "requirement_value", "requirement_value2", "keep_requirement"
-            };
-        }
+            Col.Id("id", SqlType.Integer).PrimaryKey(),
+            Col.Id("quest_id", SqlType.Int).Ref("Quests"),
+            Col.Enum<RequirementType>("requirement_type", SqlType.Int),
+            Col.Int("requirement_value", SqlType.BigInt),
+            Col.Int("requirement_value2", SqlType.BigInt, def: 0).Nullable(),
+            Col.Bool("keep_requirement", def: false).Nullable(),
+        };
 
-        protected override string TransformValue(string columnName, string value)
-        {
-            switch (columnName)
-            {
-                case "keep_requirement":
-                    // booleans
-                    return EscapeString(value);
-                case "requirement_type":
-                    return ConvertEnum(value, typeof(RequirementType));
-                default:
-                    return value;
-            }
-        }
-
-        enum RequirementType
+        public enum RequirementType
         {
             Gold,
             Item,

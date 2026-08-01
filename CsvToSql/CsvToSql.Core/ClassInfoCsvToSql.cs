@@ -1,28 +1,38 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.IO;
+using CsvToSql.Core.Schema;
 
 namespace CsvToSql
 {
-    class ClassInfoCsvToSql : CsvToSqlBase
+    public class ClassInfoCsvToSql : CsvToSqlBase
     {
-        protected override string[] GetColumns()
+        // No primary key — the pre-descriptor schema declared none for class_info.
+        public override Column[] GetColumnDescriptors() => new[]
         {
-            return new[] { "class_id", "level", "level_up_exp", "player_hp", "player_mp", "player_sp", "stat_ac", "stat_str", "stat_sta", "stat_dex", "stat_int", 
-                "res_fire", "res_water", "res_spirit", "res_air", "res_earth", "hp_percent_regen", "hp_static_regen", "mp_percent_regen", "mp_static_regen", 
-                "haste", "spell_damage", "spell_crit", "melee_damage", "melee_crit", "damage_reduce" 
-            };
-        }
-
-        protected override string TransformValue(string columnName, string value)
-        {
-            switch (columnName)
-            {
-                default:
-                    return value;
-            }
-        }
+            Col.Id("class_id", SqlType.Int).Ref("Classes"),
+            Col.Int("level", SqlType.SmallInt),
+            Col.Int("level_up_exp", SqlType.BigInt, def: 0),
+            Col.Int("player_hp", SqlType.Int, def: 0),
+            Col.Int("player_mp", SqlType.Int, def: 0),
+            Col.Int("player_sp", SqlType.Int, def: 0),
+            Col.Int("stat_ac", SqlType.SmallInt, def: 0),
+            Col.Int("stat_str", SqlType.SmallInt, def: 0),
+            Col.Int("stat_sta", SqlType.SmallInt, def: 0),
+            Col.Int("stat_dex", SqlType.SmallInt, def: 0),
+            Col.Int("stat_int", SqlType.SmallInt, def: 0),
+            Col.Int("res_fire", SqlType.SmallInt, def: 0),
+            Col.Int("res_water", SqlType.SmallInt, def: 0),
+            Col.Int("res_spirit", SqlType.SmallInt, def: 0),
+            Col.Int("res_air", SqlType.SmallInt, def: 0),
+            Col.Int("res_earth", SqlType.SmallInt, def: 0),
+            Col.Decimal("hp_percent_regen", SqlType.Decimal94, def: "0"),
+            Col.Int("hp_static_regen", SqlType.Int, def: 0),
+            Col.Decimal("mp_percent_regen", SqlType.Decimal94, def: "0"),
+            Col.Int("mp_static_regen", SqlType.Int, def: 0),
+            Col.Decimal("haste", SqlType.Decimal94, def: "0"),
+            Col.Decimal("spell_damage", SqlType.Decimal94, def: "0"),
+            Col.Decimal("spell_crit", SqlType.Decimal94, def: "0"),
+            Col.Decimal("melee_damage", SqlType.Decimal94, def: "0"),
+            Col.Decimal("melee_crit", SqlType.Decimal94, def: "0"),
+            Col.Decimal("damage_reduce", SqlType.Decimal94, def: "0"),
+        };
     }
 }

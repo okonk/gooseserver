@@ -1,25 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.IO;
+using CsvToSql.Core.Schema;
 
 namespace CsvToSql
 {
-    class NpcSpawnsCsvToSql : CsvToSqlBase
+    public class NpcSpawnsCsvToSql : CsvToSqlBase
     {
-        protected override string[] GetColumns()
+        public override Column[] GetColumnDescriptors() => new[]
         {
-            return new[] { "npc_id", "map_id", "map_x", "map_y" };
-        }
-
-        protected override string TransformValue(string columnName, string value)
-        {
-            switch (columnName)
-            {
-                default:
-                    return value;
-            }
-        }
+            Col.Id("npc_id", SqlType.Int).Ref("NPCs"),
+            Col.Id("map_id", SqlType.SmallInt).Ref("Maps"),
+            Col.Int("map_x", SqlType.SmallInt),
+            Col.Int("map_y", SqlType.SmallInt),
+        };
     }
 }

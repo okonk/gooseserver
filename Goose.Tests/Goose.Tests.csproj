@@ -15,11 +15,16 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="Fixtures/**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Using Include="Xunit" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Goose\Goose.csproj" />
+    <ProjectReference Include="..\CsvToSql\CsvToSql.Core\CsvToSql.Core.csproj" />
   </ItemGroup>
 
 </Project>

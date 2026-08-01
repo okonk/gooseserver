@@ -1,18 +1,28 @@
-﻿using ClosedXML.Excel;
-using System;
+using ClosedXML.Excel;
+using CsvToSql.Core.Schema;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Text;
 
 namespace CsvToSql
 {
-    abstract class CsvToSqlBase
+    public abstract class CsvToSqlBase
     {
-        public string Convert(IXLWorksheet worksheet, string template, string tableName)
-        {
-            string[] allColumns = GetColumns();
+        /// <summary>Descriptors for this sheet. Ordered 1:1 with worksheet columns — cells are
+        /// read positionally, so the order is load-bearing.</summary>
+        public abstract Column[] GetColumnDescriptors();
 
+        /// <summary>Editor-facing composite annotations. Does not affect column order.</summary>
+        public virtual Composite[] GetComposites() => null;
+
+        /// <summary>Renders one INSERT per non-empty worksheet row. An empty cell is omitted
+        /// from its statement entirely, so the column's declared default applies.
+        ///
+        /// Takes the descriptors rather than re-reading them, so the INSERTs and the DDL are
+        /// provably built from the same list rather than from two lists that merely agree.</summary>
+        public string BuildInserts(IXLWorksheet worksheet, string tableName,
+                                   IReadOnlyList<Column> descriptors)
+        {
             var sqlBuilder = new StringBuilder();
 
             foreach (var row in worksheet.Rows().Skip(1).Where(r => !r.IsEmpty()))
@@ -20,13 +30,13 @@ namespace CsvToSql
                 List<string> columns = new List<string>();
                 List<string> values = new List<string>();
 
-                for (int i = 0; i < allColumns.Length; i++)
+                for (int i = 0; i < descriptors.Count; i++)
                 {
                     string value = row.Cell(i + 1).GetValue<string>();
                     if (value.Length == 0) continue;
 
-                    columns.Add(allColumns[i]);
-                    values.Add(TransformValue(allColumns[i], value));
+                    columns.Add(descriptors[i].Name);
+                    values.Add(DescriptorTransform.Apply(descriptors[i], value));
                 }
 
                 sqlBuilder.AppendFormat("INSERT INTO {0} (", tableName);
@@ -36,20 +46,7 @@ namespace CsvToSql
                 sqlBuilder.Append(");\n");
             }
 
-            return template.Replace("{{" + tableName + "}}", sqlBuilder.ToString());
+            return sqlBuilder.ToString();
         }
-
-        protected string EscapeString(string value)
-        {
-            return string.Format("'{0}'", value.Replace("'", "''"));
-        }
-
-        protected string ConvertEnum(string value, Type enumType)
-        {
-            return ((int)Enum.Parse(enumType, value)).ToString();
-        }
-
-        protected abstract string TransformValue(string columnName, string value);
-        protected abstract string[] GetColumns();
     }
 }

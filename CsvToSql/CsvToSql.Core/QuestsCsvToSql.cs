@@ -1,38 +1,37 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.IO;
+using CsvToSql.Core.Schema;
 
 namespace CsvToSql
 {
-    class QuestsCsvToSql : CsvToSqlBase
+    public class QuestsCsvToSql : CsvToSqlBase
     {
-        protected override string[] GetColumns()
+        public override Column[] GetColumnDescriptors() => new[]
         {
-            return new[] {
-                "id", "name", "description", "pass_text", "fail_text", "class_restrictions", "min_experience", "max_experience", "min_level", "max_level", "repeatable", "show_progress", "only_one_player_can_complete", "prerequisite_quests"
-            };
-        }
+            Col.Id("id", SqlType.Integer).PrimaryKey(),
+            Col.Text("name"),
+            Col.Text("description", def: "''"),
+            // Worksheet order. The pre-descriptor schema listed fail_text before pass_text — do not
+            // "fix" this to match it: cells are read positionally, so swapping these two
+            // would write each column's value into the other.
+            Col.Text("pass_text", def: "''"),
+            Col.Text("fail_text", def: "''"),
+            Col.Int("class_restrictions", SqlType.BigInt, def: 0).Nullable(),
+            Col.Int("min_experience", SqlType.BigInt, def: 0).Nullable(),
+            Col.Int("max_experience", SqlType.BigInt, def: 0).Nullable(),
+            Col.Int("min_level", SqlType.Int, def: 0).Nullable(),
+            Col.Int("max_level", SqlType.Int, def: 0).Nullable(),
+            Col.Bool("repeatable", def: false).Nullable(),
+            Col.Bool("show_progress", def: false).Nullable(),
+            Col.Bool("only_one_player_can_complete", def: false).Nullable(),
+            Col.Text("prerequisite_quests", def: "''"),
+        };
 
-        protected override string TransformValue(string columnName, string value)
+        public override Composite[] GetComposites() => new[]
         {
-            switch (columnName)
-            {
-                case "name":
-                case "description":
-                case "pass_text":
-                case "fail_text":
-                case "prerequisite_quests":
-                    return EscapeString(value);
-                case "repeatable":
-                case "show_progress":
-                case "only_one_player_can_complete":
-                    // booleans
-                    return EscapeString(value);
-                default:
-                    return value;
-            }
-        }
+            // Same column, same convention, same control as Items/Spells/Combinations: a set bit
+            // means the class is RESTRICTED (Goose/Class.cs:34), and the bit index is the class
+            // id. Without this the editor renders it as a bare number box and a designer has to
+            // hand-compute the mask under a convention inverted from intuition.
+            Composite.Bitmask("class_restrictions", from: "Classes"),
+        };
     }
 }
