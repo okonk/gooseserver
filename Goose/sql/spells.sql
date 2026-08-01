@@ -4,7 +4,7 @@ CREATE TABLE spells (
   spell_name TEXT NOT NULL,
   spell_description TEXT DEFAULT '' NOT NULL,
   spell_target INT NOT NULL,
-  class_restrictions BIGINT DEFAULT 0 NOT NULL, /* if bit not set class id can cast */
+  class_restrictions BIGINT DEFAULT 0 NOT NULL, /* allow list: bit set = class id can cast, 0 = all */
   spell_aether BIGINT DEFAULT 100 NOT NULL, /* Aether in milliseconds */
   spellbook_graphic INT NOT NULL,
   spellbook_graphic_file INT NOT NULL,
@@ -20,19 +20,23 @@ CREATE TABLE spells (
 );
 
 /*
-class_restrictions:
+class_restrictions is an ALLOW list: bit N set means class id N can cast the spell.
+0 is the special case and means no restriction, ie every class can cast it.
 
-32 16 08 04 02 01
- p  m  w  r  c  0
- 
-value = 127 - number above class name
- 
-class		  id	class_restriction value
-commoner	1	  61
-rogue		  2	  59
-warrior   3	  55
-magus		  4	  47
-priest		5	  31
+bit		128	64	32	16	08	04	02	01
+class		gm	bard	priest	magus	warrior	rogue	commoner -
+
+class		id	bit value
+commoner	1	2
+rogue		2	4
+warrior		3	8
+magus		4	16
+priest		5	32
+bard		6	64
+game master	7	128
+
+Add the values of the classes that may cast it: magus + priest = 48.
+Everyone (classes 1-7) = 254, but prefer 0 for that.
 
 */
 

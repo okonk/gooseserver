@@ -1385,7 +1385,7 @@ namespace Goose
                 return false;
             }
 
-            if ((item.ClassRestrictions & Convert.ToInt64(Math.Pow(2.0, (double)this.Class.ClassID))) != 0)
+            if (!this.Class.CanUse(item.ClassRestrictions))
             {
                 world.Send(this, P.ServerMessage("You are the wrong class to use " + item.Name + "."));
                 return false;

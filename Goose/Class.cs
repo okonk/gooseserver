@@ -31,9 +31,20 @@ namespace Goose
 
         public int MaxLevel { get { return this.levels.Count; } }
 
+        /**
+         * class_restrictions is an ALLOW list: the bit at index class_id is set for every class
+         * that CAN use the thing. 0 is the one special case and means "no restriction at all",
+         * so a row nobody has thought about stays usable by everyone.
+         *
+         * The inverse (a set bit meaning "cannot use") is what this used to be, and it made
+         * adding a class a data migration: a new class could use every existing item until every
+         * row that meant to exclude it was found and updated. This way round a new class starts
+         * with access to the unrestricted rows only.
+         *
+         */
         public bool CanUse(long classRestrictions)
         {
-            return ((classRestrictions & Convert.ToInt64(Math.Pow(2.0, (double)this.ClassID))) == 0);
+            return classRestrictions == 0 || (classRestrictions & (1L << this.ClassID)) != 0;
         }
     }
 }

@@ -49,19 +49,23 @@ CREATE TABLE item_templates (
 );
 
 /*
-class_restrictions:
+class_restrictions is an ALLOW list: bit N set means class id N can use the item.
+0 is the special case and means no restriction, ie every class can use it.
 
-32 16 08 04 02 01
- p  m  w  r  c  0
- 
-value = 63 - number above class name
- 
-class		id	class_restriction value
-commoner	1	61
-rogue		2	59
-warrior		3	55
-magus		4	47
-priest		5	31
+bit		128	64	32	16	08	04	02	01
+class		gm	bard	priest	magus	warrior	rogue	commoner -
+
+class		id	bit value
+commoner	1	2
+rogue		2	4
+warrior		3	8
+magus		4	16
+priest		5	32
+bard		6	64
+game master	7	128
+
+Add the values of the classes that may use the item: warrior + magus = 24.
+Everyone (classes 1-7) = 254, but prefer 0 for that.
 
 */
 

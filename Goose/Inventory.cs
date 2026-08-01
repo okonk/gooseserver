@@ -1035,7 +1035,7 @@ namespace Goose
                     " experience to create " + match.Name + "."));
                 return;
             }
-            else if ((match.ClassRestrictions & Convert.ToInt64(Math.Pow(2.0, (double)this.player.Class.ClassID))) != 0)
+            else if (!this.player.Class.CanUse(match.ClassRestrictions))
             {
                 world.Send(this.player, P.ServerMessage("You are the wrong class to create " + match.Name + "."));
                 return;

@@ -96,7 +96,7 @@ public class ItemInfoWindow : Window
         {
             Class c = world.ClassHandler.GetClass(i);
 
-            if ((item.ClassRestrictions & (int)Math.Pow(2, c.ClassID)) == 0)
+            if (c.CanUse(item.ClassRestrictions))
             {
                 line += c.ClassName + " ";
             }

@@ -161,6 +161,13 @@ wrong: that a cell's value is its stored value rather than its formatting, and t
 writes only the cells that changed. What it assumes about Apps Script is listed at the top of that
 file; the checks that genuinely need a live spreadsheet are still listed in `Code.gs`'s own header.
 
+`MigrateClassRestrictions.gs` is a **one-off**, not part of the editor: it converts the workbook's
+`class_restrictions` columns from the old deny list to the allow list the server now reads. Copy it
+into the spreadsheet's Apps Script project, run it once, delete it — see
+`docs/class-restrictions-migration.md`. It runs against the same fake spreadsheet
+(`loadMigrationGs`), because a one-off over data with no second copy is exactly the code that gets
+one chance to be right.
+
 ### Load and save time
 
 The rule is "do not send what nobody reads":

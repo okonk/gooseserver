@@ -87,8 +87,9 @@ namespace Goose
         /**
          * This is a bitmask
          * Therefore only limited to about 64 classes, which should be enough.
-         * If the bit is set then that class id CAN'T use the item.
-         * 
+         * If the bit is set then that class id CAN use the item, and 0 means every class can.
+         * See Class.CanUse.
+         *
          */
         public long ClassRestrictions { get; set; }
         public int StackSize { get; set; }
@@ -184,13 +185,13 @@ namespace Goose
 
             foreach (Class cls in allClasses)
             {
-                if ((classRestrictions & Convert.ToInt64(Math.Pow(2.0, (double)cls.ClassID))) != 0)
+                if (cls.CanUse(classRestrictions))
                 {
-                    cantUse.Add(cls);
+                    canUse.Add(cls);
                 }
                 else
                 {
-                    canUse.Add(cls);
+                    cantUse.Add(cls);
                 }
             }
 

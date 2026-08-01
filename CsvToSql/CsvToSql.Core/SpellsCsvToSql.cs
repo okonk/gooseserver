@@ -10,7 +10,7 @@ namespace CsvToSql
             Col.Text("spell_name"),
             Col.Text("spell_description", def: "''"),
             Col.Enum<SpellTargets>("spell_target", SqlType.Int),
-            Col.Int("class_restrictions", SqlType.BigInt, def: 0), // if bit not set class id can cast
+            Col.Int("class_restrictions", SqlType.BigInt, def: 0), // allow list: bit set = class id can cast, 0 = all
             Col.Int("spell_aether", SqlType.BigInt, def: 100), // Aether in milliseconds
             Col.Int("spellbook_graphic", SqlType.Int),
             Col.Int("spellbook_graphic_file", SqlType.Int, def: 0),

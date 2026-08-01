@@ -228,3 +228,55 @@ export function loadCodeGs(sheetsByName, options = {}) {
     writeRow: (...args) => toHost(sandbox.writeRow(...args)),
   };
 }
+
+// The same model, running MigrateClassRestrictions.gs — the one-off that inverts
+// class_restrictions to an allow list. It is a separate loader rather than another entry in
+// loadCodeGs because it needs two globals Code.gs has never touched (Logger, PropertiesService)
+// and because the file it loads is meant to be deleted once it has been run: when it goes, so
+// does this, and loadCodeGs is left exactly as it was.
+//
+// `properties` seeds the document properties, which is how a test can present a workbook that
+// has already been migrated. The two entry points come back through JSON for the same reason
+// loadCodeGs's do: a plan built inside the vm carries the vm's prototypes, and deepEqual
+// compares those. Errors are deliberately NOT wrapped — assert.throws matches on the message.
+export function loadMigrationGs(sheetsByName, { properties = {} } = {}) {
+  const sheets = {};
+  Object.keys(sheetsByName).forEach((name) => {
+    sheets[name] = new FakeSheet(name, sheetsByName[name]);
+  });
+
+  const logs = [];
+  const props = { ...properties };
+  const sandbox = {
+    SpreadsheetApp: {
+      getActiveSpreadsheet: () => ({ getSheetByName: (name) => sheets[name] || null }),
+      flush: () => {},
+    },
+    Logger: { log: (line) => logs.push(String(line)) },
+    PropertiesService: {
+      getDocumentProperties: () => ({
+        getProperty: (key) => (key in props ? props[key] : null),
+        setProperty: (key, value) => { props[key] = value; },
+      }),
+    },
+    Date,
+  };
+
+  const context = createContext(sandbox);
+  const source = readFileSync(new URL('../MigrateClassRestrictions.gs', import.meta.url), 'utf8');
+  runInContext(source, context, { filename: 'MigrateClassRestrictions.gs' });
+
+  const toHost = (value) => (value === undefined ? undefined : JSON.parse(JSON.stringify(value)));
+
+  return {
+    sheets,
+    logs,
+    properties: props,
+    gs: {
+      previewClassRestrictionsMigration: (...args) =>
+        toHost(sandbox.previewClassRestrictionsMigration(...args)),
+      applyClassRestrictionsMigration: (...args) =>
+        toHost(sandbox.applyClassRestrictionsMigration(...args)),
+    },
+  };
+}

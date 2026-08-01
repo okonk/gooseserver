@@ -79,22 +79,23 @@ var Composites = (function () {
     return Math.min(255, Math.max(0, num(value)));
   }
 
-  // BIT CONVENTION, FROM THE SERVER. Goose/Class.cs:34 is
-  //   CanUse(mask) => (mask & 2^ClassID) == 0
+  // BIT CONVENTION, FROM THE SERVER. Goose/Class.cs's CanUse is
+  //   CanUse(mask) => mask == 0 || (mask & 2^ClassID) != 0
   // so the bit INDEX is the class_id itself — bit 0 belongs to no class, the shipped classes
-  // are 1-6 — and a SET bit means that class is RESTRICTED, not permitted. Both halves are easy
-  // to invert and neither fails loudly: an off-by-one locks items to the neighbouring class and
-  // an inversion locks them to everyone else. So these two are a plain bit-index <-> id map and
-  // nothing here adds or subtracts one.
+  // are 1-6 — and a SET bit means that class is ALLOWED. An ALL-ZERO mask is the exception:
+  // it is "no restriction", every class, not "no class". Both halves are easy to invert and
+  // neither fails loudly: an off-by-one locks items to the neighbouring class and an inversion
+  // locks them to everyone else. So these two are a plain bit-index <-> id map and nothing here
+  // adds or subtracts one.
   //
   // `&` is deliberately NOT used: it coerces to int32, so bit 31 comes back negative and bit 32
-  // and up come back as 0 — which would read as "no restriction at all".
+  // and up come back as 0 — which would read as an empty allow list, and be rendered as one.
   function bitsToIds(mask) {
     var m = num(mask);
     var ids = [];
     // The bound also covers 0 and every negative mask — neither is >= 1, so the loop stops
     // before its first test and no bit is reported. A negative is not a mask at all, and
-    // inventing restrictions for one would be worse than reporting none.
+    // inventing permissions for one would be worse than reporting none.
     for (var bit = 0; bit <= MAX_BIT; bit++) {
       var place = Math.pow(2, bit);
       if (place > m) break;
@@ -104,7 +105,7 @@ var Composites = (function () {
   }
 
   // Deduplicated: `mask += 2^id` over a list holding an id twice silently CARRIES into the next
-  // bit, turning a Rogue restriction into a Warrior one. Anything that is not a whole number in
+  // bit, turning a Rogue's permission into a Warrior's. Anything that is not a whole number in
   // range is dropped rather than raised to a fractional or negative power.
   function idsToBits(ids) {
     var mask = 0;
@@ -205,7 +206,8 @@ var Composites = (function () {
     return wrap;
   }
 
-  // Bitmask: a checkbox per row of the referenced sheet. Checked means RESTRICTED.
+  // Bitmask: a checkbox per row of the referenced sheet. Checked means ALLOWED, and nothing
+  // checked (mask 0) means every class — see the bit convention above.
   function bitmaskControl(comp, values, ctx) {
     var column = comp.columns[0];
     var wrap = Forms.el('div', { class: 'bitmask' });
@@ -237,7 +239,13 @@ var Composites = (function () {
     entries.forEach(function (e) { known[num(e.id)] = true; });
     var foreign = stored.filter(function (bit) { return !known[bit]; });
 
-    wrap.appendChild(Forms.el('div', { class: 'hint' }, 'checked = cannot use'));
+    wrap.appendChild(Forms.el('div', { class: 'hint' }, 'checked = can use'));
+
+    // Nothing checked is NOT "no class can use this" — the server reads a zero mask as
+    // unrestricted. Saying so where the boxes are is the only place a designer would look, and
+    // the alternative (silently ticking every box on open) would rewrite rows just for being
+    // opened, which is the one thing this file refuses to do.
+    var allHint = Forms.el('div', { class: 'hint' }, '');
 
     var boxes = entries.map(function (e) {
       var id = num(e.id);
@@ -259,8 +267,18 @@ var Composites = (function () {
       // No dispatch: sync() only ever runs from a checkbox's own `change`, which bubbles to the
       // delegated listener by itself once this returns.
       hidden.value = String(idsToBits(ticked.concat(foreign)));
+      showAllHint();
     }
 
+    function showAllHint() {
+      allHint.textContent = num(hidden.value) === 0 ? 'no restriction — every class can use it' : '';
+    }
+
+    // Seeded from the STORED value, not from the boxes: a mask holding only foreign bits is
+    // non-zero with nothing ticked, and calling it unrestricted would be a lie.
+    showAllHint();
+
+    wrap.appendChild(allHint);
     wrap.appendChild(hidden);
     return wrap;
   }

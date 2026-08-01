@@ -29,7 +29,7 @@ globalThis.Composites = Composites;
 // the class is RESTRICTED. These helpers are therefore a plain bit-index <-> id mapping.
 
 test('bitsToIds returns the set bit indices, which ARE the class ids', () => {
-  // 31 = 0b011111: every bit but 5 — the Priest-only scrolls in the shipped data.
+  // 31 = 0b011111: classes 1-4, plus bit 0, which belongs to no class.
   assert.deepEqual(Composites.bitsToIds(31), [0, 1, 2, 3, 4]);
   assert.deepEqual(Composites.bitsToIds(0), []);
   assert.deepEqual(Composites.bitsToIds(1), [0]);
@@ -38,38 +38,52 @@ test('bitsToIds returns the set bit indices, which ARE the class ids', () => {
 
 test('bitsToIds covers every class_restrictions value in the shipped data', () => {
   // THE COMPLETE SET, from every INSERT in CsvToSql/CsvToSql.Console/illutiaData.sql — the file
-  // the CSVs SchemaGen reads actually produce. (Goose/bin/Debug/IllutiaGoose.db is a different,
+  // the CSVs SchemaGen reads actually produce — AS MIGRATED to the allow-list convention by
+  // docs/class-restrictions-migration.md. (Goose/bin/Debug/IllutiaGoose.db is a different,
   // legacy dataset with 7 classes and disjoint item names; its masks are not tested here
-  // because the editor will never open one.) 253 is the quests value; Quests declares
-  // class_restrictions but has no Bitmask composite, so this control never sees it.
+  // because the editor will never open one.)
   //
-  // Decoded as "clear bit = may use", every one of these names the class the item is for,
-  // which is what makes the convention in Class.cs:34 checkable rather than merely asserted.
+  // The old deny value each one came from is in the comment, because it is the pair that is
+  // worth checking: the migration is `allowed = 62 & ~old` over the five real classes, and an
+  // inversion or an off-by-one in either direction shows up here as a wrong class name.
+  //
+  // Decoded as "set bit = may use", every one of these names the class the item is for, which
+  // is what makes the convention in Class.CanUse checkable rather than merely asserted.
   const mayUse = (mask) => [1, 2, 3, 4, 5, 6]
-    .filter((id) => Composites.bitsToIds(mask).indexOf(id) === -1);
+    .filter((id) => Composites.bitsToIds(mask).indexOf(id) !== -1);
 
-  assert.deepEqual(mayUse(59), [2, 6]);          // Scroll: Backstab      -> Rogue
-  assert.deepEqual(mayUse(55), [3, 6]);          // Scroll: Taunt         -> Warrior
-  assert.deepEqual(mayUse(47), [4, 6]);          // Elemental Strike      -> Magus
-  assert.deepEqual(mayUse(31), [5, 6]);          // Scroll: Healing       -> Priest
-  assert.deepEqual(mayUse(15), [4, 5, 6]);       // Root, Gate            -> Magus + Priest
-  assert.deepEqual(mayUse(51), [2, 3, 6]);       // Winter Blade          -> Rogue + Warrior
-  assert.deepEqual(mayUse(19), [2, 3, 5, 6]);    // Leather Cap
-  assert.deepEqual(mayUse(37), [1, 3, 4, 6]);    // Blushing Coat
-  assert.deepEqual(mayUse(1), [1, 2, 3, 4, 5, 6]);   // Snake Tiara -> everybody
+  assert.deepEqual(mayUse(4), [2]);              // 59 Scroll: Backstab   -> Rogue
+  assert.deepEqual(mayUse(8), [3]);              // 55 Scroll: Taunt      -> Warrior
+  assert.deepEqual(mayUse(16), [4]);             // 47 Elemental Strike   -> Magus
+  assert.deepEqual(mayUse(32), [5]);             // 31 Scroll: Healing    -> Priest
+  assert.deepEqual(mayUse(48), [4, 5]);          // 15 Root, Gate         -> Magus + Priest
+  assert.deepEqual(mayUse(12), [2, 3]);          // 51 Winter Blade       -> Rogue + Warrior
+  assert.deepEqual(mayUse(44), [2, 3, 5]);       // 19 Leather Cap
+  assert.deepEqual(mayUse(26), [1, 3, 4]);       // 37 Blushing Coat
 
-  // The four masks that leave BIT 0 CLEAR. Bit 0 belongs to no class, so it is a foreign bit
-  // whichever way it sits, and these are the only shipped values that exercise that.
-  assert.deepEqual(mayUse(22), [3, 5, 6]);       // Small Hammer  -> Warrior + Priest
-  assert.deepEqual(mayUse(34), [2, 3, 4, 6]);    // Small Dagger
-  assert.deepEqual(mayUse(38), [3, 4, 6]);       // Wooden Stave  -> Warrior + Magus
-  assert.deepEqual(mayUse(50), [2, 3, 6]);       // Small Sword   -> Rogue + Warrior
+  // 1 denied nobody but class 0, which is no class at all: unrestricted, and the migration
+  // writes that as 0 rather than an all-classes mask so a class added later inherits it.
+  assert.deepEqual(mayUse(0), []);               // 1  Snake Tiara -> everybody, via CanUse's 0
 
-  // Class 6 (Game Master) is unrestricted by every shipped mask, and bit 7 is set by none of
-  // the item or spell ones.
-  [1, 15, 19, 22, 31, 34, 37, 38, 47, 50, 51, 55, 59].forEach((mask) => {
-    assert.ok(mayUse(mask).indexOf(6) !== -1, mask + ' restricts the Game Master');
-    assert.ok(Composites.bitsToIds(mask).indexOf(7) === -1, mask + ' sets bit 7');
+  // The four masks that left BIT 0 CLEAR. Bit 0 belongs to no class, so the migration drops it
+  // either way and 51/50 — which differed only there — land on the same value.
+  assert.deepEqual(mayUse(40), [3, 5]);          // 22 Small Hammer -> Warrior + Priest
+  assert.deepEqual(mayUse(28), [2, 3, 4]);       // 34 Small Dagger
+  assert.deepEqual(mayUse(24), [3, 4]);          // 38 Wooden Stave -> Warrior + Magus
+  assert.deepEqual(mayUse(12), [2, 3]);          // 50 Small Sword  -> Rogue + Warrior
+
+  // CLASS 6 IS THE GAME MASTER, and it is in none of them. No shipped mask ever denied it, so
+  // its absence from a deny mask was not a decision anybody made and the migration does not
+  // promote one into an allow list — a "Rogue only" row would otherwise read "Rogue or Game
+  // Master" everywhere the classes are listed. The GM reaches these rows the way it did before,
+  // through access privileges, not through the data.
+  //
+  // No migrated mask sets a bit outside 1-5 either: the migration keeps only bits that a row of
+  // the Classes sheet claims.
+  [4, 8, 12, 16, 24, 26, 28, 32, 40, 44, 48].forEach((mask) => {
+    assert.ok(mayUse(mask).indexOf(6) === -1, mask + ' names the Game Master');
+    assert.ok(Composites.bitsToIds(mask).every((bit) => bit >= 1 && bit <= 5),
+      mask + ' sets a bit belonging to no real class');
   });
 });
 
@@ -100,8 +114,8 @@ test('idsToBits sets 2^id per id', () => {
 });
 
 test('idsToBits does not double-count a duplicate id', () => {
-  // `mask += 2^id` without a guard turns [1,1] into 4 — the Rogue restriction silently
-  // becomes a Warrior one.
+  // `mask += 2^id` without a guard turns [1,1] into 4 — the Commoner's permission silently
+  // becomes the Rogue's.
   assert.equal(Composites.idsToBits([1, 1]), 2);
   assert.equal(Composites.idsToBits(['3', 3]), 8);
 });
@@ -352,9 +366,9 @@ function boxes(node) {
   return node.querySelectorAll('[type="checkbox"]');
 }
 
-test('bitmask ticks the restricted classes, not the permitted ones', () => {
-  // 31 restricts everything except Priest (class 5) and the Game Master (6) — the shipped
-  // Scroll: Healing mask. Bit 0 is set too and belongs to no class, so it gets no box.
+test('bitmask ticks the permitted classes, not the restricted ones', () => {
+  // 31 permits classes 1-4 and nobody else. Bit 0 is set too and belongs to no class, so it
+  // gets no box.
   const node = Composites.control({
     comp: BITMASK, byName: byName(BITMASK.columns), values: { class_restrictions: 31 },
     ctx: ctx(),
@@ -368,7 +382,27 @@ test('bitmask labels each class by id and name', () => {
     comp: BITMASK, byName: byName(BITMASK.columns), values: {}, ctx: ctx(),
   });
   assert.match(node.textContent, /5 Priest/);
-  assert.match(node.textContent, /cannot use/i);
+  assert.match(node.textContent, /checked = can use/i);
+});
+
+test('bitmask says so when the mask is 0, which is every class and not none', () => {
+  // The one place the zero special case is visible to a designer: an empty grid of checkboxes
+  // reads as "nobody", and the server reads it as "anybody".
+  const open = (mask) => Composites.control({
+    comp: BITMASK, byName: byName(BITMASK.columns), values: { class_restrictions: mask },
+    ctx: ctx(),
+  });
+  assert.match(open('0').textContent, /no restriction/i);
+  assert.doesNotMatch(open('96').textContent, /no restriction/i);
+  // Foreign bits alone: nothing is ticked, but the mask is NOT 0 and the row is restricted to
+  // a class that is not in the sheet. Calling that unrestricted would be a lie.
+  assert.doesNotMatch(open('1').textContent, /no restriction/i);
+
+  // And it follows the boxes, not just the stored value.
+  const node = open('96');
+  boxes(node).forEach((b) => { b.checked = false; });
+  fire(boxes(node)[0], 'change');
+  assert.match(node.textContent, /no restriction/i);
 });
 
 test('bitmask writes the mask verbatim until a box is touched', () => {
@@ -405,7 +439,7 @@ test('bitmask clears the bit when a class is unticked', () => {
   const magus = boxes(node).find((b) => b.value === '4');
   magus.checked = false;
   fire(magus, 'change');
-  // 31 - 16 = 15: Magus and Priest may now use it. That is the shipped Root/Gate mask.
+  // 31 - 16 = 15: classes 1-3 may still use it, the Magus no longer can.
   assert.equal(named(node, 'class_restrictions').value, '15');
 });
 

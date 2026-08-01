@@ -28,9 +28,9 @@ namespace CsvToSql
         public override Composite[] GetComposites() => new[]
         {
             // Same column, same convention, same control as Items/Spells/Combinations: a set bit
-            // means the class is RESTRICTED (Goose/Class.cs:34), and the bit index is the class
-            // id. Without this the editor renders it as a bare number box and a designer has to
-            // hand-compute the mask under a convention inverted from intuition.
+            // means the class is ALLOWED (Goose/Class.cs:CanUse), the bit index is the class id,
+            // and an all-zero mask means every class. Without this the editor renders it as a
+            // bare number box and a designer has to hand-compute the mask.
             Composite.Bitmask("class_restrictions", from: "Classes"),
         };
     }

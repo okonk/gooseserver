@@ -301,7 +301,7 @@ namespace Goose
 
                 if (slot == null) continue;
 
-                if ((slot.ClassRestrictions & Convert.ToInt64(Math.Pow(2.0, (double)this.player.Class.ClassID))) != 0)
+                if (!this.player.Class.CanUse(slot.ClassRestrictions))
                 {
                     this.spells[i] = null;
                     this.lastcast[i] = long.MinValue >> 1;
