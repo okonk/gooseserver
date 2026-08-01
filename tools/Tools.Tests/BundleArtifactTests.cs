@@ -2,26 +2,31 @@ using System.Text.RegularExpressions;
 
 namespace Tools.Tests;
 
-/// <summary>Asserts on the committed bundles under tools/DataEditor — the actual input to the
-/// editor front end — rather than on a freshly built atlas.
+/// <summary>Asserts on the BUILT bundles under tools/DataEditor — the actual input to the editor
+/// front end — rather than on a freshly packed atlas held in memory.
 ///
-/// Deliberately plain [Fact]s, not SkippableFact: everything here reads files in this repo and
-/// needs no client checkout, so it runs for everyone and in CI. That is the whole point. The
-/// builder tests are asset-gated and therefore assert nothing in a checkout-less environment,
-/// which left the committed 4.4 MB covered by nothing at all.
+/// SKIPS WHEN THEY ARE ABSENT, which is the normal state of a fresh checkout: the bundles embed
+/// the client's art and are gitignored, so they exist only on a machine that has run
+/// tools/SpriteBundle. They were committed once, and these were plain [Fact]s then, on the
+/// reasoning that a file in the repo is a file every run can be held to. That reasoning went out
+/// with the files. Skipping is not a weakening here — it is the same asset gate the builder tests
+/// already use, moved one step downstream: no client tree, no bundle, nothing to assert.
+///
+/// What still runs, and where: on a machine that HAS built them, these catch a truncated write or
+/// an empty regeneration before that bundle is deployed to a sidebar. In CI they skip, and the
+/// build script is what stands between a missing bundle and a broken deploy — it exits non-zero
+/// rather than warning (build.mjs step 3).
 ///
 /// Content equality against a rebuild is deliberately NOT asserted: the bundles derive from a
-/// separate client checkout, so such a test would have to be asset-gated, making it green in CI
-/// and red only on teammates' machines whenever the client's art moved ahead — failing exactly
-/// where it is least actionable. These checks instead catch what a repo can be responsible for:
-/// a truncated write, an empty regeneration, an accidental deletion.</summary>
+/// separate client checkout at an unpinned revision, so such a test would fail on every machine
+/// whose art had moved ahead — unfixable from this repo.</summary>
 public class BundleArtifactTests
 {
     public static TheoryData<string> BundleNames => ["icons", "parts", "effects"];
 
-    [Theory]
+    [SkippableTheory]
     [MemberData(nameof(BundleNames))]
-    public void Committed_bundle_has_the_generated_header(string name)
+    public void Built_bundle_has_the_generated_header(string name)
     {
         var html = ReadBundle(name);
 
@@ -30,9 +35,9 @@ public class BundleArtifactTests
         Assert.EndsWith("</script>\n", html);
     }
 
-    [Theory]
+    [SkippableTheory]
     [MemberData(nameof(BundleNames))]
-    public void Committed_bundle_carries_a_png_and_a_non_empty_rect_index(string name)
+    public void Built_bundle_carries_a_png_and_a_non_empty_rect_index(string name)
     {
         var html = ReadBundle(name);
 
@@ -48,12 +53,16 @@ public class BundleArtifactTests
         Assert.True(entries > 0, $"sprites-{name}.html has an empty rect index.");
     }
 
+    /// <summary>Skips rather than fails when the bundle is not there. An absent bundle means
+    /// "this checkout has not built one", which is not a defect for this repo to report — see the
+    /// class summary. A bundle that EXISTS is still held to every assertion above.</summary>
     private static string ReadBundle(string name)
     {
         var path = Path.Combine(RepoRoot(), "tools", "DataEditor", $"sprites-{name}.html");
-        Assert.True(File.Exists(path),
-            $"Expected the generated bundle at {path}. Regenerate with: " +
-            "dotnet run --project tools/SpriteBundle -- <client-assets-dir> tools/DataEditor");
+        Skip.IfNot(File.Exists(path),
+            $"sprites-{name}.html has not been built in this checkout (it is gitignored). " +
+            "Build it with: dotnet run --project tools/SpriteBundle -- " +
+            "<client-assets-dir> tools/DataEditor");
         return File.ReadAllText(path);
     }
 

@@ -1,10 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import vm from 'node:vm';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { installFakeDom, fire } from './fake-dom.js';
+import { realBundles, skipWithoutBundles } from './real-bundles.js';
 
 const doc = installFakeDom();
 
@@ -15,23 +12,15 @@ globalThis.Sprites = Sprites;
 const { Gallery } = await import('../src/gallery.js');
 globalThis.Gallery = Gallery;
 
-const here = path.dirname(fileURLToPath(import.meta.url));
-
-// The REAL bundles, loaded exactly as sprites.test.js loads them and for the same reason: the
+// The real bundles, or null on a checkout that has not built them — see real-bundles.js. The
 // counts this module has to get right — 4,827 icons over 125 sheet files, 8 part categories, 389
-// effects — are facts about the committed atlas, and a toy fixture cannot check them.
-const real = (() => {
-  const ctx = vm.createContext({});
-  for (const name of ['icons', 'parts', 'effects']) {
-    const html = fs.readFileSync(path.join(here, '..', `sprites-${name}.html`), 'utf8');
-    vm.runInContext(html.replace(/<\/?script>/g, ''), ctx);
-  }
-  return ctx.GOOSE_SPRITES;
-})();
+// effects — are facts about a BUILT atlas that a toy fixture cannot check, so the tests asserting
+// them carry `...skipWithoutBundles` and stand down where there is no atlas.
+const real = realBundles;
 
 // --- the indexes ------------------------------------------------------------------------------
 
-test('the icon index groups every key in the real bundle into its sheet file', () => {
+test('the icon index groups every key in the real bundle into its sheet file', { ...skipWithoutBundles }, () => {
   const entries = Gallery.iconEntries(real.icons);
   assert.equal(entries.length, 4827);
   assert.equal(Object.keys(real.icons.rects).length, 4827);
@@ -46,7 +35,7 @@ test('the icon index groups every key in the real bundle into its sheet file', (
   });
 });
 
-test('the sheet list is in numeric order, not string order', () => {
+test('the sheet list is in numeric order, not string order', { ...skipWithoutBundles }, () => {
   const sheets = Gallery.iconSheets(Gallery.iconEntries(real.icons)).map((s) => Number(s.sheet));
   const sorted = sheets.slice().sort((a, b) => a - b);
   assert.deepEqual(sheets, sorted);
@@ -61,7 +50,7 @@ test('icon entries carry the rect and the two cells a pick writes', () => {
   assert.deepEqual(entries[0].pick, { sheet: '104', graphic: '7' });
 });
 
-test('the part index deduplicates the four clips down to one tile per id', () => {
+test('the part index deduplicates the four clips down to one tile per id', { ...skipWithoutBundles }, () => {
   const entries = Gallery.partEntries(real.parts);
   const keys = new Set(entries.map((e) => e.category + ':' + e.id));
   assert.equal(keys.size, entries.length, 'a category:id appears twice');
@@ -90,7 +79,7 @@ test('a part tile shows the clip Sprites.clipCandidates would pick', () => {
   assert.deepEqual(chest.pick, { category: 'Chest', id: '5' });
 });
 
-test('the effect index is one tile per id, at frame 0', () => {
+test('the effect index is one tile per id, at frame 0', { ...skipWithoutBundles }, () => {
   const entries = Gallery.effectEntries(real.effects);
   assert.equal(entries.length, 389);
   entries.forEach((e) => {

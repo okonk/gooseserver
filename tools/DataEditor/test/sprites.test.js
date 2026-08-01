@@ -1,25 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import vm from 'node:vm';
-import { fileURLToPath } from 'node:url';
-import path from 'node:path';
+import { realBundles, skipWithoutBundles } from './real-bundles.js';
 
 const { Sprites } = await import('../src/sprites.js');
 
-const here = path.dirname(fileURLToPath(import.meta.url));
-
-// The REAL bundles, loaded the same way the Apps Script HTML service will: the fragments are
-// plain <script> tags that assign into GOOSE_SPRITES. A toy fixture cannot tell us whether the
-// clip names in clipCandidates exist, so the fallback-chain tests below run against these.
-const real = (() => {
-  const ctx = vm.createContext({});
-  for (const name of ['icons', 'parts', 'effects']) {
-    const html = fs.readFileSync(path.join(here, '..', `sprites-${name}.html`), 'utf8');
-    vm.runInContext(html.replace(/<\/?script>/g, ''), ctx);
-  }
-  return ctx.GOOSE_SPRITES;
-})();
+// The real bundles, or null on a checkout that has not built them — see real-bundles.js. Every
+// test below that dereferences `real` carries `...skipWithoutBundles` for that reason.
+const real = realBundles;
 
 // The `0:...` / `...:0:...` keys do not exist in the real bundles and never will — they are here
 // so that "id 0 means no sprite" is a rule this fixture can catch being broken, rather than an
@@ -87,14 +74,14 @@ test('clipCandidates orders by AnimationNames.Candidates("idle", ...)', () => {
                    ['idle-equip-down', 'idle-down', 'idle-no-equip-down']);
 });
 
-test('every clipCandidates name exists in the real parts bundle', () => {
+test('every clipCandidates name exists in the real parts bundle', { ...skipWithoutBundles }, () => {
   const present = new Set(Object.keys(real.parts.rects).map((k) => k.split(':').slice(2).join(':')));
   for (const clip of Sprites.clipCandidates(false).concat(Sprites.clipCandidates(true))) {
     assert.ok(present.has(clip), `${clip} missing from sprites-parts.html`);
   }
 });
 
-test('the real bundle resolves a part for every category Appearance emits', () => {
+test('the real bundle resolves a part for every category Appearance emits', { ...skipWithoutBundles }, () => {
   // Appearance.CATEGORY's value set. A category name that is not a parts key means a whole
   // slot silently never renders.
   const categories = ['Bodies', 'Hair', 'Eyes', 'Chest', 'Helms', 'Legs', 'Feet', 'Hands'];
@@ -110,13 +97,13 @@ test('the real bundle resolves a part for every category Appearance emits', () =
   }
 });
 
-test('the real bundle resolves the specific ids the plan cites', () => {
+test('the real bundle resolves the specific ids the plan cites', { ...skipWithoutBundles }, () => {
   assert.deepEqual(Sprites.part(real, 'Bodies', 1, false), real.parts.rects['Bodies:1:idle-no-equip-down']);
   assert.deepEqual(Sprites.part(real, 'Bodies', 1, true), real.parts.rects['Bodies:1:idle-equip-down']);
   assert.equal(Sprites.icon(real, 104, 1), null);
 });
 
-test('a part with only a mounted clip resolves to null, not a mounted pose', () => {
+test('a part with only a mounted clip resolves to null, not a mounted pose', { ...skipWithoutBundles }, () => {
   // Chest has one id whose animations.tres carries mounted-idle-down and no idle-*-down.
   const ids = {};
   for (const key of Object.keys(real.parts.rects)) {
@@ -130,7 +117,7 @@ test('a part with only a mounted clip resolves to null, not a mounted pose', () 
   assert.equal(Sprites.part(real, 'Chest', mountedOnly[0], false), null);
 });
 
-test('real effect frame runs are contiguous from 0, so effectFrames returns them whole', () => {
+test('real effect frame runs are contiguous from 0, so effectFrames returns them whole', { ...skipWithoutBundles }, () => {
   const counts = {};
   for (const key of Object.keys(real.effects.rects)) {
     const [id] = key.split(':');
@@ -369,7 +356,7 @@ test('mount survives an absent parts bundle', () => {
   assert.equal(Sprites.mount({}, 2), null);
 });
 
-test('mount resolves against the real bundle', () => {
+test('mount resolves against the real bundle', { ...skipWithoutBundles }, () => {
   // Exactly four Bodies ids ship a mounted-idle-down clip; 1 is one of them and 10101 is not.
   assert.deepEqual(Sprites.mount(real, 1), real.parts.rects['Bodies:1:mounted-idle-down']);
   assert.equal(Sprites.mount(real, 10101), null);

@@ -41,10 +41,26 @@ if (existsSync(schema)) {
 }
 
 // 3. Sprite bundles are already <script>-wrapped by Part 2.
+//
+// FAILS, where every other missing input here only warns. The bundles are no longer committed
+// (they embed the client's art), so "absent" went from meaning "something is badly wrong with
+// your checkout" to being the state of every fresh clone — which makes a warning exactly the
+// wrong shape. Editor.html include()s all three unconditionally, so a build that skipped them
+// produces a dist/ that deploys and then fails in the sidebar, and the warning that said so
+// scrolled past minutes earlier.
+const missing = ['icons', 'parts', 'effects'].filter(
+  (name) => !existsSync(join(here, `sprites-${name}.html`)));
+if (missing.length) {
+  console.error(
+    `ERROR: missing sprite bundle(s): ${missing.map((n) => `sprites-${n}.html`).join(', ')}\n` +
+    'They are gitignored — the client art they embed is not ours to redistribute — so a fresh\n' +
+    'checkout has to build them against a client sprite tree:\n\n' +
+    '    dotnet run --project tools/SpriteBundle -- <client-assets-dir> tools/DataEditor\n\n' +
+    'See tools/README.md ("SpriteBundle").');
+  process.exit(1);
+}
 for (const name of ['icons', 'parts', 'effects']) {
-  const from = join(here, `sprites-${name}.html`);
-  if (existsSync(from)) await copyFile(from, join(dist, `sprites-${name}.html`));
-  else console.warn(`WARNING: sprites-${name}.html missing — run tools/SpriteBundle first`);
+  await copyFile(join(here, `sprites-${name}.html`), join(dist, `sprites-${name}.html`));
 }
 
 // 4. Static files pass through.

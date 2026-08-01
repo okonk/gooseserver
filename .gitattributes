@@ -1,6 +1,4 @@
-# The sprite bundles embed their atlas as a single ~1.6 MB base64 data-URI line. A textual merge
-# of that line cannot produce valid base64, and no human can resolve the conflict by hand, so
-# -merge makes a conflict fail loudly instead: regenerate the bundle, which is the only correct
-# resolution. -diff keeps the whole-file rewrite of every regeneration out of the diff.
-tools/DataEditor/sprites-*.html linguist-generated=true -diff -merge
+# The sprite bundles had -diff -merge here, for the base64 atlas line that no textual merge can
+# resolve. They are no longer tracked at all — they embed the client's art, which this repository
+# cannot redistribute — so there is nothing left to diff or merge. See .gitignore.
 tools/DataEditor/schema.js linguist-generated=true

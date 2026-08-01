@@ -1,9 +1,18 @@
 # Data editor generators
 
-Both tools produce inputs for the Apps Script data editor in `tools/DataEditor/`. Their outputs
-(`schema.js` and the three `sprites-*.html`) are **checked in**, so the editor front end can be
-developed without a client checkout. Both are byte-reproducible: regenerating without changing any
-input leaves the working tree clean.
+Both tools produce inputs for the Apps Script data editor in `tools/DataEditor/`. Both are
+byte-reproducible: regenerating without changing any input leaves the working tree clean.
+
+Their outputs are treated differently, and the line is a licensing one:
+
+- `schema.js` is **checked in**. It derives entirely from sources in this repository.
+- The three `sprites-*.html` are **gitignored**. They embed the client's art as base64 PNGs, which
+  this repository is not licensed to redistribute. Build them locally before working on the editor
+  front end; you need a client checkout to do it (see SpriteBundle below).
+
+Do not commit a bundle with `git add -f`. Working on the editor without a client checkout is no
+longer possible — that convenience is what the bundles used to buy, and it is not worth shipping
+someone else's art to keep.
 
 Design and rationale: `docs/plans/2026-07-27-game-data-editor-part2-generators.md`.
 
@@ -115,8 +124,8 @@ Use whatever paths your own builds produced.
 
 `GOOSE_CLIENT_ASSETS` points the asset-gated tests at the client. Without it (and without a sibling
 checkout at the default location) around 20 tests **skip** — a green run then proves nothing about
-the sprite *builder*, though `BundleArtifactTests` still covers the committed bundles. A
-`GOOSE_CLIENT_ASSETS` that is set but wrong fails loudly rather than skipping, so a typo cannot
+the sprite *builder*. `BundleArtifactTests` skips too on a checkout that has not built the bundles.
+A `GOOSE_CLIENT_ASSETS` that is set but wrong fails loudly rather than skipping, so a typo cannot
 masquerade as a checkout-less machine.
 
 ### Why schema.js has a drift guard and the bundles do not
@@ -127,15 +136,13 @@ always actionable — hence `Checked_in_schema_js_is_up_to_date`.
 The bundles derive from a separate client checkout at an unpinned revision. An equality test would
 have to be asset-gated, so it would pass in CI and fail on exactly those machines that *do* have a
 checkout, every time the client's art moved ahead — unfixable from this repo. `BundleArtifactTests`
-therefore checks the committed files structurally (header, embedded PNG, non-empty rect index),
-catching a truncated write or an accidental deletion. This asymmetry is deliberate; please don't
-"fix" it.
+instead checks each built bundle structurally (header, embedded PNG, non-empty rect index),
+catching a truncated write or an empty regeneration before it reaches a sidebar, and skips where
+there is no bundle to check. This asymmetry is deliberate; please don't "fix" it.
 
-### Merge conflicts on the bundles
-
-`.gitattributes` marks `sprites-*.html` as generated, non-diffable and `-merge`. Each embeds its
-atlas as a single base64 line around a megabyte long, which cannot be merged textually. A conflict
-there is resolved by regenerating the bundles, never by hand-editing them.
+Nothing in a test run can catch a bundle that was never built, because that is the state of a fresh
+clone. `build.mjs` is the gate instead: it exits non-zero, naming the SpriteBundle command, rather
+than building a `dist/` that deploys and then fails in the sidebar.
 
 ## DataEditor
 
@@ -263,14 +270,17 @@ of `schema.js` and the sprite bundles:
 
     node tools/DataEditor/build.mjs
 
-`dist/` is generated and gitignored — every byte of it derives from checked-in sources.
+`dist/` is generated and gitignored. It **fails** if a sprite bundle is missing, since those are no
+longer committed: build them with SpriteBundle first. A missing `schema.js` only warns, because it
+is checked in and its absence means something else is wrong.
 
 ## Deploying to Apps Script
 
 The editor is a container-bound script, so each spreadsheet has its own script id and needs its own
 deployment. Build first, then deploy `dist/` — either `clasp push` or paste the files into the
-Apps Script editor. Deploy once per spreadsheet. The sprite bundles change rarely; `schema.js`
-changes whenever a column does.
+Apps Script editor. Deploy once per spreadsheet. The deployed sidebar still carries the art inline,
+as it must to draw anything — what changed is that this repository no longer stores it. `schema.js`
+changes whenever a column does; the bundles change only when you rebuild them.
 
 For `clasp`, write a `tools/DataEditor/.clasp.json` pointing at that spreadsheet's script id, with
 `dist` as the root:
