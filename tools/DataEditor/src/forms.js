@@ -22,18 +22,51 @@ var Forms = (function () {
     return (value === undefined || value === null) ? '' : String(value);
   }
 
-  // Placeholder shows the SQL default so a blank field reads as "will use 0", not "unset".
-  // Blank must stay blank on write (CsvToSqlBase.cs:27).
+  // The column's SQL default as a CELL would hold it, or '' for a column that has none.
   //
   // Descriptor defaults are SQL literals: strings arrive quoted ("''", "'0,*,0,*'"), numbers
   // bare ("0"). Strip the quotes only as a matched PAIR — an unpaired quote is part of the
-  // value, and stripping one end of it would show a default the database does not have.
+  // value, and stripping one end of it would give a default the database does not have.
+  function defaultOf(column) {
+    if (!column || column.default === undefined || column.default === null) return '';
+    var text = String(column.default);
+    var quoted = /^'([\s\S]*)'$/.exec(text);
+    return quoted ? quoted[1] : text;
+  }
+
+  // A record as the IMPORTER will see it: every blank cell replaced by the value the database
+  // would put there (CsvToSqlBase.cs:27 skips an empty cell, so the column default lands). This
+  // is what a PREVIEW must read. The form's own fields keep the raw cells — blank must stay blank
+  // on write — so the two maps travel side by side rather than one replacing the other.
+  //
+  // ENUM COLUMNS ARE LEFT BLANK, deliberately. A cell holds the enum NAME ('Helmet',
+  // DescriptorTransform.cs:24) but the SQL default is the C# enum's NUMBER (item_slot: 20), and
+  // enumNames carries no numbering to map one to the other — the members have explicit values, so
+  // the index is not the number. Substituting '20' for a blank item_slot would hand every reader a
+  // string from the wrong value space; leaving it blank keeps "unknown slot", which is what a
+  // blank already meant and what every consumer already handles.
+  //
+  // A CELL NOT NAMED BY `columns` IS CARRIED THROUGH UNCHANGED rather than dropped. The caller
+  // that has the whole sheet's descriptors loses nothing either way, but a caller holding a subset
+  // of them — Composites.control, which knows only the columns it was handed — would otherwise
+  // hand its control a record with the neighbouring cells missing, which is a worse answer than an
+  // unresolved one. Resolving twice is therefore harmless: the second pass finds nothing blank.
+  function effectiveValues(values, columns) {
+    var out = {};
+    Object.keys(values || {}).forEach(function (k) { out[k] = str(values[k]); });
+    (columns || []).forEach(function (c) {
+      var text = str(values ? values[c.name] : '');
+      out[c.name] = (text === '' && c.kind !== 'Enum') ? defaultOf(c) : text;
+    });
+    return out;
+  }
+
+  // Placeholder shows the SQL default so a blank field reads as "will use 0", not "unset".
+  // Blank must stay blank on write (CsvToSqlBase.cs:27).
   function placeholderFor(column) {
     if (column.required) return 'required';
     if (column.default === undefined || column.default === null) return '';
-    var text = String(column.default);
-    var quoted = /^'([\s\S]*)'$/.exec(text);
-    if (quoted) text = quoted[1];
+    var text = defaultOf(column);
     // "" is a real default (the empty string) but renders as a bare "default " with nothing
     // after it, which reads as a bug rather than as a value.
     return text === '' ? 'default (blank)' : 'default ' + text;
@@ -168,11 +201,16 @@ var Forms = (function () {
   // one — and Pickers.partControl gives it the preview it otherwise has none of. It is a plain Int
   // column with no composite, so nothing else would ever route it anywhere but scalarControl.
   //
-  // ONE options object, `{ column, ctx, sheet, values }` — and NO separate `value`. partControl
-  // needs the whole values map, not just this cell (the sprite folder comes from item_slot), so a
-  // cell parameter alongside it meant the same cell arriving twice by two routes, with the copy
-  // going unread in that branch. `values[column.name]` is the single route now; the two were
-  // always the same value, because render() passed values[name] for the column named `name`.
+  // ONE options object, `{ column, ctx, sheet, values, effective }` — and NO separate `value`.
+  // partControl needs the whole values map, not just this cell (the sprite folder comes from
+  // item_slot), so a cell parameter alongside it meant the same cell arriving twice by two routes,
+  // with the copy going unread in that branch. `values[column.name]` is the single route now; the
+  // two were always the same value, because render() passed values[name] for the column named
+  // `name`.
+  //
+  // `effective` is the same record with blanks resolved to their SQL defaults. It goes only to
+  // controls that read OTHER columns to decide what to draw; the cell this control edits comes
+  // from `values`, raw, because that is what the field must show and what a save must write back.
   function columnControl(opts) {
     var column = opts.column;
     var ctx = opts.ctx;
@@ -187,7 +225,7 @@ var Forms = (function () {
     var part = Layout.partGraphic(sheet, column.name);
     if (part && typeof Pickers !== 'undefined' && Pickers && Pickers.partControl) {
       return Pickers.partControl({
-        column: column, values: values, ctx: ctx, spec: part,
+        column: column, values: values, effective: opts.effective, ctx: ctx, spec: part,
         tintColumns: Layout.tintColumns(sheet, column.name),
         // The graphic browser, if the caller has one to name. Undefined is the normal case and
         // means "use the Gallery global"; ctx is the carrier so no signature here grows a parameter
@@ -209,6 +247,13 @@ var Forms = (function () {
     // Composites.control a function where a composite should be.
     var byName = Object.create(null);
     schema.columns.forEach(function (c) { byName[c.name] = c; });
+
+    // Built ONCE, here, and handed to everything that draws: the previews, the gates and the
+    // controls that read a neighbouring cell. A control computing its own defaults would be a
+    // second rule about what a blank cell means, free to drift from this one. app.js recomputes it
+    // per edit and pushes it through ctx.onFormChange, so the same map shape arrives at build time
+    // and on every keystroke.
+    var effective = effectiveValues(values, schema.columns);
 
     // Composites claim their columns so no duplicate control is rendered. The leader is the
     // first claimed column that the schema actually HAS — not blindly columns[0]. A composite
@@ -285,9 +330,10 @@ var Forms = (function () {
         // The sheet is threaded from the schema being rendered rather than read off ctx, so the
         // presentation table can never be consulted for a different sheet than the one on screen.
         row.appendChild(comp
-          ? Composites.control({ comp: comp, byName: byName, values: values, ctx: ctx,
-                                 sheet: schema.sheet, gallery: ctx && ctx.gallery })
-          : columnControl({ column: column, ctx: ctx, sheet: schema.sheet, values: values }));
+          ? Composites.control({ comp: comp, byName: byName, values: values, effective: effective,
+                                 ctx: ctx, sheet: schema.sheet, gallery: ctx && ctx.gallery })
+          : columnControl({ column: column, ctx: ctx, sheet: schema.sheet, values: values,
+                            effective: effective }));
 
         row.appendChild(el('div', { class: 'error', 'data-error-for': name }));
         section.appendChild(row);
@@ -317,7 +363,9 @@ var Forms = (function () {
           entry.row.hidden = entry.gates.some(function (g) { return !g.show(current); });
         });
       };
-      applyGates(values);
+      // The RESOLVED record, matching what onFormChange delivers on every later edit: a gate asks
+      // what this row will BE, and a blank cell is the column default, not 0.
+      applyGates(effective);
       if (ctx && typeof ctx.onFormChange === 'function') ctx.onFormChange(applyGates);
     }
   }
@@ -382,6 +430,8 @@ var Forms = (function () {
     showErrors: showErrors,
     scalarControl: scalarControl,
     placeholderFor: placeholderFor,
+    defaultOf: defaultOf,
+    effective: effectiveValues,
     el: el,
   };
 })();

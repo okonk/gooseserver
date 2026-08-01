@@ -134,7 +134,10 @@ var App = (function () {
       // CROSS-FIELD CHANGE NOTIFICATION. A control redraws from its own inputs, so it cannot see
       // a cell that belongs to another control — Pickers.graphicControl needs graphic_r/g/b/a
       // (the Rgba composite's hidden inputs) and Pickers.partControl needs item_slot and
-      // body_state. `fn(values)` is called with the whole collected form on every edit.
+      // body_state. `fn(values)` is called with the whole collected form on every edit — as an
+      // EFFECTIVE record (Forms.effective): every blank cell already reads as the SQL default the
+      // importer will apply, which is what a preview has to draw. Controls seed their own cell from
+      // the raw values they were built with and never from this.
       //
       // ONLY ON SUBSEQUENT EDITS, never immediately: every control is handed `values` at build
       // time and does its own first draw from them, so invoking here would draw twice. Cleared in
@@ -591,8 +594,10 @@ var App = (function () {
     loadBundle('icons', function () {
       if (token !== state.formToken) return;
       var container = document.getElementById('form');
+      // The FORM gets the stored cells verbatim; the PANEL gets them resolved, for the reason
+      // refreshPreviews gives. Same split Forms.render makes internally for its own controls.
       Forms.render(container, state.schema, values, ctx());
-      renderPreviews(container, values);
+      renderPreviews(container, Forms.effective(values, state.schema.columns));
       state.formPending = false;
 
       if (!rest.length) return;
@@ -602,7 +607,9 @@ var App = (function () {
         // onImagesReady: renderPreviews runs on every keystroke, so a registration inside it would
         // stack one callback per edit. The form's own controls need no such help — they subscribed
         // once, at build time, and imagesChanged() has already reached them.
-        renderPreviews(container, Forms.collect(container, state.schema));
+        renderPreviews(container,
+                       Forms.effective(Forms.collect(container, state.schema),
+                                       state.schema.columns));
       });
     });
   }
@@ -632,8 +639,14 @@ var App = (function () {
 
   // Re-renders the previews from the CURRENT form contents. Reading the form back rather than
   // the stored row is the point: the preview has to show the edit, not the record.
+  //
+  // RESOLVED ONCE, HERE. Everything downstream of this function draws — the panel, and every
+  // control that watches a neighbouring cell — and a drawing needs the record the DATABASE will
+  // hold: a blank cell is skipped on import (CsvToSqlBase.cs:27) and the column default lands, so
+  // a blank body_state is an unarmed 3 and a blank body_id is body 1. Reading the raw cells drew a
+  // 0 for each, which is a pose and a body nobody stored. Save still writes the raw cells.
   function refreshPreviews(container) {
-    var values = Forms.collect(container, state.schema);
+    var values = Forms.effective(Forms.collect(container, state.schema), state.schema.columns);
 
     // Before the previewKey short-circuit, and deliberately NOT behind it. The two consumers
     // answer different questions: previewKey asks "would the panel look different", while a
@@ -646,6 +659,8 @@ var App = (function () {
     renderPreviews(container, values);
   }
 
+  // `values` is an EFFECTIVE record — blanks already resolved to their column defaults by
+  // Forms.effective. Every caller resolves before calling; nothing here re-derives a default.
   function renderPreviews(container, values) {
     var host = document.getElementById('previews');
     host.innerHTML = '';
@@ -682,8 +697,9 @@ var App = (function () {
         hairId: values.hair_id,
         hairR: values.hair_r, hairG: values.hair_g, hairB: values.hair_b, hairA: values.hair_a,
         faceId: values.face_id,
-        // Absent on Spell Effects, whose appearance override has no body_state; a missing cell
-        // reads as armed, matching the NPCs default of 1.
+        // Absent on Spell Effects, whose appearance override has no body_state at all — no column,
+        // so no default either, and Forms.effective leaves it undefined. That reads as armed, which
+        // is the only answer available for a sheet that does not carry the pose.
         bodyState: values.body_state,
         equippedItems: values.equipped_items || '',
       }, ctx(), Preview.CHARACTER_SCALE);

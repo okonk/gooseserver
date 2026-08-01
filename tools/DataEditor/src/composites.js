@@ -366,12 +366,15 @@ var Composites = (function () {
   // EquipSlots: six labelled rows over the equipped_items token stream — a graphic field, a
   // colour picker for the slot's tint, and a preview of the two together.
   //
-  // `opts` is the same options bag Pickers' controls take — { gallery, byName } today. Threaded
+  // `opts` is the same options bag Pickers' controls take — { gallery, effective } today. Threaded
   // whole rather than as a bare `gallery` positional so this seam has the shape every other gallery
   // seam in the round has, and so a second option costs no signature.
+  //
+  // `values` is the RAW record, because the hidden cell below has to keep the stored string
+  // verbatim; `opts.effective` is the same record with blanks resolved, and only the pose reads it.
   function equipSlotsControl(comp, values, ctx, opts) {
     var column = comp.columns[0];
-    var byName = (opts && opts.byName) || Object.create(null);
+    var effective = (opts && opts.effective) || values;
     var wrap = Forms.el('div', { class: 'equip' });
     var raw = str(values[column]);
     var slots = Equipped.parse(raw);
@@ -386,23 +389,21 @@ var Composites = (function () {
     hidden.value = raw.trim() === '' ? Equipped.format(slots) : raw;
 
     // bodyState only distinguishes armed from unarmed in a resting pose (Sprites.part's note).
-    // 3 is unarmed; Items defaults to 3 and NPCs to 1.
+    // 3 is unarmed, and BOTH sheets that carry the column default to 3 — so a blank cell is an
+    // unarmed row, and reading it as a bare 0 posed every unfilled NPC and item armed.
     //
-    // A BLANK cell means "use the SQL default", the way forms.js reads one — NOT 0. Reading it as
-    // 0 gave the right answer on the only sheet that has this composite (0 !== 3, same as 1 !== 3)
-    // but by luck rather than by rule, and a second sheet defaulting to an UNARMED 3 would have
-    // inherited the luck and lost. The descriptor arrives through opts.byName for this.
+    // `from` is therefore an EFFECTIVE record (Forms.effective): blanks already resolved to their
+    // SQL defaults. Both the build-time call and every onFormChange call are given one, so this
+    // does not re-derive the default and cannot disagree with the rest of the form about it.
     function armed(from) {
-      var text = str(from && from.body_state).trim();
-      var descriptor = byName.body_state;
-      return num(text !== '' ? text : (descriptor ? descriptor.default : '')) !== 3;
+      return num(str(from && from.body_state).trim()) !== 3;
     }
 
     // NOT read once at build time. body_state lives outside this composite, so nothing in these
     // six rows can see it change, and a character switched from armed to unarmed left every slot
     // showing the pose it was built with. ctx.onFormChange is the cross-field notification, and
     // the six redraws below are what it drives.
-    var equipped = armed(values);
+    var equipped = armed(effective);
     var redraws = [];
 
     var bad = Object.create(null);
@@ -618,9 +619,15 @@ var Composites = (function () {
     return node;
   }
 
-  // Takes one options object, `{ comp, byName, values, ctx, sheet }`. Named rather than positional
-  // because four of the five are maps or descriptor bags with no order a reader could infer from a
-  // call site, and every kind below reads a different subset of them.
+  // byName as a LIST, for Forms.effective, which takes column descriptors. Object.create(null) has
+  // no inherited keys, so every key here is a column the caller named.
+  function descriptorsOf(byName) {
+    return Object.keys(byName || {}).map(function (n) { return byName[n]; });
+  }
+
+  // Takes one options object, `{ comp, byName, values, effective, ctx, sheet }`. Named rather than
+  // positional because most of them are maps or descriptor bags with no order a reader could infer
+  // from a call site, and every kind below reads a different subset of them.
   //
   // `sheet` is only for the presentation tables in Layout — which graphic this sheet tints, today.
   // A caller that omits it gets the untinted control, which is what every sheet but Items gets
@@ -638,7 +645,7 @@ var Composites = (function () {
         node = Pickers.graphicControl({
           graphicColumn: byName[comp.columns[0]],
           fileColumn: byName[comp.columns[1]],
-          values: values, ctx: ctx,
+          values: values, effective: opts.effective, ctx: ctx,
           tintColumns: Layout.tintColumns(sheet, comp.columns[0]),
           // Which atlas the browser shows. Layout answers 'icons' for everything but Spell Effects'
           // spell_animation, so the control needs no fallback of its own.
@@ -650,10 +657,14 @@ var Composites = (function () {
       case 'Bitmask': node = bitmaskControl(comp, values, ctx); break;
       case 'IdList': node = idListControl(comp, values, ctx); break;
       case 'EquipSlots':
-        // byName travels for body_state's descriptor: a blank cell means the SQL default, and the
-        // pose the six slot previews draw depends on knowing which default that is.
-        node = equipSlotsControl(comp, values, ctx,
-                                 { gallery: opts.gallery, byName: byName });
+        // The effective record travels for body_state: a blank cell means the SQL default (an
+        // UNARMED 3 on both sheets that have the column), and the pose the six slot previews draw
+        // depends on it. Falls back to Forms.effective from byName's descriptors when the caller
+        // supplied no resolved record, so the pose is right whichever way this control is built.
+        node = equipSlotsControl(comp, values, ctx, {
+          gallery: opts.gallery,
+          effective: opts.effective || Forms.effective(values, descriptorsOf(byName)),
+        });
         break;
       default: node = unsupportedControl(comp, byName, values); break;
     }

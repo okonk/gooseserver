@@ -474,6 +474,58 @@ test('the NPC preview uses the row\'s body_state to pick the clip (#15)', () => 
   }
 });
 
+test('a blank body_state previews the pose the row will IMPORT as, not a bare 0', () => {
+  // The reported bug. A blank cell is skipped on import (CsvToSqlBase.cs:27) and the column
+  // default lands — body_state defaults to 3 on both sheets that have it, which is UNARMED — but
+  // the panel read the raw cell, got 0, and 0 !== 3 is armed. Every unfilled NPC previewed in the
+  // wrong pose, and nothing on screen said so.
+  const saved = globalThis.GOOSE_SPRITES.parts.rects;
+  try {
+    globalThis.GOOSE_SPRITES.parts.rects = {
+      'Bodies:1:idle-equip-down': [0, 0, 48, 48],
+      'Bodies:1:idle-no-equip-down': [64, 0, 48, 48],
+    };
+    const h = boot({ NPCs: [NPC(1, 'Unset', { body_state: '' })] });
+    h.get('sheet-picker').value = 'NPCs';
+    fire(h.get('sheet-picker'), 'change');
+    h.settle();
+    fire(h.get('records').children[0], 'click');
+    h.settle();
+
+    const drawn = h.get('previews').children[0].getContext('2d').calls
+      .filter((c) => c[0] === 'drawImage');
+    assert.equal(drawn[0][2], 64, 'a blank body_state is the unarmed default');
+    // The CELL is untouched: blank still means "use the SQL default" on the next save.
+    assert.equal(h.get('form').querySelector('[name="body_state"]').value, '');
+  } finally {
+    globalThis.GOOSE_SPRITES.parts.rects = saved;
+  }
+});
+
+test('a blank body_id previews the default body rather than nothing', () => {
+  // Same rule, the other cell: body_id defaults to 1, so the row imports as a player body. Read
+  // raw it was 0, which Appearance.layers drops entirely — an empty canvas that reads as missing
+  // art rather than as an unfilled cell.
+  const saved = globalThis.GOOSE_SPRITES.parts.rects;
+  try {
+    globalThis.GOOSE_SPRITES.parts.rects = { 'Bodies:1:idle-no-equip-down': [64, 0, 48, 48] };
+    const h = boot({ NPCs: [NPC(1, 'Unset', { body_id: '', body_state: 3 })] });
+    h.get('sheet-picker').value = 'NPCs';
+    fire(h.get('sheet-picker'), 'change');
+    h.settle();
+    fire(h.get('records').children[0], 'click');
+    h.settle();
+
+    const drawn = h.get('previews').children[0].getContext('2d').calls
+      .filter((c) => c[0] === 'drawImage');
+    assert.equal(drawn.length, 1, 'the default body is drawn');
+    assert.equal(drawn[0][2], 64);
+    assert.equal(h.get('form').querySelector('[name="body_id"]').value, '');
+  } finally {
+    globalThis.GOOSE_SPRITES.parts.rects = saved;
+  }
+});
+
 test('Items draws no NPC character preview — it draws its own two canvases', () => {
   // Items has no body_id, so the body_id branch must not fire. What it gets instead is the item
   // pair: the inventory icon and — for a wearable usetype — the worn sprite.

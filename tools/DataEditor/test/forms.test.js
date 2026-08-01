@@ -15,8 +15,8 @@ globalThis.Layout = Layout;
 // installed here is enough — and every stub call is recorded so the contract can be asserted.
 const compositeCalls = { control: [], collect: [] };
 globalThis.Composites = {
-  control({ comp, byName, values, ctx, sheet }) {
-    compositeCalls.control.push({ comp, byName, values, ctx, sheet });
+  control({ comp, byName, values, effective, ctx, sheet }) {
+    compositeCalls.control.push({ comp, byName, values, effective, ctx, sheet });
     const node = document.createElement('div');
     node.setAttribute('data-composite', comp.kind);
     comp.columns.forEach((name) => {
@@ -136,6 +136,81 @@ test('placeholderFor covers every default in the real schema without producing j
     assert.ok(!/'$/.test(text), `${c.name} kept a trailing quote: ${text}`);
   }));
   assert.ok(checked > 100, `expected many defaulted columns, saw ${checked}`);
+});
+
+// ---------------------------------------------------------------- defaultOf / effective
+
+test('defaultOf gives the default as a cell would hold it', () => {
+  assert.equal(Forms.defaultOf({ default: '3' }), '3');
+  assert.equal(Forms.defaultOf({ default: 0 }), '0');
+  assert.equal(Forms.defaultOf({ default: "'0,*,0,*'" }), '0,*,0,*');
+  assert.equal(Forms.defaultOf({ default: "''" }), '');
+  // No default at all, and no descriptor at all, are both "nothing to fall back to" — a caller
+  // holding a subset of the schema (Composites.control) asks about columns it may not have.
+  assert.equal(Forms.defaultOf({ name: 'x' }), '');
+  assert.equal(Forms.defaultOf({ name: 'x', default: null }), '');
+  assert.equal(Forms.defaultOf(undefined), '');
+  // Same matched-pair rule placeholderFor states, because it is now the same code.
+  assert.equal(Forms.defaultOf({ default: "'unterminated" }), "'unterminated");
+});
+
+test('effective replaces a blank cell with the column default and leaves the rest alone', () => {
+  const columns = [
+    { name: 'body_state', kind: 'Int', default: '3' },
+    { name: 'body_id', kind: 'Int', default: '1' },
+    { name: 'hair_id', kind: 'Int', default: '0' },
+    { name: 'script_path', kind: 'String', default: "'Scripts/NPC/BaseNPC.csx'" },
+    { name: 'npc_id', kind: 'Int', required: true },
+  ];
+  const out = Forms.effective({ body_state: '', body_id: '11', hair_id: '', npc_id: '' }, columns);
+  assert.equal(out.body_state, '3', 'the reported bug: a blank pose is the unarmed default');
+  assert.equal(out.body_id, '11', 'a stored value is never overwritten');
+  assert.equal(out.hair_id, '0');
+  assert.equal(out.script_path, 'Scripts/NPC/BaseNPC.csx');
+  assert.equal(out.npc_id, '', 'a column with no default has nothing to fall back to');
+});
+
+test('effective coerces like collect: a numeric 0 is a stored value, not a blank', () => {
+  const columns = [{ name: 'body_state', kind: 'Int', default: '3' }];
+  assert.equal(Forms.effective({ body_state: 0 }, columns).body_state, '0');
+  assert.equal(Forms.effective({}, columns).body_state, '3');
+  assert.equal(Forms.effective(undefined, columns).body_state, '3');
+});
+
+test('effective leaves an Enum blank — the default is in the wrong value space', () => {
+  // item_slot cells hold the enum NAME ('Helmet'); the SQL default is the C# enum's number (20),
+  // and enumNames carries no numbering to map one to the other. Substituting it would hand a
+  // reader '20' where a slot name belongs.
+  const c = column('Items', 'item_slot');
+  assert.equal(c.kind, 'Enum');
+  assert.equal(c.default, '20');
+  assert.equal(Forms.effective({ item_slot: '' }, [c]).item_slot, '');
+  assert.equal(Forms.effective({ item_slot: 'Helmet' }, [c]).item_slot, 'Helmet');
+});
+
+test('effective carries through a cell no column names, and is idempotent', () => {
+  const columns = [{ name: 'body_state', kind: 'Int', default: '3' }];
+  const once = Forms.effective({ body_state: '', npc_name: 'Rat' }, columns);
+  assert.equal(once.npc_name, 'Rat');
+  assert.deepEqual(Forms.effective(once, columns), once);
+});
+
+test('effective over a real record leaves no blank that the importer would fill', () => {
+  const npcs = sheet('NPCs');
+  const blank = {};
+  npcs.columns.forEach((c) => { blank[c.name] = ''; });
+  const out = Forms.effective(blank, npcs.columns);
+  npcs.columns.forEach((c) => {
+    if (c.default === undefined || c.default === null || c.kind === 'Enum') {
+      assert.equal(out[c.name], '', c.name);
+    } else {
+      assert.equal(out[c.name], Forms.defaultOf(c), c.name);
+    }
+  });
+  // The two the previews turn on, spelled out: an unarmed pose and a player body.
+  assert.equal(out.body_state, '3');
+  assert.equal(out.body_id, '1');
+  assert.equal(out.equipped_items, '0,*,0,*,0,*,0,*,0,*,0,*');
 });
 
 // ---------------------------------------------------------------- scalarControl
@@ -529,6 +604,57 @@ test('render sends every part-graphic column to Pickers.partControl with its own
   } finally {
     delete globalThis.Pickers;
   }
+});
+
+test('render hands a part control the raw cell AND the resolved record', () => {
+  // The split the reported bug came down to: the FIELD must show the blank cell (blank means "use
+  // the SQL default" and has to write back blank), while everything the control DRAWS from has to
+  // read the row the importer will produce — a blank body_state is an unarmed 3, not a 0.
+  const seen = [];
+  globalThis.Pickers = {
+    partControl(opts) {
+      seen.push(opts);
+      const node = document.createElement('input');
+      node.setAttribute('name', opts.column.name);
+      node.value = String(opts.values[opts.column.name]);
+      return node;
+    },
+  };
+  try {
+    const host = div();
+    Forms.render(host, {
+      sheet: 'NPCs', composites: [],
+      columns: ['body_id', 'body_state', 'npc_name'].map((n) => column('NPCs', n)),
+    }, { body_id: '', body_state: '', npc_name: 'Rat' }, {});
+
+    assert.equal(seen.length, 1);
+    assert.equal(seen[0].values.body_id, '', 'the cell stays blank');
+    assert.equal(host.querySelector('[name="body_id"]').value, '', 'and so does the field');
+    assert.equal(seen[0].effective.body_id, '1');
+    assert.equal(seen[0].effective.body_state, '3');
+    assert.equal(seen[0].effective.npc_name, 'Rat');
+  } finally {
+    delete globalThis.Pickers;
+  }
+});
+
+test('render hands a composite the resolved record alongside the raw one', () => {
+  compositeCalls.control.length = 0;
+  const host = div();
+  Forms.render(host, {
+    sheet: 'Toybox',
+    columns: [
+      { name: 'a', kind: 'Int', required: false, default: '7' },
+      { name: 'r', kind: 'Int', required: false, default: '9' },
+      { name: 'g', kind: 'Int', required: false, default: '9' },
+      { name: 'b', kind: 'Int', required: false, default: '9' },
+    ],
+    composites: [{ kind: 'Rgba', columns: ['r', 'g', 'b'] }],
+  }, { a: '1', r: '', g: '0', b: '0' }, {});
+  const call = compositeCalls.control[0];
+  assert.equal(call.values.r, '', 'the cells the control writes back stay raw');
+  assert.equal(call.effective.r, '9', 'and the ones it draws from are resolved');
+  assert.equal(call.effective.a, '1', 'a stored value is never overwritten');
 });
 
 test('the monster-body rows hide with the cell, and keep their values while hidden', () => {

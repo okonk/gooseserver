@@ -41,9 +41,9 @@ test('isArmed is bodyState !== 3, through parseInt', () => {
   assert.equal(Preview.isArmed('3'), false);
   assert.equal(Preview.isArmed(1), true);
   assert.equal(Preview.isArmed(7), true);
-  // A blank cell is 0, which is armed — matching the NPCs column default of 1. Items DEFAULTS to
-  // 3, so a blank body_state on an Items row previews armed where the database says unarmed; the
-  // divergence is documented at isArmed and shared with equipSlotsControl.
+  // A blank cell is 0, which is armed — and BOTH sheets carrying body_state default to an unarmed
+  // 3, so a blank must never get this far. Forms.effective resolves it for every caller, once;
+  // this stays the plain client rule so there is no second place a default could be decided.
   assert.equal(Preview.isArmed(''), true);
   assert.equal(Preview.isArmed(undefined), true);
 });

@@ -611,7 +611,9 @@ var Pickers = (function () {
     // The last form state seen, which the tint is read out of. Seeded with the record's own values
     // so the FIRST draw is tinted too — a preview that only picked the tint up after an unrelated
     // keystroke would show every freshly opened record plain.
-    var latest = values;
+    // The tint is the only cross-field read here, and it takes the RESOLVED record for
+    // partControl's reason: a blank tint channel is the column default, not necessarily 0.
+    var latest = opts.effective || values;
 
     // Says WHY nothing is on the canvas. A blank preview is otherwise indistinguishable from a
     // typo, and nothing else catches one: the cells are optional, so Validation passes a graphic
@@ -778,8 +780,15 @@ var Pickers = (function () {
   // they had no preview at all and why forms.js routes them here explicitly, off the same table
   // (Layout.PART_GRAPHICS) that decides which folder each one draws from.
   //
-  // Takes one options object, `{ column, values, ctx, spec, tintColumns }`, for graphicControl's
-  // reason: several same-typed arguments in a row that no reader can order from the call site.
+  // Takes one options object, `{ column, values, effective, ctx, spec, tintColumns }`, for
+  // graphicControl's reason: several same-typed arguments in a row that no reader can order from
+  // the call site.
+  //
+  // `values` seeds this control's own cell and must stay RAW — blank means "use the SQL default"
+  // and has to write back blank. Every CROSS-FIELD read below (the folder, the tint, the pose)
+  // takes `effective` instead, where a blank cell already reads as the default the importer will
+  // apply, so the preview shows the row the database will hold rather than a zero nobody stored.
+  // ctx.onFormChange delivers the same resolved shape on every later edit.
   //
   // WHAT MAKES IT DIFFERENT FROM graphicControl: there is no sheet cell — the sprite FOLDER comes
   // from the spec (see folderOf), which for graphic_equip means from another column entirely. That,
@@ -813,7 +822,7 @@ var Pickers = (function () {
     input.value = str(values[column.name]);
 
     var status = Forms.el('span', { class: 'status' });
-    var latest = values;
+    var latest = opts.effective || values;
 
     // The sprite folder this row can be BROWSED in, or null when there is nothing to browse. One
     // function for the whole question, because it is asked from two places (the click handler and

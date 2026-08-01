@@ -873,8 +873,10 @@ function equipByName(bodyDefault) {
 }
 
 test('a blank body_state means the SQL default, not 0', () => {
-  // The bug this replaced read a blank cell as 0. That is unarmed-vs-armed by luck on a sheet
-  // defaulting to 1 (0 !== 3, same as 1 !== 3) and WRONG on one defaulting to an unarmed 3.
+  // The bug this replaced read a blank cell as 0, which is armed — and BOTH sheets carrying
+  // body_state default to an unarmed 3, so every unfilled row posed wrong. With no resolved record
+  // supplied, control() builds one from the descriptors it was handed (Forms.effective), so the
+  // pose is right whichever way this control is constructed.
   const seen = [];
   const stubbed = Sprites.part;
   Sprites.part = (b, category, id, equipped) => { seen.push(equipped); return null; };
@@ -893,6 +895,26 @@ test('a blank body_state means the SQL default, not 0', () => {
   assert.deepEqual(seen.slice(0, 6), [false, false, false, false, false, false],
     'a default of 3 is unarmed');
   assert.deepEqual(seen.slice(6), [true, true, true, true, true, true]);
+});
+
+test('a resolved record supplied by the caller decides the pose', () => {
+  // What forms.js actually passes: one effective record built for the whole sheet, so the six slot
+  // previews and the panel cannot disagree about what a blank cell means. It OUTRANKS the raw
+  // values, which is the point — those still hold the blank the save must write back.
+  const seen = [];
+  const stubbed = Sprites.part;
+  Sprites.part = (b, category, id, equipped) => { seen.push(equipped); return null; };
+  try {
+    Composites.control({
+      comp: EQUIP, byName: equipByName('1'),
+      values: { equipped_items: RAW_EQUIP, body_state: '' },
+      effective: { equipped_items: RAW_EQUIP, body_state: '3' },
+      ctx: ctx(),
+    });
+  } finally {
+    Sprites.part = stubbed;
+  }
+  assert.deepEqual(seen, [false, false, false, false, false, false]);
 });
 
 test('every slot preview follows a body_state edited after the form was built', () => {

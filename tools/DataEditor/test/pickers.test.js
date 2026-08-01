@@ -1628,6 +1628,25 @@ test('body_state picks the clip, live, by the same rule as an equip slot', () =>
   assert.equal(drawnFrom(wrap), 80, 'body_state 3 is unarmed');
 });
 
+test('the cross-field reads come from the RESOLVED record, not the raw cells', () => {
+  // forms.js hands this control both maps: `values` for its own cell, `effective` for everything
+  // it draws from. A blank body_state is an unarmed 3 on both sheets that carry it, so reading the
+  // raw cell (0, which is armed) drew the wrong clip for every row nobody had filled in.
+  const rects = { 'Hands:5:idle-equip-down': [70, 0, 8, 8],
+                  'Hands:5:idle-no-equip-down': [80, 0, 8, 8] };
+  const c = pctx({ bundles: { parts: { rects } } });
+  const wrap = Pickers.partControl({
+    column: equipColumn,
+    values: { graphic_equip: '5', item_slot: 'OneHanded', body_state: '' },
+    effective: { graphic_equip: '5', item_slot: 'OneHanded', body_state: '3' },
+    ctx: c, spec: SPEC, tintColumns: null,
+  });
+  assert.equal(drawnFrom(wrap), 80, 'the resolved unarmed default, not the blank cell');
+  // The FIELD still shows the blank cell — blank means "use the SQL default" and must write back
+  // blank on the next save.
+  assert.equal(pparts(wrap).input.value, '5');
+});
+
 test('the worn preview is tinted by the same four columns as the tile', () => {
   const c = pctx();
   const wrap = Pickers.partControl({

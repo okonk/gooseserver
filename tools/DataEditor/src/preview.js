@@ -72,11 +72,13 @@ var Preview = (function () {
   // chain. On the shipped NPCs that is 462 layers across 186 rows resolving to a different rect,
   // so it is computed here, once, rather than left to each call site.
   //
-  // A blank cell reads as 0, which is not 3 and so counts as armed. That matches the NPCs column
-  // default of 1 (also armed). Items DEFAULTS TO 3, and now has previews that read this — so a
-  // blank body_state on an Items row previews armed where the database would say unarmed. The same
-  // divergence composites.js flags for equipSlotsControl, from the same cause (a control is given
-  // the values map, not the column descriptors) and left the same way rather than half-fixed here.
+  // A BLANK CELL MUST NOT REACH THIS. Both sheets that carry body_state default to 3 (unarmed),
+  // and a blank here reads as 0, which is armed — the opposite pose from the one the row will
+  // import as. Resolving the default is the caller's job and has ONE implementation,
+  // Forms.effective, applied to every record that reaches a preview; this function stays the plain
+  // client rule ("3 is the resting pose") so there is no second place a default could be decided.
+  // A sheet with no body_state COLUMN (Spell Effects) has no default to resolve and comes through
+  // as undefined, i.e. armed, which is the only answer available for it.
   function isArmed(bodyState) {
     return num(bodyState) !== 3;
   }
