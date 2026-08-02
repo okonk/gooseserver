@@ -807,10 +807,12 @@ function planSheetOps_(entry) {
       throw new Error(sheetName + ': invalid row ' + row + ' (' + what + ')');
     }
     var n = Number(row);
-    if (!isFinite(n) || Math.floor(n) !== n || n < 0) {
+    if (n === 1) throw new Error(sheetName + ': refusing to touch the header row');
+    // Below 2 there is no row to touch: 0 is writeRow's append sentinel, and a batch says append
+    // with its own list, so a 0 here is a caller bug, not a request to add a row.
+    if (!isFinite(n) || Math.floor(n) !== n || n < 2) {
       throw new Error(sheetName + ': invalid row ' + row + ' (' + what + ')');
     }
-    if (n === 1) throw new Error(sheetName + ': refusing to touch the header row');
     if (n > lastRow) {
       throw new Error(
         sheetName + ': row ' + n + ' is past the end of the sheet (' + lastRow +
@@ -938,7 +940,7 @@ function checkBatchIds_(sheetName, idIndex, raw, lastRow, plannedWrites, planned
     // A posted id equal to the one already there is not a claim — writeRow's idUnchanged rule.
     // Treat the row as untouched so a pre-existing duplicate is not blamed on it.
     if (isPosted && key !== currentKey) claims.push({ key: key, who: 'row ' + row });
-    else if (!byKey[key]) byKey[key] = 'row ' + row;
+    else if (!Object.prototype.hasOwnProperty.call(byKey, key)) byKey[key] = 'row ' + row;
   }
 
   plannedAppends.forEach(function (a, i) {
@@ -947,7 +949,7 @@ function checkBatchIds_(sheetName, idIndex, raw, lastRow, plannedWrites, planned
   });
 
   claims.forEach(function (claim) {
-    if (byKey[claim.key]) {
+    if (Object.prototype.hasOwnProperty.call(byKey, claim.key)) {
       problems.push(sheetName + ': id ' + claim.key + ' (' + claim.who + ') is already used by ' +
                     byKey[claim.key]);
     } else {

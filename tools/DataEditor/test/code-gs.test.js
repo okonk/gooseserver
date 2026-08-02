@@ -739,6 +739,37 @@ test('saveBatch leaves a duplicate id it did not create alone', () => {
   }]));
 });
 
+test('saveBatch refuses row 0 — the append sentinel has no meaning in a batch', () => {
+  const gs = batchGs([ROW], [[1, 4471, 1, 0.25]]);
+  assert.throws(
+    () => gs.saveBatch([{ sheet: 'NPC Drops', idColumnIndex: -1,
+                          deletes: [{ row: 0, loaded: ['', '', '', ''] }] }]),
+    /invalid row 0/);
+  assert.deepEqual(gs.sheets['NPC Drops'].deletes, []);
+});
+
+test('saveBatch refuses a write that renumbers a row onto an id another row holds', () => {
+  const gs = batchGs([ROW, [8, 'Other', 0, 0, 0, 0]], []);
+  assert.throws(
+    () => gs.saveBatch([{
+      sheet: 'Items', idColumnIndex: 0,
+      writes: [{ row: 2, cells: ['8', 'Iron Sword', '0.1235', '1500', '1', '185.25'],
+                 loaded: ['7', 'Iron Sword', '0.1235', '1500', '1', '185.25'] }],
+    }]),
+    /id 8 .*already used by row 3/);
+});
+
+test('saveBatch refuses two appends claiming the same id', () => {
+  const gs = batchGs([ROW], []);
+  assert.throws(
+    () => gs.saveBatch([{
+      sheet: 'Items', idColumnIndex: 0,
+      appends: [{ cells: ['9', 'One', '0', '0', '0', '0'] },
+                { cells: ['9', 'Two', '0', '0', '0', '0'] }],
+    }]),
+    /id 9 \(new row 2\) is already used by new row 1/);
+});
+
 test('saveBatch takes the lock and releases it on the throwing path', () => {
   const gs = batchGs([ROW], [[1, 4471, 1, 0.25]]);
   assert.throws(() => gs.saveBatch([{ sheet: 'NPC Drops', idColumnIndex: -1,
