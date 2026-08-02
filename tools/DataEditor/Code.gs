@@ -123,6 +123,27 @@
  *     file holds the document lock (withDocumentLock_) — so an id can no longer be taken
  *     twice inside the check-then-write window. The loaded-snapshot merge still narrows a
  *     genuine two-editor conflict to the cells both sides edited.
+ *
+ * saveBatch
+ *   Checked here by test/code-gs.test.js: refusals (double-listed sheet, wrong width, a row in
+ *     two ops, the header row, a row past the end, a moved delete target, a conflicting write, a
+ *     claimed duplicate id), that a conflict in one sheet refuses the whole batch, and that
+ *     writes/appends/deletes land in the right order with deletes bottom-up and coalesced.
+ *   Live, each one its own test:
+ *     - delete the LAST row of a sheet, then append: the append must land where the deleted row
+ *       was, not one past it (getLastRow after a delete)
+ *     - delete a row while a second tab has that sheet open, then save from the second tab: it
+ *       must be refused for a row past the end, not write into whatever moved up
+ *     - a batch touching two sheets where the SECOND is stale: neither sheet may be written
+ *     - two tabs saving overlapping groups at the same instant: the lock must serialise them,
+ *       and the loser must be refused by the snapshot check rather than silently winning
+ *     - a group save of ~200 rows on NPC Spawns (the 4,322-row sheet): within the 6-minute limit
+ *       and the google.script.run payload cap
+ *     - delete every row of a sheet, leaving only the header: the next append must go to row 2
+ *   Residual risk, accepted: not a transaction. If a write fails part-way, earlier sheets and
+ *     earlier rows stand. Sheets are applied parent-first so the survivor is an incomplete parent
+ *     rather than orphan children, and the client reloads after a FAILED save as well as a
+ *     successful one — without that reload a retry would re-append rows that already landed.
  * ---------------------------------------------------------------------------------
  */
 
@@ -958,9 +979,75 @@ function checkBatchIds_(sheetName, idIndex, raw, lastRow, plannedWrites, planned
   });
 }
 
-/** Internal: applies the plans. Task 5 fills this in; planning must be provably separate. */
+/**
+ * Internal: applies the checked plans. Sheets in the order given — parent before children, so a
+ * failure part-way leaves an incomplete parent rather than children referencing a row that was
+ * never written.
+ */
 function applyPlans_(plans) {
-  return plans.map(function (plan) {
-    return { sheet: plan.name, written: 0, appended: 0, deleted: 0 };
+  var results = plans.map(applySheetPlan_);
+  SpreadsheetApp.flush();
+  return results;
+}
+
+/**
+ * Internal: one sheet's plan, applied.
+ *
+ * WRITES, then APPENDS, then DELETES BOTTOM-UP. The order is the whole trick: every row number in
+ * the plan was resolved against the sheet as it was read, and deleting a row shifts everything
+ * below it up. Doing the deletes last means no row number is ever used after the shift that would
+ * invalidate it, so nothing here needs to adjust an index. Bottom-up means the same within the
+ * deletes themselves.
+ */
+function applySheetPlan_(plan) {
+  var sheet = plan.sheet;
+
+  plan.writes.forEach(function (w) {
+    writeRuns_(sheet, w.row, w.out, w.writeAt, plan.textColumns);
   });
+
+  if (plan.appends.length) {
+    var at = sheet.getLastRow() + 1;
+    var maxRows = sheet.getMaxRows();
+    var need = at + plan.appends.length - 1;
+    // getRange past the bottom of the grid throws; a sheet trimmed to exactly its data hits this
+    // on the first append. Same growth writeRow does, sized for the whole block.
+    if (need > maxRows) sheet.insertRowsAfter(maxRows, need - maxRows);
+
+    // Pinned BEFORE the values go in, for every appended row, for the same reason writeRow pins:
+    // setValues parses strings like typed entry.
+    plan.appends.forEach(function (a, i) {
+      for (var t = 0; t < plan.width; t++) {
+        if (plan.textColumns[t] && !isBlank_(a.out[t])) {
+          sheet.getRange(at + i, t + 1).setNumberFormat('@');
+        }
+      }
+    });
+
+    sheet.getRange(at, 1, plan.appends.length, plan.width).setValues(
+      plan.appends.map(function (a) { return a.out; }));
+  }
+
+  var rows = plan.deletes.map(function (d) { return d.row; });
+  rows.sort(function (a, b) { return b - a; });
+
+  var deleted = 0;
+  var i = 0;
+  while (i < rows.length) {
+    // rows is descending, so a run is consecutive when each next row is one LESS than the last.
+    var top = rows[i];
+    var j = i;
+    while (j + 1 < rows.length && rows[j + 1] === rows[j] - 1) j++;
+    var bottom = rows[j];
+    sheet.deleteRows(bottom, top - bottom + 1);
+    deleted += top - bottom + 1;
+    i = j + 1;
+  }
+
+  return {
+    sheet: plan.name,
+    written: plan.writes.length,
+    appended: plan.appends.length,
+    deleted: deleted,
+  };
 }
