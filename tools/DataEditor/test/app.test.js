@@ -181,7 +181,7 @@ function boot(sheets, options) {
     sheetToken: 0, formToken: 0, saving: false, formPending: false, loading: {},
     // The grouped-sheet bookkeeping, reset for the same reason as the rest: a group left open by
     // one test would otherwise let the next one's save collect rows it never built.
-    groupToken: 0, group: null, groups: [], reopenGroup: null,
+    groupToken: 0, group: null, groups: [], reopenGroup: null, pendingStatus: null,
   });
 
   App.init();
@@ -2882,6 +2882,79 @@ test('a FAILED group save also re-reads the sheet', () => {
   assert.ok(run.calls.filter((c) => c.name === 'readSheet').length > before);
 });
 
+test('a successful group save reports what it wrote, after the reload has settled', () => {
+  // The counts are the only confirmation a save gives, and openSheet's own status lines land
+  // AFTER the save resolves — shown at the moment of success they are overwritten by the
+  // reopened group's row count within the same tick and the user sees nothing.
+  const { run } = boot({ 'NPC Drops': [DROP(1, 10)], NPCs: [NPC(1, 'Mouse')],
+                         Items: [ITEM(10, 'Cheese')] });
+  App.openSheet('NPC Drops');
+  run.flush();
+  fire(document.getElementById('records').querySelectorAll('.record')[0], 'click');
+  run.flush();
+
+  document.getElementById('form').querySelectorAll('[name=droprate]')[0].value = '0.75';
+  App.save();
+  run.flush();
+
+  assert.match(document.getElementById('status').textContent, /Saved 1 edited, 0 added, 0 removed/);
+  assert.doesNotMatch(document.getElementById('status').textContent, /duplicate/);
+});
+
+test('the duplicate note survives the reload, and says how many are still off screen', () => {
+  // 101 rows, the last a copy of the first — two duplicates counted, one of them past the render
+  // cap and so impossible to tint. A bare '2 rows duplicate another row' over a single tinted row
+  // reads as a bug, and the note is worthless if the reload eats it.
+  const rows = [];
+  for (let i = 0; i < Groups.RENDER_CAP + 1; i++) rows.push(DROP(1, i + 1));
+  rows[Groups.RENDER_CAP] = DROP(1, 1);
+  const items = [];
+  for (let i = 0; i < Groups.RENDER_CAP + 1; i++) items.push(ITEM(i + 1, 'Thing ' + (i + 1)));
+
+  const { run } = boot({ 'NPC Drops': rows, NPCs: [NPC(1, 'Mouse')], Items: items });
+  App.openSheet('NPC Drops');
+  run.flush();
+  fire(document.getElementById('records').querySelectorAll('.record')[0], 'click');
+  run.flush();
+
+  document.getElementById('form').querySelectorAll('[name=droprate]')[0].value = '0.75';
+  App.save();
+  run.flush();
+
+  const text = document.getElementById('status').textContent;
+  assert.match(text, /Saved 1 edited/);
+  assert.match(text, /2 rows duplicate another row in this group — 1 of them are not on screen yet\./);
+});
+
+test('a group save is not blocked by bad data in a row the render cap did not draw', () => {
+  // A group of 101 whose LAST row carries a droprate the sheet should never have held. It is
+  // past the cap, so it is never drawn — and showErrors can only highlight a row that has an
+  // element. Validating it anyway would report a problem with nothing on screen to point at and
+  // no way for the user to reach it, wedging the whole group. It produces no write either, so
+  // letting the save through leaves that row exactly as it was found.
+  const rows = [];
+  for (let i = 0; i < 101; i++) rows.push(DROP(1, i + 1));
+  const bad = schemaOf('NPC Drops').columns.map((c) => c.name).indexOf('droprate');
+  rows[100][bad] = 'nonsense';
+
+  const items = [];
+  for (let i = 0; i < 101; i++) items.push(ITEM(i + 1, 'Thing ' + (i + 1)));
+  const { run } = boot({ 'NPC Drops': rows, NPCs: [NPC(1, 'Mouse')], Items: items });
+  App.openSheet('NPC Drops');
+  run.flush();
+  fire(document.getElementById('records').querySelectorAll('.record')[0], 'click');
+  run.flush();
+  assert.equal(document.getElementById('form').querySelectorAll('[data-group-row]').length, 100);
+
+  document.getElementById('form').querySelectorAll('[name=droprate]')[0].value = '0.75';
+  App.save();
+  run.flush();
+
+  const call = run.calls.filter((c) => c.name === 'saveBatch').pop();
+  assert.ok(call, 'the undrawn row must not block a save of the rows on screen');
+  assert.equal(call.args[0][0].writes.length, 1, 'only the drawn row the user edited is written');
+});
+
 test('a group save refuses while an invalid row is on screen', () => {
   const { run } = boot({ 'NPC Drops': [DROP(1, 10)], NPCs: [NPC(1, 'Mouse')],
                          Items: [ITEM(10, 'Cheese')] });
@@ -3234,16 +3307,30 @@ test('a group cannot be opened while a save is in flight', () => {
   assert.equal(App.__state.group.key, '1');
 });
 
-test('a failed save\'s message does not surface on a different sheet', () => {
+test('a finished save\'s message is shown by openSheet when no group is reopened', () => {
+  // The group a save was made on can be gone by the time the reload lands — its last row deleted
+  // — leaving nothing to reopen and openSheet as the only place left to report the outcome.
+  const { run } = boot({ Items: [ITEM(1, 'Sword')] });
+  App.__state.pendingStatus = { sheet: 'Items', message: 'batch boom', warn: true };
+
+  App.openSheet('Items');
+  run.flush();
+
+  assert.match(document.getElementById('status').textContent, /batch boom/,
+               'the message must outlive the reload, not be buried by its record count');
+  assert.equal(App.__state.pendingStatus, null, 'and it is consumed, not left to strike twice');
+});
+
+test('a finished save\'s message does not surface on a different sheet', () => {
   // The message outlives its save when the reload's read never lands. Unqualified, it then
   // reports 'batch boom' over a clean list of Items, blaming a sheet that was never saved.
   const { run } = boot({ 'NPC Drops': [DROP(1, 10)], NPCs: [NPC(1, 'Mouse')],
                          Items: [ITEM(1, 'Sword')] });
-  App.__state.pendingError = { sheet: 'NPC Drops', message: 'batch boom' };
+  App.__state.pendingStatus = { sheet: 'NPC Drops', message: 'batch boom', warn: true };
 
   App.openSheet('Items');
   run.flush();
 
   assert.doesNotMatch(document.getElementById('status').textContent, /boom/);
-  assert.equal(App.__state.pendingError, null, 'and it is dropped, not left to strike later');
+  assert.equal(App.__state.pendingStatus, null, 'and it is dropped, not left to strike later');
 });

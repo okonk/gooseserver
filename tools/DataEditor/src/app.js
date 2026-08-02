@@ -83,16 +83,19 @@ var App = (function () {
     // empty panel under a quest_id borrowed from an NPC Drops group, one Add-row away from
     // appending under the wrong parent. The sheet name is what makes the entry refusable.
     reopenGroup: null,
-    // The message a failed group save wants shown once its reload has settled. Carried rather
-    // than shown at the moment of failure: reload() runs openSheet, whose own status lines
-    // ('Loading…', then 'N records') would overwrite it within the same tick and leave a failed
-    // save looking exactly like a successful one. Consumed by openGroup, or by openSheet when no
-    // group is reopened.
+    // The message a finished group save wants shown once its reload has settled — for BOTH
+    // outcomes. Carried rather than shown at the moment the save resolves: reload() runs
+    // openSheet, whose own status lines ('Loading…', then 'N records', then the reopened group's
+    // row count) would overwrite it within the same tick. Left to that race, a failed save reads
+    // as a successful one and a successful one never reports what it wrote — the counts and the
+    // duplicate warning both vanish. Consumed by openGroup, or by openSheet when no group is
+    // reopened.
     //
-    // { sheet: name, message: text }, and sheet-scoped for the same reason reopenGroup is: a
-    // reload whose read never lands leaves it standing, and an unqualified message would then
-    // surface on whatever sheet the user opened next — 'batch boom' over a clean list of Items.
-    pendingError: null,
+    // { sheet: name, message: text, warn: bool }, and sheet-scoped for the same reason
+    // reopenGroup is: a reload whose read never lands leaves it standing, and an unqualified
+    // message would then surface on whatever sheet the user opened next — 'batch boom' over a
+    // clean list of Items.
+    pendingStatus: null,
     saving: false,
     // True from renderForm until its form actually lands in the DOM. The bundle decode between
     // the two is asynchronous, so in that window state.rowNumber already names the NEW record
@@ -434,7 +437,7 @@ var App = (function () {
         // The read failed, so no group can be reopened and the request must not be left standing
         // for whatever sheet is opened next, and neither may a failed save's message.
         state.reopenGroup = null;
-        state.pendingError = null;
+        state.pendingStatus = null;
         if (current()) status(e.message, true);
       })
       .withSuccessHandler(function (data) {
@@ -463,12 +466,12 @@ var App = (function () {
           state.reopenGroup = null;
           if (reopen && reopen.sheet === sheetName) openGroup(reopen.key);
 
-          // A failed save's message, if the reopen above did not already show it — the group may
-          // be gone, or there may have been none to reopen. Last, so nothing overwrites it.
+          // The finished save's message, if the reopen above did not already show it — the group
+          // may be gone, or there may have been none to reopen. Last, so nothing overwrites it.
           // Dropped silently when it belongs to another sheet.
-          var failure = state.pendingError;
-          state.pendingError = null;
-          if (failure && failure.sheet === sheetName) status(failure.message, true);
+          var finished = state.pendingStatus;
+          state.pendingStatus = null;
+          if (finished && finished.sheet === sheetName) status(finished.message, !!finished.warn);
         });
       })
       .readSheet(sheetName);
@@ -619,9 +622,9 @@ var App = (function () {
     // it is, for openSheet to drop. Consuming it here would swallow it silently, and the drop is
     // openSheet's job precisely so there is ONE place that decides a stale message's fate.
     var pending = null;
-    if (state.pendingError && state.pendingError.sheet === state.sheetName) {
-      pending = state.pendingError;
-      state.pendingError = null;
+    if (state.pendingStatus && state.pendingStatus.sheet === state.sheetName) {
+      pending = state.pendingStatus;
+      state.pendingStatus = null;
     }
 
     clearPreviews();
@@ -658,7 +661,7 @@ var App = (function () {
       save.addEventListener('click', saveGroup);
       container.appendChild(save);
 
-      if (pending) status(pending.message, true);
+      if (pending) status(pending.message, !!pending.warn);
       else status(group.count + ' row' + (group.count === 1 ? '' : 's') + ' in ' + group.label);
     });
   }
@@ -692,8 +695,13 @@ var App = (function () {
       return;
     }
 
-    var check = Groups.validate(state.schema, present, state.idSets);
-    var rows = container.querySelectorAll('[data-group-row]');
+    // DRAWN ROWS ONLY. collect() puts the rows the render cap held back at the end of `present`,
+    // and showErrors can only reach a row that has an element — so validating all of them would
+    // let a capped group report "3 problem(s)" with nothing highlighted and nowhere to look.
+    // Validation gates what the user is submitting; the undrawn rows are untouched and produce
+    // no ops, so the full `present` still goes to Groups.ops below.
+    var rows = Groups.drawnRows(container);
+    var check = Groups.validate(state.schema, present.slice(0, rows.length), state.idSets);
     for (var i = 0; i < rows.length && i < check.rows.length; i++) {
       Forms.showErrors(rows[i], check.rows[i].errors);
     }
@@ -702,6 +710,21 @@ var App = (function () {
       var count = check.rows.reduce(function (n, r) { return n + r.errors.length; }, 0);
       status(count + ' problem(s) — fix them before saving', true);
       return;
+    }
+
+    // Tinted here rather than inside validate, but from the same key, so the rows highlighted on
+    // screen are exactly the ones the status line below counts. The COUNT comes from this same pass rather than from check.duplicates: validate() now
+    // sees only the drawn rows, while a drawn row can perfectly well duplicate one the cap held
+    // back. This tallies over every record and marks the ones it can, so the number in the
+    // message and the rows tinted on screen are the same reading. `present` is handed over so
+    // the marks and the ops below come from ONE reading of the DOM.
+    var duplicates = Groups.markDuplicates(container, state.schema, present);
+    // How many of them the user can actually see. Fewer than `duplicates` when the render cap is
+    // holding some back, and a note saying "4 rows duplicate another" with two tinted is a note
+    // the user cannot act on.
+    var marked = 0;
+    for (var d = 0; d < rows.length; d++) {
+      if ((' ' + rows[d].getAttribute('class') + ' ').indexOf(' duplicate ') !== -1) marked++;
     }
 
     var batch = [Groups.ops(state.schema, present, gone, state.idSets)];
@@ -737,20 +760,29 @@ var App = (function () {
         // Handed to the reload rather than shown here: openSheet's own status lines land after
         // this one and would bury it, so a failed save would read as a successful one.
         if (savedToken === state.sheetToken) {
-          state.pendingError = { sheet: savedSheet, message: e.message };
+          state.pendingStatus = { sheet: savedSheet, message: e.message, warn: true };
         }
         reload();
       })
       .withSuccessHandler(function (results) {
         state.saving = false;
         var r = (results && results[0]) || { written: 0, appended: 0, deleted: 0 };
-        var note = check.duplicates
-          ? ' ' + check.duplicates + ' rows duplicate another row in this group.'
+        var note = duplicates
+          ? ' ' + duplicates + ' rows duplicate another row in this group' +
+            (marked < duplicates
+              ? ' — ' + (duplicates - marked) + ' of them are not on screen yet.'
+              : '.')
           : '';
+        // Handed to the reload for the same reason the failure is, and it matters just as much:
+        // shown here, the counts and the duplicate note would be overwritten by the reopened
+        // group's row count before the user could read either.
         if (savedToken === state.sheetToken) {
-          status('Saved ' + r.written + ' edited, ' + r.appended + ' added, ' + r.deleted +
-                 ' removed. Run /updatesql then /reloadsql in game to publish.' + note,
-                 !!check.duplicates);
+          state.pendingStatus = {
+            sheet: savedSheet,
+            message: 'Saved ' + r.written + ' edited, ' + r.appended + ' added, ' + r.deleted +
+                     ' removed. Run /updatesql then /reloadsql in game to publish.' + note,
+            warn: !!duplicates,
+          };
         }
         reload();
       })

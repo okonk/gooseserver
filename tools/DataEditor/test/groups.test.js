@@ -560,3 +560,155 @@ test('rowKeyOf separates columns unambiguously', () => {
   assert.notEqual(Groups.rowKeyOf(schema, { x: 'a b', y: 'c' }),
                   Groups.rowKeyOf(schema, { x: 'a', y: 'b c' }));
 });
+
+// ------------------------------------------------------------------ large groups
+
+test('render draws at most the first 100 rows', () => {
+  // NPC Spawns is 4,322 rows grouped by map, and how many land on the busiest map is not
+  // knowable from the repo. Several hundred FK typeaheads in one panel is worth not finding out
+  // the hard way; the rest are one click away.
+  const rows = [];
+  for (let i = 0; i < Groups.RENDER_CAP + 50; i++) rows.push(DROP(1, i + 1));
+  const { container } = panelFor('NPC Drops', rows, NPCS);
+  assert.equal(container.querySelectorAll('[data-group-row]').length, Groups.RENDER_CAP);
+  assert.equal(container.querySelectorAll('[data-show-all]').length, 1);
+});
+
+test('show all draws the rest', () => {
+  const rows = [];
+  for (let i = 0; i < Groups.RENDER_CAP + 50; i++) rows.push(DROP(1, i + 1));
+  const { container } = panelFor('NPC Drops', rows, NPCS);
+  fire(container.querySelectorAll('[data-show-all]')[0], 'click');
+  assert.equal(container.querySelectorAll('[data-group-row]').length, Groups.RENDER_CAP + 50);
+  assert.equal(container.querySelectorAll('[data-show-all]').length, 0);
+});
+
+test('a group under the cap gets no show-all control', () => {
+  const { container } = panelFor('NPC Drops', [DROP(1, 10)], NPCS);
+  assert.equal(container.querySelectorAll('[data-show-all]').length, 0);
+});
+
+test('collect reads the undrawn rows too', () => {
+  // THE ONE THAT MATTERS. If the cap were a cap on the MODEL rather than on the rendering, a
+  // save from a capped group would post 100 rows and the other 50 would look like removals —
+  // silently deleting them. Undrawn rows must survive a save untouched.
+  const rows = [];
+  for (let i = 0; i < Groups.RENDER_CAP + 50; i++) rows.push(DROP(1, i + 1));
+  const { container, schema } = panelFor('NPC Drops', rows, NPCS);
+  // The count is the assertion that bites: ops() derives deletes from removed() alone, so a
+  // collect that dropped the undrawn rows would still produce no deletes here and look fine.
+  assert.equal(Groups.collect(container, schema).length, Groups.RENDER_CAP + 50);
+  const ops = Groups.ops(schema, Groups.collect(container, schema),
+                         Groups.removed(container), {});
+  assert.deepEqual(ops.deletes, [], 'undrawn rows must not be posted as deletions');
+  assert.deepEqual(ops.writes, [], 'undrawn rows are unchanged and must produce no write');
+});
+
+test('an edit to a drawn row writes that row alone, and the undrawn rows ride along', () => {
+  // The other half of the cap's contract: a real save from a capped group posts exactly the one
+  // record the user touched. The 50 undrawn rows must be present in collect() — otherwise they
+  // are records the save simply forgot — and must still produce nothing.
+  const rows = [];
+  for (let i = 0; i < Groups.RENDER_CAP + 50; i++) rows.push(DROP(1, i + 1));
+  const { container, schema } = panelFor('NPC Drops', rows, NPCS);
+  container.querySelectorAll('[name=droprate]')[7].value = '0.99';
+
+  const present = Groups.collect(container, schema);
+  assert.equal(present.length, Groups.RENDER_CAP + 50, 'the undrawn rows must survive collect()');
+
+  const ops = Groups.ops(schema, present, Groups.removed(container), {});
+  assert.deepEqual(ops.deletes, []);
+  assert.equal(ops.writes.length, 1, 'only the edited row is written');
+  assert.equal(ops.writes[0].row, 9);          // rows[7] is sheet row 9
+  const at = schemaOf('NPC Drops').columns.map((c) => c.name).indexOf('droprate');
+  assert.equal(ops.writes[0].cells[at], '0.99');
+});
+
+// ------------------------------------------------------------------ duplicates
+
+test('the header counts the whole group, not the drawn part of it', () => {
+  // The group HAS 150 rows; 100 of them being on screen is what the show-all button says.
+  const rows = [];
+  for (let i = 0; i < Groups.RENDER_CAP + 50; i++) rows.push(DROP(1, i + 1));
+  const { container } = panelFor('NPC Drops', rows, NPCS);
+  assert.equal(container.querySelectorAll('.count')[0].textContent,
+               (Groups.RENDER_CAP + 50) + ' rows');
+});
+
+// ------------------------------------------------------------------ duplicates
+
+test('duplicate rows are marked on screen', () => {
+  const { container, schema } = panelFor('NPC Drops',
+                                         [DROP(1, 10, '0.25'), DROP(1, 10, '0.25')], NPCS);
+  Groups.markDuplicates(container, schema);
+  assert.equal(container.querySelectorAll('.duplicate').length, 2);
+});
+
+test('marking duplicates twice does not leave stale marks', () => {
+  const { container, schema } = panelFor('NPC Drops',
+                                         [DROP(1, 10, '0.25'), DROP(1, 10, '0.25')], NPCS);
+  Groups.markDuplicates(container, schema);
+  // The key is npc + item, so the rows only stop being duplicates when the ITEM differs —
+  // editing the droprate would leave them duplicates under the ratified key.
+  container.querySelectorAll('[name=item_template_id]')[1].value = '20';
+  Groups.markDuplicates(container, schema);
+  assert.equal(container.querySelectorAll('.duplicate').length, 0);
+});
+
+test('markDuplicates counts duplicates the cap has not drawn, and marks nothing for them', () => {
+  // The count feeds the status line, which is the only way the user learns they exist at all.
+  const rows = [];
+  for (let i = 0; i < Groups.RENDER_CAP + 50; i++) rows.push(DROP(1, i + 1));
+  rows[rows.length - 1] = DROP(1, rows.length - 1);   // a copy of the second-to-last, both undrawn
+  const { container, schema } = panelFor('NPC Drops', rows, NPCS);
+  assert.equal(Groups.markDuplicates(container, schema), 2);
+  assert.equal(container.querySelectorAll('.duplicate').length, 0,
+               'an undrawn row has no element to mark');
+});
+
+test('a drawn row duplicating an undrawn one is counted twice and marked once', () => {
+  const rows = [];
+  for (let i = 0; i < Groups.RENDER_CAP + 50; i++) rows.push(DROP(1, i + 1));
+  rows[rows.length - 1] = DROP(1, 1);                 // the same record as the FIRST, drawn row
+  const { container, schema } = panelFor('NPC Drops', rows, NPCS);
+  assert.equal(Groups.markDuplicates(container, schema), 2);
+  assert.equal(container.querySelectorAll('.duplicate').length, 1);
+});
+
+test('show all marks the duplicates it draws, on a panel already marked', () => {
+  // Otherwise the note says "1 of them is not on screen yet" and the click that puts it on screen
+  // leaves it untinted — the one thing the note promised.
+  const rows = [];
+  for (let i = 0; i < Groups.RENDER_CAP + 50; i++) rows.push(DROP(1, i + 1));
+  rows[rows.length - 1] = DROP(1, 1);
+  const { container, schema } = panelFor('NPC Drops', rows, NPCS);
+  Groups.markDuplicates(container, schema);
+  fire(container.querySelectorAll('[data-show-all]')[0], 'click');
+  assert.equal(container.querySelectorAll('.duplicate').length, 2);
+});
+
+test('marking a row keeps the classes it already had', () => {
+  const { container, schema } = panelFor('NPC Drops',
+                                         [DROP(1, 10, '0.25'), DROP(1, 10, '0.25')], NPCS);
+  Groups.markDuplicates(container, schema);
+  const row = container.querySelectorAll('[data-group-row]')[0];
+  assert.match(row.getAttribute('class'), /\bgroup-row\b/);
+  assert.match(row.getAttribute('class'), /\bduplicate\b/);
+});
+
+test('drawnRows answers this panel rows only, in collect order', () => {
+  const a = panelFor('NPC Drops', [DROP(1, 10), DROP(1, 20)], NPCS);
+  const b = panelFor('NPC Drops', [DROP(2, 30)], NPCS);
+  const both = createElement('div');
+  both.appendChild(a.container);
+  both.appendChild(b.container);
+
+  assert.equal(Groups.drawnRows(a.container).length, 2);
+  assert.equal(Groups.drawnRows(b.container).length, 1);
+  assert.deepEqual(Groups.drawnRows(a.container).map((r) => r.__rowNumber),
+                   Groups.collect(a.container, a.schema).map((r) => r.rowNumber));
+});
+
+test('drawnRows answers empty for a container that holds no panel', () => {
+  assert.deepEqual(Groups.drawnRows(createElement('div')), []);
+});

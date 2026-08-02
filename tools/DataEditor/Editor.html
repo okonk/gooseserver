@@ -52,6 +52,23 @@
   .warn { background: #fff6d8; border: 1px solid #e8cf7a; color: #4a3c00; padding: 6px;
           margin-bottom: 10px; }
   .ok { color: #060; }
+  /* A group table is display:table rather than a grid because the number of columns comes from
+     the schema and differs per sheet — a table sizes its columns to their content without the
+     stylesheet having to know how many there are. */
+  .group-table { display: table; width: 100%; }
+  .group-header, .group-row { display: table-row; }
+  /* Without this the rows' wrapper is an anonymous block, which splits the table into two
+     formatting contexts and leaves the header labels sized independently of the columns
+     beneath them. */
+  .group-body { display: table-row-group; }
+  .group-header > span, .group-cell { display: table-cell; padding: 2px 4px; vertical-align: top; }
+  /* Painted on the CELLS: a table-row's background is drawn beneath its cells, so tinting the
+     row alone would be invisible wherever a cell has one of its own. Same colour family as
+     .warn, because it says the same thing. */
+  .group-row.duplicate .group-cell { background: #fff6d8; }
+  /* A tint alone all but disappears on a row whose cells are mostly input backgrounds, which is
+     most of them — the bar down the left edge is what actually reads as a mark. */
+  .group-row.duplicate .group-cell:first-child { border-left: 3px solid #e8cf7a; }
   .problem { font-size: 11px; border-bottom: 1px solid #eee; padding: 2px 0; }
   #publish-results { max-height: 60vh; overflow: auto; }
   canvas.preview, canvas.appearance, canvas.effect, canvas.item-icon, canvas.worn { image-rendering: pixelated;
@@ -286,6 +303,8 @@
     .ok { color: #6ede8a; }
     .error, .resolved.bad, .status.bad { color: #ff8f80; }
     .warn { background: #3a3218; border-color: #6b5c22; color: #f3e6b8; }
+    .group-row.duplicate .group-cell { background: #3a3218; }
+    .group-row.duplicate .group-cell:first-child { border-left-color: #6b5c22; }
     .problem { border-bottom-color: #333; }
     canvas.preview, canvas.appearance, canvas.effect, canvas.item-icon, canvas.worn { border-color: #3a3a3a;
       background: repeating-conic-gradient(#2a2a2a 0% 25%, #202020 0% 50%) 50% / 12px 12px; }

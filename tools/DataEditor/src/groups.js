@@ -122,6 +122,14 @@ var Groups = (function () {
   // mounting several panels at once is the reason render takes its container as a parameter.
   var seq = 0;
 
+  // How many rows a group draws before it asks. Every row is a handful of controls, and an FK
+  // cell is a typeahead with its own listeners — cheap individually, not in the hundreds.
+  //
+  // A CAP ON DRAWING, NOT ON THE MODEL. The undrawn rows stay in state.pending and are put back
+  // by collect(), so a save from a capped group leaves them exactly as they were. Capping the
+  // model instead would post the drawn rows and make the rest look like removals.
+  var RENDER_CAP = 100;
+
   function prefixFor(n) {
     return 'g' + n + '-';
   }
@@ -163,6 +171,10 @@ var Groups = (function () {
       removed: [],
       body: null,
       count: null,
+      // The rows the cap did not draw. Model, not markup: collect() puts them back.
+      pending: [],
+      // Whether a duplicate pass has run on this panel, so show-all can mark what it draws.
+      marked: false,
     };
     container.__group = state;
 
@@ -185,18 +197,44 @@ var Groups = (function () {
     container.appendChild(table);
     state.body = body;
 
-    (group ? group.rows : []).forEach(function (row) {
+    var all = group ? group.rows : [];
+    var shown = all.slice(0, RENDER_CAP);
+    state.pending = all.slice(RENDER_CAP);
+
+    shown.forEach(function (row) {
       body.appendChild(buildRow(state, columns, row.rowNumber, row.values));
     });
+
+    if (state.pending.length) {
+      var more = Forms.el('button', { type: 'button', 'data-show-all': '' },
+                          'Show all ' + all.length + ' rows');
+      more.addEventListener('click', function () {
+        state.pending.forEach(function (row) {
+          body.appendChild(buildRow(state, columns, row.rowNumber, row.values));
+        });
+        state.pending = [];
+        if (more.parentNode) more.parentNode.removeChild(more);
+        updateCount(state);
+        // A mark pass that has already run counted the rows just drawn but could not tint them —
+        // the note said "3 of them are not on screen yet" and this is the click that puts them
+        // there. Re-marking is what makes that promise good.
+        if (state.marked) markDuplicates(container, state.schema);
+      });
+      container.appendChild(more);
+    }
+
     updateCount(state);
 
     return container;
   }
 
   // Counted off the DOM rather than tracked alongside it, so adding and removing cannot leave
-  // the header disagreeing with what is on screen.
+  // the header disagreeing with what is on screen — plus the rows the cap held back, which are
+  // as much a part of the group as the drawn ones. The header answers "how many rows does this
+  // NPC have", not "how many did we draw"; the show-all button is what says the difference.
   function updateCount(state) {
-    var n = state.body.querySelectorAll('[data-group-row]').length;
+    var n = state.body.querySelectorAll('[data-group-row]').length +
+            (state.pending || []).length;
     state.count.textContent = n + (n === 1 ? ' row' : ' rows');
   }
 
@@ -331,7 +369,95 @@ var Groups = (function () {
       values[state.parent.column] = rows[i].__parent;
       out.push({ rowNumber: rows[i].__rowNumber, values: values, loaded: rows[i].__loaded });
     }
+
+    // The rows the cap did not draw, unchanged: `loaded` is a COPY of `values`, equal cell for
+    // cell, so the op builder finds nothing changed and emits no write — which is exactly right,
+    // the user never saw them. A copy rather than the same object because a caller that later
+    // edited `values` would otherwise rewrite the snapshot it is being diffed against, and the
+    // edit would vanish instead of being written.
+    (state.pending || []).forEach(function (row) {
+      var loaded = {};
+      Object.keys(row.values).forEach(function (k) { loaded[k] = row.values[k]; });
+      out.push({ rowNumber: row.rowNumber, values: row.values, loaded: loaded });
+    });
+
     return out;
+  }
+
+  // The class attribute edited as the whitespace-separated list it is. classList would be
+  // shorter, but this touches only setAttribute/getAttribute — the two operations every target
+  // this file has to run on supports — and it cannot clobber the classes it was not asked about,
+  // which a naive `className = 'group-row duplicate'` would.
+  function classes(node) {
+    return str(node.getAttribute('class')).split(/\s+/).filter(function (c) { return c !== ''; });
+  }
+
+  function setDuplicate(node, on) {
+    var list = classes(node).filter(function (c) { return c !== 'duplicate'; });
+    if (on) list.push('duplicate');
+    node.setAttribute('class', list.join(' '));
+  }
+
+  /// Marks rows that duplicate another row of the same group, and answers how many. A warning,
+  /// not a refusal: two Map Required Items naming one item is meaningless, but two drops of one
+  /// item for one NPC is arguable, and the editor is not where that gets settled.
+  ///
+  /// Every mark is cleared before any is applied, so a duplicate the user has just fixed does
+  /// not stay flagged.
+  ///
+  /// The tally runs over collect()'s output — the same records validate() sees, with the parent
+  /// cell restored and the UNDRAWN rows included — so the count in the status line and the rows
+  /// tinted on screen cannot disagree. Undrawn rows count toward the tally but cannot be marked:
+  /// they have no element. That is the honest reading — a drawn row really can duplicate one the
+  /// cap held back — and it means marked <= returned count, never the other way round. A caller
+  /// that wants to say so counts the `.duplicate` elements and compares.
+  ///
+  /// `records` is collect()'s output when the caller already has it — the save path does — so the
+  /// marks and the ops it is about to post are computed from one reading of the DOM rather than
+  /// two.
+  function markDuplicates(container, schema, records) {
+    var state = container.__group;
+    if (!state) return 0;
+
+    records = records || collect(container, schema);
+    // Remembered so the show-all handler knows to mark the rows it draws.
+    state.marked = true;
+    var counts = Object.create(null);
+    var keys = [];
+
+    records.forEach(function (row) {
+      var key = rowKeyOf(schema, row.values);
+      keys.push(key);
+      counts[key] = (counts[key] || 0) + 1;
+    });
+
+    var rows = drawnRows(container);
+    var duplicates = 0;
+    // collect() emits the drawn rows first, in this same order, then the pending ones — so
+    // keys[i] is row i's key for every i the DOM has.
+    for (var i = 0; i < rows.length; i++) {
+      var dup = counts[keys[i]] > 1;
+      setDuplicate(rows[i], dup);
+      if (dup) duplicates++;
+    }
+
+    // The undrawn rows, which have nothing to mark but still count.
+    for (var j = rows.length; j < keys.length; j++) {
+      if (counts[keys[j]] > 1) duplicates++;
+    }
+
+    return duplicates;
+  }
+
+  /// The rows a panel currently has on screen, as elements, in collect()'s order.
+  ///
+  /// Exported so a caller that needs to line something up against collect()'s output — error
+  /// messages, duplicate marks — asks the panel rather than the document. querySelectorAll on
+  /// #form would find the rows of EVERY panel mounted in it, and the moment there are two the
+  /// slice would be off by a whole group with nothing to say so.
+  function drawnRows(container) {
+    var state = container.__group;
+    return state ? state.body.querySelectorAll('[data-group-row]') : [];
   }
 
   /// The rows removed since the panel was rendered, as [{ rowNumber, loaded }].
@@ -432,6 +558,10 @@ var Groups = (function () {
 
   /// Every row validated, plus a count of rows that duplicate another row in the group.
   ///
+  /// `duplicates` is the MODEL-level tally over whatever rows it was handed. The UI does not read
+  /// it: the status line's number comes from markDuplicates, which tallies over the whole group
+  /// — drawn and undrawn alike — and tints as it counts, so the number and the marks agree.
+  ///
   /// ownId is the pk the row was LOADED with, exactly as the single-record save() takes it — from
   /// the loaded state and never from the field, so a pk typed over another row's id cannot exempt
   /// itself. Without it every EXISTING row of a grouped sheet that has a pk (Quest Reqs, Quest
@@ -479,10 +609,13 @@ var Groups = (function () {
     render: render,
     addRow: addRow,
     collect: collect,
+    drawnRows: drawnRows,
     removed: removed,
     ops: ops,
     rowKeyOf: rowKeyOf,
+    markDuplicates: markDuplicates,
     validate: validate,
+    RENDER_CAP: RENDER_CAP,
   };
 })();
 
