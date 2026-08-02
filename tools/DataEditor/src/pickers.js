@@ -210,12 +210,16 @@ var Pickers = (function () {
   // mousedown (see below), so a keyboard path that moved focus into the list would need the
   // opposite behaviour from the same blur handler.
   function fkControl(column, value, ctx) {
+    // See forms.js columnControl for why this rides on ctx.
+    var prefix = (ctx && typeof ctx.idPrefix === 'string' && ctx.idPrefix !== '')
+      ? ctx.idPrefix
+      : 'f-';
     var wrap = Forms.el('div', { class: 'picker' });
-    var listId = 'f-' + column.name + '-list';
+    var listId = prefix + column.name + '-list';
     var input = Forms.el('input', {
       // NO name — Forms.collect must never sweep the display text into the record. The id keeps
-      // 'f-' + name so the field's <label for> still lands here, on the thing a user types into.
-      id: 'f-' + column.name,
+      // prefix + name so the field's <label for> still lands here, on the thing a user types into.
+      id: prefix + column.name,
       type: 'text',
       autocomplete: 'off',
       placeholder: Forms.placeholderFor(column),

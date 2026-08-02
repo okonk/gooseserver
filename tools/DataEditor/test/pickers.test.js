@@ -2157,3 +2157,35 @@ test('a Mount has nothing to browse either, because the gallery indexes no mount
   fire(browseOf(wrap), 'click');
   assert.equal(gallery.opens.length, 0);
 });
+
+// ------------------------------------------------------------------ id prefixes
+
+test('fkControl keeps the f- prefix when ctx names none', () => {
+  const wrap = Pickers.fkControl(refColumn, '7', ctxWith({}));
+  const { input } = parts(wrap);
+  assert.equal(input.id, 'f-item_template_id');
+  assert.equal(input.getAttribute('aria-controls'), 'f-item_template_id-list');
+});
+
+test('fkControl applies ctx.idPrefix to both the input and its listbox', () => {
+  // aria-controls must follow the list's id or the combobox announces a listbox that
+  // does not exist — and in a group table the unprefixed id would be another row's.
+  const ctx = ctxWith({});
+  ctx.idPrefix = 'g3-';
+  const wrap = Pickers.fkControl(refColumn, '7', ctx);
+  const { input, list } = parts(wrap);
+  assert.equal(input.id, 'g3-item_template_id');
+  assert.equal(list.id, 'g3-item_template_id-list');
+  assert.equal(input.getAttribute('aria-controls'), list.id);
+});
+
+test('fkControl still carries the column name on its hidden cell under a prefix', () => {
+  // The prefix moves ids only. Forms.collect sweeps [name], so a prefixed NAME would
+  // drop the cell out of the record entirely.
+  const ctx = ctxWith({});
+  ctx.idPrefix = 'g3-';
+  const wrap = Pickers.fkControl(refColumn, '7', ctx);
+  const { cell } = parts(wrap);
+  assert.equal(cell.getAttribute('name'), 'item_template_id');
+  assert.equal(cell.value, '7');
+});

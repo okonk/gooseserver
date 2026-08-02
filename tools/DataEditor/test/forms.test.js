@@ -1077,3 +1077,67 @@ test("an Rgba field's label is the tint, not its red channel", () => {
     assert.ok(named(field).includes(n), `${n} is not reachable from the tint field`);
   });
 });
+
+// ------------------------------------------------------------------ id prefixes
+//
+// A group table renders one column's control once per row. With the id hardcoded to
+// 'f-' + name every row's input carried the SAME id and every <label for> resolved to
+// row 1's — so clicking any row's label focused the first row. The prefix is what makes
+// N controls for one column distinguishable; the default is what keeps the single-record
+// form byte-identical.
+
+test('scalarControl keeps the f- prefix when none is given', () => {
+  assert.equal(Forms.scalarControl(column('Items', 'player_hp'), '5').id, 'f-player_hp');
+});
+
+test('scalarControl applies a given prefix to a text input', () => {
+  assert.equal(Forms.scalarControl(column('Items', 'player_hp'), '5', 'g3-').id, 'g3-player_hp');
+});
+
+test('scalarControl applies a given prefix to an enum select', () => {
+  const control = Forms.scalarControl(column('Items', 'item_usetype'), 'Weapon', 'g3-');
+  assert.equal(control.tagName, 'SELECT');
+  assert.equal(control.id, 'g3-item_usetype');
+});
+
+test('scalarControl applies a given prefix to a bool checkbox', () => {
+  // boolControl builds a wrapper; the checkbox is the element carrying the id, and the
+  // hidden cell beside it carries the name. Only the id moves.
+  const wrap = Forms.scalarControl(column('Items', 'lore'), '1', 'g3-');
+  const box = wrap.querySelectorAll('[type="checkbox"]')[0];
+  assert.equal(box.id, 'g3-lore');
+});
+
+test('scalarControl applies a given prefix to a bool cell holding a non-0/1 value', () => {
+  // The fallback text input carries both the name and the id.
+  const wrap = Forms.scalarControl(column('Items', 'lore'), 'maybe', 'g3-');
+  const input = wrap.querySelectorAll('[type="text"]')[0];
+  assert.equal(input.id, 'g3-lore');
+  assert.equal(input.getAttribute('name'), 'lore');
+});
+
+test('two controls for one column under different prefixes get different ids', () => {
+  // The bug, stated directly.
+  const a = Forms.scalarControl(column('Items', 'player_hp'), '1', 'g0-');
+  const b = Forms.scalarControl(column('Items', 'player_hp'), '2', 'g1-');
+  assert.notEqual(a.id, b.id);
+});
+
+test('columnControl is exported', () => {
+  // The group table's only entry point into the control layer.
+  assert.equal(typeof Forms.columnControl, 'function');
+});
+
+test('columnControl passes ctx.idPrefix through to a scalar control', () => {
+  const c = column('Items', 'player_hp');
+  const control = Forms.columnControl({
+    column: c, ctx: { idPrefix: 'g3-' }, sheet: 'Items', values: { player_hp: '5' },
+  });
+  assert.equal(control.id, 'g3-player_hp');
+});
+
+test('columnControl with no ctx keeps the f- prefix', () => {
+  const c = column('Items', 'player_hp');
+  const control = Forms.columnControl({ column: c, sheet: 'Items', values: { player_hp: '5' } });
+  assert.equal(control.id, 'f-player_hp');
+});

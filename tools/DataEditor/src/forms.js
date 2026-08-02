@@ -86,6 +86,13 @@ var Forms = (function () {
     select.appendChild(el('option', { value: value }, value + ' (not a valid value)'));
   }
 
+  // The prefix every control's element id is built from. One definition, because a control and
+  // the <label for> pointing at it are built in different places and a second spelling of the
+  // default would silently unlink them.
+  function idPrefixOf(idPrefix) {
+    return typeof idPrefix === 'string' && idPrefix !== '' ? idPrefix : 'f-';
+  }
+
   // A TRI-STATE checkbox over a hidden cell, which is the whole point of it. save() writes a
   // cell only when Validation.validateCell says `write` (app.js), and a BLANK boolean means "use
   // the SQL default" (CsvToSqlBase.cs:27) — so a two-state box, which can only ever read back 0
@@ -96,7 +103,8 @@ var Forms = (function () {
   // input carries the name and IS the cell, seeded with the stored text verbatim, exactly as the
   // composite controls seed theirs. collect()'s [name] sweep therefore reads the cell and never
   // the box — a named checkbox would read back 'on' when ticked and its value attribute when not.
-  function boolControl(column, value) {
+  function boolControl(column, value, idPrefix) {
+    var prefix = idPrefixOf(idPrefix);
     var wrap = el('span', { class: 'boolean' });
 
     // A cell holding anything else has nowhere to go on a checkbox, and coercing it to ticked
@@ -104,7 +112,7 @@ var Forms = (function () {
     // value, flag it, and let Validation.validateCell report it.
     if (value !== '' && value !== '0' && value !== '1') {
       var raw = el('input', {
-        name: column.name, id: 'f-' + column.name, type: 'text', autocomplete: 'off',
+        name: column.name, id: prefix + column.name, type: 'text', autocomplete: 'off',
       });
       raw.value = value;
       wrap.appendChild(raw);
@@ -112,7 +120,7 @@ var Forms = (function () {
       return wrap;
     }
 
-    var box = el('input', { id: 'f-' + column.name, type: 'checkbox' });
+    var box = el('input', { id: prefix + column.name, type: 'checkbox' });
     box.checked = value === '1';
     box.indeterminate = value === '';
 
@@ -154,11 +162,12 @@ var Forms = (function () {
     return wrap;
   }
 
-  function scalarControl(column, rawValue) {
+  function scalarControl(column, rawValue, idPrefix) {
     var value = str(rawValue);
+    var prefix = idPrefixOf(idPrefix);
 
     if (column.kind === 'Enum') {
-      var select = el('select', { name: column.name, id: 'f-' + column.name });
+      var select = el('select', { name: column.name, id: prefix + column.name });
       if (!column.required) select.appendChild(el('option', { value: '' }, ''));
       (column.enumNames || []).forEach(function (n) {
         select.appendChild(el('option', { value: n }, n));
@@ -168,7 +177,7 @@ var Forms = (function () {
       return select;
     }
 
-    if (column.kind === 'Bool') return boolControl(column, value);
+    if (column.kind === 'Bool') return boolControl(column, value, prefix);
 
     // type="text" for numeric kinds too, deliberately. type="number" reads back '' for input
     // the browser cannot parse, so a typo'd "1o" would arrive here indistinguishable from a
@@ -177,7 +186,7 @@ var Forms = (function () {
     // message for every numeric kind; let it.
     var input = el('input', {
       name: column.name,
-      id: 'f-' + column.name,
+      id: prefix + column.name,
       type: 'text',
       placeholder: placeholderFor(column),
       autocomplete: 'off',
@@ -218,6 +227,11 @@ var Forms = (function () {
     var values = opts.values || {};
     var value = values[column.name];
 
+    // Carried on ctx rather than as a parameter of its own, exactly as `gallery` is (see the
+    // fkControl call below): the group table sets it once per row and every control the row
+    // builds inherits it, with no signature growing a parameter that only one caller passes.
+    var idPrefix = ctx && ctx.idPrefix;
+
     if (column.ref && typeof Pickers !== 'undefined' && Pickers && Pickers.fkControl) {
       return Pickers.fkControl(column, value, ctx);
     }
@@ -234,7 +248,7 @@ var Forms = (function () {
       });
     }
 
-    return scalarControl(column, value);
+    return scalarControl(column, value, idPrefix);
   }
 
   // Renders the whole record. `ctx` carries idSets, sprite bundles and picker data.
@@ -429,6 +443,7 @@ var Forms = (function () {
     collect: collect,
     showErrors: showErrors,
     scalarControl: scalarControl,
+    columnControl: columnControl,
     placeholderFor: placeholderFor,
     defaultOf: defaultOf,
     effective: effectiveValues,
