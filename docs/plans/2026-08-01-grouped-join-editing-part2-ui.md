@@ -1300,15 +1300,103 @@ test('the header Save is hidden on a grouped sheet and back on an ungrouped one'
   assert.equal(document.getElementById('save').hidden, false);
 });
 
-test('New opens the parent picker on a grouped sheet', () => {
+test('New opens the parent picker with every parent and a filter box', () => {
   const run = install({ 'NPC Drops': [DROP(1, 10)], NPCs: [NPC(1, 'Mouse'), NPC(2, 'Bat')] });
   App.openSheet('NPC Drops');
   run.flush();
   App.newRecord();
 
   // Every parent is offered, so there is one way to reach any of them — the ones that already
-  // have a group jump to it rather than starting a second.
-  assert.ok(document.getElementById('modal').querySelectorAll('[data-parent]').length >= 2);
+  // have a group jump to it rather than starting a second. And a filter, because Maps, NPCs and
+  // Quests run to hundreds of entries: an unfiltered list of 649 buttons is not a control.
+  const modal = document.getElementById('modal');
+  assert.ok(modal.querySelectorAll('[data-parent]').length >= 2);
+  assert.equal(modal.querySelectorAll('[data-filter]').length, 1);
+});
+
+test('the parent picker filters as you type', () => {
+  const run = install({ 'NPC Drops': [DROP(1, 10)], NPCs: [NPC(1, 'Mouse'), NPC(2, 'Bat')] });
+  App.openSheet('NPC Drops');
+  run.flush();
+  App.newRecord();
+
+  const filter = document.getElementById('modal').querySelectorAll('[data-filter]')[0];
+  filter.value = 'bat';
+  fire(filter, 'input');
+
+  const shown = document.getElementById('modal').querySelectorAll('[data-parent]');
+  assert.equal(shown.length, 1);
+  assert.match(shown[0].textContent, /Bat/);
+});
+
+test('Enter in the filter picks the first visible parent', () => {
+  const run = install({ 'NPC Drops': [DROP(1, 10)], NPCs: [NPC(1, 'Mouse'), NPC(2, 'Bat')],
+                        Items: [ITEM(10, 'Cheese')] });
+  App.openSheet('NPC Drops');
+  run.flush();
+  App.newRecord();
+
+  const filter = document.getElementById('modal').querySelectorAll('[data-filter]')[0];
+  filter.value = 'bat';
+  fire(filter, 'input');
+  fire(filter, 'keydown', { key: 'Enter' });
+  run.flush();
+
+  assert.equal(document.getElementById('modal').hidden, true);
+  assert.match(document.getElementById('form').textContent, /Bat/);
+});
+
+test('Escape closes the parent picker and empties the modal', () => {
+  // Emptied, not merely hidden — the gallery's rule (gallery.js:16), for the same reason.
+  const run = install({ 'NPC Drops': [DROP(1, 10)], NPCs: [NPC(1, 'Mouse')] });
+  App.openSheet('NPC Drops');
+  run.flush();
+  App.newRecord();
+
+  const dialog = document.getElementById('modal').querySelectorAll('[role=dialog]')[0];
+  fire(dialog, 'keydown', { key: 'Escape' });
+
+  assert.equal(document.getElementById('modal').hidden, true);
+  assert.equal(document.getElementById('modal').querySelectorAll('*').length, 0);
+});
+
+test('a backdrop click closes the parent picker; a click inside does not', () => {
+  const run = install({ 'NPC Drops': [DROP(1, 10)], NPCs: [NPC(1, 'Mouse')] });
+  App.openSheet('NPC Drops');
+  run.flush();
+  App.newRecord();
+
+  const modal = document.getElementById('modal');
+  fire(modal.querySelectorAll('[role=dialog]')[0], 'click');
+  assert.equal(modal.hidden, false, 'a click inside the dialog must not close it');
+  fire(modal, 'click');
+  assert.equal(modal.hidden, true);
+});
+
+test('the Close button closes the parent picker', () => {
+  const run = install({ 'NPC Drops': [DROP(1, 10)], NPCs: [NPC(1, 'Mouse')] });
+  App.openSheet('NPC Drops');
+  run.flush();
+  App.newRecord();
+
+  fire(document.getElementById('modal').querySelectorAll('[data-close]')[0], 'click');
+  assert.equal(document.getElementById('modal').hidden, true);
+});
+
+test('the parent picker says so when the parent list is absent, and still closes', () => {
+  // Without this the modal opens EMPTY when loadReferencedSheets is slow or failed — no rows,
+  // no message, no way out.
+  const run = install({ 'NPC Drops': [DROP(1, 10)], NPCs: [NPC(1, 'Mouse')] });
+  App.openSheet('NPC Drops');
+  run.flush();
+  delete App.__state.pickerData.NPCs;
+  App.newRecord();
+
+  const modal = document.getElementById('modal');
+  assert.equal(modal.querySelectorAll('[data-parent]').length, 0);
+  assert.match(modal.textContent, /NPCs/);
+  fire(modal.querySelectorAll('[data-close]')[0], 'click');
+  assert.equal(modal.hidden, true);
 });
 
 test('adding the first row to a parent with none appends it', () => {
@@ -1355,7 +1443,17 @@ Add to `state` (`:66-107`), beside `formToken`:
     groups: [],        // every group of the open sheet
 ```
 
-In `clearForm` (`:327`), beside the `formToken` bump, add `state.groupToken++; state.group = null;`.
+In `clearForm` (`:327`), beside the `formToken` bump, add:
+
+```js
+    state.groupToken++;
+    state.group = null;
+    // The panel's state rides on the container as __group, and innerHTML = '' does not clear an
+    // expando — a stale one would make Task 7's dirty check read rows that are no longer on
+    // screen (state.body still answers querySelectorAll even detached). Nulled here, so every
+    // programmatic navigation — the post-save reload above all — starts provably clean.
+    document.getElementById('form').__group = null;
+```
 
 In `openSheet` (`:370`), replace the `renderList()` call inside the success handler (`:400`) with:
 
@@ -1557,31 +1655,124 @@ In `newRecord()` (`:505`), likewise:
     if (grouped()) { openParentPicker(); return; }
 ```
 
-with a picker that lists every parent:
+with a picker that lists every parent behind a filter. Its close discipline is the
+gallery's (`src/gallery.js:716-736`): the backdrop listener is added per open and removed
+on close because `#modal` outlives the dialog; the modal is emptied on close, not merely
+hidden; and focus goes back to the button that opened it.
 
 ```js
   // The New-group picker. Every parent is offered, not only the ones with no rows: two controls
   // for "reach a parent" is one more than the job needs, so picking one that already has a group
-  // simply opens it.
+  // simply opens it. A FILTER, not a bare list — Maps, NPCs and Quests run to hundreds of
+  // entries, and an unfiltered column of 649 buttons is not a control.
+  //
+  // The list is rebuilt whole on every keystroke. Fine at this scale: these are plain text
+  // buttons, and the gallery only virtualises because its 4,827 entries carry images.
   function openParentPicker() {
     var parent = Groups.parentOf(state.schema);
+    var entries = state.pickerData[parent.ref] || [];
+    var opener = document.getElementById('new-record');
     var modal = document.getElementById('modal');
     modal.innerHTML = '';
     modal.hidden = false;
 
-    (state.pickerData[parent.ref] || []).forEach(function (entry) {
-      var key = Groups.idKey(entry.id);
-      var has = state.groups.filter(function (g) { return g.key === key; })[0];
-      var button = Forms.el('button', { type: 'button', 'data-parent': key },
-                            key + ' — ' + entry.name + (has ? ' (' + has.count + ')' : ''));
-      button.addEventListener('click', function () {
-        modal.hidden = true;
-        modal.innerHTML = '';
-        openGroup(key);
-      });
-      modal.appendChild(button);
+    var dialog = Forms.el('div', { class: 'parent-picker', role: 'dialog', 'aria-modal': 'true' });
+
+    var head = Forms.el('div', { class: 'picker-head' });
+    var filter = Forms.el('input', {
+      type: 'text', 'data-filter': '', autocomplete: 'off',
+      placeholder: 'Filter ' + parent.ref + '…', 'aria-label': 'Filter ' + parent.ref,
     });
+    var close = Forms.el('button', { type: 'button', 'data-close': '' }, 'Close');
+    head.appendChild(filter);
+    head.appendChild(close);
+    dialog.appendChild(head);
+
+    var list = Forms.el('div', { class: 'parent-list' });
+    dialog.appendChild(list);
+
+    // Emptied, not merely hidden, and the backdrop listener removed — #modal outlives this
+    // dialog, so a listener left behind would hold this closure (and `entries`) alive and stack
+    // one per open. Same reasoning, same shape, as the gallery's close (gallery.js:723-736).
+    function dismiss() {
+      modal.removeEventListener('click', backdrop);
+      modal.innerHTML = '';
+      modal.hidden = true;
+      if (opener && typeof opener.focus === 'function') opener.focus();
+    }
+
+    // The backdrop and only the backdrop: the dialog is a child of #modal, so a click inside it
+    // bubbles here too and must not close anything.
+    function backdrop(event) {
+      if (event.target === modal) dismiss();
+    }
+
+    function pick(key) {
+      dismiss();
+      openGroup(key);
+    }
+
+    function draw() {
+      list.innerHTML = '';
+      var needle = String(filter.value || '').toLowerCase();
+      var shown = 0;
+
+      entries.forEach(function (entry) {
+        var key = Groups.idKey(entry.id);
+        var text = key + ' — ' + String(entry.name || '');
+        if (needle && text.toLowerCase().indexOf(needle) === -1) return;
+        var has = state.groups.filter(function (g) { return g.key === key; })[0];
+        var button = Forms.el('button', { type: 'button', 'data-parent': key },
+                              text + (has ? ' (' + has.count + ')' : ''));
+        button.addEventListener('click', function () { pick(key); });
+        list.appendChild(button);
+        shown++;
+      });
+
+      if (!entries.length) {
+        // The parent list is still loading, or failed — refErrors knows which, but either way
+        // there is nothing to offer. Say so; an EMPTY modal with no message and no way out is
+        // the trap this whole dialog exists to avoid.
+        list.appendChild(Forms.el('p', { class: 'empty' },
+          parent.ref + ' has not loaded yet, and it is what names the parents. ' +
+          'Close this and try again in a moment.'));
+      } else if (!shown) {
+        list.appendChild(Forms.el('p', { class: 'empty' }, 'Nothing matches.'));
+      }
+    }
+
+    filter.addEventListener('input', draw);
+    dialog.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        dismiss();
+        return;
+      }
+      // Enter picks the first VISIBLE parent: "type a few letters, press Enter" is the shortest
+      // path through this dialog, exactly as it is through the gallery's search field.
+      if (event.key === 'Enter' && event.target === filter) {
+        event.preventDefault();
+        var first = list.querySelectorAll('[data-parent]')[0];
+        if (first) pick(first.getAttribute('data-parent'));
+      }
+    });
+    close.addEventListener('click', dismiss);
+    modal.addEventListener('click', backdrop);
+
+    modal.appendChild(dialog);
+    draw();
+    filter.focus();
   }
+```
+
+Add to `Editor.html`'s stylesheet, beside the existing `#modal` rules:
+
+```css
+  .parent-picker { background: var(--bg, #fff); max-width: 28em; max-height: 80vh;
+                   display: flex; flex-direction: column; padding: 8px; }
+  .picker-head { display: flex; gap: 8px; }
+  .picker-head input { flex: 1; }
+  .parent-list { overflow-y: auto; display: flex; flex-direction: column; align-items: stretch; }
 ```
 
 Hide the header Save on a grouped sheet. In `openSheet`, after `state.schema` is set (`:380`):
@@ -1602,7 +1793,7 @@ Export `openGroup` and `saveGroup` from `App` (`:1272`), alongside the existing 
 node --test tools/DataEditor/test/*.test.js
 ```
 
-Expected: **1006 tests, 996 pass, 0 fail, 10 skipped.**
+Expected: **1012 tests, 1002 pass, 0 fail, 10 skipped.**
 
 **Step 5: Commit**
 
@@ -1791,7 +1982,7 @@ and the dark-scheme override beside the other `.warn` entry.
 node --test tools/DataEditor/test/*.test.js
 ```
 
-Expected: **1012 tests, 1002 pass, 0 fail, 10 skipped.**
+Expected: **1018 tests, 1008 pass, 0 fail, 10 skipped.**
 
 **Step 5: Commit**
 
@@ -1799,6 +1990,325 @@ Expected: **1012 tests, 1002 pass, 0 fail, 10 skipped.**
 git add tools/DataEditor/src/groups.js tools/DataEditor/src/app.js \
         tools/DataEditor/Editor.html tools/DataEditor/test/groups.test.js
 git commit -m "feat(editor): cap large group renders and flag duplicate rows"
+```
+
+---
+
+## Task 7: Ask before discarding unsaved edits
+
+A group panel can hold twenty edited rows and a queued deletion; today every navigation
+— another group, another sheet, a pick from the New-group dialog — throws that out
+silently. This task adds `Groups.changeCount` (how much a panel is holding) and an ask
+in front of every **user-initiated** navigation off a dirty panel.
+
+**The ask is an in-modal dialog, NOT `window.confirm`.** The sidebar runs in a sandboxed
+iframe, and a sandbox without `allow-modals` makes `confirm()` return `false` without
+showing anything — navigation would be blocked forever, precisely when the user has work
+at stake. An in-modal dialog has no such dependency, matches the codebase's existing
+modal discipline, and is testable in the fake DOM without stubbing globals.
+
+Programmatic navigation must never ask: the post-save reload runs through `clearForm`,
+which (per Task 5) nulls `#form.__group`, so `changeCount` is zero by the time
+`openSheet` re-enters. That is why no flag or bypass parameter is needed anywhere.
+
+**Files:**
+- Modify: `tools/DataEditor/src/groups.js` (`changeCount`)
+- Modify: `tools/DataEditor/src/app.js` (`confirmDiscard`, `guarded`, `openGroup` split, the sheet-picker handler in `init`)
+- Modify: `tools/DataEditor/Editor.html` (dialog styles)
+- Test: `tools/DataEditor/test/groups.test.js`, `tools/DataEditor/test/app.test.js`
+
+**Step 1: Write the failing tests**
+
+Append to `test/groups.test.js`:
+
+```js
+// ------------------------------------------------------------------ changeCount
+
+test('an untouched panel holds zero changes', () => {
+  const { container, schema } = panelFor('NPC Drops', [DROP(1, 10)], NPCS);
+  assert.equal(Groups.changeCount(container, schema), 0);
+});
+
+test('an edited cell counts its row as one change', () => {
+  const { container, schema } = panelFor('NPC Drops', [DROP(1, 10), DROP(1, 20)], NPCS);
+  container.querySelectorAll('[name=droprate]')[0].value = '0.99';
+  assert.equal(Groups.changeCount(container, schema), 1);
+});
+
+test('an added row counts as a change', () => {
+  const { container, schema } = panelFor('NPC Drops', [DROP(1, 10)], NPCS);
+  Groups.addRow(container);
+  assert.equal(Groups.changeCount(container, schema), 1);
+});
+
+test('a removed row counts as a change', () => {
+  const { container, schema } = panelFor('NPC Drops', [DROP(1, 10), DROP(1, 20)], NPCS);
+  fire(container.querySelectorAll('[data-remove]')[0], 'click');
+  assert.equal(Groups.changeCount(container, schema), 1);
+});
+
+test('undrawn rows past the render cap count as nothing', () => {
+  // collect() hands them back with values === loaded, so the comparison finds no difference —
+  // which is exactly right: the user never saw them, so they cannot have edited them, and a
+  // capped panel must not ask "discard changes?" the moment it opens.
+  const rows = [];
+  for (let i = 0; i < 150; i++) rows.push(DROP(1, i + 1));
+  const { container, schema } = panelFor('NPC Drops', rows, NPCS);
+  assert.equal(Groups.changeCount(container, schema), 0);
+});
+```
+
+Append to `test/app.test.js`:
+
+```js
+// --- discarding unsaved edits ----------------------------------------------------------------
+
+function openDirtyGroup(run) {
+  fire(document.getElementById('records').querySelectorAll('.record')[0], 'click');
+  run.flush();
+  const cell = document.getElementById('form').querySelectorAll('[name=droprate]')[0];
+  cell.value = '0.99';
+}
+
+test('clicking another group with unsaved edits asks first, and Keep editing keeps them', () => {
+  const run = install({ 'NPC Drops': [DROP(1, 10), DROP(2, 20)],
+                        NPCs: [NPC(1, 'Mouse'), NPC(2, 'Bat')], Items: [ITEM(10, 'Cheese')] });
+  App.openSheet('NPC Drops');
+  run.flush();
+  openDirtyGroup(run);
+
+  fire(document.getElementById('records').querySelectorAll('.record')[1], 'click');
+
+  const modal = document.getElementById('modal');
+  assert.equal(modal.hidden, false, 'the ask must appear');
+  fire(modal.querySelectorAll('[data-keep]')[0], 'click');
+  assert.equal(modal.hidden, true);
+  // Group A is still on screen, edit intact.
+  assert.equal(document.getElementById('form')
+    .querySelectorAll('[name=droprate]')[0].value, '0.99');
+});
+
+test('Discard changes proceeds to the other group', () => {
+  const run = install({ 'NPC Drops': [DROP(1, 10), DROP(2, 20)],
+                        NPCs: [NPC(1, 'Mouse'), NPC(2, 'Bat')], Items: [ITEM(10, 'Cheese')] });
+  App.openSheet('NPC Drops');
+  run.flush();
+  openDirtyGroup(run);
+
+  fire(document.getElementById('records').querySelectorAll('.record')[1], 'click');
+  fire(document.getElementById('modal').querySelectorAll('[data-discard]')[0], 'click');
+  run.flush();
+
+  assert.match(document.getElementById('form').textContent, /Bat/);
+});
+
+test('an untouched panel navigates without asking', () => {
+  const run = install({ 'NPC Drops': [DROP(1, 10), DROP(2, 20)],
+                        NPCs: [NPC(1, 'Mouse'), NPC(2, 'Bat')], Items: [ITEM(10, 'Cheese')] });
+  App.openSheet('NPC Drops');
+  run.flush();
+  fire(document.getElementById('records').querySelectorAll('.record')[0], 'click');
+  run.flush();
+
+  fire(document.getElementById('records').querySelectorAll('.record')[1], 'click');
+  assert.equal(document.getElementById('modal').hidden, true, 'no edits, no ask');
+});
+
+test('a removed row alone is enough to ask', () => {
+  const run = install({ 'NPC Drops': [DROP(1, 10), DROP(1, 20), DROP(2, 30)],
+                        NPCs: [NPC(1, 'Mouse'), NPC(2, 'Bat')], Items: [ITEM(10, 'Cheese')] });
+  App.openSheet('NPC Drops');
+  run.flush();
+  fire(document.getElementById('records').querySelectorAll('.record')[0], 'click');
+  run.flush();
+  fire(document.getElementById('form').querySelectorAll('[data-remove]')[0], 'click');
+
+  fire(document.getElementById('records').querySelectorAll('.record')[1], 'click');
+  assert.equal(document.getElementById('modal').hidden, false);
+});
+
+test('switching sheets with unsaved edits asks, and declining resets the sheet picker', () => {
+  // The <select> flips to the new sheet the moment it is chosen; a declined switch must put it
+  // back, or the control lies about what is on screen.
+  const run = install({ 'NPC Drops': [DROP(1, 10)], NPCs: [NPC(1, 'Mouse')],
+                        Items: [ITEM(10, 'Cheese')] });
+  App.openSheet('NPC Drops');
+  run.flush();
+  openDirtyGroup(run);
+
+  const picker = document.getElementById('sheet-picker');
+  picker.value = 'Items';
+  fire(picker, 'change');
+
+  const modal = document.getElementById('modal');
+  assert.equal(modal.hidden, false);
+  fire(modal.querySelectorAll('[data-keep]')[0], 'click');
+  assert.equal(picker.value, 'NPC Drops');
+  assert.equal(App.__state.sheetName, 'NPC Drops');
+});
+
+test('the reload after a save never asks', () => {
+  // clearForm nulls #form.__group before openSheet re-reads, so the guard sees a clean panel.
+  // Without that, every successful save would be followed by its own "discard changes?" — the
+  // panel's controls still hold the edited values while the reload is in flight.
+  const run = install({ 'NPC Drops': [DROP(1, 10)], NPCs: [NPC(1, 'Mouse')],
+                        Items: [ITEM(10, 'Cheese')] });
+  App.openSheet('NPC Drops');
+  run.flush();
+  openDirtyGroup(run);
+  App.save();
+  run.flush();
+
+  assert.equal(document.getElementById('modal').hidden, true);
+  assert.match(document.getElementById('status').textContent, /Saved/);
+});
+```
+
+**Step 2: Run to verify they fail**
+
+```bash
+node --test tools/DataEditor/test/groups.test.js tools/DataEditor/test/app.test.js
+```
+
+Expected: `Groups.changeCount is not a function`; the app tests fail on the modal staying
+hidden (navigation proceeds without asking) and on group B being on screen where A was
+expected.
+
+**Step 3: Implement**
+
+In `src/groups.js`, beside `collect`:
+
+```js
+  /// How many changes an open panel is holding: rows edited, rows added, rows removed. Zero
+  /// means navigating away loses nothing.
+  ///
+  /// Counts ROWS, not cells — "3 unsaved changes" should mean three rows to go and look at.
+  /// The undrawn rows a capped render kept in state.pending come back from collect() with
+  /// values === loaded, so they can never count: the user never saw them.
+  function changeCount(container, schema) {
+    var state = container.__group;
+    if (!state) return 0;
+
+    var count = state.removed.length;
+    collect(container, schema).forEach(function (row) {
+      if (row.rowNumber === 0) { count++; return; }
+      var loaded = row.loaded || {};
+      for (var i = 0; i < schema.columns.length; i++) {
+        var name = schema.columns[i].name;
+        if (str(row.values[name]) !== str(loaded[name])) { count++; return; }
+      }
+    });
+    return count;
+  }
+```
+
+Add `changeCount` to the exports.
+
+In `src/app.js`, beside `openParentPicker` (the two dialogs share the modal discipline):
+
+```js
+  // The ask before a dirty panel is thrown away. An in-modal dialog, NOT window.confirm: the
+  // sidebar runs in a sandboxed iframe, and a sandbox without allow-modals makes confirm()
+  // return false WITHOUT SHOWING ANYTHING — navigation would be silently blocked forever,
+  // precisely when the user has work at stake. Escape and the backdrop both mean "keep
+  // editing": destruction only ever happens by pressing the button that names it.
+  function confirmDiscard(count, proceed, decline) {
+    var modal = document.getElementById('modal');
+    modal.innerHTML = '';
+    modal.hidden = false;
+
+    var dialog = Forms.el('div', { class: 'confirm', role: 'dialog', 'aria-modal': 'true' });
+    dialog.appendChild(Forms.el('p', null,
+      'This group has ' + count + ' unsaved change' + (count === 1 ? '' : 's') + '.'));
+
+    function close() {
+      modal.removeEventListener('click', backdrop);
+      modal.innerHTML = '';
+      modal.hidden = true;
+    }
+    function backdrop(event) {
+      if (event.target === modal) { close(); if (decline) decline(); }
+    }
+
+    var discard = Forms.el('button', { type: 'button', 'data-discard': '' }, 'Discard changes');
+    discard.addEventListener('click', function () { close(); proceed(); });
+    var keep = Forms.el('button', { type: 'button', 'data-keep': '' }, 'Keep editing');
+    keep.addEventListener('click', function () { close(); if (decline) decline(); });
+
+    dialog.appendChild(discard);
+    dialog.appendChild(keep);
+    dialog.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape') { event.preventDefault(); close(); if (decline) decline(); }
+    });
+    modal.addEventListener('click', backdrop);
+    modal.appendChild(dialog);
+    keep.focus();      // the safe answer is the default focus
+  }
+
+  // Runs `proceed` immediately when the open panel is clean, and asks first when it is not.
+  // Every USER navigation routes through here; programmatic navigation (the post-save reload)
+  // goes through clearForm first, which nulls __group, so it can never be asked.
+  function guarded(proceed, decline) {
+    var container = document.getElementById('form');
+    var count = grouped() && container.__group
+      ? Groups.changeCount(container, state.schema)
+      : 0;
+    if (!count) { proceed(); return; }
+    confirmDiscard(count, proceed, decline);
+  }
+```
+
+Split `openGroup`: rename the existing function to `openGroupNow` and add in its place:
+
+```js
+  /// Opens one group's table, asking first if the open panel holds unsaved edits. `key` is the
+  /// folded parent id, as Groups.build reports it.
+  function openGroup(key) {
+    if (!grouped()) return;
+    guarded(function () { openGroupNow(key); });
+  }
+```
+
+(The reopen-after-save path calls `openGroup` too, and stays correct with no bypass:
+`clearForm` has already nulled `__group`, so `guarded` proceeds synchronously.)
+
+In `init()` (`:1249`), the sheet-picker handler becomes:
+
+```js
+    picker.addEventListener('change', function () {
+      guarded(
+        function () { openSheet(picker.value); },
+        // Declined: the <select> already flipped, so put it back — the control must not claim a
+        // sheet that is not on screen.
+        function () { picker.value = state.sheetName; });
+    });
+```
+
+Add to `Editor.html`'s stylesheet, beside the `.parent-picker` rules from Task 5:
+
+```css
+  .confirm { background: var(--bg, #fff); max-width: 24em; padding: 12px; }
+  .confirm button { margin-right: 8px; }
+```
+
+Export `confirmDiscard` is **not** needed — the tests drive it through the buttons, which
+is how the page does.
+
+**Step 4: Run the full suite**
+
+```bash
+node --test tools/DataEditor/test/*.test.js
+```
+
+Expected: **1029 tests, 1019 pass, 0 fail, 10 skipped.**
+
+**Step 5: Commit**
+
+```bash
+git add tools/DataEditor/src/groups.js tools/DataEditor/src/app.js \
+        tools/DataEditor/Editor.html \
+        tools/DataEditor/test/groups.test.js tools/DataEditor/test/app.test.js
+git commit -m "feat(editor): ask before discarding a group's unsaved edits"
 ```
 
 ---
@@ -1825,6 +2335,12 @@ git commit -m "build: regenerate the editor bundle"
 - a drop pointing at a deleted NPC: it appears as `— (not in NPCs)` and can be removed
 - two tabs on one group: the second save is refused naming the row, and nothing is written
 - switch sheets while a big group is loading: nothing from the old sheet renders
+- New group on Maps or NPCs: type a few letters, the list narrows, Enter opens the first
+  match; Escape, the backdrop and Close all dismiss without picking
+- **the discard dialog actually appears in the real sidebar** — this is the sandboxed-iframe
+  question the in-modal design answers; confirm the ask renders, Keep editing keeps the
+  edits, and a declined sheet switch puts `#sheet-picker` back
+- edit a row, save: the reload must NOT ask about unsaved changes
 
 ## Done when
 
@@ -1835,4 +2351,8 @@ git commit -m "build: regenerate the editor bundle"
 - [ ] Undrawn rows of a capped group survive a save untouched
 - [ ] Duplicate rows are flagged and counted, and do not block the save
 - [ ] Exactly one Save button is on screen at a time
+- [ ] The New-group picker filters as you type, and Escape / backdrop / Close all dismiss it;
+      it opens with a message (not empty) when the parent list is absent
+- [ ] Navigating off a dirty panel asks via the in-modal dialog; a clean panel and the
+      post-save reload never ask; a declined sheet switch resets `#sheet-picker`
 - [ ] `dist/` regenerated and committed

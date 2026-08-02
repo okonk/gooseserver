@@ -34,6 +34,8 @@ built here.
 | Save shape | Multi-sheet from day one (`saveBatch`) |
 | Flat view | Replaced for grouped sheets, not retained |
 | Duplicate child rows | Warn, do not block |
+| Parent picker | Filter-as-you-type modal dialog; Escape, backdrop click or Close dismisses |
+| Unsaved edits | Navigating off a dirty panel asks first — in-modal confirm, not `window.confirm` |
 
 ## Grouping model
 
@@ -76,9 +78,13 @@ Both are editable and deletable: this is dead data you want to find, not hide.
 ## The group panel
 
 Choosing a grouped sheet renders the parent list into `#records` — one button per group,
-`1 — Mouse (3)` — above a **New group** button. That button opens a typeahead over the
-parent sheet listing *all* parents; picking one that already has a group jumps to it, so
-there is a single way to reach any parent.
+`1 — Mouse (3)` — above a **New group** button. That button opens a modal dialog over the
+parent sheet listing *all* parents behind a filter-as-you-type box — Maps, NPCs and
+Quests run to hundreds of entries, so an unfiltered list is not a control. Picking one
+that already has a group jumps to it, so there is a single way to reach any parent.
+Enter picks the first match; Escape, a backdrop click or the Close button dismisses
+without picking; and if the parent list failed to load the dialog says so rather than
+opening empty with no way out.
 
 Choosing a group renders into `#form`:
 
@@ -111,6 +117,25 @@ form with no rewrite.
 
 The header `#save` button hides in group mode — the panel owns its Save. `#new-record`
 reads "New group" and opens the parent picker.
+
+### Unsaved changes
+
+A group panel can hold twenty edited rows and a queued deletion; navigating away —
+another group, another sheet, a pick from the New-group dialog — must not throw that
+work out silently. `Groups.changeCount` answers how many changes a panel is holding
+(rows edited, added or removed; undrawn rows past the render cap count as nothing,
+since `values === loaded` for them), and every user-initiated navigation asks before
+discarding a non-zero count.
+
+The ask is an in-modal dialog, **not `window.confirm`**: the sidebar runs in a sandboxed
+iframe, and a sandbox without `allow-modals` makes `confirm()` return `false` without
+ever showing anything — which would block navigation forever precisely when the user has
+work at stake. The dialog offers "Discard changes" and "Keep editing"; Escape and the
+backdrop mean keep. Declining a sheet switch also puts `#sheet-picker` back to the open
+sheet, so the control never lies about what is on screen.
+
+Programmatic navigation never asks: the post-save reload runs through `clearForm`,
+which nulls the panel state, so `changeCount` is zero by the time `openSheet` re-enters.
 
 ## Save protocol
 
@@ -214,6 +239,9 @@ Gates carried over from the single-record path:
 | Quest Reqs / Quest Rewards `id` | Read-only, auto-allocated, incrementing across new rows |
 | Sheet not in `GROUP_PARENT` | Untouched — today's flat list and single-record form |
 | Duplicate child rows | Cells marked, count in the status line, save allowed |
+| Parent list failed to load | New-group dialog opens with a message and a working Close, not empty |
+| Navigating off a dirty panel | In-modal confirm; declining a sheet switch resets `#sheet-picker` |
+| Post-save reload | Never asks — `clearForm` nulls the panel state before `openSheet` re-enters |
 
 ## Prerequisites in the tested core
 
