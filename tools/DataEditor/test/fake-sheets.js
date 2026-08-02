@@ -269,6 +269,7 @@ export function loadCodeGs(sheetsByName, options = {}, settings = {}) {
     readSheet: (...args) => toHost(sandbox.readSheet(...args)),
     readSheetIndex: (...args) => toHost(sandbox.readSheetIndex(...args)),
     writeRow: (...args) => toHost(sandbox.writeRow(...args)),
+    saveBatch: (...args) => toHost(sandbox.saveBatch(...args)),
   };
 }
 

@@ -606,3 +606,143 @@ test('writeRow does not write when the lock cannot be taken', () => {
   assert.throws(() => gs.writeRow('Items', 2, ['7', 'x', '0', '0', '0', '0'], 0), /lock/i);
   assert.deepEqual(gs.sheets.Items.writes, []);
 });
+
+// --- saveBatch: planning and refusal ---------------------------------------------------------
+
+const DROPS_HEADER = ['npc_template_id', 'item_template_id', 'stack', 'droprate'];
+
+function batchGs(itemRows, dropRows, settings) {
+  return loadCodeGs({
+    Items: [HEADER].concat(itemRows),
+    'NPC Drops': [DROPS_HEADER].concat(dropRows),
+  }, {}, settings);
+}
+
+test('saveBatch refuses a sheet listed twice', () => {
+  const gs = batchGs([ROW], [[1, 4471, 1, 0.25]]);
+  assert.throws(
+    () => gs.saveBatch([{ sheet: 'Items', writes: [] }, { sheet: 'Items', appends: [] }]),
+    /appears twice/);
+});
+
+test('saveBatch refuses a cells array that is not the header width', () => {
+  const gs = batchGs([ROW], [[1, 4471, 1, 0.25]]);
+  assert.throws(
+    () => gs.saveBatch([{ sheet: 'NPC Drops', idColumnIndex: -1,
+                          appends: [{ cells: ['1', '4471', '1'] }] }]),
+    /3 values for a header 4 columns wide/);
+});
+
+test('saveBatch refuses a row number in two operations', () => {
+  const gs = batchGs([ROW], [[1, 4471, 1, 0.25], [1, 12, 1, 0.5]]);
+  assert.throws(
+    () => gs.saveBatch([{
+      sheet: 'NPC Drops', idColumnIndex: -1,
+      writes: [{ row: 2, cells: ['1', '4471', '2', '0.25'], loaded: ['1', '4471', '1', '0.25'] }],
+      deletes: [{ row: 2, loaded: ['1', '4471', '1', '0.25'] }],
+    }]),
+    /row 2 appears in more than one operation/);
+});
+
+test('saveBatch refuses the header row as a write or delete target', () => {
+  const gs = batchGs([ROW], [[1, 4471, 1, 0.25]]);
+  assert.throws(
+    () => gs.saveBatch([{ sheet: 'NPC Drops', idColumnIndex: -1,
+                          deletes: [{ row: 1, loaded: DROPS_HEADER.map(String) }] }]),
+    /header row/);
+});
+
+test('saveBatch refuses a row past the end of the sheet', () => {
+  const gs = batchGs([ROW], [[1, 4471, 1, 0.25]]);
+  assert.throws(
+    () => gs.saveBatch([{ sheet: 'NPC Drops', idColumnIndex: -1,
+                          deletes: [{ row: 99, loaded: ['1', '4471', '1', '0.25'] }] }]),
+    /past the end of the sheet/);
+});
+
+test('saveBatch refuses a delete whose row no longer matches what the client loaded', () => {
+  // Stricter than a write on purpose: a write may skip cells the user did not edit, but there
+  // is no such thing as deleting only the cells you were looking at.
+  const gs = batchGs([ROW], [[1, 4471, 1, 0.25]]);
+  assert.throws(
+    () => gs.saveBatch([{ sheet: 'NPC Drops', idColumnIndex: -1,
+                          deletes: [{ row: 2, loaded: ['1', '4471', '1', '0.99'] }] }]),
+    /changed in the sheet/);
+});
+
+test('saveBatch refuses a write whose cell another editor changed', () => {
+  const gs = batchGs([ROW], [[1, 4471, 1, 0.25]]);
+  assert.throws(
+    () => gs.saveBatch([{
+      sheet: 'NPC Drops', idColumnIndex: -1,
+      writes: [{ row: 2, cells: ['1', '4471', '1', '0.50'],
+                 loaded: ['1', '4471', '1', '0.10'] }],   // sheet holds 0.25, neither value
+    }]),
+    /droprate/);
+});
+
+test('a conflict in one sheet refuses the whole batch, including the other sheet', () => {
+  // The reason a parent and its children post as ONE call rather than two.
+  const gs = batchGs([ROW], [[1, 4471, 1, 0.25]]);
+  assert.throws(() => gs.saveBatch([
+    { sheet: 'Items', idColumnIndex: 0,
+      writes: [{ row: 2, cells: ['7', 'Steel Sword', '0.1235', '1500', '1', '185.25'],
+                 loaded: ['7', 'Iron Sword', '0.1235', '1500', '1', '185.25'] }] },
+    { sheet: 'NPC Drops', idColumnIndex: -1,
+      deletes: [{ row: 2, loaded: ['1', '4471', '1', '0.99'] }] },
+  ]), /changed in the sheet/);
+  assert.deepEqual(gs.sheets.Items.writes, []);
+  assert.deepEqual(gs.sheets['NPC Drops'].deletes, []);
+});
+
+test('saveBatch reports every problem in the batch, not just the first', () => {
+  const gs = batchGs([ROW], [[1, 4471, 1, 0.25], [1, 12, 1, 0.5]]);
+  let message = '';
+  try {
+    gs.saveBatch([{
+      sheet: 'NPC Drops', idColumnIndex: -1,
+      deletes: [{ row: 2, loaded: ['1', '4471', '1', '0.99'] },
+                { row: 3, loaded: ['1', '12', '1', '0.99'] }],
+    }]);
+  } catch (e) { message = e.message; }
+  assert.match(message, /row 2/);
+  assert.match(message, /row 3/);
+});
+
+test('saveBatch refuses an appended id another row already holds', () => {
+  const gs = batchGs([ROW], []);
+  assert.throws(
+    () => gs.saveBatch([{ sheet: 'Items', idColumnIndex: 0,
+                          appends: [{ cells: ['7', 'Copy', '0', '0', '0', '0'] }] }]),
+    /id 7 .*already used by row 2/);
+});
+
+test('saveBatch allows an appended id that a row being deleted is giving up', () => {
+  // The plan is checked against the sheet AS IT WILL BE, not as it is. Without this, replacing a
+  // record in one batch would be refused by the id it is itself releasing.
+  const gs = batchGs([ROW], []);
+  assert.doesNotThrow(() => gs.saveBatch([{
+    sheet: 'Items', idColumnIndex: 0,
+    appends: [{ cells: ['7', 'Replacement', '0', '0', '0', '0'] }],
+    deletes: [{ row: 2, loaded: ['7', 'Iron Sword', '0.1235', '1500', '1', '185.25'] }],
+  }]));
+});
+
+test('saveBatch leaves a duplicate id it did not create alone', () => {
+  // writeRow's rule: a duplicate already in the column is the publish check's to report. Only an
+  // id this batch CLAIMS can collide.
+  const gs = batchGs([ROW, [7, 'Twin', 0, 0, 0, 0]], []);
+  assert.doesNotThrow(() => gs.saveBatch([{
+    sheet: 'Items', idColumnIndex: 0,
+    writes: [{ row: 2, cells: ['7', 'Renamed', '0.1235', '1500', '1', '185.25'],
+               loaded: ['7', 'Iron Sword', '0.1235', '1500', '1', '185.25'] }],
+  }]));
+});
+
+test('saveBatch takes the lock and releases it on the throwing path', () => {
+  const gs = batchGs([ROW], [[1, 4471, 1, 0.25]]);
+  assert.throws(() => gs.saveBatch([{ sheet: 'NPC Drops', idColumnIndex: -1,
+                                      deletes: [{ row: 2, loaded: ['x', 'x', 'x', 'x'] }] }]),
+                /changed in the sheet/);
+  assert.deepEqual(gs.locks(), { acquired: 1, released: 1, held: false });
+});

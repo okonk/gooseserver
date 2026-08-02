@@ -690,3 +690,275 @@ function writeRowLocked_(sheetName, rowNumber, cells, idColumnIndex, options) {
 
   return { row: target };
 }
+
+/**
+ * Saves several sheets' worth of edits, appends and deletions as one operation.
+ *
+ * `ops` is an array of per-sheet entries, in the order they should be APPLIED — put a parent
+ * sheet before its children, so a batch that fails part-way leaves an incomplete parent (which
+ * a retry completes) rather than children pointing at a row that was never written:
+ *
+ *   [{ sheet, idColumnIndex, textColumns, writes, appends, deletes }, ...]
+ *
+ *   writes:  [{ row, cells, loaded }]   row is 1-based including the header, as writeRow's is
+ *   appends: [{ cells }]
+ *   deletes: [{ row, loaded }]
+ *
+ * `cells` and `loaded` are arrays exactly as wide as that sheet's header, same encoding as
+ * writeRow's. `idColumnIndex` is 0-based, or -1 for the nine sheets with no primary key.
+ *
+ * EVERY SHEET IS PLANNED BEFORE ANY SHEET IS WRITTEN. That is the whole point of the call: a
+ * stale row in the last entry refuses the first entry's writes too, so an NPC and its drops
+ * cannot half-save against a sheet that moved. All problems across all sheets are collected and
+ * reported together, so a user fixes them in one pass rather than one error at a time.
+ *
+ * NOT A TRANSACTION. Once the checks pass, the writes go out sheet by sheet, and an Apps Script
+ * failure part-way through leaves the earlier ones standing. The document lock means no other
+ * save interleaves; it does not mean this one is atomic. See the header's residual-risk note.
+ */
+function saveBatch(ops) {
+  if (!Array.isArray(ops) || ops.length === 0) {
+    throw new Error('saveBatch: ops must be a non-empty array');
+  }
+
+  var seen = {};
+  ops.forEach(function (entry) {
+    var name = String(entry && entry.sheet);
+    if (Object.prototype.hasOwnProperty.call(seen, name)) {
+      throw new Error('saveBatch: sheet "' + name + '" appears twice in one batch');
+    }
+    seen[name] = true;
+  });
+
+  return withDocumentLock_(function () {
+    var plans = ops.map(planSheetOps_);
+
+    var problems = [];
+    plans.forEach(function (plan) { problems = problems.concat(plan.problems); });
+    if (problems.length) throw new Error(problems.join('\n'));
+
+    return applyPlans_(plans);
+  });
+}
+
+/**
+ * Internal: one sheet's ops checked against the sheet as it currently stands. READS ONLY.
+ *
+ * Returns everything applying needs — the resolved sheet, the header width, the folded cells,
+ * the per-row write plans — plus `problems`, the human-readable refusals. A shape error that
+ * makes planning impossible (no header, wrong-width array) throws immediately; a data
+ * disagreement (a conflict, a duplicate id) goes into `problems` so the caller can report every
+ * one of them at once.
+ */
+function planSheetOps_(entry) {
+  var sheetName = String(entry.sheet);
+  var sheet = requireSheet_(sheetName);
+
+  var width = headerWidth_(sheet);
+  if (width === 0) {
+    throw new Error('saveBatch: sheet "' + sheetName + '" has no header row — nothing to write against');
+  }
+
+  var writes = Array.isArray(entry.writes) ? entry.writes : [];
+  var appends = Array.isArray(entry.appends) ? entry.appends : [];
+  var deletes = Array.isArray(entry.deletes) ? entry.deletes : [];
+
+  var textColumns = {};
+  (Array.isArray(entry.textColumns) ? entry.textColumns : []).forEach(function (i) {
+    if (typeof i === 'number' && i >= 0 && i < width) textColumns[Math.floor(i)] = true;
+  });
+
+  var idIndex = typeof entry.idColumnIndex === 'number' &&
+                entry.idColumnIndex >= 0 && entry.idColumnIndex < width
+    ? Math.floor(entry.idColumnIndex)
+    : -1;
+
+  var lastRow = sheet.getLastRow();
+
+  // ONE read of the sheet, with the display values fetched only if a Date turns up — the same
+  // trade readSheet makes (see readSheet's comment above), and for the same reason: cellText_
+  // reads `display` for a Date and for nothing else, and no column in the schema is a date.
+  var raw = [];
+  var shown = null;
+  if (lastRow >= 1) {
+    var range = sheet.getDataRange();
+    raw = range.getValues();
+    for (var r = 0; r < raw.length && !shown; r++) {
+      for (var c = 0; c < raw[r].length; c++) {
+        if (isDate_(raw[r][c])) { shown = range.getDisplayValues(); break; }
+      }
+    }
+  }
+
+  var problems = [];
+  var claimed = {};
+
+  function fold(cells, what) {
+    if (!Array.isArray(cells) || cells.length !== width) {
+      throw new Error(
+        sheetName + ': got ' + (Array.isArray(cells) ? cells.length : 'no') +
+        ' values for a header ' + width + ' columns wide (' + what + ')');
+    }
+    return cells.map(function (cell) { return isBlank_(cell) ? '' : cell; });
+  }
+
+  function targetRow(row, what) {
+    if (typeof row !== 'number' && !(typeof row === 'string' && String(row).trim() !== '')) {
+      throw new Error(sheetName + ': invalid row ' + row + ' (' + what + ')');
+    }
+    var n = Number(row);
+    if (!isFinite(n) || Math.floor(n) !== n || n < 0) {
+      throw new Error(sheetName + ': invalid row ' + row + ' (' + what + ')');
+    }
+    if (n === 1) throw new Error(sheetName + ': refusing to touch the header row');
+    if (n > lastRow) {
+      throw new Error(
+        sheetName + ': row ' + n + ' is past the end of the sheet (' + lastRow +
+        ' rows) — reload and retry');
+    }
+    if (Object.prototype.hasOwnProperty.call(claimed, String(n))) {
+      problems.push(sheetName + ': row ' + n + ' appears in more than one operation');
+    }
+    claimed[String(n)] = what;
+    return n;
+  }
+
+  var header = sheet.getRange(1, 1, 1, width).getDisplayValues()[0];
+
+  // WRITES. Planned, not applied — planRowWrite_ takes the row as it stands and answers which
+  // cells to write, so nothing here touches the sheet.
+  var plannedWrites = [];
+  writes.forEach(function (w) {
+    var row = targetRow(w.row, 'write');
+    var out = fold(w.cells, 'write row ' + row);
+    var loaded = Array.isArray(w.loaded) ? fold(w.loaded, 'write row ' + row + ' snapshot') : null;
+
+    var currentRaw = raw[row - 1] || [];
+    var currentShown = shown ? shown[row - 1] : null;
+    var plan = planRowWrite_(currentRaw, currentShown, out, loaded, width);
+
+    if (plan.conflicts.length) {
+      var names = plan.conflicts.map(function (c) { return String(header[c]); });
+      problems.push(
+        sheetName + ' row ' + row + ': ' + names.join(', ') + ' changed in the sheet while you ' +
+        'were editing — nothing was written. Reload and re-apply your edit.');
+      return;
+    }
+
+    // A row whose every cell already agrees is not an operation. Dropping it here keeps the
+    // returned count honest and saves a setValues call per untouched row.
+    if (plan.writeAt.length) {
+      plannedWrites.push({ row: row, out: out, writeAt: plan.writeAt });
+    }
+  });
+
+  // DELETES. Stricter than a write: the row must still be, cell for cell, what the client was
+  // looking at. A write may leave alone the cells the user did not edit; there is no partial
+  // version of removing a row, so anything that moved under it is a refusal.
+  var plannedDeletes = [];
+  deletes.forEach(function (d) {
+    var row = targetRow(d.row, 'delete');
+    var loaded = fold(d.loaded, 'delete row ' + row + ' snapshot');
+
+    var currentRaw = raw[row - 1] || [];
+    var currentShown = shown ? shown[row - 1] : null;
+    var moved = [];
+    for (var c = 0; c < width; c++) {
+      var current = cellText_(currentRaw[c], currentShown ? currentShown[c] : '');
+      if (current !== String(loaded[c])) moved.push(String(header[c]));
+    }
+
+    if (moved.length) {
+      problems.push(
+        sheetName + ' row ' + row + ': ' + moved.join(', ') + ' changed in the sheet while you ' +
+        'were editing — the row was not deleted. Reload and re-apply your edit.');
+      return;
+    }
+
+    plannedDeletes.push({ row: row });
+  });
+
+  var plannedAppends = appends.map(function (a, i) {
+    return { out: fold(a.cells, 'new row ' + (i + 1)) };
+  });
+
+  if (idIndex >= 0) {
+    checkBatchIds_(sheetName, idIndex, raw, lastRow, plannedWrites, plannedAppends,
+                   plannedDeletes, writes, problems);
+  }
+
+  return {
+    name: sheetName,
+    sheet: sheet,
+    width: width,
+    textColumns: textColumns,
+    writes: plannedWrites,
+    appends: plannedAppends,
+    deletes: plannedDeletes,
+    problems: problems,
+  };
+}
+
+/**
+ * Internal: no id this batch CLAIMS may collide, checked against the sheet AS IT WILL BE.
+ *
+ * Two things this deliberately does NOT do, both inherited from writeRow:
+ *   - a duplicate already sitting in the column that this batch does not touch is left alone.
+ *     This save did not make it; the publish check is what reports it. So the untouched rows are
+ *     seeded first and silently, and only a claimed id can be refused.
+ *   - a write that does not MOVE its id claims nothing, so an ordinary field edit on a sheet
+ *     that already has a duplicate is not refused for a collision it did not cause.
+ * And one it does: a row being DELETED releases its id in the same batch, so replacing a record
+ * in one call is not refused by the id it is itself giving up.
+ */
+function checkBatchIds_(sheetName, idIndex, raw, lastRow, plannedWrites, plannedAppends,
+                        plannedDeletes, rawWrites, problems) {
+  var deleted = {};
+  plannedDeletes.forEach(function (d) { deleted[String(d.row)] = true; });
+
+  // Every write's posted id, by row — including the ones planRowWrite_ dropped as no-ops, since
+  // a row whose id did not move still HOLDS that id in the post-batch sheet.
+  var posted = {};
+  rawWrites.forEach(function (w) {
+    var row = Number(w.row);
+    if (Array.isArray(w.cells)) posted[String(row)] = idKey_(w.cells[idIndex]);
+  });
+
+  var byKey = {};
+  var claims = [];
+
+  for (var row = 2; row <= lastRow; row++) {
+    if (deleted[String(row)]) continue;
+
+    var currentKey = idKey_((raw[row - 1] || [])[idIndex]);
+    var isPosted = Object.prototype.hasOwnProperty.call(posted, String(row));
+    var key = isPosted ? posted[String(row)] : currentKey;
+    if (key === '') continue;
+
+    // A posted id equal to the one already there is not a claim — writeRow's idUnchanged rule.
+    // Treat the row as untouched so a pre-existing duplicate is not blamed on it.
+    if (isPosted && key !== currentKey) claims.push({ key: key, who: 'row ' + row });
+    else if (!byKey[key]) byKey[key] = 'row ' + row;
+  }
+
+  plannedAppends.forEach(function (a, i) {
+    var key = idKey_(a.out[idIndex]);
+    if (key !== '') claims.push({ key: key, who: 'new row ' + (i + 1) });
+  });
+
+  claims.forEach(function (claim) {
+    if (byKey[claim.key]) {
+      problems.push(sheetName + ': id ' + claim.key + ' (' + claim.who + ') is already used by ' +
+                    byKey[claim.key]);
+    } else {
+      byKey[claim.key] = claim.who;
+    }
+  });
+}
+
+/** Internal: applies the plans. Task 5 fills this in; planning must be provably separate. */
+function applyPlans_(plans) {
+  return plans.map(function (plan) {
+    return { sheet: plan.name, written: 0, appended: 0, deleted: 0 };
+  });
+}
