@@ -45,8 +45,10 @@
 //
 // STILL MISSING. Structural: appendChild does not detach from a previous parent, value
 // sanitization for every OTHER type (a text input strips CR/LF in a browser and does not here),
-// ask-for-reset does not skip disabled options, no removeChild, no classList, and a checkbox has
-// no radio-group or form-reset behaviour.
+// ask-for-reset does not skip disabled options, no classList, and a checkbox has
+// no radio-group or form-reset behaviour. removeChild does not re-resolve a SELECT's selection
+// the way a browser does — removing the selected option here leaves selectedIndex pointing at
+// whatever has slid into that slot, where a browser re-runs its own selectedness rules.
 //
 // And THREE DIVERGENCES INSIDE the range sanitization that is here, each of which a browser gets
 // right and this does not:
@@ -397,6 +399,16 @@ class FakeNode {
     return child;
   }
 
+  // Removing a row from a group table is the only thing that needs this, and it is the real
+  // API rather than a helper because that is what the source calls.
+  removeChild(child) {
+    const at = this.children.indexOf(child);
+    if (at < 0) throw new Error('fake DOM: removeChild of a node that is not a child');
+    this.children.splice(at, 1);
+    child.parentNode = null;
+    return child;
+  }
+
   get textContent() {
     if (this.children.length === 0) return this._text;
     return this._text + this.children.map((c) => c.textContent).join('');
@@ -493,13 +505,18 @@ class FakeNode {
     return out;
   }
 
-  // Supports exactly what forms.js uses: [attr] and [attr="value"].
+  // Supports an optional tag prefix and one attribute clause: tag, [attr], [attr=value] and
+  // [attr="value"] — an unquoted value being legal CSS whenever it is an identifier, which
+  // every column name here is.
   _matches(selector) {
-    const m = /^\[([a-zA-Z-]+)(?:="([^"]*)")?\]$/.exec(selector);
-    if (!m) throw new Error('fake DOM cannot parse selector: ' + selector);
-    const actual = this.getAttribute(m[1]);
+    const m = /^([a-zA-Z][a-zA-Z0-9]*)?(?:\[([a-zA-Z-]+)(?:="([^"]*)"|=([-\w]+))?\])?$/.exec(selector);
+    if (!m || (!m[1] && !m[2])) throw new Error('fake DOM cannot parse selector: ' + selector);
+    if (m[1] && this.tagName !== m[1].toUpperCase()) return false;
+    if (!m[2]) return true;
+    const actual = this.getAttribute(m[2]);
     if (actual === null) return false;
-    return m[2] === undefined || actual === m[2];
+    const want = m[3] !== undefined ? m[3] : m[4];
+    return want === undefined || actual === want;
   }
 
   querySelectorAll(selector) {
