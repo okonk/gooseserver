@@ -435,7 +435,8 @@ var App = (function () {
     google.script.run
       .withFailureHandler(function (e) {
         // The read failed, so no group can be reopened and the request must not be left standing
-        // for whatever sheet is opened next, and neither may a failed save's message.
+        // for whatever sheet is opened next — and neither may the message a finished save handed
+        // over, whether it reported a failure or a success.
         state.reopenGroup = null;
         state.pendingStatus = null;
         if (current()) status(e.message, true);
@@ -587,8 +588,20 @@ var App = (function () {
     });
   }
 
-  /// Opens one group's table. `key` is the folded parent id, as Groups.build reports it.
+  /// Opens one group's table, asking first if the open panel holds unsaved edits. `key` is the
+  /// folded parent id, as Groups.build reports it.
+  ///
+  /// The saving check is repeated HERE, ahead of the guard, and that ordering is the point: a
+  /// panel mid-save was already submitted, so asking "discard your changes?" over it would be
+  /// asking about work that is on its way to the sheet. Refusing outright — openGroupNow's
+  /// long-standing behaviour — must win, so it is decided before anything can put up a dialog.
   function openGroup(key) {
+    if (!grouped()) return;
+    if (state.saving) { status('Still saving — one moment', true); return; }
+    guarded(function () { openGroupNow(key); });
+  }
+
+  function openGroupNow(key) {
     if (!grouped()) return;
 
     // NAVIGATION IS REFUSED WHILE A SAVE IS IN FLIGHT, and this is the decision rather than an
@@ -713,11 +726,12 @@ var App = (function () {
     }
 
     // Tinted here rather than inside validate, but from the same key, so the rows highlighted on
-    // screen are exactly the ones the status line below counts. The COUNT comes from this same pass rather than from check.duplicates: validate() now
-    // sees only the drawn rows, while a drawn row can perfectly well duplicate one the cap held
-    // back. This tallies over every record and marks the ones it can, so the number in the
-    // message and the rows tinted on screen are the same reading. `present` is handed over so
-    // the marks and the ops below come from ONE reading of the DOM.
+    // screen are exactly the ones the status line below counts. The COUNT comes from this same
+    // pass rather than from check.duplicates: validate() now sees only the drawn rows, while a
+    // drawn row can perfectly well duplicate one the cap held back. This tallies over every
+    // record and marks the ones it can, so the number in the message and the rows tinted on
+    // screen are the same reading. `present` is handed over so the marks and the ops below come
+    // from ONE reading of the DOM.
     var duplicates = Groups.markDuplicates(container, state.schema, present);
     // How many of them the user can actually see. Fewer than `duplicates` when the render cap is
     // holding some back, and a note saying "4 rows duplicate another" with two tinted is a note
@@ -787,6 +801,72 @@ var App = (function () {
         reload();
       })
       .saveBatch(batch);
+  }
+
+  // The ask before a dirty panel is thrown away. An in-modal dialog, NOT window.confirm: the
+  // sidebar runs in a sandboxed iframe, and a sandbox without allow-modals makes confirm()
+  // return false WITHOUT SHOWING ANYTHING — navigation would be silently blocked forever,
+  // precisely when the user has work at stake. Escape and the backdrop both mean "keep
+  // editing": destruction only ever happens by pressing the button that names it.
+  function confirmDiscard(count, proceed, decline) {
+    var modal = document.getElementById('modal');
+    // Whatever had focus when the ask went up — the record button, the sheet <select>, a cell.
+    // Read rather than passed, because this dialog is raised from three different controls and
+    // there is no one opener to hand in. A keyboard user who answers "Keep editing" must land
+    // back where they were; dropping them on <body> mid-edit is its own small loss of place.
+    var opener = document.activeElement;
+    modal.innerHTML = '';
+    modal.hidden = false;
+
+    // Named by its own message. This is the one dialog in the editor whose wrong answer destroys
+    // work, so a screen reader announcing it must say what is at stake, not "dialog".
+    var messageId = 'confirm-discard-message';
+    var dialog = Forms.el('div', {
+      class: 'confirm', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': messageId,
+    });
+    dialog.appendChild(Forms.el('p', { id: messageId },
+      'This group has ' + count + ' unsaved change' + (count === 1 ? '' : 's') + '.'));
+
+    // Emptied, not merely hidden, and the backdrop listener removed — #modal outlives this
+    // dialog, so a listener left behind would hold this closure alive and stack one per open.
+    // Same discipline as the parent picker's dismiss.
+    function close() {
+      modal.removeEventListener('click', backdrop);
+      modal.innerHTML = '';
+      modal.hidden = true;
+      if (opener && typeof opener.focus === 'function') opener.focus();
+    }
+    // The backdrop and only the backdrop: the dialog is a child of #modal, so a click inside it
+    // bubbles here too and must not answer for the user.
+    function backdrop(event) {
+      if (event.target === modal) { close(); if (decline) decline(); }
+    }
+
+    var discard = Forms.el('button', { type: 'button', 'data-discard': '' }, 'Discard changes');
+    discard.addEventListener('click', function () { close(); proceed(); });
+    var keep = Forms.el('button', { type: 'button', 'data-keep': '' }, 'Keep editing');
+    keep.addEventListener('click', function () { close(); if (decline) decline(); });
+
+    dialog.appendChild(discard);
+    dialog.appendChild(keep);
+    dialog.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape') { event.preventDefault(); close(); if (decline) decline(); }
+    });
+    modal.addEventListener('click', backdrop);
+    modal.appendChild(dialog);
+    if (typeof keep.focus === 'function') keep.focus();   // the safe answer is the default focus
+  }
+
+  // Runs `proceed` immediately when the open panel is clean, and asks first when it is not.
+  // Every USER navigation routes through here; programmatic navigation (the post-save reload)
+  // goes through clearForm first, which nulls __group, so it can never be asked.
+  function guarded(proceed, decline) {
+    var container = document.getElementById('form');
+    var count = grouped() && container.__group
+      ? Groups.changeCount(container, state.schema)
+      : 0;
+    if (!count) { proceed(); return; }
+    confirmDiscard(count, proceed, decline);
   }
 
   // The New-group picker. Every parent is offered, not only the ones with no rows: two controls
@@ -1664,7 +1744,13 @@ var App = (function () {
       picker.appendChild(Forms.el('option', { value: s.sheet }, s.sheet));
     });
 
-    picker.addEventListener('change', function () { openSheet(picker.value); });
+    picker.addEventListener('change', function () {
+      guarded(
+        function () { openSheet(picker.value); },
+        // Declined: the <select> already flipped, so put it back — the control must not claim a
+        // sheet that is not on screen.
+        function () { picker.value = state.sheetName; });
+    });
     document.getElementById('new-record').addEventListener('click', newRecord);
     document.getElementById('save').addEventListener('click', save);
     document.getElementById('publish-check').addEventListener('click', publishCheck);

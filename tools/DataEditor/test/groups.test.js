@@ -624,8 +624,6 @@ test('an edit to a drawn row writes that row alone, and the undrawn rows ride al
   assert.equal(ops.writes[0].cells[at], '0.99');
 });
 
-// ------------------------------------------------------------------ duplicates
-
 test('the header counts the whole group, not the drawn part of it', () => {
   // The group HAS 150 rows; 100 of them being on screen is what the show-all button says.
   const rows = [];
@@ -711,4 +709,39 @@ test('drawnRows answers this panel rows only, in collect order', () => {
 
 test('drawnRows answers empty for a container that holds no panel', () => {
   assert.deepEqual(Groups.drawnRows(createElement('div')), []);
+});
+
+// ------------------------------------------------------------------ changeCount
+
+test('an untouched panel holds zero changes', () => {
+  const { container, schema } = panelFor('NPC Drops', [DROP(1, 10)], NPCS);
+  assert.equal(Groups.changeCount(container, schema), 0);
+});
+
+test('an edited cell counts its row as one change', () => {
+  const { container, schema } = panelFor('NPC Drops', [DROP(1, 10), DROP(1, 20)], NPCS);
+  container.querySelectorAll('[name=droprate]')[0].value = '0.99';
+  assert.equal(Groups.changeCount(container, schema), 1);
+});
+
+test('an added row counts as a change', () => {
+  const { container, schema } = panelFor('NPC Drops', [DROP(1, 10)], NPCS);
+  Groups.addRow(container);
+  assert.equal(Groups.changeCount(container, schema), 1);
+});
+
+test('a removed row counts as a change', () => {
+  const { container, schema } = panelFor('NPC Drops', [DROP(1, 10), DROP(1, 20)], NPCS);
+  fire(container.querySelectorAll('[data-remove]')[0], 'click');
+  assert.equal(Groups.changeCount(container, schema), 1);
+});
+
+test('undrawn rows past the render cap count as nothing', () => {
+  // collect() hands them back with values === loaded, so the comparison finds no difference —
+  // which is exactly right: the user never saw them, so they cannot have edited them, and a
+  // capped panel must not ask "discard changes?" the moment it opens.
+  const rows = [];
+  for (let i = 0; i < 150; i++) rows.push(DROP(1, i + 1));
+  const { container, schema } = panelFor('NPC Drops', rows, NPCS);
+  assert.equal(Groups.changeCount(container, schema), 0);
 });

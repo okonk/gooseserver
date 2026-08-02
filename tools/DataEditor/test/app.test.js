@@ -3334,3 +3334,187 @@ test('a finished save\'s message does not surface on a different sheet', () => {
   assert.doesNotMatch(document.getElementById('status').textContent, /boom/);
   assert.equal(App.__state.pendingStatus, null, 'and it is dropped, not left to strike later');
 });
+
+// --- discarding unsaved edits ----------------------------------------------------------------
+
+function openDirtyGroup(run) {
+  fire(document.getElementById('records').querySelectorAll('.record')[0], 'click');
+  run.flush();
+  const cell = document.getElementById('form').querySelectorAll('[name=droprate]')[0];
+  cell.value = '0.99';
+}
+
+test('clicking another group with unsaved edits asks first, and Keep editing keeps them', () => {
+  const { run } = boot({ 'NPC Drops': [DROP(1, 10), DROP(2, 20)],
+                         NPCs: [NPC(1, 'Mouse'), NPC(2, 'Bat')], Items: [ITEM(10, 'Cheese')] });
+  App.openSheet('NPC Drops');
+  run.flush();
+  openDirtyGroup(run);
+
+  fire(document.getElementById('records').querySelectorAll('.record')[1], 'click');
+
+  const modal = document.getElementById('modal');
+  assert.equal(modal.hidden, false, 'the ask must appear');
+  fire(modal.querySelectorAll('[data-keep]')[0], 'click');
+  assert.equal(modal.hidden, true);
+  // Group A is still on screen, edit intact.
+  assert.equal(document.getElementById('form')
+    .querySelectorAll('[name=droprate]')[0].value, '0.99');
+});
+
+test('Discard changes proceeds to the other group', () => {
+  const { run } = boot({ 'NPC Drops': [DROP(1, 10), DROP(2, 20)],
+                         NPCs: [NPC(1, 'Mouse'), NPC(2, 'Bat')], Items: [ITEM(10, 'Cheese')] });
+  App.openSheet('NPC Drops');
+  run.flush();
+  openDirtyGroup(run);
+
+  fire(document.getElementById('records').querySelectorAll('.record')[1], 'click');
+  fire(document.getElementById('modal').querySelectorAll('[data-discard]')[0], 'click');
+  run.flush();
+
+  assert.match(document.getElementById('form').textContent, /Bat/);
+});
+
+test('an untouched panel navigates without asking', () => {
+  const { run } = boot({ 'NPC Drops': [DROP(1, 10), DROP(2, 20)],
+                         NPCs: [NPC(1, 'Mouse'), NPC(2, 'Bat')], Items: [ITEM(10, 'Cheese')] });
+  App.openSheet('NPC Drops');
+  run.flush();
+  fire(document.getElementById('records').querySelectorAll('.record')[0], 'click');
+  run.flush();
+
+  fire(document.getElementById('records').querySelectorAll('.record')[1], 'click');
+  assert.equal(document.getElementById('modal').hidden, true, 'no edits, no ask');
+});
+
+test('a removed row alone is enough to ask', () => {
+  const { run } = boot({ 'NPC Drops': [DROP(1, 10), DROP(1, 20), DROP(2, 30)],
+                         NPCs: [NPC(1, 'Mouse'), NPC(2, 'Bat')], Items: [ITEM(10, 'Cheese')] });
+  App.openSheet('NPC Drops');
+  run.flush();
+  fire(document.getElementById('records').querySelectorAll('.record')[0], 'click');
+  run.flush();
+  fire(document.getElementById('form').querySelectorAll('[data-remove]')[0], 'click');
+
+  fire(document.getElementById('records').querySelectorAll('.record')[1], 'click');
+  assert.equal(document.getElementById('modal').hidden, false);
+});
+
+test('switching sheets with unsaved edits asks, and declining resets the sheet picker', () => {
+  // The <select> flips to the new sheet the moment it is chosen; a declined switch must put it
+  // back, or the control lies about what is on screen.
+  const { run } = boot({ 'NPC Drops': [DROP(1, 10)], NPCs: [NPC(1, 'Mouse')],
+                         Items: [ITEM(10, 'Cheese')] });
+  App.openSheet('NPC Drops');
+  run.flush();
+  openDirtyGroup(run);
+
+  const picker = document.getElementById('sheet-picker');
+  picker.value = 'Items';
+  fire(picker, 'change');
+
+  const modal = document.getElementById('modal');
+  assert.equal(modal.hidden, false);
+  fire(modal.querySelectorAll('[data-keep]')[0], 'click');
+  assert.equal(picker.value, 'NPC Drops');
+  assert.equal(App.__state.sheetName, 'NPC Drops');
+});
+
+test('Escape declines and empties the modal, leaving the panel and its edit alone', () => {
+  // Escape is an answer, and the only safe one to read into it is "keep editing" — destruction
+  // happens by pressing the button that names it, never by a key that means "get out of here".
+  const { run } = boot({ 'NPC Drops': [DROP(1, 10), DROP(2, 20)],
+                         NPCs: [NPC(1, 'Mouse'), NPC(2, 'Bat')], Items: [ITEM(10, 'Cheese')] });
+  App.openSheet('NPC Drops');
+  run.flush();
+  openDirtyGroup(run);
+
+  fire(document.getElementById('records').querySelectorAll('.record')[1], 'click');
+  const modal = document.getElementById('modal');
+  fire(modal.querySelectorAll('[role=dialog]')[0], 'keydown', { key: 'Escape' });
+  run.flush();
+
+  assert.equal(modal.hidden, true);
+  // Emptied, not merely hidden — the parent picker's rule, for the same reason.
+  assert.equal(modal.querySelectorAll('*').length, 0);
+  assert.equal(document.getElementById('form')
+    .querySelectorAll('[name=droprate]')[0].value, '0.99', 'declined, not proceeded');
+});
+
+test('a backdrop click declines; a click inside the dialog decides nothing', () => {
+  // The inside-click half pins confirmDiscard's `event.target === modal` check: the dialog is a
+  // child of #modal, so without it every click on the message text would answer for the user —
+  // and the answer the backdrop gives is one that walks away from their work.
+  const { run } = boot({ 'NPC Drops': [DROP(1, 10), DROP(2, 20)],
+                         NPCs: [NPC(1, 'Mouse'), NPC(2, 'Bat')], Items: [ITEM(10, 'Cheese')] });
+  App.openSheet('NPC Drops');
+  run.flush();
+  openDirtyGroup(run);
+
+  fire(document.getElementById('records').querySelectorAll('.record')[1], 'click');
+  const modal = document.getElementById('modal');
+
+  fire(modal.querySelectorAll('[role=dialog]')[0], 'click');
+  assert.equal(modal.hidden, false, 'a click inside the dialog must not answer');
+
+  fire(modal, 'click');
+  run.flush();
+  assert.equal(modal.hidden, true);
+  assert.equal(modal.querySelectorAll('*').length, 0);
+  assert.equal(document.getElementById('form')
+    .querySelectorAll('[name=droprate]')[0].value, '0.99', 'declined, not proceeded');
+});
+
+test('Keep editing takes the focus when the ask opens', () => {
+  // The safe answer is the default: a keyboard user who hits Enter on reflex must not lose work.
+  const { run } = boot({ 'NPC Drops': [DROP(1, 10), DROP(2, 20)],
+                         NPCs: [NPC(1, 'Mouse'), NPC(2, 'Bat')], Items: [ITEM(10, 'Cheese')] });
+  App.openSheet('NPC Drops');
+  run.flush();
+  openDirtyGroup(run);
+
+  fire(document.getElementById('records').querySelectorAll('.record')[1], 'click');
+  const modal = document.getElementById('modal');
+  assert.equal(modal.querySelectorAll('[data-keep]')[0].focusCalls, 1);
+  assert.equal(modal.querySelectorAll('[data-discard]')[0].focusCalls, 0);
+  // Named by its own message, not left as a bare "dialog" for a screen reader to announce.
+  const dialog = modal.querySelectorAll('[role=dialog]')[0];
+  const named = modal.querySelectorAll('[id=' + dialog.getAttribute('aria-labelledby') + ']');
+  assert.equal(named.length, 1);
+  assert.match(named[0].textContent, /unsaved change/);
+});
+
+test('closing the ask hands focus back to whatever raised it', () => {
+  // The fake DOM has no activeElement model, so the control the dialog should return to is named
+  // here rather than inferred — what is under test is that close() reads it and calls focus().
+  const { run } = boot({ 'NPC Drops': [DROP(1, 10), DROP(2, 20)],
+                         NPCs: [NPC(1, 'Mouse'), NPC(2, 'Bat')], Items: [ITEM(10, 'Cheese')] });
+  App.openSheet('NPC Drops');
+  run.flush();
+  openDirtyGroup(run);
+
+  const opener = document.getElementById('records').querySelectorAll('.record')[1];
+  document.activeElement = opener;
+  const before = opener.focusCalls;
+  fire(opener, 'click');
+  fire(document.getElementById('modal').querySelectorAll('[data-keep]')[0], 'click');
+
+  assert.equal(opener.focusCalls, before + 1);
+});
+
+test('the reload after a save never asks', () => {
+  // clearForm nulls #form.__group before openSheet re-reads, so the guard sees a clean panel.
+  // Without that, every successful save would be followed by its own "discard changes?" — the
+  // panel's controls still hold the edited values while the reload is in flight.
+  const { run } = boot({ 'NPC Drops': [DROP(1, 10)], NPCs: [NPC(1, 'Mouse')],
+                         Items: [ITEM(10, 'Cheese')] });
+  App.openSheet('NPC Drops');
+  run.flush();
+  openDirtyGroup(run);
+  App.save();
+  run.flush();
+
+  assert.equal(document.getElementById('modal').hidden, true);
+  assert.match(document.getElementById('status').textContent, /Saved/);
+});

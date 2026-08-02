@@ -67,8 +67,10 @@
      .warn, because it says the same thing. */
   .group-row.duplicate .group-cell { background: #fff6d8; }
   /* A tint alone all but disappears on a row whose cells are mostly input backgrounds, which is
-     most of them — the bar down the left edge is what actually reads as a mark. */
-  .group-row.duplicate .group-cell:first-child { border-left: 3px solid #e8cf7a; }
+     most of them — the bar down the left edge is what actually reads as a mark. An inset
+     box-shadow rather than a border, because a border is laid out: 3px on the marked rows only
+     would shove the first column sideways row by row and leave the table ragged. */
+  .group-row.duplicate .group-cell:first-child { box-shadow: inset 3px 0 0 #e8cf7a; }
   .problem { font-size: 11px; border-bottom: 1px solid #eee; padding: 2px 0; }
   #publish-results { max-height: 60vh; overflow: auto; }
   canvas.preview, canvas.appearance, canvas.effect, canvas.item-icon, canvas.worn { image-rendering: pixelated;
@@ -240,6 +242,10 @@
   /* The list's stand-in line — "nothing matches", or the one that says the parent sheet failed to
      load, which is the message a stuck user most needs to be able to READ. */
   .parent-picker .empty { color: #555; margin: 4px 0; }
+  /* The other other tenant of #modal: the ask before a dirty group panel is thrown away. */
+  .confirm { background: #fff; border: 1px solid #ccc; max-width: 24em; padding: 12px;
+             box-sizing: border-box; }
+  .confirm button { margin-right: 8px; }
   .gal { background: #fff; border: 1px solid #ccc; padding: 8px; max-width: calc(100vw - 16px);
          max-height: calc(100vh - 16px); display: flex; flex-direction: column; gap: 6px;
          box-sizing: border-box; }
@@ -294,7 +300,7 @@
     .record, .result { color: #eee; }
     .result.active { background: #33415c; }
     .chip { background: #2b2b3a; border-color: #43435a; color: #eee; }
-    .gal, .parent-picker { background: #242424; border-color: #3a3a3a; }
+    .gal, .parent-picker, .confirm { background: #242424; border-color: #3a3a3a; }
     .parent-picker .empty { color: #aaa; }
     .gal h2, .gal-locked, .gal-count { color: #aaa; }
     .gal-tile { border-color: #3a3a3a; }
@@ -304,7 +310,7 @@
     .error, .resolved.bad, .status.bad { color: #ff8f80; }
     .warn { background: #3a3218; border-color: #6b5c22; color: #f3e6b8; }
     .group-row.duplicate .group-cell { background: #3a3218; }
-    .group-row.duplicate .group-cell:first-child { border-left-color: #6b5c22; }
+    .group-row.duplicate .group-cell:first-child { box-shadow: inset 3px 0 0 #6b5c22; }
     .problem { border-bottom-color: #333; }
     canvas.preview, canvas.appearance, canvas.effect, canvas.item-icon, canvas.worn { border-color: #3a3a3a;
       background: repeating-conic-gradient(#2a2a2a 0% 25%, #202020 0% 50%) 50% / 12px 12px; }

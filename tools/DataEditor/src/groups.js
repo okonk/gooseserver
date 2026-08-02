@@ -384,6 +384,34 @@ var Groups = (function () {
     return out;
   }
 
+  /// How many changes an open panel is holding: rows edited, rows added, rows removed. Zero
+  /// means navigating away loses nothing.
+  ///
+  /// Counts ROWS, not cells — "3 unsaved changes" should mean three rows to go and look at.
+  /// The undrawn rows a capped render kept in state.pending come back from collect() with
+  /// `loaded` a cell-for-cell copy of `values`, so they can never count: the user never saw them.
+  ///
+  /// Diffs the cells itself rather than reusing ops(): ops() reports what will be WRITTEN, and
+  /// that is a different question. It needs idSets, which this caller has no business demanding
+  /// for a question about focus and navigation, and it drops cells validateCell refuses — so a
+  /// row the user has typed something invalid into would count as no change and be discarded
+  /// without a word, which is the one case where the ask matters most.
+  function changeCount(container, schema) {
+    var state = container.__group;
+    if (!state) return 0;
+
+    var count = state.removed.length;
+    collect(container, schema).forEach(function (row) {
+      if (row.rowNumber === 0) { count++; return; }
+      var loaded = row.loaded || {};
+      for (var i = 0; i < schema.columns.length; i++) {
+        var name = schema.columns[i].name;
+        if (str(row.values[name]) !== str(loaded[name])) { count++; return; }
+      }
+    });
+    return count;
+  }
+
   // The class attribute edited as the whitespace-separated list it is. classList would be
   // shorter, but this touches only setAttribute/getAttribute — the two operations every target
   // this file has to run on supports — and it cannot clobber the classes it was not asked about,
@@ -609,6 +637,7 @@ var Groups = (function () {
     render: render,
     addRow: addRow,
     collect: collect,
+    changeCount: changeCount,
     drawnRows: drawnRows,
     removed: removed,
     ops: ops,
