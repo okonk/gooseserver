@@ -86,9 +86,9 @@ var Forms = (function () {
     select.appendChild(el('option', { value: value }, value + ' (not a valid value)'));
   }
 
-  // The prefix every control's element id is built from. One definition, because a control and
-  // the <label for> pointing at it are built in different places and a second spelling of the
-  // default would silently unlink them.
+  // The prefix every control's element id is built from. One definition — exported, so pickers.js
+  // shares it rather than re-spelling it — because a control and the <label for> pointing at it
+  // are built in different places and a second spelling of the default would silently unlink them.
   function idPrefixOf(idPrefix) {
     return typeof idPrefix === 'string' && idPrefix !== '' ? idPrefix : 'f-';
   }
@@ -445,6 +445,7 @@ var Forms = (function () {
     scalarControl: scalarControl,
     columnControl: columnControl,
     placeholderFor: placeholderFor,
+    idPrefixOf: idPrefixOf,
     defaultOf: defaultOf,
     effective: effectiveValues,
     el: el,

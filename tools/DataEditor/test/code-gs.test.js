@@ -867,6 +867,29 @@ test('saveBatch appends below the data even when the sheet is trimmed to it', ()
   ]);
 });
 
+test('an append lands below a row the same batch blanked, not on top of it', () => {
+  // The append base is the lastRow as READ, not as it stands after the writes: blanking every
+  // cell of the last data row lowers getLastRow(), and an append based on that would land on the
+  // just-blanked row and silently consume it.
+  const gs = batchGs([], [[1, 10, 1, 0.1], [1, 20, 1, 0.2]]);
+  gs.saveBatch([{
+    sheet: 'NPC Drops', idColumnIndex: -1,
+    writes: [{ row: 3, cells: ['', '', '', ''], loaded: ['1', '20', '1', '0.2'] }],
+    appends: [{ cells: ['1', '30', '1', '0.3'] }],
+  }]);
+  assert.deepEqual(gs.sheets['NPC Drops'].raw(), [
+    DROPS_HEADER, [1, 10, 1, 0.1], ['', '', '', ''], ['1', '30', '1', '0.3'],
+  ]);
+});
+
+test('saveBatch refuses a null operation entry', () => {
+  const gs = batchGs([ROW], []);
+  assert.throws(
+    () => gs.saveBatch([{ sheet: 'Items', idColumnIndex: 0, writes: [null] }]),
+    (e) => e.name !== 'TypeError' &&
+           /Items: writes\[0\] is not an operation object/.test(e.message));
+});
+
 test('saveBatch pins the text format on appended Text cells before writing them', () => {
   // "1-2" in a description becomes a Date without the '@' pin, and "01" becomes 1.
   const gs = batchGs([], []);

@@ -211,9 +211,7 @@ var Pickers = (function () {
   // opposite behaviour from the same blur handler.
   function fkControl(column, value, ctx) {
     // See forms.js columnControl for why this rides on ctx.
-    var prefix = (ctx && typeof ctx.idPrefix === 'string' && ctx.idPrefix !== '')
-      ? ctx.idPrefix
-      : 'f-';
+    var prefix = Forms.idPrefixOf(ctx && ctx.idPrefix);
     var wrap = Forms.el('div', { class: 'picker' });
     var listId = prefix + column.name + '-list';
     var input = Forms.el('input', {

@@ -142,8 +142,8 @@
  *     - delete every row of a sheet, leaving only the header: the next append must go to row 2
  *   Residual risk, accepted: not a transaction. If a write fails part-way, earlier sheets and
  *     earlier rows stand. Sheets are applied parent-first so the survivor is an incomplete parent
- *     rather than orphan children, and the client reloads after a FAILED save as well as a
- *     successful one — without that reload a retry would re-append rows that already landed.
+ *     rather than orphan children, and the Part 2 client MUST reload after a FAILED save as well
+ *     as a successful one — without that reload a retry would re-append rows that already landed.
  * ---------------------------------------------------------------------------------
  */
 
@@ -784,6 +784,20 @@ function planSheetOps_(entry) {
   var appends = Array.isArray(entry.appends) ? entry.appends : [];
   var deletes = Array.isArray(entry.deletes) ? entry.deletes : [];
 
+  // Every operation is read for its own fields below; a null or a string in the list would die
+  // there on a raw property read, which tells the caller nothing about WHICH list is malformed.
+  // Shape error, so it throws rather than joining `problems`, exactly like fold and targetRow.
+  function requireOps(list, what) {
+    list.forEach(function (op, i) {
+      if (op === null || typeof op !== 'object') {
+        throw new Error(sheetName + ': ' + what + '[' + i + '] is not an operation object');
+      }
+    });
+  }
+  requireOps(writes, 'writes');
+  requireOps(appends, 'appends');
+  requireOps(deletes, 'deletes');
+
   var textColumns = {};
   (Array.isArray(entry.textColumns) ? entry.textColumns : []).forEach(function (i) {
     if (typeof i === 'number' && i >= 0 && i < width) textColumns[Math.floor(i)] = true;
@@ -846,7 +860,11 @@ function planSheetOps_(entry) {
     return n;
   }
 
-  var header = sheet.getRange(1, 1, 1, width).getDisplayValues()[0];
+  // Only the conflict and moved-column messages name a column, so an appends-only entry has no
+  // use for the header row — one fewer read for the commonest shape of a child-sheet save.
+  var header = (writes.length || deletes.length)
+    ? sheet.getRange(1, 1, 1, width).getDisplayValues()[0]
+    : [];
 
   // WRITES. Planned, not applied — planRowWrite_ takes the row as it stands and answers which
   // cells to write, so nothing here touches the sheet.
@@ -906,7 +924,7 @@ function planSheetOps_(entry) {
   });
 
   if (idIndex >= 0) {
-    checkBatchIds_(sheetName, idIndex, raw, lastRow, plannedWrites, plannedAppends,
+    checkBatchIds_(sheetName, idIndex, raw, lastRow, plannedAppends,
                    plannedDeletes, writes, problems);
   }
 
@@ -914,6 +932,7 @@ function planSheetOps_(entry) {
     name: sheetName,
     sheet: sheet,
     width: width,
+    lastRow: lastRow,
     textColumns: textColumns,
     writes: plannedWrites,
     appends: plannedAppends,
@@ -934,7 +953,7 @@ function planSheetOps_(entry) {
  * And one it does: a row being DELETED releases its id in the same batch, so replacing a record
  * in one call is not refused by the id it is itself giving up.
  */
-function checkBatchIds_(sheetName, idIndex, raw, lastRow, plannedWrites, plannedAppends,
+function checkBatchIds_(sheetName, idIndex, raw, lastRow, plannedAppends,
                         plannedDeletes, rawWrites, problems) {
   var deleted = {};
   plannedDeletes.forEach(function (d) { deleted[String(d.row)] = true; });
@@ -1007,7 +1026,9 @@ function applySheetPlan_(plan) {
   });
 
   if (plan.appends.length) {
-    var at = sheet.getLastRow() + 1;
+    // The lastRow as READ, not as it stands now: a write that blanked every cell of the last data
+    // row lowers getLastRow(), and appending there would silently consume the row just blanked.
+    var at = plan.lastRow + 1;
     var maxRows = sheet.getMaxRows();
     var need = at + plan.appends.length - 1;
     // getRange past the bottom of the grid throws; a sheet trimmed to exactly its data hits this
