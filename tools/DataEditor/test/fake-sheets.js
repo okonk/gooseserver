@@ -14,7 +14,9 @@
 //   * getRange() past the bottom of the grid throws rather than growing it.
 //
 // Everything Code.gs does not call is absent, deliberately: getFormulas, getUi, merged cells,
-// data validation, LockService. setNumberFormat is present but only RECORDED (into
+// data validation. LockService IS here — writeRow and saveBatch both take a document lock — but
+// only as a counter: it models that the lock is taken and released, not contention, because one
+// vm context has no second caller to contend with. setNumberFormat is present but only RECORDED (into
 // sheet.writes, as { row, col, format }), because what the tests pin is that writeRow asks for
 // the '@' pin on exactly the edited Text cells, and asks BEFORE writing the value — whether '@'
 // actually suppresses Sheets' entry parsing is a live check, not something this fake can model.
@@ -35,6 +37,11 @@
 // it returns can show how many were made, so this is the only way to state "the sheet is read once,
 // not twice" or "an ordinary field edit does not scan the id column" as a test rather than as a
 // claim in a comment.
+//
+// Every deleteRows call is recorded in sheet.deletes as { row, count }, in call order. Order is
+// the assertion that matters: deletes must run bottom-up, and a top-down implementation leaves
+// the same final grid when the runs happen not to overlap — so only the call sequence can tell
+// the two apart.
 
 import { readFileSync } from 'node:fs';
 import { createContext, runInContext } from 'node:vm';
@@ -67,6 +74,7 @@ class FakeSheet {
     this.name = name;
     this.writes = [];
     this.reads = [];
+    this.deletes = [];
     this.maxRows = options.maxRows === undefined ? grid.length : options.maxRows;
     this.maxCols = options.maxCols === undefined
       ? grid.reduce((w, row) => Math.max(w, row.length), 0)
@@ -127,6 +135,21 @@ class FakeSheet {
       this.cells.splice(after + i, 0, new Array(this.maxCols).fill(null));
     }
     this.maxRows += count;
+  }
+
+  // The mirror image of insertRowsAfter: the rows go, everything below shifts UP, and the grid
+  // shrinks. That shift is why saveBatch applies deletes last and from the bottom — a plan built
+  // against the pre-delete sheet stays valid only until the first deleteRows call.
+  //
+  // 1-based position, `howMany` rows, matching Sheet.deleteRows(rowPosition, howMany).
+  deleteRows(position, howMany) {
+    if (position < 1 || howMany < 1 || position + howMany - 1 > this.maxRows) {
+      throw new Error('fake sheet: deleteRows out of bounds (' + position + ', ' + howMany +
+                      ') on a grid of ' + this.maxRows);
+    }
+    this.deletes.push({ row: position, count: howMany });
+    this.cells.splice(position - 1, howMany);
+    this.maxRows -= howMany;
   }
 
   // For assertions: the sheet as it now stands, raw values and display text.
@@ -196,7 +219,7 @@ class FakeRange {
 
 // Loads Code.gs into a fresh context over these sheets and returns its globals plus the sheets.
 // A fresh context per call, so one test's write cannot be seen by another.
-export function loadCodeGs(sheetsByName, options = {}) {
+export function loadCodeGs(sheetsByName, options = {}, settings = {}) {
   const sheets = {};
   Object.keys(sheetsByName).forEach((name) => {
     sheets[name] = new FakeSheet(name, sheetsByName[name], options[name] || {});
@@ -208,6 +231,25 @@ export function loadCodeGs(sheetsByName, options = {}) {
       getActiveSpreadsheet: () => ({ getSheetByName: (name) => sheets[name] || null }),
       flush: () => { flushes += 1; },
     },
+  };
+
+  // LockService, which the fake used to leave out on the grounds that Code.gs never called it.
+  // It does now. Modelled to the three methods Code.gs uses, and no further: waitLock either
+  // takes the lock or throws (the real one throws on timeout — it does not return false; that is
+  // tryLock), and releaseLock is expected in a finally.
+  const locks = { acquired: 0, released: 0, held: false };
+  sandbox.LockService = {
+    getDocumentLock: () => ({
+      waitLock: (timeoutMs) => {
+        if (settings.lockFails) {
+          throw new Error('Could not obtain lock after ' + timeoutMs + 'ms.');
+        }
+        locks.acquired += 1;
+        locks.held = true;
+      },
+      releaseLock: () => { locks.released += 1; locks.held = false; },
+      hasLock: () => locks.held,
+    }),
   };
 
   const context = createContext(sandbox);
@@ -223,6 +265,7 @@ export function loadCodeGs(sheetsByName, options = {}) {
   return {
     sheets,
     flushes: () => flushes,
+    locks: () => ({ ...locks }),
     readSheet: (...args) => toHost(sandbox.readSheet(...args)),
     readSheetIndex: (...args) => toHost(sandbox.readSheetIndex(...args)),
     writeRow: (...args) => toHost(sandbox.writeRow(...args)),
