@@ -228,7 +228,7 @@ var Forms = (function () {
     var value = values[column.name];
 
     // Carried on ctx rather than as a parameter of its own, exactly as `gallery` is (see the
-    // fkControl call below): the group table sets it once per row and every control the row
+    // partControl call below): the group table sets it once per row and every control the row
     // builds inherits it, with no signature growing a parameter that only one caller passes.
     var idPrefix = ctx && ctx.idPrefix;
 
@@ -339,7 +339,7 @@ var Forms = (function () {
         // A composite is several controls; there is no single id to point a label at, so it
         // gets a plain label rather than a `for` that resolves to nothing.
         row.appendChild(comp ? el('label', null, Layout.labelFor(comp, name))
-                             : el('label', { for: 'f-' + name }, name));
+                             : el('label', { for: idPrefixOf(ctx && ctx.idPrefix) + name }, name));
 
         // The sheet is threaded from the schema being rendered rather than read off ctx, so the
         // presentation table can never be consulted for a different sheet than the one on screen.
