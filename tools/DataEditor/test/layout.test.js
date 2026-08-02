@@ -530,3 +530,66 @@ test('labelFor falls back to the leader the form actually rendered', () => {
 test('an unknown kind is labelled after its leader rather than guessed at', () => {
   assert.equal(Layout.labelFor({ kind: 'Fake', columns: ['a', 'b'] }, 'a'), 'a');
 });
+
+// ------------------------------------------------------------------ GROUP_PARENT
+
+test('every grouped sheet names a column that sheet really has', () => {
+  Object.keys(Layout.GROUP_PARENT).forEach((name) => {
+    const names = sheet(name).columns.map((c) => c.name);
+    assert.ok(names.includes(Layout.GROUP_PARENT[name]),
+      name + ' has no column ' + Layout.GROUP_PARENT[name]);
+  });
+});
+
+test('every parent column is a foreign key, so the parent sheet is derivable', () => {
+  // The table names only the COLUMN. The parent SHEET comes from that column's ref in the
+  // schema, so the two cannot drift — but only if every entry actually has a ref.
+  Object.keys(Layout.GROUP_PARENT).forEach((name) => {
+    const column = sheet(name).columns
+      .filter((c) => c.name === Layout.GROUP_PARENT[name])[0];
+    assert.ok(column, name + ' has no column ' + Layout.GROUP_PARENT[name]);
+    assert.ok(column.ref, name + '.' + column.name + ' has no ref');
+  });
+});
+
+test('groupParent answers null for a sheet that is not grouped', () => {
+  assert.equal(Layout.groupParent('Items'), null);
+  assert.equal(Layout.groupParent('NPCs'), null);
+  // Class Info is class_id + level, 26 columns wide and ~99 rows per class. Deliberately out:
+  // that shape is not what the inline table is for.
+  assert.equal(Layout.groupParent('Class Info'), null);
+});
+
+test('groupParent answers the parent column for a grouped sheet', () => {
+  assert.equal(Layout.groupParent('NPC Drops'), 'npc_template_id');
+  // Spawns group by MAP, not by NPC: spawns are authored a zone at a time, and it gives more
+  // evenly sized groups than 4,322 rows split across every NPC.
+  assert.equal(Layout.groupParent('NPC Spawns'), 'map_id');
+  // Warptiles refs Maps twice; map_id is where the tile IS, not where it goes.
+  assert.equal(Layout.groupParent('Warptiles'), 'map_id');
+});
+
+test('GROUP_PARENT is frozen', () => {
+  assert.ok(Object.isFrozen(Layout.GROUP_PARENT));
+});
+
+test('no grouped sheet has a composite', () => {
+  // The group table builds every cell with Forms.columnControl, which routes a composite's
+  // columns nowhere. If a grouped sheet ever gains one, the table would silently render its
+  // columns as bare text boxes — so this fails first instead.
+  Object.keys(Layout.GROUP_PARENT).forEach((name) => {
+    // Length, not deepEqual: SCHEMA is built in a vm context, so its arrays are cross-realm and
+    // deepStrictEqual would reject them on prototype identity alone, empty or not.
+    assert.equal((sheet(name).composites || []).length, 0, name + ' gained a composite');
+  });
+});
+
+test('no grouped sheet has a part graphic', () => {
+  // Same reasoning: partControl needs a canvas and the parts atlas, neither of which a table
+  // cell has room for.
+  Object.keys(Layout.GROUP_PARENT).forEach((name) => {
+    sheet(name).columns.forEach((c) => {
+      assert.equal(Layout.partGraphic(name, c.name), null, name + '.' + c.name);
+    });
+  });
+});

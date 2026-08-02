@@ -201,6 +201,37 @@ var Layout = (function () {
     'Spell Effects': { spell_animation: 'effects' },
   };
 
+  // WHICH COLUMN MAKES A JOIN SHEET'S ROWS BELONG TO SOMETHING. A sheet listed here is edited as
+  // one table per parent — "1 — Mouse" and all three of its drops at once — instead of as a flat
+  // list of id pairs.
+  //
+  // Presentation, so it lives here rather than in the descriptors: the importer does not care how
+  // rows are grouped, and two of these have more than one defensible parent. Only the COLUMN is
+  // named; the parent SHEET is that column's `ref` in the schema, so the two cannot drift.
+  //
+  // The two judgement calls, both checked by layout.test.js:
+  //   NPC Spawns refs NPCs and Maps. By map, because spawns are authored a zone at a time and it
+  //     splits 4,322 rows more evenly than by NPC.
+  //   Warptiles refs Maps twice (map_id, warp_id). By map_id — where the tile IS, not where it
+  //     goes.
+  // Quest Reqs and Quest Rewards keep their own `id` pk; the parent here is quest_id, which is
+  // the second column, not the first.
+  //
+  // NOT LISTED, deliberately: Class Info. It is class_id + level, 26 columns wide with a row per
+  // level, so a group would be a ~99 x 25 grid — the flat form is the better shape for it.
+  var GROUP_PARENT = {
+    'NPC Drops': 'npc_template_id',
+    'NPC Vendor Items': 'npc_template_id',
+    'NPC Spawns': 'map_id',
+    'Warptiles': 'map_id',
+    'Map Required Items': 'map_id',
+    'Quest Reqs': 'quest_id',
+    'Quest Rewards': 'quest_id',
+    'Combination Item Required': 'combination_id',
+    'Combination Item Result': 'combination_id',
+    'Class Levelup Spells': 'class_id',
+  };
+
   // Own-property lookups throughout: a sheet named 'constructor' is not a thing, but neither is
   // reaching Object.prototype for one, and the rest of this file is prototype-free for the same
   // reason.
@@ -262,6 +293,14 @@ var Layout = (function () {
   /// own and cannot disagree about what it is.
   function galleryBundle(sheet, column) {
     return twoLevel(GALLERIES, sheet, column) || 'icons';
+  }
+
+  /// The column a sheet's rows are grouped by, or null when the sheet is edited flat. One
+  /// accessor for both consumers — app.js branches on it, groups.js builds the grouping from it —
+  /// so no two of them can disagree about which sheets are grouped.
+  function groupParent(sheet) {
+    var column = own(GROUP_PARENT, String(sheet));
+    return column === undefined ? null : column;
   }
 
   // ReloadSQLCommandEvent.cs:30-40 reloads spell effects, spells, item templates, quests and NPC
@@ -377,6 +416,7 @@ var Layout = (function () {
     monsterBodyGate: monsterBodyGate,
     isMonsterBody: isMonsterBody,
     galleryBundle: galleryBundle,
+    groupParent: groupParent,
     RESTART_ONLY: deepFreeze(RESTART_ONLY),
     LAYOUTS: deepFreeze(LAYOUTS),
     // Exported for the same reason LAYOUTS is: a name here for a column that does not exist is
@@ -386,6 +426,7 @@ var Layout = (function () {
     WEARABLE: deepFreeze(WEARABLE),
     MONSTER_BODY: deepFreeze(MONSTER_BODY),
     GALLERIES: deepFreeze(GALLERIES),
+    GROUP_PARENT: deepFreeze(GROUP_PARENT),
   };
 })();
 
