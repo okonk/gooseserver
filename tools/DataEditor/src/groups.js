@@ -432,11 +432,23 @@ var Groups = (function () {
 
   /// Every row validated, plus a count of rows that duplicate another row in the group.
   ///
-  /// ownId is null throughout: a child row's pk is allocated by addRow and never edited, so the
-  /// duplicate-id check has nothing to exempt.
+  /// ownId is the pk the row was LOADED with, exactly as the single-record save() takes it — from
+  /// the loaded state and never from the field, so a pk typed over another row's id cannot exempt
+  /// itself. Without it every EXISTING row of a grouped sheet that has a pk (Quest Reqs, Quest
+  /// Rewards) fails its own duplicate check: its id is in idSets.__self because the sheet it was
+  /// just read from is what built that set, and the whole group is unsavable.
+  ///
+  /// null for an appended row, correctly: addRow allocated its id with nextId over state.ids, so
+  /// it is not in __self and has nothing to be exempted from.
   function validate(schema, present, idSets) {
+    var pk = schema.columns.filter(function (c) { return c.pk; })[0];
+
     var rows = (present || []).map(function (row) {
-      var result = Validation.validateRecord(schema.columns, row.values, idSets, null);
+      // Number(), and gated on rowNumber like the single-record path: validateId compares with
+      // !== against a number, so the string the sheet was read as would never match.
+      var ownId = (pk && row.rowNumber > 0 && row.loaded)
+        ? Number(row.loaded[pk.name]) : null;
+      var result = Validation.validateRecord(schema.columns, row.values, idSets, ownId);
       return { rowNumber: row.rowNumber, errors: result.errors };
     });
 

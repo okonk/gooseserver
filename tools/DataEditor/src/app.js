@@ -68,6 +68,31 @@ var App = (function () {
     sheetName: null,
     sheetToken: 0,
     formToken: 0,
+    // The open GROUP, and the same guard one level along from formToken: a group's controls are
+    // built from picker data that may still be in flight, so clicking group A then group B must
+    // discard A's render rather than let it land under B's parent id. Bumped by openGroup.
+    groupToken: 0,
+    group: null,        // the open group entry from Groups.build, or null
+    groups: [],         // every group of the open sheet
+    // The group to reopen once the next read of this sheet lands, or null. Set by a save's
+    // reload, consumed by openSheet — a save must not leave the user staring at the parent list
+    // having lost the place they were editing.
+    //
+    // { sheet: name, key: groupKey } and NOT a bare key: a reload whose read FAILS never consumes
+    // it, and a bare key would then be applied to the next grouped sheet the user opens — an
+    // empty panel under a quest_id borrowed from an NPC Drops group, one Add-row away from
+    // appending under the wrong parent. The sheet name is what makes the entry refusable.
+    reopenGroup: null,
+    // The message a failed group save wants shown once its reload has settled. Carried rather
+    // than shown at the moment of failure: reload() runs openSheet, whose own status lines
+    // ('Loading…', then 'N records') would overwrite it within the same tick and leave a failed
+    // save looking exactly like a successful one. Consumed by openGroup, or by openSheet when no
+    // group is reopened.
+    //
+    // { sheet: name, message: text }, and sheet-scoped for the same reason reopenGroup is: a
+    // reload whose read never lands leaves it standing, and an unqualified message would then
+    // surface on whatever sheet the user opened next — 'batch boom' over a clean list of Items.
+    pendingError: null,
     saving: false,
     // True from renderForm until its form actually lands in the DOM. The bundle decode between
     // the two is asynchronous, so in that window state.rowNumber already names the NEW record
@@ -236,8 +261,10 @@ var App = (function () {
     loadReferencedSheets(function () {
       state.retrying = false;
       if (state.refErrors.length) { status(warnings(), true); return; }
-      status('Reloaded ' + wanted.join(' and ') + '. Save again — and reopen the record if a ' +
-             'checkbox list is still showing as a number.');
+      // "record or group", because both save paths reach this: a grouped sheet's rows are
+      // reopened as a group, and there is no single record to go back to.
+      status('Reloaded ' + wanted.join(' and ') + '. Save again — and reopen the record or ' +
+             'group if a checkbox list is still showing as a number.');
     });
   }
 
@@ -320,10 +347,12 @@ var App = (function () {
 
   // Empties the form and forgets the record it held. Both halves, always together: leaving the
   // previous sheet's controls in the DOM lets Forms.collect harvest whatever COLUMN NAMES the
-  // two sheets share, and Save then appends that as a new record. Combination Item Required and
-  // Combination Item Result share both of their columns, as do Class Levelup Spells and Class
-  // Info, so the harvested row validates clean and appends — and with no pk, Code.gs's duplicate
-  // scan is disabled by design and cannot see it either.
+  // two sheets share, and Save then appends that as a new record. Class Info shares thirteen
+  // columns with Items and fourteen with NPCs and has NO pk, so the harvested row can validate
+  // clean and append — with Code.gs's duplicate scan disabled by design for a pk-less sheet and
+  // unable to see it either. (The pair this was first found on, Combination Item Required and
+  // Result, is grouped now and no longer renders a single-record form at all; the hazard is not,
+  // which is why this clears unconditionally rather than per sheet.)
   function clearForm() {
     document.getElementById('form').innerHTML = '';
     state.loaded = {};
@@ -347,6 +376,15 @@ var App = (function () {
     // appended a blank character canvas under an empty form. It is also what makes renderForm's
     // second token check reachable, and therefore testable, at all.
     state.formToken++;
+
+    // AND THE GROUP, for the same reasons one level along. The panel's state rides on the
+    // container as __group, and innerHTML = '' does not clear an expando — a stale one would let
+    // a later save collect rows that are no longer on screen (the detached body still answers
+    // querySelectorAll). Nulled here, so every programmatic navigation — the post-save reload
+    // above all — starts provably clean.
+    state.groupToken++;
+    state.group = null;
+    document.getElementById('form').__group = null;
   }
 
   // Everything derived from the OPEN sheet's rows. The token scheme guards what a reply may
@@ -381,11 +419,24 @@ var App = (function () {
 
     if (!state.schema) { status('No schema for sheet ' + sheetName, true); return; }
 
+    // One Save on screen at a time: the group panel builds its own, so the header's would be a
+    // second button doing the same thing from a different place — and it would run the
+    // single-record path over a container that holds a table.
+    document.getElementById('save').hidden = !!Layout.groupParent(sheetName);
+    document.getElementById('new-record').textContent =
+      Layout.groupParent(sheetName) ? 'New group' : 'New';
+
     var token = ++state.sheetToken;
     var current = function () { return token === state.sheetToken; };
 
     google.script.run
-      .withFailureHandler(function (e) { if (current()) status(e.message, true); })
+      .withFailureHandler(function (e) {
+        // The read failed, so no group can be reopened and the request must not be left standing
+        // for whatever sheet is opened next, and neither may a failed save's message.
+        state.reopenGroup = null;
+        state.pendingError = null;
+        if (current()) status(e.message, true);
+      })
       .withSuccessHandler(function (data) {
         if (!current()) return;
         state.rows = data.rows;
@@ -397,9 +448,27 @@ var App = (function () {
           // replies for sheet A can land after the user has moved to sheet B, and done() would
           // then draw A's records under B's schema.
           if (!current()) return;
-          renderList();
+          if (Layout.groupParent(sheetName)) renderGroups();
+          else renderList();
           var warning = warnings();
           status(state.rows.length + ' records' + (warning ? ' — ' + warning : ''), !!warning);
+
+          // A save's reload asked for a group to be reopened. Best-effort by design: the group
+          // may no longer exist (its last row deleted), and openGroup builds an empty panel for
+          // an unknown key rather than refusing.
+          //
+          // CLEARED WHETHER OR NOT IT IS USED, and honoured only for the sheet it was recorded
+          // against: an entry that outlived its sheet must be dropped, not applied here.
+          var reopen = state.reopenGroup;
+          state.reopenGroup = null;
+          if (reopen && reopen.sheet === sheetName) openGroup(reopen.key);
+
+          // A failed save's message, if the reopen above did not already show it — the group may
+          // be gone, or there may have been none to reopen. Last, so nothing overwrites it.
+          // Dropped silently when it belongs to another sheet.
+          var failure = state.pendingError;
+          state.pendingError = null;
+          if (failure && failure.sheet === sheetName) status(failure.message, true);
         });
       })
       .readSheet(sheetName);
@@ -490,6 +559,318 @@ var App = (function () {
     });
   }
 
+  // Whether the OPEN sheet is edited a group at a time. Read from Layout rather than from a flag
+  // set at open time, so there is one answer and it cannot go stale.
+  function grouped() {
+    return !!(state.schema && Layout.groupParent(state.schema.sheet));
+  }
+
+  // The parent list. Built from the rows the sheet read plus the parent sheet's id + name list,
+  // which loadReferencedSheets has already fetched for the FK pickers — so this costs no extra
+  // round trip.
+  function renderGroups() {
+    var list = document.getElementById('records');
+    list.innerHTML = '';
+
+    var parent = Groups.parentOf(state.schema);
+    state.groups = Groups.build(state.schema, state.rows,
+                                parent ? state.pickerData[parent.ref] : null);
+
+    state.groups.forEach(function (group) {
+      var button = Forms.el('button', { type: 'button', class: 'record' },
+                            group.label + ' (' + group.count + ')');
+      button.addEventListener('click', function () { openGroup(group.key); });
+      list.appendChild(button);
+    });
+  }
+
+  /// Opens one group's table. `key` is the folded parent id, as Groups.build reports it.
+  function openGroup(key) {
+    if (!grouped()) return;
+
+    // NAVIGATION IS REFUSED WHILE A SAVE IS IN FLIGHT, and this is the decision rather than an
+    // oversight. Every save reloads the sheet unconditionally, and the reload's clearForm empties
+    // whatever panel is on screen — so a group opened and edited during the round trip would have
+    // those edits wiped without a word. The panel is the ONLY edit surface on a grouped sheet,
+    // so refusing to leave the one being saved closes that window entirely; the alternative,
+    // skipping the reopen when the user has moved, does not, because the reload still empties the
+    // form. Same reasoning as save()'s own in-flight guard, one level along.
+    //
+    // The reload's own reopen is unaffected: state.saving is cleared in the batch's handlers,
+    // before reload() runs.
+    if (state.saving) { status('Still saving — one moment', true); return; }
+
+    var group = state.groups.filter(function (g) { return g.key === key; })[0];
+    // A parent with no rows yet has no group; the panel opens empty and the first Add creates
+    // its first row. Nothing is written until the user saves, so no empty group is ever made by
+    // accident.
+    if (!group) {
+      var parentRef = Groups.parentOf(state.schema);
+      var entry = ((parentRef && state.pickerData[parentRef.ref]) || [])
+        .filter(function (e) { return Groups.idKey(e.id) === key; })[0];
+      group = { key: key, id: key, count: 0, orphan: !entry, rows: [],
+                label: entry ? key + ' — ' + entry.name : key };
+    }
+
+    // Taken NOW rather than read in the callback below: loadReferencedSheets may answer a tick
+    // later, and by then another path could have set or cleared the field. Whatever a failed
+    // save left behind belongs to this open, and this open reports it in place of its row count.
+    // Taken only if it belongs to the sheet this group is on; one for another sheet is left where
+    // it is, for openSheet to drop. Consuming it here would swallow it silently, and the drop is
+    // openSheet's job precisely so there is ONE place that decides a stale message's fate.
+    var pending = null;
+    if (state.pendingError && state.pendingError.sheet === state.sheetName) {
+      pending = state.pendingError;
+      state.pendingError = null;
+    }
+
+    clearPreviews();
+    var token = ++state.groupToken;
+    state.group = group;
+    // The single-record bookkeeping must not be left describing a record that is no longer on
+    // screen — save() branches on grouped(), but publishCheck and the preview path do not.
+    state.rowNumber = 0;
+    state.loaded = {};
+
+    var container = document.getElementById('form');
+    container.innerHTML = '';
+    // Emptying the container does NOT clear the expando, and until the render lands there is no
+    // panel to save. Cleared here so saveGroup's gate is honest in that window.
+    container.__group = null;
+
+    loadReferencedSheets(function () {
+      // The one staleness check for the group path. loadReferencedSheets' own handlers do not
+      // guard — an id + name list is group-agnostic and worth keeping — but RENDERING must not
+      // happen for a group the user has already moved off.
+      if (token !== state.groupToken) return;
+
+      Groups.render({
+        container: container, schema: state.schema, group: group, ctx: ctx(), ids: state.ids,
+      });
+
+      var add = Forms.el('button', { type: 'button', 'data-add': '' }, '+ Add row');
+      add.addEventListener('click', function () { Groups.addRow(container); });
+      container.appendChild(add);
+
+      // The group owns its Save. The header's is for the single-record form and is hidden while
+      // a grouped sheet is open, so there is exactly one Save on screen at a time.
+      var save = Forms.el('button', { type: 'button', 'data-save-group': '' }, 'Save group');
+      save.addEventListener('click', saveGroup);
+      container.appendChild(save);
+
+      if (pending) status(pending.message, true);
+      else status(group.count + ' row' + (group.count === 1 ? '' : 's') + ' in ' + group.label);
+    });
+  }
+
+  function saveGroup() {
+    if (state.saving) { status('Still saving — one moment', true); return; }
+
+    var container = document.getElementById('form');
+    if (!container.__group) {
+      status('Open a group first — click one in the list.', true);
+      return;
+    }
+
+    var present = Groups.collect(container, state.schema);
+    var gone = Groups.removed(container);
+
+    // Same gate, same reason as the single-record path: validation waves an fk through when its
+    // id set is absent, so a list that FAILED to load must block the save. Read off refErrors
+    // rather than off the values, because a group holds many rows and any of them could carry
+    // the unverifiable id.
+    var refs = {};
+    state.schema.columns.forEach(function (c) {
+      if (c.ref && state.refErrors.indexOf(c.ref) !== -1) refs[c.ref] = true;
+    });
+    var unverified = Object.keys(refs);
+    if (unverified.length) {
+      status('Cannot check these rows\' ids against ' + unverified.join(' and ') +
+             ' — that list failed to load, so saving now could store an id that does not ' +
+             'exist. Reloading it; try saving again in a moment.', true);
+      retryReferencedSheets(unverified);
+      return;
+    }
+
+    var check = Groups.validate(state.schema, present, state.idSets);
+    var rows = container.querySelectorAll('[data-group-row]');
+    for (var i = 0; i < rows.length && i < check.rows.length; i++) {
+      Forms.showErrors(rows[i], check.rows[i].errors);
+    }
+
+    if (!check.ok) {
+      var count = check.rows.reduce(function (n, r) { return n + r.errors.length; }, 0);
+      status(count + ' problem(s) — fix them before saving', true);
+      return;
+    }
+
+    var batch = [Groups.ops(state.schema, present, gone, state.idSets)];
+    if (!batch[0].writes.length && !batch[0].appends.length && !batch[0].deletes.length) {
+      status('Nothing to save.');
+      return;
+    }
+
+    status('Saving…');
+    state.saving = true;
+    var savedSheet = state.sheetName;
+    var savedToken = state.sheetToken;
+    var savedKey = state.group ? state.group.key : null;
+
+    // ALWAYS RELOAD, on success AND on failure. Deleting a row shifts every row below it, so no
+    // cached row number survives a success — and a batch that threw part-way may have landed
+    // some of its appends, so a retry without a reload would append them again. After the reload
+    // the diff sees them as existing rows and leaves them alone.
+    function reload() {
+      delete state.pickerData[savedSheet];
+      delete state.idSets[savedSheet];
+      if (savedToken !== state.sheetToken) return;
+      // Set BEFORE openSheet: openSheet's success handler is what consumes it, and clearForm on
+      // the way in does not touch it. Sheet-qualified, so a read that never lands cannot leave
+      // this key to be applied to a different grouped sheet later.
+      state.reopenGroup = savedKey === null ? null : { sheet: savedSheet, key: savedKey };
+      openSheet(savedSheet);
+    }
+
+    google.script.run
+      .withFailureHandler(function (e) {
+        state.saving = false;
+        // Handed to the reload rather than shown here: openSheet's own status lines land after
+        // this one and would bury it, so a failed save would read as a successful one.
+        if (savedToken === state.sheetToken) {
+          state.pendingError = { sheet: savedSheet, message: e.message };
+        }
+        reload();
+      })
+      .withSuccessHandler(function (results) {
+        state.saving = false;
+        var r = (results && results[0]) || { written: 0, appended: 0, deleted: 0 };
+        var note = check.duplicates
+          ? ' ' + check.duplicates + ' rows duplicate another row in this group.'
+          : '';
+        if (savedToken === state.sheetToken) {
+          status('Saved ' + r.written + ' edited, ' + r.appended + ' added, ' + r.deleted +
+                 ' removed. Run /updatesql then /reloadsql in game to publish.' + note,
+                 !!check.duplicates);
+        }
+        reload();
+      })
+      .saveBatch(batch);
+  }
+
+  // The New-group picker. Every parent is offered, not only the ones with no rows: two controls
+  // for "reach a parent" is one more than the job needs, so picking one that already has a group
+  // simply opens it. A FILTER, not a bare list — Maps, NPCs and Quests run to hundreds of
+  // entries, and an unfiltered column of 649 buttons is not a control.
+  //
+  // The list is rebuilt whole on every keystroke. Fine at this scale: these are plain text
+  // buttons, and the gallery only virtualises because its 4,827 entries carry images.
+  function openParentPicker() {
+    var parent = Groups.parentOf(state.schema);
+    if (!parent) return;
+    var entries = state.pickerData[parent.ref] || [];
+    var opener = document.getElementById('new-record');
+    var modal = document.getElementById('modal');
+    modal.innerHTML = '';
+    modal.hidden = false;
+
+    var dialog = Forms.el('div', { class: 'parent-picker', role: 'dialog', 'aria-modal': 'true' });
+
+    var head = Forms.el('div', { class: 'picker-head' });
+    var filter = Forms.el('input', {
+      type: 'text', 'data-filter': '', autocomplete: 'off',
+      placeholder: 'Filter ' + parent.ref + '…', 'aria-label': 'Filter ' + parent.ref,
+    });
+    var close = Forms.el('button', { type: 'button', 'data-close': '' }, 'Close');
+    head.appendChild(filter);
+    head.appendChild(close);
+    dialog.appendChild(head);
+
+    var list = Forms.el('div', { class: 'parent-list' });
+    dialog.appendChild(list);
+
+    // Parent key -> how many rows it already has. Built ONCE per open rather than scanned per
+    // entry inside draw(): draw() rebuilds the whole list on every keystroke, and a linear scan
+    // per entry makes that quadratic on the 649-entry lists this dialog exists for.
+    var counts = Object.create(null);
+    state.groups.forEach(function (g) { counts[g.key] = g.count; });
+
+    // Emptied, not merely hidden, and the backdrop listener removed — #modal outlives this
+    // dialog, so a listener left behind would hold this closure (and `entries`) alive and stack
+    // one per open. Same reasoning, same shape, as the gallery's close.
+    function dismiss() {
+      modal.removeEventListener('click', backdrop);
+      modal.innerHTML = '';
+      modal.hidden = true;
+      if (opener && typeof opener.focus === 'function') opener.focus();
+    }
+
+    // The backdrop and only the backdrop: the dialog is a child of #modal, so a click inside it
+    // bubbles here too and must not close anything.
+    function backdrop(event) {
+      if (event.target === modal) dismiss();
+    }
+
+    // `entries` is the snapshot taken when the dialog opened, not a live read. No path today can
+    // replace pickerData while it is up — loadReferencedSheets only fetches sheets it has no
+    // entry for, and a save's reload closes nothing but does not run while the user is in here —
+    // so a staleness guard would be a guard nobody can reach, and therefore nobody can test.
+    function pick(key) {
+      dismiss();
+      openGroup(key);
+    }
+
+    function draw() {
+      list.innerHTML = '';
+      var needle = String(filter.value || '').toLowerCase();
+      var shown = 0;
+
+      entries.forEach(function (entry) {
+        var key = Groups.idKey(entry.id);
+        var text = key + ' — ' + str(entry.name);
+        if (needle && text.toLowerCase().indexOf(needle) === -1) return;
+        var count = counts[key];
+        var button = Forms.el('button', { type: 'button', 'data-parent': key },
+                              text + (count === undefined ? '' : ' (' + count + ')'));
+        button.addEventListener('click', function () { pick(key); });
+        list.appendChild(button);
+        shown++;
+      });
+
+      if (!entries.length) {
+        // The parent list is still loading, or failed — refErrors knows which, but either way
+        // there is nothing to offer. Say so; an EMPTY modal with no message and no way out is
+        // the trap this whole dialog exists to avoid.
+        list.appendChild(Forms.el('p', { class: 'empty' },
+          parent.ref + ' has not loaded yet, and it is what names the parents. ' +
+          'Close this and try again in a moment.'));
+      } else if (!shown) {
+        list.appendChild(Forms.el('p', { class: 'empty' }, 'Nothing matches.'));
+      }
+    }
+
+    filter.addEventListener('input', draw);
+    dialog.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        dismiss();
+        return;
+      }
+      // Enter picks the first VISIBLE parent: "type a few letters, press Enter" is the shortest
+      // path through this dialog, exactly as it is through the gallery's search field.
+      if (event.key === 'Enter' && event.target === filter) {
+        event.preventDefault();
+        var first = list.querySelectorAll('[data-parent]')[0];
+        if (first) pick(first.getAttribute('data-parent'));
+      }
+    });
+    close.addEventListener('click', dismiss);
+    modal.addEventListener('click', backdrop);
+
+    modal.appendChild(dialog);
+    draw();
+    filter.focus();
+  }
+
   // rows[i] is spreadsheet row i + 2: readSheet returns values.slice(1), so index 0 is row 2.
   // Code.gs refuses row 1 (the header) and anything past lastRow + 1.
   function editRow(index) {
@@ -504,6 +885,8 @@ var App = (function () {
 
   function newRecord() {
     if (!state.schema) return;
+    // A grouped sheet has no single-record form: "new" means "start editing a parent's rows".
+    if (grouped()) { openParentPicker(); return; }
     state.rowNumber = 0;
     var values = rowToValues(null);
 
@@ -899,6 +1282,10 @@ var App = (function () {
   function save() {
     if (!state.schema) return;
 
+    // A grouped sheet has no single-record form; its panel owns its own Save. Routed rather than
+    // refused so the header button and the keyboard path both land somewhere sensible.
+    if (grouped()) { saveGroup(); return; }
+
     // publishCheck has state.checking; this is the same guard for the same reason, and it
     // matters more. Two clicks before the round-trip resolves issue two writeRow calls, and on
     // the nine sheets with no pk idColumnIndex is -1, so Code.gs's duplicate scan is disabled BY
@@ -1275,6 +1662,8 @@ var App = (function () {
     openSheet: openSheet,
     newRecord: newRecord,
     editRow: editRow,
+    openGroup: openGroup,
+    saveGroup: saveGroup,
     publishCheck: publishCheck,
     nameIndex: nameIndex,
     bundlesFor: bundlesFor,

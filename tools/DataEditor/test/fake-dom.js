@@ -509,6 +509,15 @@ class FakeNode {
   // [attr="value"] — an unquoted value being legal CSS whenever it is an identifier, which
   // every column name here is.
   _matches(selector) {
+    // The universal selector, for "is this container empty of ELEMENTS" assertions, and a bare
+    // class selector — the record list and the group panel are both addressed by class. Class is
+    // matched against the whitespace-separated list, not the raw attribute, so `class="a b"`
+    // answers to both.
+    if (selector === '*') return true;
+    const cls = /^\.([-\w]+)$/.exec(selector);
+    if (cls) {
+      return String(this.getAttribute('class') || '').split(/\s+/).indexOf(cls[1]) !== -1;
+    }
     const m = /^([a-zA-Z][a-zA-Z0-9]*)?(?:\[([a-zA-Z-]+)(?:="([^"]*)"|=([-\w]+))?\])?$/.exec(selector);
     if (!m || (!m[1] && !m[2])) throw new Error('fake DOM cannot parse selector: ' + selector);
     if (m[1] && this.tagName !== m[1].toUpperCase()) return false;

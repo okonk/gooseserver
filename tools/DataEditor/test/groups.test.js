@@ -513,6 +513,47 @@ test('a row differing in one non-pk column is not a duplicate under the fallback
                                 { rowNumber: 3, values: b, loaded: b }], {}).duplicates, 0);
 });
 
+test('an existing row is not flagged as a duplicate of ITSELF', () => {
+  // The sheet the group was read from is what built idSets.__self, so every existing row's id is
+  // already in it. Without an ownId taken from the loaded state, every row of Quest Reqs and
+  // Quest Rewards reports "id N is already used" and the whole group is unsavable.
+  const row = REQ('Item', '5');
+  row.keep_requirement = '0';
+  const result = Groups.validate(schemaOf('Quest Reqs'),
+                                 [{ rowNumber: 2, values: row, loaded: row }],
+                                 { __self: new Set([1]) });
+  assert.deepEqual(result.rows[0].errors, []);
+  assert.equal(result.ok, true);
+});
+
+test('a row given ANOTHER row\'s id is still flagged', () => {
+  // ownId comes from the loaded state, never from the field — the single-record save()'s rule,
+  // and the reason typing over the id cannot exempt itself.
+  const row = REQ('Item', '5');
+  const loaded = REQ('Item', '5');
+  row.keep_requirement = '0';
+  row.id = '9';
+  const result = Groups.validate(schemaOf('Quest Reqs'),
+                                 [{ rowNumber: 2, values: row, loaded: loaded }],
+                                 { __self: new Set([1, 9]) });
+  assert.equal(result.ok, false);
+  assert.equal(result.rows[0].errors[0].column, 'id');
+});
+
+test('an APPENDED row carries no loaded state and is checked against the whole id set', () => {
+  // addRow allocated its id with nextId over state.ids, so a clean allocation is not in __self
+  // and validates — but it has nothing to be exempted from if it ever collides.
+  const fresh = REQ('Item', '5');
+  fresh.keep_requirement = '0';
+  fresh.id = '4';
+  assert.equal(Groups.validate(schemaOf('Quest Reqs'),
+                               [{ rowNumber: 0, values: fresh, loaded: null }],
+                               { __self: new Set([1, 2, 3]) }).ok, true);
+  assert.equal(Groups.validate(schemaOf('Quest Reqs'),
+                               [{ rowNumber: 0, values: fresh, loaded: null }],
+                               { __self: new Set([1, 4]) }).ok, false);
+});
+
 test('rowKeyOf separates columns unambiguously', () => {
   // ['a b', 'c'] and ['a', 'b c'] must not produce one key, so the join cannot be a space.
   const schema = { sheet: 'Nothing', columns: [{ name: 'x' }, { name: 'y' }] };

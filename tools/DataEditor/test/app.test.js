@@ -32,6 +32,8 @@ const { Forms } = await import('../src/forms.js');
 globalThis.Forms = Forms;
 const { Preview } = await import('../src/preview.js');
 globalThis.Preview = Preview;
+const { Groups } = await import('../src/groups.js');
+globalThis.Groups = Groups;
 
 const { App } = await import('../src/app.js');
 
@@ -72,6 +74,7 @@ const DROP = (npcId, itemId) => rowFor('NPC Drops', {
 function makeServer(sheets, options) {
   const opts = options || {};
   const writes = [];
+  const batches = [];
 
   // Per-call answers for one sheet, so two requests for the SAME sheet are distinguishable —
   // which is what separates "guard by generation" from "guard by sheet name".
@@ -124,21 +127,36 @@ function makeServer(sheets, options) {
       if (opts.writeFails) throw new Error('write refused');
       return { row: target };
     },
+    // The grouped-sheet path's one write call: a whole sheet's edits, appends and deletes in a
+    // single request. Recorded whole, so a test can assert on the SHAPE of the batch and not
+    // only on the fact that something was saved.
+    saveBatch(batch) {
+      if (opts.saveBatchFails) throw new Error('batch boom');
+      batches.push(batch);
+      return batch.map((entry) => ({
+        sheet: entry.sheet,
+        written: (entry.writes || []).length,
+        appended: (entry.appends || []).length,
+        deleted: (entry.deletes || []).length,
+      }));
+    },
   };
 
-  return { server, writes };
+  return { server, writes, batches };
 }
 
 // The page, as Editor.html lays it out.
 function buildShell() {
   const doc = installFakeDom();
   ['sheet-picker', 'records', 'form', 'previews', 'publish-results', 'status',
-   'new-record', 'save', 'publish-check'].forEach((id) => {
+   'new-record', 'save', 'publish-check', 'modal'].forEach((id) => {
     const tag = id === 'sheet-picker' ? 'select'
       : (['new-record', 'save', 'publish-check'].indexOf(id) !== -1 ? 'button'
         : (id === 'status' ? 'span' : 'div'));
     const node = doc.createElement(tag);
     node.id = id;
+    // As Editor.html ships it: the modal backdrop starts hidden and empty.
+    if (id === 'modal') node.hidden = true;
     doc.body.appendChild(node);
   });
   return doc;
@@ -149,7 +167,7 @@ function boot(sheets, options) {
   const opts = options || {};
   const doc = buildShell();
   const img = installFakeImage();
-  const { server, writes } = makeServer(sheets || {}, options);
+  const { server, writes, batches } = makeServer(sheets || {}, options);
   const run = installGoogleScriptRun(server);
 
   Object.assign(App.__state, {
@@ -161,12 +179,15 @@ function boot(sheets, options) {
     idSets: {}, pickerData: {}, bundles: {}, images: {}, imageCallbacks: [], formCallbacks: [],
     loaded: {}, stopEffect: null, previewKey: null, checking: false,
     sheetToken: 0, formToken: 0, saving: false, formPending: false, loading: {},
+    // The grouped-sheet bookkeeping, reset for the same reason as the rest: a group left open by
+    // one test would otherwise let the next one's save collect rows it never built.
+    groupToken: 0, group: null, groups: [], reopenGroup: null,
   });
 
   App.init();
 
   const handles = {
-    doc, img, run, writes,
+    doc, img, run, writes, batches,
     get: (id) => doc.getElementById(id),
     status: () => doc.getElementById('status').textContent,
     // Lets every queued image decode and every queued server call complete, repeatedly, until
@@ -1231,9 +1252,14 @@ test('save sends the loaded snapshot and the Text column indexes to writeRow', (
 test('a sheet with no pk writes idColumnIndex -1, not 0', () => {
   // Code.gs rejects every second row of the nine no-pk sheets if this is 0 — their column A is
   // an Id-kind FK that legitimately repeats.
-  const h = boot({ 'NPC Drops': [DROP(1, 1), DROP(1, 2)], NPCs: [NPC(1, 'Rat')],
-                   Items: [ITEM(1, 'Gold'), ITEM(2, 'Sword')] });
-  h.get('sheet-picker').value = 'NPC Drops';
+  //
+  // CLASS INFO, not NPC Drops: it is the one no-pk sheet still edited a record at a time. The
+  // other eight are grouped, and a grouped sheet never reaches writeRow — its save goes through
+  // saveBatch, whose own no-pk handling is covered by the grouped tests below.
+  const h = boot({ 'Class Info': [rowFor('Class Info', { class_id: 1, level: 1 }),
+                                  rowFor('Class Info', { class_id: 1, level: 2 })],
+                   Classes: [rowFor('Classes', { class_id: 1, class_name: 'Mage' })] });
+  h.get('sheet-picker').value = 'Class Info';
   fire(h.get('sheet-picker'), 'change');
   h.settle();
   fire(h.get('records').children[1], 'click');
@@ -1930,25 +1956,30 @@ test('picker replies that land after a sheet switch do not render the old sheet'
 });
 
 test('switching sheets empties the form, so Save cannot append a phantom row', () => {
-  // Combination Item Required and Combination Item Result have the SAME two columns, and
-  // neither has a pk — so a form left in the DOM across a sheet switch is harvested whole by
-  // Forms.collect, validates clean, and appends. idColumnIndex is -1 for both, by design, so
-  // Code.gs\'s duplicate scan is disabled and cannot catch it either.
+  // The invariant, not the worst case it was found through: a sheet switch leaves NO form and no
+  // record behind, so there is nothing for Save to collect and Save says so. Asserted directly
+  // because the downstream damage depends on which pair of sheets happens to share columns —
+  // Class Info and Items share thirteen, and Class Info has no pk, so a leftover form on that
+  // pair could still validate clean and append under idColumnIndex -1 with Code.gs\'s duplicate
+  // scan disabled by design. The empty container is what makes that unreachable for every pair
+  // at once, including the pairs a future sheet introduces.
+  //
+  // Class Info rather than the Combination Item pair the hazard was first found on: those two
+  // are grouped now and never render a single-record form at all.
   const h = boot({
-    Combinations: [rowFor('Combinations', { combination_id: 5, combination_name: 'Bread' })],
     Items: [ITEM(9, 'Flour')],
-    'Combination Item Required': [COMBO('Combination Item Required', 5, 9)],
-    'Combination Item Result': [],
+    Classes: [rowFor('Classes', { class_id: 1, class_name: 'Mage' })],
+    'Class Info': [rowFor('Class Info', { class_id: 1, level: 4, stat_str: 9 })],
   });
 
-  h.get('sheet-picker').value = 'Combination Item Required';
+  h.get('sheet-picker').value = 'Class Info';
   fire(h.get('sheet-picker'), 'change');
   h.settle();
   fire(h.get('records').children[0], 'click');
   h.settle();
-  assert.equal(h.get('form').querySelector('[name="item_template_id"]').value, '9');
+  assert.equal(h.get('form').querySelector('[name="stat_str"]').value, '9');
 
-  h.get('sheet-picker').value = 'Combination Item Result';
+  h.get('sheet-picker').value = 'Items';
   fire(h.get('sheet-picker'), 'change');
   h.settle();
 
@@ -1964,11 +1995,13 @@ test('switching sheets empties the form, so Save cannot append a phantom row', (
 test('two Save clicks in flight issue ONE write', () => {
   // On the nine sheets with no pk, idColumnIndex is -1 and Code.gs\'s duplicate scan is
   // disabled by design — both writes would append.
+  // Class Info: the one no-pk sheet still edited a record at a time, so the one that still
+  // reaches this guard. The grouped sheets go through saveGroup, which has its own.
   const h = boot({
-    NPCs: [NPC(1, 'Rat')], Items: [ITEM(1, 'Gold')],
-    'NPC Drops': [DROP(1, 1)],
+    Classes: [rowFor('Classes', { class_id: 1, class_name: 'Mage' })],
+    'Class Info': [rowFor('Class Info', { class_id: 1, level: 1 })],
   });
-  h.get('sheet-picker').value = 'NPC Drops';
+  h.get('sheet-picker').value = 'Class Info';
   fire(h.get('sheet-picker'), 'change');
   h.settle();
   fire(h.get('records').children[0], 'click');
@@ -2754,4 +2787,463 @@ test('the problem list is capped and says how many are hidden', () => {
   // it never claims to be exact, and the hidden tail is 1000 - 100 shown + 200 dropped.
   assert.match(panel.textContent, /1000\+ problem\(s\)/);
   assert.match(panel.textContent, /and 1100 more not shown/);
+});
+
+// --- grouped sheets --------------------------------------------------------------------------
+
+test('opening a grouped sheet lists parents, not rows', () => {
+  const { run } = boot({ 'NPC Drops': [DROP(1, 10), DROP(1, 20), DROP(2, 30)],
+                         NPCs: [NPC(1, 'Mouse'), NPC(2, 'Bat')] });
+  App.openSheet('NPC Drops');
+  run.flush();
+
+  const records = document.getElementById('records').querySelectorAll('.record');
+  assert.deepEqual([...records].map((n) => n.textContent),
+                   ['1 — Mouse (2)', '2 — Bat (1)']);
+});
+
+test('opening an ungrouped sheet is unchanged', () => {
+  const { run } = boot({ Items: [ITEM(1, 'Sword'), ITEM(2, 'Shield')] });
+  App.openSheet('Items');
+  run.flush();
+  const records = document.getElementById('records').querySelectorAll('.record');
+  assert.equal(records.length, 2);
+  assert.match(records[0].textContent, /Sword/);
+});
+
+test('clicking a parent opens all of its rows at once', () => {
+  const { run } = boot({ 'NPC Drops': [DROP(1, 10), DROP(1, 20), DROP(2, 30)],
+                         NPCs: [NPC(1, 'Mouse')], Items: [ITEM(10, 'Cheese'), ITEM(20, 'Tail')] });
+  App.openSheet('NPC Drops');
+  run.flush();
+  fire(document.getElementById('records').querySelectorAll('.record')[0], 'click');
+  run.flush();
+
+  assert.equal(document.getElementById('form').querySelectorAll('[data-group-row]').length, 2);
+});
+
+test('saving a group posts one batch for the sheet', () => {
+  const { run } = boot({ 'NPC Drops': [DROP(1, 10)], NPCs: [NPC(1, 'Mouse')],
+                         Items: [ITEM(10, 'Cheese')] });
+  App.openSheet('NPC Drops');
+  run.flush();
+  fire(document.getElementById('records').querySelectorAll('.record')[0], 'click');
+  run.flush();
+
+  const cell = document.getElementById('form').querySelectorAll('[name=droprate]')[0];
+  cell.value = '0.75';
+  App.save();
+  run.flush();
+
+  const call = run.calls.filter((c) => c.name === 'saveBatch').pop();
+  assert.ok(call, 'a group save must go through saveBatch, not writeRow');
+  assert.equal(call.args[0].length, 1);
+  assert.equal(call.args[0][0].sheet, 'NPC Drops');
+  assert.equal(call.args[0][0].writes.length, 1);
+});
+
+test('a group save re-reads the sheet afterwards', () => {
+  // Deletion shifts every row below it, so no cached row number survives a save. A reload is
+  // the only honest position, and it is unconditional rather than only-when-something-was-deleted
+  // so there is one path to get right.
+  const { run } = boot({ 'NPC Drops': [DROP(1, 10)], NPCs: [NPC(1, 'Mouse')],
+                         Items: [ITEM(10, 'Cheese')] });
+  App.openSheet('NPC Drops');
+  run.flush();
+  fire(document.getElementById('records').querySelectorAll('.record')[0], 'click');
+  run.flush();
+  const before = run.calls.filter((c) => c.name === 'readSheet').length;
+
+  document.getElementById('form').querySelectorAll('[name=droprate]')[0].value = '0.75';
+  App.save();
+  run.flush();
+
+  assert.ok(run.calls.filter((c) => c.name === 'readSheet').length > before);
+});
+
+test('a FAILED group save also re-reads the sheet', () => {
+  // Load-bearing, and easy to miss: without it a retry after a batch that threw part-way would
+  // re-append rows that already landed. After the reload the diff sees them as existing rows.
+  const { run } = boot({ 'NPC Drops': [DROP(1, 10)], NPCs: [NPC(1, 'Mouse')],
+                         Items: [ITEM(10, 'Cheese')] }, { saveBatchFails: true });
+  App.openSheet('NPC Drops');
+  run.flush();
+  fire(document.getElementById('records').querySelectorAll('.record')[0], 'click');
+  run.flush();
+  const before = run.calls.filter((c) => c.name === 'readSheet').length;
+
+  document.getElementById('form').querySelectorAll('[name=droprate]')[0].value = '0.75';
+  App.save();
+  run.flush();
+
+  // AFTER the reload, not before it: openSheet's own status lines land last, so an error shown
+  // at the moment of failure would be buried and a failed save would read as a successful one.
+  assert.match(document.getElementById('status').textContent, /boom/);
+  assert.ok(run.calls.filter((c) => c.name === 'readSheet').length > before);
+});
+
+test('a group save refuses while an invalid row is on screen', () => {
+  const { run } = boot({ 'NPC Drops': [DROP(1, 10)], NPCs: [NPC(1, 'Mouse')],
+                         Items: [ITEM(10, 'Cheese')] });
+  App.openSheet('NPC Drops');
+  run.flush();
+  fire(document.getElementById('records').querySelectorAll('.record')[0], 'click');
+  run.flush();
+
+  document.getElementById('form').querySelectorAll('[name=droprate]')[0].value = 'nonsense';
+  App.save();
+  run.flush();
+
+  assert.equal(run.calls.filter((c) => c.name === 'saveBatch').length, 0);
+  assert.match(document.getElementById('status').textContent, /problem/);
+});
+
+test('switching sheets while a group read is in flight discards it', () => {
+  // The token discipline app.js is built around, one level down. Without it the reply for
+  // NPC Drops renders its parents under whatever sheet is now open.
+  const { run } = boot({ 'NPC Drops': [DROP(1, 10)], NPCs: [NPC(1, 'Mouse')],
+                         Items: [ITEM(1, 'Sword')] });
+  App.openSheet('NPC Drops');
+  App.openSheet('Items');
+  run.flush();
+
+  assert.equal(App.__state.sheetName, 'Items');
+  assert.equal(document.getElementById('form').querySelectorAll('[data-group-row]').length, 0);
+});
+
+test('opening a second group discards the first one pending controls', () => {
+  // Group 1 has ONE row and group 2 has TWO, so a first render landing over the second is
+  // visible in the count. With both groups the same size the assertion passes whether or not the
+  // token is checked — Groups.render empties the container either way — and the guard this test
+  // exists for goes untested.
+  const { run } = boot({ 'NPC Drops': [DROP(1, 10), DROP(2, 20), DROP(2, 30)],
+                         NPCs: [NPC(1, 'Mouse'), NPC(2, 'Bat')],
+                         Items: [ITEM(10, 'Cheese'), ITEM(20, 'Tail'), ITEM(30, 'Ear')] });
+  App.openSheet('NPC Drops');
+  run.flush();
+  // The FK lists are dropped first, so each open has to fetch them and its render lands in a
+  // callback rather than inline — which is the only arrangement in which the token can be stale.
+  // With everything cached both renders run synchronously in click order and the second wins
+  // whatever the guard does, so the guard would go untested.
+  App.__state.pickerData = {};
+  App.__state.idSets = {};
+
+  const records = document.getElementById('records').querySelectorAll('.record');
+  fire(records[0], 'click');
+  fire(records[1], 'click');
+
+  // Group 1's replies, landing after the user has moved to group 2 — two of them, because
+  // NPC Drops references NPCs and Items and the render waits on both. They must draw nothing.
+  run.step();
+  run.step();
+  assert.equal(document.getElementById('form').querySelectorAll('[data-group-row]').length, 0,
+               'a reply for the group the user has left may not draw over the one they are on');
+
+  run.flush();
+  const rows = document.getElementById('form').querySelectorAll('[data-group-row]');
+  assert.equal(rows.length, 2, 'only the second group may be on screen');
+  assert.equal(App.__state.group.key, '2');
+});
+
+test('a group save refuses while another one is still in flight', () => {
+  // Same guard, and the same reason, as the single-record path: a grouped sheet has no pk, so
+  // Code.gs's duplicate scan is disabled by design and two batches in flight would BOTH append.
+  const { run } = boot({ 'NPC Drops': [DROP(1, 10)], NPCs: [NPC(1, 'Mouse')],
+                         Items: [ITEM(10, 'Cheese')] });
+  App.openSheet('NPC Drops');
+  run.flush();
+  fire(document.getElementById('records').querySelectorAll('.record')[0], 'click');
+  run.flush();
+
+  document.getElementById('form').querySelectorAll('[name=droprate]')[0].value = '0.75';
+  App.save();
+  App.save();   // before the first round-trip resolves
+  run.flush();
+
+  assert.equal(run.calls.filter((c) => c.name === 'saveBatch').length, 1);
+});
+
+test('a reopen request left over from another sheet is discarded, not applied', () => {
+  // A post-save reload whose read FAILS never consumes the request. Applied to the next grouped
+  // sheet opened it would build an empty panel under a parent id borrowed from another sheet —
+  // one Add-row away from appending a row under the wrong quest.
+  const { run } = boot({ 'Quest Rewards': [], Quests: [rowFor('Quests', { id: 7, name: 'Bread' })],
+                         Items: [ITEM(10, 'Cheese')] });
+  App.__state.reopenGroup = { sheet: 'NPC Drops', key: '1' };
+
+  App.openSheet('Quest Rewards');
+  run.flush();
+
+  assert.equal(App.__state.group, null, 'no group may be opened from another sheet\'s request');
+  assert.equal(App.__state.reopenGroup, null, 'and the stale request is dropped, not kept');
+  assert.equal(document.getElementById('form').children.length, 0);
+});
+
+test('the header Save is hidden on a grouped sheet and back on an ungrouped one', () => {
+  const { run } = boot({ 'NPC Drops': [DROP(1, 10)], NPCs: [NPC(1, 'Mouse')],
+                         Items: [ITEM(1, 'Sword')] });
+  App.openSheet('NPC Drops');
+  run.flush();
+  assert.equal(document.getElementById('save').hidden, true);
+
+  App.openSheet('Items');
+  run.flush();
+  assert.equal(document.getElementById('save').hidden, false);
+});
+
+test('New opens the parent picker with every parent and a filter box', () => {
+  // Every parent is offered, so there is one way to reach any of them — the ones that already
+  // have a group jump to it rather than starting a second. And a filter, because Maps, NPCs and
+  // Quests run to hundreds of entries: an unfiltered list of 649 buttons is not a control.
+  const { run } = boot({ 'NPC Drops': [DROP(1, 10)], NPCs: [NPC(1, 'Mouse'), NPC(2, 'Bat')] });
+  App.openSheet('NPC Drops');
+  run.flush();
+  App.newRecord();
+
+  const modal = document.getElementById('modal');
+  assert.ok(modal.querySelectorAll('[data-parent]').length >= 2);
+  assert.equal(modal.querySelectorAll('[data-filter]').length, 1);
+});
+
+test('the parent picker filters as you type', () => {
+  const { run } = boot({ 'NPC Drops': [DROP(1, 10)], NPCs: [NPC(1, 'Mouse'), NPC(2, 'Bat')] });
+  App.openSheet('NPC Drops');
+  run.flush();
+  App.newRecord();
+
+  const filter = document.getElementById('modal').querySelectorAll('[data-filter]')[0];
+  filter.value = 'bat';
+  fire(filter, 'input');
+
+  const shown = document.getElementById('modal').querySelectorAll('[data-parent]');
+  assert.equal(shown.length, 1);
+  assert.match(shown[0].textContent, /Bat/);
+});
+
+test('Enter in the filter picks the first visible parent', () => {
+  const { run } = boot({ 'NPC Drops': [DROP(1, 10)], NPCs: [NPC(1, 'Mouse'), NPC(2, 'Bat')],
+                         Items: [ITEM(10, 'Cheese')] });
+  App.openSheet('NPC Drops');
+  run.flush();
+  App.newRecord();
+
+  const filter = document.getElementById('modal').querySelectorAll('[data-filter]')[0];
+  filter.value = 'bat';
+  fire(filter, 'input');
+  fire(filter, 'keydown', { key: 'Enter' });
+  run.flush();
+
+  assert.equal(document.getElementById('modal').hidden, true);
+  assert.match(document.getElementById('form').textContent, /Bat/);
+});
+
+test('Escape closes the parent picker and empties the modal', () => {
+  // Emptied, not merely hidden — the gallery's rule, for the same reason.
+  const { run } = boot({ 'NPC Drops': [DROP(1, 10)], NPCs: [NPC(1, 'Mouse')] });
+  App.openSheet('NPC Drops');
+  run.flush();
+  App.newRecord();
+
+  const dialog = document.getElementById('modal').querySelectorAll('[role=dialog]')[0];
+  fire(dialog, 'keydown', { key: 'Escape' });
+
+  assert.equal(document.getElementById('modal').hidden, true);
+  assert.equal(document.getElementById('modal').querySelectorAll('*').length, 0);
+});
+
+test('a backdrop click closes the parent picker; a click inside does not', () => {
+  const { run } = boot({ 'NPC Drops': [DROP(1, 10)], NPCs: [NPC(1, 'Mouse')] });
+  App.openSheet('NPC Drops');
+  run.flush();
+  App.newRecord();
+
+  const modal = document.getElementById('modal');
+  fire(modal.querySelectorAll('[role=dialog]')[0], 'click');
+  assert.equal(modal.hidden, false, 'a click inside the dialog must not close it');
+  fire(modal, 'click');
+  assert.equal(modal.hidden, true);
+});
+
+test('the Close button closes the parent picker', () => {
+  const { run } = boot({ 'NPC Drops': [DROP(1, 10)], NPCs: [NPC(1, 'Mouse')] });
+  App.openSheet('NPC Drops');
+  run.flush();
+  App.newRecord();
+
+  fire(document.getElementById('modal').querySelectorAll('[data-close]')[0], 'click');
+  assert.equal(document.getElementById('modal').hidden, true);
+});
+
+test('the parent picker says so when the parent list is absent, and still closes', () => {
+  // Without this the modal opens EMPTY when loadReferencedSheets is slow or failed — no rows,
+  // no message, no way out.
+  const { run } = boot({ 'NPC Drops': [DROP(1, 10)], NPCs: [NPC(1, 'Mouse')] });
+  App.openSheet('NPC Drops');
+  run.flush();
+  delete App.__state.pickerData.NPCs;
+  App.newRecord();
+
+  const modal = document.getElementById('modal');
+  assert.equal(modal.querySelectorAll('[data-parent]').length, 0);
+  assert.match(modal.textContent, /NPCs/);
+  fire(modal.querySelectorAll('[data-close]')[0], 'click');
+  assert.equal(modal.hidden, true);
+});
+
+test('adding the first row to a parent with none appends it', () => {
+  const { run } = boot({ 'NPC Drops': [DROP(1, 10)], NPCs: [NPC(1, 'Mouse'), NPC(2, 'Bat')],
+                         Items: [ITEM(10, 'Cheese')] });
+  App.openSheet('NPC Drops');
+  run.flush();
+  App.openGroup('2');
+  run.flush();
+  fire(document.getElementById('form').querySelectorAll('[data-add]')[0], 'click');
+  // Every column of NPC Drops is required, and addRow fills only the parent — so the blank row
+  // has to be completed before it can be saved at all.
+  const form = document.getElementById('form');
+  form.querySelectorAll('[name=item_template_id]')[0].value = '10';
+  form.querySelectorAll('[name=stack]')[0].value = '1';
+  form.querySelectorAll('[name=droprate]')[0].value = '0.10';
+  App.save();
+  run.flush();
+
+  const call = run.calls.filter((c) => c.name === 'saveBatch').pop();
+  assert.ok(call, 'the first row of an empty group must be appended');
+  assert.equal(call.args[0][0].appends.length, 1);
+  const names = schemaOf('NPC Drops').columns.map((c) => c.name);
+  assert.equal(call.args[0][0].appends[0].cells[names.indexOf('npc_template_id')], '2');
+});
+
+// A grouped sheet WITH a pk. Every row's id is in idSets.__self — the sheet it was read from is
+// what built that set — so these are the rows that go unsavable if validate does not exempt a row
+// from its own id.
+const QUEST = (id, name) => rowFor('Quests', { id, name });
+const REWARD = (id, questId, type, value) => rowFor('Quest Rewards', {
+  id, quest_id: questId, reward_type: type, long_value: value,
+});
+
+test('a group on a sheet WITH a pk can be saved at all', () => {
+  const { run } = boot({ 'Quest Rewards': [REWARD(1, 7, 'Gold', 100), REWARD(2, 7, 'Gold', 200)],
+                         Quests: [QUEST(7, 'Bread')] });
+  App.openSheet('Quest Rewards');
+  run.flush();
+  App.openGroup('7');
+  run.flush();
+
+  document.getElementById('form').querySelectorAll('[name=long_value]')[0].value = '150';
+  App.save();
+  run.flush();
+
+  const call = run.calls.filter((c) => c.name === 'saveBatch').pop();
+  assert.ok(call, 'every row is its own id\'s only owner; none may be flagged against itself');
+  assert.equal(call.args[0][0].writes.length, 1);
+});
+
+test('a row added to a group on a sheet with a pk is appended with an allocated id', () => {
+  const { run } = boot({ 'Quest Rewards': [REWARD(1, 7, 'Gold', 100)],
+                         Quests: [QUEST(7, 'Bread')] });
+  App.openSheet('Quest Rewards');
+  run.flush();
+  App.openGroup('7');
+  run.flush();
+
+  fire(document.getElementById('form').querySelectorAll('[data-add]')[0], 'click');
+  const form = document.getElementById('form');
+  const types = form.querySelectorAll('[name=reward_type]');
+  types[types.length - 1].value = 'Gold';
+  App.save();
+  run.flush();
+
+  const call = run.calls.filter((c) => c.name === 'saveBatch').pop();
+  assert.ok(call, 'a freshly allocated id must not collide with the row it was allocated from');
+  assert.equal(call.args[0][0].appends.length, 1);
+  const names = schemaOf('Quest Rewards').columns.map((c) => c.name);
+  assert.equal(call.args[0][0].appends[0].cells[names.indexOf('id')], '2');
+});
+
+test('a group save with no group open says so and writes nothing', () => {
+  const { run } = boot({ 'NPC Drops': [DROP(1, 10)], NPCs: [NPC(1, 'Mouse')],
+                         Items: [ITEM(10, 'Cheese')] });
+  App.openSheet('NPC Drops');
+  run.flush();
+
+  App.save();
+  run.flush();
+
+  assert.equal(run.calls.filter((c) => c.name === 'saveBatch').length, 0);
+  assert.match(document.getElementById('status').textContent, /Open a group first/);
+});
+
+test('a group save refuses while a referenced sheet failed to load', () => {
+  // Validation waves an fk through when its id set is absent — it must, because the sets load
+  // asynchronously — so a list that FAILED to load is a hole in validation, not a cosmetic gap.
+  const { run } = boot({ 'NPC Drops': [DROP(1, 10)], NPCs: [NPC(1, 'Mouse')],
+                         Items: [ITEM(10, 'Cheese')] }, { failIndexOn: 'Items' });
+  App.openSheet('NPC Drops');
+  run.flush();
+  fire(document.getElementById('records').querySelectorAll('.record')[0], 'click');
+  run.flush();
+
+  document.getElementById('form').querySelectorAll('[name=droprate]')[0].value = '0.75';
+  App.save();
+
+  assert.equal(run.calls.filter((c) => c.name === 'saveBatch').length, 0);
+  assert.match(document.getElementById('status').textContent, /Items/);
+});
+
+test('a successful group save reopens the same group', () => {
+  // The reload is unconditional, so without this every save drops the user back to the parent
+  // list having lost the place they were editing.
+  const { run } = boot({ 'NPC Drops': [DROP(1, 10), DROP(2, 20)],
+                         NPCs: [NPC(1, 'Mouse'), NPC(2, 'Bat')],
+                         Items: [ITEM(10, 'Cheese'), ITEM(20, 'Tail')] });
+  App.openSheet('NPC Drops');
+  run.flush();
+  fire(document.getElementById('records').querySelectorAll('.record')[1], 'click');
+  run.flush();
+
+  document.getElementById('form').querySelectorAll('[name=droprate]')[0].value = '0.75';
+  App.save();
+  run.flush();
+
+  assert.equal(App.__state.group.key, '2');
+  assert.equal(document.getElementById('form').querySelectorAll('[data-group-row]').length, 1);
+});
+
+test('a group cannot be opened while a save is in flight', () => {
+  // Every save reloads the sheet, and the reload empties the form — so a group opened and edited
+  // during the round trip would have those edits wiped with no warning. The panel is the only
+  // edit surface on a grouped sheet, so refusing to leave the one being saved closes the window.
+  const { run } = boot({ 'NPC Drops': [DROP(1, 10), DROP(2, 20)],
+                         NPCs: [NPC(1, 'Mouse'), NPC(2, 'Bat')],
+                         Items: [ITEM(10, 'Cheese'), ITEM(20, 'Tail')] });
+  App.openSheet('NPC Drops');
+  run.flush();
+  fire(document.getElementById('records').querySelectorAll('.record')[0], 'click');
+  run.flush();
+
+  document.getElementById('form').querySelectorAll('[name=droprate]')[0].value = '0.75';
+  App.save();
+  App.openGroup('2');   // before the batch resolves
+
+  assert.equal(App.__state.group.key, '1', 'the group being saved must stay on screen');
+  assert.match(document.getElementById('status').textContent, /Still saving/);
+
+  // And once it resolves, the reload's own reopen still works.
+  run.flush();
+  assert.equal(App.__state.group.key, '1');
+});
+
+test('a failed save\'s message does not surface on a different sheet', () => {
+  // The message outlives its save when the reload's read never lands. Unqualified, it then
+  // reports 'batch boom' over a clean list of Items, blaming a sheet that was never saved.
+  const { run } = boot({ 'NPC Drops': [DROP(1, 10)], NPCs: [NPC(1, 'Mouse')],
+                         Items: [ITEM(1, 'Sword')] });
+  App.__state.pendingError = { sheet: 'NPC Drops', message: 'batch boom' };
+
+  App.openSheet('Items');
+  run.flush();
+
+  assert.doesNotMatch(document.getElementById('status').textContent, /boom/);
+  assert.equal(App.__state.pendingError, null, 'and it is dropped, not left to strike later');
 });

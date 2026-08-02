@@ -210,6 +210,19 @@
   /* [hidden] loses to `display: flex` on specificity-equal ground — same selector weight, later
      rule wins — so the modal would be permanently on screen without this. */
   #modal[hidden] { display: none; }
+
+  /* THE PARENT PICKER — the other tenant of #modal, opened by New on a grouped sheet. Its own
+     scroll container rather than the dialog's, so the filter box stays put while the list moves
+     under it: with hundreds of parents, a filter that scrolls out of reach is no filter. */
+  .parent-picker { background: #fff; border: 1px solid #ccc; max-width: 28em;
+                   max-height: 80vh; display: flex; flex-direction: column; gap: 6px;
+                   padding: 8px; box-sizing: border-box; }
+  .picker-head { display: flex; gap: 8px; }
+  .picker-head input { flex: 1; }
+  .parent-list { overflow-y: auto; display: flex; flex-direction: column; align-items: stretch; }
+  /* The list's stand-in line — "nothing matches", or the one that says the parent sheet failed to
+     load, which is the message a stuck user most needs to be able to READ. */
+  .parent-picker .empty { color: #555; margin: 4px 0; }
   .gal { background: #fff; border: 1px solid #ccc; padding: 8px; max-width: calc(100vw - 16px);
          max-height: calc(100vh - 16px); display: flex; flex-direction: column; gap: 6px;
          box-sizing: border-box; }
@@ -264,7 +277,8 @@
     .record, .result { color: #eee; }
     .result.active { background: #33415c; }
     .chip { background: #2b2b3a; border-color: #43435a; color: #eee; }
-    .gal { background: #242424; border-color: #3a3a3a; }
+    .gal, .parent-picker { background: #242424; border-color: #3a3a3a; }
+    .parent-picker .empty { color: #aaa; }
     .gal h2, .gal-locked, .gal-count { color: #aaa; }
     .gal-tile { border-color: #3a3a3a; }
     /* #060 and #b00 sit at roughly 1.7:1 and 2.5:1 on #1c1c1c, against a 4.5:1 target — and
