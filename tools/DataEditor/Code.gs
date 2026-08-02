@@ -121,8 +121,8 @@
  *     save that fails part-way through its own writes leaves the earlier ones standing, and
  *     nothing rolls them back. Two editors no longer interleave — every write path in this
  *     file holds the document lock (withDocumentLock_) — so an id can no longer be taken
- *     twice inside the check-then-write window. The loaded-snapshot merge still narrows a genuine two-editor
- *     conflict to the cells both sides edited.
+ *     twice inside the check-then-write window. The loaded-snapshot merge still narrows a
+ *     genuine two-editor conflict to the cells both sides edited.
  * ---------------------------------------------------------------------------------
  */
 
@@ -163,9 +163,10 @@ function withDocumentLock_(fn) {
  * `currentRaw` / `currentShown` are the row's cells as getValues / getDisplayValues give them;
  * `out` is the posted record with blanks already folded to ''; `loaded` is the record AS THE
  * CLIENT READ IT, or null for a caller that has no snapshot. `currentShown` may itself be null
- * when the caller knows the row holds no Date cells; with it null, a Date cell would diff by its
- * raw String() form rather than its display text, so any caller that can see Dates must pass
- * display values.
+ * ONLY when the caller knows the row holds no Date cells: with it null a Date cell reads as the
+ * empty string (cellText_ gets '' as its display text), so the cell always looks changed — a
+ * spurious write without `loaded`, and with `loaded` a spurious conflict that refuses the whole
+ * save. Any caller whose row can hold a Date must pass display values.
  *
  * A save posts the WHOLE record, every column, whether the user edited it or not — so writing
  * the whole row unconditionally meant every cell was rewritten from the text the client happened
@@ -521,9 +522,10 @@ function readSheetIndex(sheetName, nameColumnIndex, extraColumnIndex) {
  * one document lock (withDocumentLock_), so nobody else's write lands inside the
  * check-then-write window. What remains is that the write itself is not a transaction — a
  * save that fails part-way through its own writes leaves the earlier cells standing, and
- * nothing rolls them back. The check is skipped when the posted id equals the one in `options.loaded` for a row that already
- * exists — that save cannot take an id off anybody — so an ordinary field edit no longer reads the
- * whole id column. See the scan itself for why the sheet's current id does not come into it.
+ * nothing rolls them back. The check is skipped when the posted id equals the one in
+ * `options.loaded` for a row that already exists — that save cannot take an id off anybody — so
+ * an ordinary field edit no longer reads the whole id column. See the scan itself for why the
+ * sheet's current id does not come into it.
  *
  * `options.loaded` is the record AS THE CLIENT READ IT, same width and encoding as `cells`.
  * With it, "what changed" is decided against what the USER saw, not against the sheet's
