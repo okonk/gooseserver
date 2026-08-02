@@ -16,9 +16,9 @@
 // Everything Code.gs does not call is absent, deliberately: getFormulas, getUi, merged cells,
 // data validation. LockService IS here — writeRow and saveBatch both take a document lock — but
 // only as a counter: it models that the lock is taken and released, not contention, because one
-// vm context has no second caller to contend with. setNumberFormat is present but only RECORDED (into
-// sheet.writes, as { row, col, format }), because what the tests pin is that writeRow asks for
-// the '@' pin on exactly the edited Text cells, and asks BEFORE writing the value — whether '@'
+// vm context has no second caller to contend with. setNumberFormat is present but only RECORDED
+// (into sheet.writes, as { row, col, format }), because what the tests pin is that writeRow asks
+// for the '@' pin on exactly the edited Text cells, and asks BEFORE writing the value — whether '@'
 // actually suppresses Sheets' entry parsing is a live check, not something this fake can model.
 //
 // A CELL is either a plain value (number, string, boolean, null for empty) or a descriptor:

@@ -117,12 +117,124 @@
  *       with the message naming the column, and nothing else on the row written
  *     - a Text cell edited to "1-2" and to "01" (must store the text, not a Date or a 1 —
  *       the '@' format pin)
- *   Residual risk, accepted per plan scope: none of check-then-write is atomic. Two
- *     editors inside the same window can still take one id, and a conflicting edit that
- *     lands between the row read and setValues still wins by ordering. No LockService.
- *     The loaded-snapshot merge narrows the damage to the cells both sides edited.
+ *   Residual risk, accepted per plan scope: the check and the write are not a transaction. A
+ *     save that fails part-way through its own writes leaves the earlier ones standing, and
+ *     nothing rolls them back. Two editors no longer interleave — every write path holds the
+ *     document lock (withDocumentLock_) — so an id can no longer be taken twice inside the
+ *     check-then-write window. The loaded-snapshot merge still narrows a genuine two-editor
+ *     conflict to the cells both sides edited.
  * ---------------------------------------------------------------------------------
  */
+
+/**
+ * How long a save waits for the document lock. Generous: the alternative to waiting is telling
+ * a user their save failed because someone else was mid-save, and a save is milliseconds of
+ * sheet work. Well inside the 6-minute execution limit.
+ */
+var LOCK_TIMEOUT_MS = 30000;
+
+/**
+ * Internal: runs fn holding the document lock, and releases it whatever fn does.
+ *
+ * A DOCUMENT lock, not a script lock: the editor is container-bound, so the thing two callers
+ * contend for is this spreadsheet. waitLock THROWS on timeout — it does not return false, which
+ * is tryLock — so a caller that reaches fn is holding the lock.
+ *
+ * This closes the check-then-write window the header used to list as accepted risk. It is not a
+ * transaction: fn can still fail part-way through its own writes, and nothing rolls those back.
+ * What it buys is that no two saves interleave.
+ */
+function withDocumentLock_(fn) {
+  var lock = LockService.getDocumentLock();
+  lock.waitLock(LOCK_TIMEOUT_MS);
+  try {
+    return fn();
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/**
+ * Internal: which cells of a row a save must write, and which columns another editor changed
+ * underneath it. Reads nothing and writes nothing — the caller supplies the row as it currently
+ * stands, which is what lets a batch plan every row of every sheet from one read before it
+ * touches anything.
+ *
+ * `currentRaw` / `currentShown` are the row's cells as getValues / getDisplayValues give them;
+ * `out` is the posted record with blanks already folded to ''; `loaded` is the record AS THE
+ * CLIENT READ IT, or null for a caller that has no snapshot.
+ *
+ * A save posts the WHOLE record, every column, whether the user edited it or not — so writing
+ * the whole row unconditionally meant every cell was rewritten from the text the client happened
+ * to be holding. cellText_ removed the formatting half of that; this removes the rest, by never
+ * touching a cell whose value has not changed:
+ *   - a FORMULA cell keeps its formula. getValues() gives its RESULT, so the client can only ever
+ *     post the result back; comparing result to result finds them equal and the cell is left
+ *     alone. (Editing that field still replaces the formula, which is the one case where that is
+ *     what the user asked for.)
+ *   - a text cell holding something the sheet would re-parse on entry — "01", "-50", anything
+ *     Sheets reads as a number — keeps exactly what it has.
+ * A blank incoming cell still CLEARS a non-blank one: out[] has already folded null to '', so
+ * "the user emptied this field" compares unequal and is written.
+ *
+ * The three-way rule, unchanged from where it grew up inside writeRow:
+ *   - a cell where posted equals loaded was never edited and is NEVER written, so a concurrent
+ *     edit to it survives instead of being reverted to the stale copy;
+ *   - a cell that already holds what the user wants needs no write;
+ *   - a cell the user DID edit whose current value matches neither loaded nor posted was also
+ *     changed by someone else — a conflict, reported rather than overwritten.
+ * Without `loaded` it degrades to "write what differs", which is last-writer-wins per cell.
+ *
+ * Returns { writeAt: number[], conflicts: number[] }, both 0-based column indexes, ascending.
+ */
+function planRowWrite_(currentRaw, currentShown, out, loaded, width) {
+  var writeAt = [];
+  var conflicts = [];
+
+  for (var c = 0; c < width; c++) {
+    var current = cellText_(currentRaw[c], currentShown ? currentShown[c] : '');
+    var posted = String(out[c]);
+
+    if (loaded) {
+      var was = isBlank_(loaded[c]) ? '' : String(loaded[c]);
+      if (posted === was) continue;
+      if (current === posted) continue;
+      if (current !== was) { conflicts.push(c); continue; }
+    } else if (current === posted) {
+      continue;
+    }
+
+    writeAt.push(c);
+  }
+
+  return { writeAt: writeAt, conflicts: conflicts };
+}
+
+/**
+ * Internal: writes the planned cells of one row as contiguous runs, so an ordinary edit is one
+ * setValues call rather than one per column. Pins '@' on a Text cell BEFORE writing it —
+ * setValues parses strings like typed entry, so "1-2" in a description becomes a Date and "01"
+ * becomes 1.
+ *
+ * `textColumns` is a 0-based index -> true map, not an array: it is consulted per written cell.
+ */
+function writeRuns_(sheet, target, out, writeAt, textColumns) {
+  var runs = [];
+  writeAt.forEach(function (c) {
+    var open = runs.length ? runs[runs.length - 1] : null;
+    if (open && open.at + open.values.length === c) open.values.push(out[c]);
+    else runs.push({ at: c, values: [out[c]] });
+  });
+
+  runs.forEach(function (run) {
+    run.values.forEach(function (value, k) {
+      if (textColumns[run.at + k] && !isBlank_(value)) {
+        sheet.getRange(target, run.at + k + 1).setNumberFormat('@');
+      }
+    });
+    sheet.getRange(target, run.at + 1, 1, run.values.length).setValues([run.values]);
+  });
+}
 
 function onOpen() {
   // Simple trigger. Building a menu is allowed here without authorisation; the
@@ -428,6 +540,12 @@ function readSheetIndex(sheetName, nameColumnIndex, extraColumnIndex) {
  * would alter formatting the user never asked about.
  */
 function writeRow(sheetName, rowNumber, cells, idColumnIndex, options) {
+  return withDocumentLock_(function () {
+    return writeRowLocked_(sheetName, rowNumber, cells, idColumnIndex, options);
+  });
+}
+
+function writeRowLocked_(sheetName, rowNumber, cells, idColumnIndex, options) {
   var sheet = requireSheet_(sheetName);
 
   if (!Array.isArray(cells)) throw new Error('writeRow: cells must be an array');
@@ -537,67 +655,22 @@ function writeRow(sheetName, rowNumber, cells, idColumnIndex, options) {
 
   var out = cells.map(function (c) { return isBlank_(c) ? '' : c; });
 
-  // A save posts the WHOLE record, every column, whether the user edited it or not — so
-  // writing the whole row unconditionally meant every cell was rewritten from the text the
-  // client happened to be holding. cellText_ removed the formatting half of that; this
-  // removes the rest, by never touching a cell whose value has not changed:
-  //   - a FORMULA cell keeps its formula. getValues() gives its RESULT, so the client can
-  //     only ever post the result back; comparing result to result finds them equal and the
-  //     cell is left alone. (Editing that field still replaces the formula, which is the
-  //     one case where that is what the user asked for.)
-  //   - a text cell holding something the sheet would re-parse on entry — "01", "-50",
-  //     anything Sheets reads as a number — keeps exactly what it has.
-  // A blank incoming cell still CLEARS a non-blank one: out[] has already folded null to
-  // '', so "the user emptied this field" compares unequal and is written.
-  //
-  // Only for a row that already exists. An append has nothing to compare against.
+  // Which cells to write is planRowWrite_'s rule — see there. Only for a row that already
+  // exists; an append has nothing to compare against. The whole row is planned before anything
+  // is written, because a conflict must refuse the entire save, not land half of it first.
   if (target <= lastRow) {
     var before = sheet.getRange(target, 1, 1, width);
-    var beforeRaw = before.getValues()[0];
-    var beforeShown = before.getDisplayValues()[0];
+    var plan = planRowWrite_(before.getValues()[0], before.getDisplayValues()[0], out, loaded, width);
 
-    // Which cells to write, decided for the WHOLE row before anything is written — a conflict
-    // must refuse the entire save, not land half of it first.
-    var writeAt = [];
-    var conflicts = [];
-    for (var c = 0; c < width; c++) {
-      var current = cellText_(beforeRaw[c], beforeShown[c]);
-      var posted = String(out[c]);
-      if (loaded) {
-        var was = isBlank_(loaded[c]) ? '' : String(loaded[c]);
-        if (posted === was) continue;              // never edited — theirs, not ours, to write
-        if (current === posted) continue;          // already holds what the user wants
-        if (current !== was) { conflicts.push(c); continue; }
-      } else if (current === posted) {
-        continue;
-      }
-      writeAt.push(c);
-    }
-
-    if (conflicts.length) {
+    if (plan.conflicts.length) {
       var header = sheet.getRange(1, 1, 1, width).getDisplayValues()[0];
-      var names = conflicts.map(function (c) { return String(header[c]); });
+      var names = plan.conflicts.map(function (c) { return String(header[c]); });
       throw new Error(
         sheetName + ' row ' + target + ': ' + names.join(', ') + ' changed in the sheet while ' +
         'you were editing — nothing was written. Reload the record and re-apply your edit.');
     }
 
-    // Contiguous runs, so an ordinary edit is one setValues call rather than one per column.
-    var runs = [];
-    writeAt.forEach(function (c) {
-      var open = runs.length ? runs[runs.length - 1] : null;
-      if (open && open.at + open.values.length === c) open.values.push(out[c]);
-      else runs.push({ at: c, values: [out[c]] });
-    });
-
-    runs.forEach(function (run) {
-      run.values.forEach(function (value, k) {
-        if (textColumns[run.at + k] && !isBlank_(value)) {
-          sheet.getRange(target, run.at + k + 1).setNumberFormat('@');
-        }
-      });
-      sheet.getRange(target, run.at + 1, 1, run.values.length).setValues([run.values]);
-    });
+    writeRuns_(sheet, target, out, plan.writeAt, textColumns);
   } else {
     for (var t = 0; t < out.length; t++) {
       if (textColumns[t] && !isBlank_(out[t])) {

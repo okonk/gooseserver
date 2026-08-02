@@ -49,6 +49,8 @@ test('deleteRows refuses a range past the grid', () => {
 test('the lock stub counts acquisition and release', () => {
   const gs = loadCodeGs({ Items: GRID.map((row) => row.slice()) });
   assert.deepEqual(gs.locks(), { acquired: 0, released: 0, held: false });
+  gs.writeRow('Items', 2, ['1', 'UNO'], -1);
+  assert.deepEqual(gs.locks(), { acquired: 1, released: 1, held: false });
 });
 
 test('a lock that cannot be obtained throws from waitLock', () => {

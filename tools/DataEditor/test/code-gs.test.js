@@ -579,3 +579,30 @@ test('readSheetIndex returns the extra column raw when asked, and omits it other
   assert.deepEqual(gs.readSheetIndex('Effects', 1).entries,
     [{ id: '4', name: 'Flame' }, { id: '9', name: 'Frost' }]);
 });
+
+// --- the document lock ----------------------------------------------------------------------
+//
+// Code.gs's header listed "no LockService" as accepted residual risk: the duplicate-id scan and
+// the row write are not atomic, so two editors inside that window could both take one id. A batch
+// save widens the window from one row to many rows across many sheets, which is more than the
+// loaded-snapshot merge can narrow on its own.
+
+test('writeRow takes the document lock and releases it', () => {
+  const gs = sheet([ROW]);
+  gs.writeRow('Items', 2, ['7', 'Steel Sword', '0.1235', '1500', '1', '185.25'], 0);
+  assert.deepEqual(gs.locks(), { acquired: 1, released: 1, held: false });
+});
+
+test('writeRow releases the lock when it throws', () => {
+  // The finally, stated as a test. A refused save that kept the lock would wedge every later
+  // save in the document until the script instance went away.
+  const gs = sheet([ROW]);
+  assert.throws(() => gs.writeRow('Items', 1, ['x', 'y', 'z', 'w', 'v', 'u'], 0), /header row/);
+  assert.deepEqual(gs.locks(), { acquired: 1, released: 1, held: false });
+});
+
+test('writeRow does not write when the lock cannot be taken', () => {
+  const gs = loadCodeGs({ Items: [HEADER, ROW] }, {}, { lockFails: true });
+  assert.throws(() => gs.writeRow('Items', 2, ['7', 'x', '0', '0', '0', '0'], 0), /lock/i);
+  assert.deepEqual(gs.sheets.Items.writes, []);
+});
