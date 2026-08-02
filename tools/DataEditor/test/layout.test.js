@@ -573,6 +573,59 @@ test('GROUP_PARENT is frozen', () => {
   assert.ok(Object.isFrozen(Layout.GROUP_PARENT));
 });
 
+// ------------------------------------------------------------------ GROUP_KEY
+
+test('every keyed sheet is a grouped sheet', () => {
+  // The key exists to warn that one GROUP holds a record twice. A key for a sheet that is never
+  // grouped is a table entry nothing can ever read.
+  Object.keys(Layout.GROUP_KEY).forEach((name) => {
+    assert.ok(Layout.groupParent(name), name + ' is keyed but not grouped');
+  });
+});
+
+test('every key names columns that sheet really has', () => {
+  Object.keys(Layout.GROUP_KEY).forEach((name) => {
+    const names = sheet(name).columns.map((c) => c.name);
+    Layout.GROUP_KEY[name].forEach((column) => {
+      assert.ok(names.includes(column), name + ' has no column ' + column);
+    });
+  });
+});
+
+test('every key includes its sheet parent column', () => {
+  // Within one group the parent is constant, so including it changes nothing — but a key that
+  // OMITS it would compare rows across groups the moment a caller keyed a whole sheet at once.
+  Object.keys(Layout.GROUP_KEY).forEach((name) => {
+    assert.ok(Layout.GROUP_KEY[name].includes(Layout.groupParent(name)),
+      name + ' key omits its parent column');
+  });
+});
+
+test('groupKey answers null for a grouped sheet whose whole record is its identity', () => {
+  // Coordinates are what make these rows distinct: several spawn points for one NPC on one map,
+  // and a wall of warp tiles to one destination, are both normal authoring.
+  assert.equal(Layout.groupKey('NPC Spawns'), null);
+  assert.equal(Layout.groupKey('Warptiles'), null);
+  // No subset of a quest requirement means anything on its own.
+  assert.equal(Layout.groupKey('Quest Reqs'), null);
+  assert.equal(Layout.groupKey('Quest Rewards'), null);
+});
+
+test('groupKey answers null for a sheet that is not grouped at all', () => {
+  assert.equal(Layout.groupKey('Items'), null);
+});
+
+test('groupKey answers the key columns of a keyed sheet', () => {
+  assert.deepEqual([...Layout.groupKey('NPC Drops')], ['npc_template_id', 'item_template_id']);
+});
+
+test('GROUP_KEY is frozen, its column lists included', () => {
+  assert.ok(Object.isFrozen(Layout.GROUP_KEY));
+  Object.keys(Layout.GROUP_KEY).forEach((name) => {
+    assert.ok(Object.isFrozen(Layout.GROUP_KEY[name]), name + ' key is not frozen');
+  });
+});
+
 test('no grouped sheet has a composite', () => {
   // The group table builds every cell with Forms.columnControl, which routes a composite's
   // columns nowhere. If a grouped sheet ever gains one, the table would silently render its

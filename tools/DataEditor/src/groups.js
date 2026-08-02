@@ -340,6 +340,125 @@ var Groups = (function () {
     return state ? state.removed.slice() : [];
   }
 
+  // The record as an array in schema column order — which IS the sheet's column order, because
+  // the importer reads cells by index (CsvToSqlBase.cs:35). A cell Validation says not to write
+  // becomes null, so a blank optional cell stays blank and the column's SQL default applies;
+  // writing 0 instead would pin a value that was tracking the default.
+  function cellsOf(schema, values, idSets) {
+    return schema.columns.map(function (c) {
+      var check = Validation.validateCell(c, values[c.name], idSets);
+      return check.write ? values[c.name] : null;
+    });
+  }
+
+  function snapshotOf(schema, loaded) {
+    return schema.columns.map(function (c) { return str(loaded[c.name]); });
+  }
+
+  /// One sheet's op-set for saveBatch, from the rows on screen and the rows removed.
+  ///
+  /// CALL ONLY ON RECORDS validate() HAS PASSED: a blank required cell is written as null here
+  /// like any other blank, which on an existing row is a write that CLEARS it.
+  ///
+  /// `present` is collect()'s output, `gone` is removed()'s. A row whose every cell still equals
+  /// what it was loaded with yields NOTHING — the server would skip it anyway, and leaving it out
+  /// keeps the reported count honest.
+  function ops(schema, present, gone, idSets) {
+    var writes = [];
+    var appends = [];
+
+    (present || []).forEach(function (row) {
+      var cells = cellsOf(schema, row.values, idSets);
+
+      // On the row NUMBER alone. A row that exists in the sheet but arrived with no snapshot is
+      // still an update — appending it instead would add a second copy of a record already
+      // there, and this is the only place in the module that could. An empty snapshot posts as a
+      // row of blanks, which the server reads as a conflict and refuses: the safe failure.
+      if (row.rowNumber > 0) {
+        var loaded = snapshotOf(schema, row.loaded || {});
+        var changed = false;
+        for (var i = 0; i < cells.length; i++) {
+          if (str(cells[i]) !== loaded[i]) { changed = true; break; }
+        }
+        if (changed) writes.push({ row: row.rowNumber, cells: cells, loaded: loaded });
+        return;
+      }
+
+      appends.push({ cells: cells });
+    });
+
+    var deletes = (gone || []).map(function (row) {
+      // Same fail-safe as a write: no snapshot means a row of blanks, which the server compares
+      // against what is in the sheet and refuses, rather than deleting a row sight unseen.
+      return { row: row.rowNumber, loaded: snapshotOf(schema, row.loaded || {}) };
+    });
+
+    var pk = schema.columns.filter(function (c) { return c.pk; })[0];
+    var textColumns = [];
+    schema.columns.forEach(function (c, i) { if (c.kind === 'Text') textColumns.push(i); });
+
+    return {
+      sheet: schema.sheet,
+      // -1 for the eight grouped sheets with no pk: their column A is an Id-kind FK that
+      // legitimately repeats, and 0 would make the server reject every second drop or spawn.
+      idColumnIndex: pk ? schema.columns.indexOf(pk) : -1,
+      textColumns: textColumns,
+      writes: writes,
+      appends: appends,
+      deletes: deletes,
+    };
+  }
+
+  /// What makes a row the row it is, as one comparable string.
+  ///
+  /// TWO ROWS ARE THE SAME RECORD WHEN THIS MATCHES. The columns come from Layout.groupKey — a
+  /// per-sheet judgement, not something derivable from the schema — and a sheet with no entry
+  /// falls back to every non-pk column, which never calls two genuinely different rows the same.
+  /// Both consumers (validate's warning, and the row tinting above it) go through here, so the
+  /// count in the message and the rows marked on screen cannot disagree.
+  function rowKeyOf(schema, values) {
+    var names = Layout.groupKey(schema.sheet);
+    var columns = names
+      ? schema.columns.filter(function (c) { return names.indexOf(c.name) !== -1; })
+      : schema.columns.filter(function (c) { return !c.pk; });
+
+    return columns.map(function (c) {
+      // Ids folded the way build() folds them, so 1 and "1.00" are one row, not two. The
+      // separator is a unit separator rather than a space: joining on one would make ['a b','c']
+      // and ['a','b c'] the same key.
+      return c.kind === 'Id' ? idKey(values[c.name]) : str(values[c.name]);
+    }).join('\u001f');
+  }
+
+  /// Every row validated, plus a count of rows that duplicate another row in the group.
+  ///
+  /// ownId is null throughout: a child row's pk is allocated by addRow and never edited, so the
+  /// duplicate-id check has nothing to exempt.
+  function validate(schema, present, idSets) {
+    var rows = (present || []).map(function (row) {
+      var result = Validation.validateRecord(schema.columns, row.values, idSets, null);
+      return { rowNumber: row.rowNumber, errors: result.errors };
+    });
+
+    // Tallied first, then summed: a key seen three times is three duplicate rows, and counting
+    // as they arrive means special-casing the second one. This way the count is simply how many
+    // rows share their key with another.
+    var seen = Object.create(null);
+    (present || []).forEach(function (row) {
+      var key = rowKeyOf(schema, row.values);
+      seen[key] = (seen[key] || 0) + 1;
+    });
+
+    var duplicates = 0;
+    Object.keys(seen).forEach(function (k) { if (seen[k] > 1) duplicates += seen[k]; });
+
+    return {
+      ok: rows.every(function (r) { return r.errors.length === 0; }),
+      rows: rows,
+      duplicates: duplicates,
+    };
+  }
+
   return {
     idKey: idKey,
     parentOf: parentOf,
@@ -349,6 +468,9 @@ var Groups = (function () {
     addRow: addRow,
     collect: collect,
     removed: removed,
+    ops: ops,
+    rowKeyOf: rowKeyOf,
+    validate: validate,
   };
 })();
 

@@ -302,3 +302,220 @@ test('the header count follows the rows as they are added and removed', () => {
   fire(container.querySelectorAll('[data-remove]')[0], 'click');
   assert.equal(count.textContent, '1 row');
 });
+
+// ------------------------------------------------------------------ ops
+
+function opsFor(sheet, present, gone) {
+  return Groups.ops(schemaOf(sheet), present, gone || [], {});
+}
+
+const LOADED = (npcId, itemId, rate) => {
+  const values = {};
+  schemaOf('NPC Drops').columns.forEach((c) => { values[c.name] = ''; });
+  values.npc_template_id = String(npcId);
+  values.item_template_id = String(itemId);
+  values.stack = '1';
+  values.droprate = rate;
+  return values;
+};
+
+test('an untouched row produces no operation at all', () => {
+  // The single-record rule, carried into the batch: a cell where posted equals loaded is never
+  // written, so another editor's concurrent change to it survives.
+  const row = LOADED(1, 10, '0.25');
+  const ops = opsFor('NPC Drops', [{ rowNumber: 2, values: row, loaded: row }]);
+  assert.deepEqual(ops.writes, []);
+  assert.deepEqual(ops.appends, []);
+  assert.deepEqual(ops.deletes, []);
+});
+
+test('an edited row produces a write carrying the loaded snapshot', () => {
+  const loaded = LOADED(1, 10, '0.25');
+  const values = LOADED(1, 10, '0.50');
+  const ops = opsFor('NPC Drops', [{ rowNumber: 2, values, loaded }]);
+  assert.equal(ops.writes.length, 1);
+  assert.equal(ops.writes[0].row, 2);
+  assert.ok(Array.isArray(ops.writes[0].loaded), 'the snapshot must be posted');
+  assert.equal(ops.writes[0].cells.length, schemaOf('NPC Drops').columns.length);
+});
+
+test('a new row produces an append with no snapshot', () => {
+  const ops = opsFor('NPC Drops', [{ rowNumber: 0, values: LOADED(1, 99, '0.10'), loaded: null }]);
+  assert.deepEqual(ops.writes, []);
+  assert.equal(ops.appends.length, 1);
+  assert.equal(ops.appends[0].loaded, undefined);
+});
+
+test('a removed row produces a delete carrying its snapshot', () => {
+  const loaded = LOADED(1, 10, '0.25');
+  const ops = opsFor('NPC Drops', [], [{ rowNumber: 3, loaded }]);
+  assert.equal(ops.deletes.length, 1);
+  assert.equal(ops.deletes[0].row, 3);
+  assert.equal(ops.deletes[0].loaded.length, schemaOf('NPC Drops').columns.length);
+});
+
+test('cells are ordered by the schema, which is the sheet column order', () => {
+  // The importer reads cells by index (CsvToSqlBase.cs:35), so this ordering is the contract.
+  const ops = opsFor('NPC Drops', [{ rowNumber: 0, values: LOADED(1, 99, '0.10'), loaded: null }]);
+  const names = schemaOf('NPC Drops').columns.map((c) => c.name);
+  assert.equal(ops.appends[0].cells[names.indexOf('item_template_id')], '99');
+  assert.equal(ops.appends[0].cells[names.indexOf('npc_template_id')], '1');
+});
+
+test('a blank optional cell is posted as null so the SQL default applies', () => {
+  // Blank means "use the default" (CsvToSqlBase.cs skips empty cells). Writing 0 would pin a
+  // value that was tracking the default.
+  const values = LOADED(1, 99, '');
+  const ops = opsFor('NPC Drops', [{ rowNumber: 0, values, loaded: null }]);
+  const at = schemaOf('NPC Drops').columns.map((c) => c.name).indexOf('droprate');
+  assert.equal(ops.appends[0].cells[at], null);
+});
+
+test('ops names the sheet, its id column and its Text columns', () => {
+  const ops = opsFor('NPC Drops', []);
+  assert.equal(ops.sheet, 'NPC Drops');
+  // -1: NPC Drops has no pk, and its column A is an FK that legitimately repeats.
+  assert.equal(ops.idColumnIndex, -1);
+  assert.deepEqual(ops.textColumns, []);
+});
+
+test('ops reports the id column of a sheet that has a pk', () => {
+  const ops = Groups.ops(schemaOf('Quest Reqs'), [], [], {});
+  assert.equal(ops.idColumnIndex, 0);
+});
+
+test('ops reports Text columns so the server pins their format', () => {
+  // Quest Rewards, not Quest Reqs: Reqs has no Text column, so asserting over its (empty) list
+  // asserts nothing. string_value is column F and the server pins it to '@' so a reward value
+  // like "1.10" is not stored as a number.
+  const ops = Groups.ops(schemaOf('Quest Rewards'), [], [], {});
+  const names = schemaOf('Quest Rewards').columns.map((c) => c.name);
+  assert.deepEqual(ops.textColumns, [names.indexOf('string_value')]);
+  assert.deepEqual(ops.textColumns, [5]);
+});
+
+test('an existing row with no loaded snapshot is written, never appended', () => {
+  // The only path in the module that could ADD data nobody asked for. A row that exists in the
+  // sheet is an update whatever state the client is in; an empty snapshot posts as a row of
+  // blanks, which the server compares and refuses. Refusing is the safe failure, duplicating
+  // the record is not.
+  const ops = opsFor('NPC Drops', [{ rowNumber: 2, values: LOADED(1, 10, '0.25'), loaded: null }]);
+  assert.deepEqual(ops.appends, []);
+  assert.equal(ops.writes.length, 1);
+  assert.equal(ops.writes[0].row, 2);
+  assert.deepEqual(ops.writes[0].loaded, ['', '', '', '']);
+});
+
+// ------------------------------------------------------------------ validate
+
+test('validate reports a problem per row, keyed to the row', () => {
+  const bad = LOADED(1, 10, 'not a number');
+  const result = Groups.validate(schemaOf('NPC Drops'),
+                                 [{ rowNumber: 2, values: bad, loaded: bad }], {});
+  assert.equal(result.ok, false);
+  assert.equal(result.rows[0].errors.length, 1);
+  assert.equal(result.rows[0].errors[0].column, 'droprate');
+});
+
+test('validate passes a row whose parent cell is filled in behind the scenes', () => {
+  // npc_template_id is required and never on screen. Validating the collected record without
+  // it would report every row as broken.
+  const row = LOADED(1, 10, '0.25');
+  assert.equal(Groups.validate(schemaOf('NPC Drops'),
+                               [{ rowNumber: 2, values: row, loaded: row }], {}).ok, true);
+});
+
+test('validate flags rows that duplicate another row in the same group', () => {
+  // A warning, not a refusal: two Map Required Items for one item is meaningless, but two drops
+  // of one item for one NPC is arguable, and the editor is not the place to settle it.
+  const a = LOADED(1, 10, '0.25');
+  const b = LOADED(1, 10, '0.50');
+  const result = Groups.validate(schemaOf('NPC Drops'),
+                                 [{ rowNumber: 2, values: a, loaded: a },
+                                  { rowNumber: 3, values: b, loaded: b }], {});
+  assert.equal(result.ok, true, 'duplicates must not block the save');
+  assert.equal(result.duplicates, 2);
+});
+
+test('rows differing only in their coordinates are not duplicates', () => {
+  // Warptiles and NPC Spawns have no key entry precisely for this: a wall of warp tiles all
+  // leading to one destination is how the sheet is authored, and the position is the identity.
+  const tile = (x, y) => {
+    const values = {};
+    schemaOf('Warptiles').columns.forEach((c) => { values[c.name] = ''; });
+    values.map_id = '1';
+    values.map_x = String(x);
+    values.map_y = String(y);
+    values.warp_id = '2';
+    values.warp_x = '5';
+    values.warp_y = '5';
+    return values;
+  };
+  const rows = [{ rowNumber: 2, values: tile(1, 1), loaded: tile(1, 1) },
+                { rowNumber: 3, values: tile(1, 2), loaded: tile(1, 2) }];
+  assert.equal(Groups.validate(schemaOf('Warptiles'), rows, {}).duplicates, 0);
+});
+
+test('duplicate detection folds ids, so 1 and "1.00" are the same row', () => {
+  const a = LOADED('1', '10', '0.25');
+  const b = LOADED('1.00', '10.00', '0.25');
+  const result = Groups.validate(schemaOf('NPC Drops'),
+                                 [{ rowNumber: 2, values: a, loaded: a },
+                                  { rowNumber: 3, values: b, loaded: b }], {});
+  assert.equal(result.duplicates, 2);
+});
+
+test('three rows sharing a key count as three duplicates, not two', () => {
+  const rows = ['0.10', '0.20', '0.30'].map((rate, i) => {
+    const values = LOADED(1, 10, rate);
+    return { rowNumber: i + 2, values, loaded: values };
+  });
+  assert.equal(Groups.validate(schemaOf('NPC Drops'), rows, {}).duplicates, 3);
+});
+
+const REQ = (type, value) => {
+  const values = {};
+  schemaOf('Quest Reqs').columns.forEach((c) => { values[c.name] = ''; });
+  values.id = '1';
+  values.quest_id = '1';
+  values.requirement_type = type;
+  values.requirement_value = value;
+  values.requirement_value2 = '0';
+  values.keep_requirement = 'FALSE';
+  return values;
+};
+
+test('an unkeyed sheet falls back to every non-pk column', () => {
+  // Quest Reqs has no meaningful subset key, so two rows are the same record only when their
+  // whole content matches — the strictest reading, which never flags a row that really differs.
+  const a = REQ('Item', '5');
+  const b = REQ('Item', '5');
+  const same = Groups.validate(schemaOf('Quest Reqs'),
+                               [{ rowNumber: 2, values: a, loaded: a },
+                                { rowNumber: 3, values: b, loaded: b }], {});
+  assert.equal(same.duplicates, 2);
+});
+
+test('the fallback key ignores the pk, so two rows differing only in id are one record', () => {
+  const a = REQ('Item', '5');
+  const b = REQ('Item', '5');
+  b.id = '2';
+  assert.equal(Groups.validate(schemaOf('Quest Reqs'),
+                               [{ rowNumber: 2, values: a, loaded: a },
+                                { rowNumber: 3, values: b, loaded: b }], {}).duplicates, 2);
+});
+
+test('a row differing in one non-pk column is not a duplicate under the fallback', () => {
+  const a = REQ('Item', '5');
+  const b = REQ('Item', '6');
+  assert.equal(Groups.validate(schemaOf('Quest Reqs'),
+                               [{ rowNumber: 2, values: a, loaded: a },
+                                { rowNumber: 3, values: b, loaded: b }], {}).duplicates, 0);
+});
+
+test('rowKeyOf separates columns unambiguously', () => {
+  // ['a b', 'c'] and ['a', 'b c'] must not produce one key, so the join cannot be a space.
+  const schema = { sheet: 'Nothing', columns: [{ name: 'x' }, { name: 'y' }] };
+  assert.notEqual(Groups.rowKeyOf(schema, { x: 'a b', y: 'c' }),
+                  Groups.rowKeyOf(schema, { x: 'a', y: 'b c' }));
+});

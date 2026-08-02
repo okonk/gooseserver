@@ -232,6 +232,28 @@ var Layout = (function () {
     'Class Levelup Spells': 'class_id',
   };
 
+  // The columns that make a row of a grouped sheet the row it is — its natural key, used to warn
+  // that a group holds the same record twice. Which columns those are is a judgement about the
+  // data, not something derivable from the schema, so it is written down per sheet.
+  //
+  // NOT LISTED, DELIBERATELY:
+  //   NPC Spawns, Warptiles — the coordinates ARE the identity. Several spawn points for one NPC
+  //     on one map, or a wall of warp tiles all leading to one destination, is how those sheets
+  //     are normally authored; keying on the ids alone would flag every one of them.
+  //   Quest Reqs, Quest Rewards — no subset of their columns means anything on its own. A quest
+  //     with two Item requirements differs only in the value columns, so the whole record is the
+  //     only honest key.
+  // An unlisted sheet falls back to every non-pk column, which is the strictest reading and never
+  // flags a row that genuinely differs.
+  var GROUP_KEY = {
+    'NPC Drops': ['npc_template_id', 'item_template_id'],
+    'NPC Vendor Items': ['npc_template_id', 'item_template_id'],
+    'Map Required Items': ['map_id', 'item_template_id'],
+    'Combination Item Required': ['combination_id', 'item_template_id'],
+    'Combination Item Result': ['combination_id', 'item_template_id'],
+    'Class Levelup Spells': ['class_id', 'spell_id'],
+  };
+
   // Own-property lookups throughout: a sheet named 'constructor' is not a thing, but neither is
   // reaching Object.prototype for one, and the rest of this file is prototype-free for the same
   // reason.
@@ -301,6 +323,13 @@ var Layout = (function () {
   function groupParent(sheet) {
     var column = own(GROUP_PARENT, String(sheet));
     return column === undefined ? null : column;
+  }
+
+  /// The columns that identify a row of a grouped sheet, or null when the sheet has no meaningful
+  /// subset key and every non-pk column stands in for one.
+  function groupKey(sheet) {
+    var columns = own(GROUP_KEY, String(sheet));
+    return columns === undefined ? null : columns;
   }
 
   // ReloadSQLCommandEvent.cs:30-40 reloads spell effects, spells, item templates, quests and NPC
@@ -417,6 +446,7 @@ var Layout = (function () {
     isMonsterBody: isMonsterBody,
     galleryBundle: galleryBundle,
     groupParent: groupParent,
+    groupKey: groupKey,
     RESTART_ONLY: deepFreeze(RESTART_ONLY),
     LAYOUTS: deepFreeze(LAYOUTS),
     // Exported for the same reason LAYOUTS is: a name here for a column that does not exist is
@@ -427,6 +457,7 @@ var Layout = (function () {
     MONSTER_BODY: deepFreeze(MONSTER_BODY),
     GALLERIES: deepFreeze(GALLERIES),
     GROUP_PARENT: deepFreeze(GROUP_PARENT),
+    GROUP_KEY: deepFreeze(GROUP_KEY),
   };
 })();
 
