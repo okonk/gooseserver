@@ -74,6 +74,10 @@ var App = (function () {
     groupToken: 0,
     group: null,        // the open group entry from Groups.build, or null
     groups: [],         // every group of the open sheet
+    // False from the start of a grouped-sheet read until renderGroups has built `groups` from
+    // that read. The New-group button and openGroup both gate on it: an empty groups array is
+    // also a valid loaded sheet, so readiness cannot be inferred from its length.
+    groupsReady: false,
     // The group to reopen once the next read of this sheet lands, or null. Set by a save's
     // reload, consumed by openSheet — a save must not leave the user staring at the parent list
     // having lost the place they were editing.
@@ -405,6 +409,8 @@ var App = (function () {
     state.rows = [];
     state.ids = [];
     state.idSets.__self = new Set();
+    state.groups = [];
+    state.groupsReady = false;
   }
 
   /// Loads a sheet and rebuilds the record list.
@@ -428,18 +434,20 @@ var App = (function () {
     document.getElementById('save').hidden = !!Layout.groupParent(sheetName);
     document.getElementById('new-record').textContent =
       Layout.groupParent(sheetName) ? 'New group' : 'New';
+    document.getElementById('new-record').disabled = !!Layout.groupParent(sheetName);
 
     var token = ++state.sheetToken;
     var current = function () { return token === state.sheetToken; };
 
     google.script.run
       .withFailureHandler(function (e) {
+        if (!current()) return;
         // The read failed, so no group can be reopened and the request must not be left standing
         // for whatever sheet is opened next — and neither may the message a finished save handed
         // over, whether it reported a failure or a success.
         state.reopenGroup = null;
         state.pendingStatus = null;
-        if (current()) status(e.message, true);
+        status(e.message, true);
       })
       .withSuccessHandler(function (data) {
         if (!current()) return;
@@ -579,6 +587,8 @@ var App = (function () {
     var parent = Groups.parentOf(state.schema);
     state.groups = Groups.build(state.schema, state.rows,
                                 parent ? state.pickerData[parent.ref] : null);
+    state.groupsReady = true;
+    document.getElementById('new-record').disabled = false;
 
     state.groups.forEach(function (group) {
       var button = Forms.el('button', { type: 'button', class: 'record' },
@@ -597,6 +607,7 @@ var App = (function () {
   /// long-standing behaviour — must win, so it is decided before anything can put up a dialog.
   function openGroup(key) {
     if (!grouped()) return;
+    if (!state.groupsReady) { status('Still loading this sheet — one moment', true); return; }
     if (state.saving) { status('Still saving — one moment', true); return; }
     guarded(function () { openGroupNow(key); });
   }
@@ -877,6 +888,7 @@ var App = (function () {
   // The list is rebuilt whole on every keystroke. Fine at this scale: these are plain text
   // buttons, and the gallery only virtualises because its 4,827 entries carry images.
   function openParentPicker() {
+    if (!state.groupsReady) { status('Still loading this sheet — one moment', true); return; }
     var parent = Groups.parentOf(state.schema);
     if (!parent) return;
     var entries = state.pickerData[parent.ref] || [];

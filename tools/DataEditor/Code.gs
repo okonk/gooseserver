@@ -780,9 +780,20 @@ function planSheetOps_(entry) {
     throw new Error('saveBatch: sheet "' + sheetName + '" has no header row — nothing to write against');
   }
 
-  var writes = Array.isArray(entry.writes) ? entry.writes : [];
-  var appends = Array.isArray(entry.appends) ? entry.appends : [];
-  var deletes = Array.isArray(entry.deletes) ? entry.deletes : [];
+  // Lists may be omitted when that kind of operation is absent, but an explicitly malformed
+  // list is a caller bug. Treating `{ writes: {...} }` as `writes: []` reports a successful
+  // no-op even though the caller asked to save something — a much less safe failure than saying
+  // which part of the payload is wrong.
+  function operationList(name) {
+    if (entry[name] === undefined) return [];
+    if (!Array.isArray(entry[name])) {
+      throw new Error(sheetName + ': ' + name + ' must be an array');
+    }
+    return entry[name];
+  }
+  var writes = operationList('writes');
+  var appends = operationList('appends');
+  var deletes = operationList('deletes');
 
   // Every operation is read for its own fields below; a null or a string in the list would die
   // there on a raw property read, which tells the caller nothing about WHICH list is malformed.

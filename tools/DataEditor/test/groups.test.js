@@ -29,6 +29,12 @@ function rowFor(sheet, values) {
   return schemaOf(sheet).columns.map((c) => (values[c.name] === undefined ? '' : String(values[c.name])));
 }
 
+function rowValues(sheet, row) {
+  const values = {};
+  schemaOf(sheet).columns.forEach((c, i) => { values[c.name] = row[i]; });
+  return values;
+}
+
 const DROP = (npcId, itemId, rate) => rowFor('NPC Drops', {
   npc_template_id: npcId, item_template_id: itemId, stack: 1, droprate: rate || '0.10',
 });
@@ -552,6 +558,38 @@ test('an APPENDED row carries no loaded state and is checked against the whole i
   assert.equal(Groups.validate(schemaOf('Quest Reqs'),
                                [{ rowNumber: 0, values: fresh, loaded: null }],
                                { __self: new Set([1, 4]) }).ok, false);
+});
+
+test('an existing orphan row may edit another cell while keeping its hidden parent', () => {
+  const values = rowValues('NPC Drops', DROP(4471, 10, '0.25'));
+  const loaded = Object.assign({}, values, { droprate: '0.10' });
+  const result = Groups.validate(schemaOf('NPC Drops'),
+                                 [{ rowNumber: 2, values, loaded }],
+                                 { NPCs: new Set([1, 2]), Items: new Set([10]) });
+
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.rows[0].errors, []);
+});
+
+test('an existing blank-parent row may edit another cell while keeping its hidden parent', () => {
+  const values = rowValues('NPC Drops', DROP('', 10, '0.25'));
+  const loaded = Object.assign({}, values, { droprate: '0.10' });
+  const result = Groups.validate(schemaOf('NPC Drops'),
+                                 [{ rowNumber: 2, values, loaded }],
+                                 { NPCs: new Set([1, 2]), Items: new Set([10]) });
+
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.rows[0].errors, []);
+});
+
+test('a new row under an orphan parent must still pass parent validation', () => {
+  const values = rowValues('NPC Drops', DROP(4471, 10, '0.25'));
+  const result = Groups.validate(schemaOf('NPC Drops'),
+                                 [{ rowNumber: 0, values, loaded: null }],
+                                 { NPCs: new Set([1, 2]), Items: new Set([10]) });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.rows[0].errors[0].column, 'npc_template_id');
 });
 
 test('rowKeyOf separates columns unambiguously', () => {

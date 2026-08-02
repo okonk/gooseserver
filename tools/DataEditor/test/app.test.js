@@ -181,7 +181,8 @@ function boot(sheets, options) {
     sheetToken: 0, formToken: 0, saving: false, formPending: false, loading: {},
     // The grouped-sheet bookkeeping, reset for the same reason as the rest: a group left open by
     // one test would otherwise let the next one's save collect rows it never built.
-    groupToken: 0, group: null, groups: [], reopenGroup: null, pendingStatus: null,
+    groupToken: 0, group: null, groups: [], groupsReady: false,
+    reopenGroup: null, pendingStatus: null,
   });
 
   App.init();
@@ -3050,6 +3051,46 @@ test('a reopen request left over from another sheet is discarded, not applied', 
   assert.equal(App.__state.group, null, 'no group may be opened from another sheet\'s request');
   assert.equal(App.__state.reopenGroup, null, 'and the stale request is dropped, not kept');
   assert.equal(document.getElementById('form').children.length, 0);
+});
+
+test('New group is unavailable until the current grouped sheet has loaded', () => {
+  const { run } = boot({
+    'NPC Drops': [DROP(1, 10)],
+    'NPC Vendor Items': [rowFor('NPC Vendor Items', {
+      npc_template_id: 1, item_template_id: 10, price: 5,
+    })],
+    NPCs: [NPC(1, 'Mouse')],
+    Items: [ITEM(10, 'Cheese')],
+  });
+
+  App.openSheet('NPC Drops');
+  run.flush();
+  assert.equal(App.__state.groups[0].rows[0].values.droprate, '0.10');
+
+  App.openSheet('NPC Vendor Items');
+  assert.equal(document.getElementById('new-record').disabled, true);
+  fire(document.getElementById('new-record'), 'click');
+  assert.equal(document.getElementById('modal').hidden, true,
+               'a loading sheet must not open a parent picker over stale groups');
+  assert.equal(document.getElementById('form').querySelectorAll('[data-group-row]').length, 0);
+
+  run.flush();
+  assert.equal(document.getElementById('new-record').disabled, false);
+});
+
+test('a stale sheet-read failure cannot erase the current save reload state', () => {
+  const { run } = boot({ 'NPC Drops': [DROP(1, 10)] }, { hold: true, failOn: 'Items' });
+
+  App.openSheet('Items');
+  App.openSheet('NPC Drops');
+  App.__state.reopenGroup = { sheet: 'NPC Drops', key: '1' };
+  App.__state.pendingStatus = { sheet: 'NPC Drops', message: 'Saved 1 edited', warn: false };
+
+  run.step(); // the abandoned Items read fails after NPC Drops became current
+
+  assert.deepEqual(App.__state.reopenGroup, { sheet: 'NPC Drops', key: '1' });
+  assert.deepEqual(App.__state.pendingStatus,
+                   { sheet: 'NPC Drops', message: 'Saved 1 edited', warn: false });
 });
 
 test('the header Save is hidden on a grouped sheet and back on an ungrouped one', () => {

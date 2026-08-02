@@ -600,6 +600,7 @@ var Groups = (function () {
   /// it is not in __self and has nothing to be exempted from.
   function validate(schema, present, idSets) {
     var pk = schema.columns.filter(function (c) { return c.pk; })[0];
+    var parent = parentOf(schema);
 
     var rows = (present || []).map(function (row) {
       // Number(), and gated on rowNumber like the single-record path: validateId compares with
@@ -607,7 +608,18 @@ var Groups = (function () {
       var ownId = (pk && row.rowNumber > 0 && row.loaded)
         ? Number(row.loaded[pk.name]) : null;
       var result = Validation.validateRecord(schema.columns, row.values, idSets, ownId);
-      return { rowNumber: row.rowNumber, errors: result.errors };
+
+      // The parent is implied by the group and has no control. Existing orphan and blank-parent
+      // rows are deliberately visible so their OTHER cells can be repaired or the rows can be
+      // removed; rejecting their unchanged hidden parent makes that promise impossible (and can
+      // even prevent deleting just one of several orphan rows). Preserve that already-stored
+      // value without blessing it for new rows: an append under an invalid parent still fails.
+      var parentUnchanged = row.rowNumber > 0 && row.loaded &&
+        idKey(row.values[parent.column]) === idKey(row.loaded[parent.column]);
+      var errors = parentUnchanged
+        ? result.errors.filter(function (e) { return e.column !== parent.column; })
+        : result.errors;
+      return { rowNumber: row.rowNumber, errors: errors };
     });
 
     // Tallied first, then summed: a key seen three times is three duplicate rows, and counting

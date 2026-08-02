@@ -890,6 +890,17 @@ test('saveBatch refuses a null operation entry', () => {
            /Items: writes\[0\] is not an operation object/.test(e.message));
 });
 
+test('saveBatch refuses non-array operation lists instead of silently ignoring them', () => {
+  ['writes', 'appends', 'deletes'].forEach((name) => {
+    const gs = batchGs([ROW], []);
+    const entry = { sheet: 'Items', idColumnIndex: 0 };
+    entry[name] = { cells: [] };
+    assert.throws(
+      () => gs.saveBatch([entry]),
+      new RegExp('Items: ' + name + ' must be an array'));
+  });
+});
+
 test('saveBatch pins the text format on appended Text cells before writing them', () => {
   // "1-2" in a description becomes a Date without the '@' pin, and "01" becomes 1.
   const gs = batchGs([], []);
