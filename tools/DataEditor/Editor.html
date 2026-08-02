@@ -312,8 +312,9 @@
     forms       -> Layout, Composites, Pickers
     preview     -> Appearance, Sprites, Equipped
     pickers     -> Forms, Sprites, Appearance, Preview, Gallery
+    groups      -> Forms, Layout, Pickers, Validation
     app         -> everything
-  All twelve src/ modules are listed. build.mjs emits one dist/<name>.html per src/*.js, so a
+  All thirteen src/ modules are listed. build.mjs emits one dist/<name>.html per src/*.js, so a
   module added there and not added here is simply never on the page.
 -->
 <?!= include('schema'); ?>
@@ -331,6 +332,7 @@
 <?!= include('gallery'); ?>
 <?!= include('composites'); ?>
 <?!= include('forms'); ?>
+<?!= include('groups'); ?>
 <?!= include('app'); ?>
 
 <script>App.init();</script>
