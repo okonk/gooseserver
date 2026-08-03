@@ -1,0 +1,26 @@
+name: gooseserver
+
+services:
+  goose:
+    build: .
+    image: gooseserver:latest
+    container_name: goose
+    restart: unless-stopped
+    # tini: reap zombies and forward signals (the server shuts down cleanly on SIGTERM)
+    init: true
+    # Give the server time to save players and drain the DB on shutdown
+    stop_grace_period: 30s
+    ports:
+      - "2006:2006"
+    environment:
+      # --datadir equivalent; see docs/DEPLOY.md
+      GOOSE_DATADIR: /data
+      TZ: UTC
+    volumes:
+      - goose-data:/data
+      # Optional: live-editable server scripts that survive rebuilds.
+      # Copy Goose/Data/<ServerType>/Scripts out once, then uncomment:
+      # - ./server-scripts:/app/Data/Illutia/Scripts
+
+volumes:
+  goose-data:
