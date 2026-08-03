@@ -42,6 +42,11 @@ namespace Goose
 
         public static string FormatNumber(long num)
         {
+            if (num < 0)
+                return "-" + FormatNumber(-num);
+            if (num == 0)
+                return "0";
+
             // Ensure number has max 3 significant digits (no rounding up can happen)
             long i = (long)Math.Pow(10, (int)Math.Max(0, Math.Log10(num) - 2));
             num = num / i * i;

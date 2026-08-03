@@ -92,7 +92,7 @@ namespace Goose
         {
             if (lowerBound <= 0 || lowerBound >= GameWorld.Settings.SpellbookSize) return -1;
 
-            for (int i = lowerBound; i <= this.spells.Length; i++)
+            for (int i = lowerBound; i < this.spells.Length; i++)
             {
                 if (this.spells[i] == null)
                 {

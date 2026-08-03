@@ -32,7 +32,7 @@ namespace Goose
                 return classs;
             }
 
-            return null;;
+            return null;
         }
 
         /**

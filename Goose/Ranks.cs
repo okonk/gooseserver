@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Data.SqlClient;
 
 namespace Goose
 {
@@ -46,7 +45,7 @@ namespace Goose
          */
         public List<string> GetRanks(GameWorld world)
         {
-            if ((world.TimeNow - this.lastUpdated) * world.TimerFrequency >
+            if ((world.TimeNow - this.lastUpdated) / (double)world.TimerFrequency >
                 GameWorld.Settings.RankUpdatePeriod)
             {
                 this.Update(world);
