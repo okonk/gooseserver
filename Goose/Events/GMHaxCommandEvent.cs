@@ -7,15 +7,6 @@ namespace Goose.Events
 {
     public class GMHaxCommandEvent : Event
     {
-        public static Event Create(Player player, Object data)
-        {
-            Event e = new GMHaxCommandEvent();
-            e.Player = player;
-            e.Data = data;
-
-            return e;
-        }
-
         public override void Ready(GameWorld world)
         {
             if (this.Player.State == Player.States.Ready && this.Player.Access == Player.AccessStatus.GameMaster)

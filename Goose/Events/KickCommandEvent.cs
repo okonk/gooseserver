@@ -13,15 +13,6 @@ namespace Goose.Events
      */
     public class KickCommandEvent : Event
     {
-        public static Event Create(Player player, Object data)
-        {
-            Event e = new KickCommandEvent();
-            e.Player = player;
-            e.Data = data;
-
-            return e;
-        }
-
         public override void Ready(GameWorld world)
         {
             if (this.Player.State == Player.States.Ready)

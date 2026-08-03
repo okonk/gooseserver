@@ -23,15 +23,6 @@ namespace Goose.Events
         // Needed because Aspereta needs to convert the facing
         public static Func<int, int> FacingConverter = (facing) => { return facing; };
 
-        public static Event Create(Player player, Object data)
-        {
-            Event e = new FacingEvent();
-            e.Player = player;
-            e.Data = data;
-
-            return e;
-        }
-
         public override void Ready(GameWorld world)
         {
             if (this.Player.State == Player.States.Ready)

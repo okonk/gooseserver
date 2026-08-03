@@ -11,15 +11,6 @@ namespace Goose.Events
      */
     public class LocationEvent : Event
     {
-        public static Event Create(Player player, Object data)
-        {
-            Event e = new LocationEvent();
-            e.Player = player;
-            e.Data = data;
-
-            return e;
-        }
-
         public override void Ready(GameWorld world)
         {
             if (this.Player.State == Player.States.Ready)

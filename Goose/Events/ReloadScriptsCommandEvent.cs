@@ -10,15 +10,6 @@ namespace Goose.Events
     {
         private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
 
-        public static Event Create(Player player, Object data)
-        {
-            Event e = new ReloadScriptsCommandEvent();
-            e.Player = player;
-            e.Data = data;
-
-            return e;
-        }
-
         public override void Ready(GameWorld world)
         {
             if (this.Player.State == Player.States.Ready)

@@ -7,15 +7,6 @@ namespace Goose.Events
 {
     public class AuctionCommandEvent : Event
     {
-        public static Event Create(Player player, Object data)
-        {
-            Event e = new AuctionCommandEvent();
-            e.Player = player;
-            e.Data = data;
-
-            return e;
-        }
-
         public override void Ready(GameWorld world)
         {
             if (this.Player.State == Player.States.Ready)

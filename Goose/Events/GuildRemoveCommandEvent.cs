@@ -7,15 +7,6 @@ namespace Goose.Events
 {
     class GuildRemoveCommandEvent : Event
     {
-        public static Event Create(Player player, Object data)
-        {
-            Event e = new GuildRemoveCommandEvent();
-            e.Player = player;
-            e.Data = data;
-
-            return e;
-        }
-
         public override void Ready(GameWorld world)
         {
             if (this.Player.State == Player.States.Ready)

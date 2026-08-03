@@ -14,15 +14,6 @@ namespace Goose.Events
      */
     public class GroupRemoveEvent : Event
     {
-        public static Event Create(Player player, Object data)
-        {
-            Event e = new GroupRemoveEvent();
-            e.Player = player;
-            e.Data = data;
-
-            return e;
-        }
-
         public override void Ready(GameWorld world)
         {
             if (this.Player.State == Player.States.Ready)

@@ -40,15 +40,6 @@ namespace Goose.Events
             Banned
         }
 
-        public static Event Create(Player player, Object data)
-        {
-            Event e = new LoginEvent();
-            e.Player = player;
-            e.Data = data;
-
-            return e;
-        }
-
         public override void Ready(GameWorld world)
         {
             if (this.Player != null) return;

@@ -17,15 +17,6 @@ namespace Goose.Events
      */
     class LoginContinuedEvent : Event
     {
-        public static Event Create(Player player, Object data)
-        {
-            Event e = new LoginContinuedEvent();
-            e.Player = player;
-            e.Data = data;
-
-            return e;
-        }
-
         public override void Ready(GameWorld world)
         {
             if (this.Player.State == Player.States.LoadingGame)

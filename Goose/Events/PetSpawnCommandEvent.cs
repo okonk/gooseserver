@@ -12,15 +12,6 @@ namespace Goose.Events
     /// </summary>
     class PetSpawnCommandEvent : Event
     {
-        public static Event Create(Player player, Object data)
-        {
-            Event e = new PetSpawnCommandEvent();
-            e.Player = player;
-            e.Data = data;
-
-            return e;
-        }
-
         public override void Ready(GameWorld world)
         {
             if (this.Player.State == Player.States.Ready)

@@ -8,15 +8,6 @@ namespace Goose.Events
 
     public class RandomCommandEvent : Event
     {
-        public static Event Create(Player player, Object data)
-        {
-            Event e = new RandomCommandEvent();
-            e.Player = player;
-            e.Data = data;
-
-            return e;
-        }
-
         public override void Ready(GameWorld world)
         {
             if (this.Player.State == Player.States.Ready)
