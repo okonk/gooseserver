@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Data.SQLite;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -46,14 +47,18 @@ namespace Goose
         /// </summary>
         public int PendingCount => _queue.Count;
 
-        public void Start(string databaseName)
+        public void Start(string databasePath)
         {
             if (_started)
                 throw new InvalidOperationException("Database already started.");
 
+            var dir = Path.GetDirectoryName(databasePath);
+            if (!string.IsNullOrEmpty(dir))
+                Directory.CreateDirectory(dir);
+
             var cs = string.Format(
-                "Data Source={0}.db; Version=3; Journal Mode=Wal; BusyTimeout=5000;",
-                databaseName);
+                "Data Source={0}; Version=3; Journal Mode=Wal; BusyTimeout=5000;",
+                databasePath);
 
             var ready = new ManualResetEventSlim(false);
             Exception startError = null;

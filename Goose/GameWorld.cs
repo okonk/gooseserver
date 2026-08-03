@@ -85,8 +85,48 @@ namespace Goose
 
         static GameWorld()
         {
-            Settings = System.Text.Json.JsonSerializer.Deserialize<GooseSettings>(
-                File.ReadAllText("GooseSettings.json", Encoding.UTF8),
+            Settings = LoadSettings();
+        }
+
+        /**
+         * Settings come from the data dir when present, otherwise from the shipped copy next
+         * to the binaries. The first time a data dir is used, the shipped default is copied
+         * there so the operator has one editable copy that survives updates.
+         */
+        private static GooseSettings LoadSettings()
+        {
+            var dataSettings = Paths.ResolveData("GooseSettings.json");
+            var baseSettings = Paths.ResolveBase("GooseSettings.json");
+            string settingsPath;
+
+            if (File.Exists(dataSettings))
+            {
+                settingsPath = dataSettings;
+            }
+            else if (File.Exists(baseSettings))
+            {
+                if (Paths.DataDir != Paths.BaseDir)
+                {
+                    Directory.CreateDirectory(Paths.DataDir);
+                    File.Copy(baseSettings, dataSettings);
+                    settingsPath = dataSettings;
+                }
+                else
+                {
+                    settingsPath = baseSettings;
+                }
+            }
+            else
+            {
+                throw new FileNotFoundException(
+                    "GooseSettings.json not found in the data dir or next to the server binaries.",
+                    dataSettings);
+            }
+
+            log.Info("Loaded settings from {0}", settingsPath);
+
+            return System.Text.Json.JsonSerializer.Deserialize<GooseSettings>(
+                File.ReadAllText(settingsPath, Encoding.UTF8),
                 JsonHelper.SettingsOptions);
         }
 
@@ -127,28 +167,22 @@ namespace Goose
         {
             this.Database.Execute(conn =>
             {
-                ExecuteSql(conn, File.ReadAllText("sql/items.sql", Encoding.UTF8));
-                ExecuteSql(conn, File.ReadAllText("sql/maps.sql", Encoding.UTF8));
-                ExecuteSql(conn, File.ReadAllText("sql/classes.sql", Encoding.UTF8));
-                ExecuteSql(conn, File.ReadAllText("sql/npcs.sql", Encoding.UTF8));
-                ExecuteSql(conn, File.ReadAllText("sql/players.sql", Encoding.UTF8));
-                ExecuteSql(conn, File.ReadAllText("sql/spells.sql", Encoding.UTF8));
-                ExecuteSql(conn, File.ReadAllText("sql/banks.sql", Encoding.UTF8));
-                ExecuteSql(conn, File.ReadAllText("sql/quests.sql", Encoding.UTF8));
-                ExecuteSql(conn, File.ReadAllText("sql/combinations.sql", Encoding.UTF8));
-                ExecuteSql(conn, File.ReadAllText("sql/logs.sql", Encoding.UTF8));
-                ExecuteSql(conn, File.ReadAllText("sql/pets.sql", Encoding.UTF8));
-                ExecuteSql(conn, File.ReadAllText("sql/guilds.sql", Encoding.UTF8));
-                ExecuteSql(conn, File.ReadAllText("sql/warptiles.sql", Encoding.UTF8));
-                ExecuteSql(conn, File.ReadAllText("sql/wordfilter.sql", Encoding.UTF8));
-                ExecuteSql(conn, File.ReadAllText("sql/paypal.sql", Encoding.UTF8));
+                foreach (var schemaFile in new[]
+                {
+                    "items", "maps", "classes", "npcs", "players", "spells", "banks",
+                    "quests", "combinations", "logs", "pets", "guilds", "warptiles",
+                    "wordfilter", "paypal",
+                })
+                {
+                    ExecuteSql(conn, File.ReadAllText(Paths.ResolveBase("sql/" + schemaFile + ".sql"), Encoding.UTF8));
+                }
             });
 
             if (!string.IsNullOrEmpty(Settings.DataLinkId))
             {
                 log.Info("Importing data from Google Docs");
                 string sql = CsvToSql.Core.CsvToSqlConverter.Convert(Settings.DataLinkId);
-                File.WriteAllText("GooseData.sql", sql);
+                File.WriteAllText(Paths.ResolveData("GooseData.sql"), sql);
                 this.Database.Execute(conn => ExecuteSql(conn, sql));
             }
         }
@@ -173,11 +207,12 @@ namespace Goose
             this.Running = false;
 
             log.Info("Starting Goose Private Server v" + GameWorld.Settings.ServerVersion);
-            log.Info("Opening Database ({0}): ", GameWorld.Settings.DatabaseName);
+            var databasePath = Paths.ResolveData(GameWorld.Settings.DatabaseName + ".db");
+            log.Info("Opening Database ({0}): ", databasePath);
             try
             {
-                bool createNew = !File.Exists(Settings.DatabaseName + ".db");
-                this.Database.Start(Settings.DatabaseName);
+                bool createNew = !File.Exists(databasePath);
+                this.Database.Start(databasePath);
                 if (createNew)
                 {
                     log.Info("DB file not found, creating...");
@@ -693,11 +728,11 @@ namespace Goose
 
         public void LoadGlobalScripts()
         {
-            foreach (var scriptPath in Directory.EnumerateFiles(Settings.DataPath + "/Scripts/Global", "*.csx"))
+            foreach (var scriptPath in Directory.EnumerateFiles(Settings.DataPathAbsolute + "/Scripts/Global", "*.csx"))
             {
                 if (this.ScriptHandler.HasScript(scriptPath)) continue;
 
-                var script = this.ScriptHandler.GetScript<IGlobalScript>(scriptPath.Substring(Settings.DataPath.Length + 1));
+                var script = this.ScriptHandler.GetScript<IGlobalScript>(scriptPath.Substring(Settings.DataPathAbsolute.Length + 1));
                 script.Object.OnLoaded(this);
             }
         }

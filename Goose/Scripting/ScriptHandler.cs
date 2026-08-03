@@ -18,7 +18,7 @@ namespace Goose.Scripting
 
         public Script<T> GetScript<T>(string filePath)
         {
-            filePath = GameWorld.Settings.DataPath + "/" + filePath;
+            filePath = GameWorld.Settings.DataPathAbsolute + "/" + filePath;
 
             IScript script = null;
             if (!this.scripts.TryGetValue(filePath, out script))

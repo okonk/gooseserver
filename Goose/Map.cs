@@ -471,7 +471,7 @@ namespace Goose
             }
             catch (Exception e) { }
 
-            using (var fileStream = File.Open(GameWorld.Settings.DataPath + "/Maps/" + FileName, FileMode.Open, FileAccess.Read))
+            using (var fileStream = File.Open(GameWorld.Settings.DataPathAbsolute + "/Maps/" + FileName, FileMode.Open, FileAccess.Read))
             using (var mapReader = new BinaryReader(fileStream))
             {
                 if (GameWorld.Settings.ServerType == "Illutia")

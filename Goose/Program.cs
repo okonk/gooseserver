@@ -5,6 +5,7 @@ using System.Text;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.ServiceProcess;
+using NLog;
 
 namespace Goose
 {
@@ -16,7 +17,11 @@ namespace Goose
          */
         static void Main(string[] args)
         {
-            Directory.SetCurrentDirectory(AppDomain.CurrentDomain.BaseDirectory);
+            // Resolve paths and logging before anything touches GameWorld (its settings are
+            // loaded in a static constructor). With no --datadir, Paths defaults everything
+            // to the app base directory, matching historical behaviour.
+            Paths.Initialize(ParseDataDir(args));
+            ConfigureLogging();
 
             if (args.Contains("-service"))
             {
@@ -52,6 +57,33 @@ namespace Goose
             // Interactive stdin is owned by the console command reader thread (started when
             // input is not redirected). Waiting for a key here would hang after clean exit
             // because that thread permanently blocks on Console.ReadLine().
+        }
+
+        /// <summary>
+        /// Reads --datadir &lt;path&gt; or --datadir=&lt;path&gt; from the command line. The
+        /// GOOSE_DATADIR fallback is handled inside Paths.Initialize.
+        /// </summary>
+        private static string ParseDataDir(string[] args)
+        {
+            for (int i = 0; i < args.Length; i++)
+            {
+                if (args[i] == "--datadir" && i + 1 < args.Length)
+                    return args[i + 1];
+                if (args[i].StartsWith("--datadir=", StringComparison.Ordinal))
+                    return args[i].Substring("--datadir=".Length);
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Loads NLog.config (shipped next to the binaries) and points the file target at the
+        /// data dir so logs persist wherever the database lives. The config's default
+        /// ${basedir}/Logs keeps the file working standalone (e.g. tests).
+        /// </summary>
+        private static void ConfigureLogging()
+        {
+            LogManager.Setup().LoadConfigurationFromFile(Paths.ResolveBase("NLog.config"));
+            LogManager.Configuration.Variables["datadir"] = Paths.ResolveData("Logs");
         }
     }
 }

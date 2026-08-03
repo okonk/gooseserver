@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 
 namespace Goose
 {
@@ -9,6 +10,15 @@ namespace Goose
         public string DatabaseName { get; set; }
         public string DataLinkId { get; set; }
         public string DataPath { get; set; }
+
+        /// <summary>
+        /// DataPath is relative to the server install dir (it ships with the binaries and is
+        /// read-only at runtime). Absolute values are passed through unchanged.
+        /// </summary>
+        public string DataPathAbsolute =>
+            string.IsNullOrEmpty(DataPath) || Path.IsPathRooted(DataPath)
+                ? DataPath
+                : Path.Combine(Paths.BaseDir, DataPath);
         public string ServerName { get; set; }
         public int StartingMapID { get; set; }
         public int StartingMapX { get; set; }

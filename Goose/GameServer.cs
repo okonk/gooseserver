@@ -91,7 +91,7 @@ namespace Goose
                     Console.WriteLine(e.Message + " " + e.InnerException);
                     Console.WriteLine(e.StackTrace);
 
-                    using (System.IO.StreamWriter writer = System.IO.File.AppendText("crashlog.txt"))
+                    using (System.IO.StreamWriter writer = System.IO.File.AppendText(Paths.ResolveData("crashlog.txt")))
                     {
                         writer.WriteLine("\nCrashed: " + DateTime.Now.ToString());
                         writer.WriteLine(e.Message + " " + e.InnerException);
