@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 
 namespace Goose
@@ -37,7 +38,7 @@ namespace Goose
             {
                 char c = key[i];
 
-                if (!node.Children.TryGetValue(c, out TrieNode child))
+                if (!node.Children.TryGetValue(c, out TrieNode? child))
                 {
                     child = new TrieNode();
                     node.Children[c] = child;
@@ -55,17 +56,17 @@ namespace Goose
          */
         public bool ContainsKey(string key)
         {
-            TrieNode node = this._Find(key);
-            return node != null && node.HasValue;
+            TrieNode? node = this._Find(key);
+            return node is { HasValue: true };
         }
 
         /**
          * Try to get the value for an exact key match.
          */
-        public bool TryGetValue(string key, out T value)
+        public bool TryGetValue(string key, out T? value)
         {
-            TrieNode node = this._Find(key);
-            if (node != null && node.HasValue)
+            TrieNode? node = this._Find(key);
+            if (node is { HasValue: true })
             {
                 value = node.Value;
                 return true;
@@ -84,17 +85,17 @@ namespace Goose
          * The matchedLength output parameter indicates how many characters
          * of the query were consumed by the match.
          */
-        public bool TryGetLongestPrefix(string query, out T value, out int matchedLength)
+        public bool TryGetLongestPrefix(string query, out T? value, out int matchedLength)
         {
             TrieNode node = this._root;
-            T bestValue = default;
+            T? bestValue = default;
             int bestLength = -1;
 
             for (int i = 0; i < query.Length; i++)
             {
                 char c = query[i];
 
-                if (!node.Children.TryGetValue(c, out TrieNode child))
+                if (!node.Children.TryGetValue(c, out TrieNode? child))
                 {
                     break;
                 }
@@ -117,7 +118,7 @@ namespace Goose
          * Internal: walk the trie for the full key. Returns the terminal
          * node if the path exists, or null if it diverges early.
          */
-        private TrieNode _Find(string key)
+        private TrieNode? _Find(string key)
         {
             TrieNode node = this._root;
 
@@ -125,7 +126,7 @@ namespace Goose
             {
                 char c = key[i];
 
-                if (!node.Children.TryGetValue(c, out TrieNode child))
+                if (!node.Children.TryGetValue(c, out TrieNode? child))
                 {
                     return null;
                 }
@@ -142,7 +143,7 @@ namespace Goose
         private sealed class TrieNode
         {
             public Dictionary<char, TrieNode> Children;
-            public T Value;
+            public T? Value;
             public bool HasValue;
 
             public TrieNode()
