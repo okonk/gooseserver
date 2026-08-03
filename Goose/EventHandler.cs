@@ -17,10 +17,14 @@ namespace Goose
         private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
 
         /**
-         * SortedList acts like a priority queue
+         * PriorityQueue acts as a min-heap ordered by Event.Ticks.
+         *
+         * Duplicate ticks are allowed, so no collision resolution is needed.
+         * The previous SortedList was array-backed (O(n) insert due to shifting),
+         * needed a Ticks++ collision dance, and forced a full scan in Update.
          *
          */
-        SortedList<long, Event> events;
+        PriorityQueue<Event, long> events;
 
         /**
          * StringToEvent, converts a string to an event creator delegate
@@ -72,7 +76,7 @@ namespace Goose
          */
         public EventHandler()
         {
-            this.events = new SortedList<long, Event>();
+            this.events = new PriorityQueue<Event, long>();
             // Every entry states its access requirement, either Open or Restricted. The
             // dispatcher used to hold bare delegates and perform no authorization at all,
             // leaving every check to the individual handler - which is how /hax shipped
@@ -286,45 +290,50 @@ namespace Goose
         /**
          * AddEvent, adds the Event object to events
          *
+         * Duplicate ticks are fine; the heap orders by tick and does not require
+         * unique keys, so e.Ticks is never mutated here (previously a same-tick
+         * collision bumped Ticks and recursed).
+         *
          */
         public void AddEvent(Event e)
         {
-            if (this.events.ContainsKey(e.Ticks))
-            {
-                e.Ticks++;
-                this.AddEvent(e);
-            }
-            else
-            {
-                this.events[e.Ticks] = e;
-            }
+            this.events.Enqueue(e, e.Ticks);
         }
 
         /**
          * RemoveEvent, removes event from event handler
          *
+         * Removes the specific event instance (reference equality), which is more
+         * precise than the old remove-by-key and works even when several events
+         * share a tick. O(n) worst case, but only used for cancellation (e.g. buff
+         * expiry), never on the per-packet hot path.
+         *
          */
         public void RemoveEvent(Event e)
         {
-            this.events.Remove(e.Ticks);
+            this.events.Remove(e, out _, out _, EqualityComparer<Event>.Default);
         }
 
         /**
          * Update, loops through list doing events if they need to be done
          *
+         * Dequeues and runs events in tick order until the heap head is in the
+         * future. Events are removed before Ready runs, so a handler that
+         * reschedules itself simply enqueues a fresh entry.
+         *
+         * Invariant: Ready handlers that re-enqueue (e.g. ScriptTimerEvent.Reschedule,
+         * BuffTickEvent, ClearMapItemsEvent) always set a future tick first. If one
+         * ever re-enqueued at or before now it would be re-processed in this same
+         * loop; keep that invariant when adding new recurring events.
+         *
          */
         public void Update(GameWorld world)
         {
             long now = world.TimeNow;
-            int index;
 
-            var readyEvents = (from e in this.events
-                              where e.Key <= now
-                              select e.Value).ToList<Event>();
-
-            for (int i = 0; i < readyEvents.Count; i++)
+            while (this.events.TryPeek(out Event ev, out long tick) && tick <= now)
             {
-                Event ev = readyEvents[i];
+                this.events.Dequeue();
 
                 try
                 {
@@ -334,15 +343,10 @@ namespace Goose
                 {
                     // An exception here used to unwind the whole game loop and restart the
                     // world. Contain it to the offending event so one client cannot take
-                    // the server down. The event is still removed below.
+                    // the server down. The event has already been removed from the queue.
                     log.Error(e, "Unhandled exception in {0} for player {1}",
                         ev?.GetType().Name ?? "null event",
                         ev?.Player?.Name ?? "none");
-                }
-
-                if ((index = this.events.IndexOfValue(ev)) < readyEvents.Count && index > -1)
-                {
-                    this.events.RemoveAt(index);
                 }
             }
         }
