@@ -245,7 +245,7 @@ namespace Goose
          */
         public void RegisterEvent(string key, CreateEvent action)
         {
-            if (this.commandTrie.TryGetValue(key, out CommandDefinition? existing) &&
+            if (this.commandTrie.TryGetValue(key, out CommandDefinition existing) &&
                 existing.RequiredPrivilege.HasValue)
             {
                 log.Error("Refusing to register {0} unprivileged: it already requires {1}. " +
@@ -280,7 +280,7 @@ namespace Goose
          */
         public bool AddEvent(Player player, string packet)
         {
-            if (!this.commandTrie.TryGetLongestPrefix(packet, out CommandDefinition? definition, out int matchedLength))
+            if (!this.commandTrie.TryGetLongestPrefix(packet, out CommandDefinition definition, out int matchedLength))
             {
                 return false;
             }

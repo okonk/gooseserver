@@ -11,7 +11,7 @@ namespace Goose.Tests
             var trie = new Trie<string>();
             trie.Insert("LOGIN", "login-handler");
 
-            Assert.True(trie.TryGetValue("LOGIN", out string value));
+            Assert.True(trie.TryGetValue("LOGIN", out string? value));
             Assert.Equal("login-handler", value);
         }
 
@@ -50,7 +50,7 @@ namespace Goose.Tests
             var trie = new Trie<string>();
             trie.Insert("M1", "move");
 
-            Assert.True(trie.TryGetLongestPrefix("M1", out string value, out int length));
+            Assert.True(trie.TryGetLongestPrefix("M1", out string? value, out int length));
             Assert.Equal("move", value);
             Assert.Equal(2, length);
         }
@@ -61,7 +61,7 @@ namespace Goose.Tests
             var trie = new Trie<string>();
             trie.Insert("/group ", "group-chat");
 
-            Assert.True(trie.TryGetLongestPrefix("/group add someone", out string value, out int length));
+            Assert.True(trie.TryGetLongestPrefix("/group add someone", out string? value, out int length));
             Assert.Equal("group-chat", value);
             Assert.Equal(7, length);
         }
@@ -75,7 +75,7 @@ namespace Goose.Tests
             trie.Insert("/groupadd ", "group-add");
 
             // "/group add" matches "/group" (6) and "/group " (7) — longest wins
-            Assert.True(trie.TryGetLongestPrefix("/group add", out string value, out int length));
+            Assert.True(trie.TryGetLongestPrefix("/group add", out string? value, out int length));
             Assert.Equal("group-chat", value);
             Assert.Equal(7, length);
 
@@ -111,7 +111,7 @@ namespace Goose.Tests
             trie.Insert("S", "single-char");
             trie.Insert("SID", "spell-info");
 
-            Assert.True(trie.TryGetLongestPrefix("S", out string value, out int length));
+            Assert.True(trie.TryGetLongestPrefix("S", out string? value, out int length));
             Assert.Equal("single-char", value);
             Assert.Equal(1, length);
 
@@ -131,7 +131,7 @@ namespace Goose.Tests
             trie.Insert("GET", "pickup");
             trie.Insert("GET", "new-pickup");
 
-            Assert.True(trie.TryGetValue("GET", out string value));
+            Assert.True(trie.TryGetValue("GET", out string? value));
             Assert.Equal("new-pickup", value);
         }
 
@@ -164,7 +164,7 @@ namespace Goose.Tests
             trie.Insert("/toggle ", "toggle-with-arg");
 
             // "/togglex" matches "/toggle" (7 chars)
-            Assert.True(trie.TryGetLongestPrefix("/togglex", out string value, out int length));
+            Assert.True(trie.TryGetLongestPrefix("/togglex", out string? value, out int length));
             Assert.Equal("toggle-cmd", value);
             Assert.Equal(7, length);
         }
@@ -176,7 +176,7 @@ namespace Goose.Tests
             trie.Insert(";", "chat");
             trie.Insert("M", "move");
 
-            Assert.True(trie.TryGetLongestPrefix("; hello world", out string value, out int length));
+            Assert.True(trie.TryGetLongestPrefix("; hello world", out string? value, out int length));
             Assert.Equal("chat", value);
             Assert.Equal(1, length);
 
@@ -191,7 +191,7 @@ namespace Goose.Tests
             var trie = new Trie<string>();
             trie.Insert("/café", "coffee");
 
-            Assert.True(trie.TryGetLongestPrefix("/café latte", out string value, out int length));
+            Assert.True(trie.TryGetLongestPrefix("/café latte", out string? value, out int length));
             Assert.Equal("coffee", value);
             Assert.Equal("/café".Length, length);
         }

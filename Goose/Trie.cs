@@ -1,5 +1,6 @@
 #nullable enable
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Goose
 {
@@ -63,7 +64,7 @@ namespace Goose
         /**
          * Try to get the value for an exact key match.
          */
-        public bool TryGetValue(string key, out T? value)
+        public bool TryGetValue(string key, [MaybeNullWhen(false)] out T value)
         {
             TrieNode? node = this._Find(key);
             if (node is { HasValue: true })
@@ -85,10 +86,10 @@ namespace Goose
          * The matchedLength output parameter indicates how many characters
          * of the query were consumed by the match.
          */
-        public bool TryGetLongestPrefix(string query, out T? value, out int matchedLength)
+        public bool TryGetLongestPrefix(string query, [MaybeNullWhen(false)] out T value, out int matchedLength)
         {
             TrieNode node = this._root;
-            T? bestValue = default;
+            T bestValue = default!;
             int bestLength = -1;
 
             for (int i = 0; i < query.Length; i++)
@@ -143,7 +144,7 @@ namespace Goose
         private sealed class TrieNode
         {
             public Dictionary<char, TrieNode> Children;
-            public T? Value;
+            public T Value = default!;
             public bool HasValue;
 
             public TrieNode()
