@@ -210,6 +210,16 @@ namespace Goose
          */
         public void RegisterEvent(string key, CreateEvent action)
         {
+            if (this.stringToEvent.TryGetValue(key, out CommandDefinition existing) &&
+                existing.RequiredPrivilege.HasValue)
+            {
+                log.Error("Refusing to register {0} unprivileged: it already requires {1}. " +
+                    "Use the RegisterEvent overload that states a privilege.",
+                    key, existing.RequiredPrivilege.Value);
+
+                return;
+            }
+
             this.stringToEvent[key] = Open(action);
         }
 
