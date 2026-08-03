@@ -380,6 +380,7 @@ test('a blank optional cell is posted as null so the SQL default applies', () =>
 test('ops names the sheet, its id column and its Text columns', () => {
   const ops = opsFor('NPC Drops', []);
   assert.equal(ops.sheet, 'NPC Drops');
+  assert.equal(ops.schemaWidth, schemaOf('NPC Drops').columns.length);
   // -1: NPC Drops has no pk, and its column A is an FK that legitimately repeats.
   assert.equal(ops.idColumnIndex, -1);
   assert.deepEqual(ops.textColumns, []);

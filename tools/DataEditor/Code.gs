@@ -87,8 +87,8 @@
  *       half-write leaving the previous record's trailing values in place)
  *     - a stray value BELOW row 1 past the last schema column (must still write fine —
  *       width comes from the header row, not the sheet's data extent)
- *     - a stray value IN row 1 past the last schema column (must throw: it inflates the
- *       header width, and the error says to clear that cell)
+ *     - named helper columns in row 1 past the schema columns (must be left untouched; header
+ *       labels are documentation and may contain spaces, brackets or other human guidance)
  *     - writeRow with a blank or whitespace-only id (must skip the duplicate check, not
  *       match every blank id cell in the column)
  *     - the same id from two tabs (must throw, naming the row that already has it)
@@ -320,6 +320,29 @@ function headerWidth_(sheet) {
   var width = header.length;
   while (width > 0 && String(header[width - 1]).trim() === '') width--;
   return width;
+}
+
+/**
+ * Internal: the writable schema width, with its positional contract checked against row 1.
+ *
+ * New editor clients send the generated schema's column count. Header labels are deliberately
+ * irrelevant because CsvToSql skips row 1 and imports by position; named helper columns may
+ * follow the schema columns. Callers predating schemaWidth keep the stricter
+ * whole-header behavior so an old client cannot silently weaken its width guard.
+ */
+function schemaWidth_(sheet, sheetName, schemaWidth) {
+  var headerWidth = headerWidth_(sheet);
+  if (schemaWidth === undefined) return headerWidth;
+  if (typeof schemaWidth !== 'number' || !isFinite(schemaWidth) ||
+      Math.floor(schemaWidth) !== schemaWidth || schemaWidth <= 0) {
+    throw new Error(sheetName + ': schemaWidth must be a positive integer');
+  }
+  if (headerWidth < schemaWidth) {
+    throw new Error(
+      sheetName + ': schema is ' + schemaWidth + ' columns wide but row 1 only reaches column ' +
+      headerWidth + '. Restore the sheet header.');
+  }
+  return schemaWidth;
 }
 
 /** Internal: true for the values that mean "leave this cell empty". */
@@ -560,6 +583,8 @@ function readSheetIndex(sheetName, nameColumnIndex, extraColumnIndex) {
  * Without options.loaded the old current-value diff still runs, so a caller that predates
  * the snapshot degrades to "last writer wins per cell" rather than breaking.
  *
+ * `options.schemaWidth` is the generated schema's column count. Header labels are ignored;
+ * named helper columns after that width are left untouched.
  * `options.textColumns` lists the 0-based indexes of the schema's Text columns. A written
  * cell in one of them gets its number format pinned to '@' (plain text) first, because
  * setValues parses strings like typed entry: "1-2" in a description column became a Date,
@@ -577,21 +602,21 @@ function writeRowLocked_(sheetName, rowNumber, cells, idColumnIndex, options) {
 
   if (!Array.isArray(cells)) throw new Error('writeRow: cells must be an array');
 
+  var opts = options || {};
+
   // A sheet with no header has no column-order contract to write against, and nothing
   // bounds the write to the grid's width. Refuse rather than guess. (Schema sheets
   // always carry a header; reaching this means the wrong spreadsheet is open.)
-  var width = headerWidth_(sheet);
+  var width = schemaWidth_(sheet, sheetName, opts.schemaWidth);
   if (width === 0) {
     throw new Error('writeRow: sheet "' + sheetName + '" has no header row — nothing to write against');
   }
   if (cells.length !== width) {
     throw new Error(
       sheetName + ': got ' + cells.length + ' values for a header ' + width +
-      ' columns wide. Check for a stray value in row 1 past the last real column; ' +
-      'if row 1 is correct, the schema is out of date — re-run SchemaGen.');
+      ' columns wide. Reload and retry; if it persists, re-run SchemaGen.');
   }
 
-  var opts = options || {};
   var loaded = Array.isArray(opts.loaded) ? opts.loaded : null;
   if (loaded && loaded.length !== width) {
     throw new Error(
@@ -672,7 +697,7 @@ function writeRowLocked_(sheetName, rowNumber, cells, idColumnIndex, options) {
     }
   }
 
-  // No matching column guard is needed: out.length equals the header width, and a
+  // No matching column guard is needed: out.length equals the checked schema width, and a
   // header cell in that column means the grid is already at least that wide.
   //
   // getRange() past the bottom of the grid throws; appending to a full sheet has to
@@ -719,14 +744,15 @@ function writeRowLocked_(sheetName, rowNumber, cells, idColumnIndex, options) {
  * sheet before its children, so a batch that fails part-way leaves an incomplete parent (which
  * a retry completes) rather than children pointing at a row that was never written:
  *
- *   [{ sheet, idColumnIndex, textColumns, writes, appends, deletes }, ...]
+ *   [{ sheet, schemaWidth, idColumnIndex, textColumns, writes, appends, deletes }, ...]
  *
  *   writes:  [{ row, cells, loaded }]   row is 1-based including the header, as writeRow's is
  *   appends: [{ cells }]
  *   deletes: [{ row, loaded }]
  *
- * `cells` and `loaded` are arrays exactly as wide as that sheet's header, same encoding as
- * writeRow's. `idColumnIndex` is 0-based, or -1 for the nine sheets with no primary key.
+ * `cells` and `loaded` are arrays exactly `schemaWidth` wide, same encoding as writeRow's.
+ * Header labels are ignored and later helper columns are left untouched.
+ * `idColumnIndex` is 0-based, or -1 for the nine sheets with no primary key.
  *
  * EVERY SHEET IS PLANNED BEFORE ANY SHEET IS WRITTEN. That is the whole point of the call: a
  * stale row in the last entry refuses the first entry's writes too, so an NPC and its drops
@@ -765,7 +791,7 @@ function saveBatch(ops) {
 /**
  * Internal: one sheet's ops checked against the sheet as it currently stands. READS ONLY.
  *
- * Returns everything applying needs — the resolved sheet, the header width, the folded cells,
+ * Returns everything applying needs — the resolved sheet, the schema width, the folded cells,
  * the per-row write plans — plus `problems`, the human-readable refusals. A shape error that
  * makes planning impossible (no header, wrong-width array) throws immediately; a data
  * disagreement (a conflict, a duplicate id) goes into `problems` so the caller can report every
@@ -775,7 +801,7 @@ function planSheetOps_(entry) {
   var sheetName = String(entry.sheet);
   var sheet = requireSheet_(sheetName);
 
-  var width = headerWidth_(sheet);
+  var width = schemaWidth_(sheet, sheetName, entry.schemaWidth);
   if (width === 0) {
     throw new Error('saveBatch: sheet "' + sheetName + '" has no header row — nothing to write against');
   }

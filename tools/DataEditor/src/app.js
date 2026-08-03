@@ -1589,7 +1589,8 @@ var App = (function () {
         if (cleared.length) renderForm(values);
       })
       .writeRow(savedSheet, state.rowNumber, cells, idIndex,
-                { loaded: loadedCells, textColumns: textColumns });
+                { loaded: loadedCells, textColumns: textColumns,
+                  schemaWidth: state.schema.columns.length });
   }
 
   /// Publish check: validate every record on every sheet before telling the user to publish.

@@ -481,8 +481,8 @@ namespace Goose
         {
             if (!this.CanCastSpell(caster, target)) return false;
 
-            List<Player> range = target.Map.GetPlayersInRange(target);
-            string packet = "";
+            var range = target.Map.GetPlayersInRange(target);
+            var packets = new List<string>();
 
             long hpresult = this.ParseFormula(this.HPFormula, caster, target);
             long mpresult = this.ParseFormula(this.MPFormula, caster, target);
@@ -505,29 +505,28 @@ namespace Goose
             }
             else
             {
-                packet = P.VitalsPercentage(target);
+                packets.Add(P.VitalsPercentage(target));
+
                 if (target is Player)
                 {
-                    world.Send((Player)target, packet);
                     world.Send((Player)target, P.StatusInfo((Player)target));
-                }
-                foreach (Player player in range)
-                {
-                    world.Send(player, packet);
                 }
             }
 
-            if (this.Animation != 0) packet = P.SpellPlayer(target.LoginID, this.Animation, this.AnimationFile);
-            if (this.DoCastAnimation) packet += "\x1" + P.Cast(caster);
+            if (this.Animation != 0) packets.Add(P.SpellPlayer(target.LoginID, this.Animation, this.AnimationFile));
+            if (this.DoCastAnimation) packets.Add(P.Cast(caster));
 
             if (target is NPC && this.TauntAggro > 0)
             {
                 ((NPC)target).AddAggro((Player)caster, this.TauntAggro, true, world);
 
-                packet += "\x1" + P.BattleTextYellow(target, "Taunted");
+                packets.Add(P.BattleTextYellow(target, "Taunted"));
             }
 
-            packet.TrimStart("\x1".ToCharArray());
+            if (packets.Count == 0)
+                return true;
+
+            var packet = string.Join("\x1", packets);
 
             if (target is Player) world.Send((Player)target, packet);
             foreach (Player player in range)

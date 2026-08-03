@@ -1228,6 +1228,7 @@ test('save sends the loaded snapshot and the Text column indexes to writeRow', (
 
   // As loaded — the pre-edit row — not as posted.
   assert.deepEqual(h.writes[0].options.loaded, ITEM(2, 'Sword'));
+  assert.equal(h.writes[0].options.schemaWidth, schemaOf('Items').columns.length);
   assert.deepEqual(h.writes[0].options.textColumns,
     schemaOf('Items').columns.reduce((out, c, i) => {
       if (c.kind === 'Text') out.push(i);

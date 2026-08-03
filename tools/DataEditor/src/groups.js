@@ -553,6 +553,8 @@ var Groups = (function () {
 
     return {
       sheet: schema.sheet,
+      // The server writes this positional span and ignores named helper columns after it.
+      schemaWidth: schema.columns.length,
       // -1 for the eight grouped sheets with no pk: their column A is an Id-kind FK that
       // legitimately repeats, and 0 would make the server reject every second drop or spawn.
       idColumnIndex: pk ? schema.columns.indexOf(pk) : -1,

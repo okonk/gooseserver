@@ -607,6 +607,20 @@ test('writeRow does not write when the lock cannot be taken', () => {
   assert.deepEqual(gs.sheets.Items.writes, []);
 });
 
+test('writeRow writes only schema columns when named helper columns follow them', () => {
+  const columns = ['class_id', 'level', 'spell_id'];
+  const header = ['class id', 'level (required)', 'spell id'].concat(
+    ['class name (helper)', 'spell name (helper)', 'notes']);
+  const gs = loadCodeGs({ 'Class Levelup Spells': [header] });
+
+  gs.writeRow('Class Levelup Spells', 0, ['2', '4', '3'], -1, {
+    schemaWidth: columns.length,
+  });
+
+  assert.deepEqual(gs.sheets['Class Levelup Spells'].raw()[1].slice(0, 3), ['2', '4', '3']);
+  assert.equal(gs.sheets['Class Levelup Spells'].writes[0].values[0].length, 3);
+});
+
 // --- saveBatch: planning and refusal ---------------------------------------------------------
 
 const DROPS_HEADER = ['npc_template_id', 'item_template_id', 'stack', 'droprate'];
@@ -631,6 +645,46 @@ test('saveBatch refuses a cells array that is not the header width', () => {
     () => gs.saveBatch([{ sheet: 'NPC Drops', idColumnIndex: -1,
                           appends: [{ cells: ['1', '4471', '1'] }] }]),
     /3 values for a header 4 columns wide/);
+});
+
+test('saveBatch writes only schema columns when named helper columns follow them', () => {
+  const columns = ['class_id', 'level', 'spell_id'];
+  const header = ['class id', 'level (required)', 'spell id'].concat(
+    ['class name (helper)', 'spell name (helper)', 'notes']);
+  const gs = loadCodeGs({ 'Class Levelup Spells': [header] });
+
+  gs.saveBatch([{
+    sheet: 'Class Levelup Spells', schemaWidth: columns.length, idColumnIndex: -1,
+    appends: [{ cells: ['2', '4', '3'] }],
+  }]);
+
+  assert.deepEqual(gs.sheets['Class Levelup Spells'].raw()[1].slice(0, 3), ['2', '4', '3']);
+  assert.equal(gs.sheets['Class Levelup Spells'].writes[0].values[0].length, 3);
+});
+
+test('saveBatch ignores human-readable schema header labels', () => {
+  const gs = loadCodeGs({ 'Class Levelup Spells': [
+    ['Class id (required)', 'Level unlocked [1-99]', 'Spell id — see Spells',
+     'class name', 'spell name', 'notes'],
+  ] });
+
+  gs.saveBatch([{
+    sheet: 'Class Levelup Spells',
+    schemaWidth: 3,
+    appends: [{ cells: ['2', '4', '3'] }],
+  }]);
+
+  assert.deepEqual(gs.sheets['Class Levelup Spells'].raw()[1].slice(0, 3), ['2', '4', '3']);
+});
+
+test('saveBatch refuses an invalid schema width', () => {
+  const gs = loadCodeGs({ 'Class Levelup Spells': [['class id', 'level', 'spell id']] });
+
+  assert.throws(() => gs.saveBatch([{
+    sheet: 'Class Levelup Spells',
+    schemaWidth: 2.5,
+    appends: [{ cells: ['2', '4', '3'] }],
+  }]), /schemaWidth must be a positive integer/);
 });
 
 test('saveBatch refuses a row number in two operations', () => {
