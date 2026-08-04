@@ -100,23 +100,11 @@ namespace Goose
         /**
          * SeedCommands, populates the trie with built-in command definitions.
          *
+         * See the comment in the constructor for the access-control policy.
+         *
          */
         private void _SeedCommands()
         {
-            // Every entry states its access requirement, either Open or Restricted. The
-            // dispatcher used to hold bare delegates and perform no authorization at all,
-            // leaving every check to the individual handler - which is how /hax shipped
-            // ungated. Requiring the decision here means a newly added command cannot
-            // silently default to being reachable by anyone.
-            //
-            // This table is now the only place a command's access requirement is stated.
-            // The duplicate HasPrivilege checks the handlers used to carry have been
-            // removed, so an entry that is wrong here is wrong everywhere - see
-            // RegisterEvent, which refuses to downgrade a restricted entry for that reason.
-            //
-            // Commands whose requirement varies by argument rather than by command
-            // (/toggle, /custom, /givecredits) are Open here and enforce the finer rule
-            // themselves. Handlers still check Player.State; the dispatcher does not.
             var commands = new (string Key, CommandDefinition Def)[]
             {
                 ("LOGIN", Open(typeof(LoginEvent))),

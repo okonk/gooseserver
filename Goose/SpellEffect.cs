@@ -921,113 +921,68 @@ namespace Goose
         }
 
         /**
-         * CastSpell, uses the right spell function to cast the spell
+         * CastSpell, dispatches to the correct cast method for this effect type.
          *
          */
         public bool CastSpell(ICharacter caster, ICharacter target, GameWorld world)
         {
-            if (this.EffectType == EffectTypes.Script)
+            return this.EffectType switch
             {
-                try
-                {
-                    return this.Script.Object.Cast(this, caster, target, world);
-                }
-                catch (Exception e)
-                {
-                    log.Error(e, "Cast Spell {0} (c: {1}, t: {2}) Exception", this.Name, caster.Name, target.Name);
-                    return false;
-                }
-            }
-            else if (this.EffectType == EffectTypes.Formula)
-            {
-                return this.CastFormulaSpell(caster, target, world);
-            }
-            // bind can only effect players
-            else if (this.EffectType == EffectTypes.Bind && target is Player)
-            {
-                return this.CastBindSpell(caster, target, world);
-            }
-            // I think permanent can only effect players
-            else if (this.EffectType == EffectTypes.Permanent && target is Player)
-            {
-                return this.CastPermanentSpell(caster, target, world);
-            }
-            else if (this.EffectType == EffectTypes.Buff)
-            {
-                return this.CastBuffSpell(caster, target, world);
-            }
-            else if (this.EffectType == EffectTypes.Tick)
-            {
-                return this.CastTickSpell(caster, target, world);
-            }
-            else if (this.EffectType == EffectTypes.TickBuff)
-            {
-                return this.CastBuffSpell(caster, target, world);
-            }
-            else if (this.EffectType == EffectTypes.Stun)
-            {
-                return this.CastBuffSpell(caster, target, world);
-            }
-            else if (this.EffectType == EffectTypes.Root)
-            {
-                return this.CastBuffSpell(caster, target, world);
-            }
-            // snare can only effect npcs
-            else if (this.EffectType == EffectTypes.Snare && target is NPC)
-            {
-                return this.CastBuffSpell(caster, target, world);
-            }
-            else if (this.EffectType == EffectTypes.Invisible)
-            {
-                return this.CastBuffSpell(caster, target, world);
-            }
-            else if (this.EffectType == EffectTypes.SeeInvisible)
-            {
-                return this.CastBuffSpell(caster, target, world);
-            }
-            // teleport can only effect players
-            else if (this.EffectType == EffectTypes.Teleport && target is Player)
-            {
-                return this.CastTeleportSpell(caster, target, world);
-            }
-            else if (this.EffectType == EffectTypes.Viral)
-            {
-                return this.CastFormulaSpell(caster, target, world);
-            }
-            else if (this.EffectType == EffectTypes.OnMeleeHit)
-            {
-                return this.CastBuffSpell(caster, target, world);
-            }
-            else if (this.EffectType == EffectTypes.OnAttack)
-            {
-                return this.CastBuffSpell(caster, target, world);
-            }
-            else if (this.EffectType == EffectTypes.PetTame && target is NPC)
-            {
-                return this.CastTameSpell(caster, target, world);
-            }
-            else if (this.EffectType == EffectTypes.PetDefend && target is Pet)
-            {
-                this.CastPetDefendSpell(caster, target, world);
-            }
-            else if (this.EffectType == EffectTypes.PetDestroy && target is Pet)
-            {
-                this.CastPetDestroySpell(caster, target, world);
-            }
-            else if (this.EffectType == EffectTypes.PetFollow && target is Pet)
-            {
-                this.CastPetFollowSpell(caster, target, world);
-            }
-            else if (this.EffectType == EffectTypes.PetNeutral && target is Pet)
-            {
-                this.CastPetNeutralSpell(caster, target, world);
-            }
-            else if (this.EffectType == EffectTypes.PetAttack)
-            {
-                this.CastPetAttackSpell(caster, target, world);
-            }
+                // Script effects delegate entirely to the script.
+                EffectTypes.Script => CastScriptSpell(caster, target, world),
 
-            return false;
+                // Formula-based damage/heal.
+                EffectTypes.Formula or EffectTypes.Viral => this.CastFormulaSpell(caster, target, world),
+
+                // Bind and teleport are player-only.
+                EffectTypes.Bind when target is Player => this.CastBindSpell(caster, target, world),
+                EffectTypes.Teleport when target is Player => this.CastTeleportSpell(caster, target, world),
+
+                // Permanent stat/body changes are player-only.
+                EffectTypes.Permanent when target is Player => this.CastPermanentSpell(caster, target, world),
+
+                // All buff variants (buff, tick, tickbuff, stun, root, invisible,
+                // seeinvisible, onmeleehit, onattack) share the same implementation.
+                // Snare is buff-based but NPC-only.
+                EffectTypes.Buff or
+                EffectTypes.Tick or
+                EffectTypes.TickBuff or
+                EffectTypes.Stun or
+                EffectTypes.Root or
+                EffectTypes.Invisible or
+                EffectTypes.SeeInvisible or
+                EffectTypes.OnMeleeHit or
+                EffectTypes.OnAttack => this.CastBuffSpell(caster, target, world),
+
+                EffectTypes.Snare when target is NPC => this.CastBuffSpell(caster, target, world),
+
+                // Pet management spells.
+                EffectTypes.PetTame when target is NPC => this.CastTameSpell(caster, target, world),
+                EffectTypes.PetDefend when target is Pet => this.CastPetDefendSpell(caster, target, world),
+                EffectTypes.PetDestroy when target is Pet => this.CastPetDestroySpell(caster, target, world),
+                EffectTypes.PetFollow when target is Pet => this.CastPetFollowSpell(caster, target, world),
+                EffectTypes.PetNeutral when target is Pet => this.CastPetNeutralSpell(caster, target, world),
+                EffectTypes.PetAttack => this.CastPetAttackSpell(caster, target, world),
+
+                // Unrecognised type or target mismatch (e.g. Bind cast on an NPC).
+                _ => false
+            };
+        }
+
+        /// <summary>
+        /// Cast a script-backed spell, logging any exceptions from the script.
+        /// </summary>
+        private bool CastScriptSpell(ICharacter caster, ICharacter target, GameWorld world)
+        {
+            try
+            {
+                return this.Script.Object.Cast(this, caster, target, world);
+            }
+            catch (Exception e)
+            {
+                log.Error(e, "Cast Spell {0} (c: {1}, t: {2}) Exception", this.Name, caster.Name, target.Name);
+                return false;
+            }
         }
 
         /**

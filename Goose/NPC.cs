@@ -359,12 +359,7 @@ namespace Goose
          */
         public bool CanMoveTo(int x, int y)
         {
-            if (this.Map.CanMoveTo(this, x, y))
-            {
-                return true;
-            }
-
-            return false;
+            return this.Map.CanMoveTo(this, x, y);
         }
 
         public void OnMoveEvent(GameWorld world)

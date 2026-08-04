@@ -299,51 +299,15 @@ namespace Goose
             EquipSlots equipslot = this.ItemSlotToEquipSlot(item.Slot);
             if (equipslot == 0) return false;
 
-            ItemSlot equipped = this.GetEquippedSlot(equipslot);
-            if (equipped == null)
+            // Unequip any conflicting cross-slot items (2H weapon ↔ shield) before
+            // touching the target slot. This logic was duplicated in the null/else
+            // branches below; it runs once here regardless.
+            if (!this.UnequipConflictingSlots(item, world)) return false;
+
+            // Unequip whatever is currently in the target slot, if anything.
+            if (this.GetEquippedSlot(equipslot) != null)
             {
-                // Try to unequip shield if 2handed weapon is tried to be equipped
-                if (equipslot == EquipSlots.Weapon &&
-                    item.Slot == ItemTemplate.ItemSlots.TwoHanded &&
-                    this.GetEquippedSlot(EquipSlots.Shield) != null)
-                {
-                    // If we can't unequip the shield then we can't equip the 2handed weapon, so return false
-                    if (!this.Unequip(EquipSlots.Shield, world))
-                    {
-                        return false;
-                    }
-                }
-                // Try to unequip 2handed weapon if shield is tried to be equipped
-                else if (equipslot == EquipSlots.Shield &&
-                    this.GetEquippedSlot(EquipSlots.Weapon) != null &&
-                    this.GetEquippedSlot(EquipSlots.Weapon).Item.Slot == ItemTemplate.ItemSlots.TwoHanded)
-                {
-                    // If we can't unequip the weapon then we can't equip the shield, so return false
-                    if (!this.Unequip(EquipSlots.Weapon, world))
-                    {
-                        return false;
-                    }
-                }
-            }
-            else
-            {
-                // Try to unequip shield if 2handed weapon is tried to be equipped
-                if (equipslot == EquipSlots.Weapon &&
-                    item.Slot == ItemTemplate.ItemSlots.TwoHanded &&
-                    this.GetEquippedSlot(EquipSlots.Shield) != null)
-                {
-                    // If we can't unequip the shield then we can't equip the 2handed weapon, so return false
-                    if (!this.Unequip(EquipSlots.Shield, world))
-                    {
-                        return false;
-                    }
-                }
-                // Couldn't unequip equipped item, so therefore we can't equip new item.
-                // so return false
-                if (!this.Unequip(equipslot, world))
-                {
-                    return false;
-                }
+                if (!this.Unequip(equipslot, world)) return false;
             }
 
             // At this point we have unequipped everything necessary to equip the item, so go and do it
@@ -386,6 +350,37 @@ namespace Goose
             if (slot.Item.IsBindOnEquip)
             {
                 slot.Item.IsBound = true;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Unequip any items that conflict with the given item before it can be equipped.
+        /// E.g. a 2H weapon requires the shield slot to be free, and a shield requires
+        /// the weapon slot to not hold a 2H weapon.
+        /// Returns false if a conflicting item could not be unequipped.
+        /// </summary>
+        private bool UnequipConflictingSlots(Item item, GameWorld world)
+        {
+            // Equipping a 2H weapon requires the shield slot to be empty.
+            if (item.Slot == ItemTemplate.ItemSlots.TwoHanded)
+            {
+                if (this.GetEquippedSlot(EquipSlots.Shield) != null)
+                {
+                    if (!this.Unequip(EquipSlots.Shield, world))
+                        return false;
+                }
+            }
+            // Equipping a shield requires the weapon slot to not hold a 2H weapon.
+            else if (item.Slot == ItemTemplate.ItemSlots.Shield)
+            {
+                ItemSlot weapon = this.GetEquippedSlot(EquipSlots.Weapon);
+                if (weapon != null && weapon.Item.Slot == ItemTemplate.ItemSlots.TwoHanded)
+                {
+                    if (!this.Unequip(EquipSlots.Weapon, world))
+                        return false;
+                }
             }
 
             return true;

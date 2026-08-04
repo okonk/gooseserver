@@ -180,6 +180,9 @@ namespace Goose
          */
         public int TemplateCount { get { return this.templates.Count; } }
 
+        public int TitleCount { get { return this.titles.Count; } }
+        public int SurnameCount { get { return this.surnames.Count; } }
+
         /**
          * GetTemplate, returns template by id
          */

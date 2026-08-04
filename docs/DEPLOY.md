@@ -116,8 +116,9 @@ docker compose up -d --build
 ```
 
 The volume is untouched, so players, settings, and logs survive. To re-import game
-data from the sheet, run it with the main server **stopped** (the running server
-holds the DB exclusively):
+data from the sheet, stop the server first (the running server holds the DB
+exclusively), then run `updatesql` — it imports and exits on its own — and start
+again:
 
 ```sh
 docker compose stop
@@ -125,7 +126,7 @@ docker compose run --rm goose dotnet Goose.dll updatesql
 docker compose start
 ```
 
-(or use the in-game GM command `/updatesql`).
+(or use the in-game GM command `/updatesql` for a live update).
 
 ## 9. Backups
 

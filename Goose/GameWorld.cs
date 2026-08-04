@@ -209,7 +209,8 @@ namespace Goose
             log.Info("Starting Goose Private Server v" + GameWorld.Settings.ServerVersion);
             var databasePath = Paths.ResolveData(GameWorld.Settings.DatabaseName + ".db");
             log.Info("Opening Database ({0}): ", databasePath);
-            try
+
+            if (!this.LoadStep("Database", () =>
             {
                 bool createNew = !File.Exists(databasePath);
                 this.Database.Start(databasePath);
@@ -218,15 +219,8 @@ namespace Goose
                     log.Info("DB file not found, creating...");
                     CreateDatabaseSchema();
                 }
-
                 log.Info("Connected.");
-            }
-            catch (Exception e)
-            {
-                log.Fatal(e, "");
-                log.Info("Aborting...");
-                return;
-            }
+            })) return;
 
             if (Environment.GetCommandLineArgs().Contains("updatesql"))
             {
@@ -246,196 +240,64 @@ namespace Goose
                 catch (Exception e)
                 {
                     log.Error(e, "Failed updating sql");
-                    return;
+                    Environment.Exit(1);
                 }
 
                 log.Info("Updated");
+
+                // One-shot mode: updatesql only imports data, it does not start the
+                // game. Drain queued writes, close the database, flush logs, and exit
+                // so the caller (Docker, scripts) can proceed when the command returns.
+                this.Database.Stop();
+                NLog.LogManager.Shutdown();
+                Environment.Exit(0);
             }
 
-            log.Info("Loading Guilds: ");
-            try
+            if (!this.LoadStep("Guilds", () =>
             {
                 this.GuildHandler.LoadGuilds(this);
                 this.GuildHandler.AddSaveEvent(this);
-            }
-            catch (Exception e)
-            {
-                log.Fatal(e, "");
-                log.Info("Aborting...");
-                return;
-            }
-            log.Info(this.GuildHandler.Count.ToString() + " guilds loaded.");
+            }, () => this.GuildHandler.Count)) return;
 
-            log.Info("Loading Spell Effects: ");
-            try
-            {
-                this.SpellHandler.LoadSpellEffects(this);
-            }
-            catch (Exception e)
-            {
-                log.Fatal(e, "");
-                log.Info("Aborting...");
-                return;
-            }
-            log.Info(this.SpellHandler.EffectCount.ToString() + " spell effects loaded.");
+            if (!this.LoadStep("Spell Effects", () => this.SpellHandler.LoadSpellEffects(this),
+                () => this.SpellHandler.EffectCount)) return;
 
-            log.Info("Loading Spells: ");
-            try
-            {
-                this.SpellHandler.LoadSpells(this);
-            }
-            catch (Exception e)
-            {
-                log.Fatal(e, "");
-                log.Info("Aborting...");
-                return;
-            }
-            log.Info(this.SpellHandler.Count.ToString() + " spells loaded.");
+            if (!this.LoadStep("Spells", () => this.SpellHandler.LoadSpells(this),
+                () => this.SpellHandler.Count)) return;
 
-            log.Info("Loading Item Templates: ");
-            try
-            {
-                this.ItemHandler.LoadTemplates(this);
-            }
-            catch (Exception e)
-            {
-                log.Fatal(e, "");
-                log.Info("Aborting...");
-                return;
-            }
-            log.Info(this.ItemHandler.TemplateCount.ToString() + " item templates loaded.");
+            if (!this.LoadStep("Item Templates", () => this.ItemHandler.LoadTemplates(this),
+                () => this.ItemHandler.TemplateCount)) return;
 
-            log.Info("Loading Item Titles: ");
-            try
-            {
-                int count = this.ItemHandler.LoadTitles(this);
-                log.Info($"{count} item titles loaded.");
-            }
-            catch (Exception e)
-            {
-                log.Fatal(e, "");
-                log.Info("Aborting...");
-                return;
-            }
+            if (!this.LoadStep("item titles", () => this.ItemHandler.LoadTitles(this),
+                () => this.ItemHandler.TitleCount)) return;
+            if (!this.LoadStep("item surnames", () => this.ItemHandler.LoadSurnames(this),
+                () => this.ItemHandler.SurnameCount)) return;
 
-            log.Info("Loading Item Surnames: ");
-            try
-            {
-                int count = this.ItemHandler.LoadSurnames(this);
-                log.Info($"{count} item surnames loaded.");
-            }
-            catch (Exception e)
-            {
-                log.Fatal(e, "");
-                log.Info("Aborting...");
-                return;
-            }
+            if (!this.LoadStep("Quests", () => this.QuestHandler.LoadQuests(this),
+                () => this.QuestHandler.Quests.Count)) return;
 
-            log.Info("Loading Quests: ");
-            try
-            {
-                this.QuestHandler.LoadQuests(this);
-            }
-            catch (Exception e)
-            {
-                log.Fatal(e, "");
-                log.Info("Aborting...");
-                return;
-            }
-            log.Info(this.QuestHandler.Quests.Count.ToString() + " quests loaded.");
+            if (!this.LoadStep("Maps", () => this.MapHandler.LoadMaps(this),
+                () => this.MapHandler.Count)) return;
 
-            log.Info("Loading Maps: ");
-            try
-            {
-                this.MapHandler.LoadMaps(this);
-            }
-            catch (Exception e)
-            {
-                log.Fatal(e, "");
-                log.Info("Aborting...");
-                return;
-            }
-            log.Info(this.MapHandler.Count.ToString() + " maps loaded.");
+            if (!this.LoadStep("Classes", () => this.ClassHandler.LoadClasses(this),
+                () => this.ClassHandler.Count)) return;
 
-            log.Info("Loading Classes: ");
-            try
-            {
-                this.ClassHandler.LoadClasses(this);
-            }
-            catch (Exception e)
-            {
-                log.Fatal(e, "");
-                log.Info("Aborting...");
-                return;
-            }
-            log.Info(this.ClassHandler.Count.ToString() + " classes loaded.");
-
-            log.Info("Loading Players: ");
-            try
-            {
-                this.PlayerHandler.LoadPlayerData(this);
-            }
-            catch (Exception e)
-            {
-                log.Fatal(e, "");
-                log.Info("Aborting...");
-                return;
-            }
-            log.Info(this.PlayerHandler.PlayerDataCount.ToString() + " players loaded.");
+            if (!this.LoadStep("Players", () => this.PlayerHandler.LoadPlayerData(this),
+                () => this.PlayerHandler.PlayerDataCount)) return;
 
             this.RankHandler.UpdateAll(this);
 
-            log.Info("Loading NPC Templates: ");
-            try
-            {
-                this.NPCHandler.LoadNPCTemplates(this);
-            }
-            catch (Exception e)
-            {
-                log.Fatal(e, "");
-                log.Info("Aborting...");
-                return;
-            }
-            log.Info(this.NPCHandler.TemplateCount.ToString() + " NPC templates loaded.");
+            if (!this.LoadStep("NPC Templates", () => this.NPCHandler.LoadNPCTemplates(this),
+                () => this.NPCHandler.TemplateCount)) return;
 
-            log.Info("Loading NPC Spawns: ");
-            try
-            {
-                this.NPCHandler.LoadNPCs(this);
-            }
-            catch (Exception e)
-            {
-                log.Fatal(e, "");
-                log.Info("Aborting...");
-                return;
-            }
-            log.Info(this.NPCHandler.NPCCount.ToString() + " NPCs spawned.");
+            if (!this.LoadStep("NPC Spawns", () => this.NPCHandler.LoadNPCs(this),
+                () => this.NPCHandler.NPCCount)) return;
 
-            log.Info("Loading Combinations: ");
-            try
-            {
-                this.CombinationHandler.LoadCombinations(this);
-            }
-            catch (Exception e)
-            {
-                log.Fatal(e, "");
-                log.Info("Aborting...");
-                return;
-            }
-            log.Info(this.CombinationHandler.Count.ToString() + " combinations loaded.");
+            if (!this.LoadStep("Combinations", () => this.CombinationHandler.LoadCombinations(this),
+                () => this.CombinationHandler.Count)) return;
 
-            log.Info("Loading Chat Filter: ");
-            try
-            {
-                this.ChatFilter.LoadFilter(this);
-            }
-            catch (Exception e)
-            {
-                log.Fatal(e, "");
-                log.Info("Aborting...");
-                return;
-            }
-            log.Info(this.ChatFilter.Count.ToString() + " words loaded.");
+            if (!this.LoadStep("Chat Filter", () => this.ChatFilter.LoadFilter(this),
+                () => this.ChatFilter.Count)) return;
 
             this.CharactersCreatedPerIP = new Dictionary<string, int>();
             this.LoginThrottle = new LoginThrottle();
@@ -457,22 +319,38 @@ namespace Goose
             gold.LoadFromTemplate(ItemHandler.GetTemplate(GameWorld.Settings.GoldItemID));
             this.ItemHandler.AddItem(gold, this);
 
-            log.Info("Loading Global Scripts: ");
+            if (!this.LoadStep("Global Scripts", () => LoadGlobalScripts())) return;
+
+            log.Info("Finished loading game. Ready to join.");
+
+            this.Running = true;
+        }
+
+        /// <summary>
+        /// Runs a loading step, logging the item count on success or aborting on failure.
+        /// Returns false if the step threw (the server should not continue).
+        /// </summary>
+        private bool LoadStep(string name, Action action, Func<int> countFn = null)
+        {
+            log.Info("Loading {0}: ", name);
             try
             {
-                LoadGlobalScripts();
+                action();
+
+                string unit = name.ToLower();
+                if (countFn != null)
+                    log.Info("{0} {1} loaded.", countFn(), unit);
+                else
+                    log.Info("Done loading {0}.", name);
+
+                return true;
             }
             catch (Exception e)
             {
                 log.Fatal(e, "");
                 log.Info("Aborting...");
-                return;
+                return false;
             }
-            log.Info("Done loading global scripts");
-
-            log.Info("Finished loading game. Ready to join.");
-
-            this.Running = true;
         }
 
         /**
@@ -661,6 +539,28 @@ namespace Goose
             catch (Exception)
             {
 
+            }
+        }
+
+        /**
+         * SendRaw, sends data directly to a socket before a Player object exists.
+         *
+         * Used during login when the client has connected but no Player has been
+         * created yet. Avoids fabricating throwaway Player instances just to route
+         * a denial packet.
+         *
+         */
+        public void SendRaw(Socket sock, string data)
+        {
+            if (sock == null || data == null) return;
+
+            data += "\x1";
+            try
+            {
+                sock.Send(Encoding.ASCII.GetBytes(data));
+            }
+            catch (Exception)
+            {
             }
         }
 

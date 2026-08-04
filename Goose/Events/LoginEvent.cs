@@ -93,7 +93,7 @@ namespace Goose.Events
 
             if (name.Length < 3 || password.Length < 3)
             {
-                world.Send(new Player() { Sock = sock }, P.LoginDenied("Please use a longer username or password."));
+                world.SendRaw(sock, P.LoginDenied("Please use a longer username or password."));
                 world.GameServer.Disconnect(sock);
                 return;
             }
@@ -105,7 +105,7 @@ namespace Goose.Events
             if (world.LoginThrottle.IsLocked(IP, out retryAfter) ||
                 world.LoginThrottle.IsLocked("name:" + name, out retryAfter))
             {
-                world.Send(new Player() { Sock = sock },
+                world.SendRaw(sock,
                     P.LoginDenied("Too many failed login attempts. Try again in " + retryAfter + " seconds."));
                 world.GameServer.Disconnect(sock);
                 return;
@@ -113,7 +113,7 @@ namespace Goose.Events
 
             if (world.PlayerHandler.IsLoggedIn(name.ToLower()))
             {
-                world.Send(new Player() { Sock = sock }, P.LoginDenied("Character is already logged in."));
+                world.SendRaw(sock, P.LoginDenied("Character is already logged in."));
                 world.GameServer.Disconnect(sock);
                 return;
             }
@@ -130,7 +130,7 @@ namespace Goose.Events
                     {
                         if (created >= GameWorld.Settings.NewCharactersPerDayPerIP)
                         {
-                            world.Send(new Player() { Sock = sock }, P.LoginDenied("You can't create any more characters today."));
+                            world.SendRaw(sock, P.LoginDenied("You can't create any more characters today."));
                             world.GameServer.Disconnect(sock);
                             return;
                         }
@@ -144,7 +144,7 @@ namespace Goose.Events
                 {
                     if (!name.All(c => (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')))
                     {
-                        world.Send(new Player() { Sock = sock }, P.LoginDenied("Your name must contain letters only."));
+                        world.SendRaw(sock, P.LoginDenied("Your name must contain letters only."));
                         world.GameServer.Disconnect(sock);
                         return;
                     }
@@ -158,7 +158,7 @@ namespace Goose.Events
                 }
                 else
                 {
-                    world.Send(new Player() { Sock = sock }, P.LoginDenied("Character does not exist."));
+                    world.SendRaw(sock, P.LoginDenied("Character does not exist."));
                     world.GameServer.Disconnect(sock);
                     return;
                 }

@@ -14,8 +14,8 @@ COPY . .
 RUN dotnet publish Goose/Goose.csproj -c Release -o /app/publish --no-restore
 
 # ---- runtime stage ----
-# Debian-based (NOT alpine): System.Data.SQLite ships a glibc native library
-# under runtimes/linux-x64, which won't load on musl.
+# glibc-based Ubuntu 24.04 (NOT alpine): System.Data.SQLite ships a glibc native
+# library under runtimes/linux-x64, which won't load on musl.
 FROM mcr.microsoft.com/dotnet/runtime:10.0
 WORKDIR /app
 
@@ -26,12 +26,12 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends sqlite3 \
     && rm -rf /var/lib/apt/lists/*
 
-# Run as non-root. The data volume must be writable by this user (uid 1000).
-RUN useradd --create-home --uid 1000 goose \
-    && mkdir -p /data \
-    && chown -R goose:goose /data
+# Run as non-root. The runtime image ships an 'app' user (UID 1654, Microsoft's
+# non-root convention for .NET images); the data volume must be writable by it.
+RUN mkdir -p /data \
+    && chown -R app:app /data
 
-USER goose
+USER app
 
 COPY --from=build /app/publish/ .
 
