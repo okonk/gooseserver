@@ -16,7 +16,7 @@ namespace Goose
      */
     public class MapHandler
     {
-        List<Map> maps;
+        Dictionary<int, Map> maps;
 
         /**
          * Constructor, constructs map list
@@ -24,10 +24,10 @@ namespace Goose
          */
         public MapHandler()
         {
-            this.maps = new List<Map>();
+            this.maps = new Dictionary<int, Map>();
         }
 
-        public List<Map> Maps { get { return this.maps; } }
+        public Dictionary<int, Map> Maps { get { return this.maps; } }
 
         /**
          * LoadMaps, loads all maps
@@ -69,11 +69,11 @@ namespace Goose
                         map.ScriptParams = Convert.ToString(reader["script_params"]);
                     }
 
-                    this.maps.Add(map);
+                    this.maps[map.ID] = map;
                 }
             });
 
-            foreach (Map map in this.maps)
+            foreach (Map map in this.maps.Values)
             {
                 map.LoadData(world);
 
@@ -90,11 +90,7 @@ namespace Goose
          */
         public Map GetMap(int id)
         {
-            foreach (Map map in this.maps)
-            {
-                if (map.ID == id) return map;
-            }
-            return null;
+            return this.maps.TryGetValue(id, out var map) ? map : null;
         }
 
         /**

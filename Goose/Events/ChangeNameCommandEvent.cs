@@ -37,6 +37,12 @@ namespace Goose.Events
                 }
 
                 world.PlayerHandler.RemovePlayerFromData(player);
+
+                if (player.State != Goose.Player.States.NotLoggedIn)
+                {
+                    world.PlayerHandler.RenamePlayer(player, newname);
+                }
+
                 player.Name = newname;
                 world.PlayerHandler.AddPlayerToData(player);
 

@@ -21,6 +21,7 @@ namespace Goose
 
         private List<Player> players = new();
         private Dictionary<Socket, Player> sockToPlayer = new();
+        private Dictionary<string, Player> nameToPlayer = new();
         // Support LoginIDs 1..MaxPlayers inclusive; index 0 unused (LoginID 0 = none / full)
         private Player[] idToPlayer = new Player[GameWorld.Settings.MaxPlayers + 1];
 
@@ -48,6 +49,7 @@ namespace Goose
             player.LoginID = this.GetNewID(world);
             this.players.Add(player);
             this.sockToPlayer[player.Sock] = player;
+            this.nameToPlayer[player.Name.ToLower()] = player;
             if (player.LoginID != 0)
                 this.idToPlayer[player.LoginID] = player;
         }
@@ -77,6 +79,7 @@ namespace Goose
         {
             this.sockToPlayer.Remove(player.Sock);
             this.players.Remove(player);
+            this.nameToPlayer.Remove(player.Name.ToLower());
             if (player.LoginID != 0 && player.LoginID < this.idToPlayer.Length)
                 this.idToPlayer[player.LoginID] = null;
             player.LoginID = 0;
@@ -125,29 +128,16 @@ namespace Goose
          */
         public Player GetPlayer(string name)
         {
-            name = name.ToLower();
-
-            foreach (Player player in this.players)
-            {
-                if (name.Equals(player.Name.ToLower())) return player;
-            }
-
-            return null;
+            return this.nameToPlayer.TryGetValue(name.ToLower(), out var player) ? player : null;
         }
 
         /**
          * IsLoggedIn, checks if a player is logged in
          * 
-         * 
          */
         public bool IsLoggedIn(string name)
         {
-            foreach (Player player in this.players)
-            {
-                if (name.Equals(player.Name.ToLower())) return true;
-            }
-
-            return false;
+            return GetPlayer(name) != null;
         }
 
         /**
@@ -229,6 +219,16 @@ namespace Goose
         public void RemovePlayerFromData(Player player)
         {
             this.allNameToPlayer.Remove(player.Name.ToLower());
+        }
+
+        /// <summary>
+        /// Updates the online name index after a player's name has already been changed.
+        /// Call from /changename when the player is logged in.
+        /// </summary>
+        public void RenamePlayer(Player player, string newName)
+        {
+            this.nameToPlayer.Remove(player.Name.ToLower());
+            this.nameToPlayer[newName.ToLower()] = player;
         }
 
         public List<Player> GetAllPlayerData()
