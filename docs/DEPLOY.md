@@ -74,14 +74,20 @@ Configure your client to connect to the VPS IP on port 2006.
 
 ## 6. Making a character a GM
 
-The image ships `sqlite3`, so from the host:
+Do this with the server **stopped**. The running server holds the authoritative
+copy of every player in memory and periodically writes it back to the database,
+so a direct DB edit while it runs gets overwritten on the next player save — and
+wouldn't take effect until a restart anyway.
 
 ```sh
-docker compose exec goose sqlite3 /data/AsperetaGoose.db \
+docker compose stop
+docker compose run --rm --entrypoint sqlite3 goose /data/AsperetaGoose.db \
   "UPDATE players SET access_status=9 WHERE player_name='namegoeshere';"
+docker compose start
 ```
 
-(The DB filename comes from `DatabaseName` in `GooseSettings.json`.)
+(The DB filename comes from `DatabaseName` in `GooseSettings.json`;
+`access_status=9` is GameMaster.)
 
 ## 7. Editing settings / data dir layout
 

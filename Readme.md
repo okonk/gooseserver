@@ -92,3 +92,8 @@ All SQLite work goes through a single-threaded `Database` service (one connectio
 You can run this SQL with your player name, or update the access_status column for your player and set it to 9.
 
 `UPDATE players SET access_status=9 WHERE player_name='namegoeshere';`
+
+Stop the server before editing the database: the running server keeps the
+authoritative copy of players in memory and writes it back on the save cadence,
+so a live edit gets overwritten and wouldn't take effect until the next restart
+anyway (players reload from the DB at startup).
