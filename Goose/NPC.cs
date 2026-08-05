@@ -1445,8 +1445,9 @@ namespace Goose
                     this.Map.PlaceItem(tile);
 
                     // tile can stack
-                    ItemTile maptile = (ItemTile)this.Map.GetTile(tile.X, tile.Y);
-                    if (maptile != null && maptile is ItemTile)
+                    ITile tileResult = this.Map.GetTile(tile.X, tile.Y);
+                    ItemTile maptile = tileResult as ItemTile;
+                    if (maptile != null)
                     {
                         maptile.ItemSlot.Stack += drop.Stack;
                         maptile.Owner = tile.Owner;

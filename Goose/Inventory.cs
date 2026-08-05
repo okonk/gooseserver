@@ -110,7 +110,7 @@ namespace Goose
          */
         public void SendSlot(int i, GameWorld world)
         {
-            if (i < 1 && i > GameWorld.Settings.InventorySize) return;
+            if (i < 1 || i > GameWorld.Settings.InventorySize) return;
 
             if (this.player.State >= Player.States.LoadingMap)
             {
@@ -467,8 +467,8 @@ namespace Goose
                     this.SendSlot(i, world);
 
                     ItemSlot removed = new ItemSlot();
-                    removed.Item = new Item();
-                    removed.Item.LoadFromTemplate(item.Template);
+                    removed.Item = item.CloneWithoutId();
+                    world.ItemHandler.AddAndAssignId(removed.Item, world);
                     removed.Stack = number;
 
                     return removed;

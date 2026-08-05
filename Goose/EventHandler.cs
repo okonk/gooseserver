@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Linq;
 using System.Text;
 using System.Runtime.InteropServices;
@@ -15,6 +16,22 @@ namespace Goose
     public class EventHandler
     {
         private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
+
+        /**
+         * Cached delegates for event type instantiation.
+         * Avoids Activator.CreateInstance (reflection) on the per-packet hot path.
+         * Populated lazily on first use, safe because all events are registered at startup.
+         */
+        private static readonly ConcurrentDictionary<Type, Func<Event>> _eventFactories = new();
+
+        private static Func<Event> GetOrCreateFactory(Type eventType)
+        {
+            return _eventFactories.GetOrAdd(eventType, (type) =>
+            {
+                var ctor = type.GetConstructor(Type.EmptyTypes);
+                return (() => (Event)ctor.Invoke(null));
+            });
+        }
 
         /**
          * PriorityQueue acts as a min-heap ordered by Event.Ticks.
@@ -293,7 +310,7 @@ namespace Goose
             }
             else
             {
-                e = (Event)System.Activator.CreateInstance(definition.EventTypeId);
+                e = GetOrCreateFactory(definition.EventTypeId)();
                 e.Player = player;
                 e.Data = packet;
             }

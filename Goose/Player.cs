@@ -37,7 +37,7 @@ namespace Goose
             get { return this.sock; }
             set { this.sock = value; }
         }
-        public string Buffer { get; set; }
+        public StringBuilder Buffer { get; set; }
 
         public List<byte> SendBuffer { get; private set; }
 
@@ -464,7 +464,7 @@ namespace Goose
          */
         public Player(int unused)
         {
-            this.Buffer = "";
+            this.Buffer = new StringBuilder();
 
             this.LastAttack = 0;
             this.LastPing = 0;
@@ -494,7 +494,7 @@ namespace Goose
 
         public void OnLogin()
         {
-            this.Buffer = "";
+            this.Buffer = new StringBuilder();
             this.SendBuffer = new();
         }
 
@@ -511,7 +511,7 @@ namespace Goose
          */
         public void Received(string data)
         {
-            this.Buffer += data;
+            this.Buffer.Append(data);
         }
 
         /**

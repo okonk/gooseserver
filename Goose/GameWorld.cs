@@ -465,14 +465,13 @@ namespace Goose
 
                 // The client delimits packets with \x1 and ParseData only trims up to the
                 // last one. A client that never sends a delimiter would otherwise grow this
-                // buffer without limit, and because Buffer is a string each append recopies
-                // the whole thing on the game loop thread.
+                // buffer without limit.
                 if (player.Buffer.Length > MaxReceiveBufferSize)
                 {
                     log.Warn("Dropping connection for " + player.Name + ": receive buffer exceeded " +
                              MaxReceiveBufferSize + " bytes with no packet delimiter.");
 
-                    player.Buffer = "";
+                    player.Buffer.Clear();
                     this.LostConnection(sock);
                     return;
                 }
@@ -499,12 +498,22 @@ namespace Goose
          */
         public void ParseData(Player player)
         {
-            var packets = player.Buffer.Split('\x1');
-            player.Buffer = packets[^1];
-
-            for (int i = 0; i < packets.Length - 1; i++)
+            // Use IndexOf loop to avoid allocating a string array from Split.
+            // Process complete packets (delimited by \x1), leave the partial trailing data.
+            string buffer = player.Buffer.ToString();
+            int start = 0;
+            int delimiterIndex;
+            while ((delimiterIndex = buffer.IndexOf('\x1', start)) >= 0)
             {
-                this.EventHandler.AddEvent(player, packets[i]);
+                this.EventHandler.AddEvent(player, buffer.Substring(start, delimiterIndex - start));
+                start = delimiterIndex + 1;
+            }
+
+            // Keep only the unprocessed tail (partial packet or empty).
+            if (start > 0)
+            {
+                player.Buffer.Clear();
+                player.Buffer.Append(buffer, start, buffer.Length - start);
             }
         }
 

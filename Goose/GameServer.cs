@@ -42,6 +42,13 @@ namespace Goose
 
         private DateTime lastPreLoginSweep = DateTime.UtcNow;
 
+        /**
+         * Reusable buffers for Socket.Select to avoid allocating new lists every tick.
+         */
+        private readonly List<Socket> readList = new();
+        private readonly List<Socket> writeList = new();
+        private readonly byte[] receiveBuffer = new byte[8192];
+
         private GameWorld gameworld;
 
         /**
@@ -153,12 +160,19 @@ namespace Goose
             {
                 System.Threading.Thread.Sleep(1);
 
-                var readList = this.sockets.ToList();
-                var writeList = this.sockets.Where(s => gameworld.PlayerHandler.GetPlayer(s)?.SendBuffer?.Count > 0).ToList();
+                this.readList.Clear();
+                this.readList.AddRange(this.sockets);
 
-                Socket.Select(readList, writeList, null, 2000);
+                this.writeList.Clear();
+                foreach (var s in this.sockets)
+                {
+                    if (gameworld.PlayerHandler.GetPlayer(s)?.SendBuffer?.Count > 0)
+                        this.writeList.Add(s);
+                }
 
-                foreach (var writeSocket in writeList)
+                Socket.Select(this.readList, this.writeList, null, 2000);
+
+                foreach (var writeSocket in this.writeList)
                 {
                     try
                     {
@@ -173,7 +187,7 @@ namespace Goose
                     }
                 }
 
-                foreach (Socket sock in readList)
+                foreach (Socket sock in this.readList)
                 {
                     if (sock == this.listen)
                     {
@@ -208,11 +222,10 @@ namespace Goose
                     {
                         try
                         {
-                            var buffer = new byte[8192];
                             int bytesRead = 0;
                             try
                             {
-                                bytesRead = sock.Receive(buffer);
+                                bytesRead = sock.Receive(this.receiveBuffer);
                             }
                             catch (SocketException)
                             {
@@ -224,7 +237,7 @@ namespace Goose
                             }
                             else
                             {
-                                string strBuffer = Encoding.ASCII.GetString(buffer, 0, bytesRead);
+                                string strBuffer = Encoding.ASCII.GetString(this.receiveBuffer, 0, bytesRead);
                                 this.gameworld.Received(sock, strBuffer);
                             }
                         }

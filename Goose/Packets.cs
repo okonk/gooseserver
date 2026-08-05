@@ -343,7 +343,7 @@ namespace Goose
 
         public static Func<ICharacter, string> MoveCharacter = (target) =>
         {
-            return "MOC" + + target.LoginID + "," + target.MapX + "," + target.MapY;
+            return "MOC" + target.LoginID + "," + target.MapX + "," + target.MapY;
         };
 
         public static Func<ICharacter, string> Attack = (target) =>
