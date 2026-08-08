@@ -101,13 +101,14 @@ Explicit, because updating `CREATE TABLE` SQL does **not** touch existing databa
 
 ---
 
-## Task 0: Prerequisites — test visibility and a reader fixture
+## Task 0: Prerequisites — test visibility, reader fixture, and test serialization
 
 Nothing here changes runtime behaviour; it unblocks every later test task.
 
 **Files:**
 - Modify: `Goose/Goose.csproj` (new `ItemGroup` before the `sql/*.sql` one at :17)
 - Create: `Goose.Tests/Fakes/FakeDbDataReader.cs`
+- Create: `Goose.Tests/Collections/GameWorldSettingsCollection.cs`
 
 **Step 1: Expose internals to the test project**
 
@@ -176,16 +177,33 @@ public sealed class FakeDbDataReader : DbDataReader
 }
 ```
 
-**Step 3: Verify the baseline still passes**
+**Step 3: Serialize tests that mutate `GameWorld.Settings`**
+
+`GameWorld.Settings` is process-wide static state, and `ScriptHandler.GetScript` reads it when resolving every path. xUnit may run test classes concurrently, so all quest-script test classes that replace the setting must share a non-parallel collection:
+
+```csharp
+namespace Goose.Tests.Collections;
+
+[CollectionDefinition(Name, DisableParallelization = true)]
+public sealed class GameWorldSettingsCollection
+{
+    public const string Name = "GameWorld settings";
+}
+```
+
+Apply `[Collection(GameWorldSettingsCollection.Name)]` to `QuestScriptTests`, `QuestScriptLoadingTests`, and `QuestWindowScriptTests` as those classes are added. The shared fixture introduced in Task 1 also saves the prior setting and restores it on disposal; serialization prevents another test from observing the temporary value before that restoration.
+
+**Step 4: Verify the baseline still passes**
 
 Run: `dotnet test Goose.Tests/Goose.Tests.csproj`
-Expected: `Passed! - Failed: 0, Passed: 81` (the fake is unreferenced so far; this only proves `InternalsVisibleTo` did not break the build).
+Expected: all baseline tests pass (the fixtures are unreferenced so far).
 
-**Step 4: Commit**
+**Step 5: Commit**
 
 ```bash
-git add Goose/Goose.csproj Goose.Tests/Fakes/FakeDbDataReader.cs
-git commit -m "test: expose Goose internals to tests and add a DbDataReader fake"
+git add Goose/Goose.csproj Goose.Tests/Fakes/FakeDbDataReader.cs \
+        Goose.Tests/Collections/GameWorldSettingsCollection.cs
+git commit -m "test: add quest script test prerequisites"
 ```
 
 ---
@@ -195,7 +213,7 @@ git commit -m "test: expose Goose internals to tests and add a DbDataReader fake
 **Files:**
 - Create: `Goose/Scripting/IQuestScript.cs`, `Goose/Scripting/BaseQuestScript.cs`
 - Modify: `Goose/Quests/Quest.cs:11`, `Goose/Quests/QuestRequirement.cs:10,21`, `Goose/Quests/QuestReward.cs:11,35`, `Goose/Quests/QuestProgress.cs:9`
-- Test: `Goose.Tests/QuestScriptTests.cs`
+- Test: `Goose.Tests/QuestScriptTests.cs`, `Goose.Tests/Fixtures/QuestScriptFixture.cs`
 
 **Mutation impact:**
 - Source of truth changed: type accessibility only — `Goose/Quests/Quest.cs:11`, `QuestRequirement.cs:10,21`, `QuestReward.cs:11,35`, `QuestProgress.cs:9`. No field, no persisted value, no runtime state.
@@ -212,40 +230,66 @@ git commit -m "test: expose Goose internals to tests and add a DbDataReader fake
 
 **Step 1: Write the failing tests**
 
+Add `Goose.Tests/Fixtures/QuestScriptFixture.cs` and use it from every quest-script test class. It returns the `Script<IQuestScript>` handle—not only its `.Object`—because Task 3 must assign that handle to `QuestRequirement.Script` / `QuestReward.Script`. It also restores the process-wide setting and removes its temporary directory:
+
+```csharp
+using Goose.Scripting;
+
+namespace Goose.Tests.Fixtures;
+
+public sealed class QuestScriptFixture : IDisposable
+{
+    private readonly GooseSettings previousSettings = GameWorld.Settings;
+
+    public string DataDirectory { get; }
+    public GameWorld World { get; }
+
+    public QuestScriptFixture()
+    {
+        DataDirectory = Path.Combine(Path.GetTempPath(), "quest-script-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(Path.Combine(DataDirectory, "Scripts", "Quest"));
+        GameWorld.Settings = new GooseSettings
+        {
+            DataPath = DataDirectory, ExperienceModifier = 1,
+            InventorySize = 30, EquippedSize = 20, CombineBagSize = 10, SpellbookSize = 30,
+        };
+        World = new GameWorld(null);
+    }
+
+    public Script<IQuestScript> Compile(string body, string fileName = "T.csx")
+    {
+        var relativePath = "Scripts/Quest/" + fileName;
+        File.WriteAllText(Path.Combine(DataDirectory, relativePath), body);
+        return World.ScriptHandler.GetScript<IQuestScript>(relativePath);
+    }
+
+    public void Dispose()
+    {
+        GameWorld.Settings = previousSettings;
+        if (Directory.Exists(DataDirectory)) Directory.Delete(DataDirectory, recursive: true);
+    }
+}
+```
+
 `Goose.Tests/QuestScriptTests.cs`. Test 1 is the adversarial one: it fails today because `.csx` compilation cannot see internal types, and `Goose.Tests`'s own `InternalsVisibleTo` does not help a dynamically compiled script.
 
 ```csharp
 using Goose.Quests;
-using Goose.Scripting;
+using Goose.Tests.Collections;
+using Goose.Tests.Fixtures;
 
 namespace Goose.Tests;
 
+[Collection(GameWorldSettingsCollection.Name)]
 public class QuestScriptTests
 {
-    /// <summary>Writes a .csx into a temp data dir and compiles it the way the server does.
-    /// Absolute DataPath passes through DataPathAbsolute unchanged (GooseSettings.cs:18-21), so
-    /// this never touches shipped game data.</summary>
-    private static IQuestScript Compile(string body)
-    {
-        var dir = Path.Combine(Path.GetTempPath(), "quest-script-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(Path.Combine(dir, "Scripts", "Quest"));
-        File.WriteAllText(Path.Combine(dir, "Scripts", "Quest", "T.csx"), body);
-
-        GameWorld.Settings = new GooseSettings
-        {
-            DataPath = dir, ExperienceModifier = 1,
-            InventorySize = 30, EquippedSize = 20, CombineBagSize = 10, SpellbookSize = 30,
-        };
-        var world = new GameWorld(null);
-        return world.ScriptHandler.GetScript<IQuestScript>("Scripts/Quest/T.csx").Object;
-    }
-
     [Fact]
     public void A_script_can_name_the_quest_types_it_is_handed()
     {
+        using var fixture = new QuestScriptFixture();
         // Red before Task 1: Quest/QuestRequirement/RequirementType are internal, so Roslyn
-        // reports CS0122 and Script<T>.LoadScript throws out of script.Compile().
-        var script = Compile(@"
+        // reports CS0122 and Script<T>.LoadScript throws out of fixture.Compile().
+        var script = fixture.Compile(@"
 using Goose; using Goose.Quests; using Goose.Scripting;
 public class T : BaseQuestScript
 {
@@ -258,7 +302,7 @@ return typeof(T);
         var req = new QuestRequirement { Type = RequirementType.Script, Quest = quest };
 
         // Player(0), not Player() — the parameterless ctor leaves collections null (Player.cs:465).
-        Assert.True(script.IsMet(req, new Player(0), null));
+        Assert.True(script.Object.IsMet(req, new Player(0), fixture.World));
     }
 
     [Fact]
@@ -323,8 +367,7 @@ Then add `public` to: `Quest` (`Quest.cs:11`), `RequirementType` and `QuestRequi
 **Step 4: Verify green**
 
 Run: `dotnet test Goose.Tests/Goose.Tests.csproj --filter FullyQualifiedName~QuestScriptTests`
-Expected: `Passed: 2`.
-Then the full suite: `dotnet test Goose.Tests/Goose.Tests.csproj` → `Passed: 83`.
+Expected: both tests pass. Then run the full suite; all baseline and new tests must pass.
 
 | Invariant | Proved by |
 |---|---|
@@ -336,7 +379,8 @@ Then the full suite: `dotnet test Goose.Tests/Goose.Tests.csproj` → `Passed: 8
 **Step 5: Commit**
 
 ```bash
-git add Goose/Scripting/IQuestScript.cs Goose/Scripting/BaseQuestScript.cs Goose/Quests Goose.Tests/QuestScriptTests.cs
+git add Goose/Scripting/IQuestScript.cs Goose/Scripting/BaseQuestScript.cs Goose/Quests \
+        Goose.Tests/QuestScriptTests.cs Goose.Tests/Fixtures/QuestScriptFixture.cs
 git commit -m "feat: add IQuestScript and make quest types public"
 ```
 
@@ -373,8 +417,8 @@ Grouped deliberately: the enum value, the column, and the `FromReader` validatio
   4. Append the two `Col.Text` descriptors so `SchemaRegistry` → `SchemaGen` picks them up.
   5. Add `Script`/`ScriptParams` properties to both classes.
   6. In both `FromReader`s: read `script_params`, resolve `script_path` via `world.ScriptHandler.GetScript<IQuestScript>`, then throw if type is `Script` and `Script` is null.
-  7. Update both call sites in `QuestHandler.LoadQuests` (`:45`, `:66`) to pass `world`. `LoadQuests` already has `world` as a parameter.
-  8. Regenerate `schema.js`, then regenerate the CsvToSql snapshot and **read the diff** — it should show exactly four added columns and nothing else.
+  7. Update both call sites in `QuestHandler.LoadQuests` (`:45`, `:66`) to pass `world`. `LoadQuests` already has `world` as a parameter. Add `ORDER BY id` to both requirement and reward queries so hook execution and the first `CanComplete` message have a deterministic order.
+  8. Regenerate `schema.js`, then regenerate the CsvToSql snapshot and **read the semantic diff** — both tables gain the two columns, and existing snapshot rows may also gain empty values for those columns because the snapshot renders every column.
 - Invariants to preserve:
   - Existing numeric enum values in shipped data keep their meaning.
   - A `Script`-typed row with no resolvable script aborts loading rather than producing an uncompletable quest.
@@ -384,28 +428,36 @@ Grouped deliberately: the enum value, the column, and the `FromReader` validatio
 
 **Step 1: Write the failing tests**
 
-`Goose.Tests/QuestScriptLoadingTests.cs`. The first two are the regression-focused ones — they encode the design's fail-fast decision, and would pass under the rejected "silently leave Script null" implementation only if inverted.
+`Goose.Tests/QuestScriptLoadingTests.cs`. The first two are the regression-focused ones — they encode the design's fail-fast decision, and would pass under the rejected "silently leave Script null" implementation only if inverted. Each test uses `using var fixture = new QuestScriptFixture();`; this restores `GameWorld.Settings` and deletes the temporary directory even when an assertion fails.
 
 ```csharp
 using Goose.Quests;
-using Goose.Scripting;
+using Goose.Tests.Collections;
 using Goose.Tests.Fakes;
+using Goose.Tests.Fixtures;
 
 namespace Goose.Tests;
 
+[Collection(GameWorldSettingsCollection.Name)]
 public class QuestScriptLoadingTests
 {
-    private static GameWorld WorldWithScriptDir(out string dir)
+    private static QuestScriptFixture FixtureWithValidScript()
     {
-        dir = Path.Combine(Path.GetTempPath(), "quest-load-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(Path.Combine(dir, "Scripts", "Quest"));
-        File.WriteAllText(Path.Combine(dir, "Scripts", "Quest", "Ok.csx"), @"
+        var fixture = new QuestScriptFixture();
+        try
+        {
+            fixture.Compile(@"
 using Goose; using Goose.Quests; using Goose.Scripting;
 public class Ok : BaseQuestScript { }
 return typeof(Ok);
-");
-        GameWorld.Settings = new GooseSettings { DataPath = dir, ExperienceModifier = 1 };
-        return new GameWorld(null);
+", "Ok.csx");
+            return fixture;
+        }
+        catch
+        {
+            fixture.Dispose();
+            throw;
+        }
     }
 
     private static FakeDbDataReader RequirementRow(int type, string scriptPath) =>
@@ -435,11 +487,11 @@ return typeof(Ok);
     [Fact]
     public void A_script_requirement_without_a_script_path_fails_loading()
     {
-        var world = WorldWithScriptDir(out _);
+        using var fixture = FixtureWithValidScript();
         var quest = new Quest { Id = 9 };
 
         var e = Assert.Throws<Exception>(() =>
-            QuestRequirement.FromReader(RequirementRow((int)RequirementType.Script, ""), world, quest));
+            QuestRequirement.FromReader(RequirementRow((int)RequirementType.Script, ""), fixture.World, quest));
 
         // /reloadsql shows only e.Message to the GM (ReloadSQLCommandEvent.cs:40), so both ids
         // must be in the message or the GM cannot find the bad row.
@@ -450,11 +502,11 @@ return typeof(Ok);
     [Fact]
     public void A_script_reward_without_a_script_path_fails_loading()
     {
-        var world = WorldWithScriptDir(out _);
+        using var fixture = FixtureWithValidScript();
         var quest = new Quest { Id = 9 };
 
         var e = Assert.Throws<Exception>(() =>
-            QuestReward.FromReader(RewardRow((int)RewardType.Script, ""), world, quest));
+            QuestReward.FromReader(RewardRow((int)RewardType.Script, ""), fixture.World, quest));
 
         Assert.Contains("43", e.Message);
         Assert.Contains("9", e.Message);
@@ -463,17 +515,17 @@ return typeof(Ok);
     [Fact]
     public void A_script_path_naming_a_missing_file_fails_loading()
     {
-        var world = WorldWithScriptDir(out _);
+        using var fixture = FixtureWithValidScript();
         Assert.ThrowsAny<Exception>(() => QuestRequirement.FromReader(
-            RequirementRow((int)RequirementType.Script, "Scripts/Quest/Nope.csx"), world, new Quest { Id = 9 }));
+            RequirementRow((int)RequirementType.Script, "Scripts/Quest/Nope.csx"), fixture.World, new Quest { Id = 9 }));
     }
 
     [Fact]
     public void A_script_requirement_with_a_script_loads()
     {
-        var world = WorldWithScriptDir(out _);
+        using var fixture = FixtureWithValidScript();
         var req = QuestRequirement.FromReader(
-            RequirementRow((int)RequirementType.Script, "Scripts/Quest/Ok.csx"), world, new Quest { Id = 9 });
+            RequirementRow((int)RequirementType.Script, "Scripts/Quest/Ok.csx"), fixture.World, new Quest { Id = 9 });
 
         Assert.NotNull(req.Script);
         Assert.NotNull(req.Script.Object);
@@ -484,12 +536,68 @@ return typeof(Ok);
     public void A_non_script_requirement_without_a_script_loads_unchanged()
     {
         // The regression guard for every quest already in the shipped data.
-        var world = WorldWithScriptDir(out _);
+        using var fixture = FixtureWithValidScript();
         var req = QuestRequirement.FromReader(
-            RequirementRow((int)RequirementType.Gold, ""), world, new Quest { Id = 9 });
+            RequirementRow((int)RequirementType.Gold, ""), fixture.World, new Quest { Id = 9 });
 
         Assert.Equal(RequirementType.Gold, req.Type);
         Assert.Null(req.Script);
+    }
+
+    [Fact]
+    public void A_script_reward_with_a_script_loads()
+    {
+        using var fixture = FixtureWithValidScript();
+        var reward = QuestReward.FromReader(
+            RewardRow((int)RewardType.Script, "Scripts/Quest/Ok.csx"), fixture.World, new Quest { Id = 9 });
+
+        Assert.NotNull(reward.Script);
+        Assert.NotNull(reward.Script.Object);
+        Assert.Equal("{}", reward.ScriptParams);
+    }
+
+    [Fact]
+    public void A_non_script_reward_without_a_script_loads_unchanged()
+    {
+        using var fixture = FixtureWithValidScript();
+        var reward = QuestReward.FromReader(
+            RewardRow((int)RewardType.Gold, ""), fixture.World, new Quest { Id = 9 });
+
+        Assert.Equal(RewardType.Gold, reward.Type);
+        Assert.Null(reward.Script);
+    }
+
+    [Fact]
+    public void A_reward_path_naming_a_missing_file_fails_loading()
+    {
+        using var fixture = FixtureWithValidScript();
+        Assert.ThrowsAny<Exception>(() => QuestReward.FromReader(
+            RewardRow((int)RewardType.Script, "Scripts/Quest/Nope.csx"), fixture.World, new Quest { Id = 9 }));
+    }
+
+    [Fact]
+    public void A_script_with_a_compile_error_fails_row_loading()
+    {
+        using var fixture = new QuestScriptFixture();
+        File.WriteAllText(
+            Path.Combine(fixture.DataDirectory, "Scripts", "Quest", "Broken.csx"),
+            "this is not valid C#");
+
+        Assert.ThrowsAny<Exception>(() => QuestReward.FromReader(
+            RewardRow((int)RewardType.Script, "Scripts/Quest/Broken.csx"),
+            fixture.World,
+            new Quest { Id = 9 }));
+    }
+
+    [Fact]
+    public void Server_and_editor_enum_values_stay_in_sync()
+    {
+        Assert.Equal(7, (int)RequirementType.Script);
+        Assert.Equal(21, (int)RewardType.Script);
+        Assert.Equal((int)CsvToSql.QuestRequirementsCsvToSql.RequirementType.Script,
+                     (int)RequirementType.Script);
+        Assert.Equal((int)CsvToSql.QuestRewardsCsvToSql.RewardType.Script,
+                     (int)RewardType.Script);
     }
 
     [Fact]
@@ -497,11 +605,11 @@ return typeof(Ok);
     {
         // Pins the shared-instance behaviour the interface doc warns about, so a future change
         // to per-row instances is a deliberate, visible decision.
-        var world = WorldWithScriptDir(out _);
+        using var fixture = FixtureWithValidScript();
         var a = QuestRequirement.FromReader(
-            RequirementRow((int)RequirementType.Script, "Scripts/Quest/Ok.csx"), world, new Quest { Id = 9 });
+            RequirementRow((int)RequirementType.Script, "Scripts/Quest/Ok.csx"), fixture.World, new Quest { Id = 9 });
         var b = QuestRequirement.FromReader(
-            RequirementRow((int)RequirementType.Script, "Scripts/Quest/Ok.csx"), world, new Quest { Id = 10 });
+            RequirementRow((int)RequirementType.Script, "Scripts/Quest/Ok.csx"), fixture.World, new Quest { Id = 10 });
 
         Assert.Same(a.Script, b.Script);
     }
@@ -565,7 +673,15 @@ public static QuestRequirement FromReader(DbDataReader reader, GameWorld world, 
 
 `QuestReward.FromReader` mirrors this against `RewardType.Script`, with `"Quest reward {reward.Id} (quest {quest.Id}) has type Script but no script_path"`. `QuestReward` has no `Quest` property today; take `quest` for the message only and do not add one (YAGNI — nothing reads it).
 
-`QuestHandler.LoadQuests`: change `:45` to `QuestRequirement.FromReader(reader, world, quest)` and drop the now-redundant `req.Quest = quest;` at `:46`; change `:66` to `QuestReward.FromReader(reader, world, quest)`.
+`QuestHandler.LoadQuests`: change `:45` to `QuestRequirement.FromReader(reader, world, quest)` and drop the now-redundant `req.Quest = quest;` at `:46`; change `:66` to `QuestReward.FromReader(reader, world, quest)`. Make both row orders explicit:
+
+```csharp
+command.CommandText = "SELECT * FROM quest_requirements WHERE quest_id=" + quest.Id + " ORDER BY id";
+// ...
+command.CommandText = "SELECT * FROM quest_rewards WHERE quest_id=" + quest.Id + " ORDER BY id";
+```
+
+The list order is observable: it controls requirement-consumption order, reward-delivery order, and which scripted `CanComplete` message wins. `ORDER BY id` is the contract; do not describe the prior unordered query as “database row order.”
 
 SQL — `Goose/sql/quests.sql`, inline in both `CREATE TABLE`s:
 
@@ -600,7 +716,7 @@ Col.Text("script_params", def: "''"),
 **Step 4: Verify green, then regenerate the two artifacts**
 
 ```bash
-dotnet test Goose.Tests/Goose.Tests.csproj --filter FullyQualifiedName~QuestScriptLoadingTests   # Passed: 6
+dotnet test Goose.Tests/Goose.Tests.csproj --filter FullyQualifiedName~QuestScriptLoadingTests
 ```
 
 The snapshot test now fails — expected, and its own docs say the diff is the review (`CsvToSqlSnapshotTests.cs:24-32`):
@@ -610,23 +726,25 @@ GOOSE_UPDATE_SNAPSHOT=1 dotnet test Goose.Tests --filter FullyQualifiedName~CsvT
 git diff Goose.Tests/Fixtures/generated.snapshot
 ```
 
-Read it: the only changes must be `script_path`/`script_params` appearing on `quest_requirements` and `quest_rewards`. Anything else means a descriptor was edited wrongly — stop and fix rather than committing the diff.
+Read it semantically: schema definitions for `quest_requirements` and `quest_rewards` must each gain only `script_path` and `script_params`. Existing rows in those tables will also show empty values for the new columns because the snapshot renders every column. No unrelated table may change.
 
 ```bash
 dotnet run --project tools/SchemaGen -- tools/DataEditor/schema.js
 git diff --stat tools/DataEditor/schema.js
 ```
 
-Then the whole suite: `dotnet test Goose.Tests/Goose.Tests.csproj` → `Passed: 89`.
+Then run the whole suite; all baseline and new tests must pass. Avoid pinning the total count because Task 2 now adds symmetrical reward, compile-error, and enum-parity coverage.
 
 | Invariant | Proved by |
 |---|---|
 | `Script` row with no path aborts loading, naming row + quest | `A_script_requirement_without_a_script_path_fails_loading`, `..._reward_...` (both adversarial: they fail on the silent-null implementation) |
-| Missing script file aborts loading | `A_script_path_naming_a_missing_file_fails_loading` |
-| A valid script row resolves an instance and keeps its params | `A_script_requirement_with_a_script_loads` |
-| Pre-existing non-script rows load unchanged | `A_non_script_requirement_without_a_script_loads_unchanged` |
+| Missing script files abort requirement and reward loading | `A_script_path_naming_a_missing_file_fails_loading`, `A_reward_path_naming_a_missing_file_fails_loading` |
+| Compile errors abort row loading | `A_script_with_a_compile_error_fails_row_loading` |
+| Valid requirement and reward rows resolve an instance and keep params | `A_script_requirement_with_a_script_loads`, `A_script_reward_with_a_script_loads` |
+| Pre-existing non-script rows load unchanged | `A_non_script_requirement_without_a_script_loads_unchanged`, `A_non_script_reward_without_a_script_loads_unchanged` |
 | One instance shared per path (the `ScriptParams` trap) | `Two_rows_sharing_a_script_path_share_one_instance` |
-| Enum values append, never shift | `generated.snapshot` diff review + editor `EnumNames` in `schema.js` diff |
+| Server/editor enum values append and remain equal | `Server_and_editor_enum_values_stay_in_sync` plus generated-artifact diff review |
+| Requirement/reward hook order is deterministic | Explicit `ORDER BY id` in both `QuestHandler` queries, reviewed by inspection |
 | Existing DBs can migrate | `onetimeupdates.sql` reviewed by hand; no automated proof (no migration harness exists) |
 
 **Step 5: Commit**
@@ -671,13 +789,13 @@ git commit -m "feat: add Script requirement/reward types with script_path column
 
 The one test that genuinely needs a built-in row alongside a scripted one is `Script_progress_text_is_appended_after_built_in_lines`, and it is safe because `GetQuestProgressText` only formats strings — it never calls `RemoveGold`.
 
-Assert against the three seams directly: `PlayerMeetsRequirements`, `GetQuestProgressText`, and `CompleteQuest`. For the `CanComplete` gate, expose the new helper as `internal` (not private) so it can be asserted without driving packet-level `Clicked` input — `Clicked`'s only added logic is `if (helper() is non-empty) set state`, which the state assertion covers.
+Assert `PlayerMeetsRequirements` and `GetQuestProgressText` directly, and use `CompleteQuest` for the take/give hook tests. The `CanComplete` tests must drive the production path through `Clicked(ButtonTypes.Next, ...)`; calling the query helper directly would not prove that the gate is wired before `CompleteQuest`. Keep the helper private.
 
-**Scripts must not mutate `player.Gold` as their observable side effect** (the first draft of this plan did exactly that): `Gold` is a plain field so setting it is safe, but reading it back proves little and it is one step from the `RemoveGold` NRE path. Prefer a side effect the test owns outright — a `static` counter or list on the script class, read back through `script.GetType().GetField(...)`, or simplest, have the script append to a `List<string>` exposed as a public static member and assert its contents.
+**Scripts must not mutate `player.Gold` as their observable side effect** (the first draft of this plan did exactly that): `Gold` is a plain field so setting it is safe, but reading it back proves little and it is one step from the `RemoveGold` NRE path. Prefer a side effect the test owns outright — a `static` counter or list on the script class, read back through `script.Object.GetType().GetField(...)`, or simplest, have the script append to a `List<string>` exposed as a public static member and assert its contents.
 
 **Step 1: Write the failing tests**
 
-Sketch — the implementer fills in the shared fixture. Test scripts are compiled with the Task 1 `Compile` helper (extract it to a shared `QuestScriptFixture` when Task 3 needs it; that refactor is part of this task).
+Sketch — the implementer fills in the shared quest/player/NPC builder and marks the class `[Collection(GameWorldSettingsCollection.Name)]`. Every test creates `using var scripts = new QuestScriptFixture();`; `scripts.Compile(...)` returns a `Script<IQuestScript>` handle suitable for assigning directly to a row.
 
 ```csharp
 [Fact] public void A_script_requirement_that_is_not_met_fails_the_quest()          // IsMet false → PlayerMeetsRequirements false
@@ -685,7 +803,8 @@ Sketch — the implementer fills in the shared fixture. Test scripts are compile
 [Fact] public void Script_progress_text_is_appended_after_built_in_lines()         // Gold + Script reqs → script line last
 [Fact] public void An_empty_script_progress_text_adds_no_line()                    // base default → line count unchanged
 [Fact] public void A_blocking_CanComplete_leaves_the_quest_uncompleted()           // ADVERSARIAL
-[Fact] public void A_null_CanComplete_allows_completion()
+[Fact] public void A_null_CanComplete_allows_completion()                        // drive Clicked; quest completes
+[Fact] public void An_empty_CanComplete_allows_completion()                       // drive Clicked; quest completes
 [Fact] public void GiveReward_runs_on_completion()                                 // script sets a static flag; assert the flag
 [Fact] public void OnTakeRequirement_runs_when_the_requirement_is_not_kept()
 [Fact] public void OnTakeRequirement_is_skipped_when_keep_requirement_is_set()     // ADVERSARIAL
@@ -697,9 +816,10 @@ The two adversarial ones spelled out, since they encode decisions a wrong implem
 [Fact]
 public void A_blocking_CanComplete_leaves_the_quest_uncompleted()
 {
-    // Adversarial: passes a broken implementation that checks CanComplete *after* CompleteQuest
-    // only if we assert persisted-collection state, so that is what we assert — not the message.
-    var script = Compile(@"
+    // Adversarial: this must execute Clicked. Calling the helper directly would pass even if
+    // Clicked forgot the gate or called it after CompleteQuest.
+    using var scripts = new QuestScriptFixture();
+    var script = scripts.Compile(@"
 using Goose; using Goose.Quests; using Goose.Scripting;
 public class T : BaseQuestScript
 {
@@ -711,14 +831,21 @@ public class T : BaseQuestScript
 }
 return typeof(T);
 ");
-    var (world, npc, player, quest) = QuestFixture(script, rewardType: RewardType.Script);
-    var window = new QuestWindow(npc, player, quest, world);
+    var (npc, player, quest) = QuestFixture(script, rewardType: RewardType.Script);
+    var progress = new QuestProgress
+    {
+        Requirement = new QuestRequirement { Id = 99, Quest = quest }, Value = 1
+    };
+    player.QuestProgress.Add(progress);
+    var window = new QuestWindow(npc, player, quest, scripts.World);
 
-    var message = window.GetScriptCannotCompleteMessage(player, world);
+    window.Clicked(Window.ButtonTypes.Next, npc.NPCTemplate.NPCTemplateID, 0, 0,
+                   player, scripts.World);
 
-    Assert.Equal("No room in your pack.", message);
-    Assert.Empty(player.QuestsCompleted);                                   // nothing persisted
-    Assert.False((bool)script.GetType().GetField("GaveReward")!.GetValue(null)!);  // reward never ran
+    Assert.DoesNotContain(player.QuestsCompleted, q => q.Id == quest.Id);
+    Assert.Contains(progress, player.QuestProgress);                         // progress not removed
+    Assert.False((bool)script.Object.GetType().GetField("GaveReward")!.GetValue(null)!);
+    Assert.Equal("No room in your pack.", window.GetCurrentText(player, scripts.World));
 }
 
 [Fact]
@@ -726,7 +853,8 @@ public void OnTakeRequirement_is_skipped_when_keep_requirement_is_set()
 {
     // keep_requirement is the configured way to say "consume nothing", so the hook must not be
     // called at all. An implementation that adds the arm outside the guard at :463 fails here.
-    var script = Compile(@"
+    using var scripts = new QuestScriptFixture();
+    var script = scripts.Compile(@"
 using Goose; using Goose.Quests; using Goose.Scripting;
 public class T : BaseQuestScript
 {
@@ -736,21 +864,21 @@ public class T : BaseQuestScript
 }
 return typeof(T);
 ");
-    var (world, npc, player, quest) = QuestFixture(script, requirementType: RequirementType.Script);
+    var (npc, player, quest) = QuestFixture(script, requirementType: RequirementType.Script);
     quest.Requirements[0].KeepRequirement = true;
 
-    new QuestWindow(npc, player, quest, world).CompleteQuest(npc, player, world);
+    new QuestWindow(npc, player, quest, scripts.World).CompleteQuest(npc, player, scripts.World);
 
-    Assert.Equal(0, (int)script.GetType().GetField("TakeCalls")!.GetValue(null)!);
+    Assert.Equal(0, (int)script.Object.GetType().GetField("TakeCalls")!.GetValue(null)!);
 }
 ```
 
-Each compiled script gets a **fresh temp directory and therefore a fresh `ScriptHandler` cache entry**, so `static` counters do not bleed between tests. Do not share one script file across two tests that both assert a counter.
+Each test disposes its `QuestScriptFixture`, giving it a **fresh temp directory and fresh `ScriptHandler` cache**, then restoring `GameWorld.Settings` and recursively deleting the directory. Static counters therefore do not bleed between tests. Do not share one script file across two tests that both assert a counter.
 
 **Step 2: Run to verify red**
 
 Run: `dotnet test Goose.Tests/Goose.Tests.csproj --filter FullyQualifiedName~QuestWindowScriptTests`
-Expected: build failure (`GetScriptCannotCompleteMessage` missing), then, once the helper exists but the arms do not, `A_script_requirement_that_is_not_met_fails_the_quest` fails *green-ishly* for the wrong reason — `default: return false` (`:264-265`) already returns false for a `Script` requirement. So pair it with `A_script_requirement_that_is_met_passes_the_quest`, which fails red until the arm exists. Both must be present; the "is met" one is the load-bearing test.
+Expected: build failure for the missing script enum/arms and narrow rendered-text test seam, then, once those compile, `A_script_requirement_that_is_not_met_fails_the_quest` fails *green-ishly* for the wrong reason — `default: return false` (`:264-265`) already returns false for a `Script` requirement. Pair it with `A_script_requirement_that_is_met_passes_the_quest`, which fails red until the arm exists. Both must be present; the "is met" one is the load-bearing test.
 
 **Step 3: Implement**
 
@@ -764,7 +892,7 @@ QuestScriptCannotComplete,
 private string scriptCannotCompleteMessage;
 ```
 
-`Populate` arm:
+Extract the state-to-text switch at the start of `Populate` into an `internal GetCurrentText(Player, GameWorld)` method, have `Populate` call it, and add this arm there:
 
 ```csharp
 case QuestWindowState.QuestScriptCannotComplete:
@@ -772,7 +900,7 @@ case QuestWindowState.QuestScriptCannotComplete:
     break;
 ```
 
-The existing `\\n` split at `:118` then handles multi-line script text with no further work.
+This is the narrow test seam used after driving `Clicked`; unlike exposing `GetScriptCannotCompleteMessage`, it proves the state selected by production control flow renders the expected text. The existing `\\n` split in `Populate` then handles multi-line script text with no further work.
 
 `PlayerMeetsRequirements(Player player, GameWorld world)` — new arm before `default:`:
 
@@ -803,12 +931,12 @@ case RequirementType.Script:
     break;
 ```
 
-New helper — `internal` so tests can call it, and named for what it returns:
+New helper — keep it private; the blocking tests exercise it through `Clicked`:
 
 ```csharp
 /// <summary>The first blocking message from a Script reward, or null if every scripted reward
 /// allows completion. Called before CompleteQuest so a block leaves player state untouched.</summary>
-internal string GetScriptCannotCompleteMessage(Player player, GameWorld world)
+private string GetScriptCannotCompleteMessage(Player player, GameWorld world)
 {
     foreach (var reward in this.quest.Rewards.Where(r => r.Type == RewardType.Script))
     {
@@ -845,7 +973,7 @@ Then: `dotnet test Goose.Tests/Goose.Tests.csproj` → 89 + the new tests.
 
 | Invariant | Proved by |
 |---|---|
-| Blocked completion persists nothing | `A_blocking_CanComplete_leaves_the_quest_uncompleted` (adversarial) |
+| `Clicked` blocks before completion, preserves progress, skips rewards, and renders the message | `A_blocking_CanComplete_leaves_the_quest_uncompleted` (adversarial) |
 | `keep_requirement` suppresses `OnTakeRequirement` | `OnTakeRequirement_is_skipped_when_keep_requirement_is_set` (adversarial) |
 | `IsMet` gates the quest both ways | `A_script_requirement_that_is_{not_,}met_...` |
 | Empty progress text adds no line | `An_empty_script_progress_text_adds_no_line` |
@@ -946,7 +1074,7 @@ Before committing, verify each API this example calls actually exists with these
 
 **Step 2: Prove it compiles**
 
-Add one test to `QuestScriptTests` that loads the *shipped* example through `ScriptHandler` against the real `Data/Illutia` path, asserting `Object` is non-null. This catches a syntax error or a renamed API in the example, which is otherwise dead code nothing exercises.
+Add one test to `QuestScriptTests` that loads the *shipped* example through `ScriptHandler` against the real `Data/Illutia` path, asserting `Object` is non-null. The class is already in the non-parallel `GameWorldSettingsCollection`; this test must save the prior `GameWorld.Settings` and restore it in `finally`. Resolve the data directory from the repository/test output rather than assuming the process working directory. This catches a syntax error or renamed API in otherwise dead example code without leaking global state.
 
 **Step 3: Commit**
 
@@ -1002,5 +1130,5 @@ Walked against `docs/plans/2026-08-08-quest-scripts-design.md`:
 
 1. **`Goose.csproj` gains `InternalsVisibleTo("Goose.Tests")`** (Task 0). The design said `QuestWindow` stays internal — it does; this only lets the test assembly see it. Verified not to break the build.
 2. **`FromReader` takes `(reader, world, quest)`**, not just `(reader, world)`. The `quest` argument is what puts the quest id in the error message the GM sees, and for requirements it absorbs the `req.Quest = quest;` line at `QuestHandler.cs:46`.
-3. **`GetScriptCannotCompleteMessage` is `internal`, not private**, so the gate is testable without synthesizing packet-level `Clicked` input.
+3. **The `CanComplete` test drives `Clicked`; `GetScriptCannotCompleteMessage` remains private.** A narrow internal `GetCurrentText` seam exposes only state rendering so the test can verify the blocking message after production control flow runs.
 4. **`Script`-only test quests.** `CompleteQuest` cannot be exercised in-process with a `Gold` or stat row (NRE via `RemoveGold` → `MaxHP`, harness fact 6). Tests therefore use quests whose rows are all `Script`. This is a test-harness constraint, not a product limitation, and it does not reduce coverage of the arms this feature adds.
