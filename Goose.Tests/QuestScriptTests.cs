@@ -45,4 +45,45 @@ return typeof(T);
         script.OnTakeRequirement(req, player, null);   // must not throw
         script.GiveReward(reward, null, player, null); // must not throw
     }
+
+    [Fact]
+    public void The_shipped_example_quest_script_compiles()
+    {
+        var previous = GameWorld.Settings;
+        try
+        {
+            GameWorld.Settings = new GooseSettings { DataPath = FindIllutiaDataDirectory() };
+            var world = new GameWorld(null);
+            var script = world.ScriptHandler.GetScript<IQuestScript>("Scripts/Quest/ExampleQuestScript.csx");
+            Assert.NotNull(script.Object);
+        }
+        finally
+        {
+            GameWorld.Settings = previous;
+        }
+    }
+
+    /// <summary>Locates the real Data/Illutia directory without assuming the process working
+    /// directory: walk up from the test output (Goose.Tests/bin/Debug/net10.0/) until a directory
+    /// containing Data/Illutia is found, falling back to the Goose/ source tree copy.</summary>
+    private static string FindIllutiaDataDirectory()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir != null)
+        {
+            foreach (var candidate in new[]
+            {
+                Path.Combine(dir.FullName, "Data", "Illutia"),
+                Path.Combine(dir.FullName, "Goose", "Data", "Illutia"),
+            })
+            {
+                if (Directory.Exists(candidate)) return candidate;
+            }
+
+            dir = dir.Parent;
+        }
+
+        throw new InvalidOperationException(
+            "Could not locate Data/Illutia from " + AppContext.BaseDirectory);
+    }
 }
