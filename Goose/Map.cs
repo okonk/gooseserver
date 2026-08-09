@@ -13,6 +13,8 @@ namespace Goose
      */
     public class Map
     {
+        private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
+
         // Viewing ranges
         public static int RANGE_X = 16; // 15
         public static int RANGE_Y = 14; // 12
@@ -602,6 +604,25 @@ namespace Goose
         public bool PlayerCanJoin(Player player, GameWorld world)
         {
             if (player.HasPrivilege(AccessPrivilege.IgnoreMapRequirements)) return true;
+
+            string refusal = null;
+            try
+            {
+                refusal = this.Script?.Object.CanPlayerJoin(this, player, world);
+            }
+            catch (Exception e)
+            {
+                // Fail CLOSED. This is an access-control gate, not a cosmetic hook: a broken gate
+                // script must refuse rather than admit. The player gets a generic message; the
+                // detail goes to the log, where someone can act on it.
+                log.Error(e, "Map CanPlayerJoin {0} Exception", this.Name);
+                refusal = "You cannot enter this map right now.";
+            }
+            if (refusal != null)
+            {
+                world.Send(player, "$7" + refusal);
+                return false;
+            }
 
             if (this.MinLevel != 0 && player.Level < this.MinLevel)
             {

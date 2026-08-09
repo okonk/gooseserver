@@ -2386,7 +2386,7 @@ namespace Goose
             this.LastPlaytimeUpdate = world.TimeNow;
         }
 
-        public void Send(string data)
+        public virtual void Send(string data)
         {
             if (this.sock == null) return;
 
