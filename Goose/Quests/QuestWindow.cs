@@ -439,11 +439,11 @@ namespace Goose.Quests
                         rewardMessage = string.Format("{0}Class changed to {1}", prefix, player.Class.ClassName);
                         break;
                     case RewardType.HP:
-                        this.AddPlayerStats(new AttributeSet() { HP = (int)reward.LongValue }, player, world);
+                        this.AddPlayerStats(new AttributeSet() { HP = reward.LongValue }, player, world);
                         rewardMessage = string.Format("{0}{1} HP", prefix, reward.LongValue);
                         break;
                     case RewardType.MP:
-                        this.AddPlayerStats(new AttributeSet() { MP = (int)reward.LongValue }, player, world);
+                        this.AddPlayerStats(new AttributeSet() { MP = reward.LongValue }, player, world);
                         rewardMessage = string.Format("{0}{1} MP", prefix, reward.LongValue);
                         break;
                     case RewardType.AC:
