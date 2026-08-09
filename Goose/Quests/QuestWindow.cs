@@ -16,10 +16,12 @@ namespace Goose.Quests
             QuestNoSpellbookSpace,
             QuestNotRightLevel,
             QuestProgress,
+            QuestScriptCannotComplete,
         }
 
         private Quest quest;
         private QuestWindowState state;
+        private string scriptCannotCompleteMessage;
 
         public QuestWindow(NPC npc, Player player, Quest quest, GameWorld world)
         {
@@ -91,6 +93,22 @@ namespace Goose.Quests
 
         public override void Populate(Player player, GameWorld world)
         {
+            var lines = this.GetCurrentText(player, world).Split(new string[] { "\\n" }, StringSplitOptions.None);
+
+            int lineNo = 1;
+            foreach (var line in lines)
+            {
+                world.Send(player, P.WindowTextLine(this.ID, lineNo, line));
+
+                lineNo++;
+            }
+        }
+
+        /// <summary>The window text for the current state. Internal so tests can read exactly what
+        /// the production control flow in Clicked selected, without exposing the private state or
+        /// the blocking-message helper.</summary>
+        internal string GetCurrentText(Player player, GameWorld world)
+        {
             string text = "";
             switch (state)
             {
@@ -115,17 +133,12 @@ namespace Goose.Quests
                 case QuestWindowState.QuestProgress:
                     text = GetQuestProgressText(player, world);
                     break;
+                case QuestWindowState.QuestScriptCannotComplete:
+                    text = this.scriptCannotCompleteMessage;
+                    break;
             }
 
-            var lines = text.Split(new string[] { "\\n" }, StringSplitOptions.None);
-
-            int lineNo = 1;
-            foreach (var line in lines)
-            {
-                world.Send(player, P.WindowTextLine(this.ID, lineNo, line));
-
-                lineNo++;
-            }
+            return text;
         }
 
         public override void Clicked(ButtonTypes buttonid, int npcid, int id2, int id3, Player player, GameWorld world)
@@ -148,7 +161,7 @@ namespace Goose.Quests
                             return;
                         }
 
-                        if (this.PlayerMeetsRequirements(player))
+                        if (this.PlayerMeetsRequirements(player, world))
                         {
                             if (!this.PlayerHasEnoughInventorySpaceForReward(player, world))
                             {
@@ -157,6 +170,11 @@ namespace Goose.Quests
                             else if (!this.PlayerHasEnoughSpellbookSpaceForReward(player))
                             {
                                 this.state = QuestWindowState.QuestNoSpellbookSpace;
+                            }
+                            else if (this.GetScriptCannotCompleteMessage(player, world) is string cannotComplete)
+                            {
+                                this.scriptCannotCompleteMessage = cannotComplete;
+                                this.state = QuestWindowState.QuestScriptCannotComplete;
                             }
                             else
                             {
@@ -220,13 +238,18 @@ namespace Goose.Quests
                     case RequirementType.NothingEquipped:
                         text += "Have no items equipped\\n";
                         break;
+                    case RequirementType.Script:
+                        var scriptText = requirement.Script.Object.GetProgressText(requirement, player, world);
+                        if (!string.IsNullOrEmpty(scriptText))
+                            text += scriptText + "\\n";
+                        break;
                 }
             }
 
             return text;
         }
 
-        public bool PlayerMeetsRequirements(Player player)
+        public bool PlayerMeetsRequirements(Player player, GameWorld world)
         {
             foreach (var requirement in this.quest.Requirements)
             {
@@ -261,6 +284,10 @@ namespace Goose.Quests
                         }
                         
                         break;
+                    case RequirementType.Script:
+                        if (!requirement.Script.Object.IsMet(requirement, player, world))
+                            return false;
+                        break;
                     default:
                         return false;
                 }
@@ -284,6 +311,19 @@ namespace Goose.Quests
             var freeSlots = player.Inventory.GetNumberOfFreeSlots();
 
             return freeSlots >= itemRewards.Count();
+        }
+
+        /// <summary>The first blocking message from a Script reward, or null if every scripted reward
+        /// allows completion. Called before CompleteQuest so a block leaves player state untouched.</summary>
+        private string GetScriptCannotCompleteMessage(Player player, GameWorld world)
+        {
+            foreach (var reward in this.quest.Rewards.Where(r => r.Type == RewardType.Script))
+            {
+                var message = reward.Script.Object.CanComplete(reward, player, world);
+                if (!string.IsNullOrEmpty(message)) return message;
+            }
+
+            return null;
         }
 
         public void CompleteQuest(NPC npc, Player player, GameWorld world)
@@ -437,6 +477,9 @@ namespace Goose.Quests
                     case RewardType.LearnSpell:
                         player.LearnSpell((int)reward.LongValue, world);
                         break;
+                    case RewardType.Script:
+                        reward.Script.Object.GiveReward(reward, npc, player, world);
+                        break;
                 }
 
                 if (rewardMessage != null)
@@ -485,6 +528,9 @@ namespace Goose.Quests
                             player.AddExperience(-requirement.Value, world, Player.ExperienceMessage.None);
                             break;
                         case RequirementType.ExperienceSold:
+                            break;
+                        case RequirementType.Script:
+                            requirement.Script.Object.OnTakeRequirement(requirement, player, world);
                             break;
                         default:
                             break;
