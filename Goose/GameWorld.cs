@@ -196,6 +196,38 @@ namespace Goose
             }
         }
 
+        /// <summary>Runs on every startup, not just on a fresh database. `players` holds live
+        /// data and is never dropped, so new columns on it have to arrive this way.</summary>
+        private void MigrateDatabaseSchema()
+        {
+            this.Database.Execute(conn =>
+            {
+                AddColumnIfMissing(conn, "players", "player_properties", "TEXT DEFAULT '' NOT NULL");
+            });
+        }
+
+        internal static bool ColumnExists(SQLiteConnection connection, string table, string column)
+        {
+            using var command = connection.CreateCommand();
+            command.CommandText = "PRAGMA table_info(" + table + ")";
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                if (string.Equals(Convert.ToString(reader["name"]), column, StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+            return false;
+        }
+
+        internal static void AddColumnIfMissing(SQLiteConnection connection, string table, string column, string definition)
+        {
+            if (ColumnExists(connection, table, column)) return;
+
+            using var command = connection.CreateCommand();
+            command.CommandText = "ALTER TABLE " + table + " ADD COLUMN " + column + " " + definition;
+            command.ExecuteNonQuery();
+        }
+
         /**
          * Start, game startup
          *
@@ -219,6 +251,7 @@ namespace Goose
                     log.Info("DB file not found, creating...");
                     CreateDatabaseSchema();
                 }
+                MigrateDatabaseSchema();   // <-- new: runs for fresh and existing databases alike
                 log.Info("Connected.");
             })) return;
 
