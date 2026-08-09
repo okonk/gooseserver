@@ -35,7 +35,7 @@ namespace Goose.Events
             NPCTemplate template = world.NPCHandler.GetNPCTemplate(id);
             if (template == null) return;
 
-            new NPC().LoadFromTemplate(world, this.Player.Map.ID, this.Player.MapX, this.Player.MapY, template, shouldRespawn: false);
+            world.NPCHandler.SpawnNPC(world, this.Player.Map.ID, this.Player.MapX, this.Player.MapY, template, shouldRespawn: false);
 
             world.LogHandler.Log(Log.Types.SpawnedNPC,
                 this.Player.PlayerID, template.Name,
