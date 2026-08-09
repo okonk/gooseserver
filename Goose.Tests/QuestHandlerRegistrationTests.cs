@@ -12,6 +12,7 @@ public class QuestHandlerRegistrationTests
 
         handler.AddQuest(quest);
 
+        Assert.NotNull(quest.PrerequisiteQuests);
         Assert.Same(quest, handler.Get(900001));
         Assert.Same(quest, handler.Quests[900001]);
     }
