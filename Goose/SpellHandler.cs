@@ -84,8 +84,8 @@ namespace Goose
                 effect.HairA = Convert.ToInt32(reader["hair_a"]);
 
                 effect.Stats = new AttributeSet();
-                effect.Stats.HP = Convert.ToInt32(reader["hp"]);
-                effect.Stats.MP = Convert.ToInt32(reader["mp"]);
+                effect.Stats.HP = Convert.ToInt64(reader["hp"]);
+                effect.Stats.MP = Convert.ToInt64(reader["mp"]);
                 effect.Stats.SP = Convert.ToInt32(reader["sp"]);
                 effect.Stats.AC = Convert.ToInt32(reader["stat_ac"]);
                 effect.Stats.Strength = Convert.ToInt32(reader["stat_str"]);

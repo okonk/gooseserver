@@ -13,6 +13,8 @@ namespace Goose
      */
     public class Map
     {
+        private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
+
         // Viewing ranges
         public static int RANGE_X = 16; // 15
         public static int RANGE_Y = 14; // 12
@@ -60,6 +62,8 @@ namespace Goose
 
         public object ScriptStore { get; set; }
 
+        // Field block: when adding a field to Map, mirror it in CloneAs below or clones
+        // will silently diverge from the maps they were copied from.
         public ICharacter[] characters;
         public ITile[] tiles;
         List<Player> players;
@@ -86,6 +90,58 @@ namespace Goose
             this.requiredItems = new List<int>();
             this.npcs = new List<NPC>();
             this.items = new List<ItemTile>();
+        }
+
+        /// <summary>Item template ids a player must carry to enter. Read-only - use
+        /// AddRequiredItem to populate.</summary>
+        public IReadOnlyList<int> RequiredItems { get { return this.requiredItems; } }
+
+        public void AddRequiredItem(int itemTemplateId)
+        {
+            this.requiredItems.Add(itemTemplateId);
+        }
+
+        /// <summary>Copies this map as a new map at another id. Every setting comes across,
+        /// including the private requiredItems list, which is why this lives here and not in a
+        /// script. The clone gets its own occupancy state - characters, players, npcs, items -
+        /// which is what keeps two copies of the same map independent.
+        ///
+        /// tiles is a shallow copy: the tile objects are shared. BlockedTile is a stateless
+        /// marker; WarpTile is expected to be replaced by the caller if it should point somewhere
+        /// else; ItemTile only ever appears at runtime, after loading.
+        ///
+        /// Deliberately not LoadData: that re-parses the .map file and issues two SQL queries
+        /// keyed on the new id (Map.cs:466-520), which match no rows for a clone.</summary>
+        public Map CloneAs(int id, string name)
+        {
+            var clone = new Map
+            {
+                ID = id,
+                Name = name,
+                FileName = this.FileName,
+                Width = this.Width,
+                Height = this.Height,
+                MinLevel = this.MinLevel,
+                MaxLevel = this.MaxLevel,
+                MinExperience = this.MinExperience,
+                MaxExperience = this.MaxExperience,
+                CanPVP = this.CanPVP,
+                CanChat = this.CanChat,
+                CanAuction = this.CanAuction,
+                CanShout = this.CanShout,
+                CanCast = this.CanCast,
+                CanBind = this.CanBind,
+                CanUseItems = this.CanUseItems,
+                CanSpawnPets = this.CanSpawnPets,
+                Muted = this.Muted,
+                Script = this.Script,
+                ScriptParams = this.ScriptParams,
+                tiles = (ITile[])this.tiles.Clone(),
+                characters = new ICharacter[this.characters.Length],
+            };
+
+            clone.requiredItems.AddRange(this.requiredItems);
+            return clone;
         }
 
         public static bool InRange(ICharacter a, ICharacter b)
@@ -509,7 +565,7 @@ namespace Goose
 
                     while (reader.Read())
                     {
-                        this.requiredItems.Add(Convert.ToInt32(reader["item_template_id"]));
+                        this.AddRequiredItem(Convert.ToInt32(reader["item_template_id"]));
                     }
                 }
             });
@@ -548,6 +604,25 @@ namespace Goose
         public bool PlayerCanJoin(Player player, GameWorld world)
         {
             if (player.HasPrivilege(AccessPrivilege.IgnoreMapRequirements)) return true;
+
+            string refusal = null;
+            try
+            {
+                refusal = this.Script?.Object.CanPlayerJoin(this, player, world);
+            }
+            catch (Exception e)
+            {
+                // Fail CLOSED. This is an access-control gate, not a cosmetic hook: a broken gate
+                // script must refuse rather than admit. The player gets a generic message; the
+                // detail goes to the log, where someone can act on it.
+                log.Error(e, "Map CanPlayerJoin {0} Exception", this.Name);
+                refusal = "You cannot enter this map right now.";
+            }
+            if (refusal != null)
+            {
+                world.Send(player, "$7" + refusal);
+                return false;
+            }
 
             if (this.MinLevel != 0 && player.Level < this.MinLevel)
             {

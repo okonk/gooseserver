@@ -36,6 +36,7 @@ namespace Goose.Quests
         {
             this.Requirements = new List<QuestRequirement>();
             this.Rewards = new List<QuestReward>();
+            this.PrerequisiteQuests = new List<int>();
         }
 
         public static Quest FromReader(DbDataReader reader, Dictionary<int, Quest> quests)

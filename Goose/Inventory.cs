@@ -818,7 +818,7 @@ namespace Goose
          * Or 1 if no weapon
          *
          */
-        public int GetWeaponDamage()
+        public long GetWeaponDamage()
         {
             ItemSlot weapon = this.GetEquippedSlot(EquipSlots.Weapon);
             if (weapon == null) return 1;

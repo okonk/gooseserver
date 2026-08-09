@@ -44,7 +44,7 @@ namespace Goose
         public CombinationHandler CombinationHandler { get; set; }
         public ChatFilter ChatFilter { get; set; }
         public LogHandler LogHandler { get; set; }
-        internal QuestHandler QuestHandler { get; set; }
+        public QuestHandler QuestHandler { get; set; }
         public ScriptHandler ScriptHandler { get; set; }
         public Database Database { get; private set; }
         public static GooseSettings Settings { get; set; }
@@ -196,6 +196,38 @@ namespace Goose
             }
         }
 
+        /// <summary>Runs on every startup, not just on a fresh database. `players` holds live
+        /// data and is never dropped, so new columns on it have to arrive this way.</summary>
+        private void MigrateDatabaseSchema()
+        {
+            this.Database.Execute(conn =>
+            {
+                AddColumnIfMissing(conn, "players", "player_properties", "TEXT DEFAULT '' NOT NULL");
+            });
+        }
+
+        internal static bool ColumnExists(SQLiteConnection connection, string table, string column)
+        {
+            using var command = connection.CreateCommand();
+            command.CommandText = "PRAGMA table_info(" + table + ")";
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                if (string.Equals(Convert.ToString(reader["name"]), column, StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+            return false;
+        }
+
+        internal static void AddColumnIfMissing(SQLiteConnection connection, string table, string column, string definition)
+        {
+            if (ColumnExists(connection, table, column)) return;
+
+            using var command = connection.CreateCommand();
+            command.CommandText = "ALTER TABLE " + table + " ADD COLUMN " + column + " " + definition;
+            command.ExecuteNonQuery();
+        }
+
         /**
          * Start, game startup
          *
@@ -219,6 +251,7 @@ namespace Goose
                     log.Info("DB file not found, creating...");
                     CreateDatabaseSchema();
                 }
+                MigrateDatabaseSchema();   // <-- new: runs for fresh and existing databases alike
                 log.Info("Connected.");
             })) return;
 
@@ -491,29 +524,43 @@ namespace Goose
         /**
          * ParseData, parses data received from player
          *
-         * Splits the data by \x1 which is chr(1) which the client uses to delimit packets
-         * Passes each packet along to the EventHandler.AddEvent to see if the EventHandler
-         * will add the event.
+         * Single pass over the StringBuilder — dispatches each packet as its \x1 delimiter
+         * is found. No full buffer-to-string copy. Extracted packets allocate per-packet
+         * strings (unavoidable since the event dispatcher expects string arguments).
+         * Processed data is removed in-place at the end so only the partial trailing
+         * packet remains in the buffer.
          *
          */
         public void ParseData(Player player)
         {
-            // Use IndexOf loop to avoid allocating a string array from Split.
-            // Process complete packets (delimited by \x1), leave the partial trailing data.
-            string buffer = player.Buffer.ToString();
+            var buffer = player.Buffer;
+            int length = buffer.Length;
+
             int start = 0;
-            int delimiterIndex;
-            while ((delimiterIndex = buffer.IndexOf('\x1', start)) >= 0)
+            int packetsDispatched = 0;
+
+            for (int i = 0; i < length; i++)
             {
-                this.EventHandler.AddEvent(player, buffer.Substring(start, delimiterIndex - start));
-                start = delimiterIndex + 1;
+                if (buffer[i] != '\x1') continue;
+
+                int packetLength = i - start;
+                if (packetLength > 0)
+                {
+                    this.EventHandler.AddEvent(player, buffer.ToString(start, packetLength));
+                }
+                else
+                {
+                    this.EventHandler.AddEvent(player, string.Empty);
+                }
+
+                start = i + 1;
+                packetsDispatched++;
             }
 
-            // Keep only the unprocessed tail (partial packet or empty).
-            if (start > 0)
+            // Remove processed data in-place, leaving only the unprocessed tail.
+            if (packetsDispatched > 0)
             {
-                player.Buffer.Clear();
-                player.Buffer.Append(buffer, start, buffer.Length - start);
+                buffer.Remove(0, start);
             }
         }
 

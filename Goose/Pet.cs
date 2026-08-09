@@ -73,7 +73,7 @@ namespace Goose
         /// <summary>
         /// Pet's Weapon Damage
         /// </summary>
-        public override int WeaponDamage { get; set; }
+        public override long WeaponDamage { get; set; }
 
         /// <summary>
         /// Items to display on humanoid pets
@@ -227,8 +227,8 @@ namespace Goose
             pet.HairA = Convert.ToInt32(reader["hair_a"]);
 
             pet.BaseStats = new AttributeSet();
-            pet.BaseStats.HP = Convert.ToInt32(reader["pet_hp"]);
-            pet.BaseStats.MP = Convert.ToInt32(reader["pet_mp"]);
+            pet.BaseStats.HP = Convert.ToInt64(reader["pet_hp"]);
+            pet.BaseStats.MP = Convert.ToInt64(reader["pet_mp"]);
             pet.BaseStats.SP = Convert.ToInt32(reader["pet_sp"]);
             pet.BaseStats.AC = Convert.ToInt32(reader["stat_ac"]);
             pet.BaseStats.Strength = Convert.ToInt32(reader["stat_str"]);
@@ -262,7 +262,7 @@ namespace Goose
             pet.CurrentHP = pet.MaxHP;
             pet.CurrentMP = pet.MaxMP;
 
-            pet.WeaponDamage = Convert.ToInt32(reader["weapon_damage"]);
+            pet.WeaponDamage = Convert.ToInt64(reader["weapon_damage"]);
 
             pet.RespawnTime = Convert.ToInt32(reader["respawn_time"]);
             pet.NextRespawnTime = Convert.ToInt64(reader["next_respawn_time"]);

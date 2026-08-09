@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Goose.Quests
 {
-    class QuestHandler
+    public class QuestHandler
     {
         public Dictionary<int, Quest> Quests { get; set; }
 
@@ -83,6 +83,12 @@ namespace Goose.Quests
             }
 
             return null;
+        }
+
+        /// <summary>Registers a script-generated quest. Overwrites any existing entry with the same id.</summary>
+        public void AddQuest(Quest quest)
+        {
+            this.Quests[quest.Id] = quest;
         }
     }
 }

@@ -77,6 +77,11 @@ namespace Goose.Scripting
 
         }
 
+        public virtual string CanPlayerJoin(Map map, Player player, GameWorld world)
+        {
+            return null;
+        }
+
         public virtual void OnPlayerLeft(Map map, Player player, GameWorld world)
         {
 

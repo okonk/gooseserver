@@ -51,7 +51,7 @@ namespace Goose
                         npc.Facing = Convert.ToInt32(reader["npc_facing"]);
                         npc.Level = Convert.ToInt32(reader["npc_level"]);
                         npc.Experience = Convert.ToInt64(reader["experience"]);
-                        npc.WeaponDamage = Convert.ToInt32(reader["weapon_damage"]);
+                        npc.WeaponDamage = Convert.ToInt64(reader["weapon_damage"]);
                         npc.AggroRange = Convert.ToInt32(reader["aggro_range"]);
                         npc.AttackRange = Convert.ToInt32(reader["attack_range"]);
                         npc.AttackSpeed = Decimal.Parse(Convert.ToString(reader["attack_speed"]));
@@ -78,8 +78,8 @@ namespace Goose
                         npc.HairA = Convert.ToInt32(reader["hair_a"]);
 
                         npc.BaseStats = new AttributeSet();
-                        npc.BaseStats.HP = Convert.ToInt32(reader["npc_hp"]);
-                        npc.BaseStats.MP = Convert.ToInt32(reader["npc_mp"]);
+                        npc.BaseStats.HP = Convert.ToInt64(reader["npc_hp"]);
+                        npc.BaseStats.MP = Convert.ToInt64(reader["npc_mp"]);
                         npc.BaseStats.SP = Convert.ToInt32(reader["npc_sp"]);
                         npc.BaseStats.AC = Convert.ToInt32(reader["stat_ac"]);
                         npc.BaseStats.Strength = Convert.ToInt32(reader["stat_str"]);
@@ -226,6 +226,13 @@ namespace Goose
             return null;
         }
 
+        /// <summary>Registers a script-generated template. Overwrites any existing entry with the
+        /// same id - callers that must not collide should check GetNPCTemplate first.</summary>
+        public void AddTemplate(NPCTemplate template)
+        {
+            this.templates[template.NPCTemplateID] = template;
+        }
+
         /**
          * GetNewID, returns new login id for npc
          */
@@ -265,31 +272,40 @@ namespace Goose
 
                 while (reader.Read())
                 {
-                    NPC npc = new NPC();
-                    int map_id, map_x, map_y;
                     int npc_id = Convert.ToInt32(reader["npc_id"]);
-                    map_id = Convert.ToInt32(reader["map_id"]);
-                    map_x = Convert.ToInt32(reader["map_x"]);
-                    map_y = Convert.ToInt32(reader["map_y"]);
+                    int map_id = Convert.ToInt32(reader["map_id"]);
+                    int map_x = Convert.ToInt32(reader["map_x"]);
+                    int map_y = Convert.ToInt32(reader["map_y"]);
 
                     NPCTemplate template = this.GetNPCTemplate(npc_id);
-                    if (template != null)
+                    if (template == null) continue;               // log bad id
+                    if (this.SpawnNPC(world, map_id, map_x, map_y, template, shouldRespawn: true) == null)
                     {
-                        if (npc.LoadFromTemplate(world, map_id, map_x, map_y, template, shouldRespawn: true))
-                        {
-                            this.npcs.Add(npc);
-                        }
-                        else
-                        {
-                            // couldn't load map
-                        }
-                    }
-                    else
-                    {
-                        // log bad id
+                        // couldn't load map
                     }
                 }
             });
+        }
+
+        /// <summary>Registers an already-loaded NPC so NPCCount and anything enumerating the
+        /// handler's npcs can see it. LoadFromTemplate does not do this - it only adds the NPC to
+        /// its map and to the login-id lookup.</summary>
+        public void AddNPC(NPC npc)
+        {
+            this.npcs.Add(npc);
+        }
+
+        /// <summary>The supported way to create an NPC at runtime: loads it from the template and
+        /// registers it. Returns null if the map does not exist, in which case nothing is
+        /// registered. Every caller - LoadNPCs included - should go through this rather than
+        /// calling LoadFromTemplate directly, so there is one definition of "spawned".</summary>
+        public NPC SpawnNPC(GameWorld world, int mapId, int mapX, int mapY, NPCTemplate template, bool shouldRespawn)
+        {
+            var npc = new NPC();
+            if (!npc.LoadFromTemplate(world, mapId, mapX, mapY, template, shouldRespawn)) return null;
+
+            this.AddNPC(npc);
+            return npc;
         }
     }
 }

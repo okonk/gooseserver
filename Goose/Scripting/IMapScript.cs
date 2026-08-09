@@ -12,6 +12,10 @@ namespace Goose.Scripting
         void OnLoadTile(Map map, int x, int y, int layerNumber, int graphic, short sheet, int flags, GameWorld world);
         void OnFinishedLoad(Map map, GameWorld world);
         void OnPlayerEntered(Map map, Player player, GameWorld world);
+
+        /// <summary>Return a refusal message to block entry, or null to allow.
+        /// Consulted by Map.PlayerCanJoin, which gates warps and teleport spells alike.</summary>
+        string CanPlayerJoin(Map map, Player player, GameWorld world);
         void OnPlayerLeft(Map map, Player player, GameWorld world);
         void OnPlayerMove(Map map, Player player, GameWorld world);
         void OnPlayerChatEvent(Map map, Player player, string message, GameWorld world);
