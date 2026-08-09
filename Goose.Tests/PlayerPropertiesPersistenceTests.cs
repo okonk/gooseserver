@@ -76,10 +76,11 @@ public class PlayerPropertiesPersistenceTests : IDisposable
 
     private static void RunInsert(Player player, SQLiteConnection conn)
     {
-        // Mirror the snapshot SaveToDatabase takes on the game thread, then execute the
-        // real INSERT string from Player.cs.
+        // Mirror SaveToDatabase: build the query string on the (game) thread, snapshot the
+        // properties, then execute the real INSERT string from Player.cs.
         using var command = player.BuildInsertCommand(
             conn,
+            player.BuildInsertQuery(),
             player.Name,
             player.Title,
             player.Surname,
@@ -90,10 +91,11 @@ public class PlayerPropertiesPersistenceTests : IDisposable
 
     private static void RunUpdate(Player player, SQLiteConnection conn)
     {
-        // Mirror the snapshot SaveToDatabase takes on the game thread, then execute the
-        // real UPDATE string from Player.cs.
+        // Mirror SaveToDatabase: build the query string on the (game) thread, snapshot the
+        // properties, then execute the real UPDATE string from Player.cs.
         using var command = player.BuildUpdateCommand(
             conn,
+            player.BuildUpdateQuery(),
             player.Name,
             player.Title,
             player.Surname,

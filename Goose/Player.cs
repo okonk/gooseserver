@@ -854,9 +854,10 @@ namespace Goose
 
             if (this.AutoCreatedNotSaved)
             {
+                string insertQuery = this.BuildInsertQuery();
                 savePlayerRow = conn =>
                 {
-                    using var command = BuildInsertCommand(conn, playerName, playerTitle, playerSurname, unbanDate, playerProperties);
+                    using var command = BuildInsertCommand(conn, insertQuery, playerName, playerTitle, playerSurname, unbanDate, playerProperties);
                     command.ExecuteNonQuery();
                     // Only clear after a successful insert so a failed first save can retry INSERT.
                     this.AutoCreatedNotSaved = false;
@@ -864,9 +865,10 @@ namespace Goose
             }
             else
             {
+                string updateQuery = this.BuildUpdateQuery();
                 savePlayerRow = conn =>
                 {
-                    using var command = BuildUpdateCommand(conn, playerName, playerTitle, playerSurname, unbanDate, playerProperties);
+                    using var command = BuildUpdateCommand(conn, updateQuery, playerName, playerTitle, playerSurname, unbanDate, playerProperties);
                     command.ExecuteNonQuery();
                 };
             }
@@ -900,13 +902,13 @@ namespace Goose
         }
 
         /// <summary>
-        /// Builds the INSERT command for a brand-new player row, binding every parameter.
-        /// Split out of SaveToDatabase so the persistence tests can execute the shipped query
-        /// text and parameter binding without a live GameWorld.
+        /// Builds the INSERT query text for a brand-new player row. Called on the game thread
+        /// so every scalar is snapshotted at the same moment as the rest of the save; the
+        /// command builder then only binds parameters.
         /// </summary>
-        internal SQLiteCommand BuildInsertCommand(SQLiteConnection conn, string playerName, string playerTitle, string playerSurname, object unbanDate, string playerProperties)
+        internal string BuildInsertQuery()
         {
-            string query = "INSERT INTO players (player_id, player_name, player_title, player_surname, " +
+            return "INSERT INTO players (player_id, player_name, player_title, player_surname, " +
                 "password_hash, password_salt, access_status, map_id, map_x, map_y, player_facing, " +
                 "bound_id, bound_x, bound_y, player_gold, player_level, experience, experience_sold, " +
                 "player_hp, player_mp, player_sp, class_id, guild_id, stat_ac, stat_str, stat_sta, " +
@@ -967,7 +969,15 @@ namespace Goose
                 this.MacroCheckFailures + ", " +
                 "@playerProperties" +
                 ")";
+        }
 
+        /// <summary>
+        /// Creates the INSERT command from a query string built on the game thread, binding
+        /// every parameter. Split out of SaveToDatabase so the persistence tests can execute
+        /// the shipped query text and parameter binding without a live GameWorld.
+        /// </summary>
+        internal SQLiteCommand BuildInsertCommand(SQLiteConnection conn, string query, string playerName, string playerTitle, string playerSurname, object unbanDate, string playerProperties)
+        {
             var command = conn.CreateCommand();
             command.CommandText = query;
             command.Parameters.Add(new SQLiteParameter("@playerName", DbType.String) { Value = playerName });
@@ -979,13 +989,13 @@ namespace Goose
         }
 
         /// <summary>
-        /// Builds the UPDATE command for an existing player row, binding every parameter.
-        /// Split out of SaveToDatabase so the persistence tests can execute the shipped query
-        /// text and parameter binding without a live GameWorld.
+        /// Builds the UPDATE query text for an existing player row. Called on the game thread
+        /// so every scalar is snapshotted at the same moment as the rest of the save; the
+        /// command builder then only binds parameters.
         /// </summary>
-        internal SQLiteCommand BuildUpdateCommand(SQLiteConnection conn, string playerName, string playerTitle, string playerSurname, object unbanDate, string playerProperties)
+        internal string BuildUpdateQuery()
         {
-            string query = "UPDATE players SET " +
+            return "UPDATE players SET " +
                 "player_name=@playerName, " +
                 "player_title=@playerTitle, " +
                 "player_surname=@playerSurname, " +
@@ -1040,7 +1050,15 @@ namespace Goose
                 "macrocheck_failures=" + this.MacroCheckFailures + ", " +
                 "player_properties=@playerProperties " +
                 "WHERE player_id=" + this.PlayerID;
+        }
 
+        /// <summary>
+        /// Creates the UPDATE command from a query string built on the game thread, binding
+        /// every parameter. Split out of SaveToDatabase so the persistence tests can execute
+        /// the shipped query text and parameter binding without a live GameWorld.
+        /// </summary>
+        internal SQLiteCommand BuildUpdateCommand(SQLiteConnection conn, string query, string playerName, string playerTitle, string playerSurname, object unbanDate, string playerProperties)
+        {
             var command = conn.CreateCommand();
             command.CommandText = query;
             command.Parameters.Add(new SQLiteParameter("@playerName", DbType.String) { Value = playerName });
