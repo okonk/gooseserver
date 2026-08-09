@@ -51,7 +51,8 @@ CREATE TABLE players (
   move_speed INT DEFAULT 320 NOT NULL,
   bank_pages INT DEFAULT 3 NOT NULL,
   unban_date DATETIME2 DEFAULT NULL,
-  macrocheck_failures INT DEFAULT 0 NOT NULL
+  macrocheck_failures INT DEFAULT 0 NOT NULL,
+  player_properties TEXT DEFAULT '' NOT NULL
 );
 
 CREATE TABLE inventory (

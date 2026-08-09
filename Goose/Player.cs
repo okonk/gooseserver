@@ -454,6 +454,17 @@ namespace Goose
 
         public DateTime? UnbanDate { get; set; }
 
+        /// <summary>Arbitrary per-player storage for scripts. Persisted as JSON in players.player_properties.</summary>
+        public PropertiesDictionary Properties { get; set; } = new PropertiesDictionary();
+
+        /// <summary>Split out from LoadFromReader so it can be tested without a reader.</summary>
+        internal void LoadPropertiesFromColumn(string json)
+        {
+            this.Properties = string.IsNullOrWhiteSpace(json)
+                ? new PropertiesDictionary()
+                : (JsonHelper.Deserialize<PropertiesDictionary>(json) ?? new PropertiesDictionary());
+        }
+
         private object socketLock = new object();
 
 
@@ -691,6 +702,7 @@ namespace Goose
             this.HairG = Convert.ToInt32(reader["hair_g"]);
             this.HairB = Convert.ToInt32(reader["hair_b"]);
             this.HairA = Convert.ToInt32(reader["hair_a"]);
+            this.LoadPropertiesFromColumn(Convert.ToString(reader["player_properties"]));
 
             this.BaseStats = new AttributeSet();
             this.BaseStats.HP = Convert.ToInt32(reader["player_hp"]);
@@ -832,6 +844,9 @@ namespace Goose
             string playerTitle = this.Title;
             string playerSurname = this.Surname;
             object unbanDate = this.UnbanDate.HasValue ? (object)this.UnbanDate.Value : DBNull.Value;
+            // Snapshot on the game thread: the save runs off it, and serializing the live
+            // dictionary there would race a concurrent key add from a script.
+            string playerProperties = JsonHelper.Serialize(this.Properties.Clone());
 
             if (this.GuildID == 0 && this.Guild != null) this.Guild.Save(world);
 
@@ -839,75 +854,9 @@ namespace Goose
 
             if (this.AutoCreatedNotSaved)
             {
-                string query = "INSERT INTO players (player_id, player_name, player_title, player_surname, " +
-                    "password_hash, password_salt, access_status, map_id, map_x, map_y, player_facing, " +
-                    "bound_id, bound_x, bound_y, player_gold, player_level, experience, experience_sold, " +
-                    "player_hp, player_mp, player_sp, class_id, guild_id, stat_ac, stat_str, stat_sta, " +
-                    "stat_dex, stat_int, res_fire, res_water, res_spirit, res_air, res_earth, body_id, body_r, body_g, body_b, body_a, " +
-                    "face_id, hair_id, hair_r, hair_g, hair_b, hair_a, aether_threshold, toggle_settings, " +
-                    "donation_credits, total_playtime, total_afktime, move_speed, bank_pages, unban_date, macrocheck_failures) VALUES" +
-                    "(" +
-                    this.PlayerID + "," +
-                    " @playerName, @playerTitle, @playerSurname, " +
-                    "'" + this.PasswordHash + "', " +
-                    "'" + this.PasswordSalt + "', " +
-                    (int)this.Access + ", " +
-                    this.MapID + ", " +
-                    this.MapX + ", " +
-                    this.MapY + ", " +
-                    this.Facing + ", " +
-                    this.BoundID + ", " +
-                    this.BoundX + ", " +
-                    this.BoundY + ", " +
-                    this.Gold + ", " +
-                    this.Level + ", " +
-                    this.Experience + ", " +
-                    this.ExperienceSold + ", " +
-                    this.BaseStats.HP + ", " +
-                    this.BaseStats.MP + ", " +
-                    this.BaseStats.SP + ", " +
-                    this.ClassID + ", " +
-                    this.GuildID + ", " +
-                    this.BaseStats.AC + ", " +
-                    this.BaseStats.Strength + ", " +
-                    this.BaseStats.Stamina + ", " +
-                    this.BaseStats.Dexterity + ", " +
-                    this.BaseStats.Intelligence + ", " +
-                    this.BaseStats.FireResist + ", " +
-                    this.BaseStats.WaterResist + ", " +
-                    this.BaseStats.SpiritResist + ", " +
-                    this.BaseStats.AirResist + ", " +
-                    this.BaseStats.EarthResist + ", " +
-                    this.BodyID + ", " +
-                    this.BodyR + ", " +
-                    this.BodyG + ", " +
-                    this.BodyB + ", " +
-                    this.BodyA + ", " +
-                    this.FaceID + ", " +
-                    this.HairID + ", " +
-                    this.HairR + ", " +
-                    this.HairG + ", " +
-                    this.HairB + ", " +
-                    this.HairA + ", " +
-                    this.AetherThreshold + ", " +
-                    (long)this.ToggleSettings + ", " +
-                    this.Credits + ", " +
-                    this.TotalPlayTime + ", " +
-                    this.TotalAfkTime + ", " +
-                    this.BaseStats.MoveSpeed + ", " +
-                    this.NumberOfBankPages + ", " +
-                    "@unbanDate, " +
-                    this.MacroCheckFailures +
-                    ")";
-
                 savePlayerRow = conn =>
                 {
-                    using var command = conn.CreateCommand();
-                    command.CommandText = query;
-                    command.Parameters.Add(new SQLiteParameter("@playerName", DbType.String) { Value = playerName });
-                    command.Parameters.Add(new SQLiteParameter("@playerTitle", DbType.String) { Value = playerTitle });
-                    command.Parameters.Add(new SQLiteParameter("@playerSurname", DbType.String) { Value = playerSurname });
-                    command.Parameters.Add(new SQLiteParameter("@unbanDate", DbType.DateTime2) { Value = unbanDate, IsNullable = true });
+                    using var command = BuildInsertCommand(conn, playerName, playerTitle, playerSurname, unbanDate, playerProperties);
                     command.ExecuteNonQuery();
                     // Only clear after a successful insert so a failed first save can retry INSERT.
                     this.AutoCreatedNotSaved = false;
@@ -915,69 +864,9 @@ namespace Goose
             }
             else
             {
-                string query = "UPDATE players SET " +
-                    "player_name=@playerName, " +
-                    "player_title=@playerTitle, " +
-                    "player_surname=@playerSurname, " +
-                    "password_hash='" + this.PasswordHash + "', " +
-                    "password_salt='" + this.PasswordSalt + "', " +
-                    "access_status=" + (int)this.Access + ", " +
-                    "map_id=" + this.MapID + ", " +
-                    "map_x=" + this.MapX + ", " +
-                    "map_y=" + this.MapY + ", " +
-                    "player_facing=" + this.Facing + ", " +
-                    "bound_id=" + this.BoundID + ", " +
-                    "bound_x=" + this.BoundX + ", " +
-                    "bound_y=" + this.BoundY + ", " +
-                    "player_gold=" + this.Gold + ", " +
-                    "player_level=" + this.Level + ", " +
-                    "experience=" + this.Experience + ", " +
-                    "experience_sold=" + this.ExperienceSold + ", " +
-                    "player_hp=" + this.BaseStats.HP + ", " +
-                    "player_mp=" + this.BaseStats.MP + ", " +
-                    "player_sp=" + this.BaseStats.SP + ", " +
-                    "class_id=" + this.ClassID + ", " +
-                    "guild_id=" + this.GuildID + ", " +
-                    "stat_ac=" + this.BaseStats.AC + ", " +
-                    "stat_str=" + this.BaseStats.Strength + ", " +
-                    "stat_sta=" + this.BaseStats.Stamina + ", " +
-                    "stat_dex=" + this.BaseStats.Dexterity + ", " +
-                    "stat_int=" + this.BaseStats.Intelligence + ", " +
-                    "res_fire=" + this.BaseStats.FireResist + ", " +
-                    "res_water=" + this.BaseStats.WaterResist + ", " +
-                    "res_spirit=" + this.BaseStats.SpiritResist + ", " +
-                    "res_air=" + this.BaseStats.AirResist + ", " +
-                    "res_earth=" + this.BaseStats.EarthResist + ", " +
-                    "body_id=" + this.BodyID + ", " +
-                    "body_r=" + this.BodyR + ", " +
-                    "body_g=" + this.BodyG + ", " +
-                    "body_b=" + this.BodyB + ", " +
-                    "body_a=" + this.BodyA + ", " +
-                    "face_id=" + this.FaceID + ", " +
-                    "hair_id=" + this.HairID + ", " +
-                    "hair_r=" + this.HairR + ", " +
-                    "hair_g=" + this.HairG + ", " +
-                    "hair_b=" + this.HairB + ", " +
-                    "hair_a=" + this.HairA + ", " +
-                    "aether_threshold=" + this.AetherThreshold + ", " +
-                    "toggle_settings=" + (long)this.ToggleSettings + ", " +
-                    "donation_credits=" + this.Credits + ", " +
-                    "total_playtime=" + this.TotalPlayTime + ", " +
-                    "total_afktime=" + this.TotalAfkTime + ", " +
-                    "move_speed=" + this.BaseStats.MoveSpeed + ", " +
-                    "bank_pages=" + this.NumberOfBankPages + ", " +
-                    "unban_date=@unbanDate, " +
-                    "macrocheck_failures=" + this.MacroCheckFailures + " " +
-                    "WHERE player_id=" + this.PlayerID;
-
                 savePlayerRow = conn =>
                 {
-                    using var command = conn.CreateCommand();
-                    command.CommandText = query;
-                    command.Parameters.Add(new SQLiteParameter("@playerName", DbType.String) { Value = playerName });
-                    command.Parameters.Add(new SQLiteParameter("@playerTitle", DbType.String) { Value = playerTitle });
-                    command.Parameters.Add(new SQLiteParameter("@playerSurname", DbType.String) { Value = playerSurname });
-                    command.Parameters.Add(new SQLiteParameter("@unbanDate", DbType.DateTime2) { Value = unbanDate, IsNullable = true });
+                    using var command = BuildUpdateCommand(conn, playerName, playerTitle, playerSurname, unbanDate, playerProperties);
                     command.ExecuteNonQuery();
                 };
             }
@@ -1008,6 +897,158 @@ namespace Goose
                     part(conn);
                 }
             });
+        }
+
+        /// <summary>
+        /// Builds the INSERT command for a brand-new player row, binding every parameter.
+        /// Split out of SaveToDatabase so the persistence tests can execute the shipped query
+        /// text and parameter binding without a live GameWorld.
+        /// </summary>
+        internal SQLiteCommand BuildInsertCommand(SQLiteConnection conn, string playerName, string playerTitle, string playerSurname, object unbanDate, string playerProperties)
+        {
+            string query = "INSERT INTO players (player_id, player_name, player_title, player_surname, " +
+                "password_hash, password_salt, access_status, map_id, map_x, map_y, player_facing, " +
+                "bound_id, bound_x, bound_y, player_gold, player_level, experience, experience_sold, " +
+                "player_hp, player_mp, player_sp, class_id, guild_id, stat_ac, stat_str, stat_sta, " +
+                "stat_dex, stat_int, res_fire, res_water, res_spirit, res_air, res_earth, body_id, body_r, body_g, body_b, body_a, " +
+                "face_id, hair_id, hair_r, hair_g, hair_b, hair_a, aether_threshold, toggle_settings, " +
+                "donation_credits, total_playtime, total_afktime, move_speed, bank_pages, unban_date, macrocheck_failures, player_properties) VALUES" +
+                "(" +
+                this.PlayerID + "," +
+                " @playerName, @playerTitle, @playerSurname, " +
+                "'" + this.PasswordHash + "', " +
+                "'" + this.PasswordSalt + "', " +
+                (int)this.Access + ", " +
+                this.MapID + ", " +
+                this.MapX + ", " +
+                this.MapY + ", " +
+                this.Facing + ", " +
+                this.BoundID + ", " +
+                this.BoundX + ", " +
+                this.BoundY + ", " +
+                this.Gold + ", " +
+                this.Level + ", " +
+                this.Experience + ", " +
+                this.ExperienceSold + ", " +
+                this.BaseStats.HP + ", " +
+                this.BaseStats.MP + ", " +
+                this.BaseStats.SP + ", " +
+                this.ClassID + ", " +
+                this.GuildID + ", " +
+                this.BaseStats.AC + ", " +
+                this.BaseStats.Strength + ", " +
+                this.BaseStats.Stamina + ", " +
+                this.BaseStats.Dexterity + ", " +
+                this.BaseStats.Intelligence + ", " +
+                this.BaseStats.FireResist + ", " +
+                this.BaseStats.WaterResist + ", " +
+                this.BaseStats.SpiritResist + ", " +
+                this.BaseStats.AirResist + ", " +
+                this.BaseStats.EarthResist + ", " +
+                this.BodyID + ", " +
+                this.BodyR + ", " +
+                this.BodyG + ", " +
+                this.BodyB + ", " +
+                this.BodyA + ", " +
+                this.FaceID + ", " +
+                this.HairID + ", " +
+                this.HairR + ", " +
+                this.HairG + ", " +
+                this.HairB + ", " +
+                this.HairA + ", " +
+                this.AetherThreshold + ", " +
+                (long)this.ToggleSettings + ", " +
+                this.Credits + ", " +
+                this.TotalPlayTime + ", " +
+                this.TotalAfkTime + ", " +
+                this.BaseStats.MoveSpeed + ", " +
+                this.NumberOfBankPages + ", " +
+                "@unbanDate, " +
+                this.MacroCheckFailures + ", " +
+                "@playerProperties" +
+                ")";
+
+            var command = conn.CreateCommand();
+            command.CommandText = query;
+            command.Parameters.Add(new SQLiteParameter("@playerName", DbType.String) { Value = playerName });
+            command.Parameters.Add(new SQLiteParameter("@playerTitle", DbType.String) { Value = playerTitle });
+            command.Parameters.Add(new SQLiteParameter("@playerSurname", DbType.String) { Value = playerSurname });
+            command.Parameters.Add(new SQLiteParameter("@unbanDate", DbType.DateTime2) { Value = unbanDate, IsNullable = true });
+            command.Parameters.Add(new SQLiteParameter("@playerProperties", DbType.String) { Value = playerProperties });
+            return command;
+        }
+
+        /// <summary>
+        /// Builds the UPDATE command for an existing player row, binding every parameter.
+        /// Split out of SaveToDatabase so the persistence tests can execute the shipped query
+        /// text and parameter binding without a live GameWorld.
+        /// </summary>
+        internal SQLiteCommand BuildUpdateCommand(SQLiteConnection conn, string playerName, string playerTitle, string playerSurname, object unbanDate, string playerProperties)
+        {
+            string query = "UPDATE players SET " +
+                "player_name=@playerName, " +
+                "player_title=@playerTitle, " +
+                "player_surname=@playerSurname, " +
+                "password_hash='" + this.PasswordHash + "', " +
+                "password_salt='" + this.PasswordSalt + "', " +
+                "access_status=" + (int)this.Access + ", " +
+                "map_id=" + this.MapID + ", " +
+                "map_x=" + this.MapX + ", " +
+                "map_y=" + this.MapY + ", " +
+                "player_facing=" + this.Facing + ", " +
+                "bound_id=" + this.BoundID + ", " +
+                "bound_x=" + this.BoundX + ", " +
+                "bound_y=" + this.BoundY + ", " +
+                "player_gold=" + this.Gold + ", " +
+                "player_level=" + this.Level + ", " +
+                "experience=" + this.Experience + ", " +
+                "experience_sold=" + this.ExperienceSold + ", " +
+                "player_hp=" + this.BaseStats.HP + ", " +
+                "player_mp=" + this.BaseStats.MP + ", " +
+                "player_sp=" + this.BaseStats.SP + ", " +
+                "class_id=" + this.ClassID + ", " +
+                "guild_id=" + this.GuildID + ", " +
+                "stat_ac=" + this.BaseStats.AC + ", " +
+                "stat_str=" + this.BaseStats.Strength + ", " +
+                "stat_sta=" + this.BaseStats.Stamina + ", " +
+                "stat_dex=" + this.BaseStats.Dexterity + ", " +
+                "stat_int=" + this.BaseStats.Intelligence + ", " +
+                "res_fire=" + this.BaseStats.FireResist + ", " +
+                "res_water=" + this.BaseStats.WaterResist + ", " +
+                "res_spirit=" + this.BaseStats.SpiritResist + ", " +
+                "res_air=" + this.BaseStats.AirResist + ", " +
+                "res_earth=" + this.BaseStats.EarthResist + ", " +
+                "body_id=" + this.BodyID + ", " +
+                "body_r=" + this.BodyR + ", " +
+                "body_g=" + this.BodyG + ", " +
+                "body_b=" + this.BodyB + ", " +
+                "body_a=" + this.BodyA + ", " +
+                "face_id=" + this.FaceID + ", " +
+                "hair_id=" + this.HairID + ", " +
+                "hair_r=" + this.HairR + ", " +
+                "hair_g=" + this.HairG + ", " +
+                "hair_b=" + this.HairB + ", " +
+                "hair_a=" + this.HairA + ", " +
+                "aether_threshold=" + this.AetherThreshold + ", " +
+                "toggle_settings=" + (long)this.ToggleSettings + ", " +
+                "donation_credits=" + this.Credits + ", " +
+                "total_playtime=" + this.TotalPlayTime + ", " +
+                "total_afktime=" + this.TotalAfkTime + ", " +
+                "move_speed=" + this.BaseStats.MoveSpeed + ", " +
+                "bank_pages=" + this.NumberOfBankPages + ", " +
+                "unban_date=@unbanDate, " +
+                "macrocheck_failures=" + this.MacroCheckFailures + ", " +
+                "player_properties=@playerProperties " +
+                "WHERE player_id=" + this.PlayerID;
+
+            var command = conn.CreateCommand();
+            command.CommandText = query;
+            command.Parameters.Add(new SQLiteParameter("@playerName", DbType.String) { Value = playerName });
+            command.Parameters.Add(new SQLiteParameter("@playerTitle", DbType.String) { Value = playerTitle });
+            command.Parameters.Add(new SQLiteParameter("@playerSurname", DbType.String) { Value = playerSurname });
+            command.Parameters.Add(new SQLiteParameter("@unbanDate", DbType.DateTime2) { Value = unbanDate, IsNullable = true });
+            command.Parameters.Add(new SQLiteParameter("@playerProperties", DbType.String) { Value = playerProperties });
+            return command;
         }
 
                 /// <summary>
