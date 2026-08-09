@@ -128,7 +128,7 @@
     "LoginFailureWindowSeconds": 300,
     "LoginLockoutSeconds": 300,
 
-    "MaxNPCs": 15000,
+    "MaxNPCs": 250000,
     "PetVitaBuyAmount": 50,
     "IncreasePetVitaBuyCost": 100000,
     "PetVitaCost": 100000,
