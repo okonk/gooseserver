@@ -83,6 +83,7 @@ public class Dimensions : BaseGlobalScript
         CloneMaps(world);
         RewireWarps(world);
         CloneSpawns(world);
+        CreateUnlockChain(world);
 
         world.EventHandler.RegisterEvent("/dimension ", DimensionCommandEvent.Create);
     }
@@ -228,7 +229,10 @@ public class Dimensions : BaseGlobalScript
     private void CloneTemplates(GameWorld world)
     {
         // Snapshot first: AddTemplate mutates the dictionary GetTemplates() enumerates.
-        var baseTemplates = world.NPCHandler.GetTemplates().ToList();
+        // Only base templates (id < Offset) are cloned - a generated id (warden, or an
+        // already-cloned template) must not be treated as base sheet data and cloned again.
+        var baseTemplates = world.NPCHandler.GetTemplates()
+            .Where(t => t.NPCTemplateID < Offset).ToList();
 
         for (int dim = 1; dim <= DimensionCount; dim++)
         {
@@ -309,6 +313,154 @@ public class Dimensions : BaseGlobalScript
     {
         dim = Math.Min(4, dim);
         return Math.Min((int)(respawnTime * Math.Pow(0.85, dim)), 3600 / (1 + dim));
+    }
+
+    /// <summary>One quest per dimension: kill that dimension's boss, unlock the next
+    /// dimension. Quest n is offered by dimension n's warden, so the chain walks the player
+    /// outward one dimension at a time.</summary>
+    private void CreateUnlockChain(GameWorld world)
+    {
+        ValidateWardenClass(world);
+
+        var rewardScript = world.ScriptHandler.GetScript<IQuestScript>("Scripts/Quest/DimensionUnlock.csx");
+
+        for (int dim = 0; dim < DimensionCount; dim++)
+        {
+            int questId = QuestIdBase + dim;
+
+            // AddQuest overwrites silently, and quest ids are the persistence key for
+            // in-flight progress. A collision with a sheet-authored quest must be loud.
+            if (world.QuestHandler.Get(questId) != null)
+                throw new Exception($"Quest id {questId} already exists. QuestIdBase collides with sheet data.");
+
+            var quest = new Quest
+            {
+                Id = questId,
+                Name = "Abysmal Terror (" + (dim + 1) + ")",
+                Description = "Slay the terror that stalks dimension " + dim + ".",
+                FailText = "The terror still lives.",
+                PassText = "The void yields. Dimension " + (dim + 1) + " is open to you.",
+                ShowProgress = true,
+                Repeatable = false,
+                // Chain: quest n requires quest n-1. Quest 0 is the entry point.
+                PrerequisiteQuests = dim == 0 ? new List<int>() : new List<int> { QuestIdBase + dim - 1 },
+            };
+
+            quest.Requirements.Add(new QuestRequirement
+            {
+                // Deterministic - QuestProgress persists keyed on requirement.Id
+                // (Player.cs:1020, QuestWindow.cs:268). A counter-assigned id would orphan
+                // in-flight kill progress on every restart.
+                Id = QuestIdBase + dim * 10,
+                Type = RequirementType.Kill,
+                // Dimension n's boss is a distinct template id, which is the whole reason the
+                // stock Kill requirement is dimension-aware with no engine change.
+                Value = BossTemplateId + Offset * dim,
+                Value2 = 1,
+                KeepRequirement = false,
+                Quest = quest,
+            });
+
+            quest.Rewards.Add(new QuestReward
+            {
+                Id = QuestIdBase + dim * 10 + 1,
+                Type = RewardType.Script,
+                Script = rewardScript,
+                // QuestReward has no Quest back-reference (QuestReward.cs:37-45), unlike
+                // QuestRequirement, so the reward cannot derive its dimension from its quest.
+                // ScriptParams carries it, and one script file serves all six rewards.
+                ScriptParams = (dim + 1).ToString(),
+            });
+
+            world.QuestHandler.AddQuest(quest);
+
+            CreateWarden(world, dim, quest);
+        }
+    }
+
+    /// <summary>NPC.LoadFromTemplate does Class.GetLevel(Level).BaseStats with no null check
+    /// (NPC.cs:635-636). ClassHandler.GetClass returns null for an unknown id and
+    /// Class.GetLevel returns null for a level the class has no row for - class 1 (Commoner)
+    /// stops at level 5 while classes 2-7 reach 50. Either mistake would throw halfway through
+    /// building the world, so check once, up front, with a message that says what to fix.</summary>
+    private void ValidateWardenClass(GameWorld world)
+    {
+        var wardenClass = world.ClassHandler.GetClass(WardenClassId);
+        if (wardenClass == null)
+            throw new Exception($"WardenClassId {WardenClassId} does not exist.");
+
+        if (wardenClass.GetLevel(WardenLevel) == null)
+            throw new Exception($"Class {WardenClassId} has no level {WardenLevel} row in class_info. "
+                                + "Pick a class that reaches WardenLevel, or lower WardenLevel.");
+    }
+
+    /// <summary>The quest giver for one dimension. Built from configuration rather than cloned
+    /// from a base template - there is no warden in sheet data to clone.
+    ///
+    /// Deliberately NOT run through ScaleTemplate: scaling an invincible quest giver's HP and
+    /// damage is meaningless, and the dimension recolour would fight the configured look.</summary>
+    private void CreateWarden(GameWorld world, int dim, Quest quest)
+    {
+        int templateId = WardenTemplateId + Offset * dim;
+
+        if (world.NPCHandler.GetNPCTemplate(templateId) != null)
+            throw new Exception($"Warden template id {templateId} already exists. "
+                                + "WardenTemplateId collides with sheet data.");
+
+        var warden = new NPCTemplate
+        {
+            NPCTemplateID = templateId,
+            NPCType = NPCTemplate.Types.Quest,
+            Name = WardenName + (dim == 0 ? "" : " (" + dim + ")"),
+            Title = WardenTitle,
+            Surname = WardenSurname,
+            Level = WardenLevel,
+            ClassID = WardenClassId,
+
+            CanBeKilled = false,     // maps to npc_templates.invincible (NPCHandler.cs:63)
+            CanMove = false,
+            CanBeRooted = false,
+            CanBeStunned = false,
+            CanBeSlowed = false,
+
+            WeaponDamage = 0,
+            AggroRange = 0,
+            AttackRange = 1,
+            AttackSpeed = 1m,
+            MoveSpeed = 1m,
+            RespawnTime = 0,
+            Experience = 0,
+
+            BodyID = WardenBodyID,
+            BodyState = WardenBodyState,
+            BodyR = WardenBodyR, BodyG = WardenBodyG, BodyB = WardenBodyB, BodyA = WardenBodyA,
+            FaceID = WardenFaceID,
+            HairID = WardenHairID,
+            HairR = WardenHairR, HairG = WardenHairG, HairB = WardenHairB, HairA = WardenHairA,
+            EquippedItems = WardenEquippedItems,
+
+            AlliesString = "",
+            Allies = new List<NPCTemplate>(),
+            Drops = new List<NPCDropInfo>(),
+        };
+
+        warden.BaseStats = new AttributeSet { HP = 1000, MP = 0 };
+
+        // Sheet-authored quest_ids are resolved at template-load time (NPCHandler.cs:108),
+        // which runs before global scripts - so a script-created quest can never be attached
+        // through data. It has to be attached here. NPC.cs:637 aliases template.Quests rather
+        // than copying, so attaching before spawning is sufficient.
+        warden.Quests.Add(quest);
+
+        world.NPCHandler.AddTemplate(warden);
+
+        // shouldRespawn: false - it cannot be killed, so it never needs to come back.
+        if (world.NPCHandler.SpawnNPC(world, WardenMapId + Offset * dim,
+                                      WardenX, WardenY, warden, shouldRespawn: false) == null)
+        {
+            throw new Exception($"Could not spawn the dimension-{dim} warden: map "
+                                + (WardenMapId + Offset * dim) + " does not exist.");
+        }
     }
 
     /// <summary>NPC.java:1019 - darker and more opaque per dimension.</summary>

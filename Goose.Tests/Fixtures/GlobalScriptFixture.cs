@@ -11,15 +11,13 @@ public sealed class GlobalScriptFixture : IDisposable
     /// Copied to output by Goose.Tests.csproj. Add to BOTH lists together - a script
     /// missing here fails inside OnLoaded, not at compile time.</summary>
     ///
-    /// <remarks>This starts with only Dimensions.csx and DimensionMap.csx.
-    /// DimensionUnlock.csx is added in Task 7, when the
-    /// <c>&lt;None Include&gt;</c> entry that copies it to the test output first exists
-    /// (Dimensions.csx loads it at run time, so listing a script before its file exists
-    /// would make InstallShippedScripts throw FileNotFoundException for every test).</remarks>
+    /// <remarks>All three dimension scripts ship: the global orchestration, the map entry
+    /// gate, and the quest reward that grants the unlocked dimension.</remarks>
     private static readonly (string Source, string Relative)[] ShippedScripts =
     {
         ("Dimensions.csx",      "Scripts/Global/Dimensions.csx"),
         ("DimensionMap.csx",    "Scripts/Map/DimensionMap.csx"),
+        ("DimensionUnlock.csx", "Scripts/Quest/DimensionUnlock.csx"),
     };
 
     public string DataDirectory { get; }
