@@ -19,6 +19,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="../Goose/Data/Illutia/Scripts/Global/Dimensions.csx"
+          Link="DimensionScripts/Dimensions.csx" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Using Include="Xunit" />
   </ItemGroup>
 
