@@ -6,7 +6,7 @@ using System.Text;
 
 namespace Goose.Quests
 {
-    class QuestProgress
+    public class QuestProgress
     {
         public QuestRequirement Requirement { get; set; }
         public long Value { get; set; }

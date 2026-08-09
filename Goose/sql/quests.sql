@@ -27,7 +27,9 @@ CREATE TABLE quest_requirements (
   requirement_type INT NOT NULL,
   requirement_value BIGINT NOT NULL,
   requirement_value2 BIGINT DEFAULT 0,
-  keep_requirement CHAR(1) DEFAULT '0'
+  keep_requirement CHAR(1) DEFAULT '0',
+  script_path TEXT DEFAULT '' NOT NULL,
+  script_params TEXT DEFAULT '' NOT NULL
 );
 
 /*
@@ -42,7 +44,9 @@ CREATE TABLE quest_rewards (
   reward_type INT NOT NULL,
   long_value BIGINT DEFAULT 0,
   long_value2 BIGINT DEFAULT 0,
-  string_value TEXT DEFAULT ''
+  string_value TEXT DEFAULT '',
+  script_path TEXT DEFAULT '' NOT NULL,
+  script_params TEXT DEFAULT '' NOT NULL
 );
 
 /*

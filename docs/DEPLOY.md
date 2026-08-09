@@ -121,7 +121,30 @@ git pull
 docker compose up -d --build
 ```
 
-The volume is untouched, so players, settings, and logs survive. To re-import game
+The volume is untouched, so players, settings, and logs survive.
+
+### Schema upgrades (one-time, per release)
+
+Some releases add columns to existing tables. The server does **not** migrate an
+existing database automatically, so apply the statements below once, with the
+server stopped, before starting the new binary. Make a backup first (see section
+9), then:
+
+```sh
+docker compose stop
+docker compose run --rm --entrypoint sqlite3 goose /data/AsperetaGoose.db \
+  "ALTER TABLE quest_requirements ADD script_path TEXT DEFAULT '' NOT NULL;
+   ALTER TABLE quest_requirements ADD script_params TEXT DEFAULT '' NOT NULL;
+   ALTER TABLE quest_rewards ADD script_path TEXT DEFAULT '' NOT NULL;
+   ALTER TABLE quest_rewards ADD script_params TEXT DEFAULT '' NOT NULL;"
+docker compose start
+```
+
+`/data/AsperetaGoose.db` is the file named by `DatabaseName` in
+`GooseSettings.json` — substitute if yours differs. If you skip this step, the new
+server cannot load quests ("no such column: script_path").
+
+To re-import game
 data from the sheet, stop the server first (the running server holds the DB
 exclusively), then run `updatesql` — it imports and exits on its own — and start
 again:

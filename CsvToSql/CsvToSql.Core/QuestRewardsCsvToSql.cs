@@ -12,6 +12,8 @@ namespace CsvToSql
             Col.Int("long_value", SqlType.BigInt, def: 0).Nullable(),
             Col.Int("long_value2", SqlType.BigInt, def: 0).Nullable(),
             Col.Text("string_value", def: "''").Nullable(),
+            Col.Text("script_path", def: "''"),
+            Col.Text("script_params", def: "''"),
         };
 
         public enum RewardType
@@ -37,6 +39,7 @@ namespace CsvToSql
             Intelligence,
             SpellBuff,
             LearnSpell,
+            Script,          // 21 — logic lives in script_path
         }
     }
 }

@@ -12,6 +12,8 @@ namespace CsvToSql
             Col.Int("requirement_value", SqlType.BigInt),
             Col.Int("requirement_value2", SqlType.BigInt, def: 0).Nullable(),
             Col.Bool("keep_requirement", def: false).Nullable(),
+            Col.Text("script_path", def: "''"),
+            Col.Text("script_params", def: "''"),
         };
 
         public enum RequirementType
@@ -23,6 +25,7 @@ namespace CsvToSql
             ExperienceBanked,
             ExperienceSold,
             NothingEquipped,
+            Script,          // 7 — logic lives in script_path
         }
     }
 }
