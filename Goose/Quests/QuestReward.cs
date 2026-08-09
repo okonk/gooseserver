@@ -7,7 +7,7 @@ using System.Text;
 
 namespace Goose.Quests
 {
-    enum RewardType
+    public enum RewardType
     {
         Gold,
         Item,
@@ -32,7 +32,7 @@ namespace Goose.Quests
         LearnSpell,
     }
 
-    class QuestReward
+    public class QuestReward
     {
         public int Id { get; set; }
         public RewardType Type { get; set; }

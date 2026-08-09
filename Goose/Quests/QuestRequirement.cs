@@ -7,7 +7,7 @@ using System.Text;
 
 namespace Goose.Quests
 {
-    enum RequirementType
+    public enum RequirementType
     {
         Gold,
         Item,
@@ -18,7 +18,7 @@ namespace Goose.Quests
         NothingEquipped,
     }
 
-    class QuestRequirement
+    public class QuestRequirement
     {
         public int Id { get; set; }
         public RequirementType Type { get; set; }
