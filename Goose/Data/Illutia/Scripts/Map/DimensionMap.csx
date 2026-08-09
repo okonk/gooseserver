@@ -37,6 +37,11 @@ public class DimensionMap : BaseMapScript
     /// dimension-0 copy of wherever they were. The bind is clamped too - see below.</summary>
     public override void OnPlayerEntered(Map map, Player player, GameWorld world)
     {
+        // GMs bypass the gate on the warp path (Map.PlayerCanJoin checks
+        // IgnoreMapRequirements), so the login gate must not fight them either -
+        // relocating or re-binding a privileged account would be silently destructive.
+        if (player.HasPrivilege(AccessPrivilege.IgnoreMapRequirements)) return;
+
         int max = MaxDimensionOf(player);
 
         // Order matters: clamp the bind first, so it is corrected even when this map is
