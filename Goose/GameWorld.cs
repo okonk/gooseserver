@@ -44,7 +44,7 @@ namespace Goose
         public CombinationHandler CombinationHandler { get; set; }
         public ChatFilter ChatFilter { get; set; }
         public LogHandler LogHandler { get; set; }
-        internal QuestHandler QuestHandler { get; set; }
+        public QuestHandler QuestHandler { get; set; }
         public ScriptHandler ScriptHandler { get; set; }
         public Database Database { get; private set; }
         public static GooseSettings Settings { get; set; }
