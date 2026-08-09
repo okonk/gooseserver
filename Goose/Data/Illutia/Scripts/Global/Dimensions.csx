@@ -9,8 +9,7 @@ using Goose.Scripting;
 public class Dimensions : BaseGlobalScript
 {
     // ---- Configuration -------------------------------------------------
-    // Ships disabled. Flip to true once the world is verified to clone cleanly.
-    public const bool Enabled = false;
+    public const bool Enabled = true;
 
     /// <summary>Dimensions above 0. Abyss shipped 6.</summary>
     public const int DimensionCount = 6;
@@ -78,6 +77,107 @@ public class Dimensions : BaseGlobalScript
     public override void OnLoaded(GameWorld world)
     {
         if (!Enabled) return;
+
+        CloneTemplates(world);
+    }
+
+    private void CloneTemplates(GameWorld world)
+    {
+        // Snapshot first: AddTemplate mutates the dictionary GetTemplates() enumerates.
+        var baseTemplates = world.NPCHandler.GetTemplates().ToList();
+
+        for (int dim = 1; dim <= DimensionCount; dim++)
+        {
+            foreach (var template in baseTemplates)
+            {
+                int id = template.NPCTemplateID + Offset * dim;
+
+                // AddTemplate overwrites silently. A base id large enough to land on another
+                // dimension's slot would quietly replace a generated template. Refuse loudly.
+                if (world.NPCHandler.GetNPCTemplate(id) != null)
+                    throw new Exception($"Dimension template id {id} (base {template.NPCTemplateID}, dim {dim}) "
+                                        + "already exists. Offset is too small for this data set.");
+
+                world.NPCHandler.AddTemplate(ScaleTemplate(template, dim));
+            }
+        }
+    }
+
+    private NPCTemplate ScaleTemplate(NPCTemplate basic, int dim)
+    {
+        var clone = new NPCTemplate(basic)
+        {
+            NPCTemplateID = basic.NPCTemplateID + Offset * dim,
+            Name = basic.Name + " (" + dim + ")",
+            Level = 50,                                   // NPC.java:899
+            AttackRange = basic.AttackRange + dim,        // NPC.java:869
+            CanBeRooted = false,                          // NPC.java:881
+            CanBeStunned = false,
+            CanBeSlowed = true,
+            AttackSpeed = ScaleAttackSpeed(basic.AttackSpeed, dim),
+            MoveSpeed = Math.Max(basic.MoveSpeed - 0.15m * dim, 0.15m),   // NPC.java:907
+            WeaponDamage = ScaleDamage(basic.WeaponDamage, dim),
+            Experience = ScaleExperience(basic.Experience, basic.Level, dim),
+            RespawnTime = ScaleRespawn(basic.RespawnTime, dim),
+        };
+
+        clone.BaseStats.HP = ScaleHP(basic.BaseStats.HP, dim);
+        clone.BaseStats.HPPercentRegen = basic.BaseStats.HPPercentRegen + 0.004m * (dim + 1);  // NPC.java:879
+
+        Recolour(clone, dim);   // NPC.java:1019
+        return clone;
+    }
+
+    /// <summary>NPC.java:927</summary>
+    private long ScaleHP(long basehp, int dim)
+    {
+        long hp = (long)((basehp + 100000 * Math.Pow(2, dim)) * Math.Pow(4.7, dim));
+        if (dim >= 5 && basehp <= 35000000) hp *= 2;
+        return hp;
+    }
+
+    /// <summary>NPC.java:936</summary>
+    private long ScaleDamage(long baseDamage, int dim)
+    {
+        long damage = (long)(baseDamage * Math.Pow(4, dim) + 100000 * Math.Max(0, Math.Pow(4, dim) - 3));
+        if (dim >= 5 && baseDamage < 10000000) damage *= 20;
+        return damage;
+    }
+
+    /// <summary>NPC.java:945. The dim>=5 branch raises the value back to 0.7 - faithful, if odd.</summary>
+    private decimal ScaleAttackSpeed(decimal attackSpeed, int dim)
+    {
+        attackSpeed = Math.Max(attackSpeed - 0.175m * dim, 0.2m);
+        if (dim >= 5 && attackSpeed > 0.5m) attackSpeed = 0.7m;
+        return attackSpeed;
+    }
+
+    /// <summary>NPC.java:954</summary>
+    private long ScaleExperience(long experience, int level, int dim)
+    {
+        double multi = Math.Pow(3, Math.Min(4, dim));
+        if (dim >= 5) multi *= Math.Pow(2, dim - 4);
+        return (long)((experience + level * 100) * multi);
+    }
+
+    /// <summary>NPC.java:963. Respawn stops shortening past dimension 4.</summary>
+    private int ScaleRespawn(int respawnTime, int dim)
+    {
+        dim = Math.Min(4, dim);
+        return Math.Min((int)(respawnTime * Math.Pow(0.85, dim)), 3600 / (1 + dim));
+    }
+
+    /// <summary>NPC.java:1019 - darker and more opaque per dimension.</summary>
+    private void Recolour(NPCTemplate t, int dim)
+    {
+        t.HairR = Math.Max(t.HairR - dim * 30, 0);
+        t.HairG = Math.Max(t.HairG - dim * 30, 0);
+        t.HairB = Math.Max(t.HairB - dim * 30, 0);
+        t.HairA = Math.Min(t.HairA + dim * 30, 200);
+        t.BodyR = Math.Max(t.BodyR - dim * 30, 0);
+        t.BodyG = Math.Max(t.BodyG - dim * 30, 0);
+        t.BodyB = Math.Max(t.BodyB - dim * 30, 0);
+        t.BodyA = Math.Min(t.BodyA + dim * 30, 200);
     }
 }
 
