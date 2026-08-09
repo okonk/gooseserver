@@ -2,9 +2,11 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Clone the world into 6 scaled dimensions and gate access to them, entirely from two `.csx` scripts using the extension points Part 1 added.
+**Goal:** Clone the world into 6 scaled dimensions and gate access to them, entirely from three `.csx` scripts using the extension points Part 1 added.
 
-**Architecture:** `Scripts/Global/Dimensions.csx` runs at `OnLoaded` — after maps, templates and spawns are all loaded — and generates dimension copies of NPC templates, maps and spawns at `id + 100000·dim`. `Scripts/Map/DimensionMap.csx` attaches to every clone and enforces entry gating. Unlock progress lives in `Player.Properties`.
+**Architecture:** `Scripts/Global/Dimensions.csx` runs at `OnLoaded` — after maps, templates and spawns are all loaded — and generates dimension copies of NPC templates, maps and spawns at `id + 100000·dim`. `Scripts/Map/DimensionMap.csx` attaches to every clone and enforces entry gating plus the login and bind clamps. `Scripts/Quest/DimensionUnlock.csx` is the quest reward that grants a dimension. Unlock progress lives in `Player.Properties`.
+
+**Task order:** 0, 1, 2, 2b, 3, 4, 5, 6, 7, 7b, 8. Tasks 2b (ally rewiring) and 7b (keeping the disabled path tested) were added after review; Task 3 also creates a stub `DimensionMap.csx` that Task 5 fills in, because Task 3's cloning resolves that path.
 
 **Tech Stack:** C# scripting (Roslyn `.csx`), xUnit.
 
@@ -28,6 +30,16 @@
 | `WarpTile.WarpMap` / `WarpX` / `WarpY` are public | `Goose/WarpTile.cs:10–12` |
 | `BlockedTile` is an empty marker class | `Goose/BlockedTile.cs:8` |
 | `NPC.LoadFromTemplate(world, map_id, map_x, map_y, template, shouldRespawn)` | `Goose/NPC.cs:585` |
+| `LoadFromTemplate` does **not** register with `NPCHandler.npcs` — use `SpawnNPC` (Part 1) | `Goose/NPCHandler.cs:280` |
+| `NPCHandler.SpawnNPC` / `AddNPC` / `AddTemplate` (Part 1 task 4) | `Goose/NPCHandler.cs` |
+| `Map.CloneAs` / `RequiredItems` / `AddRequiredItem` (Part 1 task 5) | `Goose/Map.cs` |
+| `NPC.LoadFromTemplate` dereferences `Class.GetLevel(Level)` with no null check | `Goose/NPC.cs:635–636` |
+| `class_info` has levels 1–5 for class 1, 1–50 for classes 2–7 | April 2025 snapshot |
+| `NPC.Allies` delegates to the template; checks are reference equality | `Goose/NPC.cs:321`, `:559`, `:1000` |
+| `Map.requiredItems` is private, enforced by `PlayerCanJoin` | `Goose/Map.cs:64`, `:573` |
+| `Player.BoundID` / `BoundMap`; death warps to them | `Goose/Player.cs:226–238`, `:1775` |
+| `QuestWindow` invokes `reward.Script.Object.GiveReward` | `Goose/Quests/QuestWindow.cs:481` |
+| `IQuestScript` contract: one instance per file, read `ScriptParams` per call | `Goose/Scripting/IQuestScript.cs:9–17` |
 | `NPCHandler.GetNPCTemplate(int)` / `GetTemplates()` | `Goose/NPCHandler.cs:220`, `:19` |
 | `NPCTemplate.Types.Quest = 12` | `Goose/NPCTemplate.cs:21` |
 | `NPC.cs` aliases `this.Quests = template.Quests` | `Goose/NPC.cs:637` |
@@ -56,6 +68,15 @@
 **Files:**
 - Create: `Goose.Tests/Fixtures/GlobalScriptFixture.cs`
 
+**The fixture must install the whole shipped script set, not just `Dimensions.csx`.**
+`Dimensions.csx` resolves two other scripts at run time — `Scripts/Map/DimensionMap.csx`
+when it clones maps (Task 3) and `Scripts/Quest/DimensionUnlock.csx` when it builds the
+unlock rewards (Task 7). `ScriptHandler.GetScript` compiles from
+`DataPathAbsolute + "/" + path` (`ScriptHandler.cs:21`), so a script missing from the temp
+data directory blows up inside `OnLoaded` — every map-cloning test would fail on a
+`FileNotFoundException` long before reaching its assertions. Create all three script
+directories and copy every dimension script.
+
 **Step 1: Write the fixture**
 
 ```csharp
@@ -67,14 +88,25 @@ public sealed class GlobalScriptFixture : IDisposable
 {
     private readonly GooseSettings previousSettings = GameWorld.Settings;
 
+    /// <summary>Every dimension script, by the relative path the server resolves it at.
+    /// Copied to output by Goose.Tests.csproj (see Task 1). Add to BOTH lists together -
+    /// a script missing here fails inside OnLoaded, not at compile time.</summary>
+    private static readonly (string Source, string Relative)[] ShippedScripts =
+    {
+        ("Dimensions.csx",      "Scripts/Global/Dimensions.csx"),
+        ("DimensionMap.csx",    "Scripts/Map/DimensionMap.csx"),
+        ("DimensionUnlock.csx", "Scripts/Quest/DimensionUnlock.csx"),
+    };
+
     public string DataDirectory { get; }
     public GameWorld World { get; }
 
     public GlobalScriptFixture()
     {
         DataDirectory = Path.Combine(Path.GetTempPath(), "global-script-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(Path.Combine(DataDirectory, "Scripts", "Global"));
-        Directory.CreateDirectory(Path.Combine(DataDirectory, "Scripts", "Map"));
+        foreach (var dir in new[] { "Global", "Map", "Quest" })
+            Directory.CreateDirectory(Path.Combine(DataDirectory, "Scripts", dir));
+
         GameWorld.Settings = new GooseSettings
         {
             DataPath = DataDirectory, ExperienceModifier = 1,
@@ -83,12 +115,44 @@ public sealed class GlobalScriptFixture : IDisposable
         World = new GameWorld(null);
     }
 
-    /// <summary>Copies the real Dimensions.csx into the temp data dir and compiles it,
-    /// so tests exercise the shipped script rather than a paraphrase of it.</summary>
-    public Script<IGlobalScript> CompileShipped(string sourcePath, string fileName)
+    /// <summary>Installs every shipped dimension script into the temp data dir. Call this
+    /// before compiling anything - Dimensions.csx loads the map and quest scripts while it
+    /// runs, so a partial install fails at OnLoaded rather than at compile time.</summary>
+    public void InstallShippedScripts()
     {
+        foreach (var (source, relative) in ShippedScripts)
+        {
+            var from = Path.Combine(AppContext.BaseDirectory, "DimensionScripts", source);
+            if (!File.Exists(from))
+                throw new FileNotFoundException(
+                    $"{source} is not in the test output. Add its <None Include> to Goose.Tests.csproj.", from);
+
+            File.Copy(from, Path.Combine(DataDirectory, relative), overwrite: true);
+        }
+    }
+
+    /// <summary>Compiles the real shipped Dimensions.csx, so tests exercise what ships
+    /// rather than a paraphrase of it.</summary>
+    public Script<IGlobalScript> CompileShipped(string fileName = "Dimensions.csx")
+    {
+        InstallShippedScripts();
+        return World.ScriptHandler.GetScript<IGlobalScript>("Scripts/Global/" + fileName);
+    }
+
+    /// <summary>As CompileShipped, for the map script - Task 5's tests drive it directly.</summary>
+    public Script<IMapScript> CompileShippedMapScript(string fileName = "DimensionMap.csx")
+    {
+        InstallShippedScripts();
+        return World.ScriptHandler.GetScript<IMapScript>("Scripts/Map/" + fileName);
+    }
+
+    /// <summary>Compiles an arbitrary script body, for the one test that needs a variant of
+    /// the shipped script (Task 9's disabled-mode test).</summary>
+    public Script<IGlobalScript> CompileSource(string body, string fileName)
+    {
+        InstallShippedScripts();
         var relativePath = "Scripts/Global/" + fileName;
-        File.Copy(sourcePath, Path.Combine(DataDirectory, relativePath), overwrite: true);
+        File.WriteAllText(Path.Combine(DataDirectory, relativePath), body);
         return World.ScriptHandler.GetScript<IGlobalScript>(relativePath);
     }
 
@@ -144,13 +208,11 @@ namespace Goose.Tests;
 [Collection(GameWorldSettingsCollection.Name)]
 public class DimensionsScriptTests
 {
-    private const string ScriptPath = "Goose/Data/Illutia/Scripts/Global/Dimensions.csx";
-
     private static GlobalScriptFixture Run(Action<GlobalScriptFixture> arrange)
     {
         var fixture = new GlobalScriptFixture();
         arrange(fixture);
-        fixture.CompileShipped(ScriptPath, "Dimensions.csx").Object.OnLoaded(fixture.World);
+        fixture.CompileShipped().Object.OnLoaded(fixture.World);
         return fixture;
     }
 
@@ -158,6 +220,7 @@ public class DimensionsScriptTests
     public void Disabled_by_configuration_changes_nothing()
     {
         // Dimensions.Enabled is false in the shipped script until the feature is switched on.
+        // Task 9 replaces this with a variant-compiled test once the shipped flag flips.
         using var fixture = Run(f => f.AddBaseMap(1, "Town"));
 
         Assert.Single(fixture.World.MapHandler.Maps);
@@ -172,19 +235,26 @@ public class DimensionsScriptTests
 <ItemGroup>
   <None Include="../Goose/Data/Illutia/Scripts/Global/Dimensions.csx"
         Link="DimensionScripts/Dimensions.csx" CopyToOutputDirectory="PreserveNewest" />
-  <None Include="../Goose/Data/Illutia/Scripts/Map/DimensionMap.csx"
-        Link="DimensionScripts/DimensionMap.csx" CopyToOutputDirectory="PreserveNewest" />
 </ItemGroup>
 ```
 
-and resolve in the test as:
+`GlobalScriptFixture` reads from `AppContext.BaseDirectory/DimensionScripts/`, so nothing
+else in the tests needs a path.
 
-```csharp
-private static readonly string ScriptPath =
-    Path.Combine(AppContext.BaseDirectory, "DimensionScripts", "Dimensions.csx");
-```
+Add the `DimensionMap.csx` entry in Task 3 (the first task whose script *loads* it, not
+Task 5 where it is first written — see below) and the `DimensionUnlock.csx` entry in Task 7,
+when those files first exist. An `Include` pointing at a missing file copies nothing, and
+the fixture's explicit `FileNotFoundException` is there to make that failure legible.
 
-Add the `DimensionMap.csx` entry in Task 5 and a `DimensionUnlock.csx` entry in Task 7, when those files first exist — an `Include` pointing at a missing file copies nothing and would leave the test failing on a confusing `FileNotFoundException`.
+**Ordering constraint the original plan had wrong.** Task 3 clones maps and attaches
+`Scripts/Map/DimensionMap.csx` to every clone, which means `GetScript<IMapScript>` resolves
+that path — and therefore the file must exist — *before* Task 5 writes it. Either:
+
+- create `DimensionMap.csx` as a bare `public class DimensionMap : BaseMapScript { }` in
+  Task 3 and fill it in at Task 5 (simplest), or
+- move Task 5 before Task 3.
+
+Take the first. Add its `<None Include>` at the same time.
 
 **Step 2: Run test to verify it fails**
 
@@ -218,11 +288,49 @@ public class Dimensions : BaseGlobalScript
     /// <summary>Map /dimension n warps to.</summary>
     public const int StartMapId = 1;
 
-    /// <summary>NPC template gating each dimension. Abyss used 162 (King Terror).</summary>
+    /// <summary>NPC template gating each dimension.</summary>
     public const int BossTemplateId = 162;
 
+    // ---- Warden ---------------------------------------------------------
+    // The quest giver. It does not exist in sheet data, so everything about it is
+    // configured here. One template per dimension at WardenTemplateId + Offset*dim.
+
+    /// <summary>Base id for the generated warden templates. Must not collide with a
+    /// sheet-authored npc_id - the script checks and refuses to overwrite.</summary>
+    public const int WardenTemplateId = 800000;
+
+    public const string WardenName = "Warden of the Void";
+    public const string WardenTitle = "";
+    public const string WardenSurname = "";
+
+    /// <summary>Any class works as long as it has a row for WardenLevel. class_info only
+    /// carries levels 1-5 for class 1 (Commoner); classes 2-7 carry 1-50. Level 50 on
+    /// class 1 makes Class.GetLevel return null and NPC.LoadFromTemplate throws at
+    /// NPC.cs:636. The script validates this at startup rather than at spawn time.</summary>
+    public const int WardenClassId = 3;      // Warrior
+    public const int WardenLevel = 50;
+
+    /// <summary>Appearance. These are the same fields npc_templates carries, so anything
+    /// legal for a sheet-authored NPC is legal here.</summary>
+    public const int WardenBodyID = 1;
+    public const int WardenBodyState = 0;
+    public const int WardenBodyR = 40;
+    public const int WardenBodyG = 0;
+    public const int WardenBodyB = 60;
+    public const int WardenBodyA = 200;
+    public const int WardenFaceID = 1;
+    public const int WardenHairID = 1;
+    public const int WardenHairR = 20;
+    public const int WardenHairG = 0;
+    public const int WardenHairB = 40;
+    public const int WardenHairA = 200;
+
+    /// <summary>MKC-string fragment, exactly as npc_templates.equipped_items
+    /// (NPCHandler.cs:65, rendered at Packets.cs:161). Empty for no visible equipment.</summary>
+    public const string WardenEquippedItems = "";
+
     /// <summary>Quest-giver placement, per dimension, on that dimension's start map.</summary>
-    public const int WardenTemplateId = 0;   // 0 = create one from scratch
+    public const int WardenMapId = StartMapId;
     public const int WardenX = 50;
     public const int WardenY = 50;
 
@@ -239,6 +347,20 @@ public class Dimensions : BaseGlobalScript
     }
 }
 ```
+
+**On the warden's stats.** Everything except appearance is fixed rather than configurable,
+because each has one right answer:
+
+| Field | Value | Why |
+|---|---|---|
+| `NPCType` | `Types.Quest` (12) | It offers quests |
+| `CanBeKilled` | `false` | Every dimension > 0 forces `CanPVP = true`; a killable quest giver in an open-PVP zone is a griefing target. `NPCHandler.cs:63` maps this from `invincible` |
+| `CanMove` | `false` | Players need to find it where it was put |
+| `Level` | `WardenLevel` (50) | Cosmetic for an invincible NPC, but it must have a class level row |
+| `ClassID` | `WardenClassId` (3) | Must resolve, and must have a row at `WardenLevel` |
+| `BaseStats.HP` | small non-zero, e.g. 1000 | It cannot die; the value only affects what the client renders |
+| `WeaponDamage`, `AggroRange` | 0 | It is not a combatant |
+| `RespawnTime` | irrelevant, spawn with `shouldRespawn: false` | It never dies |
 
 **Step 4: Run test to verify it passes**
 
@@ -334,7 +456,11 @@ public void Applies_the_dimension_five_multipliers()
 }
 ```
 
-Flip `Enabled` to `true` in the script as part of this task — the disabled test from Task 1 must be updated to set expectations accordingly, or deleted in favour of a test that compiles a copy with `Enabled = false`. Prefer keeping the shipped script enabled and dropping the Task 1 test once these replace it.
+Flip `Enabled` to `true` in the script as part of this task. Task 1's disabled test breaks
+when you do — **Task 7b replaces it with one that compiles a flag-flipped copy of the
+shipped source**, so the escape hatch stays covered. Do not just delete it. If you would
+rather not carry a red test between here and Task 7b, do Task 7b's rewrite now; it does not
+depend on anything Tasks 3–7 add.
 
 **Step 2: Run tests to verify they fail**
 
@@ -362,6 +488,16 @@ private void CloneTemplates(GameWorld world)
     {
         foreach (var template in baseTemplates)
         {
+            int id = template.NPCTemplateID + Offset * dim;
+
+            // AddTemplate overwrites silently (NPCHandler.cs, Part 1 task 4). A base id
+            // large enough to land on another dimension's slot would quietly replace a
+            // generated template and produce a world that is wrong in a way nothing
+            // reports. Refuse loudly instead.
+            if (world.NPCHandler.GetNPCTemplate(id) != null)
+                throw new Exception($"Dimension template id {id} (base {template.NPCTemplateID}, dim {dim}) "
+                                    + "already exists. Offset is too small for this data set.");
+
             world.NPCHandler.AddTemplate(ScaleTemplate(template, dim));
         }
     }
@@ -461,11 +597,145 @@ git commit -m "feat: clone and scale NPC templates per dimension"
 
 ---
 
-## Task 3: Clone maps and rewire warps
+## Task 2b: Rewire allies within each dimension
 
 **Files:**
 - Modify: `Goose/Data/Illutia/Scripts/Global/Dimensions.csx`
 - Test: `Goose.Tests/DimensionsScriptTests.cs`
+
+**Why this is not part of Task 2:** the `NPCTemplate` copy constructor carries `Allies`
+across as a new list holding the **base** templates. Ally checks are reference comparisons
+against the template — `NPC.Allies` is `NPCTemplate.Allies` (`NPC.cs:321`) and both call
+sites do `this.Allies.Contains(npc.NPCTemplate)` (`NPC.cs:559`, `NPC.cs:1000`) — so a
+dimension-3 mob whose ally list points at dimension-0 templates never recognises the
+dimension-3 mob standing next to it. Mobs silently stop assisting each other in every
+dimension.
+
+It has to be a second pass because Task 2 creates templates in dictionary order: when
+template A is cloned, ally B's clone may not exist yet.
+
+**Step 1: Write the failing test**
+
+```csharp
+[Fact]
+public void Allies_point_at_the_same_dimensions_templates()
+{
+    using var fixture = Run(f =>
+    {
+        var dog = new NPCTemplate { NPCTemplateID = 162, Name = "Shadow Dog", Level = 40 };
+        var wolf = new NPCTemplate { NPCTemplateID = 163, Name = "Shadow Wolf", Level = 40 };
+        dog.Allies = new List<NPCTemplate> { wolf };
+        wolf.Allies = new List<NPCTemplate> { dog };
+        f.World.NPCHandler.AddTemplate(dog);
+        f.World.NPCHandler.AddTemplate(wolf);
+    });
+
+    var dim3Dog = fixture.World.NPCHandler.GetNPCTemplate(162 + 100000 * 3);
+    var dim3Wolf = fixture.World.NPCHandler.GetNPCTemplate(163 + 100000 * 3);
+
+    // Reference identity is what NPC.cs:559 compares, so Same, not Equal.
+    Assert.Same(dim3Wolf, Assert.Single(dim3Dog.Allies));
+    Assert.Same(dim3Dog, Assert.Single(dim3Wolf.Allies));
+
+    // The base templates keep their own allies.
+    Assert.Same(fixture.World.NPCHandler.GetNPCTemplate(163),
+                Assert.Single(fixture.World.NPCHandler.GetNPCTemplate(162).Allies));
+}
+
+[Fact]
+public void An_ally_with_no_dimension_clone_is_dropped_rather_than_left_pointing_at_dimension_zero()
+{
+    using var fixture = Run(f =>
+    {
+        var dog = new NPCTemplate { NPCTemplateID = 162, Name = "Shadow Dog", Level = 40 };
+        // An ally id that resolved at load time but is not in the handler now.
+        dog.Allies = new List<NPCTemplate> { new NPCTemplate { NPCTemplateID = 999 } };
+        f.World.NPCHandler.AddTemplate(dog);
+    });
+
+    Assert.Empty(fixture.World.NPCHandler.GetNPCTemplate(162 + 100000 * 3).Allies);
+}
+```
+
+**Step 2: Run tests to verify they fail**
+
+Run: `dotnet test Goose.sln --filter DimensionsScriptTests`
+Expected: FAIL — the dimension-3 dog's ally is the dimension-0 wolf.
+
+**Step 3: Write minimal implementation**
+
+Add `RewireAllies(world);` to `OnLoaded` immediately after `CloneTemplates(world);`:
+
+```csharp
+/// <summary>Second pass over the templates Task 2 created: repoint every ally at the
+/// same dimension's clone. Ally checks compare template references (NPC.cs:559, :1000),
+/// so a dimension mob allied to a dimension-0 template recognises nothing.
+///
+/// Separate from CloneTemplates because clone order is dictionary order - an ally's clone
+/// may not exist yet at the moment the template referencing it is built.</summary>
+private void RewireAllies(GameWorld world)
+{
+    for (int dim = 1; dim <= DimensionCount; dim++)
+    {
+        foreach (var basic in world.NPCHandler.GetTemplates()
+                                   .Where(t => t.NPCTemplateID < Offset).ToList())
+        {
+            var clone = world.NPCHandler.GetNPCTemplate(basic.NPCTemplateID + Offset * dim);
+            if (clone == null || basic.Allies == null) continue;
+
+            var allies = new List<NPCTemplate>();
+            foreach (var ally in basic.Allies)
+            {
+                // An ally with no clone is dropped, not left pointing across dimensions.
+                var dimAlly = world.NPCHandler.GetNPCTemplate(ally.NPCTemplateID + Offset * dim);
+                if (dimAlly != null) allies.Add(dimAlly);
+            }
+
+            clone.Allies = allies;
+            // Keep the string form consistent - nothing re-parses it after load, but a
+            // divergent AlliesString is a trap for anyone debugging from a dump.
+            clone.AlliesString = string.Join(" ", allies.Select(a => a.NPCTemplateID));
+        }
+    }
+}
+```
+
+**Step 4: Run tests to verify they pass**
+
+Run: `dotnet test Goose.sln --filter DimensionsScriptTests`
+Expected: PASS.
+
+**Step 5: Commit**
+
+```bash
+git add -A
+git commit -m "feat: rewire dimension NPC allies to same-dimension templates"
+```
+
+---
+
+## Task 3: Clone maps and rewire warps
+
+**Files:**
+- Modify: `Goose/Data/Illutia/Scripts/Global/Dimensions.csx`
+- Create: `Goose/Data/Illutia/Scripts/Map/DimensionMap.csx` (stub — Task 5 fills it in)
+- Modify: `Goose.Tests/Goose.Tests.csproj` (copy `DimensionMap.csx` to output)
+- Test: `Goose.Tests/DimensionsScriptTests.cs`
+
+**The stub comes first.** `CloneMaps` resolves `Scripts/Map/DimensionMap.csx` through
+`ScriptHandler.GetScript`, which compiles the file, so it has to exist before this task's
+tests can pass. Create it as:
+
+```csharp
+using Goose;
+using Goose.Scripting;
+
+public class DimensionMap : BaseMapScript
+{
+}
+```
+
+and add its `<None Include>` to `Goose.Tests.csproj` alongside `Dimensions.csx`.
 
 **Step 1: Write the failing tests**
 
@@ -519,6 +789,42 @@ public void Blocked_tiles_are_shared_not_duplicated()
     Assert.Same(fixture.World.MapHandler.GetMap(1).GetTile(4, 4),
                 fixture.World.MapHandler.GetMap(100001).GetTile(4, 4));
 }
+
+/// <summary>The clone must not become a way around a key-gated map. requiredItems is
+/// private (Map.cs:64) and enforced by PlayerCanJoin (Map.cs:573), which is why Part 1
+/// added Map.CloneAs rather than leaving the script to rebuild public fields.</summary>
+[Fact]
+public void Clones_keep_the_base_maps_required_items_and_mute_state()
+{
+    using var fixture = Run(f =>
+    {
+        var vault = f.AddBaseMap(1, "Vault");
+        vault.AddRequiredItem(1234);
+        vault.Muted = true;
+    });
+
+    var dim2 = fixture.World.MapHandler.GetMap(1 + 100000 * 2);
+
+    Assert.Equal(new[] { 1234 }, dim2.RequiredItems);
+    Assert.True(dim2.Muted);
+}
+
+[Fact]
+public void Map_ids_do_not_collide_with_existing_maps()
+{
+    // A base map already sitting on a generated id must be a loud failure, not a silent
+    // overwrite - MapHandler.Maps is a plain dictionary.
+    var fixture = new GlobalScriptFixture();
+    fixture.AddBaseMap(1, "Town");
+    fixture.AddBaseMap(100001, "Impostor");
+
+    using (fixture)
+    {
+        var ex = Assert.Throws<Exception>(
+            () => fixture.CompileShipped().Object.OnLoaded(fixture.World));
+        Assert.Contains("100001", ex.Message);
+    }
+}
 ```
 
 **Step 2: Run tests to verify they fail**
@@ -545,36 +851,25 @@ private void CloneMaps(GameWorld world)
     {
         foreach (var basic in baseMaps)
         {
-            var clone = new Map
-            {
-                ID = basic.ID + Offset * dim,
-                Name = basic.Name + " (" + dim + ")",
-                FileName = basic.FileName,
-                Width = basic.Width,
-                Height = basic.Height,
-                MinLevel = basic.MinLevel,
-                MaxLevel = basic.MaxLevel,
-                // Entry gates scale by (dim*5)^2
-                MinExperience = basic.MinExperience * (dim * 5) * (dim * 5),
-                MaxExperience = basic.MaxExperience * (dim * 5) * (dim * 5),
-                CanPVP = true,                       // forced on in every dimension
-                CanChat = basic.CanChat,
-                CanAuction = basic.CanAuction,
-                CanShout = basic.CanShout,
-                CanCast = basic.CanCast,
-                CanBind = basic.CanBind,
-                CanUseItems = basic.CanUseItems,
-                CanSpawnPets = basic.CanSpawnPets,
-                Script = mapScript,
-                ScriptParams = dim.ToString(),       // DimensionMap reads its dimension from here
+            int id = basic.ID + Offset * dim;
 
-                // Shallow tile copy: BlockedTiles are stateless and shared, WarpTiles are
-                // replaced in RewireWarps, ItemTiles only ever appear at runtime.
-                // Deliberately NOT Map.LoadData - that re-parses the .map file and issues
-                // two SQL queries keyed on the clone's id, which match no rows (Map.cs:466).
-                tiles = (ITile[])basic.tiles.Clone(),
-                characters = new ICharacter[(basic.Width + 1) * (basic.Height + 1)],
-            };
+            // MapHandler.Maps is a plain dictionary - a collision would silently replace a
+            // real map and strand whoever is standing on it.
+            if (world.MapHandler.GetMap(id) != null)
+                throw new Exception($"Dimension map id {id} (base {basic.ID}, dim {dim}) already exists. "
+                                    + "Offset is too small for this data set.");
+
+            // Map.CloneAs (Part 1 task 5) carries everything across, including the private
+            // requiredItems list and Muted. Rebuilding public fields here instead would
+            // drop item-gated entry on every dimension copy of a key-gated map.
+            var clone = basic.CloneAs(id, basic.Name + " (" + dim + ")");
+
+            clone.CanPVP = true;                      // forced on in every dimension
+            // Entry gates scale by (dim*5)^2
+            clone.MinExperience = basic.MinExperience * (dim * 5) * (dim * 5);
+            clone.MaxExperience = basic.MaxExperience * (dim * 5) * (dim * 5);
+            clone.Script = mapScript;                 // see follow-up 1: replaces, not composes
+            clone.ScriptParams = dim.ToString();      // DimensionMap reads its dimension from here
 
             world.MapHandler.Maps[clone.ID] = clone;
 
@@ -654,8 +949,7 @@ public void Spawns_the_dimension_template_on_the_dimension_map()
         t.BaseStats.HP = 3704;
         f.World.NPCHandler.AddTemplate(t);
 
-        var npc = new NPC();
-        npc.LoadFromTemplate(f.World, 1, 50, 50, t, shouldRespawn: true);
+        f.World.NPCHandler.SpawnNPC(f.World, 1, 50, 50, t, shouldRespawn: true);
     });
 
     var dim1Map = fixture.World.MapHandler.GetMap(100001);
@@ -665,9 +959,30 @@ public void Spawns_the_dimension_template_on_the_dimension_map()
     Assert.Equal(50, spawned.SpawnX);
     Assert.Equal(50, spawned.SpawnY);
 }
+
+/// <summary>The done criteria are stated in NPCCount ("~82,000 NPCs"), so the generated
+/// spawns must actually be registered with the handler. Only SpawnNPC (Part 1 task 4) does
+/// that - NPC.LoadFromTemplate adds to the map and the login-id lookup and nothing else.</summary>
+[Fact]
+public void Generated_spawns_are_registered_with_the_handler()
+{
+    using var fixture = Run(f =>
+    {
+        f.AddBaseMap(1, "Town", width: 100, height: 100);
+        var t = new NPCTemplate { NPCTemplateID = 162, Name = "Shadow Dog", Level = 40 };
+        t.BaseStats.HP = 3704;
+        f.World.NPCHandler.AddTemplate(t);
+        f.World.NPCHandler.SpawnNPC(f.World, 1, 50, 50, t, shouldRespawn: true);
+    });
+
+    // 1 base spawn + one per dimension (6). The script's types are not visible to the test
+    // assembly, so the count is a literal. The warden chain (Task 7) adds more; this
+    // assertion becomes a >= once that lands - keep it exact until then.
+    Assert.Equal(7, fixture.World.NPCHandler.NPCCount);
+}
 ```
 
-`Map.NPCs` is a public accessor over the map's npc list (`Goose/Map.cs:618`), so the assertion above works as written.
+`Map.NPCs` is a public accessor over the map's npc list (`Goose/Map.cs:618`), so the assertions above work as written.
 
 **Step 2: Run test to verify it fails**
 
@@ -681,7 +996,8 @@ Add `CloneSpawns(world);` to `OnLoaded` after `RewireWarps(world);`:
 ```csharp
 private void CloneSpawns(GameWorld world)
 {
-    // Snapshot before spawning - the handler's npc list grows as we go.
+    // Snapshot the base spawns before spawning anything - each map's npc list grows as we
+    // go, and Map.NPCs hands back the live list (Map.cs:618).
     var baseSpawns = world.MapHandler.Maps.Values
         .Where(m => m.ID < Offset)
         .SelectMany(m => m.NPCs.ToList())
@@ -694,10 +1010,14 @@ private void CloneSpawns(GameWorld world)
             var template = world.NPCHandler.GetNPCTemplate(basic.NPCTemplate.NPCTemplateID + Offset * dim);
             if (template == null) continue;
 
-            // shouldRespawn: true - respawning is self-sustaining on the NPC, matching
-            // how NPCHandler.LoadNPCs:277 creates the base spawns.
-            new NPC().LoadFromTemplate(world, basic.Map.ID + Offset * dim,
-                                       basic.SpawnX, basic.SpawnY, template, shouldRespawn: true);
+            // SpawnNPC, NOT new NPC().LoadFromTemplate(...): the latter adds the NPC to its
+            // map and to the login-id lookup but not to NPCHandler.npcs, so it would never
+            // appear in NPCCount. See Part 1 task 4.
+            //
+            // shouldRespawn: true - respawning is self-sustaining on the NPC, matching how
+            // LoadNPCs creates the base spawns.
+            world.NPCHandler.SpawnNPC(world, basic.Map.ID + Offset * dim,
+                                      basic.SpawnX, basic.SpawnY, template, shouldRespawn: true);
         }
     }
 }
@@ -720,13 +1040,20 @@ git commit -m "feat: clone NPC spawns onto dimension maps"
 ## Task 5: DimensionMap.csx entry gating
 
 **Files:**
-- Create: `Goose/Data/Illutia/Scripts/Map/DimensionMap.csx`
+- Modify: `Goose/Data/Illutia/Scripts/Map/DimensionMap.csx` (the Task 3 stub)
 - Test: `Goose.Tests/DimensionMapScriptTests.cs` (create)
 
 Two gates are needed, because they cover different paths:
 
 - `CanPlayerJoin` (Part 1) covers warps (`MoveEvent.cs:123`) and teleport spells (`SpellEffect.cs:727`).
 - `OnPlayerEntered` (`Map.cs:137`) covers **login** — a player whose saved `map_id` is a dimension map is placed directly onto it without passing `PlayerCanJoin`. Abyss needed a separate check for the same reason (`Player.java:1458`).
+
+**And the bind is a third thing.** Relocating the player off the map is not enough:
+`BoundID`/`BoundMap` (`Player.cs:671–674`) are what death warps to (`Player.cs:1775`), and
+a bind set inside a dimension survives the relocation. A player whose `dimension.max` is
+reduced would keep a locked-dimension bind and re-enter it by dying — the design calls for
+clamping both (`docs/plans/2026-08-09-dimensions-design.md`, "Login clamp"), so
+`OnPlayerEntered` clamps the bound map too.
 
 **Step 1: Write the failing test**
 
@@ -744,7 +1071,7 @@ public class DimensionMapScriptTests
     public void Refuses_players_below_the_required_dimension()
     {
         using var fixture = new GlobalScriptFixture();
-        var script = fixture.CompileMapScript("Goose/Data/Illutia/Scripts/Map/DimensionMap.csx");
+        var script = fixture.CompileShippedMapScript();
         var map = fixture.AddBaseMap(300001, "Town (3)");
         map.ScriptParams = "3";
 
@@ -760,7 +1087,7 @@ public class DimensionMapScriptTests
     public void Allows_players_at_or_above_the_required_dimension()
     {
         using var fixture = new GlobalScriptFixture();
-        var script = fixture.CompileMapScript("Goose/Data/Illutia/Scripts/Map/DimensionMap.csx");
+        var script = fixture.CompileShippedMapScript();
         var map = fixture.AddBaseMap(300001, "Town (3)");
         map.ScriptParams = "3";
 
@@ -774,16 +1101,110 @@ public class DimensionMapScriptTests
     public void Players_with_no_progress_default_to_dimension_zero()
     {
         using var fixture = new GlobalScriptFixture();
-        var script = fixture.CompileMapScript("Goose/Data/Illutia/Scripts/Map/DimensionMap.csx");
+        var script = fixture.CompileShippedMapScript();
         var map = fixture.AddBaseMap(100001, "Town (1)");
         map.ScriptParams = "1";
 
         Assert.NotNull(script.Object.CanPlayerJoin(map, new Player(0), fixture.World));
     }
+
+    // ---- The login and bind clamps ------------------------------------------------
+
+    [Fact]
+    public void Entering_a_locked_dimension_map_relocates_the_player_to_dimension_zero()
+    {
+        using var fixture = new GlobalScriptFixture();
+        var script = fixture.CompileShippedMapScript();
+        fixture.AddBaseMap(1, "Town", width: 100, height: 100);
+        var dim3 = fixture.AddBaseMap(300001, "Town (3)", width: 100, height: 100);
+        dim3.ScriptParams = "3";
+
+        var player = PlayerOn(dim3, x: 50, y: 50);
+        player.Properties["dimension.max"] = 0;
+
+        script.Object.OnPlayerEntered(dim3, player, fixture.World);
+
+        Assert.Equal(1, player.Map.ID);
+    }
+
+    /// <summary>The design calls for clamping bound_id as well as map_id. Without this a
+    /// player whose progress is reduced keeps a bind inside a locked dimension and returns
+    /// there every time they die (Player.cs:1775).</summary>
+    [Fact]
+    public void A_bind_inside_a_locked_dimension_is_clamped_to_dimension_zero()
+    {
+        using var fixture = new GlobalScriptFixture();
+        var script = fixture.CompileShippedMapScript();
+        var town = fixture.AddBaseMap(1, "Town", width: 100, height: 100);
+        var dim3 = fixture.AddBaseMap(300001, "Town (3)", width: 100, height: 100);
+        dim3.ScriptParams = "3";
+
+        var player = PlayerOn(dim3, x: 50, y: 50);
+        player.Properties["dimension.max"] = 0;
+        player.BoundID = 300001;
+        player.BoundMap = dim3;
+        player.BoundX = 40;
+        player.BoundY = 40;
+
+        script.Object.OnPlayerEntered(dim3, player, fixture.World);
+
+        Assert.Equal(1, player.BoundID);
+        Assert.Same(town, player.BoundMap);
+        Assert.Equal(40, player.BoundX);      // coordinates survive; only the map changes
+        Assert.Equal(40, player.BoundY);
+    }
+
+    [Fact]
+    public void A_bind_the_player_still_has_access_to_is_left_alone()
+    {
+        using var fixture = new GlobalScriptFixture();
+        var script = fixture.CompileShippedMapScript();
+        fixture.AddBaseMap(1, "Town", width: 100, height: 100);
+        var dim3 = fixture.AddBaseMap(300001, "Town (3)", width: 100, height: 100);
+        dim3.ScriptParams = "3";
+
+        var player = PlayerOn(dim3, x: 50, y: 50);
+        player.Properties["dimension.max"] = 3;
+        player.BoundID = 300001;
+        player.BoundMap = dim3;
+
+        script.Object.OnPlayerEntered(dim3, player, fixture.World);
+
+        Assert.Equal(300001, player.BoundID);
+        Assert.Same(dim3, player.BoundMap);
+    }
+
+    /// <summary>Binds are clamped even when the map being entered is fine - a player can
+    /// walk into dimension 0 carrying a dimension-5 bind.</summary>
+    [Fact]
+    public void A_locked_bind_is_clamped_even_when_the_current_map_is_allowed()
+    {
+        using var fixture = new GlobalScriptFixture();
+        var script = fixture.CompileShippedMapScript();
+        var town = fixture.AddBaseMap(1, "Town", width: 100, height: 100);
+        var dim1 = fixture.AddBaseMap(100001, "Town (1)", width: 100, height: 100);
+        dim1.ScriptParams = "1";
+        var dim5 = fixture.AddBaseMap(500001, "Town (5)", width: 100, height: 100);
+        dim5.ScriptParams = "5";
+
+        var player = PlayerOn(dim1, x: 50, y: 50);
+        player.Properties["dimension.max"] = 1;
+        player.BoundID = 500001;
+        player.BoundMap = dim5;
+
+        script.Object.OnPlayerEntered(dim1, player, fixture.World);
+
+        Assert.Equal(1, player.Map.ID);       // the current map was allowed - no relocation
+        Assert.Equal(1, player.BoundID);      // but the bind was not
+        Assert.Same(town, player.BoundMap);
+    }
 }
 ```
 
-Add a `CompileMapScript(string sourcePath)` method to `GlobalScriptFixture` mirroring `CompileShipped` but returning `Script<IMapScript>` and copying into `Scripts/Map/`.
+`PlayerOn(map, x, y)` builds a `Player` already placed on a map — whatever the minimum is
+for `WarpTo` to work in a test world. If `WarpTo` turns out to need more of a live world
+than a test can stand up, assert on `player.MapID` instead of `player.Map.ID` and drive the
+relocation through the same path the script uses.
 
 **Step 2: Run test to verify it fails**
 
@@ -825,21 +1246,67 @@ public class DimensionMap : BaseMapScript
 
     /// <summary>Login places a player straight onto their saved map without consulting
     /// PlayerCanJoin, so the gate is re-checked here and violators are sent to the
-    /// dimension-0 copy of wherever they were.</summary>
+    /// dimension-0 copy of wherever they were. The bind is clamped too - see below.</summary>
     public override void OnPlayerEntered(Map map, Player player, GameWorld world)
     {
-        if (DimensionOf(map) <= MaxDimensionOf(player)) return;
+        int max = MaxDimensionOf(player);
 
-        int baseId = map.ID % Dimensions.Offset;
-        var fallback = world.MapHandler.GetMap(baseId);
+        // Order matters: clamp the bind first, so it is corrected even when this map is
+        // allowed and the early return below fires.
+        ClampBind(player, max, world);
+
+        if (DimensionOf(map) <= max) return;
+
+        var fallback = world.MapHandler.GetMap(map.ID % Offset);
         if (fallback == null) return;
 
         world.Send(player, "$7The void has rejected you. You have a maximum dimension of "
-                           + MaxDimensionOf(player) + ".");
+                           + max + ".");
         player.WarpTo(world, fallback, player.MapX, player.MapY);
+    }
+
+    /// <summary>Relocating the player is not enough on its own. BoundID/BoundMap
+    /// (Player.cs:671-674) are what death warps to (Player.cs:1775), so a bind set inside a
+    /// dimension survives the relocation and lets a player whose progress was reduced walk
+    /// straight back in by dying. Clamp it to the dimension-0 map, keeping the coordinates.
+    ///
+    /// A dimension map's id is baseId + Offset*dim, so the base is id % Offset. If that map
+    /// has somehow gone (a re-import between sessions), fall back to the starting map -
+    /// leaving a bind pointing at a map that does not exist would strand the player on
+    /// death.</summary>
+    private void ClampBind(Player player, int max, GameWorld world)
+    {
+        int boundDim = player.BoundID / Offset;
+        if (boundDim <= max) return;
+
+        var baseMap = world.MapHandler.GetMap(player.BoundID % Offset);
+        if (baseMap != null)
+        {
+            // Same map one dimension down to 0, same coordinates.
+            player.BoundID = baseMap.ID;
+            player.BoundMap = baseMap;
+            return;
+        }
+
+        // The base map is gone - a re-import between sessions. A bind pointing at a map
+        // that does not exist strands the player on death, so send them to the start.
+        var start = world.MapHandler.GetMap(GameWorld.Settings.StartingMapID);
+        if (start == null) return;
+
+        player.BoundID = start.ID;
+        player.BoundMap = start;
+        player.BoundX = GameWorld.Settings.StartingMapX;
+        player.BoundY = GameWorld.Settings.StartingMapY;
     }
 }
 ```
+
+`boundDim` is `BoundID / Offset` rather than a `ScriptParams` lookup: the bound map may not
+be loaded as an object here, and the id encodes the dimension by construction. Same
+arithmetic, no dependency on the other map's script being attached.
+
+`dimension.max` is not written by this script — the clamp only reads it. The write happens
+in `DimensionUnlock.csx` (Task 7) and persists through `player_properties` (Part 1 task 2).
 
 **Cross-script references do not work.** `ScriptHandler.GetScript` (`Goose/Scripting/ScriptHandler.cs:19`) compiles each `.csx` independently against the Goose assembly, so `DimensionMap.csx` cannot see `Dimensions.Offset`. Declare it locally:
 
@@ -856,7 +1323,7 @@ and add a matching comment in `Dimensions.csx`. (Within a single file this is a 
 **Step 4: Run test to verify it passes**
 
 Run: `dotnet test Goose.sln --filter DimensionMapScriptTests`
-Expected: PASS (3 tests).
+Expected: PASS (7 tests — 3 gating, 4 clamp).
 
 **Step 5: Commit**
 
@@ -964,15 +1431,13 @@ git commit -m "feat: add /dimension warp command"
 
 **Files:**
 - Modify: `Goose/Data/Illutia/Scripts/Global/Dimensions.csx`
+- Create: `Goose/Data/Illutia/Scripts/Quest/DimensionUnlock.csx`
+- Modify: `Goose.Tests/Goose.Tests.csproj` (copy `DimensionUnlock.csx` to output)
 - Test: `Goose.Tests/DimensionsScriptTests.cs`
 
-**Verify first (blocking):** does `BossTemplateId` 162 have a spawn in the live data?
-
-```bash
-sqlite3 Goose/bin/Debug/IllutiaGoose.db "SELECT * FROM npc_spawns WHERE npc_id = 162;"
-```
-
-In the April 2025 snapshot this returns **zero rows**, which would make quest 0 uncompletable and block the whole chain at step one. If live data also returns nothing, `Dimensions.csx` must place a dimension-0 spawn of the boss as part of this task. Resolve this before writing code.
+The boss spawn is data. `BossTemplateId` names a template that is spawned in dimension 0;
+`CloneSpawns` copies that spawn into every dimension, which is what gives dimensions 1–6
+their bosses. Nothing in this task creates spawns.
 
 **Step 1: Write the failing test**
 
@@ -1032,7 +1497,179 @@ public void Wardens_carry_their_dimensions_quest()
 
     Assert.Single(warden.Quests);
 }
+
+/// <summary>The warden is built from configuration, not from sheet data, so the
+/// configuration is the only thing that decides what players see and whether it can be
+/// killed. A killable quest giver in a forced-PVP dimension is a griefing target.</summary>
+[Fact]
+public void Wardens_use_the_configured_appearance_and_cannot_be_killed()
+{
+    using var fixture = Run(SeedBoss);
+
+    var warden = fixture.World.NPCHandler.GetNPCTemplate(800000 + 100000 * 2);
+
+    Assert.NotNull(warden);
+    Assert.Equal(NPCTemplate.Types.Quest, warden.NPCType);
+    Assert.False(warden.CanBeKilled);
+    Assert.False(warden.CanMove);
+    Assert.Equal(50, warden.Level);
+    Assert.Equal(3, warden.ClassID);
+
+    // Appearance comes from config verbatim - dimension recolouring must NOT be applied.
+    Assert.Equal(1, warden.BodyID);
+    Assert.Equal(1, warden.FaceID);
+    Assert.Equal(1, warden.HairID);
+    Assert.Equal(40, warden.BodyR);
+    Assert.Equal(20, warden.HairR);
+    Assert.Equal("", warden.EquippedItems);
+}
+
+/// <summary>NPC.LoadFromTemplate dereferences Class.GetLevel(Level) at NPC.cs:636 with no
+/// null check, so a warden on a class with no row at WardenLevel throws mid-spawn and
+/// leaves the world half-built. Class 1 has levels 1-5 only, which is exactly the shape of
+/// this mistake.</summary>
+[Fact]
+public void A_warden_class_with_no_row_at_the_warden_level_is_rejected_up_front()
+{
+    var fixture = new GlobalScriptFixture();
+    SeedBoss(fixture);
+    fixture.RemoveClassLevel(classId: 3, level: 50);
+
+    using (fixture)
+    {
+        var ex = Assert.Throws<Exception>(
+            () => fixture.CompileShipped().Object.OnLoaded(fixture.World));
+        Assert.Contains("50", ex.Message);
+    }
+}
+
+[Fact]
+public void Wardens_are_spawned_on_the_start_map_of_every_dimension_that_has_a_quest()
+{
+    using var fixture = Run(SeedBoss);
+
+    // Dimensions 0-5 each offer the quest that unlocks the dimension above them. Dimension
+    // 6 is the top, so it has no quest and no warden.
+    for (int dim = 0; dim < 6; dim++)
+    {
+        var map = fixture.World.MapHandler.GetMap(1 + 100000 * dim);
+        Assert.Contains(map.NPCs, n => n.NPCTemplate.NPCTemplateID == 800000 + 100000 * dim);
+    }
+
+    Assert.DoesNotContain(fixture.World.MapHandler.GetMap(1 + 100000 * 6).NPCs,
+                          n => n.NPCTemplate.NPCType == NPCTemplate.Types.Quest);
+}
+
+// ---- Id collisions ---------------------------------------------------------------
+
+/// <summary>AddTemplate and AddQuest both overwrite silently. Generated ids landing on
+/// sheet-authored rows would replace real content with no diagnostic at all, so every
+/// generated id space gets a preflight check.</summary>
+[Theory]
+[InlineData("npc template", 800000)]      // warden base id
+[InlineData("npc template", 100162)]      // dimension-1 clone of the seeded boss
+public void Generated_npc_template_ids_must_not_already_exist(string _, int id)
+{
+    var fixture = new GlobalScriptFixture();
+    SeedBoss(fixture);
+    fixture.World.NPCHandler.AddTemplate(new NPCTemplate { NPCTemplateID = id, Name = "Impostor" });
+
+    using (fixture)
+    {
+        var ex = Assert.Throws<Exception>(
+            () => fixture.CompileShipped().Object.OnLoaded(fixture.World));
+        Assert.Contains(id.ToString(), ex.Message);
+    }
+}
+
+[Fact]
+public void Generated_quest_ids_must_not_already_exist()
+{
+    var fixture = new GlobalScriptFixture();
+    SeedBoss(fixture);
+    fixture.World.QuestHandler.AddQuest(new Quest { Id = 900003, Name = "Sheet-authored" });
+
+    using (fixture)
+    {
+        var ex = Assert.Throws<Exception>(
+            () => fixture.CompileShipped().Object.OnLoaded(fixture.World));
+        Assert.Contains("900003", ex.Message);
+    }
+}
+
+/// <summary>Requirement and reward ids are the persistence key for in-flight quest
+/// progress, so a collision there corrupts saved progress rather than just content.</summary>
+[Fact]
+public void Requirement_and_reward_ids_do_not_collide_with_each_other()
+{
+    using var fixture = Run(SeedBoss);
+
+    var ids = new List<int>();
+    for (int dim = 0; dim < 6; dim++)
+    {
+        var quest = fixture.World.QuestHandler.Get(900000 + dim);
+        ids.AddRange(quest.Requirements.Select(r => r.Id));
+        ids.AddRange(quest.Rewards.Select(r => r.Id));
+    }
+
+    Assert.Equal(ids.Count, ids.Distinct().Count());
+}
+
+// ---- The reward actually grants the dimension ------------------------------------
+
+/// <summary>The chain is only worth anything if completing a quest raises dimension.max
+/// and that survives a save. Nothing above tests the reward script at all.</summary>
+[Fact]
+public void Completing_a_quest_raises_dimension_max()
+{
+    using var fixture = Run(SeedBoss);
+
+    var reward = fixture.World.QuestHandler.Get(900002).Rewards.Single();
+    var player = new Player(0);
+
+    reward.Script.Object.GiveReward(reward, npc: null, player, fixture.World);
+
+    // Quest index 2 unlocks dimension 3.
+    Assert.Equal(3, player.Properties.GetProperty<int>("dimension.max", 0));
+}
+
+[Fact]
+public void The_reward_raises_but_never_lowers_dimension_max()
+{
+    using var fixture = Run(SeedBoss);
+
+    var player = new Player(0);
+    player.Properties["dimension.max"] = 5;
+
+    var reward = fixture.World.QuestHandler.Get(900000).Rewards.Single();
+    reward.Script.Object.GiveReward(reward, npc: null, player, fixture.World);
+
+    Assert.Equal(5, player.Properties.GetProperty<int>("dimension.max", 0));
+}
+
+/// <summary>And it must persist - the property is only useful if it comes back after a
+/// restart. This closes the loop with Part 1's player_properties column.</summary>
+[Fact]
+public void A_granted_dimension_survives_a_save_and_reload()
+{
+    using var fixture = Run(SeedBoss);
+
+    var reward = fixture.World.QuestHandler.Get(900002).Rewards.Single();
+    var player = new Player(0);
+    reward.Script.Object.GiveReward(reward, npc: null, player, fixture.World);
+
+    var json = JsonHelper.Serialize(player.Properties.Clone());
+    var reloaded = new Player(0);
+    reloaded.LoadPropertiesFromColumn(json);
+
+    Assert.Equal(3, reloaded.Properties.GetProperty<int>("dimension.max", 0));
+}
 ```
+
+`RemoveClassLevel` is a fixture helper for the warden-class test — the fixture has to seed
+at least one class with a level-50 row for any of these tests to spawn an NPC at all, so it
+also needs a way to take it away again. If `ClassHandler` has no removal API, seed the
+fixture's classes through a helper that the test can parameterise instead.
 
 **Step 2: Run tests to verify they fail**
 
@@ -1041,24 +1678,219 @@ Expected: FAIL — `QuestHandler.Get(900000)` returns null.
 
 **Step 3: Write minimal implementation**
 
-Add `CreateUnlockChain(world);` to `OnLoaded` after `CloneSpawns(world);`. For each `dim` in `0..DimensionCount-1`:
+Add `CreateUnlockChain(world);` to `OnLoaded` after `CloneSpawns(world);`.
 
-- Build a `Quest` with `Id = QuestIdBase + dim`, a name like `"Abysmal Terror (" + (dim+1) + ")"`, and `PrerequisiteQuests = dim == 0 ? new List<int>() : new List<int> { QuestIdBase + dim - 1 }`.
-- One `QuestRequirement` with `Id = QuestIdBase + dim * 10`, `Type = RequirementType.Kill`, `Value = BossTemplateId + Offset * dim`, `Value2 = 1`, `Quest = quest`.
-- One `QuestReward` with `Id = QuestIdBase + dim * 10 + 1`, `Type = RewardType.Script`, pointing at a reward script that sets `dimension.max = dim + 1`.
-- `world.QuestHandler.AddQuest(quest)`.
-- A warden template per dimension: copy or create one with `NPCType = NPCTemplate.Types.Quest`, register via `AddTemplate`, add the quest to its `Quests` list, and spawn it at `(WardenX, WardenY)` on that dimension's start map.
+### `Dimensions.csx`
 
-The `RewardType.Script` reward needs a `.csx` at `Scripts/Quest/DimensionUnlock.csx` implementing `IQuestScript.GiveReward` to write `player.Properties[MaxDimensionProperty] = <granted dimension>`.
+```csharp
+/// <summary>One quest per dimension: kill that dimension's boss, unlock the next
+/// dimension. Quest n is offered by dimension n's warden, so the chain walks the player
+/// outward one dimension at a time.
+///
+/// This differs from abyss, where quest 1 was auto-granted at character creation
+/// (Player.java:1072) and auto-completed on the kill with no NPC involved (Quests.java:80).
+/// Goose quests are NPC-offered through QuestWindow with explicit accept and turn-in, so
+/// the warden supplies the giver rather than the quest engine gaining an auto-grant
+/// path.</summary>
+private void CreateUnlockChain(GameWorld world)
+{
+    ValidateWardenClass(world);
 
-Two API facts to build against:
+    var rewardScript = world.ScriptHandler.GetScript<IQuestScript>("Scripts/Quest/DimensionUnlock.csx");
 
-- `QuestReward` has **no** `Quest` back-reference (`Goose/Quests/QuestReward.cs:37–45` — unlike `QuestRequirement`, which does have `public Quest Quest`). So the reward cannot derive its dimension from its quest. Carry it in `reward.ScriptParams` instead, which is exactly what that field is for; one script file then serves all six quests.
-- `QuestReward.Script` is a settable `Script<IQuestScript>` property (`QuestReward.cs:44`). `FromReader` populates it with `world.ScriptHandler.GetScript<IQuestScript>(scriptPath)` (`QuestReward.cs:61`); do the same directly, since these rewards never come from a database row.
+    for (int dim = 0; dim < DimensionCount; dim++)
+    {
+        int questId = QuestIdBase + dim;
 
-`Quest.PrerequisiteQuests` is a `List<int>` (`Goose/Quests/Quest.cs:30`), so assign it directly rather than through the space/comma-separated string form `FromReader` parses (`Quest.cs:62`).
+        // AddQuest overwrites silently, and quest ids are the persistence key for
+        // in-flight progress. A collision with a sheet-authored quest must be loud.
+        if (world.QuestHandler.Get(questId) != null)
+            throw new Exception($"Quest id {questId} already exists. QuestIdBase collides with sheet data.");
 
-Because `NPCHandler.cs:108` resolves `quest_ids` at template-load time — before global scripts — the warden's quests must be attached by this script, not by sheet data. `NPC.cs:637` aliases `template.Quests`, so attaching before spawning is sufficient.
+        var quest = new Quest
+        {
+            Id = questId,
+            Name = "Abysmal Terror (" + (dim + 1) + ")",
+            Description = "Slay the terror that stalks dimension " + dim + ".",
+            FailText = "The terror still lives.",
+            PassText = "The void yields. Dimension " + (dim + 1) + " is open to you.",
+            ShowProgress = true,
+            Repeatable = false,
+            // Chain: quest n requires quest n-1. Quest 0 is the entry point.
+            PrerequisiteQuests = dim == 0 ? new List<int>() : new List<int> { QuestIdBase + dim - 1 },
+        };
+
+        quest.Requirements.Add(new QuestRequirement
+        {
+            // Deterministic - QuestProgress persists keyed on requirement.Id
+            // (Player.cs:1020, QuestWindow.cs:268). A counter-assigned id would orphan
+            // in-flight kill progress on every restart.
+            Id = QuestIdBase + dim * 10,
+            Type = RequirementType.Kill,
+            // Dimension n's boss is a distinct template id, which is the whole reason the
+            // stock Kill requirement is dimension-aware with no engine change.
+            Value = BossTemplateId + Offset * dim,
+            Value2 = 1,
+            KeepRequirement = false,
+            Quest = quest,
+        });
+
+        quest.Rewards.Add(new QuestReward
+        {
+            Id = QuestIdBase + dim * 10 + 1,
+            Type = RewardType.Script,
+            Script = rewardScript,
+            // QuestReward has no Quest back-reference (QuestReward.cs:37-45), unlike
+            // QuestRequirement, so the reward cannot derive its dimension from its quest.
+            // ScriptParams carries it, and one script file serves all six rewards.
+            ScriptParams = (dim + 1).ToString(),
+        });
+
+        world.QuestHandler.AddQuest(quest);
+
+        CreateWarden(world, dim, quest);
+    }
+}
+
+/// <summary>NPC.LoadFromTemplate does Class.GetLevel(Level).BaseStats with no null check
+/// (NPC.cs:635-636). ClassHandler.GetClass returns null for an unknown id and
+/// Class.GetLevel returns null for a level the class has no row for - class 1 (Commoner)
+/// stops at level 5 while classes 2-7 reach 50. Either mistake would throw halfway through
+/// building the world, so check once, up front, with a message that says what to fix.</summary>
+private void ValidateWardenClass(GameWorld world)
+{
+    var wardenClass = world.ClassHandler.GetClass(WardenClassId);
+    if (wardenClass == null)
+        throw new Exception($"WardenClassId {WardenClassId} does not exist.");
+
+    if (wardenClass.GetLevel(WardenLevel) == null)
+        throw new Exception($"Class {WardenClassId} has no level {WardenLevel} row in class_info. "
+                            + "Pick a class that reaches WardenLevel, or lower WardenLevel.");
+}
+
+/// <summary>The quest giver for one dimension. Built from configuration rather than cloned
+/// from a base template - there is no warden in sheet data to clone.
+///
+/// Deliberately NOT run through ScaleTemplate: scaling an invincible quest giver's HP and
+/// damage is meaningless, and the dimension recolour would fight the configured look.</summary>
+private void CreateWarden(GameWorld world, int dim, Quest quest)
+{
+    int templateId = WardenTemplateId + Offset * dim;
+
+    if (world.NPCHandler.GetNPCTemplate(templateId) != null)
+        throw new Exception($"Warden template id {templateId} already exists. "
+                            + "WardenTemplateId collides with sheet data.");
+
+    var warden = new NPCTemplate
+    {
+        NPCTemplateID = templateId,
+        NPCType = NPCTemplate.Types.Quest,
+        Name = WardenName + (dim == 0 ? "" : " (" + dim + ")"),
+        Title = WardenTitle,
+        Surname = WardenSurname,
+        Level = WardenLevel,
+        ClassID = WardenClassId,
+
+        CanBeKilled = false,     // maps to npc_templates.invincible (NPCHandler.cs:63)
+        CanMove = false,
+        CanBeRooted = false,
+        CanBeStunned = false,
+        CanBeSlowed = false,
+
+        WeaponDamage = 0,
+        AggroRange = 0,
+        AttackRange = 1,
+        AttackSpeed = 1m,
+        MoveSpeed = 1m,
+        RespawnTime = 0,
+        Experience = 0,
+
+        BodyID = WardenBodyID,
+        BodyState = WardenBodyState,
+        BodyR = WardenBodyR, BodyG = WardenBodyG, BodyB = WardenBodyB, BodyA = WardenBodyA,
+        FaceID = WardenFaceID,
+        HairID = WardenHairID,
+        HairR = WardenHairR, HairG = WardenHairG, HairB = WardenHairB, HairA = WardenHairA,
+        EquippedItems = WardenEquippedItems,
+
+        AlliesString = "",
+        Allies = new List<NPCTemplate>(),
+        Drops = new List<NPCDropInfo>(),
+    };
+
+    warden.BaseStats = new AttributeSet { HP = 1000, MP = 0 };
+
+    // Sheet-authored quest_ids are resolved at template-load time (NPCHandler.cs:108),
+    // which runs before global scripts - so a script-created quest can never be attached
+    // through data. It has to be attached here. NPC.cs:637 aliases template.Quests rather
+    // than copying, so attaching before spawning is sufficient.
+    warden.Quests.Add(quest);
+
+    world.NPCHandler.AddTemplate(warden);
+
+    // shouldRespawn: false - it cannot be killed, so it never needs to come back.
+    if (world.NPCHandler.SpawnNPC(world, WardenMapId + Offset * dim,
+                                  WardenX, WardenY, warden, shouldRespawn: false) == null)
+    {
+        throw new Exception($"Could not spawn the dimension-{dim} warden: map "
+                            + (WardenMapId + Offset * dim) + " does not exist.");
+    }
+}
+```
+
+Note `CreateUnlockChain` runs **after** `CloneTemplates`, so the wardens are created once
+each and never see the scaler — `CloneTemplates` has already finished its snapshot of the
+base templates by then.
+
+`Quest.PrerequisiteQuests` is a `List<int>` (`Goose/Quests/Quest.cs:30`), so it is assigned
+directly rather than through the space/comma-separated string form `FromReader` parses
+(`Quest.cs:62`). `QuestReward.Script` is a settable `Script<IQuestScript>`
+(`QuestReward.cs:44`); `FromReader` populates it with
+`world.ScriptHandler.GetScript<IQuestScript>(scriptPath)` (`QuestReward.cs:61`), and this
+does the same thing directly, since these rewards never come from a database row.
+
+### `Scripts/Quest/DimensionUnlock.csx`
+
+```csharp
+using System;
+using Goose;
+using Goose.Quests;
+using Goose.Scripting;
+
+/// <summary>The RewardType.Script reward on every dimension unlock quest. Raises the
+/// player's maximum dimension to the one this quest grants.
+///
+/// One instance is shared by all six rewards - ScriptHandler caches one object per file
+/// path (ScriptHandler.cs:20-30) - so the dimension is read from reward.ScriptParams on
+/// every call and never cached in a field. That is the IQuestScript contract.</summary>
+public class DimensionUnlock : BaseQuestScript
+{
+    private const string MaxDimensionProperty = "dimension.max";
+
+    public override void GiveReward(QuestReward reward, NPC npc, Player player, GameWorld world)
+    {
+        int granted;
+        if (!int.TryParse(reward.ScriptParams, out granted)) return;
+
+        // Raise, never lower. Completing an earlier quest out of order - or a repeat after
+        // a data change - must not take access away.
+        int current = player.Properties.GetProperty<int>(MaxDimensionProperty, 0);
+        if (granted <= current) return;
+
+        player.Properties[MaxDimensionProperty] = granted;
+
+        world.Send(player, P.ServerMessage(
+            "The void yields. You may now enter dimension " + granted + "."));
+    }
+}
+```
+
+Persistence needs nothing further here: `Player.Properties` is serialised into
+`players.player_properties` by the ordinary save path (Part 1 task 2), so the grant is
+durable as soon as the player's next save runs.
+
+Add the `<None Include>` for `DimensionUnlock.csx` to `Goose.Tests.csproj` at the same
+time, and to `GlobalScriptFixture.ShippedScripts` if it is not already listed there.
 
 **Step 4: Run tests to verify they pass**
 
@@ -1074,9 +1906,74 @@ git commit -m "feat: add warden NPCs and the dimension unlock quest chain"
 
 ---
 
+## Task 7b: Enable the shipped script, and keep the disabled path tested
+
+**Files:**
+- Modify: `Goose/Data/Illutia/Scripts/Global/Dimensions.csx` (`Enabled = true`)
+- Test: `Goose.Tests/DimensionsScriptTests.cs`
+
+Task 2 flips `Enabled` to `true`, which invalidates Task 1's
+`Disabled_by_configuration_changes_nothing`. **Do not simply delete it.** `Enabled = false`
+is the documented way to return the server to stock behaviour (design doc, "Scripts"), and
+the done criteria below depend on it — deleting the only test of that path leaves the
+feature's escape hatch unverified.
+
+Replace it with a test that compiles a variant of the shipped script with the flag off. The
+variant is the shipped source with one line changed, so it still fails if the real script's
+`OnLoaded` stops honouring the flag:
+
+```csharp
+[Fact]
+public void Disabled_by_configuration_changes_nothing()
+{
+    using var fixture = new GlobalScriptFixture();
+    fixture.AddBaseMap(1, "Town", width: 100, height: 100);
+    var boss = new NPCTemplate { NPCTemplateID = 162, Name = "Shadow Dog", Level = 40 };
+    boss.BaseStats.HP = 3704;
+    fixture.World.NPCHandler.AddTemplate(boss);
+
+    var source = File.ReadAllText(
+        Path.Combine(AppContext.BaseDirectory, "DimensionScripts", "Dimensions.csx"));
+    var disabled = source.Replace("public const bool Enabled = true;",
+                                  "public const bool Enabled = false;");
+    Assert.NotEqual(source, disabled);   // the flag line moved - fix this test, not the script
+
+    fixture.CompileSource(disabled, "DimensionsDisabled.csx").Object.OnLoaded(fixture.World);
+
+    Assert.Single(fixture.World.MapHandler.Maps);
+    Assert.Null(fixture.World.MapHandler.GetMap(100001));
+    Assert.Null(fixture.World.NPCHandler.GetNPCTemplate(100162));
+    Assert.Null(fixture.World.QuestHandler.Get(900000));
+    Assert.Equal(0, fixture.World.NPCHandler.NPCCount);
+    // No /dimension command either - the whole feature is off, not just the world.
+    Assert.False(fixture.World.EventHandler.AddEvent(new Player(0), "/dimension 1"));
+}
+```
+
+The `Assert.NotEqual` is the guard that matters: if someone renames or reformats the flag,
+this test would otherwise silently start asserting that the *enabled* script does nothing,
+and pass for the wrong reason.
+
+**Commit**
+
+```bash
+git add -A
+git commit -m "test: keep the disabled-flag path covered after enabling dimensions"
+```
+
+---
+
 ## Task 8: End-to-end verification
 
 No new code. This is the only check that exercises real Illutia data at full scale, and the numbers it produces decide whether the deferred idle-tick suppression (design follow-up 2) is needed.
+
+**Step 0: Confirm `BossTemplateId` is spawned in dimension 0**
+
+```bash
+sqlite3 Goose/bin/Debug/IllutiaGoose.db "SELECT map_id, map_x, map_y FROM npc_spawns WHERE npc_id = 162;"
+```
+
+Step 3 needs it. Zero rows means the chain cannot be completed.
 
 **Step 1: Start the server**
 
@@ -1093,8 +1990,12 @@ Expected counts, from the design doc's scale table:
 | Check | Expected |
 |---|---|
 | `world.MapHandler.Count` | 1,120 (160 base × 7) |
-| `world.NPCHandler.NPCCount` | ~81,690 (11,670 × 7) |
-| `world.NPCHandler.TemplateCount` | ~4,585 (655 × 7) |
+| `world.NPCHandler.NPCCount` | ~81,696 (11,670 × 7, + 6 wardens) |
+| `world.NPCHandler.TemplateCount` | ~4,591 (655 × 7, + 6 wardens) |
+
+`NPCCount` reaching ~82k is only true because every generated spawn goes through
+`NPCHandler.SpawnNPC` (Part 1 task 4). If this number comes back at ~11,670 — the base
+spawns alone — something is calling `NPC.LoadFromTemplate` directly again.
 
 Use the server console commands (`Goose/Console/`) if they expose these, otherwise add a temporary log line and remove it before committing.
 
@@ -1105,12 +2006,21 @@ Also record process RSS — 1,120 maps' tile and character arrays plus ~82k NPC 
 As a GM character:
 
 1. `/dimension 1` — expect refusal, since `dimension.max` starts at 0.
-2. Grant yourself the unlock (kill the dimension-0 boss, or set `dimension.max` directly in the DB with the server stopped — see Readme step 8 for why the server must be stopped).
-3. `/dimension 1` — expect to arrive on the dimension-1 start map.
-4. Walk through a warp — expect to land on another **dimension-1** map, not the base one.
-5. Attack a mob — expect a `" (1)"`-suffixed name, a darker recolour, and hugely inflated HP.
-6. Log out and back in — expect to still be in dimension 1.
-7. Set `dimension.max` back to 0 with the server stopped, log in — expect the `OnPlayerEntered` clamp to eject you to the dimension-0 map.
+2. Find the dimension-0 warden at the configured position — confirm it looks the way the
+   config says, offers "Abysmal Terror (1)", and cannot be attacked.
+3. Accept the quest, kill the dimension-0 boss, turn in — expect the unlock message and
+   `dimension.max = 1` in `players.player_properties` after the next save.
+4. `/dimension 1` — expect to arrive on the dimension-1 start map.
+5. Walk through a warp — expect to land on another **dimension-1** map, not the base one.
+6. Attack a mob — expect a `" (1)"`-suffixed name, a darker recolour, and hugely inflated HP.
+   Pull a second mob of an allied type and confirm it assists (the ally rewiring in Task 2b).
+7. Bind in dimension 1, die, and confirm you respawn in dimension 1.
+8. Log out and back in — expect to still be in dimension 1.
+9. Set `dimension.max` back to 0 with the server stopped, log in — expect the
+   `OnPlayerEntered` clamp to eject you to the dimension-0 map **and** to rewrite
+   `bound_id` to the dimension-0 map. Die and confirm you respawn in dimension 0.
+10. Confirm a key-gated base map's dimension copy still demands the key (the
+    `requiredItems` path `Map.CloneAs` preserves).
 
 **Step 4: Confirm the known limitations behave as documented**
 
@@ -1134,6 +2044,11 @@ git commit -m "docs: record dimension world load measurements"
 ## Done when
 
 - `dotnet test Goose.sln` reports 0 failures.
-- The server starts with `Enabled = true` and reports ~1,120 maps and ~82k NPCs.
-- A player can be gated out of, unlocked into, warped around inside, and clamped back out of a dimension.
-- Setting `Enabled = false` returns the server to stock behaviour.
+- The server starts with `Enabled = true` and reports ~1,120 maps and ~82k NPCs — the NPC
+  count coming from `NPCHandler.NPCCount`, not from a count of map npc lists.
+- A player can be gated out of, unlocked into, warped around inside, and clamped back out of
+  a dimension — **both** their current map and their bind.
+- Completing an unlock quest raises `dimension.max` and it survives a restart.
+- Setting `Enabled = false` returns the server to stock behaviour, and a test proves it.
+- Every shipped dimension script (`Dimensions.csx`, `DimensionMap.csx`,
+  `DimensionUnlock.csx`) is installed by `GlobalScriptFixture` and exercised by tests.
