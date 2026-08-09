@@ -41,6 +41,16 @@ public class DimensionsScriptTests
     }
 
     [Fact]
+    public void Registers_the_dimension_command()
+    {
+        using var fixture = Run(f => f.AddBaseMap(1, "Town"));
+
+        // AddEvent returns false when no command matches the packet prefix (EventHandler.cs:286).
+        Assert.True(fixture.World.EventHandler.AddEvent(new Player(0), "/dimension 1"));
+        Assert.False(fixture.World.EventHandler.AddEvent(new Player(0), "/notacommand"));
+    }
+
+    [Fact]
     public void Clones_each_template_once_per_dimension_with_scaled_stats()
     {
         using var fixture = Run(f =>

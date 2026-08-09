@@ -83,6 +83,8 @@ public class Dimensions : BaseGlobalScript
         CloneMaps(world);
         RewireWarps(world);
         CloneSpawns(world);
+
+        world.EventHandler.RegisterEvent("/dimension ", DimensionCommandEvent.Create);
     }
 
     /// <summary>Second pass over the maps Task 3 created: spawn each dimension's clone of
@@ -320,6 +322,47 @@ public class Dimensions : BaseGlobalScript
         t.BodyG = Math.Max(t.BodyG - dim * 30, 0);
         t.BodyB = Math.Max(t.BodyB - dim * 30, 0);
         t.BodyA = Math.Min(t.BodyA + dim * 30, 200);
+    }
+}
+
+/// <summary>Handles "/dimension <n>". Registered with a trailing space so the command
+/// trie matches it as a longest-prefix, exactly like "/tell " and "/warp "
+/// (EventHandler.cs:123).</summary>
+public class DimensionCommandEvent : Event
+{
+    public static Event Create(Player player, Object data)
+    {
+        return new DimensionCommandEvent { Player = player, Data = data };
+    }
+
+    public override void Ready(GameWorld world)
+    {
+        if (this.Player.State != Player.States.Ready) return;
+
+        var tokens = ((string)this.Data).Split(' ');
+        int dim;
+        if (tokens.Length < 2 || !int.TryParse(tokens[1], out dim) || dim < 0 || dim > Dimensions.DimensionCount)
+        {
+            world.Send(this.Player, P.ServerMessage("/dimension <0-" + Dimensions.DimensionCount + ">"));
+            return;
+        }
+
+        int max = this.Player.Properties.GetProperty<int>(Dimensions.MaxDimensionProperty, 0);
+        if (dim > max)
+        {
+            world.Send(this.Player, P.ServerMessage(
+                "The void has rejected you. You have a maximum dimension of " + max + "."));
+            return;
+        }
+
+        var target = world.MapHandler.GetMap(Dimensions.StartMapId + Dimensions.Offset * dim);
+        if (target == null)
+        {
+            world.Send(this.Player, P.ServerMessage("That dimension does not exist."));
+            return;
+        }
+
+        this.Player.WarpTo(world, target, Dimensions.WardenX, Dimensions.WardenY);
     }
 }
 
