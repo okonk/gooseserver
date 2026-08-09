@@ -445,6 +445,13 @@ Deferred, but should be revisited.
    ~82,000 NPCs tick even with nobody in any dimension. Deferred pending measurement; the
    fix is to stop re-arming move events on player-less maps and re-arm them in
    `Map.AddPlayer`. It would benefit the base game too.
+
+   **Measurement (Part 2 Task 8, Aspereta dataset):** server reached "Ready to join" with
+   `Enabled = true` and no exceptions. Global Scripts load step took **633 ms** for
+   308 maps (44 base × 7), 30,260 NPCs (4,322 spawns × 7 + 6 wardens) and 1,336 templates
+   (190 × 7 + 6 wardens); process RSS **461 MB**. The Illutia dataset scales to ~1,120
+   maps, ~82k NPCs and ~4,591 templates — roughly 2.7× the NPC count measured here, so
+   expect a low-single-digit-second global-scripts step and a few hundred MB more RSS.
 3. **Teleport dimension resolution**, per known limitation 1. A `Map.BaseMap` /
    `Map.VariantKey` runtime tag plus `MapHandler.GetVariant(baseId, key)` was considered
    and set aside in favour of the ID-offset approach; it remains the more general answer
