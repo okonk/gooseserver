@@ -192,7 +192,7 @@ namespace Goose
         /// </summary>
         public bool CreditDealer { get; set; }
 
-        internal List<Quest> Quests { get; set; }
+        public List<Quest> Quests { get; set; }
 
         public Script<INPCScript> Script { get; set; }
 
@@ -203,6 +203,53 @@ namespace Goose
         public NPCTemplate()
         {
             this.Quests = new List<Quest>();
+        }
+
+        /// <summary>Copy constructor for script-generated variants. Lists are new instances so a
+        /// variant can attach its own quests/drops without mutating the template it came from.</summary>
+        public NPCTemplate(NPCTemplate other) : this()
+        {
+            this.NPCType = other.NPCType;
+            this.Behaviour = other.Behaviour;
+            this.BehaviourTimeout = other.BehaviourTimeout;
+            this.NPCTemplateID = other.NPCTemplateID;
+            this.Name = other.Name;
+            this.Title = other.Title;
+            this.Surname = other.Surname;
+            this.Facing = other.Facing;
+            // AttributeSet has no Add method - operator+ (AttributeSet.cs:105) returns a new
+            // instance with every field summed, so adding an empty set is the copy idiom.
+            // BaseStats can be null on templates built in code, so guard it.
+            this.BaseStats = other.BaseStats is null ? new AttributeSet() : other.BaseStats + new AttributeSet();
+            this.HairID = other.HairID;   this.HairR = other.HairR;
+            this.HairG = other.HairG;     this.HairB = other.HairB;   this.HairA = other.HairA;
+            this.BodyR = other.BodyR;     this.BodyG = other.BodyG;
+            this.BodyB = other.BodyB;     this.BodyA = other.BodyA;
+            this.FaceID = other.FaceID;   this.BodyID = other.BodyID; this.BodyState = other.BodyState;
+            this.Experience = other.Experience;
+            this.Level = other.Level;
+            this.ClassID = other.ClassID;
+            this.RespawnTime = other.RespawnTime;
+            this.AggroRange = other.AggroRange;
+            this.AttackRange = other.AttackRange;
+            this.CanBeRooted = other.CanBeRooted;
+            this.CanBeStunned = other.CanBeStunned;
+            this.CanBeSlowed = other.CanBeSlowed;
+            this.CanBeKilled = other.CanBeKilled;
+            this.AttackSpeed = other.AttackSpeed;
+            this.MoveSpeed = other.MoveSpeed;
+            this.CanMove = other.CanMove;
+            this.EquippedItems = other.EquippedItems;
+            this.WeaponDamage = other.WeaponDamage;
+            this.AlliesString = other.AlliesString;
+            this.CreditDealer = other.CreditDealer;
+            this.Script = other.Script;
+            this.ScriptParams = other.ScriptParams;
+            this.ArmorPierce = other.ArmorPierce;
+            this.VendorItems = other.VendorItems;
+            this.Allies = other.Allies is null ? null : new List<NPCTemplate>(other.Allies);
+            this.Drops = other.Drops is null ? null : new List<NPCDropInfo>(other.Drops);
+            this.Quests = other.Quests is null ? new List<Quest>() : new List<Quest>(other.Quests);
         }
     }
 }
