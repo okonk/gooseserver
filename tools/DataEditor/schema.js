@@ -1238,7 +1238,8 @@ var GOOSE_SCHEMA = {
             "TalkToNPC",
             "ExperienceBanked",
             "ExperienceSold",
-            "NothingEquipped"
+            "NothingEquipped",
+            "Script"
           ]
         },
         {
@@ -1261,6 +1262,22 @@ var GOOSE_SCHEMA = {
           "kind": "Bool",
           "sql": "CHAR(1)",
           "default": "\u00270\u0027",
+          "required": false,
+          "pk": false
+        },
+        {
+          "name": "script_path",
+          "kind": "Text",
+          "sql": "TEXT",
+          "default": "\u0027\u0027",
+          "required": false,
+          "pk": false
+        },
+        {
+          "name": "script_params",
+          "kind": "Text",
+          "sql": "TEXT",
+          "default": "\u0027\u0027",
           "required": false,
           "pk": false
         }
@@ -1314,7 +1331,8 @@ var GOOSE_SCHEMA = {
             "Dexterity",
             "Intelligence",
             "SpellBuff",
-            "LearnSpell"
+            "LearnSpell",
+            "Script"
           ]
         },
         {
@@ -1335,6 +1353,22 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "string_value",
+          "kind": "Text",
+          "sql": "TEXT",
+          "default": "\u0027\u0027",
+          "required": false,
+          "pk": false
+        },
+        {
+          "name": "script_path",
+          "kind": "Text",
+          "sql": "TEXT",
+          "default": "\u0027\u0027",
+          "required": false,
+          "pk": false
+        },
+        {
+          "name": "script_params",
           "kind": "Text",
           "sql": "TEXT",
           "default": "\u0027\u0027",

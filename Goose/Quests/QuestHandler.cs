@@ -37,13 +37,12 @@ namespace Goose.Quests
 
                     using (var command = conn.CreateCommand())
                     {
-                        command.CommandText = "SELECT * FROM quest_requirements WHERE quest_id=" + quest.Id;
+                        command.CommandText = "SELECT * FROM quest_requirements WHERE quest_id=" + quest.Id + " ORDER BY id";
                         using (var reader = command.ExecuteReader())
                         {
                             while (reader.Read())
                             {
-                                var req = QuestRequirement.FromReader(reader);
-                                req.Quest = quest;
+                                var req = QuestRequirement.FromReader(reader, world, quest);
                                 requirements.Add(req);
                             }
                         }
@@ -58,12 +57,12 @@ namespace Goose.Quests
 
                     using (var command = conn.CreateCommand())
                     {
-                        command.CommandText = "SELECT * FROM quest_rewards WHERE quest_id=" + quest.Id;
+                        command.CommandText = "SELECT * FROM quest_rewards WHERE quest_id=" + quest.Id + " ORDER BY id";
                         using (var reader = command.ExecuteReader())
                         {
                             while (reader.Read())
                             {
-                                var reward = QuestReward.FromReader(reader);
+                                var reward = QuestReward.FromReader(reader, world, quest);
                                 rewards.Add(reward);
                             }
                         }

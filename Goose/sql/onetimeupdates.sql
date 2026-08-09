@@ -27,6 +27,11 @@ ALTER TABLE players ADD macrocheck_failures INT DEFAULT 0 NOT NULL;
 ALTER TABLE spell_effects ADD script_path TEXT DEFAULT '' NOT NULL;
 ALTER TABLE spell_effects ADD script_params TEXT DEFAULT '' NOT NULL;
 
+ALTER TABLE quest_requirements ADD script_path TEXT DEFAULT '' NOT NULL;
+ALTER TABLE quest_requirements ADD script_params TEXT DEFAULT '' NOT NULL;
+ALTER TABLE quest_rewards ADD script_path TEXT DEFAULT '' NOT NULL;
+ALTER TABLE quest_rewards ADD script_params TEXT DEFAULT '' NOT NULL;
+
 ALTER TABLE items ALTER COLUMN stat_multiplier DECIMAL(18,4);
 ALTER TABLE items ADD script_params TEXT DEFAULT '' NOT NULL;
 
