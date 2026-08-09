@@ -17,11 +17,27 @@ public class DimensionsScriptTests
     [Fact]
     public void Disabled_by_configuration_changes_nothing()
     {
-        // Dimensions.Enabled is false in the shipped script until the feature is switched on.
-        using var fixture = Run(f => f.AddBaseMap(1, "Town"));
+        using var fixture = new GlobalScriptFixture();
+        fixture.AddBaseMap(1, "Town", width: 100, height: 100);
+        var boss = new NPCTemplate { NPCTemplateID = 162, Name = "Shadow Dog", Level = 40 };
+        boss.BaseStats = new AttributeSet { HP = 3704 };
+        fixture.World.NPCHandler.AddTemplate(boss);
+
+        var source = File.ReadAllText(
+            Path.Combine(AppContext.BaseDirectory, "DimensionScripts", "Dimensions.csx"));
+        var disabled = source.Replace("public const bool Enabled = true;",
+                                      "public const bool Enabled = false;");
+        Assert.NotEqual(source, disabled);   // the flag line moved - fix this test, not the script
+
+        fixture.CompileSource(disabled, "DimensionsDisabled.csx").Object.OnLoaded(fixture.World);
 
         Assert.Single(fixture.World.MapHandler.Maps);
         Assert.Null(fixture.World.MapHandler.GetMap(100001));
+        Assert.Null(fixture.World.NPCHandler.GetNPCTemplate(100162));
+        Assert.Null(fixture.World.QuestHandler.Get(900000));
+        Assert.Equal(0, fixture.World.NPCHandler.NPCCount);
+        // No /dimension command either - the whole feature is off, not just the world.
+        Assert.False(fixture.World.EventHandler.AddEvent(new Player(0), "/dimension 1"));
     }
 
     [Fact]
