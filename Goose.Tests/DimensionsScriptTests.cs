@@ -149,4 +149,90 @@ public class DimensionsScriptTests
         // This value exceeds int.MaxValue - it only fits because Part 1 widened the fields.
         Assert.True(dim5.BaseStats.HP > int.MaxValue);
     }
+
+    [Fact]
+    public void Clones_each_map_once_per_dimension()
+    {
+        using var fixture = Run(f => f.AddBaseMap(1, "Town"));
+
+        var dim2 = fixture.World.MapHandler.GetMap(1 + 100000 * 2);
+
+        Assert.NotNull(dim2);
+        Assert.Equal("Town (2)", dim2.Name);
+        Assert.True(dim2.CanPVP);                     // PVP is forced on in every dimension
+        Assert.NotSame(fixture.World.MapHandler.GetMap(1).characters, dim2.characters);
+        Assert.NotSame(fixture.World.MapHandler.GetMap(1).tiles, dim2.tiles);
+    }
+
+    [Fact]
+    public void Warps_point_at_the_same_dimension()
+    {
+        using var fixture = Run(f =>
+        {
+            var town = f.AddBaseMap(1, "Town");
+            var cave = f.AddBaseMap(2, "Cave");
+            town.SetTile(3, 3, new WarpTile { WarpMap = cave, WarpX = 7, WarpY = 8 });
+        });
+
+        var dim2Town = fixture.World.MapHandler.GetMap(1 + 100000 * 2);
+        var warp = (WarpTile)dim2Town.GetTile(3, 3);
+
+        Assert.Equal(2 + 100000 * 2, warp.WarpMap.ID);   // the dimension-2 Cave, not the base one
+        Assert.Equal(7, warp.WarpX);
+        Assert.Equal(8, warp.WarpY);
+
+        // The base map's warp must be untouched.
+        var baseWarp = (WarpTile)fixture.World.MapHandler.GetMap(1).GetTile(3, 3);
+        Assert.Equal(2, baseWarp.WarpMap.ID);
+    }
+
+    [Fact]
+    public void Blocked_tiles_are_shared_not_duplicated()
+    {
+        using var fixture = Run(f =>
+        {
+            var town = f.AddBaseMap(1, "Town");
+            town.SetTile(4, 4, new BlockedTile());
+        });
+
+        // BlockedTile is an empty marker (BlockedTile.cs:8), so sharing the reference is safe.
+        Assert.Same(fixture.World.MapHandler.GetMap(1).GetTile(4, 4),
+                    fixture.World.MapHandler.GetMap(100001).GetTile(4, 4));
+    }
+
+    /// <summary>The clone must not become a way around a key-gated map. requiredItems is
+    /// private (Map.cs:64) and enforced by PlayerCanJoin (Map.cs:573), which is why Part 1
+    /// added Map.CloneAs rather than leaving the script to rebuild public fields.</summary>
+    [Fact]
+    public void Clones_keep_the_base_maps_required_items_and_mute_state()
+    {
+        using var fixture = Run(f =>
+        {
+            var vault = f.AddBaseMap(1, "Vault");
+            vault.AddRequiredItem(1234);
+            vault.Muted = true;
+        });
+
+        var dim2 = fixture.World.MapHandler.GetMap(1 + 100000 * 2);
+
+        Assert.Equal(new[] { 1234 }, dim2.RequiredItems);
+        Assert.True(dim2.Muted);
+    }
+
+    [Fact]
+    public void Map_ids_do_not_collide_with_existing_maps()
+    {
+        // A base map already sitting on a generated id must be a loud failure, not a silent
+        // overwrite - MapHandler.Maps is a plain dictionary.
+        var fixture = new GlobalScriptFixture();
+        fixture.AddBaseMap(1, "Town");
+        fixture.AddBaseMap(100001, "Impostor");
+
+        using (fixture)
+        {
+            var ex = Assert.Throws<Exception>(
+                () => fixture.CompileShipped().Object.OnLoaded(fixture.World));
+            Assert.Contains("100001", ex.Message);
+        }
+    }
 }
