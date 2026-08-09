@@ -220,6 +220,48 @@ public class DimensionsScriptTests
     }
 
     [Fact]
+    public void Spawns_the_dimension_template_on_the_dimension_map()
+    {
+        using var fixture = Run(f =>
+        {
+            f.AddBaseMap(1, "Town", width: 100, height: 100);
+            var t = new NPCTemplate { NPCTemplateID = 162, Name = "Shadow Dog", Level = 40 };
+            t.BaseStats = new AttributeSet { HP = 3704 };
+            f.World.NPCHandler.AddTemplate(t);
+
+            f.World.NPCHandler.SpawnNPC(f.World, 1, 50, 50, t, shouldRespawn: true);
+        });
+
+        var dim1Map = fixture.World.MapHandler.GetMap(100001);
+        var spawned = dim1Map.NPCs.Single();
+
+        Assert.Equal(162 + 100000, spawned.NPCTemplate.NPCTemplateID);
+        Assert.Equal(50, spawned.SpawnX);
+        Assert.Equal(50, spawned.SpawnY);
+    }
+
+    /// <summary>The done criteria are stated in NPCCount ("~82,000 NPCs"), so the generated
+    /// spawns must actually be registered with the handler. Only SpawnNPC (Part 1 task 4) does
+    /// that - NPC.LoadFromTemplate adds to the map and the login-id lookup and nothing else.</summary>
+    [Fact]
+    public void Generated_spawns_are_registered_with_the_handler()
+    {
+        using var fixture = Run(f =>
+        {
+            f.AddBaseMap(1, "Town", width: 100, height: 100);
+            var t = new NPCTemplate { NPCTemplateID = 162, Name = "Shadow Dog", Level = 40 };
+            t.BaseStats = new AttributeSet { HP = 3704 };
+            f.World.NPCHandler.AddTemplate(t);
+            f.World.NPCHandler.SpawnNPC(f.World, 1, 50, 50, t, shouldRespawn: true);
+        });
+
+        // 1 base spawn + one per dimension (6). The script's types are not visible to the test
+        // assembly, so the count is a literal. The warden chain (Task 7) adds more; this
+        // assertion becomes a >= once that lands - keep it exact until then.
+        Assert.Equal(7, fixture.World.NPCHandler.NPCCount);
+    }
+
+    [Fact]
     public void Map_ids_do_not_collide_with_existing_maps()
     {
         // A base map already sitting on a generated id must be a loud failure, not a silent

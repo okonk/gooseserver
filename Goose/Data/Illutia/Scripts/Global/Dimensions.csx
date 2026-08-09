@@ -82,6 +82,38 @@ public class Dimensions : BaseGlobalScript
         RewireAllies(world);
         CloneMaps(world);
         RewireWarps(world);
+        CloneSpawns(world);
+    }
+
+    /// <summary>Second pass over the maps Task 3 created: spawn each dimension's clone of
+    /// every base-map NPC on that dimension's map copy. Runs after RewireWarps because it
+    /// reads base spawns, which nothing else mutates.</summary>
+    private void CloneSpawns(GameWorld world)
+    {
+        // Snapshot the base spawns before spawning anything - each map's npc list grows as we
+        // go, and Map.NPCs hands back the live list (Map.cs:618).
+        var baseSpawns = world.MapHandler.Maps.Values
+            .Where(m => m.ID < Offset)
+            .SelectMany(m => m.NPCs.ToList())
+            .ToList();
+
+        for (int dim = 1; dim <= DimensionCount; dim++)
+        {
+            foreach (var basic in baseSpawns)
+            {
+                var template = world.NPCHandler.GetNPCTemplate(basic.NPCTemplate.NPCTemplateID + Offset * dim);
+                if (template == null) continue;
+
+                // SpawnNPC, NOT new NPC().LoadFromTemplate(...): the latter adds the NPC to its
+                // map and to the login-id lookup but not to NPCHandler.npcs, so it would never
+                // appear in NPCCount. See Part 1 task 4.
+                //
+                // shouldRespawn: true - respawning is self-sustaining on the NPC, matching how
+                // LoadNPCs creates the base spawns.
+                world.NPCHandler.SpawnNPC(world, basic.Map.ID + Offset * dim,
+                                          basic.SpawnX, basic.SpawnY, template, shouldRespawn: true);
+            }
+        }
     }
 
     /// <summary>Second pass over the templates Task 2 created: repoint every ally at the
