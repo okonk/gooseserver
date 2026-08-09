@@ -85,7 +85,7 @@ namespace Goose
 
         Map Map { get; set; }
 
-        int WeaponDamage { get; }
+        long WeaponDamage { get; }
 
         /**
          * Hair style id

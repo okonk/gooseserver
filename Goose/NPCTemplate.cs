@@ -166,7 +166,7 @@ namespace Goose
         /**
          * Weapon damage
          */
-        public int WeaponDamage { get; set; }
+        public long WeaponDamage { get; set; }
         /**
          * Allies, space delimited list of template ids
          */

@@ -705,8 +705,8 @@ namespace Goose
             this.LoadPropertiesFromColumn(Convert.ToString(reader["player_properties"]));
 
             this.BaseStats = new AttributeSet();
-            this.BaseStats.HP = Convert.ToInt32(reader["player_hp"]);
-            this.BaseStats.MP = Convert.ToInt32(reader["player_mp"]);
+            this.BaseStats.HP = Convert.ToInt64(reader["player_hp"]);
+            this.BaseStats.MP = Convert.ToInt64(reader["player_mp"]);
             this.BaseStats.SP = Convert.ToInt32(reader["player_sp"]);
             this.BaseStats.AC = Convert.ToInt32(reader["stat_ac"]);
             this.BaseStats.Strength = Convert.ToInt32(reader["stat_str"]);
@@ -1628,7 +1628,7 @@ namespace Goose
         /**
          * WeaponDamage
          */
-        public virtual int WeaponDamage
+        public virtual long WeaponDamage
         {
             get { return this.Inventory.GetWeaponDamage(); }
             set { }

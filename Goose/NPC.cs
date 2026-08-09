@@ -299,7 +299,7 @@ namespace Goose
         /**
          * Weapon damage
          */
-        public int WeaponDamage { get; set; }
+        public long WeaponDamage { get; set; }
         /**
          * So regen event doesn't double up
          */

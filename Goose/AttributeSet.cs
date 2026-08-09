@@ -11,8 +11,8 @@ namespace Goose
      */
     public class AttributeSet
     {
-        public int HP { get; set; }
-        public int MP { get; set; }
+        public long HP { get; set; }
+        public long MP { get; set; }
         public int SP { get; set; }
         public decimal HPPercentRegen { get; set; }
         public int HPStaticRegen { get; set; }
@@ -177,8 +177,8 @@ namespace Goose
 
             AttributeSet temp = new AttributeSet();
 
-            temp.HP = (int)Math.Ceiling(a1.HP * multiplier);
-            temp.MP = (int)Math.Ceiling(a1.MP * multiplier);
+            temp.HP = (long)Math.Ceiling(a1.HP * multiplier);
+            temp.MP = (long)Math.Ceiling(a1.MP * multiplier);
             temp.SP = (int)Math.Ceiling(a1.SP * multiplier);
             temp.HPPercentRegen = a1.HPPercentRegen * multiplier;
             temp.HPStaticRegen = (int)Math.Ceiling(a1.HPStaticRegen * multiplier);

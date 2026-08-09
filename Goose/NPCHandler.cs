@@ -51,7 +51,7 @@ namespace Goose
                         npc.Facing = Convert.ToInt32(reader["npc_facing"]);
                         npc.Level = Convert.ToInt32(reader["npc_level"]);
                         npc.Experience = Convert.ToInt64(reader["experience"]);
-                        npc.WeaponDamage = Convert.ToInt32(reader["weapon_damage"]);
+                        npc.WeaponDamage = Convert.ToInt64(reader["weapon_damage"]);
                         npc.AggroRange = Convert.ToInt32(reader["aggro_range"]);
                         npc.AttackRange = Convert.ToInt32(reader["attack_range"]);
                         npc.AttackSpeed = Decimal.Parse(Convert.ToString(reader["attack_speed"]));
@@ -78,8 +78,8 @@ namespace Goose
                         npc.HairA = Convert.ToInt32(reader["hair_a"]);
 
                         npc.BaseStats = new AttributeSet();
-                        npc.BaseStats.HP = Convert.ToInt32(reader["npc_hp"]);
-                        npc.BaseStats.MP = Convert.ToInt32(reader["npc_mp"]);
+                        npc.BaseStats.HP = Convert.ToInt64(reader["npc_hp"]);
+                        npc.BaseStats.MP = Convert.ToInt64(reader["npc_mp"]);
                         npc.BaseStats.SP = Convert.ToInt32(reader["npc_sp"]);
                         npc.BaseStats.AC = Convert.ToInt32(reader["stat_ac"]);
                         npc.BaseStats.Strength = Convert.ToInt32(reader["stat_str"]);
