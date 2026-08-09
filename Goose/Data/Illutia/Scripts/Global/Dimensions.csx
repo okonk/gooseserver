@@ -79,6 +79,39 @@ public class Dimensions : BaseGlobalScript
         if (!Enabled) return;
 
         CloneTemplates(world);
+        RewireAllies(world);
+    }
+
+    /// <summary>Second pass over the templates Task 2 created: repoint every ally at the
+    /// same dimension's clone. Ally checks compare template references (NPC.cs:559, :1000),
+    /// so a dimension mob allied to a dimension-0 template recognises nothing.
+    ///
+    /// Separate from CloneTemplates because clone order is dictionary order - an ally's clone
+    /// may not exist yet at the moment the template referencing it is built.</summary>
+    private void RewireAllies(GameWorld world)
+    {
+        for (int dim = 1; dim <= DimensionCount; dim++)
+        {
+            foreach (var basic in world.NPCHandler.GetTemplates()
+                                       .Where(t => t.NPCTemplateID < Offset).ToList())
+            {
+                var clone = world.NPCHandler.GetNPCTemplate(basic.NPCTemplateID + Offset * dim);
+                if (clone == null || basic.Allies == null) continue;
+
+                var allies = new List<NPCTemplate>();
+                foreach (var ally in basic.Allies)
+                {
+                    // An ally with no clone is dropped, not left pointing across dimensions.
+                    var dimAlly = world.NPCHandler.GetNPCTemplate(ally.NPCTemplateID + Offset * dim);
+                    if (dimAlly != null) allies.Add(dimAlly);
+                }
+
+                clone.Allies = allies;
+                // Keep the string form consistent - nothing re-parses it after load, but a
+                // divergent AlliesString is a trap for anyone debugging from a dump.
+                clone.AlliesString = string.Join(" ", allies.Select(a => a.NPCTemplateID));
+            }
+        }
     }
 
     private void CloneTemplates(GameWorld world)

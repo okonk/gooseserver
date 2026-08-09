@@ -90,6 +90,48 @@ public class DimensionsScriptTests
     }
 
     [Fact]
+    public void Allies_point_at_the_same_dimensions_templates()
+    {
+        using var fixture = Run(f =>
+        {
+            var dog = new NPCTemplate { NPCTemplateID = 162, Name = "Shadow Dog", Level = 40 };
+            var wolf = new NPCTemplate { NPCTemplateID = 163, Name = "Shadow Wolf", Level = 40 };
+            dog.BaseStats = new AttributeSet();   // ScaleTemplate reads basic.BaseStats.HP
+            wolf.BaseStats = new AttributeSet();
+            dog.Allies = new List<NPCTemplate> { wolf };
+            wolf.Allies = new List<NPCTemplate> { dog };
+            f.World.NPCHandler.AddTemplate(dog);
+            f.World.NPCHandler.AddTemplate(wolf);
+        });
+
+        var dim3Dog = fixture.World.NPCHandler.GetNPCTemplate(162 + 100000 * 3);
+        var dim3Wolf = fixture.World.NPCHandler.GetNPCTemplate(163 + 100000 * 3);
+
+        // Reference identity is what NPC.cs:559 compares, so Same, not Equal.
+        Assert.Same(dim3Wolf, Assert.Single(dim3Dog.Allies));
+        Assert.Same(dim3Dog, Assert.Single(dim3Wolf.Allies));
+
+        // The base templates keep their own allies.
+        Assert.Same(fixture.World.NPCHandler.GetNPCTemplate(163),
+                    Assert.Single(fixture.World.NPCHandler.GetNPCTemplate(162).Allies));
+    }
+
+    [Fact]
+    public void An_ally_with_no_dimension_clone_is_dropped_rather_than_left_pointing_at_dimension_zero()
+    {
+        using var fixture = Run(f =>
+        {
+            var dog = new NPCTemplate { NPCTemplateID = 162, Name = "Shadow Dog", Level = 40 };
+            dog.BaseStats = new AttributeSet();   // ScaleTemplate reads basic.BaseStats.HP
+            // An ally id that resolved at load time but is not in the handler now.
+            dog.Allies = new List<NPCTemplate> { new NPCTemplate { NPCTemplateID = 999 } };
+            f.World.NPCHandler.AddTemplate(dog);
+        });
+
+        Assert.Empty(fixture.World.NPCHandler.GetNPCTemplate(162 + 100000 * 3).Allies);
+    }
+
+    [Fact]
     public void Applies_the_dimension_five_multipliers()
     {
         using var fixture = Run(f =>
