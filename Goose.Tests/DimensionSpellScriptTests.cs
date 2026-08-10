@@ -343,4 +343,96 @@ public class DimensionSpellScriptTests
         Assert.Single(player.Buffs);
         Assert.Same(handler.GetSpellEffect(41 + Offset * 5), player.Buffs[0].SpellEffect);
     }
+
+    // ---- The spell clone pass -----------------------------------------------------------
+
+    [Fact]
+    public void Clones_each_spell_once_per_dimension_pointing_at_the_same_dimensions_effect()
+    {
+        using var fixture = Run(f =>
+        {
+            f.AddBaseMap(1, "Town");
+            f.AddBaseSpellEffect(42, "Firestorm");
+            f.AddBaseSpell(91, "Firestorm", 42, s => s.Description = "Burns");
+        });
+
+        var handler = fixture.World.SpellHandler;
+        var dim3 = handler.GetSpell(91 + Offset * 3);
+
+        Assert.NotNull(dim3);
+        Assert.Equal("Supreme Firestorm", dim3.Name);
+        Assert.Equal("Abyss (3) Burns", dim3.Description);
+        Assert.Equal(42 + Offset * 3, dim3.SpellEffectID);
+        Assert.Same(handler.GetSpellEffect(42 + Offset * 3), dim3.SpellEffect);
+    }
+
+    [Fact]
+    public void Scales_aether_and_static_costs()
+    {
+        using var fixture = Run(f =>
+        {
+            f.AddBaseMap(1, "Town");
+            f.AddBaseSpellEffect(42, "Firestorm");
+            f.AddBaseSpell(91, "Firestorm", 42, s =>
+            {
+                s.Aether = 10000; s.HPStaticCost = 50; s.MPStaticCost = 100;
+                s.SPStaticCost = 7; s.MPPercentCost = 0.25m;
+            });
+        });
+
+        var dim3 = fixture.World.SpellHandler.GetSpell(91 + Offset * 3);
+
+        Assert.Equal((long)(10000 * Math.Pow(0.9, 3)), dim3.Aether);          // SpellHandler.java:279
+        Assert.Equal((int)(50 * Math.Pow(3, 3)), dim3.HPStaticCost);          // :280
+        Assert.Equal((int)(100 * Math.Pow(3, 3)), dim3.MPStaticCost);         // :281
+        Assert.Equal(7, dim3.SPStaticCost);                                   // abyss leaves SP alone
+        Assert.Equal(0.25m, dim3.MPPercentCost);                              // percent costs unscaled
+    }
+
+    [Fact]
+    public void Leaves_the_base_spell_untouched()
+    {
+        using var fixture = Run(f =>
+        {
+            f.AddBaseMap(1, "Town");
+            f.AddBaseSpellEffect(42, "Firestorm");
+            f.AddBaseSpell(91, "Firestorm", 42, s => { s.Aether = 10000; s.Description = "Burns"; });
+        });
+
+        var basic = fixture.World.SpellHandler.GetSpell(91);
+
+        Assert.Equal("Firestorm", basic.Name);
+        Assert.Equal("Burns", basic.Description);
+        Assert.Equal(10000, basic.Aether);
+        Assert.Equal(42, basic.SpellEffectID);
+    }
+
+    /// <summary>The single-target extra 1.15 and the InvariantCulture separator, which
+    /// ParseFormula depends on (SpellEffect.cs:1311).</summary>
+    [Fact]
+    public void Wraps_damage_formulas_with_the_dimension_multiplier()
+    {
+        using var fixture = Run(f =>
+        {
+            f.AddBaseMap(1, "Town");
+            f.AddBaseSpellEffect(42, "Bolt", e =>
+            {
+                e.TargetType = SpellEffect.TargetTypes.Target;
+                e.HPFormula = "-5 * %clevel";
+            });
+            f.AddBaseSpellEffect(43, "Nova", e =>
+            {
+                e.TargetType = SpellEffect.TargetTypes.Area;
+                e.HPFormula = "-5 * %clevel";
+            });
+        });
+
+        var handler = fixture.World.SpellHandler;
+        var single = (1.15 * Math.Pow(1.25, 2)).ToString(System.Globalization.CultureInfo.InvariantCulture);
+        var area = Math.Pow(1.25, 2).ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+        Assert.Equal("(-5 * %clevel) * " + single, handler.GetSpellEffect(42 + Offset * 2).HPFormula);
+        Assert.Equal("(-5 * %clevel) * " + area, handler.GetSpellEffect(43 + Offset * 2).HPFormula);
+        Assert.Contains(".", handler.GetSpellEffect(42 + Offset * 2).HPFormula);
+    }
 }

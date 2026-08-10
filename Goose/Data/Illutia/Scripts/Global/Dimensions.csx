@@ -88,6 +88,7 @@ public class Dimensions : BaseGlobalScript
         PreflightSpellIds(world);
         CloneSpellEffects(world);
         RewireSpellEffects(world);
+        CloneSpells(world);
 
         world.EventHandler.RegisterEvent("/dimension ", DimensionCommandEvent.Create);
     }
@@ -643,6 +644,43 @@ public class Dimensions : BaseGlobalScript
     {
         var effect = world.SpellHandler.GetSpellEffect(id);
         if (effect != null && !into.Contains(effect)) into.Add(effect);
+    }
+
+    /// <summary>Step 3 of the spell pass. Runs after RewireSpellEffects so every effect clone
+    /// exists and is fully wired before a spell points at one.</summary>
+    private void CloneSpells(GameWorld world)
+    {
+        var baseSpells = world.SpellHandler.GetSpells().ToList();
+
+        for (int dim = 1; dim <= DimensionCount; dim++)
+        {
+            foreach (var basic in baseSpells)
+            {
+                int id = basic.ID + Offset * dim;
+
+                if (world.SpellHandler.GetSpell(id) != null)
+                    throw new Exception($"Dimension spell id {id} (base {basic.ID}, dim {dim}) "
+                                        + "already exists. Offset is too small for this data set.");
+
+                var effect = world.SpellHandler.GetSpellEffect(basic.SpellEffectID + Offset * dim);
+
+                // LoadSpells drops a spell whose effect is missing (SpellHandler.cs:250); do
+                // the same rather than registering a spell that cannot be cast.
+                if (effect == null) continue;
+
+                world.SpellHandler.AddSpell(new Spell(basic)
+                {
+                    ID = id,
+                    Name = PrefixFor(dim) + basic.Name,
+                    Description = DescriptionPrefixFor(dim) + basic.Description,
+                    Aether = (long)(basic.Aether * Math.Pow(0.9, dim)),          // SpellHandler.java:279
+                    HPStaticCost = (int)(basic.HPStaticCost * Math.Pow(3, dim)), // :280
+                    MPStaticCost = (int)(basic.MPStaticCost * Math.Pow(3, dim)), // :281
+                    SpellEffectID = effect.ID,
+                    SpellEffect = effect,
+                });
+            }
+        }
     }
 
     /// <summary>SpellHandler.java:288-330, applied in abyss's order - the formula wrap reads
