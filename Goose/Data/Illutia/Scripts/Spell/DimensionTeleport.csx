@@ -13,21 +13,22 @@ using Goose.Scripting;
 /// thisEffect and its ScriptParams.</summary>
 public class DimensionTeleport : BaseSpellEffectScript
 {
-    /// <summary>Used only if Dimensions.csx did not set ScriptParams.</summary>
-    private const int DefaultOffset = 100000;
+    /// <summary>Must match Dimensions.csx's Offset. Scripts compile independently,
+    /// so this cannot be shared.</summary>
+    private const int Offset = 100000;
 
     private int OffsetOf(SpellEffect effect)
     {
         int offset;
-        return int.TryParse(effect.ScriptParams, out offset) && offset > 0 ? offset : DefaultOffset;
+        return int.TryParse(effect.ScriptParams, out offset) && offset > 0 ? offset : Offset;
     }
 
-    /// <summary>Dimensions.csx sets ScriptParams to the dimension number when it clones a
-    /// map, the same convention DimensionMap.csx reads.</summary>
+    /// <summary>The dimension is encoded in the map id (baseId + Offset*dim), the same
+    /// convention DimensionMap.csx reads - ScriptParams is passed through to the base map's
+    /// script, so it can no longer carry the dimension.</summary>
     private int DimensionOf(Map map)
     {
-        int dim;
-        return map != null && int.TryParse(map.ScriptParams, out dim) ? dim : 0;
+        return map == null ? 0 : map.ID / Offset;
     }
 
     public override bool Cast(SpellEffect thisEffect, ICharacter caster, ICharacter target,

@@ -233,8 +233,11 @@ public class Dimensions : BaseGlobalScript
                 // Entry gates scale by (dim*5)^2
                 clone.MinExperience = basic.MinExperience * (dim * 5) * (dim * 5);
                 clone.MaxExperience = basic.MaxExperience * (dim * 5) * (dim * 5);
-                clone.Script = mapScript;                 // replaces, not composes
-                clone.ScriptParams = dim.ToString();      // DimensionMap reads its dimension from here
+                clone.Script = mapScript;                 // replaces, not composes - DimensionMap forwards to the base script itself
+                // ScriptParams passes through untouched so a delegated base script reads the
+                // params it was written against. DimensionMap takes its dimension from the
+                // map id, which already encodes it.
+                clone.ScriptParams = basic.ScriptParams;
 
                 world.MapHandler.Maps[clone.ID] = clone;
 
