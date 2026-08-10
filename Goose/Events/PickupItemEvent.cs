@@ -13,6 +13,8 @@ namespace Goose.Events
      */
     class PickupItemEvent : Event
     {
+        private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
+
         public override void Ready(GameWorld world)
         {
             if (this.Player.State == Player.States.Ready)
@@ -88,7 +90,20 @@ namespace Goose.Events
                 {
                     if (tile.ItemSlot.Item.IsLore && this.Player.HasItem(tile.ItemSlot.Item.Template.ID)) return;
 
-                    var refusal = tile.ItemSlot.Item.Script?.Object.CanPickup(this.Player, tile.ItemSlot.Item, world);
+                    string refusal = null;
+                    try
+                    {
+                        refusal = tile.ItemSlot.Item.Script?.Object.CanPickup(this.Player, tile.ItemSlot.Item, world);
+                    }
+                    catch (Exception e)
+                    {
+                        // Fail CLOSED. This is a pickup gate, not a cosmetic hook: a broken gate
+                        // script must refuse rather than admit. The player gets a generic message;
+                        // the detail goes to the log, where someone can act on it. Mirrors
+                        // Map.PlayerCanJoin (Goose/Map.cs).
+                        log.Error(e, "Item CanPickup {0} Exception", tile.ItemSlot.Item.TemplateID);
+                        refusal = "You cannot pick that up right now.";
+                    }
                     if (refusal != null)
                     {
                         world.Send(this.Player, P.ServerMessage(refusal));

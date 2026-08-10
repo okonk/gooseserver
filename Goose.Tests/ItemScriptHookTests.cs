@@ -1,3 +1,4 @@
+using Goose.Events;
 using Goose.Scripting;
 using Goose.Tests.Collections;
 
@@ -13,9 +14,13 @@ public class ItemScriptHookTests : IDisposable
         // The native surname roll is a RollChance(ItemSurnameChancePercent) call
         // (ItemHandler.cs). The shipped GooseSettings.json puts that at 0.5, which would
         // make Returning_false_leaves_the_native_rolls_running a coin flip, so pin the
-        // chances: surnames always roll, titles never do.
+        // chances: surnames always roll, titles never do. ItemIDStartpoint is pinned so a
+        // freshly built Item (ItemID 0) is never mistaken for the gold item in
+        // PickupItemEvent, and InventorySize so a pickup that passes its gates can land.
         GameWorld.Settings = new GooseSettings
         {
+            InventorySize = 30, EquippedSize = 20, CombineBagSize = 10, SpellbookSize = 30,
+            ItemIDStartpoint = 5002,
             ItemSurnameChancePercent = 1.0,
             ItemTitleChancePercent = 0.0,
         };
@@ -36,6 +41,21 @@ public class ItemScriptHookTests : IDisposable
             this.RollCalls++;
             return this.Suppress;
         }
+    }
+
+    private sealed class ThrowingPickupScript : BaseItemScript
+    {
+        public override string CanPickup(Player player, Item item, GameWorld world)
+            => throw new InvalidOperationException("boom");
+    }
+
+    /// <summary>Player.Send is virtual so a subclass can capture what the server would
+    /// have written to the socket. world.Send routes through Player.Send.</summary>
+    private sealed class CapturingPlayer : Player
+    {
+        public List<string> Sent { get; } = new();
+
+        public override void Send(string data) => Sent.Add(data);
     }
 
     private static (GameWorld World, Item Item, SpyScript Spy) Arrange()
@@ -126,5 +146,45 @@ public class ItemScriptHookTests : IDisposable
     {
         var (world, item, _) = Arrange();
         Assert.Null(new BaseItemScript().CanPickup(new Player(0), item, world));
+    }
+
+    /// <summary>Fail closed, mirroring Map.PlayerCanJoin: a throwing CanPickup gate must
+    /// refuse the pickup with a generic message rather than let the exception bubble to
+    /// EventHandler's catch-all, which would silently drop the event with no feedback.
+    /// Exercises PickupItemEvent.Ready end to end - the exact path with the bug.</summary>
+    [Fact]
+    public void A_throwing_CanPickup_script_refuses_pickup_with_a_message()
+    {
+        var world = new GameWorld(null);
+        var template = new ItemTemplate
+        {
+            ID = 1, Name = "Sword", Description = "",
+            UseType = ItemTemplate.UseTypes.Weapon, Slot = ItemTemplate.ItemSlots.OneHanded,
+            BaseStats = new AttributeSet(),
+            Script = ScriptStub.For<IItemScript>(new ThrowingPickupScript()),
+        };
+        var item = new Item();
+        item.LoadFromTemplate(template);
+
+        var map = new Map { ID = 1, Name = "Test", Width = 10, Height = 10 };
+        map.tiles = new ITile[(map.Width + 1) * (map.Height + 1)];
+        map.SetTile(5, 5, new ItemTile
+        {
+            X = 5, Y = 5,
+            ItemSlot = new ItemSlot { Item = item, Stack = 1 },
+            PickupTime = 0, // 0 < world.TimeNow, so ownership never blocks the pickup
+        });
+
+        var player = new CapturingPlayer
+        {
+            State = Player.States.Ready,
+            Map = map, MapID = map.ID, MapX = 5, MapY = 5,
+        };
+        player.Inventory = new Inventory(player);
+
+        new PickupItemEvent { Player = player }.Ready(world);
+
+        Assert.Contains("You cannot pick that up right now.", string.Join("", player.Sent));
+        Assert.DoesNotContain(player.Inventory.GetInventorySlots(), slot => slot != null && slot.Item == item);
     }
 }
