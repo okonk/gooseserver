@@ -78,9 +78,6 @@ public class Dimensions : BaseGlobalScript
     {
         if (!Enabled) return;
 
-        // Item clones first: Task 7 repoints NPC drop tables at the clones and needs them
-        // to exist. Task 4 will reorder this to run after the spell passes.
-        CloneItemTemplates(world);
         CloneTemplates(world);
         RewireAllies(world);
         CloneMaps(world);
@@ -93,6 +90,11 @@ public class Dimensions : BaseGlobalScript
         RewireSpellEffects(world);
         CloneSpells(world);
         RewriteTeleportEffects(world);
+
+        // After the spell passes: tome clones point at dimension spells, which must exist
+        // to be pointed at. Before RepointDrops (Task 7), which needs the item clones.
+        CloneItemTemplates(world);
+        RepointDrops(world);
 
         world.EventHandler.RegisterEvent("/dimension ", DimensionCommandEvent.Create);
     }
@@ -551,8 +553,26 @@ public class Dimensions : BaseGlobalScript
         if (basic.UseType == ItemTemplate.UseTypes.Armor || basic.UseType == ItemTemplate.UseTypes.Weapon)
             clone.BaseStats += DimensionStats(basic, dim);
 
+        // Spell tomes: teach the dimension's copy of the spell, and become consumables so
+        // DimensionItem.csx can implement the upgrade rule. Inventory.cs:277 learns Scroll
+        // items directly with no script hook; Inventory.cs:423 gives OneTime items one.
+        //
+        // A spell with no dimension clone (PreflightSpellIds can skip ids) keeps its base
+        // id and stays a plain Scroll - a tome pointing at a nonexistent spell would fail
+        // silently at Spellbook.cs:203.
+        if (basic.UseType == ItemTemplate.UseTypes.Scroll
+            && world.SpellHandler.GetSpell(basic.LearnSpellID + Offset * dim) != null)
+        {
+            clone.UseType = ItemTemplate.UseTypes.OneTime;
+            clone.LearnSpellID = basic.LearnSpellID + Offset * dim;
+        }
+
         return clone;
     }
+
+    /// <summary>Task 7 repoints NPC drop tables at the dimension item clones. No-op until
+    /// then.</summary>
+    private void RepointDrops(GameWorld world) { }
 
     /// <summary>AttributeSet.java:376, with itemType 0 - the flat per-dimension bonus only.
     /// The six suffix-specific terms live in DimensionSurname.csx, applied at roll time.

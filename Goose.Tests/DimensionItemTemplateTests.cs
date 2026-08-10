@@ -115,4 +115,80 @@ public class DimensionItemTemplateTests
         var exception = Assert.Throws<Exception>(() => script.Object.OnLoaded(fixture.World));
         Assert.Contains("100050", exception.Message);
     }
+
+    [Fact]
+    public void Clones_tomes_as_consumables_pointing_at_the_dimension_spell()
+    {
+        using var fixture = Run(f =>
+        {
+            f.AddBaseSpellEffect(7, "Firestorm Effect");
+            f.AddBaseSpell(91, "Firestorm", 7);
+            f.AddBaseItemTemplate(70, "Tome of Firestorm", ItemTemplate.UseTypes.Scroll,
+                t => t.LearnSpellID = 91);
+        });
+
+        var dim2 = fixture.World.ItemHandler.GetTemplate(70 + 100000 * 2);
+        Assert.NotNull(dim2);
+        // OneTime, not Scroll: Inventory.cs:277 learns scrolls with no script hook, so the
+        // upgrade rule needs the consumable path (Inventory.cs:423).
+        Assert.Equal(ItemTemplate.UseTypes.OneTime, dim2.UseType);
+        Assert.Equal(91 + 100000 * 2, dim2.LearnSpellID);
+        Assert.Equal("Super Powerful Tome of Firestorm", dim2.Name);
+    }
+
+    [Fact]
+    public void Leaves_a_tome_alone_when_its_spell_was_never_cloned()
+    {
+        using var fixture = Run(f =>
+            // No spell 91 registered, so Part 3's spell pass produces no clone for it.
+            f.AddBaseItemTemplate(70, "Tome of Nothing", ItemTemplate.UseTypes.Scroll,
+                t => t.LearnSpellID = 91));
+
+        var dim2 = fixture.World.ItemHandler.GetTemplate(70 + 100000 * 2);
+        Assert.NotNull(dim2);
+        // Pointing at a spell that does not exist would make the tome silently unusable
+        // (Spellbook.LearnSpell returns false at Spellbook.cs:203). Keep the base spell.
+        Assert.Equal(91, dim2.LearnSpellID);
+        Assert.Equal(ItemTemplate.UseTypes.Scroll, dim2.UseType);
+    }
+
+    [Fact]
+    public void Does_not_clone_scrolls_that_teach_nothing()
+    {
+        using var fixture = Run(f =>
+            f.AddBaseItemTemplate(71, "Blank Scroll", ItemTemplate.UseTypes.Scroll));
+
+        Assert.Null(fixture.World.ItemHandler.GetTemplate(100071));
+    }
+
+    [Fact]
+    public void Tome_clones_get_no_equipment_stats()
+    {
+        using var fixture = Run(f =>
+        {
+            f.AddBaseSpellEffect(7, "Firestorm Effect");
+            f.AddBaseSpell(91, "Firestorm", 7);
+            f.AddBaseItemTemplate(70, "Tome of Firestorm", ItemTemplate.UseTypes.Scroll,
+                t => { t.LearnSpellID = 91; t.MinLevel = 50; });   // tier 0.5, dim 6 -> huge if applied
+        });
+
+        var basic = fixture.World.ItemHandler.GetTemplate(70);
+        var dim6 = fixture.World.ItemHandler.GetTemplate(70 + 100000 * 6);
+
+        // AttributeSet.java:380-382 - dimensionDefault returns an empty set for anything
+        // that is not equipment, so the tome's stats must match the base template exactly.
+        Assert.Equal(basic.BaseStats.AC, dim6.BaseStats.AC);
+        Assert.Equal(basic.BaseStats.HP, dim6.BaseStats.HP);
+        Assert.Equal(basic.BaseStats.MP, dim6.BaseStats.MP);
+        Assert.Equal(basic.BaseStats.Strength, dim6.BaseStats.Strength);
+        Assert.Equal(basic.BaseStats.Stamina, dim6.BaseStats.Stamina);
+        Assert.Equal(basic.BaseStats.Intelligence, dim6.BaseStats.Intelligence);
+        Assert.Equal(basic.BaseStats.Dexterity, dim6.BaseStats.Dexterity);
+        Assert.Equal(basic.BaseStats.FireResist, dim6.BaseStats.FireResist);
+        Assert.Equal(basic.BaseStats.MeleeDamage, dim6.BaseStats.MeleeDamage);
+
+        // The rest of the clone still applies - this is a stat guard, not a clone opt-out.
+        Assert.Equal("Godly Tome of Firestorm", dim6.Name);
+        Assert.Equal(91 + 100000 * 6, dim6.LearnSpellID);
+    }
 }
