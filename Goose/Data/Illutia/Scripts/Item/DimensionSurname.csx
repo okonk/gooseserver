@@ -21,7 +21,9 @@ public class DimensionSurname : BaseItemModifierScript
 
         double tier = Tier(world.ItemHandler.GetTemplate(item.TemplateID % Offset));
         decimal scale = (decimal)(dim * tier);
-        int index = int.Parse(modifier.ScriptParams);
+        // Invariant for consistency with DimensionRarity.csx: int.Parse is safe for ASCII
+        // digits in every culture, but explicit is better than implicit here.
+        int index = int.Parse(modifier.ScriptParams, System.Globalization.CultureInfo.InvariantCulture);
 
         switch (index)
         {

@@ -79,6 +79,31 @@ public class DimensionModifierTests
         Assert.Equal(0.5, stunted.StatMultiplier);      // Item.java:398
     }
 
+    [Fact]
+    public void Rarity_multiplier_parses_invariant_under_any_culture()
+    {
+        using var fixture = Run();
+        var legendary = ItemOfDimension(fixture, dim: 1);
+
+        // The ScriptParams must be parsed invariant, like ItemModifierScript.csx's JSON.
+        // Under de-DE, double.Parse("1.25") returns 125 - a silent 100x stat inflation -
+        // and under fr-FR/ar-SA it throws, which ItemModifier.ApplyStats swallows so the
+        // title never applies. This class runs in GameWorldSettingsCollection (parallelism
+        // disabled), so the culture flip is contained - but restore it anyway.
+        var previous = System.Globalization.CultureInfo.CurrentCulture;
+        try
+        {
+            System.Globalization.CultureInfo.CurrentCulture = new System.Globalization.CultureInfo("de-DE");
+            fixture.World.ItemHandler.GetTitle(900100).ApplyStats(legendary, fixture.World);
+        }
+        finally
+        {
+            System.Globalization.CultureInfo.CurrentCulture = previous;
+        }
+
+        Assert.Equal(1.25, legendary.StatMultiplier);
+    }
+
     private static Item ItemOfDimension(GlobalScriptFixture fixture, int dim)
     {
         var item = new Item();

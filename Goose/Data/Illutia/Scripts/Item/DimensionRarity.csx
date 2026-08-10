@@ -9,7 +9,11 @@ public class DimensionRarity : BaseItemModifierScript
 {
     public override void OnExecuteEvent(ItemModifier modifier, Item item, GameWorld world)
     {
-        item.StatMultiplier *= double.Parse(modifier.ScriptParams);
+        // Invariant: ScriptParams is generated here with '.', and nothing pins a process
+        // culture - under de-DE the plain overload parses "1.25" as 125, silently inflating
+        // every stat 100x, and under fr-FR/ar-SA it throws a FormatException that
+        // ItemModifier.ApplyStats swallows. Same convention as Dimensions.csx's ScaleFormula.
+        item.StatMultiplier *= double.Parse(modifier.ScriptParams, System.Globalization.CultureInfo.InvariantCulture);
         item.RefreshStats();
     }
 }
