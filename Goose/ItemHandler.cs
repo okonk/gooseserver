@@ -194,6 +194,37 @@ namespace Goose
             return null;
         }
 
+        /// <summary>Registers a generated template. Mirrors NPCHandler.AddTemplate
+        /// (NPCHandler.cs:231) and SpellHandler.AddSpell. Overwrites silently, so callers
+        /// generating ids must check GetTemplate first.</summary>
+        public void AddTemplate(ItemTemplate template)
+        {
+            this.templates[template.ID] = template;
+        }
+
+        /// <summary>Registers a generated title. A modifier with Chance 0 can never be
+        /// selected by RollModifier (its range is empty), so script-owned modifiers
+        /// register at 0 and are applied explicitly.</summary>
+        public void AddTitle(ItemModifier title)
+        {
+            this.titles[title.Id] = title;
+        }
+
+        public void AddSurname(ItemModifier surname)
+        {
+            this.surnames[surname.Id] = surname;
+        }
+
+        public ItemModifier GetTitle(int id)
+        {
+            return this.titles.TryGetValue(id, out ItemModifier title) ? title : null;
+        }
+
+        public ItemModifier GetSurname(int id)
+        {
+            return this.surnames.TryGetValue(id, out ItemModifier surname) ? surname : null;
+        }
+
         public void AddAndAssignId(Item item, GameWorld world)
         {
             item.ItemID = this.CurrentID;
