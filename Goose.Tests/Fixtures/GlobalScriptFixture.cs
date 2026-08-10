@@ -142,6 +142,23 @@ public sealed class GlobalScriptFixture : IDisposable
         return spell;
     }
 
+    /// <summary>Registers a base item template. Real ones come from item_templates
+    /// (ItemHandler.cs:56); the clone path only reads the object.</summary>
+    public ItemTemplate AddBaseItemTemplate(int id, string name, ItemTemplate.UseTypes useType,
+                                            Action<ItemTemplate> configure = null)
+    {
+        var template = new ItemTemplate
+        {
+            ID = id, Name = name, Description = "A " + name, UseType = useType,
+            Slot = ItemTemplate.ItemSlots.OneHanded, BaseStats = new AttributeSet(),
+            GraphicR = 255, GraphicG = 255, GraphicB = 255, GraphicA = 100,
+            StackSize = 1, ScriptParams = "",
+        };
+        configure?.Invoke(template);
+        World.ItemHandler.AddTemplate(template);
+        return template;
+    }
+
     /// <summary>Registers a class with levels 1..maxLevel directly into ClassHandler's private
     /// dictionary. ClassHandler has no public registration path (classes come from the DB), so
     /// this mirrors NPCSpawnRegistrationTests.RegisterClass.</summary>

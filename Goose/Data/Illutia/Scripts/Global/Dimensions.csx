@@ -78,6 +78,9 @@ public class Dimensions : BaseGlobalScript
     {
         if (!Enabled) return;
 
+        // Item clones first: Task 7 repoints NPC drop tables at the clones and needs them
+        // to exist. Task 4 will reorder this to run after the spell passes.
+        CloneItemTemplates(world);
         CloneTemplates(world);
         RewireAllies(world);
         CloneMaps(world);
@@ -480,6 +483,137 @@ public class Dimensions : BaseGlobalScript
         t.BodyG = Math.Max(t.BodyG - dim * 30, 0);
         t.BodyB = Math.Max(t.BodyB - dim * 30, 0);
         t.BodyA = Math.Min(t.BodyA + dim * 30, 200);
+    }
+
+    // ---- Item pass --------------------------------------------------------
+
+    /// <summary>Equipment and spell tomes get a copy per dimension. Consumables never scale
+    /// in abyss (Item.java:404); money and NoUse items have nothing to scale.</summary>
+    private bool ShouldClone(ItemTemplate t)
+    {
+        return t.UseType == ItemTemplate.UseTypes.Armor
+            || t.UseType == ItemTemplate.UseTypes.Weapon
+            || (t.UseType == ItemTemplate.UseTypes.Scroll && t.LearnSpellID > 0);
+    }
+
+    private void CloneItemTemplates(GameWorld world)
+    {
+        // Snapshot first: AddTemplate mutates the dictionary GetTemplates() enumerates
+        // (ItemHandler.cs:42 hands back the live values collection).
+        var baseTemplates = world.ItemHandler.GetTemplates()
+            .Where(t => t.ID < Offset && ShouldClone(t)).ToList();
+
+        for (int dim = 1; dim <= DimensionCount; dim++)
+        {
+            foreach (var basic in baseTemplates)
+            {
+                int id = basic.ID + Offset * dim;
+
+                // AddTemplate overwrites silently, so a collision would quietly replace a
+                // real item and change what every stored Item with that id resolves to.
+                if (world.ItemHandler.GetTemplate(id) != null)
+                    throw new Exception($"Dimension item template id {id} (base {basic.ID}, dim {dim}) "
+                                        + "already exists. Offset is too small for this data set.");
+
+                world.ItemHandler.AddTemplate(ScaleItemTemplate(world, basic, dim));
+            }
+        }
+    }
+
+    private ItemTemplate ScaleItemTemplate(GameWorld world, ItemTemplate basic, int dim)
+    {
+        var clone = new ItemTemplate(basic)
+        {
+            ID = basic.ID + Offset * dim,
+            Name = DimensionPrefixes[dim] + basic.Name,
+            Description = "Abyss (" + dim + ") " + basic.Description,
+
+            // Item.java:441-444
+            GraphicR = Math.Max(basic.GraphicR - 30 * dim, 0),
+            GraphicG = Math.Max(basic.GraphicG - 30 * dim, 0),
+            GraphicB = Math.Max(basic.GraphicB - 30 * dim, 0),
+            GraphicA = Math.Min(basic.GraphicA + 30 * dim, 200),
+
+            // Item.java:445. This is the spirit price; until Part 5's vendor overrides land
+            // it is also a gold price, which is a known and accepted limitation.
+            Value = (long)(basic.Value * Math.Pow(3, dim)),
+
+            // Item.java:225-260 - dimension gear is freely tradeable.
+            IsLore = false,
+            IsBindOnPickup = false,
+            IsBindOnEquip = false,
+        };
+
+        // Equipment only. AttributeSet.java:380-382 returns an empty set for anything that
+        // is not equipment, so a tome must not pick up AC, attributes, HP/MP, resistances
+        // or melee damage. Most of it would be inert on a consumable, but the generated
+        // data would still be wrong - and it renders in the item window (Packets.cs:443).
+        if (basic.UseType == ItemTemplate.UseTypes.Armor || basic.UseType == ItemTemplate.UseTypes.Weapon)
+            clone.BaseStats += DimensionStats(basic, dim);
+
+        return clone;
+    }
+
+    /// <summary>AttributeSet.java:376, with itemType 0 - the flat per-dimension bonus only.
+    /// The six suffix-specific terms live in DimensionSurname.csx, applied at roll time.
+    ///
+    /// Callers must apply this to equipment only: abyss returns an empty set for every
+    /// other use type (AttributeSet.java:380-382). ScaleItemTemplate holds that guard.
+    ///
+    /// Baking this into the template rather than adding it per item is equivalent: abyss
+    /// computes (template + item + dimensionDefault) * StatMultiplier (Item.java:459), and
+    /// goose computes (template + item) * StatMultiplier (Item.cs:247), so folding it into
+    /// the template leaves Legendary/Stunted multiplying the same total.</summary>
+    private AttributeSet DimensionStats(ItemTemplate basic, int dim)
+    {
+        var a1 = basic.BaseStats;
+        double tier = Tier(basic);
+        double half = 0.5 * dim;
+
+        return new AttributeSet
+        {
+            AC = (int)(a1.AC * half + 10 * dim * tier),
+            AirResist = (int)(a1.AirResist * half + 10 * dim * tier),
+            EarthResist = (int)(a1.EarthResist * half + 10 * dim * tier),
+            FireResist = (int)(a1.FireResist * half + 10 * dim * tier),
+            WaterResist = (int)(a1.WaterResist * half + 10 * dim * tier),
+            SpiritResist = (int)(a1.SpiritResist * half + 10 * dim * tier),
+            Dexterity = (int)(a1.Dexterity * half + 15 * dim * tier),
+            Stamina = (int)(a1.Stamina * half + 100 * dim * tier),
+            Intelligence = (int)(a1.Intelligence * half + 100 * dim * tier),
+            Strength = (int)(a1.Strength * half + 100 * dim * tier),
+
+            HP = (long)(a1.HP * dim + Math.Pow(10 * dim, 4) * tier),
+            MP = (long)(a1.MP * dim + Math.Pow(10 * dim, 4) * tier),
+
+            DamageReduction = a1.DamageReduction * (decimal)half,
+            Haste = a1.Haste * (decimal)half,
+            SpellCrit = a1.SpellCrit * (decimal)half,
+            SpellDamage = a1.SpellDamage * (decimal)half,
+            HPPercentRegen = a1.HPPercentRegen * (decimal)half,
+            MPPercentRegen = a1.MPPercentRegen * (decimal)half,
+            HPStaticRegen = (int)(a1.HPStaticRegen * half),
+            MPStaticRegen = (int)(a1.MPStaticRegen * half),
+
+            // AttributeSet.java:433 casts the whole term to int. Ported faithfully, cast
+            // included: the flat 10*dim*tier term dominates, and any base MeleeDamage
+            // product below 1.0 truncates to nothing. MeleeDamage is a fraction on both
+            // servers - damage *= (1 + MeleeDamage) at Player.java:316 and Player.cs:1616 -
+            // so this is a very large bonus by design. User decision, 2026-08-10.
+            MeleeDamage = (int)((double)a1.MeleeDamage * dim + 10 * dim * tier),
+        };
+    }
+
+    /// <summary>AttributeSet.java:405-419. Abyss's top tier (1.5) keys off an SP-priced
+    /// template; goose has no SP value, so that tier has no equivalent and is dropped.
+    /// Computed from the BASE template - the clone's value is already scaled by 3^dim and
+    /// would put every clone in the top tier.</summary>
+    private double Tier(ItemTemplate basic)
+    {
+        if (basic.Value >= 10000000) return 1.0;
+        if (basic.MinExperience > 0) return 0.75;
+        if (basic.MinLevel == 50) return 0.5;
+        return 0.25;
     }
 
     // ---- Spell pass -------------------------------------------------------
