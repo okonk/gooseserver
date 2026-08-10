@@ -399,6 +399,30 @@ The fixture needs extending: a `Scripts/Spell/` directory, `DimensionTeleport.cs
 `ShippedScripts` and in `Goose.Tests.csproj` as a `<None Include>`, and a helper to seed
 base spells and effects (which `AddSpell`/`AddSpellEffect` now allow).
 
+**Verification (Part 3 Task 8).** Full suite: **340 passed, 0 failed, 26 skipped**
+(Goose.Tests 216, Tools.Tests 124/26), matching the plan's budget exactly.
+
+Server start: the Illutia workbook (`IllutiaGoose_2025-04-15.db`, 207 spells / 623
+effects) was not available in the verification environment, so the server was run
+against the current Aspereta data snapshot (`Goose.Tests/Fixtures/aspereta-data.xlsx`,
+converted through the same `CsvToSql` pipeline `CreateDatabaseSchema` uses) — the same
+dataset Part 2 measured (44 maps, 4,322 spawns, 190 templates), so the numbers compare
+apples to apples. With `Enabled = true`, the server reached "Ready to join" with **no
+exceptions**. Base load: 259 spell effects / 152 spells; after the generation pass
+`SpellHandler.EffectCount = 1,813` (= 259 × 7) and `SpellHandler.Count = 1,064`
+(= 152 × 7), the exact expected multiplication. Global Scripts load step took
+**724 ms** (Part 2: 633 ms on the same dataset) — the +91 ms buys ~2,900 generated spell
+templates and their rewiring/ladder work, small as predicted. Process RSS at "Ready to
+join" was **419 MiB** (Part 2: 461 MB), i.e. no material memory growth from the spell
+pass. The Illutia dataset would scale to 1,449 spells / 4,361 effects (~1.36× these
+counts), so expect a roughly +0.1 s global-scripts delta at Illutia scale.
+
+The interactive teleport walk (cast a teleport inside dimension 3 and confirm the
+landing map) was **not** performed: it needs a logged-in game client, which the
+verification environment does not have. That path is instead covered end-to-end by the
+ten automated teleport tests, which drive `SpellEffect.CastSpell` on the shipped
+rewritten effects through the production dispatch path.
+
 **Manual** — start the server with `Enabled = true`, confirm spell and effect counts
 (1,449 and 4,361), then cast a teleport spell from inside dimension 3 and confirm it lands
 in dimension 3 rather than dimension 0. Check a teleport spell's tooltip still renders a
