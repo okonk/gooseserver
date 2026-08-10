@@ -2,6 +2,19 @@ using System;
 using Goose;
 using Goose.Scripting;
 
+/// <summary>Entry gate and delegation layer for dimension map clones. The dimension is
+/// encoded in the map id (baseId + Offset*dim), so nothing needs ScriptParams, which is
+/// passed through untouched to the base map's own script - every member forwards to it.
+///
+/// Known limitation: base scripts that keep per-map state in Map.ScriptStore (e.g.
+/// ZombieTownMap.csx, which initializes it in OnLoad/OnLoadTile) cannot work on dimension
+/// clones. Clones are created by Map.CloneAs, which deliberately skips LoadData (re-parsing
+/// the .map file and the SQL), so the load hooks never run for them and ScriptStore stays
+/// null. Their forwarded events then throw inside the script; the engine's call sites
+/// swallow the exceptions, so the clone stays inert - exactly as before this delegation
+/// landed - rather than crashing. Fixing this needs per-clone load-hook replication with
+/// independent MapScriptData per dimension, deferred as out of scope for the dimensions
+/// part 4 plan (user decision).</summary>
 public class DimensionMap : BaseMapScript
 {
     private const string MaxDimensionProperty = "dimension.max";
