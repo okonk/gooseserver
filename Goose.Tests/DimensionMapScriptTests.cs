@@ -195,6 +195,50 @@ public class DimensionMapScriptTests
         Assert.Contains("maximum dimension", clone.Script.Object.CanPlayerJoin(clone, player, fixture.World));
     }
 
+    [Fact]
+    public void A_GM_entering_a_locked_dimension_map_still_triggers_the_base_script()
+    {
+        using var fixture = new GlobalScriptFixture();
+        var basic = fixture.AddBaseMap(1, "Arena", width: 100, height: 100);
+        var inner = new RecordingMapScript();
+        basic.Script = ScriptStub.For<IMapScript>(inner);
+
+        fixture.CompileShipped().Object.OnLoaded(fixture.World);
+
+        var clone = fixture.World.MapHandler.GetMap(100001);   // dimension 1
+        var player = fixture.PlayerOn(clone, 5, 5);
+        player.Properties["dimension.max"] = 0;   // dim 1 > max 0: the gate would refuse a normal player
+        player.Access = Player.AccessStatus.GameMaster;   // ...but GMs bypass it (AccessLevels.cs)
+        Assert.True(player.HasPrivilege(AccessPrivilege.IgnoreMapRequirements));
+
+        clone.Script.Object.OnPlayerEntered(clone, player, fixture.World);
+
+        // The GM is not relocated, but the base script still sees the entry.
+        Assert.Equal(1, inner.EnteredCalls);
+        Assert.Equal(100001, player.MapID);
+    }
+
+    [Fact]
+    public void A_rejected_entry_is_not_forwarded_to_the_base_script()
+    {
+        using var fixture = new GlobalScriptFixture();
+        var basic = fixture.AddBaseMap(1, "Arena", width: 100, height: 100);
+        var inner = new RecordingMapScript();
+        basic.Script = ScriptStub.For<IMapScript>(inner);
+
+        fixture.CompileShipped().Object.OnLoaded(fixture.World);
+
+        var clone = fixture.World.MapHandler.GetMap(300001);   // dimension 3
+        var player = fixture.PlayerOn(clone, 5, 5);
+        player.Properties["dimension.max"] = 1;   // dim 3 > max 1: the gate refuses
+
+        clone.Script.Object.OnPlayerEntered(clone, player, fixture.World);
+
+        // The base script must not see an entry that was warped straight back out.
+        Assert.Equal(0, inner.EnteredCalls);
+        Assert.Equal(1, player.MapID);   // relocated to the dimension-0 map (MapID, not Map - WarpTo nulls Map)
+    }
+
     private sealed class RecordingMapScript : BaseMapScript
     {
         public int EnteredCalls;
