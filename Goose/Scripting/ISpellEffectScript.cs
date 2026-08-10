@@ -15,5 +15,9 @@ namespace Goose.Scripting
         void OnBuffRemoved(Buff buff, GameWorld world);
 
         void OnBuffTick(Buff buff, GameWorld world);
+
+        /// <summary>Lines to show in place of the built-in description. Return null or an empty
+        /// sequence to fall through to SpellEffect's own switch.</summary>
+        IEnumerable<string> GetItemDescription(SpellEffect thisEffect, GameWorld world);
     }
 }

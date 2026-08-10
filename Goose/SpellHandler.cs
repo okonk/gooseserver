@@ -209,6 +209,19 @@ namespace Goose
             return effect;
         }
 
+        /// <summary>Registers a script-generated effect. Overwrites any existing entry with the
+        /// same id - callers that must not collide should check GetSpellEffect first.</summary>
+        public void AddSpellEffect(SpellEffect effect)
+        {
+            this.effects[effect.ID] = effect;
+        }
+
+        /// <summary>Every loaded effect, for scripts that need to enumerate rather than look up.</summary>
+        public IEnumerable<SpellEffect> GetSpellEffects()
+        {
+            return this.effects.Values;
+        }
+
         /**
          * LoadSpells, loads all spells
          *
@@ -272,6 +285,17 @@ namespace Goose
             Spell spell = null;
             this.spells.TryGetValue(id, out spell);
             return spell;
+        }
+
+        /// <summary>Registers a script-generated spell. Overwrites any existing entry with the same id.</summary>
+        public void AddSpell(Spell spell)
+        {
+            this.spells[spell.ID] = spell;
+        }
+
+        public IEnumerable<Spell> GetSpells()
+        {
+            return this.spells.Values;
         }
 
         public Spell GetSpellByName(string name)

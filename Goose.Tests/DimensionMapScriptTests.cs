@@ -59,7 +59,7 @@ public class DimensionMapScriptTests
         var dim3 = fixture.AddBaseMap(300001, "Town (3)", width: 100, height: 100);
         dim3.ScriptParams = "3";
 
-        var player = PlayerOn(dim3, x: 50, y: 50);
+        var player = fixture.PlayerOn(dim3, x: 50, y: 50);
         player.Properties["dimension.max"] = 0;
 
         script.Object.OnPlayerEntered(dim3, player, fixture.World);
@@ -79,7 +79,7 @@ public class DimensionMapScriptTests
         var dim3 = fixture.AddBaseMap(300001, "Town (3)", width: 100, height: 100);
         dim3.ScriptParams = "3";
 
-        var player = PlayerOn(dim3, x: 50, y: 50);
+        var player = fixture.PlayerOn(dim3, x: 50, y: 50);
         player.Properties["dimension.max"] = 0;
         player.BoundID = 300001;
         player.BoundMap = dim3;
@@ -103,7 +103,7 @@ public class DimensionMapScriptTests
         var dim3 = fixture.AddBaseMap(300001, "Town (3)", width: 100, height: 100);
         dim3.ScriptParams = "3";
 
-        var player = PlayerOn(dim3, x: 50, y: 50);
+        var player = fixture.PlayerOn(dim3, x: 50, y: 50);
         player.Properties["dimension.max"] = 3;
         player.BoundID = 300001;
         player.BoundMap = dim3;
@@ -127,7 +127,7 @@ public class DimensionMapScriptTests
         var dim5 = fixture.AddBaseMap(500001, "Town (5)", width: 100, height: 100);
         dim5.ScriptParams = "5";
 
-        var player = PlayerOn(dim1, x: 50, y: 50);
+        var player = fixture.PlayerOn(dim1, x: 50, y: 50);
         player.Properties["dimension.max"] = 1;
         player.BoundID = 500001;
         player.BoundMap = dim5;
@@ -137,19 +137,5 @@ public class DimensionMapScriptTests
         Assert.Equal(100001, player.MapID);   // ORCHESTRATOR CORRECTION: the current map was allowed - no relocation; player stays on dim1 (100001). The plan's "Assert.Equal(1, player.Map.ID)" was a bug - the player was placed on map 100001.
         Assert.Equal(1, player.BoundID);      // but the bind was not
         Assert.Same(town, player.BoundMap);
-    }
-
-    /// <summary>Builds a Player already placed on a map - the minimum for WarpTo to work in
-    /// a test world. WarpTo needs player.Map, MapID, MapX, MapY set, and the source map's
-    /// characters array sized (AddBaseMap does that).</summary>
-    private static Player PlayerOn(Map map, int x, int y)
-    {
-        return new Player(0)
-        {
-            Map = map,
-            MapID = map.ID,
-            MapX = x,
-            MapY = y,
-        };
     }
 }

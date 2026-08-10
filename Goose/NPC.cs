@@ -1476,6 +1476,12 @@ namespace Goose
                 if (buff.SpellEffect == b.SpellEffect ||
                     buff.SpellEffect.BuffStacksOver.Contains(b.SpellEffect))
                 {
+                    // Add/remove stats - the old effect's stats leave, the new one's arrive,
+                    // exactly like Player.AddBuff's replacement branch. Without this, expiry
+                    // subtracts stats that were never added and MaxStats drifts below base.
+                    this.MaxStats -= b.SpellEffect.Stats;
+                    this.MaxStats += buff.SpellEffect.Stats;
+
                     b.TimeCast = world.TimeNow;
                     b.SpellEffect = buff.SpellEffect;
                     b.Caster = buff.Caster;

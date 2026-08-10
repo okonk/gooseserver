@@ -29,5 +29,10 @@ namespace Goose.Scripting
         {
 
         }
+
+        public virtual IEnumerable<string> GetItemDescription(SpellEffect thisEffect, GameWorld world)
+        {
+            return null;
+        }
     }
 }

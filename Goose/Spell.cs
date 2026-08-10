@@ -39,5 +39,29 @@ namespace Goose
 
         public int SpellEffectID { get; set; }
         public SpellEffect SpellEffect { get; set; }
+
+        public Spell() { }
+
+        /// <summary>Copy constructor for script-generated dimension variants. SpellEffect is a
+        /// shared reference; the caller repoints it at the same dimension's effect clone.</summary>
+        public Spell(Spell other)
+        {
+            this.ID = other.ID;
+            this.Name = other.Name;
+            this.Description = other.Description;
+            this.Target = other.Target;
+            this.ClassRestrictions = other.ClassRestrictions;
+            this.Aether = other.Aether;
+            this.Graphic = other.Graphic;
+            this.GraphicFile = other.GraphicFile;
+            this.HPStaticCost = other.HPStaticCost;
+            this.HPPercentCost = other.HPPercentCost;
+            this.MPStaticCost = other.MPStaticCost;
+            this.MPPercentCost = other.MPPercentCost;
+            this.SPStaticCost = other.SPStaticCost;
+            this.SPPercentCost = other.SPPercentCost;
+            this.SpellEffectID = other.SpellEffectID;
+            this.SpellEffect = other.SpellEffect;
+        }
     }
 }
