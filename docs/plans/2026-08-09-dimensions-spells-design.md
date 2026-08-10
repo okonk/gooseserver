@@ -399,8 +399,17 @@ The fixture needs extending: a `Scripts/Spell/` directory, `DimensionTeleport.cs
 `ShippedScripts` and in `Goose.Tests.csproj` as a `<None Include>`, and a helper to seed
 base spells and effects (which `AddSpell`/`AddSpellEffect` now allow).
 
-**Verification (Part 3 Task 8).** Full suite: **340 passed, 0 failed, 26 skipped**
-(Goose.Tests 216, Tools.Tests 124/26), matching the plan's budget exactly.
+**Verification (Part 3 Task 8).** Full suite: **342 passed, 0 failed, 26 skipped**
+(Goose.Tests 218, Tools.Tests 124/26) — the plan's 45-test budget plus two regression
+tests for the NPC buff-replacement fix below.
+
+The final whole-implementation review found one real defect, fixed and covered by tests:
+`NPC.AddBuff`'s replacement branch stored the new `SpellEffect` without swapping stats,
+so a dimension buff replacing a lower-dimension copy on an NPC kept the old stats applied
+while expiry subtracted the new (never-added) stats (`MaxStats` drift below base). The
+fix swaps `MaxStats` in place (subtract old, add new) before the reference overwrite,
+mirroring `Player.AddBuff`'s `RemoveStats`/`AddStats` and NPC's own `MaxStats`
+arithmetic; two tests assert the swap (100 → 1600) and the balanced removal (→ 0).
 
 Server start: the Illutia workbook (`IllutiaGoose_2025-04-15.db`, 207 spells / 623
 effects) was not available in the verification environment, so the server was run
