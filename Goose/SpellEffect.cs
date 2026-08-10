@@ -474,6 +474,33 @@ namespace Goose
 
         public IEnumerable<string> GetItemDescription(GameWorld world)
         {
+            var scripted = this.ScriptItemDescription(world);
+            if (scripted != null && scripted.Count > 0) return scripted;
+
+            return this.BuiltInItemDescription(world);
+        }
+
+        /// <summary>Lets a spell-effect script replace the built-in description. Used by
+        /// DimensionTeleport.csx, whose effects are Script-typed and so would otherwise fall to
+        /// the default branch below and lose their destination line.</summary>
+        private List<string> ScriptItemDescription(GameWorld world)
+        {
+            if (this.Script == null) return null;
+
+            try
+            {
+                var lines = this.Script.Object.GetItemDescription(this, world);
+                return lines == null ? null : lines.ToList();
+            }
+            catch (Exception e)
+            {
+                log.Error(e, "Describe Spell {0} Exception", this.Name);
+                return null;
+            }
+        }
+
+        private IEnumerable<string> BuiltInItemDescription(GameWorld world)
+        {
             switch (this.EffectType)
             {
                 case EffectTypes.Bind:

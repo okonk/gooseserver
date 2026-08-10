@@ -85,6 +85,15 @@ public sealed class GlobalScriptFixture : IDisposable
         return World.ScriptHandler.GetScript<IGlobalScript>(relativePath);
     }
 
+    /// <summary>Compiles an arbitrary spell-effect script body from the temp data dir.</summary>
+    public Script<ISpellEffectScript> CompileSpellEffectScript(string body, string fileName)
+    {
+        Directory.CreateDirectory(Path.Combine(DataDirectory, "Scripts", "Spell"));
+        var relativePath = "Scripts/Spell/" + fileName;
+        File.WriteAllText(Path.Combine(DataDirectory, relativePath), body);
+        return World.ScriptHandler.GetScript<ISpellEffectScript>(relativePath);
+    }
+
     /// <summary>A base map with hand-built tile arrays. Real maps get theirs from
     /// Map.LoadData reading a .map file; clones never call it, so a synthetic base is
     /// enough to exercise the clone path.</summary>
