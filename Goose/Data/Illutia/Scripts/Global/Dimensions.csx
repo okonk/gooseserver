@@ -72,6 +72,13 @@ public class Dimensions : BaseGlobalScript
     /// would orphan in-flight kill progress on restart.</summary>
     public const int QuestIdBase = 900000;
 
+    /// <summary>Generated ItemModifier ids. item_surnames/item_titles are sheet data with
+    /// small ids; these sit far above so a new sheet row can never collide. The two
+    /// dictionaries are separate (ItemHandler.cs:20,21), so the ranges only need to be
+    /// distinct from sheet ids, not from each other.</summary>
+    public const int SurnameIdBase = 900000;
+    public const int TitleIdBase = 900100;
+
     public const string MaxDimensionProperty = "dimension.max";
 
     public override void OnLoaded(GameWorld world)
@@ -90,6 +97,10 @@ public class Dimensions : BaseGlobalScript
         RewireSpellEffects(world);
         CloneSpells(world);
         RewriteTeleportEffects(world);
+
+        // Generated surnames/titles are sheet data in ItemHandler; register the abyss ones
+        // before the item clones exist so the per-dimension item script (Task 6) can roll them.
+        RegisterModifiers(world);
 
         // After the spell passes: tome clones point at dimension spells, which must exist
         // to be pointed at. Before RepointDrops (Task 7), which needs the item clones.
@@ -488,6 +499,52 @@ public class Dimensions : BaseGlobalScript
     }
 
     // ---- Item pass --------------------------------------------------------
+
+    /// <summary>Abyss suffix names, in the band order of Item.java:363-387.</summary>
+    private static readonly string[] SurnameNames =
+    {
+        "of Vita Regen", "of Mana Regen", "of Criticality",
+        "of Spell Damage", "of Reduction", "of Speed",
+    };
+
+    /// <summary>Registers the eight dimension modifiers. All at Chance 0: RollModifier
+    /// (ItemHandler.cs:270) sizes each modifier's selection range as (int)(Chance * 100),
+    /// so zero yields an empty range and these can never land on dimension-0 loot. The
+    /// dimension script selects them explicitly by id.</summary>
+    private void RegisterModifiers(GameWorld world)
+    {
+        var surnameScript = world.ScriptHandler.GetScript<IItemModifierScript>(
+            "Scripts/Item/DimensionSurname.csx");
+
+        for (int i = 0; i < SurnameNames.Length; i++)
+        {
+            world.ItemHandler.AddSurname(new ItemModifier
+            {
+                Id = SurnameIdBase + i,
+                Name = SurnameNames[i],
+                Chance = 0,
+                Slot = ItemTemplate.ItemSlots.Misc,   // ModifierAppliesToItem treats Misc as "any slot"
+                Script = surnameScript,
+                ScriptParams = i.ToString(),
+            });
+        }
+
+        var rarityScript = world.ScriptHandler.GetScript<IItemModifierScript>(
+            "Scripts/Item/DimensionRarity.csx");
+
+        world.ItemHandler.AddTitle(new ItemModifier
+        {
+            Id = TitleIdBase, Name = "Legendary", Chance = 0,
+            Slot = ItemTemplate.ItemSlots.Misc,
+            Script = rarityScript, ScriptParams = "1.25",
+        });
+        world.ItemHandler.AddTitle(new ItemModifier
+        {
+            Id = TitleIdBase + 1, Name = "Stunted", Chance = 0,
+            Slot = ItemTemplate.ItemSlots.Misc,
+            Script = rarityScript, ScriptParams = "0.5",
+        });
+    }
 
     /// <summary>Equipment and spell tomes get a copy per dimension. Consumables never scale
     /// in abyss (Item.java:404); money and NoUse items have nothing to scale.</summary>
