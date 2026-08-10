@@ -11,13 +11,15 @@ public sealed class GlobalScriptFixture : IDisposable
     /// Copied to output by Goose.Tests.csproj. Add to BOTH lists together - a script
     /// missing here fails inside OnLoaded, not at compile time.</summary>
     ///
-    /// <remarks>All three dimension scripts ship: the global orchestration, the map entry
-    /// gate, and the quest reward that grants the unlocked dimension.</remarks>
+    /// <remarks>All four dimension scripts ship: the global orchestration, the map entry
+    /// gate, the quest reward that grants the unlocked dimension, and the spell that
+    /// teleports the player between dimensions.</remarks>
     private static readonly (string Source, string Relative)[] ShippedScripts =
     {
-        ("Dimensions.csx",      "Scripts/Global/Dimensions.csx"),
-        ("DimensionMap.csx",    "Scripts/Map/DimensionMap.csx"),
-        ("DimensionUnlock.csx", "Scripts/Quest/DimensionUnlock.csx"),
+        ("Dimensions.csx",           "Scripts/Global/Dimensions.csx"),
+        ("DimensionMap.csx",         "Scripts/Map/DimensionMap.csx"),
+        ("DimensionUnlock.csx",      "Scripts/Quest/DimensionUnlock.csx"),
+        ("DimensionTeleport.csx",    "Scripts/Spell/DimensionTeleport.csx"),
     };
 
     public string DataDirectory { get; }
@@ -26,7 +28,7 @@ public sealed class GlobalScriptFixture : IDisposable
     public GlobalScriptFixture()
     {
         DataDirectory = Path.Combine(Path.GetTempPath(), "global-script-" + Guid.NewGuid().ToString("N"));
-        foreach (var dir in new[] { "Global", "Map", "Quest" })
+        foreach (var dir in new[] { "Global", "Map", "Quest", "Spell" })
             Directory.CreateDirectory(Path.Combine(DataDirectory, "Scripts", dir));
 
         GameWorld.Settings = new GooseSettings
@@ -108,6 +110,30 @@ public sealed class GlobalScriptFixture : IDisposable
         };
         World.MapHandler.Maps[id] = map;
         return map;
+    }
+
+    /// <summary>Registers a base spell effect. Real ones come from the spell_effects table
+    /// (SpellHandler.cs:29); the clone path only reads the object, so a synthetic one is enough.</summary>
+    public SpellEffect AddBaseSpellEffect(int id, string name, Action<SpellEffect> configure = null)
+    {
+        var effect = new SpellEffect { ID = id, Name = name, MaximumLevelEffected = 99 };
+        configure?.Invoke(effect);
+        World.SpellHandler.AddSpellEffect(effect);
+        return effect;
+    }
+
+    /// <summary>Registers a base spell pointing at an already-registered effect.</summary>
+    public Spell AddBaseSpell(int id, string name, int effectId, Action<Spell> configure = null)
+    {
+        var spell = new Spell
+        {
+            ID = id, Name = name, Description = "",
+            SpellEffectID = effectId,
+            SpellEffect = World.SpellHandler.GetSpellEffect(effectId),
+        };
+        configure?.Invoke(spell);
+        World.SpellHandler.AddSpell(spell);
+        return spell;
     }
 
     /// <summary>Registers a class with levels 1..maxLevel directly into ClassHandler's private
