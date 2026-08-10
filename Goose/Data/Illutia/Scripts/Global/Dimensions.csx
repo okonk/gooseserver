@@ -562,6 +562,11 @@ public class Dimensions : BaseGlobalScript
         var baseTemplates = world.ItemHandler.GetTemplates()
             .Where(t => t.ID < Offset && ShouldClone(t)).ToList();
 
+        // One shared script for every clone - ScriptHandler caches by path
+        // (ScriptHandler.cs:24), and DimensionItem recovers its dimension from each
+        // item, so a single stateless instance serves all of them.
+        var itemScript = world.ScriptHandler.GetScript<IItemScript>("Scripts/Item/DimensionItem.csx");
+
         for (int dim = 1; dim <= DimensionCount; dim++)
         {
             foreach (var basic in baseTemplates)
@@ -574,18 +579,22 @@ public class Dimensions : BaseGlobalScript
                     throw new Exception($"Dimension item template id {id} (base {basic.ID}, dim {dim}) "
                                         + "already exists. Offset is too small for this data set.");
 
-                world.ItemHandler.AddTemplate(ScaleItemTemplate(world, basic, dim));
+                world.ItemHandler.AddTemplate(ScaleItemTemplate(world, basic, dim, itemScript));
             }
         }
     }
 
-    private ItemTemplate ScaleItemTemplate(GameWorld world, ItemTemplate basic, int dim)
+    private ItemTemplate ScaleItemTemplate(GameWorld world, ItemTemplate basic, int dim, Script<IItemScript> itemScript)
     {
         var clone = new ItemTemplate(basic)
         {
             ID = basic.ID + Offset * dim,
             Name = DimensionPrefixes[dim] + basic.Name,
             Description = "Abyss (" + dim + ") " + basic.Description,
+
+            // Replaces the base script rather than composing with it - DimensionItem.csx
+            // forwards to the base template's script itself, so nothing is lost.
+            Script = itemScript,
 
             // Item.java:441-444
             GraphicR = Math.Max(basic.GraphicR - 30 * dim, 0),
