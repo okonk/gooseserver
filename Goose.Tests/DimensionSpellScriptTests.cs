@@ -435,4 +435,79 @@ public class DimensionSpellScriptTests
         Assert.Equal("(-5 * %clevel) * " + area, handler.GetSpellEffect(43 + Offset * 2).HPFormula);
         Assert.Contains(".", handler.GetSpellEffect(42 + Offset * 2).HPFormula);
     }
+
+    // ---- NPC buff replacement ------------------------------------------------------------
+
+    /// <summary>NPC.AddBuff's replacement branch stores the new effect without swapping
+    /// stats (NPC.cs:1483) - unlike Player.AddBuff, which removes the old and adds the new.
+    /// The dimension ladder makes this path reachable: a dim-3 buff replaces a dim-0 copy
+    /// on an NPC, and without the swap the old stats stay applied while expiry subtracts
+    /// the new effect's never-added stats.</summary>
+    [Fact]
+    public void Npc_AddBuff_replacement_swaps_the_stats()
+    {
+        using var fixture = Run(f =>
+        {
+            f.AddBaseMap(1, "Town");
+            f.AddBaseSpellEffect(42, "Bless", e =>
+            {
+                e.EffectType = SpellEffect.EffectTypes.Buff;
+                e.Stats.HP = 100;
+            });
+        });
+
+        var handler = fixture.World.SpellHandler;
+        var town = fixture.World.MapHandler.GetMap(1);
+        var npc = new NPC { Map = town, MapX = 10, MapY = 10 };
+        npc.MaxStats = new AttributeSet();
+        npc.Buffs = new List<Buff>();   // parameterless NPC ctor leaves both null
+
+        var dim0 = handler.GetSpellEffect(42);
+        var dim3 = handler.GetSpellEffect(42 + Offset * 3);
+
+        // Seed the applied dim-0 buff the way AddBuff's new-buff path applies stats.
+        npc.Buffs.Add(new Buff { SpellEffect = dim0, Target = npc });
+        npc.MaxStats += dim0.Stats;
+        Assert.Equal(100, npc.MaxStats.HP);
+
+        npc.AddBuff(new Buff { SpellEffect = dim3, Target = npc }, fixture.World);
+
+        Assert.Single(npc.Buffs);
+        Assert.Same(dim3, npc.Buffs[0].SpellEffect);
+        Assert.Equal(1600, npc.MaxStats.HP);   // 100 * (3+1)^2, not the old 100
+    }
+
+    /// <summary>And the swap must be balanced: expiry subtracts exactly what replacement
+    /// added, so MaxStats returns to base rather than going negative.</summary>
+    [Fact]
+    public void Npc_AddBuff_replacement_is_balanced_on_removal()
+    {
+        using var fixture = Run(f =>
+        {
+            f.AddBaseMap(1, "Town");
+            f.AddBaseSpellEffect(42, "Bless", e =>
+            {
+                e.EffectType = SpellEffect.EffectTypes.Buff;
+                e.Stats.HP = 100;
+            });
+        });
+
+        var handler = fixture.World.SpellHandler;
+        var town = fixture.World.MapHandler.GetMap(1);
+        var npc = new NPC { Map = town, MapX = 10, MapY = 10 };
+        npc.MaxStats = new AttributeSet();
+        npc.Buffs = new List<Buff>();   // parameterless NPC ctor leaves both null
+
+        var dim0 = handler.GetSpellEffect(42);
+        var dim3 = handler.GetSpellEffect(42 + Offset * 3);
+
+        npc.Buffs.Add(new Buff { SpellEffect = dim0, Target = npc });
+        npc.MaxStats += dim0.Stats;
+        npc.AddBuff(new Buff { SpellEffect = dim3, Target = npc }, fixture.World);
+
+        npc.RemoveBuff(npc.Buffs[0], fixture.World);
+
+        Assert.Empty(npc.Buffs);
+        Assert.Equal(0, npc.MaxStats.HP);   // back to base, not 100 - 1600 = -1500
+    }
 }
