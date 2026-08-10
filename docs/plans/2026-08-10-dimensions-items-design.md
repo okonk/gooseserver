@@ -49,6 +49,7 @@ point at it or at this repository, as marked.
 | Scripted base templates | Delegation | The wrapper forwards to the base template's script. Covers Okonk Illusion Sword and Zombie Leg Illusion |
 | Stat scaling location | Baked into the cloned template's `BaseStats` | Equivalent to abyss's per-item add — see [Stat scaling](#stat-scaling) |
 | `bonusStats` tier 1.5 | Dropped | Abyss keys it off `getIsSPValue()`; goose has no SP-value concept |
+| `MeleeDamage` term | Faithful to abyss, `(int)` truncation included | `AttributeSet.java:433` grants `10·dim·tier` on a stat both servers apply as `damage *= (1 + MeleeDamage)` (`Player.java:1809`, `Goose/Player.cs:1616`) — i.e. `+1000%·dim·tier`, with any base product under 1.0 truncated to zero. Out of scale with every other term in the method (`0.04`, `0.015`), but ported as-is: balance is abyss's to own. User decision |
 
 ## Server changes
 
