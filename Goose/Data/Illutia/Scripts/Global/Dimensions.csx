@@ -636,9 +636,39 @@ public class Dimensions : BaseGlobalScript
         return clone;
     }
 
-    /// <summary>Task 7 repoints NPC drop tables at the dimension item clones. No-op until
-    /// then.</summary>
-    private void RepointDrops(GameWorld world) { }
+    /// <summary>Points each dimension NPC's drops at that dimension's item templates.
+    /// Items with no clone - gold, consumables, quest tokens - keep the base template.
+    ///
+    /// Every entry is a NEW NPCDropInfo: NPCTemplate's copy constructor copies the list but
+    /// shares its elements (NPCTemplate.cs:251), so mutating one in place would retarget the
+    /// base template's drop table and every other dimension's along with it.</summary>
+    private void RepointDrops(GameWorld world)
+    {
+        for (int dim = 1; dim <= DimensionCount; dim++)
+        {
+            foreach (var basic in world.NPCHandler.GetTemplates()
+                                       .Where(t => t.NPCTemplateID < Offset).ToList())
+            {
+                var clone = world.NPCHandler.GetNPCTemplate(basic.NPCTemplateID + Offset * dim);
+                if (clone == null || basic.Drops == null) continue;
+
+                var drops = new List<NPCDropInfo>();
+                foreach (var drop in basic.Drops)
+                {
+                    var dimTemplate = world.ItemHandler.GetTemplate(drop.ItemTemplate.ID + Offset * dim);
+
+                    drops.Add(new NPCDropInfo
+                    {
+                        ItemTemplate = dimTemplate ?? drop.ItemTemplate,
+                        DropRate = drop.DropRate,
+                        Stack = drop.Stack,
+                    });
+                }
+
+                clone.Drops = drops;
+            }
+        }
+    }
 
     /// <summary>AttributeSet.java:376, with itemType 0 - the flat per-dimension bonus only.
     /// The six suffix-specific terms live in DimensionSurname.csx, applied at roll time.
