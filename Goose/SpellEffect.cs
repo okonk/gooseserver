@@ -110,6 +110,8 @@ namespace Goose
             Earth = 32
         }
 
+        // Every property on this type must be copied in the SpellEffect(SpellEffect)
+        // copy constructor below - the reflection test SpellCloneTests guards that.
         public int ID { get; set; }
         public string Name { get; set; }
         public int Animation { get; set; }
@@ -223,6 +225,81 @@ namespace Goose
         public Script<ISpellEffectScript> Script { get; set; }
 
         public string ScriptParams { get; set; }
+
+        public SpellEffect()
+        {
+            this.Stats = new AttributeSet();
+            this.BuffStacksOver = new List<SpellEffect>();
+            this.BuffDoesntStackOver = new List<SpellEffect>();
+            this.BuffStacksOverString = "";
+            this.BuffDoesntStackOverString = "";
+        }
+
+        /// <summary>Copy constructor for script-generated dimension variants. Lists and the
+        /// AttributeSet are new instances so a variant can be rewired and rescaled without
+        /// mutating the effect it came from. Script is shared - compiled scripts are cached per
+        /// path (ScriptHandler.cs:19) and hold no per-effect state.
+        ///
+        /// Every property on this type must be copied here. Adding a field above without adding
+        /// it here is the failure mode this constructor exists to guard against.</summary>
+        public SpellEffect(SpellEffect other) : this()
+        {
+            this.ID = other.ID;
+            this.Name = other.Name;
+            this.Animation = other.Animation;
+            this.AnimationFile = other.AnimationFile;
+            this.Display = other.Display;
+            this.TargetType = other.TargetType;
+            this.TargetSize = other.TargetSize;
+            this.Effected = other.Effected;
+            this.MinimumLevelEffected = other.MinimumLevelEffected;
+            this.MaximumLevelEffected = other.MaximumLevelEffected;
+            this.EffectType = other.EffectType;
+            this.Duration = other.Duration;
+            this.DoAttackAnimation = other.DoAttackAnimation;
+            this.DoCastAnimation = other.DoCastAnimation;
+            this.SpellDamageEffects = other.SpellDamageEffects;
+            this.EnergyType = other.EnergyType;
+            this.HPFormula = other.HPFormula;
+            this.MPFormula = other.MPFormula;
+            this.SPFormula = other.SPFormula;
+            this.OnEffectText = other.OnEffectText;
+            this.OffEffectText = other.OffEffectText;
+            this.TauntAggro = other.TauntAggro;
+            this.TeleportMapID = other.TeleportMapID;
+            this.TeleportMapX = other.TeleportMapX;
+            this.TeleportMapY = other.TeleportMapY;
+            this.WorksInPVP = other.WorksInPVP;
+            this.WorksNotInPVP = other.WorksNotInPVP;
+            this.OnlyHitsOneNPC = other.OnlyHitsOneNPC;
+            this.BuffCanBeRemoved = other.BuffCanBeRemoved;
+            this.BuffGraphic = other.BuffGraphic;
+            this.BuffGraphicFile = other.BuffGraphicFile;
+            this.RandomJoinChance = other.RandomJoinChance;
+            this.OnMeleeAttackSpellID = other.OnMeleeAttackSpellID;
+            this.OnMeleeHitSpellID = other.OnMeleeHitSpellID;
+            this.OnMeleeAttackSpell = other.OnMeleeAttackSpell;
+            this.OnMeleeHitSpell = other.OnMeleeHitSpell;
+            this.OnMeleeAttackSpellChance = other.OnMeleeAttackSpellChance;
+            this.OnMeleeHitSpellChance = other.OnMeleeHitSpellChance;
+            this.SnarePercent = other.SnarePercent;
+            this.BuffStacksOverString = other.BuffStacksOverString;
+            this.BuffDoesntStackOverString = other.BuffDoesntStackOverString;
+            this.HairID = other.HairID;  this.HairR = other.HairR;  this.HairG = other.HairG;
+            this.HairB = other.HairB;    this.HairA = other.HairA;
+            this.BodyR = other.BodyR;    this.BodyG = other.BodyG;
+            this.BodyB = other.BodyB;    this.BodyA = other.BodyA;
+            this.FaceID = other.FaceID;  this.BodyID = other.BodyID;
+            this.Script = other.Script;
+            this.ScriptParams = other.ScriptParams;
+
+            // New instances, not shared references - see the class doc above.
+            this.Stats = other.Stats == null ? new AttributeSet() : other.Stats.Clone();
+            this.BuffStacksOver = other.BuffStacksOver == null
+                ? new List<SpellEffect>() : new List<SpellEffect>(other.BuffStacksOver);
+            this.BuffDoesntStackOver = other.BuffDoesntStackOver == null
+                ? new List<SpellEffect>() : new List<SpellEffect>(other.BuffDoesntStackOver);
+        }
 
         // Used in random spell
         struct Point
