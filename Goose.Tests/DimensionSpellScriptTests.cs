@@ -160,4 +160,187 @@ public class DimensionSpellScriptTests
         Assert.Contains((Offset + 91).ToString(), error.Message);
         Assert.Null(fixture.World.SpellHandler.GetSpellEffect(42 + Offset * 3));   // no effects either
     }
+
+    // ---- The rewire pass ---------------------------------------------------------------
+
+    [Fact]
+    public void Cross_references_point_at_the_same_dimensions_effects()
+    {
+        using var fixture = Run(f =>
+        {
+            f.AddBaseMap(1, "Town");
+            f.AddBaseSpellEffect(9, "Retaliate");
+            f.AddBaseSpellEffect(42, "Thorns", e =>
+            {
+                e.OnMeleeHitSpellID = 9;
+                e.OnMeleeHitSpell = f.World.SpellHandler.GetSpellEffect(9);
+            });
+        });
+
+        var dim3 = fixture.World.SpellHandler.GetSpellEffect(42 + Offset * 3);
+
+        Assert.Equal(9 + Offset * 3, dim3.OnMeleeHitSpellID);
+        Assert.Same(fixture.World.SpellHandler.GetSpellEffect(9 + Offset * 3), dim3.OnMeleeHitSpell);
+
+        // The base effect keeps its own reference.
+        Assert.Same(fixture.World.SpellHandler.GetSpellEffect(9),
+                    fixture.World.SpellHandler.GetSpellEffect(42).OnMeleeHitSpell);
+    }
+
+    [Fact]
+    public void A_cross_reference_with_no_clone_is_dropped_rather_than_left_at_dimension_zero()
+    {
+        using var fixture = Run(f =>
+        {
+            f.AddBaseMap(1, "Town");
+            f.AddBaseSpellEffect(42, "Thorns", e =>
+            {
+                // An id that resolved at load time but is not in the handler now.
+                e.OnMeleeHitSpellID = 999;
+                e.OnMeleeHitSpell = new SpellEffect { ID = 999 };
+            });
+        });
+
+        var dim3 = fixture.World.SpellHandler.GetSpellEffect(42 + Offset * 3);
+
+        Assert.Null(dim3.OnMeleeHitSpell);
+        Assert.Equal(0, dim3.OnMeleeHitSpellID);
+    }
+
+    /// <summary>The ladder: a dimension-3 buff replaces every copy at dimension 3 or below.</summary>
+    [Fact]
+    public void A_buff_stacks_over_its_own_lower_dimension_copies()
+    {
+        using var fixture = Run(f =>
+        {
+            f.AddBaseMap(1, "Town");
+            f.AddBaseSpellEffect(42, "Bless", e => e.EffectType = SpellEffect.EffectTypes.Buff);
+        });
+
+        var handler = fixture.World.SpellHandler;
+        var dim3 = handler.GetSpellEffect(42 + Offset * 3);
+
+        Assert.Contains(handler.GetSpellEffect(42), dim3.BuffStacksOver);
+        Assert.Contains(handler.GetSpellEffect(42 + Offset), dim3.BuffStacksOver);
+        Assert.Contains(handler.GetSpellEffect(42 + Offset * 2), dim3.BuffStacksOver);
+        Assert.DoesNotContain(handler.GetSpellEffect(42 + Offset * 4), dim3.BuffStacksOver);
+    }
+
+    /// <summary>And is refused outright by any higher-dimension copy already applied.</summary>
+    [Fact]
+    public void A_buff_does_not_stack_over_its_own_higher_dimension_copies()
+    {
+        using var fixture = Run(f =>
+        {
+            f.AddBaseMap(1, "Town");
+            f.AddBaseSpellEffect(42, "Bless", e => e.EffectType = SpellEffect.EffectTypes.Buff);
+        });
+
+        var handler = fixture.World.SpellHandler;
+
+        var dim3 = handler.GetSpellEffect(42 + Offset * 3);
+        Assert.Contains(handler.GetSpellEffect(42 + Offset * 4), dim3.BuffDoesntStackOver);
+        Assert.Contains(handler.GetSpellEffect(42 + Offset * 6), dim3.BuffDoesntStackOver);
+        Assert.DoesNotContain(handler.GetSpellEffect(42 + Offset * 2), dim3.BuffDoesntStackOver);
+
+        // The dimension-0 effect gets the same treatment, or the base spell would overwrite
+        // its own upgrades.
+        var basic = handler.GetSpellEffect(42);
+        Assert.Contains(handler.GetSpellEffect(42 + Offset), basic.BuffDoesntStackOver);
+    }
+
+    /// <summary>The ladder extends to every entry in the base list, not just the effect itself.
+    /// Without this a dim-3 Bless meeting a dim-0 Minor Bless matches neither list and applies
+    /// as a second buff, stacking both stat blocks.</summary>
+    [Fact]
+    public void The_ladder_extends_to_entries_from_the_base_stacking_list()
+    {
+        using var fixture = Run(f =>
+        {
+            f.AddBaseMap(1, "Town");
+            var minor = f.AddBaseSpellEffect(41, "Minor Bless",
+                e => e.EffectType = SpellEffect.EffectTypes.Buff);
+            f.AddBaseSpellEffect(42, "Bless", e =>
+            {
+                e.EffectType = SpellEffect.EffectTypes.Buff;
+                e.BuffStacksOver.Add(minor);
+            });
+        });
+
+        var handler = fixture.World.SpellHandler;
+        var dim3 = handler.GetSpellEffect(42 + Offset * 3);
+
+        Assert.Contains(handler.GetSpellEffect(41), dim3.BuffStacksOver);              // dim 0 Minor Bless
+        Assert.Contains(handler.GetSpellEffect(41 + Offset * 3), dim3.BuffStacksOver); // dim 3 Minor Bless
+        Assert.DoesNotContain(handler.GetSpellEffect(41 + Offset * 5), dim3.BuffStacksOver);
+    }
+
+    /// <summary>The mirror of the test above, and the case a ladder built only from higher copies
+    /// of the effect ITSELF gets wrong. Dimension 5 Minor Bless is above dimension 3, so it is not
+    /// in dim-3 Bless's StacksOver; unless it is in DoesntStackOver it is in neither list, and
+    /// AddBuff adds a second buff applying both stat blocks at once.</summary>
+    [Fact]
+    public void A_buff_refuses_to_stack_over_a_higher_dimension_copy_of_a_related_effect()
+    {
+        using var fixture = Run(f =>
+        {
+            f.AddBaseMap(1, "Town");
+            var minor = f.AddBaseSpellEffect(41, "Minor Bless",
+                e => e.EffectType = SpellEffect.EffectTypes.Buff);
+            f.AddBaseSpellEffect(42, "Bless", e =>
+            {
+                e.EffectType = SpellEffect.EffectTypes.Buff;
+                e.BuffStacksOver.Add(minor);
+            });
+        });
+
+        var handler = fixture.World.SpellHandler;
+        var dim3 = handler.GetSpellEffect(42 + Offset * 3);
+
+        Assert.Contains(handler.GetSpellEffect(41 + Offset * 5), dim3.BuffDoesntStackOver);
+        Assert.Contains(handler.GetSpellEffect(41 + Offset * 4), dim3.BuffDoesntStackOver);
+        Assert.Contains(handler.GetSpellEffect(41 + Offset * 6), dim3.BuffDoesntStackOver);
+
+        // Every dimension copy of Minor Bless is in exactly one list - that is the invariant.
+        for (int k = 0; k <= 6; k++)
+        {
+            var minorK = handler.GetSpellEffect(41 + Offset * k);
+            Assert.True(dim3.BuffStacksOver.Contains(minorK) ^ dim3.BuffDoesntStackOver.Contains(minorK),
+                        $"Minor Bless at dimension {k} is in neither list, or in both.");
+        }
+    }
+
+    /// <summary>The lists are only worth anything if Player.AddBuff reads them the way the ladder
+    /// assumes. This drives the real method: BuffDoesntStackOver is checked first and refuses the
+    /// incoming buff outright (Player.cs:2074), which is what makes the ladder's ties resolve
+    /// toward the higher dimension.</summary>
+    [Fact]
+    public void Player_AddBuff_refuses_a_lower_dimension_buff_over_a_higher_related_one()
+    {
+        using var fixture = Run(f =>
+        {
+            f.AddBaseMap(1, "Town");
+            var minor = f.AddBaseSpellEffect(41, "Minor Bless",
+                e => e.EffectType = SpellEffect.EffectTypes.Buff);
+            f.AddBaseSpellEffect(42, "Bless", e =>
+            {
+                e.EffectType = SpellEffect.EffectTypes.Buff;
+                e.BuffStacksOver.Add(minor);
+            });
+        });
+
+        var handler = fixture.World.SpellHandler;
+        var map = fixture.AddBaseMap(9, "Arena", width: 100, height: 100);
+        var player = fixture.PlayerOn(map, x: 50, y: 50);
+        player.State = Player.States.Ready;   // below Ready, AddBuff skips the stacking checks
+
+        var applied = new Buff { SpellEffect = handler.GetSpellEffect(41 + Offset * 5), Target = player };
+        player.Buffs.Add(applied);            // added directly: the refusal path is what is under test
+
+        player.AddBuff(new Buff { SpellEffect = handler.GetSpellEffect(42 + Offset * 3), Target = player },
+                       fixture.World, refreshbar: false, updateCharacter: false);
+
+        Assert.Single(player.Buffs);
+        Assert.Same(handler.GetSpellEffect(41 + Offset * 5), player.Buffs[0].SpellEffect);
+    }
 }

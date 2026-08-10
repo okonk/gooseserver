@@ -122,6 +122,12 @@ public sealed class GlobalScriptFixture : IDisposable
         return effect;
     }
 
+    /// <summary>A player standing on a map, for tests that drive Player.AddBuff end to end.</summary>
+    public Player PlayerOn(Map map, int x, int y)
+    {
+        return new Player(0) { Map = map, MapID = map.ID, MapX = x, MapY = y };
+    }
+
     /// <summary>Registers a base spell pointing at an already-registered effect.</summary>
     public Spell AddBaseSpell(int id, string name, int effectId, Action<Spell> configure = null)
     {

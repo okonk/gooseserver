@@ -87,6 +87,7 @@ public class Dimensions : BaseGlobalScript
 
         PreflightSpellIds(world);
         CloneSpellEffects(world);
+        RewireSpellEffects(world);
 
         world.EventHandler.RegisterEvent("/dimension ", DimensionCommandEvent.Create);
     }
@@ -556,6 +557,92 @@ public class Dimensions : BaseGlobalScript
         for (int dim = 1; dim <= DimensionCount; dim++)
             foreach (var basic in baseEffects)
                 world.SpellHandler.AddSpellEffect(ScaleSpellEffect(basic, dim));
+    }
+
+    /// <summary>Step 2 of the spell pass. Two jobs, both of which need every clone to exist:
+    /// repoint each clone's melee-reaction references at its own dimension, and build the
+    /// dimension ladder on the buff stacking lists.</summary>
+    private void RewireSpellEffects(GameWorld world)
+    {
+        var baseEffects = world.SpellHandler.GetSpellEffects()
+                               .Where(e => e.ID < Offset).ToList();
+
+        // Snapshot the base lists before touching anything: the dim-0 pass below rewrites the
+        // base effect's own BuffDoesntStackOver, and later dimensions must still read the
+        // original list.
+        var baseStacksOver = baseEffects.ToDictionary(e => e.ID, e => e.BuffStacksOver.ToList());
+        var baseDoesntStackOver = baseEffects.ToDictionary(e => e.ID, e => e.BuffDoesntStackOver.ToList());
+
+        // Melee reactions: dimension copies only. The base effect keeps what it loaded.
+        for (int dim = 1; dim <= DimensionCount; dim++)
+        {
+            foreach (var basic in baseEffects)
+            {
+                var clone = world.SpellHandler.GetSpellEffect(basic.ID + Offset * dim);
+                if (clone == null) continue;
+
+                // A reference with no clone is dropped, not left pointing across dimensions -
+                // same rule RewireAllies applies to NPC allies.
+                clone.OnMeleeAttackSpell = world.SpellHandler.GetSpellEffect(
+                    basic.OnMeleeAttackSpellID + Offset * dim);
+                clone.OnMeleeAttackSpellID = clone.OnMeleeAttackSpell == null
+                    ? 0 : clone.OnMeleeAttackSpell.ID;
+
+                clone.OnMeleeHitSpell = world.SpellHandler.GetSpellEffect(
+                    basic.OnMeleeHitSpellID + Offset * dim);
+                clone.OnMeleeHitSpellID = clone.OnMeleeHitSpell == null
+                    ? 0 : clone.OnMeleeHitSpell.ID;
+            }
+        }
+
+        // The stacking ladder covers dimension 0 as well.
+        for (int dim = 0; dim <= DimensionCount; dim++)
+        {
+            foreach (var basic in baseEffects)
+            {
+                var effect = world.SpellHandler.GetSpellEffect(basic.ID + Offset * dim);
+                if (effect == null) continue;
+
+                // Everything this effect supersedes, plus itself. Split by dimension: copies at
+                // or below this one are stacked over, copies above it refuse the cast. Splitting
+                // the SAME set both ways is what guarantees no copy lands in neither list.
+                var superseded = baseStacksOver[basic.ID].Concat(new[] { basic }).ToList();
+
+                var stacks = new List<SpellEffect>();
+                foreach (var entry in superseded)
+                    for (int k = 0; k <= dim; k++)
+                        AddEffectIfPresent(world, stacks, entry.ID + Offset * k);
+
+                var doesnt = new List<SpellEffect>();
+
+                // Explicit "never stacks" entries lose at every dimension, both directions.
+                foreach (var entry in baseDoesntStackOver[basic.ID])
+                    for (int k = 0; k <= DimensionCount; k++)
+                        AddEffectIfPresent(world, doesnt, entry.ID + Offset * k);
+
+                // And the upper half of the ladder. This covers the whole superseded set, not
+                // just the effect itself: a dim-3 Bless meeting a dim-5 MINOR Bless is in neither
+                // list otherwise, and both stat blocks apply at once.
+                foreach (var entry in superseded)
+                    for (int k = dim + 1; k <= DimensionCount; k++)
+                        AddEffectIfPresent(world, doesnt, entry.ID + Offset * k);
+
+                effect.BuffStacksOver = stacks;
+                effect.BuffDoesntStackOver = doesnt;
+
+                // Keep the string forms consistent. Nothing re-parses them after load, but a
+                // divergent string is a trap for anyone debugging from a dump - same reasoning
+                // as AlliesString in RewireAllies.
+                effect.BuffStacksOverString = string.Join(" ", stacks.Select(e => e.ID));
+                effect.BuffDoesntStackOverString = string.Join(" ", doesnt.Select(e => e.ID));
+            }
+        }
+    }
+
+    private void AddEffectIfPresent(GameWorld world, List<SpellEffect> into, int id)
+    {
+        var effect = world.SpellHandler.GetSpellEffect(id);
+        if (effect != null && !into.Contains(effect)) into.Add(effect);
     }
 
     /// <summary>SpellHandler.java:288-330, applied in abyss's order - the formula wrap reads
