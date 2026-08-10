@@ -45,6 +45,12 @@ Every citation below was read from source in this worktree before writing the pl
 | `ParseFormula` numeric literals via `Convert.ToDecimal(buffer)` | `Goose/SpellEffect.cs:1311,1347,1421,1458` |
 | `ISpellEffectScript` members | `Goose/Scripting/ISpellEffectScript.cs:11–17` |
 | `BaseSpellEffectScript` virtuals | `Goose/Scripting/BaseSpellEffectScript.cs:13–30` |
+| `SpellEffect.CastSpell` is public — the dispatch tests drive it | `Goose/SpellEffect.cs:927` |
+| `Map.CanCast` defaults to false; `CanCastSpell` refuses when it is | `Goose/Map.cs:53`, `Goose/SpellEffect.cs:741` |
+| `Map.CloneAs` carries `CanCast` to the clone | `Goose/Map.cs:132` |
+| Cross-map `WarpTo` sets `Map = null` and fills `MapID` — assert `MapID` | `Goose/Player.cs:1319–1321` |
+| `Player.Buffs` is a public `List<Buff>`; `Buff` is a property bag | `Goose/Player.cs:360`, `Goose/Buff.cs:12` |
+| `AddBuff` skips the stacking checks below `States.Ready` | `Goose/Player.cs:2058` |
 | `Player.AddBuff` stacking checks | `Goose/Player.cs:2074`, `:2083` |
 | `NPC.AddBuff` stacking checks | `Goose/NPC.cs:1473`, `:1477` |
 | `AttributeSet.Clone()` copies all 26 fields | `Goose/AttributeSet.cs:74–105` |
@@ -96,7 +102,7 @@ This is safe and already required: shipped sheet data contains formulas like `0.
 
 ## Test budget
 
-This plan adds **32** test cases, all in `Goose.Tests`. Tools.Tests is untouched at 124 passed / 26 skipped. Check the running total after each task:
+This plan adds **45** test cases, all in `Goose.Tests`. Tools.Tests is untouched at 124 passed / 26 skipped. Check the running total after each task:
 
 | Task | Adds | Goose.Tests | Suite total passed |
 |---|---|---|---|
@@ -104,13 +110,13 @@ This plan adds **32** test cases, all in `Goose.Tests`. Tools.Tests is untouched
 | 1 — copy constructors | 5 | 179 | 303 |
 | 2 — script description hook | 3 | 182 | 306 |
 | 3 — fixture, stub script, csproj | 0 | 182 | 306 |
-| 4 — clone and scale effects | 7 | 189 | 313 |
-| 5 — rewire refs and stacking ladder | 5 | 194 | 318 |
-| 6 — clone and scale spells | 4 | 198 | 322 |
-| 7 — teleport rewrite and script | 5 | 203 | 327 |
-| 8 — end-to-end verification | 0 | 203 | 327 |
+| 4 — preflight, clone and scale effects | 13 | 195 | 319 |
+| 5 — rewire refs and stacking ladder | 7 | 202 | 326 |
+| 6 — clone and scale spells | 4 | 206 | 330 |
+| 7 — teleport rewrite and script | 10 | 216 | 340 |
+| 8 — end-to-end verification | 0 | 216 | 340 |
 
-Task 4 is 4 `[Fact]` plus one 3-case `[Theory]`; the runner counts theory cases individually, hence 7.
+Task 4 is 5 `[Fact]` plus a 3-case and a 5-case `[Theory]`; the runner counts theory cases individually, hence 13. (An earlier revision of this table said Task 4 was 4 facts and 7 cases; it was 3 and 6. Count the `[Fact]` attributes in the task, not the table, if the two ever disagree again.)
 
 Counts include every `[Theory]` case individually, which is how the runner reports them.
 
@@ -236,73 +242,49 @@ git commit -m "feat: let scripts register and enumerate spells and spell effects
 
 **Step 1: Write the failing test**
 
+**Why these are reflection-driven.** The point of the copy constructors is that *nothing*
+is left behind, and the failure mode is a property added to `Spell` or `SpellEffect` later
+and forgotten in the constructor. A hand-written list of assertions cannot catch that — it
+only ever checks the properties that existed the day it was written, while reading as though
+it checked them all. So the completeness tests walk the properties: fill every one with a
+distinct non-default value, copy, and require every one to come across. Deep-vs-shared
+semantics are asserted separately, in the three tests after them, because the walk can only
+prove the value arrived — not which instance it arrived in.
+
 ```csharp
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using Goose.Scripting;
+
 namespace Goose.Tests;
 
 public class SpellCloneTests
 {
+    /// <summary>Fails the day someone adds a property to Spell without adding it to the copy
+    /// constructor - which is the entire reason that constructor is hand-written.</summary>
     [Fact]
-    public void Spell_copy_carries_every_scalar()
+    public void Spell_copy_carries_every_property()
     {
-        var effect = new SpellEffect { ID = 7 };
-        var original = new Spell
-        {
-            ID = 91, Name = "Firestorm", Description = "Burns", Target = Spell.SpellTargets.Group,
-            ClassRestrictions = 12, Aether = 3000, Graphic = 4, GraphicFile = 2,
-            HPStaticCost = 10, HPPercentCost = 0.5m, MPStaticCost = 20, MPPercentCost = 0.25m,
-            SPStaticCost = 0, SPPercentCost = 0m,
-            SpellEffectID = 7, SpellEffect = effect,
-        };
+        var original = new Spell();
+        var expected = FillEveryProperty(original);
 
-        var copy = new Spell(original) { ID = 400091 };
+        var copy = new Spell(original);
 
-        Assert.Equal(400091, copy.ID);
-        Assert.Equal("Firestorm", copy.Name);
-        Assert.Equal("Burns", copy.Description);
-        Assert.Equal(Spell.SpellTargets.Group, copy.Target);
-        Assert.Equal(12, copy.ClassRestrictions);
-        Assert.Equal(3000, copy.Aether);
-        Assert.Equal(10, copy.HPStaticCost);
-        Assert.Equal(0.5m, copy.HPPercentCost);
-        Assert.Equal(20, copy.MPStaticCost);
-        Assert.Equal(0.25m, copy.MPPercentCost);
-        Assert.Equal(7, copy.SpellEffectID);
-        Assert.Same(effect, copy.SpellEffect);
-        Assert.Equal(91, original.ID);          // the original is untouched
+        AssertEveryPropertyCarried(expected, copy);
+        Assert.Equal(7, original.ID);          // and the source is untouched
     }
 
+    /// <summary>Same guard for SpellEffect, which has ~50 properties and is the one that will
+    /// actually grow.</summary>
     [Fact]
-    public void SpellEffect_copy_carries_every_scalar()
+    public void SpellEffect_copy_carries_every_property()
     {
-        var original = new SpellEffect
-        {
-            ID = 42, Name = "Firestorm", Animation = 3, AnimationFile = 1,
-            TargetType = SpellEffect.TargetTypes.Cross, TargetSize = 2,
-            EffectType = SpellEffect.EffectTypes.Buff, Duration = 60000,
-            MinimumLevelEffected = 1, MaximumLevelEffected = 99,
-            HPFormula = "-5 * %clevel", MPFormula = "", TauntAggro = 500,
-            TeleportMapID = 12, TeleportMapX = 30, TeleportMapY = 40,
-            OnMeleeHitSpellID = 9, OnMeleeAttackSpellID = 8,
-            BuffStacksOverString = "1 2", BuffDoesntStackOverString = "3",
-            ScriptParams = "p",
-        };
+        var original = new SpellEffect();
+        var expected = FillEveryProperty(original);
 
-        var copy = new SpellEffect(original) { ID = 400042 };
+        var copy = new SpellEffect(original);
 
-        Assert.Equal(400042, copy.ID);
-        Assert.Equal("Firestorm", copy.Name);
-        Assert.Equal(3, copy.Animation);
-        Assert.Equal(SpellEffect.TargetTypes.Cross, copy.TargetType);
-        Assert.Equal(2, copy.TargetSize);
-        Assert.Equal(SpellEffect.EffectTypes.Buff, copy.EffectType);
-        Assert.Equal(60000, copy.Duration);
-        Assert.Equal("-5 * %clevel", copy.HPFormula);
-        Assert.Equal(500, copy.TauntAggro);
-        Assert.Equal(12, copy.TeleportMapID);
-        Assert.Equal(30, copy.TeleportMapX);
-        Assert.Equal(9, copy.OnMeleeHitSpellID);
-        Assert.Equal("1 2", copy.BuffStacksOverString);
-        Assert.Equal("p", copy.ScriptParams);
+        AssertEveryPropertyCarried(expected, copy);
     }
 
     /// <summary>Task 5 rewires each clone's stacking lists independently. Sharing the list
@@ -347,15 +329,103 @@ public class SpellCloneTests
     [Fact]
     public void SpellEffect_copy_shares_the_script_reference()
     {
-        var original = new SpellEffect { ID = 42, Script = null, ScriptParams = "x" };
+        // Script<T>'s only constructor compiles a file off disk (Script.cs:20), so build the
+        // instance without running it - this test is about reference identity, nothing else.
+        var script = (Script<ISpellEffectScript>)RuntimeHelpers
+            .GetUninitializedObject(typeof(Script<ISpellEffectScript>));
+        var original = new SpellEffect { ID = 42, Script = script, ScriptParams = "x" };
 
         var copy = new SpellEffect(original);
 
-        Assert.Null(copy.Script);
+        Assert.Same(script, copy.Script);   // shared on purpose: compiled scripts are cached
         Assert.Equal("x", copy.ScriptParams);
+    }
+
+    // ---- The reflection walk -------------------------------------------------------
+
+    private const int Marker = 4242;
+
+    private static readonly Dictionary<Type, object> SampleValues = new()
+    {
+        [typeof(int)] = 7,
+        [typeof(long)] = 7L,
+        [typeof(decimal)] = 1.5m,
+        [typeof(bool)] = true,
+        [typeof(string)] = "sample",
+    };
+
+    /// <summary>Sets every public property to a distinct non-default value and returns what
+    /// it set, keyed by name. Non-default matters: if a property were left at zero on both
+    /// sides, "the copy matches" would prove nothing.
+    ///
+    /// An unrecognised property type fails the test rather than being skipped. That is the
+    /// point - it forces whoever adds the property to decide whether the copy shares the
+    /// instance or clones it, instead of the guard quietly ignoring it.</summary>
+    private static Dictionary<string, object> FillEveryProperty(object target)
+    {
+        var assigned = new Dictionary<string, object>();
+
+        foreach (var property in target.GetType()
+                     .GetProperties(BindingFlags.Public | BindingFlags.Instance))
+        {
+            Assert.True(property.CanWrite,
+                $"{property.Name} is read-only. Decide what the copy constructor does with it, then teach this test.");
+
+            var type = property.PropertyType;
+            object value;
+
+            if (SampleValues.TryGetValue(type, out var sample)) value = sample;
+            else if (type.IsEnum) value = Enum.GetValues(type).Cast<object>().Last();
+            else if (type == typeof(SpellEffect)) value = new SpellEffect { ID = Marker };
+            else if (type == typeof(AttributeSet)) value = new AttributeSet { HP = Marker };
+            else if (type == typeof(List<SpellEffect>))
+                value = new List<SpellEffect> { new SpellEffect { ID = Marker } };
+            else if (type == typeof(Script<ISpellEffectScript>))
+                value = RuntimeHelpers.GetUninitializedObject(type);
+            else throw new Xunit.Sdk.XunitException(
+                $"{property.Name} is a {type.Name}, which this guard cannot fill. Add it to the "
+                + "table above, and say in the copy constructor whether it is shared or cloned.");
+
+            property.SetValue(target, value);
+            assigned[property.Name] = value;
+        }
+
+        return assigned;
+    }
+
+    /// <summary>Every property arrived. The two members the copy constructor deliberately
+    /// clones are compared by content - their instance identity is what the three tests above
+    /// cover, and asserting it here would just duplicate them.</summary>
+    private static void AssertEveryPropertyCarried(Dictionary<string, object> expected, object copy)
+    {
+        foreach (var property in copy.GetType()
+                     .GetProperties(BindingFlags.Public | BindingFlags.Instance))
+        {
+            var want = expected[property.Name];
+            var actual = property.GetValue(copy);
+
+            switch (actual)
+            {
+                case AttributeSet stats:
+                    Assert.Equal(((AttributeSet)want).HP, stats.HP);
+                    break;
+                case List<SpellEffect> list:
+                    Assert.Equal(((List<SpellEffect>)want).Select(e => e.ID), list.Select(e => e.ID));
+                    break;
+                default:
+                    // Reference equality for SpellEffect and Script<T>; value equality for the rest.
+                    Assert.Equal(want, actual);
+                    break;
+            }
+        }
     }
 }
 ```
+
+**A note for whoever runs this:** the guard is only honest if it fails when the constructor
+is incomplete. Before moving on, delete one line from the `SpellEffect` copy constructor,
+confirm `SpellEffect_copy_carries_every_property` fails and names that property, and put the
+line back. A completeness guard that has never been seen to fail is decoration.
 
 **Step 2: Run test to verify it fails**
 
@@ -871,10 +941,86 @@ public class DimensionSpellScriptTests
 
         Assert.Equal(expected, fixture.World.SpellHandler.GetSpellEffect(42 + Offset * 3).MinimumLevelEffected);
     }
+
+    /// <summary>SpellHandler.java:310-328. Small shapes grow into bigger ones, and the
+    /// LineFront branch depends on the BASE size, not the scaled one. All four branches are
+    /// covered: two that become Area, and both LineFront outcomes either side of size 1.</summary>
+    [Theory]
+    [InlineData((int)SpellEffect.TargetTypes.Cross,     2, (int)SpellEffect.TargetTypes.Area,          3)]
+    [InlineData((int)SpellEffect.TargetTypes.Plus,      2, (int)SpellEffect.TargetTypes.Area,          3)]
+    [InlineData((int)SpellEffect.TargetTypes.LineFront, 1, (int)SpellEffect.TargetTypes.Plus,          3)]
+    [InlineData((int)SpellEffect.TargetTypes.LineFront, 2, (int)SpellEffect.TargetTypes.TriangleFront, 3)]
+    [InlineData((int)SpellEffect.TargetTypes.LineFront, 3, (int)SpellEffect.TargetTypes.TriangleFront, 4)]
+    public void Morphs_small_target_shapes_into_bigger_ones(
+        int baseType, int baseSize, int expectedType, int expectedSize)
+    {
+        using var fixture = Run(f => f.AddBaseSpellEffect(42, "Nova", e =>
+        {
+            e.TargetType = (SpellEffect.TargetTypes)baseType;
+            e.TargetSize = baseSize;
+        }));
+
+        var dim3 = fixture.World.SpellHandler.GetSpellEffect(42 + Offset * 3);
+
+        Assert.Equal((SpellEffect.TargetTypes)expectedType, dim3.TargetType);
+        Assert.Equal(expectedSize, dim3.TargetSize);
+
+        // The base effect keeps its own shape - the morph is on the clone only.
+        Assert.Equal((SpellEffect.TargetTypes)baseType, fixture.World.SpellHandler.GetSpellEffect(42).TargetType);
+        Assert.Equal(baseSize, fixture.World.SpellHandler.GetSpellEffect(42).TargetSize);
+    }
+
+    // ---- The preflight ----------------------------------------------------------------
+
+    /// <summary>Base ids must be below the offset, because everything downstream defines
+    /// "base" that way - RewireSpellEffects filters on ID &lt; Offset (Task 5). A base id above
+    /// the offset would be cloned here and then silently skipped there.</summary>
+    [Fact]
+    public void A_base_effect_id_at_or_above_the_offset_is_rejected_before_anything_is_generated()
+    {
+        using var fixture = new GlobalScriptFixture();
+        fixture.AddBaseSpellEffect(42, "Firestorm");
+        fixture.AddBaseSpellEffect(Offset + 5, "Misconfigured");
+
+        var script = fixture.CompileShipped();
+        var error = Assert.Throws<Exception>(() => script.Object.OnLoaded(fixture.World));
+
+        Assert.Contains((Offset + 5).ToString(), error.Message);
+
+        // Nothing was mutated: the preflight runs before the first AddSpellEffect, so the
+        // handler is not left half-populated for whoever has to diagnose this.
+        Assert.Null(fixture.World.SpellHandler.GetSpellEffect(42 + Offset * 3));
+    }
+
+    /// <summary>Spells get the same treatment as effects, and the spell check must also run
+    /// before the effect cloning starts - not just before CloneSpells - or a bad spell id is
+    /// only discovered once several thousand effects have already been registered.</summary>
+    [Fact]
+    public void A_base_spell_id_at_or_above_the_offset_is_rejected_before_anything_is_generated()
+    {
+        using var fixture = new GlobalScriptFixture();
+        fixture.AddBaseSpellEffect(42, "Firestorm");
+        fixture.AddBaseSpell(Offset + 91, "Misconfigured", 42);
+
+        var script = fixture.CompileShipped();
+        var error = Assert.Throws<Exception>(() => script.Object.OnLoaded(fixture.World));
+
+        Assert.Contains((Offset + 91).ToString(), error.Message);
+        Assert.Null(fixture.World.SpellHandler.GetSpellEffect(42 + Offset * 3));   // no effects either
+    }
 }
 ```
 
-That is 7 reported test cases: 4 `[Fact]` plus the 3-case `[Theory]`.
+That is 13 reported test cases: 5 `[Fact]` plus the 3-case and 5-case `[Theory]`.
+
+**Why there is no "generated ids collide" test.** The preflight checks for collisions too,
+but once every base id is in `0 .. Offset-1`, `id + Offset·dim` over `dim ∈ 1..6` is
+injective and cannot land on another base or generated id — the collision check is
+unreachable by construction. It stays in as a backstop against a future change to how ids
+are formed (and because `AddSpell`/`AddSpellEffect` overwrite silently, so the cost of being
+wrong is a real spell disappearing), but a test for it would have to defeat the range check
+first, and would then be testing nothing anyone will ever hit. The range check is the guard
+with teeth; that is what these two tests cover.
 
 **Step 2: Run tests to verify they fail**
 
@@ -883,7 +1029,54 @@ Expected: FAIL — `GetSpellEffect(300042)` returns null.
 
 **Step 3: Write minimal implementation**
 
-Add `CloneSpellEffects(world);` to `OnLoaded` in `Dimensions.csx`, after `CreateUnlockChain(world);` and before the `RegisterEvent` line:
+Add `PreflightSpellIds(world);` then `CloneSpellEffects(world);` to `OnLoaded` in `Dimensions.csx`, after `CreateUnlockChain(world);` and before the `RegisterEvent` line:
+
+```csharp
+/// <summary>Validates every id the spell pass depends on BEFORE anything is registered.
+///
+/// Two reasons this is a preflight rather than a check inside each clone loop. First, a bad
+/// id found halfway through leaves the handler half-mutated - thousands of generated effects
+/// registered, spells not, cross-references unwired - which is a worse thing to hand someone
+/// than a clean refusal. Second, "base" means ID &lt; Offset everywhere downstream
+/// (RewireSpellEffects filters on exactly that), so a base id at or above the offset is not
+/// merely a collision risk: it would be cloned here and then skipped during rewiring, and
+/// the result would be a spell that exists but never stacks or resolves correctly.</summary>
+private void PreflightSpellIds(GameWorld world)
+{
+    var effects = world.SpellHandler.GetSpellEffects().ToList();
+    var spells = world.SpellHandler.GetSpells().ToList();
+
+    foreach (var effect in effects)
+        if (effect.ID < 0 || effect.ID >= Offset)
+            throw new Exception($"Spell effect id {effect.ID} is outside the base range "
+                + $"0..{Offset - 1}. Dimension cloning keys on id + {Offset} * dimension, so "
+                + "every sheet id must fit below the offset. Raise Offset or fix the data.");
+
+    foreach (var spell in spells)
+        if (spell.ID < 0 || spell.ID >= Offset)
+            throw new Exception($"Spell id {spell.ID} is outside the base range "
+                + $"0..{Offset - 1}. Dimension cloning keys on id + {Offset} * dimension, so "
+                + "every sheet id must fit below the offset. Raise Offset or fix the data.");
+
+    // Backstop. Unreachable once the range checks above pass - id + Offset*dim is injective
+    // over 0..Offset-1 x 1..DimensionCount - but AddSpell/AddSpellEffect overwrite silently,
+    // so the failure this would catch is a real spell vanishing without a trace.
+    for (int dim = 1; dim <= DimensionCount; dim++)
+    {
+        foreach (var effect in effects)
+            if (world.SpellHandler.GetSpellEffect(effect.ID + Offset * dim) != null)
+                throw new Exception($"Dimension spell effect id {effect.ID + Offset * dim} "
+                    + $"(base {effect.ID}, dim {dim}) already exists.");
+
+        foreach (var spell in spells)
+            if (world.SpellHandler.GetSpell(spell.ID + Offset * dim) != null)
+                throw new Exception($"Dimension spell id {spell.ID + Offset * dim} "
+                    + $"(base {spell.ID}, dim {dim}) already exists.");
+    }
+}
+```
+
+Then the clone pass itself, which no longer needs a per-item guard:
 
 ```csharp
 /// <summary>Dimension name prefixes. SpellHandler.java:235.</summary>
@@ -912,21 +1105,12 @@ private void CloneSpellEffects(GameWorld world)
     // Snapshot: AddSpellEffect mutates the dictionary GetSpellEffects() enumerates.
     var baseEffects = world.SpellHandler.GetSpellEffects().ToList();
 
+    // No collision guard here - PreflightSpellIds already proved every id in this loop is
+    // free, before the first registration. Do not re-add one: a throw from inside this loop
+    // is exactly the half-mutated handler the preflight exists to avoid.
     for (int dim = 1; dim <= DimensionCount; dim++)
-    {
         foreach (var basic in baseEffects)
-        {
-            int id = basic.ID + Offset * dim;
-
-            // AddSpellEffect overwrites silently. A base id large enough to land on
-            // another dimension's slot would quietly replace a generated effect.
-            if (world.SpellHandler.GetSpellEffect(id) != null)
-                throw new Exception($"Dimension spell effect id {id} (base {basic.ID}, dim {dim}) "
-                                    + "already exists. Offset is too small for this data set.");
-
             world.SpellHandler.AddSpellEffect(ScaleSpellEffect(basic, dim));
-        }
-    }
 }
 
 /// <summary>SpellHandler.java:288-330, applied in abyss's order - the formula wrap reads
@@ -1056,6 +1240,8 @@ git commit -m "feat: clone and scale spell effects per dimension"
 
 **Why the stacking ladder:** `Player.AddBuff` (`Player.cs:2074,2083`) and `NPC.AddBuff` (`NPC.cs:1473,1477`) compare `SpellEffect` **references**. `BuffDoesntStackOver` is checked first and refuses the incoming buff; `BuffStacksOver` replaces the existing one in place. Populating those lists across dimensions makes higher-dimension buffs beat lower ones with no server change.
 
+**The invariant to hold onto while reading the code below:** for effect `E` at dimension `d`, take the set `baseStacksOver(E) ∪ {E}` — everything `E` supersedes, plus itself — and split *that whole set* by dimension. Copies at `k ≤ d` go in `BuffStacksOver`; copies at `k > d` go in `BuffDoesntStackOver`. Splitting one set two ways is what guarantees no dimension copy of a related effect ends up in neither list. Putting only higher copies of `E` itself into `BuffDoesntStackOver` is the bug this design is written to avoid: dim-3 Bless would match neither list against a dim-5 *Minor* Bless, and `AddBuff` would fall through and apply both stat blocks at once.
+
 **Step 1: Write the failing tests**
 
 ```csharp
@@ -1159,7 +1345,80 @@ public void The_ladder_extends_to_entries_from_the_base_stacking_list()
     Assert.Contains(handler.GetSpellEffect(41 + Offset * 3), dim3.BuffStacksOver); // dim 3 Minor Bless
     Assert.DoesNotContain(handler.GetSpellEffect(41 + Offset * 5), dim3.BuffStacksOver);
 }
+
+/// <summary>The mirror of the test above, and the case a ladder built only from higher copies
+/// of the effect ITSELF gets wrong. Dimension 5 Minor Bless is above dimension 3, so it is not
+/// in dim-3 Bless's StacksOver; unless it is in DoesntStackOver it is in neither list, and
+/// AddBuff adds a second buff applying both stat blocks at once.</summary>
+[Fact]
+public void A_buff_refuses_to_stack_over_a_higher_dimension_copy_of_a_related_effect()
+{
+    using var fixture = Run(f =>
+    {
+        var minor = f.AddBaseSpellEffect(41, "Minor Bless",
+            e => e.EffectType = SpellEffect.EffectTypes.Buff);
+        f.AddBaseSpellEffect(42, "Bless", e =>
+        {
+            e.EffectType = SpellEffect.EffectTypes.Buff;
+            e.BuffStacksOver.Add(minor);
+        });
+    });
+
+    var handler = fixture.World.SpellHandler;
+    var dim3 = handler.GetSpellEffect(42 + Offset * 3);
+
+    Assert.Contains(handler.GetSpellEffect(41 + Offset * 5), dim3.BuffDoesntStackOver);
+    Assert.Contains(handler.GetSpellEffect(41 + Offset * 4), dim3.BuffDoesntStackOver);
+    Assert.Contains(handler.GetSpellEffect(41 + Offset * 6), dim3.BuffDoesntStackOver);
+
+    // Every dimension copy of Minor Bless is in exactly one list - that is the invariant.
+    for (int k = 0; k <= 6; k++)
+    {
+        var minorK = handler.GetSpellEffect(41 + Offset * k);
+        Assert.True(dim3.BuffStacksOver.Contains(minorK) ^ dim3.BuffDoesntStackOver.Contains(minorK),
+                    $"Minor Bless at dimension {k} is in neither list, or in both.");
+    }
+}
+
+/// <summary>The lists are only worth anything if Player.AddBuff reads them the way the ladder
+/// assumes. This drives the real method: BuffDoesntStackOver is checked first and refuses the
+/// incoming buff outright (Player.cs:2074), which is what makes the ladder's ties resolve
+/// toward the higher dimension.</summary>
+[Fact]
+public void Player_AddBuff_refuses_a_lower_dimension_buff_over_a_higher_related_one()
+{
+    using var fixture = Run(f =>
+    {
+        var minor = f.AddBaseSpellEffect(41, "Minor Bless",
+            e => e.EffectType = SpellEffect.EffectTypes.Buff);
+        f.AddBaseSpellEffect(42, "Bless", e =>
+        {
+            e.EffectType = SpellEffect.EffectTypes.Buff;
+            e.BuffStacksOver.Add(minor);
+        });
+    });
+
+    var handler = fixture.World.SpellHandler;
+    var map = fixture.AddBaseMap(9, "Arena", width: 100, height: 100);
+    var player = fixture.PlayerOn(map, x: 50, y: 50);
+    player.State = Player.States.Ready;   // below Ready, AddBuff skips the stacking checks
+
+    var applied = new Buff { SpellEffect = handler.GetSpellEffect(41 + Offset * 5), Target = player };
+    player.Buffs.Add(applied);            // added directly: the refusal path is what is under test
+
+    player.AddBuff(new Buff { SpellEffect = handler.GetSpellEffect(42 + Offset * 3), Target = player },
+                   fixture.World, refreshbar: false, updateCharacter: false);
+
+    Assert.Single(player.Buffs);
+    Assert.Same(handler.GetSpellEffect(41 + Offset * 5), player.Buffs[0].SpellEffect);
+}
 ```
+
+`Buff` is a plain property bag (`Goose/Buff.cs:12`), and `Player.Buffs` is a public `List<Buff>`
+(`Player.cs:360`), so seeding the already-applied buff needs nothing else. The refusal path
+returns before `AddStats`/`P.WeaponSpeed`, which are the parts that would need a full
+inventory and class — this is deliberately the direction of the ladder that a test world can
+drive end to end.
 
 **Step 2: Run tests to verify they fail**
 
@@ -1215,17 +1474,29 @@ private void RewireSpellEffects(GameWorld world)
             var effect = world.SpellHandler.GetSpellEffect(basic.ID + Offset * dim);
             if (effect == null) continue;
 
+            // Everything this effect supersedes, plus itself. Split by dimension: copies at
+            // or below this one are stacked over, copies above it refuse the cast. Splitting
+            // the SAME set both ways is what guarantees no copy lands in neither list.
+            var superseded = baseStacksOver[basic.ID].Concat(new[] { basic }).ToList();
+
             var stacks = new List<SpellEffect>();
-            foreach (var entry in baseStacksOver[basic.ID].Concat(new[] { basic }))
+            foreach (var entry in superseded)
                 for (int k = 0; k <= dim; k++)
                     AddEffectIfPresent(world, stacks, entry.ID + Offset * k);
 
             var doesnt = new List<SpellEffect>();
+
+            // Explicit "never stacks" entries lose at every dimension, both directions.
             foreach (var entry in baseDoesntStackOver[basic.ID])
                 for (int k = 0; k <= DimensionCount; k++)
                     AddEffectIfPresent(world, doesnt, entry.ID + Offset * k);
-            for (int k = dim + 1; k <= DimensionCount; k++)
-                AddEffectIfPresent(world, doesnt, basic.ID + Offset * k);
+
+            // And the upper half of the ladder. This covers the whole superseded set, not
+            // just the effect itself: a dim-3 Bless meeting a dim-5 MINOR Bless is in neither
+            // list otherwise, and both stat blocks apply at once.
+            foreach (var entry in superseded)
+                for (int k = dim + 1; k <= DimensionCount; k++)
+                    AddEffectIfPresent(world, doesnt, entry.ID + Offset * k);
 
             effect.BuffStacksOver = stacks;
             effect.BuffDoesntStackOver = doesnt;
@@ -1433,9 +1704,31 @@ git commit -m "feat: clone and scale spells per dimension"
 
 **Why the rewrite runs last:** clones must still be `Teleport`-typed when Task 4 copies them, so one pass over `GetSpellEffects()` afterwards converts base and clones together.
 
+**How these tests are written, and why it matters.** Every cast below goes through
+`SpellEffect.CastSpell` on the effect *retrieved from `SpellHandler` after `OnLoaded`* — not
+through `script.Object.Cast(...)`. Calling the script object directly proves the script body
+works and nothing else: not that the rewrite attached the script to the effect, not that
+`EffectTypes.Script` dispatches to it, and — the one that actually bites — not that the
+script re-implements the guard the rewrite removes. `CastSpell` gates
+`EffectTypes.Teleport` on `target is Player` (`SpellEffect.cs:939`); the `EffectTypes.Script`
+arm has no such gate (`:975`), so after the rewrite the only thing standing between a
+teleport effect and an NPC target is a line inside the script. A test that bypasses dispatch
+cannot see that line go missing.
+
+Two things the tests must set that are easy to miss:
+
+- **`map.CanCast = true`.** It defaults to false (`Map.cs:53`), and `CanCastSpell`
+  (`SpellEffect.cs:741`) refuses a player casting on a map with casting blocked. `CloneAs`
+  carries the flag, so setting it on the base map covers the clones.
+- **Assert `player.MapID`, not `player.Map.ID`.** A cross-map `WarpTo` sets `Map = null` and
+  fills in `MapID` (`Player.cs:1309–1319`); the map is attached later, when the client
+  finishes loading. `player.Map.ID` throws. Part 2 hit this same thing —
+  `DimensionMapScriptTests.cs:67` carries the correction note.
+
 **Step 1: Write the failing tests**
 
 ```csharp
+using Goose.Scripting;
 using Goose.Tests.Collections;
 using Goose.Tests.Fixtures;
 
@@ -1445,6 +1738,32 @@ namespace Goose.Tests;
 public class DimensionTeleportScriptTests
 {
     private const int Offset = 100000;
+
+    /// <summary>A world with base maps 1 (town) and 2 (cave), a Gate effect teleporting to
+    /// map 2, and the whole generation pass run over it. Every cast test starts here, so what
+    /// it exercises is the shipped rewrite rather than a hand-built effect.</summary>
+    private static GlobalScriptFixture RunWithGate(int teleportMapId = 2)
+    {
+        var fixture = new GlobalScriptFixture();
+
+        var town = fixture.AddBaseMap(1, "Town", width: 100, height: 100);
+        town.CanCast = true;                       // Map.cs:53 defaults to false
+        var cave = fixture.AddBaseMap(2, "Cave", width: 100, height: 100);
+        cave.CanCast = true;
+
+        fixture.AddBaseSpellEffect(42, "Gate", e =>
+        {
+            e.EffectType = SpellEffect.EffectTypes.Teleport;
+            e.TeleportMapID = teleportMapId;
+            e.TeleportMapX = 7;
+            e.TeleportMapY = 8;
+            e.Effected = SpellEffect.SpellEffected.Self;
+            e.MaximumLevelEffected = 99;
+        });
+
+        fixture.CompileShipped().Object.OnLoaded(fixture.World);
+        return fixture;
+    }
 
     [Fact]
     public void Every_teleport_effect_is_rewritten_to_a_script_effect()
@@ -1491,95 +1810,168 @@ public class DimensionTeleportScriptTests
         }
     }
 
+    /// <summary>The behaviour change the part exists for, driven through CastSpell on the
+    /// effect the generation pass produced.</summary>
     [Fact]
     public void Casting_from_a_dimension_map_lands_in_that_dimension()
     {
-        using var fixture = new GlobalScriptFixture();
-        var script = fixture.CompileSpellEffectScriptFromShipped();
+        using var fixture = RunWithGate();
 
-        fixture.AddBaseMap(1, "Town", width: 100, height: 100);
-        var dim3Town = fixture.AddBaseMap(1 + Offset * 3, "Town (3)", width: 100, height: 100);
-        dim3Town.ScriptParams = "3";
-        var dim3Cave = fixture.AddBaseMap(2 + Offset * 3, "Cave (3)", width: 100, height: 100);
-        dim3Cave.ScriptParams = "3";
-        fixture.AddBaseMap(2, "Cave", width: 100, height: 100);
-
-        var effect = new SpellEffect
-        {
-            ID = 42, EffectType = SpellEffect.EffectTypes.Script, ScriptParams = Offset.ToString(),
-            TeleportMapID = 2, TeleportMapX = 7, TeleportMapY = 8,
-            Effected = SpellEffect.SpellEffected.Self, MaximumLevelEffected = 99,
-        };
-
+        var effect = fixture.World.SpellHandler.GetSpellEffect(42 + Offset * 3);
+        var dim3Town = fixture.World.MapHandler.GetMap(1 + Offset * 3);
         var player = fixture.PlayerOn(dim3Town, x: 50, y: 50);
+        player.Properties["dimension.max"] = 3;      // DimensionMap.csx gates the destination
 
-        Assert.True(script.Object.Cast(effect, player, player, fixture.World));
-        Assert.Equal(2 + Offset * 3, player.Map.ID);
+        Assert.True(effect.CastSpell(player, player, fixture.World));
+        Assert.Equal(2 + Offset * 3, player.MapID);  // MapID, not Map.ID - see above
         Assert.Equal(7, player.MapX);
     }
 
+    /// <summary>Dimension 0 is rewritten too, and must still behave exactly as
+    /// CastTeleportSpell did.</summary>
     [Fact]
     public void Casting_from_dimension_zero_lands_in_dimension_zero()
     {
-        using var fixture = new GlobalScriptFixture();
-        var script = fixture.CompileSpellEffectScriptFromShipped();
+        using var fixture = RunWithGate();
 
-        var town = fixture.AddBaseMap(1, "Town", width: 100, height: 100);
-        fixture.AddBaseMap(2, "Cave", width: 100, height: 100);
-        fixture.AddBaseMap(2 + Offset * 3, "Cave (3)", width: 100, height: 100);
+        var effect = fixture.World.SpellHandler.GetSpellEffect(42);
+        var player = fixture.PlayerOn(fixture.World.MapHandler.GetMap(1), x: 50, y: 50);
 
-        var effect = new SpellEffect
-        {
-            ID = 42, EffectType = SpellEffect.EffectTypes.Script, ScriptParams = Offset.ToString(),
-            TeleportMapID = 2, TeleportMapX = 7, TeleportMapY = 8,
-            Effected = SpellEffect.SpellEffected.Self, MaximumLevelEffected = 99,
-        };
-
-        var player = fixture.PlayerOn(town, x: 50, y: 50);
-
-        Assert.True(script.Object.Cast(effect, player, player, fixture.World));
-        Assert.Equal(2, player.Map.ID);
+        Assert.True(effect.CastSpell(player, player, fixture.World));
+        Assert.Equal(2, player.MapID);
     }
 
     /// <summary>A destination with no clone in the caster's dimension falls back to the base
     /// map - an exit from the dimension rather than a broken spell. Same rule RewireWarps
-    /// applies to warp tiles.</summary>
+    /// applies to warp tiles, and a deliberate deviation from abyss, which would send the
+    /// player to their bind instead. Recorded in the design doc's decisions table.</summary>
     [Fact]
     public void A_destination_with_no_clone_falls_back_to_the_base_map()
     {
-        using var fixture = new GlobalScriptFixture();
-        var script = fixture.CompileSpellEffectScriptFromShipped();
+        using var fixture = RunWithGate();
 
-        fixture.AddBaseMap(2, "Cave", width: 100, height: 100);
-        var dim3Town = fixture.AddBaseMap(1 + Offset * 3, "Town (3)", width: 100, height: 100);
-        dim3Town.ScriptParams = "3";
+        // Delete the dimension-3 copy of the destination, leaving the base map only.
+        fixture.World.MapHandler.Maps.Remove(2 + Offset * 3);
 
-        var effect = new SpellEffect
-        {
-            ID = 42, EffectType = SpellEffect.EffectTypes.Script, ScriptParams = Offset.ToString(),
-            TeleportMapID = 2, TeleportMapX = 7, TeleportMapY = 8,
-            Effected = SpellEffect.SpellEffected.Self, MaximumLevelEffected = 99,
-        };
+        var effect = fixture.World.SpellHandler.GetSpellEffect(42 + Offset * 3);
+        var player = fixture.PlayerOn(fixture.World.MapHandler.GetMap(1 + Offset * 3), x: 50, y: 50);
+        player.Properties["dimension.max"] = 3;
 
+        Assert.True(effect.CastSpell(player, player, fixture.World));
+        Assert.Equal(2, player.MapID);
+    }
+
+    /// <summary>TeleportMapID 0 means "send them to their bind" - how gate spells work
+    /// (SpellEffect.cs:717). The rewrite reimplements that branch, so it needs its own test.</summary>
+    [Fact]
+    public void A_teleport_with_no_destination_map_warps_to_the_bound_location()
+    {
+        using var fixture = RunWithGate(teleportMapId: 0);
+
+        var town = fixture.World.MapHandler.GetMap(1);
+        var effect = fixture.World.SpellHandler.GetSpellEffect(42 + Offset * 3);
+        var player = fixture.PlayerOn(fixture.World.MapHandler.GetMap(1 + Offset * 3), x: 50, y: 50);
+        player.BoundMap = town;
+        player.BoundID = town.ID;
+        player.BoundX = 11;
+        player.BoundY = 12;
+
+        Assert.True(effect.CastSpell(player, player, fixture.World));
+        Assert.Equal(1, player.MapID);
+        Assert.Equal(11, player.MapX);
+        Assert.Equal(12, player.MapY);
+    }
+
+    /// <summary>PlayerCanJoin is the other branch reimplemented from CastTeleportSpell
+    /// (SpellEffect.cs:727), and it is load-bearing: without it a dimension-0 teleport whose
+    /// destination resolves into a locked dimension would walk straight past the entry gate.
+    /// The refusal here comes from the real DimensionMap.csx script on the cloned map.</summary>
+    [Fact]
+    public void A_destination_the_player_cannot_enter_refuses_the_cast()
+    {
+        using var fixture = RunWithGate();
+
+        var effect = fixture.World.SpellHandler.GetSpellEffect(42 + Offset * 3);
+        var dim3Town = fixture.World.MapHandler.GetMap(1 + Offset * 3);
         var player = fixture.PlayerOn(dim3Town, x: 50, y: 50);
+        player.Properties["dimension.max"] = 0;      // no access to dimension 3
 
-        Assert.True(script.Object.Cast(effect, player, player, fixture.World));
-        Assert.Equal(2, player.Map.ID);
+        Assert.False(effect.CastSpell(player, player, fixture.World));
+        Assert.Equal(1 + Offset * 3, player.MapID);  // did not move
+    }
+
+    /// <summary>CastSpell gated EffectTypes.Teleport on "target is Player"
+    /// (SpellEffect.cs:939); the EffectTypes.Script arm does not (:975). The rewrite therefore
+    /// removes a server-side guard, and the script has to put it back. This test is the only
+    /// thing holding that.</summary>
+    [Fact]
+    public void An_npc_target_is_refused()
+    {
+        using var fixture = RunWithGate();
+
+        var effect = fixture.World.SpellHandler.GetSpellEffect(42);
+        var town = fixture.World.MapHandler.GetMap(1);
+        var player = fixture.PlayerOn(town, x: 50, y: 50);
+        var npc = new NPC { Map = town, MapX = 51, MapY = 50, CanBeKilled = true };
+
+        Assert.False(effect.CastSpell(player, npc, fixture.World));
+    }
+
+    /// <summary>The rewrite drops teleport effects out of the built-in switch's
+    /// case EffectTypes.Teleport (SpellEffect.cs:446) into default:, which would silently lose
+    /// the destination line from the spell info window. Task 2's hook puts it back - asserted
+    /// here on the shipped effect, through SpellEffect.GetItemDescription, so it covers the
+    /// hook, the script's override, and the rewrite together.</summary>
+    [Fact]
+    public void The_shipped_rewritten_effect_still_describes_its_destination()
+    {
+        using var fixture = RunWithGate();
+
+        var lines = fixture.World.SpellHandler.GetSpellEffect(42)
+                           .GetItemDescription(fixture.World).ToArray();
+
+        Assert.Equal(new[] { "Teleport to Cave (7, 8) in your current dimension" }, lines);
+    }
+
+    /// <summary>With the feature off, the spell pass must generate nothing AND leave teleport
+    /// effects alone - the rewrite is a mutation of shipped data, so "disabled" has to mean
+    /// the base effect is untouched, not merely that no clones appeared. Compiled variant, the
+    /// same technique as DimensionsScriptTests.Disabled_by_configuration_changes_nothing.</summary>
+    [Fact]
+    public void Disabled_by_configuration_generates_no_spells_and_leaves_teleports_alone()
+    {
+        using var fixture = new GlobalScriptFixture();
+        fixture.AddBaseSpellEffect(42, "Gate", e =>
+        {
+            e.EffectType = SpellEffect.EffectTypes.Teleport;
+            e.TeleportMapID = 2;
+        });
+        fixture.AddBaseSpell(91, "Gate", 42);
+
+        var source = File.ReadAllText(
+            Path.Combine(AppContext.BaseDirectory, "DimensionScripts", "Dimensions.csx"));
+        var disabled = source.Replace("public const bool Enabled = true;",
+                                      "public const bool Enabled = false;");
+        Assert.NotEqual(source, disabled);   // the flag line moved - fix this test, not the script
+
+        fixture.CompileSource(disabled, "DimensionsDisabled.csx").Object.OnLoaded(fixture.World);
+
+        Assert.Equal(1, fixture.World.SpellHandler.EffectCount);
+        Assert.Equal(1, fixture.World.SpellHandler.Count);
+        Assert.Null(fixture.World.SpellHandler.GetSpellEffect(42 + Offset * 3));
+        Assert.Null(fixture.World.SpellHandler.GetSpell(91 + Offset * 3));
+
+        var untouched = fixture.World.SpellHandler.GetSpellEffect(42);
+        Assert.Equal(SpellEffect.EffectTypes.Teleport, untouched.EffectType);
+        Assert.Null(untouched.Script);
+        Assert.Empty(untouched.BuffDoesntStackOver);   // no ladder on the base effect either
     }
 }
 ```
 
-Two more fixture helpers are needed. Add them next to the existing ones:
+One fixture helper is needed. Add it next to the existing ones:
 
 ```csharp
-/// <summary>Compiles the shipped DimensionTeleport.csx, so tests exercise what ships.</summary>
-public Script<ISpellEffectScript> CompileSpellEffectScriptFromShipped(
-    string fileName = "DimensionTeleport.csx")
-{
-    InstallShippedScripts();
-    return World.ScriptHandler.GetScript<ISpellEffectScript>("Scripts/Spell/" + fileName);
-}
-
 /// <summary>A Player already placed on a map, which is the minimum WarpTo needs. Moved
 /// here verbatim from DimensionMapScriptTests.cs:145, which Part 2 added for the same
 /// purpose.</summary>
@@ -1604,7 +1996,7 @@ definition. Those tests already hold a `GlobalScriptFixture`, so the change is
 **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test Goose.sln --filter DimensionTeleportScriptTests`
-Expected: FAIL — teleport effects are still `EffectTypes.Teleport`, and the stub script's inherited `Cast` returns `true` without warping.
+Expected: FAIL — teleport effects are still `EffectTypes.Teleport`, so `CastSpell` dispatches to the built-in `CastTeleportSpell` and lands in dimension 0. `Disabled_by_configuration_generates_no_spells_and_leaves_teleports_alone` is the one test expected to pass already; that is fine — it is a guard against the pass running when it should not, and it has to hold both before and after.
 
 **Step 3: Write the script**
 
@@ -1741,7 +2133,7 @@ private void RewriteTeleportEffects(GameWorld world)
 **Step 5: Run tests to verify they pass**
 
 Run: `dotnet test Goose.sln --filter DimensionTeleportScriptTests`
-Expected: PASS (5 tests).
+Expected: PASS (10 tests).
 
 **Step 6: Commit**
 
@@ -1759,13 +2151,13 @@ git commit -m "feat: resolve teleport spells within the caster's dimension"
 **Step 1: Full suite**
 
 Run: `dotnet test Goose.sln`
-Expected: **327 passed**, 0 failed, 26 skipped. Tools.Tests must still be 124 passed / 26 skipped.
+Expected: **340 passed**, 0 failed, 26 skipped. Tools.Tests must still be 124 passed / 26 skipped.
 
 If the count differs from the budget table, reconcile it — a missing test is as much a defect as a failing one.
 
-**Step 2: Confirm the disabled path**
+**Step 2: (nothing to do — the disabled path is covered by a test)**
 
-Set `Enabled = false` in `Dimensions.csx`, run the suite, and confirm the dimension tests fail *because nothing was generated* rather than by throwing. Then set it back to `true`. This is a manual check that the escape hatch still works end to end — Part 2 covers the flag itself with a compiled variant test.
+`Disabled_by_configuration_generates_no_spells_and_leaves_teleports_alone` (Task 7) compiles an `Enabled = false` variant of the shipped script and asserts positively that nothing was generated and that teleport effects still have `EffectTypes.Teleport`. Do **not** edit `Enabled` in the shipped file and run the suite expecting failures: that proves only that the tests depend on the flag, leaves the tree in a broken state while it runs, and tells you nothing about what the disabled path actually did.
 
 **Step 3: Start the server against Illutia data**
 
@@ -1798,8 +2190,9 @@ git commit -m "docs: record dimension spell verification measurements"
 
 ## Done when
 
-- `dotnet test Goose.sln` reports 327 passed, 0 failed, 26 skipped.
+- `dotnet test Goose.sln` reports 340 passed, 0 failed, 26 skipped.
 - Every base spell and effect has six dimension copies at `id + 100000·dim`, with abyss scaling, and the base objects are unchanged apart from the stacking ladder and the teleport rewrite.
-- Cross-references and stacking lists resolve within their own dimension, and the ladder makes a higher-dimension buff replace a lower one while the reverse is refused.
-- Every teleport effect is script-backed, resolves its destination in the caster's dimension, and still renders a destination line in the spell info window.
+- Bad ids are refused by a preflight before anything is registered, so a misconfigured offset cannot leave the handler half-mutated.
+- Cross-references and stacking lists resolve within their own dimension, and every dimension copy of every related effect lands in exactly one stacking list — a higher-dimension buff replaces a lower one, and the reverse is refused, including across related effects such as Bless and Minor Bless.
+- Every teleport effect is script-backed, resolves its destination in the caster's dimension, refuses NPC targets and destinations the player cannot enter, falls back to the bound location when there is no destination map, and still renders a destination line in the spell info window — all verified through `SpellEffect.CastSpell`, not by calling the script directly.
 - Nothing in `Goose/` mentions dimensions.

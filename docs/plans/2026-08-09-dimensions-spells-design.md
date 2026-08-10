@@ -55,6 +55,7 @@ already generates.
 | Where the upgrade lives | Item script, in the **items** part | Needs no server change at all — see [Spellbook upgrade](#spellbook-upgrade-deferred-to-the-items-part) |
 | Teleport resolution | Rewrite `Teleport` effects to `EffectTypes.Script` | User decision. Abyss resolves `getMap(id, caster.getDimension())` at cast time (`SpellEffect.java:833`) and never rewrites `TeleportMapID` |
 | Teleport rewrite covers dimension 0 | Yes | Class spells are dimension 0, so that is the teleport every player actually holds. Skipping it leaves the escape hatch open |
+| Destination with no clone in the caster's dimension | Fall back to the base map | **Deliberate deviation from abyss**, which does an exact `(map id, dimension)` lookup and treats a miss as null — i.e. warps to the bound spot. Falling back to the base map matches what Part 2 already does for warp tiles (`Dimensions.csx:179`, `target ?? warp.WarpMap`), so a destination that was never cloned behaves the same whether you walk to it or teleport to it. See limitation 5 |
 | Buff stacking | Dimension ladder, extended to every list entry | Diverges from abyss, which used same-dimension lists only. See [Buff stacking](#buff-stacking) |
 | `dimensionSpellStats` | Clone the `AttributeSet`, then scale | Abyss builds a fresh set and fills only the listed fields, silently zeroing `SP` and `MoveSpeed`. Treated as an abyss bug |
 | Name decoration | `Powerful…Godly` prefix, per abyss | Inconsistent with the `" (n)"` suffix Parts 1–2 use for maps and NPCs, accepted: the prefix reads better in a spellbook and distinguishes tiers at a glance |
@@ -112,8 +113,17 @@ constructor, as `Map.CloneAs` does.
 
 ### Generation pass in `Dimensions.csx`
 
-Runs at `OnLoaded`, gated on the existing `Enabled` flag, in four ordered steps. The order
-is load-bearing.
+Runs at `OnLoaded`, gated on the existing `Enabled` flag, in a preflight plus four ordered
+steps. The order is load-bearing.
+
+**Step 0 — preflight every id.** Before anything is registered, check that every base spell
+and effect id is in `0 .. Offset-1`, and that no generated id is already taken. Two reasons
+it is a preflight rather than a check inside the clone loops. A throw from halfway through
+leaves the handler half-mutated — thousands of effects registered, spells not, references
+unwired — which is worse to hand someone than a clean refusal. And "base" means `ID < Offset`
+everywhere downstream (step 2 filters on exactly that), so an id above the offset is not
+merely a collision risk: it would be cloned in step 1 and then skipped in step 2, producing a
+spell that exists but never stacks or resolves correctly.
 
 **Step 1 — clone effects.** For each base effect × dims 1–6, copy and scale (below).
 
@@ -132,8 +142,11 @@ clones together, setting `EffectType = Script`, `Script = DimensionTeleport.csx`
 `ScriptParams = Offset`. Must run after steps 1–3 so clones are still `Teleport`-typed
 when copied.
 
-An ID collision at any step throws with the offending ID, matching how Part 2 handles map
-and template collisions — `AddSpell` overwrites silently otherwise.
+A bad or colliding ID throws from step 0 with the offending ID, matching how Part 2 handles
+map and template collisions — `AddSpell` overwrites silently otherwise. Once the range check
+passes, `id + Offset·dim` over `dim ∈ 1..6` is injective, so the collision half of the
+preflight is a backstop rather than a reachable branch; it stays in because the cost of being
+wrong is a real spell silently disappearing.
 
 ### Scaling
 
@@ -207,22 +220,39 @@ For the dimension-`d` copy of effect `E`, where `clones(X)` means every dimensio
 ```
 StacksOver(E,d)      = { clone(X,k) : X ∈ baseStacksOver(E) ∪ {E},  k ≤ d }
 DoesntStackOver(E,d) = { clone(X,k) : X ∈ baseDoesntStackOver(E),   any k }
-                     ∪ { clone(E,k) :                               k > d }
+                     ∪ { clone(X,k) : X ∈ baseStacksOver(E) ∪ {E},  k > d }
 ```
+
+Read the two `baseStacksOver(E) ∪ {E}` lines together: every effect the base `E` supersedes,
+plus `E` itself, is partitioned by dimension — copies at or below `d` are stacked over,
+copies above `d` refuse the cast. Nothing in that set can land in neither list, which is the
+double-application bug below.
 
 Worked through: Supreme Bless (dim 3) over plain Bless (dim 0) replaces it; plain Bless
 over Supreme Bless is refused. A same-dimension recast still takes the existing
 `buff.SpellEffect == b.SpellEffect` path, untouched.
 
 This also mutates the **dimension-0** effect's `DoesntStackOver` to include dims 1–6 of
-itself, so the base spell cannot overwrite its own upgrades. That mutates a shared base
-object and is gated behind `Enabled`.
+itself *and of everything it stacks over*, so the base spell can overwrite neither its own
+upgrades nor a higher-dimension copy of a lesser buff it supersedes. That mutates a shared
+base object and is gated behind `Enabled`.
 
 **Why the ladder extends to every list entry, not just `E`.** If base Bless stacks over
 Minor Bless, a dim-3 Bless meeting a dim-0 Minor Bless would match neither list and be
-added as a *second* buff, applying both stat blocks at once. Extending the ladder to the
-whole list closes that. Abyss used same-dimension lists only and has the double-application
-bug.
+added as a *second* buff, applying both stat blocks at once. So `StacksOver` covers the
+whole base list, at every dimension up to `d`.
+
+**And why `DoesntStackOver` extends to it too.** The mirror case is the same bug: dim-3
+Bless meeting a dim-**5** Minor Bless. Dimension 5 is above 3, so it is not in
+`StacksOver`, and putting only higher copies of *Bless itself* into `DoesntStackOver` leaves
+dim-5 Minor Bless in neither list — both buffs apply. Extending both halves of the ladder to
+every base-list entry closes it: every dimension copy of everything `E` relates to lands in
+exactly one list. Abyss used same-dimension lists only and has both variants of the
+double-application bug.
+
+The asymmetry that remains is inherited from the sheet data, not introduced here: base Minor
+Bless does not list Bless, so casting Minor Bless while Bless is up stacks a second buff at
+dimension 0 today, and the ladder reproduces that at every dimension rather than fixing it.
 
 ### `Scripts/Spell/DimensionTeleport.csx`
 
@@ -234,6 +264,12 @@ var dim = DimensionOf(caster.Map);                    // Map.ScriptParams, as Di
 var map = world.MapHandler.GetMap(TeleportMapID + Offset * dim)
        ?? world.MapHandler.GetMap(TeleportMapID);     // no clone -> the base map
 ```
+
+**Two** behaviour changes, then, not one: the dimension lookup, and the base-map fallback on
+the second line. Abyss has no fallback — its `getMap(id, dimension)` miss returns null, which
+drops into the bound-location path below. The fallback is the deliberate deviation recorded
+in [Decisions](#decisions) and [limitation 5](#known-limitations); everything else is
+verbatim.
 
 Everything else carries across verbatim: the `CanCastSpell` guard, the `P.SpellPlayer`
 animation broadcast to the target and everyone in range, the null-map fallback warping to
@@ -305,6 +341,15 @@ Accepted, listed so they are not mistaken for bugs.
 4. **`GetSpellByName` sees dimension copies.** `SpellHandler.cs:277` returns the first name
    match. Prefixed clone names mean no collision with base spells, but a caller searching
    for `"Powerful Firestorm"` now resolves.
+5. **A teleport whose destination was never cloned lands in dimension 0.** Per the decision
+   above, a missing dimension map falls back to the base map rather than to the bound spot,
+   so such a spell is an exit from the dimension. Abyss would send the player to their bind
+   instead. Only reachable for maps excluded from cloning; with Part 2 cloning every map it
+   cannot fire on shipped data.
+6. **The stacking ladder inherits the sheet data's asymmetries.** It makes every dimension
+   copy of a related effect resolve to exactly one list, but it does not add relationships
+   the base data never had — if base Minor Bless does not list Bless, Minor Bless still
+   stacks a second buff on top of Bless, in every dimension as at dimension 0.
 
 ## Follow-ups
 
@@ -316,15 +361,39 @@ Accepted, listed so they are not mistaken for bugs.
 ## Testing
 
 **Unit-testable in `Goose.Tests`** — `SpellHandler.AddSpell` / `AddSpellEffect` /
-`GetSpells` / `GetSpellEffects`; the `Spell` and `SpellEffect` copy constructors, including
-list detachment and `AttributeSet` independence; `ISpellEffectScript.GetItemDescription`
-falling through to the built-in switch when the script returns null.
+`GetSpells` / `GetSpellEffects`; the `Spell` and `SpellEffect` copy constructors;
+`ISpellEffectScript.GetItemDescription` falling through to the built-in switch when the
+script returns null.
+
+The copy constructors get a **reflection-driven** completeness guard rather than a
+hand-written list of assertions: the test sets every public property on the source via
+reflection and then walks the properties again on the copy. A property added to `Spell` or
+`SpellEffect` and forgotten in the constructor fails the test the day it is added, which a
+hand-written list cannot do. Deep-vs-shared semantics (`Stats`, the two stacking lists,
+`Script`) are asserted separately, because the guard can only prove the value came across.
 
 **Integration-testable via `GlobalScriptFixture`** — everything the generation pass
 produces: scaled spells and effects at the right IDs, the base objects left untouched,
 cross-reference rewiring within a dimension, references with no clone dropped, the buff
-stacking ladder in both directions, the shape morph and formula wrapping, teleport effects
-rewritten to `Script` type, and the disabled-flag path.
+stacking ladder in all three directions (lower, higher, and a *related* effect at a higher
+dimension), the shape morph for `Cross`, `Plus` and both `LineFront` branches, formula
+wrapping, the ID preflight refusing bad configuration before anything is mutated, and
+teleport effects rewritten to `Script` type.
+
+Teleport behaviour is tested **through the production dispatch path** — `SpellEffect.CastSpell`
+on the effect retrieved from `SpellHandler` after `OnLoaded` — not by calling the script
+object directly. Calling `Script.Object.Cast` proves the script works; only the dispatch path
+proves the rewrite attached it, that `EffectTypes.Script` routes to it, and that the script
+re-implements the `target is Player` guard that `CastSpell` applied to `EffectTypes.Teleport`
+and does not apply to `EffectTypes.Script`. That covers the destination, the bound-location
+fallback, a `PlayerCanJoin` refusal, an NPC target, and `GetItemDescription` on the shipped
+rewritten effect.
+
+The **disabled path** is a compiled variant, the same technique Part 2 uses
+(`DimensionsScriptTests.Disabled_by_configuration_changes_nothing`): read the shipped source,
+substitute `Enabled = false`, compile that, and positively assert no spells or effects were
+generated and that teleport effects still have `EffectTypes.Teleport`. Editing the shipped
+file and expecting the suite to fail is not a test.
 
 The fixture needs extending: a `Scripts/Spell/` directory, `DimensionTeleport.csx` in
 `ShippedScripts` and in `Goose.Tests.csproj` as a `<None Include>`, and a helper to seed
