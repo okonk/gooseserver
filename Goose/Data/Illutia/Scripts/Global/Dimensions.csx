@@ -89,6 +89,7 @@ public class Dimensions : BaseGlobalScript
         CloneSpellEffects(world);
         RewireSpellEffects(world);
         CloneSpells(world);
+        RewriteTeleportEffects(world);
 
         world.EventHandler.RegisterEvent("/dimension ", DimensionCommandEvent.Create);
     }
@@ -680,6 +681,30 @@ public class Dimensions : BaseGlobalScript
                     SpellEffect = effect,
                 });
             }
+        }
+    }
+
+    /// <summary>Step 4 of the spell pass, and the last thing the spell work does. Every
+    /// teleport effect - dimension 0 included - becomes a script effect so its destination
+    /// resolves in the caster's dimension.
+    ///
+    /// Dimension 0 is deliberate: class level-up spells stay at dimension 0, so that copy is
+    /// the teleport every player actually holds. Skipping it would leave a way out of any
+    /// dimension.
+    ///
+    /// Runs after CloneSpellEffects so the clones were still Teleport-typed when they were
+    /// copied, and one pass here converts base and clones together.</summary>
+    private void RewriteTeleportEffects(GameWorld world)
+    {
+        var script = world.ScriptHandler.GetScript<ISpellEffectScript>("Scripts/Spell/DimensionTeleport.csx");
+
+        foreach (var effect in world.SpellHandler.GetSpellEffects().ToList())
+        {
+            if (effect.EffectType != SpellEffect.EffectTypes.Teleport) continue;
+
+            effect.EffectType = SpellEffect.EffectTypes.Script;
+            effect.Script = script;
+            effect.ScriptParams = Offset.ToString();
         }
     }
 
