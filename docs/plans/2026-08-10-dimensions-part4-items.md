@@ -791,12 +791,21 @@ Then add the methods:
             IsBindOnEquip = false,
         };
 
-        clone.BaseStats += DimensionStats(basic, dim);
+        // Equipment only. AttributeSet.java:380-382 returns an empty set for anything that
+        // is not equipment, so a tome must not pick up AC, attributes, HP/MP, resistances
+        // or melee damage. Most of it would be inert on a consumable, but the generated
+        // data would still be wrong - and it renders in the item window (Packets.cs:443).
+        if (basic.UseType == ItemTemplate.UseTypes.Armor || basic.UseType == ItemTemplate.UseTypes.Weapon)
+            clone.BaseStats += DimensionStats(basic, dim);
+
         return clone;
     }
 
     /// <summary>AttributeSet.java:376, with itemType 0 - the flat per-dimension bonus only.
     /// The six suffix-specific terms live in DimensionSurname.csx, applied at roll time.
+    ///
+    /// Callers must apply this to equipment only: abyss returns an empty set for every
+    /// other use type (AttributeSet.java:380-382). ScaleItemTemplate holds that guard.
     ///
     /// Baking this into the template rather than adding it per item is equivalent: abyss
     /// computes (template + item + dimensionDefault) * StatMultiplier (Item.java:459), and
@@ -923,6 +932,37 @@ git commit -m "Dimensions: clone equipment templates with abyss scaling"
 
         Assert.Null(fixture.World.ItemHandler.GetTemplate(100071));
     }
+
+    [Fact]
+    public void Tome_clones_get_no_equipment_stats()
+    {
+        using var fixture = Run(f =>
+        {
+            f.AddBaseSpellEffect(7, "Firestorm Effect");
+            f.AddBaseSpell(91, "Firestorm", 7);
+            f.AddBaseItemTemplate(70, "Tome of Firestorm", ItemTemplate.UseTypes.Scroll,
+                t => { t.LearnSpellID = 91; t.MinLevel = 50; });   // tier 0.5, dim 6 -> huge if applied
+        });
+
+        var basic = fixture.World.ItemHandler.GetTemplate(70);
+        var dim6 = fixture.World.ItemHandler.GetTemplate(70 + 100000 * 6);
+
+        // AttributeSet.java:380-382 - dimensionDefault returns an empty set for anything
+        // that is not equipment, so the tome's stats must match the base template exactly.
+        Assert.Equal(basic.BaseStats.AC, dim6.BaseStats.AC);
+        Assert.Equal(basic.BaseStats.HP, dim6.BaseStats.HP);
+        Assert.Equal(basic.BaseStats.MP, dim6.BaseStats.MP);
+        Assert.Equal(basic.BaseStats.Strength, dim6.BaseStats.Strength);
+        Assert.Equal(basic.BaseStats.Stamina, dim6.BaseStats.Stamina);
+        Assert.Equal(basic.BaseStats.Intelligence, dim6.BaseStats.Intelligence);
+        Assert.Equal(basic.BaseStats.Dexterity, dim6.BaseStats.Dexterity);
+        Assert.Equal(basic.BaseStats.FireResist, dim6.BaseStats.FireResist);
+        Assert.Equal(basic.BaseStats.MeleeDamage, dim6.BaseStats.MeleeDamage);
+
+        // The rest of the clone still applies - this is a stat guard, not a clone opt-out.
+        Assert.Equal("Godly Tome of Firestorm", dim6.Name);
+        Assert.Equal(91 + 100000 * 6, dim6.LearnSpellID);
+    }
 ```
 
 **Step 2: Run and watch it fail**
@@ -975,7 +1015,7 @@ Then in `ScaleItemTemplate`, after the object initialiser:
 **Step 4: Run the tests**
 
 Run: `dotnet test --filter "FullyQualifiedName~DimensionItemTemplateTests"`
-Expected: 12 passing.
+Expected: 13 passing.
 
 **Step 5: Commit**
 

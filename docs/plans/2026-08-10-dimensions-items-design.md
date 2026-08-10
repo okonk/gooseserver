@@ -82,7 +82,7 @@ For each in-scope base template and each dimension 1–6:
 | `GraphicR/G/B` | `max(base − 30·dim, 0)` | `Item.java:441–443` |
 | `GraphicA` | `min(base + 30·dim, 200)` | `Item.java:444` |
 | `Value` | `base × 3^dim` | `Item.java:445` |
-| `BaseStats` | `base + dimensionDefault(dim, itemType: 0, baseTemplate)` | `AttributeSet.java:376` |
+| `BaseStats` | `base + dimensionDefault(dim, itemType: 0, baseTemplate)`, **equipment only** — abyss returns an empty set for every other use type | `AttributeSet.java:376`, `:380–382` |
 | `IsLore`, `IsBindOnPickup`, `IsBindOnEquip` | `false` | `Item.java:225–260` |
 | `MinLevel`, `MinExperience`, `ClassRestrictions`, `Slot`, `Type` | copied | |
 | `Script` | `Scripts/Item/DimensionItem.csx` | |
