@@ -88,6 +88,13 @@ namespace Goose.Events
                 {
                     if (tile.ItemSlot.Item.IsLore && this.Player.HasItem(tile.ItemSlot.Item.Template.ID)) return;
 
+                    var refusal = tile.ItemSlot.Item.Script?.Object.CanPickup(this.Player, tile.ItemSlot.Item, world);
+                    if (refusal != null)
+                    {
+                        world.Send(this.Player, P.ServerMessage(refusal));
+                        return;
+                    }
+
                     if (this.Player.Inventory.AddItem(tile.ItemSlot.Item, tile.ItemSlot.Stack, world))
                     {
                         this.Player.Map.RemoveItem(tile, world);

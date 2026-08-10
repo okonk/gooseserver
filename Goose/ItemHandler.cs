@@ -15,6 +15,8 @@ namespace Goose
      */
     public class ItemHandler
     {
+        private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
+
         private Dictionary<int, ItemTemplate> templates;
         private Dictionary<int, Item> items;
         private Dictionary<int, ItemModifier> titles;
@@ -272,6 +274,20 @@ namespace Goose
 
         public void RollTitleAndSurname(Item item, GameWorld world)
         {
+            // Above the use-type filter deliberately: a script-owned item (dimension tomes)
+            // must be able to claim the roll even when nothing native would apply to it.
+            if (item.Script != null)
+            {
+                try
+                {
+                    if (item.Script.Object.OnRollModifiersEvent(item, world)) return;
+                }
+                catch (Exception e)
+                {
+                    log.Error(e, "Exception in OnRollModifiersEvent for template {templateId}", item.TemplateID);
+                }
+            }
+
             if (item.UseType != ItemTemplate.UseTypes.Armor && item.UseType != ItemTemplate.UseTypes.Weapon)
                 return;
 
