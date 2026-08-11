@@ -11,15 +11,19 @@ public sealed class GlobalScriptFixture : IDisposable
     /// Copied to output by Goose.Tests.csproj. Add to BOTH lists together - a script
     /// missing here fails inside OnLoaded, not at compile time.</summary>
     ///
-    /// <remarks>All four dimension scripts ship: the global orchestration, the map entry
-    /// gate, the quest reward that grants the unlocked dimension, and the spell that
-    /// teleports the player between dimensions.</remarks>
+    /// <remarks>All seven dimension scripts ship: the global orchestration, the map entry
+    /// gate, the quest reward that grants the unlocked dimension, the spell that
+    /// teleports the player between dimensions, and the item scripts that roll abyss
+    /// suffixes and rarity titles onto dimension equipment.</remarks>
     private static readonly (string Source, string Relative)[] ShippedScripts =
     {
         ("Dimensions.csx",           "Scripts/Global/Dimensions.csx"),
         ("DimensionMap.csx",         "Scripts/Map/DimensionMap.csx"),
         ("DimensionUnlock.csx",      "Scripts/Quest/DimensionUnlock.csx"),
         ("DimensionTeleport.csx",    "Scripts/Spell/DimensionTeleport.csx"),
+        ("DimensionItem.csx",        "Scripts/Item/DimensionItem.csx"),
+        ("DimensionSurname.csx",     "Scripts/Item/DimensionSurname.csx"),
+        ("DimensionRarity.csx",      "Scripts/Item/DimensionRarity.csx"),
     };
 
     public string DataDirectory { get; }
@@ -28,7 +32,7 @@ public sealed class GlobalScriptFixture : IDisposable
     public GlobalScriptFixture()
     {
         DataDirectory = Path.Combine(Path.GetTempPath(), "global-script-" + Guid.NewGuid().ToString("N"));
-        foreach (var dir in new[] { "Global", "Map", "Quest", "Spell" })
+        foreach (var dir in new[] { "Global", "Map", "Quest", "Spell", "Item" })
             Directory.CreateDirectory(Path.Combine(DataDirectory, "Scripts", dir));
 
         GameWorld.Settings = new GooseSettings
@@ -140,6 +144,23 @@ public sealed class GlobalScriptFixture : IDisposable
         configure?.Invoke(spell);
         World.SpellHandler.AddSpell(spell);
         return spell;
+    }
+
+    /// <summary>Registers a base item template. Real ones come from item_templates
+    /// (ItemHandler.cs:56); the clone path only reads the object.</summary>
+    public ItemTemplate AddBaseItemTemplate(int id, string name, ItemTemplate.UseTypes useType,
+                                            Action<ItemTemplate> configure = null)
+    {
+        var template = new ItemTemplate
+        {
+            ID = id, Name = name, Description = "A " + name, UseType = useType,
+            Slot = ItemTemplate.ItemSlots.OneHanded, BaseStats = new AttributeSet(),
+            GraphicR = 255, GraphicG = 255, GraphicB = 255, GraphicA = 100,
+            StackSize = 1, ScriptParams = "",
+        };
+        configure?.Invoke(template);
+        World.ItemHandler.AddTemplate(template);
+        return template;
     }
 
     /// <summary>Registers a class with levels 1..maxLevel directly into ClassHandler's private

@@ -27,6 +27,12 @@
           Link="DimensionScripts/DimensionUnlock.csx" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Goose/Data/Illutia/Scripts/Spell/DimensionTeleport.csx"
           Link="DimensionScripts/DimensionTeleport.csx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Goose/Data/Illutia/Scripts/Item/DimensionItem.csx"
+          Link="DimensionScripts/DimensionItem.csx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Goose/Data/Illutia/Scripts/Item/DimensionSurname.csx"
+          Link="DimensionScripts/DimensionSurname.csx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Goose/Data/Illutia/Scripts/Item/DimensionRarity.csx"
+          Link="DimensionScripts/DimensionRarity.csx" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

@@ -25,6 +25,16 @@ namespace Goose.Scripting
 
         }
 
+        public virtual string CanPickup(Player player, Item item, GameWorld world)
+        {
+            return null;
+        }
+
+        public virtual bool OnRollModifiersEvent(Item item, GameWorld world)
+        {
+            return false;
+        }
+
         public virtual void OnEquipEvent(Player player, Item item, GameWorld world)
         {
 

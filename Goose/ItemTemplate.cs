@@ -114,6 +114,50 @@ namespace Goose
 
         public string ScriptParams { get; set; }
 
+        public ItemTemplate() { }
+
+        /// <summary>Copies every field. Used by scripts that generate template variants
+        /// (see Scripts/Global/Dimensions.csx). BaseStats is copied by value - a shared
+        /// AttributeSet would let a generated clone mutate the sheet-authored original.</summary>
+        public ItemTemplate(ItemTemplate other)
+        {
+            this.ID = other.ID;
+            this.Name = other.Name;
+            this.Description = other.Description;
+            this.UseType = other.UseType;
+            this.MinLevel = other.MinLevel;
+            this.MaxLevel = other.MaxLevel;
+            this.MinExperience = other.MinExperience;
+            this.MaxExperience = other.MaxExperience;
+            this.BaseStats = new AttributeSet() + other.BaseStats;
+            this.WeaponDelay = other.WeaponDelay;
+            this.WeaponDamage = other.WeaponDamage;
+            this.Slot = other.Slot;
+            this.Type = other.Type;
+            this.GraphicEquipped = other.GraphicEquipped;
+            this.GraphicTile = other.GraphicTile;
+            this.GraphicFile = other.GraphicFile;
+            this.GraphicR = other.GraphicR;
+            this.GraphicG = other.GraphicG;
+            this.GraphicB = other.GraphicB;
+            this.GraphicA = other.GraphicA;
+            this.Value = other.Value;
+            this.IsLore = other.IsLore;
+            this.IsBindOnPickup = other.IsBindOnPickup;
+            this.IsBindOnEquip = other.IsBindOnEquip;
+            this.IsEvent = other.IsEvent;
+            this.ClassRestrictions = other.ClassRestrictions;
+            this.StackSize = other.StackSize;
+            this.BodyState = other.BodyState;
+            this.SpellEffectID = other.SpellEffectID;
+            this.SpellEffect = other.SpellEffect;
+            this.SpellEffectChance = other.SpellEffectChance;
+            this.LearnSpellID = other.LearnSpellID;
+            this.Credits = other.Credits;
+            this.Script = other.Script;
+            this.ScriptParams = other.ScriptParams;
+        }
+
         public int BodyType
         {
             get

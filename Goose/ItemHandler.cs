@@ -15,6 +15,8 @@ namespace Goose
      */
     public class ItemHandler
     {
+        private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
+
         private Dictionary<int, ItemTemplate> templates;
         private Dictionary<int, Item> items;
         private Dictionary<int, ItemModifier> titles;
@@ -194,6 +196,37 @@ namespace Goose
             return null;
         }
 
+        /// <summary>Registers a generated template. Mirrors NPCHandler.AddTemplate
+        /// (NPCHandler.cs:231) and SpellHandler.AddSpell. Overwrites silently, so callers
+        /// generating ids must check GetTemplate first.</summary>
+        public void AddTemplate(ItemTemplate template)
+        {
+            this.templates[template.ID] = template;
+        }
+
+        /// <summary>Registers a generated title. A modifier with Chance 0 can never be
+        /// selected by RollModifier (its range is empty), so script-owned modifiers
+        /// register at 0 and are applied explicitly.</summary>
+        public void AddTitle(ItemModifier title)
+        {
+            this.titles[title.Id] = title;
+        }
+
+        public void AddSurname(ItemModifier surname)
+        {
+            this.surnames[surname.Id] = surname;
+        }
+
+        public ItemModifier GetTitle(int id)
+        {
+            return this.titles.TryGetValue(id, out ItemModifier title) ? title : null;
+        }
+
+        public ItemModifier GetSurname(int id)
+        {
+            return this.surnames.TryGetValue(id, out ItemModifier surname) ? surname : null;
+        }
+
         public void AddAndAssignId(Item item, GameWorld world)
         {
             item.ItemID = this.CurrentID;
@@ -241,6 +274,20 @@ namespace Goose
 
         public void RollTitleAndSurname(Item item, GameWorld world)
         {
+            // Above the use-type filter deliberately: a script-owned item (dimension tomes)
+            // must be able to claim the roll even when nothing native would apply to it.
+            if (item.Script != null)
+            {
+                try
+                {
+                    if (item.Script.Object.OnRollModifiersEvent(item, world)) return;
+                }
+                catch (Exception e)
+                {
+                    log.Error(e, "Exception in OnRollModifiersEvent for template {templateId}", item.TemplateID);
+                }
+            }
+
             if (item.UseType != ItemTemplate.UseTypes.Armor && item.UseType != ItemTemplate.UseTypes.Weapon)
                 return;
 
