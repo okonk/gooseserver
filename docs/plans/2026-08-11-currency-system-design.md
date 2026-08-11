@@ -101,11 +101,15 @@ simply no longer consulted.
 ## Built-in currencies
 
 `GoldCurrency` wraps what exists rather than reimplementing it: `GetBalance` is
-`Player.Gold`, `Add`/`Remove` delegate to `AddGold`/`RemoveGold` with the
-bank-overflow behaviour untouched, `GetBuyPrice` is `Value × stack`,
-`GetSellPrice` is `Value × stack / 2` returning `-1` when `Value == 0` to
-reproduce today's refusal. `GetBalance` deliberately ignores banked gold,
-matching the current purchase check.
+`Player.Gold`, `Add`/`Remove` delegate to `AddGold`/`RemoveGold`
+(`Player.cs:1471-1487` — a plain add or subtract plus a `StatusInfo` packet, no
+bank interaction), `GetBuyPrice` is `Value × stack`, `GetSellPrice` is
+`Value × stack / 2` returning `-1` when `Value == 0` to reproduce today's
+refusal.
+
+`RemoveGold` silently no-ops when `amount > Gold`, so the vendor event's balance
+check remains load-bearing — it is the only thing preventing a free purchase,
+exactly as today.
 
 `CreditsCurrency` reads `Player.Credits`, prices buys at `Credits × stack`, and
 returns `-1` from `GetSellPrice` unconditionally. `Player.Credits` is an `int`
