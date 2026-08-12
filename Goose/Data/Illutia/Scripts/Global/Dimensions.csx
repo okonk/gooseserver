@@ -79,6 +79,10 @@ public class Dimensions : BaseGlobalScript
     public const int SurnameIdBase = 900000;
     public const int TitleIdBase = 900100;
 
+    /// <summary>Registry id for the spirit currency. Dimension items are priced in it;
+    /// their Value is already the spirit price (x3^dim, see CloneItemTemplates).</summary>
+    public const string SpiritCurrencyId = "spirit";
+
     public const string MaxDimensionProperty = "dimension.max";
 
     public override void OnLoaded(GameWorld world)
@@ -101,6 +105,13 @@ public class Dimensions : BaseGlobalScript
         // Generated surnames/titles are sheet data in ItemHandler; register the abyss ones
         // before the item clones exist so the per-dimension item script (Task 6) can roll them.
         RegisterModifiers(world);
+
+        // Dimension items are priced in spirit, so the currency must exist before
+        // CloneItemTemplates stamps it onto the clones. The guard turns a registration
+        // failure into a load-time error rather than a till-time one.
+        world.CurrencyHandler.Register(new SpiritCurrency());
+        if (world.CurrencyHandler.Get(SpiritCurrencyId) == null)
+            throw new Exception($"Currency '{SpiritCurrencyId}' failed to register.");
 
         // After the spell passes: tome clones point at dimension spells, which must exist
         // to be pointed at. Before RepointDrops (Task 7), which needs the item clones.
@@ -609,6 +620,10 @@ public class Dimensions : BaseGlobalScript
             // it is also a gold price, which is a known and accepted limitation.
             Value = (long)(basic.Value * Math.Pow(3, dim)),
 
+            // Dimension items are priced in spirit wherever they are traded. The currency
+            // is registered just above in OnLoaded, so stamping can validate against it.
+            CurrencyId = SpiritCurrencyId,
+
             // Item.java:225-260 - dimension gear is freely tradeable.
             IsLore = false,
             IsBindOnPickup = false,
@@ -1100,6 +1115,53 @@ public class DimensionCommandEvent : Event
         }
 
         this.Player.WarpTo(world, target, Dimensions.WardenX, Dimensions.WardenY);
+    }
+}
+
+/// <summary>Spirit, the dimension currency. The wallet is BaseStats.SP, which already
+/// persists as players.player_sp, so no schema change is needed.
+///
+/// MaxStats.SP is separate accounting from BaseStats.SP: MaxSP reads MaxStats
+/// (Player.cs:210), and CurrentSP's setter clamps to MaxSP (Player.cs:185). So a balance
+/// change moves both, and CurrentSP is topped up afterwards - regen is zeroed in
+/// GooseSettings.json, so nothing else ever moves it.
+///
+/// Gear granting SP raises MaxStats only, so it cannot inflate the balance. It can make
+/// MaxSP exceed the balance, which is cosmetic in the client's SP bar.</summary>
+public class SpiritCurrency : ICurrency
+{
+    public string Id { get { return Dimensions.SpiritCurrencyId; } }
+    public string Name { get { return "spirit"; } }
+    public string ShortName { get { return "sp"; } }
+
+    public long GetBalance(Player player) { return player.BaseStats.SP; }
+
+    public long GetBuyPrice(ItemTemplate template, int stack) { return template.Value * stack; }
+
+    public long GetSellPrice(Item item, int stack) { return stack * item.Value / 2; }
+
+    public void Add(Player player, long amount, GameWorld world)
+    {
+        player.BaseStats.SP += amount;
+
+        var delta = new AttributeSet();
+        delta.SP = amount;
+        player.AddStats(delta, world);        // raises MaxStats.SP and sends StatusInfo
+
+        player.CurrentSP = player.MaxSP;      // setter clamps, so this must follow AddStats
+        world.Send(player, P.StatusInfo(player));
+    }
+
+    public void Remove(Player player, long amount, GameWorld world)
+    {
+        player.BaseStats.SP -= amount;
+
+        var delta = new AttributeSet();
+        delta.SP = amount;
+        player.RemoveStats(delta, world);
+
+        player.CurrentSP = player.MaxSP;
+        world.Send(player, P.StatusInfo(player));
     }
 }
 
