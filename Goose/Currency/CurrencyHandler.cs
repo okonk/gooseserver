@@ -31,5 +31,25 @@ namespace Goose
             if (string.IsNullOrEmpty(id)) return null;
             return this.currencies.TryGetValue(id, out var currency) ? currency : null;
         }
+
+        /// <summary>The currency a transaction settles in: the item's override if it has
+        /// one, else the vendor's, else gold.
+        ///
+        /// An item override wins over the vendor deliberately - a dimension item is worth
+        /// spirit wherever it is traded, including at a credit dealer, which today buys
+        /// nothing at all.</summary>
+        public ICurrency Resolve(ItemTemplate template, NPC vendor)
+        {
+            string id = template?.CurrencyId;
+            if (string.IsNullOrEmpty(id)) id = vendor?.CurrencyId;
+            if (string.IsNullOrEmpty(id)) id = Currency.Gold;
+
+            var currency = this.Get(id);
+            if (currency == null)
+                throw new InvalidOperationException(
+                    $"Currency '{id}' is not registered. Scripts must register a currency before stamping it onto templates.");
+
+            return currency;
+        }
     }
 }

@@ -71,4 +71,68 @@ public class CurrencyHandlerTests
     {
         Assert.Throws<ArgumentException>(() => new CurrencyHandler().Register(new StubCurrency("")));
     }
+
+    private static CurrencyHandler HandlerWith(params string[] ids)
+    {
+        var handler = new CurrencyHandler();
+        handler.Register(new StubCurrency(Currency.Gold));
+        foreach (var id in ids) handler.Register(new StubCurrency(id));
+        return handler;
+    }
+
+    private static NPC VendorWith(string currencyId) =>
+        new NPC { NPCTemplate = new NPCTemplate { CurrencyId = currencyId } };
+
+    [Fact]
+    public void Resolve_FallsBackToGoldWhenNeitherSetsACurrency()
+    {
+        var handler = HandlerWith();
+
+        var resolved = handler.Resolve(new ItemTemplate(), VendorWith(null));
+
+        Assert.Equal(Currency.Gold, resolved.Id);
+    }
+
+    [Fact]
+    public void Resolve_UsesTheVendorCurrencyWhenTheItemHasNoOverride()
+    {
+        var handler = HandlerWith(Currency.Credits);
+
+        var resolved = handler.Resolve(new ItemTemplate(), VendorWith(Currency.Credits));
+
+        Assert.Equal(Currency.Credits, resolved.Id);
+    }
+
+    /// <summary>The decision from the design: a dimension item is worth spirit wherever it
+    /// is traded, including at a credit dealer.</summary>
+    [Fact]
+    public void Resolve_ItemOverrideBeatsTheVendorCurrency()
+    {
+        var handler = HandlerWith(Currency.Credits, "spirit");
+
+        var resolved = handler.Resolve(new ItemTemplate { CurrencyId = "spirit" }, VendorWith(Currency.Credits));
+
+        Assert.Equal("spirit", resolved.Id);
+    }
+
+    [Fact]
+    public void Resolve_HandlesANullVendor()
+    {
+        var handler = HandlerWith("spirit");
+
+        Assert.Equal("spirit", handler.Resolve(new ItemTemplate { CurrencyId = "spirit" }, null).Id);
+    }
+
+    /// <summary>Falling back to gold here would sell a spirit item for gold at the till.
+    /// Fail loud - the event loop contains the throw (EventHandler.cs:369).</summary>
+    [Fact]
+    public void Resolve_ThrowsWhenTheNamedCurrencyIsNotRegistered()
+    {
+        var handler = HandlerWith();
+
+        var ex = Assert.Throws<InvalidOperationException>(
+            () => handler.Resolve(new ItemTemplate { CurrencyId = "doubloons" }, null));
+
+        Assert.Contains("doubloons", ex.Message);
+    }
 }
