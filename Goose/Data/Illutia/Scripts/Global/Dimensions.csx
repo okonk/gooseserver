@@ -616,8 +616,9 @@ public class Dimensions : BaseGlobalScript
             GraphicB = Math.Max(basic.GraphicB - 30 * dim, 0),
             GraphicA = Math.Min(basic.GraphicA + 30 * dim, 200),
 
-            // Item.java:445. This is the spirit price; until Part 5's vendor overrides land
-            // it is also a gold price, which is a known and accepted limitation.
+            // Item.java:445. This is the spirit price. CurrencyId stamps the clones as
+            // spirit-priced (above), and CurrencyHandler.Resolve makes that override win
+            // at every vendor, so this value is never read as gold.
             Value = (long)(basic.Value * Math.Pow(3, dim)),
 
             // Dimension items are priced in spirit wherever they are traded. The currency
@@ -1138,7 +1139,14 @@ public class SpiritCurrency : ICurrency
 
     public long GetBuyPrice(ItemTemplate template, int stack) { return template.Value * stack; }
 
-    public long GetSellPrice(Item item, int stack) { return stack * item.Value / 2; }
+    /// <summary>Half value, and a refusal for worthless items - a dimension clone of a
+    /// zero-value base item (0 x 3^dim = 0) must be refused like gold refuses it, or the
+    /// vendor would take the item and pay nothing.</summary>
+    public long GetSellPrice(Item item, int stack)
+    {
+        if (item.Value == 0) return -1;
+        return stack * item.Value / 2;
+    }
 
     public void Add(Player player, long amount, GameWorld world)
     {
