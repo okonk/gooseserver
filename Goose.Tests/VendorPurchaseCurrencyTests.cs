@@ -107,6 +107,22 @@ public class VendorPurchaseCurrencyTests
         Assert.Contains(fixture.Player.Sent, m => m.Contains("your inventory is full."));
     }
 
+    /// <summary>The cost < 0 guard: the old code would have granted gold for a
+    /// negative-Value template (RemoveGold(-100) passes the balance check and adds).
+    /// The refusal must leave the wallet untouched.</summary>
+    [Fact]
+    public void NegativePrice_RefusesThePurchase()
+    {
+        using var fixture = new VendorFixture();
+        fixture.Player.Gold = 500;
+        fixture.Stock(1, Sword(null, value: -100));
+
+        Purchase(fixture, 1);
+
+        Assert.Equal(500, fixture.Player.Gold);
+        Assert.DoesNotContain(fixture.Player.Sent, m => m.Contains("Purchased"));
+    }
+
     private static void FillInventory(VendorFixture fixture)
     {
         var filler = new ItemTemplate
