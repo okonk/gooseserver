@@ -617,7 +617,7 @@ public class Dimensions : BaseGlobalScript
             GraphicA = Math.Min(basic.GraphicA + 30 * dim, 200),
 
             // Item.java:445. This is the spirit price. CurrencyId stamps the clones as
-            // spirit-priced (above), and CurrencyHandler.Resolve makes that override win
+            // spirit-priced (below), and CurrencyHandler.Resolve makes that override win
             // at every vendor, so this value is never read as gold.
             Value = (long)(basic.Value * Math.Pow(3, dim)),
 
