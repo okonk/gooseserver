@@ -29,8 +29,10 @@ public class DimensionScalingOverflowTests
         Assert.Equal(scaled, new NPCTemplate { WeaponDamage = scaled }.WeaponDamage);
     }
 
-    /// <summary>Guards AttributeSet.cs:180 - operator* casts HP and MP to int today, which
-    /// compiles fine and truncates silently. This is the failure the audit list exists for.</summary>
+    /// <summary>Guards AttributeSet.cs:180 - operator* must not narrow-cast the (already long)
+    /// HP/MP/SP fields back to int: a (int) cast compiles fine (int widens to long on
+    /// assignment) and truncates silently. The SP case is pinned in AttributeSetSPTests;
+    /// this guards HP and MP.</summary>
     [Fact]
     public void Multiplying_an_AttributeSet_does_not_truncate_past_int_max()
     {
