@@ -34,6 +34,15 @@ public sealed class VendorFixture : IDisposable
         {
             Map = Map, MapID = Map.ID, MapX = 5, MapY = 5,
             State = Goose.Player.States.Ready,
+            // Player(int) never touches BaseStats (only LoadFromAutoCreate does), and the
+            // purchase event's currency handler reads it for script currencies like spirit.
+            BaseStats = new AttributeSet(),
+            MaxStats = new AttributeSet(),
+            // …nor does it assign a Class. RemoveGold sends P.StatusInfo, which reads
+            // player.Class.ClassName and player.MaxStats (Packets.cs:372), so the fixture
+            // player needs the seeded "Default" class (class 0) and a MaxStats set, like a
+            // real logged-in player would have.
+            Class = inner.World.ClassHandler.GetClass(0),
         };
         Player.Inventory = new Inventory(Player);
 
@@ -69,9 +78,14 @@ public sealed class VendorFixture : IDisposable
         return item;
     }
 
-    /// <summary>Marks the vendor as dealing in a currency, the way NPCHandler.cs:105 does
-    /// for credit dealers.</summary>
-    public void VendorDealsIn(string currencyId) { Vendor.NPCTemplate.CurrencyId = currencyId; }
+    /// <summary>Marks the vendor as dealing in a currency, the way NPCHandler.cs:104 does
+    /// for credit dealers: the legacy CreditDealer bool flips in step with the registry id
+    /// (true only for credits), and the currency id selects the wallet.</summary>
+    public void VendorDealsIn(string currencyId)
+    {
+        Vendor.NPCTemplate.CurrencyId = currencyId;
+        Vendor.NPCTemplate.CreditDealer = currencyId == Currency.Credits;
+    }
 
     public void Dispose() { inner.Dispose(); }
 }
