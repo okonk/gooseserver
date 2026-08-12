@@ -158,6 +158,10 @@ namespace Goose
             this.QuestHandler = new QuestHandler();
             this.ScriptHandler = new ScriptHandler();
             this.CurrencyHandler = new CurrencyHandler();
+            // Before LoadGlobalScripts (:355), so scripts can register their own currencies
+            // from OnLoaded and resolve against these.
+            this.CurrencyHandler.Register(new GoldCurrency());
+            this.CurrencyHandler.Register(new CreditsCurrency());
             this.Database = new Database();
 
             this.ExperienceModifier = GameWorld.Settings.ExperienceModifier;
