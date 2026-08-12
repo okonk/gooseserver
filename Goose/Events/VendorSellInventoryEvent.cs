@@ -72,13 +72,11 @@ namespace Goose.Events
                 // log bad stack size
                 if (stack <= 0 || stack > slot.Stack) return;
 
-                if (npc.CreditDealer && slot.Item.Credits >= 0)
-                {
-                    world.Send(this.Player, P.ServerMessage("I have no interest in purchasing " + slot.Item.Name + "."));
-                    return;
-                }
+                var currency = world.CurrencyHandler.Resolve(slot.Item.Template, npc);
+                long price = currency.GetSellPrice(slot.Item, stack);
 
-                if (slot.Item.Value == 0)
+                // Refused before the item leaves the bag.
+                if (price < 0)
                 {
                     world.Send(this.Player, P.ServerMessage("I have no interest in purchasing " + slot.Item.Name + "."));
                     return;
@@ -86,14 +84,14 @@ namespace Goose.Events
 
                 ItemSlot sellslot = this.Player.Inventory.RemoveItem(slot.Item, stack, world);
 
-                long price = sellslot.Stack * slot.Item.Value / 2;
-                this.Player.AddGold(price, world);
+                currency.Add(this.Player, price, world);
 
                 world.Send(this.Player, P.ServerMessage("Sold " + sellslot.Item.Name +
                     (sellslot.Stack > 1 ? " (" + sellslot.Stack + ")" : "") +
-                    " for " + sellslot.Stack * sellslot.Item.Value / 2 + " gold."));
+                    " for " + price + " " + currency.Name + "."));
 
-                world.LogHandler.Log(Log.Types.SellToVendor, this.Player.PlayerID, $"{slot.Item.Name} ({slot.Item.TemplateID}) x{slot.Stack} ({price} gp)",
+                world.LogHandler.Log(Log.Types.SellToVendor, this.Player.PlayerID,
+                    $"{slot.Item.Name} ({slot.Item.TemplateID}) x{slot.Stack} ({price} {currency.ShortName})",
                     npc.NPCTemplateID, this.Player.Map.ID, this.Player.MapX, this.Player.MapY);
             }
         }
