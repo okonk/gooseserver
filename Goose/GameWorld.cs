@@ -46,6 +46,7 @@ namespace Goose
         public LogHandler LogHandler { get; set; }
         public QuestHandler QuestHandler { get; set; }
         public ScriptHandler ScriptHandler { get; set; }
+        public CurrencyHandler CurrencyHandler { get; set; }
         public Database Database { get; private set; }
         public static GooseSettings Settings { get; set; }
 
@@ -156,6 +157,7 @@ namespace Goose
             this.LogHandler = new LogHandler();
             this.QuestHandler = new QuestHandler();
             this.ScriptHandler = new ScriptHandler();
+            this.CurrencyHandler = new CurrencyHandler();
             this.Database = new Database();
 
             this.ExperienceModifier = GameWorld.Settings.ExperienceModifier;
