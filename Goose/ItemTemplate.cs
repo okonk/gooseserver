@@ -110,6 +110,11 @@ namespace Goose
 
         public int Credits { get; set; }
 
+        /// <summary>Overrides the vendor's currency for this item. Null means "use whatever
+        /// the vendor deals in". Runtime-only - there is no items column for it, so sheet
+        /// data never sets it; scripts do (Scripts/Global/Dimensions.csx).</summary>
+        public string CurrencyId { get; set; }
+
         public Script<IItemScript> Script { get; set; }
 
         public string ScriptParams { get; set; }
@@ -154,6 +159,7 @@ namespace Goose
             this.SpellEffectChance = other.SpellEffectChance;
             this.LearnSpellID = other.LearnSpellID;
             this.Credits = other.Credits;
+            this.CurrencyId = other.CurrencyId;
             this.Script = other.Script;
             this.ScriptParams = other.ScriptParams;
         }

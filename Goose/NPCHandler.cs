@@ -104,6 +104,11 @@ namespace Goose
 
                         npc.CreditDealer = ("0".Equals(Convert.ToString(reader["credit_dealer"])) ? false : true);
 
+                        // Credit dealers are the only vendors with a non-gold currency in
+                        // sheet data. Null (not "gold") so Resolve's fallback chain stays
+                        // uniform: item override, then vendor, then gold.
+                        npc.CurrencyId = npc.CreditDealer ? Currency.Credits : null;
+
                         var questIds = Convert.ToString(reader["quest_ids"]).Split(new[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries).Select(q => Convert.ToInt32(q));
                         npc.Quests = questIds.Select(q => world.QuestHandler.Get(q)).ToList();
 
