@@ -229,7 +229,7 @@ namespace Goose
             pet.BaseStats = new AttributeSet();
             pet.BaseStats.HP = Convert.ToInt64(reader["pet_hp"]);
             pet.BaseStats.MP = Convert.ToInt64(reader["pet_mp"]);
-            pet.BaseStats.SP = Convert.ToInt32(reader["pet_sp"]);
+            pet.BaseStats.SP = Convert.ToInt64(reader["pet_sp"]);
             pet.BaseStats.AC = Convert.ToInt32(reader["stat_ac"]);
             pet.BaseStats.Strength = Convert.ToInt32(reader["stat_str"]);
             pet.BaseStats.Stamina = Convert.ToInt32(reader["stat_sta"]);

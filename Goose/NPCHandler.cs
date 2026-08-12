@@ -80,7 +80,7 @@ namespace Goose
                         npc.BaseStats = new AttributeSet();
                         npc.BaseStats.HP = Convert.ToInt64(reader["npc_hp"]);
                         npc.BaseStats.MP = Convert.ToInt64(reader["npc_mp"]);
-                        npc.BaseStats.SP = Convert.ToInt32(reader["npc_sp"]);
+                        npc.BaseStats.SP = Convert.ToInt64(reader["npc_sp"]);
                         npc.BaseStats.AC = Convert.ToInt32(reader["stat_ac"]);
                         npc.BaseStats.Strength = Convert.ToInt32(reader["stat_str"]);
                         npc.BaseStats.Stamina = Convert.ToInt32(reader["stat_sta"]);
