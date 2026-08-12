@@ -65,6 +65,22 @@ public class VendorSellCurrencyTests
         Assert.NotNull(fixture.Player.Inventory.GetSlot(1));
     }
 
+    /// <summary>Partial stacks: price and message count must come from the sold stack,
+    /// and the remainder must stay in the bag - the parity edge the retrofit's single
+    /// `price` collapsed (old code computed message price from sellslot.Stack).</summary>
+    [Fact]
+    public void GoldSale_PartialStackPaysForTheSoldCountOnly()
+    {
+        using var fixture = new VendorFixture();
+        fixture.Carry(Sword(value: 100), stack: 5);
+
+        Sell(fixture, 1, 2);
+
+        Assert.Equal(100, fixture.Player.Gold);   // 2 * 100 / 2
+        Assert.Contains(fixture.Player.Sent, m => m.Contains("Sold Sword (2) for 100 gold."));
+        Assert.NotNull(fixture.Player.Inventory.GetSlot(1));
+    }
+
     /// <summary>The new behaviour, and the decision from the design: an item override wins,
     /// so a dimension item sells for spirit even at a credit dealer that buys nothing else.</summary>
     [Fact]
