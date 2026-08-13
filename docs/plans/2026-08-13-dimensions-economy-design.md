@@ -57,7 +57,7 @@ Five changes. All are additive; every existing call site is untouched.
 ### 1. `Player.ChangeClass` overload
 
 ```csharp
-public void ChangeClass(int classid, int newLevel, GameWorld world, decimal experienceLossPercent)
+public void ChangeClass(int classid, int newLevel, GameWorld world, double experienceLossPercent)
 ```
 
 The existing three-argument method becomes a delegation passing
@@ -73,10 +73,13 @@ row, banking `Experience` into `ExperienceSold`, the level-1 class row, `BaseSta
 ### 2. `Player.AddExperience` overload
 
 ```csharp
-public virtual void AddExperience(long exp, GameWorld world, ExperienceMessage message, bool applyModifiers)
+public void AddExperience(long exp, GameWorld world, ExperienceMessage message, bool applyModifiers)
 ```
 
-The existing three-argument method delegates with `true`.
+The existing three-argument method stays `virtual` and delegates with `true`. The new
+overload is **not** virtual: `Pet` overrides the three-argument signature with a complete
+body that never calls `base` (`Pet.cs:802`), so leaving that arrangement alone keeps pet
+experience bit-for-bit unchanged.
 
 **Why this is required.** `AddExperience` re-multiplies the amount by
 `world.ExperienceModifier` on a branch selected by whether the player is past
@@ -182,7 +185,7 @@ Only dimension 0 gets one; there is no per-dimension copy.
 ```
 total  = player.Experience + player.ExperienceSold
 spirit = total / ExpPerSpirit                   // integer floor
-player.ChangeClass(1, 1, world, 0m)             // loss percent explicitly off
+player.ChangeClass(1, 1, world, 0d)             // loss percent explicitly off
 player.Experience = 0; player.ExperienceSold = 0
 currency.Add(player, spirit, world)
 log the mint
