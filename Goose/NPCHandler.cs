@@ -80,7 +80,7 @@ namespace Goose
                         npc.BaseStats = new AttributeSet();
                         npc.BaseStats.HP = Convert.ToInt64(reader["npc_hp"]);
                         npc.BaseStats.MP = Convert.ToInt64(reader["npc_mp"]);
-                        npc.BaseStats.SP = Convert.ToInt32(reader["npc_sp"]);
+                        npc.BaseStats.SP = Convert.ToInt64(reader["npc_sp"]);
                         npc.BaseStats.AC = Convert.ToInt32(reader["stat_ac"]);
                         npc.BaseStats.Strength = Convert.ToInt32(reader["stat_str"]);
                         npc.BaseStats.Stamina = Convert.ToInt32(reader["stat_sta"]);
@@ -103,6 +103,11 @@ namespace Goose
                         npc.BehaviourTimeout = Convert.ToInt64(reader["stuck_timeout"]);
 
                         npc.CreditDealer = ("0".Equals(Convert.ToString(reader["credit_dealer"])) ? false : true);
+
+                        // Credit dealers are the only vendors with a non-gold currency in
+                        // sheet data. Null (not "gold") so Resolve's fallback chain stays
+                        // uniform: item override, then vendor, then gold.
+                        npc.CurrencyId = npc.CreditDealer ? Currency.Credits : null;
 
                         var questIds = Convert.ToString(reader["quest_ids"]).Split(new[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries).Select(q => Convert.ToInt32(q));
                         npc.Quests = questIds.Select(q => world.QuestHandler.Get(q)).ToList();

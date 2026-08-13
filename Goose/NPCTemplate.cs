@@ -192,6 +192,10 @@ namespace Goose
         /// </summary>
         public bool CreditDealer { get; set; }
 
+        /// <summary>The currency this vendor trades in. Null means gold. Set from the
+        /// credit_dealer column at load (NPCHandler.cs:105).</summary>
+        public string CurrencyId { get; set; }
+
         public List<Quest> Quests { get; set; }
 
         public Script<INPCScript> Script { get; set; }
@@ -243,6 +247,7 @@ namespace Goose
             this.WeaponDamage = other.WeaponDamage;
             this.AlliesString = other.AlliesString;
             this.CreditDealer = other.CreditDealer;
+            this.CurrencyId = other.CurrencyId;
             this.Script = other.Script;
             this.ScriptParams = other.ScriptParams;
             this.ArmorPierce = other.ArmorPierce;

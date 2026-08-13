@@ -75,19 +75,14 @@ namespace Goose.Events
                     return;
                 }
 
-                if (!npc.CreditDealer && slot.ItemTemplate.Value * slot.Stack > this.Player.Gold)
-                {
-                    world.Send(this.Player, P.ServerMessage("Can't purchase " + slot.ItemTemplate.Name +
-                        (slot.Stack > 1 ? " (" + slot.Stack + ")" : "") +
-                        " as you don't have enough gold."));
-                    return;
-                }
+                var currency = world.CurrencyHandler.Resolve(slot.ItemTemplate, npc);
+                long cost = currency.GetBuyPrice(slot.ItemTemplate, slot.Stack);
 
-                if (npc.CreditDealer && slot.ItemTemplate.Credits * slot.Stack > this.Player.Credits)
+                if (cost < 0 || currency.GetBalance(this.Player) < cost)
                 {
                     world.Send(this.Player, P.ServerMessage("Can't purchase " + slot.ItemTemplate.Name +
                         (slot.Stack > 1 ? " (" + slot.Stack + ")" : "") +
-                        " as you don't have enough credits."));
+                        " as you don't have enough " + currency.Name + "."));
                     return;
                 }
 
@@ -100,30 +95,16 @@ namespace Goose.Events
 
                 if (this.Player.Inventory.AddItem(item, slot.Stack, world))
                 {
-                    if (npc.CreditDealer)
-                    {
-                        int cost = slot.ItemTemplate.Credits * slot.Stack;
-                        this.Player.Credits -= cost;
+                    // Charged only after the item lands, so a full inventory costs nothing.
+                    currency.Remove(this.Player, cost, world);
 
-                        world.Send(this.Player, P.ServerMessage("Purchased " + item.Name +
-                            (slot.Stack > 1 ? " (" + slot.Stack + ")" : "") +
-                            " for " + cost + " credits."));
+                    world.Send(this.Player, P.ServerMessage("Purchased " + item.Name +
+                        (slot.Stack > 1 ? " (" + slot.Stack + ")" : "") +
+                        " for " + cost + " " + currency.Name + "."));
 
-                        world.LogHandler.Log(Log.Types.BuyFromVendor, this.Player.PlayerID, $"{item.Name} ({item.TemplateID}) x{slot.Stack} ({cost} cr)",
-                            npc.NPCTemplateID, this.Player.Map.ID, this.Player.MapX, this.Player.MapY);
-                    }
-                    else
-                    {
-                        long cost = slot.ItemTemplate.Value * slot.Stack;
-                        this.Player.RemoveGold(cost, world);
-
-                        world.Send(this.Player, P.ServerMessage("Purchased " + item.Name +
-                            (slot.Stack > 1 ? " (" + slot.Stack + ")" : "") +
-                            " for " + cost + " gold."));
-
-                        world.LogHandler.Log(Log.Types.BuyFromVendor, this.Player.PlayerID, $"{item.Name} ({item.TemplateID}) x{slot.Stack} ({cost} gp)",
-                            npc.NPCTemplateID, this.Player.Map.ID, this.Player.MapX, this.Player.MapY);
-                    }
+                    world.LogHandler.Log(Log.Types.BuyFromVendor, this.Player.PlayerID,
+                        $"{item.Name} ({item.TemplateID}) x{slot.Stack} ({cost} {currency.ShortName})",
+                        npc.NPCTemplateID, this.Player.Map.ID, this.Player.MapX, this.Player.MapY);
 
                     if (item.IsBindOnPickup)
                     {

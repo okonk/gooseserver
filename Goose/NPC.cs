@@ -343,6 +343,8 @@ namespace Goose
         /// </summary>
         public bool CreditDealer { get { return this.NPCTemplate.CreditDealer; } }
 
+        public string CurrencyId { get { return this.NPCTemplate.CurrencyId; } }
+
         internal List<Quest> Quests { get; set; }
 
         public Script<INPCScript> Script { get { return this.NPCTemplate.Script; } }

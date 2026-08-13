@@ -84,7 +84,7 @@ namespace Goose
                 c.BaseStats = new AttributeSet();
                 c.BaseStats.HP = Convert.ToInt64(reader["player_hp"]);
                 c.BaseStats.MP = Convert.ToInt64(reader["player_mp"]);
-                c.BaseStats.SP = Convert.ToInt32(reader["player_sp"]);
+                c.BaseStats.SP = Convert.ToInt64(reader["player_sp"]);
                 c.BaseStats.AC = Convert.ToInt32(reader["stat_ac"]);
                 c.BaseStats.Strength = Convert.ToInt32(reader["stat_str"]);
                 c.BaseStats.Stamina = Convert.ToInt32(reader["stat_sta"]);

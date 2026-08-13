@@ -78,7 +78,7 @@ namespace Goose
                     template.BaseStats = new AttributeSet();
                     template.BaseStats.HP = Convert.ToInt64(reader["player_hp"]);
                     template.BaseStats.MP = Convert.ToInt64(reader["player_mp"]);
-                    template.BaseStats.SP = Convert.ToInt32(reader["player_sp"]);
+                    template.BaseStats.SP = Convert.ToInt64(reader["player_sp"]);
                     template.BaseStats.AC = Convert.ToInt32(reader["stat_ac"]);
                     template.BaseStats.Strength = Convert.ToInt32(reader["stat_str"]);
                     template.BaseStats.Stamina = Convert.ToInt32(reader["stat_sta"]);

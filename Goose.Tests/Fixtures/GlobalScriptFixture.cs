@@ -39,6 +39,7 @@ public sealed class GlobalScriptFixture : IDisposable
         {
             DataPath = DataDirectory, ExperienceModifier = 1,
             InventorySize = 30, EquippedSize = 20, CombineBagSize = 10, SpellbookSize = 30,
+            VendorSlotSize = 30,
             // NPC spawns need a login-id range: GetNewID draws from (MaxPlayers, MaxNPCs]
             // (NPCHandler.cs:244). Same values NPCSpawnRegistrationTests uses.
             MaxPlayers = 200, MaxNPCs = 15000,
@@ -126,10 +127,19 @@ public sealed class GlobalScriptFixture : IDisposable
         return effect;
     }
 
-    /// <summary>A player standing on a map, for tests that drive Player.AddBuff end to end.</summary>
+    /// <summary>A player standing on a map, for tests that drive Player methods end to end.
+    /// Player(int) never touches BaseStats/MaxStats (only LoadFromAutoCreate does), and
+    /// P.StatusInfo (Packets.cs:370) reads Class.ClassName and MaxStats, so a synthetic
+    /// player needs all three set like a real logged-in player would have.</summary>
     public Player PlayerOn(Map map, int x, int y)
     {
-        return new Player(0) { Map = map, MapID = map.ID, MapX = x, MapY = y };
+        return new Player(0)
+        {
+            Map = map, MapID = map.ID, MapX = x, MapY = y,
+            BaseStats = new AttributeSet(),
+            MaxStats = new AttributeSet(),
+            Class = World.ClassHandler.GetClass(0),
+        };
     }
 
     /// <summary>Registers a base spell pointing at an already-registered effect.</summary>

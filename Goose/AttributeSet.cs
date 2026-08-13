@@ -13,7 +13,7 @@ namespace Goose
     {
         public long HP { get; set; }
         public long MP { get; set; }
-        public int SP { get; set; }
+        public long SP { get; set; }
         public decimal HPPercentRegen { get; set; }
         public int HPStaticRegen { get; set; }
         public decimal MPPercentRegen { get; set; }
@@ -179,7 +179,7 @@ namespace Goose
 
             temp.HP = (long)Math.Ceiling(a1.HP * multiplier);
             temp.MP = (long)Math.Ceiling(a1.MP * multiplier);
-            temp.SP = (int)Math.Ceiling(a1.SP * multiplier);
+            temp.SP = (long)Math.Ceiling(a1.SP * multiplier);
             temp.HPPercentRegen = a1.HPPercentRegen * multiplier;
             temp.HPStaticRegen = (int)Math.Ceiling(a1.HPStaticRegen * multiplier);
             temp.MPPercentRegen = a1.MPPercentRegen * multiplier;
