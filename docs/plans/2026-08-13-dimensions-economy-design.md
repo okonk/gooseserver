@@ -250,7 +250,14 @@ the top end. Without it, dimensions 5 and 6 have no experience gate at all and
 ## Commands
 
 All four registered from `OnLoaded`, below the `if (!Enabled) return;` guard, so a
-disabled feature never registers them. All four log through `LogHandler`: rebirth mints
+disabled feature never registers them.
+
+`Log.Types` has no member covering any of this — the non-GM block ends at `SellToVendor`
+(`Log.cs:33`). Four members are appended before the `10001` GM block: `Rebirth`,
+`BuyGold`, `BuyExperience`, `GiveSpirit`. Appending keeps every persisted log row's
+integer meaning intact.
+
+All four log through `LogHandler`: rebirth mints
 spirit, `/buygold` and `/buyexperience` destroy it while creating gold and experience, and
 `/givesp` moves it between players — every one of them is something support will be asked
 about.
@@ -275,15 +282,19 @@ Inventory slots only — equipped gear cannot be reset, matching abyss. Order ma
 5. `cost = ResetItemCostBase^dim` — 3/9/27/81/243/729. Refuse on insufficient balance,
    quoting the cost as abyss does.
 6. `world.ItemHandler.RerollModifiers(item, world)`.
-7. Charge, mark the item dirty, resend the inventory slot, and resend the player's HP/MP
-   status — a rerolled suffix moves `HPStaticRegen` and `MaxHP`.
+7. Charge, resend the inventory slot, and resend the player's HP/MP status — a rerolled
+   suffix moves `HPStaticRegen` and `MaxHP`. There is no dirty flag to set: abyss's
+   `item.setDirty(true)` (`ResetItemEvent.java:64`) has no goose equivalent, since items
+   serialise wholesale rather than by change tracking.
 
 ### `/buygold <n>`
 
 `n` must parse and be `> 0`. Balance checked, then `spirit.Remove(player, n, world)` and
-`world.CurrencyHandler.Gold.Add(player, n * GoldPerSpirit, world)` — through the currency
-abstraction rather than `Player.AddGold` directly, so gold's packet handling stays in one
-place.
+`world.CurrencyHandler.Get(Currency.Gold).Add(player, n * GoldPerSpirit, world)` — through
+the currency abstraction rather than `Player.AddGold` directly, so gold's packet handling
+stays in one place. Part 5's design described a `CurrencyHandler.Gold` property; the
+shipped handler exposes `Register`/`Get`/`Resolve` only (`CurrencyHandler.cs:16,29,41`),
+with the id as the `Currency.Gold` constant (`Currency.cs:7`).
 
 ### `/buyexperience <n>`
 
