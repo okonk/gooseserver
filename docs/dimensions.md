@@ -230,5 +230,6 @@ per-level SP (`classes.sql player_sp`) — either would leak the wallet.
   capacity ceiling.
 - Goose's own 0.5% surname roll can stack a second suffix on dimension drops;
   either accept it or skip the dimension roll when `SurnameId` is set.
-- The vendor window renders `Value` with gold styling; dimension vendors
-  should state in dialogue that prices are in spirit.
+- The item and vendor slot packets carry a trailing currency name
+  (`Packets.cs:470,527`), so tooltips read "Value: 4,500 spirit" rather than
+  guessing gold. Clients that stop parsing at `GraphicA` ignore the field.

@@ -466,10 +466,16 @@ namespace Goose
                     item.GraphicR + "|" +
                     item.GraphicG + "|" +
                     item.GraphicB + "|" +
-                    item.GraphicA;
+                    item.GraphicA + "|" +
+                    // The name the client labels Value with. No vendor is in scope here, so
+                    // this is the item's own currency - which is the right answer anyway,
+                    // since an item override wins wherever it is traded (CurrencyHandler.cs:41).
+                    world.CurrencyHandler.Resolve(item.Template, null).Name;
         };
 
-        public static Func<ItemTemplate, GameWorld, int, long, string> VendorItemSlot = (item, world, slotId, stack) =>
+        /// <summary>The vendor is threaded in only to name the currency: a credit dealer's
+        /// stock carries no item-level currency, so the label has to come from the NPC.</summary>
+        public static Func<ItemTemplate, GameWorld, NPC, int, long, string> VendorItemSlot = (item, world, vendor, slotId, stack) =>
         {
             var spellEffect = item.SpellEffect;
             int spellEffectChance = (int)item.SpellEffectChance;
@@ -520,7 +526,8 @@ namespace Goose
                     item.GraphicR + "|" +
                     item.GraphicG + "|" +
                     item.GraphicB + "|" +
-                    item.GraphicA;
+                    item.GraphicA + "|" +
+                    world.CurrencyHandler.Resolve(item, vendor).Name;
         };
 
         public static Func<Window, Item, GameWorld, int, long, string> BankSlot = (window, item, world, slotId, stack) =>
@@ -566,7 +573,7 @@ namespace Goose
 
         public static Func<Window, ItemTemplate, GameWorld, int, long, string> VendorSlot = (window, item, world, slotId, stack) =>
         {
-            return "SVS" + VendorItemSlot(item, world, slotId, stack);
+            return "SVS" + VendorItemSlot(item, world, window.NPC, slotId, stack);
         };
 
         public static Func<string> ClearVendor = () =>
