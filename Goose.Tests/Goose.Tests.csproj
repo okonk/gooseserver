@@ -25,6 +25,8 @@
           Link="DimensionScripts/DimensionMap.csx" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Goose/Data/Illutia/Scripts/Quest/DimensionUnlock.csx"
           Link="DimensionScripts/DimensionUnlock.csx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Goose/Data/Illutia/Scripts/Quest/Rebirth.csx"
+          Link="DimensionScripts/Rebirth.csx" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Goose/Data/Illutia/Scripts/Spell/DimensionTeleport.csx"
           Link="DimensionScripts/DimensionTeleport.csx" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Goose/Data/Illutia/Scripts/Item/DimensionItem.csx"

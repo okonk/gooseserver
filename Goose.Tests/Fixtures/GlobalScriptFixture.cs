@@ -11,10 +11,11 @@ public sealed class GlobalScriptFixture : IDisposable
     /// Copied to output by Goose.Tests.csproj. Add to BOTH lists together - a script
     /// missing here fails inside OnLoaded, not at compile time.</summary>
     ///
-    /// <remarks>All seven dimension scripts ship: the global orchestration, the map entry
+    /// <remarks>All eight dimension scripts ship: the global orchestration, the map entry
     /// gate, the quest reward that grants the unlocked dimension, the spell that
-    /// teleports the player between dimensions, and the item scripts that roll abyss
-    /// suffixes and rarity titles onto dimension equipment.</remarks>
+    /// teleports the player between dimensions, the item scripts that roll abyss
+    /// suffixes and rarity titles onto dimension equipment, and the rebirth script that
+    /// trades banked experience for spirit.</remarks>
     private static readonly (string Source, string Relative)[] ShippedScripts =
     {
         ("Dimensions.csx",           "Scripts/Global/Dimensions.csx"),
@@ -24,6 +25,7 @@ public sealed class GlobalScriptFixture : IDisposable
         ("DimensionItem.csx",        "Scripts/Item/DimensionItem.csx"),
         ("DimensionSurname.csx",     "Scripts/Item/DimensionSurname.csx"),
         ("DimensionRarity.csx",      "Scripts/Item/DimensionRarity.csx"),
+        ("Rebirth.csx",              "Scripts/Quest/Rebirth.csx"),
     };
 
     public string DataDirectory { get; }
@@ -48,6 +50,10 @@ public sealed class GlobalScriptFixture : IDisposable
 
         // Seed classes so NPC spawning works (see ORCHESTRATION NOTE 2).
         SeedClass(0, "Default", 50);
+        // Rebirth changes the player to class 1 level 1 (Rebirth.csx), so the destination
+        // class has to exist in the fixture too. Real class_info carries 1-5 for class 1
+        // and 1-50 for 2-7 — the same asymmetry Dimensions.csx's warden comment calls out.
+        SeedClass(1, "Commoner", 5);
         SeedClass(3, "Warrior", 50);
     }
 
@@ -142,6 +148,57 @@ public sealed class GlobalScriptFixture : IDisposable
         };
     }
 
+    /// <summary>Player.Send is virtual and returns early on a null socket (Player.cs:2409),
+    /// so overriding it is how tests read the server's messages back.</summary>
+    public sealed class CapturingPlayer : Player
+    {
+        public CapturingPlayer() : base(0) { }
+        public List<string> Sent { get; } = new List<string>();
+        public override void Send(string data) { this.Sent.Add(data); }
+    }
+
+    /// <summary>A logged-in-looking player: Ready state (every script command early-returns
+    /// otherwise), an Inventory, and the BaseStats/MaxStats/Class trio PlayerOn already
+    /// documents.</summary>
+    public CapturingPlayer CommandPlayerOn(Map map, int x, int y, string name = "Tester")
+    {
+        var player = new CapturingPlayer
+        {
+            Name = name,
+            Map = map, MapID = map.ID, MapX = x, MapY = y,
+            State = Player.States.Ready,
+            BaseStats = new AttributeSet(),
+            MaxStats = new AttributeSet(),
+            Class = World.ClassHandler.GetClass(0),
+        };
+        player.Inventory = new Inventory(player);
+        return player;
+    }
+
+    /// <summary>Makes PlayerHandler.GetPlayer(name) find this player, which is how /givesp
+    /// resolves its target (PlayerHandler.cs:129). Not AddPlayer: that indexes by
+    /// player.Sock (PlayerHandler.cs:51) and a socketless test player would throw on the
+    /// null key. Same reflection approach as SeedClass.</summary>
+    public void RegisterOnlinePlayer(Player player)
+    {
+        var byName = (Dictionary<string, Player>)typeof(PlayerHandler)
+            .GetField("nameToPlayer", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .GetValue(World.PlayerHandler)!;
+        byName[player.Name.ToLower()] = player;
+    }
+
+    /// <summary>Runs a chat-line command the way the server does: EventHandler.AddEvent
+    /// parses it against the registered trie and queues an Event, and Update dequeues and
+    /// calls Ready (EventHandler.cs:286,:361-371). Going through both is the point - it is
+    /// what proves the trailing-space registration actually matches.</summary>
+    public bool RunCommand(Player player, string packet)
+    {
+        if (!World.EventHandler.AddEvent(player, packet)) return false;
+
+        World.EventHandler.Update(World);
+        return true;
+    }
+
     /// <summary>Registers a base spell pointing at an already-registered effect.</summary>
     public Spell AddBaseSpell(int id, string name, int effectId, Action<Spell> configure = null)
     {
@@ -180,7 +237,8 @@ public sealed class GlobalScriptFixture : IDisposable
     {
         var cls = new Class { ClassID = classId, ClassName = name, ACMultiplier = 1m };
         for (int level = 1; level <= maxLevel; level++)
-            cls.AddLevel(new ClassLevel { Level = level, BaseStats = new AttributeSet() });
+            // Spells must be a real list: Player.ChangeClass iterates GetLevel(n).Spells.
+            cls.AddLevel(new ClassLevel { Level = level, BaseStats = new AttributeSet(), Spells = new List<Spell>() });
 
         var classes = (Dictionary<int, Class>)typeof(ClassHandler)
             .GetField("classes", BindingFlags.NonPublic | BindingFlags.Instance)!

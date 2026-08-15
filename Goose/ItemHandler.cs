@@ -272,6 +272,57 @@ namespace Goose
             }
         }
 
+        /// <summary>Returns an item to template state: no title, no surname, no modifier
+        /// stats, no modifier weapon damage. Safe to call repeatedly.
+        ///
+        /// Every field a modifier can write has to be listed here. ItemModifier.ApplyStats
+        /// runs through ItemModifierScript.csx's AddStats (`:60-80`), which writes
+        /// StatMultiplier, WeaponDamage and BaseStats — WeaponDamage included, and
+        /// RefreshStats folds it into TotalWeaponDamage (`Item.cs:256`). Forget it and
+        /// repeated paid rerolls stack weapon damage without bound.
+        ///
+        /// Deliberately not built on Item.LoadFromTemplate, which accumulates rather than
+        /// assigns (TotalStats += template.BaseStats, Item.cs:159) and would double-count
+        /// the template's stats on a second call.</summary>
+        public void ResetModifiers(Item item)
+        {
+            item.Name = item.Template.Name;
+            item.BaseStats = new AttributeSet();
+            item.WeaponDamage = 0;
+            item.StatMultiplier = 1;
+            item.ItemProperties.Remove(ItemProperty.TitleId);
+            item.ItemProperties.Remove(ItemProperty.SurnameId);
+            item.RefreshStats();
+        }
+
+        /// <summary>Strips the item's modifiers and rolls fresh ones. A script owning the
+        /// item claims the roll first; otherwise the native chance-based roll runs.</summary>
+        public void RerollModifiers(Item item, GameWorld world)
+        {
+            this.ResetModifiers(item);
+
+            if (item.Script != null)
+            {
+                try
+                {
+                    if (item.Script.Object.OnRerollModifiersEvent(item, world)) return;
+                }
+                catch (Exception e)
+                {
+                    log.Error(e, "Exception in OnRerollModifiersEvent for template {templateId}", item.TemplateID);
+
+                    // A hook that applied part of a roll before throwing has left modifiers
+                    // on the item that the reset above already stripped once. Reset again so
+                    // the fallback rolls against template state, exactly as it would have if
+                    // the item carried no script at all. Swallowing the exception without
+                    // this leaves free stats behind.
+                    this.ResetModifiers(item);
+                }
+            }
+
+            this.RollTitleAndSurname(item, world);
+        }
+
         public void RollTitleAndSurname(Item item, GameWorld world)
         {
             // Above the use-type filter deliberately: a script-owned item (dimension tomes)

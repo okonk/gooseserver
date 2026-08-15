@@ -24,6 +24,12 @@ public class Dimensions : BaseGlobalScript
     /// <summary>NPC template gating each dimension.</summary>
     public const int BossTemplateId = 162;
 
+    /// <summary>Map.java:251-260. A flat floor, not a scale - it discards the base map's
+    /// value entirely. Most maps carry MinExperience = 0, so without this the top two
+    /// dimensions have no experience gate at all and dimension.max is the sole barrier.</summary>
+    public const long Dim5MinExperience = 100_000_000_000;
+    public const long Dim6MinExperience = 500_000_000_000;
+
     // ---- Warden ---------------------------------------------------------
     // The quest giver. It does not exist in sheet data, so everything about it is
     // configured here. One template per dimension at WardenTemplateId + Offset*dim.
@@ -67,6 +73,62 @@ public class Dimensions : BaseGlobalScript
     public const int WardenX = 50;
     public const int WardenY = 50;
 
+    // ---- Rebirth --------------------------------------------------------
+    // The spirit faucet: a repeatable quest converting banked experience into spirit and
+    // resetting the character. Script-created for the same reason the warden is - the
+    // dimensions feature stays self-contained, and Enabled = false leaves nothing behind.
+
+    /// <summary>Clear of WardenTemplateId (800000 + Offset*6 = 1,400,000 is the warden's
+    /// top id, but the wardens occupy 800000, 900000, ... so 810000 is unused).</summary>
+    public const int RebirthTemplateId = 810000;
+
+    /// <summary>Clear of QuestIdBase's range: quests 900000-900005, requirement and reward
+    /// ids 900000 + n*10 + k, topping out at 900051.</summary>
+    public const int RebirthQuestId = 910000;
+
+    /// <summary>Experience per spirit. floor(total / ExpPerSpirit) is minted; the
+    /// remainder is destroyed, faithful to RebirthEvent.java:47.</summary>
+    public const long ExpPerSpirit = 100_000_000;
+
+    public const string RebirthName = "Keeper of Rebirth";
+    public const string RebirthTitle = "";
+    public const string RebirthSurname = "";
+    public const int RebirthClassId = 3;      // must have a class_info row at RebirthLevel
+    public const int RebirthLevel = 50;
+
+    /// <summary>Where rebirth *leaves* the player, as opposed to what the keeper looks
+    /// like. Only used by CreateRebirthQuest's preflight: Rebirth.csx compiles separately
+    /// and cannot read these, so it hardcodes the same 1 and 1 - keep the two in step.</summary>
+    public const int RebirthDestinationClassId = 1;   // Commoner
+    public const int RebirthDestinationLevel = 1;
+
+    public const int RebirthBodyID = 1;
+    public const int RebirthBodyState = 0;
+    public const int RebirthBodyR = 40;
+    public const int RebirthBodyG = 0;
+    public const int RebirthBodyB = 60;
+    public const int RebirthBodyA = 200;
+    public const int RebirthFaceID = 1;
+    public const int RebirthHairID = 1;
+    public const int RebirthHairR = 20;
+    public const int RebirthHairG = 0;
+    public const int RebirthHairB = 40;
+    public const int RebirthHairA = 200;
+    public const string RebirthEquippedItems = "";
+
+    /// <summary>Dimension 0 only, beside the dimension-0 warden. Map 1 is StartMapId, the
+    /// map /dimension already warps to, so a player who can reach a warden can reach the
+    /// keeper without a second landmark.
+    ///
+    /// Verified against Data/Illutia/Maps/Map1.map: the map is 286x194, and (52,50) carries
+    /// no blocked flag (bit 2 of the tile flags, Map.cs:471-475). It is two tiles east of
+    /// WardenX/WardenY (50,50), so the two generated NPCs cannot collide. Warp tiles and
+    /// sheet NPC spawns come from the database rather than the .map file, so
+    /// CreateRebirthQuest re-checks the tile at load time instead of trusting this.</summary>
+    public const int RebirthMapId = StartMapId;
+    public const int RebirthX = 52;
+    public const int RebirthY = 50;
+
     /// <summary>Quest ids are deterministic: QuestProgress persists keyed on
     /// requirement.Id (Player.cs:1020 / QuestWindow.cs:268), so a counter-assigned id
     /// would orphan in-flight kill progress on restart.</summary>
@@ -83,7 +145,37 @@ public class Dimensions : BaseGlobalScript
     /// their Value is already the spirit price (x3^dim, see CloneItemTemplates).</summary>
     public const string SpiritCurrencyId = "spirit";
 
+    /// <summary>Reroll cost is ResetItemCostBase^dim: 3/9/27/81/243/729 spirit
+    /// (ResetItemEvent.java:30).</summary>
+    public const int ResetItemCostBase = 3;
+
     public const string MaxDimensionProperty = "dimension.max";
+
+    /// <summary>BuyGoldCommandEvent.java:47 - 1 spirit buys a million gold.</summary>
+    public const long GoldPerSpirit = 1_000_000;
+
+    /// <summary>BuyExperienceCommandEvent.java:52. Deliberately below ExpPerSpirit: the
+    /// round trip is lossy by 4x, which is what keeps rebirth a net sink.</summary>
+    public const long ExpPerSpiritPurchase = 25_000_000;
+
+    /// <summary>Ceiling on a single wallet. BaseStats.SP is a long, so this is not the
+    /// type's limit - it is a sanity bound well above anything the faucet can produce
+    /// (a trillion spirit is 10^20 experience through rebirth), placed so a transfer
+    /// cannot silently wrap a wallet negative and so a bug in the faucet is visible as a
+    /// refusal rather than as a corrupted balance.</summary>
+    public const long MaxSpiritBalance = 1_000_000_000_000L;
+
+    /// <summary>Shared by all four commands. Returns false for a missing, unparseable,
+    /// zero or negative amount - each command prints its own usage line, so this does not
+    /// message.</summary>
+    public static bool TryParseAmount(string[] tokens, int index, out long amount)
+    {
+        amount = 0;
+        if (tokens.Length <= index) return false;
+        if (!long.TryParse(tokens[index], out amount)) return false;
+
+        return amount > 0;
+    }
 
     public override void OnLoaded(GameWorld world)
     {
@@ -95,6 +187,7 @@ public class Dimensions : BaseGlobalScript
         RewireWarps(world);
         CloneSpawns(world);
         CreateUnlockChain(world);
+        CreateRebirthQuest(world);
 
         PreflightSpellIds(world);
         CloneSpellEffects(world);
@@ -117,8 +210,13 @@ public class Dimensions : BaseGlobalScript
         // to be pointed at. Before RepointDrops (Task 7), which needs the item clones.
         CloneItemTemplates(world);
         RepointDrops(world);
+        RepointVendorStock(world);
 
         world.EventHandler.RegisterEvent("/dimension ", DimensionCommandEvent.Create);
+        world.EventHandler.RegisterEvent("/resetitem ", ResetItemCommandEvent.Create);
+        world.EventHandler.RegisterEvent("/buygold ", BuyGoldCommandEvent.Create);
+        world.EventHandler.RegisterEvent("/buyexperience ", BuyExperienceCommandEvent.Create);
+        world.EventHandler.RegisterEvent("/givesp ", GiveSpiritCommandEvent.Create);
     }
 
     /// <summary>Second pass over the maps Task 3 created: spawn each dimension's clone of
@@ -218,6 +316,16 @@ public class Dimensions : BaseGlobalScript
         }
     }
 
+    /// <summary>Map.java:251-260. Dimensions 1-4 scale; 5 and 6 take a flat floor that
+    /// ignores the base value.</summary>
+    private long MinExperienceFor(long baseMin, int dim)
+    {
+        if (dim == 5) return Dim5MinExperience;
+        if (dim >= 6) return Dim6MinExperience;
+
+        return baseMin * (dim * 5) * (dim * 5);
+    }
+
     private void CloneMaps(GameWorld world)
     {
         var baseMaps = world.MapHandler.Maps.Values.ToList();
@@ -241,8 +349,8 @@ public class Dimensions : BaseGlobalScript
                 var clone = basic.CloneAs(id, basic.Name + " (" + dim + ")");
 
                 clone.CanPVP = true;                      // forced on in every dimension
-                // Entry gates scale by (dim*5)^2
-                clone.MinExperience = basic.MinExperience * (dim * 5) * (dim * 5);
+                // Entry gates scale by (dim*5)^2; dimensions 5-6 take a flat floor instead
+                clone.MinExperience = MinExperienceFor(basic.MinExperience, dim);
                 clone.MaxExperience = basic.MaxExperience * (dim * 5) * (dim * 5);
                 clone.Script = mapScript;                 // replaces, not composes - DimensionMap forwards to the base script itself
                 // ScriptParams passes through untouched so a delegated base script reads the
@@ -499,6 +607,161 @@ public class Dimensions : BaseGlobalScript
         }
     }
 
+    /// <summary>The spirit faucet. One NPC and one repeatable quest, in dimension 0 only.
+    ///
+    /// Deliberately NOT run through ScaleTemplate, and deliberately not cloned per
+    /// dimension: rebirth requires stripping naked and leaves the player at level 1, and
+    /// every dimension above 0 has CanPVP forced on (CloneMaps).</summary>
+    private void CreateRebirthQuest(GameWorld world)
+    {
+        var rebirthClass = world.ClassHandler.GetClass(RebirthClassId);
+        if (rebirthClass == null)
+            throw new Exception($"RebirthClassId {RebirthClassId} does not exist.");
+        if (rebirthClass.GetLevel(RebirthLevel) == null)
+            throw new Exception($"Class {RebirthClassId} has no level {RebirthLevel} row in class_info.");
+
+        // The destination class, not the keeper's. Rebirth calls ChangeClass(1, 1, ...),
+        // which reads Class.GetLevel(1) on class 1 (Player.cs:1358+). class_info carries
+        // levels 1-5 for class 1, but a dataset that dropped the row would turn every
+        // completed rebirth into an NRE mid-transaction, after the quest was consumed.
+        var commoner = world.ClassHandler.GetClass(RebirthDestinationClassId);
+        if (commoner == null)
+            throw new Exception($"RebirthDestinationClassId {RebirthDestinationClassId} does not exist.");
+        if (commoner.GetLevel(RebirthDestinationLevel) == null)
+            throw new Exception(
+                $"Class {RebirthDestinationClassId} has no level {RebirthDestinationLevel} row in class_info - rebirth would fail mid-transaction.");
+
+        if (ExpPerSpirit <= 0)
+            throw new Exception("ExpPerSpirit must be positive - GiveReward divides by it.");
+
+        if (world.QuestHandler.Get(RebirthQuestId) != null)
+            throw new Exception($"Quest id {RebirthQuestId} already exists. RebirthQuestId collides with sheet data.");
+        if (world.NPCHandler.GetNPCTemplate(RebirthTemplateId) != null)
+            throw new Exception($"Rebirth template id {RebirthTemplateId} already exists.");
+
+        // Placement, before anything is registered. NPC.LoadFromTemplate calls
+        // Map.PlaceCharacter -> Map.SetCharacter, which simply returns on out-of-range
+        // coordinates (Map.cs:643-648) - the NPC would exist, be invisible, and be
+        // untargetable, with no error anywhere. IsTileBlocked covers all three failures at
+        // once: out of bounds, a blocked or warp tile, and an occupant (Map.cs:417-440).
+        // It runs here rather than at spawn time because CreateRebirthQuest is called after
+        // CloneSpawns, so every generated NPC - the dimension-0 warden included - is
+        // already standing on the map.
+        var rebirthMap = world.MapHandler.GetMap(RebirthMapId);
+        if (rebirthMap == null)
+            throw new Exception($"RebirthMapId {RebirthMapId} does not exist.");
+        if (rebirthMap.IsTileBlocked(null, RebirthX, RebirthY))
+            throw new Exception(
+                $"Rebirth keeper cannot stand at {RebirthMapId}({RebirthX},{RebirthY}): out of bounds, blocked, a warp tile, or occupied.");
+
+        var rebirthScript = world.ScriptHandler.GetScript<IQuestScript>("Scripts/Quest/Rebirth.csx");
+
+        var quest = new Quest
+        {
+            Id = RebirthQuestId,
+            Name = "Rebirth",
+            Description = "Surrender everything you have earned and return to the\\n"
+                        + "beginning. Every " + ExpPerSpirit.ToString("N0") + " experience\\n"
+                        + "becomes one spirit. Anything left over is lost.\\n\\n"
+                        + "You will be a level 1 commoner, and the dimensions\\n"
+                        + "you have opened will demand their experience again.\\n\\n"
+                        + "Come to me with nothing equipped.",
+            FailText = "You are not ready. Remove everything you wear,\\nand bring more experience.",
+            PassText = "You are unmade, and remade.",
+            ShowProgress = true,
+            Repeatable = true,
+        };
+
+        quest.Requirements.Add(new QuestRequirement
+        {
+            Id = RebirthQuestId + 1,
+            Type = RequirementType.NothingEquipped,
+            KeepRequirement = false,
+            Quest = quest,
+        });
+
+        quest.Requirements.Add(new QuestRequirement
+        {
+            Id = RebirthQuestId + 2,
+            Type = RequirementType.Script,
+            Script = rebirthScript,
+            ScriptParams = ExpPerSpirit.ToString(),
+            // KeepRequirement true is load-bearing: TakeRequirements runs before
+            // GiveRewards (QuestWindow.cs:341-342), so a consuming requirement would zero
+            // the experience the reward has to read. All state change lives in the reward.
+            KeepRequirement = true,
+            Quest = quest,
+        });
+
+        quest.Rewards.Add(new QuestReward
+        {
+            Id = RebirthQuestId + 11,
+            Type = RewardType.Script,
+            Script = rebirthScript,
+            // QuestReward has no Quest back-reference (QuestReward.cs:37-45), so the rate
+            // travels here rather than being read off the requirement.
+            ScriptParams = ExpPerSpirit.ToString(),
+        });
+
+        world.QuestHandler.AddQuest(quest);
+
+        var keeper = new NPCTemplate
+        {
+            NPCTemplateID = RebirthTemplateId,
+            NPCType = NPCTemplate.Types.Quest,
+            Name = RebirthName,
+            Title = RebirthTitle,
+            Surname = RebirthSurname,
+            Level = RebirthLevel,
+            ClassID = RebirthClassId,
+
+            CanBeKilled = false,
+            CanMove = false,
+            CanBeRooted = false,
+            CanBeStunned = false,
+            CanBeSlowed = false,
+
+            WeaponDamage = 0,
+            AggroRange = 0,
+            AttackRange = 1,
+            AttackSpeed = 1m,
+            MoveSpeed = 1m,
+            RespawnTime = 0,
+            Experience = 0,
+
+            BodyID = RebirthBodyID,
+            BodyState = RebirthBodyState,
+            BodyR = RebirthBodyR, BodyG = RebirthBodyG, BodyB = RebirthBodyB, BodyA = RebirthBodyA,
+            FaceID = RebirthFaceID,
+            HairID = RebirthHairID,
+            HairR = RebirthHairR, HairG = RebirthHairG, HairB = RebirthHairB, HairA = RebirthHairA,
+            EquippedItems = RebirthEquippedItems,
+
+            AlliesString = "",
+            Allies = new List<NPCTemplate>(),
+            Drops = new List<NPCDropInfo>(),
+        };
+
+        keeper.BaseStats = new AttributeSet { HP = 1000, MP = 0 };
+        keeper.Quests.Add(quest);
+
+        world.NPCHandler.AddTemplate(keeper);
+
+        var spawned = world.NPCHandler.SpawnNPC(world, RebirthMapId, RebirthX, RebirthY,
+                                                keeper, shouldRespawn: false);
+        if (spawned == null)
+            throw new Exception($"Could not spawn the rebirth keeper: map {RebirthMapId} does not exist.");
+
+        // LoadFromTemplate adds to Map.NPCs and then calls Spawn -> PlaceCharacter
+        // (NPC.cs:645-648). PlaceCharacter is the step that silently no-ops out of range,
+        // so confirm the keeper actually occupies the tile rather than just being listed.
+        if (rebirthMap.GetCharacterAt(RebirthX, RebirthY) != spawned)
+        {
+            throw new Exception(
+                $"Rebirth keeper did not take tile {RebirthMapId}({RebirthX},{RebirthY}) - it would be invisible and untargetable.");
+        }
+    }
+
     /// <summary>NPC.java:1019 - darker and more opaque per dimension.</summary>
     private void Recolour(NPCTemplate t, int dim)
     {
@@ -685,6 +948,49 @@ public class Dimensions : BaseGlobalScript
                 }
 
                 clone.Drops = drops;
+            }
+        }
+    }
+
+    /// <summary>Point each dimension vendor's stock at that dimension's item clones.
+    ///
+    /// New array AND new slot objects, never an in-place edit: NPCTemplate's copy
+    /// constructor shares VendorItems with the base template (NPCTemplate.cs:254), so
+    /// mutating either would rewrite dimension 0's shops. Same rule as RepointDrops.
+    ///
+    /// No vendor-side CurrencyId is set. The clones carry CurrencyId = "spirit" on the
+    /// item, and Resolve puts the item override above the vendor (CurrencyHandler.cs:41),
+    /// so repointed gear sells for spirit while unrepointed consumables stay gold.</summary>
+    private void RepointVendorStock(GameWorld world)
+    {
+        for (int dim = 1; dim <= DimensionCount; dim++)
+        {
+            foreach (var basic in world.NPCHandler.GetTemplates()
+                                       .Where(t => t.NPCTemplateID < Offset).ToList())
+            {
+                var clone = world.NPCHandler.GetNPCTemplate(basic.NPCTemplateID + Offset * dim);
+                if (clone == null || basic.VendorItems == null) continue;
+
+                var slots = new NPCVendorSlot[basic.VendorItems.Length];
+                for (int i = 0; i < basic.VendorItems.Length; i++)
+                {
+                    var slot = basic.VendorItems[i];
+                    if (slot == null) continue;
+
+                    var dimTemplate = slot.ItemTemplate == null
+                        ? null
+                        : world.ItemHandler.GetTemplate(slot.ItemTemplate.ID + Offset * dim);
+
+                    slots[i] = new NPCVendorSlot
+                    {
+                        Slot = slot.Slot,
+                        ItemTemplate = dimTemplate ?? slot.ItemTemplate,
+                        Stack = slot.Stack,
+                        CanSeeStats = slot.CanSeeStats,
+                    };
+                }
+
+                clone.VendorItems = slots;
             }
         }
     }
@@ -1115,7 +1421,327 @@ public class DimensionCommandEvent : Event
             return;
         }
 
+        // PlayerCanJoin, then WarpTo. Player.WarpTo (Player.cs:1234) does no gating of its
+        // own - MoveEvent (:123), SpellEffect (:831) and DimensionTeleport.csx (:61) each
+        // call PlayerCanJoin first, and this command has to as well or every map-level
+        // gate in this feature (MinLevel, Min/MaxExperience, required items, and
+        // DimensionMap.csx's own hook) is bypassed by the one route players actually use.
+        //
+        // PlayerCanJoin sends its own refusal, so there is nothing to say here.
+        if (!target.PlayerCanJoin(this.Player, world)) return;
+
         this.Player.WarpTo(world, target, Dimensions.WardenX, Dimensions.WardenY);
+    }
+}
+
+/// <summary>Handles "/resetitem &lt;n&gt;": rerolls one dimension equipment item's suffix
+/// and rarity for ResetItemCostBase^dim spirit. Registered with a trailing space so the
+/// command trie matches it as a longest-prefix, exactly like "/dimension ".</summary>
+public class ResetItemCommandEvent : Event
+{
+    public static Event Create(Player player, Object data)
+    {
+        return new ResetItemCommandEvent { Player = player, Data = data };
+    }
+
+    public override void Ready(GameWorld world)
+    {
+        if (this.Player.State != Player.States.Ready) return;
+
+        var tokens = ((string)this.Data).Split(' ');
+        int slotId;
+        if (tokens.Length < 2 || !int.TryParse(tokens[1], out slotId) ||
+            slotId < 1 || slotId > GameWorld.Settings.InventorySize)
+        {
+            world.Send(this.Player, P.ServerMessage(
+                "/resetitem <1-" + GameWorld.Settings.InventorySize + "> - rerolls a dimension item's suffix."));
+            return;
+        }
+
+        var slot = this.Player.Inventory.GetSlot(slotId);
+        if (slot == null || slot.Item == null)
+        {
+            world.Send(this.Player, P.ServerMessage("No item exists at that inventory slot."));
+            return;
+        }
+
+        var item = slot.Item;
+
+        // One Item object backs the whole stack (ItemSlot.cs:17-19), so rerolling a stack
+        // of two would rewrite both for one charge. Refuse rather than split.
+        if (slot.Stack != 1)
+        {
+            world.Send(this.Player, P.ServerMessage("Only a single item can be reset, not a stack."));
+            return;
+        }
+
+        // Three separate questions, and all three have to be asked. The division alone
+        // says nothing: a sheet-authored template with an id above Offset would divide to a
+        // plausible-looking dimension, be priced with Math.Pow against a dimension that may
+        // not exist, and be handed to a reroll hook that knows nothing about it.
+        int dim = item.TemplateID / Dimensions.Offset;
+        if (dim < 1 || dim > Dimensions.DimensionCount)
+        {
+            world.Send(this.Player, P.ServerMessage("Only items from a higher plane can be reset."));
+            return;
+        }
+
+        // CloneItemTemplates registers each clone at baseId + Offset*dim over a base that
+        // exists, and stamps the dimension script onto it. All three must hold, or this is
+        // not a generated clone and does not belong here.
+        var registered = world.ItemHandler.GetTemplate(item.TemplateID);
+        if (registered == null || registered != item.Template ||
+            world.ItemHandler.GetTemplate(item.TemplateID % Dimensions.Offset) == null ||
+            registered.Script == null)
+        {
+            world.Send(this.Player, P.ServerMessage("Only items from a higher plane can be reset."));
+            return;
+        }
+
+        // Dimension tomes are Scroll consumables; nothing but gear carries modifiers.
+        if (item.UseType != ItemTemplate.UseTypes.Armor && item.UseType != ItemTemplate.UseTypes.Weapon)
+        {
+            world.Send(this.Player, P.ServerMessage("Only weapons and armor can be reset."));
+            return;
+        }
+
+        var spirit = world.CurrencyHandler.Get(Dimensions.SpiritCurrencyId);
+        if (spirit == null) return;
+
+        long cost = (long)Math.Pow(Dimensions.ResetItemCostBase, dim);
+
+        // The balance check is the guard, not a nicety: Part 5 established that Remove
+        // does not itself refuse an overdraft.
+        long before = spirit.GetBalance(this.Player);
+        if (before < cost)
+        {
+            world.Send(this.Player, P.ServerMessage(
+                "Not enough " + spirit.Name + " to reset this item. (" + cost + ")"));
+            return;
+        }
+
+        world.ItemHandler.RerollModifiers(item, world);
+        spirit.Remove(this.Player, cost, world);
+
+        this.Player.Inventory.SendSlot(slotId, world);
+        world.Send(this.Player, P.ServerMessage(
+            "You spend " + cost + " " + spirit.Name + " to remake " + item.Name + "."));
+
+        // Its own log type, not CreatedCustom: that is the GM item-creation log, and
+        // folding a paid player reroll into it makes both unqueryable. otherid carries the
+        // item's id so a reroll can be joined to the item it rewrote.
+        world.LogHandler.Log(Log.Types.ResetItem, this.Player,
+            "ResetItem: template " + item.TemplateID + " dim " + dim
+            + " cost " + cost + " " + spirit.ShortName
+            + " balance " + before + " -> " + (before - cost),
+            item.ItemID);
+    }
+}
+
+/// <summary>Handles "/buygold &lt;amount&gt;": trades spirit for gold at GoldPerSpirit
+/// each. Registered with a trailing space so the command trie matches it as a
+/// longest-prefix, exactly like "/dimension ".</summary>
+public class BuyGoldCommandEvent : Event
+{
+    public static Event Create(Player player, Object data)
+    {
+        return new BuyGoldCommandEvent { Player = player, Data = data };
+    }
+
+    public override void Ready(GameWorld world)
+    {
+        if (this.Player.State != Player.States.Ready) return;
+
+        var tokens = ((string)this.Data).Split(' ');
+        long amount;
+        if (!Dimensions.TryParseAmount(tokens, 1, out amount))
+        {
+            world.Send(this.Player, P.ServerMessage(
+                "/buygold <amount> - trades spirit for gold at "
+                + Dimensions.GoldPerSpirit.ToString("N0") + " each."));
+            return;
+        }
+
+        var spirit = world.CurrencyHandler.Get(Dimensions.SpiritCurrencyId);
+        var gold = world.CurrencyHandler.Get(Currency.Gold);   // no CurrencyHandler.Gold property
+        if (spirit == null || gold == null) return;
+
+        // Before the balance check: a wrapped product would pass any check made after it.
+        if (amount > long.MaxValue / Dimensions.GoldPerSpirit)
+        {
+            world.Send(this.Player, P.ServerMessage("That is more gold than exists."));
+            return;
+        }
+
+        long before = spirit.GetBalance(this.Player);
+        if (before < amount)
+        {
+            world.Send(this.Player, P.ServerMessage("Not enough " + spirit.Name + "."));
+            return;
+        }
+
+        long granted = amount * Dimensions.GoldPerSpirit;
+
+        spirit.Remove(this.Player, amount, world);
+        gold.Add(this.Player, granted, world);
+
+        world.Send(this.Player, P.ServerMessage(
+            "You trade " + amount + " " + spirit.Name + " for " + granted.ToString("N0") + " gold."));
+        world.LogHandler.Log(Log.Types.BuyGold, this.Player,
+            "BuyGold: " + amount + " " + spirit.ShortName + " -> " + granted + " gold"
+            + ", spirit " + before + " -> " + (before - amount));
+    }
+}
+
+/// <summary>Handles "/buyexperience &lt;amount&gt;": buys experience at
+/// ExpPerSpiritPurchase each, unmodified by the world's experience modifier. Registered
+/// with a trailing space so the command trie matches it as a longest-prefix, exactly like
+/// "/dimension ".</summary>
+public class BuyExperienceCommandEvent : Event
+{
+    public static Event Create(Player player, Object data)
+    {
+        return new BuyExperienceCommandEvent { Player = player, Data = data };
+    }
+
+    public override void Ready(GameWorld world)
+    {
+        if (this.Player.State != Player.States.Ready) return;
+
+        var tokens = ((string)this.Data).Split(' ');
+        long amount;
+        if (!Dimensions.TryParseAmount(tokens, 1, out amount))
+        {
+            world.Send(this.Player, P.ServerMessage(
+                "/buyexperience <amount> - buys experience at "
+                + Dimensions.ExpPerSpiritPurchase.ToString("N0") + " each."));
+            return;
+        }
+
+        if (this.Player.ClassID == 1)
+        {
+            world.Send(this.Player, P.ServerMessage("Choose a class before you buy experience."));
+            return;
+        }
+
+        if (amount > long.MaxValue / Dimensions.ExpPerSpiritPurchase)
+        {
+            world.Send(this.Player, P.ServerMessage("That is more experience than exists."));
+            return;
+        }
+
+        long granted = amount * Dimensions.ExpPerSpiritPurchase;
+        long total = this.Player.Experience + this.Player.ExperienceSold;
+
+        // Prospective, not current. AddExperience early-returns when the CURRENT total is
+        // over the cap (Player.cs:1653-1660), so checking the same condition here only
+        // catches players who are already past it - a player one experience under the cap
+        // passes, buys, and lands 24,999,999 above a ceiling the server is meant to
+        // enforce. Test what the purchase would produce.
+        if (GameWorld.Settings.ExperienceCap > 0 && total + granted > GameWorld.Settings.ExperienceCap)
+        {
+            long affordable = (GameWorld.Settings.ExperienceCap - total) / Dimensions.ExpPerSpiritPurchase;
+            world.Send(this.Player, P.ServerMessage(affordable > 0
+                ? "That would carry you past the experience cap. You can buy at most " + affordable + "."
+                : "You have reached the experience cap."));
+            return;
+        }
+
+        var spirit = world.CurrencyHandler.Get(Dimensions.SpiritCurrencyId);
+        if (spirit == null) return;
+
+        long before = spirit.GetBalance(this.Player);
+        if (before < amount)
+        {
+            world.Send(this.Player, P.ServerMessage("Not enough " + spirit.Name + "."));
+            return;
+        }
+
+        spirit.Remove(this.Player, amount, world);
+        this.Player.AddExperience(granted, world, Player.ExperienceMessage.Normal, applyModifiers: false);
+
+        world.Send(this.Player, P.ServerMessage(
+            "You spend " + amount + " " + spirit.Name + " to gain " + granted.ToString("N0") + " experience."));
+        world.LogHandler.Log(Log.Types.BuyExperience, this.Player,
+            "BuyExperience: " + amount + " " + spirit.ShortName + " -> " + granted + " exp"
+            + ", spirit " + before + " -> " + (before - amount));
+    }
+}
+
+/// <summary>Handles "/givesp &lt;player&gt; &lt;amount&gt;": transfers spirit between two
+/// online players. Registered with a trailing space so the command trie matches it as a
+/// longest-prefix, exactly like "/dimension ".</summary>
+public class GiveSpiritCommandEvent : Event
+{
+    public static Event Create(Player player, Object data)
+    {
+        return new GiveSpiritCommandEvent { Player = player, Data = data };
+    }
+
+    public override void Ready(GameWorld world)
+    {
+        if (this.Player.State != Player.States.Ready) return;
+
+        var tokens = ((string)this.Data).Split(' ');
+        long amount;
+        if (tokens.Length < 3 || !Dimensions.TryParseAmount(tokens, 2, out amount))
+        {
+            world.Send(this.Player, P.ServerMessage("/givesp <player> <amount>"));
+            return;
+        }
+
+        var target = world.PlayerHandler.GetPlayer(tokens[1]);
+        if (target == null || target.State != Player.States.Ready)
+        {
+            world.Send(this.Player, P.ServerMessage(tokens[1] + " is not online."));
+            return;
+        }
+
+        if (target == this.Player)
+        {
+            world.Send(this.Player, P.ServerMessage("You cannot give spirit to yourself."));
+            return;
+        }
+
+        var spirit = world.CurrencyHandler.Get(Dimensions.SpiritCurrencyId);
+        if (spirit == null) return;
+
+        long senderBefore = spirit.GetBalance(this.Player);
+        if (senderBefore < amount)
+        {
+            world.Send(this.Player, P.ServerMessage("Not enough " + spirit.Name + "."));
+            return;
+        }
+
+        // The recipient side, checked before either wallet moves. BaseStats.SP is a long,
+        // so a transfer into a large enough wallet wraps negative; MaxSpiritBalance keeps
+        // the refusal well short of that and makes a faucet bug visible as a refusal
+        // rather than as a corrupted balance.
+        long targetBefore = spirit.GetBalance(target);
+        if (targetBefore > Dimensions.MaxSpiritBalance - amount)
+        {
+            world.Send(this.Player, P.ServerMessage(target.Name + " cannot hold that much " + spirit.Name + "."));
+            return;
+        }
+
+        spirit.Remove(this.Player, amount, world);
+        spirit.Add(target, amount, world);
+
+        world.Send(this.Player, P.ServerMessage(
+            "You give " + amount + " " + spirit.Name + " to " + target.Name + "."));
+        world.Send(target, P.ServerMessage(
+            this.Player.Name + " gives you " + amount + " " + spirit.Name + "."));
+
+        // One entry per side, each naming the counterparty in otherid and carrying its own
+        // before/after. Two rows rather than one because logs are queried per player.
+        world.LogHandler.Log(Log.Types.GiveSpirit, this.Player,
+            "GiveSpirit: sent " + amount + " " + spirit.ShortName + " to " + target.Name
+            + ", balance " + senderBefore + " -> " + (senderBefore - amount),
+            target.PlayerID);
+        world.LogHandler.Log(Log.Types.GiveSpirit, target,
+            "GiveSpirit: received " + amount + " " + spirit.ShortName + " from " + this.Player.Name
+            + ", balance " + targetBefore + " -> " + (targetBefore + amount),
+            this.Player.PlayerID);
     }
 }
 

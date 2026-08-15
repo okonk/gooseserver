@@ -31,7 +31,11 @@ namespace Goose
             CreatedCustom,
             BuyFromVendor,
             SellToVendor,
-
+            Rebirth,
+            BuyGold,
+            BuyExperience,
+            GiveSpirit,
+            ResetItem,
 
             // GM-related logs
             GetItem = 10001,

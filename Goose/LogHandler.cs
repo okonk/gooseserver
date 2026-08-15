@@ -9,6 +9,11 @@ namespace Goose
     {
         List<Log> logs;
 
+        /// <summary>Entries buffered since the last Save, read-only. The log buffers in
+        /// memory and is flushed on a timer (GameWorld.cs:416), so tests (and audits) read
+        /// this rather than reflecting into the list.</summary>
+        public IReadOnlyList<Log> Pending => this.logs;
+
         public LogHandler()
         {
             this.logs = new List<Log>();

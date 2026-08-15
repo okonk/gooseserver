@@ -39,7 +39,7 @@ public class DimensionTeleportScriptTests
     public void Every_teleport_effect_is_rewritten_to_a_script_effect()
     {
         var fixture = new GlobalScriptFixture();
-        fixture.AddBaseMap(1, "Town");   // CreateUnlockChain spawns the warden on map 1
+        fixture.AddBaseMap(1, "Town", width: 100, height: 100);   // CreateUnlockChain spawns the warden on map 1
         fixture.AddBaseSpellEffect(42, "Gate", e =>
         {
             e.EffectType = SpellEffect.EffectTypes.Teleport;
@@ -69,7 +69,7 @@ public class DimensionTeleportScriptTests
     public void Other_effect_types_keep_their_type()
     {
         var fixture = new GlobalScriptFixture();
-        fixture.AddBaseMap(1, "Town");   // CreateUnlockChain spawns the warden on map 1
+        fixture.AddBaseMap(1, "Town", width: 100, height: 100);   // CreateUnlockChain spawns the warden on map 1
         fixture.AddBaseSpellEffect(43, "Bless", e => e.EffectType = SpellEffect.EffectTypes.Buff);
 
         using (fixture)

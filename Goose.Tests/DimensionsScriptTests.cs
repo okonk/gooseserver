@@ -44,7 +44,7 @@ public class DimensionsScriptTests
     [Fact]
     public void Registers_the_dimension_command()
     {
-        using var fixture = Run(f => f.AddBaseMap(1, "Town"));
+        using var fixture = Run(f => f.AddBaseMap(1, "Town", width: 100, height: 100));
 
         // AddEvent returns false when no command matches the packet prefix (EventHandler.cs:286).
         Assert.True(fixture.World.EventHandler.AddEvent(new Player(0), "/dimension 1"));
@@ -169,7 +169,7 @@ public class DimensionsScriptTests
     [Fact]
     public void Clones_each_map_once_per_dimension()
     {
-        using var fixture = Run(f => f.AddBaseMap(1, "Town"));
+        using var fixture = Run(f => f.AddBaseMap(1, "Town", width: 100, height: 100));
 
         var dim2 = fixture.World.MapHandler.GetMap(1 + 100000 * 2);
 
@@ -185,7 +185,7 @@ public class DimensionsScriptTests
     {
         using var fixture = Run(f =>
         {
-            var town = f.AddBaseMap(1, "Town");
+            var town = f.AddBaseMap(1, "Town", width: 100, height: 100);
             var cave = f.AddBaseMap(2, "Cave");
             town.SetTile(3, 3, new WarpTile { WarpMap = cave, WarpX = 7, WarpY = 8 });
         });
@@ -207,7 +207,7 @@ public class DimensionsScriptTests
     {
         using var fixture = Run(f =>
         {
-            var town = f.AddBaseMap(1, "Town");
+            var town = f.AddBaseMap(1, "Town", width: 100, height: 100);
             town.SetTile(4, 4, new BlockedTile());
         });
 
@@ -224,7 +224,7 @@ public class DimensionsScriptTests
     {
         using var fixture = Run(f =>
         {
-            var vault = f.AddBaseMap(1, "Vault");
+            var vault = f.AddBaseMap(1, "Vault", width: 100, height: 100);
             vault.AddRequiredItem(1234);
             vault.Muted = true;
         });
@@ -510,5 +510,63 @@ public class DimensionsScriptTests
         reloaded.LoadPropertiesFromColumn(json);
 
         Assert.Equal(3, reloaded.Properties.GetProperty<int>("dimension.max", 0));
+    }
+
+    // ---- Dimension 5/6 experience floors --------------------------------------------
+
+    [Theory]
+    [InlineData(1, 25_000L)]        // 1000 * (1*5)^2
+    [InlineData(2, 100_000L)]       // 1000 * (2*5)^2
+    [InlineData(4, 400_000L)]       // 1000 * (4*5)^2
+    public void Dimensions_one_to_four_scale_min_experience_by_the_square(int dim, long expected)
+    {
+        using var fixture = new GlobalScriptFixture();
+        fixture.AddBaseMap(1, "Town", width: 100, height: 100).MinExperience = 1000;
+        fixture.CompileShipped().Object.OnLoaded(fixture.World);
+
+        Assert.Equal(expected, fixture.World.MapHandler.GetMap(1 + 100000 * dim).MinExperience);
+    }
+
+    /// <summary>Map.java:251-260 — a flat floor, not a scale. It ignores the base value
+    /// entirely, which is the point: most maps have MinExperience = 0, and 0 times any
+    /// scale is 0.</summary>
+    [Theory]
+    [InlineData(5, 100_000_000_000L)]
+    [InlineData(6, 500_000_000_000L)]
+    public void Dimensions_five_and_six_take_a_flat_minimum(int dim, long expected)
+    {
+        using var fixture = new GlobalScriptFixture();
+        var basic = fixture.AddBaseMap(1, "Town", width: 100, height: 100);
+        basic.MinExperience = 0;                    // the realistic case
+        fixture.CompileShipped().Object.OnLoaded(fixture.World);
+
+        Assert.Equal(expected, fixture.World.MapHandler.GetMap(1 + 100000 * dim).MinExperience);
+    }
+
+    /// <summary>And it ignores a large base value too, rather than taking the max of the
+    /// two — the abyss expression assigns, it does not clamp.</summary>
+    [Fact]
+    public void The_flat_minimum_replaces_a_larger_base_value()
+    {
+        using var fixture = new GlobalScriptFixture();
+        fixture.AddBaseMap(1, "Town", width: 100, height: 100)
+               .MinExperience = 999_000_000_000_000L;
+        fixture.CompileShipped().Object.OnLoaded(fixture.World);
+
+        Assert.Equal(100_000_000_000L, fixture.World.MapHandler.GetMap(1 + 100000 * 5).MinExperience);
+    }
+
+    /// <summary>The override in abyss touches minExp only.</summary>
+    [Theory]
+    [InlineData(2, 100_000L)]
+    [InlineData(5, 625_000L)]
+    [InlineData(6, 900_000L)]
+    public void Max_experience_keeps_the_plain_scale_in_every_dimension(int dim, long expected)
+    {
+        using var fixture = new GlobalScriptFixture();
+        fixture.AddBaseMap(1, "Town", width: 100, height: 100).MaxExperience = 1000;
+        fixture.CompileShipped().Object.OnLoaded(fixture.World);
+
+        Assert.Equal(expected, fixture.World.MapHandler.GetMap(1 + 100000 * dim).MaxExperience);
     }
 }
