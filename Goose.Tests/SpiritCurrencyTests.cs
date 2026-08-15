@@ -14,7 +14,7 @@ public class SpiritCurrencyTests
     /// test that drives OnLoaded needs a base map first.</summary>
     private static void Loaded(GlobalScriptFixture fixture)
     {
-        fixture.AddBaseMap(1, "Town");
+        fixture.AddBaseMap(1, "Town", width: 100, height: 100);
         fixture.CompileShipped().Object.OnLoaded(fixture.World);
     }
 

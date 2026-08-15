@@ -44,7 +44,7 @@ public class DimensionsScriptTests
     [Fact]
     public void Registers_the_dimension_command()
     {
-        using var fixture = Run(f => f.AddBaseMap(1, "Town"));
+        using var fixture = Run(f => f.AddBaseMap(1, "Town", width: 100, height: 100));
 
         // AddEvent returns false when no command matches the packet prefix (EventHandler.cs:286).
         Assert.True(fixture.World.EventHandler.AddEvent(new Player(0), "/dimension 1"));
@@ -169,7 +169,7 @@ public class DimensionsScriptTests
     [Fact]
     public void Clones_each_map_once_per_dimension()
     {
-        using var fixture = Run(f => f.AddBaseMap(1, "Town"));
+        using var fixture = Run(f => f.AddBaseMap(1, "Town", width: 100, height: 100));
 
         var dim2 = fixture.World.MapHandler.GetMap(1 + 100000 * 2);
 
@@ -185,7 +185,7 @@ public class DimensionsScriptTests
     {
         using var fixture = Run(f =>
         {
-            var town = f.AddBaseMap(1, "Town");
+            var town = f.AddBaseMap(1, "Town", width: 100, height: 100);
             var cave = f.AddBaseMap(2, "Cave");
             town.SetTile(3, 3, new WarpTile { WarpMap = cave, WarpX = 7, WarpY = 8 });
         });
@@ -207,7 +207,7 @@ public class DimensionsScriptTests
     {
         using var fixture = Run(f =>
         {
-            var town = f.AddBaseMap(1, "Town");
+            var town = f.AddBaseMap(1, "Town", width: 100, height: 100);
             town.SetTile(4, 4, new BlockedTile());
         });
 
@@ -224,7 +224,7 @@ public class DimensionsScriptTests
     {
         using var fixture = Run(f =>
         {
-            var vault = f.AddBaseMap(1, "Vault");
+            var vault = f.AddBaseMap(1, "Vault", width: 100, height: 100);
             vault.AddRequiredItem(1234);
             vault.Muted = true;
         });

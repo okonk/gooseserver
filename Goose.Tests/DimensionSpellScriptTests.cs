@@ -19,7 +19,7 @@ public class DimensionSpellScriptTests
     [Fact]
     public void Clones_each_effect_once_per_dimension_with_the_name_prefix()
     {
-        using var fixture = Run(f => { f.AddBaseMap(1, "Town"); f.AddBaseSpellEffect(42, "Firestorm"); });
+        using var fixture = Run(f => { f.AddBaseMap(1, "Town", width: 100, height: 100); f.AddBaseSpellEffect(42, "Firestorm"); });
 
         Assert.Equal("Supreme Firestorm", fixture.World.SpellHandler.GetSpellEffect(42 + Offset * 3).Name);
         Assert.Equal("Godly Firestorm", fixture.World.SpellHandler.GetSpellEffect(42 + Offset * 6).Name);
@@ -30,7 +30,7 @@ public class DimensionSpellScriptTests
     [Fact]
     public void Scales_duration_taunt_and_target_size()
     {
-        using var fixture = Run(f => { f.AddBaseMap(1, "Town"); f.AddBaseSpellEffect(42, "Firestorm", e =>
+        using var fixture = Run(f => { f.AddBaseMap(1, "Town", width: 100, height: 100); f.AddBaseSpellEffect(42, "Firestorm", e =>
         {
             e.Duration = 60000;
             e.TauntAggro = 500;
@@ -50,7 +50,7 @@ public class DimensionSpellScriptTests
     [Fact]
     public void Scales_buff_stats_and_preserves_unscaled_fields()
     {
-        using var fixture = Run(f => { f.AddBaseMap(1, "Town"); f.AddBaseSpellEffect(42, "Bless", e =>
+        using var fixture = Run(f => { f.AddBaseMap(1, "Town", width: 100, height: 100); f.AddBaseSpellEffect(42, "Bless", e =>
         {
             e.Stats.HP = 100;  e.Stats.MP = 50;
             e.Stats.HPStaticRegen = 3;
@@ -83,7 +83,7 @@ public class DimensionSpellScriptTests
     [InlineData((int)SpellEffect.EffectTypes.Formula, 1)]
     public void Sets_minimum_level_effected_by_effect_type(int effectType, int expected)
     {
-        using var fixture = Run(f => { f.AddBaseMap(1, "Town"); f.AddBaseSpellEffect(42, "Thing", e =>
+        using var fixture = Run(f => { f.AddBaseMap(1, "Town", width: 100, height: 100); f.AddBaseSpellEffect(42, "Thing", e =>
         {
             e.EffectType = (SpellEffect.EffectTypes)effectType;
             e.MinimumLevelEffected = 20;
@@ -104,7 +104,7 @@ public class DimensionSpellScriptTests
     public void Morphs_small_target_shapes_into_bigger_ones(
         int baseType, int baseSize, int expectedType, int expectedSize)
     {
-        using var fixture = Run(f => { f.AddBaseMap(1, "Town"); f.AddBaseSpellEffect(42, "Nova", e =>
+        using var fixture = Run(f => { f.AddBaseMap(1, "Town", width: 100, height: 100); f.AddBaseSpellEffect(42, "Nova", e =>
         {
             e.TargetType = (SpellEffect.TargetTypes)baseType;
             e.TargetSize = baseSize;
@@ -129,7 +129,7 @@ public class DimensionSpellScriptTests
     public void A_base_effect_id_at_or_above_the_offset_is_rejected_before_anything_is_generated()
     {
         using var fixture = new GlobalScriptFixture();
-        fixture.AddBaseMap(1, "Town");
+        fixture.AddBaseMap(1, "Town", width: 100, height: 100);
         fixture.AddBaseSpellEffect(42, "Firestorm");
         fixture.AddBaseSpellEffect(Offset + 5, "Misconfigured");
 
@@ -150,7 +150,7 @@ public class DimensionSpellScriptTests
     public void A_base_spell_id_at_or_above_the_offset_is_rejected_before_anything_is_generated()
     {
         using var fixture = new GlobalScriptFixture();
-        fixture.AddBaseMap(1, "Town");
+        fixture.AddBaseMap(1, "Town", width: 100, height: 100);
         fixture.AddBaseSpellEffect(42, "Firestorm");
         fixture.AddBaseSpell(Offset + 91, "Misconfigured", 42);
 
@@ -168,7 +168,7 @@ public class DimensionSpellScriptTests
     {
         using var fixture = Run(f =>
         {
-            f.AddBaseMap(1, "Town");
+            f.AddBaseMap(1, "Town", width: 100, height: 100);
             f.AddBaseSpellEffect(9, "Retaliate");
             f.AddBaseSpellEffect(42, "Thorns", e =>
             {
@@ -192,7 +192,7 @@ public class DimensionSpellScriptTests
     {
         using var fixture = Run(f =>
         {
-            f.AddBaseMap(1, "Town");
+            f.AddBaseMap(1, "Town", width: 100, height: 100);
             f.AddBaseSpellEffect(42, "Thorns", e =>
             {
                 // An id that resolved at load time but is not in the handler now.
@@ -213,7 +213,7 @@ public class DimensionSpellScriptTests
     {
         using var fixture = Run(f =>
         {
-            f.AddBaseMap(1, "Town");
+            f.AddBaseMap(1, "Town", width: 100, height: 100);
             f.AddBaseSpellEffect(42, "Bless", e => e.EffectType = SpellEffect.EffectTypes.Buff);
         });
 
@@ -232,7 +232,7 @@ public class DimensionSpellScriptTests
     {
         using var fixture = Run(f =>
         {
-            f.AddBaseMap(1, "Town");
+            f.AddBaseMap(1, "Town", width: 100, height: 100);
             f.AddBaseSpellEffect(42, "Bless", e => e.EffectType = SpellEffect.EffectTypes.Buff);
         });
 
@@ -257,7 +257,7 @@ public class DimensionSpellScriptTests
     {
         using var fixture = Run(f =>
         {
-            f.AddBaseMap(1, "Town");
+            f.AddBaseMap(1, "Town", width: 100, height: 100);
             var minor = f.AddBaseSpellEffect(41, "Minor Bless",
                 e => e.EffectType = SpellEffect.EffectTypes.Buff);
             f.AddBaseSpellEffect(42, "Bless", e =>
@@ -284,7 +284,7 @@ public class DimensionSpellScriptTests
     {
         using var fixture = Run(f =>
         {
-            f.AddBaseMap(1, "Town");
+            f.AddBaseMap(1, "Town", width: 100, height: 100);
             var minor = f.AddBaseSpellEffect(41, "Minor Bless",
                 e => e.EffectType = SpellEffect.EffectTypes.Buff);
             f.AddBaseSpellEffect(42, "Bless", e =>
@@ -319,7 +319,7 @@ public class DimensionSpellScriptTests
     {
         using var fixture = Run(f =>
         {
-            f.AddBaseMap(1, "Town");
+            f.AddBaseMap(1, "Town", width: 100, height: 100);
             var minor = f.AddBaseSpellEffect(41, "Minor Bless",
                 e => e.EffectType = SpellEffect.EffectTypes.Buff);
             f.AddBaseSpellEffect(42, "Bless", e =>
@@ -351,7 +351,7 @@ public class DimensionSpellScriptTests
     {
         using var fixture = Run(f =>
         {
-            f.AddBaseMap(1, "Town");
+            f.AddBaseMap(1, "Town", width: 100, height: 100);
             f.AddBaseSpellEffect(42, "Firestorm");
             f.AddBaseSpell(91, "Firestorm", 42, s => s.Description = "Burns");
         });
@@ -371,7 +371,7 @@ public class DimensionSpellScriptTests
     {
         using var fixture = Run(f =>
         {
-            f.AddBaseMap(1, "Town");
+            f.AddBaseMap(1, "Town", width: 100, height: 100);
             f.AddBaseSpellEffect(42, "Firestorm");
             f.AddBaseSpell(91, "Firestorm", 42, s =>
             {
@@ -394,7 +394,7 @@ public class DimensionSpellScriptTests
     {
         using var fixture = Run(f =>
         {
-            f.AddBaseMap(1, "Town");
+            f.AddBaseMap(1, "Town", width: 100, height: 100);
             f.AddBaseSpellEffect(42, "Firestorm");
             f.AddBaseSpell(91, "Firestorm", 42, s => { s.Aether = 10000; s.Description = "Burns"; });
         });
@@ -414,7 +414,7 @@ public class DimensionSpellScriptTests
     {
         using var fixture = Run(f =>
         {
-            f.AddBaseMap(1, "Town");
+            f.AddBaseMap(1, "Town", width: 100, height: 100);
             f.AddBaseSpellEffect(42, "Bolt", e =>
             {
                 e.TargetType = SpellEffect.TargetTypes.Target;
@@ -448,7 +448,7 @@ public class DimensionSpellScriptTests
     {
         using var fixture = Run(f =>
         {
-            f.AddBaseMap(1, "Town");
+            f.AddBaseMap(1, "Town", width: 100, height: 100);
             f.AddBaseSpellEffect(42, "Bless", e =>
             {
                 e.EffectType = SpellEffect.EffectTypes.Buff;
@@ -484,7 +484,7 @@ public class DimensionSpellScriptTests
     {
         using var fixture = Run(f =>
         {
-            f.AddBaseMap(1, "Town");
+            f.AddBaseMap(1, "Town", width: 100, height: 100);
             f.AddBaseSpellEffect(42, "Bless", e =>
             {
                 e.EffectType = SpellEffect.EffectTypes.Buff;

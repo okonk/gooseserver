@@ -67,6 +67,62 @@ public class Dimensions : BaseGlobalScript
     public const int WardenX = 50;
     public const int WardenY = 50;
 
+    // ---- Rebirth --------------------------------------------------------
+    // The spirit faucet: a repeatable quest converting banked experience into spirit and
+    // resetting the character. Script-created for the same reason the warden is - the
+    // dimensions feature stays self-contained, and Enabled = false leaves nothing behind.
+
+    /// <summary>Clear of WardenTemplateId (800000 + Offset*6 = 1,400,000 is the warden's
+    /// top id, but the wardens occupy 800000, 900000, ... so 810000 is unused).</summary>
+    public const int RebirthTemplateId = 810000;
+
+    /// <summary>Clear of QuestIdBase's range: quests 900000-900005, requirement and reward
+    /// ids 900000 + n*10 + k, topping out at 900051.</summary>
+    public const int RebirthQuestId = 910000;
+
+    /// <summary>Experience per spirit. floor(total / ExpPerSpirit) is minted; the
+    /// remainder is destroyed, faithful to RebirthEvent.java:47.</summary>
+    public const long ExpPerSpirit = 100_000_000;
+
+    public const string RebirthName = "Keeper of Rebirth";
+    public const string RebirthTitle = "";
+    public const string RebirthSurname = "";
+    public const int RebirthClassId = 3;      // must have a class_info row at RebirthLevel
+    public const int RebirthLevel = 50;
+
+    /// <summary>Where rebirth *leaves* the player, as opposed to what the keeper looks
+    /// like. Only used by CreateRebirthQuest's preflight: Rebirth.csx compiles separately
+    /// and cannot read these, so it hardcodes the same 1 and 1 - keep the two in step.</summary>
+    public const int RebirthDestinationClassId = 1;   // Commoner
+    public const int RebirthDestinationLevel = 1;
+
+    public const int RebirthBodyID = 1;
+    public const int RebirthBodyState = 0;
+    public const int RebirthBodyR = 40;
+    public const int RebirthBodyG = 0;
+    public const int RebirthBodyB = 60;
+    public const int RebirthBodyA = 200;
+    public const int RebirthFaceID = 1;
+    public const int RebirthHairID = 1;
+    public const int RebirthHairR = 20;
+    public const int RebirthHairG = 0;
+    public const int RebirthHairB = 40;
+    public const int RebirthHairA = 200;
+    public const string RebirthEquippedItems = "";
+
+    /// <summary>Dimension 0 only, beside the dimension-0 warden. Map 1 is StartMapId, the
+    /// map /dimension already warps to, so a player who can reach a warden can reach the
+    /// keeper without a second landmark.
+    ///
+    /// Verified against Data/Illutia/Maps/Map1.map: the map is 286x194, and (52,50) carries
+    /// no blocked flag (bit 2 of the tile flags, Map.cs:471-475). It is two tiles east of
+    /// WardenX/WardenY (50,50), so the two generated NPCs cannot collide. Warp tiles and
+    /// sheet NPC spawns come from the database rather than the .map file, so
+    /// CreateRebirthQuest re-checks the tile at load time instead of trusting this.</summary>
+    public const int RebirthMapId = StartMapId;
+    public const int RebirthX = 52;
+    public const int RebirthY = 50;
+
     /// <summary>Quest ids are deterministic: QuestProgress persists keyed on
     /// requirement.Id (Player.cs:1020 / QuestWindow.cs:268), so a counter-assigned id
     /// would orphan in-flight kill progress on restart.</summary>
@@ -95,6 +151,7 @@ public class Dimensions : BaseGlobalScript
         RewireWarps(world);
         CloneSpawns(world);
         CreateUnlockChain(world);
+        CreateRebirthQuest(world);
 
         PreflightSpellIds(world);
         CloneSpellEffects(world);
@@ -496,6 +553,161 @@ public class Dimensions : BaseGlobalScript
         {
             throw new Exception($"Could not spawn the dimension-{dim} warden: map "
                                 + (WardenMapId + Offset * dim) + " does not exist.");
+        }
+    }
+
+    /// <summary>The spirit faucet. One NPC and one repeatable quest, in dimension 0 only.
+    ///
+    /// Deliberately NOT run through ScaleTemplate, and deliberately not cloned per
+    /// dimension: rebirth requires stripping naked and leaves the player at level 1, and
+    /// every dimension above 0 has CanPVP forced on (CloneMaps).</summary>
+    private void CreateRebirthQuest(GameWorld world)
+    {
+        var rebirthClass = world.ClassHandler.GetClass(RebirthClassId);
+        if (rebirthClass == null)
+            throw new Exception($"RebirthClassId {RebirthClassId} does not exist.");
+        if (rebirthClass.GetLevel(RebirthLevel) == null)
+            throw new Exception($"Class {RebirthClassId} has no level {RebirthLevel} row in class_info.");
+
+        // The destination class, not the keeper's. Rebirth calls ChangeClass(1, 1, ...),
+        // which reads Class.GetLevel(1) on class 1 (Player.cs:1358+). class_info carries
+        // levels 1-5 for class 1, but a dataset that dropped the row would turn every
+        // completed rebirth into an NRE mid-transaction, after the quest was consumed.
+        var commoner = world.ClassHandler.GetClass(RebirthDestinationClassId);
+        if (commoner == null)
+            throw new Exception($"RebirthDestinationClassId {RebirthDestinationClassId} does not exist.");
+        if (commoner.GetLevel(RebirthDestinationLevel) == null)
+            throw new Exception(
+                $"Class {RebirthDestinationClassId} has no level {RebirthDestinationLevel} row in class_info - rebirth would fail mid-transaction.");
+
+        if (ExpPerSpirit <= 0)
+            throw new Exception("ExpPerSpirit must be positive - GiveReward divides by it.");
+
+        if (world.QuestHandler.Get(RebirthQuestId) != null)
+            throw new Exception($"Quest id {RebirthQuestId} already exists. RebirthQuestId collides with sheet data.");
+        if (world.NPCHandler.GetNPCTemplate(RebirthTemplateId) != null)
+            throw new Exception($"Rebirth template id {RebirthTemplateId} already exists.");
+
+        // Placement, before anything is registered. NPC.LoadFromTemplate calls
+        // Map.PlaceCharacter -> Map.SetCharacter, which simply returns on out-of-range
+        // coordinates (Map.cs:643-648) - the NPC would exist, be invisible, and be
+        // untargetable, with no error anywhere. IsTileBlocked covers all three failures at
+        // once: out of bounds, a blocked or warp tile, and an occupant (Map.cs:417-440).
+        // It runs here rather than at spawn time because CreateRebirthQuest is called after
+        // CloneSpawns, so every generated NPC - the dimension-0 warden included - is
+        // already standing on the map.
+        var rebirthMap = world.MapHandler.GetMap(RebirthMapId);
+        if (rebirthMap == null)
+            throw new Exception($"RebirthMapId {RebirthMapId} does not exist.");
+        if (rebirthMap.IsTileBlocked(null, RebirthX, RebirthY))
+            throw new Exception(
+                $"Rebirth keeper cannot stand at {RebirthMapId}({RebirthX},{RebirthY}): out of bounds, blocked, a warp tile, or occupied.");
+
+        var rebirthScript = world.ScriptHandler.GetScript<IQuestScript>("Scripts/Quest/Rebirth.csx");
+
+        var quest = new Quest
+        {
+            Id = RebirthQuestId,
+            Name = "Rebirth",
+            Description = "Surrender everything you have earned and return to the\\n"
+                        + "beginning. Every " + ExpPerSpirit.ToString("N0") + " experience\\n"
+                        + "becomes one spirit. Anything left over is lost.\\n\\n"
+                        + "You will be a level 1 commoner, and the dimensions\\n"
+                        + "you have opened will demand their experience again.\\n\\n"
+                        + "Come to me with nothing equipped.",
+            FailText = "You are not ready. Remove everything you wear,\\nand bring more experience.",
+            PassText = "You are unmade, and remade.",
+            ShowProgress = true,
+            Repeatable = true,
+        };
+
+        quest.Requirements.Add(new QuestRequirement
+        {
+            Id = RebirthQuestId + 1,
+            Type = RequirementType.NothingEquipped,
+            KeepRequirement = false,
+            Quest = quest,
+        });
+
+        quest.Requirements.Add(new QuestRequirement
+        {
+            Id = RebirthQuestId + 2,
+            Type = RequirementType.Script,
+            Script = rebirthScript,
+            ScriptParams = ExpPerSpirit.ToString(),
+            // KeepRequirement true is load-bearing: TakeRequirements runs before
+            // GiveRewards (QuestWindow.cs:341-342), so a consuming requirement would zero
+            // the experience the reward has to read. All state change lives in the reward.
+            KeepRequirement = true,
+            Quest = quest,
+        });
+
+        quest.Rewards.Add(new QuestReward
+        {
+            Id = RebirthQuestId + 11,
+            Type = RewardType.Script,
+            Script = rebirthScript,
+            // QuestReward has no Quest back-reference (QuestReward.cs:37-45), so the rate
+            // travels here rather than being read off the requirement.
+            ScriptParams = ExpPerSpirit.ToString(),
+        });
+
+        world.QuestHandler.AddQuest(quest);
+
+        var keeper = new NPCTemplate
+        {
+            NPCTemplateID = RebirthTemplateId,
+            NPCType = NPCTemplate.Types.Quest,
+            Name = RebirthName,
+            Title = RebirthTitle,
+            Surname = RebirthSurname,
+            Level = RebirthLevel,
+            ClassID = RebirthClassId,
+
+            CanBeKilled = false,
+            CanMove = false,
+            CanBeRooted = false,
+            CanBeStunned = false,
+            CanBeSlowed = false,
+
+            WeaponDamage = 0,
+            AggroRange = 0,
+            AttackRange = 1,
+            AttackSpeed = 1m,
+            MoveSpeed = 1m,
+            RespawnTime = 0,
+            Experience = 0,
+
+            BodyID = RebirthBodyID,
+            BodyState = RebirthBodyState,
+            BodyR = RebirthBodyR, BodyG = RebirthBodyG, BodyB = RebirthBodyB, BodyA = RebirthBodyA,
+            FaceID = RebirthFaceID,
+            HairID = RebirthHairID,
+            HairR = RebirthHairR, HairG = RebirthHairG, HairB = RebirthHairB, HairA = RebirthHairA,
+            EquippedItems = RebirthEquippedItems,
+
+            AlliesString = "",
+            Allies = new List<NPCTemplate>(),
+            Drops = new List<NPCDropInfo>(),
+        };
+
+        keeper.BaseStats = new AttributeSet { HP = 1000, MP = 0 };
+        keeper.Quests.Add(quest);
+
+        world.NPCHandler.AddTemplate(keeper);
+
+        var spawned = world.NPCHandler.SpawnNPC(world, RebirthMapId, RebirthX, RebirthY,
+                                                keeper, shouldRespawn: false);
+        if (spawned == null)
+            throw new Exception($"Could not spawn the rebirth keeper: map {RebirthMapId} does not exist.");
+
+        // LoadFromTemplate adds to Map.NPCs and then calls Spawn -> PlaceCharacter
+        // (NPC.cs:645-648). PlaceCharacter is the step that silently no-ops out of range,
+        // so confirm the keeper actually occupies the tile rather than just being listed.
+        if (rebirthMap.GetCharacterAt(RebirthX, RebirthY) != spawned)
+        {
+            throw new Exception(
+                $"Rebirth keeper did not take tile {RebirthMapId}({RebirthX},{RebirthY}) - it would be invisible and untargetable.");
         }
     }
 
