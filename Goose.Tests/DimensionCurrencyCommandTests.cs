@@ -55,7 +55,6 @@ public class DimensionCurrencyCommandTests
     [InlineData("/buygold abc")]
     [InlineData("/buygold 0")]
     [InlineData("/buygold -5")]
-    [InlineData("/buygold 9223372036854775807")]
     public void BuyGold_refuses_bad_amounts_and_charges_nothing(string command)
     {
         var (fixture, player) = Loaded(spiritBalance: 10);
@@ -67,6 +66,26 @@ public class DimensionCurrencyCommandTests
         Assert.Equal(10, Spirit(fixture, player));
         Assert.Equal(0, player.Gold);
         Assert.Empty(fixture.World.LogHandler.Pending.Where(l => l.Type == Log.Types.BuyGold));
+    }
+
+    /// <summary>One past the guard threshold (long.MaxValue / GoldPerSpirit = 9_223_372_036):
+    /// without the guard, granted = amount * GoldPerSpirit wraps negative and
+    /// GoldCurrency.Add does Gold += amount unguarded (Player.cs:1482), corrupting the
+    /// gold balance. The balance must be at least the amount, or the balance check refuses
+    /// first and the guard is never reached - long.MaxValue has that property for every
+    /// balance, which is why this needs its own fact rather than a theory row.</summary>
+    [Fact]
+    public void BuyGold_refuses_an_amount_that_would_overflow_the_multiply()
+    {
+        var (fixture, player) = Loaded(spiritBalance: 9_223_372_036_855L);
+        using var _ = fixture;
+        player.Gold = 0;
+
+        fixture.RunCommand(player, "/buygold 9223372036855");
+
+        Assert.Equal(9_223_372_036_855L, Spirit(fixture, player));
+        Assert.Equal(0, player.Gold);
+        Assert.Contains(player.Sent, m => m.Contains("That is more gold than exists"));
     }
 
     [Fact]
