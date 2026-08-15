@@ -139,6 +139,10 @@ public class Dimensions : BaseGlobalScript
     /// their Value is already the spirit price (x3^dim, see CloneItemTemplates).</summary>
     public const string SpiritCurrencyId = "spirit";
 
+    /// <summary>Reroll cost is ResetItemCostBase^dim: 3/9/27/81/243/729 spirit
+    /// (ResetItemEvent.java:30).</summary>
+    public const int ResetItemCostBase = 3;
+
     public const string MaxDimensionProperty = "dimension.max";
 
     public override void OnLoaded(GameWorld world)
@@ -176,6 +180,7 @@ public class Dimensions : BaseGlobalScript
         RepointDrops(world);
 
         world.EventHandler.RegisterEvent("/dimension ", DimensionCommandEvent.Create);
+        world.EventHandler.RegisterEvent("/resetitem ", ResetItemCommandEvent.Create);
     }
 
     /// <summary>Second pass over the maps Task 3 created: spawn each dimension's clone of
@@ -1328,6 +1333,110 @@ public class DimensionCommandEvent : Event
         }
 
         this.Player.WarpTo(world, target, Dimensions.WardenX, Dimensions.WardenY);
+    }
+}
+
+/// <summary>Handles "/resetitem &lt;n&gt;": rerolls one dimension equipment item's suffix
+/// and rarity for ResetItemCostBase^dim spirit. Registered with a trailing space so the
+/// command trie matches it as a longest-prefix, exactly like "/dimension ".</summary>
+public class ResetItemCommandEvent : Event
+{
+    public static Event Create(Player player, Object data)
+    {
+        return new ResetItemCommandEvent { Player = player, Data = data };
+    }
+
+    public override void Ready(GameWorld world)
+    {
+        if (this.Player.State != Player.States.Ready) return;
+
+        var tokens = ((string)this.Data).Split(' ');
+        int slotId;
+        if (tokens.Length < 2 || !int.TryParse(tokens[1], out slotId) ||
+            slotId < 1 || slotId > GameWorld.Settings.InventorySize)
+        {
+            world.Send(this.Player, P.ServerMessage(
+                "/resetitem <1-" + GameWorld.Settings.InventorySize + "> - rerolls a dimension item's suffix."));
+            return;
+        }
+
+        var slot = this.Player.Inventory.GetSlot(slotId);
+        if (slot == null || slot.Item == null)
+        {
+            world.Send(this.Player, P.ServerMessage("No item exists at that inventory slot."));
+            return;
+        }
+
+        var item = slot.Item;
+
+        // One Item object backs the whole stack (ItemSlot.cs:17-19), so rerolling a stack
+        // of two would rewrite both for one charge. Refuse rather than split.
+        if (slot.Stack != 1)
+        {
+            world.Send(this.Player, P.ServerMessage("Only a single item can be reset, not a stack."));
+            return;
+        }
+
+        // Three separate questions, and all three have to be asked. The division alone
+        // says nothing: a sheet-authored template with an id above Offset would divide to a
+        // plausible-looking dimension, be priced with Math.Pow against a dimension that may
+        // not exist, and be handed to a reroll hook that knows nothing about it.
+        int dim = item.TemplateID / Dimensions.Offset;
+        if (dim < 1 || dim > Dimensions.DimensionCount)
+        {
+            world.Send(this.Player, P.ServerMessage("Only items from a higher plane can be reset."));
+            return;
+        }
+
+        // CloneItemTemplates registers each clone at baseId + Offset*dim over a base that
+        // exists, and stamps the dimension script onto it. All three must hold, or this is
+        // not a generated clone and does not belong here.
+        var registered = world.ItemHandler.GetTemplate(item.TemplateID);
+        if (registered == null || registered != item.Template ||
+            world.ItemHandler.GetTemplate(item.TemplateID % Dimensions.Offset) == null ||
+            registered.Script == null)
+        {
+            world.Send(this.Player, P.ServerMessage("Only items from a higher plane can be reset."));
+            return;
+        }
+
+        // Dimension tomes are Scroll consumables; nothing but gear carries modifiers.
+        if (item.UseType != ItemTemplate.UseTypes.Armor && item.UseType != ItemTemplate.UseTypes.Weapon)
+        {
+            world.Send(this.Player, P.ServerMessage("Only weapons and armor can be reset."));
+            return;
+        }
+
+        var spirit = world.CurrencyHandler.Get(Dimensions.SpiritCurrencyId);
+        if (spirit == null) return;
+
+        long cost = (long)Math.Pow(Dimensions.ResetItemCostBase, dim);
+
+        // The balance check is the guard, not a nicety: Part 5 established that Remove
+        // does not itself refuse an overdraft.
+        long before = spirit.GetBalance(this.Player);
+        if (before < cost)
+        {
+            world.Send(this.Player, P.ServerMessage(
+                "Not enough " + spirit.Name + " to reset this item. (" + cost + ")"));
+            return;
+        }
+
+        world.ItemHandler.RerollModifiers(item, world);
+        spirit.Remove(this.Player, cost, world);
+
+        this.Player.Inventory.SendSlot(slotId, world);
+        world.Send(this.Player, P.ServerMessage(
+            "You spend " + cost + " " + spirit.Name + " to remake " + item.Name + "."));
+
+        // Its own log type, not CreatedCustom: that is the GM item-creation log, and
+        // folding a paid player reroll into it makes both unqueryable. otherid carries the
+        // item's id so a reroll can be joined to the item it rewrote.
+        world.LogHandler.Log(Log.Types.ResetItem, this.Player,
+            "ResetItem: template " + item.TemplateID + " dim " + dim
+            + " cost " + cost + " " + spirit.ShortName
+            + " balance " + before + " -> " + (before - cost),
+            item.ItemID);
     }
 }
 

@@ -148,6 +148,57 @@ public sealed class GlobalScriptFixture : IDisposable
         };
     }
 
+    /// <summary>Player.Send is virtual and returns early on a null socket (Player.cs:2409),
+    /// so overriding it is how tests read the server's messages back.</summary>
+    public sealed class CapturingPlayer : Player
+    {
+        public CapturingPlayer() : base(0) { }
+        public List<string> Sent { get; } = new List<string>();
+        public override void Send(string data) { this.Sent.Add(data); }
+    }
+
+    /// <summary>A logged-in-looking player: Ready state (every script command early-returns
+    /// otherwise), an Inventory, and the BaseStats/MaxStats/Class trio PlayerOn already
+    /// documents.</summary>
+    public CapturingPlayer CommandPlayerOn(Map map, int x, int y, string name = "Tester")
+    {
+        var player = new CapturingPlayer
+        {
+            Name = name,
+            Map = map, MapID = map.ID, MapX = x, MapY = y,
+            State = Player.States.Ready,
+            BaseStats = new AttributeSet(),
+            MaxStats = new AttributeSet(),
+            Class = World.ClassHandler.GetClass(0),
+        };
+        player.Inventory = new Inventory(player);
+        return player;
+    }
+
+    /// <summary>Makes PlayerHandler.GetPlayer(name) find this player, which is how /givesp
+    /// resolves its target (PlayerHandler.cs:129). Not AddPlayer: that indexes by
+    /// player.Sock (PlayerHandler.cs:51) and a socketless test player would throw on the
+    /// null key. Same reflection approach as SeedClass.</summary>
+    public void RegisterOnlinePlayer(Player player)
+    {
+        var byName = (Dictionary<string, Player>)typeof(PlayerHandler)
+            .GetField("nameToPlayer", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .GetValue(World.PlayerHandler)!;
+        byName[player.Name.ToLower()] = player;
+    }
+
+    /// <summary>Runs a chat-line command the way the server does: EventHandler.AddEvent
+    /// parses it against the registered trie and queues an Event, and Update dequeues and
+    /// calls Ready (EventHandler.cs:286,:361-371). Going through both is the point - it is
+    /// what proves the trailing-space registration actually matches.</summary>
+    public bool RunCommand(Player player, string packet)
+    {
+        if (!World.EventHandler.AddEvent(player, packet)) return false;
+
+        World.EventHandler.Update(World);
+        return true;
+    }
+
     /// <summary>Registers a base spell pointing at an already-registered effect.</summary>
     public Spell AddBaseSpell(int id, string name, int effectId, Action<Spell> configure = null)
     {

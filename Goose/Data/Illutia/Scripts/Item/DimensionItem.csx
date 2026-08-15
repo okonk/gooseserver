@@ -37,17 +37,47 @@ public class DimensionItem : BaseItemScript
             if (roll >= 0.55)
             {
                 int index = Math.Min((int)((roll - 0.55) / 0.075), 5);
-                Apply(world.ItemHandler.GetSurname(SurnameIdBase + index), item, world, prefix: false);
+                ApplySuffix(item, world, index);
             }
 
-            // Item.java:391-401 - 2% each, rolled independently of the suffix.
-            double rarity = world.Random.NextDouble();
-            if (rarity > 0.98) Apply(world.ItemHandler.GetTitle(TitleIdBase), item, world, prefix: true);
-            else if (rarity > 0.96) Apply(world.ItemHandler.GetTitle(TitleIdBase + 1), item, world, prefix: true);
+            ApplyRarity(item, world);
         }
 
         Inner(item, world)?.OnRollModifiersEvent(item, world);
         return true;
+    }
+
+    /// <summary>A paid reroll: the suffix is guaranteed, where a drop rolls 45%. The
+    /// rarity roll is unchanged (2% Legendary / 2% Stunted, independent of the suffix).
+    ///
+    /// ItemHandler.RerollModifiers has already reset the item to template state, so this
+    /// only applies - it never has to strip anything first.</summary>
+    public override bool OnRerollModifiersEvent(Item item, GameWorld world)
+    {
+        int dim = DimensionOf(item);
+        if (dim <= 0) return false;
+        if (item.UseType != ItemTemplate.UseTypes.Armor && item.UseType != ItemTemplate.UseTypes.Weapon)
+            return false;
+
+        // Guaranteed, where OnRollModifiersEvent gates it behind roll >= 0.55.
+        ApplySuffix(item, world, world.Random.Next(6));
+        ApplyRarity(item, world);
+        return true;
+    }
+
+    /// <summary>The abyss suffix for one of the six bands. Shared by the drop roll and
+    /// the paid reroll so the two paths cannot drift.</summary>
+    private void ApplySuffix(Item item, GameWorld world, int index)
+    {
+        Apply(world.ItemHandler.GetSurname(SurnameIdBase + index), item, world, prefix: false);
+    }
+
+    /// <summary>Item.java:391-401 - 2% each, rolled independently of the suffix.</summary>
+    private void ApplyRarity(Item item, GameWorld world)
+    {
+        double rarity = world.Random.NextDouble();
+        if (rarity > 0.98) Apply(world.ItemHandler.GetTitle(TitleIdBase), item, world, prefix: true);
+        else if (rarity > 0.96) Apply(world.ItemHandler.GetTitle(TitleIdBase + 1), item, world, prefix: true);
     }
 
     /// <summary>Mirrors ItemHandler.RollTitleAndSurname's own application (ItemHandler.cs:247-265):
