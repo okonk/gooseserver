@@ -24,6 +24,12 @@ public class Dimensions : BaseGlobalScript
     /// <summary>NPC template gating each dimension.</summary>
     public const int BossTemplateId = 162;
 
+    /// <summary>Map.java:251-260. A flat floor, not a scale - it discards the base map's
+    /// value entirely. Most maps carry MinExperience = 0, so without this the top two
+    /// dimensions have no experience gate at all and dimension.max is the sole barrier.</summary>
+    public const long Dim5MinExperience = 100_000_000_000;
+    public const long Dim6MinExperience = 500_000_000_000;
+
     // ---- Warden ---------------------------------------------------------
     // The quest giver. It does not exist in sheet data, so everything about it is
     // configured here. One template per dimension at WardenTemplateId + Offset*dim.
@@ -310,6 +316,16 @@ public class Dimensions : BaseGlobalScript
         }
     }
 
+    /// <summary>Map.java:251-260. Dimensions 1-4 scale; 5 and 6 take a flat floor that
+    /// ignores the base value.</summary>
+    private long MinExperienceFor(long baseMin, int dim)
+    {
+        if (dim == 5) return Dim5MinExperience;
+        if (dim >= 6) return Dim6MinExperience;
+
+        return baseMin * (dim * 5) * (dim * 5);
+    }
+
     private void CloneMaps(GameWorld world)
     {
         var baseMaps = world.MapHandler.Maps.Values.ToList();
@@ -333,8 +349,8 @@ public class Dimensions : BaseGlobalScript
                 var clone = basic.CloneAs(id, basic.Name + " (" + dim + ")");
 
                 clone.CanPVP = true;                      // forced on in every dimension
-                // Entry gates scale by (dim*5)^2
-                clone.MinExperience = basic.MinExperience * (dim * 5) * (dim * 5);
+                // Entry gates scale by (dim*5)^2; dimensions 5-6 take a flat floor instead
+                clone.MinExperience = MinExperienceFor(basic.MinExperience, dim);
                 clone.MaxExperience = basic.MaxExperience * (dim * 5) * (dim * 5);
                 clone.Script = mapScript;                 // replaces, not composes - DimensionMap forwards to the base script itself
                 // ScriptParams passes through untouched so a delegated base script reads the
@@ -1404,6 +1420,15 @@ public class DimensionCommandEvent : Event
             world.Send(this.Player, P.ServerMessage("That dimension does not exist."));
             return;
         }
+
+        // PlayerCanJoin, then WarpTo. Player.WarpTo (Player.cs:1234) does no gating of its
+        // own - MoveEvent (:123), SpellEffect (:831) and DimensionTeleport.csx (:61) each
+        // call PlayerCanJoin first, and this command has to as well or every map-level
+        // gate in this feature (MinLevel, Min/MaxExperience, required items, and
+        // DimensionMap.csx's own hook) is bypassed by the one route players actually use.
+        //
+        // PlayerCanJoin sends its own refusal, so there is nothing to say here.
+        if (!target.PlayerCanJoin(this.Player, world)) return;
 
         this.Player.WarpTo(world, target, Dimensions.WardenX, Dimensions.WardenY);
     }
