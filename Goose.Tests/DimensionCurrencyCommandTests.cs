@@ -55,6 +55,7 @@ public class DimensionCurrencyCommandTests
     [InlineData("/buygold abc")]
     [InlineData("/buygold 0")]
     [InlineData("/buygold -5")]
+    [InlineData("/buygold 9223372036854775807")]
     public void BuyGold_refuses_bad_amounts_and_charges_nothing(string command)
     {
         var (fixture, player) = Loaded(spiritBalance: 10);
@@ -327,6 +328,25 @@ public class DimensionCurrencyCommandTests
 
         Assert.Equal(100, Spirit(fixture, alice));
         Assert.Equal(1_000_000_000_000L - 1, Spirit(fixture, bob));
+        Assert.Contains(alice.Sent, m => m.Contains("cannot hold"));
+    }
+
+    /// <summary>The underflow corner of the recipient check: with amount above
+    /// MaxSpiritBalance, MaxSpiritBalance - amount goes negative, so the comparison only
+    /// refuses because a non-negative balance is always greater than a negative bound.
+    /// That is the direction the guard leans on, so it needs its own pin.</summary>
+    [Fact]
+    public void GiveSp_refuses_a_transfer_larger_than_the_wallet_cap_and_moves_nothing()
+    {
+        var (fixture, alice) = Loaded(spiritBalance: 2_000_000_000_000L);
+        using var _ = fixture;
+        var bob = fixture.CommandPlayerOn(fixture.World.MapHandler.GetMap(1), 6, 5, "Bob");
+        fixture.RegisterOnlinePlayer(bob);
+
+        fixture.RunCommand(alice, "/givesp Bob 2000000000000");
+
+        Assert.Equal(2_000_000_000_000L, Spirit(fixture, alice));
+        Assert.Equal(0, Spirit(fixture, bob));
         Assert.Contains(alice.Sent, m => m.Contains("cannot hold"));
     }
 }
