@@ -145,6 +145,32 @@ public class Dimensions : BaseGlobalScript
 
     public const string MaxDimensionProperty = "dimension.max";
 
+    /// <summary>BuyGoldCommandEvent.java:47 - 1 spirit buys a million gold.</summary>
+    public const long GoldPerSpirit = 1_000_000;
+
+    /// <summary>BuyExperienceCommandEvent.java:52. Deliberately below ExpPerSpirit: the
+    /// round trip is lossy by 4x, which is what keeps rebirth a net sink.</summary>
+    public const long ExpPerSpiritPurchase = 25_000_000;
+
+    /// <summary>Ceiling on a single wallet. BaseStats.SP is a long, so this is not the
+    /// type's limit - it is a sanity bound well above anything the faucet can produce
+    /// (a trillion spirit is 10^20 experience through rebirth), placed so a transfer
+    /// cannot silently wrap a wallet negative and so a bug in the faucet is visible as a
+    /// refusal rather than as a corrupted balance.</summary>
+    public const long MaxSpiritBalance = 1_000_000_000_000L;
+
+    /// <summary>Shared by all four commands. Returns false for a missing, unparseable,
+    /// zero or negative amount - each command prints its own usage line, so this does not
+    /// message.</summary>
+    public static bool TryParseAmount(string[] tokens, int index, out long amount)
+    {
+        amount = 0;
+        if (tokens.Length <= index) return false;
+        if (!long.TryParse(tokens[index], out amount)) return false;
+
+        return amount > 0;
+    }
+
     public override void OnLoaded(GameWorld world)
     {
         if (!Enabled) return;
@@ -181,6 +207,9 @@ public class Dimensions : BaseGlobalScript
 
         world.EventHandler.RegisterEvent("/dimension ", DimensionCommandEvent.Create);
         world.EventHandler.RegisterEvent("/resetitem ", ResetItemCommandEvent.Create);
+        world.EventHandler.RegisterEvent("/buygold ", BuyGoldCommandEvent.Create);
+        world.EventHandler.RegisterEvent("/buyexperience ", BuyExperienceCommandEvent.Create);
+        world.EventHandler.RegisterEvent("/givesp ", GiveSpiritCommandEvent.Create);
     }
 
     /// <summary>Second pass over the maps Task 3 created: spawn each dimension's clone of
@@ -1437,6 +1466,213 @@ public class ResetItemCommandEvent : Event
             + " cost " + cost + " " + spirit.ShortName
             + " balance " + before + " -> " + (before - cost),
             item.ItemID);
+    }
+}
+
+/// <summary>Handles "/buygold &lt;amount&gt;": trades spirit for gold at GoldPerSpirit
+/// each. Registered with a trailing space so the command trie matches it as a
+/// longest-prefix, exactly like "/dimension ".</summary>
+public class BuyGoldCommandEvent : Event
+{
+    public static Event Create(Player player, Object data)
+    {
+        return new BuyGoldCommandEvent { Player = player, Data = data };
+    }
+
+    public override void Ready(GameWorld world)
+    {
+        if (this.Player.State != Player.States.Ready) return;
+
+        var tokens = ((string)this.Data).Split(' ');
+        long amount;
+        if (!Dimensions.TryParseAmount(tokens, 1, out amount))
+        {
+            world.Send(this.Player, P.ServerMessage(
+                "/buygold <amount> - trades spirit for gold at "
+                + Dimensions.GoldPerSpirit.ToString("N0") + " each."));
+            return;
+        }
+
+        var spirit = world.CurrencyHandler.Get(Dimensions.SpiritCurrencyId);
+        var gold = world.CurrencyHandler.Get(Currency.Gold);   // no CurrencyHandler.Gold property
+        if (spirit == null || gold == null) return;
+
+        // Before the balance check: a wrapped product would pass any check made after it.
+        if (amount > long.MaxValue / Dimensions.GoldPerSpirit)
+        {
+            world.Send(this.Player, P.ServerMessage("That is more gold than exists."));
+            return;
+        }
+
+        long before = spirit.GetBalance(this.Player);
+        if (before < amount)
+        {
+            world.Send(this.Player, P.ServerMessage("Not enough " + spirit.Name + "."));
+            return;
+        }
+
+        long granted = amount * Dimensions.GoldPerSpirit;
+
+        spirit.Remove(this.Player, amount, world);
+        gold.Add(this.Player, granted, world);
+
+        world.Send(this.Player, P.ServerMessage(
+            "You trade " + amount + " " + spirit.Name + " for " + granted.ToString("N0") + " gold."));
+        world.LogHandler.Log(Log.Types.BuyGold, this.Player,
+            "BuyGold: " + amount + " " + spirit.ShortName + " -> " + granted + " gold"
+            + ", spirit " + before + " -> " + (before - amount));
+    }
+}
+
+/// <summary>Handles "/buyexperience &lt;amount&gt;": buys experience at
+/// ExpPerSpiritPurchase each, unmodified by the world's experience modifier. Registered
+/// with a trailing space so the command trie matches it as a longest-prefix, exactly like
+/// "/dimension ".</summary>
+public class BuyExperienceCommandEvent : Event
+{
+    public static Event Create(Player player, Object data)
+    {
+        return new BuyExperienceCommandEvent { Player = player, Data = data };
+    }
+
+    public override void Ready(GameWorld world)
+    {
+        if (this.Player.State != Player.States.Ready) return;
+
+        var tokens = ((string)this.Data).Split(' ');
+        long amount;
+        if (!Dimensions.TryParseAmount(tokens, 1, out amount))
+        {
+            world.Send(this.Player, P.ServerMessage(
+                "/buyexperience <amount> - buys experience at "
+                + Dimensions.ExpPerSpiritPurchase.ToString("N0") + " each."));
+            return;
+        }
+
+        if (this.Player.ClassID == 1)
+        {
+            world.Send(this.Player, P.ServerMessage("Choose a class before you buy experience."));
+            return;
+        }
+
+        if (amount > long.MaxValue / Dimensions.ExpPerSpiritPurchase)
+        {
+            world.Send(this.Player, P.ServerMessage("That is more experience than exists."));
+            return;
+        }
+
+        long granted = amount * Dimensions.ExpPerSpiritPurchase;
+        long total = this.Player.Experience + this.Player.ExperienceSold;
+
+        // Prospective, not current. AddExperience early-returns when the CURRENT total is
+        // over the cap (Player.cs:1653-1660), so checking the same condition here only
+        // catches players who are already past it - a player one experience under the cap
+        // passes, buys, and lands 24,999,999 above a ceiling the server is meant to
+        // enforce. Test what the purchase would produce.
+        if (GameWorld.Settings.ExperienceCap > 0 && total + granted > GameWorld.Settings.ExperienceCap)
+        {
+            long affordable = (GameWorld.Settings.ExperienceCap - total) / Dimensions.ExpPerSpiritPurchase;
+            world.Send(this.Player, P.ServerMessage(affordable > 0
+                ? "That would carry you past the experience cap. You can buy at most " + affordable + "."
+                : "You have reached the experience cap."));
+            return;
+        }
+
+        var spirit = world.CurrencyHandler.Get(Dimensions.SpiritCurrencyId);
+        if (spirit == null) return;
+
+        long before = spirit.GetBalance(this.Player);
+        if (before < amount)
+        {
+            world.Send(this.Player, P.ServerMessage("Not enough " + spirit.Name + "."));
+            return;
+        }
+
+        spirit.Remove(this.Player, amount, world);
+        this.Player.AddExperience(granted, world, Player.ExperienceMessage.Normal, applyModifiers: false);
+
+        world.Send(this.Player, P.ServerMessage(
+            "You spend " + amount + " " + spirit.Name + " to gain " + granted.ToString("N0") + " experience."));
+        world.LogHandler.Log(Log.Types.BuyExperience, this.Player,
+            "BuyExperience: " + amount + " " + spirit.ShortName + " -> " + granted + " exp"
+            + ", spirit " + before + " -> " + (before - amount));
+    }
+}
+
+/// <summary>Handles "/givesp &lt;player&gt; &lt;amount&gt;": transfers spirit between two
+/// online players. Registered with a trailing space so the command trie matches it as a
+/// longest-prefix, exactly like "/dimension ".</summary>
+public class GiveSpiritCommandEvent : Event
+{
+    public static Event Create(Player player, Object data)
+    {
+        return new GiveSpiritCommandEvent { Player = player, Data = data };
+    }
+
+    public override void Ready(GameWorld world)
+    {
+        if (this.Player.State != Player.States.Ready) return;
+
+        var tokens = ((string)this.Data).Split(' ');
+        long amount;
+        if (tokens.Length < 3 || !Dimensions.TryParseAmount(tokens, 2, out amount))
+        {
+            world.Send(this.Player, P.ServerMessage("/givesp <player> <amount>"));
+            return;
+        }
+
+        var target = world.PlayerHandler.GetPlayer(tokens[1]);
+        if (target == null || target.State != Player.States.Ready)
+        {
+            world.Send(this.Player, P.ServerMessage(tokens[1] + " is not online."));
+            return;
+        }
+
+        if (target == this.Player)
+        {
+            world.Send(this.Player, P.ServerMessage("You cannot give spirit to yourself."));
+            return;
+        }
+
+        var spirit = world.CurrencyHandler.Get(Dimensions.SpiritCurrencyId);
+        if (spirit == null) return;
+
+        long senderBefore = spirit.GetBalance(this.Player);
+        if (senderBefore < amount)
+        {
+            world.Send(this.Player, P.ServerMessage("Not enough " + spirit.Name + "."));
+            return;
+        }
+
+        // The recipient side, checked before either wallet moves. BaseStats.SP is a long,
+        // so a transfer into a large enough wallet wraps negative; MaxSpiritBalance keeps
+        // the refusal well short of that and makes a faucet bug visible as a refusal
+        // rather than as a corrupted balance.
+        long targetBefore = spirit.GetBalance(target);
+        if (targetBefore > Dimensions.MaxSpiritBalance - amount)
+        {
+            world.Send(this.Player, P.ServerMessage(target.Name + " cannot hold that much " + spirit.Name + "."));
+            return;
+        }
+
+        spirit.Remove(this.Player, amount, world);
+        spirit.Add(target, amount, world);
+
+        world.Send(this.Player, P.ServerMessage(
+            "You give " + amount + " " + spirit.Name + " to " + target.Name + "."));
+        world.Send(target, P.ServerMessage(
+            this.Player.Name + " gives you " + amount + " " + spirit.Name + "."));
+
+        // One entry per side, each naming the counterparty in otherid and carrying its own
+        // before/after. Two rows rather than one because logs are queried per player.
+        world.LogHandler.Log(Log.Types.GiveSpirit, this.Player,
+            "GiveSpirit: sent " + amount + " " + spirit.ShortName + " to " + target.Name
+            + ", balance " + senderBefore + " -> " + (senderBefore - amount),
+            target.PlayerID);
+        world.LogHandler.Log(Log.Types.GiveSpirit, target,
+            "GiveSpirit: received " + amount + " " + spirit.ShortName + " from " + this.Player.Name
+            + ", balance " + targetBefore + " -> " + (targetBefore + amount),
+            this.Player.PlayerID);
     }
 }
 
