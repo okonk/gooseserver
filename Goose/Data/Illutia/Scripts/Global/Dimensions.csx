@@ -204,6 +204,7 @@ public class Dimensions : BaseGlobalScript
         // to be pointed at. Before RepointDrops (Task 7), which needs the item clones.
         CloneItemTemplates(world);
         RepointDrops(world);
+        RepointVendorStock(world);
 
         world.EventHandler.RegisterEvent("/dimension ", DimensionCommandEvent.Create);
         world.EventHandler.RegisterEvent("/resetitem ", ResetItemCommandEvent.Create);
@@ -931,6 +932,49 @@ public class Dimensions : BaseGlobalScript
                 }
 
                 clone.Drops = drops;
+            }
+        }
+    }
+
+    /// <summary>Point each dimension vendor's stock at that dimension's item clones.
+    ///
+    /// New array AND new slot objects, never an in-place edit: NPCTemplate's copy
+    /// constructor shares VendorItems with the base template (NPCTemplate.cs:254), so
+    /// mutating either would rewrite dimension 0's shops. Same rule as RepointDrops.
+    ///
+    /// No vendor-side CurrencyId is set. The clones carry CurrencyId = "spirit" on the
+    /// item, and Resolve puts the item override above the vendor (CurrencyHandler.cs:41),
+    /// so repointed gear sells for spirit while unrepointed consumables stay gold.</summary>
+    private void RepointVendorStock(GameWorld world)
+    {
+        for (int dim = 1; dim <= DimensionCount; dim++)
+        {
+            foreach (var basic in world.NPCHandler.GetTemplates()
+                                       .Where(t => t.NPCTemplateID < Offset).ToList())
+            {
+                var clone = world.NPCHandler.GetNPCTemplate(basic.NPCTemplateID + Offset * dim);
+                if (clone == null || basic.VendorItems == null) continue;
+
+                var slots = new NPCVendorSlot[basic.VendorItems.Length];
+                for (int i = 0; i < basic.VendorItems.Length; i++)
+                {
+                    var slot = basic.VendorItems[i];
+                    if (slot == null) continue;
+
+                    var dimTemplate = slot.ItemTemplate == null
+                        ? null
+                        : world.ItemHandler.GetTemplate(slot.ItemTemplate.ID + Offset * dim);
+
+                    slots[i] = new NPCVendorSlot
+                    {
+                        Slot = slot.Slot,
+                        ItemTemplate = dimTemplate ?? slot.ItemTemplate,
+                        Stack = slot.Stack,
+                        CanSeeStats = slot.CanSeeStats,
+                    };
+                }
+
+                clone.VendorItems = slots;
             }
         }
     }
