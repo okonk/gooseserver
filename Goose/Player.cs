@@ -1350,12 +1350,9 @@ namespace Goose
             world.EventHandler.AddEvent(ev);
         }
 
-        /**
-         * ChangeClass, changes players class
-         *
-         * Resets level/exp to starting values
-         */
-        public void ChangeClass(int classid, int newLevel, GameWorld world)
+        /// <summary>Class change with an explicit experience loss. Rebirth passes 0: it is an
+        /// exchange (experience becomes spirit), not the 7% penalty quest 60 charges.</summary>
+        public void ChangeClass(int classid, int newLevel, GameWorld world, double experienceLossPercent)
         {
             // todo unequip equipment i guess
 
@@ -1367,7 +1364,7 @@ namespace Goose
             {
                 this.ExperienceSold = this.Experience + this.ExperienceSold;
                 // This is a hack, need a better solution
-                this.ExperienceSold = (long)(this.ExperienceSold * (1.0d - GameWorld.Settings.ChangeClassExperienceLossPercent));
+                this.ExperienceSold = (long)(this.ExperienceSold * (1.0d - experienceLossPercent));
             }
             this.Experience = (this.Level == 1 ? 0 : this.Class.GetLevel(this.Level - 1).Experience);
             this.ClassID = classid;
@@ -1397,6 +1394,16 @@ namespace Goose
                     this.LearnSpell(spell.ID, world);
                 }
             }
+        }
+
+        /**
+         * ChangeClass, changes players class
+         *
+         * Resets level/exp to starting values, applying the settings loss percent.
+         */
+        public void ChangeClass(int classid, int newLevel, GameWorld world)
+        {
+            this.ChangeClass(classid, newLevel, world, GameWorld.Settings.ChangeClassExperienceLossPercent);
         }
 
         /**
@@ -1651,6 +1658,16 @@ namespace Goose
          */
         public virtual void AddExperience(long exp, GameWorld world, ExperienceMessage message)
         {
+            this.AddExperience(exp, world, message, applyModifiers: true);
+        }
+
+        /// <summary>applyModifiers: false grants exactly `exp`. Purchased experience must not be
+        /// re-scaled by world.ExperienceModifier — the two-branch scaling below cannot be
+        /// inverted from script, and buyers are exactly the players past ExperienceModifierLimit.
+        ///
+        /// Not virtual, and Pet does not override it: only Player-side purchases call this.</summary>
+        public void AddExperience(long exp, GameWorld world, ExperienceMessage message, bool applyModifiers)
+        {
             if (GameWorld.Settings.ExperienceCap > 0 &&
                 this.Experience + this.ExperienceSold > GameWorld.Settings.ExperienceCap)
             {
@@ -1659,16 +1676,19 @@ namespace Goose
                 return;
             }
 
-            if (!(GameWorld.Settings.ExperienceModifierLimit > 0 &&
-                this.Experience + this.ExperienceSold > GameWorld.Settings.ExperienceModifierLimit))
+            if (applyModifiers)
             {
-                // Under the limit gets the full modifier
-                exp = (long)(exp * (world.ExperienceModifier + AdditionalExperienceModifier));
-            }
-            else
-            {
-                // over the limit only gets player bonus
-                exp = (long)(exp * (world.ExperienceModifier - GameWorld.Settings.ExperienceModifier + 1 + AdditionalExperienceModifier));
+                if (!(GameWorld.Settings.ExperienceModifierLimit > 0 &&
+                    this.Experience + this.ExperienceSold > GameWorld.Settings.ExperienceModifierLimit))
+                {
+                    // Under the limit gets the full modifier
+                    exp = (long)(exp * (world.ExperienceModifier + AdditionalExperienceModifier));
+                }
+                else
+                {
+                    // over the limit only gets player bonus
+                    exp = (long)(exp * (world.ExperienceModifier - GameWorld.Settings.ExperienceModifier + 1 + AdditionalExperienceModifier));
+                }
             }
 
             this.Experience += exp;

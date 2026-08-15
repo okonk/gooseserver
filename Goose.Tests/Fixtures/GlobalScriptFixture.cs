@@ -48,6 +48,10 @@ public sealed class GlobalScriptFixture : IDisposable
 
         // Seed classes so NPC spawning works (see ORCHESTRATION NOTE 2).
         SeedClass(0, "Default", 50);
+        // Rebirth changes the player to class 1 level 1 (Rebirth.csx), so the destination
+        // class has to exist in the fixture too. Real class_info carries 1-5 for class 1
+        // and 1-50 for 2-7 — the same asymmetry Dimensions.csx's warden comment calls out.
+        SeedClass(1, "Commoner", 5);
         SeedClass(3, "Warrior", 50);
     }
 
@@ -180,7 +184,8 @@ public sealed class GlobalScriptFixture : IDisposable
     {
         var cls = new Class { ClassID = classId, ClassName = name, ACMultiplier = 1m };
         for (int level = 1; level <= maxLevel; level++)
-            cls.AddLevel(new ClassLevel { Level = level, BaseStats = new AttributeSet() });
+            // Spells must be a real list: Player.ChangeClass iterates GetLevel(n).Spells.
+            cls.AddLevel(new ClassLevel { Level = level, BaseStats = new AttributeSet(), Spells = new List<Spell>() });
 
         var classes = (Dictionary<int, Class>)typeof(ClassHandler)
             .GetField("classes", BindingFlags.NonPublic | BindingFlags.Instance)!
