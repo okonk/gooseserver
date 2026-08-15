@@ -169,4 +169,93 @@ public class DimensionRebirthTests
         Assert.Null(fixture.World.QuestHandler.Get(RebirthQuestId));
         Assert.Empty(fixture.World.MapHandler.GetMap(1).NPCs);
     }
+
+    [Fact]
+    public void IsMet_only_at_or_above_the_threshold()
+    {
+        using var fixture = Seeded();
+        var script = fixture.CompileShipped();
+        script.Object.OnLoaded(fixture.World);
+
+        var requirement = fixture.World.QuestHandler.Get(RebirthQuestId)
+            .Requirements.Single(r => r.Type == RequirementType.Script);
+
+        var map = fixture.World.MapHandler.GetMap(1);
+        var player = fixture.PlayerOn(map, 1, 1);
+
+        player.Experience = 99_999_999; player.ExperienceSold = 0;
+        Assert.False(requirement.Script.Object.IsMet(requirement, player, fixture.World));
+
+        player.Experience = 100_000_000;
+        Assert.True(requirement.Script.Object.IsMet(requirement, player, fixture.World));
+
+        // Split across both fields — the threshold is on the sum, as every other
+        // experience gate in the codebase is (Map.cs:638, QuestWindow.cs:36).
+        player.Experience = 50_000_000; player.ExperienceSold = 50_000_000;
+        Assert.True(requirement.Script.Object.IsMet(requirement, player, fixture.World));
+    }
+
+    [Fact]
+    public void GiveReward_mints_floor_of_total_and_resets_the_character()
+    {
+        using var fixture = Seeded();
+        GameWorld.Settings.ChangeClassExperienceLossPercent = 0.07;
+        var script = fixture.CompileShipped();
+        script.Object.OnLoaded(fixture.World);
+
+        var reward = fixture.World.QuestHandler.Get(RebirthQuestId).Rewards.Single();
+        var map = fixture.World.MapHandler.GetMap(1);
+        var player = fixture.PlayerOn(map, 1, 1);
+        player.ClassID = 3;
+        player.Class = fixture.World.ClassHandler.GetClass(3);
+        player.Level = 50;
+        player.Experience = 250_000_000;
+        player.ExperienceSold = 0;
+        // PlayerOn builds the player via Player(int), which skips the Spellbook login
+        // gives (created at login); ChangeClass touches it. Same fix Task 1's tests use.
+        player.Spellbook = new Spellbook(player);
+
+        reward.Script.Object.GiveReward(reward, null, player, fixture.World);
+
+        var spirit = fixture.World.CurrencyHandler.Get("spirit");
+        Assert.Equal(2, spirit.GetBalance(player));       // floor(250M / 100M)
+        Assert.Equal(0, player.Experience);               // remainder destroyed
+        Assert.Equal(0, player.ExperienceSold);           // and no 7% shave to observe
+        Assert.Equal(1, player.Level);
+        Assert.Equal(1, player.ClassID);
+    }
+
+    /// <summary>Enabled = false leaves spirit unregistered. Resetting the player and
+    /// minting nothing would be strictly worse than refusing.</summary>
+    [Fact]
+    public void CanComplete_refuses_when_spirit_is_not_registered()
+    {
+        using var fixture = new GlobalScriptFixture();
+
+        // InstallShippedScripts FIRST. GetScript compiles from disk immediately
+        // (Script.cs:26 -> LoadScript), so resolving the path before the copy throws
+        // FileNotFoundException and the test never reaches its assertion.
+        //
+        // And deliberately no OnLoaded: this is the Enabled = false world, where
+        // SpiritCurrency was never registered. Rebirth.csx must refuse rather than reset
+        // the character and mint nothing.
+        fixture.InstallShippedScripts();
+        var script = fixture.World.ScriptHandler.GetScript<IQuestScript>("Scripts/Quest/Rebirth.csx");
+
+        var reward = new QuestReward
+        {
+            Type = RewardType.Script,
+            ScriptParams = "100000000",
+            Script = script,
+        };
+
+        var map = fixture.AddBaseMap(9200, "No Currency Map");
+        var player = fixture.PlayerOn(map, 1, 1);
+        player.Experience = 500_000_000;
+
+        var message = reward.Script.Object.CanComplete(reward, player, fixture.World);
+
+        Assert.False(string.IsNullOrEmpty(message));
+        Assert.Null(fixture.World.CurrencyHandler.Get("spirit"));
+    }
 }

@@ -11,10 +11,11 @@ public sealed class GlobalScriptFixture : IDisposable
     /// Copied to output by Goose.Tests.csproj. Add to BOTH lists together - a script
     /// missing here fails inside OnLoaded, not at compile time.</summary>
     ///
-    /// <remarks>All seven dimension scripts ship: the global orchestration, the map entry
+    /// <remarks>All eight dimension scripts ship: the global orchestration, the map entry
     /// gate, the quest reward that grants the unlocked dimension, the spell that
-    /// teleports the player between dimensions, and the item scripts that roll abyss
-    /// suffixes and rarity titles onto dimension equipment.</remarks>
+    /// teleports the player between dimensions, the item scripts that roll abyss
+    /// suffixes and rarity titles onto dimension equipment, and the rebirth script that
+    /// trades banked experience for spirit.</remarks>
     private static readonly (string Source, string Relative)[] ShippedScripts =
     {
         ("Dimensions.csx",           "Scripts/Global/Dimensions.csx"),
@@ -24,6 +25,7 @@ public sealed class GlobalScriptFixture : IDisposable
         ("DimensionItem.csx",        "Scripts/Item/DimensionItem.csx"),
         ("DimensionSurname.csx",     "Scripts/Item/DimensionSurname.csx"),
         ("DimensionRarity.csx",      "Scripts/Item/DimensionRarity.csx"),
+        ("Rebirth.csx",              "Scripts/Quest/Rebirth.csx"),
     };
 
     public string DataDirectory { get; }
