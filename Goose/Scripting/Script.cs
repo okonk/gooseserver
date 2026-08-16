@@ -37,7 +37,8 @@ namespace Goose.Scripting
                 .WithImports(
                     "System", "System.Collections.Generic", "System.Linq",
                     "System.Text.Json",
-                    "Goose", "Goose.Events", "Goose.Quests", "Goose.Scripting");
+                    "Goose", "Goose.Events", "Goose.Quests", "Goose.Scripting")
+                .WithFilePath(this.FilePath);
 
             var script = CSharpScript.Create(scriptContents, scriptOptions);
             script.Compile();
