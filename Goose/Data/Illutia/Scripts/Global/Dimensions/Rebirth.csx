@@ -1,3 +1,4 @@
+#load "DimensionConstants.csx"
 using System;
 using Goose;
 using Goose.Quests;
@@ -15,8 +16,6 @@ using Goose.Scripting;
 /// requirement is registered with KeepRequirement = true for that reason.</summary>
 public class Rebirth : BaseQuestScript
 {
-    private const string SpiritCurrencyId = "spirit";
-
     /// <summary>Read inside the call and never cached in a field - the IQuestScript
     /// contract, because one script instance is shared by every row pointing at it.</summary>
     private static long RateFrom(string scriptParams)
@@ -43,7 +42,7 @@ public class Rebirth : BaseQuestScript
 
     public override string CanComplete(QuestReward reward, Player player, GameWorld world)
     {
-        if (world.CurrencyHandler.Get(SpiritCurrencyId) == null)
+        if (world.CurrencyHandler.Get(DimensionConstants.SpiritCurrencyId) == null)
             return "The void is silent. Rebirth is not possible here.";
 
         if (player.Experience + player.ExperienceSold < RateFrom(reward.ScriptParams))
@@ -54,22 +53,22 @@ public class Rebirth : BaseQuestScript
 
     public override void GiveReward(QuestReward reward, NPC npc, Player player, GameWorld world)
     {
-        var spirit = world.CurrencyHandler.Get(SpiritCurrencyId);
+        var spirit = world.CurrencyHandler.Get(DimensionConstants.SpiritCurrencyId);
         if (spirit == null) return;     // CanComplete already refused; belt and braces
 
         long rate = RateFrom(reward.ScriptParams);
         long total = player.Experience + player.ExperienceSold;
         long minted = total / rate;
 
-        // Class 1 level 1 - Commoner. Hardcoded because .csx files compile separately and
-        // this one cannot see Dimensions.RebirthDestinationClassId; CreateRebirthQuest
-        // preflights the same pair against class_info, so keep the two in step.
+        // Commoner class 1 level 1, read from DimensionConstants (no more drift hazard):
+        // CreateRebirthQuest prefights the same pair against class_info.
         //
         // Explicit 0 loss: rebirth is an exchange, not the 7% penalty quest 60 charges.
         // ChangeClass does the rest - RemoveStats/AddStats, the MaxStats adjustment, the
         // level-1 class row, BaseStats.HP/MP = 0, Spellbook.RemoveNonClassSpells, the bind
         // reset, and the StatusInfo/ExpBar packets (Player.cs:1358-1400).
-        player.ChangeClass(1, 1, world, 0d);
+        player.ChangeClass(DimensionConstants.RebirthDestinationClassId,
+            DimensionConstants.RebirthDestinationLevel, world, 0d);
 
         // After ChangeClass, which banks Experience into ExperienceSold. The sub-rate
         // remainder is destroyed, faithful to RebirthEvent.java:47.

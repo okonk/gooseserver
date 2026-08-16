@@ -1,3 +1,5 @@
+#load "DimensionConstants.csx"
+#load "DimensionHelpers.csx"
 using System;
 using Goose;
 using Goose.Scripting;
@@ -10,24 +12,11 @@ using Goose.Scripting;
 /// (OkonkIllusionSword.csx, ZombieLegIllusion.csx) keeps working in every dimension.</summary>
 public class DimensionItem : BaseItemScript
 {
-    /// <summary>Must match Dimensions.csx. Scripts compile independently.</summary>
-    private const int Offset = 100000;
-    private const int SurnameIdBase = 900000;
-    private const int TitleIdBase = 900100;
-    private const string MaxDimensionProperty = "dimension.max";
-
-    private int DimensionOf(Item item) => item.TemplateID / Offset;
-
-    private IItemScript Inner(Item item, GameWorld world)
-    {
-        return world.ItemHandler.GetTemplate(item.TemplateID % Offset)?.Script?.Object;
-    }
-
     /// <summary>The abyss roll, Item.java:359-401. Returns true unconditionally: a
     /// dimension item never takes goose's native title/surname roll on top.</summary>
     public override bool OnRollModifiersEvent(Item item, GameWorld world)
     {
-        int dim = DimensionOf(item);
+        int dim = DimensionHelpers.DimensionOf(item.TemplateID);
         if (dim <= 0) return false;
 
         if (item.UseType == ItemTemplate.UseTypes.Armor || item.UseType == ItemTemplate.UseTypes.Weapon)
@@ -43,7 +32,7 @@ public class DimensionItem : BaseItemScript
             ApplyRarity(item, world);
         }
 
-        Inner(item, world)?.OnRollModifiersEvent(item, world);
+        DimensionHelpers.BaseItemScript(item, world)?.OnRollModifiersEvent(item, world);
         return true;
     }
 
@@ -54,7 +43,7 @@ public class DimensionItem : BaseItemScript
     /// only applies - it never has to strip anything first.</summary>
     public override bool OnRerollModifiersEvent(Item item, GameWorld world)
     {
-        int dim = DimensionOf(item);
+        int dim = DimensionHelpers.DimensionOf(item.TemplateID);
         if (dim <= 0) return false;
         if (item.UseType != ItemTemplate.UseTypes.Armor && item.UseType != ItemTemplate.UseTypes.Weapon)
             return false;
@@ -69,15 +58,15 @@ public class DimensionItem : BaseItemScript
     /// the paid reroll so the two paths cannot drift.</summary>
     private void ApplySuffix(Item item, GameWorld world, int index)
     {
-        Apply(world.ItemHandler.GetSurname(SurnameIdBase + index), item, world, prefix: false);
+        Apply(world.ItemHandler.GetSurname(DimensionConstants.SurnameIdBase + index), item, world, prefix: false);
     }
 
     /// <summary>Item.java:391-401 - 2% each, rolled independently of the suffix.</summary>
     private void ApplyRarity(Item item, GameWorld world)
     {
         double rarity = world.Random.NextDouble();
-        if (rarity > 0.98) Apply(world.ItemHandler.GetTitle(TitleIdBase), item, world, prefix: true);
-        else if (rarity > 0.96) Apply(world.ItemHandler.GetTitle(TitleIdBase + 1), item, world, prefix: true);
+        if (rarity > 0.98) Apply(world.ItemHandler.GetTitle(DimensionConstants.TitleIdBase), item, world, prefix: true);
+        else if (rarity > 0.96) Apply(world.ItemHandler.GetTitle(DimensionConstants.TitleIdBase + 1), item, world, prefix: true);
     }
 
     /// <summary>Mirrors ItemHandler.RollTitleAndSurname's own application (ItemHandler.cs:247-265):
@@ -93,12 +82,12 @@ public class DimensionItem : BaseItemScript
 
     public override string CanPickup(Player player, Item item, GameWorld world)
     {
-        int dim = DimensionOf(item);
-        if (dim > player.Properties.GetProperty<int>(MaxDimensionProperty, 0))
+        int dim = DimensionHelpers.DimensionOf(item.TemplateID);
+        if (dim > DimensionHelpers.MaxDimensionOf(player))
             return "The void keeps what you cannot carry. You have a maximum dimension of "
-                   + player.Properties.GetProperty<int>(MaxDimensionProperty, 0) + ".";
+                   + DimensionHelpers.MaxDimensionOf(player) + ".";
 
-        return Inner(item, world)?.CanPickup(player, item, world);
+        return DimensionHelpers.BaseItemScript(item, world)?.CanPickup(player, item, world);
     }
 
     /// <summary>Dimension tomes. Returning false leaves the item in the inventory
@@ -107,15 +96,15 @@ public class DimensionItem : BaseItemScript
     public override bool OnUseConsumableEvent(Player player, Item item, GameWorld world)
     {
         var incoming = world.SpellHandler.GetSpell(item.LearnSpellID);
-        if (incoming == null) return Inner(item, world)?.OnUseConsumableEvent(player, item, world) ?? true;
+        if (incoming == null) return DimensionHelpers.BaseItemScript(item, world)?.OnUseConsumableEvent(player, item, world) ?? true;
 
-        int baseId = incoming.ID % Offset;
+        int baseId = DimensionHelpers.BaseId(incoming.ID);
         for (int slot = 1; slot <= GameWorld.Settings.SpellbookSize; slot++)
         {
             var known = player.Spellbook.GetSlot(slot);
-            if (known == null || known.ID % Offset != baseId) continue;
+            if (known == null || DimensionHelpers.BaseId(known.ID) != baseId) continue;
 
-            if (known.ID / Offset >= incoming.ID / Offset)
+            if (DimensionHelpers.DimensionOf(known.ID) >= DimensionHelpers.DimensionOf(incoming.ID))
             {
                 world.Send(player, P.ServerMessage("You already know a spell of that power."));
                 return false;
@@ -130,12 +119,12 @@ public class DimensionItem : BaseItemScript
 
     public override void OnCreateEvent(Item item, GameWorld world)
     {
-        Inner(item, world)?.OnCreateEvent(item, world);
+        DimensionHelpers.BaseItemScript(item, world)?.OnCreateEvent(item, world);
     }
 
     public override void OnMeleeEvent(Player player, Item item, GameWorld world)
     {
-        Inner(item, world)?.OnMeleeEvent(player, item, world);
+        DimensionHelpers.BaseItemScript(item, world)?.OnMeleeEvent(player, item, world);
     }
 }
 

@@ -8,7 +8,7 @@ namespace Goose.Tests;
 [Collection(GameWorldSettingsCollection.Name)]
 public class SpiritCurrencyTests
 {
-    private const int Offset = 100000;   // Dimensions.csx:19
+    private const int Offset = 100000;   // must match DimensionConstants.Offset
 
     /// <summary>OnLoaded spawns the dimension-0 warden on map 1 (WardenMapId), so every
     /// test that drives OnLoaded needs a base map first.</summary>
