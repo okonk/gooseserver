@@ -133,8 +133,9 @@ public class VendorPurchaseCurrencyTests
         for (int i = 0; i < GameWorld.Settings.InventorySize; i++) fixture.Carry(filler);
     }
 
-    /// <summary>A minimal spirit stand-in. The real one lives in Dimensions.csx (Task 9);
-    /// this test must not depend on that script compiling.</summary>
+    /// <summary>A minimal spirit stand-in. The real one lives in
+    /// Scripts/Global/Dimensions/SpiritCurrency.csx; this test must not depend on
+    /// that script compiling.</summary>
     private sealed class TestSpiritCurrency : ICurrency
     {
         public string Id => "spirit";
