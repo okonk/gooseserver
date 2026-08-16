@@ -329,7 +329,7 @@ public class Dimensions : BaseGlobalScript
     private void CloneMaps(GameWorld world)
     {
         var baseMaps = world.MapHandler.Maps.Values.ToList();
-        var mapScript = world.ScriptHandler.GetScript<IMapScript>("Scripts/Map/DimensionMap.csx");
+        var mapScript = world.ScriptHandler.GetScript<IMapScript>("Scripts/Global/Dimensions/DimensionMap.csx");
 
         for (int dim = 1; dim <= DimensionCount; dim++)
         {
@@ -466,7 +466,7 @@ public class Dimensions : BaseGlobalScript
     {
         ValidateWardenClass(world);
 
-        var rewardScript = world.ScriptHandler.GetScript<IQuestScript>("Scripts/Quest/DimensionUnlock.csx");
+        var rewardScript = world.ScriptHandler.GetScript<IQuestScript>("Scripts/Global/Dimensions/DimensionUnlock.csx");
 
         for (int dim = 0; dim < DimensionCount; dim++)
         {
@@ -654,7 +654,7 @@ public class Dimensions : BaseGlobalScript
             throw new Exception(
                 $"Rebirth keeper cannot stand at {RebirthMapId}({RebirthX},{RebirthY}): out of bounds, blocked, a warp tile, or occupied.");
 
-        var rebirthScript = world.ScriptHandler.GetScript<IQuestScript>("Scripts/Quest/Rebirth.csx");
+        var rebirthScript = world.ScriptHandler.GetScript<IQuestScript>("Scripts/Global/Dimensions/Rebirth.csx");
 
         var quest = new Quest
         {
@@ -791,7 +791,7 @@ public class Dimensions : BaseGlobalScript
     private void RegisterModifiers(GameWorld world)
     {
         var surnameScript = world.ScriptHandler.GetScript<IItemModifierScript>(
-            "Scripts/Item/DimensionSurname.csx");
+            "Scripts/Global/Dimensions/DimensionSurname.csx");
 
         for (int i = 0; i < SurnameNames.Length; i++)
         {
@@ -807,7 +807,7 @@ public class Dimensions : BaseGlobalScript
         }
 
         var rarityScript = world.ScriptHandler.GetScript<IItemModifierScript>(
-            "Scripts/Item/DimensionRarity.csx");
+            "Scripts/Global/Dimensions/DimensionRarity.csx");
 
         world.ItemHandler.AddTitle(new ItemModifier
         {
@@ -842,7 +842,7 @@ public class Dimensions : BaseGlobalScript
         // One shared script for every clone - ScriptHandler caches by path
         // (ScriptHandler.cs:24), and DimensionItem recovers its dimension from each
         // item, so a single stateless instance serves all of them.
-        var itemScript = world.ScriptHandler.GetScript<IItemScript>("Scripts/Item/DimensionItem.csx");
+        var itemScript = world.ScriptHandler.GetScript<IItemScript>("Scripts/Global/Dimensions/DimensionItem.csx");
 
         for (int dim = 1; dim <= DimensionCount; dim++)
         {
@@ -1271,7 +1271,7 @@ public class Dimensions : BaseGlobalScript
     /// copied, and one pass here converts base and clones together.</summary>
     private void RewriteTeleportEffects(GameWorld world)
     {
-        var script = world.ScriptHandler.GetScript<ISpellEffectScript>("Scripts/Spell/DimensionTeleport.csx");
+        var script = world.ScriptHandler.GetScript<ISpellEffectScript>("Scripts/Global/Dimensions/DimensionTeleport.csx");
 
         foreach (var effect in world.SpellHandler.GetSpellEffects().ToList())
         {

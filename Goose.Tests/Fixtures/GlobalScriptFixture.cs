@@ -15,17 +15,19 @@ public sealed class GlobalScriptFixture : IDisposable
     /// gate, the quest reward that grants the unlocked dimension, the spell that
     /// teleports the player between dimensions, the item scripts that roll abyss
     /// suffixes and rarity titles onto dimension equipment, and the rebirth script that
-    /// trades banked experience for spirit.</remarks>
+    /// trades banked experience for spirit. The seven entry scripts all live in one
+    /// folder, Scripts/Global/Dimensions/; the entry orchestration stays in
+    /// Scripts/Global/.</remarks>
     private static readonly (string Source, string Relative)[] ShippedScripts =
     {
         ("Dimensions.csx",           "Scripts/Global/Dimensions.csx"),
-        ("DimensionMap.csx",         "Scripts/Map/DimensionMap.csx"),
-        ("DimensionUnlock.csx",      "Scripts/Quest/DimensionUnlock.csx"),
-        ("DimensionTeleport.csx",    "Scripts/Spell/DimensionTeleport.csx"),
-        ("DimensionItem.csx",        "Scripts/Item/DimensionItem.csx"),
-        ("DimensionSurname.csx",     "Scripts/Item/DimensionSurname.csx"),
-        ("DimensionRarity.csx",      "Scripts/Item/DimensionRarity.csx"),
-        ("Rebirth.csx",              "Scripts/Quest/Rebirth.csx"),
+        ("DimensionMap.csx",         "Scripts/Global/Dimensions/DimensionMap.csx"),
+        ("DimensionUnlock.csx",      "Scripts/Global/Dimensions/DimensionUnlock.csx"),
+        ("DimensionTeleport.csx",    "Scripts/Global/Dimensions/DimensionTeleport.csx"),
+        ("DimensionItem.csx",        "Scripts/Global/Dimensions/DimensionItem.csx"),
+        ("DimensionSurname.csx",     "Scripts/Global/Dimensions/DimensionSurname.csx"),
+        ("DimensionRarity.csx",      "Scripts/Global/Dimensions/DimensionRarity.csx"),
+        ("Rebirth.csx",              "Scripts/Global/Dimensions/Rebirth.csx"),
     };
 
     public string DataDirectory { get; }
@@ -34,7 +36,7 @@ public sealed class GlobalScriptFixture : IDisposable
     public GlobalScriptFixture()
     {
         DataDirectory = Path.Combine(Path.GetTempPath(), "global-script-" + Guid.NewGuid().ToString("N"));
-        foreach (var dir in new[] { "Global", "Map", "Quest", "Spell", "Item" })
+        foreach (var dir in new[] { "Global", "Global/Dimensions" })
             Directory.CreateDirectory(Path.Combine(DataDirectory, "Scripts", dir));
 
         GameWorld.Settings = new GooseSettings
@@ -85,7 +87,7 @@ public sealed class GlobalScriptFixture : IDisposable
     public Script<IMapScript> CompileShippedMapScript(string fileName = "DimensionMap.csx")
     {
         InstallShippedScripts();
-        return World.ScriptHandler.GetScript<IMapScript>("Scripts/Map/" + fileName);
+        return World.ScriptHandler.GetScript<IMapScript>("Scripts/Global/Dimensions/" + fileName);
     }
 
     /// <summary>Compiles an arbitrary script body, for the one test that needs a variant of

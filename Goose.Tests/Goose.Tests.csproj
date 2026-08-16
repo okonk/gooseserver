@@ -21,19 +21,19 @@
   <ItemGroup>
     <None Include="../Goose/Data/Illutia/Scripts/Global/Dimensions.csx"
           Link="DimensionScripts/Dimensions.csx" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="../Goose/Data/Illutia/Scripts/Map/DimensionMap.csx"
+    <None Include="../Goose/Data/Illutia/Scripts/Global/Dimensions/DimensionMap.csx"
           Link="DimensionScripts/DimensionMap.csx" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="../Goose/Data/Illutia/Scripts/Quest/DimensionUnlock.csx"
+    <None Include="../Goose/Data/Illutia/Scripts/Global/Dimensions/DimensionUnlock.csx"
           Link="DimensionScripts/DimensionUnlock.csx" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="../Goose/Data/Illutia/Scripts/Quest/Rebirth.csx"
+    <None Include="../Goose/Data/Illutia/Scripts/Global/Dimensions/Rebirth.csx"
           Link="DimensionScripts/Rebirth.csx" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="../Goose/Data/Illutia/Scripts/Spell/DimensionTeleport.csx"
+    <None Include="../Goose/Data/Illutia/Scripts/Global/Dimensions/DimensionTeleport.csx"
           Link="DimensionScripts/DimensionTeleport.csx" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="../Goose/Data/Illutia/Scripts/Item/DimensionItem.csx"
+    <None Include="../Goose/Data/Illutia/Scripts/Global/Dimensions/DimensionItem.csx"
           Link="DimensionScripts/DimensionItem.csx" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="../Goose/Data/Illutia/Scripts/Item/DimensionSurname.csx"
+    <None Include="../Goose/Data/Illutia/Scripts/Global/Dimensions/DimensionSurname.csx"
           Link="DimensionScripts/DimensionSurname.csx" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="../Goose/Data/Illutia/Scripts/Item/DimensionRarity.csx"
+    <None Include="../Goose/Data/Illutia/Scripts/Global/Dimensions/DimensionRarity.csx"
           Link="DimensionScripts/DimensionRarity.csx" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

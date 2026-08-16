@@ -240,7 +240,7 @@ public class DimensionRebirthTests
         // SpiritCurrency was never registered. Rebirth.csx must refuse rather than reset
         // the character and mint nothing.
         fixture.InstallShippedScripts();
-        var script = fixture.World.ScriptHandler.GetScript<IQuestScript>("Scripts/Quest/Rebirth.csx");
+        var script = fixture.World.ScriptHandler.GetScript<IQuestScript>("Scripts/Global/Dimensions/Rebirth.csx");
 
         var reward = new QuestReward
         {
