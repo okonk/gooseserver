@@ -1,3 +1,4 @@
+#load "Dimensions/DimensionConstants.csx"
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,9 +15,10 @@ public class Dimensions : BaseGlobalScript
     /// <summary>Dimensions above 0. Abyss shipped 6.</summary>
     public const int DimensionCount = 6;
 
-    /// <summary>Dimension n's copy of anything lives at baseId + Offset*n.
-    /// Must exceed every base id: Illutia map ids reach 10044, so 10000 is too small.</summary>
-    public const int Offset = 100000;
+    /// <summary>Single definition in DimensionConstants.csx. Dimension n's copy of
+    /// anything lives at baseId + Offset*n. Must exceed every base id: Illutia map ids
+    /// reach 10044, so 10000 is too small.</summary>
+    public const int Offset = DimensionConstants.Offset;
 
     /// <summary>Map /dimension n warps to.</summary>
     public const int StartMapId = 1;
@@ -96,11 +98,12 @@ public class Dimensions : BaseGlobalScript
     public const int RebirthClassId = 3;      // must have a class_info row at RebirthLevel
     public const int RebirthLevel = 50;
 
-    /// <summary>Where rebirth *leaves* the player, as opposed to what the keeper looks
-    /// like. Only used by CreateRebirthQuest's preflight: Rebirth.csx compiles separately
-    /// and cannot read these, so it hardcodes the same 1 and 1 - keep the two in step.</summary>
-    public const int RebirthDestinationClassId = 1;   // Commoner
-    public const int RebirthDestinationLevel = 1;
+    /// <summary>Single definition in DimensionConstants.csx. Where rebirth *leaves* the
+    /// player, as opposed to what the keeper looks like. Read by Rebirth.csx through
+    /// DimensionConstants; CreateRebirthQuest's preflight checks the same pair against
+    /// class_info.</summary>
+    public const int RebirthDestinationClassId = DimensionConstants.RebirthDestinationClassId;
+    public const int RebirthDestinationLevel = DimensionConstants.RebirthDestinationLevel;
 
     public const int RebirthBodyID = 1;
     public const int RebirthBodyState = 0;
@@ -134,22 +137,26 @@ public class Dimensions : BaseGlobalScript
     /// would orphan in-flight kill progress on restart.</summary>
     public const int QuestIdBase = 900000;
 
-    /// <summary>Generated ItemModifier ids. item_surnames/item_titles are sheet data with
-    /// small ids; these sit far above so a new sheet row can never collide. The two
-    /// dictionaries are separate (ItemHandler.cs:20,21), so the ranges only need to be
-    /// distinct from sheet ids, not from each other.</summary>
-    public const int SurnameIdBase = 900000;
-    public const int TitleIdBase = 900100;
+    /// <summary>Single definition in DimensionConstants.csx. Generated ItemModifier ids.
+    /// item_surnames/item_titles are sheet data with small ids; these sit far above so a
+    /// new sheet row can never collide. The two dictionaries are separate
+    /// (ItemHandler.cs:20,21), so the ranges only need to be distinct from sheet ids, not
+    /// from each other.</summary>
+    public const int SurnameIdBase = DimensionConstants.SurnameIdBase;
+    public const int TitleIdBase = DimensionConstants.TitleIdBase;
 
-    /// <summary>Registry id for the spirit currency. Dimension items are priced in it;
-    /// their Value is already the spirit price (x3^dim, see CloneItemTemplates).</summary>
-    public const string SpiritCurrencyId = "spirit";
+    /// <summary>Single definition in DimensionConstants.csx. Registry id for the spirit
+    /// currency. Dimension items are priced in it; their Value is already the spirit
+    /// price (x3^dim, see CloneItemTemplates).</summary>
+    public const string SpiritCurrencyId = DimensionConstants.SpiritCurrencyId;
 
     /// <summary>Reroll cost is ResetItemCostBase^dim: 3/9/27/81/243/729 spirit
     /// (ResetItemEvent.java:30).</summary>
     public const int ResetItemCostBase = 3;
 
-    public const string MaxDimensionProperty = "dimension.max";
+    /// <summary>Single definition in DimensionConstants.csx. PlayerProperties key
+    /// holding the player's unlocked maximum dimension.</summary>
+    public const string MaxDimensionProperty = DimensionConstants.MaxDimensionProperty;
 
     /// <summary>BuyGoldCommandEvent.java:47 - 1 spirit buys a million gold.</summary>
     public const long GoldPerSpirit = 1_000_000;

@@ -21,6 +21,8 @@
   <ItemGroup>
     <None Include="../Goose/Data/Illutia/Scripts/Global/Dimensions.csx"
           Link="DimensionScripts/Dimensions.csx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Goose/Data/Illutia/Scripts/Global/Dimensions/DimensionConstants.csx"
+          Link="DimensionScripts/DimensionConstants.csx" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Goose/Data/Illutia/Scripts/Global/Dimensions/DimensionMap.csx"
           Link="DimensionScripts/DimensionMap.csx" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Goose/Data/Illutia/Scripts/Global/Dimensions/DimensionUnlock.csx"

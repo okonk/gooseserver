@@ -1,3 +1,4 @@
+#load "DimensionConstants.csx"
 using System;
 using Goose;
 using Goose.Scripting;
@@ -10,17 +11,11 @@ using Goose.Scripting;
 /// (OkonkIllusionSword.csx, ZombieLegIllusion.csx) keeps working in every dimension.</summary>
 public class DimensionItem : BaseItemScript
 {
-    /// <summary>Must match Dimensions.csx. Scripts compile independently.</summary>
-    private const int Offset = 100000;
-    private const int SurnameIdBase = 900000;
-    private const int TitleIdBase = 900100;
-    private const string MaxDimensionProperty = "dimension.max";
-
-    private int DimensionOf(Item item) => item.TemplateID / Offset;
+    private int DimensionOf(Item item) => item.TemplateID / DimensionConstants.Offset;
 
     private IItemScript Inner(Item item, GameWorld world)
     {
-        return world.ItemHandler.GetTemplate(item.TemplateID % Offset)?.Script?.Object;
+        return world.ItemHandler.GetTemplate(item.TemplateID % DimensionConstants.Offset)?.Script?.Object;
     }
 
     /// <summary>The abyss roll, Item.java:359-401. Returns true unconditionally: a
@@ -69,15 +64,15 @@ public class DimensionItem : BaseItemScript
     /// the paid reroll so the two paths cannot drift.</summary>
     private void ApplySuffix(Item item, GameWorld world, int index)
     {
-        Apply(world.ItemHandler.GetSurname(SurnameIdBase + index), item, world, prefix: false);
+        Apply(world.ItemHandler.GetSurname(DimensionConstants.SurnameIdBase + index), item, world, prefix: false);
     }
 
     /// <summary>Item.java:391-401 - 2% each, rolled independently of the suffix.</summary>
     private void ApplyRarity(Item item, GameWorld world)
     {
         double rarity = world.Random.NextDouble();
-        if (rarity > 0.98) Apply(world.ItemHandler.GetTitle(TitleIdBase), item, world, prefix: true);
-        else if (rarity > 0.96) Apply(world.ItemHandler.GetTitle(TitleIdBase + 1), item, world, prefix: true);
+        if (rarity > 0.98) Apply(world.ItemHandler.GetTitle(DimensionConstants.TitleIdBase), item, world, prefix: true);
+        else if (rarity > 0.96) Apply(world.ItemHandler.GetTitle(DimensionConstants.TitleIdBase + 1), item, world, prefix: true);
     }
 
     /// <summary>Mirrors ItemHandler.RollTitleAndSurname's own application (ItemHandler.cs:247-265):
@@ -94,9 +89,9 @@ public class DimensionItem : BaseItemScript
     public override string CanPickup(Player player, Item item, GameWorld world)
     {
         int dim = DimensionOf(item);
-        if (dim > player.Properties.GetProperty<int>(MaxDimensionProperty, 0))
+        if (dim > player.Properties.GetProperty<int>(DimensionConstants.MaxDimensionProperty, 0))
             return "The void keeps what you cannot carry. You have a maximum dimension of "
-                   + player.Properties.GetProperty<int>(MaxDimensionProperty, 0) + ".";
+                   + player.Properties.GetProperty<int>(DimensionConstants.MaxDimensionProperty, 0) + ".";
 
         return Inner(item, world)?.CanPickup(player, item, world);
     }
@@ -109,13 +104,13 @@ public class DimensionItem : BaseItemScript
         var incoming = world.SpellHandler.GetSpell(item.LearnSpellID);
         if (incoming == null) return Inner(item, world)?.OnUseConsumableEvent(player, item, world) ?? true;
 
-        int baseId = incoming.ID % Offset;
+        int baseId = incoming.ID % DimensionConstants.Offset;
         for (int slot = 1; slot <= GameWorld.Settings.SpellbookSize; slot++)
         {
             var known = player.Spellbook.GetSlot(slot);
-            if (known == null || known.ID % Offset != baseId) continue;
+            if (known == null || known.ID % DimensionConstants.Offset != baseId) continue;
 
-            if (known.ID / Offset >= incoming.ID / Offset)
+            if (known.ID / DimensionConstants.Offset >= incoming.ID / DimensionConstants.Offset)
             {
                 world.Send(player, P.ServerMessage("You already know a spell of that power."));
                 return false;

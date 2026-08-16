@@ -1,3 +1,4 @@
+#load "DimensionConstants.csx"
 using System;
 using Goose;
 using Goose.Scripting;
@@ -17,8 +18,6 @@ using Goose.Scripting;
 /// part 4 plan (user decision).</summary>
 public class DimensionMap : BaseMapScript
 {
-    private const string MaxDimensionProperty = "dimension.max";
-
     /// <summary>Must match Dimensions.csx's Offset. Scripts compile independently,
     /// so this cannot be shared.</summary>
     private const int Offset = 100000;
@@ -38,7 +37,7 @@ public class DimensionMap : BaseMapScript
 
     private int MaxDimensionOf(Player player)
     {
-        return player.Properties.GetProperty<int>(MaxDimensionProperty, 0);
+        return player.Properties.GetProperty<int>(DimensionConstants.MaxDimensionProperty, 0);
     }
 
     /// <summary>Gates warps (MoveEvent.cs:123) and teleport spells (SpellEffect.cs:727),

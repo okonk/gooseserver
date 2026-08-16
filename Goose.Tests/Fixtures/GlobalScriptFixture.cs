@@ -21,6 +21,7 @@ public sealed class GlobalScriptFixture : IDisposable
     private static readonly (string Source, string Relative)[] ShippedScripts =
     {
         ("Dimensions.csx",           "Scripts/Global/Dimensions.csx"),
+        ("DimensionConstants.csx",   "Scripts/Global/Dimensions/DimensionConstants.csx"),
         ("DimensionMap.csx",         "Scripts/Global/Dimensions/DimensionMap.csx"),
         ("DimensionUnlock.csx",      "Scripts/Global/Dimensions/DimensionUnlock.csx"),
         ("DimensionTeleport.csx",    "Scripts/Global/Dimensions/DimensionTeleport.csx"),
