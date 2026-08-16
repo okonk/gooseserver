@@ -146,13 +146,14 @@ Settings-only change: `BaseSPPercentRegen` / `BaseSPStaticRegen` set to 0 in
   time as `partial class Dimensions`.
 - **`Scripts/Global/Dimensions/`** — the rest of the feature:
   `DimensionConstants.csx` (the seven cross-script constants, one definition,
-  `#load`ed by every consumer), `DimensionHelpers.csx` (stateless id math, the
+  `#load`ed by the consumers that need them — `DimensionRarity.csx` loads
+  nothing), `DimensionHelpers.csx` (stateless id math, the
   `dimension.max` read, base-script delegation, tier, refusal message), the
   entry's six part files, and the seven consumer scripts
   (`DimensionMap.csx`, `DimensionItem.csx`, `DimensionSurname.csx`,
   `DimensionRarity.csx`, `DimensionUnlock.csx`, `Rebirth.csx`,
   `DimensionTeleport.csx`) moved here from `Scripts/{Map,Item,Quest,Spell}`.
-  `#load`ed files must stay declarations-only (const + stateless statics):
+  The two shared files must stay declarations-only (const + stateless statics):
   each host compilation gets its own copy of a loaded file, so a mutable static
   there would not be shared (pinned by `ScriptLoadDirectiveTests`).
 - **`DimensionMap.csx`** — attached to every cloned map by the entry; applies
