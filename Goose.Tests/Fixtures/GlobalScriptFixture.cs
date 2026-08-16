@@ -16,11 +16,17 @@ public sealed class GlobalScriptFixture : IDisposable
     /// teleports the player between dimensions, the item scripts that roll abyss
     /// suffixes and rarity titles onto dimension equipment, and the rebirth script that
     /// trades banked experience for spirit. The seven entry scripts all live in one
-    /// folder, Scripts/Global/Dimensions/; the entry orchestration stays in
-    /// Scripts/Global/.</remarks>
+    /// folder, Scripts/Global/Dimensions/, plus the six part files and two shared files
+    /// that Dimensions.csx #loads; the entry orchestration stays in Scripts/Global/.</remarks>
     private static readonly (string Source, string Relative)[] ShippedScripts =
     {
         ("Dimensions.csx",           "Scripts/Global/Dimensions.csx"),
+        ("Npcs.csx",                 "Scripts/Global/Dimensions/Npcs.csx"),
+        ("Maps.csx",                 "Scripts/Global/Dimensions/Maps.csx"),
+        ("Items.csx",                "Scripts/Global/Dimensions/Items.csx"),
+        ("Spells.csx",               "Scripts/Global/Dimensions/Spells.csx"),
+        ("Commands.csx",             "Scripts/Global/Dimensions/Commands.csx"),
+        ("SpiritCurrency.csx",       "Scripts/Global/Dimensions/SpiritCurrency.csx"),
         ("DimensionConstants.csx",   "Scripts/Global/Dimensions/DimensionConstants.csx"),
         ("DimensionHelpers.csx",     "Scripts/Global/Dimensions/DimensionHelpers.csx"),
         ("DimensionMap.csx",         "Scripts/Global/Dimensions/DimensionMap.csx"),

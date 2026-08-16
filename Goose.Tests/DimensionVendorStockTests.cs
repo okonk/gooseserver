@@ -10,7 +10,7 @@ namespace Goose.Tests;
 [Collection(GameWorldSettingsCollection.Name)]
 public class DimensionVendorStockTests
 {
-    private const int Offset = 100000;   // Dimensions.csx:19
+    private const int Offset = 100000;   // must match DimensionConstants.Offset
 
     private const int SwordId = 50;      // cloned: gear, priced in spirit
     private const int PotionId = 51;     // cloned: a consumable, still gold at the till
@@ -73,7 +73,7 @@ public class DimensionVendorStockTests
         var stock = StockOf(fixture, dim);
 
         Assert.Equal(SwordId + Offset * dim, stock[1].ItemTemplate.ID);
-        // The OneTime potion is not clone-eligible (ShouldClone, Dimensions.csx:811 —
+        // The OneTime potion is not clone-eligible (ShouldClone (Items.csx) —
         // Armor/Weapon/Scroll-with-spell only), so its slot keeps the base template and
         // stays gold-priced.
         Assert.Equal(PotionId, stock[2].ItemTemplate.ID);
@@ -163,7 +163,7 @@ public class DimensionVendorStockTests
 
         var player = fixture.CommandPlayerOn(map, 21, 20);
         // DimensionItem.CanPickup refuses an item above the player's unlocked dimension
-        // (DimensionItem.csx:65-72), and a purchase is a pickup.
+        // (CanPickup in DimensionItem.csx), and a purchase is a pickup.
         player.Properties["dimension.max"] = 6;
         player.Gold = 5_000_000;
         fixture.World.CurrencyHandler.Get("spirit").Add(player, 100_000, fixture.World);

@@ -101,7 +101,7 @@ and SP-value columns) and `quest_templates`.
 ## Goose implementation plan
 
 Same feature, but dimension identity is encoded in **ID offsets**
-(`id + 10000·dim` for maps, spells, spell effects, and item templates) instead
+(`id + 100000·dim` for maps, spells, spell effects, and item templates) instead
 of composite keys and schema changes. Because inventories, spellbooks, and the
 player's saved map all persist plain IDs, dimension state round-trips through
 the existing database with no migrations.
@@ -135,18 +135,35 @@ Settings-only change: `BaseSPPercentRegen` / `BaseSPStaticRegen` set to 0 in
 
 ### Scripts
 
-- **`Scripts/Global/Dimensions.csx`** — all configuration at the top
+- **`Scripts/Global/Dimensions.csx`** — the entry, auto-run by
+  `GameWorld.LoadGlobalScripts`, which scans `Scripts/Global` non-recursively
+  (so the entry must stay at this path). All configuration at the top
   (`Enabled` toggle, number of dimensions, ID offset, scaling formulas, spirit
-  prices). Disable the feature by setting `Enabled = false`.
-- **`Scripts/Map/DimensionMap.csx`** — attached to every cloned map by the
-  global script; applies NPC scaling on (re)spawn and entry gating.
+  prices); disable the feature by setting `Enabled = false`. Its body is split
+  into part files under `Scripts/Global/Dimensions/` that it pulls in with
+  first-line `#load` directives (anchored by `ScriptOptions.WithFilePath`; see
+  `docs/plans/2026-08-16-dimensions-scripts-cleanup.md`), assembled at compile
+  time as `partial class Dimensions`.
+- **`Scripts/Global/Dimensions/`** — the rest of the feature:
+  `DimensionConstants.csx` (the seven cross-script constants, one definition,
+  `#load`ed by every consumer), `DimensionHelpers.csx` (stateless id math, the
+  `dimension.max` read, base-script delegation, tier, refusal message), the
+  entry's six part files, and the seven consumer scripts
+  (`DimensionMap.csx`, `DimensionItem.csx`, `DimensionSurname.csx`,
+  `DimensionRarity.csx`, `DimensionUnlock.csx`, `Rebirth.csx`,
+  `DimensionTeleport.csx`) moved here from `Scripts/{Map,Item,Quest,Spell}`.
+  `#load`ed files must stay declarations-only (const + stateless statics):
+  each host compilation gets its own copy of a loaded file, so a mutable static
+  there would not be shared (pinned by `ScriptLoadDirectiveTests`).
+- **`DimensionMap.csx`** — attached to every cloned map by the entry; applies
+  NPC scaling on (re)spawn and entry gating.
 
 #### World cloning (script, at `OnLoaded`)
 
 Global scripts load after maps/NPCs, and `MapHandler.Maps`, `Map.tiles`, and
 `WarpTile.WarpMap` are all public, so the script can:
 
-1. For each base map × dimension: build a clone (`ID = base + 10000·dim`,
+1. For each base map × dimension: build a clone (`ID = base + 100000·dim`,
    name suffix, PVP on), call `map.LoadData(world)`, add to
    `world.MapHandler.Maps`, assign `DimensionMap.csx` as its map script.
 2. Second pass: rewrite every clone's warp tiles to point at the
@@ -172,19 +189,19 @@ respawns.
 
 #### Spells (script)
 
-Pre-generate per-dimension `Spell`/`SpellEffect` copies at `id + 10000·dim`
+Pre-generate per-dimension `Spell`/`SpellEffect` copies at `id + 100000·dim`
 via `SpellHandler.AddSpell/AddSpellEffect`, mirroring the abyss scaling
 (prefixes, formula wrapping, `TargetSize + dim` for AoE growth, duration,
 costs, buff stats). Clone all effects first, then rewire cross-references
 (on-melee-hit spells, buff stacking lists) to same-dimension clones, then
 clone spells. The spellbook persists spell IDs as JSON, so learned dimension
 spells survive relogs unchanged. Spell-teaching items in dimension d carry
-`LearnSpellID + 10000·d`, so "learn spells at your dimension" falls out
+`LearnSpellID + 100000·d`, so "learn spells at your dimension" falls out
 naturally.
 
 #### Items (script)
 
-Clone each `ItemTemplate` to `base + 10000·dim`: name prefix, recolor,
+Clone each `ItemTemplate` to `base + 100000·dim`: name prefix, recolor,
 deterministic dimension stat scaling, `SpellEffectID`/`LearnSpellID` pointed
 at the offset spell clones, `Value` set to the **spirit price** (×3^dim).
 `Item` serializes `TemplateID`, so dimension items persist untouched.
@@ -225,7 +242,7 @@ per-level SP (`classes.sql player_sp`) — either would leak the wallet.
 ### Constraints / watch-outs
 
 - All base map/spell/effect/item-template IDs must stay below the offset
-  (10000) — or pick a larger offset.
+  (100000) — or pick a larger offset.
 - Total NPC count multiplies by (dimensions + 1); confirm no login-ID or
   capacity ceiling.
 - Goose's own 0.5% surname roll can stack a second suffix on dimension drops;

@@ -21,6 +21,18 @@
   <ItemGroup>
     <None Include="../Goose/Data/Illutia/Scripts/Global/Dimensions.csx"
           Link="DimensionScripts/Dimensions.csx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Goose/Data/Illutia/Scripts/Global/Dimensions/Npcs.csx"
+          Link="DimensionScripts/Npcs.csx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Goose/Data/Illutia/Scripts/Global/Dimensions/Maps.csx"
+          Link="DimensionScripts/Maps.csx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Goose/Data/Illutia/Scripts/Global/Dimensions/Items.csx"
+          Link="DimensionScripts/Items.csx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Goose/Data/Illutia/Scripts/Global/Dimensions/Spells.csx"
+          Link="DimensionScripts/Spells.csx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Goose/Data/Illutia/Scripts/Global/Dimensions/Commands.csx"
+          Link="DimensionScripts/Commands.csx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Goose/Data/Illutia/Scripts/Global/Dimensions/SpiritCurrency.csx"
+          Link="DimensionScripts/SpiritCurrency.csx" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Goose/Data/Illutia/Scripts/Global/Dimensions/DimensionConstants.csx"
           Link="DimensionScripts/DimensionConstants.csx" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Goose/Data/Illutia/Scripts/Global/Dimensions/DimensionHelpers.csx"

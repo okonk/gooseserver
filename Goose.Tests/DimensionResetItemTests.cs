@@ -9,7 +9,7 @@ namespace Goose.Tests;
 [Collection(GameWorldSettingsCollection.Name)]
 public class DimensionResetItemTests
 {
-    private const int Offset = 100000;   // Dimensions.csx:19
+    private const int Offset = 100000;   // must match DimensionConstants.Offset
 
     /// <summary>DimensionItemScriptTests.Run (`:12-20`) plus the pieces a command needs: a
     /// vendor-less town map, a Ready player holding items, and spirit already registered by
@@ -20,7 +20,7 @@ public class DimensionResetItemTests
         var fixture = new GlobalScriptFixture();
         fixture.AddBaseMap(1, "Town", width: 100, height: 100);
         fixture.AddBaseItemTemplate(50, "Sword", ItemTemplate.UseTypes.Weapon, t => t.Value = 100);
-        // ShouldClone (Dimensions.csx:777) only clones Armor/Weapon/Scroll-with-spell,
+        // ShouldClone (Items.csx) only clones Armor/Weapon/Scroll-with-spell,
         // so a dimension's non-equipment item is its tome clone, not a potion clone.
         fixture.AddBaseSpellEffect(7, "Firestorm Effect");
         fixture.AddBaseSpell(91, "Firestorm", 7);
@@ -136,7 +136,7 @@ public class DimensionResetItemTests
         var item = player.Inventory.GetSlot(1).Item;
         Assert.Equal(before, Spirit(fixture, player));
         // No reroll ran, so the item still carries its clone name with no suffix. (Clones
-        // are named PrefixFor(dim) + base name, Dimensions.csx:987 — never assert a literal
+        // are named PrefixFor(dim) + base name, the clone naming in ScaleItemTemplate (Items.csx) — never assert a literal
         // "Sword" against a dimension template.) Refused because: why
         Assert.Equal(item.Template.Name, item.Name);
     }
