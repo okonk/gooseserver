@@ -865,9 +865,12 @@ git commit -m "Dimensions: split the global script into the Global/Dimensions fo
    (every drift comment died with its const).
 2. `grep -rn "compile independently\|compile separately" Goose/Data/Illutia/Scripts/` —
    expect zero hits (the premise of the old comments no longer holds for these files).
-3. `grep -rn "Offset = 100000\|900000;\|900100;\|\"dimension.max\"\|\"spirit\"" \
-   Goose/Data/Illutia/Scripts/ --include=*.csx` — expect the literals only in
-   `DimensionConstants.csx`.
+3. `grep -rn "Offset *= *100000\|SurnameIdBase *= *900000\|TitleIdBase *= *900100\|MaxDimensionProperty *= *\"dimension.max\"\|SpiritCurrencyId *= *\"spirit\"" \
+   Goose/Data/Illutia/Scripts/ --include=*.csx` — expect the assignments only in
+   `DimensionConstants.csx`. Symbol-specific on purpose: the raw values also occur
+   legitimately outside the shared file — `QuestIdBase = 900000` (the entry's own
+   quest-id base, not one of the seven), `SpiritCurrency.Name` returning `"spirit"`
+   (in `SpiritCurrency.csx` after Task 5), and a comment quoting `CurrencyId = "spirit"`.
 4. `grep -rn "\.csx:[0-9]" Goose.Tests --include="*.cs" | grep -v "/bin/\|/obj/"` —
    expect exactly one hit: `ItemRerollTests.cs:40` citing Aspereta's
    `ItemModifierScript.csx` (not a dimension script, never moved). Every
