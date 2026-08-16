@@ -1,5 +1,6 @@
 #load "Dimensions/DimensionConstants.csx"
 #load "Dimensions/DimensionHelpers.csx"
+#load "Dimensions/DimensionRolls.csx"
 #load "Dimensions/Npcs.csx"
 #load "Dimensions/Maps.csx"
 #load "Dimensions/Items.csx"

@@ -35,11 +35,6 @@ namespace Goose.Scripting
             return false;
         }
 
-        public virtual bool OnRerollModifiersEvent(Item item, GameWorld world)
-        {
-            return false;
-        }
-
         public virtual void OnEquipEvent(Player player, Item item, GameWorld world)
         {
 

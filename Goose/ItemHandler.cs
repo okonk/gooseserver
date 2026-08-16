@@ -295,34 +295,6 @@ namespace Goose
             item.RefreshStats();
         }
 
-        /// <summary>Strips the item's modifiers and rolls fresh ones. A script owning the
-        /// item claims the roll first; otherwise the native chance-based roll runs.</summary>
-        public void RerollModifiers(Item item, GameWorld world)
-        {
-            this.ResetModifiers(item);
-
-            if (item.Script != null)
-            {
-                try
-                {
-                    if (item.Script.Object.OnRerollModifiersEvent(item, world)) return;
-                }
-                catch (Exception e)
-                {
-                    log.Error(e, "Exception in OnRerollModifiersEvent for template {templateId}", item.TemplateID);
-
-                    // A hook that applied part of a roll before throwing has left modifiers
-                    // on the item that the reset above already stripped once. Reset again so
-                    // the fallback rolls against template state, exactly as it would have if
-                    // the item carried no script at all. Swallowing the exception without
-                    // this leaves free stats behind.
-                    this.ResetModifiers(item);
-                }
-            }
-
-            this.RollTitleAndSurname(item, world);
-        }
-
         public void RollTitleAndSurname(Item item, GameWorld world)
         {
             // Above the use-type filter deliberately: a script-owned item (dimension tomes)

@@ -22,12 +22,5 @@ namespace Goose.Scripting
         /// whatever rolling this item needs. Consulted by ItemHandler.RollTitleAndSurname
         /// before its use-type filter.</summary>
         bool OnRollModifiersEvent(Item item, GameWorld world);
-
-        /// <summary>Return true having re-rolled this item's modifiers yourself. Consulted
-        /// by ItemHandler.RerollModifiers after the item has been reset to template state.
-        ///
-        /// Separate from OnRollModifiersEvent because a paid reroll and a drop roll differ:
-        /// the drop rolls a chance, a paid reroll is expected to land something.</summary>
-        bool OnRerollModifiersEvent(Item item, GameWorld world);
     }
 }

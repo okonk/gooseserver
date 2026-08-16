@@ -48,26 +48,28 @@ public class DimensionResetItemTests
     private static long Spirit(GlobalScriptFixture fixture, Player player)
         => fixture.World.CurrencyHandler.Get("spirit").GetBalance(player);
 
-    // ---- the reroll hook itself -----------------------------------------
+    // ---- the paid reroll flow --------------------------------------------
 
     /// <summary>A drop rolls a 45% suffix chance; a paid reroll always lands one. That
-    /// asymmetry is the reason OnRerollModifiersEvent exists separately from
-    /// OnRollModifiersEvent. 200 iterations against a 45% chance makes a false pass
-    /// vanishingly unlikely.</summary>
+    /// asymmetry is why DimensionRolls keeps RollDrop and Reroll as separate entry
+    /// points. 200 rerolls of the same item against a 45% chance makes a false pass
+    /// vanishingly unlikely - each reroll strips the previous suffix first, so a reroll
+    /// that failed to land would surface as a missing SurnameId.</summary>
     [Fact]
     public void Reroll_always_lands_a_suffix()
     {
         var (fixture, player) = Loaded();
         using var _ = fixture;
 
+        // 27 spirit each at dimension 3; 200 rerolls fit the 10,000 starting balance.
+        Carry(fixture, player, 50 + Offset * 3);
+
         for (int i = 0; i < 200; i++)
         {
-            var item = new Item();
-            item.LoadFromTemplate(fixture.World.ItemHandler.GetTemplate(50 + Offset * 3));
+            Assert.True(fixture.RunCommand(player, "/resetitem 1"));
 
-            fixture.World.ItemHandler.RerollModifiers(item, fixture.World);
-
-            Assert.True(item.HasProperty(ItemProperty.SurnameId), $"iteration {i} rolled no suffix");
+            var item = player.Inventory.GetSlot(1).Item;
+            Assert.True(item.HasProperty(ItemProperty.SurnameId), $"reroll {i} landed no suffix");
         }
     }
 
@@ -79,12 +81,13 @@ public class DimensionResetItemTests
         var (fixture, player) = Loaded();
         using var _ = fixture;
 
-        var item = new Item();
-        item.LoadFromTemplate(fixture.World.ItemHandler.GetTemplate(50 + Offset * 3));
+        Carry(fixture, player, 50 + Offset * 3);
 
         for (int i = 0; i < 20; i++)
         {
-            fixture.World.ItemHandler.RerollModifiers(item, fixture.World);
+            Assert.True(fixture.RunCommand(player, "/resetitem 1"));
+
+            var item = player.Inventory.GetSlot(1).Item;
 
             // One base name plus exactly one " of the ..." suffix, never two.
             // The rarity title (2% Legendary / 2% Stunted) may legally precede the base
@@ -159,8 +162,8 @@ public class DimensionResetItemTests
     /// division alone catches neither. `50 + Offset*9` divides to dimension 9, which does
     /// not exist — Math.Pow(3, 9) would price it at 19,683. `77 + Offset*2` divides to a
     /// real dimension but has no base template behind it, so nothing cloned it and no
-    /// dimension script is attached; the reroll hook would decline and the native
-    /// chance-based roll would run on an item the player just paid 9 spirit for.</summary>
+    /// dimension script is attached. The division says nothing about either case; the
+    /// registered-template check refuses both before any spirit moves.</summary>
     [Theory]
     [InlineData(50 + Offset * 9)]
     [InlineData(77 + Offset * 2)]

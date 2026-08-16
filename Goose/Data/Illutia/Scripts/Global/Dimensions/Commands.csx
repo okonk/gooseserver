@@ -94,7 +94,7 @@ public class ResetItemCommandEvent : Event
         // Three separate questions, and all three have to be asked. The division alone
         // says nothing: a sheet-authored template with an id above Offset would divide to a
         // plausible-looking dimension, be priced with Math.Pow against a dimension that may
-        // not exist, and be handed to a reroll hook that knows nothing about it.
+        // not exist, and be charged for a reroll on an item the dimension scripts never made.
         int dim = DimensionHelpers.DimensionOf(item.TemplateID);
         if (dim < 1 || dim > Dimensions.DimensionCount)
         {
@@ -136,7 +136,20 @@ public class ResetItemCommandEvent : Event
             return;
         }
 
-        world.ItemHandler.RerollModifiers(item, world);
+        world.ItemHandler.ResetModifiers(item);
+        try
+        {
+            DimensionRolls.Reroll(item, world);
+        }
+        catch
+        {
+            // A roll that throws mid-apply has left the item off template state. The
+            // charge below never runs, so the player's cost is the modifiers the reset
+            // stripped - say so, then rethrow so the event loop's catch
+            // (EventHandler.cs:373) still logs it rather than this block swallowing it.
+            world.Send(this.Player, P.ServerMessage("The void refused the remaking."));
+            throw;
+        }
         spirit.Remove(this.Player, cost, world);
 
         this.Player.Inventory.SendSlot(slotId, world);
