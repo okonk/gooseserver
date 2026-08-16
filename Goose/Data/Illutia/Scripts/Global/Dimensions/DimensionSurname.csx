@@ -1,3 +1,5 @@
+#load "DimensionConstants.csx"
+#load "DimensionHelpers.csx"
 using System;
 using Goose;
 using Goose.Scripting;
@@ -11,15 +13,12 @@ using Goose.Scripting;
 /// are fixed JSON values with no access to the item's dimension.</summary>
 public class DimensionSurname : BaseItemModifierScript
 {
-    /// <summary>Must match Dimensions.csx's Offset. Scripts compile independently.</summary>
-    private const int Offset = 100000;
-
     public override void OnExecuteEvent(ItemModifier modifier, Item item, GameWorld world)
     {
-        int dim = item.TemplateID / Offset;
+        int dim = DimensionHelpers.DimensionOf(item.TemplateID);
         if (dim <= 0) return;
 
-        double tier = Tier(world.ItemHandler.GetTemplate(item.TemplateID % Offset));
+        double tier = DimensionHelpers.Tier(world.ItemHandler.GetTemplate(DimensionHelpers.BaseId(item.TemplateID)));
         decimal scale = (decimal)(dim * tier);
         // Invariant for consistency with DimensionRarity.csx: int.Parse is safe for ASCII
         // digits in every culture, but explicit is better than implicit here.
@@ -50,18 +49,6 @@ public class DimensionSurname : BaseItemModifierScript
         }
 
         item.RefreshStats();
-    }
-
-    /// <summary>AttributeSet.java:405-419, on the base template. A missing base template
-    /// (the feature was disabled and re-enabled around a data change) scores the lowest
-    /// tier rather than throwing inside a roll.</summary>
-    private double Tier(ItemTemplate basic)
-    {
-        if (basic == null) return 0.25;
-        if (basic.Value >= 10000000) return 1.0;
-        if (basic.MinExperience > 0) return 0.75;
-        if (basic.MinLevel == 50) return 0.5;
-        return 0.25;
     }
 }
 

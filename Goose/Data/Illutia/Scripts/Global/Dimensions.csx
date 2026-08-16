@@ -1,4 +1,5 @@
 #load "Dimensions/DimensionConstants.csx"
+#load "Dimensions/DimensionHelpers.csx"
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -1015,7 +1016,7 @@ public class Dimensions : BaseGlobalScript
     private AttributeSet DimensionStats(ItemTemplate basic, int dim)
     {
         var a1 = basic.BaseStats;
-        double tier = Tier(basic);
+        double tier = DimensionHelpers.Tier(basic);
         double half = 0.5 * dim;
 
         return new AttributeSet
@@ -1050,18 +1051,6 @@ public class Dimensions : BaseGlobalScript
             // so this is a very large bonus by design. User decision, 2026-08-10.
             MeleeDamage = (int)((double)a1.MeleeDamage * dim + 10 * dim * tier),
         };
-    }
-
-    /// <summary>AttributeSet.java:405-419. Abyss's top tier (1.5) keys off an SP-priced
-    /// template; goose has no SP value, so that tier has no equivalent and is dropped.
-    /// Computed from the BASE template - the clone's value is already scaled by 3^dim and
-    /// would put every clone in the top tier.</summary>
-    private double Tier(ItemTemplate basic)
-    {
-        if (basic.Value >= 10000000) return 1.0;
-        if (basic.MinExperience > 0) return 0.75;
-        if (basic.MinLevel == 50) return 0.5;
-        return 0.25;
     }
 
     // ---- Spell pass -------------------------------------------------------
@@ -1413,11 +1402,10 @@ public class DimensionCommandEvent : Event
             return;
         }
 
-        int max = this.Player.Properties.GetProperty<int>(Dimensions.MaxDimensionProperty, 0);
+        int max = DimensionHelpers.MaxDimensionOf(this.Player);
         if (dim > max)
         {
-            world.Send(this.Player, P.ServerMessage(
-                "The void has rejected you. You have a maximum dimension of " + max + "."));
+            world.Send(this.Player, P.ServerMessage(DimensionHelpers.MaxDimensionRefusal(max)));
             return;
         }
 
@@ -1486,7 +1474,7 @@ public class ResetItemCommandEvent : Event
         // says nothing: a sheet-authored template with an id above Offset would divide to a
         // plausible-looking dimension, be priced with Math.Pow against a dimension that may
         // not exist, and be handed to a reroll hook that knows nothing about it.
-        int dim = item.TemplateID / Dimensions.Offset;
+        int dim = DimensionHelpers.DimensionOf(item.TemplateID);
         if (dim < 1 || dim > Dimensions.DimensionCount)
         {
             world.Send(this.Player, P.ServerMessage("Only items from a higher plane can be reset."));
@@ -1498,7 +1486,7 @@ public class ResetItemCommandEvent : Event
         // not a generated clone and does not belong here.
         var registered = world.ItemHandler.GetTemplate(item.TemplateID);
         if (registered == null || registered != item.Template ||
-            world.ItemHandler.GetTemplate(item.TemplateID % Dimensions.Offset) == null ||
+            world.ItemHandler.GetTemplate(DimensionHelpers.BaseId(item.TemplateID)) == null ||
             registered.Script == null)
         {
             world.Send(this.Player, P.ServerMessage("Only items from a higher plane can be reset."));

@@ -1,3 +1,5 @@
+#load "DimensionConstants.csx"
+#load "DimensionHelpers.csx"
 using System;
 using Goose;
 using Goose.Quests;
@@ -11,8 +13,6 @@ using Goose.Scripting;
 /// every call and never cached in a field. That is the IQuestScript contract.</summary>
 public class DimensionUnlock : BaseQuestScript
 {
-    private const string MaxDimensionProperty = "dimension.max";
-
     public override void GiveReward(QuestReward reward, NPC npc, Player player, GameWorld world)
     {
         int granted;
@@ -20,10 +20,10 @@ public class DimensionUnlock : BaseQuestScript
 
         // Raise, never lower. Completing an earlier quest out of order - or a repeat after
         // a data change - must not take access away.
-        int current = player.Properties.GetProperty<int>(MaxDimensionProperty, 0);
+        int current = DimensionHelpers.MaxDimensionOf(player);
         if (granted <= current) return;
 
-        player.Properties[MaxDimensionProperty] = granted;
+        player.Properties[DimensionConstants.MaxDimensionProperty] = granted;
 
         world.Send(player, P.ServerMessage(
             "The void yields. You may now enter dimension " + granted + "."));

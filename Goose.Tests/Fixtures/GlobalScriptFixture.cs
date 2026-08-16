@@ -22,6 +22,7 @@ public sealed class GlobalScriptFixture : IDisposable
     {
         ("Dimensions.csx",           "Scripts/Global/Dimensions.csx"),
         ("DimensionConstants.csx",   "Scripts/Global/Dimensions/DimensionConstants.csx"),
+        ("DimensionHelpers.csx",     "Scripts/Global/Dimensions/DimensionHelpers.csx"),
         ("DimensionMap.csx",         "Scripts/Global/Dimensions/DimensionMap.csx"),
         ("DimensionUnlock.csx",      "Scripts/Global/Dimensions/DimensionUnlock.csx"),
         ("DimensionTeleport.csx",    "Scripts/Global/Dimensions/DimensionTeleport.csx"),

@@ -1,4 +1,5 @@
 #load "DimensionConstants.csx"
+#load "DimensionHelpers.csx"
 using System;
 using Goose;
 using Goose.Scripting;
@@ -18,39 +19,17 @@ using Goose.Scripting;
 /// part 4 plan (user decision).</summary>
 public class DimensionMap : BaseMapScript
 {
-    /// <summary>Must match Dimensions.csx's Offset. Scripts compile independently,
-    /// so this cannot be shared.</summary>
-    private const int Offset = 100000;
-
-    /// <summary>The dimension is encoded in the map id (baseId + Offset*dim), so nothing
-    /// needs to be stashed in ScriptParams - which is passed through to the base map's
-    /// script instead.</summary>
-    private int DimensionOf(Map map)
-    {
-        return map.ID / Offset;
-    }
-
-    private IMapScript Inner(Map map, GameWorld world)
-    {
-        return world.MapHandler.GetMap(map.ID % Offset)?.Script?.Object;
-    }
-
-    private int MaxDimensionOf(Player player)
-    {
-        return player.Properties.GetProperty<int>(DimensionConstants.MaxDimensionProperty, 0);
-    }
-
     /// <summary>Gates warps (MoveEvent.cs:123) and teleport spells (SpellEffect.cs:727),
     /// then delegates the rest of the decision to the base map's script, which still gets
     /// to refuse entry (item gates, scripted closures, ...). The dimension gate checks
     /// first, so it wins over a permissive base script.</summary>
     public override string CanPlayerJoin(Map map, Player player, GameWorld world)
     {
-        int max = MaxDimensionOf(player);
-        if (DimensionOf(map) > max)
-            return "The void has rejected you. You have a maximum dimension of " + max + ".";
+        int max = DimensionHelpers.MaxDimensionOf(player);
+        if (DimensionHelpers.DimensionOf(map.ID) > max)
+            return DimensionHelpers.MaxDimensionRefusal(max);
 
-        return Inner(map, world)?.CanPlayerJoin(map, player, world);
+        return DimensionHelpers.BaseMapScript(map, world)?.CanPlayerJoin(map, player, world);
     }
 
     /// <summary>Login places a player straight onto their saved map without consulting
@@ -68,27 +47,26 @@ public class DimensionMap : BaseMapScript
         // They still get the base script's entry logic.
         if (player.HasPrivilege(AccessPrivilege.IgnoreMapRequirements))
         {
-            Inner(map, world)?.OnPlayerEntered(map, player, world);
+            DimensionHelpers.BaseMapScript(map, world)?.OnPlayerEntered(map, player, world);
             return;
         }
 
-        int max = MaxDimensionOf(player);
+        int max = DimensionHelpers.MaxDimensionOf(player);
 
         // Order matters: clamp the bind first, so it is corrected even when this map is
         // allowed and the early return below fires.
         ClampBind(player, max, world);
 
-        if (DimensionOf(map) <= max)
+        if (DimensionHelpers.DimensionOf(map.ID) <= max)
         {
-            Inner(map, world)?.OnPlayerEntered(map, player, world);
+            DimensionHelpers.BaseMapScript(map, world)?.OnPlayerEntered(map, player, world);
             return;
         }
 
-        var fallback = world.MapHandler.GetMap(map.ID % Offset);
+        var fallback = world.MapHandler.GetMap(DimensionHelpers.BaseId(map.ID));
         if (fallback == null) return;
 
-        world.Send(player, "$7The void has rejected you. You have a maximum dimension of "
-                           + max + ".");
+        world.Send(player, "$7" + DimensionHelpers.MaxDimensionRefusal(max));
         player.WarpTo(world, fallback, player.MapX, player.MapY);
     }
 
@@ -97,16 +75,16 @@ public class DimensionMap : BaseMapScript
     /// dimension survives the relocation and lets a player whose progress was reduced walk
     /// straight back in by dying. Clamp it to the dimension-0 map, keeping the coordinates.
     ///
-    /// A dimension map's id is baseId + Offset*dim, so the base is id % Offset. If that map
-    /// has somehow gone (a re-import between sessions), fall back to the starting map -
+    /// A dimension map's id is baseId + Offset*dim, so the base is BaseId(boundId). If that
+    /// map has somehow gone (a re-import between sessions), fall back to the starting map -
     /// leaving a bind pointing at a map that does not exist would strand the player on
     /// death.</summary>
     private void ClampBind(Player player, int max, GameWorld world)
     {
-        int boundDim = player.BoundID / Offset;
+        int boundDim = DimensionHelpers.DimensionOf(player.BoundID);
         if (boundDim <= max) return;
 
-        var baseMap = world.MapHandler.GetMap(player.BoundID % Offset);
+        var baseMap = world.MapHandler.GetMap(DimensionHelpers.BaseId(player.BoundID));
         if (baseMap != null)
         {
             // Same map one dimension down to 0, same coordinates.
@@ -133,47 +111,47 @@ public class DimensionMap : BaseMapScript
 
     public override void OnLoad(Map map, GameWorld world)
     {
-        Inner(map, world)?.OnLoad(map, world);
+        DimensionHelpers.BaseMapScript(map, world)?.OnLoad(map, world);
     }
 
     public override void OnLoadTile(Map map, int x, int y, int layerNumber, int graphic, short sheet, int flags, GameWorld world)
     {
-        Inner(map, world)?.OnLoadTile(map, x, y, layerNumber, graphic, sheet, flags, world);
+        DimensionHelpers.BaseMapScript(map, world)?.OnLoadTile(map, x, y, layerNumber, graphic, sheet, flags, world);
     }
 
     public override void OnFinishedLoad(Map map, GameWorld world)
     {
-        Inner(map, world)?.OnFinishedLoad(map, world);
+        DimensionHelpers.BaseMapScript(map, world)?.OnFinishedLoad(map, world);
     }
 
     public override void OnPlayerLeft(Map map, Player player, GameWorld world)
     {
-        Inner(map, world)?.OnPlayerLeft(map, player, world);
+        DimensionHelpers.BaseMapScript(map, world)?.OnPlayerLeft(map, player, world);
     }
 
     public override void OnPlayerMove(Map map, Player player, GameWorld world)
     {
-        Inner(map, world)?.OnPlayerMove(map, player, world);
+        DimensionHelpers.BaseMapScript(map, world)?.OnPlayerMove(map, player, world);
     }
 
     public override void OnPlayerChatEvent(Map map, Player player, string message, GameWorld world)
     {
-        Inner(map, world)?.OnPlayerChatEvent(map, player, message, world);
+        DimensionHelpers.BaseMapScript(map, world)?.OnPlayerChatEvent(map, player, message, world);
     }
 
     public override void OnNPCKilledEvent(Map map, NPC npc, ICharacter killer, GameWorld world)
     {
-        Inner(map, world)?.OnNPCKilledEvent(map, npc, killer, world);
+        DimensionHelpers.BaseMapScript(map, world)?.OnNPCKilledEvent(map, npc, killer, world);
     }
 
     public override void OnNPCSpawnEvent(Map map, NPC npc, GameWorld world)
     {
-        Inner(map, world)?.OnNPCSpawnEvent(map, npc, world);
+        DimensionHelpers.BaseMapScript(map, world)?.OnNPCSpawnEvent(map, npc, world);
     }
 
     public override void OnPetMove(Map map, Pet pet, GameWorld world)
     {
-        Inner(map, world)?.OnPetMove(map, pet, world);
+        DimensionHelpers.BaseMapScript(map, world)?.OnPetMove(map, pet, world);
     }
 }
 
