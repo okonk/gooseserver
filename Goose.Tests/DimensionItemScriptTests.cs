@@ -101,7 +101,10 @@ public class DimensionItemScriptTests
 
         Assert.NotNull(item);
         var surname = fixture.World.ItemHandler.GetSurname(item.GetProperty<int>(ItemProperty.SurnameId));
-        Assert.Equal("Supreme Sword " + surname.Name, item.Name);
+        // The rarity title (2% Legendary / 2% Stunted) may legally precede the base
+        // name, so Contains, not Equal (same reasoning as DimensionResetItemTests).
+        Assert.Contains(item.Template.Name, item.Name);   // the dim-3 clone name, "Supreme Sword"
+        Assert.Contains(surname.Name, item.Name);         // the rolled suffix, after the base name
         Assert.NotEqual(new AttributeSet(), item.BaseStats);
     }
 
