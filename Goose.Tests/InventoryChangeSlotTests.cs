@@ -104,7 +104,7 @@ public class InventoryChangeSlotTests
     /// InventoryChangeSlotEvent. Low cost in this codebase — the vendor tests drive their
     /// events the same way (set Player + Data, call Ready) — so this covers parsing,
     /// validation, and the guard together. Pre-fix this doubled the stack; also assert
-    /// the player is not left in a broken state and no exception escaped.</summary>
+    /// the operation is a silent no-op (no slot-update packets sent to the client).</summary>
     [Fact]
     public void ChangePacket_SameSlotTwice_DoesNotDuplicate()
     {
@@ -122,5 +122,6 @@ public class InventoryChangeSlotTests
         var slot = fixture.Player.Inventory.GetSlot(1);
         Assert.NotNull(slot);
         Assert.Equal(4, slot.Stack);
+        Assert.Empty(fixture.Player.Sent);
     }
 }
