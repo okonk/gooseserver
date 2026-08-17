@@ -74,13 +74,12 @@ public partial class Dimensions : BaseGlobalScript
     public const int WardenHairB = 40;
     public const int WardenHairA = 200;
 
-    /// <summary>MKC-string fragment, exactly as npc_templates.equipped_items
-    /// (NPCHandler.cs:65, rendered at Packets.cs:161). Empty for no visible equipment.</summary>
-    public const string WardenEquippedItems = "";
+    /// <summary>MKC-string fragment, exactly as npc_templates.equipped_items</summary>
+    public const string WardenEquippedItems = "12,*,0,*,0,*,0,*,0,*,0,*";
 
     /// <summary>Quest-giver placement, per dimension, on that dimension's start map.</summary>
     public const int WardenMapId = StartMapId;
-    public const int WardenX = 50;
+    public const int WardenX = 43;
     public const int WardenY = 50;
 
     // ---- Rebirth --------------------------------------------------------
@@ -125,7 +124,7 @@ public partial class Dimensions : BaseGlobalScript
     public const int RebirthHairG = 0;
     public const int RebirthHairB = 40;
     public const int RebirthHairA = 200;
-    public const string RebirthEquippedItems = "";
+    public const string RebirthEquippedItems = "34,*,0,*,0,*,0,*,0,*,0,*";
 
     /// <summary>Dimension 0 only, beside the dimension-0 warden. Map 1 is StartMapId, the
     /// map /dimension already warps to, so a player who can reach a warden can reach the
@@ -137,7 +136,7 @@ public partial class Dimensions : BaseGlobalScript
     /// sheet NPC spawns come from the database rather than the .map file, so
     /// CreateRebirthQuest re-checks the tile at load time instead of trusting this.</summary>
     public const int RebirthMapId = StartMapId;
-    public const int RebirthX = 52;
+    public const int RebirthX = 44;
     public const int RebirthY = 50;
 
     /// <summary>Quest ids are deterministic: QuestProgress persists keyed on
