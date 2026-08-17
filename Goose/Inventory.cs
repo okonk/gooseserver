@@ -192,6 +192,8 @@ namespace Goose
          */
         public void SwapSlots(int fromSlotId, int toSlotId, GameWorld world)
         {
+            if (fromSlotId == toSlotId) return;
+
             ItemSlot fromSlot = this.GetSlot(fromSlotId);
             ItemSlot toSlot = this.GetSlot(toSlotId);
 

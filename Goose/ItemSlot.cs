@@ -43,6 +43,8 @@ namespace Goose
 
         public static void SwapSlots(ref ItemSlot from, ref ItemSlot to)
         {
+            if (from == to) return;
+
             if (from == null && to == null) return;
 
             if (from == null || to == null)
