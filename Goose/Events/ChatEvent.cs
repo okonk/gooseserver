@@ -17,6 +17,8 @@ namespace Goose.Events
      */
     class ChatEvent : Event
     {
+        private const int MaxMessageLength = 300;
+
         public override void Ready(GameWorld world)
         {
             if (this.Player.State == Player.States.Ready)
@@ -32,6 +34,8 @@ namespace Goose.Events
                 string message = (string)this.Data;
                 if (message.Length == 1) return; // log bad chat event
                 message = message.Substring(1, message.Length - 1);
+
+                if (message.Length > MaxMessageLength) return;
 
                 string packet = P.Chat(this.Player.LoginID, this.Player.Name, message);
                 string filteredpacket = P.Chat(this.Player.LoginID, this.Player.Name, "");

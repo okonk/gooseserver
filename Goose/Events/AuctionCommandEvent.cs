@@ -7,6 +7,8 @@ namespace Goose.Events
 {
     public class AuctionCommandEvent : Event
     {
+        private const int MaxMessageLength = 300;
+
         public override void Ready(GameWorld world)
         {
             if (this.Player.State == Player.States.Ready)
@@ -14,6 +16,8 @@ namespace Goose.Events
                 this.Player.UpdateIdleStatus(world);
 
                 string data = ((string)this.Data).Substring(9);
+
+                if (data.Length > MaxMessageLength) return;
 
                 if (data.Length <= 0) return;
 
