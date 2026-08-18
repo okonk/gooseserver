@@ -78,7 +78,8 @@ namespace Goose
                 map.LoadData(world);
 
                 Event ev = new ClearMapItemsEvent();
-                ev.Ticks += world.TimerFrequency * GameWorld.Settings.ItemGroundSweepTime;
+                // H6: clamp to >= 1, a 0/negative sweep time re-enqueues at now and spins EventHandler.Update
+                ev.Ticks += world.TimerFrequency * Math.Max(1, GameWorld.Settings.ItemGroundSweepTime);
                 ev.Data = map;
                 world.EventHandler.AddEvent(ev);
             }

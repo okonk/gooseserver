@@ -1342,7 +1342,8 @@ namespace Goose
             }
 
             RegenEvent ev = new RegenEvent();
-            ev.Ticks += (long)(GameWorld.Settings.RegenSpeed * world.TimerFrequency);
+            // H6: clamp to >= 1, a 0/negative period re-enqueues at now and spins EventHandler.Update
+            ev.Ticks += (long)(Math.Max(1m, GameWorld.Settings.RegenSpeed) * world.TimerFrequency);
             ev.Data = this;
 
             this.RegenEventExists = true;
@@ -1903,8 +1904,11 @@ namespace Goose
         {
             if (this.LastPing == 0) this.LastPing = world.TimeNow;
 
-            if ((world.TimeNow - this.LastPing) >
-                ((GameWorld.Settings.PlayerSavePeriod * 1.10) * world.TimerFrequency))
+            // H6: clamp to >= 1s, shared by the ping-timeout check and the save schedule;
+            // at 0 it disconnected on every PONG and re-enqueued at now, spinning EventHandler.Update
+            long savePeriodTicks = (long)(Math.Max(1, GameWorld.Settings.PlayerSavePeriod) * world.TimerFrequency);
+
+            if ((world.TimeNow - this.LastPing) > savePeriodTicks * 1.10)
             {
                 world.LostConnection(this.Sock);
             }
@@ -1914,7 +1918,7 @@ namespace Goose
 
                 PlayerSaveEvent ev = new PlayerSaveEvent();
                 ev.Player = this;
-                ev.Ticks += (GameWorld.Settings.PlayerSavePeriod * world.TimerFrequency);
+                ev.Ticks += savePeriodTicks;
 
                 world.EventHandler.AddEvent(ev);
             }
@@ -2157,7 +2161,8 @@ namespace Goose
                     BuffTickEvent ev = new BuffTickEvent();
                     ev.Data = buff;
                     ev.Player = this;
-                    ev.Ticks += (long)(GameWorld.Settings.SpellEffectPeriod * world.TimerFrequency);
+                    // H6: clamp to >= 1, a 0/negative period re-enqueues at now and spins EventHandler.Update
+                    ev.Ticks += (long)(Math.Max(1m, GameWorld.Settings.SpellEffectPeriod) * world.TimerFrequency);
 
                     world.EventHandler.AddEvent(ev);
                 }

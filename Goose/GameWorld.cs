@@ -345,7 +345,8 @@ namespace Goose
             this.EventHandler.AddEvent(clearCreatedHistory);
 
             Event updateExperienceModifier = new PlayerCountExperienceModifierUpdateEvent();
-            updateExperienceModifier.Ticks += this.TimerFrequency * GameWorld.Settings.IdleTimeout;
+            // H6: clamp to >= 1, a 0/negative IdleTimeout re-enqueues at now and spins EventHandler.Update
+            updateExperienceModifier.Ticks += this.TimerFrequency * Math.Max(1, GameWorld.Settings.IdleTimeout);
             this.EventHandler.AddEvent(updateExperienceModifier);
 
             //Event updateCredits = new CreditsUpdateEvent();

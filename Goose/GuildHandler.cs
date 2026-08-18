@@ -112,7 +112,8 @@ namespace Goose
         public void AddSaveEvent(GameWorld world)
         {
             Event ev = new GuildSaveEvent();
-            ev.Ticks += (long)(GameWorld.Settings.GuildSavePeriod * world.TimerFrequency);
+            // H6: clamp to >= 1, a 0/negative period re-enqueues at now and spins EventHandler.Update
+            ev.Ticks += (long)(Math.Max(1, GameWorld.Settings.GuildSavePeriod) * world.TimerFrequency);
 
             world.EventHandler.AddEvent(ev);
         }

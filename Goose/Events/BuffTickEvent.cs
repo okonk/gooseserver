@@ -74,7 +74,8 @@ namespace Goose.Events
             ev.Data = buff;
             ev.Player = this.Player;
             ev.NPC = this.NPC;
-            ev.Ticks += (long)(GameWorld.Settings.SpellEffectPeriod * world.TimerFrequency);
+            // H6: clamp to >= 1, a 0/negative period re-enqueues at now and spins EventHandler.Update
+            ev.Ticks += (long)(Math.Max(1m, GameWorld.Settings.SpellEffectPeriod) * world.TimerFrequency);
 
             world.EventHandler.AddEvent(ev);
         }

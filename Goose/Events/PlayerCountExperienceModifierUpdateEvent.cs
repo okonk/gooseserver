@@ -47,7 +47,8 @@ namespace Goose.Events
                 world.SendToAll(P.ServerMessage("Experience modifier is now " + world.ExperienceModifier + "x because of " + uniquenonafkips.Count + " active players."));
             }
 
-            this.Ticks += world.TimerFrequency * GameWorld.Settings.IdleTimeout;
+            // H6: clamp to >= 1, a 0/negative IdleTimeout re-enqueues at now and spins EventHandler.Update
+            this.Ticks += world.TimerFrequency * Math.Max(1, GameWorld.Settings.IdleTimeout);
             world.EventHandler.AddEvent(this);
 
             world.LogHandler.Save(world);

@@ -30,7 +30,8 @@ namespace Goose.Events
                 map.RemoveItem(item, world);
             }
 
-            this.Ticks = world.TimeNow + world.TimerFrequency * GameWorld.Settings.ItemGroundSweepTime;
+            // H6: clamp to >= 1, a 0/negative sweep time re-enqueues at now and spins EventHandler.Update
+            this.Ticks = world.TimeNow + world.TimerFrequency * Math.Max(1, GameWorld.Settings.ItemGroundSweepTime);
 
             world.EventHandler.AddEvent(this);
         }
