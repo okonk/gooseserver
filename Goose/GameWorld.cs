@@ -64,6 +64,16 @@ namespace Goose
          */
         private const int MaxReceiveBufferSize = 64 * 1024;
 
+        // H1: pre-login packets (no Player yet) must be reassembled across TCP
+        // segments; the cap bounds a stalled/attacking pre-login socket.
+        private const int MaxPreLoginBufferSize = 4096;
+        private readonly Dictionary<Socket, StringBuilder> preLoginBuffers = new();
+
+        internal string PreLoginPending(Socket sock)
+        {
+            return preLoginBuffers.TryGetValue(sock, out StringBuilder sb) ? sb.ToString() : null;
+        }
+
         long timerfreq;
         public long TimerFrequency { get { return this.timerfreq; } }
         Random rng;
@@ -467,6 +477,7 @@ namespace Goose
          */
         public void LostConnection(Socket sock)
         {
+            preLoginBuffers.Remove(sock);
             try
             {
                 log.Info("Connection lost: " + sock.RemoteEndPoint.ToString());
@@ -501,6 +512,7 @@ namespace Goose
             Player player = this.PlayerHandler.GetPlayer(sock);
             if (player != null)
             {
+                preLoginBuffers.Remove(sock);
                 player.Received(data);
 
                 // The client delimits packets with \x1 and ParseData only trims up to the
@@ -520,10 +532,30 @@ namespace Goose
             }
             else
             {
-                //player = new Player(sock);
-                //this.EventHandler.AddEvent(player, data.TrimEnd("\x1".ToCharArray()));
+                if (!preLoginBuffers.TryGetValue(sock, out StringBuilder buffer))
+                {
+                    buffer = new StringBuilder();
+                    preLoginBuffers.Add(sock, buffer);
+                }
+                buffer.Append(data);
+
+                if (buffer.Length > MaxPreLoginBufferSize)
+                {
+                    log.Warn("Dropping pre-login connection: buffer exceeded " +
+                             MaxPreLoginBufferSize + " bytes.");
+                    preLoginBuffers.Remove(sock);
+                    this.LostConnection(sock);
+                    return;
+                }
+
+                string s = buffer.ToString();
+                bool complete = (s.StartsWith("LOGIN", StringComparison.Ordinal) && s.IndexOf(',') >= 0)
+                                || s.Length >= 71;
+                if (!complete) return;
+
+                preLoginBuffers.Remove(sock);
                 Event ev = new LoginEvent();
-                ev.Data = new Object[] { sock, data };
+                ev.Data = new Object[] { sock, s };
                 this.EventHandler.AddEvent(ev);
             }
         }
