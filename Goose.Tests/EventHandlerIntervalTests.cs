@@ -177,7 +177,7 @@ namespace Goose.Tests
                 Assert.True(rescheduled.Ticks > before);
 
                 _handler.Update(_world); // must return, not spin
-                Assert.Equal(before + 1, _handler.Count);
+                Assert.Equal(beforeCount + 1, _handler.Count);
             }
             finally
             {
