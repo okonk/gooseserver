@@ -92,22 +92,46 @@ namespace Goose
                     this.Start();
                     this.GameLoop();
                 }
+                catch (FatalStartupException e)
+                {
+                    // Persistent config/bind failure (bad IP, port in use): restarting
+                    // can only spin, so exit instead.
+                    Console.WriteLine("\n" + e.Message);
+
+                    try
+                    {
+                        this.StopWorld();
+                    }
+                    catch { }
+
+                    Environment.ExitCode = 1;
+                    break;
+                }
                 catch (Exception e)
                 {
                     Console.WriteLine("\nCrashed: " + DateTime.Now.ToString());
                     Console.WriteLine(e.Message + " " + e.InnerException);
                     Console.WriteLine(e.StackTrace);
 
-                    using (System.IO.StreamWriter writer = System.IO.File.AppendText(Paths.ResolveData("crashlog.txt")))
-                    {
-                        writer.WriteLine("\nCrashed: " + DateTime.Now.ToString());
-                        writer.WriteLine(e.Message + " " + e.InnerException);
-                        writer.WriteLine(e.StackTrace);
-                    }
-
                     try
                     {
-                        this.Stop();
+                        using (System.IO.StreamWriter writer = System.IO.File.AppendText(Paths.ResolveData("crashlog.txt")))
+                        {
+                            writer.WriteLine("\nCrashed: " + DateTime.Now.ToString());
+                            writer.WriteLine(e.Message + " " + e.InnerException);
+                            writer.WriteLine(e.StackTrace);
+                        }
+                    }
+                    catch (Exception err)
+                    {
+                        Console.WriteLine("Could not write crashlog: " + err.Message);
+                    }
+
+                    // H7: Stop() would set stopping=true and shut down NLog, so the
+                    // next clean shutdown would skip player saves and lose all logging.
+                    try
+                    {
+                        this.StopWorld();
                     }
                     catch { }
 
@@ -130,12 +154,31 @@ namespace Goose
         {
             this.gameworld.Start();
 
-            this.listen = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            this.listen.Bind(new IPEndPoint(IPAddress.Parse(GameWorld.Settings.GameServerIP), 
-                GameWorld.Settings.GameServerPort));
-            this.listen.Listen(10);
+            this.listen = this.CreateListenSocket();
 
             this.sockets.Add(this.listen);
+        }
+
+        internal Socket CreateListenSocket()
+        {
+            string ip = GameWorld.Settings.GameServerIP;
+            int port = GameWorld.Settings.GameServerPort;
+
+            Socket socket = null;
+
+            try
+            {
+                socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                socket.Bind(new IPEndPoint(IPAddress.Parse(ip), port));
+                socket.Listen(10);
+                return socket;
+            }
+            catch (Exception e)
+            {
+                socket?.Dispose();
+                throw new FatalStartupException(
+                    "Fatal startup error: cannot listen on " + ip + ":" + port + ": " + e.Message, e);
+            }
         }
 
         /**
@@ -286,14 +329,23 @@ namespace Goose
         public void Stop()
         {
             this.stopping = true;
+            this.StopWorld();
+
+            NLog.LogManager.Shutdown();
+        }
+
+        private void StopWorld()
+        {
             this.gameworld.Stop();
 
             foreach (Socket sock in this.sockets)
             {
-                sock.Close();
+                try
+                {
+                    sock.Close();
+                }
+                catch { }
             }
-
-            NLog.LogManager.Shutdown();
         }
 
         /**
