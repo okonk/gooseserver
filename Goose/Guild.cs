@@ -266,6 +266,88 @@ namespace Goose
             });
         }
 
+        /**
+         * BuildSave, snapshots state and returns the work to persist this guild
+         *
+         * Returned rather than enqueued so the owning player's save can run the guild
+         * rows inside the player's own transaction, or so the save cadence can enqueue
+         * it without blocking the game thread.
+         *
+         */
+        public Action<SQLiteConnection> BuildSave()
+        {
+            string name = this.Name;
+            string motd = this.MOTD;
+
+            List<(int PlayerID, GuildRanks Rank, bool Deleted)> changes = new List<(int, GuildRanks, bool)>();
+            foreach (var status in this.Members.Values)
+            {
+                if (status.Dirty)
+                    changes.Add((status.PlayerID, status.Rank, status.Rank == GuildRanks.Deleted));
+            }
+
+            return conn =>
+            {
+                // H9: checked at run time, not build time - an earlier save queued ahead
+                // in the single DB queue may have assigned the ID, and a build-time
+                // snapshot would double-INSERT the guild row.
+                if (this.ID == 0)
+                {
+                    using var command = conn.CreateCommand();
+                    command.CommandText = "INSERT INTO guilds (guild_name, guild_motd) VALUES (@name, @motd)";
+                    command.Parameters.Add(new SQLiteParameter("@name", DbType.String) { Value = name });
+                    command.Parameters.Add(new SQLiteParameter("@motd", DbType.String) { Value = motd });
+                    command.ExecuteNonQuery();
+
+                    command.CommandText = "SELECT last_insert_rowid()";
+                    this.ID = Convert.ToInt32(command.ExecuteScalar());
+
+                    foreach (Player player in this.OnlineMembers)
+                    {
+                        player.GuildID = this.ID;
+                    }
+                }
+                else
+                {
+                    using var command = conn.CreateCommand();
+                    command.CommandText = "UPDATE guilds SET guild_name=@name, guild_motd=@motd WHERE guild_id=" + this.ID;
+                    command.Parameters.Add(new SQLiteParameter("@name", DbType.String) { Value = name });
+                    command.Parameters.Add(new SQLiteParameter("@motd", DbType.String) { Value = motd });
+                    command.ExecuteNonQuery();
+                }
+
+                foreach (var (playerId, rank, deleted) in changes)
+                {
+                    using var command = conn.CreateCommand();
+                    if (deleted)
+                    {
+                        command.CommandText = "DELETE FROM guild_members WHERE guild_id=" + this.ID +
+                            " AND player_id=" + playerId;
+                    }
+                    else
+                    {
+                        // H9: upsert so a re-run (rollback retry or double save) cannot hit
+                        // the (guild_id, player_id) PK.
+                        command.CommandText = "INSERT INTO guild_members (guild_id, player_id, guild_rank) VALUES (" +
+                            this.ID + ", " + playerId + ", " + (int)rank +
+                            ") ON CONFLICT(guild_id, player_id) DO UPDATE SET guild_rank=" + (int)rank;
+                    }
+                    command.ExecuteNonQuery();
+                }
+
+                foreach (var (playerId, rank, deleted) in changes)
+                {
+                    if (deleted) this.Members.Remove(playerId);
+                }
+                foreach (var status in this.Members.Values)
+                {
+                    status.Dirty = false;
+                    status.JustAdded = false;
+                }
+
+                this.Dirty = false;
+            };
+        }
 
         /**
          * ChangeOwner, swaps ownership of guild

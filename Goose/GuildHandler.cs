@@ -97,7 +97,7 @@ namespace Goose
 
             foreach (Guild guild in this.guilds.Values)
             {
-                if (guild.Dirty) guild.Save(world);
+                if (guild.Dirty) world.Database.EnqueueTransaction(guild.BuildSave());
             }
 
             this.newguilds.Clear();

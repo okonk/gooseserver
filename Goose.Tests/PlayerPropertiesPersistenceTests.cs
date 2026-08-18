@@ -81,6 +81,7 @@ public class PlayerPropertiesPersistenceTests : IDisposable
         using var command = player.BuildInsertCommand(
             conn,
             player.BuildInsertQuery(),
+            player.GuildID,
             player.Name,
             player.Title,
             player.Surname,
@@ -96,6 +97,7 @@ public class PlayerPropertiesPersistenceTests : IDisposable
         using var command = player.BuildUpdateCommand(
             conn,
             player.BuildUpdateQuery(),
+            player.GuildID,
             player.Name,
             player.Title,
             player.Surname,

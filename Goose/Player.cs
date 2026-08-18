@@ -854,8 +854,6 @@ namespace Goose
             // rolled-back save retries INSERT instead of UPDATE-matching zero rows.
             bool isNew = this.AutoCreatedNotSaved;
 
-            if (this.GuildID == 0 && this.Guild != null) this.Guild.Save(world);
-
             Action<SQLiteConnection> savePlayerRow;
 
             if (this.AutoCreatedNotSaved)
@@ -863,7 +861,9 @@ namespace Goose
                 string insertQuery = this.BuildInsertQuery();
                 savePlayerRow = conn =>
                 {
-                    using var command = BuildInsertCommand(conn, insertQuery, playerName, playerTitle, playerSurname, unbanDate, playerProperties);
+                    // H9: read at call time - a new guild's first work item assigns
+                    // this.GuildID earlier in the same transaction.
+                    using var command = BuildInsertCommand(conn, insertQuery, this.GuildID, playerName, playerTitle, playerSurname, unbanDate, playerProperties);
                     command.ExecuteNonQuery();
                 };
             }
@@ -872,7 +872,7 @@ namespace Goose
                 string updateQuery = this.BuildUpdateQuery();
                 savePlayerRow = conn =>
                 {
-                    using var command = BuildUpdateCommand(conn, updateQuery, playerName, playerTitle, playerSurname, unbanDate, playerProperties);
+                    using var command = BuildUpdateCommand(conn, updateQuery, this.GuildID, playerName, playerTitle, playerSurname, unbanDate, playerProperties);
                     command.ExecuteNonQuery();
                 };
             }
@@ -883,6 +883,12 @@ namespace Goose
             // could persist the players row against a stale inventory - buy an item, crash,
             // and keep both the gold and the item.
             var work = new List<Action<SQLiteConnection>>();
+
+            // First so the guild INSERT assigns the ID the players row binds.
+            if (this.Guild != null && (this.GuildID == 0 || this.Guild.Dirty))
+            {
+                work.Add(this.Guild.BuildSave());
+            }
 
             work.Add(savePlayerRow);
             work.Add(this.Inventory.BuildSave());
@@ -923,7 +929,8 @@ namespace Goose
         /// <summary>
         /// Builds the INSERT query text for a brand-new player row. Called on the game thread
         /// so every scalar is snapshotted at the same moment as the rest of the save; the
-        /// command builder then only binds parameters.
+        /// command builder then only binds parameters, guild_id included (a new guild's ID
+        /// is only known inside the save transaction).
         /// </summary>
         internal string BuildInsertQuery()
         {
@@ -955,7 +962,7 @@ namespace Goose
                 this.BaseStats.MP + ", " +
                 this.BaseStats.SP + ", " +
                 this.ClassID + ", " +
-                this.GuildID + ", " +
+                " @guildId, " +
                 this.BaseStats.AC + ", " +
                 this.BaseStats.Strength + ", " +
                 this.BaseStats.Stamina + ", " +
@@ -995,10 +1002,11 @@ namespace Goose
         /// every parameter. Split out of SaveToDatabase so the persistence tests can execute
         /// the shipped query text and parameter binding without a live GameWorld.
         /// </summary>
-        internal SQLiteCommand BuildInsertCommand(SQLiteConnection conn, string query, string playerName, string playerTitle, string playerSurname, object unbanDate, string playerProperties)
+        internal SQLiteCommand BuildInsertCommand(SQLiteConnection conn, string query, int guildId, string playerName, string playerTitle, string playerSurname, object unbanDate, string playerProperties)
         {
             var command = conn.CreateCommand();
             command.CommandText = query;
+            command.Parameters.Add(new SQLiteParameter("@guildId", DbType.Int32) { Value = guildId });
             command.Parameters.Add(new SQLiteParameter("@playerName", DbType.String) { Value = playerName });
             command.Parameters.Add(new SQLiteParameter("@playerTitle", DbType.String) { Value = playerTitle });
             command.Parameters.Add(new SQLiteParameter("@playerSurname", DbType.String) { Value = playerSurname });
@@ -1010,7 +1018,8 @@ namespace Goose
         /// <summary>
         /// Builds the UPDATE query text for an existing player row. Called on the game thread
         /// so every scalar is snapshotted at the same moment as the rest of the save; the
-        /// command builder then only binds parameters.
+        /// command builder then only binds parameters, guild_id included (a new guild's ID
+        /// is only known inside the save transaction).
         /// </summary>
         internal string BuildUpdateQuery()
         {
@@ -1036,7 +1045,7 @@ namespace Goose
                 "player_mp=" + this.BaseStats.MP + ", " +
                 "player_sp=" + this.BaseStats.SP + ", " +
                 "class_id=" + this.ClassID + ", " +
-                "guild_id=" + this.GuildID + ", " +
+                "guild_id=@guildId, " +
                 "stat_ac=" + this.BaseStats.AC + ", " +
                 "stat_str=" + this.BaseStats.Strength + ", " +
                 "stat_sta=" + this.BaseStats.Stamina + ", " +
@@ -1076,10 +1085,11 @@ namespace Goose
         /// every parameter. Split out of SaveToDatabase so the persistence tests can execute
         /// the shipped query text and parameter binding without a live GameWorld.
         /// </summary>
-        internal SQLiteCommand BuildUpdateCommand(SQLiteConnection conn, string query, string playerName, string playerTitle, string playerSurname, object unbanDate, string playerProperties)
+        internal SQLiteCommand BuildUpdateCommand(SQLiteConnection conn, string query, int guildId, string playerName, string playerTitle, string playerSurname, object unbanDate, string playerProperties)
         {
             var command = conn.CreateCommand();
             command.CommandText = query;
+            command.Parameters.Add(new SQLiteParameter("@guildId", DbType.Int32) { Value = guildId });
             command.Parameters.Add(new SQLiteParameter("@playerName", DbType.String) { Value = playerName });
             command.Parameters.Add(new SQLiteParameter("@playerTitle", DbType.String) { Value = playerTitle });
             command.Parameters.Add(new SQLiteParameter("@playerSurname", DbType.String) { Value = playerSurname });
