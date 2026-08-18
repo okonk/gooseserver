@@ -2425,7 +2425,10 @@ namespace Goose
                 {
                     var bytesSent = this.sock.Send(bytes);
                     if (bytesSent != bytes.Length)
+                    {
+                        this.SendBuffer ??= new();
                         this.SendBuffer.AddRange(bytes.AsSpan(bytesSent));
+                    }
                 }
                 // H2: a would-block send throws and drops the whole packet; buffer it all
                 catch (SocketException)
