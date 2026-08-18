@@ -552,7 +552,11 @@ namespace Goose
                 }
 
                 string s = buffer.ToString();
-                bool complete = (s.StartsWith("LOGIN", StringComparison.Ordinal) && s.IndexOf(',') >= 0)
+                // H1: a classic login is only actionable once name and password are both
+                // in (two commas); LoginEvent disconnects on a truncated password.
+                int firstComma = s.IndexOf(',');
+                bool complete = (s.StartsWith("LOGIN", StringComparison.Ordinal) && firstComma > 0
+                                 && s.IndexOf(',', firstComma + 1) >= 0)
                                 || s.Length >= MinIllutiaLoginLength;
                 if (!complete) return;
 

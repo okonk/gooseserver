@@ -37,6 +37,26 @@ namespace Goose.Tests
         }
 
         [Fact]
+        public void ClassicLogin_SplitAfterFirstComma_HeldUntilThePasswordFieldIsComplete()
+        {
+            var (world, sock) = NewWorldAndSocket();
+            using (sock)
+            {
+                world.Received(sock, "LOGINabcd,");
+                Assert.Equal("LOGINabcd,", world.PreLoginPending(sock));
+                Assert.Equal(0, world.EventHandler.Count);
+
+                world.Received(sock, "passw0rd,ALPHA33,3.5.2");
+                Assert.Null(world.PreLoginPending(sock));
+                Assert.Equal(1, world.EventHandler.Count);
+
+                var ev = world.EventHandler.Peek();
+                Assert.IsType<LoginEvent>(ev);
+                Assert.Equal("LOGINabcd,passw0rd,ALPHA33,3.5.2", ((object[])ev.Data)[1]);
+            }
+        }
+
+        [Fact]
         public void ClassicLogin_CompleteInOneSegment_DispatchesImmediately()
         {
             var (world, sock) = NewWorldAndSocket();
