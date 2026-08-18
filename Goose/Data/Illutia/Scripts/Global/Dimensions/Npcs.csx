@@ -76,8 +76,11 @@ public partial class Dimensions
         // Snapshot first: AddTemplate mutates the dictionary GetTemplates() enumerates.
         // Only base templates (id < Offset) are cloned - a generated id (warden, or an
         // already-cloned template) must not be treated as base sheet data and cloned again.
+        // Credit dealers stay out: their currency is the base world's donation credit, and
+        // their stock would only reprice as spirit clones. CloneSpawns needs no change -
+        // its clone-template lookup returns null and the spawn is skipped.
         var baseTemplates = world.NPCHandler.GetTemplates()
-            .Where(t => t.NPCTemplateID < Offset).ToList();
+            .Where(t => t.NPCTemplateID < Offset && !t.CreditDealer).ToList();
 
         for (int dim = 1; dim <= DimensionCount; dim++)
         {
@@ -102,20 +105,29 @@ public partial class Dimensions
         {
             NPCTemplateID = basic.NPCTemplateID + Offset * dim,
             Name = basic.Name + " (" + dim + ")",
-            Level = 50,                                   // NPC.java:899
-            AttackRange = basic.AttackRange + dim,        // NPC.java:869
-            CanBeRooted = false,                          // NPC.java:881
-            CanBeStunned = false,
-            CanBeSlowed = true,
-            AttackSpeed = ScaleAttackSpeed(basic.AttackSpeed, dim),
-            MoveSpeed = Math.Max(basic.MoveSpeed - 0.15m * dim, 0.15m),   // NPC.java:907
-            WeaponDamage = ScaleDamage(basic.WeaponDamage, dim),
-            Experience = ScaleExperience(basic.Experience, basic.Level, dim),
-            RespawnTime = ScaleRespawn(basic.RespawnTime, dim),
         };
 
-        clone.BaseStats.HP = ScaleHP(basic.BaseStats.HP, dim);
-        clone.BaseStats.HPPercentRegen = basic.BaseStats.HPPercentRegen + 0.004m * (dim + 1);  // NPC.java:879
+        // Only killable NPCs get combat scaling: an invincible NPC that aggroed (a taunt
+        // bypasses AggroRange) with ScaleDamage's floor (100000 x (4^dim - 3), x20 in
+        // dim 5+) would be an unkillable one-shot wall. Killable service NPCs ARE scaled -
+        // the sheet tags its vendors and quest givers invincible, so this only bites on a
+        // data error (see Killable_vendors_are_scaled_like_mobs).
+        if (basic.CanBeKilled)
+        {
+            clone.Level = 50;                                   // NPC.java:899
+            clone.AttackRange = basic.AttackRange + dim;        // NPC.java:869
+            clone.CanBeRooted = false;                          // NPC.java:881
+            clone.CanBeStunned = false;
+            clone.CanBeSlowed = true;
+            clone.AttackSpeed = ScaleAttackSpeed(basic.AttackSpeed, dim);
+            clone.MoveSpeed = Math.Max(basic.MoveSpeed - 0.15m * dim, 0.15m);   // NPC.java:907
+            clone.WeaponDamage = ScaleDamage(basic.WeaponDamage, dim);
+            clone.Experience = ScaleExperience(basic.Experience, basic.Level, dim);
+            clone.RespawnTime = ScaleRespawn(basic.RespawnTime, dim);
+
+            clone.BaseStats.HP = ScaleHP(basic.BaseStats.HP, dim);
+            clone.BaseStats.HPPercentRegen = basic.BaseStats.HPPercentRegen + 0.004m * (dim + 1);  // NPC.java:879
+        }
 
         Recolour(clone, dim);   // NPC.java:1019
         return clone;

@@ -57,9 +57,12 @@ public class DimensionsScriptTests
         using var fixture = Run(f =>
         {
             f.AddBaseMap(1, "Town", width: 100, height: 100);
+            // CanBeKilled true matches sheet mobs: invincible defaults to '0'
+            // (npcs.sql:20), and invincible NPCs keep their sheet stats.
             var t = new NPCTemplate { NPCTemplateID = 162, Name = "Shadow Dog", Level = 40,
                                       WeaponDamage = 365, RespawnTime = 50, Experience = 750,
                                       AttackSpeed = 1.5m, MoveSpeed = 1.5m, AttackRange = 1,
+                                      CanBeKilled = true,
                                       CanBeRooted = true, CanBeStunned = true, CanBeSlowed = false };
             t.BaseStats = new AttributeSet { HP = 3704 };
             f.World.NPCHandler.AddTemplate(t);
@@ -83,6 +86,129 @@ public class DimensionsScriptTests
         Assert.True(dim3.CanBeSlowed);
         // NPC.java:869 - attack range grows with dimension
         Assert.Equal(1 + 3, dim3.AttackRange);
+    }
+
+    /// <summary>Invincibility opts a vendor out of combat scaling: the clone keeps its
+    /// sheet stats - aggro range 0 included. Killable service NPCs do scale (see
+    /// Killable_vendors_are_scaled_like_mobs); the sheet tags its vendors invincible.
+    /// Clones_each_template_once_per_dimension_with_scaled_stats covers killable mobs.</summary>
+    [Fact]
+    public void Invincible_vendors_keep_their_sheet_stats_in_dimension_clones()
+    {
+        using var fixture = Run(f =>
+        {
+            f.AddBaseMap(1, "Town", width: 100, height: 100);
+            var t = new NPCTemplate
+            {
+                NPCTemplateID = 162, Name = "Shopkeeper", Level = 7, ClassID = 3,
+                NPCType = NPCTemplate.Types.Vendor,
+                AggroRange = 0, AttackRange = 0, WeaponDamage = 0,
+                CanBeKilled = false, CanMove = false,
+            };
+            t.BaseStats = new AttributeSet { HP = 100 };
+            f.World.NPCHandler.AddTemplate(t);
+        });
+
+        var dim3 = fixture.World.NPCHandler.GetNPCTemplate(162 + 100000 * 3);
+
+        Assert.NotNull(dim3);
+        Assert.Equal(0, dim3.AggroRange);
+        Assert.Equal(0, dim3.AttackRange);
+        Assert.Equal(0, dim3.WeaponDamage);
+        Assert.Equal(7, dim3.Level);
+        Assert.Equal(100, dim3.BaseStats.HP);
+    }
+
+    /// <summary>The accepted tradeoff of gating purely on invincibility: a service NPC
+    /// that is not tagged invincible gets full combat scaling, like any other mob. The
+    /// sheet tags its vendors and quest givers invincible, so this only bites on a data
+    /// error.</summary>
+    [Fact]
+    public void Killable_vendors_are_scaled_like_mobs()
+    {
+        using var fixture = Run(f =>
+        {
+            f.AddBaseMap(1, "Town", width: 100, height: 100);
+            var t = new NPCTemplate
+            {
+                NPCTemplateID = 162, Name = "Shopkeeper", Level = 7, ClassID = 3,
+                NPCType = NPCTemplate.Types.Vendor,
+                CanBeKilled = true, CanMove = false,
+            };
+            t.BaseStats = new AttributeSet { HP = 100 };
+            f.World.NPCHandler.AddTemplate(t);
+        });
+
+        var dim3 = fixture.World.NPCHandler.GetNPCTemplate(162 + 100000 * 3);
+
+        Assert.NotNull(dim3);
+        Assert.Equal(50, dim3.Level);
+        // ScaleDamage's floor: a zero-damage base still hits for 100000 x (4^3 - 3).
+        Assert.Equal(100000L * 61, dim3.WeaponDamage);
+    }
+
+    /// <summary>Invincibility opts even a monster-tagged template out of combat scaling:
+    /// an unkillable NPC with the dimension damage floor would be an unkillable one-shot
+    /// wall, regardless of npc_type. Such an NPC is dimension-identical to its base copy.
+    /// (It also cannot be a dimension quest boss - a kill requirement on an unkillable
+    /// NPC is uncompletable.)</summary>
+    [Fact]
+    public void Invincible_mobs_keep_their_sheet_stats_in_dimension_clones()
+    {
+        using var fixture = Run(f =>
+        {
+            f.AddBaseMap(1, "Town", width: 100, height: 100);
+            var t = new NPCTemplate
+            {
+                NPCTemplateID = 162, Name = "Guardian", Level = 40, ClassID = 3,
+                NPCType = NPCTemplate.Types.Monster,
+                AggroRange = 5, AttackRange = 1, WeaponDamage = 365,
+                CanBeKilled = false,
+            };
+            t.BaseStats = new AttributeSet { HP = 3704 };
+            f.World.NPCHandler.AddTemplate(t);
+        });
+
+        var dim3 = fixture.World.NPCHandler.GetNPCTemplate(162 + 100000 * 3);
+
+        Assert.NotNull(dim3);
+        Assert.Equal(40, dim3.Level);
+        Assert.Equal(365, dim3.WeaponDamage);
+        Assert.Equal(3704, dim3.BaseStats.HP);
+    }
+
+    /// <summary>Credit dealers do not get a dimension clone: their currency is the base
+    /// world's donation credit and their stock would only reprice as spirit clones.
+    /// The spawn pass is covered implicitly - CloneSpawns looks the clone template up
+    /// and skips the spawn when it is null.</summary>
+    [Fact]
+    public void Credit_dealers_are_not_cloned_into_dimensions()
+    {
+        using var fixture = Run(f =>
+        {
+            f.AddBaseMap(1, "Town", width: 100, height: 100);
+            var t = new NPCTemplate
+            {
+                NPCTemplateID = 162, Name = "Credit Dealer", Level = 1, ClassID = 3,
+                NPCType = NPCTemplate.Types.Vendor,
+                CreditDealer = true, CurrencyId = Currency.Credits,
+            };
+            t.BaseStats = new AttributeSet { HP = 100 };
+            f.World.NPCHandler.AddTemplate(t);
+            f.World.NPCHandler.SpawnNPC(f.World, 1, 20, 20, t, shouldRespawn: false);
+        });
+
+        for (int dim = 1; dim <= 6; dim++)
+        {
+            Assert.Null(fixture.World.NPCHandler.GetNPCTemplate(162 + 100000 * dim));
+            Assert.DoesNotContain(fixture.World.MapHandler.GetMap(1 + 100000 * dim).NPCs,
+                                  n => n.NPCTemplateID == 162 + 100000 * dim);
+        }
+
+        // The base dealer and its spawn are untouched.
+        Assert.NotNull(fixture.World.NPCHandler.GetNPCTemplate(162));
+        Assert.Contains(fixture.World.MapHandler.GetMap(1).NPCs,
+                        n => n.NPCTemplateID == 162);
     }
 
     [Fact]
@@ -152,7 +278,9 @@ public class DimensionsScriptTests
         using var fixture = Run(f =>
         {
             f.AddBaseMap(1, "Town", width: 100, height: 100);
-            var t = new NPCTemplate { NPCTemplateID = 162, Name = "Shadow Dog", Level = 40, WeaponDamage = 365 };
+            // CanBeKilled true matches sheet mobs (npcs.sql:20 defaults to killable).
+            var t = new NPCTemplate { NPCTemplateID = 162, Name = "Shadow Dog", Level = 40,
+                                      WeaponDamage = 365, CanBeKilled = true };
             t.BaseStats = new AttributeSet { HP = 3704 };   // <= 35,000,000, so HP doubles at dim >= 5
             f.World.NPCHandler.AddTemplate(t);
         });

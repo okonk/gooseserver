@@ -112,8 +112,10 @@ public partial class Dimensions
 
             // Item.java:445. This is the spirit price. CurrencyId stamps the clones as
             // spirit-priced (below), and CurrencyHandler.Resolve makes that override win
-            // at every vendor, so this value is never read as gold.
-            Value = (long)(basic.Value * Math.Pow(3, dim)),
+            // at every vendor, so this value is never read as gold. Credit-only items
+            // (value 0, credits_value > 0) have no gold to scale - without the fallback
+            // the spirit stamp would price them at 0 and make them free.
+            Value = (long)((basic.Value > 0 ? basic.Value : basic.Credits) * Math.Pow(3, dim)),
 
             // Dimension items are priced in spirit wherever they are traded. The currency
             // is registered just above in OnLoaded, so stamping can validate against it.
