@@ -87,15 +87,20 @@ public class GuildMemberUpsertTests : PlayerFirstSaveTestBase
         });
         Assert.Equal(1, Count("SELECT COUNT(*) FROM guild_members WHERE guild_id=" + guildId + " AND player_id=1"));
 
-        // Same exact failure mode the crash desync caused: the member row already exists
-        // but the dirty flags were never cleared, so the next save re-issues the upsert.
+        // Crash-desync scenario: the member row exists but the dirty flags were never
+        // cleared, so the next save re-issues the same member upsert against it.
+        var status = guild.Members[1];
+        status.Dirty = true;
+        status.JustAdded = true;
+        guild.Dirty = true;
+
         world.Database.EnqueueTransaction(guild.BuildSave());
 
         Assert.Equal(1, Count("SELECT COUNT(*) FROM guilds"));
         Assert.Equal(1, Count("SELECT COUNT(*) FROM guild_members"));
         Assert.False(guild.Dirty);
-        Assert.False(guild.Members[1].Dirty);
-        Assert.False(guild.Members[1].JustAdded);
+        Assert.False(status.Dirty);
+        Assert.False(status.JustAdded);
     }
 
     [Fact]

@@ -279,11 +279,11 @@ namespace Goose
             string name = this.Name;
             string motd = this.MOTD;
 
-            List<(int PlayerID, GuildRanks Rank, bool Deleted)> changes = new List<(int, GuildRanks, bool)>();
+            List<(PlayerGuildStatus Status, int PlayerID, GuildRanks Rank, bool Deleted)> changes = new List<(PlayerGuildStatus, int, GuildRanks, bool)>();
             foreach (var status in this.Members.Values)
             {
                 if (status.Dirty)
-                    changes.Add((status.PlayerID, status.Rank, status.Rank == GuildRanks.Deleted));
+                    changes.Add((status, status.PlayerID, status.Rank, status.Rank == GuildRanks.Deleted));
             }
 
             return conn =>
@@ -316,7 +316,7 @@ namespace Goose
                     command.ExecuteNonQuery();
                 }
 
-                foreach (var (playerId, rank, deleted) in changes)
+                foreach (var (status, playerId, rank, deleted) in changes)
                 {
                     using var command = conn.CreateCommand();
                     if (deleted)
@@ -335,17 +335,31 @@ namespace Goose
                     command.ExecuteNonQuery();
                 }
 
-                foreach (var (playerId, rank, deleted) in changes)
+                foreach (var (status, playerId, rank, deleted) in changes)
                 {
-                    if (deleted) this.Members.Remove(playerId);
-                }
-                foreach (var status in this.Members.Values)
-                {
+                    if (deleted)
+                    {
+                        this.Members.Remove(playerId);
+                        continue;
+                    }
+
                     status.Dirty = false;
                     status.JustAdded = false;
                 }
 
-                this.Dirty = false;
+                // H9: a command landing after the snapshot must survive for the next
+                // save - once GuildID is set the owning player's save skips the guild
+                // work item, so wiping the flag would lose it.
+                bool anyDirty = false;
+                foreach (var status in this.Members.Values)
+                {
+                    if (status.Dirty)
+                    {
+                        anyDirty = true;
+                        break;
+                    }
+                }
+                this.Dirty = anyDirty || this.Name != name || this.MOTD != motd;
             };
         }
 
