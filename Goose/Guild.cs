@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Data;
 using System.Data.SQLite;
 
@@ -47,6 +48,10 @@ namespace Goose
 
         public List<Player> OnlineMembers { get; set; }
 
+        // H9: bumped at every game-thread mark-dirty site; BuildSave snapshots it so
+        // the post-commit Dirty recompute keeps marks that landed after the snapshot.
+        private long changeSeq;
+
         /**
          * Constructor
          */
@@ -79,6 +84,9 @@ namespace Goose
             status.PlayerID = playerid;
             status.Rank = rank;
             status.JustAdded = justadded;
+
+            if (dirty)
+                Interlocked.Increment(ref this.changeSeq);
 
             this.Members[playerid] = status;
             this.Dirty = dirty;
@@ -167,6 +175,7 @@ namespace Goose
             status.Dirty = true;
             status.Rank = GuildRanks.Deleted;
             this.Dirty = true;
+            Interlocked.Increment(ref this.changeSeq);
         }
 
         /**
@@ -266,6 +275,127 @@ namespace Goose
             });
         }
 
+        public (Action<SQLiteConnection> Save, Action OnCommit) BuildSave(Action<int> onGuildId = null)
+        {
+            string name = this.Name;
+            string motd = this.MOTD;
+            long seq = Interlocked.Read(ref this.changeSeq);
+
+            List<(PlayerGuildStatus Status, int PlayerID, GuildRanks Rank, bool Deleted)> changes = new List<(PlayerGuildStatus, int, GuildRanks, bool)>();
+            foreach (var status in this.Members.Values)
+            {
+                if (status.Dirty)
+                    changes.Add((status, status.PlayerID, status.Rank, status.Rank == GuildRanks.Deleted));
+            }
+
+            List<Player> online = new List<Player>(this.OnlineMembers);
+
+            int effectiveId = 0;
+            bool inserted = false;
+
+            Action<SQLiteConnection> save = conn =>
+            {
+                // H9: checked at run time, not build time - an earlier save queued ahead
+                // in the single DB queue may have assigned the ID; a build-time check would double-INSERT.
+                if (this.ID == 0)
+                {
+                    using var command = conn.CreateCommand();
+                    command.CommandText = "INSERT INTO guilds (guild_name, guild_motd) VALUES (@name, @motd)";
+                    command.Parameters.Add(new SQLiteParameter("@name", DbType.String) { Value = name });
+                    command.Parameters.Add(new SQLiteParameter("@motd", DbType.String) { Value = motd });
+                    command.ExecuteNonQuery();
+
+                    command.CommandText = "SELECT last_insert_rowid()";
+                    effectiveId = Convert.ToInt32(command.ExecuteScalar());
+                    inserted = true;
+                }
+                else
+                {
+                    effectiveId = this.ID;
+
+                    using var command = conn.CreateCommand();
+                    command.CommandText = "UPDATE guilds SET guild_name=@name, guild_motd=@motd WHERE guild_id=" + effectiveId;
+                    command.Parameters.Add(new SQLiteParameter("@name", DbType.String) { Value = name });
+                    command.Parameters.Add(new SQLiteParameter("@motd", DbType.String) { Value = motd });
+                    command.ExecuteNonQuery();
+                }
+
+                onGuildId?.Invoke(effectiveId);
+
+                foreach (var (status, playerId, rank, deleted) in changes)
+                {
+                    using var command = conn.CreateCommand();
+                    if (deleted)
+                    {
+                        command.CommandText = "DELETE FROM guild_members WHERE guild_id=" + effectiveId +
+                            " AND player_id=" + playerId;
+                    }
+                    else
+                    {
+                        // H9: upsert so a re-run (rollback retry or double save) cannot hit
+                        // the (guild_id, player_id) PK.
+                        command.CommandText = "INSERT INTO guild_members (guild_id, player_id, guild_rank) VALUES (" +
+                            effectiveId + ", " + playerId + ", " + (int)rank +
+                            ") ON CONFLICT(guild_id, player_id) DO UPDATE SET guild_rank=" + (int)rank;
+                    }
+                    command.ExecuteNonQuery();
+                }
+            };
+
+            // H9: in-memory transitions run only after COMMIT, so a rolled-back save
+            // leaves memory as the caller left it. Single-key ops: no live enumeration.
+            Action onCommit = () =>
+            {
+                this.ID = effectiveId;
+
+                if (inserted)
+                {
+                    foreach (Player player in online)
+                    {
+                        if (player.Guild == this)
+                            player.GuildID = this.ID;
+                    }
+                }
+
+                bool outstanding = false;
+                foreach (var (status, playerId, rank, deleted) in changes)
+                {
+                    if (!this.Members.TryGetValue(playerId, out var live))
+                        continue;
+
+                    if (!ReferenceEquals(live, status))
+                    {
+                        // Re-added since the snapshot: the new entry is dirty itself.
+                        outstanding = true;
+                        continue;
+                    }
+
+                    if (deleted)
+                    {
+                        if (live.Rank == GuildRanks.Deleted)
+                            this.Members.Remove(playerId);
+                        else
+                            outstanding = true;
+                        continue;
+                    }
+
+                    if (live.Rank == rank)
+                    {
+                        status.Dirty = false;
+                        status.JustAdded = false;
+                    }
+                    else
+                        outstanding = true;
+                }
+
+                // H9: a mark landing after the snapshot must survive - once GuildID is
+                // set the owning player's save skips the guild work item, so a wipe would lose the change.
+                this.Dirty = outstanding || Interlocked.Read(ref this.changeSeq) != seq
+                    || this.Name != name || this.MOTD != motd;
+            };
+
+            return (save, onCommit);
+        }
 
         /**
          * ChangeOwner, swaps ownership of guild
@@ -285,6 +415,7 @@ namespace Goose
             }
 
             this.Dirty = true;
+            Interlocked.Increment(ref this.changeSeq);
 
             this.SendToGuild(P.GuildMessage("[guild-notice] " + newleader.Name + " is now the new guild leader."), world);
         }
@@ -312,6 +443,7 @@ namespace Goose
             }
 
             this.Dirty = true;
+            Interlocked.Increment(ref this.changeSeq);
         }
     }
 }

@@ -294,7 +294,9 @@ namespace Goose
 
         public override void SaveToDatabase(GameWorld world)
         {
-            world.Database.Enqueue(this.BuildSave());
+            // H8: standalone pet save (tame spell) - clear the flag only once committed.
+            bool isNew = this.AutoCreatedNotSaved;
+            world.Database.EnqueueTransaction(this.BuildSave(), isNew ? () => this.AutoCreatedNotSaved = false : null);
         }
 
         /**
@@ -373,8 +375,6 @@ namespace Goose
                     command.Parameters.Add(new SQLiteParameter("@petTitle", DbType.String) { Value = petTitle });
                     command.Parameters.Add(new SQLiteParameter("@petSurname", DbType.String) { Value = petSurname });
                     command.ExecuteNonQuery();
-                    // Only clear after a successful insert so a failed first save can retry INSERT.
-                    this.AutoCreatedNotSaved = false;
                 };
             }
             else if (this.Delete)

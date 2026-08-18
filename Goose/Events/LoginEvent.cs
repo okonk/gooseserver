@@ -142,6 +142,14 @@ namespace Goose.Events
 
                 if (GameWorld.Settings.AutoCharacterCreation)
                 {
+                    // H3: 16 matches the client's 16-byte login name field; longer names overflow it
+                    if (name.Length < 3 || name.Length > 16)
+                    {
+                        world.SendRaw(sock, P.LoginDenied("Character name must be 3-16 letters."));
+                        world.GameServer.Disconnect(sock);
+                        return;
+                    }
+
                     if (!name.All(c => (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')))
                     {
                         world.SendRaw(sock, P.LoginDenied("Your name must contain letters only."));

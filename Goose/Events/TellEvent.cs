@@ -18,6 +18,8 @@ namespace Goose.Events
      */
     class TellEvent : Event
     {
+        private const int MaxMessageLength = 300;
+
         public override void Ready(GameWorld world)
         {
             if (this.Player.State == Player.States.Ready)
@@ -30,6 +32,8 @@ namespace Goose.Events
                 {
                     string name = info.Substring(0, info.IndexOf(' '));
                     string message = info.Substring(name.Length + 1);
+
+                    if (message.Length > MaxMessageLength) return;
 
                     if (message.Length > 0)
                     {

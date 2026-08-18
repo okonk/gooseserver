@@ -26,7 +26,8 @@ namespace Goose.Events
         {
             var e = new ScriptTimerEvent();
             e.Data = action;
-            e.Ticks += (long)(world.TimerFrequency * period.TotalSeconds);
+            // H6: clamp to >= 1 tick, TimeSpan.Zero/negative would schedule at now and spin EventHandler.Update
+            e.Ticks += Math.Max(1, (long)(world.TimerFrequency * period.TotalSeconds));
 
             world.EventHandler.AddEvent(e);
 
@@ -35,7 +36,8 @@ namespace Goose.Events
 
         public ScriptTimerEvent Reschedule(TimeSpan period, GameWorld world)
         {
-            this.Ticks = world.TimeNow + (long)(world.TimerFrequency * period.TotalSeconds);
+            // H6: clamp to >= 1 tick, TimeSpan.Zero/negative would reschedule at now and spin EventHandler.Update
+            this.Ticks = world.TimeNow + Math.Max(1, (long)(world.TimerFrequency * period.TotalSeconds));
 
             world.EventHandler.AddEvent(this);
 

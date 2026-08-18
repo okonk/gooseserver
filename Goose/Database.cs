@@ -237,8 +237,11 @@ namespace Goose
         /// touches players, inventory, equipped, bank_items, spellbook, quest_status and
         /// pets; issuing those as separate work items meant a crash between them could
         /// persist new gold against an old inventory, which is an item dupe.
+        ///
+        /// onCommit, if given, runs only after the COMMIT succeeds - never on the
+        /// rollback path and never if COMMIT itself throws.
         /// </summary>
-        public void EnqueueTransaction(Action<SQLiteConnection> action)
+        public void EnqueueTransaction(Action<SQLiteConnection> action, Action onCommit = null)
         {
             if (action == null) throw new ArgumentNullException(nameof(action));
 
@@ -254,6 +257,9 @@ namespace Goose
                 {
                     action(conn);
                     RunSql(conn, "COMMIT;");
+                    // H8: runs only after COMMIT succeeds, so a rolled-back transaction
+                    // never lets callers mark state as persisted.
+                    onCommit?.Invoke();
                 }
                 catch (Exception)
                 {

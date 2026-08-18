@@ -97,7 +97,11 @@ namespace Goose
 
             foreach (Guild guild in this.guilds.Values)
             {
-                if (guild.Dirty) guild.Save(world);
+                if (guild.Dirty)
+                {
+                    var (save, onCommit) = guild.BuildSave();
+                    world.Database.EnqueueTransaction(save, onCommit);
+                }
             }
 
             this.newguilds.Clear();
@@ -112,7 +116,8 @@ namespace Goose
         public void AddSaveEvent(GameWorld world)
         {
             Event ev = new GuildSaveEvent();
-            ev.Ticks += (long)(GameWorld.Settings.GuildSavePeriod * world.TimerFrequency);
+            // H6: clamp to >= 1, a 0/negative period re-enqueues at now and spins EventHandler.Update
+            ev.Ticks += (long)(Math.Max(1, GameWorld.Settings.GuildSavePeriod) * world.TimerFrequency);
 
             world.EventHandler.AddEvent(ev);
         }

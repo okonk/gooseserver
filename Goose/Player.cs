@@ -39,6 +39,8 @@ namespace Goose
         }
         public StringBuilder Buffer { get; set; }
 
+        public const int MaxSendBufferSize = 1024 * 1024;
+
         public List<byte> SendBuffer { get; private set; }
 
         /**
@@ -848,7 +850,15 @@ namespace Goose
             // dictionary there would race a concurrent key add from a script.
             string playerProperties = JsonHelper.Serialize(this.Properties.Clone());
 
-            if (this.GuildID == 0 && this.Guild != null) this.Guild.Save(world);
+            // H8: captured at build time; cleared in the onCommit after COMMIT so a
+            // rolled-back save retries INSERT instead of UPDATE-matching zero rows.
+            bool isNew = this.AutoCreatedNotSaved;
+
+            // H9: the guild work item fills this cell with the effective guild ID - a
+            // new guild's ID is only known mid-transaction, and this.GuildID is set post-commit.
+            int guildIdCell = 0;
+            bool guildRan = false;
+            int playerGuildId = this.GuildID;
 
             Action<SQLiteConnection> savePlayerRow;
 
@@ -857,10 +867,8 @@ namespace Goose
                 string insertQuery = this.BuildInsertQuery();
                 savePlayerRow = conn =>
                 {
-                    using var command = BuildInsertCommand(conn, insertQuery, playerName, playerTitle, playerSurname, unbanDate, playerProperties);
+                    using var command = BuildInsertCommand(conn, insertQuery, guildRan ? guildIdCell : playerGuildId, playerName, playerTitle, playerSurname, unbanDate, playerProperties);
                     command.ExecuteNonQuery();
-                    // Only clear after a successful insert so a failed first save can retry INSERT.
-                    this.AutoCreatedNotSaved = false;
                 };
             }
             else
@@ -868,7 +876,7 @@ namespace Goose
                 string updateQuery = this.BuildUpdateQuery();
                 savePlayerRow = conn =>
                 {
-                    using var command = BuildUpdateCommand(conn, updateQuery, playerName, playerTitle, playerSurname, unbanDate, playerProperties);
+                    using var command = BuildUpdateCommand(conn, updateQuery, guildRan ? guildIdCell : playerGuildId, playerName, playerTitle, playerSurname, unbanDate, playerProperties);
                     command.ExecuteNonQuery();
                 };
             }
@@ -879,18 +887,47 @@ namespace Goose
             // could persist the players row against a stale inventory - buy an item, crash,
             // and keep both the gold and the item.
             var work = new List<Action<SQLiteConnection>>();
+            Action guildOnCommit = null;
+
+            // First so the guild INSERT assigns the ID the players row binds.
+            if (this.Guild != null && (this.GuildID == 0 || this.Guild.Dirty))
+            {
+                var (guildSave, commit) = this.Guild.BuildSave(id =>
+                {
+                    guildIdCell = id;
+                    guildRan = true;
+                });
+                guildOnCommit = commit;
+                work.Add(guildSave);
+            }
 
             work.Add(savePlayerRow);
             work.Add(this.Inventory.BuildSave());
             work.Add(this.Spellbook.BuildSave());
             work.Add(this.Bank.BuildSave(this));
 
+            var newPets = new List<Pet>();
             foreach (Pet pet in this.Pets)
             {
+                if (pet.AutoCreatedNotSaved)
+                    newPets.Add(pet);
                 work.Add(pet.BuildSave());
             }
 
             work.Add(this.BuildSaveQuests());
+
+            Action onCommit = null;
+            if (isNew || newPets.Count > 0 || guildOnCommit != null)
+            {
+                onCommit = () =>
+                {
+                    if (isNew)
+                        this.AutoCreatedNotSaved = false;
+                    foreach (var pet in newPets)
+                        pet.AutoCreatedNotSaved = false;
+                    guildOnCommit?.Invoke();
+                };
+            }
 
             world.Database.EnqueueTransaction(conn =>
             {
@@ -898,13 +935,14 @@ namespace Goose
                 {
                     part(conn);
                 }
-            });
+            }, onCommit);
         }
 
         /// <summary>
         /// Builds the INSERT query text for a brand-new player row. Called on the game thread
         /// so every scalar is snapshotted at the same moment as the rest of the save; the
-        /// command builder then only binds parameters.
+        /// command builder then only binds parameters, guild_id included (a new guild's ID
+        /// is only known inside the save transaction).
         /// </summary>
         internal string BuildInsertQuery()
         {
@@ -936,7 +974,7 @@ namespace Goose
                 this.BaseStats.MP + ", " +
                 this.BaseStats.SP + ", " +
                 this.ClassID + ", " +
-                this.GuildID + ", " +
+                " @guildId, " +
                 this.BaseStats.AC + ", " +
                 this.BaseStats.Strength + ", " +
                 this.BaseStats.Stamina + ", " +
@@ -976,10 +1014,11 @@ namespace Goose
         /// every parameter. Split out of SaveToDatabase so the persistence tests can execute
         /// the shipped query text and parameter binding without a live GameWorld.
         /// </summary>
-        internal SQLiteCommand BuildInsertCommand(SQLiteConnection conn, string query, string playerName, string playerTitle, string playerSurname, object unbanDate, string playerProperties)
+        internal SQLiteCommand BuildInsertCommand(SQLiteConnection conn, string query, int guildId, string playerName, string playerTitle, string playerSurname, object unbanDate, string playerProperties)
         {
             var command = conn.CreateCommand();
             command.CommandText = query;
+            command.Parameters.Add(new SQLiteParameter("@guildId", DbType.Int32) { Value = guildId });
             command.Parameters.Add(new SQLiteParameter("@playerName", DbType.String) { Value = playerName });
             command.Parameters.Add(new SQLiteParameter("@playerTitle", DbType.String) { Value = playerTitle });
             command.Parameters.Add(new SQLiteParameter("@playerSurname", DbType.String) { Value = playerSurname });
@@ -991,7 +1030,8 @@ namespace Goose
         /// <summary>
         /// Builds the UPDATE query text for an existing player row. Called on the game thread
         /// so every scalar is snapshotted at the same moment as the rest of the save; the
-        /// command builder then only binds parameters.
+        /// command builder then only binds parameters, guild_id included (a new guild's ID
+        /// is only known inside the save transaction).
         /// </summary>
         internal string BuildUpdateQuery()
         {
@@ -1017,7 +1057,7 @@ namespace Goose
                 "player_mp=" + this.BaseStats.MP + ", " +
                 "player_sp=" + this.BaseStats.SP + ", " +
                 "class_id=" + this.ClassID + ", " +
-                "guild_id=" + this.GuildID + ", " +
+                "guild_id=@guildId, " +
                 "stat_ac=" + this.BaseStats.AC + ", " +
                 "stat_str=" + this.BaseStats.Strength + ", " +
                 "stat_sta=" + this.BaseStats.Stamina + ", " +
@@ -1057,10 +1097,11 @@ namespace Goose
         /// every parameter. Split out of SaveToDatabase so the persistence tests can execute
         /// the shipped query text and parameter binding without a live GameWorld.
         /// </summary>
-        internal SQLiteCommand BuildUpdateCommand(SQLiteConnection conn, string query, string playerName, string playerTitle, string playerSurname, object unbanDate, string playerProperties)
+        internal SQLiteCommand BuildUpdateCommand(SQLiteConnection conn, string query, int guildId, string playerName, string playerTitle, string playerSurname, object unbanDate, string playerProperties)
         {
             var command = conn.CreateCommand();
             command.CommandText = query;
+            command.Parameters.Add(new SQLiteParameter("@guildId", DbType.Int32) { Value = guildId });
             command.Parameters.Add(new SQLiteParameter("@playerName", DbType.String) { Value = playerName });
             command.Parameters.Add(new SQLiteParameter("@playerTitle", DbType.String) { Value = playerTitle });
             command.Parameters.Add(new SQLiteParameter("@playerSurname", DbType.String) { Value = playerSurname });
@@ -1342,7 +1383,8 @@ namespace Goose
             }
 
             RegenEvent ev = new RegenEvent();
-            ev.Ticks += (long)(GameWorld.Settings.RegenSpeed * world.TimerFrequency);
+            // H6: clamp to >= 1, a 0/negative period re-enqueues at now and spins EventHandler.Update
+            ev.Ticks += (long)(Math.Max(1m, GameWorld.Settings.RegenSpeed) * world.TimerFrequency);
             ev.Data = this;
 
             this.RegenEventExists = true;
@@ -1903,8 +1945,11 @@ namespace Goose
         {
             if (this.LastPing == 0) this.LastPing = world.TimeNow;
 
-            if ((world.TimeNow - this.LastPing) >
-                ((GameWorld.Settings.PlayerSavePeriod * 1.10) * world.TimerFrequency))
+            // H6: clamp to >= 1s, shared by the ping-timeout check and the save schedule;
+            // at 0 it disconnected on every PONG and re-enqueued at now, spinning EventHandler.Update
+            long savePeriodTicks = (long)(Math.Max(1, GameWorld.Settings.PlayerSavePeriod) * world.TimerFrequency);
+
+            if ((world.TimeNow - this.LastPing) > savePeriodTicks * 1.10)
             {
                 world.LostConnection(this.Sock);
             }
@@ -1914,7 +1959,7 @@ namespace Goose
 
                 PlayerSaveEvent ev = new PlayerSaveEvent();
                 ev.Player = this;
-                ev.Ticks += (GameWorld.Settings.PlayerSavePeriod * world.TimerFrequency);
+                ev.Ticks += savePeriodTicks;
 
                 world.EventHandler.AddEvent(ev);
             }
@@ -2157,7 +2202,8 @@ namespace Goose
                     BuffTickEvent ev = new BuffTickEvent();
                     ev.Data = buff;
                     ev.Player = this;
-                    ev.Ticks += (long)(GameWorld.Settings.SpellEffectPeriod * world.TimerFrequency);
+                    // H6: clamp to >= 1, a 0/negative period re-enqueues at now and spins EventHandler.Update
+                    ev.Ticks += (long)(Math.Max(1m, GameWorld.Settings.SpellEffectPeriod) * world.TimerFrequency);
 
                     world.EventHandler.AddEvent(ev);
                 }
@@ -2406,18 +2452,40 @@ namespace Goose
             this.LastPlaytimeUpdate = world.TimeNow;
         }
 
-        public virtual void Send(string data)
+        public virtual bool Send(string data)
         {
-            if (this.sock == null) return;
+            if (this.sock == null) return true;
 
             var bytes = Encoding.ASCII.GetBytes(data);
 
             lock (socketLock)
             {
-                var bytesSent = this.sock.Send(bytes);
-                if (bytesSent != bytes.Length)
-                    this.SendBuffer.AddRange(bytes.AsSpan(bytesSent));
+                // H2: a direct send would reach the client before the buffered tail of an
+                // older packet, so hold the new payload in the buffer until it drains.
+                if (this.SendBuffer != null && this.SendBuffer.Count > 0)
+                {
+                    this.SendBuffer.AddRange(bytes);
+                    return this.SendBuffer.Count <= MaxSendBufferSize;
+                }
+
+                try
+                {
+                    var bytesSent = this.sock.Send(bytes);
+                    if (bytesSent != bytes.Length)
+                    {
+                        this.SendBuffer ??= new();
+                        this.SendBuffer.AddRange(bytes.AsSpan(bytesSent));
+                    }
+                }
+                // H2: a would-block send throws and drops the whole packet; buffer it all
+                catch (SocketException)
+                {
+                    this.SendBuffer ??= new();
+                    this.SendBuffer.AddRange(bytes);
+                }
             }
+
+            return this.SendBuffer == null || this.SendBuffer.Count <= MaxSendBufferSize;
         }
 
         public void Send()

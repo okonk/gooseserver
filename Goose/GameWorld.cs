@@ -64,6 +64,19 @@ namespace Goose
          */
         private const int MaxReceiveBufferSize = 64 * 1024;
 
+        // H1: pre-login packets (no Player yet) must be reassembled across TCP
+        // segments; the cap bounds a stalled/attacking pre-login socket.
+        private const int MaxPreLoginBufferSize = 4096;
+
+        // Illutia login wire format: 2 header bytes + 69 body bytes (LoginEvent.cs)
+        private const int MinIllutiaLoginLength = 71;
+        private readonly Dictionary<Socket, StringBuilder> preLoginBuffers = new();
+
+        internal string PreLoginPending(Socket sock)
+        {
+            return preLoginBuffers.TryGetValue(sock, out StringBuilder sb) ? sb.ToString() : null;
+        }
+
         long timerfreq;
         public long TimerFrequency { get { return this.timerfreq; } }
         Random rng;
@@ -345,7 +358,8 @@ namespace Goose
             this.EventHandler.AddEvent(clearCreatedHistory);
 
             Event updateExperienceModifier = new PlayerCountExperienceModifierUpdateEvent();
-            updateExperienceModifier.Ticks += this.TimerFrequency * GameWorld.Settings.IdleTimeout;
+            // H6: clamp to >= 1, a 0/negative IdleTimeout re-enqueues at now and spins EventHandler.Update
+            updateExperienceModifier.Ticks += this.TimerFrequency * Math.Max(1, GameWorld.Settings.IdleTimeout);
             this.EventHandler.AddEvent(updateExperienceModifier);
 
             //Event updateCredits = new CreditsUpdateEvent();
@@ -466,6 +480,7 @@ namespace Goose
          */
         public void LostConnection(Socket sock)
         {
+            preLoginBuffers.Remove(sock);
             try
             {
                 log.Info("Connection lost: " + sock.RemoteEndPoint.ToString());
@@ -500,6 +515,7 @@ namespace Goose
             Player player = this.PlayerHandler.GetPlayer(sock);
             if (player != null)
             {
+                preLoginBuffers.Remove(sock);
                 player.Received(data);
 
                 // The client delimits packets with \x1 and ParseData only trims up to the
@@ -519,10 +535,34 @@ namespace Goose
             }
             else
             {
-                //player = new Player(sock);
-                //this.EventHandler.AddEvent(player, data.TrimEnd("\x1".ToCharArray()));
+                if (!preLoginBuffers.TryGetValue(sock, out StringBuilder buffer))
+                {
+                    buffer = new StringBuilder();
+                    preLoginBuffers.Add(sock, buffer);
+                }
+                buffer.Append(data);
+
+                if (buffer.Length > MaxPreLoginBufferSize)
+                {
+                    log.Warn("Dropping pre-login connection: buffer exceeded " +
+                             MaxPreLoginBufferSize + " bytes.");
+                    preLoginBuffers.Remove(sock);
+                    this.LostConnection(sock);
+                    return;
+                }
+
+                string s = buffer.ToString();
+                // H1: a classic login is only actionable once name and password are both
+                // in (two commas); LoginEvent disconnects on a truncated password.
+                int firstComma = s.IndexOf(',');
+                bool complete = (s.StartsWith("LOGIN", StringComparison.Ordinal) && firstComma > 0
+                                 && s.IndexOf(',', firstComma + 1) >= 0)
+                                || s.Length >= MinIllutiaLoginLength;
+                if (!complete) return;
+
+                preLoginBuffers.Remove(sock);
                 Event ev = new LoginEvent();
-                ev.Data = new Object[] { sock, data };
+                ev.Data = new Object[] { sock, s };
                 this.EventHandler.AddEvent(ev);
             }
         }
@@ -596,7 +636,11 @@ namespace Goose
             data += "\x1";
             try
             {
-                player.Send(data);
+                if (!player.Send(data))
+                {
+                    log.Warn("Player {0} send buffer exceeded, dropping connection", player.Name);
+                    this.LostConnection(player.Sock);
+                }
             }
             catch (Exception)
             {

@@ -345,6 +345,9 @@ namespace Goose
             this.events.Remove(e, out _, out _, EqualityComparer<Event>.Default);
         }
 
+        internal int Count => this.events.Count;
+        internal Event Peek() => this.events.Peek();
+
         /**
          * Update, loops through list doing events if they need to be done
          *

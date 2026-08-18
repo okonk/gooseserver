@@ -4,7 +4,7 @@
 **Scope:** `Goose/` (server core, ~27k LOC)
 **Supersedes/follows:** `docs/code-review-2026-07-25.md` (all of its findings were fixed in-tree; this review re-examined the whole server and found new issues)
 **Build status:** succeeds, 0 errors, 1 warning (CA1416 in `Tools.Tests/BundleStageTests.cs` — `File.SetUnixFileMode` unreachable on Windows)
-**Test status:** 323/323 pass (`Goose.Tests`)
+**Test status:** 411/411 pass (`Goose.Tests`) — *corrected 2026-08-18: the 323 figure was wrong; the baseline at the start of the fix work was 411.*
 
 **Method:** 5 sequential focused review passes (networking/protocol, database layer, inventory/commerce, combat/quests/buffs/pets, scripting/console/startup). Every HIGH+ finding was re-verified by direct code trace before inclusion. One false positive was rejected (see "Rejected").
 
@@ -55,7 +55,7 @@ this.SetSlot(toSlotId, toSlot);                 // inventory[n] = same object, D
 
 ## HIGH
 
-### H1. Pre-login packets are never reassembled across TCP segments ✅ verified
+### H1. Pre-login packets are never reassembled across TCP segments ✅ verified — ✅ FIXED (branch `fix/code-review-highs`, commits f77dbb6, 05d01fb, c57d89f: per-socket pre-login buffer with 4096 cap and drop-on-oversize in `GameWorld.Received`; classic login dispatches only once name **and** password fields are complete, Illutia at ≥71 chars; buffer cleaned up on login and `LostConnection`; regression tests in `Goose.Tests/PreLoginReassemblyTests.cs`).
 
 **Files:** `Goose/GameWorld.cs:498-521` (`Received`), `Goose/Events/LoginEvent.cs:56-95`
 
@@ -68,7 +68,7 @@ If an 81+-byte login is split (small packets do fragment on lossy/congested link
 
 **Fix:** keep a small per-socket pre-login `StringBuilder` (bound it like `MaxReceiveBufferSize`) in `GameWorld`, and dispatch a `LoginEvent` only once a complete packet is present.
 
-### H2. Send path silently drops whole packets when the TCP send buffer is full ✅ verified
+### H2. Send path silently drops whole packets when the TCP send buffer is full ✅ verified — ✅ FIXED (branch `fix/code-review-highs`, commits aa50d7c, a017fdf, 8ca68c5: would-block sends buffer the entire payload into `Player.SendBuffer` (`Send(string)` returns bool); 1 MiB cap with connection drop in `GameWorld.Send`; new sends are held while the buffer has pending bytes so packets can't be reordered; regression tests in `Goose.Tests/PlayerSendTests.cs`).
 
 **Files:** `Goose/Player.cs:2389-2402` (`Send(string)`), `Goose/GameWorld.cs:591-602` (`Send`)
 
@@ -76,7 +76,7 @@ If an 81+-byte login is split (small packets do fragment on lossy/congested link
 
 **Fix:** catch the would-block exception in `Player.Send` and append the *entire* byte array to `SendBuffer`; bound `SendBuffer` (e.g. 1–2 MB) and drop the connection when exceeded.
 
-### H3. Auto-created character names have no maximum length ✅ verified
+### H3. Auto-created character names have no maximum length ✅ verified — ✅ FIXED (branch `fix/code-review-highs`, commit 7bf84b3: auto-creation rejects names longer than 16 letters with a denial + disconnect, matching the client's 16-byte login field; regression tests in `Goose.Tests/LoginEventNameLengthTests.cs`).
 
 **Files:** `Goose/Events/LoginEvent.cs:131-156`, `Goose/sql/players.sql`
 
@@ -84,7 +84,7 @@ Only `name.Length < 3` and a letters-only check exist; there is no upper bound. 
 
 **Fix:** cap name length at creation (e.g. 16, matching the client's 16-byte login field).
 
-### H4. Unbounded chat/auction/tell length + unbounded in-memory log buffer = memory DoS from one client
+### H4. Unbounded chat/auction/tell length + unbounded in-memory log buffer = memory DoS from one client — ✅ PARTIALLY FIXED (branch `fix/code-review-highs`, commit c55f507: chat/tell/auction payloads capped at 300 chars with silent drop before any log/broadcast; regression tests in `Goose.Tests/ChatMessageLengthTests.cs`). Scope decision 2026-08-18: the `LogHandler` in-memory buffer cap / chat rate-limit are **not** done — left open.
 
 **Files:** `Goose/Events/ChatEvent.cs:27-40`, `Goose/Events/AuctionCommandEvent.cs:33-39`, `Goose/LogHandler.cs:11-26`, `Goose/GameWorld.cs:348`
 
@@ -102,7 +102,7 @@ Trace: kill 100 mobs of a repeatable quest requiring 10 → complete (rewards) �
 
 **Fix:** cap progress at `Value2` on increment, and always reset kill/talk progress to 0 in `CompleteQuest` for repeatable quests.
 
-### H6. Zero/negative interval settings → infinite loop that hard-freezes the game thread ✅ verified
+### H6. Zero/negative interval settings → infinite loop that hard-freezes the game thread ✅ verified — ✅ FIXED (branch `fix/code-review-highs`, commits a3eb769, bbd1897, 3ac4ec9: every self-rescheduling site clamps its interval to ≥1 period, incl. `GuildSavePeriod`/`RegenSpeed` caught during review; regression tests in `Goose.Tests/EventHandlerIntervalTests.cs` et al. Note: `CreditsUpdateEvent` reschedules from unclamped `CreditUpdateInterval` but is dead code — registration is commented out at `GameWorld.cs:~352`; latent, not fixed).
 
 **Files:** `Goose/EventHandler.cs:361-377` + reschedule sites
 
@@ -120,7 +120,7 @@ The team is already aware of this class: `PreLoginTimeoutSeconds` is clamped (`M
 
 **Fix:** clamp every interval to ≥1 at the reschedule sites, or centrally in `EventHandler.AddEvent` / settings validation at startup.
 
-### H7. After any crash, the next clean shutdown silently skips player saves and DB drain ✅ verified
+### H7. After any crash, the next clean shutdown silently skips player saves and DB drain ✅ verified — ✅ FIXED (branch `fix/code-review-highs`, commit 01309f0: crash path now calls the new `StopWorld()` (no `stopping` flag, no NLog shutdown) so the next signal runs the full `Stop()` with saves + DB drain; bind/IP-parse failures throw `FatalStartupException` and exit with code 1 instead of restart-looping; crashlog write guarded; startup tests in `Goose.Tests/GameServerStartupTests.cs`).
 
 **Files:** `Goose/GameServer.cs:60` (`stopping`), `:107` (crash path calls `Stop()`), `:274` (`if (!stopping) this.Stop();`), `:288` (`stopping = true`)
 
@@ -133,7 +133,7 @@ The team is already aware of this class: `PreLoginTimeoutSeconds` is clamped (`M
 
 **Fix:** reset `stopping = false` when the restart loop creates a new world (or make the flag per-iteration); do not `LogManager.Shutdown()` on the restart path; treat bind/parse failures as fatal config errors (clear message, exit); wrap the crashlog write in try/catch.
 
-### H8. First-save flag cleared before COMMIT; mid-transaction failure permanently loses a new character/pet row ✅ verified
+### H8. First-save flag cleared before COMMIT; mid-transaction failure permanently loses a new character/pet row ✅ verified — ✅ FIXED (branch `fix/code-review-highs`, commit e513162: `Database.EnqueueTransaction` gained an `onCommit` hook that runs only after COMMIT succeeds; player + pet `AutoCreatedNotSaved` flags clear in `onCommit`; the standalone pet-save path (tame spell) uses its own one-item transaction; rollback tests at Database and player level in `Goose.Tests/DatabaseTransactionTests.cs` / `PlayerFirstSaveTests.cs`).
 
 **Files:** `Goose/Player.cs:857-864`, `Goose/Pet.cs:371-378`
 
@@ -151,7 +151,7 @@ savePlayerRow = conn =>
 
 **Fix:** use `INSERT … ON CONFLICT(player_id) DO UPDATE`, or clear the flag only in a post-commit step.
 
-### H9. Guild writes are auto-commit, synchronous on the game thread, outside the player-save transaction ✅ verified
+### H9. Guild writes are auto-commit, synchronous on the game thread, outside the player-save transaction ✅ verified — ✅ FIXED (branch `fix/code-review-highs`, commits fcf0083, b80a203, a6f037e, 9b7664f, 4c9ca5d: `Guild.BuildSave()` returns a pure-SQL in-transaction callback (idempotent `ON CONFLICT(guild_id, player_id) DO UPDATE` member upserts) + a post-commit in-memory transition action; the guild work item runs first inside the player-save transaction and the players row binds the in-transaction assigned ID; 300s cadence path is async; all in-memory guild transitions deferred to post-COMMIT so rollback leaves memory untouched; regression tests in `Goose.Tests/GuildSaveTests.cs`. Residual (accepted, plan-sanctioned): brand-new guilds registered via `GuildHandler.Save` keep the synchronous save — a crash between that commit and the player-row commit leaves a transient desync that self-heals on the next save (idempotent upserts).)
 
 **Files:** `Goose/Player.cs:851`, `Goose/Guild.cs:181-265`, `Goose/GuildHandler.cs:91-103`
 
@@ -251,7 +251,7 @@ A single `while(true)` (typo included) freezes the entire server for every playe
 - **Console commands:** only four exist (`setaccess`, `who`, `shutdown`, `help`); the reader thread only enqueues lines — all execution happens on the game thread in `ConsoleCommandHandler.Update` with per-command try/catch; `Console.IsInputRedirected` guard prevents Docker/systemd hot read-loop.
 - **Script error containment at call sites:** every NPC/map/item/buff/spell hook is wrapped (fail-soft; access gates fail closed) — a throwing script cannot take down the server (only *hang* it, see H10). The quest call sites are the exception (M6 + quest atomicity).
 - **Script compilation:** all `GetScript` sites run at world load or on reload-task threads; runtime `NPC.Script`/`Item.Script` resolve to cached template fields — no first-spawn compilation on the game thread.
-- **Zero-setting audit:** `LogoutLagTime=0`, `GuildSavePeriod=0`, `RespawnTimeBackoff=0`, `NewCharactersPerDayPerIP=0` (explicit unlimited), `RankUpdatePeriod` all safe; the dangerous set is exactly H6's list. `PreLoginTimeoutSeconds` already clamped.
+- **Zero-setting audit:** `LogoutLagTime=0`, `RespawnTimeBackoff=0`, `NewCharactersPerDayPerIP=0` (explicit unlimited), `RankUpdatePeriod` safe; the dangerous set is exactly H6's list. `PreLoginTimeoutSeconds` already clamped. *Audit error corrected 2026-08-18: `GuildSavePeriod=0` was claimed safe here but is NOT — `GuildSaveEvent` self-reschedules at period 0 and spins the game thread; it was caught during the H6 fix and is clamped now (commit a3eb769).*
 - **Startup/shutdown basics:** `--datadir`/env parsing correct; data-dir auto-create + settings copy; DB open failures surface cleanly; load failure → clean exit; Ctrl+C/SIGTERM cancel default handlers and route through `RequestShutdown`.
 
 ---
