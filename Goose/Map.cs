@@ -15,9 +15,10 @@ namespace Goose
     {
         private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
 
-        // Viewing ranges
-        public static int RANGE_X = 16; // 15
-        public static int RANGE_Y = 14; // 12
+        // Viewing ranges: the Godot client (1280x720, 32px tiles) sees 20 tiles out
+        // left/right and ~11 up/down, so these must exceed that or objects pop in.
+        public static int RANGE_X = 24;
+        public static int RANGE_Y = 16;
 
         /**
          * map_id

@@ -2040,8 +2040,8 @@ namespace Goose
                             foreach (Player p in this.Group.Players)
                             {
                                 if (p != this && p.Map == this.Map &&
-                                    Math.Abs(p.MapX - this.MapX) <= Map.RANGE_X &&
-                                    Math.Abs(p.MapY - this.MapY) <= Map.RANGE_Y)
+                                    Math.Abs(p.MapX - this.MapX) < Map.RANGE_X &&
+                                    Math.Abs(p.MapY - this.MapY) < Map.RANGE_Y)
                                 {
                                     spell.SpellEffect.Cast(this, p, world);
                                 }
