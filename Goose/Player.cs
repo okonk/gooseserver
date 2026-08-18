@@ -858,6 +858,7 @@ namespace Goose
             // new guild's ID is only known mid-transaction, and this.GuildID is set post-commit.
             int guildIdCell = 0;
             bool guildRan = false;
+            int playerGuildId = this.GuildID;
 
             Action<SQLiteConnection> savePlayerRow;
 
@@ -866,7 +867,7 @@ namespace Goose
                 string insertQuery = this.BuildInsertQuery();
                 savePlayerRow = conn =>
                 {
-                    using var command = BuildInsertCommand(conn, insertQuery, guildRan ? guildIdCell : this.GuildID, playerName, playerTitle, playerSurname, unbanDate, playerProperties);
+                    using var command = BuildInsertCommand(conn, insertQuery, guildRan ? guildIdCell : playerGuildId, playerName, playerTitle, playerSurname, unbanDate, playerProperties);
                     command.ExecuteNonQuery();
                 };
             }
@@ -875,7 +876,7 @@ namespace Goose
                 string updateQuery = this.BuildUpdateQuery();
                 savePlayerRow = conn =>
                 {
-                    using var command = BuildUpdateCommand(conn, updateQuery, guildRan ? guildIdCell : this.GuildID, playerName, playerTitle, playerSurname, unbanDate, playerProperties);
+                    using var command = BuildUpdateCommand(conn, updateQuery, guildRan ? guildIdCell : playerGuildId, playerName, playerTitle, playerSurname, unbanDate, playerProperties);
                     command.ExecuteNonQuery();
                 };
             }
