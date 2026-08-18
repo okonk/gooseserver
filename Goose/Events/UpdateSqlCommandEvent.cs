@@ -22,20 +22,30 @@ namespace Goose.Events
                     {
                         var sqlData = CsvToSql.Core.CsvToSqlConverter.Convert(GameWorld.Settings.DataLinkId);
 
+                        // sqlData already contains its own BEGIN TRANSACTION;/COMMIT;, so it
+                        // must not be wrapped in another transaction.
                         world.Database.Enqueue(conn =>
                         {
-                            using var tx = conn.BeginTransaction();
+                            using var command = conn.CreateCommand();
+                            command.CommandText = sqlData;
                             try
                             {
-                                using var command = conn.CreateCommand();
-                                command.Transaction = tx;
-                                command.CommandText = sqlData;
                                 command.ExecuteNonQuery();
-                                tx.Commit();
                             }
                             catch
                             {
-                                tx.Rollback();
+                                // A mid-script failure leaves the script's own transaction
+                                // open on the shared connection, breaking subsequent writes.
+                                try
+                                {
+                                    using var rollback = conn.CreateCommand();
+                                    rollback.CommandText = "ROLLBACK;";
+                                    rollback.ExecuteNonQuery();
+                                }
+                                catch
+                                {
+                                }
+
                                 throw;
                             }
                         }, (e) => UpdateCompletedCallback(e, world));
