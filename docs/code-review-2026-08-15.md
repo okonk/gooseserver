@@ -26,7 +26,7 @@ Overall code quality is high: extensive doc comments, deliberate error containme
 
 ## CRITICAL
 
-### C1. `CHANGE n,n` dupes any stackable item (player-reachable, infinite gold) ✅ verified
+### C1. `CHANGE n,n` dupes any stackable item (player-reachable, infinite gold) ✅ verified — ✅ FIXED (commit d7c38cc, branch fix/c1-change-swap-dup: same-slot guards in `Inventory.SwapSlots` + `ItemSlot.SwapSlots`, regression tests in `Goose.Tests/InventoryChangeSlotTests.cs`). Ops note: accounts exploited before this fix still hold duped stacks.
 
 **Files:** `Goose/Events/InventoryChangeSlotEvent.cs:36`, `Goose/Inventory.cs:193-203`, `Goose/ItemSlot.cs:55-59`
 
