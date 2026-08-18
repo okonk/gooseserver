@@ -27,15 +27,16 @@ namespace Goose.Tests
             GameWorld.Settings.ItemGroundSweepTime = 0;
             try
             {
+                long before = _world.TimeNow;
                 var ev = new ClearMapItemsEvent
                 {
                     Data = new Map(),
-                    Ticks = _world.TimeNow,
+                    Ticks = before,
                 };
 
                 ev.Ready(_world); // re-enqueues itself
 
-                Assert.True(ev.Ticks > _world.TimeNow);
+                Assert.True(ev.Ticks > before);
                 _handler.Update(_world); // must return, not spin
             }
             finally
@@ -51,14 +52,15 @@ namespace Goose.Tests
             GameWorld.Settings.IdleTimeout = 0;
             try
             {
+                long before = _world.TimeNow;
                 var ev = new PlayerCountExperienceModifierUpdateEvent
                 {
-                    Ticks = _world.TimeNow,
+                    Ticks = before,
                 };
 
                 ev.Ready(_world); // re-enqueues itself
 
-                Assert.True(ev.Ticks > _world.TimeNow);
+                Assert.True(ev.Ticks > before);
                 _handler.Update(_world); // must return, not spin
             }
             finally
@@ -89,8 +91,8 @@ namespace Goose.Tests
 
             ev.Reschedule(TimeSpan.Zero, _world);
 
-            // The clamp is one tick, so assert against the scheduling point, not a
-            // later TimeNow read (which has already passed now + 1 tick).
+            // The clamp is one tick (one second), so assert against the scheduling
+            // point, not a later TimeNow read, which has already passed it under load.
             Assert.True(ev.Ticks > before);
             _handler.Update(_world); // must return, not spin
         }
@@ -104,16 +106,17 @@ namespace Goose.Tests
             {
                 var player = new Player(0);
 
-                int before = _handler.Count;
+                int beforeCount = _handler.Count;
+                long before = _world.TimeNow;
                 player.AddSaveEvent(_world);
 
-                Assert.Equal(before + 1, _handler.Count);
+                Assert.Equal(beforeCount + 1, _handler.Count);
                 var ev = Assert.IsType<PlayerSaveEvent>(_handler.Peek());
                 Assert.Same(player, ev.Player);
-                Assert.True(ev.Ticks > _world.TimeNow);
+                Assert.True(ev.Ticks > before);
 
                 _handler.Update(_world); // must return, not spin
-                Assert.Equal(before + 1, _handler.Count);
+                Assert.Equal(beforeCount + 1, _handler.Count);
             }
             finally
             {
@@ -139,16 +142,17 @@ namespace Goose.Tests
                     CurrentSP = 5,
                 };
 
-                int before = _handler.Count;
+                int beforeCount = _handler.Count;
+                long before = _world.TimeNow;
                 player.AddRegenEvent(_world);
 
-                Assert.Equal(before + 1, _handler.Count);
+                Assert.Equal(beforeCount + 1, _handler.Count);
                 var ev = Assert.IsType<RegenEvent>(_handler.Peek());
                 Assert.Same(player, ev.Data);
-                Assert.True(ev.Ticks > _world.TimeNow);
+                Assert.True(ev.Ticks > before);
 
                 _handler.Update(_world); // must return, not spin
-                Assert.Equal(before + 1, _handler.Count);
+                Assert.Equal(beforeCount + 1, _handler.Count);
             }
             finally
             {
@@ -164,12 +168,13 @@ namespace Goose.Tests
             try
             {
                 // Save re-enqueues a fresh GuildSaveEvent, not the instance that ran.
-                int before = _handler.Count;
-                new GuildSaveEvent { Ticks = _world.TimeNow }.Ready(_world);
+                int beforeCount = _handler.Count;
+                long before = _world.TimeNow;
+                new GuildSaveEvent { Ticks = before }.Ready(_world);
 
-                Assert.Equal(before + 1, _handler.Count);
+                Assert.Equal(beforeCount + 1, _handler.Count);
                 var rescheduled = Assert.IsType<GuildSaveEvent>(_handler.Peek());
-                Assert.True(rescheduled.Ticks > _world.TimeNow);
+                Assert.True(rescheduled.Ticks > before);
 
                 _handler.Update(_world); // must return, not spin
                 Assert.Equal(before + 1, _handler.Count);
