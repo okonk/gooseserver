@@ -597,7 +597,11 @@ namespace Goose
             data += "\x1";
             try
             {
-                player.Send(data);
+                if (!player.Send(data))
+                {
+                    log.Warn("Player {0} send buffer exceeded, dropping connection", player.Name);
+                    this.LostConnection(player.Sock);
+                }
             }
             catch (Exception)
             {

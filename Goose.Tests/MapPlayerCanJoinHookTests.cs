@@ -24,7 +24,7 @@ public class MapPlayerCanJoinHookTests : IDisposable
     {
         public List<string> Sent { get; } = new();
 
-        public override void Send(string data) => Sent.Add(data);
+        public override bool Send(string data) { Sent.Add(data); return true; }
     }
 
     private readonly GooseSettings previousSettings = GameWorld.Settings;

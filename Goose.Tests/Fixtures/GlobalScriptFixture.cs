@@ -165,7 +165,7 @@ public sealed class GlobalScriptFixture : IDisposable
     {
         public CapturingPlayer() : base(0) { }
         public List<string> Sent { get; } = new List<string>();
-        public override void Send(string data) { this.Sent.Add(data); }
+        public override bool Send(string data) { this.Sent.Add(data); return true; }
     }
 
     /// <summary>A logged-in-looking player: Ready state (every script command early-returns

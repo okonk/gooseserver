@@ -18,7 +18,7 @@ public sealed class VendorFixture : IDisposable
     {
         public CapturingPlayer() : base(0) { }
         public List<string> Sent { get; } = new List<string>();
-        public override void Send(string data) { this.Sent.Add(data); }
+        public override bool Send(string data) { this.Sent.Add(data); return true; }
     }
 
     public GameWorld World => inner.World;

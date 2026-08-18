@@ -39,6 +39,8 @@ namespace Goose
         }
         public StringBuilder Buffer { get; set; }
 
+        public const int MaxSendBufferSize = 1024 * 1024;
+
         public List<byte> SendBuffer { get; private set; }
 
         /**
@@ -2411,18 +2413,29 @@ namespace Goose
             this.LastPlaytimeUpdate = world.TimeNow;
         }
 
-        public virtual void Send(string data)
+        public virtual bool Send(string data)
         {
-            if (this.sock == null) return;
+            if (this.sock == null) return true;
 
             var bytes = Encoding.ASCII.GetBytes(data);
 
             lock (socketLock)
             {
-                var bytesSent = this.sock.Send(bytes);
-                if (bytesSent != bytes.Length)
-                    this.SendBuffer.AddRange(bytes.AsSpan(bytesSent));
+                try
+                {
+                    var bytesSent = this.sock.Send(bytes);
+                    if (bytesSent != bytes.Length)
+                        this.SendBuffer.AddRange(bytes.AsSpan(bytesSent));
+                }
+                // H2: a would-block send throws and drops the whole packet; buffer it all
+                catch (SocketException)
+                {
+                    this.SendBuffer ??= new();
+                    this.SendBuffer.AddRange(bytes);
+                }
             }
+
+            return this.SendBuffer == null || this.SendBuffer.Count <= MaxSendBufferSize;
         }
 
         public void Send()

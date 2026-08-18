@@ -29,7 +29,7 @@ namespace Goose
         private static readonly TimeSpan PreLoginSweepInterval = TimeSpan.FromSeconds(5);
 
         private Socket listen;
-        private List<Socket> sockets;
+        private List<Socket> sockets = new();
 
         /**
          * Tracks the source address and accept time of every open connection.
@@ -37,8 +37,8 @@ namespace Goose
          * The address is captured at accept because RemoteEndPoint throws once a socket
          * has been torn down, and we still need it to decrement the per-IP count.
          */
-        private Dictionary<Socket, ConnectionInfo> connections;
-        private Dictionary<string, int> connectionsPerIP;
+        private Dictionary<Socket, ConnectionInfo> connections = new();
+        private Dictionary<string, int> connectionsPerIP = new();
 
         private DateTime lastPreLoginSweep = DateTime.UtcNow;
 
