@@ -275,11 +275,6 @@ namespace Goose
             });
         }
 
-        /**
-         * BuildSave, snapshots state and returns the pure-SQL save work plus the
-         * post-commit in-memory transitions.
-         *
-         */
         public (Action<SQLiteConnection> Save, Action OnCommit) BuildSave(Action<int> onGuildId = null)
         {
             string name = this.Name;
