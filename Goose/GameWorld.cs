@@ -67,6 +67,9 @@ namespace Goose
         // H1: pre-login packets (no Player yet) must be reassembled across TCP
         // segments; the cap bounds a stalled/attacking pre-login socket.
         private const int MaxPreLoginBufferSize = 4096;
+
+        // Illutia login wire format: 2 header bytes + 69 body bytes (LoginEvent.cs)
+        private const int MinIllutiaLoginLength = 71;
         private readonly Dictionary<Socket, StringBuilder> preLoginBuffers = new();
 
         internal string PreLoginPending(Socket sock)
@@ -550,7 +553,7 @@ namespace Goose
 
                 string s = buffer.ToString();
                 bool complete = (s.StartsWith("LOGIN", StringComparison.Ordinal) && s.IndexOf(',') >= 0)
-                                || s.Length >= 71;
+                                || s.Length >= MinIllutiaLoginLength;
                 if (!complete) return;
 
                 preLoginBuffers.Remove(sock);
