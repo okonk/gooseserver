@@ -5,14 +5,10 @@ using Xunit;
 
 namespace Goose.Tests;
 
-/// <summary>Regression tests for code-review-2026-08-15 finding C1: a CHANGE packet with
-/// id1 == id2 made Inventory.SwapSlots pass the same ItemSlot as both parameters, and
-/// ItemSlot.SwapSlots' merge branch doubled the stack in place (from.Item == to.Item,
-/// to.CanStack(from) passes whenever 2*Stack <= StackSize) — a player-reachable
-/// infinite-gold exploit on the Open CHANGE packet.</summary>
+// Regression tests for code-review-2026-08-15 finding C1: CHANGE n,n (id1 == id2)
+// passed the same ItemSlot to both swap parameters and doubled the stack in place.
 public class InventoryChangeSlotTests
 {
-    /// <summary>A stackable template (StackSize >= 2), the shape every exploit item had.</summary>
     private static ItemTemplate Piles(int id, string name, int stackSize) =>
         new ItemTemplate
         {
@@ -21,8 +17,6 @@ public class InventoryChangeSlotTests
             Slot = ItemTemplate.ItemSlots.OneHanded,
         };
 
-    /// <summary>Builds an item + slot the way the vendor fixture does, and pins it to a
-    /// known slot so the tests can name slot ids in CHANGE packets.</summary>
     private static ItemSlot PutInSlot(VendorFixture fixture, ItemTemplate template, int slotId, long stack)
     {
         var item = new Item();
@@ -33,8 +27,6 @@ public class InventoryChangeSlotTests
         return slot;
     }
 
-    /// <summary>Primary: CHANGE n,n must be a no-op — same stack, same slot, nothing
-    /// duplicated, nothing lost.</summary>
     [Fact]
     public void InventorySwapSameSlot_LeavesStackableItemUnchanged()
     {
@@ -48,15 +40,12 @@ public class InventoryChangeSlotTests
         Assert.NotNull(slot);
         Assert.Equal(4, slot.Stack);
 
-        // Nothing was duplicated into any other slot.
         for (int i = 2; i <= GameWorld.Settings.InventorySize; i++)
         {
             Assert.Null(fixture.Player.Inventory.GetSlot(i));
         }
     }
 
-    /// <summary>Defense in depth: ItemSlot.SwapSlots called with the same slot object as
-    /// both refs must not double the stack, even if a caller bypasses Inventory.</summary>
     [Fact]
     public void ItemSlotSwapSameRef_DoesNotDoubleStack()
     {
@@ -68,8 +57,6 @@ public class InventoryChangeSlotTests
         Assert.Equal(4, slot.Stack);
     }
 
-    /// <summary>Adversarial: a genuine swap between two DIFFERENT slots of same-template
-    /// stackables must merge exactly as before the fix (to absorbs from, from is cleared).</summary>
     [Fact]
     public void InventorySwapDifferentSlots_SameTemplateStillMerges()
     {
@@ -85,8 +72,6 @@ public class InventoryChangeSlotTests
         Assert.Equal(6, merged.Stack);
     }
 
-    /// <summary>Adversarial: a swap of two different-slot different-template items must
-    /// still exchange the slots as before the fix.</summary>
     [Fact]
     public void InventorySwapDifferentSlots_DifferentTemplatesStillSwap()
     {
@@ -100,11 +85,6 @@ public class InventoryChangeSlotTests
         Assert.Same(a.Item, fixture.Player.Inventory.GetSlot(2)?.Item);
     }
 
-    /// <summary>Event level: the actual exploit packet, "CHANGE1,1", driven through
-    /// InventoryChangeSlotEvent. Low cost in this codebase — the vendor tests drive their
-    /// events the same way (set Player + Data, call Ready) — so this covers parsing,
-    /// validation, and the guard together. Pre-fix this doubled the stack; also assert
-    /// the operation is a silent no-op (no slot-update packets sent to the client).</summary>
     [Fact]
     public void ChangePacket_SameSlotTwice_DoesNotDuplicate()
     {
