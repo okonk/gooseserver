@@ -850,6 +850,10 @@ namespace Goose
             // dictionary there would race a concurrent key add from a script.
             string playerProperties = JsonHelper.Serialize(this.Properties.Clone());
 
+            // H8: captured at build time; cleared in the onCommit after COMMIT so a
+            // rolled-back save retries INSERT instead of UPDATE-matching zero rows.
+            bool isNew = this.AutoCreatedNotSaved;
+
             if (this.GuildID == 0 && this.Guild != null) this.Guild.Save(world);
 
             Action<SQLiteConnection> savePlayerRow;
@@ -861,8 +865,6 @@ namespace Goose
                 {
                     using var command = BuildInsertCommand(conn, insertQuery, playerName, playerTitle, playerSurname, unbanDate, playerProperties);
                     command.ExecuteNonQuery();
-                    // Only clear after a successful insert so a failed first save can retry INSERT.
-                    this.AutoCreatedNotSaved = false;
                 };
             }
             else
@@ -887,12 +889,27 @@ namespace Goose
             work.Add(this.Spellbook.BuildSave());
             work.Add(this.Bank.BuildSave(this));
 
+            var newPets = new List<Pet>();
             foreach (Pet pet in this.Pets)
             {
+                if (pet.AutoCreatedNotSaved)
+                    newPets.Add(pet);
                 work.Add(pet.BuildSave());
             }
 
             work.Add(this.BuildSaveQuests());
+
+            Action onCommit = null;
+            if (isNew || newPets.Count > 0)
+            {
+                onCommit = () =>
+                {
+                    if (isNew)
+                        this.AutoCreatedNotSaved = false;
+                    foreach (var pet in newPets)
+                        pet.AutoCreatedNotSaved = false;
+                };
+            }
 
             world.Database.EnqueueTransaction(conn =>
             {
@@ -900,7 +917,7 @@ namespace Goose
                 {
                     part(conn);
                 }
-            });
+            }, onCommit);
         }
 
         /// <summary>
