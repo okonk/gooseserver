@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using Goose;
@@ -39,6 +40,41 @@ namespace Goose.Tests
 
             Assert.True(ok);
             Assert.Equal(new byte[] { (byte)'A', (byte)'B', (byte)'C', 1 }, p.SendBuffer);
+        }
+
+        [Fact]
+        public void Send_WhenSendBufferHasPendingBytes_AppendsToBufferInsteadOfSendingDirectly()
+        {
+            var p = new Player(0);
+            p.OnLogin();
+
+            using (var unconnected = NewUnconnectedSocket())
+            {
+                p.Sock = unconnected;
+                p.Send("AB\x1");
+            }
+            var payload1 = new byte[] { (byte)'A', (byte)'B', 1 };
+            Assert.Equal(payload1, p.SendBuffer);
+
+            var (client, accepted) = NewLoopbackPair();
+            try
+            {
+                p.Sock = accepted;
+                var payload2 = new byte[] { (byte)'C', (byte)'D', 1 };
+
+                var ok = p.Send("CD\x1");
+
+                Assert.True(ok);
+                Assert.Equal(payload1.Concat(payload2).ToList(), p.SendBuffer);
+
+                client.ReceiveTimeout = 200;
+                Assert.Throws<SocketException>(() => client.Receive(new byte[1]));
+            }
+            finally
+            {
+                client.Close();
+                accepted.Close();
+            }
         }
 
         [Fact]

@@ -2459,6 +2459,14 @@ namespace Goose
 
             lock (socketLock)
             {
+                // H2: a direct send would reach the client before the buffered tail of an
+                // older packet, so hold the new payload in the buffer until it drains.
+                if (this.SendBuffer != null && this.SendBuffer.Count > 0)
+                {
+                    this.SendBuffer.AddRange(bytes);
+                    return this.SendBuffer.Count <= MaxSendBufferSize;
+                }
+
                 try
                 {
                     var bytesSent = this.sock.Send(bytes);
