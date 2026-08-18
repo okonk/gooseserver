@@ -368,7 +368,7 @@ public class DimensionsScriptTests
         Assert.Equal(1, warden.HairID);
         Assert.Equal(40, warden.BodyR);
         Assert.Equal(20, warden.HairR);
-        Assert.Equal("", warden.EquippedItems);
+        Assert.Equal("12,*,0,*,0,*,0,*,0,*,0,*", warden.EquippedItems);
     }
 
     /// <summary>NPC.LoadFromTemplate dereferences Class.GetLevel(Level) at NPC.cs:636 with no

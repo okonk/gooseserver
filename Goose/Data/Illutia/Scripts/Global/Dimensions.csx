@@ -130,9 +130,9 @@ public partial class Dimensions : BaseGlobalScript
     /// map /dimension already warps to, so a player who can reach a warden can reach the
     /// keeper without a second landmark.
     ///
-    /// Verified against Data/Illutia/Maps/Map1.map: the map is 286x194, and (52,50) carries
-    /// no blocked flag (bit 2 of the tile flags, Map.cs:471-475). It is two tiles east of
-    /// WardenX/WardenY (50,50), so the two generated NPCs cannot collide. Warp tiles and
+    /// Verified against Data/Illutia/Maps/Map1.map: the map is 286x194, and (44,50) carries
+    /// no blocked flag (bit 2 of the tile flags, Map.cs:471-475). It is one tile east of
+    /// WardenX/WardenY (43,50), so the two generated NPCs cannot collide. Warp tiles and
     /// sheet NPC spawns come from the database rather than the .map file, so
     /// CreateRebirthQuest re-checks the tile at load time instead of trusting this.</summary>
     public const int RebirthMapId = StartMapId;

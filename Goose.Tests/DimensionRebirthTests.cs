@@ -18,12 +18,12 @@ public class DimensionRebirthTests
 {
     private const int RebirthTemplateId = 810000;
     private const int RebirthQuestId = 910000;
-    private const int RebirthX = 52;
+    private const int RebirthX = 44;
     private const int RebirthY = 50;
 
     /// <summary>DimensionsScriptTests' world seeding (`DimensionsScriptTests.cs:20-25`),
     /// factored out because every test here needs it: a base map wide enough for the
-    /// warden at (50,50) and the keeper at (52,50), and the boss template the unlock chain
+    /// warden at (43,50) and the keeper at (44,50), and the boss template the unlock chain
     /// requires.</summary>
     private static GlobalScriptFixture Seeded()
     {
@@ -117,9 +117,9 @@ public class DimensionRebirthTests
         Assert.Same(keeper, map.GetCharacterAt(RebirthX, RebirthY));
         Assert.Equal(RebirthX, keeper.MapX);
         Assert.Equal(RebirthY, keeper.MapY);
-        // Load-bearing: the warden already stands on (50,50), so the keeper must not be
+        // Load-bearing: the warden already stands on (43,50), so the keeper must not be
         // configured onto an occupied tile.
-        Assert.NotEqual(keeper, map.GetCharacterAt(50, 50));
+        Assert.NotEqual(keeper, map.GetCharacterAt(43, 50));
     }
 
     /// <summary>The preflight, not the symptom. An occupied or blocked destination must
