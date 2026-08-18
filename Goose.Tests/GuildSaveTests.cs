@@ -76,7 +76,8 @@ public class GuildMemberUpsertTests : PlayerFirstSaveTestBase
         var guild = new Guild { Name = "TestGuild", MOTD = "motd" };
         guild.AddMember(1, Guild.GuildRanks.Member, dirty: true, justadded: true);
 
-        world.Database.EnqueueTransaction(guild.BuildSave());
+        var (save1, commit1) = guild.BuildSave();
+        world.Database.EnqueueTransaction(save1, commit1);
 
         Assert.Equal(1, Count("SELECT COUNT(*) FROM guilds"));
         int guildId = world.Database.Execute<int>(conn =>
@@ -94,7 +95,8 @@ public class GuildMemberUpsertTests : PlayerFirstSaveTestBase
         status.JustAdded = true;
         guild.Dirty = true;
 
-        world.Database.EnqueueTransaction(guild.BuildSave());
+        var (save2, commit2) = guild.BuildSave();
+        world.Database.EnqueueTransaction(save2, commit2);
 
         Assert.Equal(1, Count("SELECT COUNT(*) FROM guilds"));
         Assert.Equal(1, Count("SELECT COUNT(*) FROM guild_members"));
@@ -104,23 +106,119 @@ public class GuildMemberUpsertTests : PlayerFirstSaveTestBase
     }
 
     [Fact]
+    public void Two_saves_built_at_id_zero_enqueue_exactly_one_guild_row()
+    {
+        var guild = new Guild { Name = "TestGuild", MOTD = "motd" };
+        guild.AddMember(1, Guild.GuildRanks.Member, dirty: true, justadded: true);
+
+        var (save1, commit1) = guild.BuildSave();
+        var (save2, commit2) = guild.BuildSave();
+        world.Database.EnqueueTransaction(save1, commit1);
+        world.Database.EnqueueTransaction(save2, commit2);
+
+        Assert.Equal(1, Count("SELECT COUNT(*) FROM guilds"));
+        Assert.Equal(1, Count("SELECT COUNT(*) FROM guild_members"));
+        Assert.False(guild.Dirty);
+        Assert.True(guild.ID > 0);
+    }
+
+    [Fact]
+    public void A_rank_change_landing_after_the_snapshot_survives_until_the_next_save()
+    {
+        var guild = new Guild { Name = "TestGuild", MOTD = "motd" };
+        guild.AddMember(1, Guild.GuildRanks.Member, dirty: true, justadded: true);
+
+        var (save1, commit1) = guild.BuildSave();
+        guild.ChangeRank(new Player(0) { PlayerID = 1 }, Guild.GuildRanks.Officer, world);
+
+        world.Database.EnqueueTransaction(save1, commit1);
+
+        Assert.Equal((int)Guild.GuildRanks.Member, MemberRank(guild));
+        var status = guild.Members[1];
+        Assert.True(status.Dirty);
+        Assert.True(status.JustAdded);
+        Assert.True(guild.Dirty);
+
+        var (save2, commit2) = guild.BuildSave();
+        world.Database.EnqueueTransaction(save2, commit2);
+
+        Assert.Equal((int)Guild.GuildRanks.Officer, MemberRank(guild));
+        Assert.False(status.Dirty);
+        Assert.False(status.JustAdded);
+        Assert.False(guild.Dirty);
+    }
+
+    private int MemberRank(Guild guild)
+    {
+        return world.Database.Execute<int>(conn =>
+        {
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT guild_rank FROM guild_members WHERE guild_id=" + guild.ID + " AND player_id=1";
+            return Convert.ToInt32(cmd.ExecuteScalar());
+        });
+    }
+
+    [Fact]
     public void A_kicked_member_is_deleted_and_removed_from_the_guild()
     {
         var guild = new Guild { Name = "TestGuild", MOTD = "motd" };
         guild.AddMember(1, Guild.GuildRanks.Member, dirty: true, justadded: true);
         guild.AddMember(2, Guild.GuildRanks.Member, dirty: true, justadded: true);
 
-        world.Database.EnqueueTransaction(guild.BuildSave());
+        var (save1, commit1) = guild.BuildSave();
+        world.Database.EnqueueTransaction(save1, commit1);
         Assert.Equal(2, Count("SELECT COUNT(*) FROM guild_members"));
 
         guild.Members[2].Rank = Guild.GuildRanks.Deleted;
         guild.Members[2].Dirty = true;
         guild.Dirty = true;
 
-        world.Database.EnqueueTransaction(guild.BuildSave());
+        var (save2, commit2) = guild.BuildSave();
+        world.Database.EnqueueTransaction(save2, commit2);
 
         Assert.Equal(1, Count("SELECT COUNT(*) FROM guild_members"));
         Assert.False(guild.Members.ContainsKey(2));
+    }
+}
+
+public class GuildSaveCadenceTests : PlayerFirstSaveTestBase
+{
+    public GuildSaveCadenceTests() : base("guilds") { }
+
+    [Fact]
+    public void The_save_cadence_persists_a_dirty_existing_guild()
+    {
+        world.Database.Execute(conn =>
+        {
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "INSERT INTO guilds (guild_name, guild_motd) VALUES ('TestGuild', 'motd')";
+            cmd.ExecuteNonQuery();
+            cmd.CommandText = "INSERT INTO guild_members (guild_id, player_id, guild_rank) VALUES (1, 7, 1)";
+            cmd.ExecuteNonQuery();
+        });
+
+        var handler = new GuildHandler();
+        handler.LoadGuilds(world);
+        var guild = handler.GetGuild(1);
+        Assert.NotNull(guild);
+
+        var status = guild.Members[7];
+        status.Rank = Guild.GuildRanks.Officer;
+        status.Dirty = true;
+        guild.Dirty = true;
+
+        handler.Save(world);
+
+        Assert.Equal(1, Count("SELECT COUNT(*) FROM guilds"));
+        int rank = world.Database.Execute<int>(conn =>
+        {
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT guild_rank FROM guild_members WHERE guild_id=1 AND player_id=7";
+            return Convert.ToInt32(cmd.ExecuteScalar());
+        });
+        Assert.Equal((int)Guild.GuildRanks.Officer, rank);
+        Assert.False(status.Dirty);
+        Assert.False(guild.Dirty);
     }
 }
 
@@ -146,5 +244,72 @@ public class GuildSaveRollbackTests : PlayerFirstSaveTestBase
         Assert.Equal(0, Count("SELECT COUNT(*) FROM guilds"));
         Assert.Equal(0, Count("SELECT COUNT(*) FROM guild_members"));
         Assert.Equal(0, Count("SELECT COUNT(*) FROM players WHERE player_id=" + player.PlayerID));
+    }
+
+    [Fact]
+    public void A_rolled_back_first_save_leaves_memory_unchanged_and_the_retry_persists_cleanly()
+    {
+        var player = MakePlayer();
+        player.AutoCreatedNotSaved = true;
+
+        var guild = new Guild { Name = "TestGuild", MOTD = "motd" };
+        guild.AddMember(player.PlayerID, Guild.GuildRanks.Leader, dirty: true, justadded: true);
+        guild.OnlineMembers.Add(player);
+        player.Guild = guild;
+        var status = guild.Members[player.PlayerID];
+
+        player.SaveToDatabase(world);
+        Count("SELECT COUNT(*) FROM guilds");
+
+        Assert.Equal(0, Count("SELECT COUNT(*) FROM guilds"));
+        Assert.Equal(0, Count("SELECT COUNT(*) FROM guild_members"));
+        Assert.Equal(0, Count("SELECT COUNT(*) FROM players WHERE player_id=" + player.PlayerID));
+        Assert.Equal(0, guild.ID);
+        Assert.True(status.Dirty);
+        Assert.True(status.JustAdded);
+        Assert.True(guild.Dirty);
+        Assert.Equal(0, player.GuildID);
+        Assert.True(player.AutoCreatedNotSaved);
+
+        world.Database.Execute(conn =>
+        {
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "sql", "quests.sql"));
+            cmd.ExecuteNonQuery();
+        });
+
+        player.SaveToDatabase(world);
+        Count("SELECT COUNT(*) FROM guilds");
+
+        Assert.Equal(1, Count("SELECT COUNT(*) FROM guilds"));
+        int guildId = GuildId();
+        Assert.True(guildId > 0);
+        Assert.Equal(guildId, guild.ID);
+        Assert.Equal(1, Count("SELECT COUNT(*) FROM guild_members WHERE guild_id=" + guildId + " AND player_id=" + player.PlayerID));
+        Assert.Equal(guildId, PlayerGuildId(player.PlayerID));
+        Assert.Equal(guildId, player.GuildID);
+        Assert.False(status.Dirty);
+        Assert.False(status.JustAdded);
+        Assert.False(guild.Dirty);
+    }
+
+    private int GuildId()
+    {
+        return world.Database.Execute<int>(conn =>
+        {
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT guild_id FROM guilds LIMIT 1";
+            return Convert.ToInt32(cmd.ExecuteScalar());
+        });
+    }
+
+    private int PlayerGuildId(int playerId)
+    {
+        return world.Database.Execute<int>(conn =>
+        {
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT guild_id FROM players WHERE player_id=" + playerId;
+            return Convert.ToInt32(cmd.ExecuteScalar());
+        });
     }
 }

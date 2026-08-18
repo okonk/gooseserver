@@ -854,6 +854,11 @@ namespace Goose
             // rolled-back save retries INSERT instead of UPDATE-matching zero rows.
             bool isNew = this.AutoCreatedNotSaved;
 
+            // H9: the guild work item fills this cell with the effective guild ID - a
+            // new guild's ID is only known mid-transaction, and this.GuildID is set post-commit.
+            int guildIdCell = 0;
+            bool guildRan = false;
+
             Action<SQLiteConnection> savePlayerRow;
 
             if (this.AutoCreatedNotSaved)
@@ -861,9 +866,7 @@ namespace Goose
                 string insertQuery = this.BuildInsertQuery();
                 savePlayerRow = conn =>
                 {
-                    // H9: read at call time - a new guild's first work item assigns
-                    // this.GuildID earlier in the same transaction.
-                    using var command = BuildInsertCommand(conn, insertQuery, this.GuildID, playerName, playerTitle, playerSurname, unbanDate, playerProperties);
+                    using var command = BuildInsertCommand(conn, insertQuery, guildRan ? guildIdCell : this.GuildID, playerName, playerTitle, playerSurname, unbanDate, playerProperties);
                     command.ExecuteNonQuery();
                 };
             }
@@ -872,7 +875,7 @@ namespace Goose
                 string updateQuery = this.BuildUpdateQuery();
                 savePlayerRow = conn =>
                 {
-                    using var command = BuildUpdateCommand(conn, updateQuery, this.GuildID, playerName, playerTitle, playerSurname, unbanDate, playerProperties);
+                    using var command = BuildUpdateCommand(conn, updateQuery, guildRan ? guildIdCell : this.GuildID, playerName, playerTitle, playerSurname, unbanDate, playerProperties);
                     command.ExecuteNonQuery();
                 };
             }
@@ -883,11 +886,18 @@ namespace Goose
             // could persist the players row against a stale inventory - buy an item, crash,
             // and keep both the gold and the item.
             var work = new List<Action<SQLiteConnection>>();
+            Action guildOnCommit = null;
 
             // First so the guild INSERT assigns the ID the players row binds.
             if (this.Guild != null && (this.GuildID == 0 || this.Guild.Dirty))
             {
-                work.Add(this.Guild.BuildSave());
+                var (guildSave, commit) = this.Guild.BuildSave(id =>
+                {
+                    guildIdCell = id;
+                    guildRan = true;
+                });
+                guildOnCommit = commit;
+                work.Add(guildSave);
             }
 
             work.Add(savePlayerRow);
@@ -906,7 +916,7 @@ namespace Goose
             work.Add(this.BuildSaveQuests());
 
             Action onCommit = null;
-            if (isNew || newPets.Count > 0)
+            if (isNew || newPets.Count > 0 || guildOnCommit != null)
             {
                 onCommit = () =>
                 {
@@ -914,6 +924,7 @@ namespace Goose
                         this.AutoCreatedNotSaved = false;
                     foreach (var pet in newPets)
                         pet.AutoCreatedNotSaved = false;
+                    guildOnCommit?.Invoke();
                 };
             }
 
