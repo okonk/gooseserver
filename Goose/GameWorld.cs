@@ -334,11 +334,6 @@ namespace Goose
             if (!this.LoadStep("Classes", () => this.ClassHandler.LoadClasses(this),
                 () => this.ClassHandler.Count)) return;
 
-            if (!this.LoadStep("Players", () => this.PlayerHandler.LoadPlayerData(this),
-                () => this.PlayerHandler.PlayerDataCount)) return;
-
-            this.RankHandler.UpdateAll(this);
-
             if (!this.LoadStep("NPC Templates", () => this.NPCHandler.LoadNPCTemplates(this),
                 () => this.NPCHandler.TemplateCount)) return;
 
@@ -373,6 +368,13 @@ namespace Goose
             this.ItemHandler.AddItem(gold, this);
 
             if (!this.LoadStep("Global Scripts", () => LoadGlobalScripts())) return;
+
+            // After global scripts: their OnLoaded can register item templates/currencies
+            // that player inventories and banks reference at load time.
+            if (!this.LoadStep("Players", () => this.PlayerHandler.LoadPlayerData(this),
+                () => this.PlayerHandler.PlayerDataCount)) return;
+
+            this.RankHandler.UpdateAll(this);
 
             log.Info("Finished loading game. Ready to join.");
 
