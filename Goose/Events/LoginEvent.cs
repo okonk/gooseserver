@@ -266,7 +266,7 @@ namespace Goose.Events
 
             this.Player.CurrentHP = (long)(this.Player.MaxHP * 0.8);
             this.Player.CurrentMP = (long)(this.Player.MaxMP * 0.8);
-            this.Player.CurrentSP = (long)(this.Player.MaxSP * 0.5);
+            this.Player.CurrentSP = (long)(this.Player.MaxSP * GameWorld.Settings.SpRespawnPercentage);
 
             this.Player.UpdateIdleStatus(world);
 

@@ -58,6 +58,7 @@
     "BaseMPStaticRegen": 0,
     "BaseSPPercentRegen": 0.0,
     "BaseSPStaticRegen": 0,
+    "SpRespawnPercentage": 1,
     "StartingHP": 0,
     "StartingMP": 0,
     "StartingSP": 0,

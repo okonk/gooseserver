@@ -47,6 +47,7 @@ namespace Goose
         public int BaseMPStaticRegen { get; set; }
         public decimal BaseSPPercentRegen { get; set; }
         public int BaseSPStaticRegen { get; set; }
+        public decimal SpRespawnPercentage { get; set; }
         public int StartingHP { get; set; }
         public int StartingMP { get; set; }
         public int StartingSP { get; set; }
