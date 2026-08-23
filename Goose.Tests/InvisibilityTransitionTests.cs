@@ -257,6 +257,35 @@ public class InvisibilityTransitionTests : IDisposable
     }
 
     [Fact]
+    public void Player_RemovingOneOfTwoInvisibleBuffs_BroadcastsCHPExactlyOnceOnLastRemoval()
+    {
+        var a = NewPlayer();
+        var b = NewPlayer();
+        PlacePlayer(a, 5, 5);
+        PlacePlayer(b, 5, 6);
+
+        var first = NewBuff(b, SpellEffect.EffectTypes.Invisible);
+        var second = NewBuff(b, SpellEffect.EffectTypes.Invisible);
+        b.AddBuff(first, world);
+        b.AddBuff(second, world);
+        Assert.Equal(2, b.InvisibleBuffCount);
+
+        a.SendBuffer.Clear();
+        b.RemoveBuff(first, world);
+
+        // 2 -> 1 is not a transition: no CHP at all, not even a flag-1 one.
+        Assert.DoesNotContain("CHP", Buffer(a));
+
+        a.SendBuffer.Clear();
+        b.RemoveBuff(second, world);
+
+        string buf = Buffer(a);
+        Assert.Equal(1, buf.Split("CHP").Length - 1);
+        Assert.Contains(",255,0,70,", buf);
+        Assert.DoesNotContain(",255,1,70,", buf);
+    }
+
+    [Fact]
     public void Player_InLoadingState_GetsInvisibleBuff_NoPacketsAndNoException()
     {
         var p = NewPlayer();
