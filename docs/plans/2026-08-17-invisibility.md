@@ -19,7 +19,7 @@ Design doc: `docs/plans/2026-08-17-invisibility-design.md` (approved).
 - `Player.Buffs` `Goose/Player.cs:362` (`List<Buff>`); `Player.Attack(ICharacter, GameWorld)` `Goose/Player.cs:1640`; `Player.Send(string)` `Goose/Player.cs:2455` (unconnected non-blocking socket → whole payload lands in `SendBuffer`).
 - `NPC.AddBuff(Buff, GameWorld)` `Goose/NPC.cs:1469` (same branch shapes; range computed at top); `NPC.RemoveBuff(Buff, GameWorld)` `Goose/NPC.cs:1570` (range broadcast only when `State == States.Alive`); `NPC.Buffs` `Goose/NPC.cs:333`; `NPC.Attack` `Goose/NPC.cs:1370`; `NPC.AggroIfInRange(Player, GameWorld)` `Goose/NPC.cs:988`; `NPC.RemoveAggro(Player)` `Goose/NPC.cs:960`; `NPC.LoadFromTemplate` flag copies at ~`Goose/NPC.cs:612` (`CanBeStunned` etc.).
 - `ICharacter.AddBuff/RemoveBuff` declarations `Goose/ICharacter.cs:140-141`. Implementors are exactly `Player` and `NPC` (verified — no third implementation; `Pet : Player` `Goose/Pet.cs:16`).
-- `SpellEffect.Cast(ICharacter, ICharacter, GameWorld)` `Goose/SpellEffect.cs:1096`: PVP early-out, Target path `return this.CastSpell(...)` at :1102, AoE body ends `return true` at ~:1349. `CastBuffSpell` `Goose/SpellEffect.cs:740` with the existing Invisible aggro-clear block at :772-781. `EffectTypes.Invisible/SeeInvisible` `Goose/SpellEffect.cs:85-86`. `SpellEffect()` ctor initializes `Stats`, `BuffStacksOver`, `BuffDoesntStackOver` (`Goose/SpellEffect.cs:229`). `CanCastSpell` `Goose/SpellEffect.cs:~504` — self-casts require `Effected & SpellEffected.Self`.
+- `SpellEffect.Cast(ICharacter, ICharacter, GameWorld)` `Goose/SpellEffect.cs:1096`: PVP early-out, Target path `return this.CastSpell(...)` at :1102, AoE body ends `return true` at ~:1349. `CastBuffSpell` `Goose/SpellEffect.cs:740` with the existing Invisible aggro-clear block at :772-781. `EffectTypes.Invisible/SeeInvisible` `Goose/SpellEffect.cs:85-86`. `SpellEffect()` ctor initializes `Stats`, `BuffStacksOver`, `BuffDoesntStackOver` (`Goose/SpellEffect.cs:229`). `CanCastSpell` `Goose/SpellEffect.cs:844` — self-casts require `Effected & SpellEffected.Self`.
 - `DoneLoadingMapEvent.Ready` `Goose/Events/DoneLoadingMapEvent.cs` — sends `P.MakeCharacter(this.Player)` to the player and in-range players; also calls `npc.AggroIfInRange` per in-range NPC.
 - `NPCHandler` template load: `Goose/NPCHandler.cs:52-62` (`stunnable` at :60, pattern `("0".Equals(Convert.ToString(reader["x"])) ? false : true)`); `credit_dealer` uses explicit-`"0"` comparison at ~:108.
 - `NpcCsvToSql` columns `CsvToSql/CsvToSql.Core/NpcCsvToSql.cs:10-26` (`Col.Bool("stunnable", def: false)` at :23).
@@ -38,8 +38,9 @@ Every hook added (AddBuff/RemoveBuff transitions, Attack, Cast, AggroIfInRange, 
 
 ## Per-task test setup notes (shared)
 
-- Player that can receive/observe packets: `var p = new Player(0); p.OnLogin();` then set `p.Class` (any `Class` with a level row), `p.CurrentHP = p.MaxHP = 100; p.CurrentMP = p.MaxMP = 100;` (VPU divides by MaxHP/MaxMP, `Goose/Packets.cs:406`), `p.State = Player.States.Ready`, and an unconnected non-blocking socket (PlayerSendTests pattern) so `GameWorld.Send` lands in `p.SendBuffer` (`Goose/GameWorld.cs:633` appends `\x1`; decode as ASCII for asserts).
-- Two players on one map: size `map.characters`/`tiles`, `world.MapHandler.Maps[MapId] = map`, `map.PlaceCharacter(...)` + `map.SetCharacter(...)` for each (`Goose/Map.cs:306,683`).
+- World/settings: follow `Goose.Tests/NPCSpawnRegistrationTests.cs:15-52` exactly — `[Collection(GameWorldSettingsCollection.Name)]` + swap/restore the static `GameWorld.Settings` with an isolated temp `DataPath` in ctor/`Dispose`. Do NOT swap Settings without the collection attribute (parallel-collection flake).
+- Player that can receive/observe packets: `var p = new Player(0);` then set `p.Inventory = new Inventory(p);` (the `Player(int)` ctor at `Goose/Player.cs:483` does NOT initialize it — only `LoadFromAutoCreate` :623 / `LoadFromReader` :767 do; `P.UpdateCharacter`/`P.StatusInfo`/`Player.Attack` all dereference it), `p.Class` (any `Class` with a level row), `p.CurrentHP = p.MaxHP = 100; p.CurrentMP = p.MaxMP = 100;` (VPU divides by MaxHP/MaxMP, `Goose/Packets.cs:406`), `p.State = Player.States.Ready`, and an unconnected non-blocking socket (PlayerSendTests pattern) so `GameWorld.Send` lands in `p.SendBuffer` (`Goose/GameWorld.cs:633` appends `\x1`; decode as ASCII for asserts).
+- Two players on one map: size `map.characters`/`tiles`, `world.MapHandler.Maps[MapId] = map`, and for EACH player: `map.AddPlayer(p, world)` (`Goose/Map.cs:185`) + `map.PlaceCharacter(...)` + `map.SetCharacter(...)`. `Map.GetPlayersInRange` (`Goose/Map.cs:160`) iterates the private `players` list (populated ONLY by `AddPlayer`) and EXCLUDES the target character itself (`p != character`) — so range broadcasts reach bystanders only; direct self-sends (SINVS, own MKC) are separate `world.Send` calls, which is why tests assert on the subject's own `SendBuffer` for SINVS.
 - NPC: `world.NPCHandler.SpawnNPC(world, MapId, x, y, new NPCTemplate { NPCTemplateID = 1, Name = "t", Level = 50, ClassID = classId, BaseStats = new AttributeSet(), AggroRange = 5 }, shouldRespawn: false)` after registering a level-50 class (NPCSpawnRegistrationTests `RegisterClass` reflection pattern).
 - Buffs: `new Buff { Target = x, Caster = x, SpellEffect = new SpellEffect { EffectType = SpellEffect.EffectTypes.Invisible, Duration = 1000 } }` — the `SpellEffect()` ctor leaves `Stats`/stack lists non-null (`Goose/SpellEffect.cs:229`).
 
@@ -127,7 +128,7 @@ Red: FAIL — counters/properties don't exist.
 - `Player`: `public int InvisibleBuffCount { get; set; }`, `public int SeeInvisibleBuffCount { get; set; }`, `public bool IsInvisible { get { return this.InvisibleBuffCount > 0; } }`.
 - `NPC`: same two counters + `IsInvisible`, plus `public bool CanSeeInvisible { get; set; }` — **note**: this must be computed, not stored: `public bool CanSeeInvisible { get { return this.SeesInvisibleBase || this.SeeInvisibleBuffCount > 0; } }` with `public bool SeesInvisibleBase { get; set; }` copied in `LoadFromTemplate` from `template.SeeInvisible` (next to `CanBeStunned`, NPC.cs:612).
 - Counter maintenance: in each AddBuff/RemoveBuff branch per the propagation sequence above. Only `SpellEffect.EffectTypes.Invisible` and `SpellEffect.EffectTypes.SeeInvisible` move counters; guard `buff.SpellEffect` null the way existing `?.Script` code does.
-- `NPCTemplate.SeeInvisible` (bool); `NPCHandler`: `npc.SeeInvisible = "1".Equals(Convert.ToString(reader["see_invisible"]));` — use the explicit-`"1"` form (NOT the `stunnable` `"0".Equals ? false : true` form, which treats NULL as true; we default to false).
+- `NPCTemplate.SeeInvisible` (bool); `NPCHandler`: `npc.SeeInvisible = "1".Equals(Convert.ToString(reader["see_invisible"]));` — use the explicit-`"1"` form. Do NOT copy the `stunnable`/`credit_dealer` idiom (`"0".Equals(x) ? false : true`, `Goose/NPCHandler.cs:60,105`), which treats NULL and any non-`"0"` value as true; we default to false.
 - `Packets.cs`: replace the six `"0" + "," + // Invis thing` with `(x.IsInvisible ? "1" : "0")` per Task 1 Step 3 and fix the comments.
 
 **Step 4: Run (green)** — counter tests pass; also run `--filter FullyQualifiedName~InvisibilityPacketTests` (Task 1 tests still green with the field sites wired).
@@ -157,7 +158,7 @@ Red: FAIL — counters/properties don't exist.
 - Important readers: client (CHP toggles visibility), NPC move/attack loops (aggro), `NPC.RemoveAggro` (`Goose/NPC.cs:960`).
 - Derived/cached state affected: none new; aggro values are mutated via the existing `RemoveAggro` (which re-derives `AggroTarget` from `AggroTargetToValue`).
 - Required propagation sequence:
-  1. Player `AddBuff`: capture `wasInvisible`/`wasSeeInvisible` at entry. At each counter-mutation point (loading branch, renew branch, new-add):
+  1. Player `AddBuff`/`RemoveBuff`: capture `wasInvisible`/`wasSeeInvisible` at method entry. Apply all counter mutations for the call (loading branch, renew branch — which decrements the old type AND increments the new type in one branch — new-add). Then, ONCE at the end of the mutation path, compare entry snapshot vs. resulting counters and fire each transition at most once per call (renew of an invis spell for a different invis spell must produce no packets; invis→non-invis renew fires exactly one 1→0). Transitions fire only when `this.State == States.Ready` — the loading branch runs before `Player.Map` is assigned (by `DoneLoadingMapEvent`), so `ClearNPCAggroIfUnseen` would NRE otherwise. Side effects skipped during loading are covered by Task 6 (map load sends SINVS and MKC already carries the invis flag).
      - invisible 0→1: `ClearNPCAggroIfUnseen(world)` then `BroadcastInvisChange(world)`.
      - invisible 1→0: `BroadcastInvisChange(world)`.
      - seeinvis 0→1: `SendSeeInvisibleState(world)` (sends `SINVS1`).
@@ -179,7 +180,7 @@ Red: FAIL — counters/properties don't exist.
 4. Adversarial companion: same setup but NPC spawned with `template.SeeInvisible = true` → `npc.AggroTarget` still == player after the buff.
 5. SINVS: normal player gets SeeInvisible buff → own `SendBuffer` contains `SINVS1`; remove → `SINVS0`. GM player (`Access = AccessStatus.GameMaster`): remove → buffer does NOT gain a `SINVS0` after the removal (computed state stays true; if the impl sends `SINVS1`, that's acceptable — assert the last SINVS in the buffer is `SINVS1`, not `SINVS0`).
 6. Non-invis buff add/remove → no `CHP`-with-invis-flip and no `SINVS` in either buffer (adversarial: fails if the broadcast fires unconditionally).
-7. Loading-state player (State `LoadingGame`) gets Invisible buff: no NRE (no map broadcasts), counter correct, `IsInvisible` true.
+7. Loading-state player (State `LoadingGame`, `Map == null`) gets Invisible buff: no NRE, no packets, counter correct, `IsInvisible` true. (Adversarial: fails if the transition block isn't Ready-gated — `ClearNPCAggroIfUnseen` dereferences `Map`.)
 
 **Step 2: Run (red)** — `--filter FullyQualifiedName~InvisibilityTransitionTests`.
 
@@ -227,7 +228,8 @@ Red: FAIL — counters/properties don't exist.
 
 1. Invisible player `Attack`s an NPC → `player.IsInvisible` false, `player.Buffs` has no Invisible entries, other buffs (e.g. a Root) remain. Bystander player received CHP field flip 1→0.
 2. NPC (buffed invisible) `Attack`s the player → NPC `IsInvisible` false.
-3. Cast: invisible player, `new SpellEffect { EffectType = EffectTypes.Buff, TargetType = TargetTypes.Target, Effected = SpellEffected.Self, Duration = 1000 }`, `se.Cast(player, player, world)` returns true → player no longer invisible (the cast itself reveals before/after adding the new buff — final state: no Invisible buffs). A non-invis buff the player had survives.
+3. Cast: invisible player, `new SpellEffect { EffectType = EffectTypes.Buff, TargetType = TargetTypes.Target, Effected = SpellEffected.Self, Duration = 1000 }`, `se.Cast(player, player, world)` returns true → player no longer invisible (the cast itself reveals; final state: no Invisible buffs). A non-invis buff the player had survives.
+4b. OPEN DESIGN QUESTION (resolve before implementing Task 4): if the cast itself *grants* an Invisible buff (self-invis spell), the current spec (break AFTER success, removes all Invisible buffs) immediately removes the just-added buff — self-invis spells become unusable. Options: (a) break BEFORE the cast (cast reveals, then the spell can re-invis; failed casts also reveal), (b) break after but exclude the buff this cast just added, (c) keep as-is (self-invis spells unusable). Tests 3/4 must be adjusted to match the chosen option.
 4. Adversarial: `WorksInPVP = false` on a `CanPVP` map → `Cast` returns false → player STAYS invisible (PVP early-out must not break).
 5. Two Invisible stacks + `Player.Attack` → both removed in one attack, `IsInvisible` false.
 
@@ -298,7 +300,7 @@ if (player.IsInvisible && !this.CanSeeInvisible) return;
 
 **Step 1: Write the failing tests** (shared setup; drive the real event)
 
-Construct the flow the way `DoneLoadingMapEvent` expects: player `State = States.LoadingMap`, `MapID` set, placed via `map.PlaceCharacter`/`SetCharacter`, unconnected socket. Then `var ev = new DoneLoadingMapEvent { Player = p, Ticks = world.TimeNow }; world.EventHandler.AddEvent(ev); world.EventHandler.Update();` — verify the event-queue drive pattern against `Goose.Tests/EventHandlerTests.cs` before writing.
+Construct the flow the way `DoneLoadingMapEvent` expects: player `State = States.LoadingMap`, `MapID` set, placed via `map.AddPlayer` + `map.PlaceCharacter`/`SetCharacter`, unconnected socket. Then `var ev = new DoneLoadingMapEvent { Player = p, Ticks = world.TimeNow }; world.EventHandler.AddEvent(ev); world.EventHandler.Update(world);` — copy the exact drive pattern from `Goose.Tests/LoginEventNameLengthTests.cs:55,71`.
 
 1. GM player (`Access = GameMaster`), no buffs → after DLM processing, buffer contains `SINVS1`.
 2. Normal player with a SeeInvisible buff → `SINVS1`.
@@ -372,7 +374,7 @@ Run the snapshot test without the env var → PASS. Then full `dotnet test Goose
 ## Final red-team notes
 
 - **Threading:** all new code runs on the game thread (buff add/remove, attacks, casts, aggro, map load are all game-thread paths). No new locks.
-- **Lifecycle:** `Player.RemoveBuff` with `updateCharacter: false` (logout, `Goose/Events/LogoutEvent.cs:89`) still fires the CHP broadcast on an invis transition — intentional, harmless (character is erased).
+- **Lifecycle:** on logout, `LogoutEvent` sets `State = NotLoggedIn` and removes the player from the map (`Goose/Events/LogoutEvent.cs:77,55-58`) BEFORE stripping buffs (:79-90), so the Task 3 `State == Ready` gate suppresses any invis-transition broadcast at logout. No CHP on logout is the expected behavior — do not write a test expecting one.
 - **Failure behavior:** un-migrated DB (missing `see_invisible`) → `NPCHandler` throws at load. Intended (schema gate), documented in Persistence strategy.
 - **`GameWorld.Send` drops sends for pets** (`Goose/GameWorld.cs:633`) — the bystander-capture tests must use real Players, not Pets, as receivers.
-- **Test-helper reality:** map sizing, class injection (reflection), `SpawnNPC`, socket-capture recipes are all taken from existing passing tests cited in the API list; `DoneLoadingMapEvent` must be driven through `world.EventHandler` (verify pattern in `EventHandlerTests.cs` when writing Task 6).
+- **Test-helper reality:** map sizing, class injection (reflection), `SpawnNPC`, socket-capture recipes are all taken from existing passing tests cited in the API list; `DoneLoadingMapEvent` must be driven through `world.EventHandler` — the working `AddEvent(ev)` + `Update(world)` pattern is `Goose.Tests/LoginEventNameLengthTests.cs:55,71` and `Goose.Tests/Fixtures/GlobalScriptFixture.cs:201-209` (`EventHandlerTests.cs` only covers command registration).
