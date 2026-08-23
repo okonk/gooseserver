@@ -148,6 +148,22 @@ public class InvisibilityBreakTests : IDisposable
     }
 
     [Fact]
+    public void VisiblePlayer_AttackingNpc_SendsNoCharacterUpdate()
+    {
+        var b = NewPlayer();
+        b.Level = 1;
+        PlacePlayer(b, 5, 6);
+        var npc = SpawnNpc();
+
+        b.SendBuffer.Clear();
+        b.Attack(npc, world);
+
+        Assert.False(b.IsInvisible);
+        string buf = Buffer(b);
+        Assert.DoesNotContain("CHP", buf);
+    }
+
+    [Fact]
     public void InvisibleNpc_AttackingPlayer_BreaksInvisibility()
     {
         var p = NewPlayer();

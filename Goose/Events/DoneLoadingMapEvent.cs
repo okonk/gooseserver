@@ -36,9 +36,7 @@ namespace Goose.Events
                 this.Player.State = Player.States.Ready;
                 world.Send(this.Player, P.DoneSendingMap());
                 world.Send(this.Player, P.MakeCharacter(this.Player));
-                world.Send(this.Player, P.SeeInvisible(
-                    this.Player.SeeInvisibleBuffCount > 0 ||
-                    this.Player.Access > Player.AccessStatus.Normal));
+                world.Send(this.Player, P.SeeInvisible(this.Player.CanSeeInvisible));
                 world.Send(this.Player, P.SetYourCharacter(this.Player.LoginID));
 
                 string gmstring = P.AdminMode(this.Player.LoginID);

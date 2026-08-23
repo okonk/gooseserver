@@ -341,15 +341,9 @@ namespace Goose
         public int InvisibleBuffCount { get; set; }
         public int SeeInvisibleBuffCount { get; set; }
 
-        /**
-         * Template-level see-invisible flag, copied from NPCTemplate.SeeInvisible in
-         * LoadFromTemplate.
-         */
-        public bool SeesInvisibleBase { get; set; }
-
         public bool IsInvisible { get { return this.InvisibleBuffCount > 0; } }
 
-        public bool CanSeeInvisible { get { return this.SeesInvisibleBase || this.SeeInvisibleBuffCount > 0; } }
+        public bool CanSeeInvisible { get { return this.SeeInvisibleBuffCount > 0; } }
 
         private void AddToInvisCounters(SpellEffect effect)
         {
@@ -643,7 +637,9 @@ namespace Goose
             this.CanBeRooted = template.CanBeRooted;
             this.CanBeSlowed = template.CanBeSlowed;
             this.CanBeStunned = template.CanBeStunned;
-            this.SeesInvisibleBase = template.SeeInvisible;
+            // Template see-invisible is a persistent +1 so buff churn can never
+            // drop it, and it stacks with real SeeInvisible buffs.
+            if (template.SeeInvisible) this.SeeInvisibleBuffCount++;
             this.CanMove = template.CanMove;
             this.ClassID = template.ClassID;
             this.EquippedItems = template.EquippedItems;
@@ -1505,9 +1501,8 @@ namespace Goose
 
         public void AddBuff(Buff buff, GameWorld world)
         {
-            bool wasInvisible = this.InvisibleBuffCount > 0;
+            bool wasInvisible = this.IsInvisible;
             List<Player> range = this.Map.GetPlayersInRange(this);
-            string packet;
 
             foreach (Buff b in this.Buffs)
             {
@@ -1533,19 +1528,29 @@ namespace Goose
                     b.SpellEffect = buff.SpellEffect;
                     b.Caster = buff.Caster;
 
+                    bool invisFlip = wasInvisible != this.IsInvisible;
+
                     if (buff.SpellEffect.Animation != 0)
                     {
-                        packet = P.SpellPlayer(this.LoginID, buff.SpellEffect.Animation, buff.SpellEffect.AnimationFile);
+                        StringBuilder animPacket = new StringBuilder(P.SpellPlayer(this.LoginID, buff.SpellEffect.Animation, buff.SpellEffect.AnimationFile));
                         if (buff.SpellEffect.DoAttackAnimation)
-                            packet += "\x1" + P.Attack(this); // kinda weird but k
+                            animPacket.Append("\x1").Append(P.Attack(this)); // kinda weird but k
+                        if (invisFlip)
+                            animPacket.Append("\x1").Append(P.UpdateNPC(this));
 
                         foreach (Player player in range)
                         {
-                            world.Send(player, packet);
+                            world.Send(player, animPacket.ToString());
                         }
                     }
-
-                    if (wasInvisible != (this.InvisibleBuffCount > 0)) this.BroadcastInvisChange(world);
+                    else if (invisFlip)
+                    {
+                        string chp = P.UpdateNPC(this);
+                        foreach (Player player in range)
+                        {
+                            world.Send(player, chp);
+                        }
+                    }
 
                     return;
                 }
@@ -1602,31 +1607,25 @@ namespace Goose
 
             this.AddRegenEvent(world);
 
-            packet = P.VitalsPercentage(this);
+            StringBuilder packet = new StringBuilder(P.VitalsPercentage(this));
 
             if (buff.SpellEffect.Animation != 0)
-                packet += "\x1" + P.SpellPlayer(this.LoginID, buff.SpellEffect.Animation, buff.SpellEffect.AnimationFile);
-            if (buff.SpellEffect.DoAttackAnimation) packet += "\x1" + P.Attack(this); // kinda weird but k
+                packet.Append("\x1").Append(P.SpellPlayer(this.LoginID, buff.SpellEffect.Animation, buff.SpellEffect.AnimationFile));
+            if (buff.SpellEffect.DoAttackAnimation) packet.Append("\x1").Append(P.Attack(this)); // kinda weird but k
+            if (wasInvisible != this.IsInvisible)
+                packet.Append("\x1").Append(P.UpdateNPC(this));
 
             foreach (Player player in range)
             {
-                world.Send(player, packet);
-            }
-
-            if (wasInvisible != (this.InvisibleBuffCount > 0)) this.BroadcastInvisChange(world);
-        }
-
-        private void BroadcastInvisChange(GameWorld world)
-        {
-            foreach (Player p in this.Map.GetPlayersInRange(this))
-            {
-                world.Send(p, P.UpdateNPC(this));
+                world.Send(player, packet.ToString());
             }
         }
 
         public void BreakInvisibility(GameWorld world)
         {
-            List<Buff> toRemove = this.Buffs
+            if (!this.IsInvisible) return;
+
+            var toRemove = this.Buffs
                 .Where(b => b.SpellEffect.EffectType == SpellEffect.EffectTypes.Invisible)
                 .ToList();
 
@@ -1638,7 +1637,7 @@ namespace Goose
 
         public void RemoveBuff(Buff buff, GameWorld world)
         {
-            bool wasInvisible = this.InvisibleBuffCount > 0;
+            bool wasInvisible = this.IsInvisible;
 
             // Only decrement when the buff was actually on the list - a double-remove
             // must not drive the counters negative.
@@ -1664,14 +1663,15 @@ namespace Goose
             if (this.State == States.Alive)
             {
                 List<Player> range = this.Map.GetPlayersInRange(this);
-                string packet = P.VitalsPercentage(this);
+                StringBuilder packet = new StringBuilder(P.VitalsPercentage(this));
+
+                if (wasInvisible != this.IsInvisible)
+                    packet.Append("\x1").Append(P.UpdateNPC(this));
 
                 foreach (Player player in range)
                 {
-                    world.Send(player, packet);
+                    world.Send(player, packet.ToString());
                 }
-
-                if (wasInvisible != (this.InvisibleBuffCount > 0)) this.BroadcastInvisChange(world);
             }
         }
 

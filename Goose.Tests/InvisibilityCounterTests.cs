@@ -195,6 +195,15 @@ public class InvisibilityCounterTests : IDisposable
     {
         var npc = SpawnNpc(Template(seeInvisible: true));
         Assert.True(npc.CanSeeInvisible);
+        Assert.Equal(1, npc.SeeInvisibleBuffCount);
+
+        var buff = NewBuff(npc, SpellEffect.EffectTypes.SeeInvisible);
+        npc.AddBuff(buff, world);
+        Assert.Equal(2, npc.SeeInvisibleBuffCount);
+
+        npc.RemoveBuff(buff, world);
+        Assert.Equal(1, npc.SeeInvisibleBuffCount);
+        Assert.True(npc.CanSeeInvisible);
     }
 
     [Fact]

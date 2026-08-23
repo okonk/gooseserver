@@ -133,6 +133,28 @@ public class InvisibilityTransitionTests : IDisposable
     }
 
     [Fact]
+    public void Player_TogglingInvisibility_ReceivesSelfCHP()
+    {
+        var b = NewPlayer();
+        PlacePlayer(b, 5, 5);
+
+        var buff = NewBuff(b, SpellEffect.EffectTypes.Invisible);
+        b.SendBuffer.Clear();
+        b.AddBuff(buff, world);
+
+        string buf = Buffer(b);
+        Assert.Contains("CHP", buf);
+        Assert.Contains(",255,1,70,", buf);
+
+        b.SendBuffer.Clear();
+        b.RemoveBuff(buff, world);
+
+        buf = Buffer(b);
+        Assert.Contains("CHP", buf);
+        Assert.Contains(",255,0,70,", buf);
+    }
+
+    [Fact]
     public void Player_BecomingInvisible_BroadcastsCHPWithInvisFlagToBystanders()
     {
         var a = NewPlayer();
