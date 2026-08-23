@@ -1622,7 +1622,11 @@ namespace Goose
             }
 
             if (wasInvisible != this.IsInvisible)
-                packetBuilder.Append("\x1").Append(P.UpdateNPC(this));
+            {
+                if (packetBuilder.Length > 0)
+                    packetBuilder.Append("\x1");
+                packetBuilder.Append(P.UpdateNPC(this));
+            }
 
             if (packetBuilder.Length > 0)
             {

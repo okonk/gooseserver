@@ -340,10 +340,33 @@ public class InvisibilityTransitionTests : IDisposable
         Assert.False(b.IsInvisible);
         Assert.Equal(0, b.InvisibleBuffCount);
 
-        string buf = Buffer(a);
-        Assert.Contains("CHP", buf);
-        Assert.Contains(",255,0,70,", buf);
-        Assert.DoesNotContain(",255,1,70,", buf);
+        // The stat broadcast above sends its own CHP first, so the flip CHP rides a
+        // second send. With no animation on either effect that send carries the CHP
+        // alone - a leading \x1 there would create an empty protocol frame.
+        var frames = Buffer(a).Split('\x1');
+        Assert.All(frames[..^1], f => Assert.False(string.IsNullOrEmpty(f)));
+        Assert.Equal(P.UpdateCharacter(b), frames[^2]);
+    }
+
+    [Fact]
+    public void Npc_RenewingInvisibleBuffToNonInvisibleType_SendsExactlyOneChpFrame()
+    {
+        var p = NewPlayer();
+        PlacePlayer(p, 5, 6);
+        var npc = SpawnNpc(Template());
+
+        var seA = new SpellEffect { EffectType = SpellEffect.EffectTypes.Invisible, Duration = 1000 };
+        npc.AddBuff(new Buff { Target = npc, Caster = npc, SpellEffect = seA }, world);
+        Assert.True(npc.IsInvisible);
+
+        p.SendBuffer.Clear();
+
+        var seB = new SpellEffect { EffectType = SpellEffect.EffectTypes.Buff, Duration = 1000 };
+        seB.BuffStacksOver.Add(seA);
+        npc.AddBuff(new Buff { Target = npc, Caster = npc, SpellEffect = seB }, world);
+
+        Assert.False(npc.IsInvisible);
+        Assert.Equal(P.UpdateNPC(npc) + "\x1", Buffer(p));
     }
 
     [Fact]
