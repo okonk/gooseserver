@@ -15,7 +15,7 @@ invisibility (`IsGMInvisible`).
 - Invisible characters are hidden client-side via the existing "Invis thing" field in
   MKC/CHP (currently hardcoded `0`), and via a new `SINVS` packet that tells a client
   whether it can currently see invisible characters.
-- Melee attacks and successful spell casts break the actor's invisibility.
+- Melee attacks and spell casts break the actor's invisibility. A cast breaks BEFORE applying effects, so a self-cast Invisible spell still leaves the caster invisible (revealed, then re-hidden).
 - NPCs that can't see invisible players don't aggro on them.
 
 ## Wire protocol
@@ -69,8 +69,10 @@ Call sites (three, nothing else):
 
 1. `Player.Attack` (Player.cs:1640) — caller breaks its own invis. Covers players and pets.
 2. `NPC.Attack` (NPC.cs:1370) — caller breaks its own invis.
-3. `SpellEffect.Cast` — after a cast succeeds, the caster breaks its own invis. Any
-   spell type reveals the caster (buffs included).
+3. `SpellEffect.Cast` — immediately after the PVP early-out and before any effect is
+   applied, the caster breaks its own invis. Any spell type reveals the caster (buffs
+   included); a failed cast also reveals; the PVP early-out does not. A self-cast
+   Invisible spell therefore works: the old buff is removed, the cast re-adds one.
 
 No `NPC.Attacked` hook. Ranged *weapon* attacks do **not** break invis (conscious
 exclusion; ranged magic does, via the cast path).
@@ -112,7 +114,8 @@ exclusion; ranged magic does, via the cast path).
 3. Invis transition: 0→1 broadcasts CHP to in-range players and clears aggro on
    in-range NPCs that can't see (kept for NPCs that can); 1→0 broadcasts CHP.
 4. Breaking invis: `Player.Attack` and `NPC.Attack` remove all Invisible buffs; a
-   successful `SpellEffect.Cast` removes the caster's.
+   `SpellEffect.Cast` (before effects) removes the caster's; a self-cast Invisible spell
+   leaves the caster invisible (broken, then re-granted).
 5. Aggro gating: `AggroIfInRange` skips invisible players when the NPC can't see;
    aggros normally when it can (template flag and buff, independently).
 6. Packets: MKC/CHP carry `1`/`0` in the invis field; `P.SeeInvisible` format.

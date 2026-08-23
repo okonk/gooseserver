@@ -206,32 +206,30 @@ Red: FAIL — counters/properties don't exist.
 - Modify: `Goose/ICharacter.cs:140-141` (add `void BreakInvisibility(GameWorld world);` next to `AddBuff`/`RemoveBuff`)
 - Modify: `Goose/Player.cs` (implementation; `Attack` :1640 call site)
 - Modify: `Goose/NPC.cs` (implementation; `Attack` :1370 call site)
-- Modify: `Goose/SpellEffect.cs` (`Cast` :1096 call sites)
+- Modify: `Goose/SpellEffect.cs` (`Cast` :1096 call site)
 - Test: `Goose.Tests/InvisibilityBreakTests.cs` (create)
 
 **Mutation impact:**
 - Source of truth: buff lists; removal goes through the existing `RemoveBuff`, so Task 3's propagation (counters, CHP, aggro-clear is n/a here) fires unchanged.
 - Important readers: everything reading `IsInvisible` (packets, Task 5 gating).
 - Required propagation sequence: `BreakInvisibility` = snapshot own `Buffs` to a list, then for each buff with `EffectType == EffectTypes.Invisible` call the normal `RemoveBuff(buff, world)`. Snapshot first — `RemoveBuff` mutates the list.
-- Invariants: two stacks both removed in one call; a non-invis buff survives; each removal broadcasts via the normal path (no extra manual packets); double-break is a safe no-op.
+- Invariants: two stacks both removed in one call; a non-invis buff survives; each removal broadcasts via the normal path (no extra manual packets); double-break is a safe no-op; a self-cast Invisible spell leaves the caster invisible (break first, then the cast re-grants).
 - Observable proof: assert `IsInvisible` false + `Buffs` contents + that a bystander received the CHP flip, not a mock of `RemoveBuff`.
 
 **Call sites (exactly three):**
 1. `Player.Attack` (`Goose/Player.cs:1640`): first statement `this.BreakInvisibility(world);` (before `OnMeleeAttack`; covers pets via `Pet : Player`; breaking even when the PVP check returns early is intended — the attack attempt was made).
 2. `NPC.Attack` (`Goose/NPC.cs:1370`): first statement `this.BreakInvisibility(world);`.
-3. `SpellEffect.Cast` (`Goose/SpellEffect.cs:1096`):
-   - Target path: `bool ok = this.CastSpell(caster, target, world); if (ok) caster.BreakInvisibility(world); return ok;`
-   - AoE path: replace the final `return true;` (~:1349) with `caster.BreakInvisibility(world); return true;` (the AoE path always reports success).
-   - The PVP early-out (`return false`) must NOT break.
+3. `SpellEffect.Cast` (`Goose/SpellEffect.cs:1096`): one statement immediately AFTER the PVP early-out (`if (!this.WorksInPVP && target.Map.CanPVP) return false;` at :1098) and BEFORE the `TargetType` branch — so it covers the Target path and the entire AoE body with a single insertion, and reveals before any effect is applied. Decision (settled 2026-08-17, option a): the act of casting reveals; a failed cast (`CastSpell` returns false) also reveals; the PVP early-out does NOT break (no cast executes). A self-cast Invisible spell therefore works: the old Invisible buff is removed, then the spell re-adds one — final state invisible, with a visible 1→0→1 CHP pair to bystanders.
 
 **Step 1: Write the failing tests** (`InvisibilityBreakTests`, shared setup)
 
 1. Invisible player `Attack`s an NPC → `player.IsInvisible` false, `player.Buffs` has no Invisible entries, other buffs (e.g. a Root) remain. Bystander player received CHP field flip 1→0.
 2. NPC (buffed invisible) `Attack`s the player → NPC `IsInvisible` false.
-3. Cast: invisible player, `new SpellEffect { EffectType = EffectTypes.Buff, TargetType = TargetTypes.Target, Effected = SpellEffected.Self, Duration = 1000 }`, `se.Cast(player, player, world)` returns true → player no longer invisible (the cast itself reveals; final state: no Invisible buffs). A non-invis buff the player had survives.
-4b. OPEN DESIGN QUESTION (resolve before implementing Task 4): if the cast itself *grants* an Invisible buff (self-invis spell), the current spec (break AFTER success, removes all Invisible buffs) immediately removes the just-added buff — self-invis spells become unusable. Options: (a) break BEFORE the cast (cast reveals, then the spell can re-invis; failed casts also reveal), (b) break after but exclude the buff this cast just added, (c) keep as-is (self-invis spells unusable). Tests 3/4 must be adjusted to match the chosen option.
+3. Cast: invisible player, `new SpellEffect { EffectType = EffectTypes.Buff, TargetType = TargetTypes.Target, Effected = SpellEffected.Self, Duration = 1000 }`, `se.Cast(player, player, world)` returns true → player no longer invisible (cast reveals; no Invisible buffs remain). A non-invis buff the player had survives. Bystander buffer shows exactly one CHP flip 1→0.
 4. Adversarial: `WorksInPVP = false` on a `CanPVP` map → `Cast` returns false → player STAYS invisible (PVP early-out must not break).
 5. Two Invisible stacks + `Player.Attack` → both removed in one attack, `IsInvisible` false.
+6. Self-invis spell: invisible player casts `new SpellEffect { EffectType = EffectTypes.Invisible, TargetType = TargetTypes.Target, Effected = SpellEffected.Self, Duration = 1000 }` on themselves → `Cast` returns true → `player.IsInvisible` TRUE (old buff removed by the break, new buff added by the cast; assert `Buffs` contains exactly the new `SpellEffect` instance, not the old one). Bystander buffer: a CHP 1→0 followed by a CHP 0→1 (adversarial: fails under the rejected after-break spec, where the player would end visible).
+7. Failed cast reveals: invisible player casts a spell that `CanCastSpell` rejects for the target path (e.g. target NPC with `CanBeKilled = false` for an NPC-targeted `EffectTypes.Stun` — pick the simplest reject case available) → `Cast` returns false → player VISIBLE (break happens before `CastSpell`).
 
 **Step 2: Run (red)** — `--filter FullyQualifiedName~InvisibilityBreakTests` — FAIL: `BreakInvisibility` missing (compile error is acceptable red here; interface member added in the same commit).
 
@@ -244,7 +242,8 @@ Red: FAIL — counters/properties don't exist.
 | Invariant | Proved by |
 |---|---|
 | Attack removes all Invisible stacks, keeps others | tests 1, 5 |
-| Cast reveals on success only | tests 3, 4 (4 adversarial) |
+| Cast reveals before it applies; PVP early-out doesn't | tests 3, 4, 7 (4 and 7 adversarial) |
+| Self-invis spell still works (break-then-regrant) | test 6 (adversarial) |
 | NPCs and pets share the rule | tests 1 (player), 2 (NPC); pet covered by inheritance — explicit pet case optional |
 | Removal propagates through normal RemoveBuff | test 1 bystander CHP assert |
 
