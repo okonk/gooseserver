@@ -1502,9 +1502,9 @@ namespace Goose
         public void AddBuff(Buff buff, GameWorld world)
         {
             bool wasInvisible = this.IsInvisible;
-            List<Player> range = this.Map.GetPlayersInRange(this);
+            var range = this.Map.GetPlayersInRange(this);
 
-            foreach (Buff b in this.Buffs)
+            foreach (var b in this.Buffs)
             {
                 if (buff.SpellEffect.BuffDoesntStackOver.Contains(b.SpellEffect)) return;
 
@@ -1512,54 +1512,18 @@ namespace Goose
                 if (buff.SpellEffect == b.SpellEffect ||
                     buff.SpellEffect.BuffStacksOver.Contains(b.SpellEffect))
                 {
-                    // Add/remove stats - the old effect's stats leave, the new one's arrive,
-                    // exactly like Player.AddBuff's replacement branch. Without this, expiry
-                    // subtracts stats that were never added and MaxStats drifts below base.
-                    this.MaxStats -= b.SpellEffect.Stats;
-                    this.MaxStats += buff.SpellEffect.Stats;
-
-                    if (b.SpellEffect.EffectType != buff.SpellEffect.EffectType)
-                    {
-                        this.RemoveFromInvisCounters(b.SpellEffect);
-                        this.AddToInvisCounters(buff.SpellEffect);
-                    }
-
-                    b.TimeCast = world.TimeNow;
-                    b.SpellEffect = buff.SpellEffect;
-                    b.Caster = buff.Caster;
-
-                    bool invisFlip = wasInvisible != this.IsInvisible;
-
-                    if (buff.SpellEffect.Animation != 0)
-                    {
-                        StringBuilder animPacket = new StringBuilder(P.SpellPlayer(this.LoginID, buff.SpellEffect.Animation, buff.SpellEffect.AnimationFile));
-                        if (buff.SpellEffect.DoAttackAnimation)
-                            animPacket.Append("\x1").Append(P.Attack(this)); // kinda weird but k
-                        if (invisFlip)
-                            animPacket.Append("\x1").Append(P.UpdateNPC(this));
-
-                        foreach (Player player in range)
-                        {
-                            world.Send(player, animPacket.ToString());
-                        }
-                    }
-                    else if (invisFlip)
-                    {
-                        string chp = P.UpdateNPC(this);
-                        foreach (Player player in range)
-                        {
-                            world.Send(player, chp);
-                        }
-                    }
+                    RenewBuff(b, buff, wasInvisible, range, world);
 
                     return;
                 }
             }
 
+            var packetBuilder = new StringBuilder();
+
             if (buff.SpellEffect.Duration > 0)
             {
                 // else we don't have the buff. add it
-                Event ev = new BuffExpireEvent();
+                var ev = new BuffExpireEvent();
                 ev.Ticks += buff.SpellEffect.Duration * world.TimerFrequency;
                 ev.NPC = this;
                 ev.Data = buff;
@@ -1578,7 +1542,7 @@ namespace Goose
                 if (buff.BuffExpireEvent.Ticks - world.TimeNow >
                     GameWorld.Settings.SpellEffectPeriod * world.TimerFrequency)
                 {
-                    BuffTickEvent ev = new BuffTickEvent();
+                    var ev = new BuffTickEvent();
                     ev.Data = buff;
                     ev.NPC = this;
                     // H6: clamp to >= 1, a 0/negative period re-enqueues at now and spins EventHandler.Update
@@ -1607,17 +1571,67 @@ namespace Goose
 
             this.AddRegenEvent(world);
 
-            StringBuilder packet = new StringBuilder(P.VitalsPercentage(this));
+            packetBuilder.Append(P.VitalsPercentage(this));
 
             if (buff.SpellEffect.Animation != 0)
-                packet.Append("\x1").Append(P.SpellPlayer(this.LoginID, buff.SpellEffect.Animation, buff.SpellEffect.AnimationFile));
-            if (buff.SpellEffect.DoAttackAnimation) packet.Append("\x1").Append(P.Attack(this)); // kinda weird but k
-            if (wasInvisible != this.IsInvisible)
-                packet.Append("\x1").Append(P.UpdateNPC(this));
+                packetBuilder.Append("\x1").Append(P.SpellPlayer(this.LoginID, buff.SpellEffect.Animation, buff.SpellEffect.AnimationFile));
 
-            foreach (Player player in range)
+            if (buff.SpellEffect.DoAttackAnimation)
+                packetBuilder.Append("\x1").Append(P.Attack(this));
+
+            if (wasInvisible != this.IsInvisible)
+                packetBuilder.Append("\x1").Append(P.UpdateNPC(this));
+
+            if (packetBuilder.Length > 0)
             {
-                world.Send(player, packet.ToString());
+                var packet = packetBuilder.ToString();
+
+                foreach (var player in range)
+                {
+                    world.Send(player, packet);
+                }
+            }
+        }
+
+        private void RenewBuff(Buff existingBuff, Buff newBuff, bool wasInvisible, List<Player> range, GameWorld world)
+        {
+            var packetBuilder = new StringBuilder();
+
+            if (existingBuff.SpellEffect.EffectType != newBuff.SpellEffect.EffectType)
+            {
+                this.RemoveFromInvisCounters(existingBuff.SpellEffect);
+                this.AddToInvisCounters(newBuff.SpellEffect);
+            }
+
+            // Add/remove stats - the old effect's stats leave, the new one's arrive,
+            // exactly like Player.AddBuff's replacement branch. Without this, expiry
+            // subtracts stats that were never added and MaxStats drifts below base.
+            this.MaxStats -= existingBuff.SpellEffect.Stats;
+            this.MaxStats += newBuff.SpellEffect.Stats;
+
+            existingBuff.TimeCast = world.TimeNow;
+            existingBuff.SpellEffect = newBuff.SpellEffect;
+            existingBuff.Caster = newBuff.Caster;
+
+            if (newBuff.SpellEffect.Animation != 0)
+            {
+                packetBuilder.Append(P.SpellPlayer(this.LoginID, newBuff.SpellEffect.Animation, newBuff.SpellEffect.AnimationFile));
+
+                if (newBuff.SpellEffect.DoAttackAnimation)
+                    packetBuilder.Append("\x1").Append(P.Attack(this));
+            }
+
+            if (wasInvisible != this.IsInvisible)
+                packetBuilder.Append("\x1").Append(P.UpdateNPC(this));
+
+            if (packetBuilder.Length > 0)
+            {
+                var packet = packetBuilder.ToString();
+
+                foreach (var player in range)
+                {
+                    world.Send(player, packet);
+                }
             }
         }
 
@@ -1658,19 +1672,27 @@ namespace Goose
             }
             catch (Exception e) { }
 
+            var packetBuilder = new StringBuilder();
+
             this.AddRegenEvent(world);
 
             if (this.State == States.Alive)
             {
-                List<Player> range = this.Map.GetPlayersInRange(this);
-                StringBuilder packet = new StringBuilder(P.VitalsPercentage(this));
+                var range = this.Map.GetPlayersInRange(this);
+
+                packetBuilder.Append(P.VitalsPercentage(this));
 
                 if (wasInvisible != this.IsInvisible)
-                    packet.Append("\x1").Append(P.UpdateNPC(this));
+                    packetBuilder.Append("\x1").Append(P.UpdateNPC(this));
 
-                foreach (Player player in range)
+                if (packetBuilder.Length > 0)
                 {
-                    world.Send(player, packet.ToString());
+                    var packet = packetBuilder.ToString();
+
+                    foreach (var player in range)
+                    {
+                        world.Send(player, packet);
+                    }
                 }
             }
         }
