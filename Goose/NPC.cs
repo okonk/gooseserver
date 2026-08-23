@@ -1023,6 +1023,7 @@ namespace Goose
         {
             if (this.AggroRange == 0) return;
             if (this.AggroTarget != null) return;
+            if (player.IsInvisible && !this.CanSeeInvisible) return;
 
             if (Math.Abs(this.MapX - player.MapX) <= this.AggroRange &&
                 Math.Abs(this.MapY - player.MapY) <= this.AggroRange)
