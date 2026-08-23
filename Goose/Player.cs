@@ -2145,6 +2145,9 @@ namespace Goose
          */
         public void AddBuff(Buff buff, GameWorld world, bool refreshbar, bool updateCharacter = true)
         {
+            bool wasInvisible = this.InvisibleBuffCount > 0;
+            bool wasCanSee = this.SeeInvisibleBuffCount > 0 || this.Access > AccessStatus.Normal;
+
             if (this.State <= States.LoadingGame)
             {
                 this.Buffs.Add(buff);
@@ -2203,6 +2206,7 @@ namespace Goose
                     if (b.SpellEffect.OffEffectText != "") world.Send(this, P.ServerMessage(buff.SpellEffect.OffEffectText));
                     if (buff.SpellEffect.OnEffectText != "") world.Send(this, P.ServerMessage(buff.SpellEffect.OnEffectText));
 
+                    this.FireInvisTransitions(world, wasInvisible, wasCanSee);
                     this.SendBuffBar(world);
 
                     return;
@@ -2287,6 +2291,47 @@ namespace Goose
             }
 
             if (refreshbar) this.SendBuffBar(world);
+
+            this.FireInvisTransitions(world, wasInvisible, wasCanSee);
+        }
+
+        private void FireInvisTransitions(GameWorld world, bool wasInvisible, bool wasCanSee)
+        {
+            if (this.State != States.Ready) return;
+
+            bool isInvisible = this.InvisibleBuffCount > 0;
+            if (!wasInvisible && isInvisible)
+            {
+                this.ClearNPCAggroIfUnseen(world);
+                this.BroadcastInvisChange(world);
+            }
+            else if (wasInvisible && !isInvisible)
+            {
+                this.BroadcastInvisChange(world);
+            }
+
+            bool canSee = this.SeeInvisibleBuffCount > 0 || this.Access > AccessStatus.Normal;
+            if (canSee != wasCanSee)
+            {
+                world.Send(this, P.SeeInvisible(canSee));
+            }
+        }
+
+        private void ClearNPCAggroIfUnseen(GameWorld world)
+        {
+            foreach (NPC npc in this.Map.GetNPCsInRange(this))
+            {
+                if (!npc.CanSeeInvisible) npc.RemoveAggro(this);
+            }
+        }
+
+        private void BroadcastInvisChange(GameWorld world)
+        {
+            if (this.State != States.Ready) return;
+            foreach (Player p in this.Map.GetPlayersInRange(this))
+            {
+                world.Send(p, P.UpdateCharacter(this));
+            }
         }
 
         public bool IsMounted()
@@ -2309,6 +2354,9 @@ namespace Goose
          */
         public void RemoveBuff(Buff buff, GameWorld world, bool refreshbar, bool updateCharacter = true)
         {
+            bool wasInvisible = this.InvisibleBuffCount > 0;
+            bool wasCanSee = this.SeeInvisibleBuffCount > 0 || this.Access > AccessStatus.Normal;
+
             // Only decrement when the buff was actually on the list - a double-remove
             // must not drive the counters negative.
             if (this.Buffs.Remove(buff)) this.RemoveFromInvisCounters(buff.SpellEffect);
@@ -2358,6 +2406,8 @@ namespace Goose
             }
 
             if (refreshbar) this.SendBuffBar(world);
+
+            this.FireInvisTransitions(world, wasInvisible, wasCanSee);
         }
 
         /**

@@ -1502,6 +1502,7 @@ namespace Goose
 
         public void AddBuff(Buff buff, GameWorld world)
         {
+            bool wasInvisible = this.InvisibleBuffCount > 0;
             List<Player> range = this.Map.GetPlayersInRange(this);
             string packet;
 
@@ -1540,6 +1541,8 @@ namespace Goose
                             world.Send(player, packet);
                         }
                     }
+
+                    if (wasInvisible != (this.InvisibleBuffCount > 0)) this.BroadcastInvisChange(world);
 
                     return;
                 }
@@ -1606,10 +1609,22 @@ namespace Goose
             {
                 world.Send(player, packet);
             }
+
+            if (wasInvisible != (this.InvisibleBuffCount > 0)) this.BroadcastInvisChange(world);
+        }
+
+        private void BroadcastInvisChange(GameWorld world)
+        {
+            foreach (Player p in this.Map.GetPlayersInRange(this))
+            {
+                world.Send(p, P.UpdateNPC(this));
+            }
         }
 
         public void RemoveBuff(Buff buff, GameWorld world)
         {
+            bool wasInvisible = this.InvisibleBuffCount > 0;
+
             // Only decrement when the buff was actually on the list - a double-remove
             // must not drive the counters negative.
             if (this.Buffs.Remove(buff)) this.RemoveFromInvisCounters(buff.SpellEffect);
@@ -1640,6 +1655,8 @@ namespace Goose
                 {
                     world.Send(player, packet);
                 }
+
+                if (wasInvisible != (this.InvisibleBuffCount > 0)) this.BroadcastInvisChange(world);
             }
         }
 
