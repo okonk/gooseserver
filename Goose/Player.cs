@@ -1664,6 +1664,8 @@ namespace Goose
          */
         public void Attack(ICharacter character, GameWorld world)
         {
+            this.BreakInvisibility(world);
+
             this.OnMeleeAttack(character, world);
 
             if (character is Player &&
@@ -2346,6 +2348,18 @@ namespace Goose
         public void RemoveBuff(Buff buff, GameWorld world)
         {
             this.RemoveBuff(buff, world, true);
+        }
+
+        public void BreakInvisibility(GameWorld world)
+        {
+            List<Buff> toRemove = this.Buffs
+                .Where(b => b.SpellEffect.EffectType == SpellEffect.EffectTypes.Invisible)
+                .ToList();
+
+            foreach (Buff buff in toRemove)
+            {
+                this.RemoveBuff(buff, world);
+            }
         }
 
         /**

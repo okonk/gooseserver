@@ -1088,6 +1088,8 @@ namespace Goose
         {
             if (!this.WorksInPVP && target.Map.CanPVP) return false;
 
+            caster.BreakInvisibility(world);
+
             if (this.TargetType == TargetTypes.Target)
             {
                 return this.CastSpell(caster, target, world);

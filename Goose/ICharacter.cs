@@ -139,6 +139,7 @@ namespace Goose
 
         void AddBuff(Buff buff, GameWorld world);
         void RemoveBuff(Buff buff, GameWorld world);
+        void BreakInvisibility(GameWorld world);
 
         void OnMeleeHit(ICharacter attacker, GameWorld world);
 

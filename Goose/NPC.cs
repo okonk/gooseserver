@@ -1403,6 +1403,8 @@ namespace Goose
          */
         public void Attack(ICharacter character, GameWorld world)
         {
+            this.BreakInvisibility(world);
+
             double damage = this.MaxStats.Strength +
                             this.WeaponDamage +
                             this.Level +
@@ -1618,6 +1620,18 @@ namespace Goose
             foreach (Player p in this.Map.GetPlayersInRange(this))
             {
                 world.Send(p, P.UpdateNPC(this));
+            }
+        }
+
+        public void BreakInvisibility(GameWorld world)
+        {
+            List<Buff> toRemove = this.Buffs
+                .Where(b => b.SpellEffect.EffectType == SpellEffect.EffectTypes.Invisible)
+                .ToList();
+
+            foreach (Buff buff in toRemove)
+            {
+                this.RemoveBuff(buff, world);
             }
         }
 
