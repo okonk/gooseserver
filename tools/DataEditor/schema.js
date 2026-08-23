@@ -594,6 +594,14 @@ var GOOSE_SCHEMA = {
           "pk": false
         },
         {
+          "name": "see_invisible",
+          "kind": "Bool",
+          "sql": "CHAR(1)",
+          "default": "\u00270\u0027",
+          "required": false,
+          "pk": false
+        },
+        {
           "name": "npc_hp",
           "kind": "Int",
           "sql": "INT",
