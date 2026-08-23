@@ -31,6 +31,7 @@ namespace Goose.Tests
             p.CurrentHP = 100;
             p.CurrentMP = 100;
             p.State = Player.States.Ready;
+            p.HairA = 255;
             p.FaceID = 70;
             return p;
         }
@@ -42,6 +43,7 @@ namespace Goose.Tests
 
             Assert.StartsWith("MKC", packet);
             Assert.Contains(InvisField, packet);
+            Assert.Contains(",255,0,70,", packet);
         }
 
         [Fact]
@@ -60,6 +62,7 @@ namespace Goose.Tests
                 LoginID = 9,
                 Name = "Pet",
                 MaxStats = new AttributeSet { HP = 100 },
+                HairA = 255,
                 FaceID = 70
             };
             pet.CurrentHP = 100;
@@ -91,6 +94,7 @@ namespace Goose.Tests
                 LoginID = 5,
                 Name = "NPC",
                 MaxStats = new AttributeSet { HP = 100 },
+                HairA = 255,
                 FaceID = 70
             };
             npc.CurrentHP = 100;
