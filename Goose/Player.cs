@@ -2282,7 +2282,6 @@ namespace Goose
         private void RenewBuff(Buff existingBuff, Buff newBuff, bool wasInvisible, bool wasCanSee, List<Player> range, bool updateCharacter, GameWorld world)
         {
             var packetBuilder = new StringBuilder();
-            var offEffectText = existingBuff.SpellEffect.OffEffectText;
 
             if (existingBuff.SpellEffect.EffectType != newBuff.SpellEffect.EffectType)
             {
@@ -2295,6 +2294,9 @@ namespace Goose
 
             world.Send(this, P.WeaponSpeed(this));
 
+            if (existingBuff.SpellEffect.OffEffectText != "") world.Send(this, P.ServerMessage(existingBuff.SpellEffect.OffEffectText));
+            if (newBuff.SpellEffect.OnEffectText != "") world.Send(this, P.ServerMessage(newBuff.SpellEffect.OnEffectText));
+
             existingBuff.TimeCast = world.TimeNow;
             existingBuff.SpellEffect = newBuff.SpellEffect;
             existingBuff.Caster = newBuff.Caster;
@@ -2306,9 +2308,6 @@ namespace Goose
                 if (newBuff.SpellEffect.DoAttackAnimation)
                     packetBuilder.Append("\x1").Append(P.Attack(this));
             }
-
-            if (offEffectText != "") world.Send(this, P.ServerMessage(offEffectText));
-            if (newBuff.SpellEffect.OnEffectText != "") world.Send(this, P.ServerMessage(newBuff.SpellEffect.OnEffectText));
 
             this.SendBuffBar(world);
 
