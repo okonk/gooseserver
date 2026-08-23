@@ -96,9 +96,9 @@ Red-phase note: with counters not yet existing, write Task 1's tests as: (a) new
 - Test: `Goose.Tests/InvisibilityCounterTests.cs` (create)
 
 **Mutation impact:**
-- Source of truth changed: the buff list — `Player.Buffs` (`Goose/Player.cs:362`), `NPC.Buffs` (`Goose/NPC.cs:333`). The counters are derived caches of "how many buffs of each type".
-- Important readers: new `IsInvisible`/`CanSeeInvisible` (this task), packet builders (this task), later tasks (broadcasts, aggro gating).
-- Derived/cached state affected: the two counters per character. They must equal the count of buffs whose `SpellEffect.EffectType` is `Invisible`/`SeeInvisible`.
+- Source of truth: the counters are the authoritative invis state (public set — scripts may set them directly, per owner decision). `AddBuff`/`RemoveBuff` keep them in sync with the buff list (`Player.Buffs` `Goose/Player.cs:362`, `NPC.Buffs` `Goose/NPC.cs:333`) for buff-driven changes.
+- Important readers: new `IsInvisible`/`CanSeeInvisible` (this task), packet builders (this task), later tasks (broadcasts, aggro gating), game scripts (direct writes).
+- Buff-sync invariant (what this task maintains): at every quiescent point reached through buff operations, each counter equals the count of buffs whose `SpellEffect.EffectType` is `Invisible`/`SeeInvisible`. Direct script writes may (by design) deviate from that; tests only exercise buff operations.
 - Required propagation sequence (every counter must move at every point a buff of either type enters/leaves the list):
   1. `Player.AddBuff`: (a) loading early-return branch — increment after `this.Buffs.Add(buff)`; (b) renew branch — when `b.SpellEffect` is replaced by a *different* effect type, decrement the old type's counter and increment the new type's (only if either is Invisible/SeeInvisible); (c) new-add path — increment after `this.Buffs.Add(buff)` (~:2196).
   2. `Player.RemoveBuff`: `List.Remove` returns bool — decrement only when it returned true (guards double-remove from negative counts), before the rest of the method body.
@@ -126,7 +126,7 @@ Red: FAIL — counters/properties don't exist.
 
 **Step 3: Implement**
 
-- `Player`: `public int InvisibleBuffCount { get; private set; }`, `public int SeeInvisibleBuffCount { get; private set; }` (private set — counters are derived caches of `Buffs` and must not be script/caller-mutable), `public bool IsInvisible { get { return this.InvisibleBuffCount > 0; } }`.
+- `Player`: `public int InvisibleBuffCount { get; set; }`, `public int SeeInvisibleBuffCount { get; set; }` (public set is INTENTIONAL — scripts set the counters directly; the counter is the authoritative invis state, and `AddBuff`/`RemoveBuff` keep it in sync for buff-driven changes), `public bool IsInvisible { get { return this.InvisibleBuffCount > 0; } }`.
 - `NPC`: same two counters + `IsInvisible`, plus `public bool CanSeeInvisible { get; set; }` — **note**: this must be computed, not stored: `public bool CanSeeInvisible { get { return this.SeesInvisibleBase || this.SeeInvisibleBuffCount > 0; } }` with `public bool SeesInvisibleBase { get; set; }` copied in `LoadFromTemplate` from `template.SeeInvisible` (next to `CanBeStunned`, NPC.cs:612).
 - Counter maintenance: in each AddBuff/RemoveBuff branch per the propagation sequence above. Only `SpellEffect.EffectTypes.Invisible` and `SpellEffect.EffectTypes.SeeInvisible` move counters; guard `buff.SpellEffect` null the way existing `?.Script` code does.
 - `NPCTemplate.SeeInvisible` (bool); ALSO copy it in the copy constructor `NPCTemplate(NPCTemplate other)` (`Goose/NPCTemplate.cs:212`) — `this.SeeInvisible = other.SeeInvisible;` (the copy ctor serves script-generated dimension variants, `Goose/Data/Illutia/Scripts/Global/Dimensions/Npcs.csx:102-108`); `NPCHandler`: `npc.SeeInvisible = "1".Equals(Convert.ToString(reader["see_invisible"]));` — use the explicit-`"1"` form. Do NOT copy the `stunnable`/`credit_dealer` idiom (`"0".Equals(x) ? false : true`, `Goose/NPCHandler.cs:60,105`), which treats NULL and any non-`"0"` value as true; we default to false.
@@ -331,13 +331,28 @@ world.Send(this.Player, P.SeeInvisible(
 - Modify: `CsvToSql/CsvToSql.Core/NpcCsvToSql.cs:22-26` (add the column in the bool-flag group)
 - Modify: `Goose.Tests/Fixtures/generated.snapshot` (regenerated)
 
-**Step 1: Implement the schema change**
+**Step 1: Implement the schema change (descriptor AND fixture in lockstep)**
 
-Append to the END of `NpcCsvToSql.GetColumnDescriptors()`:
+`CsvToSqlBase` reads worksheet cells 1:1 positionally against the descriptor list — "cells are read positionally, so the order is load-bearing" (`CsvToSql/CsvToSql.Core/CsvToSqlBase.cs:11-12`, `row.Cell(i + 1)` → `descriptors[i]` at :33-39). So the descriptor insertion and the worksheet column insertion MUST land at the same position. Owner decision (2026-08-17): the column goes in the flag group, after `invincible` — and the owner will add the column at that position in the real spreadsheet.
+
+1a. Insert into `NpcCsvToSql.GetColumnDescriptors()` immediately after `Col.Bool("invincible", def: false)` (line 26):
 ```csharp
 Col.Bool("see_invisible", def: false),
 ```
-Positional-mapping constraint (why END, not the flag group): `CsvToSqlBase` reads worksheet cells 1:1 positionally against the descriptor list — "cells are read positionally, so the order is load-bearing" (`CsvToSql/CsvToSql.Core/CsvToSqlBase.cs:11-12`, `row.Cell(i + 1)` → `descriptors[i]` at :33-39). Inserting the descriptor mid-list against the unmodified workbook would shift every subsequent column (the old `npc_hp` value would land on `see_invisible`, etc.). Appending at the end lets the unmodified fixture take the default for the missing cell. Consequence for the owner: the `see_invisible` column must be added as the LAST column of the `NPCs` worksheet.
+1b. Insert the matching blank column into the snapshot fixture so the positional mapping stays aligned: `Goose.Tests/Fixtures/aspereta-data.xlsx`, sheet `NPCs` — insert one new column at index 19 (after `invincible (0)` at 18, before `hp (0)`), header `see_invisible (0)`, all data cells empty:
+```bash
+python3 -c "
+import openpyxl
+p = 'Goose.Tests/Fixtures/aspereta-data.xlsx'
+wb = openpyxl.load_workbook(p)
+ws = wb['NPCs']
+ws.insert_cols(19)
+ws.cell(row=1, column=19, value='see_invisible (0)')
+wb.save(p)
+"
+```
+(verified 2026-08-17: sheet `NPCs`, `invincible (0)` is column 18, `hp (0)` is column 19, 191 rows; openpyxl installed via `pip3 install --user --break-system-packages openpyxl`.)
+Empty cells are omitted from INSERTs (`CsvToSqlBase.BuildInserts` skips `value.Length == 0`), so every row takes the default and the INSERT lines in the snapshot stay byte-identical.
 This is a schema task (no pre-test; the snapshot test *is* the test and is expected to go red).
 
 **Step 2: Verify red**
@@ -350,8 +365,9 @@ Expected: FAIL — the diff is the `npc_templates` DDL gaining exactly one colum
 Run: `GOOSE_UPDATE_SNAPSHOT=1 dotnet test Goose.Tests --filter FullyQualifiedName~CsvToSqlSnapshot`
 The test rewrites `Goose.Tests/Fixtures/generated.snapshot` and fails by design. Inspect `git diff Goose.Tests/Fixtures/generated.snapshot`:
 - `npc_templates` DDL must gain exactly one column: `see_invisible` (bool/int, default 0).
-- No other table, column, default, or row value may change (the fixture xlsx predates the column, so every row takes the default).
-If any other diff appears, stop and investigate before committing.
+- No INSERT line, other table, column, or default may change (the fixture column is blank, so every row takes the default).
+If any INSERT line changes, the descriptor and fixture columns are misaligned — stop and investigate before committing.
+Also review `git diff --stat`: the expected changed files are `NpcCsvToSql.cs`, the fixture xlsx, and the snapshot — nothing else.
 
 **Step 4: Verify green**
 
@@ -359,7 +375,7 @@ Run the snapshot test without the env var → PASS. Then full `dotnet test Goose
 
 **Step 5: Commit** — `git commit -m "CsvToSql: add npc_templates.see_invisible column"`.
 
-**Owner action (not a code task):** the spreadsheet gains the `see_invisible` column and the regenerated `npcs.sql` is applied to the game DB before deploying this server build (see Persistence strategy).
+**Owner action (not a code task):** the real spreadsheet gains the `see_invisible` column in the SAME position (after `invincible`, before `hp`), and the regenerated `npcs.sql` is applied to the game DB before deploying this server build (see Persistence strategy).
 
 | Invariant | Proved by |
 |---|---|
