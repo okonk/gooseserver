@@ -247,6 +247,8 @@ namespace Goose
                    (pet.CurrentBodyID >= 100 ? "" : "0,0,0,0,0"); // Mount
         };
 
+        public static Func<bool, string> SeeInvisible = (canSee) => "SINVS" + (canSee ? "1" : "0");
+
         public static Func<Player, string> WeaponSpeed = (player) =>
         {
             int wps = (int)((player.WeaponDelay / 10.0m * (1 - Math.Min(0.95m, player.MaxStats.Haste))) * 1000);
