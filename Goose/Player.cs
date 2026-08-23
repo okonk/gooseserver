@@ -362,6 +362,31 @@ namespace Goose
         public List<Buff> Buffs { get; set; }
 
         /**
+         * Count of buffs with an Invisible/SeeInvisible spell effect. Public set is
+         * intentional: scripts may drive invisibility directly, and the counters are
+         * the authoritative invis state. AddBuff/RemoveBuff keep them in sync with
+         * Buffs for buff-driven changes.
+         */
+        public int InvisibleBuffCount { get; set; }
+        public int SeeInvisibleBuffCount { get; set; }
+
+        public bool IsInvisible { get { return this.InvisibleBuffCount > 0; } }
+
+        private void AddToInvisCounters(SpellEffect effect)
+        {
+            if (effect is null) return;
+            if (effect.EffectType == SpellEffect.EffectTypes.Invisible) this.InvisibleBuffCount++;
+            else if (effect.EffectType == SpellEffect.EffectTypes.SeeInvisible) this.SeeInvisibleBuffCount++;
+        }
+
+        private void RemoveFromInvisCounters(SpellEffect effect)
+        {
+            if (effect is null) return;
+            if (effect.EffectType == SpellEffect.EffectTypes.Invisible) this.InvisibleBuffCount--;
+            else if (effect.EffectType == SpellEffect.EffectTypes.SeeInvisible) this.SeeInvisibleBuffCount--;
+        }
+
+        /**
          * The group the player is in
          *
          * If none is null.
@@ -2123,6 +2148,7 @@ namespace Goose
             if (this.State <= States.LoadingGame)
             {
                 this.Buffs.Add(buff);
+                this.AddToInvisCounters(buff.SpellEffect);
 
                 // Add/remove stats
                 this.AddStats(buff.SpellEffect.Stats, world, updateCharacter: false);
@@ -2151,6 +2177,12 @@ namespace Goose
                     this.AddStats(buff.SpellEffect.Stats, world, updateCharacter: updateCharacter);
 
                     world.Send(this, P.WeaponSpeed(this));
+
+                    if (b.SpellEffect.EffectType != buff.SpellEffect.EffectType)
+                    {
+                        this.RemoveFromInvisCounters(b.SpellEffect);
+                        this.AddToInvisCounters(buff.SpellEffect);
+                    }
 
                     b.TimeCast = world.TimeNow;
                     b.SpellEffect = buff.SpellEffect;
@@ -2210,6 +2242,7 @@ namespace Goose
             }
 
             this.Buffs.Add(buff);
+            this.AddToInvisCounters(buff.SpellEffect);
 
             // Add/remove stats
             this.AddStats(buff.SpellEffect.Stats, world, updateCharacter: updateCharacter);
@@ -2276,7 +2309,9 @@ namespace Goose
          */
         public void RemoveBuff(Buff buff, GameWorld world, bool refreshbar, bool updateCharacter = true)
         {
-            this.Buffs.Remove(buff);
+            // Only decrement when the buff was actually on the list - a double-remove
+            // must not drive the counters negative.
+            if (this.Buffs.Remove(buff)) this.RemoveFromInvisCounters(buff.SpellEffect);
 
             if (buff.BuffExpireEvent != null)
             {

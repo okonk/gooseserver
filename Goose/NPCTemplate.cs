@@ -144,6 +144,10 @@ namespace Goose
          */
         public bool CanBeSlowed { get; set; }
         /**
+         * Can this npc see invisible characters, without a SeeInvisible buff
+         */
+        public bool SeeInvisible { get; set; }
+        /**
          * Is npc invincible
          */
         public bool CanBeKilled { get; set; }
@@ -239,6 +243,7 @@ namespace Goose
             this.CanBeRooted = other.CanBeRooted;
             this.CanBeStunned = other.CanBeStunned;
             this.CanBeSlowed = other.CanBeSlowed;
+            this.SeeInvisible = other.SeeInvisible;
             this.CanBeKilled = other.CanBeKilled;
             this.AttackSpeed = other.AttackSpeed;
             this.MoveSpeed = other.MoveSpeed;
