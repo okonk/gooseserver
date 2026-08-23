@@ -39,7 +39,7 @@ Every hook added (AddBuff/RemoveBuff transitions, Attack, Cast, AggroIfInRange, 
 ## Per-task test setup notes (shared)
 
 - World/settings: follow `Goose.Tests/NPCSpawnRegistrationTests.cs:15-52` exactly — `[Collection(GameWorldSettingsCollection.Name)]` + swap/restore the static `GameWorld.Settings` with an isolated temp `DataPath` in ctor/`Dispose`. Do NOT swap Settings without the collection attribute (parallel-collection flake).
-- Player that can receive/observe packets: `var p = new Player(0);` then set `p.Inventory = new Inventory(p);` (the `Player(int)` ctor at `Goose/Player.cs:483` does NOT initialize it — only `LoadFromAutoCreate` :623 / `LoadFromReader` :767 do; `P.UpdateCharacter`/`P.StatusInfo`/`Player.Attack` all dereference it), `p.Class` (any `Class` with a level row), `p.CurrentHP = p.MaxHP = 100; p.CurrentMP = p.MaxMP = 100;` (VPU divides by MaxHP/MaxMP, `Goose/Packets.cs:406`), `p.State = Player.States.Ready`, and an unconnected non-blocking socket (PlayerSendTests pattern) so `GameWorld.Send` lands in `p.SendBuffer` (`Goose/GameWorld.cs:633` appends `\x1`; decode as ASCII for asserts).
+- Player that can receive/observe packets: `var p = new Player(0);` then set `p.Inventory = new Inventory(p);` (the `Player(int)` ctor at `Goose/Player.cs:483` does NOT initialize it — only `LoadFromAutoCreate` :623 / `LoadFromReader` :767 do; `P.UpdateCharacter`/`P.StatusInfo`/`Player.Attack` all dereference it), `p.Class` (any `Class` with a level row), `p.BaseStats = new AttributeSet { HP = 100, MP = 100 }; p.MaxStats = p.BaseStats + new AttributeSet(); p.CurrentHP = 100; p.CurrentMP = 100;` — `MaxHP`/`MaxMP` are GETTER-ONLY (`Goose/Player.cs:196-208`, computed from `MaxStats`), VPU divides by them (`Goose/Packets.cs:406`), `p.State = Player.States.Ready`, and an unconnected non-blocking socket (PlayerSendTests pattern) so `GameWorld.Send` lands in `p.SendBuffer` (`Goose/GameWorld.cs:633` appends `\x1`; decode as ASCII for asserts).
 - Two players on one map: size `map.characters`/`tiles`, `world.MapHandler.Maps[MapId] = map`, and for EACH player: `map.AddPlayer(p, world)` (`Goose/Map.cs:185`) + `map.PlaceCharacter(...)` + `map.SetCharacter(...)`. `Map.GetPlayersInRange` (`Goose/Map.cs:160`) iterates the private `players` list (populated ONLY by `AddPlayer`) and EXCLUDES the target character itself (`p != character`) — so range broadcasts reach bystanders only; direct self-sends (SINVS, own MKC) are separate `world.Send` calls, which is why tests assert on the subject's own `SendBuffer` for SINVS.
 - NPC: `world.NPCHandler.SpawnNPC(world, MapId, x, y, new NPCTemplate { NPCTemplateID = 1, Name = "t", Level = 50, ClassID = classId, BaseStats = new AttributeSet(), AggroRange = 5 }, shouldRespawn: false)` after registering a level-50 class (NPCSpawnRegistrationTests `RegisterClass` reflection pattern).
 - Buffs: `new Buff { Target = x, Caster = x, SpellEffect = new SpellEffect { EffectType = SpellEffect.EffectTypes.Invisible, Duration = 1000 } }` — the `SpellEffect()` ctor leaves `Stats`/stack lists non-null (`Goose/SpellEffect.cs:229`).
@@ -114,10 +114,11 @@ Using the shared setup notes:
 3. Stacks: two different Invisible `SpellEffect`s → still invisible; remove one → still invisible; remove both → visible.
 4. A `Buff`-type (non-invis) buff → counters unchanged.
 5. Renew branch: player has Invisible spell A; add a second buff whose `SpellEffect.BuffStacksOver` contains A with a *non-invis* effect type → `IsInvisible` false (counter decremented on type change). (Adversarial: fails if the renew branch doesn't adjust.)
-6. Double-remove: `player.RemoveBuff(sameBuff, world)` twice → no exception, no negative-count symptom (e.g., adding nothing, `IsInvisible` stays false).
+6. Double-remove (behavioral — `IsInvisible => count > 0` is false for both 0 AND -1, so it alone can't detect the bug): add an Invisible buff → `RemoveBuff` it TWICE → add a NEW Invisible buff → `IsInvisible` MUST be true (counter: 1, guarded removals keep 0, add → 1; unguarded removals give -1+1=0 → false). Then remove the new buff → `IsInvisible` false.
 7. NPC `CanSeeInvisible`: template flag true → true with no buffs; false flag + one SeeInvisible buff → true; buff removed → false.
-8. `NPCHandler` load: with the fixture-free approach, assert `NPCTemplate.SeeInvisible` defaults false and round-trips through `LoadFromTemplate` onto a spawned NPC (spawn with `template.SeeInvisible = true` → `npc.CanSeeInvisible` true).
-9. Pet: `Pet` is a `Player` — add an Invisible buff to a pet → `pet.IsInvisible` true and `P.UpdatePet` field `1`.
+8. NPC duplicated bookkeeping (separate code from Player — renew `Goose/NPC.cs:1474-1505`, remove `:1570-1581`): (a) NPC has Invisible spell A; add a second buff whose `BuffStacksOver` contains A with a *non-invis* effect type → `npc.IsInvisible` false; (b) NPC SeeInvisible buff renewed to a non-SeeInvisible type, base flag off → `CanSeeInvisible` false; (c) the double-remove sequence from test 6 repeated on an NPC.
+9. Template copy: `NPCTemplate.SeeInvisible` defaults false; the copy constructor `new NPCTemplate(other)` preserves it (adversarial: fails if the copy ctor isn't updated); `LoadFromTemplate` copies it onto a spawned NPC (`template.SeeInvisible = true` → `npc.CanSeeInvisible` true). The `NPCHandler` `reader["see_invisible"]` read itself is code-reviewed, not unit-tested (no DB-backed handler test exists in the suite).
+10. Pet: `Pet` is a `Player` — add an Invisible buff to a pet → `pet.IsInvisible` true and `P.UpdatePet` field `1`.
 
 Red: FAIL — counters/properties don't exist.
 
@@ -125,10 +126,10 @@ Red: FAIL — counters/properties don't exist.
 
 **Step 3: Implement**
 
-- `Player`: `public int InvisibleBuffCount { get; set; }`, `public int SeeInvisibleBuffCount { get; set; }`, `public bool IsInvisible { get { return this.InvisibleBuffCount > 0; } }`.
+- `Player`: `public int InvisibleBuffCount { get; private set; }`, `public int SeeInvisibleBuffCount { get; private set; }` (private set — counters are derived caches of `Buffs` and must not be script/caller-mutable), `public bool IsInvisible { get { return this.InvisibleBuffCount > 0; } }`.
 - `NPC`: same two counters + `IsInvisible`, plus `public bool CanSeeInvisible { get; set; }` — **note**: this must be computed, not stored: `public bool CanSeeInvisible { get { return this.SeesInvisibleBase || this.SeeInvisibleBuffCount > 0; } }` with `public bool SeesInvisibleBase { get; set; }` copied in `LoadFromTemplate` from `template.SeeInvisible` (next to `CanBeStunned`, NPC.cs:612).
 - Counter maintenance: in each AddBuff/RemoveBuff branch per the propagation sequence above. Only `SpellEffect.EffectTypes.Invisible` and `SpellEffect.EffectTypes.SeeInvisible` move counters; guard `buff.SpellEffect` null the way existing `?.Script` code does.
-- `NPCTemplate.SeeInvisible` (bool); `NPCHandler`: `npc.SeeInvisible = "1".Equals(Convert.ToString(reader["see_invisible"]));` — use the explicit-`"1"` form. Do NOT copy the `stunnable`/`credit_dealer` idiom (`"0".Equals(x) ? false : true`, `Goose/NPCHandler.cs:60,105`), which treats NULL and any non-`"0"` value as true; we default to false.
+- `NPCTemplate.SeeInvisible` (bool); ALSO copy it in the copy constructor `NPCTemplate(NPCTemplate other)` (`Goose/NPCTemplate.cs:212`) — `this.SeeInvisible = other.SeeInvisible;` (the copy ctor serves script-generated dimension variants, `Goose/Data/Illutia/Scripts/Global/Dimensions/Npcs.csx:102-108`); `NPCHandler`: `npc.SeeInvisible = "1".Equals(Convert.ToString(reader["see_invisible"]));` — use the explicit-`"1"` form. Do NOT copy the `stunnable`/`credit_dealer` idiom (`"0".Equals(x) ? false : true`, `Goose/NPCHandler.cs:60,105`), which treats NULL and any non-`"0"` value as true; we default to false.
 - `Packets.cs`: replace the six `"0" + "," + // Invis thing` with `(x.IsInvisible ? "1" : "0")` per Task 1 Step 3 and fix the comments.
 
 **Step 4: Run (green)** — counter tests pass; also run `--filter FullyQualifiedName~InvisibilityPacketTests` (Task 1 tests still green with the field sites wired).
@@ -141,14 +142,14 @@ Red: FAIL — counters/properties don't exist.
 | Renew across types adjusts counters | test 5 (adversarial) |
 | `CanSeeInvisible` = base flag OR buff count | test 7 |
 | Pet inherits the Player path | test 9 |
-| Column defaults to false / NULL-safe | handler read uses explicit `"1"` compare; test 8 |
+| Column defaults to false / NULL-safe; copy ctor preserves flag | handler read uses explicit `"1"` compare (code-reviewed); tests 6, 8, 9 |
 
 ---
 
 ### Task 3: Transitions — CHP broadcast, NPC aggro clear, SINVS; remove old aggro-clear from `SpellEffect`
 
 **Files:**
-- Modify: `Goose/Player.cs` (`AddBuff`/`RemoveBuff` transition hooks; new private `BroadcastInvisChange(GameWorld)`, `SendSeeInvisibleState(GameWorld)`, `ClearNPCAggroIfUnseen(GameWorld)`)
+- Modify: `Goose/Player.cs` (`AddBuff`/`RemoveBuff` transition hooks; new private `BroadcastInvisChange(GameWorld)` and `ClearNPCAggroIfUnseen(GameWorld)`)
 - Modify: `Goose/NPC.cs` (CHP broadcast on 0→1/1→0 of `InvisibleBuffCount`; private `BroadcastInvisChange(GameWorld)`)
 - Modify: `Goose/SpellEffect.cs:772-781` (delete the Invisible aggro-clear block from `CastBuffSpell`)
 - Test: `Goose.Tests/InvisibilityTransitionTests.cs` (create)
@@ -161,8 +162,7 @@ Red: FAIL — counters/properties don't exist.
   1. Player `AddBuff`/`RemoveBuff`: capture `wasInvisible`/`wasSeeInvisible` at method entry. Apply all counter mutations for the call (loading branch, renew branch — which decrements the old type AND increments the new type in one branch — new-add). Then, ONCE at the end of the mutation path, compare entry snapshot vs. resulting counters and fire each transition at most once per call (renew of an invis spell for a different invis spell must produce no packets; invis→non-invis renew fires exactly one 1→0). Transitions fire only when `this.State == States.Ready` — the loading branch runs before `Player.Map` is assigned (by `DoneLoadingMapEvent`), so `ClearNPCAggroIfUnseen` would NRE otherwise. Side effects skipped during loading are covered by Task 6 (map load sends SINVS and MKC already carries the invis flag).
      - invisible 0→1: `ClearNPCAggroIfUnseen(world)` then `BroadcastInvisChange(world)`.
      - invisible 1→0: `BroadcastInvisChange(world)`.
-     - seeinvis 0→1: `SendSeeInvisibleState(world)` (sends `SINVS1`).
-     - seeinvis 1→0: `SendSeeInvisibleState(world)` (sends `SINVS0` for normal players; for GMs the computed state is still true — send the computed value, a redundant `SINVS1` is harmless and idempotent).
+     - SINVS: capture `wasCanSee = this.SeeInvisibleBuffCount > 0 || this.Access > AccessStatus.Normal` at entry; after the mutations compute `canSee = <same expression>`; when `State == Ready && canSee != wasCanSee`, `world.Send(this, P.SeeInvisible(canSee))`. Exactly matches the approved design: normal player 0→1 sends `SINVS1`, 1→0 sends `SINVS0`; a GM (state permanently true) receives NO packets on either transition.
   2. `ClearNPCAggroIfUnseen`: `foreach (NPC npc in this.Map.GetNPCsInRange(this)) if (!npc.CanSeeInvisible) npc.RemoveAggro(this);`
   3. `BroadcastInvisChange` (Player): when `this.State == States.Ready`, `foreach (Player p in this.Map.GetPlayersInRange(this)) world.Send(p, P.UpdateCharacter(this));`
   4. `SendSeeInvisibleState`: `world.Send(this, P.SeeInvisible(this.SeeInvisibleBuffCount > 0 || this.Access > AccessStatus.Normal));`
@@ -178,7 +178,7 @@ Red: FAIL — counters/properties don't exist.
 2. Same for an NPC: in-range player receives `CHP` with `1` then `0`.
 3. Aggro clear: NPC (AggroRange 5) with `npc.AggroTarget == player` (give it aggro via `npc.AddAggro(player, 1, world)` — verify the existing public method signature at `Goose/NPC.cs:~920`), NPC `CanSeeInvisible` false, player gets Invisible buff → `npc.AggroTarget == null`.
 4. Adversarial companion: same setup but NPC spawned with `template.SeeInvisible = true` → `npc.AggroTarget` still == player after the buff.
-5. SINVS: normal player gets SeeInvisible buff → own `SendBuffer` contains `SINVS1`; remove → `SINVS0`. GM player (`Access = AccessStatus.GameMaster`): remove → buffer does NOT gain a `SINVS0` after the removal (computed state stays true; if the impl sends `SINVS1`, that's acceptable — assert the last SINVS in the buffer is `SINVS1`, not `SINVS0`).
+5. SINVS: normal player gets SeeInvisible buff → own `SendBuffer` contains `SINVS1`; remove → `SINVS0`. GM player (`Access = AccessStatus.GameMaster`): add AND remove a SeeInvisible buff → NO SINVS packet in the buffer at all (design: GMs receive nothing on either transition; the Task 6 map-load send already establishes `SINVS1`).
 6. Non-invis buff add/remove → no `CHP`-with-invis-flip and no `SINVS` in either buffer (adversarial: fails if the broadcast fires unconditionally).
 7. Loading-state player (State `LoadingGame`, `Map == null`) gets Invisible buff: no NRE, no packets, counter correct, `IsInvisible` true. (Adversarial: fails if the transition block isn't Ready-gated — `ClearNPCAggroIfUnseen` dereferences `Map`.)
 
@@ -194,7 +194,7 @@ Red: FAIL — counters/properties don't exist.
 |---|---|
 | CHP carries post-change state to in-range players | tests 1, 2 (adversarial) |
 | Aggro cleared only for NPCs that can't see | tests 3, 4 (4 is the regression gate) |
-| SINVS tracks buff count; GM floor at 1 | test 5 |
+| SINVS1/SINVS0 for normal player; zero SINVS packets for GM | test 5 |
 | Unrelated buffs are silent | test 6 (adversarial) |
 | Loading-state add is safe | test 7 |
 
@@ -299,7 +299,7 @@ if (player.IsInvisible && !this.CanSeeInvisible) return;
 
 **Step 1: Write the failing tests** (shared setup; drive the real event)
 
-Construct the flow the way `DoneLoadingMapEvent` expects: player `State = States.LoadingMap`, `MapID` set, placed via `map.AddPlayer` + `map.PlaceCharacter`/`SetCharacter`, unconnected socket. Then `var ev = new DoneLoadingMapEvent { Player = p, Ticks = world.TimeNow }; world.EventHandler.AddEvent(ev); world.EventHandler.Update(world);` — copy the exact drive pattern from `Goose.Tests/LoginEventNameLengthTests.cs:55,71`.
+Construct the flow the way `DoneLoadingMapEvent` expects: set `p.MapID = MapId`, `p.MapX`/`p.MapY`, `p.State = States.LoadingMap`, unconnected socket — and do NOT pre-call `AddPlayer`/`PlaceCharacter`/`SetCharacter` on the subject: `DoneLoadingMapEvent.Ready` itself calls `PlaceCharacter`+`SetCharacter` (`Goose/Events/DoneLoadingMapEvent.cs:30-34`) and `map.AddPlayer` (:80-81), so pre-adding would double-register the player in the private `players` list, and a pre-set grid tile could make the event's `PlaceCharacter` relocate the player. Only pre-register separate OBSERVER players (AddPlayer+place) if a test needs them. Then `var ev = new DoneLoadingMapEvent { Player = p, Ticks = world.TimeNow }; world.EventHandler.AddEvent(ev); world.EventHandler.Update(world);` — copy the exact drive pattern from `Goose.Tests/LoginEventNameLengthTests.cs:55,71`.
 
 1. GM player (`Access = GameMaster`), no buffs → after DLM processing, buffer contains `SINVS1`.
 2. Normal player with a SeeInvisible buff → `SINVS1`.
@@ -333,16 +333,17 @@ world.Send(this.Player, P.SeeInvisible(
 
 **Step 1: Implement the schema change**
 
-Add to `NpcCsvToSql.GetColumnDescriptors()`, in the flag group (after `invincible`, line 26):
+Append to the END of `NpcCsvToSql.GetColumnDescriptors()`:
 ```csharp
 Col.Bool("see_invisible", def: false),
 ```
+Positional-mapping constraint (why END, not the flag group): `CsvToSqlBase` reads worksheet cells 1:1 positionally against the descriptor list — "cells are read positionally, so the order is load-bearing" (`CsvToSql/CsvToSql.Core/CsvToSqlBase.cs:11-12`, `row.Cell(i + 1)` → `descriptors[i]` at :33-39). Inserting the descriptor mid-list against the unmodified workbook would shift every subsequent column (the old `npc_hp` value would land on `see_invisible`, etc.). Appending at the end lets the unmodified fixture take the default for the missing cell. Consequence for the owner: the `see_invisible` column must be added as the LAST column of the `NPCs` worksheet.
 This is a schema task (no pre-test; the snapshot test *is* the test and is expected to go red).
 
 **Step 2: Verify red**
 
 Run: `dotnet test Goose.Tests --filter FullyQualifiedName~CsvToSqlSnapshot`
-Expected: FAIL — first diff is the `npc_templates` DDL gaining `see_invisible` (and every row gaining the default value).
+Expected: FAIL — the diff is the `npc_templates` DDL gaining exactly one column (`see_invisible`, default 0); INSERT lines unchanged (empty cells are omitted from INSERTs, so rows take the default without changing).
 
 **Step 3: Regenerate and review**
 
