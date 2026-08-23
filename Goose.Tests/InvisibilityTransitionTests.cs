@@ -123,6 +123,15 @@ public class InvisibilityTransitionTests : IDisposable
 
     private static string Buffer(Player p) => Encoding.ASCII.GetString(p.SendBuffer.ToArray());
 
+    private static void SeedMoveSpeed(Player p, int speed)
+    {
+        var q = (PriorityQueue<int, int>)typeof(Player)
+            .GetProperty("moveSpeed", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .GetValue(p)!;
+        q.Enqueue(speed, speed);
+        q.Enqueue(speed, speed);
+    }
+
     [Fact]
     public void Player_BecomingInvisible_BroadcastsCHPWithInvisFlagToBystanders()
     {
@@ -281,6 +290,36 @@ public class InvisibilityTransitionTests : IDisposable
 
         string buf = Buffer(a);
         Assert.Equal(1, buf.Split("CHP").Length - 1);
+        Assert.Contains(",255,0,70,", buf);
+        Assert.DoesNotContain(",255,1,70,", buf);
+    }
+
+    [Fact]
+    public void Player_RenewingInvisibleBuffToNonInvisibleType_NoStaleInvisCHPFromStatBroadcast()
+    {
+        var a = NewPlayer();
+        var b = NewPlayer();
+        PlacePlayer(a, 5, 5);
+        PlacePlayer(b, 5, 6);
+        SeedMoveSpeed(b, 320);
+
+        var seA = new SpellEffect { EffectType = SpellEffect.EffectTypes.Invisible, Duration = 1000 };
+        seA.Stats = new AttributeSet { MoveSpeed = 160 };
+        b.AddBuff(new Buff { Target = b, Caster = b, SpellEffect = seA }, world);
+        Assert.True(b.IsInvisible);
+
+        a.SendBuffer.Clear();
+
+        var seB = new SpellEffect { EffectType = SpellEffect.EffectTypes.Buff, Duration = 1000 };
+        seB.Stats = new AttributeSet { MoveSpeed = 120 };
+        seB.BuffStacksOver.Add(seA);
+        b.AddBuff(new Buff { Target = b, Caster = b, SpellEffect = seB }, world);
+
+        Assert.False(b.IsInvisible);
+        Assert.Equal(0, b.InvisibleBuffCount);
+
+        string buf = Buffer(a);
+        Assert.Contains("CHP", buf);
         Assert.Contains(",255,0,70,", buf);
         Assert.DoesNotContain(",255,1,70,", buf);
     }

@@ -2178,16 +2178,16 @@ namespace Goose
                     (buff.SpellEffect == b.SpellEffect ||
                     buff.SpellEffect.BuffStacksOver.Contains(b.SpellEffect)))
                 {
-                    this.RemoveStats(b.SpellEffect.Stats, world);
-                    this.AddStats(buff.SpellEffect.Stats, world, updateCharacter: updateCharacter);
-
-                    world.Send(this, P.WeaponSpeed(this));
-
                     if (b.SpellEffect.EffectType != buff.SpellEffect.EffectType)
                     {
                         this.RemoveFromInvisCounters(b.SpellEffect);
                         this.AddToInvisCounters(buff.SpellEffect);
                     }
+
+                    this.RemoveStats(b.SpellEffect.Stats, world);
+                    this.AddStats(buff.SpellEffect.Stats, world, updateCharacter: updateCharacter);
+
+                    world.Send(this, P.WeaponSpeed(this));
 
                     b.TimeCast = world.TimeNow;
                     b.SpellEffect = buff.SpellEffect;
