@@ -24,6 +24,7 @@ namespace CsvToSql
             Col.Bool("rootable", def: false),
             Col.Bool("slowable", def: false),
             Col.Bool("invincible", def: false),
+            Col.Bool("see_invisible", def: false),
 
             // Stats
             Col.Int("npc_hp", SqlType.Int, def: 0),

@@ -73,7 +73,7 @@ namespace Goose
          * head = 70-73 for faces
          * body pose/state = 1 for normal, 3 for staff, 4 for sword
          * body = values 100-166 are illusions, 1 is male, 11 is female. 2/12 are naga. 3 is skeleton
-         * invis = not sure at moment
+         * invis = 1 while the character currently has an Invisible buff (IsInvisible)
          *
          * For item r,g,b,a of 0,0,0,0 you can use * instead
          *
@@ -109,7 +109,7 @@ namespace Goose
                           (player.CurrentBodyID >= 100 ? "" : player.HairID + ",") +
                           (player.CurrentBodyID >= 100 ? "" : player.Inventory.EquippedDisplay()) + // Note: EquippedDisplay() adds it's own , on end
                           (player.CurrentBodyID >= 100 ? "" : player.HairR + "," + player.HairG + "," + player.HairB + "," + player.HairA + ",") +
-                          "0" + "," + // Invis thing
+                          (player.IsInvisible ? "1" : "0") + "," + // Invisible
                           (player.CurrentBodyID >= 100 ? "" : player.FaceID + ",") +
                           player.CalculateMoveSpeed() + "," + // Move Speed
                           (player.Access > Player.AccessStatus.Normal ? "1" : "0") + "," + // Is GM
@@ -141,7 +141,7 @@ namespace Goose
                    (player.CurrentBodyID >= 100 ? "" : player.HairG + ",") +
                    (player.CurrentBodyID >= 100 ? "" : player.HairB + ",") +
                    (player.CurrentBodyID >= 100 ? "" : player.HairA + ",") +
-                   "0" + "," + // Invis thing
+                   (player.IsInvisible ? "1" : "0") + "," + // Invisible
                    (player.CurrentBodyID >= 100 ? "" : player.FaceID + ",") +
                    player.CalculateMoveSpeed() + "," + // Move Speed
                    (player.CurrentBodyID >= 100 ? "" : player.Inventory.MountDisplay()); // Mount
@@ -163,7 +163,7 @@ namespace Goose
                    (npc.CurrentBodyID >= 100 ? "" : npc.HairG + ",") +
                    (npc.CurrentBodyID >= 100 ? "" : npc.HairB + ",") +
                    (npc.CurrentBodyID >= 100 ? "" : npc.HairA + ",") +
-                   "0" + "," + // Invis thing
+                   (npc.IsInvisible ? "1" : "0") + "," + // Invisible
                    (npc.CurrentBodyID >= 100 ? "" : npc.FaceID + ",") +
                    "320," + // Move Speed
                    (npc.CurrentBodyID >= 100 ? "" : "0,0,0,0,0"); // Mount
@@ -190,7 +190,7 @@ namespace Goose
                         (npc.CurrentBodyID >= 100 ? "" : npc.HairID + ",") +
                         (npc.CurrentBodyID >= 100 ? "" : npc.EquippedItems + ",") +
                         (npc.CurrentBodyID >= 100 ? "" : npc.HairR + "," + npc.HairG + "," + npc.HairB + "," + npc.HairA + ",") +
-                        "0" + "," + // Invis thing
+                        (npc.IsInvisible ? "1" : "0") + "," + // Invisible
                         (npc.CurrentBodyID >= 100 ? "" : npc.FaceID + ",") +
                         "320," + // Move Speed
                         "0" + "," + // Player Name Color
@@ -218,7 +218,7 @@ namespace Goose
                         (npc.CurrentBodyID >= 100 ? "" : npc.HairID + ",") +
                         (npc.CurrentBodyID >= 100 ? "" : npc.EquippedItems + ",") +
                         (npc.CurrentBodyID >= 100 ? "" : npc.HairR + "," + npc.HairG + "," + npc.HairB + "," + npc.HairA + ",") +
-                        "0" + "," + // Invis thing
+                        (npc.IsInvisible ? "1" : "0") + "," + // Invisible
                         (npc.CurrentBodyID >= 100 ? "" : npc.FaceID + ",") +
                         "320," + // Move Speed
                         "0" + "," + // Player Name Color
@@ -241,11 +241,13 @@ namespace Goose
                    (pet.CurrentBodyID >= 100 ? "" : pet.HairG + ",") +
                    (pet.CurrentBodyID >= 100 ? "" : pet.HairB + ",") +
                    (pet.CurrentBodyID >= 100 ? "" : pet.HairA + ",") +
-                   "0" + "," + // Invis thing
+                   (pet.IsInvisible ? "1" : "0") + "," + // Invisible
                    (pet.CurrentBodyID >= 100 ? "" : pet.FaceID + ",") +
                    "320," + // Move Speed
                    (pet.CurrentBodyID >= 100 ? "" : "0,0,0,0,0"); // Mount
         };
+
+        public static Func<bool, string> SeeInvisible = (canSee) => "SINVS" + (canSee ? "1" : "0");
 
         public static Func<Player, string> WeaponSpeed = (player) =>
         {

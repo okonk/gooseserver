@@ -362,6 +362,33 @@ namespace Goose
         public List<Buff> Buffs { get; set; }
 
         /**
+         * Count of buffs with an Invisible/SeeInvisible spell effect. Public set is
+         * intentional: scripts may drive invisibility directly, and the counters are
+         * the authoritative invis state. AddBuff/RemoveBuff keep them in sync with
+         * Buffs for buff-driven changes.
+         */
+        public int InvisibleBuffCount { get; set; }
+        public int SeeInvisibleBuffCount { get; set; }
+
+        public bool IsInvisible { get { return this.InvisibleBuffCount > 0; } }
+
+        public bool CanSeeInvisible { get { return this.SeeInvisibleBuffCount > 0 || this.Access > AccessStatus.Normal; } }
+
+        private void AddToInvisCounters(SpellEffect effect)
+        {
+            if (effect is null) return;
+            if (effect.EffectType == SpellEffect.EffectTypes.Invisible) this.InvisibleBuffCount++;
+            else if (effect.EffectType == SpellEffect.EffectTypes.SeeInvisible) this.SeeInvisibleBuffCount++;
+        }
+
+        private void RemoveFromInvisCounters(SpellEffect effect)
+        {
+            if (effect is null) return;
+            if (effect.EffectType == SpellEffect.EffectTypes.Invisible) this.InvisibleBuffCount--;
+            else if (effect.EffectType == SpellEffect.EffectTypes.SeeInvisible) this.SeeInvisibleBuffCount--;
+        }
+
+        /**
          * The group the player is in
          *
          * If none is null.
@@ -1639,6 +1666,8 @@ namespace Goose
          */
         public void Attack(ICharacter character, GameWorld world)
         {
+            this.BreakInvisibility(world);
+
             this.OnMeleeAttack(character, world);
 
             if (character is Player &&
@@ -2120,21 +2149,23 @@ namespace Goose
          */
         public void AddBuff(Buff buff, GameWorld world, bool refreshbar, bool updateCharacter = true)
         {
+            bool wasInvisible = this.IsInvisible;
+            bool wasCanSee = this.CanSeeInvisible;
+
             if (this.State <= States.LoadingGame)
             {
                 this.Buffs.Add(buff);
+                this.AddToInvisCounters(buff.SpellEffect);
 
                 // Add/remove stats
                 this.AddStats(buff.SpellEffect.Stats, world, updateCharacter: false);
 
-
                 return;
             }
 
-            List<Player> range = this.Map.GetPlayersInRange(this);
-            string packet;
+            var range = this.Map.GetPlayersInRange(this);
 
-            foreach (Buff b in this.Buffs)
+            foreach (var b in this.Buffs)
             {
                 if (buff.SpellEffect.BuffDoesntStackOver.Contains(b.SpellEffect))
                 {
@@ -2147,40 +2178,18 @@ namespace Goose
                     (buff.SpellEffect == b.SpellEffect ||
                     buff.SpellEffect.BuffStacksOver.Contains(b.SpellEffect)))
                 {
-                    this.RemoveStats(b.SpellEffect.Stats, world);
-                    this.AddStats(buff.SpellEffect.Stats, world, updateCharacter: updateCharacter);
-
-                    world.Send(this, P.WeaponSpeed(this));
-
-                    b.TimeCast = world.TimeNow;
-                    b.SpellEffect = buff.SpellEffect;
-                    b.Caster = buff.Caster;
-
-                    if (buff.SpellEffect.Animation != 0)
-                    {
-                        packet = P.SpellPlayer(this.LoginID, buff.SpellEffect.Animation, buff.SpellEffect.AnimationFile);
-                        if (buff.SpellEffect.DoAttackAnimation)
-                            packet += "\x1" + P.Attack(this); // kinda weird but k
-
-                        world.Send(this, packet);
-                        foreach (Player player in range)
-                        {
-                            world.Send(player, packet);
-                        }
-                    }
-                    if (b.SpellEffect.OffEffectText != "") world.Send(this, P.ServerMessage(buff.SpellEffect.OffEffectText));
-                    if (buff.SpellEffect.OnEffectText != "") world.Send(this, P.ServerMessage(buff.SpellEffect.OnEffectText));
-
-                    this.SendBuffBar(world);
+                    RenewBuff(b, buff, wasInvisible, wasCanSee, range, updateCharacter, world);
 
                     return;
                 }
             }
 
+            var packetBuilder = new StringBuilder();
+
             if (buff.SpellEffect.Duration > 0)
             {
                 // else we don't have the buff. add it
-                Event ev = new BuffExpireEvent();
+                var ev = new BuffExpireEvent();
                 ev.Ticks += buff.SpellEffect.Duration * world.TimerFrequency;
                 ev.Player = this;
                 ev.Data = buff;
@@ -2199,10 +2208,9 @@ namespace Goose
                 if (buff.BuffExpireEvent.Ticks - world.TimeNow >
                     GameWorld.Settings.SpellEffectPeriod * world.TimerFrequency)
                 {
-                    BuffTickEvent ev = new BuffTickEvent();
+                    var ev = new BuffTickEvent();
                     ev.Data = buff;
                     ev.Player = this;
-                    // H6: clamp to >= 1, a 0/negative period re-enqueues at now and spins EventHandler.Update
                     ev.Ticks += (long)(Math.Max(1m, GameWorld.Settings.SpellEffectPeriod) * world.TimerFrequency);
 
                     world.EventHandler.AddEvent(ev);
@@ -2210,6 +2218,7 @@ namespace Goose
             }
 
             this.Buffs.Add(buff);
+            this.AddToInvisCounters(buff.SpellEffect);
 
             // Add/remove stats
             this.AddStats(buff.SpellEffect.Stats, world, updateCharacter: updateCharacter);
@@ -2225,35 +2234,131 @@ namespace Goose
                 buff.SpellEffect.CastFormulaSpell(buff.Caster, buff.Target, world);
             }
 
-            packet = P.VitalsPercentage(this);
+            packetBuilder.Append(P.VitalsPercentage(this));
 
             if (buff.SpellEffect.Stats.Haste != Decimal.Zero)
-            {
                 world.Send(this, P.WeaponSpeed(this));
-            }
+
+            bool sendCharacterUpdate = false;
 
             // for illusions
             if (buff.SpellEffect.BodyID != 0)
             {
                 this.CurrentBodyID = buff.SpellEffect.BodyID;
-                packet += "\x1" + P.UpdateCharacter(this);
+                sendCharacterUpdate = true;
             }
 
             this.AddRegenEvent(world);
 
             if (buff.SpellEffect.Animation != 0)
-                packet += "\x1" + P.SpellPlayer(this.LoginID, buff.SpellEffect.Animation, buff.SpellEffect.AnimationFile);
-            if (buff.SpellEffect.DoAttackAnimation) packet += "\x1" + P.Attack(this); // kinda weird but k
+                packetBuilder.Append("\x1").Append(P.SpellPlayer(this.LoginID, buff.SpellEffect.Animation, buff.SpellEffect.AnimationFile));
 
-            if (buff.SpellEffect.OnEffectText != "") world.Send(this, P.ServerMessage(buff.SpellEffect.OnEffectText));
+            if (buff.SpellEffect.DoAttackAnimation) 
+                packetBuilder.Append("\x1").Append(P.Attack(this));
+
+            if (buff.SpellEffect.OnEffectText != "")
+                world.Send(this, P.ServerMessage(buff.SpellEffect.OnEffectText));
+
             world.Send(this, P.StatusInfo(this));
-            world.Send(this, packet);
-            foreach (Player player in range)
+
+            sendCharacterUpdate |= this.FireInvisTransitions(world, wasInvisible, wasCanSee);
+            if (sendCharacterUpdate)
+                packetBuilder.Append("\x1").Append(P.UpdateCharacter(this));
+
+            if (packetBuilder.Length > 0)
             {
-                world.Send(player, packet);
+                var packet = packetBuilder.ToString();
+
+                world.Send(this, packet);
+                foreach (var player in range)
+                {
+                    world.Send(player, packet);
+                }
             }
 
             if (refreshbar) this.SendBuffBar(world);
+        }
+
+        private void RenewBuff(Buff existingBuff, Buff newBuff, bool wasInvisible, bool wasCanSee, List<Player> range, bool updateCharacter, GameWorld world)
+        {
+            var packetBuilder = new StringBuilder();
+
+            if (existingBuff.SpellEffect.EffectType != newBuff.SpellEffect.EffectType)
+            {
+                this.RemoveFromInvisCounters(existingBuff.SpellEffect);
+                this.AddToInvisCounters(newBuff.SpellEffect);
+            }
+
+            this.RemoveStats(existingBuff.SpellEffect.Stats, world);
+            this.AddStats(newBuff.SpellEffect.Stats, world, updateCharacter: updateCharacter);
+
+            world.Send(this, P.WeaponSpeed(this));
+
+            if (existingBuff.SpellEffect.OffEffectText != "") world.Send(this, P.ServerMessage(existingBuff.SpellEffect.OffEffectText));
+            if (newBuff.SpellEffect.OnEffectText != "") world.Send(this, P.ServerMessage(newBuff.SpellEffect.OnEffectText));
+
+            existingBuff.TimeCast = world.TimeNow;
+            existingBuff.SpellEffect = newBuff.SpellEffect;
+            existingBuff.Caster = newBuff.Caster;
+
+            if (newBuff.SpellEffect.Animation != 0)
+            {
+                packetBuilder.Append(P.SpellPlayer(this.LoginID, newBuff.SpellEffect.Animation, newBuff.SpellEffect.AnimationFile));
+
+                if (newBuff.SpellEffect.DoAttackAnimation)
+                    packetBuilder.Append("\x1").Append(P.Attack(this));
+            }
+
+            this.SendBuffBar(world);
+
+            bool sendCharacterUpdate = this.FireInvisTransitions(world, wasInvisible, wasCanSee);
+
+            if (sendCharacterUpdate)
+            {
+                if (packetBuilder.Length > 0)
+                    packetBuilder.Append("\x1");
+                packetBuilder.Append(P.UpdateCharacter(this));
+            }
+
+            if (packetBuilder.Length > 0)
+            {
+                var packet = packetBuilder.ToString();
+
+                world.Send(this, packet);
+                foreach (var player in range)
+                {
+                    world.Send(player, packet);
+                }
+            }
+        }
+
+        // Returns true when the invisibility state flipped, so the caller folds a
+        // CHP into the packet it is already broadcasting (one send per bystander).
+        private bool FireInvisTransitions(GameWorld world, bool wasInvisible, bool wasCanSee)
+        {
+            if (this.State != States.Ready) return false;
+
+            bool isInvisible = this.IsInvisible;
+            if (!wasInvisible && isInvisible)
+            {
+                this.ClearNPCAggroIfUnseen(world);
+            }
+
+            bool canSee = this.CanSeeInvisible;
+            if (canSee != wasCanSee)
+            {
+                world.Send(this, P.SeeInvisible(canSee));
+            }
+
+            return wasInvisible != isInvisible;
+        }
+
+        private void ClearNPCAggroIfUnseen(GameWorld world)
+        {
+            foreach (NPC npc in this.Map.GetNPCsInRange(this))
+            {
+                if (!npc.CanSeeInvisible) npc.RemoveAggro(this);
+            }
         }
 
         public bool IsMounted()
@@ -2270,13 +2375,34 @@ namespace Goose
             this.RemoveBuff(buff, world, true);
         }
 
+        public void BreakInvisibility(GameWorld world)
+        {
+            if (!this.IsInvisible) return;
+
+            var toRemove = this.Buffs
+                .Where(b => b.SpellEffect.EffectType == SpellEffect.EffectTypes.Invisible)
+                .ToList();
+
+            foreach (Buff buff in toRemove)
+            {
+                this.RemoveBuff(buff, world);
+            }
+        }
+
         /**
          * RemoveBuff, removes buff from buffs list
          *
          */
         public void RemoveBuff(Buff buff, GameWorld world, bool refreshbar, bool updateCharacter = true)
         {
-            this.Buffs.Remove(buff);
+            bool wasInvisible = this.IsInvisible;
+            bool wasCanSee = this.CanSeeInvisible;
+
+            var packetBuilder = new StringBuilder();
+
+            // Only decrement when the buff was actually on the list - a double-remove
+            // must not drive the counters negative.
+            if (this.Buffs.Remove(buff)) this.RemoveFromInvisCounters(buff.SpellEffect);
 
             if (buff.BuffExpireEvent != null)
             {
@@ -2293,32 +2419,42 @@ namespace Goose
             }
             catch (Exception e) { }
 
-            string packet = P.VitalsPercentage(this);
+            packetBuilder.Append(P.VitalsPercentage(this));
 
             if (buff.SpellEffect.Stats.Haste != Decimal.Zero)
-            {
                 world.Send(this, P.WeaponSpeed(this));
-            }
+
+            bool sendCharacterUpdate = false;
 
             // for illusions
             if (buff.SpellEffect.BodyID != 0)
             {
                 this.CurrentBodyID = this.BodyID;
-                packet += "\x1" + P.UpdateCharacter(this);
+                sendCharacterUpdate = true;
             }
 
             this.AddRegenEvent(world);
 
             if (this.State == States.Ready)
             {
-                List<Player> range = this.Map.GetPlayersInRange(this);
+                var range = this.Map.GetPlayersInRange(this);
 
                 if (buff.SpellEffect.OffEffectText != "") world.Send(this, P.ServerMessage(buff.SpellEffect.OffEffectText));
                 world.Send(this, P.StatusInfo(this));
-                world.Send(this, packet);
-                foreach (Player player in range)
+
+                sendCharacterUpdate |= this.FireInvisTransitions(world, wasInvisible, wasCanSee);
+                if (sendCharacterUpdate)
+                    packetBuilder.Append("\x1").Append(P.UpdateCharacter(this));
+
+                if (packetBuilder.Length > 0)
                 {
-                    world.Send(player, packet);
+                    var packet = packetBuilder.ToString();
+
+                    world.Send(this, packet);
+                    foreach (var player in range)
+                    {
+                        world.Send(player, packet);
+                    }
                 }
             }
 

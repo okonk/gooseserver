@@ -505,6 +505,19 @@ namespace Goose
         {
             if (!this.IsAlive) return;
 
+            List<Buff> removebuff = new List<Buff>();
+            foreach (Buff b in this.Buffs)
+            {
+                if (!b.ItemBuff) removebuff.Add(b);
+            }
+
+            // Strip before erasing so the 1->0 invis CHP reaches bystanders while
+            // the pet still exists on their side of the world.
+            foreach (Buff b in removebuff)
+            {
+                this.RemoveBuff(b, world, false, updateCharacter: false);
+            }
+
             string erase = P.EraseCharacter(this.LoginID);
             List<Player> oldrange = this.Map.GetPlayersInRange(this);
             foreach (Player player in oldrange)
@@ -515,17 +528,6 @@ namespace Goose
             foreach (NPC npc in oldnpcrange)
             {
                 npc.RemoveAggro(this);
-            }
-
-            List<Buff> removebuff = new List<Buff>();
-            foreach (Buff b in this.Buffs)
-            {
-                if (!b.ItemBuff) removebuff.Add(b);
-            }
-
-            foreach (Buff b in removebuff)
-            {
-                this.RemoveBuff(b, world, false, updateCharacter: false);
             }
 
             this.Map.RemovePlayer(this, world);

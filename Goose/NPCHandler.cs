@@ -58,6 +58,7 @@ namespace Goose
                         npc.MoveSpeed = Decimal.Parse(Convert.ToString(reader["move_speed"]));
                         npc.CanMove = ("1".Equals(Convert.ToString(reader["stationary"])) ? false : true);
                         npc.CanBeStunned = ("0".Equals(Convert.ToString(reader["stunnable"])) ? false : true);
+                        npc.SeeInvisible = "1".Equals(Convert.ToString(reader["see_invisible"]));
                         npc.CanBeRooted = ("0".Equals(Convert.ToString(reader["rootable"])) ? false : true);
                         npc.CanBeSlowed = ("0".Equals(Convert.ToString(reader["slowable"])) ? false : true);
                         npc.CanBeKilled = ("1".Equals(Convert.ToString(reader["invincible"])) ? false : true);
