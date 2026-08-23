@@ -46,6 +46,9 @@ namespace Goose.Events
 
                 if (now - this.Player.LastAttack >= delay)
                 {
+                    // a swing reveals even when it hits nothing
+                    this.Player.BreakInvisibility(world);
+
                     var weaponSlot = this.Player.Inventory.GetEquippedSlot(Inventory.EquipSlots.Weapon);
                     if (weaponSlot?.Item != null)
                     {

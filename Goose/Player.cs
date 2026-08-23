@@ -1666,8 +1666,6 @@ namespace Goose
          */
         public void Attack(ICharacter character, GameWorld world)
         {
-            this.BreakInvisibility(world);
-
             this.OnMeleeAttack(character, world);
 
             if (character is Player &&

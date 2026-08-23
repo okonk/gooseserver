@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
 using System.Text;
+using Goose.Events;
 using Goose.Tests.Collections;
 
 namespace Goose.Tests;
@@ -119,14 +120,19 @@ public class InvisibilityBreakTests : IDisposable
 
     private static string Buffer(Player p) => Encoding.ASCII.GetString(p.SendBuffer.ToArray());
 
+    private static void Swing(Player p, GameWorld world)
+    {
+        new PlayerAttackEvent { Player = p }.Ready(world);
+    }
+
     [Fact]
     public void InvisiblePlayer_AttackingNpc_BreaksInvisibilityAndKeepsOtherBuffs()
     {
         var a = NewPlayer();
         var b = NewPlayer();
         b.Level = 1;
-        PlacePlayer(a, 5, 6);
-        PlacePlayer(b, 5, 7);
+        PlacePlayer(a, 4, 4);
+        PlacePlayer(b, 4, 5);
         var npc = SpawnNpc();
 
         var root = NewBuff(b, SpellEffect.EffectTypes.Root);
@@ -136,7 +142,7 @@ public class InvisibilityBreakTests : IDisposable
         Assert.True(b.IsInvisible);
 
         a.SendBuffer.Clear();
-        b.Attack(npc, world);
+        Swing(b, world);
 
         Assert.False(b.IsInvisible);
         Assert.DoesNotContain(b.Buffs, buf => buf.SpellEffect.EffectType == SpellEffect.EffectTypes.Invisible);
@@ -152,15 +158,37 @@ public class InvisibilityBreakTests : IDisposable
     {
         var b = NewPlayer();
         b.Level = 1;
-        PlacePlayer(b, 5, 6);
+        PlacePlayer(b, 4, 5);
         var npc = SpawnNpc();
 
         b.SendBuffer.Clear();
-        b.Attack(npc, world);
+        Swing(b, world);
 
         Assert.False(b.IsInvisible);
         string buf = Buffer(b);
         Assert.DoesNotContain("CHP", buf);
+    }
+
+    [Fact]
+    public void InvisiblePlayer_SwingsAtEmptyTile_BreaksInvisibility()
+    {
+        var a = NewPlayer();
+        var b = NewPlayer();
+        PlacePlayer(a, 3, 5);
+        PlacePlayer(b, 4, 5);
+
+        b.AddBuff(NewBuff(b, SpellEffect.EffectTypes.Invisible), world);
+        Assert.True(b.IsInvisible);
+
+        a.SendBuffer.Clear();
+        Swing(b, world);
+
+        Assert.False(b.IsInvisible);
+        Assert.DoesNotContain(b.Buffs, buf => buf.SpellEffect.EffectType == SpellEffect.EffectTypes.Invisible);
+
+        string buf = Buffer(a);
+        Assert.Contains(",255,0,70,", buf);
+        Assert.DoesNotContain(",255,1,70,", buf);
     }
 
     [Fact]
@@ -255,8 +283,8 @@ public class InvisibilityBreakTests : IDisposable
         var a = NewPlayer();
         var b = NewPlayer();
         b.Level = 1;
-        PlacePlayer(a, 5, 5);
-        PlacePlayer(b, 5, 6);
+        PlacePlayer(a, 3, 5);
+        PlacePlayer(b, 4, 5);
         var npc = SpawnNpc();
 
         b.AddBuff(NewBuff(b, SpellEffect.EffectTypes.Invisible), world);
@@ -264,7 +292,7 @@ public class InvisibilityBreakTests : IDisposable
         Assert.Equal(2, b.InvisibleBuffCount);
 
         a.SendBuffer.Clear();
-        b.Attack(npc, world);
+        Swing(b, world);
 
         Assert.False(b.IsInvisible);
         Assert.Equal(0, b.InvisibleBuffCount);
