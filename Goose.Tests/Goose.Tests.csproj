@@ -61,4 +61,8 @@
     <ProjectReference Include="..\CsvToSql\CsvToSql.Core\CsvToSql.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="..\TestSupport\TestWorldFixture.cs" Link="Fixtures\TestWorldFixture.cs" />
+  </ItemGroup>
+
 </Project>

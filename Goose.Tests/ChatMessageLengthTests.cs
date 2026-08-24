@@ -1,5 +1,6 @@
 using System.Linq;
 using Goose;
+using Goose.Testing;
 using Goose.Tests.Collections;
 using Goose.Tests.Fixtures;
 using Xunit;
@@ -11,9 +12,9 @@ public class ChatMessageLengthTests
 {
     private const int MaxMessageLength = 300;
 
-    private static (GlobalScriptFixture Fixture, GlobalScriptFixture.CapturingPlayer Player, Map Map) NewPlayer()
+    private static (TestWorldFixture Fixture, TestWorldFixture.CapturingPlayer Player, Map Map) NewPlayer()
     {
-        var fixture = new GlobalScriptFixture();
+        var fixture = new TestWorldFixture();
         var map = fixture.AddBaseMap(1, "Town");
         map.CanChat = true;
         map.CanAuction = true;

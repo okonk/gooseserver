@@ -1,4 +1,5 @@
 using Goose.Scripting;
+using Goose.Testing;
 using Goose.Tests.Collections;
 using Goose.Tests.Fixtures;
 
@@ -36,7 +37,7 @@ return typeof(Silent);
     [Fact]
     public void A_script_supplying_lines_replaces_the_built_in_description()
     {
-        using var fixture = new GlobalScriptFixture();
+        using var fixture = new TestWorldFixture();
         var effect = new SpellEffect
         {
             ID = 1, EffectType = SpellEffect.EffectTypes.Script,
@@ -52,7 +53,7 @@ return typeof(Silent);
     [Fact]
     public void A_script_returning_null_falls_through_to_the_built_in_switch()
     {
-        using var fixture = new GlobalScriptFixture();
+        using var fixture = new TestWorldFixture();
         var effect = new SpellEffect
         {
             ID = 1, EffectType = SpellEffect.EffectTypes.Stun,
@@ -65,7 +66,7 @@ return typeof(Silent);
     [Fact]
     public void An_effect_with_no_script_uses_the_built_in_switch()
     {
-        using var fixture = new GlobalScriptFixture();
+        using var fixture = new TestWorldFixture();
         var effect = new SpellEffect { ID = 1, EffectType = SpellEffect.EffectTypes.Root };
 
         Assert.Equal(new[] { "Root" }, effect.GetItemDescription(fixture.World).ToArray());

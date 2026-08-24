@@ -1,5 +1,6 @@
 using Goose;
 using Goose.Events;
+using Goose.Testing;
 using Goose.Tests.Collections;
 using Goose.Tests.Fixtures;
 using Xunit;
@@ -19,7 +20,7 @@ public class VendorPurchaseCurrencyTests
         ev.Ready(fixture.World);
     }
 
-    private static ItemTemplate Sword(GlobalScriptFixture _, long value = 100, int credits = 0) =>
+    private static ItemTemplate Sword(TestWorldFixture _, long value = 100, int credits = 0) =>
         new ItemTemplate
         {
             ID = 1, Name = "Sword", Description = "A Sword", Value = value, Credits = credits,
@@ -130,7 +131,7 @@ public class VendorPurchaseCurrencyTests
             ID = 99, Name = "Rock", Value = 1, BaseStats = new AttributeSet(),
             StackSize = 1, ScriptParams = "", Slot = ItemTemplate.ItemSlots.OneHanded,
         };
-        for (int i = 0; i < GameWorld.Settings.InventorySize; i++) fixture.Carry(filler);
+        for (int i = 0; i < fixture.Settings.InventorySize; i++) fixture.Carry(filler);
     }
 
     /// <summary>A minimal spirit stand-in. The real one lives in

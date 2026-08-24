@@ -1,4 +1,5 @@
 using Goose;
+using Goose.Testing;
 using Goose.Tests.Collections;
 using Goose.Tests.Fixtures;
 using Xunit;
@@ -18,7 +19,7 @@ public class ResetModifiersTests
     /// The template carries non-zero BaseStats and WeaponDamage on purpose: both are
     /// accumulated by RefreshStats (`Item.cs:247-256`), so they are what a non-idempotent
     /// reset would double.</summary>
-    private static Item ItemWithModifiers(GlobalScriptFixture fixture)
+    private static Item ItemWithModifiers(TestWorldFixture fixture)
     {
         var template = fixture.AddBaseItemTemplate(1, "Sword", ItemTemplate.UseTypes.Weapon, t =>
         {
@@ -38,7 +39,7 @@ public class ResetModifiersTests
     [Fact]
     public void ResetModifiers_clears_name_stats_multiplier_weapon_damage_and_properties()
     {
-        using var fixture = new GlobalScriptFixture();
+        using var fixture = new TestWorldFixture();
         var item = ItemWithModifiers(fixture);
         item.Name = "Legendary Sword of Speed";
         item.BaseStats.Strength = 50;
@@ -67,7 +68,7 @@ public class ResetModifiersTests
     [Fact]
     public void ResetModifiers_is_idempotent_in_stats_and_weapon_damage()
     {
-        using var fixture = new GlobalScriptFixture();
+        using var fixture = new TestWorldFixture();
         var item = ItemWithModifiers(fixture);
         item.BaseStats.Strength = 50;
         item.WeaponDamage = 40;

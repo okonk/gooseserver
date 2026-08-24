@@ -1,4 +1,5 @@
 using Goose;
+using Goose.Testing;
 using Goose.Tests.Collections;
 using Goose.Tests.Fixtures;
 using Xunit;
@@ -6,15 +7,11 @@ using Xunit;
 namespace Goose.Tests;
 
 /// <summary>In GameWorldSettingsCollection because every test here writes
-/// GameWorld.Settings, which is static; GlobalScriptFixture swaps and restores it
-/// (GlobalScriptFixture.cs:7,:38) but cannot protect against a parallel class doing the
-/// same. IClassFixture keeps one fixture — and so one settings swap — for the class.</summary>
+/// GameWorld.Settings, which is static; TestWorldFixture swaps and restores it but
+/// cannot protect against a parallel class doing the same.</summary>
 [Collection(GameWorldSettingsCollection.Name)]
-public class PlayerEconomyOverloadTests : IClassFixture<GlobalScriptFixture>
+public class PlayerEconomyOverloadTests
 {
-    private readonly GlobalScriptFixture fixture;
-
-    public PlayerEconomyOverloadTests(GlobalScriptFixture fixture) => this.fixture = fixture;
 
     /// <summary>Rebirth must not shave the settings loss percent. ChangeClass banks
     /// Experience into ExperienceSold (Player.cs:1368) and multiplies the result by
@@ -22,7 +19,8 @@ public class PlayerEconomyOverloadTests : IClassFixture<GlobalScriptFixture>
     [Fact]
     public void ChangeClass_with_explicit_zero_loss_banks_the_full_experience()
     {
-        GameWorld.Settings.ChangeClassExperienceLossPercent = 0.07;
+        using var fixture = new TestWorldFixture();
+        fixture.Settings.ChangeClassExperienceLossPercent = 0.07;
         var map = fixture.AddBaseMap(9100, "Overload Map");
         var player = fixture.PlayerOn(map, 1, 1);
         player.ClassID = 3;
@@ -40,7 +38,8 @@ public class PlayerEconomyOverloadTests : IClassFixture<GlobalScriptFixture>
     [Fact]
     public void ChangeClass_three_arg_overload_still_applies_the_settings_loss()
     {
-        GameWorld.Settings.ChangeClassExperienceLossPercent = 0.07;
+        using var fixture = new TestWorldFixture();
+        fixture.Settings.ChangeClassExperienceLossPercent = 0.07;
         var map = fixture.AddBaseMap(9101, "Overload Map 2");
         var player = fixture.PlayerOn(map, 1, 1);
         player.ClassID = 3;
@@ -66,9 +65,10 @@ public class PlayerEconomyOverloadTests : IClassFixture<GlobalScriptFixture>
     [InlineData(1_000L)]        // player is past the limit -> reduced-modifier branch
     public void AddExperience_without_modifiers_grants_the_exact_amount(long modifierLimit)
     {
-        GameWorld.Settings.ExperienceCap = 0;
-        GameWorld.Settings.ExperienceModifier = 2;
-        GameWorld.Settings.ExperienceModifierLimit = (int)modifierLimit; // Settings field is int
+        using var fixture = new TestWorldFixture();
+        fixture.Settings.ExperienceCap = 0;
+        fixture.Settings.ExperienceModifier = 2;
+        fixture.Settings.ExperienceModifierLimit = (int)modifierLimit; // Settings field is int
         fixture.World.ExperienceModifier = 2;
 
         var map = fixture.AddBaseMap(9102 + (int)modifierLimit, "Overload Map 3");
@@ -86,9 +86,10 @@ public class PlayerEconomyOverloadTests : IClassFixture<GlobalScriptFixture>
     [Fact]
     public void AddExperience_three_arg_overload_still_applies_the_modifier()
     {
-        GameWorld.Settings.ExperienceCap = 0;
-        GameWorld.Settings.ExperienceModifier = 2;
-        GameWorld.Settings.ExperienceModifierLimit = 0;
+        using var fixture = new TestWorldFixture();
+        fixture.Settings.ExperienceCap = 0;
+        fixture.Settings.ExperienceModifier = 2;
+        fixture.Settings.ExperienceModifierLimit = 0;
         fixture.World.ExperienceModifier = 2;
 
         var map = fixture.AddBaseMap(9105, "Overload Map 4");

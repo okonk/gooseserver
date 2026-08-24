@@ -1,16 +1,19 @@
 using System.Collections.Generic;
 using Goose;
+using Goose.Testing;
 
 namespace Goose.Tests.Fixtures;
 
 /// <summary>A player standing at a vendor, wired closely enough to drive the real
 /// VendorPurchaseInventoryEvent and VendorSellInventoryEvent.
 ///
-/// Builds on GlobalScriptFixture so GameWorld.Settings (inventory size, etc.) is populated
+/// Builds on TestWorldFixture so GameWorld.Settings (inventory size, etc.) is populated
 /// and restored on dispose.</summary>
 public sealed class VendorFixture : IDisposable
 {
-    private readonly GlobalScriptFixture inner = new GlobalScriptFixture();
+    private readonly TestWorldFixture inner = new TestWorldFixture();
+
+    public GooseSettings Settings => inner.Settings;
 
     /// <summary>Player.Send is virtual and returns early on a null socket (Player.cs:2389),
     /// so overriding it is how tests read the server's messages back.</summary>
@@ -55,7 +58,7 @@ public sealed class VendorFixture : IDisposable
         };
         // NPC.VendorItems reads through to NPCTemplate.VendorItems (NPC.cs:335) and has no
         // setter, so the array is sized on the template the way NPCHandler.cs:183 does.
-        Vendor.NPCTemplate.VendorItems = new NPCVendorSlot[GameWorld.Settings.VendorSlotSize + 1];
+        Vendor.NPCTemplate.VendorItems = new NPCVendorSlot[inner.Settings.VendorSlotSize + 1];
 
         Player.Windows.Add(new Window { Type = Window.WindowTypes.Vendor, NPC = Vendor });
     }
