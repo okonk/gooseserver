@@ -1,4 +1,5 @@
 using Goose.Events;
+using Goose.Testing;
 using Goose.Scripting;
 using Goose.Tests.Collections;
 

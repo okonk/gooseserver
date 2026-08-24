@@ -1,8 +1,9 @@
 using Goose.Scripting;
-using Goose.Tests.Collections;
-using Goose.Tests.Fixtures;
+using Goose.IntegrationTests.Collections;
+using Goose.IntegrationTests.Fixtures;
+using Goose.Testing;
 
-namespace Goose.Tests;
+namespace Goose.IntegrationTests;
 
 [Collection(GameWorldSettingsCollection.Name)]
 public class DimensionMapScriptTests

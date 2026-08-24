@@ -1,6 +1,6 @@
 using Goose;
 
-namespace Goose.Tests;
+namespace Goose.IntegrationTests;
 
 public class DimensionScalingOverflowTests
 {

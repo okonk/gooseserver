@@ -1,7 +1,7 @@
 using System.Runtime.CompilerServices;
 using Goose.Scripting;
 
-namespace Goose.Tests;
+namespace Goose.Testing;
 
 /// <summary>Wraps an in-memory script object in a Script&lt;T&gt; without touching disk.
 /// Script&lt;T&gt;'s constructor compiles a file (Script.cs:26), and Object has a private

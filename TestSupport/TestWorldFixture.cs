@@ -3,7 +3,7 @@ using Goose.Scripting;
 
 namespace Goose.Testing;
 
-public sealed class TestWorldFixture : IDisposable
+public class TestWorldFixture : IDisposable
 {
     private readonly GooseSettings previousSettings = GameWorld.Settings;
 

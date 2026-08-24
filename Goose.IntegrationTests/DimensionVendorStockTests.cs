@@ -1,11 +1,11 @@
 using System.Linq;
 using Goose;
 using Goose.Events;
-using Goose.Tests.Collections;
-using Goose.Tests.Fixtures;
+using Goose.IntegrationTests.Collections;
+using Goose.IntegrationTests.Fixtures;
 using Xunit;
 
-namespace Goose.Tests;
+namespace Goose.IntegrationTests;
 
 [Collection(GameWorldSettingsCollection.Name)]
 public class DimensionVendorStockTests
