@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using System.IO;
 using System.Runtime.InteropServices;
-using System.ServiceProcess;
 using NLog;
 
 namespace Goose
@@ -22,16 +20,6 @@ namespace Goose
             // to the app base directory, matching historical behaviour.
             Paths.Initialize(ParseDataDir(args));
             ConfigureLogging();
-
-            if (args.Contains("-service"))
-            {
-                ServiceBase.Run(new ServiceBase[] 
-                { 
-                    new GooseWindowsService() 
-                });
-
-                return;
-            }
 
             GameServer server = new GameServer();
 
