@@ -266,6 +266,12 @@ namespace Goose
             ItemSlot slot = this.GetSlot(id);
             if (slot == null) return;
 
+            if (!this.player.Map.CanUseItems)
+            {
+                world.Send(this.player, P.HashMessage("You can't use items in this map."));
+                return;
+            }
+
             if (this.player.CanUse(slot.Item, world))
             {
                 if (slot.Item.UseType == ItemTemplate.UseTypes.Armor || slot.Item.UseType == ItemTemplate.UseTypes.Weapon)
@@ -283,10 +289,6 @@ namespace Goose
                         this.RemoveItem(slot.Item, 1, world);
                     }
                 }
-            }
-            else if (!this.player.Map.CanUseItems)
-            {
-                world.Send(this.player, P.HashMessage("You can't use items in this map."));
             }
         }
 

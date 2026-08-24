@@ -159,6 +159,7 @@ or fix quests to not rely on id?
 
 Packet refactoring still to do:
 * Scripts
+* hardcoded MKC character type literals (1 player, 2 monster, 10 vendor, 11 banker, 12 quest, 13 pet) -> proper enum; NPCTemplate.Types only covers the NPC subset and Pet isn't in it
 something broken with pet NextRespawnTime? what is setting it.
 
 
