@@ -1,14 +1,13 @@
 using Goose;
 using Goose.Testing;
 using Goose.Tests.Collections;
-using Goose.Tests.Fixtures;
 using Xunit;
 
 namespace Goose.Tests;
 
-/// <summary>Fixture-based, and in GameWorldSettingsCollection: GlobalScriptFixture swaps
+/// <summary>Fixture-based, and in GameWorldSettingsCollection: TestWorldFixture swaps
 /// the static GameWorld.Settings in its constructor and restores it on dispose
-/// (GlobalScriptFixture.cs:8,:276), so a class that mutates settings must not run in
+/// (TestWorldFixture.cs:30,:157-161), so a class that mutates settings must not run in
 /// parallel with the other suites that do the same.</summary>
 [Collection(GameWorldSettingsCollection.Name)]
 public class ResetModifiersTests
