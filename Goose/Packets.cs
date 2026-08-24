@@ -200,7 +200,7 @@ namespace Goose
         public static Func<Pet, string> MakePetCharacter = (npc) =>
         {
             return "MKC" + npc.LoginID + "," +
-                        "12" + "," +
+                        "13" + "," +
                         npc.Name + "," +
                         npc.Title + "," +
                         npc.Surname + "," +
@@ -398,6 +398,14 @@ namespace Goose
         public static Func<Map, string> SendCurrentMap = (map) =>
         {
             return "SCM" + map.FileName + ",1," + map.Name + ",0";
+        };
+
+        // Wire format: MFL<pvp>,<items>,<cast> — 1 = enabled
+        public static Func<Map, string> SendMapFlags = (map) =>
+        {
+            return "MFL" + (map.CanPVP ? "1" : "0") + "," +
+                        (map.CanUseItems ? "1" : "0") + "," +
+                        (map.CanCast ? "1" : "0");
         };
 
         public static Func<Class, string> ClassUpdate = (@class) =>
