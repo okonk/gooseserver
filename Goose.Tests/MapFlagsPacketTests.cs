@@ -5,25 +5,37 @@ namespace Goose.Tests
 {
     public class MapFlagsPacketTests
     {
+        private static Player NewPlayer(Player.AccessStatus access = Player.AccessStatus.Normal)
+        {
+            return new Player(0) { Access = access };
+        }
+
         [Fact]
         public void SendMapFlags_NormalMap_SendsAllEnabledDefaults()
         {
             var map = new Map { CanPVP = false, CanUseItems = true, CanCast = true };
-            Assert.Equal("MFL0,1,1", P.SendMapFlags(map));
+            Assert.Equal("MFL0,1,1", P.SendMapFlags(NewPlayer(), map));
         }
 
         [Fact]
         public void SendMapFlags_PvpArena_SendsPvpEnabled()
         {
             var map = new Map { CanPVP = true, CanUseItems = true, CanCast = true };
-            Assert.Equal("MFL1,1,1", P.SendMapFlags(map));
+            Assert.Equal("MFL1,1,1", P.SendMapFlags(NewPlayer(), map));
         }
 
         [Fact]
         public void SendMapFlags_RestrictedMap_SendsItemsAndCastDisabled()
         {
             var map = new Map { CanPVP = false, CanUseItems = false, CanCast = false };
-            Assert.Equal("MFL0,0,0", P.SendMapFlags(map));
+            Assert.Equal("MFL0,0,0", P.SendMapFlags(NewPlayer(), map));
+        }
+
+        [Fact]
+        public void SendMapFlags_NoCastMap_PlayerWithBypassPrivilege_SendsCastEnabled()
+        {
+            var map = new Map { CanPVP = false, CanUseItems = false, CanCast = false };
+            Assert.Equal("MFL0,0,1", P.SendMapFlags(NewPlayer(Player.AccessStatus.Guide), map));
         }
 
         [Fact]

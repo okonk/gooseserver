@@ -25,7 +25,7 @@ namespace Goose.Events
 
                 this.Player.State = Player.States.LoadingMap;
                 
-                world.Send(this.Player, P.SendMapFlags(map));
+                world.Send(this.Player, P.SendMapFlags(this.Player, map));
                 world.Send(this.Player, P.SendCurrentMap(map));
 
                 // send classes

@@ -400,12 +400,13 @@ namespace Goose
             return "SCM" + map.FileName + ",1," + map.Name + ",0";
         };
 
-        // Wire format: MFL<pvp>,<items>,<cast> — 1 = enabled
-        public static Func<Map, string> SendMapFlags = (map) =>
+        // Wire format: MFL<pvp>,<items>,<cast> — 1 = enabled. Cast is the effective
+        // permission for this player (map allows, or the player has the bypass privilege).
+        public static Func<Player, Map, string> SendMapFlags = (player, map) =>
         {
             return "MFL" + (map.CanPVP ? "1" : "0") + "," +
                         (map.CanUseItems ? "1" : "0") + "," +
-                        (map.CanCast ? "1" : "0");
+                        (map.CanCast || player.HasPrivilege(AccessPrivilege.CastSpellsWhileBlocked) ? "1" : "0");
         };
 
         public static Func<Class, string> ClassUpdate = (@class) =>

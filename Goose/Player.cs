@@ -1389,7 +1389,7 @@ namespace Goose
                 this.MapX = x;
                 this.MapY = y;
 
-                world.Send(this, P.SendMapFlags(map));
+                world.Send(this, P.SendMapFlags(this, map));
                 world.Send(this, P.SendCurrentMap(map));
             }
         }
