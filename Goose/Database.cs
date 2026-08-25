@@ -1,9 +1,5 @@
-using System;
 using System.Collections.Concurrent;
 using System.Data.SQLite;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Goose
 {

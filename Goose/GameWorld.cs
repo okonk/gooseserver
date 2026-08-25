@@ -1,16 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System.Text;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
 
 using Goose.Events;
 using Goose.Quests;
-using System.Threading.Tasks;
-using System.Threading;
 using Goose.Scripting;
-using System.IO;
 using System.Data.SQLite;
 using System.Diagnostics;
 

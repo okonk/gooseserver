@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System.Text;
 using System.Net.Sockets;
 using System.Data;
 using System.Data.Common;
@@ -9,7 +6,6 @@ using System.Security.Cryptography;
 
 using Goose.Events;
 using Goose.Quests;
-using System.Threading.Tasks;
 using System.Data.SQLite;
 
 namespace Goose
