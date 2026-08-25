@@ -26,7 +26,7 @@ namespace Goose
             this.levels[c.Level] = c;
         }
 
-        public int MaxLevel { get { return this.levels.Count; } }
+        public int MaxLevel { get => this.levels.Count; }
 
         /**
          * class_restrictions is an ALLOW list: the bit at index class_id is set for every class

@@ -66,7 +66,7 @@ namespace Goose
         public AttributeSet BaseStats { get; set; }
         public int WeaponDelay { get; set; }
         public int WeaponDamage { get; set; }
-        public int TotalWeaponDamage { get { return this.WeaponDamage; } }
+        public int TotalWeaponDamage { get => this.WeaponDamage; }
         public ItemSlots Slot { get; set; }
         public ItemTypes Type { get; set; }
         public int GraphicEquipped { get; set; }
@@ -218,10 +218,7 @@ namespace Goose
 
         public int Flags
         {
-            get
-            {
-                return (0 | (IsLore ? 8 : 0) | (IsBindOnPickup ? 2 : 0) | (IsBindOnEquip ? 0x80 : 0) | (IsEvent ? 0x10 : 0));
-            }
+            get => (0 | (IsLore ? 8 : 0) | (IsBindOnPickup ? 2 : 0) | (IsBindOnEquip ? 0x80 : 0) | (IsEvent ? 0x10 : 0));
         }
 
         public static string FigureClassRestrictions(GameWorld world, long classRestrictions)

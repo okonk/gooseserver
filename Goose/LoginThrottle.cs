@@ -47,17 +47,17 @@ namespace Goose
 
         private int FailureLimit
         {
-            get { return Math.Max(1, this.settings.LoginFailureLimit); }
+            get => Math.Max(1, this.settings.LoginFailureLimit);
         }
 
         private TimeSpan Window
         {
-            get { return TimeSpan.FromSeconds(Math.Max(1, this.settings.LoginFailureWindowSeconds)); }
+            get => TimeSpan.FromSeconds(Math.Max(1, this.settings.LoginFailureWindowSeconds));
         }
 
         private TimeSpan Lockout
         {
-            get { return TimeSpan.FromSeconds(Math.Max(1, this.settings.LoginLockoutSeconds)); }
+            get => TimeSpan.FromSeconds(Math.Max(1, this.settings.LoginLockoutSeconds));
         }
 
         /**

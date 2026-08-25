@@ -11,9 +11,9 @@ namespace Goose
         /// </summary>
         private Dictionary<int, ItemContainer> bankContainers;
 
-        public int NumberOfContainers {  get { return bankContainers.Count; } }
+        public int NumberOfContainers {  get => bankContainers.Count; }
 
-        public Dictionary<int, ItemContainer> Containers { get { return bankContainers; } }
+        public Dictionary<int, ItemContainer> Containers { get => bankContainers; }
 
         public PlayerBank()
         {

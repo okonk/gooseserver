@@ -14,12 +14,12 @@ namespace Goose
 
         public override string Title
         {
-            get { return $"Bank Page {CurrentPage}/{MaxPages}";  }
+            get => $"Bank Page {CurrentPage}/{MaxPages}";
         }
 
         public override string Buttons
         {
-            get { return $"0,1,{(CurrentPage - 1 <= 0 ? "0" : "1")},{(CurrentPage == MaxPages ? "0" : "1")},0"; }
+            get => $"0,1,{(CurrentPage - 1 <= 0 ? "0" : "1")},{(CurrentPage == MaxPages ? "0" : "1")},0";
         }
 
         public static Func<Player, int> IdGenerator = (player) => { return 21; };

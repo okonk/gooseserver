@@ -152,9 +152,9 @@ namespace Goose
          */
         public int Count
         {
-            get { return this.classes.Count; }
+            get => this.classes.Count;
         }
 
-        public ICollection<Class> Classes { get { return this.classes.Values; } }
+        public ICollection<Class> Classes { get => this.classes.Values; }
     }
 }

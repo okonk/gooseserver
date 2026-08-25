@@ -72,19 +72,16 @@ namespace Goose
         }
 
         long timerfreq;
-        public long TimerFrequency { get { return this.timerfreq; } }
+        public long TimerFrequency { get => this.timerfreq; }
         Random rng;
         public Random Random
         {
-            get { return this.rng; }
+            get => this.rng;
         }
 
         public long TimeNow
         {
-            get
-            {
-                return Stopwatch.GetTimestamp();
-            }
+            get => Stopwatch.GetTimestamp();
         }
 
         public bool Running { get; set; }

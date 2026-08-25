@@ -33,7 +33,7 @@ namespace Goose
         /// </summary>
         public int CurrentID
         {
-            get { return this.currentdbid; }
+            get => this.currentdbid;
             set { this.currentdbid = value; }
         }
 
@@ -148,7 +148,7 @@ namespace Goose
          */
         public int PlayerCount 
         {
-            get { return this.players.Count; }
+            get => this.players.Count;
         }
 
         /**
@@ -157,7 +157,7 @@ namespace Goose
          */
         public List<Player> Players 
         {
-            get { return this.players; }
+            get => this.players;
         }
 
         /**
@@ -166,7 +166,7 @@ namespace Goose
          */
         public int PlayerDataCount
         {
-            get { return this.allNameToPlayer.Count; }
+            get => this.allNameToPlayer.Count;
         }
 
         /**

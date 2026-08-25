@@ -193,7 +193,7 @@ namespace Goose
         /**
          * EffectCount, returns number of effects
          */
-        public int EffectCount { get { return this.effects.Count; } }
+        public int EffectCount { get => this.effects.Count; }
 
         /**
          * GetSpellEffect, returns spell effect
@@ -271,7 +271,7 @@ namespace Goose
         /**
          * Count, returns number of spells
          */
-        public int Count { get { return this.spells.Count; } }
+        public int Count { get => this.spells.Count; }
 
         /**
          * GetSpell, returns spell

@@ -74,7 +74,7 @@ namespace Goose
          */
         public List<Player> Players
         {
-            get { return this.players; }
+            get => this.players;
         }
 
         /**
@@ -91,7 +91,7 @@ namespace Goose
 
         /// <summary>Item template ids a player must carry to enter. Read-only - use
         /// AddRequiredItem to populate.</summary>
-        public IReadOnlyList<int> RequiredItems { get { return this.requiredItems; } }
+        public IReadOnlyList<int> RequiredItems { get => this.requiredItems; }
 
         public void AddRequiredItem(int itemTemplateId)
         {
@@ -660,7 +660,7 @@ namespace Goose
          * Items, returns items list
          *
          */
-        public List<ItemTile> Items { get { return this.items; } }
+        public List<ItemTile> Items { get => this.items; }
 
         /**
          * GetCharacterAt, gets character at x,y
@@ -687,6 +687,6 @@ namespace Goose
          * NPCs, returns npcs list
          *
          */
-        public List<NPC> NPCs { get { return this.npcs; } }
+        public List<NPC> NPCs { get => this.npcs; }
     }
 }

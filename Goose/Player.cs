@@ -30,7 +30,7 @@ namespace Goose
         Socket sock;
         public Socket Sock
         {
-            get { return this.sock; }
+            get => this.sock;
             set { this.sock = value; }
         }
         public StringBuilder Buffer { get; set; }
@@ -158,7 +158,7 @@ namespace Goose
         long currentHP;
         public long CurrentHP
         {
-            get { return this.currentHP; }
+            get => this.currentHP;
             set
             {
                 this.currentHP = Math.Min(value, this.MaxHP);
@@ -170,7 +170,7 @@ namespace Goose
         long currentMP;
         public long CurrentMP
         {
-            get { return this.currentMP; }
+            get => this.currentMP;
             set
             {
                 currentMP = Math.Min(value, this.MaxMP);
@@ -182,7 +182,7 @@ namespace Goose
         long currentSP;
         public long CurrentSP
         {
-            get { return this.currentSP; }
+            get => this.currentSP;
             set
             {
                 this.currentSP = Math.Min(value, this.MaxSP);
@@ -191,26 +191,17 @@ namespace Goose
 
         public long MaxHP
         {
-            get
-            {
-                return this.TemporaryMaxHP ?? this.MaxStats.HP;
-            }
+            get => this.TemporaryMaxHP ?? this.MaxStats.HP;
         }
 
         public long MaxMP
         {
-            get
-            {
-                return this.TemporaryMaxMP ?? this.MaxStats.MP;
-            }
+            get => this.TemporaryMaxMP ?? this.MaxStats.MP;
         }
 
         public long MaxSP
         {
-            get
-            {
-                return this.TemporaryMaxSP ?? this.MaxStats.SP;
-            }
+            get => this.TemporaryMaxSP ?? this.MaxStats.SP;
         }
 
         public long? TemporaryMaxHP { get; set; }
@@ -366,9 +357,9 @@ namespace Goose
         public int InvisibleBuffCount { get; set; }
         public int SeeInvisibleBuffCount { get; set; }
 
-        public bool IsInvisible { get { return this.InvisibleBuffCount > 0; } }
+        public bool IsInvisible { get => this.InvisibleBuffCount > 0; }
 
-        public bool CanSeeInvisible { get { return this.SeeInvisibleBuffCount > 0 || this.Access > AccessStatus.Normal; } }
+        public bool CanSeeInvisible { get => this.SeeInvisibleBuffCount > 0 || this.Access > AccessStatus.Normal; }
 
         private void AddToInvisCounters(SpellEffect effect)
         {
@@ -426,12 +417,12 @@ namespace Goose
 
         public ToggleSetting ToggleSettings { get; set; }
 
-        public bool ChatFilterEnabled { get { return ((this.ToggleSettings & Player.ToggleSetting.WordFilter) == 0); } }
-        public bool QuestCreditFilterEnabled { get { return ((this.ToggleSettings & Player.ToggleSetting.QuestCredit) != 0); } }
-        public bool IsGMInvisible { get { return (this.HasPrivilege(AccessPrivilege.GMInvisible) && ((this.ToggleSettings & Player.ToggleSetting.GMInvisible) == 0)); } }
-        public bool IsWhoInvisible { get { return (this.HasPrivilege(AccessPrivilege.WhoInvisible) && ((this.ToggleSettings & Player.ToggleSetting.WhoInvisible) == 0)); } }
-        public bool IsGM { get { return (this.Access == AccessStatus.GameMaster && ((this.ToggleSettings & Player.ToggleSetting.GM) == 0)); } }
-        public bool ShowItemBuffs { get { return ((this.ToggleSettings & Player.ToggleSetting.ItemBuffs) == 0); } }
+        public bool ChatFilterEnabled { get => ((this.ToggleSettings & Player.ToggleSetting.WordFilter) == 0); }
+        public bool QuestCreditFilterEnabled { get => ((this.ToggleSettings & Player.ToggleSetting.QuestCredit) != 0); }
+        public bool IsGMInvisible { get => (this.HasPrivilege(AccessPrivilege.GMInvisible) && ((this.ToggleSettings & Player.ToggleSetting.GMInvisible) == 0)); }
+        public bool IsWhoInvisible { get => (this.HasPrivilege(AccessPrivilege.WhoInvisible) && ((this.ToggleSettings & Player.ToggleSetting.WhoInvisible) == 0)); }
+        public bool IsGM { get => (this.Access == AccessStatus.GameMaster && ((this.ToggleSettings & Player.ToggleSetting.GM) == 0)); }
+        public bool ShowItemBuffs { get => ((this.ToggleSettings & Player.ToggleSetting.ItemBuffs) == 0); }
 
         public decimal AetherThreshold { get; set; }
 
@@ -1703,7 +1694,7 @@ namespace Goose
          */
         public virtual long WeaponDamage
         {
-            get { return this.Inventory.GetWeaponDamage(); }
+            get => this.Inventory.GetWeaponDamage();
             set { }
         }
         /**
@@ -1711,7 +1702,7 @@ namespace Goose
          */
         public virtual int WeaponDelay
         {
-            get { return this.Inventory.GetWeaponDelay(); }
+            get => this.Inventory.GetWeaponDelay();
             set { }
         }
 

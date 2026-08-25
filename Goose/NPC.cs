@@ -77,7 +77,7 @@ namespace Goose
         long currentHP;
         public long CurrentHP
         {
-            get { return this.currentHP; }
+            get => this.currentHP;
             set
             {
                 this.currentHP = Math.Min(value, this.MaxHP);
@@ -89,7 +89,7 @@ namespace Goose
         long currentMP;
         public long CurrentMP
         {
-            get { return this.currentMP; }
+            get => this.currentMP;
             set
             {
                 currentMP = Math.Min(value, this.MaxMP);
@@ -101,7 +101,7 @@ namespace Goose
         long currentSP;
         public long CurrentSP
         {
-            get { return this.currentSP; }
+            get => this.currentSP;
             set
             {
                 this.currentSP = Math.Min(value, this.MaxSP);
@@ -110,26 +110,17 @@ namespace Goose
 
         public long MaxHP
         {
-            get
-            {
-                return this.TemporaryMaxHP ?? this.MaxStats.HP;
-            }
+            get => this.TemporaryMaxHP ?? this.MaxStats.HP;
         }
 
         public long MaxMP
         {
-            get
-            {
-                return this.TemporaryMaxMP ?? this.MaxStats.MP;
-            }
+            get => this.TemporaryMaxMP ?? this.MaxStats.MP;
         }
 
         public long MaxSP
         {
-            get
-            {
-                return this.TemporaryMaxSP ?? this.MaxStats.SP;
-            }
+            get => this.TemporaryMaxSP ?? this.MaxStats.SP;
         }
 
         public long? TemporaryMaxHP { get; set; }
@@ -315,7 +306,7 @@ namespace Goose
          */
         public Dictionary<Player, Aggro> AggroTargetToValue { get; set; }
 
-        public List<NPCTemplate> Allies { get { return this.NPCTemplate.Allies; } }
+        public List<NPCTemplate> Allies { get => this.NPCTemplate.Allies; }
 
         /**
          * So move event doesn't double up
@@ -338,9 +329,9 @@ namespace Goose
         public int InvisibleBuffCount { get; set; }
         public int SeeInvisibleBuffCount { get; set; }
 
-        public bool IsInvisible { get { return this.InvisibleBuffCount > 0; } }
+        public bool IsInvisible { get => this.InvisibleBuffCount > 0; }
 
-        public bool CanSeeInvisible { get { return this.SeeInvisibleBuffCount > 0; } }
+        public bool CanSeeInvisible { get => this.SeeInvisibleBuffCount > 0; }
 
         private void AddToInvisCounters(SpellEffect effect)
         {
@@ -356,28 +347,28 @@ namespace Goose
             else if (effect.EffectType == SpellEffect.EffectTypes.SeeInvisible) this.SeeInvisibleBuffCount--;
         }
 
-        public NPCVendorSlot[] VendorItems { get { return this.NPCTemplate.VendorItems; } }
+        public NPCVendorSlot[] VendorItems { get => this.NPCTemplate.VendorItems; }
 
-        public NPCTemplate.BehaviourTypes Behaviour { get { return this.NPCTemplate.Behaviour; } }
-        public long BehaviourTimeout { get { return this.NPCTemplate.BehaviourTimeout; } }
+        public NPCTemplate.BehaviourTypes Behaviour { get => this.NPCTemplate.Behaviour; }
+        public long BehaviourTimeout { get => this.NPCTemplate.BehaviourTimeout; }
         public long LastAttackTime { get; set; }
 
         /// <summary>
         /// Does this NPC deal in credits instead of gold
         /// </summary>
-        public bool CreditDealer { get { return this.NPCTemplate.CreditDealer; } }
+        public bool CreditDealer { get => this.NPCTemplate.CreditDealer; }
 
-        public string CurrencyId { get { return this.NPCTemplate.CurrencyId; } }
+        public string CurrencyId { get => this.NPCTemplate.CurrencyId; }
 
         internal List<Quest> Quests { get; set; }
 
-        public Script<INPCScript> Script { get { return this.NPCTemplate.Script; } }
+        public Script<INPCScript> Script { get => this.NPCTemplate.Script; }
 
-        public string ScriptParams { get { return this.NPCTemplate.ScriptParams; } }
+        public string ScriptParams { get => this.NPCTemplate.ScriptParams; }
 
         public object ScriptStore { get; set; }
 
-        public int ArmorPierce { get { return this.NPCTemplate.ArmorPierce; } }
+        public int ArmorPierce { get => this.NPCTemplate.ArmorPierce; }
 
         /**
          * CanMoveTo, checks if character can move to the specified x,y

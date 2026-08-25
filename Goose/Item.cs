@@ -79,35 +79,35 @@ namespace Goose
          *
          */
         [JsonIgnore]
-        public int WeaponDelay { get { return this.Template.WeaponDelay; } }
+        public int WeaponDelay { get => this.Template.WeaponDelay; }
         [JsonIgnore]
-        public int StackSize { get { return this.Template.StackSize; } }
+        public int StackSize { get => this.Template.StackSize; }
         [JsonIgnore]
-        public bool IsLore { get { return this.Template.IsLore; } }
+        public bool IsLore { get => this.Template.IsLore; }
         [JsonIgnore]
-        public bool IsBindOnPickup { get { return this.Template.IsBindOnPickup; } }
+        public bool IsBindOnPickup { get => this.Template.IsBindOnPickup; }
         [JsonIgnore]
-        public bool IsBindOnEquip { get { return this.Template.IsBindOnEquip; } }
+        public bool IsBindOnEquip { get => this.Template.IsBindOnEquip; }
         [JsonIgnore]
-        public bool IsEvent { get { return this.Template.IsEvent; } }
+        public bool IsEvent { get => this.Template.IsEvent; }
         [JsonIgnore]
-        public ItemTemplate.ItemSlots Slot { get { return this.Template.Slot; } }
+        public ItemTemplate.ItemSlots Slot { get => this.Template.Slot; }
         [JsonIgnore]
-        public ItemTemplate.ItemTypes Type { get { return this.Template.Type; } }
+        public ItemTemplate.ItemTypes Type { get => this.Template.Type; }
         [JsonIgnore]
-        public ItemTemplate.UseTypes UseType { get { return this.Template.UseType; } }
+        public ItemTemplate.UseTypes UseType { get => this.Template.UseType; }
         [JsonIgnore]
-        public int MinLevel { get { return this.Template.MinLevel; } }
+        public int MinLevel { get => this.Template.MinLevel; }
         [JsonIgnore]
-        public int MaxLevel { get { return this.Template.MaxLevel; } }
+        public int MaxLevel { get => this.Template.MaxLevel; }
         [JsonIgnore]
-        public long MinExperience { get { return this.Template.MinExperience; } }
+        public long MinExperience { get => this.Template.MinExperience; }
         [JsonIgnore]
-        public long MaxExperience { get { return this.Template.MaxExperience; } }
+        public long MaxExperience { get => this.Template.MaxExperience; }
         [JsonIgnore]
-        public int Flags { get { return this.Template.Flags; } }
+        public int Flags { get => this.Template.Flags; }
         [JsonIgnore]
-        public int BodyType { get { return this.Template.BodyType; } }
+        public int BodyType { get => this.Template.BodyType; }
         /**
          * This is a bitmask
          * Therefore only limited to about 64 classes, which should be enough.
@@ -115,21 +115,21 @@ namespace Goose
          *
          */
         [JsonIgnore]
-        public long ClassRestrictions { get { return this.Template.ClassRestrictions; } }
+        public long ClassRestrictions { get => this.Template.ClassRestrictions; }
         [JsonIgnore]
-        public SpellEffect SpellEffect { get { return this.Template.SpellEffect; } }
+        public SpellEffect SpellEffect { get => this.Template.SpellEffect; }
         [JsonIgnore]
-        public decimal SpellEffectChance { get { return this.Template.SpellEffectChance; } }
+        public decimal SpellEffectChance { get => this.Template.SpellEffectChance; }
         [JsonIgnore]
-        public int LearnSpellID { get { return this.Template.LearnSpellID; } }
+        public int LearnSpellID { get => this.Template.LearnSpellID; }
         [JsonIgnore]
-        public int Credits { get { return this.Template.Credits; } }
+        public int Credits { get => this.Template.Credits; }
 
         [JsonIgnore]
-        public bool Custom { get { return this.Description?.StartsWith("Custom created by ") ?? false; } }
+        public bool Custom { get => this.Description?.StartsWith("Custom created by ") ?? false; }
 
         [JsonIgnore]
-        public Script<IItemScript> Script { get { return this.Template.Script; } }
+        public Script<IItemScript> Script { get => this.Template.Script; }
 
         [DefaultValue("")]
         public string ScriptParams { get; set; } = "";

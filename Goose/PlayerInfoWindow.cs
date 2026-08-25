@@ -6,12 +6,12 @@ namespace Goose
     {
         public override string Title
         {
-            get { return $"{playerForInfo.Name} Info"; }
+            get => $"{playerForInfo.Name} Info";
         }
 
         public override string Buttons
         {
-            get { return $"0,1,{(pageNumber == 0 ? 0 : 1)},{(pageNumber == 4 + (playerForInfo.Bank.NumberOfContainers * playerForInfo.NumberOfBankPages * 2) ? 0 : 1)},0"; }
+            get => $"0,1,{(pageNumber == 0 ? 0 : 1)},{(pageNumber == 4 + (playerForInfo.Bank.NumberOfContainers * playerForInfo.NumberOfBankPages * 2) ? 0 : 1)},0";
         }
 
         private Player playerForInfo;

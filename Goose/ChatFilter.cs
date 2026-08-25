@@ -48,6 +48,6 @@ namespace Goose
             return output;
         }
 
-        public int Count { get { return this.WordFilter.Count; } }
+        public int Count { get => this.WordFilter.Count; }
     }
 }

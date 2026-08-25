@@ -35,7 +35,7 @@ namespace Goose
         /// </summary>
         public static int CurrentID
         {
-            get { return Pet.currentdbid; }
+            get => Pet.currentdbid;
             set { Pet.currentdbid = value; }
         }
 
@@ -80,7 +80,7 @@ namespace Goose
         /// <summary>
         /// Gets a boolean indicating whether the pet is spawned or not
         /// </summary>
-        public bool IsAlive { get { return (this.Map is not null); } }
+        public bool IsAlive { get => (this.Map is not null); }
 
         /// <summary>
         /// The current move event
@@ -861,10 +861,7 @@ namespace Goose
 
         public override int WeaponDelay
         {
-            get
-            {
-                return (int)this.AttackSpeed;
-            }
+            get => (int)this.AttackSpeed;
             set
             {
 

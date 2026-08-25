@@ -34,7 +34,7 @@ namespace Goose
         /// </summary>
         public int CurrentID
         {
-            get { return this.currentid; }
+            get => this.currentid;
             set { this.currentid = value; }
         }
 
@@ -177,10 +177,10 @@ namespace Goose
          * TemplateCount, returns item template count
          * 
          */
-        public int TemplateCount { get { return this.templates.Count; } }
+        public int TemplateCount { get => this.templates.Count; }
 
-        public int TitleCount { get { return this.titles.Count; } }
-        public int SurnameCount { get { return this.surnames.Count; } }
+        public int TitleCount { get => this.titles.Count; }
+        public int SurnameCount { get => this.surnames.Count; }
 
         /**
          * GetTemplate, returns template by id

@@ -113,7 +113,7 @@ namespace Goose
          * Count, returns the number of combinations
          * 
          */
-        public int Count { get { return this.combinations.Keys.Count; } }
+        public int Count { get => this.combinations.Keys.Count; }
 
         /**
          * GetMatch, takes a dictionary and tries to match the ingredients with an existing combination

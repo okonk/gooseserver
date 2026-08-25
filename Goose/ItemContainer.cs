@@ -9,7 +9,7 @@ namespace Goose
 
         private ItemSlot[] slots;
 
-        public int MaxSlots { get { return slots.Length; } }
+        public int MaxSlots { get => slots.Length; }
 
         public ItemContainer(int size)
         {

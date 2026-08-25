@@ -59,7 +59,7 @@ namespace Goose
          * Count, returns the number of guilds
          * 
          */
-        public int Count { get { return this.guilds.Count; } }
+        public int Count { get => this.guilds.Count; }
 
         /**
          * GetGuild, returns guild for id if it exists, else null

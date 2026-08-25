@@ -209,13 +209,13 @@ namespace Goose
          * TemplateCount, returns npc template count
          * 
          */
-        public int TemplateCount { get { return this.templates.Count; } }
+        public int TemplateCount { get => this.templates.Count; }
 
         /**
          * NPCCount, returns npc count
          * 
          */
-        public int NPCCount { get { return this.npcs.Count; } }
+        public int NPCCount { get => this.npcs.Count; }
 
         /**
          * Gets NPCTemplate object from npc_id

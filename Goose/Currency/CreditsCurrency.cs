@@ -4,9 +4,9 @@ namespace Goose
     /// defaults to 0 (items.sql:46), so an item-level test would match every row.</summary>
     public class CreditsCurrency : ICurrency
     {
-        public string Id { get { return Currency.Credits; } }
-        public string Name { get { return "credits"; } }
-        public string ShortName { get { return "cr"; } }
+        public string Id { get => Currency.Credits; }
+        public string Name { get => "credits"; }
+        public string ShortName { get => "cr"; }
 
         public long GetBalance(Player player) { return player.Credits; }
 

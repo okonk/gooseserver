@@ -6,12 +6,12 @@ namespace Goose
     {
         public override string Title
         {
-            get { return "Macro Check"; }
+            get => "Macro Check";
         }
 
         public override string Buttons
         {
-            get { return "0,0,0,0,0"; }
+            get => "0,0,0,0,0";
         }
 
         private string code;

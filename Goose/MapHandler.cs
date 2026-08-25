@@ -24,7 +24,7 @@ namespace Goose
             this.maps = [];
         }
 
-        public Dictionary<int, Map> Maps { get { return this.maps; } }
+        public Dictionary<int, Map> Maps { get => this.maps; }
 
         /**
          * LoadMaps, loads all maps
@@ -97,7 +97,7 @@ namespace Goose
          */
         public int Count
         {
-            get { return this.maps.Count; }
+            get => this.maps.Count;
         }
     }
 }

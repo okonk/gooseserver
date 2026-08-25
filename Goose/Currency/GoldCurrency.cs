@@ -4,9 +4,9 @@ namespace Goose
     /// so AddGold/RemoveGold keep sending the StatusInfo packets clients expect.</summary>
     public class GoldCurrency : ICurrency
     {
-        public string Id { get { return Currency.Gold; } }
-        public string Name { get { return "gold"; } }
-        public string ShortName { get { return "gp"; } }
+        public string Id { get => Currency.Gold; }
+        public string Name { get => "gold"; }
+        public string ShortName { get => "gp"; }
 
         /// <summary>Carried gold only, ignoring the bank - this is what the purchase check
         /// has always compared against.</summary>
