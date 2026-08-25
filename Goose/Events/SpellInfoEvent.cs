@@ -21,7 +21,7 @@ namespace Goose.Events
             int slotNo = 0;
             int.TryParse(data, out slotNo);
 
-            if (slotNo <= 0 || slotNo > world.Configuration.SpellbookSize) return;
+            if (slotNo <= 0 || slotNo > world.Settings.SpellbookSize) return;
 
             var spell = this.Player.Spellbook.GetSlot(slotNo);
             if (spell == null) return;

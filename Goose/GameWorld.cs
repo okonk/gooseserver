@@ -48,8 +48,7 @@ namespace Goose
         public ScriptHandler ScriptHandler { get; set; }
         public CurrencyHandler CurrencyHandler { get; set; }
         public Database Database { get; private set; }
-        public static GooseSettings Settings { get; set; }
-        public GooseSettings Configuration { get; }
+        public GooseSettings Settings { get; }
 
         public Dictionary<string, int> CharactersCreatedPerIP { get; set; }
 
@@ -98,11 +97,6 @@ namespace Goose
 
         public decimal ExperienceModifier { get; set; }
 
-        static GameWorld()
-        {
-            Settings = GooseSettingsLoader.Load();
-        }
-
         /**
          * Constructor
          *
@@ -111,12 +105,12 @@ namespace Goose
          */
         public GameWorld(GooseSettings settings, GameServer server = null)
         {
-            this.Configuration = settings ?? throw new ArgumentNullException(nameof(settings));
+            this.Settings = settings ?? throw new ArgumentNullException(nameof(settings));
             this.timerfreq = Stopwatch.Frequency;
             this.rng = new Random();
 
             this.GameServer = server;
-            this.PlayerHandler = new PlayerHandler(this.Configuration);
+            this.PlayerHandler = new PlayerHandler(this.Settings);
             this.EventHandler = new EventHandler();
             this.MapHandler = new MapHandler();
             this.NPCHandler = new NPCHandler();
@@ -129,7 +123,7 @@ namespace Goose
             this.ChatFilter = new ChatFilter();
             this.LogHandler = new LogHandler();
             this.QuestHandler = new QuestHandler();
-            this.ScriptHandler = new ScriptHandler(this.Configuration);
+            this.ScriptHandler = new ScriptHandler(this.Settings);
             this.CurrencyHandler = new CurrencyHandler();
             // Before LoadGlobalScripts (:355), so scripts can register their own currencies
             // from OnLoaded and resolve against these.
@@ -137,12 +131,8 @@ namespace Goose
             this.CurrencyHandler.Register(new CreditsCurrency());
             this.Database = new Database();
 
-            this.ExperienceModifier = this.Configuration.ExperienceModifier;
+            this.ExperienceModifier = this.Settings.ExperienceModifier;
         }
-
-        // Transitional bridge for unmigrated call sites (Task 6 removes it);
-        // the main constructor must never read the static itself.
-        public GameWorld(GameServer server) : this(GameWorld.Settings, server) { }
 
         private void CreateDatabaseSchema()
         {
@@ -159,10 +149,10 @@ namespace Goose
                 }
             });
 
-            if (!string.IsNullOrEmpty(this.Configuration.DataLinkId))
+            if (!string.IsNullOrEmpty(this.Settings.DataLinkId))
             {
                 log.Info("Importing data from Google Docs");
-                string sql = CsvToSql.Core.CsvToSqlConverter.Convert(this.Configuration.DataLinkId);
+                string sql = CsvToSql.Core.CsvToSqlConverter.Convert(this.Settings.DataLinkId);
                 File.WriteAllText(Paths.ResolveData("GooseData.sql"), sql);
                 this.Database.Execute(conn => ExecuteSql(conn, sql));
             }
@@ -219,8 +209,8 @@ namespace Goose
         {
             this.Running = false;
 
-            log.Info("Starting Goose Private Server v" + this.Configuration.ServerVersion);
-            var databasePath = Paths.ResolveData(this.Configuration.DatabaseName + ".db");
+            log.Info("Starting Goose Private Server v" + this.Settings.ServerVersion);
+            var databasePath = Paths.ResolveData(this.Settings.DatabaseName + ".db");
             log.Info("Opening Database ({0}): ", databasePath);
 
             if (!this.LoadStep("Database", () =>
@@ -241,7 +231,7 @@ namespace Goose
                 log.Info("Updating SQL:");
                 try
                 {
-                    var sqlData = CsvToSql.Core.CsvToSqlConverter.Convert(this.Configuration.DataLinkId);
+                    var sqlData = CsvToSql.Core.CsvToSqlConverter.Convert(this.Settings.DataLinkId);
                     this.Database.Execute(conn =>
                     {
                         using (var command = conn.CreateCommand())
@@ -309,24 +299,23 @@ namespace Goose
                 () => this.ChatFilter.Count)) return;
 
             this.CharactersCreatedPerIP = new Dictionary<string, int>();
-            this.LoginThrottle = new LoginThrottle(this.Configuration);
+            this.LoginThrottle = new LoginThrottle(this.Settings);
             Event clearCreatedHistory = new ClearCreatedHistoryEvent();
             clearCreatedHistory.Ticks += this.TimerFrequency * 24 * 60 * 60;
             this.EventHandler.AddEvent(clearCreatedHistory);
 
             Event updateExperienceModifier = new PlayerCountExperienceModifierUpdateEvent();
             // H6: clamp to >= 1, a 0/negative IdleTimeout re-enqueues at now and spins EventHandler.Update
-            updateExperienceModifier.Ticks += this.TimerFrequency * Math.Max(1, this.Configuration.IdleTimeout);
+            updateExperienceModifier.Ticks += this.TimerFrequency * Math.Max(1, this.Settings.IdleTimeout);
             this.EventHandler.AddEvent(updateExperienceModifier);
 
             //Event updateCredits = new CreditsUpdateEvent();
-            //updateExperienceModifier.Ticks += this.TimerFrequency * GameWorld.Settings.CreditUpdateInterval;
             //this.EventHandler.AddEvent(updateCredits);
 
             // Add gold item
             var gold = new Item();
-            gold.ItemID = this.Configuration.ItemIDStartpoint + this.Configuration.GoldItemID;
-            gold.LoadFromTemplate(ItemHandler.GetTemplate(this.Configuration.GoldItemID));
+            gold.ItemID = this.Settings.ItemIDStartpoint + this.Settings.GoldItemID;
+            gold.LoadFromTemplate(ItemHandler.GetTemplate(this.Settings.GoldItemID));
             this.ItemHandler.AddItem(gold, this);
 
             if (!this.LoadStep("Global Scripts", () => LoadGlobalScripts())) return;
@@ -425,7 +414,7 @@ namespace Goose
         {
             log.Info("Connection attempt: " + sock.RemoteEndPoint.ToString());
 
-            if (this.Configuration.ServerType == "Illutia")
+            if (this.Settings.ServerType == "Illutia")
             {
                 try
                 {
@@ -453,7 +442,7 @@ namespace Goose
 
                 Event ev = new LogoutEvent();
                 ev.Data = sock;
-                ev.Ticks += (this.Configuration.LogoutLagTime * this.TimerFrequency);
+                ev.Ticks += (this.Settings.LogoutLagTime * this.TimerFrequency);
 
                 this.EventHandler.AddEvent(ev);
             }
@@ -672,37 +661,15 @@ namespace Goose
 
         public void LaunchServerBrowserUpdateThread()
         {
-            //Task.Factory.StartNew(() =>
-            //{
-            //    while (true)
-            //    {
-            //        try
-            //        {
-            //            new GooseServerBrowserClient("http://goose.ddns.net:3000/").Register(new GooseServerBrowserService.Contract.RegisterRequest()
-            //            {
-            //                ServerName = GameWorld.Settings.ServerName,
-            //                PlayerCount = this.PlayerHandler.PlayerCount,
-            //                Port = GameWorld.Settings.GameServerPort,
-            //                Version = GameWorld.Settings.ServerVersion,
-            //            });
-            //        }
-            //        catch
-            //        {
-
-            //        }
-
-            //        Thread.Sleep(TimeSpan.FromMinutes(2));
-            //    }
-            //}, TaskCreationOptions.LongRunning);
         }
 
         public void LoadGlobalScripts()
         {
-            foreach (var scriptPath in Directory.EnumerateFiles(this.Configuration.DataPathAbsolute + "/Scripts/Global", "*.csx"))
+            foreach (var scriptPath in Directory.EnumerateFiles(this.Settings.DataPathAbsolute + "/Scripts/Global", "*.csx"))
             {
                 if (this.ScriptHandler.HasScript(scriptPath)) continue;
 
-                var script = this.ScriptHandler.GetScript<IGlobalScript>(scriptPath.Substring(this.Configuration.DataPathAbsolute.Length + 1));
+                var script = this.ScriptHandler.GetScript<IGlobalScript>(scriptPath.Substring(this.Settings.DataPathAbsolute.Length + 1));
                 script.Object.OnLoaded(this);
             }
         }

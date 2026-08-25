@@ -27,7 +27,6 @@
   <ItemGroup>
     <Compile Include="..\TestSupport\TestWorldFixture.cs" Link="Fixtures\TestWorldFixture.cs" />
     <Compile Include="..\TestSupport\ScriptStub.cs" Link="Fixtures\ScriptStub.cs" />
-    <Compile Include="..\TestSupport\SettingsBridge.cs" Link="Fixtures\SettingsBridge.cs" />
   </ItemGroup>
 
 </Project>

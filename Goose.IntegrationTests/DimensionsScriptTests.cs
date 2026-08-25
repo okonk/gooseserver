@@ -1,10 +1,8 @@
 using Goose.Quests;
-using Goose.IntegrationTests.Collections;
 using Goose.IntegrationTests.Fixtures;
 
 namespace Goose.IntegrationTests;
 
-[Collection(GameWorldSettingsCollection.Name)]
 public class DimensionsScriptTests
 {
     private static GlobalScriptFixture Run(Action<GlobalScriptFixture> arrange)

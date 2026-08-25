@@ -257,7 +257,7 @@ namespace Goose
          */
         public Item GetGold(GameWorld world)
         {
-            return this.items[world.Configuration.ItemIDStartpoint + world.Configuration.GoldItemID];
+            return this.items[world.Settings.ItemIDStartpoint + world.Settings.GoldItemID];
         }
 
         /// <summary>
@@ -314,7 +314,7 @@ namespace Goose
             if (item.UseType != ItemTemplate.UseTypes.Armor && item.UseType != ItemTemplate.UseTypes.Weapon)
                 return;
 
-            if (world.RollChance(world.Configuration.ItemSurnameChancePercent))
+            if (world.RollChance(world.Settings.ItemSurnameChancePercent))
             {
                 var surname = RollModifier(item, surnames.Values, world);
                 if (surname is not null)
@@ -325,7 +325,7 @@ namespace Goose
                 }
             }
 
-            if (world.RollChance(world.Configuration.ItemTitleChancePercent))
+            if (world.RollChance(world.Settings.ItemTitleChancePercent))
             {
                 var title = RollModifier(item, titles.Values, world);
                 if (title is not null)

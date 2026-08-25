@@ -117,7 +117,7 @@ namespace Goose
         {
             Event ev = new GuildSaveEvent();
             // H6: clamp to >= 1, a 0/negative period re-enqueues at now and spins EventHandler.Update
-            ev.Ticks += (long)(Math.Max(1, world.Configuration.GuildSavePeriod) * world.TimerFrequency);
+            ev.Ticks += (long)(Math.Max(1, world.Settings.GuildSavePeriod) * world.TimerFrequency);
 
             world.EventHandler.AddEvent(ev);
         }

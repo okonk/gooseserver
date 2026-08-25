@@ -1,10 +1,8 @@
 using Goose;
 using Goose.Scripting;
-using Goose.Tests.Collections;
 
 namespace Goose.Tests;
 
-[Collection(GameWorldSettingsCollection.Name)]
 public class MapPlayerCanJoinHookTests : IDisposable
 {
     private sealed class RefusingMapScript : BaseMapScript

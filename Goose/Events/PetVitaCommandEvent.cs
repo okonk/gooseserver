@@ -73,15 +73,15 @@ namespace Goose.Events
                 for (int i = 1; i <= buys; i++)
                 {
                     buyrate =
-                        ((match.BaseStats.HP / world.Configuration.IncreasePetVitaBuyCost) * (decimal).2) + 1;
-                    expcost = (long)(world.Configuration.PetVitaCost * buyrate);
+                        ((match.BaseStats.HP / world.Settings.IncreasePetVitaBuyCost) * (decimal).2) + 1;
+                    expcost = (long)(world.Settings.PetVitaCost * buyrate);
 
                     if (match.Experience >= expcost)
                     {
                         match.Experience -= expcost;
                         match.ExperienceSold += expcost;
-                        match.BaseStats.HP += world.Configuration.PetVitaBuyAmount;
-                        bought += world.Configuration.PetVitaBuyAmount;
+                        match.BaseStats.HP += world.Settings.PetVitaBuyAmount;
+                        bought += world.Settings.PetVitaBuyAmount;
                         soldexp += expcost;
                     }
                     else

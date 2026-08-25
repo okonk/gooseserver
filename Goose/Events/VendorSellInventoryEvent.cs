@@ -40,7 +40,7 @@ namespace Goose.Events
                 }
 
                 // log bad npc/slot
-                if (npcid <= 0 || slotid <= 0 || slotid > world.Configuration.InventorySize) return;
+                if (npcid <= 0 || slotid <= 0 || slotid > world.Settings.InventorySize) return;
 
                 NPC npc = null;
 

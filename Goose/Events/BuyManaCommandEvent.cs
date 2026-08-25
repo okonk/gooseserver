@@ -38,14 +38,14 @@ namespace Goose.Events
                 for (int i = 1; i <= buys; i++)
                 {
                     buyrate =
-                        ((this.Player.BaseStats.MP / world.Configuration.IncreaseManaBuyAmount) * (decimal).2) + 1;
+                        ((this.Player.BaseStats.MP / world.Settings.IncreaseManaBuyAmount) * (decimal).2) + 1;
 
                     if (this.Player.Experience >= (long)(this.Player.Class.ManaCost * buyrate))
                     {
                         this.Player.Experience -= (long)(this.Player.Class.ManaCost * buyrate);
                         this.Player.ExperienceSold += (long)(this.Player.Class.ManaCost * buyrate);
-                        this.Player.BaseStats.MP += world.Configuration.ManaBuyAmount;
-                        bought += world.Configuration.ManaBuyAmount;
+                        this.Player.BaseStats.MP += world.Settings.ManaBuyAmount;
+                        bought += world.Settings.ManaBuyAmount;
                         soldexp += (long)(this.Player.Class.ManaCost * buyrate);
                     }
                     else

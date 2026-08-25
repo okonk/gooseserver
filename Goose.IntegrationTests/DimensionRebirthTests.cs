@@ -3,13 +3,11 @@ using System.Linq;
 using Goose;
 using Goose.Quests;
 using Goose.Scripting;
-using Goose.IntegrationTests.Collections;
 using Goose.IntegrationTests.Fixtures;
 using Xunit;
 
 namespace Goose.IntegrationTests;
 
-[Collection(GameWorldSettingsCollection.Name)]
 public class DimensionRebirthTests
 {
     private const int RebirthTemplateId = 810000;

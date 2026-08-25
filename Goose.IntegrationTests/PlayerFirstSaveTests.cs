@@ -48,8 +48,8 @@ public abstract class PlayerFirstSaveTestBase : IDisposable
             PasswordSalt = "salt",
             BaseStats = new AttributeSet(),
         };
-        player.Inventory = new Inventory(player, world.Configuration);
-        player.Spellbook = new Spellbook(player, world.Configuration);
+        player.Inventory = new Inventory(player, world.Settings);
+        player.Spellbook = new Spellbook(player, world.Settings);
         player.Bank = new PlayerBank();
         return player;
     }

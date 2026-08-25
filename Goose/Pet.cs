@@ -243,18 +243,18 @@ namespace Goose
 
             pet.MaxStats = new AttributeSet();
             pet.MaxStats += pet.BaseStats;
-            pet.MaxStats.Haste += world.Configuration.BaseHaste;
-            pet.MaxStats.SpellDamage += world.Configuration.BaseSpellDamage;
-            pet.MaxStats.SpellCrit += world.Configuration.BaseSpellCrit;
-            pet.MaxStats.MeleeDamage += world.Configuration.BaseMeleeDamage;
-            pet.MaxStats.MeleeCrit += world.Configuration.BaseMeleeCrit;
-            pet.MaxStats.DamageReduction += world.Configuration.BaseDamageReduction;
-            pet.MaxStats.HPPercentRegen += world.Configuration.BaseHPPercentRegen;
-            pet.MaxStats.HPStaticRegen += world.Configuration.BaseHPStaticRegen;
-            pet.MaxStats.MPPercentRegen += world.Configuration.BaseMPPercentRegen;
-            pet.MaxStats.MPStaticRegen += world.Configuration.BaseMPStaticRegen;
-            pet.MaxStats.SPPercentRegen += world.Configuration.BaseSPPercentRegen;
-            pet.MaxStats.SPStaticRegen += world.Configuration.BaseSPStaticRegen;
+            pet.MaxStats.Haste += world.Settings.BaseHaste;
+            pet.MaxStats.SpellDamage += world.Settings.BaseSpellDamage;
+            pet.MaxStats.SpellCrit += world.Settings.BaseSpellCrit;
+            pet.MaxStats.MeleeDamage += world.Settings.BaseMeleeDamage;
+            pet.MaxStats.MeleeCrit += world.Settings.BaseMeleeCrit;
+            pet.MaxStats.DamageReduction += world.Settings.BaseDamageReduction;
+            pet.MaxStats.HPPercentRegen += world.Settings.BaseHPPercentRegen;
+            pet.MaxStats.HPStaticRegen += world.Settings.BaseHPStaticRegen;
+            pet.MaxStats.MPPercentRegen += world.Settings.BaseMPPercentRegen;
+            pet.MaxStats.MPStaticRegen += world.Settings.BaseMPStaticRegen;
+            pet.MaxStats.SPPercentRegen += world.Settings.BaseSPPercentRegen;
+            pet.MaxStats.SPStaticRegen += world.Settings.BaseSPStaticRegen;
 
             pet.Class = world.ClassHandler.GetClass(pet.ClassID);
             pet.MaxStats += pet.Class.GetLevel(pet.Level).BaseStats;
@@ -457,7 +457,7 @@ namespace Goose
         {
             this.Destroy(world);
 
-            this.LoginID = Pet.GetLoginID(world.Configuration);
+            this.LoginID = Pet.GetLoginID(world.Settings);
             Pet.LoginIDToPet[this.LoginID] = this;
 
             this.Facing = this.Owner.Facing;
@@ -803,17 +803,17 @@ namespace Goose
 
         public override void AddExperience(long exp, GameWorld world, ExperienceMessage message)
         {
-            if (world.Configuration.ExperienceCap > 0 &&
-                this.Experience + this.ExperienceSold > world.Configuration.ExperienceCap)
+            if (world.Settings.ExperienceCap > 0 &&
+                this.Experience + this.ExperienceSold > world.Settings.ExperienceCap)
             {
                 return;
             }
 
             // Experience modifier for everyone under the limit
-            if (!(world.Configuration.ExperienceModifierLimit > 0 &&
-                this.Experience + this.ExperienceSold > world.Configuration.ExperienceModifierLimit))
+            if (!(world.Settings.ExperienceModifierLimit > 0 &&
+                this.Experience + this.ExperienceSold > world.Settings.ExperienceModifierLimit))
             {
-                exp = (long)(exp * world.Configuration.ExperienceModifier);
+                exp = (long)(exp * world.Settings.ExperienceModifier);
             }
 
             this.Experience += exp;

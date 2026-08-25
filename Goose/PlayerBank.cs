@@ -38,7 +38,7 @@ namespace Goose
                     int npc_id = Convert.ToInt32(reader["npc_id"]);
                     string serialized_data = Convert.ToString(reader["serialized_data"]);
 
-                    ItemContainer container = GetOrCreateContainer(player, npc_id, world.Configuration.BankSlotsPerPage);
+                    ItemContainer container = GetOrCreateContainer(player, npc_id, world.Settings.BankSlotsPerPage);
 
                     var containerSlots = JsonHelper.Deserialize<ItemSlot[]>(serialized_data);
                     for (int i = 0; i < containerSlots.Length; i++)

@@ -1,11 +1,9 @@
 using Goose.Quests;
-using Goose.Tests.Collections;
 using Goose.Tests.Fakes;
 using Goose.Tests.Fixtures;
 
 namespace Goose.Tests;
 
-[Collection(GameWorldSettingsCollection.Name)]
 public class QuestScriptLoadingTests
 {
     private static QuestScriptFixture FixtureWithValidScript()

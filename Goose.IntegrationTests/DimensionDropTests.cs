@@ -1,9 +1,7 @@
-using Goose.IntegrationTests.Collections;
 using Goose.IntegrationTests.Fixtures;
 
 namespace Goose.IntegrationTests;
 
-[Collection(GameWorldSettingsCollection.Name)]
 public class DimensionDropTests
 {
     private static GlobalScriptFixture Run()

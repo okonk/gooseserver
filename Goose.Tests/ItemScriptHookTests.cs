@@ -1,11 +1,9 @@
 using Goose.Events;
 using Goose.Testing;
 using Goose.Scripting;
-using Goose.Tests.Collections;
 
 namespace Goose.Tests;
 
-[Collection(GameWorldSettingsCollection.Name)]
 public class ItemScriptHookTests
 {
     private readonly GooseSettings settings;
@@ -176,7 +174,7 @@ public class ItemScriptHookTests
             State = Player.States.Ready,
             Map = map, MapID = map.ID, MapX = 5, MapY = 5,
         };
-        player.Inventory = new Inventory(player, world.Configuration);
+        player.Inventory = new Inventory(player, world.Settings);
 
         new PickupItemEvent { Player = player }.Ready(world);
 

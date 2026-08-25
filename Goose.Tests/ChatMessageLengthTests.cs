@@ -1,13 +1,11 @@
 using System.Linq;
 using Goose;
 using Goose.Testing;
-using Goose.Tests.Collections;
 using Goose.Tests.Fixtures;
 using Xunit;
 
 namespace Goose.Tests;
 
-[Collection(GameWorldSettingsCollection.Name)]
 public class ChatMessageLengthTests
 {
     private const int MaxMessageLength = 300;

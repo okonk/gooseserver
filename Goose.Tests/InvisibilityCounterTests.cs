@@ -1,9 +1,7 @@
 using System.Reflection;
-using Goose.Tests.Collections;
 
 namespace Goose.Tests;
 
-[Collection(GameWorldSettingsCollection.Name)]
 public class InvisibilityCounterTests : IDisposable
 {
     private readonly GooseSettings settings;
@@ -54,7 +52,7 @@ public class InvisibilityCounterTests : IDisposable
     private Player NewPlayer(Map map)
     {
         var p = new Player(0);
-        p.Inventory = new Inventory(p, world.Configuration);
+        p.Inventory = new Inventory(p, world.Settings);
         var klass = new Class { ClassID = 1, ClassName = "Test", ACMultiplier = 1m };
         klass.AddLevel(new ClassLevel { Level = 1, ClassID = 1, BaseStats = new AttributeSet() });
         p.Class = klass;

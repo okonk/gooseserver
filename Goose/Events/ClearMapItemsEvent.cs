@@ -6,8 +6,8 @@ using System.Text;
 namespace Goose.Events
 {
     /**
-     * Clears all items that have existed longer than world.Configuration.ItemGroundExistTime seconds.
-     * Checks every world.Configuration.ItemGroundSweepTime seconds.
+     * Clears all items that have existed longer than world.Settings.ItemGroundExistTime seconds.
+     * Checks every world.Settings.ItemGroundSweepTime seconds.
      * 
      */
     public class ClearMapItemsEvent : Event
@@ -20,7 +20,7 @@ namespace Goose.Events
 
             foreach (ItemTile item in map.Items) {
                 existedfor = ((world.TimeNow - item.DroppedTime) / world.TimerFrequency);
-                if (existedfor < world.Configuration.ItemGroundExistTime) continue;
+                if (existedfor < world.Settings.ItemGroundExistTime) continue;
 
                 remove.Add(item);
             }
@@ -31,7 +31,7 @@ namespace Goose.Events
             }
 
             // H6: clamp to >= 1, a 0/negative sweep time re-enqueues at now and spins EventHandler.Update
-            this.Ticks = world.TimeNow + world.TimerFrequency * Math.Max(1, world.Configuration.ItemGroundSweepTime);
+            this.Ticks = world.TimeNow + world.TimerFrequency * Math.Max(1, world.Settings.ItemGroundSweepTime);
 
             world.EventHandler.AddEvent(this);
         }

@@ -1,12 +1,10 @@
 using Goose;
 using Goose.Quests;
 using Goose.Scripting;
-using Goose.Tests.Collections;
 using Goose.Tests.Fixtures;
 
 namespace Goose.Tests;
 
-[Collection(GameWorldSettingsCollection.Name)]
 public class QuestWindowScriptTests
 {
     /// <summary>

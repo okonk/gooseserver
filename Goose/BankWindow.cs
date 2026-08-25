@@ -30,7 +30,7 @@ namespace Goose
 
         public BankWindow(GameWorld world, Player player, NPC npc)
         {
-            this.SlotsPerPage = world.Configuration.BankSlotsPerPage;
+            this.SlotsPerPage = world.Settings.BankSlotsPerPage;
             this.ItemContainer = player.Bank.GetOrCreateContainer(player, npc.NPCTemplateID, this.SlotsPerPage);
             this.CurrentPage = 1;
             this.MaxPages = player.NumberOfBankPages;

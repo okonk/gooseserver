@@ -1,11 +1,9 @@
 using Goose;
-using Goose.Tests.Collections;
 using Goose.Tests.Fixtures;
 using Xunit;
 
 namespace Goose.Tests;
 
-[Collection(GameWorldSettingsCollection.Name)]
 public class InventoryUseMapFlagTests
 {
     private static ItemTemplate Template(ItemTemplate.UseTypes useType) =>

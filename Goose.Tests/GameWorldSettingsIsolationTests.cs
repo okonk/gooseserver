@@ -1,10 +1,8 @@
 using Goose.Scripting;
-using Goose.Testing;
 using Xunit;
 
 namespace Goose.Tests;
 
-[Collection(Goose.Tests.Collections.GameWorldSettingsCollection.Name)]
 public class GameWorldSettingsIsolationTests : IDisposable
 {
     private const string RelativePath = "Scripts/Global/Sample.csx";
@@ -66,9 +64,9 @@ return typeof({className});
     [Fact]
     public void WorldsRetainTheirOwnSettingsReferenceAndExperienceModifier()
     {
-        Assert.Same(settingsA, worldA.Configuration);
-        Assert.Same(settingsB, worldB.Configuration);
-        Assert.NotSame(worldA.Configuration, worldB.Configuration);
+        Assert.Same(settingsA, worldA.Settings);
+        Assert.Same(settingsB, worldB.Settings);
+        Assert.NotSame(worldA.Settings, worldB.Settings);
         Assert.Equal(2.5m, worldA.ExperienceModifier);
         Assert.Equal(3.5m, worldB.ExperienceModifier);
     }
@@ -96,29 +94,6 @@ return typeof({className});
     }
 
     [Fact]
-    public void ChangingTheStaticSettingsAfterConstructionDoesNotRedirectWorlds()
-    {
-        worldA.ScriptHandler.GetScript<IGlobalScript>(RelativePath);
-        worldB.ScriptHandler.GetScript<IGlobalScript>(RelativePath);
-
-        var previous = SettingsBridge.Swap(new GooseSettings
-        {
-            DataPath = MakeRoot("iso-hijack"), ExperienceModifier = 99m,
-        });
-        try
-        {
-            Assert.Equal(11, Check(worldA.ScriptHandler.GetScript<IGlobalScript>(RelativePath).Object));
-            Assert.Equal(22, Check(worldB.ScriptHandler.GetScript<IGlobalScript>(RelativePath).Object));
-            Assert.Equal(2.5m, worldA.ExperienceModifier);
-            Assert.Equal(3.5m, worldB.ExperienceModifier);
-        }
-        finally
-        {
-            SettingsBridge.Swap(previous);
-        }
-    }
-
-    [Fact]
     public void FailedScriptLoadDoesNotPublishACacheEntry()
     {
         const string missing = "Scripts/Global/Missing.csx";
@@ -137,7 +112,7 @@ return typeof({className});
 
         var world = server.CreateWorld();
 
-        Assert.Same(settings, world.Configuration);
+        Assert.Same(settings, world.Settings);
         Assert.Same(server, world.GameServer);
         Assert.Equal(4.5m, world.ExperienceModifier);
     }

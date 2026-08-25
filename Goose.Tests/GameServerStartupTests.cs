@@ -8,7 +8,6 @@ namespace Goose.Tests
 {
     // H7 (docs/code-review-2026-08-15.md): bind failures (bad IP, port in use)
     // restarted the server forever every 10s instead of fast-failing.
-    [Collection(Goose.Tests.Collections.GameWorldSettingsCollection.Name)]
     public class GameServerStartupTests
     {
         [Fact]

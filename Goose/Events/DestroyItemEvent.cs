@@ -30,12 +30,12 @@ namespace Goose.Events
                     id = 0;
                 }
 
-                if (id <= 0 || id > world.Configuration.InventorySize +
-                    world.Configuration.EquippedSize) return;
+                if (id <= 0 || id > world.Settings.InventorySize +
+                    world.Settings.EquippedSize) return;
 
                 bool wasCustom = false;
 
-                if (id <= world.Configuration.InventorySize)
+                if (id <= world.Settings.InventorySize)
                 {
                     ItemSlot slot = this.Player.Inventory.GetSlot(id);
                     if (slot == null || slot.Item == null) return;
@@ -56,7 +56,7 @@ namespace Goose.Events
 
                 if (wasCustom)
                 {
-                    ItemTemplate template = world.ItemHandler.GetTemplate(world.Configuration.RippedCustomTicketId);
+                    ItemTemplate template = world.ItemHandler.GetTemplate(world.Settings.RippedCustomTicketId);
                     if (template == null) return;
 
                     Item item = new Item();

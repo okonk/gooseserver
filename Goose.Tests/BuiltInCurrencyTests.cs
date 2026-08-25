@@ -1,10 +1,8 @@
 using Goose;
-using Goose.Tests.Collections;
 using Xunit;
 
 namespace Goose.Tests;
 
-[Collection(GameWorldSettingsCollection.Name)]
 public class BuiltInCurrencyTests
 {
     private static ItemTemplate Template(long value = 100, int credits = 0) =>

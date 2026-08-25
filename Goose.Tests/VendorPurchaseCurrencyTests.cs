@@ -1,13 +1,11 @@
 using Goose;
 using Goose.Events;
 using Goose.Testing;
-using Goose.Tests.Collections;
 using Goose.Tests.Fixtures;
 using Xunit;
 
 namespace Goose.Tests;
 
-[Collection(GameWorldSettingsCollection.Name)]
 public class VendorPurchaseCurrencyTests
 {
     private static void Purchase(VendorFixture fixture, int slotId)

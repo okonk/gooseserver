@@ -53,7 +53,7 @@ namespace Goose
                 while (reader.Read())
                 {
                     count++;
-                    if (count > world.Configuration.CombineBagSize)
+                    if (count > world.Settings.CombineBagSize)
                     {
                         throw new Exception("number of required items exceeds combine bag size. In combination " +
                             comb.Name);
@@ -90,7 +90,7 @@ namespace Goose
                 while (reader.Read())
                 {
                     count++;
-                    if (count > world.Configuration.CombineBagSize)
+                    if (count > world.Settings.CombineBagSize)
                     {
                         throw new Exception("number of result items exceeds combine bag size. In combination " +
                             comb.Name);

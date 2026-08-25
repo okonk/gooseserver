@@ -3,11 +3,9 @@ using System.Net.Sockets;
 using System.Reflection;
 using System.Text;
 using Goose.Events;
-using Goose.Tests.Collections;
 
 namespace Goose.Tests;
 
-[Collection(GameWorldSettingsCollection.Name)]
 public class InvisibilityBreakTests : IDisposable
 {
     private readonly GooseSettings settings;
@@ -68,7 +66,7 @@ public class InvisibilityBreakTests : IDisposable
     {
         var p = new Player(0);
         p.OnLogin();
-        p.Inventory = new Inventory(p, world.Configuration);
+        p.Inventory = new Inventory(p, world.Settings);
         var klass = new Class { ClassID = ClassId, ClassName = "Test", ACMultiplier = 1m };
         klass.AddLevel(new ClassLevel { Level = 1, ClassID = ClassId, BaseStats = new AttributeSet() });
         p.Class = klass;

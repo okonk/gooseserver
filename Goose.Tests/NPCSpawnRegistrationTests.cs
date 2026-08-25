@@ -1,10 +1,8 @@
 using System.Reflection;
 using Goose.Testing;
-using Goose.Tests.Collections;
 
 namespace Goose.Tests;
 
-[Collection(GameWorldSettingsCollection.Name)]
 public class NPCSpawnRegistrationTests : IDisposable
 {
     private readonly GooseSettings settings;
@@ -130,7 +128,7 @@ public class NPCSpawnRegistrationTests : IDisposable
             State = Player.States.Ready,
             MaxStats = new AttributeSet(),
         };
-        target.Inventory = new Inventory(target, world.Configuration);
+        target.Inventory = new Inventory(target, world.Settings);
 
         npc.Attack(target, world);
 

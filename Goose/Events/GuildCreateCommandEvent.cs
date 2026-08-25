@@ -28,10 +28,10 @@ namespace Goose.Events
        {
            if (this.Player.State == Player.States.Ready)
            {
-               if (this.Player.Gold < world.Configuration.GuildCreationCost)
+               if (this.Player.Gold < world.Settings.GuildCreationCost)
                {
                    world.Send(this.Player, 
-                       P.ServerMessage("You need " + world.Configuration.GuildCreationCost + "gp to create a guild."));
+                       P.ServerMessage("You need " + world.Settings.GuildCreationCost + "gp to create a guild."));
                    return;
                }
 
@@ -47,15 +47,15 @@ namespace Goose.Events
                    this.Player.Guild.LeaveGuild(this.Player, world);
                }
 
-               this.Player.RemoveGold(world.Configuration.GuildCreationCost, world);
+               this.Player.RemoveGold(world.Settings.GuildCreationCost, world);
                this.Player.Guild = new Guild();
                this.Player.Guild.ID = 0;
-               this.Player.Guild.MOTD = world.Configuration.DefaultGuildMOTD;
+               this.Player.Guild.MOTD = world.Settings.DefaultGuildMOTD;
                this.Player.Guild.Name = name;
                this.Player.Guild.AddMember(this.Player.PlayerID, Guild.GuildRanks.Leader, true, true);
                this.Player.Guild.OnlineMembers.Add(this.Player);
 
-               this.Player.Guild.SendToGuild(P.GuildMessage("[guild-notice] MOTD: " + world.Configuration.DefaultGuildMOTD), world);
+               this.Player.Guild.SendToGuild(P.GuildMessage("[guild-notice] MOTD: " + world.Settings.DefaultGuildMOTD), world);
 
                world.GuildHandler.AddGuild(this.Player.Guild);
            }

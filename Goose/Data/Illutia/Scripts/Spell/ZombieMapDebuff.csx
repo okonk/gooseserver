@@ -21,16 +21,16 @@ public class ZombieMapDebuff : BaseSpellEffectScript
 	{
 		var player = (Player)buff.Target;
 		player.MaxStats = new AttributeSet();
-		player.MaxStats.Haste = world.Configuration.BaseHaste;
-		player.MaxStats.SpellDamage = world.Configuration.BaseSpellDamage;
-		player.MaxStats.SpellCrit = world.Configuration.BaseSpellCrit;
-		player.MaxStats.MeleeDamage = world.Configuration.BaseMeleeDamage;
-		player.MaxStats.MeleeCrit = world.Configuration.BaseMeleeCrit;
-		player.MaxStats.DamageReduction = world.Configuration.BaseDamageReduction;
-		player.MaxStats.HPPercentRegen = world.Configuration.BaseHPPercentRegen;
-		player.MaxStats.HPStaticRegen = world.Configuration.BaseHPStaticRegen;
-		player.MaxStats.MPPercentRegen = world.Configuration.BaseMPPercentRegen;
-		player.MaxStats.MPStaticRegen = world.Configuration.BaseMPStaticRegen;
+		player.MaxStats.Haste = world.Settings.BaseHaste;
+		player.MaxStats.SpellDamage = world.Settings.BaseSpellDamage;
+		player.MaxStats.SpellCrit = world.Settings.BaseSpellCrit;
+		player.MaxStats.MeleeDamage = world.Settings.BaseMeleeDamage;
+		player.MaxStats.MeleeCrit = world.Settings.BaseMeleeCrit;
+		player.MaxStats.DamageReduction = world.Settings.BaseDamageReduction;
+		player.MaxStats.HPPercentRegen = world.Settings.BaseHPPercentRegen;
+		player.MaxStats.HPStaticRegen = world.Settings.BaseHPStaticRegen;
+		player.MaxStats.MPPercentRegen = world.Settings.BaseMPPercentRegen;
+		player.MaxStats.MPStaticRegen = world.Settings.BaseMPStaticRegen;
 
 		player.AddStats(player.Class.GetLevel(player.Level).BaseStats, world);
 		player.AddStats(player.BaseStats, world);

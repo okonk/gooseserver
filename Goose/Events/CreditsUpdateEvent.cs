@@ -60,7 +60,7 @@ namespace Goose.Events
                 p.SaveToDatabase(world);
             }
 
-            this.Ticks += world.TimerFrequency * world.Configuration.CreditUpdateInterval;
+            this.Ticks += world.TimerFrequency * world.Settings.CreditUpdateInterval;
             world.EventHandler.AddEvent(this);
         }
     }

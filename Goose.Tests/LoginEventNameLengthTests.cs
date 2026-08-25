@@ -5,12 +5,10 @@ using System.Reflection;
 using System.Text;
 using Goose;
 using Goose.Events;
-using Goose.Tests.Collections;
 using Xunit;
 
 namespace Goose.Tests
 {
-    [Collection(GameWorldSettingsCollection.Name)]
     public class LoginEventNameLengthTests
     {
         private static (GameWorld world, Socket client, Socket accepted) NewWorldAndLoopbackPair()
@@ -27,7 +25,7 @@ namespace Goose.Tests
             };
             var world = new GameWorld(settings, new GameServer(settings));
             // Only assigned during the Run/load sequence, not the constructor
-            world.LoginThrottle = new LoginThrottle(world.Configuration);
+            world.LoginThrottle = new LoginThrottle(world.Settings);
             world.CharactersCreatedPerIP = new Dictionary<string, int>();
             RegisterStartingClass(world, settings);
 

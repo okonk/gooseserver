@@ -1,5 +1,4 @@
 using Goose;
-using Goose.Tests.Collections;
 using Goose.Tests.Fixtures;
 using Xunit;
 
@@ -7,7 +6,6 @@ namespace Goose.Tests;
 
 /// <summary>The item packets carry a trailing currency name so the client can label Value
 /// with it instead of guessing gold-or-credits from the Donation flag.</summary>
-[Collection(GameWorldSettingsCollection.Name)]
 public class PacketCurrencyTests
 {
     /// <summary>A script currency, standing in for spirit without compiling Dimensions.csx.</summary>

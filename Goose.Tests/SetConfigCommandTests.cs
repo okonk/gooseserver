@@ -1,11 +1,9 @@
 using Goose;
 using Goose.Testing;
-using Goose.Tests.Collections;
 using Xunit;
 
 namespace Goose.Tests;
 
-[Collection(GameWorldSettingsCollection.Name)]
 public class SetConfigCommandTests : IDisposable
 {
     private readonly TestWorldFixture fixtureA;

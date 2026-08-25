@@ -528,10 +528,10 @@ namespace Goose
             }
             catch (Exception e) { }
 
-            using (var fileStream = File.Open(world.Configuration.DataPathAbsolute + "/Maps/" + FileName, FileMode.Open, FileAccess.Read))
+            using (var fileStream = File.Open(world.Settings.DataPathAbsolute + "/Maps/" + FileName, FileMode.Open, FileAccess.Read))
             using (var mapReader = new BinaryReader(fileStream))
             {
-                if (world.Configuration.ServerType == "Illutia")
+                if (world.Settings.ServerType == "Illutia")
                     IllutiaMapLoader(mapReader, this, world);
                 else
                     AsperetaMapLoader(mapReader, this, world);

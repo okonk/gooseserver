@@ -26,7 +26,7 @@ namespace Goose.Events
                     id = 0;
                 }
 
-                if (id <= 0 || id > world.Configuration.SpellbookSize) return;
+                if (id <= 0 || id > world.Settings.SpellbookSize) return;
 
                 this.Player.Spellbook.RemoveSpell(id, world);
             }

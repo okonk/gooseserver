@@ -34,13 +34,13 @@ namespace Goose.Events
                     return;
                 }
 
-                int INVSIZE = world.Configuration.InventorySize;
+                int INVSIZE = world.Settings.InventorySize;
 
                 if (id > 0 && id <= INVSIZE)
                 {
                     this.Player.Inventory.Use(id, world);
                 }
-                else if (id > INVSIZE && id <= INVSIZE + world.Configuration.EquippedSize + 1)
+                else if (id > INVSIZE && id <= INVSIZE + world.Settings.EquippedSize + 1)
                 {
                     this.Player.Inventory.Unequip(id, world);
                 }

@@ -41,7 +41,7 @@ namespace Goose.Events
                 }
 
                 if (id1 <= 0 || id2 <= 0 ||
-                    id1 > world.Configuration.InventorySize || id2 > world.Configuration.InventorySize)
+                    id1 > world.Settings.InventorySize || id2 > world.Settings.InventorySize)
                 {
                     // log something bad about packet
                     return;

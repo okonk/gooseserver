@@ -18,7 +18,7 @@ namespace Goose.Events
 
                 // Reflection.. fun
                 // Get GameSettings type
-                Type gs = world.Configuration.GetType();
+                Type gs = world.Settings.GetType();
                 // Try to get the property specified
                 PropertyInfo prop = gs.GetProperty(tokens[0]);
                 // Couldn't find property.. error and return
@@ -33,7 +33,7 @@ namespace Goose.Events
                 // If string we can just set directly
                 if (getter.ReturnType == typeof(string))
                 {
-                    setter.Invoke(world.Configuration, new object[] { tokens[1] });
+                    setter.Invoke(world.Settings, new object[] { tokens[1] });
                 }
                 else
                 {
@@ -42,7 +42,7 @@ namespace Goose.Events
                     try
                     {
                         MethodInfo parser = getter.ReturnType.GetMethod("Parse", new Type[] { typeof(string) });
-                        setter.Invoke(world.Configuration,
+                        setter.Invoke(world.Settings,
                             new object[] { parser.Invoke(null, new object[] { tokens[1] }) });
                     }
                     catch

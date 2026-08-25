@@ -1,11 +1,9 @@
 using Goose.Scripting;
 using Goose.Testing;
-using Goose.Tests.Collections;
 using Goose.Tests.Fixtures;
 
 namespace Goose.Tests;
 
-[Collection(GameWorldSettingsCollection.Name)]
 public class SpellEffectScriptDescriptionTests
 {
     private const string DescribingScript = @"

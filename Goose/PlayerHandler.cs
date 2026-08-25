@@ -95,7 +95,7 @@ namespace Goose
         /// </summary>
         public int GetNewID(GameWorld world)
         {
-            for (int id = 1; id <= world.Configuration.MaxPlayers; id++)
+            for (int id = 1; id <= world.Settings.MaxPlayers; id++)
             {
                 if (this.idToPlayer[id] == null)
                     return id;

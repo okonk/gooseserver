@@ -15,15 +15,12 @@ namespace Goose
          */
         static void Main(string[] args)
         {
-            // Resolve paths and logging before anything touches GameWorld (its settings are
-            // loaded in a static constructor). With no --datadir, Paths defaults everything
-            // to the app base directory, matching historical behaviour.
+            // Resolve paths and logging before anything loads settings. With no --datadir,
+            // Paths defaults everything to the app base directory, matching historical behaviour.
             Paths.Initialize(ParseDataDir(args));
             ConfigureLogging();
 
-            // Temporary: the static property is the bridge between the static load and
-            // per-world settings; passing the same reference avoids loading twice.
-            var settings = GameWorld.Settings;
+            var settings = GooseSettingsLoader.Load();
             var server = new GameServer(settings);
 
             // Without these, Ctrl+C or `systemctl stop` killed the process outright with

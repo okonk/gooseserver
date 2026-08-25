@@ -1,13 +1,11 @@
 using Goose;
 using Goose.Events;
 using Goose.Testing;
-using Goose.Tests.Collections;
 using Goose.Tests.Fixtures;
 using Xunit;
 
 namespace Goose.Tests;
 
-[Collection(GameWorldSettingsCollection.Name)]
 // Regression tests for code-review-2026-08-15 finding C1: CHANGE n,n (id1 == id2)
 // passed the same ItemSlot to both swap parameters and doubled the stack in place.
 public class InventoryChangeSlotTests

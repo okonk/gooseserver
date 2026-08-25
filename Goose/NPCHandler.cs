@@ -181,7 +181,7 @@ namespace Goose
 
                         if (reader.HasRows)
                         {
-                            template.VendorItems = new NPCVendorSlot[world.Configuration.VendorSlotSize + 1];
+                            template.VendorItems = new NPCVendorSlot[world.Settings.VendorSlotSize + 1];
 
                             while (reader.Read())
                             {
@@ -193,7 +193,7 @@ namespace Goose
                                 vslot.CanSeeStats = ("0".Equals(Convert.ToString(reader["stats_visible"])) ? false : true);
 
                                 if (vslot.ItemTemplate != null &&
-                                    vslot.Slot > 0 && vslot.Slot <= world.Configuration.VendorSlotSize)
+                                    vslot.Slot > 0 && vslot.Slot <= world.Settings.VendorSlotSize)
                                 {
                                     template.VendorItems[vslot.Slot] = vslot;
                                 }
@@ -247,7 +247,7 @@ namespace Goose
             int id;
             do
             {
-                id = world.Random.Next(world.Configuration.MaxPlayers + 1, world.Configuration.MaxNPCs);
+                id = world.Random.Next(world.Settings.MaxPlayers + 1, world.Settings.MaxNPCs);
             } while (this.idToNPC.ContainsKey(id));
 
             return id;

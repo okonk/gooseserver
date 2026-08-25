@@ -67,10 +67,10 @@ public class ResetItemCommandEvent : Event
         var tokens = ((string)this.Data).Split(' ');
         int slotId;
         if (tokens.Length < 2 || !int.TryParse(tokens[1], out slotId) ||
-            slotId < 1 || slotId > world.Configuration.InventorySize)
+            slotId < 1 || slotId > world.Settings.InventorySize)
         {
             world.Send(this.Player, P.ServerMessage(
-                "/resetitem <1-" + world.Configuration.InventorySize + "> - rerolls a dimension item's suffix."));
+                "/resetitem <1-" + world.Settings.InventorySize + "> - rerolls a dimension item's suffix."));
             return;
         }
 
@@ -267,9 +267,9 @@ public class BuyExperienceCommandEvent : Event
         // catches players who are already past it - a player one experience under the cap
         // passes, buys, and lands 24,999,999 above a ceiling the server is meant to
         // enforce. Test what the purchase would produce.
-        if (world.Configuration.ExperienceCap > 0 && total + granted > world.Configuration.ExperienceCap)
+        if (world.Settings.ExperienceCap > 0 && total + granted > world.Settings.ExperienceCap)
         {
-            long affordable = (world.Configuration.ExperienceCap - total) / Dimensions.ExpPerSpiritPurchase;
+            long affordable = (world.Settings.ExperienceCap - total) / Dimensions.ExpPerSpiritPurchase;
             world.Send(this.Player, P.ServerMessage(affordable > 0
                 ? "That would carry you past the experience cap. You can buy at most " + affordable + "."
                 : "You have reached the experience cap."));

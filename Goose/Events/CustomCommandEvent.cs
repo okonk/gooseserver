@@ -15,7 +15,7 @@ namespace Goose.Events
                 var combineBag = this.Player.Inventory.GetCombineBagContainer();
 
                 var firstSlot = combineBag.GetSlot(1);
-                if (firstSlot == null || firstSlot.Item.TemplateID != world.Configuration.CustomTicketId)
+                if (firstSlot == null || firstSlot.Item.TemplateID != world.Settings.CustomTicketId)
                 {
                     world.Send(this.Player, P.ServerMessage("You need a custom ticket in your first combine bag slot to use this command."));
                     return;
@@ -147,7 +147,7 @@ namespace Goose.Events
                             pose = lookSlot.Item.BodyState;
                         }
 
-                        if (world.Configuration.ServerType == "Illutia")
+                        if (world.Settings.ServerType == "Illutia")
                         {
                             world.Send(this.Player,
                                 "MKC" + 9000 + "," +

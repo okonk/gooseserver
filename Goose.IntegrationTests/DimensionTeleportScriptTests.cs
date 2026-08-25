@@ -1,10 +1,8 @@
 using Goose.Scripting;
-using Goose.IntegrationTests.Collections;
 using Goose.IntegrationTests.Fixtures;
 
 namespace Goose.IntegrationTests;
 
-[Collection(GameWorldSettingsCollection.Name)]
 public class DimensionTeleportScriptTests
 {
     private const int Offset = 100000;

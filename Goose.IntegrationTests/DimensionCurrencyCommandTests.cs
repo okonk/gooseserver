@@ -1,12 +1,10 @@
 using System.Linq;
 using Goose;
-using Goose.IntegrationTests.Collections;
 using Goose.IntegrationTests.Fixtures;
 using Xunit;
 
 namespace Goose.IntegrationTests;
 
-[Collection(GameWorldSettingsCollection.Name)]
 public class DimensionCurrencyCommandTests
 {
     private const long GoldPerSpirit = 1_000_000;

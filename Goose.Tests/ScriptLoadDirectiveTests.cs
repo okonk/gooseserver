@@ -14,7 +14,6 @@ namespace Goose.Tests;
 ///   6. one loaded file referencing declarations of ANOTHER loaded file (part -> constants)
 ///   7. partial class assembled across a loaded file and the host
 ///   8. per-host independence: each host compilation gets its own copy of a mutable static</summary>
-[Collection(Goose.Tests.Collections.GameWorldSettingsCollection.Name)]
 public class ScriptLoadDirectiveTests : IDisposable
 {
     private readonly GooseSettings settings;

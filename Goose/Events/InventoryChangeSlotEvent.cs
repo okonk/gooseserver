@@ -33,8 +33,8 @@ namespace Goose.Events
                     id2 = 0;
                 }
 
-                if (id1 <= 0 || id1 > world.Configuration.InventorySize ||
-                    id2 <= 0 || id2 > world.Configuration.InventorySize)
+                if (id1 <= 0 || id1 > world.Settings.InventorySize ||
+                    id2 <= 0 || id2 > world.Settings.InventorySize)
                 {
                     // log id out of inventory range
                     return;

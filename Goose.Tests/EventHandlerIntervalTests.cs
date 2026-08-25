@@ -8,7 +8,6 @@ namespace Goose.Tests
     // Regression tests for H6 (docs/code-review-2026-08-15.md): a 0/negative
     // interval setting re-enqueues a recurring event at or before now, and
     // EventHandler.Update then spins forever.
-    [Collection(Goose.Tests.Collections.GameWorldSettingsCollection.Name)]
     public class EventHandlerIntervalTests
     {
         private readonly GameWorld _world;
@@ -25,7 +24,7 @@ namespace Goose.Tests
         [Fact]
         public void ClearMapItemsEvent_ZeroSweepTime_ReschedulesInFuture()
         {
-            _world.Configuration.ItemGroundSweepTime = 0;
+            _world.Settings.ItemGroundSweepTime = 0;
 
             long before = _world.TimeNow;
             var ev = new ClearMapItemsEvent
@@ -43,7 +42,7 @@ namespace Goose.Tests
         [Fact]
         public void PlayerCountExperienceModifierUpdateEvent_ZeroIdleTimeout_ReschedulesInFuture()
         {
-            _world.Configuration.IdleTimeout = 0;
+            _world.Settings.IdleTimeout = 0;
 
             long before = _world.TimeNow;
             var ev = new PlayerCountExperienceModifierUpdateEvent
@@ -88,7 +87,7 @@ namespace Goose.Tests
         [Fact]
         public void AddSaveEvent_ZeroPlayerSavePeriod_EnqueuesFutureSave()
         {
-            _world.Configuration.PlayerSavePeriod = 0;
+            _world.Settings.PlayerSavePeriod = 0;
 
             var player = new Player(0);
 
@@ -108,7 +107,7 @@ namespace Goose.Tests
         [Fact]
         public void AddRegenEvent_ZeroRegenSpeed_EnqueuesFutureRegen()
         {
-            _world.Configuration.RegenSpeed = 0m;
+            _world.Settings.RegenSpeed = 0m;
 
             var player = new Player(0)
             {
@@ -137,7 +136,7 @@ namespace Goose.Tests
         [Fact]
         public void GuildSaveEvent_ZeroGuildSavePeriod_ReschedulesInFuture()
         {
-            _world.Configuration.GuildSavePeriod = 0;
+            _world.Settings.GuildSavePeriod = 0;
 
             // Save re-enqueues a fresh GuildSaveEvent, not the instance that ran.
             int beforeCount = _handler.Count;

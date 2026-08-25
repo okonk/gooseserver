@@ -894,7 +894,7 @@ namespace Goose
 
             RegenEvent ev = new RegenEvent();
             // H6: clamp to >= 1, a 0/negative period re-enqueues at now and spins EventHandler.Update
-            ev.Ticks += (long)(Math.Max(1m, world.Configuration.RegenSpeed) * world.TimerFrequency);
+            ev.Ticks += (long)(Math.Max(1m, world.Settings.RegenSpeed) * world.TimerFrequency);
             ev.NPC = this;
 
             this.RegenEventExists = true;
@@ -1251,7 +1251,7 @@ namespace Goose
                 long timeNow = world.TimeNow;
                 long timeSinceSpawned = (timeNow - this.LastSpawnTime) / world.TimerFrequency;
 
-                respawnTime = Math.Min(Math.Max(this.RespawnTime, (int)((respawnTime * world.Configuration.RespawnTimeBackoff) - timeSinceSpawned)), 300);
+                respawnTime = Math.Min(Math.Max(this.RespawnTime, (int)((respawnTime * world.Settings.RespawnTimeBackoff) - timeSinceSpawned)), 300);
                 this.LastRespawnTimeSeconds = respawnTime;
             }
 
@@ -1407,7 +1407,7 @@ namespace Goose
                             this.Level +
                             (this.Level - character.Level);
 
-            double maxac = world.Configuration.MaxAC;
+            double maxac = world.Settings.MaxAC;
             double absorb = (1 - ((character.MaxStats.AC - this.ArmorPierce) * (double)character.Class.ACMultiplier) / maxac);
 
             if (world.Random.Next(1, 10001) <= this.MaxStats.MeleeCrit * 10000) damage *= 2;
@@ -1452,10 +1452,10 @@ namespace Goose
             foreach (NPCDropInfo dropinfo in this.NPCTemplate.Drops)
             {
                 if (world.Random.Next(1, 1000000001) <=
-                    world.Configuration.DropRateModifier * dropinfo.DropRate * 10000000)
+                    world.Settings.DropRateModifier * dropinfo.DropRate * 10000000)
                 {
                     ItemSlot drop = new ItemSlot();
-                    if (dropinfo.ItemTemplate.ID == world.Configuration.GoldItemID)
+                    if (dropinfo.ItemTemplate.ID == world.Settings.GoldItemID)
                     {
                         drop.Item = world.ItemHandler.GetGold(world);
                     }
@@ -1477,7 +1477,7 @@ namespace Goose
                     if (player is Pet) tile.Owner = ((Pet)player).Owner;
                     else tile.Owner = player;
                     tile.PickupTime =
-                        world.TimeNow + (world.Configuration.ItemProtectedTime * world.TimerFrequency);
+                        world.TimeNow + (world.Settings.ItemProtectedTime * world.TimerFrequency);
                     this.Map.PlaceItem(tile);
 
                     // tile can stack
@@ -1540,13 +1540,13 @@ namespace Goose
             {
                 // buff will expire before next tick
                 if (buff.BuffExpireEvent.Ticks - world.TimeNow >
-                    world.Configuration.SpellEffectPeriod * world.TimerFrequency)
+                    world.Settings.SpellEffectPeriod * world.TimerFrequency)
                 {
                     var ev = new BuffTickEvent();
                     ev.Data = buff;
                     ev.NPC = this;
                     // H6: clamp to >= 1, a 0/negative period re-enqueues at now and spins EventHandler.Update
-                    ev.Ticks += (long)(Math.Max(1m, world.Configuration.SpellEffectPeriod) * world.TimerFrequency);
+                    ev.Ticks += (long)(Math.Max(1m, world.Settings.SpellEffectPeriod) * world.TimerFrequency);
 
                     world.EventHandler.AddEvent(ev);
                 }

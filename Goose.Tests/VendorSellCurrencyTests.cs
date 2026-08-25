@@ -1,12 +1,10 @@
 using Goose;
 using Goose.Events;
-using Goose.Tests.Collections;
 using Goose.Tests.Fixtures;
 using Xunit;
 
 namespace Goose.Tests;
 
-[Collection(GameWorldSettingsCollection.Name)]
 public class VendorSellCurrencyTests
 {
     private static void Sell(VendorFixture fixture, int slotId, int stack)

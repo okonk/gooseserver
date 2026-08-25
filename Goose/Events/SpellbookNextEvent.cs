@@ -29,7 +29,7 @@ namespace Goose.Events
                     slot = 0;
                 }
 
-                if (slot <= 0 || slot > world.Configuration.SpellbookSize)
+                if (slot <= 0 || slot > world.Settings.SpellbookSize)
                 {
                     // log something bad about packet
                     return;

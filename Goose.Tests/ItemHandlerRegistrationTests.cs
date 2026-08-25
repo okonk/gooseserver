@@ -1,8 +1,6 @@
-using Goose.Tests.Collections;
 
 namespace Goose.Tests;
 
-[Collection(GameWorldSettingsCollection.Name)]
 public class ItemHandlerRegistrationTests
 {
     private static ItemTemplate Sample() => new ItemTemplate

@@ -1,11 +1,9 @@
 using Goose;
 using Goose.Testing;
-using Goose.Tests.Collections;
 using Xunit;
 
 namespace Goose.Tests;
 
-[Collection(GameWorldSettingsCollection.Name)]
 public class ResetModifiersTests
 {
     /// <summary>Modelled on ItemScriptHookTests.Arrange (`ItemScriptHookTests.cs:62-77`):

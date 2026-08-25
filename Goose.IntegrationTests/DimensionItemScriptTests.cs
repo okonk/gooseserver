@@ -1,11 +1,9 @@
 using Goose.Scripting;
-using Goose.IntegrationTests.Collections;
 using Goose.IntegrationTests.Fixtures;
 using Goose.Testing;
 
 namespace Goose.IntegrationTests;
 
-[Collection(GameWorldSettingsCollection.Name)]
 public class DimensionItemScriptTests
 {
     private const string MaxDimension = "dimension.max";

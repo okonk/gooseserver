@@ -35,7 +35,7 @@ namespace Goose.Events
                 }
 
                 if (id1 <= 0 || id2 <= 0 ||
-                    id1 > world.Configuration.SpellbookSize || id2 > world.Configuration.SpellbookSize)
+                    id1 > world.Settings.SpellbookSize || id2 > world.Settings.SpellbookSize)
                 {
                     // log something bad about packet
                     return;

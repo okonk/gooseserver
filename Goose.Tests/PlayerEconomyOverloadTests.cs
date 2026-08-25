@@ -1,14 +1,10 @@
 using Goose;
 using Goose.Testing;
-using Goose.Tests.Collections;
 using Goose.Tests.Fixtures;
 using Xunit;
 
 namespace Goose.Tests;
 
-/// <summary>Production paths here now read world.Configuration; the collection is retained
-/// only until the remaining static readers migrate and Task 6 removes broad collections.</summary>
-[Collection(GameWorldSettingsCollection.Name)]
 public class PlayerEconomyOverloadTests
 {
 

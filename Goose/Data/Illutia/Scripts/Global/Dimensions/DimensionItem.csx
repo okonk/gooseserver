@@ -46,7 +46,7 @@ public class DimensionItem : BaseItemScript
         if (incoming == null) return DimensionHelpers.BaseItemScript(item, world)?.OnUseConsumableEvent(player, item, world) ?? true;
 
         int baseId = DimensionHelpers.BaseId(incoming.ID);
-        for (int slot = 1; slot <= world.Configuration.SpellbookSize; slot++)
+        for (int slot = 1; slot <= world.Settings.SpellbookSize; slot++)
         {
             var known = player.Spellbook.GetSlot(slot);
             if (known == null || DimensionHelpers.BaseId(known.ID) != baseId) continue;

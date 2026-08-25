@@ -1,9 +1,7 @@
-using Goose.IntegrationTests.Collections;
 using Goose.IntegrationTests.Fixtures;
 
 namespace Goose.IntegrationTests;
 
-[Collection(GameWorldSettingsCollection.Name)]
 public class DimensionModifierTests
 {
     private static GlobalScriptFixture Run()
@@ -88,8 +86,8 @@ public class DimensionModifierTests
         // The ScriptParams must be parsed invariant, like ItemModifierScript.csx's JSON.
         // Under de-DE, double.Parse("1.25") returns 125 - a silent 100x stat inflation -
         // and under fr-FR/ar-SA it throws, which ItemModifier.ApplyStats swallows so the
-        // title never applies. This class runs in GameWorldSettingsCollection (parallelism
-        // disabled), so the culture flip is contained - but restore it anyway.
+        // title never applies. CurrentCulture is thread-local and restored in the finally,
+        // so the flip cannot leak to parallel tests.
         var previous = System.Globalization.CultureInfo.CurrentCulture;
         try
         {

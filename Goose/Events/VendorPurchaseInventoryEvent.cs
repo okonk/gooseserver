@@ -36,7 +36,7 @@ namespace Goose.Events
                     slotid = 0;
                 }
 
-                if (npcid <= 0 || slotid <= 0 || slotid > world.Configuration.VendorSlotSize) return;
+                if (npcid <= 0 || slotid <= 0 || slotid > world.Settings.VendorSlotSize) return;
 
                 NPC npc = null;
 

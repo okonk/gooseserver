@@ -86,7 +86,7 @@ public partial class Dimensions
                 // MapHandler.LoadMaps:78 schedules one of these per map; clones need it too
                 // or dropped items never sweep off the ground.
                 Event sweep = new ClearMapItemsEvent();
-                sweep.Ticks += world.TimerFrequency * world.Configuration.ItemGroundSweepTime;
+                sweep.Ticks += world.TimerFrequency * world.Settings.ItemGroundSweepTime;
                 sweep.Data = clone;
                 world.EventHandler.AddEvent(sweep);
             }
