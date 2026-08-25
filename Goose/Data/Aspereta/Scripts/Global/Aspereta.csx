@@ -183,7 +183,7 @@ public class ItemInfoEvent : Event
             // log bad item id
             if (itemid <= 0) return;
 
-            if (itemid >= GameWorld.Settings.ItemIDStartpoint)
+            if (itemid >= world.Configuration.ItemIDStartpoint)
             {
                 foreach (ItemSlot slot in this.Player.Inventory.GetEquippedSlots())
                 {

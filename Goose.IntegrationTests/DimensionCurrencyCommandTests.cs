@@ -163,7 +163,7 @@ public class DimensionCurrencyCommandTests
     {
         var (fixture, player) = Loaded(spiritBalance: 10);
         using var _ = fixture;
-        GameWorld.Settings.ExperienceCap = 1_000_000;
+        fixture.Settings.ExperienceCap = 1_000_000;
         player.Experience = 2_000_000;
 
         fixture.RunCommand(player, "/buyexperience 1");
@@ -182,7 +182,7 @@ public class DimensionCurrencyCommandTests
     {
         var (fixture, player) = Loaded(spiritBalance: 10);
         using var _ = fixture;
-        GameWorld.Settings.ExperienceCap = 100_000_000;
+        fixture.Settings.ExperienceCap = 100_000_000;
         player.Experience = 99_999_999;
         player.ExperienceSold = 0;
 
@@ -201,7 +201,7 @@ public class DimensionCurrencyCommandTests
     {
         var (fixture, player) = Loaded(spiritBalance: 10);
         using var _ = fixture;
-        GameWorld.Settings.ExperienceCap = 100_000_000;
+        fixture.Settings.ExperienceCap = 100_000_000;
         player.Experience = 100_000_000 - ExpPerSpiritPurchase;
         player.ExperienceSold = 0;
 

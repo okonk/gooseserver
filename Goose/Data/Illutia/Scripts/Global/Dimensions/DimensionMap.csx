@@ -95,13 +95,13 @@ public class DimensionMap : BaseMapScript
 
         // The base map is gone - a re-import between sessions. A bind pointing at a map
         // that does not exist strands the player on death, so send them to the start.
-        var start = world.MapHandler.GetMap(GameWorld.Settings.StartingMapID);
+        var start = world.MapHandler.GetMap(world.Configuration.StartingMapID);
         if (start == null) return;
 
         player.BoundID = start.ID;
         player.BoundMap = start;
-        player.BoundX = GameWorld.Settings.StartingMapX;
-        player.BoundY = GameWorld.Settings.StartingMapY;
+        player.BoundX = world.Configuration.StartingMapX;
+        player.BoundY = world.Configuration.StartingMapY;
     }
 
     // ---- Delegation to the base map's script ----------------------------------------

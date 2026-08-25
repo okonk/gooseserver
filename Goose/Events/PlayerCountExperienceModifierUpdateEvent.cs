@@ -35,10 +35,10 @@ namespace Goose.Events
 
             decimal oldModifier = world.ExperienceModifier;
 
-            decimal experiencemodifier = uniquenonafkips.Count / GameWorld.Settings.PlayerCountExperienceModifierInterval;
-            experiencemodifier *= GameWorld.Settings.PlayerCountExperienceModifier;
+            decimal experiencemodifier = uniquenonafkips.Count / world.Configuration.PlayerCountExperienceModifierInterval;
+            experiencemodifier *= world.Configuration.PlayerCountExperienceModifier;
 
-            experiencemodifier += GameWorld.Settings.ExperienceModifier;
+            experiencemodifier += world.Configuration.ExperienceModifier;
 
             world.ExperienceModifier = experiencemodifier;
 
@@ -48,7 +48,7 @@ namespace Goose.Events
             }
 
             // H6: clamp to >= 1, a 0/negative IdleTimeout re-enqueues at now and spins EventHandler.Update
-            this.Ticks += world.TimerFrequency * Math.Max(1, GameWorld.Settings.IdleTimeout);
+            this.Ticks += world.TimerFrequency * Math.Max(1, world.Configuration.IdleTimeout);
             world.EventHandler.AddEvent(this);
 
             world.LogHandler.Save(world);

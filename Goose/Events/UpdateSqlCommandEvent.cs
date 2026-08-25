@@ -20,7 +20,7 @@ namespace Goose.Events
                 {
                     try
                     {
-                        var sqlData = CsvToSql.Core.CsvToSqlConverter.Convert(GameWorld.Settings.DataLinkId);
+                        var sqlData = CsvToSql.Core.CsvToSqlConverter.Convert(world.Configuration.DataLinkId);
 
                         // sqlData already contains its own BEGIN TRANSACTION;/COMMIT;, so it
                         // must not be wrapped in another transaction.

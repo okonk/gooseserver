@@ -64,7 +64,7 @@ namespace Goose.Events
             if (!buff.ItemBuff && buff.BuffExpireEvent != null)
             {
                 // buff will expire before next tick
-                if (world.TimeNow - buff.TimeCast >= (buff.SpellEffect.Duration - GameWorld.Settings.SpellEffectPeriod) * world.TimerFrequency)
+                if (world.TimeNow - buff.TimeCast >= (buff.SpellEffect.Duration - world.Configuration.SpellEffectPeriod) * world.TimerFrequency)
                 {
                     return;
                 }
@@ -75,7 +75,7 @@ namespace Goose.Events
             ev.Player = this.Player;
             ev.NPC = this.NPC;
             // H6: clamp to >= 1, a 0/negative period re-enqueues at now and spins EventHandler.Update
-            ev.Ticks += (long)(Math.Max(1m, GameWorld.Settings.SpellEffectPeriod) * world.TimerFrequency);
+            ev.Ticks += (long)(Math.Max(1m, world.Configuration.SpellEffectPeriod) * world.TimerFrequency);
 
             world.EventHandler.AddEvent(ev);
         }

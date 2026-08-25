@@ -29,7 +29,7 @@ namespace Goose.Events
                     slot = 0;
                 }
 
-                if (slot <= 0 || slot > GameWorld.Settings.SpellbookSize)
+                if (slot <= 0 || slot > world.Configuration.SpellbookSize)
                 {
                     // log something bad about packet
                     return;

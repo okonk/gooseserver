@@ -13,9 +13,6 @@ public class DimensionItemScriptTests
     private static GlobalScriptFixture Run(Action<GlobalScriptFixture> arrange = null)
     {
         var fixture = new GlobalScriptFixture();
-        // The shipped DimensionItem script still iterates the process-global SpellbookSize
-        // (shipped: 90) until the script migration, so the fixture spellbook must cover it.
-        fixture.Settings.SpellbookSize = 90;
         fixture.AddBaseMap(1, "Town", width: 100, height: 100);
         fixture.AddBaseItemTemplate(50, "Sword", ItemTemplate.UseTypes.Weapon, t => t.MinLevel = 50);
         arrange?.Invoke(fixture);
@@ -162,8 +159,8 @@ public class DimensionItemScriptTests
         var consumed = tome.Script.Object.OnUseConsumableEvent(player, tome, fixture.World);
 
         Assert.True(consumed);
-        Assert.Equal(1, CountSpells(player, 300091));
-        Assert.Equal(0, CountSpells(player, 100091));
+        Assert.Equal(1, CountSpells(fixture, player, 300091));
+        Assert.Equal(0, CountSpells(fixture, player, 100091));
     }
 
     [Fact]
@@ -185,7 +182,7 @@ public class DimensionItemScriptTests
 
         // false = do not consume. Inventory.cs:433 removes the item only when true.
         Assert.False(tome.Script.Object.OnUseConsumableEvent(player, tome, fixture.World));
-        Assert.Equal(1, CountSpells(player, 500091));
+        Assert.Equal(1, CountSpells(fixture, player, 500091));
     }
 
     [Fact]
@@ -205,7 +202,7 @@ public class DimensionItemScriptTests
         var tome = ItemOf(fixture, 300070);
 
         Assert.True(tome.Script.Object.OnUseConsumableEvent(player, tome, fixture.World));
-        Assert.Equal(1, CountSpells(player, 300091));
+        Assert.Equal(1, CountSpells(fixture, player, 300091));
     }
 
     [Fact]
@@ -235,10 +232,10 @@ public class DimensionItemScriptTests
         public override void OnMeleeEvent(Player player, Item item, GameWorld world) => this.MeleeCalls++;
     }
 
-    private static int CountSpells(Player player, int spellId)
+    private static int CountSpells(GlobalScriptFixture fixture, Player player, int spellId)
     {
         int found = 0;
-        for (int slot = 1; slot <= GameWorld.Settings.SpellbookSize; slot++)
+        for (int slot = 1; slot <= fixture.Settings.SpellbookSize; slot++)
             if (player.Spellbook.GetSlot(slot)?.ID == spellId) found++;
         return found;
     }

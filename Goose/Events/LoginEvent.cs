@@ -123,12 +123,12 @@ namespace Goose.Events
             if (player == null)
             {
                 // limit characters created per day
-                if (GameWorld.Settings.NewCharactersPerDayPerIP > 0)
+                if (world.Configuration.NewCharactersPerDayPerIP > 0)
                 {
                     int created;
                     if (world.CharactersCreatedPerIP.TryGetValue(IP, out created))
                     {
-                        if (created >= GameWorld.Settings.NewCharactersPerDayPerIP)
+                        if (created >= world.Configuration.NewCharactersPerDayPerIP)
                         {
                             world.SendRaw(sock, P.LoginDenied("You can't create any more characters today."));
                             world.GameServer.Disconnect(sock);
@@ -140,7 +140,7 @@ namespace Goose.Events
                     world.CharactersCreatedPerIP[IP] = created;
                 }
 
-                if (GameWorld.Settings.AutoCharacterCreation)
+                if (world.Configuration.AutoCharacterCreation)
                 {
                     // H3: 16 matches the client's 16-byte login name field; longer names overflow it
                     if (name.Length < 3 || name.Length > 16)
@@ -230,7 +230,7 @@ namespace Goose.Events
                 }
             }
 
-            if (GameWorld.Settings.LockdownModeEnabled && this.Player.Access != Player.AccessStatus.GameMaster)
+            if (world.Configuration.LockdownModeEnabled && this.Player.Access != Player.AccessStatus.GameMaster)
             {
                 world.Send(this.Player, P.LoginDenied("Server is currently under maintenance. Try again soon."));
                 world.GameServer.Disconnect(this.Player.Sock);
@@ -255,7 +255,7 @@ namespace Goose.Events
 
             this.Player.OnLogin();
             
-            world.Send(this.Player, P.LoginAccepted(GameWorld.Settings.ServerName));
+            world.Send(this.Player, P.LoginAccepted(world.Configuration.ServerName));
 
             this.Player.Windows = new List<Window>();
             this.Player.LastPing = world.TimeNow;
@@ -266,7 +266,7 @@ namespace Goose.Events
 
             this.Player.CurrentHP = (long)(this.Player.MaxHP * 0.8);
             this.Player.CurrentMP = (long)(this.Player.MaxMP * 0.8);
-            this.Player.CurrentSP = (long)(this.Player.MaxSP * GameWorld.Settings.SpRespawnPercentage);
+            this.Player.CurrentSP = (long)(this.Player.MaxSP * world.Configuration.SpRespawnPercentage);
 
             this.Player.UpdateIdleStatus(world);
 

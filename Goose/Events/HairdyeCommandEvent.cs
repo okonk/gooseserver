@@ -27,9 +27,9 @@ namespace Goose.Events
                 {
                     case "accept":
                     case "gogodyeme":
-                        if (this.Player.Gold < GameWorld.Settings.HairdyeCommandCost)
+                        if (this.Player.Gold < world.Configuration.HairdyeCommandCost)
                         {
-                            world.Send(this.Player, P.ServerMessage(string.Format("/hairdye accept requires {0} gold.", GameWorld.Settings.HairdyeCommandCost)));
+                            world.Send(this.Player, P.ServerMessage(string.Format("/hairdye accept requires {0} gold.", world.Configuration.HairdyeCommandCost)));
                             return;
                         }
 
@@ -40,7 +40,7 @@ namespace Goose.Events
                             return;
                         }
 
-                        this.Player.Gold -= GameWorld.Settings.HairdyeCommandCost;
+                        this.Player.Gold -= world.Configuration.HairdyeCommandCost;
                         this.Player.HairR = r;
                         this.Player.HairG = g;
                         this.Player.HairB = b;
@@ -75,7 +75,7 @@ namespace Goose.Events
                             pose = weapon.Item.BodyState;
                         }
 
-                        if (GameWorld.Settings.ServerType == "Illutia")
+                        if (world.Configuration.ServerType == "Illutia")
                         {
                             world.Send(this.Player,
                                 "MKC" + 9000 + "," +

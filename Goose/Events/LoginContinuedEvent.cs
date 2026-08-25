@@ -34,14 +34,14 @@ namespace Goose.Events
                     world.Send(this.Player, P.ClassUpdate(@class));
                 }
 
-                if (GameWorld.Settings.MOTD.Length > 0) 
+                if (world.Configuration.MOTD.Length > 0) 
                 {
-                    world.Send(this.Player, P.ServerMessage(GameWorld.Settings.MOTD));
+                    world.Send(this.Player, P.ServerMessage(world.Configuration.MOTD));
                 }
                 world.Send(this.Player, P.ServerMessage("There are currently " + 
                                         world.PlayerHandler.PlayerCount + 
                                         " players online."));
-                if (GameWorld.Settings.ExperienceModifier != 1)
+                if (world.Configuration.ExperienceModifier != 1)
                 {
                     world.Send(this.Player, P.ServerMessage("Current experience rate is " + 
                         world.ExperienceModifier + "x."));

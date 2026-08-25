@@ -33,7 +33,7 @@ namespace Goose.Events
                     windowslot = 0;
                 }
 
-                if (invslot <= 0 || invslot > GameWorld.Settings.InventorySize) return;
+                if (invslot <= 0 || invslot > world.Configuration.InventorySize) return;
                 if (windowid <= 0) return;
 
                 foreach (Window window in this.Player.Windows)

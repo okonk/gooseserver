@@ -45,7 +45,7 @@ namespace Goose.Events
 
                     if (spellid == 0 || target == 0) return;
 
-                    if (spellid >= 1 && spellid <= GameWorld.Settings.SpellbookSize)
+                    if (spellid >= 1 && spellid <= world.Configuration.SpellbookSize)
                     {
                         if (this.Player.LoginID == target)
                         {
