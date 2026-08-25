@@ -8,8 +8,10 @@ namespace Goose.Events
     /**
      * WhoEvent, event for "who" packet
      * 
-     * Called when someone types /who [all|guild] [name]
+     * Called when someone types /who [all|guild] [name] or /who name
      * Packet format: /who [all|guild] [name]
+     * A name argument (with or without a scope) does a case-insensitive
+     * substring match against the player's name and surname.
      * 
      * Server responds: #[Mapname] Playername (Level lvl class)
      * 
@@ -22,6 +24,7 @@ namespace Goose.Events
             {
                 string packet = (string)this.Data;
                 List<Player> players;
+                string query = null;
                 int matches = 0;
 
                 if (packet.Equals("/who"))
@@ -36,14 +39,19 @@ namespace Goose.Events
                         if (search[1].Equals("all"))
                         {
                             players = world.PlayerHandler.Players;
+                            if (search.Length > 2)
+                                query = string.Join(" ", search, 2, search.Length - 2);
                         }
                         else if (search[1].Equals("guild") && this.Player.Guild != null)
                         {
                             players = this.Player.Guild.OnlineMembers;
+                            if (search.Length > 2)
+                                query = string.Join(" ", search, 2, search.Length - 2);
                         }
-                        else 
+                        else
                         {
-                            players = new List<Player>();
+                            players = world.PlayerHandler.Players;
+                            query = string.Join(" ", search, 1, search.Length - 1);
                         }
                     }
                     else
@@ -57,6 +65,7 @@ namespace Goose.Events
                     if (player is Pet) continue;
                     if (player.IsGMInvisible) continue;
                     if (player.IsWhoInvisible && this.Player.Access < player.Access) continue;
+                    if (query != null && !MatchesQuery(player, query)) continue;
 
                     if (player.State == Player.States.Ready)
                     {
@@ -70,6 +79,12 @@ namespace Goose.Events
 
                 world.Send(this.Player, P.HashMessage("[Matched " + matches + " players]"));
             }
+        }
+
+        private bool MatchesQuery(Player player, string query)
+        {
+            return (!String.IsNullOrEmpty(player.Name) && player.Name.Contains(query, StringComparison.OrdinalIgnoreCase)) ||
+                   (!String.IsNullOrEmpty(player.Surname) && player.Surname.Contains(query, StringComparison.OrdinalIgnoreCase));
         }
 
         public string InvisibleDisplay(Player player)
