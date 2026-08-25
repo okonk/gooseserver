@@ -110,7 +110,7 @@ namespace Goose.Events
                         if (combineBagWindow != null) combineBagWindow.Refresh(this.Player, world);
 
                         world.LogHandler.Log(Log.Types.CreatedCustom, this.Player,
-                            string.Format("{0} ({1}) {2}|{3},{4},{5},{6}", item.Name, item.TemplateID, lookSlot.Item.TemplateID, r, g, b, a), item.ItemID);
+                            $"{item.Name} ({item.TemplateID}) {lookSlot.Item.TemplateID}|{r},{g},{b},{a}", item.ItemID);
 
                         break;
                     case "preview":

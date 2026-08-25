@@ -35,10 +35,10 @@ namespace Goose.Events
 
                             foreach (var item in matched)
                             {
-                                world.Send(this.Player, P.ServerMessage(string.Format("{0} - {1}", item.ID, item.Name)));
+                                world.Send(this.Player, P.ServerMessage($"{item.ID} - {item.Name}"));
                             }
 
-                            world.Send(this.Player, P.ServerMessage(string.Format("[Matched {0} items]", matched.Length)));
+                            world.Send(this.Player, P.ServerMessage($"[Matched {matched.Length} items]"));
 
                             break;
                         }
@@ -49,10 +49,10 @@ namespace Goose.Events
 
                             foreach (var npc in matched)
                             {
-                                world.Send(this.Player, P.ServerMessage(string.Format("{0} - {1}", npc.NPCTemplateID, npc.Name)));
+                                world.Send(this.Player, P.ServerMessage($"{npc.NPCTemplateID} - {npc.Name}"));
                             }
 
-                            world.Send(this.Player, P.ServerMessage(string.Format("[Matched {0} npcs]", matched.Length)));
+                            world.Send(this.Player, P.ServerMessage($"[Matched {matched.Length} npcs]"));
                             break;
                         }
                 }

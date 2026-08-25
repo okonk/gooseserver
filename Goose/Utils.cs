@@ -21,7 +21,7 @@ namespace Goose
                 if (t.Milliseconds != 0)
                 {
                     seconds += t.Milliseconds / 1000.0d;
-                    cd += string.Format("{0:N1}s ", seconds);
+                    cd += $"{seconds:N1}s ";
                 }
                 else
                 {

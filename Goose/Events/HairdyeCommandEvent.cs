@@ -26,7 +26,7 @@ namespace Goose.Events
                     case "gogodyeme":
                         if (this.Player.Gold < world.Settings.HairdyeCommandCost)
                         {
-                            world.Send(this.Player, P.ServerMessage(string.Format("/hairdye accept requires {0} gold.", world.Settings.HairdyeCommandCost)));
+                            world.Send(this.Player, P.ServerMessage($"/hairdye accept requires {world.Settings.HairdyeCommandCost} gold."));
                             return;
                         }
 

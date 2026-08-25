@@ -37,7 +37,7 @@ namespace Goose.Scripting
                 }
                 catch (Exception e)
                 {
-                    throw new Exception(string.Format("Failed loading {0}: {1}", kvp.Key, e.Message));
+                    throw new Exception($"Failed loading {kvp.Key}: {e.Message}");
                 }
             }
         }

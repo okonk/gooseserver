@@ -14,7 +14,7 @@ namespace Goose.Events
             {
                 this.Player.Map.Muted = !this.Player.Map.Muted;
 
-                world.SendToMap(this.Player.Map, P.ServerMessage(string.Format("Chat is now {0}.", (this.Player.Map.Muted ? "muted" : "unmuted"))));
+                world.SendToMap(this.Player.Map, P.ServerMessage($"Chat is now {(this.Player.Map.Muted ? "muted" : "unmuted")}."));
             }
         }
     }

@@ -215,13 +215,13 @@ namespace Goose
             int i = 1;
             string line;
 
-            line = P.WindowTextLine(this.ID, i++, string.Format("Experience Sold: {0:N0}", player.ExperienceSold));
+            line = P.WindowTextLine(this.ID, i++, $"Experience Sold: {player.ExperienceSold:N0}");
             world.Send(player, line);
             line = P.WindowTextLine(this.ID, i++, "Bound: " + player.BoundMap.Name + " (" + player.BoundX + "," + player.BoundY + ")");
             world.Send(player, line);
-            line = P.WindowTextLine(this.ID, i++, "HP Regeneration: " + Math.Round(player.MaxStats.HPPercentRegen * 100, 0) + "%" + string.Format(" +{0:N0}", player.MaxStats.HPStaticRegen));
+            line = P.WindowTextLine(this.ID, i++, "HP Regeneration: " + Math.Round(player.MaxStats.HPPercentRegen * 100, 0) + "%" + $" +{player.MaxStats.HPStaticRegen:N0}");
             world.Send(player, line);
-            line = P.WindowTextLine(this.ID, i++, "MP Regeneration: " + Math.Round(player.MaxStats.MPPercentRegen * 100, 0) + "%" + string.Format(" +{0:N0}", player.MaxStats.MPStaticRegen));
+            line = P.WindowTextLine(this.ID, i++, "MP Regeneration: " + Math.Round(player.MaxStats.MPPercentRegen * 100, 0) + "%" + $" +{player.MaxStats.MPStaticRegen:N0}");
             world.Send(player, line);
             line = P.WindowTextLine(this.ID, i++, "Spell Damage Increase: " + Math.Round(player.MaxStats.SpellDamage * 100, 0) + "%");
             world.Send(player, line);

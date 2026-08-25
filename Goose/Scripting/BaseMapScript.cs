@@ -22,7 +22,7 @@ namespace Goose.Scripting
 
         public string GetTUPPacket()
         {
-            return string.Format("TUP{0},{1},{2},{3}", X, Y, string.Join(",", LayerInfo), (Blocked ? 2 : 0));
+            return $"TUP{X},{Y},{string.Join(",", LayerInfo)},{(Blocked ? 2 : 0)}";
         }
     }
 

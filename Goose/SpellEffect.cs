@@ -314,17 +314,17 @@ namespace Goose
         private string GetPercentageDescription(string label, decimal value, string prefix)
         {
             if (value < 0)
-                return string.Format("{0}Decrease {1} by {2:F0}%", prefix, label, Math.Abs(value) * 100);
+                return $"{prefix}Decrease {label} by {Math.Abs(value) * 100:F0}%";
             else
-                return string.Format("{0}Increase {1} by {2:F0}%", prefix, label, value * 100);
+                return $"{prefix}Increase {label} by {value * 100:F0}%";
         }
 
         private string GetValueDescription(string label, long value, string prefix)
         {
             if (value < 0)
-                return string.Format("{0}Decrease {1} by {2:N0}", prefix, label, Math.Abs(value));
+                return $"{prefix}Decrease {label} by {Math.Abs(value):N0}";
             else
-                return string.Format("{0}Increase {1} by {2:N0}", prefix, label, value);
+                return $"{prefix}Increase {label} by {value:N0}";
         }
 
         private string ConvertFormulaVariable(string variable)
@@ -379,7 +379,7 @@ namespace Goose
 
             if (stat == null || mult == 0) return "formula";
 
-            return string.Format("{0:F0}% of {1}", mult * 100, stat);
+            return $"{mult * 100:F0}% of {stat}";
         }
 
         private string GetFormulaDescription(string formula, string stat, string prefix)
@@ -391,24 +391,24 @@ namespace Goose
             else
             {
                 if (formula[0] == '-')
-                    return string.Format("{0}Decrease {1} by {2:N0}", prefix, stat, ParseFormula(formula.Substring(1)));
+                    return $"{prefix}Decrease {stat} by {ParseFormula(formula.Substring(1)):N0}";
                 else
-                    return string.Format("{0}Increase {1} by {2:N0}", prefix, stat, ParseFormula(formula));
+                    return $"{prefix}Increase {stat} by {ParseFormula(formula):N0}";
             }
         }
 
         private IEnumerable<string> GetBuffDescription(string prefix)
         {
             if (this.BodyID != 0)
-                yield return string.Format("{0}Change Body ID to {1}", prefix, this.BodyID);
+                yield return $"{prefix}Change Body ID to {this.BodyID}";
             if (this.BodyA != 0)
-                yield return string.Format("{0}Change Body Color to {1},{2},{3},{4}", prefix, this.BodyR, this.BodyG, this.BodyB, this.BodyA);
+                yield return $"{prefix}Change Body Color to {this.BodyR},{this.BodyG},{this.BodyB},{this.BodyA}";
             if (this.HairID != 0)
-                yield return string.Format("{0}Change Hair ID to {1}", prefix, this.HairID);
+                yield return $"{prefix}Change Hair ID to {this.HairID}";
             if (this.HairA != 0)
-                yield return string.Format("{0}Change Hair Color to {1},{2},{3},{4}", prefix, this.HairR, this.HairG, this.HairB, this.HairA);
+                yield return $"{prefix}Change Hair Color to {this.HairR},{this.HairG},{this.HairB},{this.HairA}";
             if (this.FaceID != 0)
-                yield return string.Format("{0}Change Face ID to {1}", prefix, this.FaceID);
+                yield return $"{prefix}Change Face ID to {this.FaceID}";
 
             if (this.Stats.HP != 0)
                 yield return GetValueDescription("Maximum HP", this.Stats.HP, prefix);
@@ -463,10 +463,10 @@ namespace Goose
                 yield return GetPercentageDescription("Damage Reduction", this.Stats.DamageReduction, prefix);
 
             if (this.Stats.MoveSpeed != 0)
-                yield return string.Format("Set Move Speed to {0}", this.Stats.MoveSpeed);
+                yield return $"Set Move Speed to {this.Stats.MoveSpeed}";
 
             if (this.SnarePercent != 0)
-                yield return string.Format("{0}Decrease Move Speed by {1:F0}%", prefix, this.SnarePercent);
+                yield return $"{prefix}Decrease Move Speed by {this.SnarePercent:F0}%";
         }
 
         public IEnumerable<string> GetItemDescription(GameWorld world)
@@ -533,7 +533,7 @@ namespace Goose
                     if (!string.IsNullOrWhiteSpace(this.MPFormula) && this.MPFormula != "0")
                         yield return GetFormulaDescription(this.MPFormula, "MP", "");
                     if (this.TauntAggro > 0)
-                        yield return string.Format("Taunt for {0:N0}", this.TauntAggro);
+                        yield return $"Taunt for {this.TauntAggro:N0}";
                     break;
                 case EffectTypes.Tick:
                 case EffectTypes.Viral:
@@ -542,7 +542,7 @@ namespace Goose
                     if (!string.IsNullOrWhiteSpace(this.MPFormula) && this.MPFormula != "0")
                         yield return GetFormulaDescription(this.MPFormula, "MP", "Tick> ");
                     if (this.TauntAggro > 0)
-                        yield return string.Format("Tick> Taunt for {0:N0}", this.TauntAggro);
+                        yield return $"Tick> Taunt for {this.TauntAggro:N0}";
                     break;
                 case EffectTypes.Teleport:
                     var map = world.MapHandler.GetMap(this.TeleportMapID);

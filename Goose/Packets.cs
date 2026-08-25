@@ -12,7 +12,7 @@ namespace Goose
         public static Func<string, string> TellMessage = (message) => { return "$6" + message; };
 
         // The 0 in here is for AFK, but I don't see the use of it
-        public static Func<Player, string, string> Tell = (player, message) => { return string.Format("&{0},0,{1}", player.Name, message); };
+        public static Func<Player, string, string> Tell = (player, message) => { return $"&{player.Name},0,{message}"; };
 
         // TODO: What is the hash? -- White/normal text
         public static Func<string, string> HashMessage = (message) => { return "#" + message; };
@@ -297,7 +297,7 @@ namespace Goose
             int sheetNum = 0;
             if (!int.TryParse(tokens[1], out sheetNum) || sheetNum < 8 || sheetNum > 10) return null;
 
-            return string.Format("EMOT{0},{1},{2}", player.LoginID, animId, sheetNum);
+            return $"EMOT{player.LoginID},{animId},{sheetNum}";
         };
 
         public static Func<ICharacter, string> BattleTextStunned = (target) =>
@@ -419,7 +419,7 @@ namespace Goose
 
         public static Func<int, int, string, string> WindowTextLine = (windowId, lineNo, line) =>
         {
-            return string.Format("WNF{0},{1},{2}|0|0|0|0|*", windowId, lineNo, line);
+            return $"WNF{windowId},{lineNo},{line}|0|0|0|0|*";
         };
 
         public static Func<Item, GameWorld, int, long, string> ItemSlot = (item, world, slotId, stack) =>

@@ -1502,13 +1502,13 @@ namespace Goose
             if ((item.MinExperience != 0) &&
                 (this.Experience + this.ExperienceSold < item.MinExperience))
             {
-                world.Send(this, P.ServerMessage(string.Format("You are too low experienced to use {0}. {1} experience required.", item.Name, item.MinExperience)));
+                world.Send(this, P.ServerMessage($"You are too low experienced to use {item.Name}. {item.MinExperience} experience required."));
                 return false;
             }
             if ((item.MaxExperience != 0) &&
                 (this.Experience + this.ExperienceSold > item.MaxExperience))
             {
-                world.Send(this, P.ServerMessage(string.Format("You are too high experienced to use {0}. {1} experience maximum.", item.Name, item.MaxExperience)));
+                world.Send(this, P.ServerMessage($"You are too high experienced to use {item.Name}. {item.MaxExperience} experience maximum."));
                 return false;
             }
 

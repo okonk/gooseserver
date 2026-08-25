@@ -6,12 +6,12 @@ namespace Goose
     {
         public override string Title
         {
-            get { return string.Format("{0} Info", playerForInfo.Name); }
+            get { return $"{playerForInfo.Name} Info"; }
         }
 
         public override string Buttons
         {
-            get { return string.Format("0,1,{0},{1},0", pageNumber == 0 ? 0 : 1, pageNumber == 4 + (playerForInfo.Bank.NumberOfContainers * playerForInfo.NumberOfBankPages * 2) ? 0 : 1); }
+            get { return $"0,1,{(pageNumber == 0 ? 0 : 1)},{(pageNumber == 4 + (playerForInfo.Bank.NumberOfContainers * playerForInfo.NumberOfBankPages * 2) ? 0 : 1)},0"; }
         }
 
         private Player playerForInfo;
@@ -37,25 +37,25 @@ namespace Goose
             int lineno = 1;
             if (pageNumber == 0)
             {
-                world.Send(player, P.WindowTextLine(this.ID, lineno++, string.Format("Level {0} {1}", playerForInfo.Level, playerForInfo.Class.ClassName)));
-                world.Send(player, P.WindowTextLine(this.ID, lineno++, string.Format("Gold: {0:N0}", playerForInfo.Gold)));
-                world.Send(player, P.WindowTextLine(this.ID, lineno++, string.Format("Base HP: {0:N0}", playerForInfo.BaseStats.HP)));
-                world.Send(player, P.WindowTextLine(this.ID, lineno++, string.Format("Base MP: {0:N0}", playerForInfo.BaseStats.MP)));
-                world.Send(player, P.WindowTextLine(this.ID, lineno++, string.Format("HP: {0:N0} / {1:N0}", playerForInfo.CurrentHP, playerForInfo.MaxHP)));
-                world.Send(player, P.WindowTextLine(this.ID, lineno++, string.Format("MP: {0:N0} / {1:N0}", playerForInfo.CurrentMP, playerForInfo.MaxMP)));
-                world.Send(player, P.WindowTextLine(this.ID, lineno++, string.Format("AC: {0:N0}", playerForInfo.MaxStats.AC)));
-                world.Send(player, P.WindowTextLine(this.ID, lineno++, string.Format("Experience: {0:N0}", playerForInfo.Experience)));
-                world.Send(player, P.WindowTextLine(this.ID, lineno++, string.Format("Exp Sold: {0:N0}", playerForInfo.ExperienceSold)));
-                world.Send(player, P.WindowTextLine(this.ID, lineno++, string.Format("HP Regen: {0:F0}% +{1:N0}", playerForInfo.MaxStats.HPPercentRegen * 100, playerForInfo.MaxStats.HPStaticRegen)));
-                world.Send(player, P.WindowTextLine(this.ID, lineno++, string.Format("MP Regen: {0:F0}% +{1:N0}", playerForInfo.MaxStats.MPPercentRegen * 100, playerForInfo.MaxStats.MPStaticRegen)));
-                world.Send(player, P.WindowTextLine(this.ID, lineno++, string.Format("Spell Damage Increase: {0:F0}%", playerForInfo.MaxStats.SpellDamage * 100)));
-                world.Send(player, P.WindowTextLine(this.ID, lineno++, string.Format("Spell Critical Chance: {0:F0}%", playerForInfo.MaxStats.SpellCrit * 100)));
-                world.Send(player, P.WindowTextLine(this.ID, lineno++, string.Format("Melee Damage Increase: {0:F0}%", playerForInfo.MaxStats.MeleeDamage * 100)));
-                world.Send(player, P.WindowTextLine(this.ID, lineno++, string.Format("Melee Critical Chance: {0:F0}%", playerForInfo.MaxStats.MeleeCrit * 100)));
-                world.Send(player, P.WindowTextLine(this.ID, lineno++, string.Format("Haste: {0:F0}%", playerForInfo.MaxStats.Haste * 100)));
-                world.Send(player, P.WindowTextLine(this.ID, lineno++, string.Format("Damage Reduction: {0:F0}%", playerForInfo.MaxStats.DamageReduction * 100)));
-                world.Send(player, P.WindowTextLine(this.ID, lineno++, string.Format("Move Speed: {0}", playerForInfo.CalculateMoveSpeed())));
-                world.Send(player, P.WindowTextLine(this.ID, lineno++, string.Format("Bank Pages: {0}", playerForInfo.NumberOfBankPages)));
+                world.Send(player, P.WindowTextLine(this.ID, lineno++, $"Level {playerForInfo.Level} {playerForInfo.Class.ClassName}"));
+                world.Send(player, P.WindowTextLine(this.ID, lineno++, $"Gold: {playerForInfo.Gold:N0}"));
+                world.Send(player, P.WindowTextLine(this.ID, lineno++, $"Base HP: {playerForInfo.BaseStats.HP:N0}"));
+                world.Send(player, P.WindowTextLine(this.ID, lineno++, $"Base MP: {playerForInfo.BaseStats.MP:N0}"));
+                world.Send(player, P.WindowTextLine(this.ID, lineno++, $"HP: {playerForInfo.CurrentHP:N0} / {playerForInfo.MaxHP:N0}"));
+                world.Send(player, P.WindowTextLine(this.ID, lineno++, $"MP: {playerForInfo.CurrentMP:N0} / {playerForInfo.MaxMP:N0}"));
+                world.Send(player, P.WindowTextLine(this.ID, lineno++, $"AC: {playerForInfo.MaxStats.AC:N0}"));
+                world.Send(player, P.WindowTextLine(this.ID, lineno++, $"Experience: {playerForInfo.Experience:N0}"));
+                world.Send(player, P.WindowTextLine(this.ID, lineno++, $"Exp Sold: {playerForInfo.ExperienceSold:N0}"));
+                world.Send(player, P.WindowTextLine(this.ID, lineno++, $"HP Regen: {playerForInfo.MaxStats.HPPercentRegen * 100:F0}% +{playerForInfo.MaxStats.HPStaticRegen:N0}"));
+                world.Send(player, P.WindowTextLine(this.ID, lineno++, $"MP Regen: {playerForInfo.MaxStats.MPPercentRegen * 100:F0}% +{playerForInfo.MaxStats.MPStaticRegen:N0}"));
+                world.Send(player, P.WindowTextLine(this.ID, lineno++, $"Spell Damage Increase: {playerForInfo.MaxStats.SpellDamage * 100:F0}%"));
+                world.Send(player, P.WindowTextLine(this.ID, lineno++, $"Spell Critical Chance: {playerForInfo.MaxStats.SpellCrit * 100:F0}%"));
+                world.Send(player, P.WindowTextLine(this.ID, lineno++, $"Melee Damage Increase: {playerForInfo.MaxStats.MeleeDamage * 100:F0}%"));
+                world.Send(player, P.WindowTextLine(this.ID, lineno++, $"Melee Critical Chance: {playerForInfo.MaxStats.MeleeCrit * 100:F0}%"));
+                world.Send(player, P.WindowTextLine(this.ID, lineno++, $"Haste: {playerForInfo.MaxStats.Haste * 100:F0}%"));
+                world.Send(player, P.WindowTextLine(this.ID, lineno++, $"Damage Reduction: {playerForInfo.MaxStats.DamageReduction * 100:F0}%"));
+                world.Send(player, P.WindowTextLine(this.ID, lineno++, $"Move Speed: {playerForInfo.CalculateMoveSpeed()}"));
+                world.Send(player, P.WindowTextLine(this.ID, lineno++, $"Bank Pages: {playerForInfo.NumberOfBankPages}"));
             }
             else if (pageNumber == 1)
             {
@@ -65,7 +65,7 @@ namespace Goose
                 foreach (var equipSlot in Enum.GetValues(typeof(Inventory.EquipSlots)).Cast<Inventory.EquipSlots>())
                 {
                     var slot = playerForInfo.Inventory.GetEquippedSlot(equipSlot);
-                    world.Send(player, P.WindowTextLine(this.ID, lineno++, string.Format("{0}: {1} ({2})", equipSlot.ToString(), slot?.Item?.Name, slot?.Item?.TemplateID)));
+                    world.Send(player, P.WindowTextLine(this.ID, lineno++, $"{equipSlot.ToString()}: {slot?.Item?.Name} ({slot?.Item?.TemplateID})"));
                 }
             }
             else if (pageNumber == 2)
@@ -77,9 +77,9 @@ namespace Goose
                 {
                     var slot = playerForInfo.Inventory.GetSlot(i);
                     if (slot == null)
-                        world.Send(player, P.WindowTextLine(this.ID, lineno++, string.Format("{0}.", i)));
+                        world.Send(player, P.WindowTextLine(this.ID, lineno++, $"{i}."));
                     else
-                        world.Send(player, P.WindowTextLine(this.ID, lineno++, string.Format("{0}. {1} ({2})", i, slot.Item.Name, slot.Stack)));
+                        world.Send(player, P.WindowTextLine(this.ID, lineno++, $"{i}. {slot.Item.Name} ({slot.Stack})"));
                 }
             }
             else if (pageNumber == 3)
@@ -91,9 +91,9 @@ namespace Goose
                 {
                     var slot = playerForInfo.Inventory.GetSlot(i);
                     if (slot == null)
-                        world.Send(player, P.WindowTextLine(this.ID, lineno++, string.Format("{0}.", i)));
+                        world.Send(player, P.WindowTextLine(this.ID, lineno++, $"{i}."));
                     else
-                        world.Send(player, P.WindowTextLine(this.ID, lineno++, string.Format("{0}. {1} ({2})", i, slot.Item.Name, slot.Stack)));
+                        world.Send(player, P.WindowTextLine(this.ID, lineno++, $"{i}. {slot.Item.Name} ({slot.Stack})"));
                 }
             }
             else if (pageNumber == 4)
@@ -105,9 +105,9 @@ namespace Goose
                 {
                     var slot = playerForInfo.Inventory.GetCombineBagContainer().GetSlot(i);
                     if (slot == null)
-                        world.Send(player, P.WindowTextLine(this.ID, lineno++, string.Format("{0}.", i)));
+                        world.Send(player, P.WindowTextLine(this.ID, lineno++, $"{i}."));
                     else
-                        world.Send(player, P.WindowTextLine(this.ID, lineno++, string.Format("{0}. {1} ({2})", i, slot.Item.Name, slot.Stack)));
+                        world.Send(player, P.WindowTextLine(this.ID, lineno++, $"{i}. {slot.Item.Name} ({slot.Stack})"));
                 }
             }
             else
@@ -117,17 +117,17 @@ namespace Goose
 
                 var container = playerForInfo.Bank.Containers.OrderBy(k => k.Key).ElementAt(bankNumber);
 
-                world.Send(player, P.WindowTextLine(this.ID, lineno++, string.Format("Bank {0}-{1} / {2}", bankStart, bankStart + 14, playerForInfo.NumberOfBankPages * 2 * 15)));
-                world.Send(player, P.WindowTextLine(this.ID, lineno++, string.Format("{0} ({1})", world.NPCHandler.GetNPCTemplate(container.Key)?.Name, container.Key)));
+                world.Send(player, P.WindowTextLine(this.ID, lineno++, $"Bank {bankStart}-{bankStart + 14} / {playerForInfo.NumberOfBankPages * 2 * 15}"));
+                world.Send(player, P.WindowTextLine(this.ID, lineno++, $"{world.NPCHandler.GetNPCTemplate(container.Key)?.Name} ({container.Key})"));
                 lineno++;
 
                 for (int i = bankStart; i <= bankStart + 14; i++)
                 {
                     var slot = container.Value.GetSlot(i);
                     if (slot == null)
-                        world.Send(player, P.WindowTextLine(this.ID, lineno++, string.Format("{0}.", i)));
+                        world.Send(player, P.WindowTextLine(this.ID, lineno++, $"{i}."));
                     else
-                        world.Send(player, P.WindowTextLine(this.ID, lineno++, string.Format("{0}. {1} ({2})", i, slot.Item.Name, slot.Stack)));
+                        world.Send(player, P.WindowTextLine(this.ID, lineno++, $"{i}. {slot.Item.Name} ({slot.Stack})"));
                 }
             }
         }

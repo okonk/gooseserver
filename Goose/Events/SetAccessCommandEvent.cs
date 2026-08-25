@@ -29,7 +29,7 @@ namespace Goose.Events
                     {
                         var accessStatus = Enum.GetValues(typeof(Player.AccessStatus)).Cast<Player.AccessStatus>().Where(y => y.ToString().Equals(access, StringComparison.OrdinalIgnoreCase)).First();
                         player.Access = accessStatus;
-                        world.Send(this.Player, P.ServerMessage(string.Format("Set AccessStatus for {0} to {1}.", player.Name, player.Access)));
+                        world.Send(this.Player, P.ServerMessage($"Set AccessStatus for {player.Name} to {player.Access}."));
 
                         if (player.State == Goose.Player.States.NotLoggedIn)
                         {

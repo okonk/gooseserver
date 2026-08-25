@@ -210,27 +210,27 @@ namespace Goose.Quests
                 switch (requirement.Type)
                 {
                     case RequirementType.Gold:
-                        text += string.Format("{0:N0} gp\\n", requirement.Value);
+                        text += $"{requirement.Value:N0} gp\\n";
                         break;
                     case RequirementType.Item:
                         var item = world.ItemHandler.GetTemplate((int)requirement.Value);
-                        text += string.Format("{0} ({1})\\n", item.Name, requirement.Value2);
+                        text += $"{item.Name} ({requirement.Value2})\\n";
                         break;
                     case RequirementType.TalkToNPC:
                         var talkNPC = world.NPCHandler.GetNPCTemplate((int)requirement.Value);
                         long talkNPCProgress = player.QuestProgress.FirstOrDefault(p => p.Requirement.Id == requirement.Id)?.Value ?? 0;
-                        text += string.Format("Talk to {0} ({1}/{2})\\n", talkNPC.Name, talkNPCProgress, requirement.Value2);
+                        text += $"Talk to {talkNPC.Name} ({talkNPCProgress}/{requirement.Value2})\\n";
                         break;
                     case RequirementType.Kill:
                         var killNpc = world.NPCHandler.GetNPCTemplate((int)requirement.Value);
                         long killNpcProgress = player.QuestProgress.FirstOrDefault(p => p.Requirement.Id == requirement.Id)?.Value ?? 0;
-                        text += string.Format("Kill {0} ({1:N0}/{2:N0})\\n", killNpc.Name, killNpcProgress, requirement.Value2);
+                        text += $"Kill {killNpc.Name} ({killNpcProgress:N0}/{requirement.Value2:N0})\\n";
                         break;
                     case RequirementType.ExperienceBanked:
-                        text += string.Format("{0:N0} xp banked\\n", requirement.Value);
+                        text += $"{requirement.Value:N0} xp banked\\n";
                         break;
                     case RequirementType.ExperienceSold:
-                        text += string.Format("{0:N0} xp sold\\n", requirement.Value);
+                        text += $"{requirement.Value:N0} xp sold\\n";
                         break;
                     case RequirementType.NothingEquipped:
                         text += "Have no items equipped\\n";
@@ -349,7 +349,7 @@ namespace Goose.Quests
                 {
                     case RewardType.Gold:
                         player.AddGold(reward.LongValue, world);
-                        rewardMessage = string.Format("{0}{1} gold", prefix, reward.LongValue);
+                        rewardMessage = $"{prefix}{reward.LongValue} gold";
                         break;
                     case RewardType.Item:
                         int id = (int)reward.LongValue;
@@ -365,15 +365,15 @@ namespace Goose.Quests
 
                         player.Inventory.AddItem(item, stack, world);
 
-                        rewardMessage = string.Format("{0}Item: {1} ({2})", prefix, item.Name, stack);
+                        rewardMessage = $"{prefix}Item: {item.Name} ({stack})";
                         break;
                     case RewardType.Title:
                         player.Title = reward.StringValue;
-                        rewardMessage = string.Format("{0}Title: {1}", prefix, reward.StringValue);
+                        rewardMessage = $"{prefix}Title: {reward.StringValue}";
                         break;
                     case RewardType.Surname:
                         player.Surname = reward.StringValue;
-                        rewardMessage = string.Format("{0}Surname: {1}", prefix, reward.StringValue);
+                        rewardMessage = $"{prefix}Surname: {reward.StringValue}";
                         break;
                     case RewardType.Teleport:
                         string[] m = reward.StringValue.Split(',');
@@ -392,26 +392,26 @@ namespace Goose.Quests
                             continue;
 
                         player.WarpTo(world, map, x, y);
-                        rewardMessage = string.Format("{0}Teleport to {1}", prefix, map.Name);
+                        rewardMessage = $"{prefix}Teleport to {map.Name}";
                         break;
                     case RewardType.Experience:
                         player.AddExperience(reward.LongValue, world, Player.ExperienceMessage.None);
-                        rewardMessage = string.Format("{0}{1} experience", prefix, reward.LongValue);
+                        rewardMessage = $"{prefix}{reward.LongValue} experience";
                         break;
                     case RewardType.FaceGraphic:
                         player.FaceID = (int)reward.LongValue;
                         player.SendCHPString(world);
-                        rewardMessage = string.Format("{0}changed face", prefix);
+                        rewardMessage = $"{prefix}changed face";
                         break;
                     case RewardType.BodyGraphic:
                         player.BodyID = (int)reward.LongValue;
                         player.SendCHPString(world);
-                        rewardMessage = string.Format("{0}changed body", prefix);
+                        rewardMessage = $"{prefix}changed body";
                         break;
                     case RewardType.HairGraphic:
                         player.HairID = (int)reward.LongValue;
                         player.SendCHPString(world);
-                        rewardMessage = string.Format("{0}changed hair", prefix);
+                        rewardMessage = $"{prefix}changed hair";
                         break;
                     case RewardType.HairColour:
                         int[] rgba = reward.StringValue.Split(',').Select(s => int.Parse(s)).ToArray();
@@ -420,7 +420,7 @@ namespace Goose.Quests
                         player.HairB = rgba[2];
                         player.HairA = rgba[3];
                         player.SendCHPString(world);
-                        rewardMessage = string.Format("{0}changed hair colour", prefix);
+                        rewardMessage = $"{prefix}changed hair colour";
                         break;
                     case RewardType.BodyColour:
                         int[] brgba = reward.StringValue.Split(',').Select(s => int.Parse(s)).ToArray();
@@ -429,39 +429,39 @@ namespace Goose.Quests
                         player.BodyB = brgba[2];
                         player.BodyA = brgba[3];
                         player.SendCHPString(world);
-                        rewardMessage = string.Format("{0}changed body colour", prefix);
+                        rewardMessage = $"{prefix}changed body colour";
                         break;
                     case RewardType.ClassChange:
                         player.ChangeClass((int)reward.LongValue, 5, world);
-                        rewardMessage = string.Format("{0}Class changed to {1}", prefix, player.Class.ClassName);
+                        rewardMessage = $"{prefix}Class changed to {player.Class.ClassName}";
                         break;
                     case RewardType.HP:
                         this.AddPlayerStats(new AttributeSet() { HP = reward.LongValue }, player, world);
-                        rewardMessage = string.Format("{0}{1} HP", prefix, reward.LongValue);
+                        rewardMessage = $"{prefix}{reward.LongValue} HP";
                         break;
                     case RewardType.MP:
                         this.AddPlayerStats(new AttributeSet() { MP = reward.LongValue }, player, world);
-                        rewardMessage = string.Format("{0}{1} MP", prefix, reward.LongValue);
+                        rewardMessage = $"{prefix}{reward.LongValue} MP";
                         break;
                     case RewardType.AC:
                         this.AddPlayerStats(new AttributeSet() { AC = (int)reward.LongValue }, player, world);
-                        rewardMessage = string.Format("{0}{1} AC", prefix, reward.LongValue);
+                        rewardMessage = $"{prefix}{reward.LongValue} AC";
                         break;
                     case RewardType.Stamina:
                         this.AddPlayerStats(new AttributeSet() { Stamina = (int)reward.LongValue }, player, world);
-                        rewardMessage = string.Format("{0}{1} Stamina", prefix, reward.LongValue);
+                        rewardMessage = $"{prefix}{reward.LongValue} Stamina";
                         break;
                     case RewardType.Strength:
                         this.AddPlayerStats(new AttributeSet() { Strength = (int)reward.LongValue }, player, world);
-                        rewardMessage = string.Format("{0}{1} Strength", prefix, reward.LongValue);
+                        rewardMessage = $"{prefix}{reward.LongValue} Strength";
                         break;
                     case RewardType.Dexterity:
                         this.AddPlayerStats(new AttributeSet() { Dexterity = (int)reward.LongValue }, player, world);
-                        rewardMessage = string.Format("{0}{1} Dexterity", prefix, reward.LongValue);
+                        rewardMessage = $"{prefix}{reward.LongValue} Dexterity";
                         break;
                     case RewardType.Intelligence:
                         this.AddPlayerStats(new AttributeSet() { Intelligence = (int)reward.LongValue }, player, world);
-                        rewardMessage = string.Format("{0}{1} Intelligence", prefix, reward.LongValue);
+                        rewardMessage = $"{prefix}{reward.LongValue} Intelligence";
                         break;
                     case RewardType.SpellBuff:
                         var spellEffect = world.SpellHandler.GetSpellEffect((int)reward.LongValue);
@@ -469,7 +469,7 @@ namespace Goose.Quests
                             continue;
 
                         spellEffect.Cast(npc, player, world);
-                        rewardMessage = string.Format("{0}Spell Effect: {1}", prefix, spellEffect.Name);
+                        rewardMessage = $"{prefix}Spell Effect: {spellEffect.Name}";
                         break;
                     case RewardType.LearnSpell:
                         player.LearnSpell((int)reward.LongValue, world);

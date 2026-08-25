@@ -52,9 +52,7 @@ namespace Goose
             if (!string.IsNullOrEmpty(dir))
                 Directory.CreateDirectory(dir);
 
-            var cs = string.Format(
-                "Data Source={0}; Version=3; Journal Mode=Wal; BusyTimeout=5000;",
-                databasePath);
+            var cs = $"Data Source={databasePath}; Version=3; Journal Mode=Wal; BusyTimeout=5000;";
 
             var ready = new ManualResetEventSlim(false);
             Exception startError = null;
