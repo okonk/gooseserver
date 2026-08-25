@@ -140,7 +140,7 @@ namespace Goose
             this.TotalStats = new AttributeSet();
             this.BaseStats = new AttributeSet();
             this.StatMultiplier = 1;
-            this.ItemProperties = new Dictionary<ItemProperty, object>();
+            this.ItemProperties = [];
         }
 
         /**

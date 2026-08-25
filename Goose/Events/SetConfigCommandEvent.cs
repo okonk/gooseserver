@@ -11,7 +11,7 @@ namespace Goose.Events
             {
                 string data = ((string)this.Data).Substring(11);
 
-                string[] tokens = data.Split(" ".ToCharArray(), 2);
+                string[] tokens = data.Split(' ', 2);
 
                 // Reflection.. fun
                 // Get GameSettings type

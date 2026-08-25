@@ -24,7 +24,7 @@ namespace Goose.Events
                 int id2 = 0;
                 int id3 = 0;
 
-                string[] t = ((string)this.Data).Substring(3).Split(",".ToCharArray());
+                string[] t = ((string)this.Data).Substring(3).Split(',');
 
                 // log bad packet
                 if (t.Length != 5) return;

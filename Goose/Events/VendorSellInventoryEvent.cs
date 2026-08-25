@@ -18,7 +18,7 @@ namespace Goose.Events
                 int slotid = 0;
                 int stack = 0;
 
-                string[] t = ((string)this.Data).Substring(3).Split(",".ToCharArray());
+                string[] t = ((string)this.Data).Substring(3).Split(',');
 
                 // log bad packet
                 if (t.Length != 3) return;

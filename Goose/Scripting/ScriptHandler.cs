@@ -10,7 +10,7 @@ namespace Goose.Scripting
         public ScriptHandler(GooseSettings settings)
         {
             this.settings = settings ?? throw new ArgumentNullException(nameof(settings));
-            this.scripts = new Dictionary<string, IScript>();
+            this.scripts = [];
         }
 
         public Script<T> GetScript<T>(string filePath)

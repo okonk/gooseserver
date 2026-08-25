@@ -148,7 +148,7 @@ namespace Goose
 
             public TrieNode()
             {
-                this.Children = new Dictionary<char, TrieNode>();
+                this.Children = [];
             }
         }
     }

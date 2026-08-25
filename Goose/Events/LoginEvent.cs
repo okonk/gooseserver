@@ -58,7 +58,7 @@ namespace Goose.Events
 
                 name = packet.Substring(5, packet.IndexOf(',') - 5);
 
-                string[] t = packet.Split(",".ToCharArray());
+                string[] t = packet.Split(',');
 
                 if (t.Length < 2) return;
                 password = t[1];
@@ -254,7 +254,7 @@ namespace Goose.Events
             
             world.Send(this.Player, P.LoginAccepted(world.Settings.ServerName));
 
-            this.Player.Windows = new List<Window>();
+            this.Player.Windows = [];
             this.Player.LastPing = world.TimeNow;
             this.Player.LastActive = world.TimeNow;
             this.Player.LastPlaytimeUpdate = world.TimeNow;

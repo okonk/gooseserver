@@ -53,8 +53,8 @@ namespace Goose
          */
         public Guild()
         {
-            this.Members = new Dictionary<int, PlayerGuildStatus>();
-            this.OnlineMembers = new List<Player>();
+            this.Members = [];
+            this.OnlineMembers = [];
             this.Dirty = false;
         }
 
@@ -222,7 +222,7 @@ namespace Goose
                     command.ExecuteNonQuery();
                 }
 
-                List<int> removed = new List<int>();
+                List<int> removed = [];
                 foreach (var status in this.Members.Values)
                 {
                     if (status.Dirty)
@@ -277,14 +277,14 @@ namespace Goose
             string motd = this.MOTD;
             long seq = Interlocked.Read(ref this.changeSeq);
 
-            List<(PlayerGuildStatus Status, int PlayerID, GuildRanks Rank, bool Deleted)> changes = new List<(PlayerGuildStatus, int, GuildRanks, bool)>();
+            List<(PlayerGuildStatus Status, int PlayerID, GuildRanks Rank, bool Deleted)> changes = [];
             foreach (var status in this.Members.Values)
             {
                 if (status.Dirty)
                     changes.Add((status, status.PlayerID, status.Rank, status.Rank == GuildRanks.Deleted));
             }
 
-            List<Player> online = new List<Player>(this.OnlineMembers);
+            List<Player> online = [.. this.OnlineMembers];
 
             int effectiveId = 0;
             bool inserted = false;

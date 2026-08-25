@@ -20,7 +20,7 @@ namespace Goose.Events
                 int id1 = 0;
                 int id2 = 0;
                 int amount = 1;
-                string[] tokens = ((string)this.Data).Substring(5).Split(",".ToCharArray());
+                string[] tokens = ((string)this.Data).Substring(5).Split(',');
 
                 try
                 {

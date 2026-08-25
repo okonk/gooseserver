@@ -8,7 +8,7 @@ namespace Goose.Events
         {
             if (this.Player.State == Player.States.Ready)
             {
-                string[] data = ((string)this.Data).Split(" ".ToCharArray(), 3, StringSplitOptions.RemoveEmptyEntries);
+                string[] data = ((string)this.Data).Split(' ', 3, StringSplitOptions.RemoveEmptyEntries);
 
                 long bought = 0;
                 long soldexp = 0;

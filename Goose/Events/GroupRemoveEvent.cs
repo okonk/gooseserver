@@ -15,7 +15,7 @@ namespace Goose.Events
         {
             if (this.Player.State == Player.States.Ready)
             {
-                string[] t = ((string)this.Data).Split(" ".ToCharArray());
+                string[] t = ((string)this.Data).Split(' ');
 
                 if (t.Length == 1)
                 {

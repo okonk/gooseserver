@@ -18,7 +18,7 @@ namespace Goose.Events
 
                 try
                 {
-                    gold = Convert.ToInt32(((string)this.Data).Split(" ".ToCharArray())[1]);
+                    gold = Convert.ToInt32(((string)this.Data).Split(' ')[1]);
                 }
                 catch (Exception)
                 {

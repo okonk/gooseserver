@@ -15,8 +15,8 @@ namespace Goose
 
         public SpellHandler()
         {
-            this.effects = new Dictionary<int, SpellEffect>();
-            this.spells = new Dictionary<int, Spell>();
+            this.effects = [];
+            this.spells = [];
         }
 
         /**
@@ -128,8 +128,8 @@ namespace Goose
 
                 effect.BuffStacksOverString = Convert.ToString(reader["buff_stacks_over"]);
                 effect.BuffDoesntStackOverString = Convert.ToString(reader["buff_doesnt_stack_over"]);
-                effect.BuffStacksOver = new List<SpellEffect>();
-                effect.BuffDoesntStackOver = new List<SpellEffect>();
+                effect.BuffStacksOver = [];
+                effect.BuffDoesntStackOver = [];
 
                 effect.OnlyHitsOneNPC = ("0".Equals(Convert.ToString(reader["only_hits_one_npc"])) ? false : true);
 
@@ -148,7 +148,7 @@ namespace Goose
                 s.OnMeleeAttackSpell = this.GetSpellEffect(s.OnMeleeAttackSpellID);
                 s.OnMeleeHitSpell = this.GetSpellEffect(s.OnMeleeHitSpellID);
 
-                foreach (string effectid in s.BuffStacksOverString.Split(" ".ToCharArray()))
+                foreach (string effectid in s.BuffStacksOverString.Split(' '))
                 {
                     try
                     {
@@ -167,7 +167,7 @@ namespace Goose
 
                     }
                 }
-                foreach (string effectid in s.BuffDoesntStackOverString.Split(" ".ToCharArray()))
+                foreach (string effectid in s.BuffDoesntStackOverString.Split(' '))
                 {
                     try
                     {

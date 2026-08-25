@@ -226,8 +226,8 @@ namespace Goose
         public SpellEffect()
         {
             this.Stats = new AttributeSet();
-            this.BuffStacksOver = new List<SpellEffect>();
-            this.BuffDoesntStackOver = new List<SpellEffect>();
+            this.BuffStacksOver = [];
+            this.BuffDoesntStackOver = [];
             this.BuffStacksOverString = "";
             this.BuffDoesntStackOverString = "";
         }
@@ -293,9 +293,9 @@ namespace Goose
             // New instances, not shared references - see the class doc above.
             this.Stats = other.Stats == null ? new AttributeSet() : other.Stats.Clone();
             this.BuffStacksOver = other.BuffStacksOver == null
-                ? new List<SpellEffect>() : new List<SpellEffect>(other.BuffStacksOver);
+                ? [] : [.. other.BuffStacksOver];
             this.BuffDoesntStackOver = other.BuffDoesntStackOver == null
-                ? new List<SpellEffect>() : new List<SpellEffect>(other.BuffDoesntStackOver);
+                ? [] : [.. other.BuffDoesntStackOver];
         }
 
         // Used in random spell
@@ -1207,8 +1207,8 @@ namespace Goose
                 }
                 else if (this.TargetType == TargetTypes.Random)
                 {
-                    List<Point> points = new List<Point>();
-                    List<Point> done = new List<Point>();
+                    List<Point> points = [];
+                    List<Point> done = [];
 
                     Point point;
 
@@ -1327,7 +1327,7 @@ namespace Goose
                     }
                 }
 
-                packet.TrimStart("\x1".ToCharArray());
+                packet.TrimStart('\x1');
 
                 if (target is Player) world.Send((Player)target, packet);
 
@@ -1352,7 +1352,7 @@ namespace Goose
          */
         public long ParseFormula(string formula, ICharacter caster, ICharacter target)
         {
-            List<Object> result = new List<Object>();
+            List<Object> result = [];
             Stack<char> operators = new Stack<char>();
 
             string buffer = "";

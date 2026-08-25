@@ -20,7 +20,7 @@ namespace Goose.Events
                 string data = ((string)this.Data).Substring(2);
                 if (data.Length >= 3)
                 {
-                    string[] t = data.Split(",".ToCharArray());
+                    string[] t = data.Split(',');
 
                     if (t.Length == 2)
                     {

@@ -18,7 +18,7 @@ namespace Goose.Events
 
                 try
                 {
-                    string[] t = data.Split(",".ToCharArray());
+                    string[] t = data.Split(',');
                     invslot = Convert.ToInt32(t[0]);
                     windowid = Convert.ToInt32(t[1]);
                     windowslot = Convert.ToInt32(t[2]);

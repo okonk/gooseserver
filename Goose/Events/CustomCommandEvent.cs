@@ -25,7 +25,7 @@ namespace Goose.Events
                     return;
                 }
 
-                string[] tokens = data.Split(new[] { ' ' }, 6, StringSplitOptions.RemoveEmptyEntries);
+                string[] tokens = data.Split(' ', 6, StringSplitOptions.RemoveEmptyEntries);
 
                 if (tokens.Length < 6 && tokens[0].ToLower() != "help" && tokens[0].ToLower() != "kill")
                 {

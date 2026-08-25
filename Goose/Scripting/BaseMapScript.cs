@@ -17,7 +17,7 @@ namespace Goose.Scripting
             this.X = x;
             this.Y = y;
             this.Blocked = ((flags & 2) > 0);
-            this.LayerInfo = new List<int>();
+            this.LayerInfo = [];
         }
 
         public string GetTUPPacket()
@@ -46,7 +46,7 @@ namespace Goose.Scripting
 
         public MapScriptData()
         {
-            this.DynamicTiles = new Dictionary<int, DynamicTile>();
+            this.DynamicTiles = [];
         }
     }
 

@@ -14,7 +14,7 @@ namespace Goose.Events
         {
             if (this.Player.State == Player.States.Ready)
             {
-                string[] tokens = ((string)this.Data).Split(" ".ToCharArray(), 3);
+                string[] tokens = ((string)this.Data).Split(' ', 3);
 
                 Player player = world.PlayerHandler.GetPlayerFromData(tokens[1]);
                 if (player != null)

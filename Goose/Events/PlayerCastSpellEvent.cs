@@ -22,7 +22,7 @@ namespace Goose.Events
                     return;
 
                 string packet = ((string)this.Data).Substring(4);
-                string[] t = packet.Split(",".ToCharArray());
+                string[] t = packet.Split(',');
 
                 int spellid = 0;
                 int target = 0;

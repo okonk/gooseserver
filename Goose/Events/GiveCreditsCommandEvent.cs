@@ -9,7 +9,7 @@ namespace Goose.Events
             if (this.Player.State == Player.States.Ready)
             {
                 string packet = (string)this.Data;
-                string[] tokens = packet.Split(" ".ToCharArray());
+                string[] tokens = packet.Split(' ');
                 if (tokens.Length < 3) return;
 
                 string name = tokens[1];

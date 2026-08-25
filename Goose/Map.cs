@@ -83,10 +83,10 @@ namespace Goose
          */
         public Map()
         {
-            this.players = new List<Player>();
-            this.requiredItems = new List<int>();
-            this.npcs = new List<NPC>();
-            this.items = new List<ItemTile>();
+            this.players = [];
+            this.requiredItems = [];
+            this.npcs = [];
+            this.items = [];
         }
 
         /// <summary>Item template ids a player must carry to enter. Read-only - use

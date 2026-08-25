@@ -9,7 +9,7 @@ namespace Goose
 
         public ChatFilter()
         {
-            this.WordFilter = new Dictionary<string, string>();
+            this.WordFilter = [];
         }
 
         public void LoadFilter(GameWorld world)
@@ -33,7 +33,7 @@ namespace Goose
             string replaced;
             string output = "";
 
-            foreach (string word in input.Split(" ".ToCharArray(), StringSplitOptions.None))
+            foreach (string word in input.Split(' ', StringSplitOptions.None))
             {
                 if (this.WordFilter.TryGetValue(word.ToLower(), out replaced))
                 {

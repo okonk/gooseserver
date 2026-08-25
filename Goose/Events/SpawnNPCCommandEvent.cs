@@ -14,7 +14,7 @@ namespace Goose.Events
 
             int id = 0;
 
-            string[] t = ((string)this.Data).Split(" ".ToCharArray(), 2);
+            string[] t = ((string)this.Data).Split(' ', 2);
 
             if (t.Length < 2) return;
 

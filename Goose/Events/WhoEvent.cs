@@ -30,7 +30,7 @@ namespace Goose.Events
                 }
                 else
                 {
-                    string[] search = packet.Split(" ".ToCharArray());
+                    string[] search = packet.Split(' ');
                     if (search.Length > 1)
                     {
                         if (search[1].Equals("all"))

@@ -13,7 +13,7 @@ namespace Goose
 
         public ClassHandler()
         {
-            this.classes = new Dictionary<int, Class>();
+            this.classes = [];
         }
 
         /**
@@ -105,7 +105,7 @@ namespace Goose
                 c.BaseStats.MeleeCrit = Decimal.Parse(Convert.ToString(reader["melee_crit"]));
                 c.BaseStats.DamageReduction = Decimal.Parse(Convert.ToString(reader["damage_reduce"]));
 
-                c.Spells = new List<Spell>();
+                c.Spells = [];
 
                 cl.AddLevel(c);
             }

@@ -17,7 +17,7 @@ namespace Goose.Events
             {
                 int id1 = 0;
                 int id2 = 0;
-                string[] ids = ((string)this.Data).Substring(6).Split(",".ToCharArray());
+                string[] ids = ((string)this.Data).Substring(6).Split(',');
 
                 try
                 {

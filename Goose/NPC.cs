@@ -458,7 +458,7 @@ namespace Goose
                     this.AggroTargetToValue.Remove(this.AggroTarget);
                     this.AggroTarget = null;
 
-                    List<Player> remove = new List<Player>();
+                    List<Player> remove = [];
 
                     Player highest = null;
                     NPC.Aggro aggro = new NPC.Aggro(0, 0);
@@ -596,7 +596,7 @@ namespace Goose
                     }
                 }
                 if (packet.Equals("")) return;
-                packet = packet.TrimEnd("\x1".ToCharArray());
+                packet = packet.TrimEnd('\x1');
                 foreach (Player p in afterRange.Union<Player>(beforeRange).Distinct<Player>())
                 {
                     world.Send(p, packet);
@@ -668,7 +668,7 @@ namespace Goose
             this.SpawnX = this.MapX;
             this.SpawnY = this.MapY;
 
-            this.Buffs = new List<Buff>();
+            this.Buffs = [];
 
             this.Map.AddNPC(this);
 
@@ -720,7 +720,7 @@ namespace Goose
 
             this.AggroTarget = null;
             this.AggroValue = new Aggro(0, 0);
-            this.AggroTargetToValue = new Dictionary<Player, Aggro>();
+            this.AggroTargetToValue = [];
 
             List<Player> range = this.Map.GetPlayersInRange(this);
             string packet = P.MakeNPCCharacter(this);
@@ -1043,7 +1043,7 @@ namespace Goose
                 }
 
                 List<Player> range = this.Map.GetPlayersInRange(this);
-                packet = packet.TrimEnd("\x1".ToCharArray());
+                packet = packet.TrimEnd('\x1');
                 foreach (Player p in range)
                 {
                     world.Send(p, packet);
@@ -1144,7 +1144,7 @@ namespace Goose
                         this.Map.RemoveNPC(this);
                     }
 
-                    Dictionary<Object, long> damages = new Dictionary<Object, long>();
+                    Dictionary<Object, long> damages = [];
                     foreach (KeyValuePair<Player, Aggro> p in this.AggroTargetToValue)
                     {
                         if (p.Key.Group != null)
@@ -1203,7 +1203,7 @@ namespace Goose
                         }
                     }
 
-                    List<Buff> removebuff = new List<Buff>();
+                    List<Buff> removebuff = [];
 
                     foreach (Buff b in this.Buffs)
                     {
@@ -1226,7 +1226,7 @@ namespace Goose
                     this.AddRegenEvent(world);
                 }
 
-                packet = packet.TrimEnd("\x1".ToCharArray());
+                packet = packet.TrimEnd('\x1');
                 foreach (Player p in range)
                 {
                     world.Send(p, packet);

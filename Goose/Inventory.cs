@@ -991,7 +991,7 @@ namespace Goose
             // Count the actual quantity of each ingredient, not the number of slots it
             // occupies. The consumption loop below works in stack quantities, so matching
             // on slot counts let a single slot satisfy a requirement for several items.
-            Dictionary<int, long> combineHash = new Dictionary<int, long>();
+            Dictionary<int, long> combineHash = [];
             foreach (ItemSlot slot in this.combineContainer)
             {
                 if (slot == null) continue;
@@ -1040,10 +1040,10 @@ namespace Goose
             }
 
 
-            List<int> freeslots = new List<int>();
+            List<int> freeslots = [];
             var newcombine = new ItemContainer(this.settings.CombineBagSize + 1);
 
-            Dictionary<int, int> reqhash = new Dictionary<int, int>();
+            Dictionary<int, int> reqhash = [];
             foreach (KeyValuePair<int, int> req in match.RequiredHash)
             {
                 reqhash[req.Key] = req.Value;

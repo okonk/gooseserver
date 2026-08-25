@@ -31,9 +31,9 @@ namespace Goose.Quests
 
         public Quest()
         {
-            this.Requirements = new List<QuestRequirement>();
-            this.Rewards = new List<QuestReward>();
-            this.PrerequisiteQuests = new List<int>();
+            this.Requirements = [];
+            this.Rewards = [];
+            this.PrerequisiteQuests = [];
         }
 
         public static Quest FromReader(DbDataReader reader, Dictionary<int, Quest> quests)
@@ -57,7 +57,7 @@ namespace Goose.Quests
             quest.Repeatable = ("0".Equals(Convert.ToString(reader["repeatable"])) ? false : true);
             quest.ShowProgress = ("0".Equals(Convert.ToString(reader["show_progress"])) ? false : true);
             quest.OnlyOnePlayerCanComplete = ("0".Equals(Convert.ToString(reader["only_one_player_can_complete"])) ? false : true);
-            quest.PrerequisiteQuests = Convert.ToString(reader["prerequisite_quests"]).Split(new[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries).Select(q => Convert.ToInt32(q)).ToList();
+            quest.PrerequisiteQuests = Convert.ToString(reader["prerequisite_quests"]).Split([' ', ','], StringSplitOptions.RemoveEmptyEntries).Select(q => Convert.ToInt32(q)).ToList();
 
             return quest;
         }

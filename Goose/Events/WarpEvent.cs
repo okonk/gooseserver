@@ -12,7 +12,7 @@ namespace Goose.Events
         {
             if (this.Player.State == Player.States.Ready)
             {
-                string[] tokens = ((string)this.Data).Split(" ".ToCharArray());
+                string[] tokens = ((string)this.Data).Split(' ');
                 int mapid = 1;
                 int mapx = 50;
                 int mapy = 50;

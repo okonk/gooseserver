@@ -27,8 +27,8 @@ namespace Goose
          */
         public Ranks(RankTypes type, int classId = -1)
         {
-            this.RanksList = new List<Player>();
-            this.ranksStrings = new List<string>();
+            this.RanksList = [];
+            this.ranksStrings = [];
             this.lastUpdated = 0;
             this.Type = type;
             this.classId = classId;
@@ -57,7 +57,7 @@ namespace Goose
          */
         public void Update(GameWorld world)
         {
-            this.ranksStrings = new List<string>();
+            this.ranksStrings = [];
 
             List<Player> result = null;
 

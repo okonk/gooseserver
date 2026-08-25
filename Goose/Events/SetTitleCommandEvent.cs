@@ -8,7 +8,7 @@ namespace Goose.Events
         {
             if (this.Player.State == Player.States.Ready)
             {
-                string[] tokens = ((string)this.Data).Split(" ".ToCharArray(), 3);
+                string[] tokens = ((string)this.Data).Split(' ', 3);
                 string name, title;
                 if (tokens.Length < 2)
                 {

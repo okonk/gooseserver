@@ -13,7 +13,7 @@ namespace Goose
 
         public LogHandler()
         {
-            this.logs = new List<Log>();
+            this.logs = [];
         }
 
         public void Save(GameWorld world)

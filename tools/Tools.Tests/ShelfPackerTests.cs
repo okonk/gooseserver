@@ -90,7 +90,7 @@ public class ShelfPackerTests
     [Fact]
     public void Empty_input_produces_empty_atlas()
     {
-        var packed = ShelfPacker.Pack(Array.Empty<(int, int)>(), width: 2048);
+        var packed = ShelfPacker.Pack([], width: 2048);
 
         Assert.Empty(packed.Placements);
         Assert.Equal(0, packed.Height);
@@ -119,6 +119,6 @@ public class ShelfPackerTests
         Assert.Equal("width", e.ParamName);
 
         Assert.Throws<ArgumentOutOfRangeException>(
-            () => ShelfPacker.Pack(Array.Empty<(int, int)>(), width: -1));
+            () => ShelfPacker.Pack([], width: -1));
     }
 }

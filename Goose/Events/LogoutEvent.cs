@@ -75,7 +75,7 @@ namespace Goose.Events
                 player.State = Player.States.NotLoggedIn;
 
                 // Remove all buffs on logout
-                List<Buff> removebuff = new List<Buff>();
+                List<Buff> removebuff = [];
                 foreach (Buff b in player.Buffs)
                 {
                     if (!b.ItemBuff) removebuff.Add(b);

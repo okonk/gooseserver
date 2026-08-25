@@ -15,7 +15,7 @@ namespace Goose
          */
         public Group()
         {
-            this.Players = new List<Player>();
+            this.Players = [];
         }
 
         /**

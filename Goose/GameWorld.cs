@@ -292,7 +292,7 @@ namespace Goose
             if (!this.LoadStep("Chat Filter", () => this.ChatFilter.LoadFilter(this),
                 () => this.ChatFilter.Count)) return;
 
-            this.CharactersCreatedPerIP = new Dictionary<string, int>();
+            this.CharactersCreatedPerIP = [];
             this.LoginThrottle = new LoginThrottle(this.Settings);
             Event clearCreatedHistory = new ClearCreatedHistoryEvent();
             clearCreatedHistory.Ticks += this.TimerFrequency * 24 * 60 * 60;

@@ -11,7 +11,7 @@ namespace Goose.Events
 
             try
             {
-                string[] tokens = ((string)this.Data).Split(" ".ToCharArray(), 3);
+                string[] tokens = ((string)this.Data).Split(' ', 3);
                 string command, name;
                 if (tokens.Length < 3)
                 {

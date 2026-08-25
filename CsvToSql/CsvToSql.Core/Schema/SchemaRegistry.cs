@@ -28,8 +28,8 @@ namespace CsvToSql.Core.Schema
             Table = table;
             Converter = converter;
             Columns = converter.GetColumnDescriptors();
-            Composites = converter.GetComposites() ?? Array.Empty<Composite>();
-            Indexes = indexes ?? Array.Empty<string>();
+            Composites = converter.GetComposites() ?? [];
+            Indexes = indexes ?? [];
         }
     }
 

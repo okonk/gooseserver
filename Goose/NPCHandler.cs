@@ -107,7 +107,7 @@ namespace Goose
                         // uniform: item override, then vendor, then gold.
                         npc.CurrencyId = npc.CreditDealer ? Currency.Credits : null;
 
-                        var questIds = Convert.ToString(reader["quest_ids"]).Split(new[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries).Select(q => Convert.ToInt32(q));
+                        var questIds = Convert.ToString(reader["quest_ids"]).Split([' ', ','], StringSplitOptions.RemoveEmptyEntries).Select(q => Convert.ToInt32(q));
                         npc.Quests = questIds.Select(q => world.QuestHandler.Get(q)).ToList();
 
                         string scriptPath = Convert.ToString(reader["script_path"]);
@@ -129,7 +129,7 @@ namespace Goose
 
                     try
                     {
-                        foreach (int ally in npc.AlliesString.Split(new[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries).Select(q => Convert.ToInt32(q)))
+                        foreach (int ally in npc.AlliesString.Split([' ', ','], StringSplitOptions.RemoveEmptyEntries).Select(q => Convert.ToInt32(q)))
                         {
                             NPCTemplate a = this.GetNPCTemplate(ally);
                             if (a == null)
@@ -157,7 +157,7 @@ namespace Goose
                         command.CommandText = "SELECT * FROM npc_drops WHERE npc_template_id=" + template.NPCTemplateID;
                         using var reader = command.ExecuteReader();
 
-                        template.Drops = new List<NPCDropInfo>();
+                        template.Drops = [];
 
                         while (reader.Read())
                         {

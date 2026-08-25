@@ -207,7 +207,7 @@ namespace Goose
 
         public NPCTemplate()
         {
-            this.Quests = new List<Quest>();
+            this.Quests = [];
         }
 
         /// <summary>Copy constructor for script-generated variants. Lists are new instances so a
@@ -254,9 +254,9 @@ namespace Goose
             this.ScriptParams = other.ScriptParams;
             this.ArmorPierce = other.ArmorPierce;
             this.VendorItems = other.VendorItems;
-            this.Allies = other.Allies is null ? null : new List<NPCTemplate>(other.Allies);
-            this.Drops = other.Drops is null ? null : new List<NPCDropInfo>(other.Drops);
-            this.Quests = other.Quests is null ? new List<Quest>() : new List<Quest>(other.Quests);
+            this.Allies = other.Allies is null ? null : [.. other.Allies];
+            this.Drops = other.Drops is null ? null : [.. other.Drops];
+            this.Quests = other.Quests is null ? [] : [.. other.Quests];
         }
     }
 }

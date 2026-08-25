@@ -16,7 +16,7 @@ namespace Goose.Events
                     return;
                 }
 
-                string[] tokens = data.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                string[] tokens = data.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                 int r, g, b, a;
                 string error;
 

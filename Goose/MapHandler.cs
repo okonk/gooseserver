@@ -21,7 +21,7 @@ namespace Goose
          */
         public MapHandler()
         {
-            this.maps = new Dictionary<int, Map>();
+            this.maps = [];
         }
 
         public Dictionary<int, Map> Maps { get { return this.maps; } }

@@ -6,7 +6,7 @@ namespace Goose.Events
     {
         public override void Ready(GameWorld world)
         {
-            List<string> redeemed = new List<string>();
+            List<string> redeemed = [];
             Player player;
             int credits;
 

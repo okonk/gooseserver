@@ -30,7 +30,7 @@ namespace CsvToSql.Core.Schema
         public string RefSheet { get; private set; }
         public Type EnumType { get; private set; }
         public IReadOnlyList<string> EnumNames =>
-            EnumType == null ? Array.Empty<string>() : System.Enum.GetNames(EnumType);
+            EnumType == null ? [] : System.Enum.GetNames(EnumType);
 
         internal Column(string name, ColumnKind kind, SqlType type, string def = null)
         {

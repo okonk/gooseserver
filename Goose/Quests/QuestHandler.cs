@@ -8,7 +8,7 @@ namespace Goose.Quests
 
         public QuestHandler()
         {
-            this.Quests = new Dictionary<int, Quest>();
+            this.Quests = [];
         }
 
         public void LoadQuests(GameWorld world)

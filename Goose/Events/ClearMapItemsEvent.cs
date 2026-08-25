@@ -13,7 +13,7 @@ namespace Goose.Events
         {
             Map map = (Map)this.Data;
             long existedfor; // how long the item has been on the map in seconds
-            List<ItemTile> remove = new List<ItemTile>();
+            List<ItemTile> remove = [];
 
             foreach (ItemTile item in map.Items) {
                 existedfor = ((world.TimeNow - item.DroppedTime) / world.TimerFrequency);

@@ -23,10 +23,10 @@ namespace Goose
 
         public ItemHandler()
         {
-            this.templates = new Dictionary<int, ItemTemplate>();
-            this.items = new Dictionary<int, Item>();
-            this.titles = new Dictionary<int, ItemModifier>();
-            this.surnames = new Dictionary<int, ItemModifier>();
+            this.templates = [];
+            this.items = [];
+            this.titles = [];
+            this.surnames = [];
         }
 
         /// <summary>

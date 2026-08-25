@@ -15,7 +15,7 @@ namespace Goose
         /// <summary>
         /// Maps Login IDs to pet objects
         /// </summary>
-        public static Dictionary<int, Pet> LoginIDToPet = new Dictionary<int, Pet>();
+        public static Dictionary<int, Pet> LoginIDToPet = [];
         /// <summary>
         /// Returns the first empty login id for a pet
         /// </summary>
@@ -285,7 +285,7 @@ namespace Goose
 
         public Pet()
         {
-            this.Buffs = new List<Buff>();
+            this.Buffs = [];
         }
 
 
@@ -502,7 +502,7 @@ namespace Goose
         {
             if (!this.IsAlive) return;
 
-            List<Buff> removebuff = new List<Buff>();
+            List<Buff> removebuff = [];
             foreach (Buff b in this.Buffs)
             {
                 if (!b.ItemBuff) removebuff.Add(b);

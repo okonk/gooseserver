@@ -505,16 +505,16 @@ namespace Goose
             this.LastAttack = 0;
             this.LastPing = 0;
             this.LastWindowID = 1000;
-            this.Windows = new List<Window>();
+            this.Windows = [];
 
             this.State = States.NotLoggedIn;
 
-            this.Buffs = new List<Buff>();
-            this.Pets = new List<Pet>();
+            this.Buffs = [];
+            this.Pets = [];
 
-            this.QuestProgress = new List<QuestProgress>();
-            this.QuestsCompleted = new List<Quest>();
-            this.QuestsStarted = new List<Quest>();
+            this.QuestProgress = [];
+            this.QuestsCompleted = [];
+            this.QuestsStarted = [];
 
             this.GroupInvitesEnabled = false;
 
@@ -644,7 +644,7 @@ namespace Goose
             this.LastPlaytimeUpdate = world.TimeNow;
 
             this.Inventory = new Inventory(this, world.Settings);
-            string[] items = world.Settings.StartingItems.Split(" ".ToCharArray());
+            string[] items = world.Settings.StartingItems.Split(' ');
             if (items.Length > 0)
             {
                 for (int i = 0; i < items.Length; i++)
@@ -1923,7 +1923,7 @@ namespace Goose
                 world.Send(this, P.StatusInfo(this));
 
                 // Remove all buffs on death
-                List<Buff> removebuff = new List<Buff>();
+                List<Buff> removebuff = [];
                 foreach (Buff b in this.Buffs)
                 {
                     if (!b.ItemBuff) removebuff.Add(b);

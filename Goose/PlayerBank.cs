@@ -17,7 +17,7 @@ namespace Goose
 
         public PlayerBank()
         {
-            this.bankContainers = new Dictionary<int, ItemContainer>();
+            this.bankContainers = [];
         }
 
         public void Load(GameWorld world, Player player)

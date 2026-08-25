@@ -17,7 +17,7 @@ namespace Goose
         {
             this.All = new Ranks(Ranks.RankTypes.All);
             this.Gold = new Ranks(Ranks.RankTypes.Gold);
-            this.ClassRanks = new Dictionary<string, Ranks>();
+            this.ClassRanks = [];
         }
 
         public void UpdateAll(GameWorld world)

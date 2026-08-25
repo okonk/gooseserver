@@ -40,7 +40,7 @@ namespace Goose
             foreach (Combination comb in this.combinations.Values)
             {
                 // Load required items
-                comb.RequiredHash = new Dictionary<int, int>();
+                comb.RequiredHash = [];
 
                 command.CommandText = "SELECT item_template_id FROM combination_item_required " + 
                     "WHERE combination_id=" + comb.ID;
@@ -77,7 +77,7 @@ namespace Goose
                 }
 
                 // Load resulting items
-                comb.ResultItems = new List<ItemTemplate>();
+                comb.ResultItems = [];
 
                 command.CommandText = "SELECT item_template_id FROM combination_item_results " +
                     "WHERE combination_id=" + comb.ID;

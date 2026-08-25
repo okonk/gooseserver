@@ -16,7 +16,7 @@ namespace Goose.Events
                 int stack = 1;
                 bool powerful = false;
 
-                string[] t = ((string)this.Data).Split(" ".ToCharArray(), 5);
+                string[] t = ((string)this.Data).Split(' ', 5);
 
                 if (t.Length >= 2)
                 {
