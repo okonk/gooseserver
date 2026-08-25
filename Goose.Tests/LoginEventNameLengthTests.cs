@@ -15,7 +15,7 @@ namespace Goose.Tests
     {
         private static (GameWorld world, Socket client, Socket accepted) NewWorldAndLoopbackPair()
         {
-            var world = new GameWorld(new GameServer());
+            var world = new GameWorld(new GameServer(GameWorld.Settings));
             // Only assigned during the Run/load sequence, not the constructor
             world.LoginThrottle = new LoginThrottle();
             world.CharactersCreatedPerIP = new Dictionary<string, int>();

@@ -65,16 +65,11 @@ namespace Goose
             public DateTime AcceptedAt;
         }
 
-        /**
-         * Constructor, constructs the GameWorld
-         * 
-         * Then calls Start to set up everything
-         * Then calls GameLoop, the main program loop
-         * 
-         */
-        public GameServer()
+        public GooseSettings Settings { get; }
+
+        public GameServer(GooseSettings settings)
         {
-            
+            this.Settings = settings ?? throw new ArgumentNullException(nameof(settings));
         }
 
         public void Run()

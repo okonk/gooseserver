@@ -99,49 +99,7 @@ namespace Goose
 
         static GameWorld()
         {
-            Settings = LoadSettings();
-        }
-
-        /**
-         * Settings come from the data dir when present, otherwise from the shipped copy next
-         * to the binaries. The first time a data dir is used, the shipped default is copied
-         * there so the operator has one editable copy that survives updates.
-         */
-        private static GooseSettings LoadSettings()
-        {
-            var dataSettings = Paths.ResolveData("GooseSettings.json");
-            var baseSettings = Paths.ResolveBase("GooseSettings.json");
-            string settingsPath;
-
-            if (File.Exists(dataSettings))
-            {
-                settingsPath = dataSettings;
-            }
-            else if (File.Exists(baseSettings))
-            {
-                if (Paths.DataDir != Paths.BaseDir)
-                {
-                    Directory.CreateDirectory(Paths.DataDir);
-                    File.Copy(baseSettings, dataSettings);
-                    settingsPath = dataSettings;
-                }
-                else
-                {
-                    settingsPath = baseSettings;
-                }
-            }
-            else
-            {
-                throw new FileNotFoundException(
-                    "GooseSettings.json not found in the data dir or next to the server binaries.",
-                    dataSettings);
-            }
-
-            log.Info("Loaded settings from {0}", settingsPath);
-
-            return System.Text.Json.JsonSerializer.Deserialize<GooseSettings>(
-                File.ReadAllText(settingsPath, Encoding.UTF8),
-                JsonHelper.SettingsOptions);
+            Settings = GooseSettingsLoader.Load();
         }
 
         /**

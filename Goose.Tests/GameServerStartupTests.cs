@@ -1,3 +1,4 @@
+using System;
 using System.Net;
 using System.Net.Sockets;
 using Goose;
@@ -20,7 +21,7 @@ namespace Goose.Tests
                 GameWorld.Settings.GameServerIP = "not-an-ip";
                 GameWorld.Settings.GameServerPort = 17000;
 
-                var server = new GameServer();
+                var server = new GameServer(GameWorld.Settings);
 
                 var ex = Assert.Throws<FatalStartupException>(() => server.CreateListenSocket());
                 Assert.Contains("not-an-ip", ex.Message);
@@ -48,7 +49,7 @@ namespace Goose.Tests
                 GameWorld.Settings.GameServerIP = "127.0.0.1";
                 GameWorld.Settings.GameServerPort = port;
 
-                var server = new GameServer();
+                var server = new GameServer(GameWorld.Settings);
 
                 Assert.Throws<FatalStartupException>(() => server.CreateListenSocket());
             }
@@ -69,7 +70,7 @@ namespace Goose.Tests
                 GameWorld.Settings.GameServerIP = "127.0.0.1";
                 GameWorld.Settings.GameServerPort = 0;
 
-                var server = new GameServer();
+                var server = new GameServer(GameWorld.Settings);
 
                 using var socket = server.CreateListenSocket();
 
@@ -81,6 +82,32 @@ namespace Goose.Tests
                 GameWorld.Settings.GameServerIP = oldIp;
                 GameWorld.Settings.GameServerPort = oldPort;
             }
+        }
+
+        [Fact]
+        public void Constructor_RetainsTheExactSuppliedSettingsObject()
+        {
+            var settings = new GooseSettings();
+            var server = new GameServer(settings);
+
+            Assert.Same(settings, server.Settings);
+        }
+
+        [Fact]
+        public void Constructor_NullSettings_ThrowsArgumentNullException()
+        {
+            Assert.Throws<ArgumentNullException>(() => new GameServer(null));
+        }
+
+        [Fact]
+        public void Settings_ChangedThroughSuppliedObject_IsVisibleOnServer()
+        {
+            var settings = new GooseSettings();
+            var server = new GameServer(settings);
+
+            settings.GameServerPort = 12345;
+
+            Assert.Equal(12345, server.Settings.GameServerPort);
         }
     }
 }

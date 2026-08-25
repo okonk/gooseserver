@@ -15,7 +15,7 @@ namespace Goose.Tests
 
         public EventHandlerQueueTests()
         {
-            _world = new GameWorld(new GameServer());
+            _world = new GameWorld(new GameServer(GameWorld.Settings));
             _handler = _world.EventHandler;
         }
 

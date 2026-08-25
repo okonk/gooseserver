@@ -21,7 +21,10 @@ namespace Goose
             Paths.Initialize(ParseDataDir(args));
             ConfigureLogging();
 
-            GameServer server = new GameServer();
+            // Temporary: the static property is the bridge between the static load and
+            // per-world settings; passing the same reference avoids loading twice.
+            var settings = GameWorld.Settings;
+            var server = new GameServer(settings);
 
             // Without these, Ctrl+C or `systemctl stop` killed the process outright with
             // all authoritative state still in memory. The database is a write behind

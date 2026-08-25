@@ -7,7 +7,7 @@ public abstract class PlayerFirstSaveTestBase : IDisposable
     private readonly string dbPath =
         Path.Combine(Path.GetTempPath(), "first-save-" + Guid.NewGuid().ToString("N") + ".db");
 
-    protected readonly GameWorld world = new(new GameServer());
+    protected readonly GameWorld world = new(new GameServer(GameWorld.Settings));
 
     protected PlayerFirstSaveTestBase(params string[] schemaFiles)
     {
