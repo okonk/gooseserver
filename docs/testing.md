@@ -61,17 +61,29 @@ verify against the new snapshot.
 Before the split (2026-08-25, `dotnet vstest --ListTests` on the single
 `Goose.Tests` project): **518** discovered tests, wall clock ~75 s.
 
-After the split:
+After the split, the moves were renames into the
+`Goose.IntegrationTests` namespace, with no tests added or dropped (518
+preserved). The settings-isolation rework then brought the fast project to
+321 tests:
 
 | project | tests |
 | --- | --- |
-| `Goose.Tests` | 299 |
+| `Goose.Tests` | 321 |
 | `Goose.IntegrationTests` | 219 |
-| total | 518 |
-
-The total is unchanged: the moves are renames into the
-`Goose.IntegrationTests` namespace, with no tests added or dropped.
+| total | 540 |
 
 Measured wall time of `dotnet test Goose.Tests/Goose.Tests.csproj --no-restore`
-after the split: 4.74 s / 4.73 s / 4.67 s over three runs (median **4.73 s**,
-target < 5.0 s). Process wall time, not the xunit per-test duration.
+(2026-08-25, Linux x86_64, 32 cores, .NET 10.0.400): 2.66 s / 2.61 s /
+2.63 s over three runs (median **2.63 s**, target < 5.0 s). Process wall
+time, not the xunit per-test duration; taken from `EPOCHREALTIME` because
+`/usr/bin/time` is not installed on the measurement machine.
+
+## Parallelism and settings isolation
+
+Every `GameWorld` owns its `GooseSettings` reference (the constructor
+requires non-null) and `GameServer` owns the one it passes in; there is no
+static or shared settings state between worlds. Because of that, test
+worlds may be tested in parallel: the serialized settings collections are
+gone and both test projects run with full xUnit parallelism. There are no
+remaining serialized collections, so there is no shared resource left that
+would require one.
