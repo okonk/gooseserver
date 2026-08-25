@@ -7,8 +7,8 @@ namespace Goose.Tests.Fixtures;
 /// <summary>A player standing at a vendor, wired closely enough to drive the real
 /// VendorPurchaseInventoryEvent and VendorSellInventoryEvent.
 ///
-/// Builds on TestWorldFixture so GameWorld.Settings (inventory size, etc.) is populated
-/// and restored on dispose.</summary>
+/// Builds on TestWorldFixture, which constructs its world from its own settings object
+/// and no longer touches the process-global GameWorld.Settings.</summary>
 public sealed class VendorFixture : IDisposable
 {
     private readonly TestWorldFixture inner = new TestWorldFixture();

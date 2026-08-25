@@ -5,10 +5,10 @@ using Xunit;
 
 namespace Goose.Tests;
 
-/// <summary>Fixture-based, and in GameWorldSettingsCollection: TestWorldFixture swaps
-/// the static GameWorld.Settings in its constructor and restores it on dispose
-/// (TestWorldFixture.cs:30,:157-161), so a class that mutates settings must not run in
-/// parallel with the other suites that do the same.</summary>
+/// <summary>Fixture-based, and in GameWorldSettingsCollection: the production paths
+/// these tests exercise read the process-global GameWorld.Settings (shipped defaults
+/// until the per-world migration completes), so they must not run in parallel with
+/// classes that mutate that static.</summary>
 [Collection(GameWorldSettingsCollection.Name)]
 public class ResetModifiersTests
 {

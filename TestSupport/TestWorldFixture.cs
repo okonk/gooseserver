@@ -5,8 +5,6 @@ namespace Goose.Testing;
 
 public class TestWorldFixture : IDisposable
 {
-    private readonly GooseSettings previousSettings = GameWorld.Settings;
-
     public string DataDirectory { get; }
     public GooseSettings Settings { get; }
     public GameWorld World { get; }
@@ -27,8 +25,7 @@ public class TestWorldFixture : IDisposable
             MaxPlayers = 200, MaxNPCs = 15000,
         };
         configure?.Invoke(Settings);
-        GameWorld.Settings = Settings;
-        World = new GameWorld(null);
+        World = new GameWorld(Settings);
 
         SeedClass(0, "Default", 50);
         SeedClass(1, "Commoner", 5);
@@ -156,7 +153,6 @@ public class TestWorldFixture : IDisposable
 
     public void Dispose()
     {
-        GameWorld.Settings = previousSettings;
         if (Directory.Exists(DataDirectory)) Directory.Delete(DataDirectory, recursive: true);
     }
 }

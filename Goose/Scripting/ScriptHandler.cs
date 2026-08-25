@@ -9,16 +9,18 @@ namespace Goose.Scripting
 {
     public class ScriptHandler
     {
+        private readonly GooseSettings settings;
         private Dictionary<string, IScript> scripts;
 
-        public ScriptHandler()
+        public ScriptHandler(GooseSettings settings)
         {
+            this.settings = settings ?? throw new ArgumentNullException(nameof(settings));
             this.scripts = new Dictionary<string, IScript>();
         }
 
         public Script<T> GetScript<T>(string filePath)
         {
-            filePath = GameWorld.Settings.DataPathAbsolute + "/" + filePath;
+            filePath = this.settings.DataPathAbsolute + "/" + filePath;
 
             IScript script = null;
             if (!this.scripts.TryGetValue(filePath, out script))

@@ -72,6 +72,11 @@ namespace Goose
             this.Settings = settings ?? throw new ArgumentNullException(nameof(settings));
         }
 
+        internal GameWorld CreateWorld()
+        {
+            return new GameWorld(this.Settings, this);
+        }
+
         public void Run()
         {
             this.consoleCommands.Start();
@@ -83,7 +88,7 @@ namespace Goose
                     this.sockets = new();
                     this.connections = new();
                     this.connectionsPerIP = new();
-                    this.gameworld = new GameWorld(this);
+                    this.gameworld = this.CreateWorld();
                     this.Start();
                     this.GameLoop();
                 }
