@@ -22,7 +22,10 @@ namespace Goose.Tests
         private static Player NewPlayer()
         {
             var p = new Player(0);
-            p.Inventory = new Inventory(p);
+            p.Inventory = new Inventory(p, new GooseSettings
+            {
+                InventorySize = 30, EquippedSize = 14, CombineBagSize = 10,
+            });
             var klass = new Class { ClassID = 1, ClassName = "Test" };
             klass.AddLevel(new ClassLevel { Level = 1, ClassID = 1, BaseStats = new AttributeSet() });
             p.Class = klass;

@@ -17,6 +17,7 @@ public class QuestWindowScriptTests
     /// </summary>
     private static (NPC npc, Player player, Quest quest) QuestFixture(
         Script<IQuestScript> script,
+        GooseSettings settings,
         RequirementType? requirementType = null,
         RewardType? rewardType = null)
     {
@@ -31,8 +32,8 @@ public class QuestWindowScriptTests
         var player = new Player(0);
         // Player(0) does not initialize Inventory/Spellbook; Clicked checks both before
         // completing (PlayerHasEnoughInventorySpaceForReward / ...SpellbookSpaceForReward).
-        player.Inventory = new Inventory(player);
-        player.Spellbook = new Spellbook(player);
+        player.Inventory = new Inventory(player, settings);
+        player.Spellbook = new Spellbook(player, settings);
 
         var quest = new Quest
         {
@@ -87,7 +88,7 @@ public class T : BaseQuestScript
 }
 return typeof(T);
 ");
-        var (npc, player, quest) = QuestFixture(script, requirementType: RequirementType.Script);
+        var (npc, player, quest) = QuestFixture(script, scripts.Settings, requirementType: RequirementType.Script);
 
         var window = new QuestWindow(npc, player, quest, scripts.World);
 
@@ -110,7 +111,7 @@ public class T : BaseQuestScript
 }
 return typeof(T);
 ");
-        var (npc, player, quest) = QuestFixture(script, requirementType: RequirementType.Script);
+        var (npc, player, quest) = QuestFixture(script, scripts.Settings, requirementType: RequirementType.Script);
 
         var window = new QuestWindow(npc, player, quest, scripts.World);
 
@@ -132,7 +133,7 @@ public class T : BaseQuestScript
 }
 return typeof(T);
 ");
-        var (npc, player, quest) = QuestFixture(script, requirementType: RequirementType.Script);
+        var (npc, player, quest) = QuestFixture(script, scripts.Settings, requirementType: RequirementType.Script);
         quest.Requirements.Add(new QuestRequirement
         {
             Id = 98,
@@ -157,7 +158,7 @@ using Goose; using Goose.Quests; using Goose.Scripting;
 public class T : BaseQuestScript { }
 return typeof(T);
 ");
-        var (npc, player, quest) = QuestFixture(script, requirementType: RequirementType.Script);
+        var (npc, player, quest) = QuestFixture(script, scripts.Settings, requirementType: RequirementType.Script);
 
         var window = new QuestWindow(npc, player, quest, scripts.World);
 
@@ -183,7 +184,7 @@ public class T : BaseQuestScript
 }
 return typeof(T);
 ");
-        var (npc, player, quest) = QuestFixture(script, rewardType: RewardType.Script);
+        var (npc, player, quest) = QuestFixture(script, scripts.Settings, rewardType: RewardType.Script);
         var progress = new QuestProgress
         {
             Requirement = new QuestRequirement { Id = 99, Quest = quest }, Value = 1
@@ -209,7 +210,7 @@ using Goose; using Goose.Quests; using Goose.Scripting;
 public class T : BaseQuestScript { }
 return typeof(T);
 ");
-        var (npc, player, quest) = QuestFixture(script, rewardType: RewardType.Script);
+        var (npc, player, quest) = QuestFixture(script, scripts.Settings, rewardType: RewardType.Script);
         var window = new QuestWindow(npc, player, quest, scripts.World);
 
         window.Clicked(Window.ButtonTypes.Next, npc.NPCTemplate.NPCTemplateID, 0, 0,
@@ -231,7 +232,7 @@ public class T : BaseQuestScript
 }
 return typeof(T);
 ");
-        var (npc, player, quest) = QuestFixture(script, rewardType: RewardType.Script);
+        var (npc, player, quest) = QuestFixture(script, scripts.Settings, rewardType: RewardType.Script);
         var window = new QuestWindow(npc, player, quest, scripts.World);
 
         window.Clicked(Window.ButtonTypes.Next, npc.NPCTemplate.NPCTemplateID, 0, 0,
@@ -254,7 +255,7 @@ public class T : BaseQuestScript
 }
 return typeof(T);
 ");
-        var (npc, player, quest) = QuestFixture(script, rewardType: RewardType.Script);
+        var (npc, player, quest) = QuestFixture(script, scripts.Settings, rewardType: RewardType.Script);
 
         new QuestWindow(npc, player, quest, scripts.World).CompleteQuest(npc, player, scripts.World);
 
@@ -275,7 +276,7 @@ public class T : BaseQuestScript
 }
 return typeof(T);
 ");
-        var (npc, player, quest) = QuestFixture(script, requirementType: RequirementType.Script);
+        var (npc, player, quest) = QuestFixture(script, scripts.Settings, requirementType: RequirementType.Script);
 
         new QuestWindow(npc, player, quest, scripts.World).CompleteQuest(npc, player, scripts.World);
 
@@ -298,7 +299,7 @@ public class T : BaseQuestScript
 }
 return typeof(T);
 ");
-        var (npc, player, quest) = QuestFixture(script, requirementType: RequirementType.Script);
+        var (npc, player, quest) = QuestFixture(script, scripts.Settings, requirementType: RequirementType.Script);
         quest.Requirements[0].KeepRequirement = true;
 
         new QuestWindow(npc, player, quest, scripts.World).CompleteQuest(npc, player, scripts.World);

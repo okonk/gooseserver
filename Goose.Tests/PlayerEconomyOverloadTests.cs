@@ -6,10 +6,8 @@ using Xunit;
 
 namespace Goose.Tests;
 
-/// <summary>In GameWorldSettingsCollection: the production paths these tests
-/// exercise read the process-global GameWorld.Settings (shipped defaults until the
-/// per-world migration completes), so they must not run in parallel with classes
-/// that mutate that static.</summary>
+/// <summary>Production paths here now read world.Configuration; the collection is retained
+/// only until the remaining static readers migrate and Task 6 removes broad collections.</summary>
 [Collection(GameWorldSettingsCollection.Name)]
 public class PlayerEconomyOverloadTests
 {
@@ -29,7 +27,7 @@ public class PlayerEconomyOverloadTests
         player.Level = 10;
         player.Experience = 1_000_000;
         player.ExperienceSold = 0;
-        player.Spellbook = new Spellbook(player);
+        player.Spellbook = new Spellbook(player, fixture.Settings);
 
         player.ChangeClass(1, 1, fixture.World, 0d);
 
@@ -48,7 +46,7 @@ public class PlayerEconomyOverloadTests
         player.Level = 10;
         player.Experience = 1_000_000;
         player.ExperienceSold = 0;
-        player.Spellbook = new Spellbook(player);
+        player.Spellbook = new Spellbook(player, fixture.Settings);
 
         player.ChangeClass(1, 1, fixture.World);
 
@@ -82,6 +80,46 @@ public class PlayerEconomyOverloadTests
         player.AddExperience(25_000_000, fixture.World, Player.ExperienceMessage.None, applyModifiers: false);
 
         Assert.Equal(25_050_000, player.Experience);
+    }
+
+    /// <summary>Over the modifier limit the grant scales by (runtime modifier - configured
+    /// base + 1), so two worlds with different configured bases land on different totals.</summary>
+    [Fact]
+    public void AddExperience_over_modifier_limit_uses_each_worlds_configured_base()
+    {
+        using var fixtureA = new TestWorldFixture(s =>
+        {
+            s.ExperienceCap = 0;
+            s.ExperienceModifier = 2;
+            s.ExperienceModifierLimit = 1000;
+        });
+        using var fixtureB = new TestWorldFixture(s =>
+        {
+            s.ExperienceCap = 0;
+            s.ExperienceModifier = 3;
+            s.ExperienceModifierLimit = 1000;
+        });
+
+        var mapA = fixtureA.AddBaseMap(9110, "Overload Map 5");
+        var mapB = fixtureB.AddBaseMap(9111, "Overload Map 6");
+        var playerA = fixtureA.PlayerOn(mapA, 1, 1);
+        var playerB = fixtureB.PlayerOn(mapB, 1, 1);
+        foreach (var (player, fixture) in new[] { (playerA, fixtureA), (playerB, fixtureB) })
+        {
+            player.ClassID = 3;
+            player.Class = fixture.World.ClassHandler.GetClass(3);
+            player.Level = 10;
+            player.Experience = 2000;
+        }
+
+        fixtureA.World.ExperienceModifier = 5;
+        fixtureB.World.ExperienceModifier = 5;
+
+        playerA.AddExperience(1000, fixtureA.World, Player.ExperienceMessage.None);
+        playerB.AddExperience(1000, fixtureB.World, Player.ExperienceMessage.None);
+
+        Assert.Equal(6000, playerA.Experience);
+        Assert.Equal(5000, playerB.Experience);
     }
 
     [Fact]

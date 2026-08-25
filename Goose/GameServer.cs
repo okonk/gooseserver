@@ -161,8 +161,8 @@ namespace Goose
 
         internal Socket CreateListenSocket()
         {
-            string ip = GameWorld.Settings.GameServerIP;
-            int port = GameWorld.Settings.GameServerPort;
+            string ip = this.Settings.GameServerIP;
+            int port = this.Settings.GameServerPort;
 
             Socket socket = null;
 
@@ -393,9 +393,9 @@ namespace Goose
          */
         private bool TryRegisterConnection(Socket sock)
         {
-            if (this.sockets.Count >= GameWorld.Settings.MaxConnections)
+            if (this.sockets.Count >= this.Settings.MaxConnections)
             {
-                log.Warn("Refusing connection: at MaxConnections (" + GameWorld.Settings.MaxConnections + ").");
+                log.Warn("Refusing connection: at MaxConnections (" + this.Settings.MaxConnections + ").");
                 return false;
             }
 
@@ -411,10 +411,10 @@ namespace Goose
             }
 
             this.connectionsPerIP.TryGetValue(ip, out int count);
-            if (count >= GameWorld.Settings.MaxConnectionsPerIP)
+            if (count >= this.Settings.MaxConnectionsPerIP)
             {
                 log.Warn("Refusing connection from " + ip + ": at MaxConnectionsPerIP (" +
-                         GameWorld.Settings.MaxConnectionsPerIP + ").");
+                         this.Settings.MaxConnectionsPerIP + ").");
                 return false;
             }
 
@@ -455,7 +455,7 @@ namespace Goose
             if (now - this.lastPreLoginSweep < PreLoginSweepInterval) return;
             this.lastPreLoginSweep = now;
 
-            var timeout = TimeSpan.FromSeconds(Math.Max(1, GameWorld.Settings.PreLoginTimeoutSeconds));
+            var timeout = TimeSpan.FromSeconds(Math.Max(1, this.Settings.PreLoginTimeoutSeconds));
 
             List<Socket> stale = null;
 

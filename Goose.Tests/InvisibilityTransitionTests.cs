@@ -68,7 +68,7 @@ public class InvisibilityTransitionTests : IDisposable
     {
         var p = new Player(0);
         p.OnLogin();
-        p.Inventory = new Inventory(p);
+        p.Inventory = new Inventory(p, world.Configuration);
         var klass = new Class { ClassID = ClassId, ClassName = "Test", ACMultiplier = 1m };
         klass.AddLevel(new ClassLevel { Level = 1, ClassID = ClassId, BaseStats = new AttributeSet() });
         p.Class = klass;

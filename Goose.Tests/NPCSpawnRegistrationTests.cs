@@ -1,4 +1,5 @@
 using System.Reflection;
+using Goose.Testing;
 using Goose.Tests.Collections;
 
 namespace Goose.Tests;
@@ -130,12 +131,29 @@ public class NPCSpawnRegistrationTests : IDisposable
             State = Player.States.Ready,
             MaxStats = new AttributeSet(),
         };
-        target.Inventory = new Inventory(target);
+        target.Inventory = new Inventory(target, world.Configuration);
 
         npc.Attack(target, world);
 
         // Damage is a double accumulator (NPC.cs:1370); the assertion is that a 6e9 weapon
         // one-shots a target rather than healing it, which is what a wrapped int would do.
         Assert.True(target.CurrentHP <= 0);
+    }
+
+    [Fact]
+    public void NpcLoginIdsStayWithinTheOwningWorldsNpcLimit()
+    {
+        using var fixtureA = new TestWorldFixture(s => { s.MaxPlayers = 200; s.MaxNPCs = 300; });
+        using var fixtureB = new TestWorldFixture(s => { s.MaxPlayers = 200; s.MaxNPCs = 350; });
+
+        for (int i = 0; i < 5; i++)
+        {
+            int idA = fixtureA.World.NPCHandler.GetNewID(fixtureA.World);
+            // Random.Next(max) is exclusive, so MaxNPCs=300 actually bounds ids to 299.
+            Assert.InRange(idA, 201, 299);
+
+            int idB = fixtureB.World.NPCHandler.GetNewID(fixtureB.World);
+            Assert.InRange(idB, 201, 349);
+        }
     }
 }

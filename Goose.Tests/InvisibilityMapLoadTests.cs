@@ -70,7 +70,7 @@ public class InvisibilityMapLoadTests : IDisposable
         var p = new Player(0);
         p.OnLogin();
         p.Name = "Tester";
-        p.Inventory = new Inventory(p);
+        p.Inventory = new Inventory(p, world.Configuration);
         p.Class = world.ClassHandler.GetClass(ClassId);
         p.Level = 1;
         p.BaseStats = new AttributeSet { HP = 100, MP = 100 };

@@ -30,7 +30,7 @@ public abstract class PlayerFirstSaveTestBase : IDisposable
         });
     }
 
-    protected static Player MakePlayer()
+    protected Player MakePlayer()
     {
         var player = new Player(0)
         {
@@ -42,8 +42,8 @@ public abstract class PlayerFirstSaveTestBase : IDisposable
             PasswordSalt = "salt",
             BaseStats = new AttributeSet(),
         };
-        player.Inventory = new Inventory(player);
-        player.Spellbook = new Spellbook(player);
+        player.Inventory = new Inventory(player, world.Configuration);
+        player.Spellbook = new Spellbook(player, world.Configuration);
         player.Bank = new PlayerBank();
         return player;
     }

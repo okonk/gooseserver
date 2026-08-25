@@ -17,7 +17,7 @@ namespace Goose.Tests
         {
             var world = new GameWorld(new GameServer(GameWorld.Settings));
             // Only assigned during the Run/load sequence, not the constructor
-            world.LoginThrottle = new LoginThrottle();
+            world.LoginThrottle = new LoginThrottle(world.Configuration);
             world.CharactersCreatedPerIP = new Dictionary<string, int>();
             RegisterStartingClass(world);
 

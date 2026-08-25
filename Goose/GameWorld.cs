@@ -116,7 +116,7 @@ namespace Goose
             this.rng = new Random();
 
             this.GameServer = server;
-            this.PlayerHandler = new PlayerHandler();
+            this.PlayerHandler = new PlayerHandler(this.Configuration);
             this.EventHandler = new EventHandler();
             this.MapHandler = new MapHandler();
             this.NPCHandler = new NPCHandler();
@@ -309,7 +309,7 @@ namespace Goose
                 () => this.ChatFilter.Count)) return;
 
             this.CharactersCreatedPerIP = new Dictionary<string, int>();
-            this.LoginThrottle = new LoginThrottle();
+            this.LoginThrottle = new LoginThrottle(this.Configuration);
             Event clearCreatedHistory = new ClearCreatedHistoryEvent();
             clearCreatedHistory.Ticks += this.TimerFrequency * 24 * 60 * 60;
             this.EventHandler.AddEvent(clearCreatedHistory);

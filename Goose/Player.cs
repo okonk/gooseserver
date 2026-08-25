@@ -566,80 +566,80 @@ namespace Goose
             this.PlayerID = world.PlayerHandler.CurrentID;
             world.PlayerHandler.CurrentID++;
             this.Name = name;
-            this.Title = GameWorld.Settings.StartingTitle;
-            this.Surname = GameWorld.Settings.StartingSurname;
+            this.Title = world.Configuration.StartingTitle;
+            this.Surname = world.Configuration.StartingSurname;
             this.PasswordHash = passwordHash;
             this.PasswordSalt = base64Salt;
             this.Access = AccessStatus.Normal;
-            this.MapID = GameWorld.Settings.StartingMapID;
-            this.MapX = GameWorld.Settings.StartingMapX;
-            this.MapY = GameWorld.Settings.StartingMapY;
+            this.MapID = world.Configuration.StartingMapID;
+            this.MapX = world.Configuration.StartingMapX;
+            this.MapY = world.Configuration.StartingMapY;
 
             this.Facing = 2;
-            this.BoundID = GameWorld.Settings.StartingMapID;
-            this.BoundX = GameWorld.Settings.StartingMapX;
-            this.BoundY = GameWorld.Settings.StartingMapY;
+            this.BoundID = world.Configuration.StartingMapID;
+            this.BoundX = world.Configuration.StartingMapX;
+            this.BoundY = world.Configuration.StartingMapY;
             this.BoundMap = world.MapHandler.GetMap(this.BoundID);
-            this.Gold = GameWorld.Settings.StartingGold;
-            this.Level = GameWorld.Settings.StartingLevel;
-            this.ClassID = GameWorld.Settings.StartingClassID;
-            this.GuildID = GameWorld.Settings.StartingGuildID;
+            this.Gold = world.Configuration.StartingGold;
+            this.Level = world.Configuration.StartingLevel;
+            this.ClassID = world.Configuration.StartingClassID;
+            this.GuildID = world.Configuration.StartingGuildID;
             this.Guild = world.GuildHandler.GetGuild(this.GuildID);
-            this.Experience = GameWorld.Settings.StartingExperience;
-            this.ExperienceSold = GameWorld.Settings.StartingExperienceSold;
-            this.BodyID = GameWorld.Settings.StartingBodyID;
-            this.BodyR = GameWorld.Settings.StartingBodyR;
-            this.BodyG = GameWorld.Settings.StartingBodyG;
-            this.BodyB = GameWorld.Settings.StartingBodyB;
-            this.BodyA = GameWorld.Settings.StartingBodyA;
+            this.Experience = world.Configuration.StartingExperience;
+            this.ExperienceSold = world.Configuration.StartingExperienceSold;
+            this.BodyID = world.Configuration.StartingBodyID;
+            this.BodyR = world.Configuration.StartingBodyR;
+            this.BodyG = world.Configuration.StartingBodyG;
+            this.BodyB = world.Configuration.StartingBodyB;
+            this.BodyA = world.Configuration.StartingBodyA;
             this.CurrentBodyID = this.BodyID;
-            this.FaceID = GameWorld.Settings.StartingFaceID;
-            this.HairID = GameWorld.Settings.StartingHairID;
-            this.HairR = GameWorld.Settings.StartingHairR;
-            this.HairG = GameWorld.Settings.StartingHairG;
-            this.HairB = GameWorld.Settings.StartingHairB;
-            this.HairA = GameWorld.Settings.StartingHairA;
+            this.FaceID = world.Configuration.StartingFaceID;
+            this.HairID = world.Configuration.StartingHairID;
+            this.HairR = world.Configuration.StartingHairR;
+            this.HairG = world.Configuration.StartingHairG;
+            this.HairB = world.Configuration.StartingHairB;
+            this.HairA = world.Configuration.StartingHairA;
 
             this.BaseStats = new AttributeSet();
-            this.BaseStats.HP = GameWorld.Settings.StartingHP;
-            this.BaseStats.MP = GameWorld.Settings.StartingMP;
-            this.BaseStats.SP = GameWorld.Settings.StartingSP;
-            this.BaseStats.AC = GameWorld.Settings.StartingAC;
-            this.BaseStats.Strength = GameWorld.Settings.StartingStrength;
-            this.BaseStats.Stamina = GameWorld.Settings.StartingStamina;
-            this.BaseStats.Intelligence = GameWorld.Settings.StartingIntelligence;
-            this.BaseStats.Dexterity = GameWorld.Settings.StartingDexterity;
-            this.BaseStats.FireResist = GameWorld.Settings.StartingFireResist;
-            this.BaseStats.AirResist = GameWorld.Settings.StartingAirResist;
-            this.BaseStats.EarthResist = GameWorld.Settings.StartingEarthResist;
-            this.BaseStats.SpiritResist = GameWorld.Settings.StartingSpiritResist;
-            this.BaseStats.WaterResist = GameWorld.Settings.StartingWaterResist;
-            this.BaseStats.MoveSpeed = GameWorld.Settings.StartingMoveSpeed;
+            this.BaseStats.HP = world.Configuration.StartingHP;
+            this.BaseStats.MP = world.Configuration.StartingMP;
+            this.BaseStats.SP = world.Configuration.StartingSP;
+            this.BaseStats.AC = world.Configuration.StartingAC;
+            this.BaseStats.Strength = world.Configuration.StartingStrength;
+            this.BaseStats.Stamina = world.Configuration.StartingStamina;
+            this.BaseStats.Intelligence = world.Configuration.StartingIntelligence;
+            this.BaseStats.Dexterity = world.Configuration.StartingDexterity;
+            this.BaseStats.FireResist = world.Configuration.StartingFireResist;
+            this.BaseStats.AirResist = world.Configuration.StartingAirResist;
+            this.BaseStats.EarthResist = world.Configuration.StartingEarthResist;
+            this.BaseStats.SpiritResist = world.Configuration.StartingSpiritResist;
+            this.BaseStats.WaterResist = world.Configuration.StartingWaterResist;
+            this.BaseStats.MoveSpeed = world.Configuration.StartingMoveSpeed;
 
             this.MaxStats = new AttributeSet();
             this.MaxStats += this.BaseStats;
-            this.MaxStats.Haste = GameWorld.Settings.BaseHaste;
-            this.MaxStats.SpellDamage = GameWorld.Settings.BaseSpellDamage;
-            this.MaxStats.SpellCrit = GameWorld.Settings.BaseSpellCrit;
-            this.MaxStats.MeleeDamage = GameWorld.Settings.BaseMeleeDamage;
-            this.MaxStats.MeleeCrit = GameWorld.Settings.BaseMeleeCrit;
-            this.MaxStats.DamageReduction = GameWorld.Settings.BaseDamageReduction;
-            this.MaxStats.HPPercentRegen = GameWorld.Settings.BaseHPPercentRegen;
-            this.MaxStats.HPStaticRegen = GameWorld.Settings.BaseHPStaticRegen;
-            this.MaxStats.MPPercentRegen = GameWorld.Settings.BaseMPPercentRegen;
-            this.MaxStats.MPStaticRegen = GameWorld.Settings.BaseMPStaticRegen;
-            this.MaxStats.SPPercentRegen = GameWorld.Settings.BaseSPPercentRegen;
-            this.MaxStats.SPStaticRegen = GameWorld.Settings.BaseSPStaticRegen;
+            this.MaxStats.Haste = world.Configuration.BaseHaste;
+            this.MaxStats.SpellDamage = world.Configuration.BaseSpellDamage;
+            this.MaxStats.SpellCrit = world.Configuration.BaseSpellCrit;
+            this.MaxStats.MeleeDamage = world.Configuration.BaseMeleeDamage;
+            this.MaxStats.MeleeCrit = world.Configuration.BaseMeleeCrit;
+            this.MaxStats.DamageReduction = world.Configuration.BaseDamageReduction;
+            this.MaxStats.HPPercentRegen = world.Configuration.BaseHPPercentRegen;
+            this.MaxStats.HPStaticRegen = world.Configuration.BaseHPStaticRegen;
+            this.MaxStats.MPPercentRegen = world.Configuration.BaseMPPercentRegen;
+            this.MaxStats.MPStaticRegen = world.Configuration.BaseMPStaticRegen;
+            this.MaxStats.SPPercentRegen = world.Configuration.BaseSPPercentRegen;
+            this.MaxStats.SPStaticRegen = world.Configuration.BaseSPStaticRegen;
 
             this.Class = world.ClassHandler.GetClass(this.ClassID);
             this.MaxStats += this.Class.GetLevel(this.Level).BaseStats;
 
-            this.BodyState = GameWorld.Settings.StartingBodyState;
+            this.BodyState = world.Configuration.StartingBodyState;
 
-            this.ToggleSettings = (ToggleSetting)GameWorld.Settings.DefaultToggleSettings;
-            this.AetherThreshold = GameWorld.Settings.DefaultAetherThreshold;
+            this.ToggleSettings = (ToggleSetting)world.Configuration.DefaultToggleSettings;
+            this.AetherThreshold = world.Configuration.DefaultAetherThreshold;
 
-            this.NumberOfBankPages = GameWorld.Settings.StartingBankPages;
+            this.NumberOfBankPages = world.Configuration.StartingBankPages;
             this.Credits = 0;
             this.TotalAfkTime = 0;
             this.TotalPlayTime = 0;
@@ -647,8 +647,8 @@ namespace Goose
             this.LastActive = world.TimeNow;
             this.LastPlaytimeUpdate = world.TimeNow;
 
-            this.Inventory = new Inventory(this);
-            string[] items = GameWorld.Settings.StartingItems.Split(" ".ToCharArray());
+            this.Inventory = new Inventory(this, world.Configuration);
+            string[] items = world.Configuration.StartingItems.Split(" ".ToCharArray());
             if (items.Length > 0)
             {
                 for (int i = 0; i < items.Length; i++)
@@ -678,7 +678,7 @@ namespace Goose
                     }
                 }
             }
-            this.Spellbook = new Spellbook(this);
+            this.Spellbook = new Spellbook(this, world.Configuration);
             this.Bank = new PlayerBank();
 
             // kind of a hack to ensure the queue should never be empty
@@ -751,18 +751,18 @@ namespace Goose
 
             this.MaxStats = new AttributeSet();
             this.MaxStats += this.BaseStats;
-            this.MaxStats.Haste = GameWorld.Settings.BaseHaste;
-            this.MaxStats.SpellDamage = GameWorld.Settings.BaseSpellDamage;
-            this.MaxStats.SpellCrit = GameWorld.Settings.BaseSpellCrit;
-            this.MaxStats.MeleeDamage = GameWorld.Settings.BaseMeleeDamage;
-            this.MaxStats.MeleeCrit = GameWorld.Settings.BaseMeleeCrit;
-            this.MaxStats.DamageReduction = GameWorld.Settings.BaseDamageReduction;
-            this.MaxStats.HPPercentRegen = GameWorld.Settings.BaseHPPercentRegen;
-            this.MaxStats.HPStaticRegen = GameWorld.Settings.BaseHPStaticRegen;
-            this.MaxStats.MPPercentRegen = GameWorld.Settings.BaseMPPercentRegen;
-            this.MaxStats.MPStaticRegen = GameWorld.Settings.BaseMPStaticRegen;
-            this.MaxStats.SPPercentRegen = GameWorld.Settings.BaseSPPercentRegen;
-            this.MaxStats.SPStaticRegen = GameWorld.Settings.BaseSPStaticRegen;
+            this.MaxStats.Haste = world.Configuration.BaseHaste;
+            this.MaxStats.SpellDamage = world.Configuration.BaseSpellDamage;
+            this.MaxStats.SpellCrit = world.Configuration.BaseSpellCrit;
+            this.MaxStats.MeleeDamage = world.Configuration.BaseMeleeDamage;
+            this.MaxStats.MeleeCrit = world.Configuration.BaseMeleeCrit;
+            this.MaxStats.DamageReduction = world.Configuration.BaseDamageReduction;
+            this.MaxStats.HPPercentRegen = world.Configuration.BaseHPPercentRegen;
+            this.MaxStats.HPStaticRegen = world.Configuration.BaseHPStaticRegen;
+            this.MaxStats.MPPercentRegen = world.Configuration.BaseMPPercentRegen;
+            this.MaxStats.MPStaticRegen = world.Configuration.BaseMPStaticRegen;
+            this.MaxStats.SPPercentRegen = world.Configuration.BaseSPPercentRegen;
+            this.MaxStats.SPStaticRegen = world.Configuration.BaseSPStaticRegen;
 
             this.Class = world.ClassHandler.GetClass(this.ClassID);
             this.MaxStats += this.Class.GetLevel(this.Level).BaseStats;
@@ -791,14 +791,14 @@ namespace Goose
 
         public void LoadAdditional(GameWorld world)
         {
-            this.Inventory = new Inventory(this);
+            this.Inventory = new Inventory(this, world.Configuration);
             this.Inventory.Load(world);
-            this.Spellbook = new Spellbook(this);
+            this.Spellbook = new Spellbook(this, world.Configuration);
             this.Spellbook.Load(world);
             this.Bank = new PlayerBank();
             this.Bank.Load(world, this);
 
-            this.BodyState = GameWorld.Settings.StartingBodyState;
+            this.BodyState = world.Configuration.StartingBodyState;
 
             this.LoadPets(world);
             this.LoadQuests(world);
@@ -1412,7 +1412,7 @@ namespace Goose
 
             RegenEvent ev = new RegenEvent();
             // H6: clamp to >= 1, a 0/negative period re-enqueues at now and spins EventHandler.Update
-            ev.Ticks += (long)(Math.Max(1m, GameWorld.Settings.RegenSpeed) * world.TimerFrequency);
+            ev.Ticks += (long)(Math.Max(1m, world.Configuration.RegenSpeed) * world.TimerFrequency);
             ev.Data = this;
 
             this.RegenEventExists = true;
@@ -1441,10 +1441,10 @@ namespace Goose
             this.Class = world.ClassHandler.GetClass(this.ClassID);
             this.BaseStats.HP = 0;
             this.BaseStats.MP = 0;
-            this.BoundID = GameWorld.Settings.StartingMapID;
+            this.BoundID = world.Configuration.StartingMapID;
             this.BoundMap = world.MapHandler.GetMap(this.BoundID);
-            this.BoundX = GameWorld.Settings.StartingMapX;
-            this.BoundY = GameWorld.Settings.StartingMapY;
+            this.BoundX = world.Configuration.StartingMapX;
+            this.BoundY = world.Configuration.StartingMapY;
 
             this.AddStats(this.Class.GetLevel(this.Level).BaseStats, world);
             this.AddStats(this.BaseStats, world);
@@ -1473,7 +1473,7 @@ namespace Goose
          */
         public void ChangeClass(int classid, int newLevel, GameWorld world)
         {
-            this.ChangeClass(classid, newLevel, world, GameWorld.Settings.ChangeClassExperienceLossPercent);
+            this.ChangeClass(classid, newLevel, world, world.Configuration.ChangeClassExperienceLossPercent);
         }
 
         /**
@@ -1571,8 +1571,8 @@ namespace Goose
         public void AddStats(AttributeSet stats, GameWorld world, bool updateCharacter = true)
         {
             this.MaxStats += stats;
-            this.MaxStats.HP += (stats.Stamina * GameWorld.Settings.StaminaToHP);
-            this.MaxStats.MP += (stats.Intelligence * GameWorld.Settings.IntelligenceToMP);
+            this.MaxStats.HP += (stats.Stamina * world.Configuration.StaminaToHP);
+            this.MaxStats.MP += (stats.Intelligence * world.Configuration.IntelligenceToMP);
 
             if (stats.MoveSpeed != 0)
             {
@@ -1612,8 +1612,8 @@ namespace Goose
         public void RemoveStats(AttributeSet stats, GameWorld world, bool changeCurrentHPMP = true, bool updateCharacter = false)
         {
             this.MaxStats -= stats;
-            this.MaxStats.HP -= (stats.Stamina * GameWorld.Settings.StaminaToHP);
-            this.MaxStats.MP -= (stats.Intelligence * GameWorld.Settings.IntelligenceToMP);
+            this.MaxStats.HP -= (stats.Stamina * world.Configuration.StaminaToHP);
+            this.MaxStats.MP -= (stats.Intelligence * world.Configuration.IntelligenceToMP);
 
             if (stats.MoveSpeed != 0)
             {
@@ -1685,11 +1685,11 @@ namespace Goose
                 damage = this.MaxStats.Strength + this.WeaponDamage +
                     this.Level + world.Random.Next(1, this.Level) + (this.Level - character.Level);
             }
-            double maxac = GameWorld.Settings.MaxAC;
+            double maxac = world.Configuration.MaxAC;
             double absorb = (1 - ((double)(character.MaxStats.AC * character.Class.ACMultiplier) / maxac));
 
             if (world.Random.Next(1, 10001) <= this.MaxStats.MeleeCrit * 10000) damage *= 2;
-            damage *= (double)GameWorld.Settings.DamageModifier;
+            damage *= (double)world.Configuration.DamageModifier;
             damage *= (1 + (double)this.MaxStats.MeleeDamage);
             damage *= (1 - (double)character.MaxStats.DamageReduction);
             damage *= absorb;
@@ -1738,8 +1738,8 @@ namespace Goose
         /// Not virtual, and Pet does not override it: only Player-side purchases call this.</summary>
         public void AddExperience(long exp, GameWorld world, ExperienceMessage message, bool applyModifiers)
         {
-            if (GameWorld.Settings.ExperienceCap > 0 &&
-                this.Experience + this.ExperienceSold > GameWorld.Settings.ExperienceCap)
+            if (world.Configuration.ExperienceCap > 0 &&
+                this.Experience + this.ExperienceSold > world.Configuration.ExperienceCap)
             {
                 if ((this.ToggleSettings & ToggleSetting.Experience) != 0) return;
                 world.Send(this, P.ServerMessage("You have reached the experience cap. Gained 0 experience points."));
@@ -1748,8 +1748,8 @@ namespace Goose
 
             if (applyModifiers)
             {
-                if (!(GameWorld.Settings.ExperienceModifierLimit > 0 &&
-                    this.Experience + this.ExperienceSold > GameWorld.Settings.ExperienceModifierLimit))
+                if (!(world.Configuration.ExperienceModifierLimit > 0 &&
+                    this.Experience + this.ExperienceSold > world.Configuration.ExperienceModifierLimit))
                 {
                     // Under the limit gets the full modifier
                     exp = (long)(exp * (world.ExperienceModifier + AdditionalExperienceModifier));
@@ -1757,7 +1757,7 @@ namespace Goose
                 else
                 {
                     // over the limit only gets player bonus
-                    exp = (long)(exp * (world.ExperienceModifier - GameWorld.Settings.ExperienceModifier + 1 + AdditionalExperienceModifier));
+                    exp = (long)(exp * (world.ExperienceModifier - world.Configuration.ExperienceModifier + 1 + AdditionalExperienceModifier));
                 }
             }
 
@@ -1975,7 +1975,7 @@ namespace Goose
 
             // H6: clamp to >= 1s, shared by the ping-timeout check and the save schedule;
             // at 0 it disconnected on every PONG and re-enqueued at now, spinning EventHandler.Update
-            long savePeriodTicks = (long)(Math.Max(1, GameWorld.Settings.PlayerSavePeriod) * world.TimerFrequency);
+            long savePeriodTicks = (long)(Math.Max(1, world.Configuration.PlayerSavePeriod) * world.TimerFrequency);
 
             if ((world.TimeNow - this.LastPing) > savePeriodTicks * 1.10)
             {
@@ -2205,12 +2205,12 @@ namespace Goose
             {
                 // buff will expire before next tick
                 if (buff.BuffExpireEvent.Ticks - world.TimeNow >
-                    GameWorld.Settings.SpellEffectPeriod * world.TimerFrequency)
+                    world.Configuration.SpellEffectPeriod * world.TimerFrequency)
                 {
                     var ev = new BuffTickEvent();
                     ev.Data = buff;
                     ev.Player = this;
-                    ev.Ticks += (long)(Math.Max(1m, GameWorld.Settings.SpellEffectPeriod) * world.TimerFrequency);
+                    ev.Ticks += (long)(Math.Max(1m, world.Configuration.SpellEffectPeriod) * world.TimerFrequency);
 
                     world.EventHandler.AddEvent(ev);
                 }
@@ -2360,10 +2360,10 @@ namespace Goose
             }
         }
 
-        public bool IsMounted()
+        public bool IsMounted(GameWorld world)
         {
             // If there is no mount slot, just return false. This is for Aspereta
-            if ((int)Inventory.EquipSlots.Mount > GameWorld.Settings.EquippedSize)
+            if ((int)Inventory.EquipSlots.Mount > world.Configuration.EquippedSize)
                 return false;
 
             return this.Inventory.GetEquippedSlot(Inventory.EquipSlots.Mount) != null;
@@ -2478,7 +2478,7 @@ namespace Goose
                 i++;
             }
 
-            while (i <= GameWorld.Settings.BuffBarVisibleSize)
+            while (i <= world.Configuration.BuffBarVisibleSize)
             {
                 world.Send(this, P.BuffBar(null, i));
                 i++;
@@ -2545,7 +2545,7 @@ namespace Goose
         {
             if (this.isIdle) return true;
 
-            if (this.LastActive + (GameWorld.Settings.IdleTimeout * world.TimerFrequency) <= world.TimeNow)
+            if (this.LastActive + (world.Configuration.IdleTimeout * world.TimerFrequency) <= world.TimeNow)
             {
                 this.isIdle = true;
                 return true;

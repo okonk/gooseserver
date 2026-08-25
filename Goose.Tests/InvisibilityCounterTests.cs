@@ -52,10 +52,10 @@ public class InvisibilityCounterTests : IDisposable
         if (Directory.Exists(dataDirectory)) Directory.Delete(dataDirectory, recursive: true);
     }
 
-    private static Player NewPlayer(Map map)
+    private Player NewPlayer(Map map)
     {
         var p = new Player(0);
-        p.Inventory = new Inventory(p);
+        p.Inventory = new Inventory(p, world.Configuration);
         var klass = new Class { ClassID = 1, ClassName = "Test", ACMultiplier = 1m };
         klass.AddLevel(new ClassLevel { Level = 1, ClassID = 1, BaseStats = new AttributeSet() });
         p.Class = klass;

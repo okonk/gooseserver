@@ -41,19 +41,26 @@ namespace Goose
         private readonly Dictionary<string, Entry> entries =
             new Dictionary<string, Entry>(StringComparer.OrdinalIgnoreCase);
 
+        private readonly GooseSettings settings;
+
+        public LoginThrottle(GooseSettings settings)
+        {
+            this.settings = settings;
+        }
+
         private int FailureLimit
         {
-            get { return Math.Max(1, GameWorld.Settings.LoginFailureLimit); }
+            get { return Math.Max(1, this.settings.LoginFailureLimit); }
         }
 
         private TimeSpan Window
         {
-            get { return TimeSpan.FromSeconds(Math.Max(1, GameWorld.Settings.LoginFailureWindowSeconds)); }
+            get { return TimeSpan.FromSeconds(Math.Max(1, this.settings.LoginFailureWindowSeconds)); }
         }
 
         private TimeSpan Lockout
         {
-            get { return TimeSpan.FromSeconds(Math.Max(1, GameWorld.Settings.LoginLockoutSeconds)); }
+            get { return TimeSpan.FromSeconds(Math.Max(1, this.settings.LoginLockoutSeconds)); }
         }
 
         /**

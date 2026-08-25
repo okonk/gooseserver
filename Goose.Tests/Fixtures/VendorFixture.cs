@@ -47,7 +47,7 @@ public sealed class VendorFixture : IDisposable
             // real logged-in player would have.
             Class = inner.World.ClassHandler.GetClass(0),
         };
-        Player.Inventory = new Inventory(Player);
+        Player.Inventory = new Inventory(Player, inner.Settings);
 
         Vendor = new NPC
         {

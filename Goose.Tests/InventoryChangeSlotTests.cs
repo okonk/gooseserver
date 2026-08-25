@@ -1,5 +1,6 @@
 using Goose;
 using Goose.Events;
+using Goose.Testing;
 using Goose.Tests.Collections;
 using Goose.Tests.Fixtures;
 using Xunit;
@@ -30,6 +31,23 @@ public class InventoryChangeSlotTests
     }
 
     [Fact]
+    public void InventoriesFromTwoWorldsRetainTheirOwnSizes()
+    {
+        using var small = new TestWorldFixture(s => { s.InventorySize = 40; s.EquippedSize = 12; });
+        using var large = new TestWorldFixture(s => { s.InventorySize = 60; s.EquippedSize = 24; });
+
+        var smallPlayer = small.PlayerOn(small.AddBaseMap(9001, "Small"), 1, 1);
+        var largePlayer = large.PlayerOn(large.AddBaseMap(9002, "Large"), 1, 1);
+        smallPlayer.Inventory = new Inventory(smallPlayer, small.Settings);
+        largePlayer.Inventory = new Inventory(largePlayer, large.Settings);
+
+        Assert.Equal(41, smallPlayer.Inventory.GetInventorySlots().Length);
+        Assert.Equal(13, smallPlayer.Inventory.GetEquippedSlots().Length);
+        Assert.Equal(61, largePlayer.Inventory.GetInventorySlots().Length);
+        Assert.Equal(25, largePlayer.Inventory.GetEquippedSlots().Length);
+    }
+
+    [Fact]
     public void InventorySwapSameSlot_LeavesStackableItemUnchanged()
     {
         using var fixture = new VendorFixture();
@@ -42,7 +60,7 @@ public class InventoryChangeSlotTests
         Assert.NotNull(slot);
         Assert.Equal(4, slot.Stack);
 
-        for (int i = 2; i <= GameWorld.Settings.InventorySize; i++)
+        for (int i = 2; i <= fixture.Settings.InventorySize; i++)
         {
             Assert.Null(fixture.Player.Inventory.GetSlot(i));
         }

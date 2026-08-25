@@ -23,9 +23,9 @@ namespace Goose
         /// Returns the first empty login id for a pet
         /// </summary>
         /// <returns></returns>
-        public static int GetLoginID()
+        public static int GetLoginID(GooseSettings settings)
         {
-            int startpoint = GameWorld.Settings.MaxPlayers + GameWorld.Settings.MaxNPCs + 1;
+            int startpoint = settings.MaxPlayers + settings.MaxNPCs + 1;
             for (int i = startpoint; ; i++)
             {
                 if (!Pet.LoginIDToPet.ContainsKey(i)) return i;
@@ -134,7 +134,7 @@ namespace Goose
         /// Constructs a Pet object with info from another character
         /// </summary>
         /// <param name="character">character to take info from</param>
-        public static Pet FromCharacter(NPC character)
+        public static Pet FromCharacter(NPC character, GooseSettings settings)
         {
             Pet pet = new Pet();
 
@@ -152,18 +152,18 @@ namespace Goose
             pet.BaseStats.MPPercentRegen = 0;
             pet.BaseStats.MPStaticRegen = 0;
             pet.MaxStats = pet.BaseStats + pet.Class.GetLevel(pet.Level).BaseStats;
-            pet.MaxStats.Haste += GameWorld.Settings.BaseHaste;
-            pet.MaxStats.SpellDamage += GameWorld.Settings.BaseSpellDamage;
-            pet.MaxStats.SpellCrit += GameWorld.Settings.BaseSpellCrit;
-            pet.MaxStats.MeleeDamage += GameWorld.Settings.BaseMeleeDamage;
-            pet.MaxStats.MeleeCrit += GameWorld.Settings.BaseMeleeCrit;
-            pet.MaxStats.DamageReduction += GameWorld.Settings.BaseDamageReduction;
-            pet.MaxStats.HPPercentRegen += GameWorld.Settings.BaseHPPercentRegen;
-            pet.MaxStats.HPStaticRegen += GameWorld.Settings.BaseHPStaticRegen;
-            pet.MaxStats.MPPercentRegen += GameWorld.Settings.BaseMPPercentRegen;
-            pet.MaxStats.MPStaticRegen += GameWorld.Settings.BaseMPStaticRegen;
-            pet.MaxStats.SPPercentRegen += GameWorld.Settings.BaseSPPercentRegen;
-            pet.MaxStats.SPStaticRegen += GameWorld.Settings.BaseSPStaticRegen;
+            pet.MaxStats.Haste += settings.BaseHaste;
+            pet.MaxStats.SpellDamage += settings.BaseSpellDamage;
+            pet.MaxStats.SpellCrit += settings.BaseSpellCrit;
+            pet.MaxStats.MeleeDamage += settings.BaseMeleeDamage;
+            pet.MaxStats.MeleeCrit += settings.BaseMeleeCrit;
+            pet.MaxStats.DamageReduction += settings.BaseDamageReduction;
+            pet.MaxStats.HPPercentRegen += settings.BaseHPPercentRegen;
+            pet.MaxStats.HPStaticRegen += settings.BaseHPStaticRegen;
+            pet.MaxStats.MPPercentRegen += settings.BaseMPPercentRegen;
+            pet.MaxStats.MPStaticRegen += settings.BaseMPStaticRegen;
+            pet.MaxStats.SPPercentRegen += settings.BaseSPPercentRegen;
+            pet.MaxStats.SPStaticRegen += settings.BaseSPStaticRegen;
             pet.CurrentHP = pet.MaxHP;
             pet.CurrentMP = pet.MaxMP;
             pet.Experience = pet.Class.GetLevel(pet.Level).Experience/2;
@@ -243,18 +243,18 @@ namespace Goose
 
             pet.MaxStats = new AttributeSet();
             pet.MaxStats += pet.BaseStats;
-            pet.MaxStats.Haste += GameWorld.Settings.BaseHaste;
-            pet.MaxStats.SpellDamage += GameWorld.Settings.BaseSpellDamage;
-            pet.MaxStats.SpellCrit += GameWorld.Settings.BaseSpellCrit;
-            pet.MaxStats.MeleeDamage += GameWorld.Settings.BaseMeleeDamage;
-            pet.MaxStats.MeleeCrit += GameWorld.Settings.BaseMeleeCrit;
-            pet.MaxStats.DamageReduction += GameWorld.Settings.BaseDamageReduction;
-            pet.MaxStats.HPPercentRegen += GameWorld.Settings.BaseHPPercentRegen;
-            pet.MaxStats.HPStaticRegen += GameWorld.Settings.BaseHPStaticRegen;
-            pet.MaxStats.MPPercentRegen += GameWorld.Settings.BaseMPPercentRegen;
-            pet.MaxStats.MPStaticRegen += GameWorld.Settings.BaseMPStaticRegen;
-            pet.MaxStats.SPPercentRegen += GameWorld.Settings.BaseSPPercentRegen;
-            pet.MaxStats.SPStaticRegen += GameWorld.Settings.BaseSPStaticRegen;
+            pet.MaxStats.Haste += world.Configuration.BaseHaste;
+            pet.MaxStats.SpellDamage += world.Configuration.BaseSpellDamage;
+            pet.MaxStats.SpellCrit += world.Configuration.BaseSpellCrit;
+            pet.MaxStats.MeleeDamage += world.Configuration.BaseMeleeDamage;
+            pet.MaxStats.MeleeCrit += world.Configuration.BaseMeleeCrit;
+            pet.MaxStats.DamageReduction += world.Configuration.BaseDamageReduction;
+            pet.MaxStats.HPPercentRegen += world.Configuration.BaseHPPercentRegen;
+            pet.MaxStats.HPStaticRegen += world.Configuration.BaseHPStaticRegen;
+            pet.MaxStats.MPPercentRegen += world.Configuration.BaseMPPercentRegen;
+            pet.MaxStats.MPStaticRegen += world.Configuration.BaseMPStaticRegen;
+            pet.MaxStats.SPPercentRegen += world.Configuration.BaseSPPercentRegen;
+            pet.MaxStats.SPStaticRegen += world.Configuration.BaseSPStaticRegen;
 
             pet.Class = world.ClassHandler.GetClass(pet.ClassID);
             pet.MaxStats += pet.Class.GetLevel(pet.Level).BaseStats;
@@ -457,7 +457,7 @@ namespace Goose
         {
             this.Destroy(world);
 
-            this.LoginID = Pet.GetLoginID();
+            this.LoginID = Pet.GetLoginID(world.Configuration);
             Pet.LoginIDToPet[this.LoginID] = this;
 
             this.Facing = this.Owner.Facing;
@@ -803,17 +803,17 @@ namespace Goose
 
         public override void AddExperience(long exp, GameWorld world, ExperienceMessage message)
         {
-            if (GameWorld.Settings.ExperienceCap > 0 &&
-                this.Experience + this.ExperienceSold > GameWorld.Settings.ExperienceCap)
+            if (world.Configuration.ExperienceCap > 0 &&
+                this.Experience + this.ExperienceSold > world.Configuration.ExperienceCap)
             {
                 return;
             }
 
             // Experience modifier for everyone under the limit
-            if (!(GameWorld.Settings.ExperienceModifierLimit > 0 &&
-                this.Experience + this.ExperienceSold > GameWorld.Settings.ExperienceModifierLimit))
+            if (!(world.Configuration.ExperienceModifierLimit > 0 &&
+                this.Experience + this.ExperienceSold > world.Configuration.ExperienceModifierLimit))
             {
-                exp = (long)(exp * GameWorld.Settings.ExperienceModifier);
+                exp = (long)(exp * world.Configuration.ExperienceModifier);
             }
 
             this.Experience += exp;

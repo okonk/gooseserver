@@ -46,7 +46,7 @@ namespace Goose
         public List<string> GetRanks(GameWorld world)
         {
             if ((world.TimeNow - this.lastUpdated) / (double)world.TimerFrequency >
-                GameWorld.Settings.RankUpdatePeriod)
+                world.Configuration.RankUpdatePeriod)
             {
                 this.Update(world);
             }
@@ -70,19 +70,19 @@ namespace Goose
                     result = (from p in world.PlayerHandler.GetAllPlayerData()
                               where p.Access == Player.AccessStatus.Normal
                               orderby p.ExperienceSold descending
-                              select p).Take(GameWorld.Settings.NumberOfRanks).ToList();
+                              select p).Take(world.Configuration.NumberOfRanks).ToList();
                     break;
                 case RankTypes.Gold:
                     result = (from p in world.PlayerHandler.GetAllPlayerData()
                               where p.Access == Player.AccessStatus.Normal
                               orderby p.Gold descending
-                              select p).Take(GameWorld.Settings.NumberOfRanks).ToList();
+                              select p).Take(world.Configuration.NumberOfRanks).ToList();
                     break;
                 case RankTypes.Class:
                     result = (from p in world.PlayerHandler.GetAllPlayerData()
                               where p.ClassID == this.classId && p.Access == Player.AccessStatus.Normal
                               orderby p.ExperienceSold descending
-                              select p).Take(GameWorld.Settings.NumberOfRanks).ToList();
+                              select p).Take(world.Configuration.NumberOfRanks).ToList();
                     break;
             }
 
@@ -111,7 +111,7 @@ namespace Goose
                 i++;
                 this.ranksStrings.Add(line);
             }
-            while (i <= GameWorld.Settings.NumberOfRanks)
+            while (i <= world.Configuration.NumberOfRanks)
             {
                 this.ranksStrings.Add(i + ". ");
                 i++;

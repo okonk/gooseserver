@@ -90,7 +90,7 @@ public class TestWorldFixture : IDisposable
             MaxStats = new AttributeSet(),
             Class = World.ClassHandler.GetClass(0),
         };
-        player.Inventory = new Inventory(player);
+        player.Inventory = new Inventory(player, this.Settings);
         return player;
     }
 

@@ -19,14 +19,16 @@ namespace Goose
          */
         long[] lastcast;
         Player player;
+        private GooseSettings settings;
 
-        public Spellbook(Player player)
+        public Spellbook(Player player, GooseSettings settings)
         {
-            this.spells = new Spell[GameWorld.Settings.SpellbookSize + 1];
-            this.lastcast = new long[GameWorld.Settings.SpellbookSize + 1];
+            this.spells = new Spell[settings.SpellbookSize + 1];
+            this.lastcast = new long[settings.SpellbookSize + 1];
             for (int i = 0; i < this.lastcast.Length; i++)
                 this.lastcast[i] = long.MinValue >> 1;
             this.player = player;
+            this.settings = settings;
         }
 
         /**
@@ -90,7 +92,7 @@ namespace Goose
 
         public int NextFreeSlot(int lowerBound)
         {
-            if (lowerBound <= 0 || lowerBound >= GameWorld.Settings.SpellbookSize) return -1;
+            if (lowerBound <= 0 || lowerBound >= this.settings.SpellbookSize) return -1;
 
             for (int i = lowerBound; i < this.spells.Length; i++)
             {
@@ -106,7 +108,7 @@ namespace Goose
         public int GetNumberOfFreeSlots()
         {
             int free = 0;
-            for (int i = 1; i <= GameWorld.Settings.SpellbookSize; i++)
+            for (int i = 1; i <= this.settings.SpellbookSize; i++)
             {
                 if (this.spells[i] == null)
                     free++;
@@ -121,7 +123,7 @@ namespace Goose
          */
         public void SendSlot(int slot, GameWorld world)
         {
-            if (slot < 1 || slot > GameWorld.Settings.SpellbookSize)
+            if (slot < 1 || slot > this.settings.SpellbookSize)
             {
                 // log bad spell slot
                 return;
@@ -160,7 +162,7 @@ namespace Goose
          */
         public void SendAll(GameWorld world)
         {
-            for (int i = 1; i <= GameWorld.Settings.SpellbookSize; i++)
+            for (int i = 1; i <= this.settings.SpellbookSize; i++)
             {
                 this.SendSlot(i, world);
             }
@@ -224,7 +226,7 @@ namespace Goose
                 }
             }
             // second pass to check if empty slot to add
-            for (int i = 1; i <= GameWorld.Settings.SpellbookSize; i++)
+            for (int i = 1; i <= this.settings.SpellbookSize; i++)
             {
                 if (this.spells[i] == null)
                 {
@@ -247,7 +249,7 @@ namespace Goose
          */
         public bool RemoveSpell(int slot, GameWorld world)
         {
-            if (slot <= 0 || slot > GameWorld.Settings.SpellbookSize) return false;
+            if (slot <= 0 || slot > this.settings.SpellbookSize) return false;
 
             if (this.spells[slot] != null)
             {
@@ -270,8 +272,8 @@ namespace Goose
          */
         public void SwapSlots(int slot1, int slot2, GameWorld world)
         {
-            if (slot1 <= 0 || slot1 > GameWorld.Settings.SpellbookSize ||
-                slot2 <= 0 || slot2 > GameWorld.Settings.SpellbookSize)
+            if (slot1 <= 0 || slot1 > this.settings.SpellbookSize ||
+                slot2 <= 0 || slot2 > this.settings.SpellbookSize)
             {
                 return;
             }
@@ -295,7 +297,7 @@ namespace Goose
         {
             Spell slot;
 
-            for (int i = 1; i <= GameWorld.Settings.SpellbookSize; i++)
+            for (int i = 1; i <= this.settings.SpellbookSize; i++)
             {
                 slot = this.GetSlot(i);
 

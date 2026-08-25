@@ -181,7 +181,7 @@ public class ItemScriptHookTests : IDisposable
             State = Player.States.Ready,
             Map = map, MapID = map.ID, MapX = 5, MapY = 5,
         };
-        player.Inventory = new Inventory(player);
+        player.Inventory = new Inventory(player, world.Configuration);
 
         new PickupItemEvent { Player = player }.Ready(world);
 

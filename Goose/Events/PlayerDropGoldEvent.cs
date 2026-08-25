@@ -43,7 +43,7 @@ namespace Goose.Events
 
                 ItemTile tile = new ItemTile();
                 tile.ItemSlot = new ItemSlot();
-                tile.ItemSlot.Item = world.ItemHandler.GetGold();
+                tile.ItemSlot.Item = world.ItemHandler.GetGold(world);
                 tile.ItemSlot.Stack = gold;
                 tile.X = this.Player.MapX;
                 tile.Y = this.Player.MapY;

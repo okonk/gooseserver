@@ -21,7 +21,7 @@ namespace Goose.Events
             {
                 this.Player.UpdateIdleStatus(world);
 
-                if (this.Player.IsMounted())
+                if (this.Player.IsMounted(world))
                     return;
 
                 string packet = ((string)this.Data).Substring(4);

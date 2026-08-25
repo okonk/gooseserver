@@ -13,6 +13,9 @@ public class DimensionItemScriptTests
     private static GlobalScriptFixture Run(Action<GlobalScriptFixture> arrange = null)
     {
         var fixture = new GlobalScriptFixture();
+        // The shipped DimensionItem script still iterates the process-global SpellbookSize
+        // (shipped: 90) until the script migration, so the fixture spellbook must cover it.
+        fixture.Settings.SpellbookSize = 90;
         fixture.AddBaseMap(1, "Town", width: 100, height: 100);
         fixture.AddBaseItemTemplate(50, "Sword", ItemTemplate.UseTypes.Weapon, t => t.MinLevel = 50);
         arrange?.Invoke(fixture);
@@ -152,7 +155,7 @@ public class DimensionItemScriptTests
         });
 
         var player = new Player(0) { Spellbook = null };
-        player.Spellbook = new Spellbook(player);
+        player.Spellbook = new Spellbook(player, fixture.Settings);
         player.Spellbook.AddSpell(fixture.World.SpellHandler.GetSpell(100091), fixture.World);
 
         var tome = ItemOf(fixture, 300070);
@@ -175,7 +178,7 @@ public class DimensionItemScriptTests
         });
 
         var player = new Player(0);
-        player.Spellbook = new Spellbook(player);
+        player.Spellbook = new Spellbook(player, fixture.Settings);
         player.Spellbook.AddSpell(fixture.World.SpellHandler.GetSpell(500091), fixture.World);
 
         var tome = ItemOf(fixture, 300070);
@@ -197,7 +200,7 @@ public class DimensionItemScriptTests
         });
 
         var player = new Player(0);
-        player.Spellbook = new Spellbook(player);
+        player.Spellbook = new Spellbook(player, fixture.Settings);
 
         var tome = ItemOf(fixture, 300070);
 

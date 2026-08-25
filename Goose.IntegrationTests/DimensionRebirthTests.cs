@@ -213,7 +213,7 @@ public class DimensionRebirthTests
         player.ExperienceSold = 0;
         // PlayerOn builds the player via Player(int), which skips the Spellbook login
         // gives (created at login); ChangeClass touches it. Same fix Task 1's tests use.
-        player.Spellbook = new Spellbook(player);
+        player.Spellbook = new Spellbook(player, fixture.Settings);
 
         reward.Script.Object.GiveReward(reward, null, player, fixture.World);
 

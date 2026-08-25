@@ -23,7 +23,12 @@ namespace Goose
         private Dictionary<Socket, Player> sockToPlayer = new();
         private Dictionary<string, Player> nameToPlayer = new();
         // Support LoginIDs 1..MaxPlayers inclusive; index 0 unused (LoginID 0 = none / full)
-        private Player[] idToPlayer = new Player[GameWorld.Settings.MaxPlayers + 1];
+        private Player[] idToPlayer;
+
+        public PlayerHandler(GooseSettings settings)
+        {
+            this.idToPlayer = new Player[settings.MaxPlayers + 1];
+        }
 
         int currentdbid = 1;
         /// <summary>
@@ -90,7 +95,7 @@ namespace Goose
         /// </summary>
         public int GetNewID(GameWorld world)
         {
-            for (int id = 1; id <= GameWorld.Settings.MaxPlayers; id++)
+            for (int id = 1; id <= world.Configuration.MaxPlayers; id++)
             {
                 if (this.idToPlayer[id] == null)
                     return id;

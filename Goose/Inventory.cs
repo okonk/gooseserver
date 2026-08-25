@@ -41,16 +41,18 @@ namespace Goose
          * The player this inventory belongs to
          */
         Player player;
+        private GooseSettings settings;
 
-        public Inventory(Player player)
+        public Inventory(Player player, GooseSettings settings)
         {
             // Inventory is numbered 1 to InventorySize.
-            this.inventory = new ItemSlot[GameWorld.Settings.InventorySize + 1];
+            this.inventory = new ItemSlot[settings.InventorySize + 1];
             // Equipped is numbered 1 to EquippedSize.
-            this.equipped = new ItemSlot[GameWorld.Settings.EquippedSize + 1];
+            this.equipped = new ItemSlot[settings.EquippedSize + 1];
             // Combine is numbered 1 to CombineBagSize.
-            this.combineContainer = new ItemContainer(GameWorld.Settings.CombineBagSize + 1);
+            this.combineContainer = new ItemContainer(settings.CombineBagSize + 1);
             this.player = player;
+            this.settings = settings;
         }
 
         public ItemContainer GetCombineBagContainer()
@@ -77,7 +79,7 @@ namespace Goose
          */
         public bool AddItem(Item item, long stack, GameWorld world)
         {
-            for (int i = 1; i <= GameWorld.Settings.InventorySize; i++)
+            for (int i = 1; i <= this.settings.InventorySize; i++)
             {
                 ItemSlot slot = new ItemSlot();
                 slot.Item = item;
@@ -110,7 +112,7 @@ namespace Goose
          */
         public void SendSlot(int i, GameWorld world)
         {
-            if (i < 1 || i > GameWorld.Settings.InventorySize) return;
+            if (i < 1 || i > this.settings.InventorySize) return;
 
             if (this.player.State >= Player.States.LoadingMap)
             {
@@ -129,7 +131,7 @@ namespace Goose
         public int GetNumberOfFreeSlots()
         {
             int free = 0;
-            for (int i = 1; i <= GameWorld.Settings.InventorySize; i++)
+            for (int i = 1; i <= this.settings.InventorySize; i++)
             {
                 if (this.inventory[i] == null)
                     free++;
@@ -140,7 +142,7 @@ namespace Goose
 
         public int GetNextFreeSlot()
         {
-            for (int i = 1; i <= GameWorld.Settings.InventorySize; i++)
+            for (int i = 1; i <= this.settings.InventorySize; i++)
             {
                 if (this.inventory[i] == null)
                     return i;
@@ -155,12 +157,12 @@ namespace Goose
          */
         public void SendAll(GameWorld world)
         {
-            for (int i = 1; i <= GameWorld.Settings.InventorySize; i++)
+            for (int i = 1; i <= this.settings.InventorySize; i++)
             {
                 this.SendSlot(i, world);
             }
 
-            for (int i = 1; i <= GameWorld.Settings.EquippedSize; i++)
+            for (int i = 1; i <= this.settings.EquippedSize; i++)
             {
                 this.SendEquippedSlot((EquipSlots)i, world);
             }
@@ -172,7 +174,7 @@ namespace Goose
          */
         public ItemSlot GetSlot(int i)
         {
-            if (i > 0 && i <= GameWorld.Settings.InventorySize)
+            if (i > 0 && i <= this.settings.InventorySize)
             {
                 return this.inventory[i];
             }
@@ -212,8 +214,8 @@ namespace Goose
          */
         public void SplitSlots(int id1, int id2, int stackSize, GameWorld world)
         {
-            if (id1 <= 0 || id1 > GameWorld.Settings.InventorySize ||
-                id2 <= 0 || id2 > GameWorld.Settings.InventorySize)
+            if (id1 <= 0 || id1 > this.settings.InventorySize ||
+                id2 <= 0 || id2 > this.settings.InventorySize)
             {
                 // log id out of inventory range
                 return;
@@ -449,7 +451,7 @@ namespace Goose
         {
             ItemSlot slot;
 
-            for (int i = 1; i <= GameWorld.Settings.InventorySize; i++)
+            for (int i = 1; i <= this.settings.InventorySize; i++)
             {
                 slot = this.inventory[i];
 
@@ -493,7 +495,7 @@ namespace Goose
         {
             ItemSlot slot;
 
-            for (int i = 1; i <= GameWorld.Settings.InventorySize; i++)
+            for (int i = 1; i <= this.settings.InventorySize; i++)
             {
                 slot = this.inventory[i];
 
@@ -585,7 +587,7 @@ namespace Goose
         public bool Unequip(int id, GameWorld world)
         {
             // id is inv size + id + 1, so get rid of inv + 1
-            id -= GameWorld.Settings.InventorySize;
+            id -= this.settings.InventorySize;
             id -= 1;
 
             return this.Unequip((EquipSlots)id, world);
@@ -671,10 +673,10 @@ namespace Goose
          */
         public ItemSlot GetEquippedSlot(int i)
         {
-            if (i > GameWorld.Settings.InventorySize &&
-                i <= GameWorld.Settings.InventorySize + GameWorld.Settings.EquippedSize + 1)
+            if (i > this.settings.InventorySize &&
+                i <= this.settings.InventorySize + this.settings.EquippedSize + 1)
             {
-                return this.equipped[i - GameWorld.Settings.InventorySize - 1];
+                return this.equipped[i - this.settings.InventorySize - 1];
             }
 
             // log bad slot id
@@ -1042,7 +1044,7 @@ namespace Goose
 
 
             List<int> freeslots = new List<int>();
-            var newcombine = new ItemContainer(GameWorld.Settings.CombineBagSize + 1);
+            var newcombine = new ItemContainer(this.settings.CombineBagSize + 1);
 
             Dictionary<int, int> reqhash = new Dictionary<int, int>();
             foreach (KeyValuePair<int, int> req in match.RequiredHash)

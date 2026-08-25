@@ -38,7 +38,7 @@ namespace Goose
                     int npc_id = Convert.ToInt32(reader["npc_id"]);
                     string serialized_data = Convert.ToString(reader["serialized_data"]);
 
-                    ItemContainer container = GetOrCreateContainer(player, npc_id);
+                    ItemContainer container = GetOrCreateContainer(player, npc_id, world.Configuration.BankSlotsPerPage);
 
                     var containerSlots = JsonHelper.Deserialize<ItemSlot[]>(serialized_data);
                     for (int i = 0; i < containerSlots.Length; i++)
@@ -93,12 +93,12 @@ namespace Goose
             };
         }
 
-        public ItemContainer GetOrCreateContainer(Player player, int npc_id)
+        public ItemContainer GetOrCreateContainer(Player player, int npc_id, int slotsPerPage)
         {
             ItemContainer container = null;
             if (!this.bankContainers.TryGetValue(npc_id, out container))
             {
-                container = new ItemContainer(player.NumberOfBankPages * BankWindow.SlotsPerPage + 1);
+                container = new ItemContainer(player.NumberOfBankPages * slotsPerPage + 1);
                 this.bankContainers[npc_id] = container;
             }
 
