@@ -10,7 +10,7 @@ namespace Goose.Tests;
 [Collection(GameWorldSettingsCollection.Name)]
 public class InvisibilityBreakTests : IDisposable
 {
-    private readonly GooseSettings previousSettings = GameWorld.Settings;
+    private readonly GooseSettings settings;
     private readonly string dataDirectory;
     private readonly GameWorld world;
     private readonly Map map;
@@ -23,13 +23,13 @@ public class InvisibilityBreakTests : IDisposable
     {
         dataDirectory = Path.Combine(Path.GetTempPath(), "invis-break-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(Path.Combine(dataDirectory, "Scripts", "Quest"));
-        GameWorld.Settings = new GooseSettings
+        settings = new GooseSettings
         {
             DataPath = dataDirectory, ExperienceModifier = 1,
             InventorySize = 30, EquippedSize = 20, CombineBagSize = 10, SpellbookSize = 30,
             MaxAC = 3500, MaxPlayers = 200, MaxNPCs = 15000,
         };
-        world = new GameWorld(null);
+        world = new GameWorld(settings);
 
         var m = new Map { ID = MapId, Name = "Test", Width = 20, Height = 20, CanCast = true };
         m.characters = new ICharacter[(m.Width + 1) * (m.Height + 1)];
@@ -53,7 +53,6 @@ public class InvisibilityBreakTests : IDisposable
 
     public void Dispose()
     {
-        GameWorld.Settings = previousSettings;
         foreach (var s in sockets) s.Dispose();
         if (Directory.Exists(dataDirectory)) Directory.Delete(dataDirectory, recursive: true);
     }

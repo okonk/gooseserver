@@ -8,7 +8,7 @@ namespace Goose.Tests.Fixtures;
 /// VendorPurchaseInventoryEvent and VendorSellInventoryEvent.
 ///
 /// Builds on TestWorldFixture, which constructs its world from its own settings object
-/// and no longer touches the process-global GameWorld.Settings.</summary>
+/// and no longer touches the process-global settings static.</summary>
 public sealed class VendorFixture : IDisposable
 {
     private readonly TestWorldFixture inner = new TestWorldFixture();

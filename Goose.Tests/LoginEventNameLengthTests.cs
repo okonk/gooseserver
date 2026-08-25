@@ -15,11 +15,21 @@ namespace Goose.Tests
     {
         private static (GameWorld world, Socket client, Socket accepted) NewWorldAndLoopbackPair()
         {
-            var world = new GameWorld(new GameServer(GameWorld.Settings));
+            // StartingItems must be non-null (LoadFromAutoCreate splits it unguarded);
+            // MaxPlayers > 0 or login denies with "The server is full".
+            var settings = new GooseSettings
+            {
+                AutoCharacterCreation = true,
+                StartingClassID = 1,
+                StartingLevel = 1,
+                StartingItems = "2 3 4 4 4 4 4 5 5 5 5 5",
+                MaxPlayers = 200,
+            };
+            var world = new GameWorld(settings, new GameServer(settings));
             // Only assigned during the Run/load sequence, not the constructor
             world.LoginThrottle = new LoginThrottle(world.Configuration);
             world.CharactersCreatedPerIP = new Dictionary<string, int>();
-            RegisterStartingClass(world);
+            RegisterStartingClass(world, settings);
 
             var listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             listener.Bind(new IPEndPoint(IPAddress.Loopback, 0));
@@ -36,11 +46,11 @@ namespace Goose.Tests
 
         // ClassHandler has no public registration path (classes come from the database via
         // LoadClasses), and LoadFromAutoCreate dereferences Class.GetLevel unconditionally.
-        private static void RegisterStartingClass(GameWorld world)
+        private static void RegisterStartingClass(GameWorld world, GooseSettings settings)
         {
-            int id = GameWorld.Settings.StartingClassID;
+            int id = settings.StartingClassID;
             var cls = new Class { ClassID = id, ClassName = "Default", ACMultiplier = 1m };
-            cls.AddLevel(new ClassLevel { Level = GameWorld.Settings.StartingLevel, BaseStats = new AttributeSet() });
+            cls.AddLevel(new ClassLevel { Level = settings.StartingLevel, BaseStats = new AttributeSet() });
 
             var classes = (Dictionary<int, Class>)typeof(ClassHandler)
                 .GetField("classes", BindingFlags.NonPublic | BindingFlags.Instance)!
@@ -63,20 +73,12 @@ namespace Goose.Tests
             using (accepted)
             {
                 string name = new string('a', 17);
-                bool previous = GameWorld.Settings.AutoCharacterCreation;
-                GameWorld.Settings.AutoCharacterCreation = true;
-                try
-                {
-                    EnqueueLogin(world, accepted, "LOGIN" + name + ",passw0rd,ALPHA33,3.5.2");
-                    world.EventHandler.Update(world);
 
-                    Assert.Null(world.PlayerHandler.GetPlayerFromData(name));
-                    Assert.Null(world.PlayerHandler.GetPlayer(accepted));
-                }
-                finally
-                {
-                    GameWorld.Settings.AutoCharacterCreation = previous;
-                }
+                EnqueueLogin(world, accepted, "LOGIN" + name + ",passw0rd,ALPHA33,3.5.2");
+                world.EventHandler.Update(world);
+
+                Assert.Null(world.PlayerHandler.GetPlayerFromData(name));
+                Assert.Null(world.PlayerHandler.GetPlayer(accepted));
 
                 byte[] buf = new byte[512];
                 client.ReceiveTimeout = 5000;
@@ -102,22 +104,14 @@ namespace Goose.Tests
             using (accepted)
             {
                 string name = new string('a', 16);
-                bool previous = GameWorld.Settings.AutoCharacterCreation;
-                GameWorld.Settings.AutoCharacterCreation = true;
-                try
-                {
-                    EnqueueLogin(world, accepted, "LOGIN" + name + ",passw0rd,ALPHA33,3.5.2");
-                    world.EventHandler.Update(world);
 
-                    var player = world.PlayerHandler.GetPlayerFromData(name);
-                    Assert.NotNull(player);
-                    Assert.Equal(name, player.Name);
-                    Assert.Same(accepted, player.Sock);
-                }
-                finally
-                {
-                    GameWorld.Settings.AutoCharacterCreation = previous;
-                }
+                EnqueueLogin(world, accepted, "LOGIN" + name + ",passw0rd,ALPHA33,3.5.2");
+                world.EventHandler.Update(world);
+
+                var player = world.PlayerHandler.GetPlayerFromData(name);
+                Assert.NotNull(player);
+                Assert.Equal(name, player.Name);
+                Assert.Same(accepted, player.Sock);
 
                 byte[] buf = new byte[512];
                 client.ReceiveTimeout = 1000;

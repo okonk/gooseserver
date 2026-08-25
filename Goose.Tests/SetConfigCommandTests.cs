@@ -10,18 +10,15 @@ public class SetConfigCommandTests : IDisposable
 {
     private readonly TestWorldFixture fixtureA;
     private readonly TestWorldFixture fixtureB;
-    private readonly GooseSettings previousSettings;
 
     public SetConfigCommandTests()
     {
-        previousSettings = GameWorld.Settings;
         fixtureA = new TestWorldFixture(s => s.IdleTimeout = 10);
         fixtureB = new TestWorldFixture(s => s.IdleTimeout = 20);
     }
 
     public void Dispose()
     {
-        GameWorld.Settings = previousSettings;
         fixtureA.Dispose();
         fixtureB.Dispose();
     }
@@ -43,7 +40,6 @@ public class SetConfigCommandTests : IDisposable
 
         Assert.Equal(55, fixtureA.Settings.IdleTimeout);
         Assert.Equal(20, fixtureB.Settings.IdleTimeout);
-        Assert.NotEqual(55, GameWorld.Settings.IdleTimeout);
     }
 
     [Fact]

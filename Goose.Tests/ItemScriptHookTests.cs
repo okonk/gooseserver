@@ -6,9 +6,9 @@ using Goose.Tests.Collections;
 namespace Goose.Tests;
 
 [Collection(GameWorldSettingsCollection.Name)]
-public class ItemScriptHookTests : IDisposable
+public class ItemScriptHookTests
 {
-    private readonly GooseSettings previousSettings = GameWorld.Settings;
+    private readonly GooseSettings settings;
 
     public ItemScriptHookTests()
     {
@@ -18,18 +18,13 @@ public class ItemScriptHookTests : IDisposable
         // chances: surnames always roll, titles never do. ItemIDStartpoint is pinned so a
         // freshly built Item (ItemID 0) is never mistaken for the gold item in
         // PickupItemEvent, and InventorySize so a pickup that passes its gates can land.
-        GameWorld.Settings = new GooseSettings
+        settings = new GooseSettings
         {
             InventorySize = 30, EquippedSize = 20, CombineBagSize = 10, SpellbookSize = 30,
             ItemIDStartpoint = 5002,
             ItemSurnameChancePercent = 1.0,
             ItemTitleChancePercent = 0.0,
         };
-    }
-
-    public void Dispose()
-    {
-        GameWorld.Settings = previousSettings;
     }
 
     private sealed class SpyScript : BaseItemScript
@@ -59,9 +54,9 @@ public class ItemScriptHookTests : IDisposable
         public override bool Send(string data) { Sent.Add(data); return true; }
     }
 
-    private static (GameWorld World, Item Item, SpyScript Spy) Arrange()
+    private (GameWorld World, Item Item, SpyScript Spy) Arrange()
     {
-        var world = new GameWorld(null);
+        var world = new GameWorld(settings);
         var spy = new SpyScript();
         var template = new ItemTemplate
         {
@@ -127,7 +122,7 @@ public class ItemScriptHookTests : IDisposable
     [Fact]
     public void An_item_with_no_script_rolls_natively()
     {
-        var world = new GameWorld(null);
+        var world = new GameWorld(settings);
         var template = new ItemTemplate
         {
             ID = 1, Name = "Sword", Description = "",
@@ -156,7 +151,7 @@ public class ItemScriptHookTests : IDisposable
     [Fact]
     public void A_throwing_CanPickup_script_refuses_pickup_with_a_message()
     {
-        var world = new GameWorld(null);
+        var world = new GameWorld(settings);
         var template = new ItemTemplate
         {
             ID = 1, Name = "Sword", Description = "",

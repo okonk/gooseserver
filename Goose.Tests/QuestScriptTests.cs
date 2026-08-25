@@ -49,18 +49,10 @@ return typeof(T);
     [Fact]
     public void The_shipped_example_quest_script_compiles()
     {
-        var previous = GameWorld.Settings;
-        try
-        {
-            GameWorld.Settings = new GooseSettings { DataPath = FindIllutiaDataDirectory() };
-            var world = new GameWorld(null);
-            var script = world.ScriptHandler.GetScript<IQuestScript>("Scripts/Quest/ExampleQuestScript.csx");
-            Assert.NotNull(script.Object);
-        }
-        finally
-        {
-            GameWorld.Settings = previous;
-        }
+        var settings = new GooseSettings { DataPath = FindIllutiaDataDirectory() };
+        var world = new GameWorld(settings);
+        var script = world.ScriptHandler.GetScript<IQuestScript>("Scripts/Quest/ExampleQuestScript.csx");
+        Assert.NotNull(script.Object);
     }
 
     /// <summary>Locates the real Data/Illutia directory without assuming the process working

@@ -43,7 +43,7 @@ public class DimensionVendorStockTests
         };
         // NPCHandler.LoadNPCs sizes the array VendorSlotSize + 1 and leaves index 0 null
         // (NPCHandler.cs:183-197). Mirror that, so the repoint pass sees a realistic array.
-        merchant.VendorItems = new NPCVendorSlot[GameWorld.Settings.VendorSlotSize + 1];
+        merchant.VendorItems = new NPCVendorSlot[fixture.Settings.VendorSlotSize + 1];
         merchant.VendorItems[1] = new NPCVendorSlot
         {
             Slot = 1, ItemTemplate = fixture.World.ItemHandler.GetTemplate(SwordId),
@@ -157,7 +157,7 @@ public class DimensionVendorStockTests
             AlliesString = "", Allies = new List<NPCTemplate>(), Drops = new List<NPCDropInfo>(),
             BaseStats = new AttributeSet { HP = 100 },
         };
-        merchant.VendorItems = new NPCVendorSlot[GameWorld.Settings.VendorSlotSize + 1];
+        merchant.VendorItems = new NPCVendorSlot[fixture.Settings.VendorSlotSize + 1];
         merchant.VendorItems[1] = new NPCVendorSlot
         {
             Slot = 1, ItemTemplate = fixture.World.ItemHandler.GetTemplate(CreditSwordId),
@@ -176,7 +176,7 @@ public class DimensionVendorStockTests
             AlliesString = "", Allies = new List<NPCTemplate>(), Drops = new List<NPCDropInfo>(),
             BaseStats = new AttributeSet { HP = 100 },
         };
-        dealer.VendorItems = new NPCVendorSlot[GameWorld.Settings.VendorSlotSize + 1];
+        dealer.VendorItems = new NPCVendorSlot[fixture.Settings.VendorSlotSize + 1];
         dealer.VendorItems[1] = new NPCVendorSlot
         {
             Slot = 1, ItemTemplate = fixture.World.ItemHandler.GetTemplate(CreditSwordId),

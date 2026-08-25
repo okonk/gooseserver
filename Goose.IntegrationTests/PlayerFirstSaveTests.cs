@@ -7,10 +7,16 @@ public abstract class PlayerFirstSaveTestBase : IDisposable
     private readonly string dbPath =
         Path.Combine(Path.GetTempPath(), "first-save-" + Guid.NewGuid().ToString("N") + ".db");
 
-    protected readonly GameWorld world = new(new GameServer(GameWorld.Settings));
+    protected readonly GooseSettings settings = new()
+    {
+        InventorySize = 30, EquippedSize = 20, CombineBagSize = 10, SpellbookSize = 30,
+    };
+
+    protected readonly GameWorld world;
 
     protected PlayerFirstSaveTestBase(params string[] schemaFiles)
     {
+        world = new GameWorld(settings, new GameServer(settings));
         var db = world.Database;
         db.Start(dbPath);
         foreach (var file in schemaFiles)

@@ -5,10 +5,6 @@ using Xunit;
 
 namespace Goose.Tests;
 
-/// <summary>Fixture-based, and in GameWorldSettingsCollection: the production paths
-/// these tests exercise read the process-global GameWorld.Settings (shipped defaults
-/// until the per-world migration completes), so they must not run in parallel with
-/// classes that mutate that static.</summary>
 [Collection(GameWorldSettingsCollection.Name)]
 public class ResetModifiersTests
 {

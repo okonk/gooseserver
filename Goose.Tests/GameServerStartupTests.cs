@@ -14,24 +14,12 @@ namespace Goose.Tests
         [Fact]
         public void CreateListenSocket_InvalidIP_ThrowsFatalStartupException()
         {
-            string oldIp = GameWorld.Settings.GameServerIP;
-            int oldPort = GameWorld.Settings.GameServerPort;
-            try
-            {
-                GameWorld.Settings.GameServerIP = "not-an-ip";
-                GameWorld.Settings.GameServerPort = 17000;
+            var settings = new GooseSettings { GameServerIP = "not-an-ip", GameServerPort = 17000 };
+            var server = new GameServer(settings);
 
-                var server = new GameServer(GameWorld.Settings);
-
-                var ex = Assert.Throws<FatalStartupException>(() => server.CreateListenSocket());
-                Assert.Contains("not-an-ip", ex.Message);
-                Assert.Contains("17000", ex.Message);
-            }
-            finally
-            {
-                GameWorld.Settings.GameServerIP = oldIp;
-                GameWorld.Settings.GameServerPort = oldPort;
-            }
+            var ex = Assert.Throws<FatalStartupException>(() => server.CreateListenSocket());
+            Assert.Contains("not-an-ip", ex.Message);
+            Assert.Contains("17000", ex.Message);
         }
 
         [Fact]
@@ -42,46 +30,22 @@ namespace Goose.Tests
             blocker.Listen(10);
             int port = ((IPEndPoint)blocker.LocalEndPoint).Port;
 
-            string oldIp = GameWorld.Settings.GameServerIP;
-            int oldPort = GameWorld.Settings.GameServerPort;
-            try
-            {
-                GameWorld.Settings.GameServerIP = "127.0.0.1";
-                GameWorld.Settings.GameServerPort = port;
+            var settings = new GooseSettings { GameServerIP = "127.0.0.1", GameServerPort = port };
+            var server = new GameServer(settings);
 
-                var server = new GameServer(GameWorld.Settings);
-
-                Assert.Throws<FatalStartupException>(() => server.CreateListenSocket());
-            }
-            finally
-            {
-                GameWorld.Settings.GameServerIP = oldIp;
-                GameWorld.Settings.GameServerPort = oldPort;
-            }
+            Assert.Throws<FatalStartupException>(() => server.CreateListenSocket());
         }
 
         [Fact]
         public void CreateListenSocket_ValidIPAndPort_ReturnsBoundSocket()
         {
-            string oldIp = GameWorld.Settings.GameServerIP;
-            int oldPort = GameWorld.Settings.GameServerPort;
-            try
-            {
-                GameWorld.Settings.GameServerIP = "127.0.0.1";
-                GameWorld.Settings.GameServerPort = 0;
+            var settings = new GooseSettings { GameServerIP = "127.0.0.1", GameServerPort = 0 };
+            var server = new GameServer(settings);
 
-                var server = new GameServer(GameWorld.Settings);
+            using var socket = server.CreateListenSocket();
 
-                using var socket = server.CreateListenSocket();
-
-                Assert.True(socket.IsBound);
-                Assert.NotEqual(0, ((IPEndPoint)socket.LocalEndPoint).Port);
-            }
-            finally
-            {
-                GameWorld.Settings.GameServerIP = oldIp;
-                GameWorld.Settings.GameServerPort = oldPort;
-            }
+            Assert.True(socket.IsBound);
+            Assert.NotEqual(0, ((IPEndPoint)socket.LocalEndPoint).Port);
         }
 
         [Fact]

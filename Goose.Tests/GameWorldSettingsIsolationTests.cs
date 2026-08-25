@@ -1,4 +1,5 @@
 using Goose.Scripting;
+using Goose.Testing;
 using Xunit;
 
 namespace Goose.Tests;
@@ -8,7 +9,6 @@ public class GameWorldSettingsIsolationTests : IDisposable
 {
     private const string RelativePath = "Scripts/Global/Sample.csx";
 
-    private readonly GooseSettings previousSettings = GameWorld.Settings;
     private readonly List<string> roots = new();
     private readonly string rootA;
     private readonly string rootB;
@@ -34,7 +34,6 @@ public class GameWorldSettingsIsolationTests : IDisposable
 
     public void Dispose()
     {
-        GameWorld.Settings = previousSettings;
         foreach (var root in roots)
             if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
     }
@@ -102,10 +101,10 @@ return typeof({className});
         worldA.ScriptHandler.GetScript<IGlobalScript>(RelativePath);
         worldB.ScriptHandler.GetScript<IGlobalScript>(RelativePath);
 
-        GameWorld.Settings = new GooseSettings
+        var previous = SettingsBridge.Swap(new GooseSettings
         {
             DataPath = MakeRoot("iso-hijack"), ExperienceModifier = 99m,
-        };
+        });
         try
         {
             Assert.Equal(11, Check(worldA.ScriptHandler.GetScript<IGlobalScript>(RelativePath).Object));
@@ -115,7 +114,7 @@ return typeof({className});
         }
         finally
         {
-            GameWorld.Settings = previousSettings;
+            SettingsBridge.Swap(previous);
         }
     }
 

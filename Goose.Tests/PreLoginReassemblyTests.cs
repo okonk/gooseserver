@@ -9,7 +9,8 @@ namespace Goose.Tests
     {
         private static (GameWorld world, Socket sock) NewWorldAndSocket()
         {
-            var world = new GameWorld(new GameServer(GameWorld.Settings));
+            var settings = new GooseSettings();
+            var world = new GameWorld(settings, new GameServer(settings));
             var sock = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp) { Blocking = false };
             return (world, sock);
         }
@@ -96,7 +97,8 @@ namespace Goose.Tests
         [Fact]
         public void PreLoginBuffer_ExceedsCap_DropsConnection()
         {
-            var world = new GameWorld(new GameServer(GameWorld.Settings));
+            var settings = new GooseSettings();
+            var world = new GameWorld(settings, new GameServer(settings));
             using var client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             using var sock = NewLoopbackServerSocket(client);
 

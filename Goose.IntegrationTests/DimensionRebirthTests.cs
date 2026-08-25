@@ -9,10 +9,6 @@ using Xunit;
 
 namespace Goose.IntegrationTests;
 
-/// <summary>In GameWorldSettingsCollection: GlobalScriptFixture swaps the static
-/// GameWorld.Settings, and Task 4's reward test writes
-/// ChangeClassExperienceLossPercent. Every other fixture-based dimension suite is in this
-/// collection for the same reason (DimensionsScriptTests.cs:7).</summary>
 [Collection(GameWorldSettingsCollection.Name)]
 public class DimensionRebirthTests
 {
@@ -199,7 +195,7 @@ public class DimensionRebirthTests
     public void GiveReward_mints_floor_of_total_and_resets_the_character()
     {
         using var fixture = Seeded();
-        GameWorld.Settings.ChangeClassExperienceLossPercent = 0.07;
+        fixture.Settings.ChangeClassExperienceLossPercent = 0.07;
         var script = fixture.CompileShipped();
         script.Object.OnLoaded(fixture.World);
 

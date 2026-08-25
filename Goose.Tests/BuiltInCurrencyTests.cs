@@ -93,7 +93,7 @@ public class BuiltInCurrencyTests
     [Fact]
     public void BuiltInsAreRegisteredOnAFreshWorld()
     {
-        var world = new GameWorld(null);
+        var world = new GameWorld(new GooseSettings());
 
         Assert.NotNull(world.CurrencyHandler.Get(Currency.Gold));
         Assert.NotNull(world.CurrencyHandler.Get(Currency.Credits));

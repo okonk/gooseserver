@@ -131,7 +131,8 @@ namespace Goose.Tests
         [Fact]
         public void GameWorldSend_WhenSendBufferExceedsCap_DropsConnection()
         {
-            var world = new GameWorld(new GameServer(GameWorld.Settings));
+            var settings = new GooseSettings();
+            var world = new GameWorld(settings, new GameServer(settings));
             var (client, accepted) = NewLoopbackPair();
             try
             {

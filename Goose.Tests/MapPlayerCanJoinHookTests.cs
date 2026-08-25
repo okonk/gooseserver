@@ -27,7 +27,7 @@ public class MapPlayerCanJoinHookTests : IDisposable
         public override bool Send(string data) { Sent.Add(data); return true; }
     }
 
-    private readonly GooseSettings previousSettings = GameWorld.Settings;
+    private readonly GooseSettings settings;
     private readonly string dataDirectory;
     private readonly GameWorld world;
 
@@ -37,17 +37,16 @@ public class MapPlayerCanJoinHookTests : IDisposable
         // Script<IMapScript> can compile a real .csx through the ScriptHandler.
         dataDirectory = Path.Combine(Path.GetTempPath(), "map-script-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(Path.Combine(dataDirectory, "Scripts", "Map"));
-        GameWorld.Settings = new GooseSettings
+        settings = new GooseSettings
         {
             DataPath = dataDirectory, ExperienceModifier = 1,
             InventorySize = 30, EquippedSize = 20, CombineBagSize = 10, SpellbookSize = 30,
         };
-        world = new GameWorld(null);
+        world = new GameWorld(settings);
     }
 
     public void Dispose()
     {
-        GameWorld.Settings = previousSettings;
         if (Directory.Exists(dataDirectory)) Directory.Delete(dataDirectory, recursive: true);
     }
 

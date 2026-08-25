@@ -55,7 +55,7 @@ public class ItemHandlerRegistrationTests
     [Fact]
     public void AddTemplate_registers_a_template_retrievable_by_id()
     {
-        var world = new GameWorld(null);
+        var world = new GameWorld(new GooseSettings());
         var template = Sample();
 
         world.ItemHandler.AddTemplate(template);
@@ -67,7 +67,7 @@ public class ItemHandlerRegistrationTests
     [Fact]
     public void AddTitle_and_AddSurname_register_into_separate_dictionaries()
     {
-        var world = new GameWorld(null);
+        var world = new GameWorld(new GooseSettings());
         var title = new ItemModifier { Id = 1, Name = "Legendary" };
         var surname = new ItemModifier { Id = 1, Name = "of Speed" };
 

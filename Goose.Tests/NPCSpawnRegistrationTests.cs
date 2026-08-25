@@ -7,7 +7,7 @@ namespace Goose.Tests;
 [Collection(GameWorldSettingsCollection.Name)]
 public class NPCSpawnRegistrationTests : IDisposable
 {
-    private readonly GooseSettings previousSettings = GameWorld.Settings;
+    private readonly GooseSettings settings;
     private readonly string dataDirectory;
     private readonly GameWorld world;
 
@@ -19,13 +19,13 @@ public class NPCSpawnRegistrationTests : IDisposable
         // Same shape as QuestScriptFixture: isolated settings + a bare GameWorld.
         dataDirectory = Path.Combine(Path.GetTempPath(), "npc-spawn-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(Path.Combine(dataDirectory, "Scripts", "Quest"));
-        GameWorld.Settings = new GooseSettings
+        settings = new GooseSettings
         {
             DataPath = dataDirectory, ExperienceModifier = 1,
             InventorySize = 30, EquippedSize = 20, CombineBagSize = 10, SpellbookSize = 30,
             MaxAC = 3500, MaxPlayers = 200, MaxNPCs = 15000,
         };
-        world = new GameWorld(null);
+        world = new GameWorld(settings);
 
         // One map at id 1. Map.tiles/characters are public and must be sized before
         // Spawn -> PlaceCharacter/SetCharacter can run.
@@ -63,7 +63,6 @@ public class NPCSpawnRegistrationTests : IDisposable
 
     public void Dispose()
     {
-        GameWorld.Settings = previousSettings;
         if (Directory.Exists(dataDirectory)) Directory.Delete(dataDirectory, recursive: true);
     }
 

@@ -17,7 +17,7 @@ namespace Goose.Tests;
 [Collection(Goose.Tests.Collections.GameWorldSettingsCollection.Name)]
 public class ScriptLoadDirectiveTests : IDisposable
 {
-    private readonly GooseSettings previousSettings = GameWorld.Settings;
+    private readonly GooseSettings settings;
     private readonly string dir;
     private readonly GameWorld world;
 
@@ -27,18 +27,17 @@ public class ScriptLoadDirectiveTests : IDisposable
         foreach (var d in new[] { "Scripts/Global/Dimensions", "Scripts/Item" })
             Directory.CreateDirectory(Path.Combine(dir, d));
 
-        GameWorld.Settings = new GooseSettings
+        settings = new GooseSettings
         {
             DataPath = dir, ExperienceModifier = 1,
             InventorySize = 30, EquippedSize = 20, CombineBagSize = 10, SpellbookSize = 30,
             VendorSlotSize = 30, MaxPlayers = 200, MaxNPCs = 15000,
         };
-        world = new GameWorld(null);
+        world = new GameWorld(settings);
     }
 
     public void Dispose()
     {
-        GameWorld.Settings = previousSettings;
         if (Directory.Exists(dir)) Directory.Delete(dir, recursive: true);
     }
 

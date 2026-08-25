@@ -16,57 +16,45 @@ namespace Goose.Tests
 
         public EventHandlerIntervalTests()
         {
-            _world = new GameWorld(new GameServer(GameWorld.Settings));
+            // PlayerCountExperienceModifierUpdateEvent.Ready divides by this interval.
+            var settings = new GooseSettings { PlayerCountExperienceModifierInterval = 1000 };
+            _world = new GameWorld(settings, new GameServer(settings));
             _handler = _world.EventHandler;
         }
 
         [Fact]
         public void ClearMapItemsEvent_ZeroSweepTime_ReschedulesInFuture()
         {
-            int old = GameWorld.Settings.ItemGroundSweepTime;
-            GameWorld.Settings.ItemGroundSweepTime = 0;
-            try
-            {
-                long before = _world.TimeNow;
-                var ev = new ClearMapItemsEvent
-                {
-                    Data = new Map(),
-                    Ticks = before,
-                };
+            _world.Configuration.ItemGroundSweepTime = 0;
 
-                ev.Ready(_world); // re-enqueues itself
-
-                Assert.True(ev.Ticks > before);
-                _handler.Update(_world); // must return, not spin
-            }
-            finally
+            long before = _world.TimeNow;
+            var ev = new ClearMapItemsEvent
             {
-                GameWorld.Settings.ItemGroundSweepTime = old;
-            }
+                Data = new Map(),
+                Ticks = before,
+            };
+
+            ev.Ready(_world); // re-enqueues itself
+
+            Assert.True(ev.Ticks > before);
+            _handler.Update(_world); // must return, not spin
         }
 
         [Fact]
         public void PlayerCountExperienceModifierUpdateEvent_ZeroIdleTimeout_ReschedulesInFuture()
         {
-            int old = GameWorld.Settings.IdleTimeout;
-            GameWorld.Settings.IdleTimeout = 0;
-            try
-            {
-                long before = _world.TimeNow;
-                var ev = new PlayerCountExperienceModifierUpdateEvent
-                {
-                    Ticks = before,
-                };
+            _world.Configuration.IdleTimeout = 0;
 
-                ev.Ready(_world); // re-enqueues itself
-
-                Assert.True(ev.Ticks > before);
-                _handler.Update(_world); // must return, not spin
-            }
-            finally
+            long before = _world.TimeNow;
+            var ev = new PlayerCountExperienceModifierUpdateEvent
             {
-                GameWorld.Settings.IdleTimeout = old;
-            }
+                Ticks = before,
+            };
+
+            ev.Ready(_world); // re-enqueues itself
+
+            Assert.True(ev.Ticks > before);
+            _handler.Update(_world); // must return, not spin
         }
 
         [Fact]
@@ -100,89 +88,68 @@ namespace Goose.Tests
         [Fact]
         public void AddSaveEvent_ZeroPlayerSavePeriod_EnqueuesFutureSave()
         {
-            int old = GameWorld.Settings.PlayerSavePeriod;
-            GameWorld.Settings.PlayerSavePeriod = 0;
-            try
-            {
-                var player = new Player(0);
+            _world.Configuration.PlayerSavePeriod = 0;
 
-                int beforeCount = _handler.Count;
-                long before = _world.TimeNow;
-                player.AddSaveEvent(_world);
+            var player = new Player(0);
 
-                Assert.Equal(beforeCount + 1, _handler.Count);
-                var ev = Assert.IsType<PlayerSaveEvent>(_handler.Peek());
-                Assert.Same(player, ev.Player);
-                Assert.True(ev.Ticks > before);
+            int beforeCount = _handler.Count;
+            long before = _world.TimeNow;
+            player.AddSaveEvent(_world);
 
-                _handler.Update(_world); // must return, not spin
-                Assert.Equal(beforeCount + 1, _handler.Count);
-            }
-            finally
-            {
-                GameWorld.Settings.PlayerSavePeriod = old;
-            }
+            Assert.Equal(beforeCount + 1, _handler.Count);
+            var ev = Assert.IsType<PlayerSaveEvent>(_handler.Peek());
+            Assert.Same(player, ev.Player);
+            Assert.True(ev.Ticks > before);
+
+            _handler.Update(_world); // must return, not spin
+            Assert.Equal(beforeCount + 1, _handler.Count);
         }
 
         [Fact]
         public void AddRegenEvent_ZeroRegenSpeed_EnqueuesFutureRegen()
         {
-            decimal old = GameWorld.Settings.RegenSpeed;
-            GameWorld.Settings.RegenSpeed = 0m;
-            try
+            _world.Configuration.RegenSpeed = 0m;
+
+            var player = new Player(0)
             {
-                var player = new Player(0)
-                {
-                    State = Player.States.Ready,
-                    TemporaryMaxHP = 10,
-                    TemporaryMaxMP = 10,
-                    TemporaryMaxSP = 10,
-                    CurrentHP = 5,
-                    CurrentMP = 5,
-                    CurrentSP = 5,
-                };
+                State = Player.States.Ready,
+                TemporaryMaxHP = 10,
+                TemporaryMaxMP = 10,
+                TemporaryMaxSP = 10,
+                CurrentHP = 5,
+                CurrentMP = 5,
+                CurrentSP = 5,
+            };
 
-                int beforeCount = _handler.Count;
-                long before = _world.TimeNow;
-                player.AddRegenEvent(_world);
+            int beforeCount = _handler.Count;
+            long before = _world.TimeNow;
+            player.AddRegenEvent(_world);
 
-                Assert.Equal(beforeCount + 1, _handler.Count);
-                var ev = Assert.IsType<RegenEvent>(_handler.Peek());
-                Assert.Same(player, ev.Data);
-                Assert.True(ev.Ticks > before);
+            Assert.Equal(beforeCount + 1, _handler.Count);
+            var ev = Assert.IsType<RegenEvent>(_handler.Peek());
+            Assert.Same(player, ev.Data);
+            Assert.True(ev.Ticks > before);
 
-                _handler.Update(_world); // must return, not spin
-                Assert.Equal(beforeCount + 1, _handler.Count);
-            }
-            finally
-            {
-                GameWorld.Settings.RegenSpeed = old;
-            }
+            _handler.Update(_world); // must return, not spin
+            Assert.Equal(beforeCount + 1, _handler.Count);
         }
 
         [Fact]
         public void GuildSaveEvent_ZeroGuildSavePeriod_ReschedulesInFuture()
         {
-            int old = GameWorld.Settings.GuildSavePeriod;
-            GameWorld.Settings.GuildSavePeriod = 0;
-            try
-            {
-                // Save re-enqueues a fresh GuildSaveEvent, not the instance that ran.
-                int beforeCount = _handler.Count;
-                long before = _world.TimeNow;
-                new GuildSaveEvent { Ticks = before }.Ready(_world);
+            _world.Configuration.GuildSavePeriod = 0;
 
-                Assert.Equal(beforeCount + 1, _handler.Count);
-                var rescheduled = Assert.IsType<GuildSaveEvent>(_handler.Peek());
-                Assert.True(rescheduled.Ticks > before);
+            // Save re-enqueues a fresh GuildSaveEvent, not the instance that ran.
+            int beforeCount = _handler.Count;
+            long before = _world.TimeNow;
+            new GuildSaveEvent { Ticks = before }.Ready(_world);
 
-                _handler.Update(_world); // must return, not spin
-                Assert.Equal(beforeCount + 1, _handler.Count);
-            }
-            finally
-            {
-                GameWorld.Settings.GuildSavePeriod = old;
-            }
+            Assert.Equal(beforeCount + 1, _handler.Count);
+            var rescheduled = Assert.IsType<GuildSaveEvent>(_handler.Peek());
+            Assert.True(rescheduled.Ticks > before);
+
+            _handler.Update(_world); // must return, not spin
+            Assert.Equal(beforeCount + 1, _handler.Count);
         }
     }
 }
