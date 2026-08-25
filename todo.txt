@@ -1,13 +1,9 @@
 
-shift to docker/terraform
-
 bugs:
 
 
 in zombie map make it so if you die you spawn at the start up to 3 times
 deadlock or something hanging the server?
-
-add a limit to chat text?
 
 
 dotnet "build" "/home/hayden/code/illutiagooseserver/Goose/Goose.csproj"
@@ -23,7 +19,6 @@ change droprate to double
 spell to see monster info
 Change guilds to not update DB itself
 daily quests
-make invis work
 Readd server browser stuff
 /help command
 Global chat
@@ -31,16 +26,12 @@ convert decimals -> doubles
 look into wrath etc spawns what can be done to make training better but not encourage macroing
 logging everywhere
 increase bank slot item
-pets commit 8e919ffaff6c
 flag for hiding other equips when cloak is equipped
-something buggy with move speed
-/who search
 global script threading issues
 support for sounds
 Death animations?
 Revives?
 Is it possible to do timed quests? Kill x monkeys in 10 mins
-invert class restrictions (more logical, adding a class doesn't break everything)
 
 change priest group heal to have more range but heal less the further away the heal targets are
 
@@ -118,6 +109,13 @@ Move packet creation to it's own class
 Refactor settings
 update to .net 7
 convert hashtables -> Dictionaries
+shift to docker/terraform
+add a limit to chat text?
+make invis work
+pets commit 8e919ffaff6c
+invert class restrictions (more logical, adding a class doesn't break everything)
+something buggy with move speed
+/who search
 
 
 
