@@ -62,7 +62,7 @@ namespace Goose
                 world.Send(player, P.WindowTextLine(this.ID, lineno++, "Equipped Items"));
                 lineno++;
 
-                foreach (var equipSlot in Enum.GetValues(typeof(Inventory.EquipSlots)).Cast<Inventory.EquipSlots>())
+                foreach (var equipSlot in Enum.GetValues<Inventory.EquipSlots>())
                 {
                     var slot = playerForInfo.Inventory.GetEquippedSlot(equipSlot);
                     world.Send(player, P.WindowTextLine(this.ID, lineno++, $"{equipSlot.ToString()}: {slot?.Item?.Name} ({slot?.Item?.TemplateID})"));
@@ -76,7 +76,7 @@ namespace Goose
                 for (int i = 1; i <= 15; i++)
                 {
                     var slot = playerForInfo.Inventory.GetSlot(i);
-                    if (slot == null)
+                    if (slot is null)
                         world.Send(player, P.WindowTextLine(this.ID, lineno++, $"{i}."));
                     else
                         world.Send(player, P.WindowTextLine(this.ID, lineno++, $"{i}. {slot.Item.Name} ({slot.Stack})"));
@@ -90,7 +90,7 @@ namespace Goose
                 for (int i = 16; i <= 30; i++)
                 {
                     var slot = playerForInfo.Inventory.GetSlot(i);
-                    if (slot == null)
+                    if (slot is null)
                         world.Send(player, P.WindowTextLine(this.ID, lineno++, $"{i}."));
                     else
                         world.Send(player, P.WindowTextLine(this.ID, lineno++, $"{i}. {slot.Item.Name} ({slot.Stack})"));
@@ -104,7 +104,7 @@ namespace Goose
                 for (int i = 1; i <= 10; i++)
                 {
                     var slot = playerForInfo.Inventory.GetCombineBagContainer().GetSlot(i);
-                    if (slot == null)
+                    if (slot is null)
                         world.Send(player, P.WindowTextLine(this.ID, lineno++, $"{i}."));
                     else
                         world.Send(player, P.WindowTextLine(this.ID, lineno++, $"{i}. {slot.Item.Name} ({slot.Stack})"));
@@ -124,7 +124,7 @@ namespace Goose
                 for (int i = bankStart; i <= bankStart + 14; i++)
                 {
                     var slot = container.Value.GetSlot(i);
-                    if (slot == null)
+                    if (slot is null)
                         world.Send(player, P.WindowTextLine(this.ID, lineno++, $"{i}."));
                     else
                         world.Send(player, P.WindowTextLine(this.ID, lineno++, $"{i}. {slot.Item.Name} ({slot.Stack})"));

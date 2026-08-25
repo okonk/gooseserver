@@ -41,7 +41,7 @@ namespace Goose.Events
 
                 NPC npc = null;
 
-                foreach (Window window in this.Player.Windows)
+                foreach (var window in this.Player.Windows)
                 {
                     if (window.Type == Window.WindowTypes.Vendor &&
                         window.NPC.LoginID == npcid)
@@ -52,7 +52,7 @@ namespace Goose.Events
                 }
 
                 // log bad npc
-                if (npc == null) return;
+                if (npc is null) return;
 
                 if (npc.State != NPC.States.Alive ||
                     npc.Map != this.Player.Map ||
@@ -64,7 +64,7 @@ namespace Goose.Events
 
                 ItemSlot slot = this.Player.Inventory.GetSlot(slotid);
                 // log bad slot
-                if (slot == null) return;
+                if (slot is null) return;
 
                 // log bad stack size
                 if (stack <= 0 || stack > slot.Stack) return;

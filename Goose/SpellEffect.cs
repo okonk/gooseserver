@@ -291,10 +291,10 @@ namespace Goose
             this.ScriptParams = other.ScriptParams;
 
             // New instances, not shared references - see the class doc above.
-            this.Stats = other.Stats == null ? new AttributeSet() : other.Stats.Clone();
-            this.BuffStacksOver = other.BuffStacksOver == null
+            this.Stats = other.Stats is null ? new AttributeSet() : other.Stats.Clone();
+            this.BuffStacksOver = other.BuffStacksOver is null
                 ? [] : [.. other.BuffStacksOver];
-            this.BuffDoesntStackOver = other.BuffDoesntStackOver == null
+            this.BuffDoesntStackOver = other.BuffDoesntStackOver is null
                 ? [] : [.. other.BuffDoesntStackOver];
         }
 
@@ -377,7 +377,7 @@ namespace Goose
                 double.TryParse(tokens[1], out mult);
             }
 
-            if (stat == null || mult == 0) return "formula";
+            if (stat is null || mult == 0) return "formula";
 
             return $"{mult * 100:F0}% of {stat}";
         }
@@ -472,7 +472,7 @@ namespace Goose
         public IEnumerable<string> GetItemDescription(GameWorld world)
         {
             var scripted = this.ScriptItemDescription(world);
-            if (scripted != null && scripted.Count > 0) return scripted;
+            if (scripted is not null && scripted.Count > 0) return scripted;
 
             return this.BuiltInItemDescription(world);
         }
@@ -482,12 +482,12 @@ namespace Goose
         /// the default branch below and lose their destination line.</summary>
         private List<string> ScriptItemDescription(GameWorld world)
         {
-            if (this.Script == null) return null;
+            if (this.Script is null) return null;
 
             try
             {
                 var lines = this.Script.Object.GetItemDescription(this, world);
-                return lines == null ? null : lines.ToList();
+                return lines is null ? null : lines.ToList();
             }
             catch (Exception e)
             {
@@ -546,7 +546,7 @@ namespace Goose
                     break;
                 case EffectTypes.Teleport:
                     var map = world.MapHandler.GetMap(this.TeleportMapID);
-                    if (map != null)
+                    if (map is not null)
                         yield return "Teleport to " + map.Name + " (" + this.TeleportMapX + ", " + this.TeleportMapY + ")";
                     else
                         yield return "Teleport to bound location";
@@ -555,14 +555,14 @@ namespace Goose
                     foreach (var line in GetBuffDescription("Permanently ")) yield return line;
                     break;
                 case EffectTypes.OnMeleeHit:
-                    if (this.OnMeleeHitSpell != null)
+                    if (this.OnMeleeHitSpell is not null)
                     {
                         yield return "When hit by melee, cast " + this.OnMeleeHitSpell.Name;
                         foreach (var line in this.OnMeleeHitSpell.GetItemDescription(world)) yield return line;
                     }
                     break;
                 case EffectTypes.OnAttack:
-                    if (this.OnMeleeAttackSpell != null)
+                    if (this.OnMeleeAttackSpell is not null)
                     {
                         yield return "When attacking with melee, cast " + this.OnMeleeAttackSpell.Name;
                         foreach (var line in this.OnMeleeAttackSpell.GetItemDescription(world)) yield return line;
@@ -630,7 +630,7 @@ namespace Goose
             var packet = string.Join("\x1", packets);
 
             if (target is Player) world.Send((Player)target, packet);
-            foreach (Player player in range)
+            foreach (var player in range)
             {
                 world.Send(player, packet);
             }
@@ -649,7 +649,7 @@ namespace Goose
 
             if (caster != target)
             {
-                if (((Player)caster).Group == null || !((Player)caster).Group.Players.Contains((Player)target))
+                if (((Player)caster).Group is null || !((Player)caster).Group.Players.Contains((Player)target))
                 {
                     return false;
                 }
@@ -668,7 +668,7 @@ namespace Goose
 
             world.Send((Player)target, P.ServerMessage("Your soul has been bound to this spot."));
             world.Send((Player)target, packet);
-            foreach (Player player in range)
+            foreach (var player in range)
             {
                 world.Send(player, packet);
             }
@@ -722,7 +722,7 @@ namespace Goose
 
             world.Send((Player)target, P.StatusInfo((Player)target));
             world.Send((Player)target, packet);
-            foreach (Player player in range)
+            foreach (var player in range)
             {
                 world.Send(player, packet);
             }
@@ -750,7 +750,7 @@ namespace Goose
                 string packet = P.BattleTextStunned(target);
 
                 if (target is Player) world.Send((Player)target, packet);
-                foreach (Player player in range)
+                foreach (var player in range)
                 {
                     world.Send(player, packet);
                 }
@@ -761,7 +761,7 @@ namespace Goose
                 string packet = P.BattleTextRooted(target);
 
                 if (target is Player) world.Send((Player)target, packet);
-                foreach (Player player in range)
+                foreach (var player in range)
                 {
                     world.Send(player, packet);
                 }
@@ -801,7 +801,7 @@ namespace Goose
 
                 string packet = P.SpellPlayer(target.LoginID, this.Animation, this.AnimationFile);
                 world.Send((Player)target, packet);
-                foreach (Player player in range)
+                foreach (var player in range)
                 {
                     world.Send(player, packet);
                 }
@@ -809,7 +809,7 @@ namespace Goose
 
             // if null tele to bound spot. used for gate spells
             Map map = world.MapHandler.GetMap(this.TeleportMapID);
-            if (map == null)
+            if (map is null)
             {
                 ((Player)target).WarpTo(world, ((Player)target).BoundMap,
                     ((Player)target).BoundX, ((Player)target).BoundY);
@@ -831,8 +831,8 @@ namespace Goose
 
         public bool CanCastSpell(ICharacter caster, ICharacter target)
         {
-            if (target == null) return false;
-            if ((caster.Map != null && !caster.Map.CanCast) && (caster is Player && !((caster as Player).HasPrivilege(AccessPrivilege.CastSpellsWhileBlocked)))) return false;
+            if (target is null) return false;
+            if ((caster.Map is not null && !caster.Map.CanCast) && (caster is Player && !((caster as Player).HasPrivilege(AccessPrivilege.CastSpellsWhileBlocked)))) return false;
             if (caster == target)
             {
                 if (((int)this.Effected & (int)SpellEffected.Self) == 0) return false;
@@ -1120,7 +1120,7 @@ namespace Goose
                             case 4: x--; break;
                         }
 
-                        if ((hit = map.GetCharacterAt(x, y)) != null)
+                        if ((hit = map.GetCharacterAt(x, y)) is not null)
                         {
                             this.CastSpell(caster, hit, world);
 
@@ -1140,7 +1140,7 @@ namespace Goose
                     {
                         for (int x = ox - this.TargetSize; x <= ox + this.TargetSize; x++)
                         {
-                            if ((hit = map.GetCharacterAt(x, y)) != null)
+                            if ((hit = map.GetCharacterAt(x, y)) is not null)
                             {
                                 this.CastSpell(caster, hit, world);
 
@@ -1165,7 +1165,7 @@ namespace Goose
                         {
                             if (x == ox - (y - oy) || x == ox + (y - oy))
                             {
-                                if ((hit = map.GetCharacterAt(x, y)) != null)
+                                if ((hit = map.GetCharacterAt(x, y)) is not null)
                                 {
                                     this.CastSpell(caster, hit, world);
 
@@ -1189,7 +1189,7 @@ namespace Goose
                         {
                             if (x == ox || y == oy)
                             {
-                                if ((hit = map.GetCharacterAt(x, y)) != null)
+                                if ((hit = map.GetCharacterAt(x, y)) is not null)
                                 {
                                     this.CastSpell(caster, hit, world);
 
@@ -1247,9 +1247,9 @@ namespace Goose
                         }
                     }
 
-                    foreach (Point p in done)
+                    foreach (var p in done)
                     {
-                        if ((hit = map.GetCharacterAt(p.x, p.y)) != null)
+                        if ((hit = map.GetCharacterAt(p.x, p.y)) is not null)
                         {
                             this.CastSpell(caster, hit, world);
 
@@ -1308,7 +1308,7 @@ namespace Goose
                                     break;
                             }
 
-                            if ((hit = map.GetCharacterAt(x, y)) != null)
+                            if ((hit = map.GetCharacterAt(x, y)) is not null)
                             {
                                 this.CastSpell(caster, hit, world);
 
@@ -1331,7 +1331,7 @@ namespace Goose
 
                 if (target is Player) world.Send((Player)target, packet);
 
-                foreach (Player player in range)
+                foreach (var player in range)
                 {
                     world.Send(player, packet);
                 }

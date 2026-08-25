@@ -42,9 +42,9 @@ namespace Goose
         {
             if (from == to) return;
 
-            if (from == null && to == null) return;
+            if (from is null && to is null) return;
 
-            if (from == null || to == null)
+            if (from is null || to is null)
             {
                 ItemSlot temp = from;
                 from = to;

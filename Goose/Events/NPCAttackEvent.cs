@@ -9,7 +9,7 @@ namespace Goose.Events
             this.NPC.AttackEvent = null;
 
             if (this.NPC.State == NPC.States.Dead) return;
-            if (this.NPC.AggroTarget == null) return;
+            if (this.NPC.AggroTarget is null) return;
 
             this.NPC.OnAttackEvent(world);
         }

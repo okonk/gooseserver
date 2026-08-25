@@ -21,7 +21,7 @@ namespace Goose.Events
                 // check tile at player x,y
                 ITile itile = this.Player.Map.GetTile(x, y);
                 ItemTile tile;
-                if (itile == null)
+                if (itile is null)
                 {
                     // check tile 1 square in front of player
                     switch (this.Player.Facing)
@@ -32,7 +32,7 @@ namespace Goose.Events
                         case 4: x--; break;
                     }
                     itile = this.Player.Map.GetTile(x, y);
-                    if (itile == null)
+                    if (itile is null)
                     {
                         // no items
                         // log no items, i don't think the client sends get unless there's an item
@@ -51,7 +51,7 @@ namespace Goose.Events
                         // So players can only pick up 1 tile in front if it's their item
                         // and within time limit
                         if (!(tile.Owner == this.Player ||
-                            (tile.Owner.Group != null && tile.Owner.Group.Players.Contains(this.Player))))
+                            (tile.Owner.Group is not null && tile.Owner.Group.Players.Contains(this.Player))))
                         {
                             return;
                         }
@@ -70,7 +70,7 @@ namespace Goose.Events
                 // Can't pick up cause not owner and it's not past the time limit
                 if (!(tile.PickupTime < world.TimeNow || 
                         (tile.Owner == this.Player || 
-                            (tile.Owner.Group != null && tile.Owner.Group.Players.Contains(this.Player)))))
+                            (tile.Owner.Group is not null && tile.Owner.Group.Players.Contains(this.Player)))))
                 {
                     return;
                 }
@@ -101,7 +101,7 @@ namespace Goose.Events
                         log.Error(e, "Item CanPickup {0} Exception", tile.ItemSlot.Item.TemplateID);
                         refusal = "You cannot pick that up right now.";
                     }
-                    if (refusal != null)
+                    if (refusal is not null)
                     {
                         world.Send(this.Player, P.ServerMessage(refusal));
                         return;
@@ -125,7 +125,7 @@ namespace Goose.Events
                     }
                 }
 
-                if (this.Player.Group != null)
+                if (this.Player.Group is not null)
                 {
                     this.Player.Group.ItemPickup(this.Player, tile.ItemSlot, world);
                 }

@@ -39,7 +39,7 @@ namespace Goose.Events
                             if (search.Length > 2)
                                 query = string.Join(" ", search, 2, search.Length - 2);
                         }
-                        else if (search[1].Equals("guild") && this.Player.Guild != null)
+                        else if (search[1].Equals("guild") && this.Player.Guild is not null)
                         {
                             players = this.Player.Guild.OnlineMembers;
                             if (search.Length > 2)
@@ -57,12 +57,12 @@ namespace Goose.Events
                     }
                 }
 
-                foreach (Player player in players)
+                foreach (var player in players)
                 {
                     if (player is Pet) continue;
                     if (player.IsGMInvisible) continue;
                     if (player.IsWhoInvisible && this.Player.Access < player.Access) continue;
-                    if (query != null && !MatchesQuery(player, query)) continue;
+                    if (query is not null && !MatchesQuery(player, query)) continue;
 
                     if (player.State == Player.States.Ready)
                     {

@@ -8,7 +8,7 @@ namespace Goose.Events
         {
             if (this.Player.State == Player.States.Ready)
             {
-                if (this.Player.Guild == null) return;
+                if (this.Player.Guild is null) return;
 
                 this.Player.UpdateIdleStatus(world);
 
@@ -22,7 +22,7 @@ namespace Goose.Events
                 world.LogHandler.Log(Log.Types.GuildChat, this.Player.PlayerID, message, this.Player.Guild.ID, this.Player.Map.ID, this.Player.MapX, this.Player.MapY);
 
                 List<Player> range = this.Player.Guild.OnlineMembers;
-                foreach (Player player in range)
+                foreach (var player in range)
                 {
                     if (player.ChatFilterEnabled)
                     {

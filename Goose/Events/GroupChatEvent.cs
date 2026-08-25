@@ -16,7 +16,7 @@ namespace Goose.Events
         {
             if (this.Player.State == Player.States.Ready)
             {
-                if (this.Player.Group == null) return;
+                if (this.Player.Group is null) return;
 
                 this.Player.UpdateIdleStatus(world);
 

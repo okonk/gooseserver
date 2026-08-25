@@ -8,7 +8,7 @@ namespace Goose.Events
         {
             if (this.Player.State == Player.States.Ready)
             {
-                foreach (Window window in this.Player.Windows)
+                foreach (var window in this.Player.Windows)
                 {
                     if (window.Type == Window.WindowTypes.CharInfo)
                     {

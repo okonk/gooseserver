@@ -49,7 +49,7 @@ namespace Goose.Events
 
                 // tile can stack
                 ItemTile maptile = (ItemTile)this.Player.Map.GetTile(tile.X, tile.Y);
-                if (maptile != null && maptile is ItemTile)
+                if (maptile is not null && maptile is ItemTile)
                 {
                     maptile.ItemSlot.Stack += tile.ItemSlot.Stack;
 

@@ -8,7 +8,7 @@ namespace Goose.Events
         {
             if (this.Player.State == Player.States.Ready)
             {
-                if (this.Player.Guild == null) return;
+                if (this.Player.Guild is null) return;
 
                 string name = ((string)this.Data).Substring(12);
 
@@ -23,9 +23,9 @@ namespace Goose.Events
 
                     name = name.Substring(1);
                     Player player = world.PlayerHandler.GetPlayer(name);
-                    if (player != null && player.State == Player.States.Ready)
+                    if (player is not null && player.State == Player.States.Ready)
                     {
-                        if (player.Guild != null && 
+                        if (player.Guild is not null && 
                             player.Guild == this.Player.Guild && 
                             this.Player.Guild.GetRank(this.Player) > this.Player.Guild.GetRank(player))
                         {

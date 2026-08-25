@@ -22,7 +22,7 @@ namespace Goose
         public static void Open(GameWorld world, Player player)
         {
             var combineBag = player.Windows.FirstOrDefault(w => w.Type == WindowTypes.CombineBag);
-            if (combineBag != null)
+            if (combineBag is not null)
             {
                 player.Windows.Remove(combineBag);
             }
@@ -38,7 +38,7 @@ namespace Goose
         public override void SendSlot(int slotIndex, Player player, GameWorld world)
         {
             ItemSlot slot = this.ItemContainer.GetSlot(slotIndex);
-            if (slot != null)
+            if (slot is not null)
             {
                 world.Send(player, P.CombineSlot(this, slot.Item, world, slotIndex, slot.Stack));
             }

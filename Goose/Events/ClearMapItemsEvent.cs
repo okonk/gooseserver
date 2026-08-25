@@ -15,14 +15,14 @@ namespace Goose.Events
             long existedfor; // how long the item has been on the map in seconds
             List<ItemTile> remove = [];
 
-            foreach (ItemTile item in map.Items) {
+            foreach (var item in map.Items) {
                 existedfor = ((world.TimeNow - item.DroppedTime) / world.TimerFrequency);
                 if (existedfor < world.Settings.ItemGroundExistTime) continue;
 
                 remove.Add(item);
             }
 
-            foreach (ItemTile item in remove)
+            foreach (var item in remove)
             {
                 map.RemoveItem(item, world);
             }

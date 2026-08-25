@@ -20,10 +20,10 @@ namespace Goose.Events
                 if (data.Length <= 0) return;
 
                 string packet = P.Emote(this.Player, data);
-                if (packet == null) return;
+                if (packet is null) return;
 
                 world.Send(this.Player, packet);
-                foreach (Player player in this.Player.Map.GetPlayersInRange(this.Player))
+                foreach (var player in this.Player.Map.GetPlayersInRange(this.Player))
                 {
                     world.Send(player, packet);
                 }

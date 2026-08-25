@@ -51,7 +51,7 @@ namespace Goose.Events
                         }
                         else
                         {
-                            foreach (Player player in this.Player.Map.GetPlayersInRange(this.Player))
+                            foreach (var player in this.Player.Map.GetPlayersInRange(this.Player))
                             {
                                 if (player.LoginID == target)
                                 {
@@ -60,7 +60,7 @@ namespace Goose.Events
                                 }
                             }
 
-                            foreach (NPC npc in this.Player.Map.GetNPCsInRange(this.Player))
+                            foreach (var npc in this.Player.Map.GetNPCsInRange(this.Player))
                             {
                                 if (npc.LoginID == target)
                                 {

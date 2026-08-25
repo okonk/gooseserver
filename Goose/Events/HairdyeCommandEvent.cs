@@ -31,7 +31,7 @@ namespace Goose.Events
                         }
 
                         error = ParseRGBA(tokens, out r, out g, out b, out a);
-                        if (error != null)
+                        if (error is not null)
                         {
                             world.Send(this.Player, error);
                             return;
@@ -45,7 +45,7 @@ namespace Goose.Events
 
                         string chpstring = P.UpdateCharacter(this.Player);
                         world.Send(this.Player, chpstring);
-                        foreach (Player player in this.Player.Map.GetPlayersInRange(this.Player))
+                        foreach (var player in this.Player.Map.GetPlayersInRange(this.Player))
                         {
                             world.Send(player, chpstring);
                         }
@@ -53,7 +53,7 @@ namespace Goose.Events
                         break;
                     case "preview":
                         error = ParseRGBA(tokens, out r, out g, out b, out a);
-                        if (error != null)
+                        if (error is not null)
                         {
                             world.Send(this.Player, error);
                             return;
@@ -67,7 +67,7 @@ namespace Goose.Events
 
                         int pose = this.Player.BodyState;
                         ItemSlot weapon = this.Player.Inventory.GetEquippedSlot(Inventory.EquipSlots.Weapon);
-                        if (weapon != null)
+                        if (weapon is not null)
                         {
                             pose = weapon.Item.BodyState;
                         }

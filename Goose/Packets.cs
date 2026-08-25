@@ -82,7 +82,7 @@ namespace Goose
 
             int pose = player.BodyState;
             ItemSlot weapon = player.Inventory.GetEquippedSlot(Inventory.EquipSlots.Weapon);
-            if (weapon != null)
+            if (weapon is not null)
             {
                 pose = weapon.Item.BodyState;
             }
@@ -119,7 +119,7 @@ namespace Goose
 
             int pose = player.BodyState;
             ItemSlot weapon = player.Inventory.GetEquippedSlot(Inventory.EquipSlots.Weapon);
-            if (weapon != null)
+            if (weapon is not null)
             {
                 pose = weapon.Item.BodyState;
             }
@@ -369,7 +369,7 @@ namespace Goose
         public static Func<Player, string> StatusInfo = (player) =>
         {
             return "SNF" +
-                   (player.Guild != null ? player.Guild.Name : "") + "," + // guild name
+                   (player.Guild is not null ? player.Guild.Name : "") + "," + // guild name
                    "" + "," + // Not sure
                    player.Class.ClassName + "," +
                    player.Level + "," +
@@ -465,7 +465,7 @@ namespace Goose
                     ItemTemplate.FigureClassRestrictions(world, item.ClassRestrictions) +
                     "0" + "|" + // gm access
                     "0" + "|" + // gender, always 0 since we don't care about gender
-                    (spellEffect == null ? "" : spellEffect.Name + ';' + string.Join(";", spellEffect.GetItemDescription(world))) + "|" +
+                    (spellEffect is null ? "" : spellEffect.Name + ';' + string.Join(";", spellEffect.GetItemDescription(world))) + "|" +
                     spellEffectChance + "|" +
                     item.BodyType + "|" +
                     (int)item.UseType + "|" +
@@ -525,7 +525,7 @@ namespace Goose
                     ItemTemplate.FigureClassRestrictions(world, item.ClassRestrictions) +
                     "0" + "|" + // gm access
                     "0" + "|" + // gender, always 0 since we don't care about gender
-                    (spellEffect == null ? "" : spellEffect.Name + ';' + string.Join(";", spellEffect.GetItemDescription(world))) + "|" +
+                    (spellEffect is null ? "" : spellEffect.Name + ';' + string.Join(";", spellEffect.GetItemDescription(world))) + "|" +
                     spellEffectChance + "|" +
                     item.BodyType + "|" +
                     (int)item.UseType + "|" +
@@ -590,7 +590,7 @@ namespace Goose
 
         public static Func<Spell, int, int, string> SpellSlot = (spell, slotId, targetType) =>
         {
-            if (spell == null)
+            if (spell is null)
             {
                 return "SSS" + slotId + ",,0,0,0,0,0,0,0";
             }
@@ -608,7 +608,7 @@ namespace Goose
 
         public static Func<Player, int, string> GroupUpdate = (player, index) =>
         {
-            if (player == null)
+            if (player is null)
             {
                 return "GUD" + index + ",0,,0,";
             }
@@ -618,7 +618,7 @@ namespace Goose
 
         public static Func<Buff, int, string> BuffBar = (buff, index) =>
         {
-            if (buff == null)
+            if (buff is null)
             {
                 return "BUF" + index;
             }

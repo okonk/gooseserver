@@ -19,7 +19,7 @@ namespace Goose.Events
 
                 if (t.Length == 1)
                 {
-                    if (this.Player.Group == null)
+                    if (this.Player.Group is null)
                     {
                         world.Send(this.Player, P.GroupMessage("You are not in a group."));
                         return;
@@ -36,9 +36,9 @@ namespace Goose.Events
                 if (name.Length <= 0) return;
 
                 Player player = world.PlayerHandler.GetPlayer(name);
-                if (player != null)
+                if (player is not null)
                 {
-                    if (player.Group == null)
+                    if (player.Group is null)
                     {
                         world.Send(this.Player, P.GroupMessage("Player is not in a group."));
                         return;

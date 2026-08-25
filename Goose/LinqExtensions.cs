@@ -5,10 +5,10 @@ namespace Goose
     {
         public static IEnumerable<T> SkipFirstMatching<T>(this IEnumerable<T> source, Func<T, bool> predicate)
         {
-            if (source == null)
+            if (source is null)
                 throw new ArgumentNullException("source");
 
-            if (predicate == null)
+            if (predicate is null)
                 throw new ArgumentNullException("predicate");
 
             return SkipFirstMatchingCore(source, predicate);
@@ -18,7 +18,7 @@ namespace Goose
         {
             bool itemToSkipSeen = false;
 
-            foreach (T item in source)
+            foreach (var item in source)
             {
                 if (!itemToSkipSeen && predicate(item))
                     itemToSkipSeen = true;

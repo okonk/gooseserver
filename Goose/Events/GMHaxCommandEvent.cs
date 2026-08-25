@@ -13,7 +13,7 @@ namespace Goose.Events
                 var player = this.Player;
                 int pose = player.BodyState;
                 ItemSlot weapon = player.Inventory.GetEquippedSlot(Inventory.EquipSlots.Weapon);
-                if (weapon != null)
+                if (weapon is not null)
                 {
                     pose = weapon.Item.BodyState;
                 }

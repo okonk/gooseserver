@@ -29,7 +29,7 @@ namespace Goose
             if (this.Players.Contains(player)) return;
 
             string packet = P.GroupMessage(player.Name + " has joined your group. (" + adder.Name + ")");
-            foreach (Player p in this.Players)
+            foreach (var p in this.Players)
             {
                 if (p.State != Player.States.Ready) continue;
 
@@ -40,7 +40,7 @@ namespace Goose
             player.Group = this;
             this.Players.Add(player);
 
-            foreach (Player p in this.Players)
+            foreach (var p in this.Players)
             {
                 this.SendPartyWindow(p, world);
             }
@@ -64,7 +64,7 @@ namespace Goose
             if (kicked) { packet = P.GroupMessage(player.Name + " was kicked from your group. (" + kicker.Name + ")"); }
             else { packet = P.GroupMessage(player.Name + " has left your group."); }
 
-            foreach (Player p in this.Players)
+            foreach (var p in this.Players)
             {
                 if (p.State != Player.States.Ready) continue;
 
@@ -92,7 +92,7 @@ namespace Goose
             // send players in party window if player is in party
             if (this.Players.Contains(player))
             {
-                foreach (Player p in this.Players)
+                foreach (var p in this.Players)
                 {
                     // Can only display PartyWindowMax players in list
                     if (i > world.Settings.PartyWindowMax) return;
@@ -121,7 +121,7 @@ namespace Goose
             string filteredpacket = P.GroupMessage("[group] " + player.Name + ": ");
             bool filtered = false;
 
-            foreach (Player p in this.Players)
+            foreach (var p in this.Players)
             {
                 if (p.ChatFilterEnabled)
                 {
@@ -146,7 +146,7 @@ namespace Goose
         public void ItemPickup(Player player, ItemSlot itemslot, GameWorld world)
         {
             string packet = P.GroupMessage(player.Name + " picked up " + itemslot.Item.Name + " (" + itemslot.Stack + ").");
-            foreach (Player p in this.Players)
+            foreach (var p in this.Players)
             {
                 world.Send(p, packet);
             }
@@ -162,12 +162,12 @@ namespace Goose
             double groupexp = exp * Math.Pow(0.91, this.Players.Count-1);
 
             int highest = 0;
-            foreach (Player player in this.Players)
+            foreach (var player in this.Players)
             {
                 if (player.Level > highest) highest = player.Level;
             }
 
-            foreach (Player player in this.Players)
+            foreach (var player in this.Players)
             {
                 // no exp too far away
                 if (player.Map != npc.Map ||

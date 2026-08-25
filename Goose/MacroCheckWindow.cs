@@ -29,7 +29,7 @@ namespace Goose
         public static void Open(GameWorld world, Player player, string code)
         {
             var macroCheck = player.Windows.FirstOrDefault(w => w.Type == WindowTypes.MacroCheck);
-            if (macroCheck != null)
+            if (macroCheck is not null)
             {
                 player.Windows.Remove(macroCheck);
             }

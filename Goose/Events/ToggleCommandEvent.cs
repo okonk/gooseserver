@@ -78,7 +78,7 @@ namespace Goose.Events
 
                             this.Player.Map.SetCharacter(null, this.Player.MapX, this.Player.MapY);
                             string erc = P.EraseCharacter(this.Player.LoginID);
-                            foreach (Player player in this.Player.Map.GetPlayersInRange(this.Player))
+                            foreach (var player in this.Player.Map.GetPlayersInRange(this.Player))
                             {
                                 world.Send(player, erc);
                             }

@@ -33,7 +33,7 @@ namespace Goose.Events
                 if (invslot <= 0 || invslot > world.Settings.InventorySize) return;
                 if (windowid <= 0) return;
 
-                foreach (Window window in this.Player.Windows)
+                foreach (var window in this.Player.Windows)
                 {
                     if (window.ID == windowid)
                     {

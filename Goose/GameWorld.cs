@@ -154,11 +154,9 @@ namespace Goose
 
         private static void ExecuteSql(SQLiteConnection connection, string sqlFile)
         {
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = sqlFile;
-                command.ExecuteNonQuery();
-            }
+            using var command = connection.CreateCommand();
+            command.CommandText = sqlFile;
+            command.ExecuteNonQuery();
         }
 
         /// <summary>Runs on every startup, not just on a fresh database. `players` holds live
@@ -228,11 +226,9 @@ namespace Goose
                     var sqlData = CsvToSql.Core.CsvToSqlConverter.Convert(this.Settings.DataLinkId);
                     this.Database.Execute(conn =>
                     {
-                        using (var command = conn.CreateCommand())
-                        {
-                            command.CommandText = sqlData;
-                            command.ExecuteNonQuery();
-                        }
+                        using var command = conn.CreateCommand();
+                        command.CommandText = sqlData;
+                        command.ExecuteNonQuery();
                     });
                 }
                 catch (Exception e)
@@ -338,7 +334,7 @@ namespace Goose
                 action();
 
                 string unit = name.ToLower();
-                if (countFn != null)
+                if (countFn is not null)
                     log.Info("{0} {1} loaded.", countFn(), unit);
                 else
                     log.Info("Done loading {0}.", name);
@@ -366,7 +362,7 @@ namespace Goose
             log.Info("Shutting down server.");
 
             log.Info("Saving players.");
-            foreach (Player player in this.PlayerHandler.Players)
+            foreach (var player in this.PlayerHandler.Players)
             {
                 if (player.State > Player.States.LoadingGame)
                 {
@@ -460,7 +456,7 @@ namespace Goose
         public void Received(Socket sock, string data)
         {
             Player player = this.PlayerHandler.GetPlayer(sock);
-            if (player != null)
+            if (player is not null)
             {
                 preLoginBuffers.Remove(sock);
                 player.Received(data);
@@ -577,7 +573,7 @@ namespace Goose
          */
         public void Send(Player player, string data)
         {
-            if (player is Pet || data == null) return;
+            if (player is Pet || data is null) return;
             //Console.Out.WriteLine("Send: " + data);
 
             data += "\x1";
@@ -605,7 +601,7 @@ namespace Goose
          */
         public void SendRaw(Socket sock, string data)
         {
-            if (sock == null || data == null) return;
+            if (sock is null || data is null) return;
 
             data += "\x1";
             try
@@ -626,7 +622,7 @@ namespace Goose
          */
         public void SendToAll(string data)
         {
-            foreach (Player player in this.PlayerHandler.Players)
+            foreach (var player in this.PlayerHandler.Players)
             {
                 if (player.State > Player.States.LoadingGame)
                 {
@@ -644,7 +640,7 @@ namespace Goose
          */
         public void SendToMap(Map map, string data)
         {
-            foreach (Player player in map.Players)
+            foreach (var player in map.Players)
             {
                 if (player.State == Player.States.Ready)
                 {

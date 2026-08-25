@@ -42,7 +42,7 @@ namespace Goose
         public static void Open(GameWorld world, Player player, NPC npc)
         {
             var bank = player.Windows.FirstOrDefault(w => w.Type == WindowTypes.Bank && w.NPC == npc);
-            if (bank != null)
+            if (bank is not null)
             {
                 player.Windows.Remove(bank);
             }
@@ -105,7 +105,7 @@ namespace Goose
         public override void SendSlot(int slotIndex, Player player, GameWorld world)
         {
             ItemSlot slot = this.GetSlot(slotIndex);
-            if (slot != null)
+            if (slot is not null)
             {
                 world.Send(player, P.BankSlot(this, slot.Item, world, slotIndex, slot.Stack));
             }

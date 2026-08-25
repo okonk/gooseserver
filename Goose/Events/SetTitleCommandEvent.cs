@@ -27,7 +27,7 @@ namespace Goose.Events
                 }
 
                 Player player = world.PlayerHandler.GetPlayerFromData(name);
-                if (player != null)
+                if (player is not null)
                 {
                     player.Title = title;
                     world.Send(this.Player, P.ServerMessage("Changed title successfully."));
@@ -36,14 +36,14 @@ namespace Goose.Events
                     {
                         world.Send(player, P.StatusInfo(player));
 
-                        if (player.Map != null)
+                        if (player.Map is not null)
                         {
                             List<Player> range = player.Map.GetPlayersInRange(player);
 
                             string packet = P.EraseCharacter(player.LoginID);
                             string packet2 = P.MakeCharacter(player);
 
-                            foreach (Player p in range)
+                            foreach (var p in range)
                             {
                                 world.Send(p, packet);
                                 world.Send(p, packet2);

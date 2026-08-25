@@ -159,7 +159,7 @@ namespace Goose
                     for (int i = 1; i < this.NPC.VendorItems.Length; i++)
                     {
                         var slot = this.NPC.VendorItems[i];
-                        if (slot == null) continue;
+                        if (slot is null) continue;
 
                         world.Send(player, P.VendorSlot(this, slot.ItemTemplate, world, i, 1));
                     }

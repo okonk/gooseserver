@@ -21,7 +21,7 @@ namespace Goose.Events
             {
                 this.Player.UpdateIdleStatus(world);
 
-                foreach (Buff b in this.Player.Buffs)
+                foreach (var b in this.Player.Buffs)
                 {
                     // can't move when stunned or rooted
                     if (b.SpellEffect.EffectType == SpellEffect.EffectTypes.Stun)
@@ -42,7 +42,7 @@ namespace Goose.Events
                     }
                 }
 
-                foreach (Window window in this.Player.Windows)
+                foreach (var window in this.Player.Windows)
                 {
                     if (window.Type == Window.WindowTypes.Vendor)
                     {
@@ -71,7 +71,7 @@ namespace Goose.Events
                     if (this.Player.MovementRecordingSteps >= 15)
                     {
                         long diff = world.TimeNow - this.Player.MovementRecordingStarted;
-                        double secs = (double)diff / (double)world.TimerFrequency;
+                        double secs = diff / (double)world.TimerFrequency;
                         double rate = (double)this.Player.MovementRecordingSteps / secs;
 
                         if (rate > 5.0)
@@ -114,7 +114,7 @@ namespace Goose.Events
 
                     // Check if new tile is a warp tile
                     ITile tile = this.Player.Map.GetTile(x, y);
-                    if (tile != null && tile is WarpTile)
+                    if (tile is not null && tile is WarpTile)
                     {
                         WarpTile warp = (WarpTile)tile;
                         if (warp.WarpMap.PlayerCanJoin(this.Player, world))

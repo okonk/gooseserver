@@ -19,7 +19,7 @@ namespace Goose.Events
                 // Try to get the property specified
                 PropertyInfo prop = gs.GetProperty(tokens[0]);
                 // Couldn't find property.. error and return
-                if (prop == null)
+                if (prop is null)
                 {
                     world.Send(this.Player, P.ServerMessage("Couldn't find Game Setting: " + tokens[0] + "."));
                     return;

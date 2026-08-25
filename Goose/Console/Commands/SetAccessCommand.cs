@@ -74,7 +74,7 @@ namespace Goose.ConsoleCommands
             }
 
             Player player = world.PlayerHandler.GetPlayerFromData(request.Name);
-            if (player == null)
+            if (player is null)
             {
                 Console.WriteLine("No player named '" + request.Name + "'.");
                 log.Info("Console /setaccess failed: no player named {0}.", request.Name);
@@ -106,7 +106,7 @@ namespace Goose.ConsoleCommands
          */
         public static bool TryParseLevel(string text, out Player.AccessStatus level)
         {
-            foreach (Player.AccessStatus value in Enum.GetValues<Player.AccessStatus>())
+            foreach (var value in Enum.GetValues<Player.AccessStatus>())
             {
                 if (value.ToString().Equals(text, StringComparison.OrdinalIgnoreCase))
                 {

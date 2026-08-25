@@ -8,7 +8,7 @@ namespace Goose.Events
         {
             var uniquenonafkips = new HashSet<string>();
 
-            foreach (Player player in world.PlayerHandler.Players)
+            foreach (var player in world.PlayerHandler.Players)
             {
                 if (!player.IsIdle(world))
                 {

@@ -17,7 +17,7 @@ namespace Goose.Events
                     return;
                 }
 
-                foreach (Buff b in pet.Buffs)
+                foreach (var b in pet.Buffs)
                 {
                     // can't move when stunned or rooted
                     if (b.SpellEffect.EffectType == SpellEffect.EffectTypes.Stun ||
@@ -28,7 +28,7 @@ namespace Goose.Events
                     }
                 }
 
-                if (pet.Target != null && 
+                if (pet.Target is not null && 
                     (pet.Target.Map != pet.Map || (pet.Target is NPC && ((NPC)pet.Target).State != Goose.NPC.States.Alive)))
                 {
                     pet.Target = null;
@@ -52,7 +52,7 @@ namespace Goose.Events
                         break;
                     case Pet.Modes.Defend:
                     case Pet.Modes.Attack:
-                        if (pet.Target == null)
+                        if (pet.Target is null)
                         {
                             direction = pet.NextStepTo(pet.Owner.MapX + world.Random.Next(-2, 2),
                                                    pet.Owner.MapY + world.Random.Next(-2, 2),

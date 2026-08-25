@@ -52,11 +52,11 @@ namespace Goose
                 effect.EffectType = (SpellEffect.EffectTypes)Convert.ToInt32(reader["effect_type"]);
                 effect.Duration = Convert.ToInt64(reader["effect_duration"]);
                 effect.DoAttackAnimation =
-                    ("0".Equals(Convert.ToString(reader["do_attack_animation"])) ? false : true);
+                    Convert.ToString(reader["do_attack_animation"]) != "0";
                 effect.DoCastAnimation =
-                    ("0".Equals(Convert.ToString(reader["do_cast_animation"])) ? false : true);
+                    Convert.ToString(reader["do_cast_animation"]) != "0";
                 effect.SpellDamageEffects =
-                    ("0".Equals(Convert.ToString(reader["spell_damage_effects"])) ? false : true);
+                    Convert.ToString(reader["spell_damage_effects"]) != "0";
                 effect.EnergyType = Convert.ToInt32(reader["spell_energy_type"]);
                 effect.HPFormula = Convert.ToString(reader["hp_change_formula"]);
                 effect.MPFormula = Convert.ToString(reader["mp_change_formula"]);
@@ -108,10 +108,10 @@ namespace Goose
                 effect.Stats.SpellDamage = Decimal.Parse(Convert.ToString(reader["spell_damage"]));
                 effect.Stats.MoveSpeed = Convert.ToInt32(reader["move_speed"]);
 
-                effect.WorksInPVP = ("0".Equals(Convert.ToString(reader["works_in_pvp"])) ? false : true);
-                effect.WorksNotInPVP = ("0".Equals(Convert.ToString(reader["works_not_in_pvp"])) ? false : true);
+                effect.WorksInPVP = Convert.ToString(reader["works_in_pvp"]) != "0";
+                effect.WorksNotInPVP = Convert.ToString(reader["works_not_in_pvp"]) != "0";
 
-                effect.BuffCanBeRemoved = ("0".Equals(Convert.ToString(reader["buff_removable"])) ? false : true);
+                effect.BuffCanBeRemoved = Convert.ToString(reader["buff_removable"]) != "0";
                 effect.BuffGraphic = Convert.ToInt32(reader["buff_graphic"]);
                 effect.BuffGraphicFile = Convert.ToInt32(reader["buff_graphic_file"]);
 
@@ -131,7 +131,7 @@ namespace Goose
                 effect.BuffStacksOver = [];
                 effect.BuffDoesntStackOver = [];
 
-                effect.OnlyHitsOneNPC = ("0".Equals(Convert.ToString(reader["only_hits_one_npc"])) ? false : true);
+                effect.OnlyHitsOneNPC = Convert.ToString(reader["only_hits_one_npc"]) != "0";
 
                 string scriptPath = Convert.ToString(reader["script_path"]);
                 if (!string.IsNullOrEmpty(scriptPath))
@@ -143,7 +143,7 @@ namespace Goose
                 this.effects[effect.ID] = effect;
             }
 
-            foreach (SpellEffect s in this.effects.Values)
+            foreach (var s in this.effects.Values)
             {
                 s.OnMeleeAttackSpell = this.GetSpellEffect(s.OnMeleeAttackSpellID);
                 s.OnMeleeHitSpell = this.GetSpellEffect(s.OnMeleeHitSpellID);
@@ -153,7 +153,7 @@ namespace Goose
                     try
                     {
                         SpellEffect e = this.GetSpellEffect(Convert.ToInt32(effectid));
-                        if (e == null)
+                        if (e is null)
                         {
                             // log bad spell effect id
                         }
@@ -172,7 +172,7 @@ namespace Goose
                     try
                     {
                         SpellEffect e = this.GetSpellEffect(Convert.ToInt32(effectid));
-                        if (e == null)
+                        if (e is null)
                         {
                             // log bad spell effect id
                         }
@@ -257,7 +257,7 @@ namespace Goose
                 spell.SpellEffectID = Convert.ToInt32(reader["spell_effect_id"]);
                 spell.SpellEffect = this.GetSpellEffect(spell.SpellEffectID);
 
-                if (spell.SpellEffect == null)
+                if (spell.SpellEffect is null)
                 {
                     // log bad spell effect
                     continue;

@@ -402,7 +402,7 @@ namespace Goose
 
         public void HandleMoveEvent(GameWorld world)
         {
-            foreach (Buff b in this.Buffs)
+            foreach (var b in this.Buffs)
             {
                 // can't move when stunned or rooted
                 if (b.SpellEffect.EffectType == SpellEffect.EffectTypes.Stun ||
@@ -414,7 +414,7 @@ namespace Goose
             }
 
             int direction;
-            if (this.AggroTarget == null)
+            if (this.AggroTarget is null)
             {
                 if (this.MoveSpeed <= Decimal.Zero) return;
                 if (!this.CanMove)
@@ -480,12 +480,12 @@ namespace Goose
                         }
                     }
 
-                    foreach (Player p in remove)
+                    foreach (var p in remove)
                     {
                         this.AggroTargetToValue.Remove(p);
                     }
 
-                    if (highest == null)
+                    if (highest is null)
                     {
                         this.AddMoveEvent(world);
                         return;
@@ -554,13 +554,13 @@ namespace Goose
 
             string mkc = P.MakeNPCCharacter(this);
             // Send to all people that are in after but aren't in before MKC
-            foreach (Player player in afterRange.Except<Player>(beforeRange))
+            foreach (var player in afterRange.Except<Player>(beforeRange))
             {
                 world.Send(player, mkc);
             }
             // Send to everyone MOC
             string packet = P.MoveCharacter(this);
-            foreach (Player player in afterRange.Union<Player>(beforeRange).Distinct<Player>())
+            foreach (var player in afterRange.Union<Player>(beforeRange).Distinct<Player>())
             {
                 world.Send(player, packet);
 
@@ -569,21 +569,21 @@ namespace Goose
             }
             string erc = P.EraseCharacter(this.LoginID);
             // Send to all people that aren't in after but are in before ERC
-            foreach (Player player in beforeRange.Except<Player>(afterRange))
+            foreach (var player in beforeRange.Except<Player>(afterRange))
             {
                 world.Send(player, erc);
                 this.RemoveAggro(player);
             }
 
-            if (this.AggroTarget != null)
+            if (this.AggroTarget is not null)
             {
                 packet = "";
 
                 List<NPC> npcs = this.Map.GetNPCsInRange(this);
-                foreach (NPC npc in npcs)
+                foreach (var npc in npcs)
                 {
                     if (!this.Allies.Contains(npc.NPCTemplate)) continue;
-                    if (npc.AggroTarget != null) continue;
+                    if (npc.AggroTarget is not null) continue;
 
                     if (Math.Abs(npc.MapX - this.MapX) <= npc.AggroRange &&
                         Math.Abs(npc.MapY - this.MapY) <= npc.AggroRange)
@@ -597,7 +597,7 @@ namespace Goose
                 }
                 if (packet.Equals("")) return;
                 packet = packet.TrimEnd('\x1');
-                foreach (Player p in afterRange.Union<Player>(beforeRange).Distinct<Player>())
+                foreach (var p in afterRange.Union<Player>(beforeRange).Distinct<Player>())
                 {
                     world.Send(p, packet);
                 }
@@ -613,7 +613,7 @@ namespace Goose
             this.ShouldRespawn = shouldRespawn;
 
             this.Map = world.MapHandler.GetMap(map_id);
-            if (this.Map == null) return false;
+            if (this.Map is null) return false;
             this.MapID = map_id;
             this.MapX = map_x;
             this.MapY = map_y;
@@ -724,7 +724,7 @@ namespace Goose
 
             List<Player> range = this.Map.GetPlayersInRange(this);
             string packet = P.MakeNPCCharacter(this);
-            foreach (Player player in range)
+            foreach (var player in range)
             {
                 world.Send(player, packet);
 
@@ -741,11 +741,11 @@ namespace Goose
          */
         public void AddMoveEvent(GameWorld world)
         {
-            if (this.MoveEvent == null && this.MoveSpeed > Decimal.Zero)
+            if (this.MoveEvent is null && this.MoveSpeed > Decimal.Zero)
             {
                 decimal snared = 0;
 
-                foreach (Buff buff in this.Buffs)
+                foreach (var buff in this.Buffs)
                 {
                     if (buff.SpellEffect.EffectType == SpellEffect.EffectTypes.Snare)
                     {
@@ -867,7 +867,7 @@ namespace Goose
             this.Facing = direction;
             string packet = P.ChangeHeading(this);
             List<Player> range = this.Map.GetPlayersInRange(this);
-            foreach (Player player in range)
+            foreach (var player in range)
             {
                 world.Send(player, packet);
             }
@@ -918,7 +918,7 @@ namespace Goose
             this.AddAttackEvent(world);
 
             // no target so just add to max/mapping
-            if (this.AggroTarget == null)
+            if (this.AggroTarget is null)
             {
                 this.AggroTarget = player;
                 if (wastaunt) this.AggroValue = new Aggro(0, value);
@@ -1015,7 +1015,7 @@ namespace Goose
         public void AggroIfInRange(Player player, GameWorld world)
         {
             if (this.AggroRange == 0) return;
-            if (this.AggroTarget != null) return;
+            if (this.AggroTarget is not null) return;
             if (player.IsInvisible && !this.CanSeeInvisible) return;
 
             if (Math.Abs(this.MapX - player.MapX) <= this.AggroRange &&
@@ -1026,10 +1026,10 @@ namespace Goose
                 this.AddAggro(player, 1, world);
 
                 List<NPC> npcs = this.Map.GetNPCsInRange(this);
-                foreach (NPC npc in npcs)
+                foreach (var npc in npcs)
                 {
                     if (!this.Allies.Contains(npc.NPCTemplate)) continue;
-                    if (npc.AggroTarget != null) continue;
+                    if (npc.AggroTarget is not null) continue;
 
                     if (Math.Abs(npc.MapX - this.MapX) <= npc.AggroRange &&
                         Math.Abs(npc.MapY - this.MapY) <= npc.AggroRange)
@@ -1044,7 +1044,7 @@ namespace Goose
 
                 List<Player> range = this.Map.GetPlayersInRange(this);
                 packet = packet.TrimEnd('\x1');
-                foreach (Player p in range)
+                foreach (var p in range)
                 {
                     world.Send(p, packet);
                 }
@@ -1090,7 +1090,7 @@ namespace Goose
                 if (!this.CanBeKilled)
                 {
                     packet = P.BattleTextMiss(this);
-                    foreach (Player p in range)
+                    foreach (var p in range)
                     {
                         world.Send(p, packet);
                     }
@@ -1101,7 +1101,7 @@ namespace Goose
                 if (damage <= 0)
                 {
                     packet = P.BattleTextMiss(this);
-                    foreach (Player p in range)
+                    foreach (var p in range)
                     {
                         world.Send(p, packet);
                     }
@@ -1147,7 +1147,7 @@ namespace Goose
                     Dictionary<Object, long> damages = [];
                     foreach (KeyValuePair<Player, Aggro> p in this.AggroTargetToValue)
                     {
-                        if (p.Key.Group != null)
+                        if (p.Key.Group is not null)
                         {
                             if (damages.ContainsKey(p.Key.Group))
                             {
@@ -1205,12 +1205,12 @@ namespace Goose
 
                     List<Buff> removebuff = [];
 
-                    foreach (Buff b in this.Buffs)
+                    foreach (var b in this.Buffs)
                     {
                         removebuff.Add(b);
                     }
 
-                    foreach (Buff b in removebuff)
+                    foreach (var b in removebuff)
                     {
                         this.RemoveBuff(b, world);
                     }
@@ -1227,7 +1227,7 @@ namespace Goose
                 }
 
                 packet = packet.TrimEnd('\x1');
-                foreach (Player p in range)
+                foreach (var p in range)
                 {
                     world.Send(p, packet);
                 }
@@ -1277,7 +1277,7 @@ namespace Goose
         {
             bool rooted = false;
 
-            foreach (Buff b in this.Buffs)
+            foreach (var b in this.Buffs)
             {
                 // can't attack when stunned
                 if (b.SpellEffect.EffectType == SpellEffect.EffectTypes.Stun)
@@ -1343,7 +1343,7 @@ namespace Goose
                 return;
             }
 
-            foreach (Player player in this.AggroTargetToValue.Keys)
+            foreach (var player in this.AggroTargetToValue.Keys)
             {
                 if (player == aggro) continue;
 
@@ -1367,13 +1367,13 @@ namespace Goose
          */
         public void AddAttackEvent(GameWorld world)
         {
-            if (this.AttackEvent != null) return;
-            if (this.AggroTarget == null) return;
+            if (this.AttackEvent is not null) return;
+            if (this.AggroTarget is null) return;
             if (this.AttackSpeed <= Decimal.Zero || this.AttackRange <= 0) return;
 
             decimal snared = 0;
 
-            foreach (Buff buff in this.Buffs)
+            foreach (var buff in this.Buffs)
             {
                 if (buff.SpellEffect.EffectType == SpellEffect.EffectTypes.Snare)
                 {
@@ -1416,7 +1416,7 @@ namespace Goose
             List<Player> range = this.Map.GetPlayersInRange(this);
 
             string packet = P.Attack(this);
-            foreach (Player player in range)
+            foreach (var player in range)
             {
                 world.Send(player, packet);
             }
@@ -1431,7 +1431,7 @@ namespace Goose
             else
             {
                 packet = P.BattleTextMiss(character);
-                foreach (Player player in range)
+                foreach (var player in range)
                 {
                     world.Send(player, packet);
                 }
@@ -1446,7 +1446,7 @@ namespace Goose
          */
         public void DropItems(Player player, GameWorld world)
         {
-            foreach (NPCDropInfo dropinfo in this.NPCTemplate.Drops)
+            foreach (var dropinfo in this.NPCTemplate.Drops)
             {
                 if (world.Random.Next(1, 1000000001) <=
                     world.Settings.DropRateModifier * dropinfo.DropRate * 10000000)
@@ -1480,7 +1480,7 @@ namespace Goose
                     // tile can stack
                     ITile tileResult = this.Map.GetTile(tile.X, tile.Y);
                     ItemTile maptile = tileResult as ItemTile;
-                    if (maptile != null)
+                    if (maptile is not null)
                     {
                         maptile.ItemSlot.Stack += drop.Stack;
                         maptile.Owner = tile.Owner;
@@ -1644,7 +1644,7 @@ namespace Goose
                 .Where(b => b.SpellEffect.EffectType == SpellEffect.EffectTypes.Invisible)
                 .ToList();
 
-            foreach (Buff buff in toRemove)
+            foreach (var buff in toRemove)
             {
                 this.RemoveBuff(buff, world);
             }
@@ -1658,7 +1658,7 @@ namespace Goose
             // must not drive the counters negative.
             if (this.Buffs.Remove(buff)) this.RemoveFromInvisCounters(buff.SpellEffect);
 
-            if (buff.BuffExpireEvent != null)
+            if (buff.BuffExpireEvent is not null)
             {
                 world.EventHandler.RemoveEvent(buff.BuffExpireEvent);
                 buff.BuffExpireEvent = null;
@@ -1704,7 +1704,7 @@ namespace Goose
         */
         public void OnMeleeHit(ICharacter hitter, GameWorld world)
         {
-            foreach (Buff b in this.Buffs)
+            foreach (var b in this.Buffs)
             {
                 if (b.SpellEffect.EffectType == SpellEffect.EffectTypes.OnMeleeHit)
                 {
@@ -1720,7 +1720,7 @@ namespace Goose
          */
         public void OnMeleeAttack(ICharacter hit, GameWorld world)
         {
-            foreach (Buff b in this.Buffs)
+            foreach (var b in this.Buffs)
             {
                 if (b.SpellEffect.EffectType == SpellEffect.EffectTypes.OnAttack)
                 {
@@ -1737,7 +1737,7 @@ namespace Goose
          */
         public void OpenVendorWindow(Player player, GameWorld world)
         {
-            foreach (Window window in player.Windows)
+            foreach (var window in player.Windows)
             {
                 if (window.Type == Window.WindowTypes.Vendor && window.NPC == this)
                 {

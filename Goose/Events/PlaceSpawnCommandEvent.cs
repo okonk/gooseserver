@@ -34,7 +34,7 @@ namespace Goose.Events
             }
 
             var npc = world.NPCHandler.GetNPCTemplate(npcId);
-            if (npc == null)
+            if (npc is null)
             {
                 world.Send(this.Player, P.ServerMessage("/placespawn <npcid>"));
                 return;
@@ -63,7 +63,7 @@ namespace Goose.Events
 
             // tile can stack
             ItemTile maptile = (ItemTile)this.Player.Map.GetTile(tile.X, tile.Y);
-            if (maptile != null && maptile is ItemTile)
+            if (maptile is not null && maptile is ItemTile)
             {
                 maptile.ItemSlot.Stack += tile.ItemSlot.Stack;
 

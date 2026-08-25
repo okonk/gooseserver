@@ -19,13 +19,13 @@ namespace Goose
         public void Add(Player player, long amount, GameWorld world)
         {
             player.Credits = Clamp((long)player.Credits + amount);
-            if (world != null) world.Send(player, P.StatusInfo(player));
+            if (world is not null) world.Send(player, P.StatusInfo(player));
         }
 
         public void Remove(Player player, long amount, GameWorld world)
         {
             player.Credits = Clamp((long)player.Credits - amount);
-            if (world != null) world.Send(player, P.StatusInfo(player));
+            if (world is not null) world.Send(player, P.StatusInfo(player));
         }
 
         /// <summary>Player.Credits is an int while the interface is long. Saturate instead of

@@ -10,7 +10,7 @@ namespace Goose.Events
             {
                 string name = ((string)this.Data).Substring("/macrocheck ".Length);
                 Player player = world.PlayerHandler.GetPlayer(name);
-                if (player != null)
+                if (player is not null)
                 {
                     if (player.State != Player.States.Ready)
                     {
@@ -18,7 +18,7 @@ namespace Goose.Events
                         return;
                     }
 
-                    if (player.MacroCheckEvent != null)
+                    if (player.MacroCheckEvent is not null)
                     {
                         world.Send(this.Player, P.ServerMessage("Player has already has an active macrocheck."));
                         return;

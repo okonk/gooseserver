@@ -94,7 +94,7 @@ namespace Goose
         {
             for (int id = 1; id <= world.Settings.MaxPlayers; id++)
             {
-                if (this.idToPlayer[id] == null)
+                if (this.idToPlayer[id] is null)
                     return id;
             }
             return 0;
@@ -139,7 +139,7 @@ namespace Goose
          */
         public bool IsLoggedIn(string name)
         {
-            return GetPlayer(name) != null;
+            return GetPlayer(name) is not null;
         }
 
         /**
@@ -207,7 +207,7 @@ namespace Goose
                 }
             });
 
-            foreach (Player player in this.allNameToPlayer.Values)
+            foreach (var player in this.allNameToPlayer.Values)
             {
                 player.LoadAdditional(world);
             }

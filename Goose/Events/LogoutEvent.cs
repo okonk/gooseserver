@@ -23,7 +23,7 @@ namespace Goose.Events
             Socket sock = (Socket)this.Data;
             Player player = world.PlayerHandler.GetPlayer(sock);
 
-            if (player == null)
+            if (player is null)
             {
 
             }
@@ -39,14 +39,14 @@ namespace Goose.Events
             }
             else
             {
-                if (player.Map != null)
+                if (player.Map is not null)
                 {
                     List<Player> range = player.Map.GetPlayersInRange(player);
-                    foreach (Player p in range)
+                    foreach (var p in range)
                     {
                         world.Send(p, P.EraseCharacter(player.LoginID));
                     }
-                    foreach (NPC npc in player.Map.GetNPCsInRange(player))
+                    foreach (var npc in player.Map.GetNPCsInRange(player))
                     {
                         npc.RemoveAggro(player);
                     }
@@ -56,19 +56,19 @@ namespace Goose.Events
                         player.Map.SetCharacter(null, player.MapX, player.MapY);
                 }
 
-                foreach (Pet pet in player.Pets)
+                foreach (var pet in player.Pets)
                 {
                     if (pet.IsAlive) pet.Destroy(world);
                 }
 
                 player.SaveToDatabase(world);
 
-                if (player.Group != null)
+                if (player.Group is not null)
                 {
                     player.Group.RemovePlayer(player, world, false, player);
                 }
 
-                if (player.Guild != null)
+                if (player.Guild is not null)
                 {
                     player.Guild.OnlineMembers.Remove(player);
                 }
@@ -76,12 +76,12 @@ namespace Goose.Events
 
                 // Remove all buffs on logout
                 List<Buff> removebuff = [];
-                foreach (Buff b in player.Buffs)
+                foreach (var b in player.Buffs)
                 {
                     if (!b.ItemBuff) removebuff.Add(b);
                 }
 
-                foreach (Buff b in removebuff)
+                foreach (var b in removebuff)
                 {
                     player.RemoveBuff(b, world, false, updateCharacter: false);
                 }

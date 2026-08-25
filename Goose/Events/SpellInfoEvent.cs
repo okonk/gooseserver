@@ -21,7 +21,7 @@ namespace Goose.Events
             if (slotNo <= 0 || slotNo > world.Settings.SpellbookSize) return;
 
             var spell = this.Player.Spellbook.GetSlot(slotNo);
-            if (spell == null) return;
+            if (spell is null) return;
 
             SpellInfoWindow.Open(world, this.Player, spell);
         }

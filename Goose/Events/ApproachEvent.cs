@@ -14,7 +14,7 @@ namespace Goose.Events
             {
                 string name = ((string)this.Data).Substring(10);
                 Player player = world.PlayerHandler.GetPlayer(name);
-                if (player != null)
+                if (player is not null)
                 {
                     if (player.State != Player.States.Ready)
                     {

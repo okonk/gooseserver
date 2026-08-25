@@ -12,11 +12,11 @@ namespace Goose.Events
     {
         public override void Ready(GameWorld world)
         {
-            if (this.NPC != null)
+            if (this.NPC is not null)
             {
                 if (this.NPC.State == NPC.States.Alive)
                 {
-                    if (this.NPC.AggroTarget != null)
+                    if (this.NPC.AggroTarget is not null)
                     {
                         this.NPC.CurrentHP = Math.Max(1,
                             this.NPC.CurrentHP +
@@ -41,7 +41,7 @@ namespace Goose.Events
 
                     string packet = P.VitalsPercentage(this.NPC);
                     List<Player> range = this.NPC.Map.GetPlayersInRange(this.NPC);
-                    foreach (Player p in range)
+                    foreach (var p in range)
                     {
                         world.Send(p, packet);
                     }
@@ -86,7 +86,7 @@ namespace Goose.Events
                     List<Player> range = player.Map.GetPlayersInRange(player);
                     world.Send(player, packet);
                     world.Send(player, P.StatusInfo(player));
-                    foreach (Player p in range)
+                    foreach (var p in range)
                     {
                         world.Send(p, packet);
                     }

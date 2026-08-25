@@ -10,7 +10,7 @@ namespace Goose.Events
 
             string code = ((string)this.Data).Substring("/mc ".Length);
 
-            if (this.Player.MacroCheckEvent == null)
+            if (this.Player.MacroCheckEvent is null)
             {
                 world.Send(this.Player, P.ServerMessage("You don't have a current macrocheck to do."));
                 return;

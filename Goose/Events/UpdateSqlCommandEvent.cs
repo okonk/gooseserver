@@ -61,7 +61,7 @@ namespace Goose.Events
         {
             // Transaction is committed/rolled back inside the Enqueue work item.
             // Do not call Database.Execute from this completion callback (deadlock risk).
-            if (error != null)
+            if (error is not null)
             {
                 log.Error(error, "Updating sql failed");
                 world.Send(this.Player, "$7Failed updating sql: " + error.Message);

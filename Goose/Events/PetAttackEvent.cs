@@ -10,7 +10,7 @@ namespace Goose.Events
             pet.AttackEvent = null;
 
             if (!pet.IsAlive) return;
-            if (pet.Target == null || pet.Target.Map != pet.Map)
+            if (pet.Target is null || pet.Target.Map != pet.Map)
             {
                 if (pet.Mode == Pet.Modes.Attack)
                 {
@@ -30,7 +30,7 @@ namespace Goose.Events
                 return;
             }
 
-            foreach (Buff b in pet.Buffs)
+            foreach (var b in pet.Buffs)
             {
                 // can't attack when stunned
                 if (b.SpellEffect.EffectType == SpellEffect.EffectTypes.Stun)
@@ -53,7 +53,7 @@ namespace Goose.Events
                 List<Player> range = pet.Map.GetPlayersInRange(pet);
 
                 string packet = P.Attack(pet);
-                foreach (Player player in range)
+                foreach (var player in range)
                 {
                     world.Send(player, packet);
                 }

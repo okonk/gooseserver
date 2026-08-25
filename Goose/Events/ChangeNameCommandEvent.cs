@@ -20,14 +20,14 @@ namespace Goose.Events
                 string newname = tokens[2];
 
                 Player playerCheck = world.PlayerHandler.GetPlayerFromData(newname);
-                if (playerCheck != null)
+                if (playerCheck is not null)
                 {
                     world.Send(this.Player, P.ServerMessage("New name " + newname + " is already used."));
                     return;
                 }
 
                 Player player = world.PlayerHandler.GetPlayerFromData(oldname);
-                if (player == null)
+                if (player is null)
                 {
                     world.Send(this.Player, P.ServerMessage("Old name " + oldname + " doesn't exist."));
                     return;
@@ -49,14 +49,14 @@ namespace Goose.Events
                 {
                     world.Send(player, P.StatusInfo(player));
 
-                    if (player.Map != null)
+                    if (player.Map is not null)
                     {
                         List<Player> range = player.Map.GetPlayersInRange(player);
 
                         string packet = P.EraseCharacter(player.LoginID);
                         string packet2 = P.MakeCharacter(player);
 
-                        foreach (Player p in range)
+                        foreach (var p in range)
                         {
                             world.Send(p, packet);
                             world.Send(p, packet2);

@@ -290,7 +290,7 @@ namespace Goose
             string matchedKey = packet.Substring(0, matchedLength);
 
             if (definition.RequiredPrivilege.HasValue &&
-                (player == null || !AccessLevels.HasPrivilege(player, definition.RequiredPrivilege.Value)))
+                (player is null || !AccessLevels.HasPrivilege(player, definition.RequiredPrivilege.Value)))
             {
                 // Matched but refused. Swallowed rather than answered so an
                 // unprivileged player cannot probe which commands exist.
@@ -301,7 +301,7 @@ namespace Goose
             }
 
             Event e;
-            if (definition.EventFactory != null)
+            if (definition.EventFactory is not null)
             {
                 e = definition.EventFactory(player, packet);
             }

@@ -41,9 +41,9 @@ namespace Goose.Events
 				ItemContainerWindow fromWindow = null;
 				ItemContainerWindow toWindow = null;
 
-				foreach (Window window in this.Player.Windows)
+				foreach (var window in this.Player.Windows)
 				{
-					if (fromWindow != null && toWindow != null) break;
+					if (fromWindow is not null && toWindow is not null) break;
 
 					if (window.ID == fromWindowId)
 					{
@@ -56,7 +56,7 @@ namespace Goose.Events
 					}
 				}
 
-				if (fromWindow == null || toWindow == null) return;
+				if (fromWindow is null || toWindow is null) return;
 
 				ItemContainerWindow.WindowToWindow(this.Player, fromWindow, fromWindowSlot, toWindow, toWindowSlot, world);
 			}

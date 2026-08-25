@@ -40,7 +40,7 @@ namespace Goose
                     for (int i = 0; i < containerSlots.Length; i++)
                     {
                         var containerSlot = containerSlots[i];
-                        if (containerSlot == null) continue;
+                        if (containerSlot is null) continue;
 
                         world.ItemHandler.AddItem(containerSlot.Item, world);
 
@@ -107,7 +107,7 @@ namespace Goose
             {
                 foreach (var slot in kvp.Value)
                 {
-                    if (slot != null && slot.Item.Template.ID == templateid) return true;
+                    if (slot is not null && slot.Item.Template.ID == templateid) return true;
                 }
             }
 

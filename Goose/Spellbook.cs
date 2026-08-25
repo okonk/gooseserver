@@ -73,7 +73,7 @@ namespace Goose
         public Action<SQLiteConnection> BuildSave()
         {
             int playerId = this.player.PlayerID;
-            string serialized = JsonHelper.Serialize(spells.Select(s => (s == null ? 0 : s.ID)).ToArray());
+            string serialized = JsonHelper.Serialize(spells.Select(s => (s is null ? 0 : s.ID)).ToArray());
 
             return conn =>
             {
@@ -93,7 +93,7 @@ namespace Goose
 
             for (int i = lowerBound; i < this.spells.Length; i++)
             {
-                if (this.spells[i] == null)
+                if (this.spells[i] is null)
                 {
                     return i;
                 }
@@ -107,7 +107,7 @@ namespace Goose
             int free = 0;
             for (int i = 1; i <= this.settings.SpellbookSize; i++)
             {
-                if (this.spells[i] == null)
+                if (this.spells[i] is null)
                     free++;
             }
 
@@ -127,7 +127,7 @@ namespace Goose
             }
 
             Spell spell = this.spells[slot];
-            if (spell != null)
+            if (spell is not null)
             {
                 int targetType = 0;
                 if (spell.Target == Spell.SpellTargets.Target)
@@ -199,7 +199,7 @@ namespace Goose
         public bool LearnSpell(int spellid, GameWorld world)
         {
             Spell spell = world.SpellHandler.GetSpell(spellid);
-            if (spell == null)
+            if (spell is null)
             {
                 // log bad spell
                 return false;
@@ -215,7 +215,7 @@ namespace Goose
         public bool AddSpell(Spell spell, GameWorld world)
         {
             // first pass to check if player knows spell
-            foreach (Spell s in this.spells)
+            foreach (var s in this.spells)
             {
                 if (s == spell)
                 {
@@ -225,7 +225,7 @@ namespace Goose
             // second pass to check if empty slot to add
             for (int i = 1; i <= this.settings.SpellbookSize; i++)
             {
-                if (this.spells[i] == null)
+                if (this.spells[i] is null)
                 {
                     this.spells[i] = spell;
                     this.lastcast[i] = long.MinValue >> 1;
@@ -248,7 +248,7 @@ namespace Goose
         {
             if (slot <= 0 || slot > this.settings.SpellbookSize) return false;
 
-            if (this.spells[slot] != null)
+            if (this.spells[slot] is not null)
             {
                 world.Send(this.player, P.ServerMessage("You have forgotten " + this.spells[slot].Name + "."));
 
@@ -298,7 +298,7 @@ namespace Goose
             {
                 slot = this.GetSlot(i);
 
-                if (slot == null) continue;
+                if (slot is null) continue;
 
                 if (!this.player.Class.CanUse(slot.ClassRestrictions))
                 {

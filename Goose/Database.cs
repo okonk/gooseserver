@@ -94,7 +94,7 @@ namespace Goose
                     ready.Set();
                 }
 
-                if (startError != null)
+                if (startError is not null)
                     return;
 
                 Loop();
@@ -103,7 +103,7 @@ namespace Goose
             ready.Wait();
             ready.Dispose();
 
-            if (startError != null)
+            if (startError is not null)
             {
                 _loopTask = null;
                 throw startError;
@@ -125,7 +125,7 @@ namespace Goose
                         {
                             try
                             {
-                                if (sync.Func != null)
+                                if (sync.Func is not null)
                                     sync.Result = sync.Func(_connection);
                                 else
                                     sync.Action(_connection);
@@ -170,7 +170,7 @@ namespace Goose
 
         public void Execute(Action<SQLiteConnection> action)
         {
-            if (action == null) throw new ArgumentNullException(nameof(action));
+            if (action is null) throw new ArgumentNullException(nameof(action));
             if (!_started) throw new InvalidOperationException("Database has not been started.");
 
             // Allow re-entrant Execute if already on the DB thread (defensive; prefer not needed).
@@ -185,7 +185,7 @@ namespace Goose
             {
                 _queue.Add(work);
                 work.Done.Wait();
-                if (work.Error != null) throw work.Error;
+                if (work.Error is not null) throw work.Error;
             }
             finally
             {
@@ -195,7 +195,7 @@ namespace Goose
 
         public T Execute<T>(Func<SQLiteConnection, T> func)
         {
-            if (func == null) throw new ArgumentNullException(nameof(func));
+            if (func is null) throw new ArgumentNullException(nameof(func));
             if (!_started) throw new InvalidOperationException("Database has not been started.");
 
             if (Environment.CurrentManagedThreadId == _dbThreadId)
@@ -206,7 +206,7 @@ namespace Goose
             {
                 _queue.Add(work);
                 work.Done.Wait();
-                if (work.Error != null) throw work.Error;
+                if (work.Error is not null) throw work.Error;
                 return (T)work.Result;
             }
             finally
@@ -217,7 +217,7 @@ namespace Goose
 
         public void Enqueue(Action<SQLiteConnection> action, Action<Exception> onComplete = null)
         {
-            if (action == null) throw new ArgumentNullException(nameof(action));
+            if (action is null) throw new ArgumentNullException(nameof(action));
             if (!_started) throw new InvalidOperationException("Database has not been started.");
 
             _queue.Add(new AsyncWork { Action = action, OnComplete = onComplete });
@@ -237,7 +237,7 @@ namespace Goose
         /// </summary>
         public void EnqueueTransaction(Action<SQLiteConnection> action, Action onCommit = null)
         {
-            if (action == null) throw new ArgumentNullException(nameof(action));
+            if (action is null) throw new ArgumentNullException(nameof(action));
 
             Enqueue(conn =>
             {
@@ -280,7 +280,7 @@ namespace Goose
 
         public void Stop()
         {
-            if (!_started && _loopTask == null)
+            if (!_started && _loopTask is null)
                 return;
 
             // Idempotent: CompleteAdding may only be called once.
@@ -298,7 +298,7 @@ namespace Goose
                 // Already completed (race with another stop path).
             }
 
-            if (_loopTask != null)
+            if (_loopTask is not null)
             {
                 // Wait drains queued work and the in-flight item currently executing.
                 if (!_loopTask.Wait(TimeSpan.FromMinutes(2)))

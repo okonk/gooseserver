@@ -36,7 +36,7 @@ namespace Goose.Events
                 string packet = P.ServerMessage(this.Player.Name + " rolls " + rnd + " out of " + (max-1) + ".");
 
                 world.Send(this.Player, packet);
-                foreach (Player player in this.Player.Map.GetPlayersInRange(this.Player))
+                foreach (var player in this.Player.Map.GetPlayersInRange(this.Player))
                 {
                     world.Send(player, packet);
                 }

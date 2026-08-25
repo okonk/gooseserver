@@ -16,7 +16,7 @@ namespace Goose.Events
             {
                 this.Player.UpdateIdleStatus(world);
 
-                foreach (Buff b in this.Player.Buffs)
+                foreach (var b in this.Player.Buffs)
                 {
                     // can't attack when stunned
                     if (b.SpellEffect.EffectType == SpellEffect.EffectTypes.Stun)
@@ -25,7 +25,7 @@ namespace Goose.Events
                         return;
                     }
                 }
-                foreach (Window window in this.Player.Windows)
+                foreach (var window in this.Player.Windows)
                 {
                     if (window.Type == Window.WindowTypes.Vendor)
                     {
@@ -47,7 +47,7 @@ namespace Goose.Events
                     this.Player.BreakInvisibility(world);
 
                     var weaponSlot = this.Player.Inventory.GetEquippedSlot(Inventory.EquipSlots.Weapon);
-                    if (weaponSlot?.Item != null)
+                    if (weaponSlot?.Item is not null)
                     {
                         try
                         {
@@ -58,7 +58,7 @@ namespace Goose.Events
 
                     List<Player> range = this.Player.Map.GetPlayersInRange(this.Player);
                     string packet = P.Attack(this.Player);
-                    foreach (Player player in range)
+                    foreach (var player in range)
                     {
                         world.Send(player, packet);
                     }
@@ -78,7 +78,7 @@ namespace Goose.Events
                     }
 
                     ICharacter character = this.Player.Map.GetCharacterAt(x, y);
-                    if (character != null) this.Player.Attack(character, world);
+                    if (character is not null) this.Player.Attack(character, world);
                 }
             }
         }

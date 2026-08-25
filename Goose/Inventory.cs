@@ -82,7 +82,7 @@ namespace Goose
                 slot.Item = item;
                 slot.Stack = stack;
 
-                if (this.inventory[i] == null)
+                if (this.inventory[i] is null)
                 {
                     this.inventory[i] = slot;
 
@@ -114,7 +114,7 @@ namespace Goose
             if (this.player.State >= Player.States.LoadingMap)
             {
                 ItemSlot slot = this.inventory[i];
-                if (slot != null)
+                if (slot is not null)
                 {
                     world.Send(this.player, P.InventorySlot(slot.Item, world, i, slot.Stack));
                 }
@@ -130,7 +130,7 @@ namespace Goose
             int free = 0;
             for (int i = 1; i <= this.settings.InventorySize; i++)
             {
-                if (this.inventory[i] == null)
+                if (this.inventory[i] is null)
                     free++;
             }
 
@@ -141,7 +141,7 @@ namespace Goose
         {
             for (int i = 1; i <= this.settings.InventorySize; i++)
             {
-                if (this.inventory[i] == null)
+                if (this.inventory[i] is null)
                     return i;
             }
 
@@ -221,11 +221,11 @@ namespace Goose
             ItemSlot slot1 = this.GetSlot(id1);
             ItemSlot slot2 = this.GetSlot(id2);
 
-            if (slot1 == null) return;
+            if (slot1 is null) return;
             if (stackSize <= 0) return;
             if (stackSize > slot1.Stack) return;
 
-            if (slot2 == null)
+            if (slot2 is null)
             {
                 var newStack = new ItemSlot();
                 newStack.Item = slot1.Item.CloneWithoutId();
@@ -263,7 +263,7 @@ namespace Goose
         public void Use(int id, GameWorld world)
         {
             ItemSlot slot = this.GetSlot(id);
-            if (slot == null) return;
+            if (slot is null) return;
 
             if (!this.player.Map.CanUseItems)
             {
@@ -308,7 +308,7 @@ namespace Goose
             if (!this.UnequipConflictingSlots(item, world)) return false;
 
             // Unequip whatever is currently in the target slot, if anything.
-            if (this.GetEquippedSlot(equipslot) != null)
+            if (this.GetEquippedSlot(equipslot) is not null)
             {
                 if (!this.Unequip(equipslot, world)) return false;
             }
@@ -318,7 +318,7 @@ namespace Goose
             // Remove 1 of the item from inventory
             ItemSlot slot = this.RemoveItem(item, 1, world);
             // if slot is null something went wrong
-            if (slot == null)
+            if (slot is null)
             {
                 // log something here
                 return false;
@@ -327,7 +327,7 @@ namespace Goose
             this.equipped[(int)equipslot] = slot;
             this.player.AddStats(slot.Item.TotalStats, world, updateCharacter: false);
 
-            if (slot.Item.SpellEffect != null)
+            if (slot.Item.SpellEffect is not null)
             {
                 Buff buff = new Buff();
                 buff.Caster = this.player;
@@ -345,7 +345,7 @@ namespace Goose
             world.Send(this.player, P.WeaponSpeed(this.player));
 
             List<Player> range = this.player.Map.GetPlayersInRange(this.player);
-            foreach (Player p in range)
+            foreach (var p in range)
             {
                 world.Send(p, updateCharacter);
             }
@@ -369,7 +369,7 @@ namespace Goose
             // Equipping a 2H weapon requires the shield slot to be empty.
             if (item.Slot == ItemTemplate.ItemSlots.TwoHanded)
             {
-                if (this.GetEquippedSlot(EquipSlots.Shield) != null)
+                if (this.GetEquippedSlot(EquipSlots.Shield) is not null)
                 {
                     if (!this.Unequip(EquipSlots.Shield, world))
                         return false;
@@ -379,7 +379,7 @@ namespace Goose
             else if (item.Slot == ItemTemplate.ItemSlots.Shield)
             {
                 ItemSlot weapon = this.GetEquippedSlot(EquipSlots.Weapon);
-                if (weapon != null && weapon.Item.Slot == ItemTemplate.ItemSlots.TwoHanded)
+                if (weapon is not null && weapon.Item.Slot == ItemTemplate.ItemSlots.TwoHanded)
                 {
                     if (!this.Unequip(EquipSlots.Weapon, world))
                         return false;
@@ -397,7 +397,7 @@ namespace Goose
          */
         public void UseConsumable(Item item, GameWorld world)
         {
-            foreach (Buff b in this.player.Buffs)
+            foreach (var b in this.player.Buffs)
             {
                 if (b.SpellEffect.EffectType == SpellEffect.EffectTypes.Stun)
                 {
@@ -407,7 +407,7 @@ namespace Goose
                 }
             }
 
-            foreach (Window window in this.player.Windows)
+            foreach (var window in this.player.Windows)
             {
                 if (window.Type == Window.WindowTypes.Vendor)
                 {
@@ -418,12 +418,12 @@ namespace Goose
 
             bool remove = true;
 
-            if (item.SpellEffect != null && world.Random.Next(1, 100001) <= item.SpellEffectChance * 1000)
+            if (item.SpellEffect is not null && world.Random.Next(1, 100001) <= item.SpellEffectChance * 1000)
             {
                 item.SpellEffect.Cast(this.player, this.player, world);
             }
 
-            if (item.Script != null)
+            if (item.Script is not null)
             {
                 try
                 {
@@ -452,7 +452,7 @@ namespace Goose
             {
                 slot = this.inventory[i];
 
-                if (slot == null) continue;
+                if (slot is null) continue;
                 if (slot.Item != item) continue;
                 // Return null since Item objects are unique, so the item has to be this one
                 // But the stack isn't big enough so something is wrong here
@@ -496,7 +496,7 @@ namespace Goose
             {
                 slot = this.inventory[i];
 
-                if (slot == null) continue;
+                if (slot is null) continue;
                 if (slot.Item.TemplateID != templateId) continue;
 
                 if (slot.Stack == number)
@@ -530,17 +530,17 @@ namespace Goose
         {
             ItemSlot slot = this.GetEquippedSlot(equipslot);
             // maybe log something bad, i don't think this should happen
-            if (slot == null) return true;
+            if (slot is null) return true;
 
             if (!this.AddItem(slot.Item, slot.Stack, world)) return false;
 
             this.equipped[(int)equipslot] = null;
             this.player.RemoveStats(slot.Item.TotalStats, world);
 
-            if (slot.Item.SpellEffect != null)
+            if (slot.Item.SpellEffect is not null)
             {
                 Buff remove = null;
-                foreach (Buff buff in this.player.Buffs)
+                foreach (var buff in this.player.Buffs)
                 {
                     if (buff.ItemBuff && buff.SpellEffect == slot.Item.SpellEffect)
                     {
@@ -549,7 +549,7 @@ namespace Goose
                     }
                 }
 
-                if (remove != null)
+                if (remove is not null)
                 {
                     this.player.RemoveBuff(remove, world, refreshbar: true);
                 }
@@ -565,7 +565,7 @@ namespace Goose
             world.Send(this.player, P.StatusInfo(this.player));
 
             List<Player> range = this.player.Map.GetPlayersInRange(this.player);
-            foreach (Player p in range)
+            foreach (var p in range)
             {
                 world.Send(p, updateCharacter);
             }
@@ -629,7 +629,7 @@ namespace Goose
                     return EquipSlots.Pauldrons;
 
                 case ItemTemplate.ItemSlots.Ring:
-                    if (this.GetEquippedSlot(EquipSlots.Ring2) == null)
+                    if (this.GetEquippedSlot(EquipSlots.Ring2) is null)
                         return EquipSlots.Ring2;
                     else
                         return EquipSlots.Ring1;
@@ -692,10 +692,10 @@ namespace Goose
             EquipSlots[] slots = new EquipSlots[]{EquipSlots.Chest, EquipSlots.Head,
                 EquipSlots.Legs, EquipSlots.Feet, EquipSlots.Shield, EquipSlots.Weapon};
             ItemSlot item;
-            foreach (EquipSlots eq in slots)
+            foreach (var eq in slots)
             {
                 item = this.GetEquippedSlot(eq);
-                if (item != null)
+                if (item is not null)
                 {
                     if (item.Item.GraphicA == 0)
                     {
@@ -727,7 +727,7 @@ namespace Goose
         {
             string e = "";
             ItemSlot item = this.GetEquippedSlot(EquipSlots.Mount);
-            if (item != null)
+            if (item is not null)
             {
                 if (item.Item.GraphicA == 0)
                 {
@@ -759,7 +759,7 @@ namespace Goose
             if (this.player.State >= Player.States.LoadingMap)
             {
                 ItemSlot slot = this.equipped[(int)equipslot];
-                if (slot != null)
+                if (slot is not null)
                 {
                     world.Send(this.player, P.EquipSlot(slot.Item, world, (int)equipslot, slot.Stack));
                 }
@@ -776,17 +776,17 @@ namespace Goose
          */
         public bool HasItem(int templateid)
         {
-            foreach (ItemSlot slot in this.inventory)
+            foreach (var slot in this.inventory)
             {
-                if (slot != null && slot.Item.Template.ID == templateid) return true;
+                if (slot is not null && slot.Item.Template.ID == templateid) return true;
             }
-            foreach (ItemSlot slot in this.equipped)
+            foreach (var slot in this.equipped)
             {
-                if (slot != null && slot.Item.Template.ID == templateid) return true;
+                if (slot is not null && slot.Item.Template.ID == templateid) return true;
             }
-            foreach (ItemSlot slot in this.combineContainer)
+            foreach (var slot in this.combineContainer)
             {
-                if (slot != null && slot.Item.Template.ID == templateid) return true;
+                if (slot is not null && slot.Item.Template.ID == templateid) return true;
             }
 
             return false;
@@ -801,9 +801,9 @@ namespace Goose
         public bool HasItem(int templateid, long numberOf)
         {
             long count = 0;
-            foreach (ItemSlot slot in this.inventory)
+            foreach (var slot in this.inventory)
             {
-                if (slot != null && slot.Item.Template.ID == templateid && !slot.Item.Custom)
+                if (slot is not null && slot.Item.Template.ID == templateid && !slot.Item.Custom)
                 {
                     count += slot.Stack;
 
@@ -824,7 +824,7 @@ namespace Goose
         public long GetWeaponDamage()
         {
             ItemSlot weapon = this.GetEquippedSlot(EquipSlots.Weapon);
-            if (weapon == null) return 1;
+            if (weapon is null) return 1;
             return weapon.Item.TotalWeaponDamage;
         }
 
@@ -837,7 +837,7 @@ namespace Goose
         public int GetWeaponDelay()
         {
             ItemSlot weapon = this.GetEquippedSlot(EquipSlots.Weapon);
-            if (weapon == null) return 10;
+            if (weapon is null) return 10;
             return weapon.Item.WeaponDelay;
         }
 
@@ -887,15 +887,13 @@ namespace Goose
                     saveEquippedCommand.ExecuteNonQuery();
                 }
 
-                using (var saveCombineBagCommand = conn.CreateCommand())
-                {
-                    saveCombineBagCommand.CommandText =
-                        @"INSERT INTO combinebag (player_id, serialized_data) VALUES (@player_id, @serialized_data)
-                          ON CONFLICT(player_id) DO UPDATE SET serialized_data=@serialized_data WHERE player_id=@player_id;";
-                    saveCombineBagCommand.Parameters.Add(new SQLiteParameter("@player_id", DbType.Int32) { Value = playerId });
-                    saveCombineBagCommand.Parameters.Add(new SQLiteParameter("@serialized_data", DbType.String) { Value = combineJson });
-                    saveCombineBagCommand.ExecuteNonQuery();
-                }
+                using var saveCombineBagCommand = conn.CreateCommand();
+                saveCombineBagCommand.CommandText =
+                    @"INSERT INTO combinebag (player_id, serialized_data) VALUES (@player_id, @serialized_data)
+                      ON CONFLICT(player_id) DO UPDATE SET serialized_data=@serialized_data WHERE player_id=@player_id;";
+                saveCombineBagCommand.Parameters.Add(new SQLiteParameter("@player_id", DbType.Int32) { Value = playerId });
+                saveCombineBagCommand.Parameters.Add(new SQLiteParameter("@serialized_data", DbType.String) { Value = combineJson });
+                saveCombineBagCommand.ExecuteNonQuery();
             };
         }
 
@@ -916,12 +914,12 @@ namespace Goose
 
                     foreach (var invSlot in this.inventory)
                     {
-                        if (invSlot == null) continue;
+                        if (invSlot is null) continue;
 
                         world.ItemHandler.AddItem(invSlot.Item, world);
 
                         invSlot.Item.Template = world.ItemHandler.GetTemplate(invSlot.Item.TemplateID);
-                        if (invSlot.Item.Template == null)
+                        if (invSlot.Item.Template is null)
                             log.Warn("ItemTemplate '{}' was not found", invSlot.Item.TemplateID);
                         invSlot.Item.RefreshStats();
                     }
@@ -935,17 +933,17 @@ namespace Goose
 
                     foreach (var equipSlot in equipped)
                     {
-                        if (equipSlot == null) continue;
+                        if (equipSlot is null) continue;
 
                         world.ItemHandler.AddItem(equipSlot.Item, world);
 
                         equipSlot.Item.Template = world.ItemHandler.GetTemplate(equipSlot.Item.TemplateID);
-                        if (equipSlot.Item.Template == null)
+                        if (equipSlot.Item.Template is null)
                             log.Warn("ItemTemplate '{}' was not found", equipSlot.Item.TemplateID);
                         equipSlot.Item.RefreshStats();
 
                         this.player.AddStats(equipSlot.Item.TotalStats, world);
-                        if (equipSlot.Item.SpellEffect != null)
+                        if (equipSlot.Item.SpellEffect is not null)
                         {
                             Buff buff = new Buff();
                             buff.Caster = this.player;
@@ -967,12 +965,12 @@ namespace Goose
                     for (int i = 0; i < combineSlots.Length; i++)
                     {
                         var combineSlot = combineSlots[i];
-                        if (combineSlot == null) continue;
+                        if (combineSlot is null) continue;
 
                         world.ItemHandler.AddItem(combineSlot.Item, world);
 
                         combineSlot.Item.Template = world.ItemHandler.GetTemplate(combineSlot.Item.TemplateID);
-                        if (combineSlot.Item.Template == null)
+                        if (combineSlot.Item.Template is null)
                             log.Warn("ItemTemplate '{}' was not found", combineSlot.Item.TemplateID);
                         combineSlot.Item.RefreshStats();
 
@@ -992,9 +990,9 @@ namespace Goose
             // occupies. The consumption loop below works in stack quantities, so matching
             // on slot counts let a single slot satisfy a requirement for several items.
             Dictionary<int, long> combineHash = [];
-            foreach (ItemSlot slot in this.combineContainer)
+            foreach (var slot in this.combineContainer)
             {
-                if (slot == null) continue;
+                if (slot is null) continue;
                 if (slot.Stack <= 0) continue;
 
                 combineHash.TryGetValue(slot.Item.TemplateID, out long have);
@@ -1002,7 +1000,7 @@ namespace Goose
             }
 
             Combination match = world.CombinationHandler.GetMatch(combineHash);
-            if (match == null)
+            if (match is null)
             {
                 world.Send(this.player, P.ServerMessage("Couldn't combine items."));
                 return;
@@ -1054,7 +1052,7 @@ namespace Goose
             for (int i = 1; i < this.combineContainer.MaxSlots; i++)
             {
                 var slot = this.combineContainer.GetSlot(i);
-                if (slot == null)
+                if (slot is null)
                 {
                     freeslots.Add(i);
                     continue;
@@ -1092,7 +1090,7 @@ namespace Goose
             }
 
             int index;
-            foreach (ItemTemplate template in match.ResultItems)
+            foreach (var template in match.ResultItems)
             {
                 if (template.IsLore && this.player.HasItem(template.ID))
                 {

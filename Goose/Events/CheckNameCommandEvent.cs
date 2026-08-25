@@ -11,7 +11,7 @@ namespace Goose.Events
                 string name = ((string)this.Data).Substring(11);
                 Player player = world.PlayerHandler.GetPlayerFromData(name);
 
-                if (player == null)
+                if (player is null)
                 {
                     world.Send(this.Player, P.ServerMessage(name + " is currently unused."));
                 }

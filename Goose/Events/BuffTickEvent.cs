@@ -9,7 +9,7 @@ namespace Goose.Events
             Buff buff = (Buff)this.Data;
 
             // Basically only item buffs are allowed to not expire
-            if (!buff.ItemBuff && buff.BuffExpireEvent == null) return;
+            if (!buff.ItemBuff && buff.BuffExpireEvent is null) return;
 
             if (buff.Target is NPC && ((NPC)buff.Target).State != NPC.States.Alive) return;
             if (buff.Target is Player && ((Player)buff.Target).State != Player.States.Ready)
@@ -18,7 +18,7 @@ namespace Goose.Events
                 return;
             }
 
-            if (buff.SpellEffect.Script != null)
+            if (buff.SpellEffect.Script is not null)
             {
                 try
                 {
@@ -41,7 +41,7 @@ namespace Goose.Events
                     string packet = P.SpellPlayer(buff.Target.LoginID, buff.SpellEffect.Animation, buff.SpellEffect.AnimationFile);
 
                     if (buff.Target is Player) world.Send((Player)buff.Target, packet);
-                    foreach (Player player in range)
+                    foreach (var player in range)
                     {
                         world.Send(player, packet);
                     }
@@ -58,7 +58,7 @@ namespace Goose.Events
 
         private void CheckAndAddBuffTickEvent(GameWorld world, Buff buff)
         {
-            if (!buff.ItemBuff && buff.BuffExpireEvent != null)
+            if (!buff.ItemBuff && buff.BuffExpireEvent is not null)
             {
                 // buff will expire before next tick
                 if (world.TimeNow - buff.TimeCast >= (buff.SpellEffect.Duration - world.Settings.SpellEffectPeriod) * world.TimerFrequency)

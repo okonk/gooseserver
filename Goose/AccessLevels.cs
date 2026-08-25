@@ -53,7 +53,7 @@ namespace Goose
         static AccessLevels()
         {
             accessPrivileges = [];
-            accessPrivileges[Player.AccessStatus.GameMaster] = [.. Enum.GetValues(typeof(AccessPrivilege)).Cast<AccessPrivilege>()];
+            accessPrivileges[Player.AccessStatus.GameMaster] = [.. Enum.GetValues<AccessPrivilege>()];
             accessPrivileges[Player.AccessStatus.Guide] = new HashSet<AccessPrivilege>
             {
                 AccessPrivilege.IgnoreMapRequirements, AccessPrivilege.IgnoreItemRequirements, AccessPrivilege.Warp, AccessPrivilege.Approach, AccessPrivilege.TalkWhileMuted, AccessPrivilege.CastSpellsWhileBlocked, AccessPrivilege.MuteMap, AccessPrivilege.MutePlayer, AccessPrivilege.Broadcast, AccessPrivilege.WhoInvisible,

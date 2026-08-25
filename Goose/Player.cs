@@ -653,7 +653,7 @@ namespace Goose
                     {
                         int templateid = Convert.ToInt32(items[i]);
                         ItemTemplate template = world.ItemHandler.GetTemplate(templateid);
-                        if (template == null)
+                        if (template is null)
                         {
                             // log bad id in starting items
                             continue;
@@ -833,25 +833,25 @@ namespace Goose
                 foreach (var started in questStatus.Started)
                 {
                     var quest = world.QuestHandler.Get(started);
-                    if (quest != null)
+                    if (quest is not null)
                         this.QuestsStarted.Add(quest);
                 }
 
                 foreach (var completed in questStatus.Completed)
                 {
                     var quest = world.QuestHandler.Get(completed);
-                    if (quest != null)
+                    if (quest is not null)
                         this.QuestsCompleted.Add(quest);
                 }
 
                 foreach (var progress in questStatus.Progress)
                 {
                     var quest = world.QuestHandler.Get(progress.QuestId);
-                    if (quest == null)
+                    if (quest is null)
                         continue;
 
                     var requirement = quest.Requirements.FirstOrDefault(r => r.Id == progress.RequirementId);
-                    if (requirement == null)
+                    if (requirement is null)
                         continue;
 
                     this.QuestProgress.Add(new QuestProgress { Requirement = requirement, Value = progress.Progress });
@@ -913,7 +913,7 @@ namespace Goose
             Action guildOnCommit = null;
 
             // First so the guild INSERT assigns the ID the players row binds.
-            if (this.Guild != null && (this.GuildID == 0 || this.Guild.Dirty))
+            if (this.Guild is not null && (this.GuildID == 0 || this.Guild.Dirty))
             {
                 var (guildSave, commit) = this.Guild.BuildSave(id =>
                 {
@@ -930,7 +930,7 @@ namespace Goose
             work.Add(this.Bank.BuildSave(this));
 
             var newPets = new List<Pet>();
-            foreach (Pet pet in this.Pets)
+            foreach (var pet in this.Pets)
             {
                 if (pet.AutoCreatedNotSaved)
                     newPets.Add(pet);
@@ -940,7 +940,7 @@ namespace Goose
             work.Add(this.BuildSaveQuests());
 
             Action onCommit = null;
-            if (isNew || newPets.Count > 0 || guildOnCommit != null)
+            if (isNew || newPets.Count > 0 || guildOnCommit is not null)
             {
                 onCommit = () =>
                 {
@@ -1229,7 +1229,7 @@ namespace Goose
             string mkc = P.MakeCharacter(this);
             // Send to all people that are in after but aren't in before MKC
             // MKC on client too
-            foreach (Player player in afterRange.Except<Player>(beforeRange))
+            foreach (var player in afterRange.Except<Player>(beforeRange))
             {
                 if (!IsGMInvisible)
                 {
@@ -1251,7 +1251,7 @@ namespace Goose
             }
 
             // MKC all new npcs
-            foreach (NPC npc in afterNPCRange.Except<NPC>(beforeNPCRange))
+            foreach (var npc in afterNPCRange.Except<NPC>(beforeNPCRange))
             {
                 world.Send(this, P.MakeNPCCharacter(npc));
             }
@@ -1260,12 +1260,12 @@ namespace Goose
             {
                 // Send to everyone MOC
                 string packet = P.MoveCharacter(this);
-                foreach (Player player in afterRange.Union<Player>(beforeRange).Distinct<Player>())
+                foreach (var player in afterRange.Union<Player>(beforeRange).Distinct<Player>())
                 {
                     world.Send(player, packet);
                 }
                 // check if aggro any npcs
-                foreach (NPC npc in afterNPCRange.Union<NPC>(beforeNPCRange).Distinct<NPC>())
+                foreach (var npc in afterNPCRange.Union<NPC>(beforeNPCRange).Distinct<NPC>())
                 {
                     npc.AggroIfInRange(this, world);
                 }
@@ -1274,7 +1274,7 @@ namespace Goose
             string erc = P.EraseCharacter(this.LoginID);
             // Send to all people that aren't in after but are in before ERC
             // Erase from client too
-            foreach (Player player in beforeRange.Except<Player>(afterRange))
+            foreach (var player in beforeRange.Except<Player>(afterRange))
             {
                 if (!IsGMInvisible)
                     world.Send(player, erc);
@@ -1284,7 +1284,7 @@ namespace Goose
 
             // Erase old npcs
             // Remove npc aggro towards player
-            foreach (NPC npc in beforeNPCRange.Except<NPC>(afterNPCRange))
+            foreach (var npc in beforeNPCRange.Except<NPC>(afterNPCRange))
             {
                 world.Send(this, P.EraseCharacter(npc.LoginID));
                 npc.RemoveAggro(this);
@@ -1306,14 +1306,14 @@ namespace Goose
         public void WarpTo(GameWorld world, Map map, int x, int y, bool loseaggro)
         {
             string erc = P.EraseCharacter(this.LoginID);
-            foreach (Player player in this.Map.GetPlayersInRange(this))
+            foreach (var player in this.Map.GetPlayersInRange(this))
             {
                 if (!IsGMInvisible)
                     world.Send(player, erc);
 
                 world.Send(this, P.EraseCharacter(player.LoginID));
             }
-            foreach (NPC npc in this.Map.GetNPCsInRange(this))
+            foreach (var npc in this.Map.GetNPCsInRange(this))
             {
                 world.Send(this, P.EraseCharacter(npc.LoginID));
                 if (loseaggro) npc.RemoveAggro(this);
@@ -1341,7 +1341,7 @@ namespace Goose
                 string gmstring = P.AdminMode(this.LoginID);
 
                 string mkc = P.MakeCharacter(this);
-                foreach (Player player in this.Map.GetPlayersInRange(this))
+                foreach (var player in this.Map.GetPlayersInRange(this))
                 {
                     if (!IsGMInvisible)
                     {
@@ -1362,7 +1362,7 @@ namespace Goose
                         }
                     }
                 }
-                foreach (NPC npc in this.Map.GetNPCsInRange(this))
+                foreach (var npc in this.Map.GetNPCsInRange(this))
                 {
                     world.Send(this, P.MakeNPCCharacter(npc));
 
@@ -1455,7 +1455,7 @@ namespace Goose
             {
                 if (level > this.Class.MaxLevel) break;
 
-                foreach (Spell spell in this.Class.GetLevel(level).Spells)
+                foreach (var spell in this.Class.GetLevel(level).Spells)
                 {
                     this.LearnSpell(spell.ID, world);
                 }
@@ -1525,7 +1525,7 @@ namespace Goose
         {
             string chpstring = P.UpdateCharacter(this);
             world.Send(this, chpstring);
-            foreach (Player player in this.Map.GetPlayersInRange(this))
+            foreach (var player in this.Map.GetPlayersInRange(this))
             {
                 world.Send(player, chpstring);
             }
@@ -1800,16 +1800,16 @@ namespace Goose
 
             int i = this.Level;
             ClassLevel level = this.Class.GetLevel(i);
-            while (this.Class.GetLevel(i) != null)
+            while (this.Class.GetLevel(i) is not null)
             {
                 levelup = level.Experience;
                 if (levelup == 0) break;
                 if (this.Experience >= levelup)
                 {
                     levels++;
-                    if (this.Class.GetLevel(i + 1) != null && this.Class.GetLevel(i + 1).Spells.Count > 0)
+                    if (this.Class.GetLevel(i + 1) is not null && this.Class.GetLevel(i + 1).Spells.Count > 0)
                     {
-                        foreach (Spell spell in this.Class.GetLevel(i + 1).Spells)
+                        foreach (var spell in this.Class.GetLevel(i + 1).Spells)
                         {
                             this.LearnSpell(spell.ID, world);
                         }
@@ -1841,10 +1841,10 @@ namespace Goose
 
             string packet = P.BattleTextYellow(this, "Level Up!");
             world.Send(this, packet);
-            if (this.Map != null)
+            if (this.Map is not null)
             {
                 List<Player> range = this.Map.GetPlayersInRange(this);
-                foreach (Player player in range)
+                foreach (var player in range)
                 {
                     world.Send(player, packet);
                 }
@@ -1876,7 +1876,7 @@ namespace Goose
             {
                 packet = P.BattleTextMiss(this);
                 world.Send(this, packet);
-                foreach (Player p in range)
+                foreach (var p in range)
                 {
                     world.Send(p, packet);
                 }
@@ -1892,7 +1892,7 @@ namespace Goose
                 {
                     packet = P.BattleTextDodge(this);
                     world.Send(this, packet);
-                    foreach (Player p in range)
+                    foreach (var p in range)
                     {
                         world.Send(p, packet);
                     }
@@ -1924,12 +1924,12 @@ namespace Goose
 
                 // Remove all buffs on death
                 List<Buff> removebuff = [];
-                foreach (Buff b in this.Buffs)
+                foreach (var b in this.Buffs)
                 {
                     if (!b.ItemBuff) removebuff.Add(b);
                 }
 
-                foreach (Buff b in removebuff)
+                foreach (var b in removebuff)
                 {
                     this.RemoveBuff(b, world, false, updateCharacter: true);
                 }
@@ -1944,14 +1944,14 @@ namespace Goose
 
             world.Send(this, P.StatusInfo(this));
             world.Send(this, packet);
-            foreach (Player p in range)
+            foreach (var p in range)
             {
                 world.Send(p, packet);
             }
 
             if (damage > 0)
             {
-                foreach (Pet pet in this.Pets.Where(p => p.Mode == Pet.Modes.Defend && p.Target == null))
+                foreach (var pet in this.Pets.Where(p => p.Mode == Pet.Modes.Defend && p.Target is null))
                 {
                     pet.Target = character;
                     pet.AddAttackEvent(world);
@@ -2014,9 +2014,9 @@ namespace Goose
         public void CastSpell(int spellslot, ICharacter target, GameWorld world)
         {
             Spell spell = this.Spellbook.GetSlot(spellslot);
-            if (spell == null) return;
+            if (spell is null) return;
 
-            foreach (Buff b in this.Buffs)
+            foreach (var b in this.Buffs)
             {
                 // can't cast when stunned
                 if (b.SpellEffect.EffectType == SpellEffect.EffectTypes.Stun)
@@ -2026,7 +2026,7 @@ namespace Goose
                 }
             }
 
-            foreach (Window window in this.Windows)
+            foreach (var window in this.Windows)
             {
                 if (window.Type == Window.WindowTypes.Vendor)
                 {
@@ -2059,9 +2059,9 @@ namespace Goose
                 {
                     if (spell.Target == Spell.SpellTargets.Group)
                     {
-                        if (this.Group != null)
+                        if (this.Group is not null)
                         {
-                            foreach (Player p in this.Group.Players)
+                            foreach (var p in this.Group.Players)
                             {
                                 if (p != this && p.Map == this.Map &&
                                     Math.Abs(p.MapX - this.MapX) < Map.RANGE_X &&
@@ -2102,7 +2102,7 @@ namespace Goose
 
                         world.Send(this, packet);
                         world.Send(this, P.StatusInfo(this));
-                        foreach (Player player in this.Map.GetPlayersInRange(this))
+                        foreach (var player in this.Map.GetPlayersInRange(this))
                         {
                             world.Send(player, packet);
                         }
@@ -2113,7 +2113,7 @@ namespace Goose
                     string packet = P.BattleTextYellow(this, "Fizzle");
 
                     world.Send(this, packet);
-                    foreach (Player player in this.Map.GetPlayersInRange(this))
+                    foreach (var player in this.Map.GetPlayersInRange(this))
                     {
                         world.Send(player, packet);
                     }
@@ -2350,7 +2350,7 @@ namespace Goose
 
         private void ClearNPCAggroIfUnseen(GameWorld world)
         {
-            foreach (NPC npc in this.Map.GetNPCsInRange(this))
+            foreach (var npc in this.Map.GetNPCsInRange(this))
             {
                 if (!npc.CanSeeInvisible) npc.RemoveAggro(this);
             }
@@ -2362,7 +2362,7 @@ namespace Goose
             if ((int)Inventory.EquipSlots.Mount > world.Settings.EquippedSize)
                 return false;
 
-            return this.Inventory.GetEquippedSlot(Inventory.EquipSlots.Mount) != null;
+            return this.Inventory.GetEquippedSlot(Inventory.EquipSlots.Mount) is not null;
         }
 
         public void RemoveBuff(Buff buff, GameWorld world)
@@ -2378,7 +2378,7 @@ namespace Goose
                 .Where(b => b.SpellEffect.EffectType == SpellEffect.EffectTypes.Invisible)
                 .ToList();
 
-            foreach (Buff buff in toRemove)
+            foreach (var buff in toRemove)
             {
                 this.RemoveBuff(buff, world);
             }
@@ -2399,7 +2399,7 @@ namespace Goose
             // must not drive the counters negative.
             if (this.Buffs.Remove(buff)) this.RemoveFromInvisCounters(buff.SpellEffect);
 
-            if (buff.BuffExpireEvent != null)
+            if (buff.BuffExpireEvent is not null)
             {
                 world.EventHandler.RemoveEvent(buff.BuffExpireEvent);
                 buff.BuffExpireEvent = null;
@@ -2466,7 +2466,7 @@ namespace Goose
 
             int i = 1;
 
-            foreach (Buff buff in this.Buffs)
+            foreach (var buff in this.Buffs)
             {
                 if (buff.ItemBuff && !this.ShowItemBuffs) continue;
 
@@ -2488,7 +2488,7 @@ namespace Goose
          */
         public void OnMeleeHit(ICharacter hitter, GameWorld world)
         {
-            foreach (Buff b in this.Buffs)
+            foreach (var b in this.Buffs)
             {
                 if (b.SpellEffect.EffectType == SpellEffect.EffectTypes.OnMeleeHit)
                 {
@@ -2504,7 +2504,7 @@ namespace Goose
          */
         public void OnMeleeAttack(ICharacter hit, GameWorld world)
         {
-            foreach (Buff b in this.Buffs)
+            foreach (var b in this.Buffs)
             {
                 if (b.SpellEffect.EffectType == SpellEffect.EffectTypes.OnAttack)
                 {
@@ -2585,7 +2585,7 @@ namespace Goose
 
         public virtual bool Send(string data)
         {
-            if (this.sock == null) return true;
+            if (this.sock is null) return true;
 
             var bytes = Encoding.ASCII.GetBytes(data);
 
@@ -2593,7 +2593,7 @@ namespace Goose
             {
                 // H2: a direct send would reach the client before the buffered tail of an
                 // older packet, so hold the new payload in the buffer until it drains.
-                if (this.SendBuffer != null && this.SendBuffer.Count > 0)
+                if (this.SendBuffer is not null && this.SendBuffer.Count > 0)
                 {
                     this.SendBuffer.AddRange(bytes);
                     return this.SendBuffer.Count <= MaxSendBufferSize;
@@ -2616,12 +2616,12 @@ namespace Goose
                 }
             }
 
-            return this.SendBuffer == null || this.SendBuffer.Count <= MaxSendBufferSize;
+            return this.SendBuffer is null || this.SendBuffer.Count <= MaxSendBufferSize;
         }
 
         public void Send()
         {
-            if (this.sock == null || this.SendBuffer == null) return;
+            if (this.sock is null || this.SendBuffer is null) return;
 
             lock (socketLock)
             {

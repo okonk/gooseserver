@@ -17,7 +17,7 @@ namespace Goose.Events
                 string[] tokens = ((string)this.Data).Split(' ', 3);
 
                 Player player = world.PlayerHandler.GetPlayerFromData(tokens[1]);
-                if (player != null)
+                if (player is not null)
                 {
                     int daysToBan;
                     if (tokens.Length <= 2 || !int.TryParse(tokens[2], out daysToBan))

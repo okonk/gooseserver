@@ -39,7 +39,7 @@ namespace Goose.Events
 
         public override void Ready(GameWorld world)
         {
-            if (this.Player != null) return;
+            if (this.Player is not null) return;
 
             string packet = (string)(((Object[])this.Data)[1]);
             Socket sock = (Socket)(((Object[])this.Data)[0]);
@@ -117,7 +117,7 @@ namespace Goose.Events
 
             Player player = world.PlayerHandler.GetPlayerFromData(name);
 
-            if (player == null)
+            if (player is null)
             {
                 // limit characters created per day
                 if (world.Settings.NewCharactersPerDayPerIP > 0)

@@ -39,7 +39,7 @@ namespace Goose.Events
                    return;
                }
 
-               if (this.Player.Guild != null)
+               if (this.Player.Guild is not null)
                {
                    this.Player.Guild.LeaveGuild(this.Player, world);
                }

@@ -49,7 +49,7 @@ namespace Goose.Events
                 this.Player.SendSpellbook(world);
                 this.Player.SendBuffBar(world);
 
-                if (this.Player.Guild != null)
+                if (this.Player.Guild is not null)
                 {
                     this.Player.Guild.OnlineMembers.Add(this.Player);
                     if (this.Player.Guild.MOTD != "")

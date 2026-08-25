@@ -51,11 +51,11 @@ namespace Goose.Events
 
                 // Look for any vendors
                 List<NPC> range = this.Player.Map.GetNPCsInRange(this.Player);
-                foreach (NPC npc in range)
+                foreach (var npc in range)
                 {
                     if (npc.MapX == x && npc.MapY == y)
                     {
-                        if (npc.VendorItems != null)
+                        if (npc.VendorItems is not null)
                         {
                             npc.OpenVendorWindow(this.Player, world);
                             return;

@@ -42,7 +42,7 @@ namespace Goose.Quests
             requirement.Type = (RequirementType)Convert.ToInt32(reader["requirement_type"]);
             requirement.Value = Convert.ToInt64(reader["requirement_value"]);
             requirement.Value2 = Convert.ToInt64(reader["requirement_value2"]);
-            requirement.KeepRequirement = ("0".Equals(Convert.ToString(reader["keep_requirement"])) ? false : true);
+            requirement.KeepRequirement = Convert.ToString(reader["keep_requirement"]) != "0";
 
             requirement.ScriptParams = Convert.ToString(reader["script_params"]);
             string scriptPath = Convert.ToString(reader["script_path"]);
@@ -51,7 +51,7 @@ namespace Goose.Quests
                 requirement.Script = world.ScriptHandler.GetScript<IQuestScript>(scriptPath);
             }
 
-            if (requirement.Type == RequirementType.Script && requirement.Script == null)
+            if (requirement.Type == RequirementType.Script && requirement.Script is null)
             {
                 throw new Exception($"Quest requirement {requirement.Id} (quest {quest.Id}) has type Script but no script_path");
             }

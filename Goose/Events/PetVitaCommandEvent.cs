@@ -45,7 +45,7 @@ namespace Goose.Events
                 }
 
                 Pet match = null;
-                foreach (Pet pet in this.Player.Pets)
+                foreach (var pet in this.Player.Pets)
                 {
                     if (pet.PetID == petid)
                     {
@@ -54,7 +54,7 @@ namespace Goose.Events
                     }
                 }
 
-                if (match == null)
+                if (match is null)
                 {
                     world.Send(this.Player, P.ServerMessage("Couldn't find pet matching ID."));
                     return;

@@ -94,7 +94,7 @@ namespace Goose
          */
         public void SendToGuild(string message, GameWorld world)
         {
-            foreach (Player player in this.OnlineMembers)
+            foreach (var player in this.OnlineMembers)
             {
                 world.Send(player, message);
             }
@@ -206,7 +206,7 @@ namespace Goose
 
                     justsaved = true;
 
-                    foreach (Player player in this.OnlineMembers)
+                    foreach (var player in this.OnlineMembers)
                     {
                         player.GuildID = this.ID;
                     }
@@ -346,7 +346,7 @@ namespace Goose
 
                 if (inserted)
                 {
-                    foreach (Player player in online)
+                    foreach (var player in online)
                     {
                         if (player.Guild == this)
                             player.GuildID = this.ID;

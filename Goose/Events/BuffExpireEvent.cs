@@ -8,7 +8,7 @@ namespace Goose.Events
         {
             Buff buff = (Buff)this.Data;
 
-            if (buff.BuffExpireEvent == null) return;
+            if (buff.BuffExpireEvent is null) return;
 
             if (buff.Target is NPC && ((NPC)buff.Target).State == NPC.States.Dead) return;
             else if (buff.Target is Player && ((Player)buff.Target).State == Player.States.NotLoggedIn) return;

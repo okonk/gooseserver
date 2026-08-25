@@ -13,7 +13,7 @@ namespace Goose
         /// priced in that currency at a different wallet.</summary>
         public void Register(ICurrency currency)
         {
-            if (currency == null) throw new ArgumentNullException(nameof(currency));
+            if (currency is null) throw new ArgumentNullException(nameof(currency));
             if (string.IsNullOrWhiteSpace(currency.Id))
                 throw new ArgumentException("Currency id must not be empty.", nameof(currency));
 
@@ -43,7 +43,7 @@ namespace Goose
             if (string.IsNullOrEmpty(id)) id = Currency.Gold;
 
             var currency = this.Get(id);
-            if (currency == null)
+            if (currency is null)
                 throw new InvalidOperationException(
                     $"Currency '{id}' is not registered. Scripts must register a currency before stamping it onto templates.");
 

@@ -276,7 +276,7 @@ namespace Goose.Quests
                     case RequirementType.NothingEquipped:
                         foreach (Inventory.EquipSlots slot in Enum.GetValues(typeof(Inventory.EquipSlots)))
                         {
-                            if (player.Inventory.GetEquippedSlot(slot) != null)
+                            if (player.Inventory.GetEquippedSlot(slot) is not null)
                                 return false;
                         }
                         
@@ -356,7 +356,7 @@ namespace Goose.Quests
                         int stack = (int)reward.LongValue2;
 
                         ItemTemplate template = world.ItemHandler.GetTemplate(id);
-                        if (template == null) continue;
+                        if (template is null) continue;
 
                         Item item = new Item();
                         item.LoadFromTemplate(template);
@@ -388,7 +388,7 @@ namespace Goose.Quests
                             continue;
 
                         Map map = world.MapHandler.GetMap(mapId);
-                        if (map == null)
+                        if (map is null)
                             continue;
 
                         player.WarpTo(world, map, x, y);
@@ -465,7 +465,7 @@ namespace Goose.Quests
                         break;
                     case RewardType.SpellBuff:
                         var spellEffect = world.SpellHandler.GetSpellEffect((int)reward.LongValue);
-                        if (spellEffect == null)
+                        if (spellEffect is null)
                             continue;
 
                         spellEffect.Cast(npc, player, world);
@@ -479,7 +479,7 @@ namespace Goose.Quests
                         break;
                 }
 
-                if (rewardMessage != null)
+                if (rewardMessage is not null)
                     world.Send(player, P.ServerMessage(rewardMessage));
             }
         }
@@ -516,7 +516,7 @@ namespace Goose.Quests
                                 && p.Requirement.Type == requirement.Type
                                 && p.Requirement.Value == requirement.Value 
                                 && p.Requirement.Value2 == requirement.Value2);
-                            if (progress != null)
+                            if (progress is not null)
                             {
                                 progress.Value = Math.Max(0, progress.Value - requirement.Value2);
                             }

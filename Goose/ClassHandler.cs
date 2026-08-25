@@ -69,7 +69,7 @@ namespace Goose
                 c.ClassID = Convert.ToInt32(reader["class_id"]);
 
                 Class cl = this.GetClass(c.ClassID);
-                if (cl == null)
+                if (cl is null)
                 {
                     // log something wrong
                     return;
@@ -121,21 +121,21 @@ namespace Goose
             while (reader.Read())
             {
                 clas = this.GetClass(Convert.ToInt32(reader["class_id"]));
-                if (clas == null)
+                if (clas is null)
                 {
                     // log bad class id
                     continue;
                 }
 
                 level = clas.GetLevel(Convert.ToInt32(reader["level"]));
-                if (level == null)
+                if (level is null)
                 {
                     // log bad level
                     continue;
                 }
 
                 spell = world.SpellHandler.GetSpell(Convert.ToInt32(reader["spell_id"]));
-                if (spell == null)
+                if (spell is null)
                 {
                     // log bad spell
                     continue;

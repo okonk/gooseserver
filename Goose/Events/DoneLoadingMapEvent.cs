@@ -45,7 +45,7 @@ namespace Goose.Events
                 // Notify people in range that someone joined
                 // Notify person that joined about people in range
                 List<Player> range = map.GetPlayersInRange(this.Player);
-                foreach (Player player in range)
+                foreach (var player in range)
                 {
                     if (!this.Player.IsGMInvisible)
                     {
@@ -67,7 +67,7 @@ namespace Goose.Events
                 }
 
                 List<NPC> npcrange = map.GetNPCsInRange(this.Player);
-                foreach (NPC npc in npcrange)
+                foreach (var npc in npcrange)
                 {
                     world.Send(this.Player, P.MakeNPCCharacter(npc));
 
@@ -85,12 +85,12 @@ namespace Goose.Events
 
                 this.Player.SendBuffBar(world);
 
-                foreach (ItemTile tile in this.Player.Map.Items)
+                foreach (var tile in this.Player.Map.Items)
                 {
                     world.Send(this.Player, P.MakeObject(tile));
                 }
 
-                if (this.Player.Group != null)
+                if (this.Player.Group is not null)
                 {
                     this.Player.Group.SendPartyWindow(this.Player, world);
                 }

@@ -46,7 +46,7 @@ namespace Goose.Events
 
                 // Look for any vendors
                 List<NPC> range = this.Player.Map.GetNPCsInRange(this.Player);
-                foreach (NPC npc in range)
+                foreach (var npc in range)
                 {
                     if (npc.MapX == x && npc.MapY == y && npc.Quests.Any())
                     {

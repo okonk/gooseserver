@@ -27,7 +27,7 @@ namespace Goose.Events
                 world.LogHandler.Log(Log.Types.Shout, this.Player.PlayerID, data, 0, this.Player.Map.ID, this.Player.MapX, this.Player.MapY);
 
                 List<Player> range = this.Player.Map.Players;
-                foreach (Player player in range)
+                foreach (var player in range)
                 {
                     if (player.ChatFilterEnabled)
                     {

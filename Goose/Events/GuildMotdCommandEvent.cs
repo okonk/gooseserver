@@ -8,7 +8,7 @@ namespace Goose.Events
         {
             if (this.Player.State == Player.States.Ready)
             {
-                if (this.Player.Guild == null) return;
+                if (this.Player.Guild is null) return;
                 if (this.Player.Guild.GetRank(this.Player) < Guild.GuildRanks.Officer) return;
 
                 string motd = ((string)this.Data).Substring(10);

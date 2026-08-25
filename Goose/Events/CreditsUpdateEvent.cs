@@ -22,7 +22,7 @@ namespace Goose.Events
                     {
                         player = world.PlayerHandler.GetPlayerFromData(reader["player_name"].ToString());
 
-                        if (player != null)
+                        if (player is not null)
                         {
                             credits = Convert.ToInt32(reader["credits"]);
                             player.Credits += credits;

@@ -10,7 +10,7 @@ namespace Goose.Events
             {
                 string name = ((string)this.Data).Substring(7);
                 Player player = world.PlayerHandler.GetPlayerFromData(name);
-                if (player != null)
+                if (player is not null)
                 {
                     player.Access = Player.AccessStatus.Normal;
                     player.UnbanDate = null;

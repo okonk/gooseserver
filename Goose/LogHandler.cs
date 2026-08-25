@@ -18,7 +18,7 @@ namespace Goose
 
         public void Save(GameWorld world)
         {
-            foreach (Log log in this.logs)
+            foreach (var log in this.logs)
             {
                 log.SaveToDatabase(world);
             }

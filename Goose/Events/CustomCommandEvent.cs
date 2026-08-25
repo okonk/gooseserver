@@ -12,7 +12,7 @@ namespace Goose.Events
                 var combineBag = this.Player.Inventory.GetCombineBagContainer();
 
                 var firstSlot = combineBag.GetSlot(1);
-                if (firstSlot == null || firstSlot.Item.TemplateID != world.Settings.CustomTicketId)
+                if (firstSlot is null || firstSlot.Item.TemplateID != world.Settings.CustomTicketId)
                 {
                     world.Send(this.Player, P.ServerMessage("You need a custom ticket in your first combine bag slot to use this command."));
                     return;
@@ -49,7 +49,7 @@ namespace Goose.Events
                     case "create":
                     case "make":
                         error = ParseRGBA(tokens, out r, out g, out b, out a);
-                        if (error != null)
+                        if (error is not null)
                         {
                             world.Send(this.Player, error);
                             return;
@@ -107,7 +107,7 @@ namespace Goose.Events
                         combineBag.SetSlot(3, null);
 
                         var combineBagWindow = this.Player.Windows.FirstOrDefault(w => w.Type == Window.WindowTypes.CombineBag);
-                        if (combineBagWindow != null) combineBagWindow.Refresh(this.Player, world);
+                        if (combineBagWindow is not null) combineBagWindow.Refresh(this.Player, world);
 
                         world.LogHandler.Log(Log.Types.CreatedCustom, this.Player,
                             $"{item.Name} ({item.TemplateID}) {lookSlot.Item.TemplateID}|{r},{g},{b},{a}", item.ItemID);
@@ -115,7 +115,7 @@ namespace Goose.Events
                         break;
                     case "preview":
                         error = ParseRGBA(tokens, out r, out g, out b, out a);
-                        if (error != null)
+                        if (error is not null)
                         {
                             world.Send(this.Player, error);
                             return;
@@ -134,7 +134,7 @@ namespace Goose.Events
 
                         int pose = this.Player.BodyState;
                         ItemSlot weapon = this.Player.Inventory.GetEquippedSlot(Inventory.EquipSlots.Weapon);
-                        if (weapon != null)
+                        if (weapon is not null)
                         {
                             pose = weapon.Item.BodyState;
                         }
@@ -216,7 +216,7 @@ namespace Goose.Events
 
             EquipSlots lookSlot = this.Player.Inventory.ItemSlotToEquipSlot(customLook.Item.Slot);
 
-            foreach (EquipSlots eq in slots)
+            foreach (var eq in slots)
             {
                 if (eq == lookSlot)
                 {
@@ -229,7 +229,7 @@ namespace Goose.Events
                 else
                 {
                     item = this.Player.Inventory.GetEquippedSlot(eq);
-                    if (item != null)
+                    if (item is not null)
                     {
                         if (item.Item.GraphicA == 0)
                         {
@@ -268,7 +268,7 @@ namespace Goose.Events
                              b + "," +
                              a + ",";
             }
-            else if (item != null)
+            else if (item is not null)
             {
                 if (item.Item.GraphicA == 0)
                 {
@@ -295,7 +295,7 @@ namespace Goose.Events
         {
             var statsSlot = combineBag.GetSlot(2);
             var lookSlot = combineBag.GetSlot(3);
-            if (statsSlot == null || lookSlot == null)
+            if (statsSlot is null || lookSlot is null)
             {
                 world.Send(player, P.ServerMessage("Items missing for customisation"));
                 world.Send(player, P.ServerMessage("In combine bag: Place custom ticket in first slot. Place the item you want the stats of in second slot. Place the item you want the look of in the third slot."));

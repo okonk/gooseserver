@@ -53,12 +53,12 @@ namespace Goose
                         npc.AttackRange = Convert.ToInt32(reader["attack_range"]);
                         npc.AttackSpeed = Decimal.Parse(Convert.ToString(reader["attack_speed"]));
                         npc.MoveSpeed = Decimal.Parse(Convert.ToString(reader["move_speed"]));
-                        npc.CanMove = ("1".Equals(Convert.ToString(reader["stationary"])) ? false : true);
-                        npc.CanBeStunned = ("0".Equals(Convert.ToString(reader["stunnable"])) ? false : true);
+                        npc.CanMove = Convert.ToString(reader["stationary"]) != "1";
+                        npc.CanBeStunned = Convert.ToString(reader["stunnable"]) != "0";
                         npc.SeeInvisible = "1".Equals(Convert.ToString(reader["see_invisible"]));
-                        npc.CanBeRooted = ("0".Equals(Convert.ToString(reader["rootable"])) ? false : true);
-                        npc.CanBeSlowed = ("0".Equals(Convert.ToString(reader["slowable"])) ? false : true);
-                        npc.CanBeKilled = ("1".Equals(Convert.ToString(reader["invincible"])) ? false : true);
+                        npc.CanBeRooted = Convert.ToString(reader["rootable"]) != "0";
+                        npc.CanBeSlowed = Convert.ToString(reader["slowable"]) != "0";
+                        npc.CanBeKilled = Convert.ToString(reader["invincible"]) != "1";
                         npc.ClassID = Convert.ToInt32(reader["class_id"]);
                         npc.EquippedItems = Convert.ToString(reader["equipped_items"]);
 
@@ -100,7 +100,7 @@ namespace Goose
                         npc.Behaviour = (NPCTemplate.BehaviourTypes)Convert.ToInt32(reader["stuck_behaviour"]);
                         npc.BehaviourTimeout = Convert.ToInt64(reader["stuck_timeout"]);
 
-                        npc.CreditDealer = ("0".Equals(Convert.ToString(reader["credit_dealer"])) ? false : true);
+                        npc.CreditDealer = Convert.ToString(reader["credit_dealer"]) != "0";
 
                         // Credit dealers are the only vendors with a non-gold currency in
                         // sheet data. Null (not "gold") so Resolve's fallback chain stays
@@ -123,7 +123,7 @@ namespace Goose
                     }
                 }
 
-                foreach (NPCTemplate npc in this.templates.Values)
+                foreach (var npc in this.templates.Values)
                 {
                     var allies = new List<NPCTemplate>();
 
@@ -132,7 +132,7 @@ namespace Goose
                         foreach (int ally in npc.AlliesString.Split([' ', ','], StringSplitOptions.RemoveEmptyEntries).Select(q => Convert.ToInt32(q)))
                         {
                             NPCTemplate a = this.GetNPCTemplate(ally);
-                            if (a == null)
+                            if (a is null)
                             {
                                 // log bad template id in allies
                             }
@@ -150,7 +150,7 @@ namespace Goose
                     npc.Allies = allies;
                 }
 
-                foreach (NPCTemplate template in this.templates.Values)
+                foreach (var template in this.templates.Values)
                 {
                     using (var command = conn.CreateCommand())
                     {
@@ -166,7 +166,7 @@ namespace Goose
                             drop.Stack = Convert.ToInt32(reader["stack"]);
                             drop.ItemTemplate = world.ItemHandler.GetTemplate(Convert.ToInt32(reader["item_template_id"]));
 
-                            if (drop.ItemTemplate != null) template.Drops.Add(drop);
+                            if (drop.ItemTemplate is not null) template.Drops.Add(drop);
                         }
                     }
 
@@ -187,9 +187,9 @@ namespace Goose
                                 vslot.Stack = Convert.ToInt32(reader["stack"]);
                                 vslot.ItemTemplate =
                                     world.ItemHandler.GetTemplate(Convert.ToInt32(reader["item_template_id"]));
-                                vslot.CanSeeStats = ("0".Equals(Convert.ToString(reader["stats_visible"])) ? false : true);
+                                vslot.CanSeeStats = Convert.ToString(reader["stats_visible"]) != "0";
 
-                                if (vslot.ItemTemplate != null &&
+                                if (vslot.ItemTemplate is not null &&
                                     vslot.Slot > 0 && vslot.Slot <= world.Settings.VendorSlotSize)
                                 {
                                     template.VendorItems[vslot.Slot] = vslot;
@@ -281,8 +281,8 @@ namespace Goose
                     int map_y = Convert.ToInt32(reader["map_y"]);
 
                     NPCTemplate template = this.GetNPCTemplate(npc_id);
-                    if (template == null) continue;               // log bad id
-                    if (this.SpawnNPC(world, map_id, map_x, map_y, template, shouldRespawn: true) == null)
+                    if (template is null) continue;               // log bad id
+                    if (this.SpawnNPC(world, map_id, map_x, map_y, template, shouldRespawn: true) is null)
                     {
                         // couldn't load map
                     }

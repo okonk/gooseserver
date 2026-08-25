@@ -54,9 +54,9 @@ namespace Goose.Quests
             quest.MaxLevel = Convert.ToInt32(reader["max_level"]);
             quest.MinExperience = Convert.ToInt64(reader["min_experience"]);
             quest.MaxExperience = Convert.ToInt64(reader["max_experience"]);
-            quest.Repeatable = ("0".Equals(Convert.ToString(reader["repeatable"])) ? false : true);
-            quest.ShowProgress = ("0".Equals(Convert.ToString(reader["show_progress"])) ? false : true);
-            quest.OnlyOnePlayerCanComplete = ("0".Equals(Convert.ToString(reader["only_one_player_can_complete"])) ? false : true);
+            quest.Repeatable = Convert.ToString(reader["repeatable"]) != "0";
+            quest.ShowProgress = Convert.ToString(reader["show_progress"]) != "0";
+            quest.OnlyOnePlayerCanComplete = Convert.ToString(reader["only_one_player_can_complete"]) != "0";
             quest.PrerequisiteQuests = Convert.ToString(reader["prerequisite_quests"]).Split([' ', ','], StringSplitOptions.RemoveEmptyEntries).Select(q => Convert.ToInt32(q)).ToList();
 
             return quest;

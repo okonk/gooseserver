@@ -17,7 +17,7 @@ namespace Goose.ConsoleCommands
         {
             int matches = 0;
 
-            foreach (Player player in world.PlayerHandler.Players)
+            foreach (var player in world.PlayerHandler.Players)
             {
                 if (player is Pet) continue;
                 if (player.State != Player.States.Ready) continue;

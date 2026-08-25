@@ -80,7 +80,7 @@ namespace Goose
         /// <summary>
         /// Gets a boolean indicating whether the pet is spawned or not
         /// </summary>
-        public bool IsAlive { get { return (this.Map != null); } }
+        public bool IsAlive { get { return (this.Map is not null); } }
 
         /// <summary>
         /// The current move event
@@ -480,13 +480,13 @@ namespace Goose
 
             string packet = P.MakePetCharacter(this);
             List<Player> range = this.Map.GetPlayersInRange(this);
-            foreach (Player player in range)
+            foreach (var player in range)
             {
                 world.Send(player, packet);
             }
 
             List<NPC> npcrange = this.Map.GetNPCsInRange(this);
-            foreach (NPC npc in npcrange)
+            foreach (var npc in npcrange)
             {
                 npc.AggroIfInRange(this, world);
             }
@@ -503,26 +503,26 @@ namespace Goose
             if (!this.IsAlive) return;
 
             List<Buff> removebuff = [];
-            foreach (Buff b in this.Buffs)
+            foreach (var b in this.Buffs)
             {
                 if (!b.ItemBuff) removebuff.Add(b);
             }
 
             // Strip before erasing so the 1->0 invis CHP reaches bystanders while
             // the pet still exists on their side of the world.
-            foreach (Buff b in removebuff)
+            foreach (var b in removebuff)
             {
                 this.RemoveBuff(b, world, false, updateCharacter: false);
             }
 
             string erase = P.EraseCharacter(this.LoginID);
             List<Player> oldrange = this.Map.GetPlayersInRange(this);
-            foreach (Player player in oldrange)
+            foreach (var player in oldrange)
             {
                 world.Send(player, erase);
             }
             List<NPC> oldnpcrange = this.Map.GetNPCsInRange(this);
-            foreach (NPC npc in oldnpcrange)
+            foreach (var npc in oldnpcrange)
             {
                 npc.RemoveAggro(this);
             }
@@ -538,7 +538,7 @@ namespace Goose
 
         public void AddMoveEvent(GameWorld world)
         {
-            if (this.MoveEvent == null)
+            if (this.MoveEvent is null)
             {
                 PetMoveEvent ev = new PetMoveEvent();
                 ev.Ticks += (long)(this.MoveSpeed * world.TimerFrequency);
@@ -672,32 +672,32 @@ namespace Goose
 
             string mkc = P.MakePetCharacter(this);
             // Send to all people that are in after but aren't in before MKC
-            foreach (Player player in afterRange.Except<Player>(beforeRange))
+            foreach (var player in afterRange.Except<Player>(beforeRange))
             {
                 world.Send(player, mkc);
             }
 
             // Send to everyone MOC
             string packet = P.MoveCharacter(this);
-            foreach (Player player in afterRange.Union<Player>(beforeRange).Distinct<Player>())
+            foreach (var player in afterRange.Union<Player>(beforeRange).Distinct<Player>())
             {
                 world.Send(player, packet);
             }
             // check if aggro any npcs
-            foreach (NPC npc in afterNPCRange.Union<NPC>(beforeNPCRange).Distinct<NPC>())
+            foreach (var npc in afterNPCRange.Union<NPC>(beforeNPCRange).Distinct<NPC>())
             {
                 npc.AggroIfInRange(this, world);
             }
 
             string erc = P.EraseCharacter(this.LoginID);
             // Send to all people that aren't in after but are in before ERC
-            foreach (Player player in beforeRange.Except<Player>(afterRange))
+            foreach (var player in beforeRange.Except<Player>(afterRange))
             {
                 world.Send(player, erc);
             }
 
             // Remove npc aggro towards player
-            foreach (NPC npc in beforeNPCRange.Except<NPC>(afterNPCRange))
+            foreach (var npc in beforeNPCRange.Except<NPC>(afterNPCRange))
             {
                 npc.RemoveAggro(this);
             }
@@ -714,7 +714,7 @@ namespace Goose
             this.Facing = direction;
             string packet = P.ChangeHeading(this);
             List<Player> range = this.Map.GetPlayersInRange(this);
-            foreach (Player player in range)
+            foreach (var player in range)
             {
                 world.Send(player, packet);
             }
@@ -722,7 +722,7 @@ namespace Goose
 
         public void AddAttackEvent(GameWorld world)
         {
-            if (this.AttackEvent == null)
+            if (this.AttackEvent is null)
             {
                 PetAttackEvent ev = new PetAttackEvent();
                 ev.Ticks += (long)(this.AttackSpeed * world.TimerFrequency);
@@ -749,7 +749,7 @@ namespace Goose
             if (damage == 0)
             {
                 packet = P.BattleTextMiss(this);
-                foreach (Player p in range)
+                foreach (var p in range)
                 {
                     world.Send(p, packet);
                 }
@@ -762,7 +762,7 @@ namespace Goose
             if (world.Random.Next(0, 10001) <= dodge * 100)
             {
                 packet = P.BattleTextMiss(this);
-                foreach (Player p in range)
+                foreach (var p in range)
                 {
                     world.Send(p, packet);
                 }
@@ -792,7 +792,7 @@ namespace Goose
                 this.AddRegenEvent(world);
             }
 
-            foreach (Player p in range)
+            foreach (var p in range)
             {
                 world.Send(p, packet);
             }
@@ -820,7 +820,7 @@ namespace Goose
 
             int i = this.Level;
             ClassLevel level = this.Class.GetLevel(i);
-            while (this.Class.GetLevel(i) != null)
+            while (this.Class.GetLevel(i) is not null)
             {
                 levelup = level.Experience;
                 if (levelup == 0) break;
@@ -853,7 +853,7 @@ namespace Goose
             List<Player> range = this.Map.GetPlayersInRange(this);
             string packet = P.BattleTextYellow(this, "Level Up!");
             world.Send(this, packet);
-            foreach (Player player in range)
+            foreach (var player in range)
             {
                 world.Send(player, packet);
             }

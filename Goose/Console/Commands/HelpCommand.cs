@@ -14,7 +14,7 @@ namespace Goose.ConsoleCommands
         {
             Console.WriteLine("Console commands:");
 
-            foreach (ConsoleCommand command in commands)
+            foreach (var command in commands)
             {
                 Console.WriteLine("  " + command.Usage.PadRight(34) + command.Description);
             }

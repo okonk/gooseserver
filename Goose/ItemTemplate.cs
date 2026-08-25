@@ -230,7 +230,7 @@ namespace Goose
             var cantUse = new List<Class>();
             var allClasses = world.ClassHandler.Classes;
 
-            foreach (Class cls in allClasses)
+            foreach (var cls in allClasses)
             {
                 if (cls.CanUse(classRestrictions))
                 {
@@ -251,7 +251,7 @@ namespace Goose
 
             if (canUse.Count <= 3)
             {
-                foreach (Class cls in canUse)
+                foreach (var cls in canUse)
                 {
                     output += (cls.ClassID);
                     output += "|";
@@ -264,7 +264,7 @@ namespace Goose
             }
             else if (cantUse.Count <= 3)
             {
-                foreach (Class cls in cantUse)
+                foreach (var cls in cantUse)
                 {
                     // +50 = can't use
                     output += (cls.ClassID + 50);

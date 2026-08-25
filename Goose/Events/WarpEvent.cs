@@ -30,7 +30,7 @@ namespace Goose.Events
                 if (tokens.Length == 4)
                 {
                     Map map = world.MapHandler.GetMap(mapid);
-                    if (map != null)
+                    if (map is not null)
                     {
                         // invalid coordinates
                         if (mapx < 1 || mapx >= map.Width + 1 || mapy < 1 || mapy >= map.Height + 1) return;

@@ -112,12 +112,10 @@ namespace Goose
 
                     try
                     {
-                        using (System.IO.StreamWriter writer = System.IO.File.AppendText(Paths.ResolveData("crashlog.txt")))
-                        {
-                            writer.WriteLine("\nCrashed: " + DateTime.Now.ToString());
-                            writer.WriteLine(e.Message + " " + e.InnerException);
-                            writer.WriteLine(e.StackTrace);
-                        }
+                        using var writer = System.IO.File.AppendText(Paths.ResolveData("crashlog.txt"));
+                        writer.WriteLine("\nCrashed: " + DateTime.Now.ToString());
+                        writer.WriteLine(e.Message + " " + e.InnerException);
+                        writer.WriteLine(e.StackTrace);
                     }
                     catch (Exception err)
                     {
@@ -227,7 +225,7 @@ namespace Goose
                     }
                 }
 
-                foreach (Socket sock in this.readList)
+                foreach (var sock in this.readList)
                 {
                     if (sock == this.listen)
                     {
@@ -255,7 +253,7 @@ namespace Goose
                             // A peer that resets between select and accept must not take
                             // the server down.
                             log.Error(e, "Error accepting connection.");
-                            if (newSocket != null) this.DropSocket(newSocket);
+                            if (newSocket is not null) this.DropSocket(newSocket);
                         }
                     }
                     else
@@ -335,7 +333,7 @@ namespace Goose
         {
             this.gameworld.Stop();
 
-            foreach (Socket sock in this.sockets)
+            foreach (var sock in this.sockets)
             {
                 try
                 {
@@ -370,7 +368,7 @@ namespace Goose
         {
             var world = this.gameworld;
 
-            if (world == null) return;
+            if (world is null) return;
 
             log.Info("Shutdown requested.");
             world.Running = false;
@@ -459,14 +457,14 @@ namespace Goose
             foreach (var pair in this.connections)
             {
                 if (now - pair.Value.AcceptedAt < timeout) continue;
-                if (this.gameworld.PlayerHandler.GetPlayer(pair.Key) != null) continue;
+                if (this.gameworld.PlayerHandler.GetPlayer(pair.Key) is not null) continue;
 
                 (stale ??= new List<Socket>()).Add(pair.Key);
             }
 
-            if (stale == null) return;
+            if (stale is null) return;
 
-            foreach (Socket sock in stale)
+            foreach (var sock in stale)
             {
                 log.Info("Dropping connection that never logged in.");
                 this.DropSocket(sock);
@@ -483,7 +481,7 @@ namespace Goose
          */
         private void DropSocket(Socket sock)
         {
-            if (sock == null) return;
+            if (sock is null) return;
 
             try
             {

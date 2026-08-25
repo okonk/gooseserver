@@ -50,14 +50,14 @@ namespace Goose
                     map.MinExperience = Convert.ToInt64(reader["min_experience"]);
                     map.MaxExperience = Convert.ToInt64(reader["max_experience"]);
 
-                    map.CanAuction = ("0".Equals(Convert.ToString(reader["auction_enabled"])) ? false : true);
-                    map.CanPVP = ("0".Equals(Convert.ToString(reader["pvp_enabled"])) ? false : true);
-                    map.CanChat = ("0".Equals(Convert.ToString(reader["chat_enabled"])) ? false : true);
-                    map.CanShout = ("0".Equals(Convert.ToString(reader["shout_enabled"])) ? false : true);
-                    map.CanUseItems = ("0".Equals(Convert.ToString(reader["items_enabled"])) ? false : true);
-                    map.CanCast = ("0".Equals(Convert.ToString(reader["spells_enabled"])) ? false : true);
-                    map.CanBind = ("0".Equals(Convert.ToString(reader["bind_enabled"])) ? false : true);
-                    map.CanSpawnPets = ("0".Equals(Convert.ToString(reader["pets_enabled"])) ? false : true);
+                    map.CanAuction = Convert.ToString(reader["auction_enabled"]) != "0";
+                    map.CanPVP = Convert.ToString(reader["pvp_enabled"]) != "0";
+                    map.CanChat = Convert.ToString(reader["chat_enabled"]) != "0";
+                    map.CanShout = Convert.ToString(reader["shout_enabled"]) != "0";
+                    map.CanUseItems = Convert.ToString(reader["items_enabled"]) != "0";
+                    map.CanCast = Convert.ToString(reader["spells_enabled"]) != "0";
+                    map.CanBind = Convert.ToString(reader["bind_enabled"]) != "0";
+                    map.CanSpawnPets = Convert.ToString(reader["pets_enabled"]) != "0";
 
                     string scriptPath = Convert.ToString(reader["script_path"]);
                     if (!string.IsNullOrEmpty(scriptPath))
@@ -70,7 +70,7 @@ namespace Goose
                 }
             });
 
-            foreach (Map map in this.maps.Values)
+            foreach (var map in this.maps.Values)
             {
                 map.LoadData(world);
 

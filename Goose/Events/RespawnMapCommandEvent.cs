@@ -8,7 +8,7 @@ namespace Goose.Events
         {
             if (this.Player.State == Player.States.Ready)
             {
-                foreach (NPC npc in this.Player.Map.NPCs) {
+                foreach (var npc in this.Player.Map.NPCs) {
                     if (npc.State == NPC.States.Dead)
                     {
                         npc.Spawn(world);

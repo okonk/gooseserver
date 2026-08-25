@@ -104,17 +104,17 @@ namespace Goose
                     template.GraphicA = Convert.ToInt32(reader["graphic_a"]);
                     template.ClassRestrictions = Convert.ToInt64(reader["class_restrictions"]);
 
-                    template.IsLore = ("0".Equals(Convert.ToString(reader["lore"])) ? false : true);
-                    template.IsBindOnPickup = ("0".Equals(Convert.ToString(reader["bindonpickup"])) ? false : true);
-                    template.IsBindOnEquip = ("0".Equals(Convert.ToString(reader["bindonequip"])) ? false : true);
-                    template.IsEvent = ("0".Equals(Convert.ToString(reader["event"])) ? false : true);
+                    template.IsLore = Convert.ToString(reader["lore"]) != "0";
+                    template.IsBindOnPickup = Convert.ToString(reader["bindonpickup"]) != "0";
+                    template.IsBindOnEquip = Convert.ToString(reader["bindonequip"]) != "0";
+                    template.IsEvent = Convert.ToString(reader["event"]) != "0";
 
                     template.StackSize = Convert.ToInt32(reader["stack_size"]);
                     template.BodyState = Convert.ToInt32(reader["body_state"]);
 
                     template.SpellEffectID = Convert.ToInt32(reader["spell_effect_id"]);
                     template.SpellEffect = world.SpellHandler.GetSpellEffect(template.SpellEffectID);
-                    if (template.SpellEffectID != 0 && template.SpellEffect == null)
+                    if (template.SpellEffectID != 0 && template.SpellEffect is null)
                     {
                         // log bad spell effect on item
                         continue;
@@ -296,7 +296,7 @@ namespace Goose
         {
             // Above the use-type filter deliberately: a script-owned item (dimension tomes)
             // must be able to claim the roll even when nothing native would apply to it.
-            if (item.Script != null)
+            if (item.Script is not null)
             {
                 try
                 {

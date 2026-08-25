@@ -44,7 +44,7 @@ namespace Goose.Events
 
                 if (buttonid <= -1 || buttonid >= Enum.GetValues(typeof(Window.ButtonTypes)).Length) return;
 
-                foreach (Window window in this.Player.Windows)
+                foreach (var window in this.Player.Windows)
                 {
                     if (window.ID == windowid)
                     {

@@ -23,11 +23,11 @@ namespace Goose.Events
                 string access = tokens[2];
 
                 Player player = world.PlayerHandler.GetPlayerFromData(name);
-                if (player != null)
+                if (player is not null)
                 {
                     try
                     {
-                        var accessStatus = Enum.GetValues(typeof(Player.AccessStatus)).Cast<Player.AccessStatus>().Where(y => y.ToString().Equals(access, StringComparison.OrdinalIgnoreCase)).First();
+                        var accessStatus = Enum.GetValues<Player.AccessStatus>().Where(y => y.ToString().Equals(access, StringComparison.OrdinalIgnoreCase)).First();
                         player.Access = accessStatus;
                         world.Send(this.Player, P.ServerMessage($"Set AccessStatus for {player.Name} to {player.Access}."));
 

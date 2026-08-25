@@ -42,7 +42,7 @@ namespace Goose.Events
 
                 world.Send(this.Player, packet);
                 List<Player> range = this.Player.Map.GetPlayersInRange(this.Player);
-                foreach (Player player in range)
+                foreach (var player in range)
                 {
                     if (player.ChatFilterEnabled)
                     {

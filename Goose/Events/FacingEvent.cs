@@ -24,7 +24,7 @@ namespace Goose.Events
         {
             if (this.Player.State == Player.States.Ready)
             {
-                foreach (Buff b in this.Player.Buffs)
+                foreach (var b in this.Player.Buffs)
                 {
                     // can't move when stunned
                     if (b.SpellEffect.EffectType == SpellEffect.EffectTypes.Stun)
@@ -51,7 +51,7 @@ namespace Goose.Events
                     string packet = P.ChangeHeading(this.Player);
                     world.Send(this.Player, packet);
                     List<Player> range = this.Player.Map.GetPlayersInRange(this.Player);
-                    foreach (Player player in range)
+                    foreach (var player in range)
                     {
                         world.Send(player, packet);
                     }

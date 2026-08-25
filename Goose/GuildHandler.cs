@@ -39,7 +39,7 @@ namespace Goose
 
                 int playerid;
                 Guild.GuildRanks rank;
-                foreach (Guild guild in this.guilds.Values)
+                foreach (var guild in this.guilds.Values)
                 {
                     using var command = conn.CreateCommand();
                     command.CommandText = "SELECT * FROM guild_members WHERE guild_id=" + guild.ID;
@@ -85,14 +85,14 @@ namespace Goose
          */
         public void Save(GameWorld world)
         {
-            foreach (Guild guild in this.newguilds)
+            foreach (var guild in this.newguilds)
             {
                 guild.Save(world);
 
                 this.guilds[guild.ID] = guild;
             }
 
-            foreach (Guild guild in this.guilds.Values)
+            foreach (var guild in this.guilds.Values)
             {
                 if (guild.Dirty)
                 {

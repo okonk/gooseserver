@@ -87,7 +87,7 @@ namespace Goose
 
             string line = "";
             int i = 1;
-            foreach (Player player in result)
+            foreach (var player in result)
             {
                 switch (this.Type)
                 {

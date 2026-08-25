@@ -17,14 +17,14 @@ namespace Goose.Events
             {
                 string name = ((string)this.Data).Split(' ', 2)[1];
                 Player player = world.PlayerHandler.GetPlayer(name);
-                if (player != null && player.State == Player.States.Ready)
+                if (player is not null && player.State == Player.States.Ready)
                 {
                     if (player == this.Player)
                     {
                         world.Send(this.Player, P.GroupMessage("You can't group with yourself."));
                         return;
                     }
-                    if (player.Group != null)
+                    if (player.Group is not null)
                     {
                         world.Send(this.Player, P.GroupMessage("Player is already in a group."));
                         return;
@@ -35,7 +35,7 @@ namespace Goose.Events
                         return;
                     }
 
-                    if (this.Player.Group == null)
+                    if (this.Player.Group is null)
                     {
                         this.Player.Group = new Group();
                         this.Player.Group.Players.Add(this.Player);

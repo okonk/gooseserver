@@ -13,7 +13,7 @@ namespace Goose.Events
             {
                 world.Send(this.Player, P.ServerMessage("Listing Pets: <ID> <Name> <Level>"));
 
-                foreach (Pet pet in this.Player.Pets)
+                foreach (var pet in this.Player.Pets)
                 {
                     world.Send(this.Player, P.ServerMessage(pet.PetID + " " + pet.Name + " " + pet.Level));
                 }

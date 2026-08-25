@@ -276,7 +276,7 @@ namespace Goose
                 (Math.Abs(character.MapX - x) == 0 && Math.Abs(character.MapY - y) == 1))
             {
                 ITile tile = this.tiles[y * this.Width + x];
-                if (tile != null)
+                if (tile is not null)
                 {
                     if (tile is WarpTile)
                     {
@@ -379,7 +379,7 @@ namespace Goose
                                 if ((y == oy - r || y == oy + r) || (x == ox - r || x == ox + r))
                                 {
                                     ITile tile = this.GetTile(x, y);
-                                    if (tile == null)
+                                    if (tile is null)
                                     {
                                         item.X = x;
                                         item.Y = y;
@@ -417,10 +417,10 @@ namespace Goose
             if (x < 1 || x >= this.Width + 1 || y < 1 || y >= this.Height + 1) return true;
 
             Player ignorePlayer = ignore as Player;
-            bool isgm = (ignorePlayer != null && ignorePlayer.Access == Player.AccessStatus.GameMaster);
+            bool isgm = (ignorePlayer is not null && ignorePlayer.Access == Player.AccessStatus.GameMaster);
 
             ITile tile = this.tiles[y * this.Width + x];
-            if (tile != null)
+            if (tile is not null)
             {
                 if (tile is WarpTile)
                 {
@@ -433,7 +433,7 @@ namespace Goose
             }
 
             ICharacter character = this.GetCharacterAt(x, y);
-            if (character == null || character == ignore || (isgm && ignorePlayer.IsGMInvisible)) return false;
+            if (character is null || character == ignore || (isgm && ignorePlayer.IsGMInvisible)) return false;
 
             return true;
         }
@@ -615,7 +615,7 @@ namespace Goose
                 log.Error(e, "Map CanPlayerJoin {0} Exception", this.Name);
                 refusal = "You cannot enter this map right now.";
             }
-            if (refusal != null)
+            if (refusal is not null)
             {
                 world.Send(player, "$7" + refusal);
                 return false;

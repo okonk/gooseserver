@@ -16,7 +16,7 @@ namespace Goose.Events
             {
                 string name = ((string)this.Data).Substring(6);
                 Player player = world.PlayerHandler.GetPlayer(name);
-                if (player != null && player.State != Player.States.NotLoggedIn)
+                if (player is not null && player.State != Player.States.NotLoggedIn)
                 {
                     world.LogHandler.Log(Log.Types.Kick, this.Player.PlayerID, "", player.PlayerID);
 

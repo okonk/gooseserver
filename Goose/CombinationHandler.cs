@@ -37,7 +37,7 @@ namespace Goose
             int itemid;
             ItemTemplate template;
             int count;
-            foreach (Combination comb in this.combinations.Values)
+            foreach (var comb in this.combinations.Values)
             {
                 // Load required items
                 comb.RequiredHash = [];
@@ -59,7 +59,7 @@ namespace Goose
                     itemid = Convert.ToInt32(reader["item_template_id"]);
 
                     template = world.ItemHandler.GetTemplate(itemid);
-                    if (template == null)
+                    if (template is null)
                     {
                         throw new Exception("required Item ID " + itemid +
                             " doesn't exist. In combination " + comb.Name);
@@ -96,7 +96,7 @@ namespace Goose
                     itemid = Convert.ToInt32(reader["item_template_id"]);
 
                     template = world.ItemHandler.GetTemplate(itemid);
-                    if (template == null)
+                    if (template is null)
                     {
                         throw new Exception("result Item ID " + itemid + 
                             " doesn't exist. In combination " + comb.Name);
@@ -126,7 +126,7 @@ namespace Goose
             long c;
             bool matched;
 
-            foreach (Combination comb in this.combinations.Values)
+            foreach (var comb in this.combinations.Values)
             {
                 matched = true;
 

@@ -58,7 +58,7 @@ namespace Goose.Quests
                 reward.Script = world.ScriptHandler.GetScript<IQuestScript>(scriptPath);
             }
 
-            if (reward.Type == RewardType.Script && reward.Script == null)
+            if (reward.Type == RewardType.Script && reward.Script is null)
             {
                 throw new Exception($"Quest reward {reward.Id} (quest {quest.Id}) has type Script but no script_path");
             }

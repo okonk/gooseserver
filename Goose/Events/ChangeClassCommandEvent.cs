@@ -26,14 +26,14 @@ namespace Goose.Events
                 }
 
                 Player player = world.PlayerHandler.GetPlayerFromData(name);
-                if (player == null)
+                if (player is null)
                 {
                     world.Send(this.Player, P.ServerMessage("Player " + name + " doesn't exist."));
                     return;
                 }
 
                 var newClass = world.ClassHandler.Classes.FirstOrDefault(c => c.ClassName.ToLowerInvariant() == cl.ToLowerInvariant());
-                if (newClass == null)
+                if (newClass is null)
                 {
                     world.Send(this.Player, P.ServerMessage("Invalid class name."));
                     return;
@@ -65,7 +65,7 @@ namespace Goose.Events
                 {
                     if (level > player.Class.MaxLevel) break;
 
-                    foreach (Spell spell in player.Class.GetLevel(level).Spells)
+                    foreach (var spell in player.Class.GetLevel(level).Spells)
                     {
                         player.LearnSpell(spell.ID, world);
                     }

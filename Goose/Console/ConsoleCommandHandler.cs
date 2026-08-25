@@ -98,7 +98,7 @@ namespace Goose.ConsoleCommands
                 {
                     string line = Console.ReadLine();
 
-                    if (line == null) break; // EOF, nothing more is coming
+                    if (line is null) break; // EOF, nothing more is coming
 
                     if (!string.IsNullOrWhiteSpace(line)) this.pending.Enqueue(line);
                 }
@@ -122,7 +122,7 @@ namespace Goose.ConsoleCommands
             {
                 ParsedCommand parsed = ConsoleCommandParser.Parse(line);
 
-                if (parsed == null) continue;
+                if (parsed is null) continue;
 
                 if (!this.commands.TryGetValue(parsed.Name, out ConsoleCommand command))
                 {
