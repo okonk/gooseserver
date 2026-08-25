@@ -94,17 +94,14 @@ namespace Goose
         {
             this.ID = ++player.LastWindowID;
 
-            switch (this.Type)
+            this.Frame = this.Type switch
             {
-                case WindowTypes.Vendor:
-                    this.Frame = WindowFrames.Vendor;
-                    break;
-                case WindowTypes.Rank:
-                case WindowTypes.CharInfo:
-                case WindowTypes.PetInfo:
-                    this.Frame = WindowFrames.GenericInfo;
-                    break;
-            }
+                WindowTypes.Vendor => WindowFrames.Vendor,
+                WindowTypes.Rank => WindowFrames.GenericInfo,
+                WindowTypes.CharInfo => WindowFrames.GenericInfo,
+                WindowTypes.PetInfo => WindowFrames.GenericInfo,
+                _ => this.Frame,
+            };
 
             world.Send(player, P.MakeWindow(this));
             this.Populate(player, world);

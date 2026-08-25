@@ -329,31 +329,20 @@ namespace Goose
 
         private string ConvertFormulaVariable(string variable)
         {
-            switch (variable)
+            return variable switch
             {
-                case "%cchp":
-                    return "Current HP";
-                case "%ccmp":
-                    return "Current MP";
-                case "%ccsp":
-                    return "Current SP";
-                case "%tchp":
-                    return "Target's Current HP";
-                case "%tcmp":
-                    return "Target's Current MP";
-                case "%chp":
-                    return "Max HP";
-                case "%cmp":
-                    return "Max MP";
-                case "%csp":
-                    return "Max SP";
-                case "%thp":
-                    return "Target's Max HP";
-                case "%tmp":
-                    return "Target's Max MP";
-                default:
-                    return null;
-            }
+                "%cchp" => "Current HP",
+                "%ccmp" => "Current MP",
+                "%ccsp" => "Current SP",
+                "%tchp" => "Target's Current HP",
+                "%tcmp" => "Target's Current MP",
+                "%chp" => "Max HP",
+                "%cmp" => "Max MP",
+                "%csp" => "Max SP",
+                "%thp" => "Target's Max HP",
+                "%tmp" => "Target's Max MP",
+                _ => null,
+            };
         }
 
         private string ParseFormula(string formula)
@@ -1112,13 +1101,14 @@ namespace Goose
 
                     for (int i = 1; i <= this.TargetSize; i++)
                     {
-                        switch (caster.Facing)
+                        (x, y) = caster.Facing switch
                         {
-                            case 1: y--; break;
-                            case 2: x++; break;
-                            case 3: y++; break;
-                            case 4: x--; break;
-                        }
+                            1 => (x, y - 1),
+                            2 => (x + 1, y),
+                            3 => (x, y + 1),
+                            4 => (x - 1, y),
+                            _ => (x, y),
+                        };
 
                         if ((hit = map.GetCharacterAt(x, y)) is not null)
                         {
@@ -1270,43 +1260,25 @@ namespace Goose
 
                     for (int i = 1; i <= this.TargetSize; i++)
                     {
-                        switch (caster.Facing)
+                        (x, y) = caster.Facing switch
                         {
-                            case 1:
-                                y--;
-                                x = ox - i;
-                                break;
-                            case 2:
-                                x++;
-                                y = oy - i;
-                                break;
-                            case 3:
-                                y++;
-                                x = ox - i;
-                                break;
-                            case 4:
-                                x--;
-                                y = oy - i;
-                                break;
-                        }
+                            1 => (ox - i, y - 1),
+                            2 => (x + 1, oy - i),
+                            3 => (ox - i, y + 1),
+                            4 => (x - 1, oy - i),
+                            _ => (x, y),
+                        };
 
                         for (int j = 0; j < i * 2 - 1; j++)
                         {
-                            switch (caster.Facing)
+                            (x, y) = caster.Facing switch
                             {
-                                case 1:
-                                    x++;
-                                    break;
-                                case 2:
-                                    y++;
-                                    break;
-                                case 3:
-                                    x++;
-                                    break;
-                                case 4:
-                                    y++;
-                                    break;
-                            }
+                                1 => (x + 1, y),
+                                2 => (x, y + 1),
+                                3 => (x + 1, y),
+                                4 => (x, y + 1),
+                                _ => (x, y),
+                            };
 
                             if ((hit = map.GetCharacterAt(x, y)) is not null)
                             {

@@ -69,13 +69,14 @@ namespace Goose.Events
                     int y = this.Player.MapY;
 
                     // check tile 1 square in front of player
-                    switch (this.Player.Facing)
+                    (x, y) = this.Player.Facing switch
                     {
-                        case 1: y--; break;
-                        case 2: x++; break;
-                        case 3: y++; break;
-                        case 4: x--; break;
-                    }
+                        1 => (x, y - 1),
+                        2 => (x + 1, y),
+                        3 => (x, y + 1),
+                        4 => (x - 1, y),
+                        _ => (x, y),
+                    };
 
                     ICharacter character = this.Player.Map.GetCharacterAt(x, y);
                     if (character is not null) this.Player.Attack(character, world);

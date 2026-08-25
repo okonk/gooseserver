@@ -165,54 +165,24 @@ namespace Goose
         {
             get
             {
-                switch (Slot)
+                return Slot switch
                 {
-                    case ItemTemplate.ItemSlots.Belt:
-                        return 8;
-
-                    case ItemTemplate.ItemSlots.Chest:
-                        return 2;
-
-                    case ItemTemplate.ItemSlots.Cloak:
-                        return 7;
-
-                    case ItemTemplate.ItemSlots.Gloves:
-                        return 4;
-
-                    case ItemTemplate.ItemSlots.Helmet:
-                        return 1;
-
-                    case ItemTemplate.ItemSlots.Necklace:
-                        return 9;
-
-                    case ItemTemplate.ItemSlots.OneHanded:
-                        return 11;
-
-                    case ItemTemplate.ItemSlots.Pants:
-                        return 5;
-
-                    case ItemTemplate.ItemSlots.Pauldrons:
-                        return 3;
-
-                    case ItemTemplate.ItemSlots.Ring:
-                        return 10;
-
-                    case ItemTemplate.ItemSlots.Shield:
-                        return 12;
-
-                    case ItemTemplate.ItemSlots.Shoes:
-                        return 6;
-
-                    case ItemTemplate.ItemSlots.TwoHanded:
-                        return 11;
-
-                    case ItemTemplate.ItemSlots.Mount:
-                        return 13;
-
-                    default:
-                        return 0;
-
-                }
+                    ItemTemplate.ItemSlots.Belt => 8,
+                    ItemTemplate.ItemSlots.Chest => 2,
+                    ItemTemplate.ItemSlots.Cloak => 7,
+                    ItemTemplate.ItemSlots.Gloves => 4,
+                    ItemTemplate.ItemSlots.Helmet => 1,
+                    ItemTemplate.ItemSlots.Necklace => 9,
+                    ItemTemplate.ItemSlots.OneHanded => 11,
+                    ItemTemplate.ItemSlots.Pants => 5,
+                    ItemTemplate.ItemSlots.Pauldrons => 3,
+                    ItemTemplate.ItemSlots.Ring => 10,
+                    ItemTemplate.ItemSlots.Shield => 12,
+                    ItemTemplate.ItemSlots.Shoes => 6,
+                    ItemTemplate.ItemSlots.TwoHanded => 11,
+                    ItemTemplate.ItemSlots.Mount => 13,
+                    _ => 0,
+                };
             }
         }
 

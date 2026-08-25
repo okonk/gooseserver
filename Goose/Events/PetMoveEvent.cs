@@ -70,21 +70,14 @@ namespace Goose.Events
                 int x = ox;
                 int y = oy;
 
-                switch (direction)
+                (x, y) = direction switch
                 {
-                    case 1:
-                        y--;
-                        break;
-                    case 2:
-                        x++;
-                        break;
-                    case 3:
-                        y++;
-                        break;
-                    case 4:
-                        x--;
-                        break;
-                }
+                    1 => (x, y - 1),
+                    2 => (x + 1, y),
+                    3 => (x, y + 1),
+                    4 => (x - 1, y),
+                    _ => (x, y),
+                };
 
                 if (pet.CanMoveTo(x, y))
                 {

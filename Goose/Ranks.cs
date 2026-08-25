@@ -89,22 +89,17 @@ namespace Goose
             int i = 1;
             foreach (var player in result)
             {
-                switch (this.Type)
+                line = this.Type switch
                 {
-                    case RankTypes.Class:
-                        line = i + ". " + player.Name + ", " +
-                            Utils.FormatNumber(player.ExperienceSold) + " xp";
-                        break;
-                    case RankTypes.All:
-                        line = i + ". " + player.Name + ", " +
-                            player.Class.ClassName +
-                            ", " + Utils.FormatNumber(player.ExperienceSold) + " xp";
-                        break;
-                    case RankTypes.Gold:
-                        line = i + ". " + player.Name + ", " +
-                            Utils.FormatNumber(player.Gold) + " gp";
-                        break;
-                }
+                    RankTypes.Class => i + ". " + player.Name + ", " +
+                        Utils.FormatNumber(player.ExperienceSold) + " xp",
+                    RankTypes.All => i + ". " + player.Name + ", " +
+                        player.Class.ClassName +
+                        ", " + Utils.FormatNumber(player.ExperienceSold) + " xp",
+                    RankTypes.Gold => i + ". " + player.Name + ", " +
+                        Utils.FormatNumber(player.Gold) + " gp",
+                    _ => line,
+                };
                 i++;
                 this.ranksStrings.Add(line);
             }
