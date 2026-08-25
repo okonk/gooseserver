@@ -1,6 +1,6 @@
 using System.Data.SQLite;
 
-namespace Goose.Tests;
+namespace Goose.IntegrationTests;
 
 public class DatabaseTransactionTests : IDisposable
 {

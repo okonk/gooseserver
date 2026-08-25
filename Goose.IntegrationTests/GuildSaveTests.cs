@@ -1,4 +1,4 @@
-namespace Goose.Tests;
+namespace Goose.IntegrationTests;
 
 public class GuildSaveTests : PlayerFirstSaveTestBase
 {

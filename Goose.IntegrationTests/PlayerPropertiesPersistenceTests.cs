@@ -1,6 +1,6 @@
 using System.Data.SQLite;
 
-namespace Goose.Tests;
+namespace Goose.IntegrationTests;
 
 /// <summary>Exercises the real INSERT/UPDATE strings in Player.cs. The parse-helper tests
 /// above cannot catch an unbound @playerProperties parameter or a missing comma.</summary>
