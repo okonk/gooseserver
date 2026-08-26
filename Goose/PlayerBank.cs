@@ -31,8 +31,8 @@ namespace Goose
                 using var reader = command.ExecuteReader();
                 while (reader.Read())
                 {
-                    int npc_id = Convert.ToInt32(reader["npc_id"]);
-                    string serialized_data = Convert.ToString(reader["serialized_data"]);
+                    int npc_id = reader.GetInt32("npc_id");
+                    string serialized_data = reader.GetString("serialized_data");
 
                     ItemContainer container = GetOrCreateContainer(player, npc_id, world.Settings.BankSlotsPerPage);
 

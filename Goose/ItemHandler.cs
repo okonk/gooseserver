@@ -62,75 +62,75 @@ namespace Goose
 
                 while (reader.Read())
                 {
-                    int templateId = Convert.ToInt32(reader["item_template_id"]);
+                    int templateId = reader.GetInt32("item_template_id");
                     ItemTemplate template = this.GetTemplate(templateId) ?? new ItemTemplate();
 
                     template.ID = templateId;
-                    template.Type = (ItemTemplate.ItemTypes)Convert.ToInt32(reader["item_type"]);
-                    template.Slot = (ItemTemplate.ItemSlots)Convert.ToInt32(reader["item_slot"]);
-                    template.UseType = (ItemTemplate.UseTypes)Convert.ToInt32(reader["item_usetype"]);
-                    template.Name = Convert.ToString(reader["item_name"]);
-                    template.Description = Convert.ToString(reader["item_description"]);
+                    template.Type = (ItemTemplate.ItemTypes)reader.GetInt32("item_type");
+                    template.Slot = (ItemTemplate.ItemSlots)reader.GetInt32("item_slot");
+                    template.UseType = (ItemTemplate.UseTypes)reader.GetInt32("item_usetype");
+                    template.Name = reader.GetString("item_name");
+                    template.Description = reader.GetString("item_description");
 
                     template.BaseStats = new AttributeSet();
-                    template.BaseStats.HP = Convert.ToInt64(reader["player_hp"]);
-                    template.BaseStats.MP = Convert.ToInt64(reader["player_mp"]);
-                    template.BaseStats.SP = Convert.ToInt64(reader["player_sp"]);
-                    template.BaseStats.AC = Convert.ToInt32(reader["stat_ac"]);
-                    template.BaseStats.Strength = Convert.ToInt32(reader["stat_str"]);
-                    template.BaseStats.Stamina = Convert.ToInt32(reader["stat_sta"]);
-                    template.BaseStats.Intelligence = Convert.ToInt32(reader["stat_int"]);
-                    template.BaseStats.Dexterity = Convert.ToInt32(reader["stat_dex"]);
-                    template.BaseStats.FireResist = Convert.ToInt32(reader["res_fire"]);
-                    template.BaseStats.AirResist = Convert.ToInt32(reader["res_air"]);
-                    template.BaseStats.EarthResist = Convert.ToInt32(reader["res_earth"]);
-                    template.BaseStats.SpiritResist = Convert.ToInt32(reader["res_spirit"]);
-                    template.BaseStats.WaterResist = Convert.ToInt32(reader["res_water"]);
+                    template.BaseStats.HP = reader.GetInt64("player_hp");
+                    template.BaseStats.MP = reader.GetInt64("player_mp");
+                    template.BaseStats.SP = reader.GetInt64("player_sp");
+                    template.BaseStats.AC = reader.GetInt32("stat_ac");
+                    template.BaseStats.Strength = reader.GetInt32("stat_str");
+                    template.BaseStats.Stamina = reader.GetInt32("stat_sta");
+                    template.BaseStats.Intelligence = reader.GetInt32("stat_int");
+                    template.BaseStats.Dexterity = reader.GetInt32("stat_dex");
+                    template.BaseStats.FireResist = reader.GetInt32("res_fire");
+                    template.BaseStats.AirResist = reader.GetInt32("res_air");
+                    template.BaseStats.EarthResist = reader.GetInt32("res_earth");
+                    template.BaseStats.SpiritResist = reader.GetInt32("res_spirit");
+                    template.BaseStats.WaterResist = reader.GetInt32("res_water");
 
-                    template.MinLevel = Convert.ToInt32(reader["min_level"]);
-                    template.MaxLevel = Convert.ToInt32(reader["max_level"]);
-                    template.MinExperience = Convert.ToInt64(reader["min_experience"]);
-                    template.MaxExperience = Convert.ToInt64(reader["max_experience"]);
+                    template.MinLevel = reader.GetInt32("min_level");
+                    template.MaxLevel = reader.GetInt32("max_level");
+                    template.MinExperience = reader.GetInt64("min_experience");
+                    template.MaxExperience = reader.GetInt64("max_experience");
 
-                    template.WeaponDamage = Convert.ToInt32(reader["weapon_damage"]);
-                    template.WeaponDelay = Convert.ToInt32(reader["weapon_delay"]);
-                    template.Value = Convert.ToInt64(reader["item_value"]);
-                    template.GraphicTile = Convert.ToInt32(reader["graphic_tile"]);
-                    template.GraphicFile = Convert.ToInt32(reader["graphic_file"]);
-                    template.GraphicEquipped = Convert.ToInt32(reader["graphic_equip"]);
-                    template.GraphicR = Convert.ToInt32(reader["graphic_r"]);
-                    template.GraphicG = Convert.ToInt32(reader["graphic_g"]);
-                    template.GraphicB = Convert.ToInt32(reader["graphic_b"]);
-                    template.GraphicA = Convert.ToInt32(reader["graphic_a"]);
-                    template.ClassRestrictions = Convert.ToInt64(reader["class_restrictions"]);
+                    template.WeaponDamage = reader.GetInt32("weapon_damage");
+                    template.WeaponDelay = reader.GetInt32("weapon_delay");
+                    template.Value = reader.GetInt64("item_value");
+                    template.GraphicTile = reader.GetInt32("graphic_tile");
+                    template.GraphicFile = reader.GetInt32("graphic_file");
+                    template.GraphicEquipped = reader.GetInt32("graphic_equip");
+                    template.GraphicR = reader.GetInt32("graphic_r");
+                    template.GraphicG = reader.GetInt32("graphic_g");
+                    template.GraphicB = reader.GetInt32("graphic_b");
+                    template.GraphicA = reader.GetInt32("graphic_a");
+                    template.ClassRestrictions = reader.GetInt64("class_restrictions");
 
-                    template.IsLore = Convert.ToString(reader["lore"]) != "0";
-                    template.IsBindOnPickup = Convert.ToString(reader["bindonpickup"]) != "0";
-                    template.IsBindOnEquip = Convert.ToString(reader["bindonequip"]) != "0";
-                    template.IsEvent = Convert.ToString(reader["event"]) != "0";
+                    template.IsLore = reader.GetString("lore") != "0";
+                    template.IsBindOnPickup = reader.GetString("bindonpickup") != "0";
+                    template.IsBindOnEquip = reader.GetString("bindonequip") != "0";
+                    template.IsEvent = reader.GetString("event") != "0";
 
-                    template.StackSize = Convert.ToInt32(reader["stack_size"]);
-                    template.BodyState = Convert.ToInt32(reader["body_state"]);
+                    template.StackSize = reader.GetInt32("stack_size");
+                    template.BodyState = reader.GetInt32("body_state");
 
-                    template.SpellEffectID = Convert.ToInt32(reader["spell_effect_id"]);
+                    template.SpellEffectID = reader.GetInt32("spell_effect_id");
                     template.SpellEffect = world.SpellHandler.GetSpellEffect(template.SpellEffectID);
                     if (template.SpellEffectID != 0 && template.SpellEffect is null)
                     {
                         // log bad spell effect on item
                         continue;
                     }
-                    template.SpellEffectChance = Decimal.Parse(Convert.ToString(reader["spell_effect_chance"]));
-                    template.LearnSpellID = Convert.ToInt32(reader["learn_spell_id"]);
+                    template.SpellEffectChance = Decimal.Parse(reader.GetString("spell_effect_chance"));
+                    template.LearnSpellID = reader.GetInt32("learn_spell_id");
 
-                    template.Credits = Convert.ToInt32(reader["credits_value"]);
+                    template.Credits = reader.GetInt32("credits_value");
 
-                    string scriptPath = Convert.ToString(reader["script_path"]);
+                    string scriptPath = reader.GetString("script_path");
                     if (!string.IsNullOrEmpty(scriptPath))
                     {
                         template.Script = world.ScriptHandler.GetScript<IItemScript>(scriptPath);
                     }
 
-                    template.ScriptParams = Convert.ToString(reader["script_params"]);
+                    template.ScriptParams = reader.GetString("script_params");
 
                     this.templates[template.ID] = template;
                 }

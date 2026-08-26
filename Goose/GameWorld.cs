@@ -173,7 +173,7 @@ namespace Goose
             using var reader = command.ExecuteReader();
             while (reader.Read())
             {
-                if (string.Equals(Convert.ToString(reader["name"]), column, StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(reader.GetString("name"), column, StringComparison.OrdinalIgnoreCase))
                     return true;
             }
             return false;

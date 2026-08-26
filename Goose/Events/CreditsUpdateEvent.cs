@@ -24,7 +24,7 @@ namespace Goose.Events
 
                         if (player is not null)
                         {
-                            credits = Convert.ToInt32(reader["credits"]);
+                            credits = reader.GetInt32("credits");
                             player.Credits += credits;
 
                             if (player.State == Player.States.Ready)

@@ -33,91 +33,91 @@ namespace Goose
 
                     while (reader.Read())
                     {
-                        int id = Convert.ToInt32(reader["npc_id"]);
+                        int id = reader.GetInt32("npc_id");
 
                         NPCTemplate npc = null;
                         if (!templates.TryGetValue(id, out npc))
                             npc = new NPCTemplate();
 
                         npc.NPCTemplateID = id;
-                        npc.NPCType = (NPCTemplate.Types)Convert.ToInt32(reader["npc_type"]);
-                        npc.Name = Convert.ToString(reader["npc_name"]);
-                        npc.Title = Convert.ToString(reader["npc_title"]);
-                        npc.Surname = Convert.ToString(reader["npc_surname"]);
-                        npc.RespawnTime = Convert.ToInt32(reader["respawn_time"]);
-                        npc.Facing = Convert.ToInt32(reader["npc_facing"]);
-                        npc.Level = Convert.ToInt32(reader["npc_level"]);
-                        npc.Experience = Convert.ToInt64(reader["experience"]);
-                        npc.WeaponDamage = Convert.ToInt64(reader["weapon_damage"]);
-                        npc.AggroRange = Convert.ToInt32(reader["aggro_range"]);
-                        npc.AttackRange = Convert.ToInt32(reader["attack_range"]);
-                        npc.AttackSpeed = Decimal.Parse(Convert.ToString(reader["attack_speed"]));
-                        npc.MoveSpeed = Decimal.Parse(Convert.ToString(reader["move_speed"]));
-                        npc.CanMove = Convert.ToString(reader["stationary"]) != "1";
-                        npc.CanBeStunned = Convert.ToString(reader["stunnable"]) != "0";
-                        npc.SeeInvisible = "1".Equals(Convert.ToString(reader["see_invisible"]));
-                        npc.CanBeRooted = Convert.ToString(reader["rootable"]) != "0";
-                        npc.CanBeSlowed = Convert.ToString(reader["slowable"]) != "0";
-                        npc.CanBeKilled = Convert.ToString(reader["invincible"]) != "1";
-                        npc.ClassID = Convert.ToInt32(reader["class_id"]);
-                        npc.EquippedItems = Convert.ToString(reader["equipped_items"]);
+                        npc.NPCType = (NPCTemplate.Types)reader.GetInt32("npc_type");
+                        npc.Name = reader.GetString("npc_name");
+                        npc.Title = reader.GetString("npc_title");
+                        npc.Surname = reader.GetString("npc_surname");
+                        npc.RespawnTime = reader.GetInt32("respawn_time");
+                        npc.Facing = reader.GetInt32("npc_facing");
+                        npc.Level = reader.GetInt32("npc_level");
+                        npc.Experience = reader.GetInt64("experience");
+                        npc.WeaponDamage = reader.GetInt64("weapon_damage");
+                        npc.AggroRange = reader.GetInt32("aggro_range");
+                        npc.AttackRange = reader.GetInt32("attack_range");
+                        npc.AttackSpeed = Decimal.Parse(reader.GetString("attack_speed"));
+                        npc.MoveSpeed = Decimal.Parse(reader.GetString("move_speed"));
+                        npc.CanMove = reader.GetString("stationary") != "1";
+                        npc.CanBeStunned = reader.GetString("stunnable") != "0";
+                        npc.SeeInvisible = "1".Equals(reader.GetString("see_invisible"));
+                        npc.CanBeRooted = reader.GetString("rootable") != "0";
+                        npc.CanBeSlowed = reader.GetString("slowable") != "0";
+                        npc.CanBeKilled = reader.GetString("invincible") != "1";
+                        npc.ClassID = reader.GetInt32("class_id");
+                        npc.EquippedItems = reader.GetString("equipped_items");
 
-                        npc.BodyState = Convert.ToInt32(reader["body_state"]);
-                        npc.BodyID = Convert.ToInt32(reader["body_id"]);
-                        npc.BodyR = Convert.ToInt32(reader["body_r"]);
-                        npc.BodyG = Convert.ToInt32(reader["body_g"]);
-                        npc.BodyB = Convert.ToInt32(reader["body_b"]);
-                        npc.BodyA = Convert.ToInt32(reader["body_a"]);
-                        npc.FaceID = Convert.ToInt32(reader["face_id"]);
-                        npc.HairID = Convert.ToInt32(reader["hair_id"]);
-                        npc.HairR = Convert.ToInt32(reader["hair_r"]);
-                        npc.HairG = Convert.ToInt32(reader["hair_g"]);
-                        npc.HairB = Convert.ToInt32(reader["hair_b"]);
-                        npc.HairA = Convert.ToInt32(reader["hair_a"]);
+                        npc.BodyState = reader.GetInt32("body_state");
+                        npc.BodyID = reader.GetInt32("body_id");
+                        npc.BodyR = reader.GetInt32("body_r");
+                        npc.BodyG = reader.GetInt32("body_g");
+                        npc.BodyB = reader.GetInt32("body_b");
+                        npc.BodyA = reader.GetInt32("body_a");
+                        npc.FaceID = reader.GetInt32("face_id");
+                        npc.HairID = reader.GetInt32("hair_id");
+                        npc.HairR = reader.GetInt32("hair_r");
+                        npc.HairG = reader.GetInt32("hair_g");
+                        npc.HairB = reader.GetInt32("hair_b");
+                        npc.HairA = reader.GetInt32("hair_a");
 
                         npc.BaseStats = new AttributeSet();
-                        npc.BaseStats.HP = Convert.ToInt64(reader["npc_hp"]);
-                        npc.BaseStats.MP = Convert.ToInt64(reader["npc_mp"]);
-                        npc.BaseStats.SP = Convert.ToInt64(reader["npc_sp"]);
-                        npc.BaseStats.AC = Convert.ToInt32(reader["stat_ac"]);
-                        npc.BaseStats.Strength = Convert.ToInt32(reader["stat_str"]);
-                        npc.BaseStats.Stamina = Convert.ToInt32(reader["stat_sta"]);
-                        npc.BaseStats.Intelligence = Convert.ToInt32(reader["stat_int"]);
-                        npc.BaseStats.Dexterity = Convert.ToInt32(reader["stat_dex"]);
-                        npc.BaseStats.FireResist = Convert.ToInt32(reader["res_fire"]);
-                        npc.BaseStats.AirResist = Convert.ToInt32(reader["res_air"]);
-                        npc.BaseStats.EarthResist = Convert.ToInt32(reader["res_earth"]);
-                        npc.BaseStats.SpiritResist = Convert.ToInt32(reader["res_spirit"]);
-                        npc.BaseStats.WaterResist = Convert.ToInt32(reader["res_water"]);
+                        npc.BaseStats.HP = reader.GetInt64("npc_hp");
+                        npc.BaseStats.MP = reader.GetInt64("npc_mp");
+                        npc.BaseStats.SP = reader.GetInt64("npc_sp");
+                        npc.BaseStats.AC = reader.GetInt32("stat_ac");
+                        npc.BaseStats.Strength = reader.GetInt32("stat_str");
+                        npc.BaseStats.Stamina = reader.GetInt32("stat_sta");
+                        npc.BaseStats.Intelligence = reader.GetInt32("stat_int");
+                        npc.BaseStats.Dexterity = reader.GetInt32("stat_dex");
+                        npc.BaseStats.FireResist = reader.GetInt32("res_fire");
+                        npc.BaseStats.AirResist = reader.GetInt32("res_air");
+                        npc.BaseStats.EarthResist = reader.GetInt32("res_earth");
+                        npc.BaseStats.SpiritResist = reader.GetInt32("res_spirit");
+                        npc.BaseStats.WaterResist = reader.GetInt32("res_water");
 
-                        npc.BaseStats.HPPercentRegen = Decimal.Parse(Convert.ToString(reader["hp_percent_regen"]));
-                        npc.BaseStats.HPStaticRegen = Convert.ToInt32(reader["hp_static_regen"]);
-                        npc.BaseStats.MPPercentRegen = Decimal.Parse(Convert.ToString(reader["mp_percent_regen"]));
-                        npc.BaseStats.MPStaticRegen = Convert.ToInt32(reader["mp_static_regen"]);
+                        npc.BaseStats.HPPercentRegen = Decimal.Parse(reader.GetString("hp_percent_regen"));
+                        npc.BaseStats.HPStaticRegen = reader.GetInt32("hp_static_regen");
+                        npc.BaseStats.MPPercentRegen = Decimal.Parse(reader.GetString("mp_percent_regen"));
+                        npc.BaseStats.MPStaticRegen = reader.GetInt32("mp_static_regen");
 
-                        npc.AlliesString = Convert.ToString(reader["npc_alliance"]);
+                        npc.AlliesString = reader.GetString("npc_alliance");
 
-                        npc.Behaviour = (NPCTemplate.BehaviourTypes)Convert.ToInt32(reader["stuck_behaviour"]);
-                        npc.BehaviourTimeout = Convert.ToInt64(reader["stuck_timeout"]);
+                        npc.Behaviour = (NPCTemplate.BehaviourTypes)reader.GetInt32("stuck_behaviour");
+                        npc.BehaviourTimeout = reader.GetInt64("stuck_timeout");
 
-                        npc.CreditDealer = Convert.ToString(reader["credit_dealer"]) != "0";
+                        npc.CreditDealer = reader.GetString("credit_dealer") != "0";
 
                         // Credit dealers are the only vendors with a non-gold currency in
                         // sheet data. Null (not "gold") so Resolve's fallback chain stays
                         // uniform: item override, then vendor, then gold.
                         npc.CurrencyId = npc.CreditDealer ? Currency.Credits : null;
 
-                        var questIds = Convert.ToString(reader["quest_ids"]).Split([' ', ','], StringSplitOptions.RemoveEmptyEntries).Select(q => Convert.ToInt32(q));
+                        var questIds = reader.GetString("quest_ids").Split([' ', ','], StringSplitOptions.RemoveEmptyEntries).Select(q => Convert.ToInt32(q));
                         npc.Quests = questIds.Select(q => world.QuestHandler.Get(q)).ToList();
 
-                        string scriptPath = Convert.ToString(reader["script_path"]);
+                        string scriptPath = reader.GetString("script_path");
                         if (!string.IsNullOrEmpty(scriptPath))
                         {
                             npc.Script = world.ScriptHandler.GetScript<INPCScript>(scriptPath);
-                            npc.ScriptParams = Convert.ToString(reader["script_params"]);
+                            npc.ScriptParams = reader.GetString("script_params");
                         }
 
-                        npc.ArmorPierce = Convert.ToInt32(reader["armor_pierce"]);
+                        npc.ArmorPierce = reader.GetInt32("armor_pierce");
 
                         this.templates[npc.NPCTemplateID] = npc;
                     }
@@ -162,9 +162,9 @@ namespace Goose
                         while (reader.Read())
                         {
                             NPCDropInfo drop = new NPCDropInfo();
-                            drop.DropRate = Decimal.Parse(Convert.ToString(reader["droprate"]));
-                            drop.Stack = Convert.ToInt32(reader["stack"]);
-                            drop.ItemTemplate = world.ItemHandler.GetTemplate(Convert.ToInt32(reader["item_template_id"]));
+                            drop.DropRate = Decimal.Parse(reader.GetString("droprate"));
+                            drop.Stack = reader.GetInt32("stack");
+                            drop.ItemTemplate = world.ItemHandler.GetTemplate(reader.GetInt32("item_template_id"));
 
                             if (drop.ItemTemplate is not null) template.Drops.Add(drop);
                         }
@@ -183,11 +183,11 @@ namespace Goose
                             while (reader.Read())
                             {
                                 NPCVendorSlot vslot = new NPCVendorSlot();
-                                vslot.Slot = Convert.ToInt32(reader["slot"]);
-                                vslot.Stack = Convert.ToInt32(reader["stack"]);
+                                vslot.Slot = reader.GetInt32("slot");
+                                vslot.Stack = reader.GetInt32("stack");
                                 vslot.ItemTemplate =
-                                    world.ItemHandler.GetTemplate(Convert.ToInt32(reader["item_template_id"]));
-                                vslot.CanSeeStats = Convert.ToString(reader["stats_visible"]) != "0";
+                                    world.ItemHandler.GetTemplate(reader.GetInt32("item_template_id"));
+                                vslot.CanSeeStats = reader.GetString("stats_visible") != "0";
 
                                 if (vslot.ItemTemplate is not null &&
                                     vslot.Slot > 0 && vslot.Slot <= world.Settings.VendorSlotSize)
@@ -275,10 +275,10 @@ namespace Goose
 
                 while (reader.Read())
                 {
-                    int npc_id = Convert.ToInt32(reader["npc_id"]);
-                    int map_id = Convert.ToInt32(reader["map_id"]);
-                    int map_x = Convert.ToInt32(reader["map_x"]);
-                    int map_y = Convert.ToInt32(reader["map_y"]);
+                    int npc_id = reader.GetInt32("npc_id");
+                    int map_id = reader.GetInt32("map_id");
+                    int map_x = reader.GetInt32("map_x");
+                    int map_y = reader.GetInt32("map_y");
 
                     NPCTemplate template = this.GetNPCTemplate(npc_id);
                     if (template is null) continue;               // log bad id

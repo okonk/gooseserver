@@ -33,111 +33,111 @@ namespace Goose
 
             while (reader.Read())
             {
-                int id = Convert.ToInt32(reader["spell_effect_id"]);
+                int id = reader.GetInt32("spell_effect_id");
 
                 SpellEffect effect = null;
                 if (!this.effects.TryGetValue(id, out effect))
                     effect = new SpellEffect();
 
                 effect.ID = id;
-                effect.Name = Convert.ToString(reader["spell_effect_name"]);
-                effect.Animation = Convert.ToInt32(reader["spell_animation"]);
-                effect.AnimationFile = Convert.ToInt32(reader["spell_animation_file"]);
-                effect.Display = (SpellEffect.SpellDisplays)Convert.ToInt32(reader["spell_display"]);
-                effect.TargetType = (SpellEffect.TargetTypes)Convert.ToInt32(reader["target_type"]);
-                effect.TargetSize = Convert.ToInt32(reader["target_size"]);
-                effect.Effected = (SpellEffect.SpellEffected)Convert.ToInt32(reader["spell_effected"]);
-                effect.MinimumLevelEffected = Convert.ToInt32(reader["min_level_effected"]);
-                effect.MaximumLevelEffected = Convert.ToInt32(reader["max_level_effected"]);
-                effect.EffectType = (SpellEffect.EffectTypes)Convert.ToInt32(reader["effect_type"]);
-                effect.Duration = Convert.ToInt64(reader["effect_duration"]);
+                effect.Name = reader.GetString("spell_effect_name");
+                effect.Animation = reader.GetInt32("spell_animation");
+                effect.AnimationFile = reader.GetInt32("spell_animation_file");
+                effect.Display = (SpellEffect.SpellDisplays)reader.GetInt32("spell_display");
+                effect.TargetType = (SpellEffect.TargetTypes)reader.GetInt32("target_type");
+                effect.TargetSize = reader.GetInt32("target_size");
+                effect.Effected = (SpellEffect.SpellEffected)reader.GetInt32("spell_effected");
+                effect.MinimumLevelEffected = reader.GetInt32("min_level_effected");
+                effect.MaximumLevelEffected = reader.GetInt32("max_level_effected");
+                effect.EffectType = (SpellEffect.EffectTypes)reader.GetInt32("effect_type");
+                effect.Duration = reader.GetInt64("effect_duration");
                 effect.DoAttackAnimation =
-                    Convert.ToString(reader["do_attack_animation"]) != "0";
+                    reader.GetString("do_attack_animation") != "0";
                 effect.DoCastAnimation =
-                    Convert.ToString(reader["do_cast_animation"]) != "0";
+                    reader.GetString("do_cast_animation") != "0";
                 effect.SpellDamageEffects =
-                    Convert.ToString(reader["spell_damage_effects"]) != "0";
-                effect.EnergyType = Convert.ToInt32(reader["spell_energy_type"]);
-                effect.HPFormula = Convert.ToString(reader["hp_change_formula"]);
-                effect.MPFormula = Convert.ToString(reader["mp_change_formula"]);
-                effect.SPFormula = Convert.ToString(reader["sp_change_formula"]);
-                effect.OnEffectText = Convert.ToString(reader["oneffect_text"]);
-                effect.OffEffectText = Convert.ToString(reader["offeffect_text"]);
-                effect.TauntAggro = Convert.ToInt64(reader["taunt_aggro"]);
-                effect.TeleportMapID = Convert.ToInt32(reader["teleport_map"]);
-                effect.TeleportMapX = Convert.ToInt32(reader["teleport_x"]);
-                effect.TeleportMapY = Convert.ToInt32(reader["teleport_y"]);
+                    reader.GetString("spell_damage_effects") != "0";
+                effect.EnergyType = reader.GetInt32("spell_energy_type");
+                effect.HPFormula = reader.GetString("hp_change_formula");
+                effect.MPFormula = reader.GetString("mp_change_formula");
+                effect.SPFormula = reader.GetString("sp_change_formula");
+                effect.OnEffectText = reader.GetString("oneffect_text");
+                effect.OffEffectText = reader.GetString("offeffect_text");
+                effect.TauntAggro = reader.GetInt64("taunt_aggro");
+                effect.TeleportMapID = reader.GetInt32("teleport_map");
+                effect.TeleportMapX = reader.GetInt32("teleport_x");
+                effect.TeleportMapY = reader.GetInt32("teleport_y");
 
-                effect.BodyID = Convert.ToInt32(reader["body_id"]);
-                effect.BodyR = Convert.ToInt32(reader["body_r"]);
-                effect.BodyG = Convert.ToInt32(reader["body_g"]);
-                effect.BodyB = Convert.ToInt32(reader["body_b"]);
-                effect.BodyA = Convert.ToInt32(reader["body_a"]);
-                effect.FaceID = Convert.ToInt32(reader["face_id"]);
-                effect.HairID = Convert.ToInt32(reader["hair_id"]);
-                effect.HairR = Convert.ToInt32(reader["hair_r"]);
-                effect.HairG = Convert.ToInt32(reader["hair_g"]);
-                effect.HairB = Convert.ToInt32(reader["hair_b"]);
-                effect.HairA = Convert.ToInt32(reader["hair_a"]);
+                effect.BodyID = reader.GetInt32("body_id");
+                effect.BodyR = reader.GetInt32("body_r");
+                effect.BodyG = reader.GetInt32("body_g");
+                effect.BodyB = reader.GetInt32("body_b");
+                effect.BodyA = reader.GetInt32("body_a");
+                effect.FaceID = reader.GetInt32("face_id");
+                effect.HairID = reader.GetInt32("hair_id");
+                effect.HairR = reader.GetInt32("hair_r");
+                effect.HairG = reader.GetInt32("hair_g");
+                effect.HairB = reader.GetInt32("hair_b");
+                effect.HairA = reader.GetInt32("hair_a");
 
                 effect.Stats = new AttributeSet();
-                effect.Stats.HP = Convert.ToInt64(reader["hp"]);
-                effect.Stats.MP = Convert.ToInt64(reader["mp"]);
-                effect.Stats.SP = Convert.ToInt64(reader["sp"]);
-                effect.Stats.AC = Convert.ToInt32(reader["stat_ac"]);
-                effect.Stats.Strength = Convert.ToInt32(reader["stat_str"]);
-                effect.Stats.Stamina = Convert.ToInt32(reader["stat_sta"]);
-                effect.Stats.Intelligence = Convert.ToInt32(reader["stat_int"]);
-                effect.Stats.Dexterity = Convert.ToInt32(reader["stat_dex"]);
-                effect.Stats.FireResist = Convert.ToInt32(reader["res_fire"]);
-                effect.Stats.AirResist = Convert.ToInt32(reader["res_air"]);
-                effect.Stats.EarthResist = Convert.ToInt32(reader["res_earth"]);
-                effect.Stats.SpiritResist = Convert.ToInt32(reader["res_spirit"]);
-                effect.Stats.WaterResist = Convert.ToInt32(reader["res_water"]);
+                effect.Stats.HP = reader.GetInt64("hp");
+                effect.Stats.MP = reader.GetInt64("mp");
+                effect.Stats.SP = reader.GetInt64("sp");
+                effect.Stats.AC = reader.GetInt32("stat_ac");
+                effect.Stats.Strength = reader.GetInt32("stat_str");
+                effect.Stats.Stamina = reader.GetInt32("stat_sta");
+                effect.Stats.Intelligence = reader.GetInt32("stat_int");
+                effect.Stats.Dexterity = reader.GetInt32("stat_dex");
+                effect.Stats.FireResist = reader.GetInt32("res_fire");
+                effect.Stats.AirResist = reader.GetInt32("res_air");
+                effect.Stats.EarthResist = reader.GetInt32("res_earth");
+                effect.Stats.SpiritResist = reader.GetInt32("res_spirit");
+                effect.Stats.WaterResist = reader.GetInt32("res_water");
 
-                effect.Stats.HPPercentRegen = Decimal.Parse(Convert.ToString(reader["hp_percent_regen"]));
-                effect.Stats.HPStaticRegen = Convert.ToInt32(reader["hp_static_regen"]);
-                effect.Stats.MPPercentRegen = Decimal.Parse(Convert.ToString(reader["mp_percent_regen"]));
-                effect.Stats.MPStaticRegen = Convert.ToInt32(reader["mp_static_regen"]);
+                effect.Stats.HPPercentRegen = Decimal.Parse(reader.GetString("hp_percent_regen"));
+                effect.Stats.HPStaticRegen = reader.GetInt32("hp_static_regen");
+                effect.Stats.MPPercentRegen = Decimal.Parse(reader.GetString("mp_percent_regen"));
+                effect.Stats.MPStaticRegen = reader.GetInt32("mp_static_regen");
 
-                effect.Stats.DamageReduction = Decimal.Parse(Convert.ToString(reader["damage_reduce"]));
-                effect.Stats.Haste = Decimal.Parse(Convert.ToString(reader["haste"]));
-                effect.Stats.MeleeCrit = Decimal.Parse(Convert.ToString(reader["melee_crit"]));
-                effect.Stats.MeleeDamage = Decimal.Parse(Convert.ToString(reader["melee_damage"]));
-                effect.Stats.SpellCrit = Decimal.Parse(Convert.ToString(reader["spell_crit"]));
-                effect.Stats.SpellDamage = Decimal.Parse(Convert.ToString(reader["spell_damage"]));
-                effect.Stats.MoveSpeed = Convert.ToInt32(reader["move_speed"]);
+                effect.Stats.DamageReduction = Decimal.Parse(reader.GetString("damage_reduce"));
+                effect.Stats.Haste = Decimal.Parse(reader.GetString("haste"));
+                effect.Stats.MeleeCrit = Decimal.Parse(reader.GetString("melee_crit"));
+                effect.Stats.MeleeDamage = Decimal.Parse(reader.GetString("melee_damage"));
+                effect.Stats.SpellCrit = Decimal.Parse(reader.GetString("spell_crit"));
+                effect.Stats.SpellDamage = Decimal.Parse(reader.GetString("spell_damage"));
+                effect.Stats.MoveSpeed = reader.GetInt32("move_speed");
 
-                effect.WorksInPVP = Convert.ToString(reader["works_in_pvp"]) != "0";
-                effect.WorksNotInPVP = Convert.ToString(reader["works_not_in_pvp"]) != "0";
+                effect.WorksInPVP = reader.GetString("works_in_pvp") != "0";
+                effect.WorksNotInPVP = reader.GetString("works_not_in_pvp") != "0";
 
-                effect.BuffCanBeRemoved = Convert.ToString(reader["buff_removable"]) != "0";
-                effect.BuffGraphic = Convert.ToInt32(reader["buff_graphic"]);
-                effect.BuffGraphicFile = Convert.ToInt32(reader["buff_graphic_file"]);
+                effect.BuffCanBeRemoved = reader.GetString("buff_removable") != "0";
+                effect.BuffGraphic = reader.GetInt32("buff_graphic");
+                effect.BuffGraphicFile = reader.GetInt32("buff_graphic_file");
 
-                effect.RandomJoinChance = Decimal.Parse(Convert.ToString(reader["random_join_chance"]));
+                effect.RandomJoinChance = Decimal.Parse(reader.GetString("random_join_chance"));
 
-                effect.OnMeleeAttackSpellID = Convert.ToInt32(reader["on_attack_spell_effect_id"]);
+                effect.OnMeleeAttackSpellID = reader.GetInt32("on_attack_spell_effect_id");
                 effect.OnMeleeAttackSpellChance =
-                    Decimal.Parse(Convert.ToString(reader["on_attack_spell_chance"]));
-                effect.OnMeleeHitSpellID = Convert.ToInt32(reader["on_hit_spell_effect_id"]);
+                    Decimal.Parse(reader.GetString("on_attack_spell_chance"));
+                effect.OnMeleeHitSpellID = reader.GetInt32("on_hit_spell_effect_id");
                 effect.OnMeleeHitSpellChance =
-                    Decimal.Parse(Convert.ToString(reader["on_hit_spell_chance"]));
+                    Decimal.Parse(reader.GetString("on_hit_spell_chance"));
 
-                effect.SnarePercent = Decimal.Parse(Convert.ToString(reader["snare_percent"]));
+                effect.SnarePercent = Decimal.Parse(reader.GetString("snare_percent"));
 
-                effect.BuffStacksOverString = Convert.ToString(reader["buff_stacks_over"]);
-                effect.BuffDoesntStackOverString = Convert.ToString(reader["buff_doesnt_stack_over"]);
+                effect.BuffStacksOverString = reader.GetString("buff_stacks_over");
+                effect.BuffDoesntStackOverString = reader.GetString("buff_doesnt_stack_over");
                 effect.BuffStacksOver = [];
                 effect.BuffDoesntStackOver = [];
 
-                effect.OnlyHitsOneNPC = Convert.ToString(reader["only_hits_one_npc"]) != "0";
+                effect.OnlyHitsOneNPC = reader.GetString("only_hits_one_npc") != "0";
 
-                string scriptPath = Convert.ToString(reader["script_path"]);
+                string scriptPath = reader.GetString("script_path");
                 if (!string.IsNullOrEmpty(scriptPath))
                 {
                     effect.Script = world.ScriptHandler.GetScript<ISpellEffectScript>(scriptPath);
-                    effect.ScriptParams = Convert.ToString(reader["script_params"]);
+                    effect.ScriptParams = reader.GetString("script_params");
                 }
 
                 this.effects[effect.ID] = effect;
@@ -233,28 +233,28 @@ namespace Goose
 
             while (reader.Read())
             {
-                int id = Convert.ToInt32(reader["spell_id"]);
+                int id = reader.GetInt32("spell_id");
 
                 Spell spell = null;
                 if (!this.spells.TryGetValue(id, out spell))
                     spell = new Spell();
 
                 spell.ID = id;
-                spell.Name = Convert.ToString(reader["spell_name"]);
-                spell.Description = Convert.ToString(reader["spell_description"]);
-                spell.Target = (Spell.SpellTargets)Convert.ToInt32(reader["spell_target"]);
-                spell.ClassRestrictions = Convert.ToInt64(reader["class_restrictions"]);
-                spell.Aether = Convert.ToInt64(reader["spell_aether"]);
-                spell.Graphic = Convert.ToInt32(reader["spellbook_graphic"]);
-                spell.GraphicFile = Convert.ToInt32(reader["spellbook_graphic_file"]);
-                spell.HPPercentCost = Decimal.Parse(Convert.ToString(reader["hp_percent_cost"]));
-                spell.HPStaticCost = Convert.ToInt32(reader["hp_static_cost"]);
-                spell.MPPercentCost = Decimal.Parse(Convert.ToString(reader["mp_percent_cost"]));
-                spell.MPStaticCost = Convert.ToInt32(reader["mp_static_cost"]);
-                spell.SPPercentCost = Decimal.Parse(Convert.ToString(reader["sp_percent_cost"]));
-                spell.SPStaticCost = Convert.ToInt32(reader["sp_static_cost"]);
+                spell.Name = reader.GetString("spell_name");
+                spell.Description = reader.GetString("spell_description");
+                spell.Target = (Spell.SpellTargets)reader.GetInt32("spell_target");
+                spell.ClassRestrictions = reader.GetInt64("class_restrictions");
+                spell.Aether = reader.GetInt64("spell_aether");
+                spell.Graphic = reader.GetInt32("spellbook_graphic");
+                spell.GraphicFile = reader.GetInt32("spellbook_graphic_file");
+                spell.HPPercentCost = Decimal.Parse(reader.GetString("hp_percent_cost"));
+                spell.HPStaticCost = reader.GetInt32("hp_static_cost");
+                spell.MPPercentCost = Decimal.Parse(reader.GetString("mp_percent_cost"));
+                spell.MPStaticCost = reader.GetInt32("mp_static_cost");
+                spell.SPPercentCost = Decimal.Parse(reader.GetString("sp_percent_cost"));
+                spell.SPStaticCost = reader.GetInt32("sp_static_cost");
 
-                spell.SpellEffectID = Convert.ToInt32(reader["spell_effect_id"]);
+                spell.SpellEffectID = reader.GetInt32("spell_effect_id");
                 spell.SpellEffect = this.GetSpellEffect(spell.SpellEffectID);
 
                 if (spell.SpellEffect is null)

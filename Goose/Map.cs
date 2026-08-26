@@ -544,12 +544,12 @@ namespace Goose
                     while (reader.Read())
                     {
                         WarpTile warp = new WarpTile();
-                        warp.WarpMap = world.MapHandler.GetMap(Convert.ToInt32(reader["warp_id"]));
-                        warp.WarpX = Convert.ToInt32(reader["warp_x"]);
-                        warp.WarpY = Convert.ToInt32(reader["warp_y"]);
+                        warp.WarpMap = world.MapHandler.GetMap(reader.GetInt32("warp_id"));
+                        warp.WarpX = reader.GetInt32("warp_x");
+                        warp.WarpY = reader.GetInt32("warp_y");
 
-                        int x = Convert.ToInt32(reader["map_x"]);
-                        int y = Convert.ToInt32(reader["map_y"]);
+                        int x = reader.GetInt32("map_x");
+                        int y = reader.GetInt32("map_y");
 
                         this.tiles[y * this.Width + x] = warp;
                     }
@@ -562,7 +562,7 @@ namespace Goose
 
                     while (reader.Read())
                     {
-                        this.AddRequiredItem(Convert.ToInt32(reader["item_template_id"]));
+                        this.AddRequiredItem(reader.GetInt32("item_template_id"));
                     }
                 }
             });

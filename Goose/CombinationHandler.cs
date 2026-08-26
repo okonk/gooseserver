@@ -22,13 +22,13 @@ namespace Goose
             while (reader.Read())
             {
                 Combination comb = new Combination();
-                comb.ID = Convert.ToInt32(reader["combination_id"]);
-                comb.Name = Convert.ToString(reader["combination_name"]);
-                comb.MinLevel = Convert.ToInt32(reader["min_level"]);
-                comb.MaxLevel = Convert.ToInt32(reader["max_level"]);
-                comb.MinExperience = Convert.ToInt64(reader["min_experience"]);
-                comb.MaxExperience = Convert.ToInt64(reader["max_experience"]);
-                comb.ClassRestrictions = Convert.ToInt64(reader["class_restrictions"]);
+                comb.ID = reader.GetInt32("combination_id");
+                comb.Name = reader.GetString("combination_name");
+                comb.MinLevel = reader.GetInt32("min_level");
+                comb.MaxLevel = reader.GetInt32("max_level");
+                comb.MinExperience = reader.GetInt64("min_experience");
+                comb.MaxExperience = reader.GetInt64("max_experience");
+                comb.ClassRestrictions = reader.GetInt64("class_restrictions");
 
                 this.combinations[comb.ID] = comb;
             }
@@ -56,7 +56,7 @@ namespace Goose
                             comb.Name);
                     }
 
-                    itemid = Convert.ToInt32(reader["item_template_id"]);
+                    itemid = reader.GetInt32("item_template_id");
 
                     template = world.ItemHandler.GetTemplate(itemid);
                     if (template is null)
@@ -93,7 +93,7 @@ namespace Goose
                             comb.Name);
                     }
 
-                    itemid = Convert.ToInt32(reader["item_template_id"]);
+                    itemid = reader.GetInt32("item_template_id");
 
                     template = world.ItemHandler.GetTemplate(itemid);
                     if (template is null)

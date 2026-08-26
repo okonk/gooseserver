@@ -21,29 +21,29 @@ namespace Goose
 
         public static ItemModifier FromReader(DbDataReader reader, GameWorld world, Dictionary<int, ItemModifier> modifiers)
         {
-            int id = Convert.ToInt32(reader["id"]);
+            int id = reader.GetInt32("id");
 
             ItemModifier modifier = null;
             if (!modifiers.TryGetValue(id, out modifier))
                 modifier = new ItemModifier();
 
             modifier.Id = id;
-            modifier.Name = Convert.ToString(reader["name"]);
-            modifier.MinLevel = Convert.ToInt32(reader["min_level"]);
-            modifier.MaxLevel = Convert.ToInt32(reader["max_level"]);
-            modifier.MinExperience = Convert.ToInt64(reader["min_experience"]);
-            modifier.MaxExperience = Convert.ToInt64(reader["max_experience"]);
-            modifier.UseType = (ItemTemplate.UseTypes)Convert.ToInt32(reader["item_usetype"]);
-            modifier.Slot = (ItemTemplate.ItemSlots)Convert.ToInt32(reader["item_slot"]);
-            modifier.Chance = Convert.ToDouble(reader["chance"]);
+            modifier.Name = reader.GetString("name");
+            modifier.MinLevel = reader.GetInt32("min_level");
+            modifier.MaxLevel = reader.GetInt32("max_level");
+            modifier.MinExperience = reader.GetInt64("min_experience");
+            modifier.MaxExperience = reader.GetInt64("max_experience");
+            modifier.UseType = (ItemTemplate.UseTypes)reader.GetInt32("item_usetype");
+            modifier.Slot = (ItemTemplate.ItemSlots)reader.GetInt32("item_slot");
+            modifier.Chance = reader.GetDouble("chance");
 
-            string scriptPath = Convert.ToString(reader["script_path"]);
+            string scriptPath = reader.GetString("script_path");
             if (!string.IsNullOrEmpty(scriptPath))
             {
                 modifier.Script = world.ScriptHandler.GetScript<IItemModifierScript>(scriptPath);
             }
 
-            modifier.ScriptParams = Convert.ToString(reader["script_params"]);
+            modifier.ScriptParams = reader.GetString("script_params");
 
             return modifier;
         }

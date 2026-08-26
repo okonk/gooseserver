@@ -41,29 +41,29 @@ namespace Goose
                 while (reader.Read())
                 {
                     Map map = new Map();
-                    map.ID = Convert.ToInt32(reader["map_id"]);
-                    map.Name = Convert.ToString(reader["map_name"]);
-                    map.FileName = Convert.ToString(reader["map_filename"]);
+                    map.ID = reader.GetInt32("map_id");
+                    map.Name = reader.GetString("map_name");
+                    map.FileName = reader.GetString("map_filename");
 
-                    map.MinLevel = Convert.ToInt32(reader["min_level"]);
-                    map.MaxLevel = Convert.ToInt32(reader["max_level"]);
-                    map.MinExperience = Convert.ToInt64(reader["min_experience"]);
-                    map.MaxExperience = Convert.ToInt64(reader["max_experience"]);
+                    map.MinLevel = reader.GetInt32("min_level");
+                    map.MaxLevel = reader.GetInt32("max_level");
+                    map.MinExperience = reader.GetInt64("min_experience");
+                    map.MaxExperience = reader.GetInt64("max_experience");
 
-                    map.CanAuction = Convert.ToString(reader["auction_enabled"]) != "0";
-                    map.CanPVP = Convert.ToString(reader["pvp_enabled"]) != "0";
-                    map.CanChat = Convert.ToString(reader["chat_enabled"]) != "0";
-                    map.CanShout = Convert.ToString(reader["shout_enabled"]) != "0";
-                    map.CanUseItems = Convert.ToString(reader["items_enabled"]) != "0";
-                    map.CanCast = Convert.ToString(reader["spells_enabled"]) != "0";
-                    map.CanBind = Convert.ToString(reader["bind_enabled"]) != "0";
-                    map.CanSpawnPets = Convert.ToString(reader["pets_enabled"]) != "0";
+                    map.CanAuction = reader.GetString("auction_enabled") != "0";
+                    map.CanPVP = reader.GetString("pvp_enabled") != "0";
+                    map.CanChat = reader.GetString("chat_enabled") != "0";
+                    map.CanShout = reader.GetString("shout_enabled") != "0";
+                    map.CanUseItems = reader.GetString("items_enabled") != "0";
+                    map.CanCast = reader.GetString("spells_enabled") != "0";
+                    map.CanBind = reader.GetString("bind_enabled") != "0";
+                    map.CanSpawnPets = reader.GetString("pets_enabled") != "0";
 
-                    string scriptPath = Convert.ToString(reader["script_path"]);
+                    string scriptPath = reader.GetString("script_path");
                     if (!string.IsNullOrEmpty(scriptPath))
                     {
                         map.Script = world.ScriptHandler.GetScript<IMapScript>(scriptPath);
-                        map.ScriptParams = Convert.ToString(reader["script_params"]);
+                        map.ScriptParams = reader.GetString("script_params");
                     }
 
                     this.maps[map.ID] = map;

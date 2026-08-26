@@ -200,43 +200,43 @@ namespace Goose
         {
             Pet pet = new Pet();
 
-            pet.PetID = Convert.ToInt32(reader["pet_id"]);
-            pet.Title = Convert.ToString(reader["pet_title"]);
-            pet.Name = Convert.ToString(reader["pet_name"]);
-            pet.Surname = Convert.ToString(reader["pet_surname"]);
-            pet.Level = Convert.ToInt32(reader["pet_level"]);
-            pet.ClassID = Convert.ToInt32(reader["class_id"]);
+            pet.PetID = reader.GetInt32("pet_id");
+            pet.Title = reader.GetString("pet_title");
+            pet.Name = reader.GetString("pet_name");
+            pet.Surname = reader.GetString("pet_surname");
+            pet.Level = reader.GetInt32("pet_level");
+            pet.ClassID = reader.GetInt32("class_id");
             pet.Class = world.ClassHandler.GetClass(pet.ClassID);
 
-            pet.Experience = Convert.ToInt64(reader["experience"]);
-            pet.ExperienceSold = Convert.ToInt64(reader["experience_sold"]);
-            pet.BodyID = Convert.ToInt32(reader["body_id"]);
-            pet.BodyR = Convert.ToInt32(reader["body_r"]);
-            pet.BodyG = Convert.ToInt32(reader["body_g"]);
-            pet.BodyB = Convert.ToInt32(reader["body_b"]);
-            pet.BodyA = Convert.ToInt32(reader["body_a"]);
+            pet.Experience = reader.GetInt64("experience");
+            pet.ExperienceSold = reader.GetInt64("experience_sold");
+            pet.BodyID = reader.GetInt32("body_id");
+            pet.BodyR = reader.GetInt32("body_r");
+            pet.BodyG = reader.GetInt32("body_g");
+            pet.BodyB = reader.GetInt32("body_b");
+            pet.BodyA = reader.GetInt32("body_a");
             pet.CurrentBodyID = pet.BodyID;
-            pet.FaceID = Convert.ToInt32(reader["face_id"]);
-            pet.HairID = Convert.ToInt32(reader["hair_id"]);
-            pet.HairR = Convert.ToInt32(reader["hair_r"]);
-            pet.HairG = Convert.ToInt32(reader["hair_g"]);
-            pet.HairB = Convert.ToInt32(reader["hair_b"]);
-            pet.HairA = Convert.ToInt32(reader["hair_a"]);
+            pet.FaceID = reader.GetInt32("face_id");
+            pet.HairID = reader.GetInt32("hair_id");
+            pet.HairR = reader.GetInt32("hair_r");
+            pet.HairG = reader.GetInt32("hair_g");
+            pet.HairB = reader.GetInt32("hair_b");
+            pet.HairA = reader.GetInt32("hair_a");
 
             pet.BaseStats = new AttributeSet();
-            pet.BaseStats.HP = Convert.ToInt64(reader["pet_hp"]);
-            pet.BaseStats.MP = Convert.ToInt64(reader["pet_mp"]);
-            pet.BaseStats.SP = Convert.ToInt64(reader["pet_sp"]);
-            pet.BaseStats.AC = Convert.ToInt32(reader["stat_ac"]);
-            pet.BaseStats.Strength = Convert.ToInt32(reader["stat_str"]);
-            pet.BaseStats.Stamina = Convert.ToInt32(reader["stat_sta"]);
-            pet.BaseStats.Intelligence = Convert.ToInt32(reader["stat_int"]);
-            pet.BaseStats.Dexterity = Convert.ToInt32(reader["stat_dex"]);
-            pet.BaseStats.FireResist = Convert.ToInt32(reader["res_fire"]);
-            pet.BaseStats.AirResist = Convert.ToInt32(reader["res_air"]);
-            pet.BaseStats.EarthResist = Convert.ToInt32(reader["res_earth"]);
-            pet.BaseStats.SpiritResist = Convert.ToInt32(reader["res_spirit"]);
-            pet.BaseStats.WaterResist = Convert.ToInt32(reader["res_water"]);
+            pet.BaseStats.HP = reader.GetInt64("pet_hp");
+            pet.BaseStats.MP = reader.GetInt64("pet_mp");
+            pet.BaseStats.SP = reader.GetInt64("pet_sp");
+            pet.BaseStats.AC = reader.GetInt32("stat_ac");
+            pet.BaseStats.Strength = reader.GetInt32("stat_str");
+            pet.BaseStats.Stamina = reader.GetInt32("stat_sta");
+            pet.BaseStats.Intelligence = reader.GetInt32("stat_int");
+            pet.BaseStats.Dexterity = reader.GetInt32("stat_dex");
+            pet.BaseStats.FireResist = reader.GetInt32("res_fire");
+            pet.BaseStats.AirResist = reader.GetInt32("res_air");
+            pet.BaseStats.EarthResist = reader.GetInt32("res_earth");
+            pet.BaseStats.SpiritResist = reader.GetInt32("res_spirit");
+            pet.BaseStats.WaterResist = reader.GetInt32("res_water");
 
             pet.MaxStats = new AttributeSet();
             pet.MaxStats += pet.BaseStats;
@@ -259,18 +259,18 @@ namespace Goose
             pet.CurrentHP = pet.MaxHP;
             pet.CurrentMP = pet.MaxMP;
 
-            pet.WeaponDamage = Convert.ToInt64(reader["weapon_damage"]);
+            pet.WeaponDamage = reader.GetInt64("weapon_damage");
 
-            pet.RespawnTime = Convert.ToInt32(reader["respawn_time"]);
-            pet.NextRespawnTime = Convert.ToInt64(reader["next_respawn_time"]);
+            pet.RespawnTime = reader.GetInt32("respawn_time");
+            pet.NextRespawnTime = reader.GetInt64("next_respawn_time");
 
-            pet.EquippedItems = Convert.ToString(reader["equipped_items"]);
-            pet.BodyState = Convert.ToInt32(reader["body_state"]);
+            pet.EquippedItems = reader.GetString("equipped_items");
+            pet.BodyState = reader.GetInt32("body_state");
 
-            pet.AggroRange = Convert.ToInt32(reader["aggro_range"]);
-            pet.MoveSpeed = Convert.ToDecimal(reader["move_speed"]);
-            pet.AttackRange = Convert.ToInt32(reader["attack_range"]);
-            pet.AttackSpeed = Convert.ToDecimal(reader["attack_speed"]);
+            pet.AggroRange = reader.GetInt32("aggro_range");
+            pet.MoveSpeed = reader.GetDecimal("move_speed");
+            pet.AttackRange = reader.GetInt32("attack_range");
+            pet.AttackSpeed = reader.GetDecimal("attack_speed");
 
             pet.AutoCreatedNotSaved = false;
             pet.Delete = false;
