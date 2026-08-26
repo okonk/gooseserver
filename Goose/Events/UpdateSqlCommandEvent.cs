@@ -57,7 +57,7 @@ namespace Goose.Events
             }
         }
 
-        private void UpdateCompletedCallback(Exception error, GameWorld world)
+        private void UpdateCompletedCallback(Exception? error, GameWorld world)
         {
             // Transaction is committed/rolled back inside the Enqueue work item.
             // Do not call Database.Execute from this completion callback (deadlock risk).

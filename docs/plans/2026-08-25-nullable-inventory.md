@@ -16,16 +16,20 @@ Deduplicated (`sort -u`) counts:
 | Scope | Raw (wc -l) | Unique |
 |---|---|---|
 | `dotnet build Goose.sln` (Goose + Goose.Tests + tools) | 978 | **489** (Goose 442 + Goose.Tests 47) |
-| + `Goose.IntegrationTests` (separate build, not in the sln) | — | **502** total (+13) |
+| + `Goose.IntegrationTests` (separate build, not in the sln) | — | **502** total at baseline (+13; **39** after Task 2 — 13 baseline + 26 cascades, see area 6) |
 
 The plan owner accepted the deduplicated count as the metric on 2026-08-25: 489 ≤ 500, so
 the Step 3 gate does **not** trip and the plan proceeds. All counts in this document are
 deduplicated unique warnings.
 
 `Goose.IntegrationTests` is deliberately omitted from `Goose.sln` (fast-test-boundary
-plan), so its 13 warnings are only visible when building the project directly:
+plan), so its warnings (13 at baseline, 39 after Task 2) are only visible when building
+the project directly:
 `dotnet build Goose.IntegrationTests/Goose.IntegrationTests.csproj --no-incremental`.
-They are listed under area 6, clearly marked.
+They are listed under area 6, clearly marked. (The IT count includes 4 `TestSupport`
+warnings because the IT project *links* `TestSupport/TestWorldFixture.cs` and
+`ScriptStub.cs` via `Compile Include`; those same 4 texts also appear in the
+Goose.Tests build.)
 
 ## Capture procedure
 
@@ -40,7 +44,12 @@ The `CS8[5-9]xx` range is a deliberate superset of the nullable diagnostics. In 
 **only CS86xx codes appeared** — no CS85xx/CS87xx/CS89xx codes (e.g. CS8701/CS8702) were
 emitted, so no non-nullable codes needed excluding.
 
-### Per-code breakdown (unique, all projects)
+### Per-code breakdown (per-scope entries: 489 in `Goose.sln` + 13 in `Goose.IntegrationTests` = 502)
+
+The counts below are **per-scope entries** and sum to 502. Distinct warning **texts**
+are **498**: 4 `TestSupport` texts appear in both the Goose.Tests and the
+IntegrationTests builds, so CS8625 is 102 distinct / 106 per-scope (all other codes are
+identical under both counts).
 
 | Code | Meaning | Count |
 |---|---|---|
@@ -75,15 +84,74 @@ emitted, so no non-nullable codes needed excluding.
 6. **Tests and fakes** — `Goose.Tests`, `Goose.IntegrationTests`, linked
    `TestSupport/*`.
 
-| Area | Unique warnings (target for Tasks 2–4) |
-|---|---|
-| 1. Model construction | 218 |
-| 2. Database row mapping | 37 |
-| 3. Collections containing nullable slots | 80 |
-| 4. Packet/event inputs | 74 |
-| 5. Script-facing APIs | 33 |
-| 6. Tests and fakes (47 Goose.Tests + 13 Goose.IntegrationTests) | 60 |
-| **Total** | **502** |
+| Area | Unique warnings (target for Tasks 2–4) | Status |
+|---|---|---|
+| 1. Model construction | 0 (was 218) | fixed by Task 2 |
+| 2. Database row mapping | 0 (was 37) | fixed by Task 2 |
+| 3. Collections containing nullable slots | 80 | |
+| 4. Packet/event inputs | 74 | |
+| 5. Script-facing APIs | 33 | |
+| 6. Tests and fakes (46 Goose.Tests + 39 Goose.IntegrationTests) | 85 | 1 Goose.Tests warning (`MapPlayerCanJoinHookTests.cs(92,70)`) and 5 IT cascade warnings (`DimensionsScriptTests.cs` `BaseStats.HP` derefs) fixed as side effects of Task 2; remaining IT count is 13 baseline + 26 Task 2 cascades (listed in area 6, to be fixed in Task 4) |
+| **Total** | **272** (was 502) | sln 233 + IT 39 |
+
+### Task 2 completion record
+
+Areas 1 + 2 fixed with annotation-only changes (no control-flow changes, no
+`required`/`init`, no `?? default`). Verification at the Task 2 commit:
+
+- `dotnet build Goose.sln --no-incremental` exit 0; **233** unique nullable warnings
+  remain (489 baseline − 256 fixed). All 255 area 1/2 inventory entries are gone;
+  zero new warnings versus the baseline set **for the sln build**. (The plan's earlier
+  "234 remaining" projection assumed 255 fixes; Task 2 also eliminated one area 6
+  warning as a side effect.)
+- Tests: Goose.Tests 341 passed / 0 failed; Tools.Tests 124 passed / 0 failed.
+- `Goose.IntegrationTests` (not in the sln) still compiles, exit 0, but now emits
+  **39** unique nullable warnings: the 13 baseline entries plus **26 new cascade
+  warnings** at consuming sites of the new `?` annotations (e.g. `Assert.Single` /
+  `Enumerable.Single` on now-nullable `NPCTemplate.Drops`/`Allies`). The
+  `NPCTemplate.BaseStats` `= null!` unification also silently resolved 5 potential
+  cascade sites (`BaseStats.HP` derefs in `DimensionsScriptTests.cs:74, 117, 175,
+  225, 288`), so the cascade count is 26 rather than the 31 originally recorded.
+  Per the orchestrator decision the remaining IT sites are **not** annotated in
+  Task 2 — they are area 6 / Task 4 scope. The 26 cascade sites are listed in
+  area 6, marked "Task 2 cascade — fix in Task 4".
+
+Annotation strategy used:
+
+- Property set at construction and dereferenced unguarded elsewhere → `= null!`
+  (e.g. `NPCTemplate.Name`, `NPCTemplate.BaseStats`, `ItemTemplate.BaseStats`,
+  `GameWorld.LoginThrottle`).
+- Property genuinely nullable at runtime → `T?`, with `!` at the few unguarded
+  dereference sites where non-null is provable by construction or flow
+  (e.g. `NPCTemplate.VendorItems` — `!` at `Window.cs` populate and
+  `VendorPurchaseInventoryEvent`, which run only for vendor NPCs; `NPC.AggroTarget`
+  — `!` in `HandleAttackEvent`, which runs only while the NPC has an attack event).
+- Property genuinely nullable but with a massive unguarded dereference fan-out
+  (`Player.Map`/`Pet.Map`, ~169 sites; `Player.Map` null during map transition,
+  `Pet.Map` null after logout) → kept non-nullable `= null!` and recorded the
+  latent bug below instead of churning 169 call sites.
+
+Non-obvious `!` proofs (beyond the per-site ones above):
+
+- `DataReaderExtensions.GetString`: `Convert.ToString(reader[column])!` — for every
+  SQLite cell value (null, `DBNull`, string, numeric, `byte[]`) `Convert.ToString`
+  returns a non-null string; the class is `internal`.
+- `Inventory.Load`/`Spellbook.Load`/`Player.LoadQuests`/`PlayerBank`: `!` on
+  `Convert.ToString(ExecuteScalar())` and `JsonHelper.Deserialize<…>(…)!` — the row
+  is known to exist (looked up by the player's own id); a missing row is the latent
+  bug recorded below.
+- `Player.LoadQuests`: `questStatus.Started!`/`Completed!`/`Progress!`
+  (Player.cs:824–838) — `BuildSaveQuests` (Player.cs:1159–1162) always populates
+  all three arrays before serializing, so a deserialized row always has them set.
+- `NPC.HandleAttackEvent`: `this.Allies!.Contains(…)` — sheet-loaded NPCs always get
+  an (possibly empty) `Allies` list from `NPCHandler`.
+- `SpellEffect.CastScriptSpell`: `this.Script!.Object` — reached only for
+  `EffectTypes.Script`, which always has a script at load; a failed load is the
+  latent bug recorded below (the NRE is caught and logged by the existing try/catch).
+- Roslyn note: `?.` on a property (e.g. `buff.SpellEffect?.Script`) resets the
+  compiler's tracked null state for that property, so a following plain dereference
+  of the same property needs its own `!` (NPC.cs `OnMeleeHit`/`OnMeleeAttack`,
+  Player.cs equivalents).
 
 Classification convention: a warning is assigned to the area that owns the nullability
 contract being fixed. E.g. `this.NPC.MoveEvent = null` inside `NPCMoveEvent` is area 1
@@ -93,11 +161,11 @@ properties (`Player`, `Data`, `NPC`) are area 4.
 ### Area 2 note: `DataReaderExtensions.GetString`
 
 `Goose/DataReaderExtensions.cs(14)` — `GetString` returns non-nullable `string` (null and
-`DBNull` cells both yield `""`); its body `Convert.ToString(reader[column])!` emits
-CS8603. That is the one named `!` in this plan. Proof: for every SQLite-supported cell
-value (null, `DBNull`, string, numeric, `byte[]`) `Convert.ToString` returns a non-null
-string, and the class is `internal`, so no external `DbDataReader` implementation can
-reach it.
+`DBNull` cells both yield `""`); the baseline body `Convert.ToString(reader[column])`
+(convert result is `string?`) emitted CS8603. Task 2 added the plan's one named `!`:
+`Convert.ToString(reader[column])!`. Proof: for every SQLite-supported cell value (null,
+`DBNull`, string, numeric, `byte[]`) `Convert.ToString` returns a non-null string, and
+the class is `internal`, so no external `DbDataReader` implementation can reach it.
 
 ## Pre-plan test baseline
 
@@ -110,13 +178,61 @@ reach it.
 
 ## Latent bugs (deferred)
 
-(Empty — Tasks 2–4 record behavior-affecting findings here as they annotate.)
+Behavior-affecting findings recorded while annotating. None are fixed by the
+annotation work; each is suppressed with `!` at the site(s) noted.
+
+1. **`WarpTile.WarpMap` is null when `MapHandler.GetMap` fails to resolve the target
+   map** — NRE at `MoveEvent.cs:113` (`warp.WarpMap.PlayerCanJoin`). `WarpMap` is
+   non-nullable `Map` with `= null!` (Goose/WarpTile.cs:7); the move path does not
+   guard. The same `MapHandler.GetMap` failure (unknown id) also NREs at
+   DoneLoadingMapEvent.cs:24–28 (`map.PlaceCharacter`).
+2. **`Player.Map` is null during map transition; `Pet.Map` is null after logout**
+   — ~169 unguarded dereferences across the codebase assume the map is set for the
+   lifetime of the object. Kept non-nullable `= null!` to avoid churning every call
+   site. For `Player`, `Map` is null only between `LoadingMap` nulling it
+   (Player.cs:1374) and `DoneLoadingMapEvent` reassigning it
+   (DoneLoadingMapEvent.cs:78); logout guards on `player.Map is not null`
+   (LogoutEvent.cs:42) and never nulls it. `Pet.Map` is null after logout
+   (Pet.cs:536).
+3. **Tick-type buff with `Duration == 0`** — `BuffExpireEvent` is only created when the
+   duration is positive, so `NPC.AddBuff` (NPC.cs:1523) and `Player.AddBuff`
+   (Player.cs:2194) NRE on `buff.BuffExpireEvent!.Ticks` for a zero-duration
+   Tick/Viral/Root/Stun effect.
+4. **`NPC` kill-reward path NREs when the damages dictionary is empty** —
+   `NPC.cs:1171` dereferences the "highest damager" lookup result, which is null when
+   no damage entries exist.
+5. **`NPC.LoadFromTemplate` NREs on a code-built template with null `BaseStats`**
+   (NPC.cs:610, `template.BaseStats`; the property is non-nullable `= null!`, like
+   `ItemTemplate.BaseStats`, which has the identical NRE path in
+   `Item.LoadFromTemplate`). Sheet-loaded templates always have stats; only
+   hand-built templates can trip this.
+6. **`NPC.HandleAttackEvent` NREs if `AggroTarget` is cleared while the attack event
+   is still pending** (NPC.cs:1290/1301/1318/1320, `this.AggroTarget!`).
+7. **Missing DB row on load throws** — `Inventory.Load` (Inventory.cs:913/932/963),
+   `Spellbook.Load` (Spellbook.cs:43), `Player.LoadQuests` (Player.cs:822) and
+   `PlayerBank` (PlayerBank.cs:39–40) force `Convert.ToString(ExecuteScalar())!` /
+   `JsonHelper.Deserialize<…>(…)!`; a missing row makes `ExecuteScalar()` return
+   null, `Convert.ToString(null)` returns null, and `JsonSerializer.Deserialize(null)`
+   throws `ArgumentNullException` (a NULL/empty `serialized_data` cell in
+   `PlayerBank` throws `JsonException`).
+8. **`NPC.VendorItems` is null for non-vendor NPCs** — the only guard is
+   `PlayerRightClickEvent.cs:58`; other vendor-window paths (`Window.cs` populate,
+   `VendorPurchaseInventoryEvent`) use `!` and assume a vendor NPC.
+9. **`SpellEffect.OnMeleeHitSpell` / `OnMeleeAttackSpell` are null when the
+   `*SpellID` column is 0** — NRE at NPC.cs:1696/1712 and Player.cs:2487/2503 if an
+   OnMeleeHit/OnAttack effect has no linked spell.
+10. **`SpellEffect.Script` is null when the script file fails to load** —
+    `CastScriptSpell` (SpellEffect.cs:1060) NREs on `this.Script!.Object`; the existing
+    try/catch logs it.
 
 ## Classified inventory
 
 Format: `file(line,col): warning CSxxxx: message`. Paths relative to the repository root.
 
-### Area 1 — Model construction (218)
+### Area 1 — Model construction (218) — FIXED by Task 2
+
+All 218 entries below were eliminated by annotation-only changes; entries are retained
+for traceability (line numbers refer to the `8e72576` baseline).
 
 Goose/Buff.cs(11,27): warning CS8618: Non-nullable property 'Caster' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the property as nullable.
 Goose/Buff.cs(12,27): warning CS8618: Non-nullable property 'Target' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the property as nullable.
@@ -337,7 +453,10 @@ Goose/Window.cs(81,31): warning CS8618: Non-nullable property 'Buttons' must con
 Goose/Window.cs(83,20): warning CS8618: Non-nullable property 'NPC' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the property as nullable.
 Goose/Window.cs(87,23): warning CS8618: Non-nullable property 'Data' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the property as nullable.
 
-### Area 2 — Database row mapping (37)
+### Area 2 — Database row mapping (37) — FIXED by Task 2
+
+All 37 entries below were eliminated by annotation-only changes; entries are retained
+for traceability (line numbers refer to the `8e72576` baseline).
 
 Goose/Database.cs(17,34): warning CS8618: Non-nullable field '_connection' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the field as nullable.
 Goose/Database.cs(18,22): warning CS8618: Non-nullable field '_loopTask' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the field as nullable.
@@ -573,9 +692,9 @@ Goose/SpellEffect.cs(474,45): warning CS8603: Possible null reference return.
 Goose/SpellEffect.cs(479,24): warning CS8603: Possible null reference return.
 Goose/SpellEffect.cs(484,24): warning CS8603: Possible null reference return.
 
-### Area 6 — Tests and fakes (60)
+### Area 6 — Tests and fakes (85 after Task 2; baseline 60)
 
-Goose.Tests (47, built via Goose.sln):
+Goose.Tests (43, built via Goose.sln — plus the 4 shared `TestSupport` entries listed under the IT build below, 47 in the sln scope at baseline / 46 after Task 2):
 
 Goose.Tests/BuiltInCurrencyTests.cs(86,77): warning CS8625: Cannot convert null literal to non-nullable reference type.
 Goose.Tests/CurrencyHandlerTests.cs(91,71): warning CS8625: Cannot convert null literal to non-nullable reference type.
@@ -598,7 +717,7 @@ Goose.Tests/MapCanPlayerJoinTests.cs(21,70): warning CS8625: Cannot convert null
 Goose.Tests/MapCanPlayerJoinTests.cs(21,76): warning CS8625: Cannot convert null literal to non-nullable reference type.
 Goose.Tests/MapCanPlayerJoinTests.cs(21,82): warning CS8625: Cannot convert null literal to non-nullable reference type.
 Goose.Tests/MapPlayerCanJoinHookTests.cs(55,37): warning CS8625: Cannot convert null literal to non-nullable reference type.
-Goose.Tests/MapPlayerCanJoinHookTests.cs(92,70): warning CS8625: Cannot convert null literal to non-nullable reference type.
+Goose.Tests/MapPlayerCanJoinHookTests.cs(92,70): warning CS8625: Cannot convert null literal to non-nullable reference type. — FIXED by Task 2 (side effect: `Map.Script` is now nullable, so the test's `new Map { …, Script = null }` initializer is legal)
 Goose.Tests/PacketCurrencyTests.cs(24,62): warning CS8625: Cannot convert null literal to non-nullable reference type.
 Goose.Tests/PacketCurrencyTests.cs(95,35): warning CS8604: Possible null reference argument for parameter 'arg1' in 'string Func<Window, ItemTemplate, GameWorld, int, long, string>.Invoke(Window arg1, ItemTemplate arg2, GameWorld arg3, int arg4, long arg5)'.
 Goose.Tests/PlayerSendTests.cs(24,64): warning CS8600: Converting null literal or possible null value to non-nullable type.
@@ -625,7 +744,7 @@ TestSupport/TestWorldFixture.cs(56,96): warning CS8625: Cannot convert null lite
 TestSupport/TestWorldFixture.cs(113,92): warning CS8625: Cannot convert null literal to non-nullable reference type.
 TestSupport/TestWorldFixture.cs(127,78): warning CS8625: Cannot convert null literal to non-nullable reference type.
 
-Goose.IntegrationTests (13, separate build — project not in Goose.sln):
+Goose.IntegrationTests (39 after Task 2 = 13 baseline + 26 Task 2 cascades; separate build — project not in Goose.sln):
 
 Goose.IntegrationTests/DimensionItemScriptTests.cs(11,82): warning CS8625: Cannot convert null literal to non-nullable reference type.
 Goose.IntegrationTests/DimensionItemScriptTests.cs(93,21): warning CS8600: Converting null literal or possible null value to non-nullable type.
@@ -640,3 +759,37 @@ TestSupport/TestWorldFixture.cs(12,63): warning CS8625: Cannot convert null lite
 TestSupport/TestWorldFixture.cs(56,96): warning CS8625: Cannot convert null literal to non-nullable reference type.
 TestSupport/TestWorldFixture.cs(113,92): warning CS8625: Cannot convert null literal to non-nullable reference type.
 TestSupport/TestWorldFixture.cs(127,78): warning CS8625: Cannot convert null literal to non-nullable reference type.
+
+Task 2 cascade — fix in Task 4 (26 new warnings at consuming sites of the new `?` annotations; 5 of the originally recorded 31 were resolved by the `NPCTemplate.BaseStats` `= null!` unification and are marked FIXED below; not annotated in Task 2 per orchestrator decision):
+
+Goose.IntegrationTests/DimensionDropTests.cs(34,21): warning CS8604: Possible null reference argument for parameter 'source' in 'NPCDropInfo Enumerable.Single<NPCDropInfo>(IEnumerable<NPCDropInfo> source, Func<NPCDropInfo, bool> predicate)'.
+Goose.IntegrationTests/DimensionDropTests.cs(46,26): warning CS8604: Possible null reference argument for parameter 'source' in 'NPCDropInfo Enumerable.Single<NPCDropInfo>(IEnumerable<NPCDropInfo> source, Func<NPCDropInfo, bool> predicate)'.
+Goose.IntegrationTests/DimensionDropTests.cs(57,26): warning CS8604: Possible null reference argument for parameter 'source' in 'NPCDropInfo Enumerable.Single<NPCDropInfo>(IEnumerable<NPCDropInfo> source, Func<NPCDropInfo, bool> predicate)'.
+Goose.IntegrationTests/DimensionDropTests.cs(66,20): warning CS8604: Possible null reference argument for parameter 'source' in 'NPCDropInfo Enumerable.Single<NPCDropInfo>(IEnumerable<NPCDropInfo> source, Func<NPCDropInfo, bool> predicate)'.
+Goose.IntegrationTests/DimensionDropTests.cs(68,20): warning CS8604: Possible null reference argument for parameter 'source' in 'NPCDropInfo Enumerable.Single<NPCDropInfo>(IEnumerable<NPCDropInfo> source, Func<NPCDropInfo, bool> predicate)'.
+Goose.IntegrationTests/DimensionItemScriptTests.cs(132,22): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionItemScriptTests.cs(157,24): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionItemScriptTests.cs(182,22): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionItemScriptTests.cs(202,21): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionItemScriptTests.cs(219,9): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionMapScriptTests.cs(158,9): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionMapScriptTests.cs(178,42): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionMapScriptTests.cs(194,46): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionMapScriptTests.cs(213,9): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionMapScriptTests.cs(234,9): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionRebirthTests.cs(181,22): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionRebirthTests.cs(212,9): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionsScriptTests.cs(117,27): warning CS8602: Dereference of a possibly null reference. — FIXED by Task 2 (side effect: `NPCTemplate.BaseStats` is now `= null!`, so the `BaseStats.HP` deref no longer warns)
+Goose.IntegrationTests/DimensionsScriptTests.cs(175,28): warning CS8602: Dereference of a possibly null reference. — FIXED by Task 2 (side effect: `NPCTemplate.BaseStats` is now `= null!`, so the `BaseStats.HP` deref no longer warns)
+Goose.IntegrationTests/DimensionsScriptTests.cs(225,28): warning CS8602: Dereference of a possibly null reference. — FIXED by Task 2 (side effect: `NPCTemplate.BaseStats` is now `= null!`, so the `BaseStats.HP` deref no longer warns)
+Goose.IntegrationTests/DimensionsScriptTests.cs(249,45): warning CS8604: Possible null reference argument for parameter 'collection' in 'NPCTemplate Assert.Single<NPCTemplate>(IEnumerable<NPCTemplate> collection)'.
+Goose.IntegrationTests/DimensionsScriptTests.cs(250,44): warning CS8604: Possible null reference argument for parameter 'collection' in 'NPCTemplate Assert.Single<NPCTemplate>(IEnumerable<NPCTemplate> collection)'.
+Goose.IntegrationTests/DimensionsScriptTests.cs(254,35): warning CS8604: Possible null reference argument for parameter 'collection' in 'NPCTemplate Assert.Single<NPCTemplate>(IEnumerable<NPCTemplate> collection)'.
+Goose.IntegrationTests/DimensionsScriptTests.cs(270,22): warning CS8604: Possible null reference argument for parameter 'collection' in 'void Assert.Empty(IEnumerable collection)'.
+Goose.IntegrationTests/DimensionsScriptTests.cs(288,87): warning CS8602: Dereference of a possibly null reference. — FIXED by Task 2 (side effect: `NPCTemplate.BaseStats` is now `= null!`, so the `BaseStats.HP` deref no longer warns)
+Goose.IntegrationTests/DimensionsScriptTests.cs(603,9): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionsScriptTests.cs(618,9): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionsScriptTests.cs(632,9): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionsScriptTests.cs(74,83): warning CS8602: Dereference of a possibly null reference. — FIXED by Task 2 (side effect: `NPCTemplate.BaseStats` is now `= null!`, so the `BaseStats.HP` deref no longer warns)
+Goose.IntegrationTests/DimensionVendorStockTests.cs(107,31): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionVendorStockTests.cs(63,12): warning CS8603: Possible null reference return.

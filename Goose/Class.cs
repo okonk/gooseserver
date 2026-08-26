@@ -11,7 +11,7 @@ namespace Goose
         private Dictionary<int, ClassLevel> levels = new();
 
         public int ClassID { get; set; }
-        public string ClassName { get; set; }
+        public string ClassName { get; set; } = null!;
         public decimal ACMultiplier { get; set; }
         public long VitaCost { get; set; }
         public long ManaCost { get; set; }

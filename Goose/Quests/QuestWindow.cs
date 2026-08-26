@@ -18,7 +18,7 @@ namespace Goose.Quests
 
         private Quest quest;
         private QuestWindowState state;
-        private string scriptCannotCompleteMessage;
+        private string scriptCannotCompleteMessage = null!;
 
         public QuestWindow(NPC npc, Player player, Quest quest, GameWorld world)
         {
@@ -176,7 +176,7 @@ namespace Goose.Quests
                             else
                             {
                                 this.state = QuestWindowState.QuestPass;
-                                this.CompleteQuest(this.NPC, player, world);
+                                this.CompleteQuest(this.NPC!, player, world);
                             }
                         }
                         else
@@ -236,7 +236,7 @@ namespace Goose.Quests
                         text += "Have no items equipped\\n";
                         break;
                     case RequirementType.Script:
-                        var scriptText = requirement.Script.Object.GetProgressText(requirement, player, world);
+                        var scriptText = requirement.Script!.Object.GetProgressText(requirement, player, world);
                         if (!string.IsNullOrEmpty(scriptText))
                             text += scriptText + "\\n";
                         break;
@@ -282,7 +282,7 @@ namespace Goose.Quests
                         
                         break;
                     case RequirementType.Script:
-                        if (!requirement.Script.Object.IsMet(requirement, player, world))
+                        if (!requirement.Script!.Object.IsMet(requirement, player, world))
                             return false;
                         break;
                     default:
@@ -316,7 +316,7 @@ namespace Goose.Quests
         {
             foreach (var reward in this.quest.Rewards.Where(r => r.Type == RewardType.Script))
             {
-                var message = reward.Script.Object.CanComplete(reward, player, world);
+                var message = reward.Script!.Object.CanComplete(reward, player, world);
                 if (!string.IsNullOrEmpty(message)) return message;
             }
 
@@ -344,7 +344,7 @@ namespace Goose.Quests
             string prefix = "[Quest Reward]: ";
             foreach (var reward in quest.Rewards)
             {
-                string rewardMessage = null;
+                string? rewardMessage = null;
                 switch (reward.Type)
                 {
                     case RewardType.Gold:
@@ -475,7 +475,7 @@ namespace Goose.Quests
                         player.LearnSpell((int)reward.LongValue, world);
                         break;
                     case RewardType.Script:
-                        reward.Script.Object.GiveReward(reward, npc, player, world);
+                        reward.Script!.Object.GiveReward(reward, npc, player, world);
                         break;
                 }
 
@@ -527,7 +527,7 @@ namespace Goose.Quests
                         case RequirementType.ExperienceSold:
                             break;
                         case RequirementType.Script:
-                            requirement.Script.Object.OnTakeRequirement(requirement, player, world);
+                            requirement.Script!.Object.OnTakeRequirement(requirement, player, world);
                             break;
                         default:
                             break;

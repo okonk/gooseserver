@@ -55,7 +55,7 @@ namespace Goose
         /// <summary>
         /// Owner of the pet
         /// </summary>
-        public Player Owner { get; set; }
+        public Player Owner { get; set; } = null!;
 
         /// <summary>
         /// System time of allowed next respawn
@@ -75,7 +75,7 @@ namespace Goose
         /// <summary>
         /// Items to display on humanoid pets
         /// </summary>
-        public string EquippedItems { get; set; }
+        public string EquippedItems { get; set; } = null!;
 
         /// <summary>
         /// Gets a boolean indicating whether the pet is spawned or not
@@ -85,7 +85,7 @@ namespace Goose
         /// <summary>
         /// The current move event
         /// </summary>
-        public PetMoveEvent MoveEvent { get; set; }
+        public PetMoveEvent? MoveEvent { get; set; }
 
         /// <summary>
         /// Time between movement events
@@ -95,7 +95,7 @@ namespace Goose
         /// <summary>
         /// The current attack event
         /// </summary>
-        public PetAttackEvent AttackEvent { get; set; }
+        public PetAttackEvent? AttackEvent { get; set; }
 
         /// <summary>
         /// Time between attack events
@@ -115,7 +115,7 @@ namespace Goose
         /// <summary>
         /// Current target, used in both attack and defend modes
         /// </summary>
-        public ICharacter Target { get; set; }
+        public ICharacter? Target { get; set; }
 
         /// <summary>
         /// Unused, aggro range
@@ -533,7 +533,7 @@ namespace Goose
 
             Pet.LoginIDToPet.Remove(this.LoginID);
             this.Map.SetCharacter(null, this.MapX, this.MapY);
-            this.Map = null;
+            this.Map = null!;
         }
 
         public void AddMoveEvent(GameWorld world)

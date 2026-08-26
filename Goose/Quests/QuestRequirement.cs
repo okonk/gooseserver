@@ -21,7 +21,7 @@ namespace Goose.Quests
     {
         public int Id { get; set; }
         public RequirementType Type { get; set; }
-        public Quest Quest { get; set; }
+        public Quest Quest { get; set; } = null!;
         public long Value { get; set; }
         public long Value2 { get; set; }
         /// <summary>
@@ -30,8 +30,8 @@ namespace Goose.Quests
         /// maybe take required exp, etc.
         /// </summary>
         public bool KeepRequirement { get; set; }
-        public Script<IQuestScript> Script { get; set; }
-        public string ScriptParams { get; set; }
+        public Script<IQuestScript>? Script { get; set; }
+        public string ScriptParams { get; set; } = null!;
 
         public static QuestRequirement FromReader(DbDataReader reader, GameWorld world, Quest quest)
         {

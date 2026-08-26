@@ -11,7 +11,7 @@ namespace Goose
             => Convert.ToInt64(reader[column]);
 
         public static string GetString(this DbDataReader reader, string column)
-            => Convert.ToString(reader[column]);
+            => Convert.ToString(reader[column])!;
 
         public static decimal GetDecimal(this DbDataReader reader, string column)
             => Convert.ToDecimal(reader[column]);

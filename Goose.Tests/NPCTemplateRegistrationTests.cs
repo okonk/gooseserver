@@ -46,7 +46,7 @@ public class NPCTemplateRegistrationTests
         var original = new NPCTemplate { NPCTemplateID = 162, Allies = new List<NPCTemplate> { ally } };
 
         var copy = new NPCTemplate(original) { NPCTemplateID = 100162 };
-        copy.Allies.Clear();
+        copy.Allies!.Clear();
 
         Assert.Single(original.Allies);
         Assert.Same(ally, original.Allies[0]);

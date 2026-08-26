@@ -8,11 +8,11 @@ namespace Goose
      */
     public class Buff
     {
-        public ICharacter Caster { get; set; }
-        public ICharacter Target { get; set; }
-        public SpellEffect SpellEffect { get; set; }
+        public ICharacter Caster { get; set; } = null!;
+        public ICharacter Target { get; set; } = null!;
+        public SpellEffect SpellEffect { get; set; } = null!;
         public long TimeCast { get; set; }
         public bool ItemBuff { get; set; }
-        public Event BuffExpireEvent { get; set; }
+        public Event? BuffExpireEvent { get; set; }
     }
 }

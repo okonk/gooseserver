@@ -27,17 +27,17 @@ namespace Goose
          * Socket and receive buffer
          *
          */
-        Socket sock;
+        Socket sock = null!;
         public Socket Sock
         {
             get => this.sock;
             set { this.sock = value; }
         }
-        public StringBuilder Buffer { get; set; }
+        public StringBuilder Buffer { get; set; } = null!;
 
         public const int MaxSendBufferSize = 1024 * 1024;
 
-        public List<byte> SendBuffer { get; private set; }
+        public List<byte> SendBuffer { get; private set; } = null!;
 
         /**
          * ExperienceMessage, used for sending to AddExperience to diaplay
@@ -102,23 +102,23 @@ namespace Goose
         /**
          * Character name
          */
-        public string Name { get; set; }
+        public string Name { get; set; } = null!;
         /**
          * Name prefix
          */
-        public string Title { get; set; }
+        public string Title { get; set; } = null!;
         /**
          * Name postfix
          */
-        public string Surname { get; set; }
+        public string Surname { get; set; } = null!;
         /**
          * md5 password hash
          */
-        public string PasswordHash { get; set; }
+        public string PasswordHash { get; set; } = null!;
         /**
          * NOTE: Salt is stored base64 encoded
          */
-        public string PasswordSalt { get; set; }
+        public string PasswordSalt { get; set; } = null!;
         /**
          * LoginID is the ID assigned by the server on login
          */
@@ -139,7 +139,7 @@ namespace Goose
         /**
          * Current Map object
          */
-        public Map Map { get; set; }
+        public Map Map { get; set; } = null!;
         /**
          * Facing direction
          */
@@ -147,11 +147,11 @@ namespace Goose
         /**
          * BaseStats, stats loaded from database
          */
-        public AttributeSet BaseStats { get; set; }
+        public AttributeSet BaseStats { get; set; } = null!;
         /**
          * Stats from base, items, buffs
          */
-        public AttributeSet MaxStats { get; set; }
+        public AttributeSet MaxStats { get; set; } = null!;
         /**
          * Current HP
          */
@@ -224,7 +224,7 @@ namespace Goose
         /**
          * Bound Map
          */
-        public Map BoundMap { get; set; }
+        public Map BoundMap { get; set; } = null!;
         /**
          * Hair style id
          */
@@ -304,12 +304,12 @@ namespace Goose
         /**
          * Guild object
          */
-        public Guild Guild { get; set; }
+        public Guild? Guild { get; set; }
 
         /**
          * Class object
          */
-        public Class Class { get; set; }
+        public Class Class { get; set; } = null!;
 
         /**
          * So regen event doesn't double up
@@ -320,9 +320,9 @@ namespace Goose
          * Player's inventory
          *
          */
-        public Inventory Inventory { get; set; }
+        public Inventory Inventory { get; set; } = null!;
 
-        public PlayerBank Bank { get; set; }
+        public PlayerBank Bank { get; set; } = null!;
 
         /**
          * Time of last melee attack
@@ -340,13 +340,13 @@ namespace Goose
          * Holds players spells
          *
          */
-        public Spellbook Spellbook { get; set; }
+        public Spellbook Spellbook { get; set; } = null!;
 
         /**
          * Buffs, holds players buffs
          *
          */
-        public List<Buff> Buffs { get; set; }
+        public List<Buff> Buffs { get; set; } = null!;
 
         /**
          * Count of buffs with an Invisible/SeeInvisible spell effect. Public set is
@@ -381,11 +381,11 @@ namespace Goose
          * If none is null.
          *
          */
-        public Group Group { get; set; }
+        public Group? Group { get; set; }
         public bool GroupInvitesEnabled { get; set; }
 
         public int LastWindowID { get; set; }
-        public List<Window> Windows { get; set; }
+        public List<Window> Windows { get; set; } = null!;
 
         public long MovementRecordingStarted { get; set; }
         public long MovementRecordingSteps { get; set; }
@@ -396,7 +396,7 @@ namespace Goose
 
         public bool SPRegenSwitch { get; set; }
 
-        private PriorityQueue<int, int> moveSpeed { get; set; }
+        private PriorityQueue<int, int> moveSpeed { get; set; } = null!;
 
         /**
          * Bitfield for toggled settings
@@ -429,7 +429,7 @@ namespace Goose
         /// <summary>
         /// Holds all of the Player's pets
         /// </summary>
-        public List<Pet> Pets { get; set; }
+        public List<Pet> Pets { get; set; } = null!;
 
         /// <summary>
         /// The last time we received a movement, chat, spell, or spacebar attack
@@ -458,15 +458,15 @@ namespace Goose
         public long SuspectedMacroFirstTime { get; set; }
         public int SuspectedMacroCount { get; set; }
 
-        internal List<Quest> QuestsCompleted { get; set; }
-        internal List<Quest> QuestsStarted { get; set; }
-        internal List<QuestProgress> QuestProgress { get; set; }
+        internal List<Quest> QuestsCompleted { get; set; } = null!;
+        internal List<Quest> QuestsStarted { get; set; } = null!;
+        internal List<QuestProgress> QuestProgress { get; set; } = null!;
 
         public int MacroCheckFailures { get; set; }
 
         public long LastMacroCheckTime { get; set; }
 
-        public MacroCheckEvent MacroCheckEvent { get; set; }
+        public MacroCheckEvent? MacroCheckEvent { get; set; }
 
         public DateTime? UnbanDate { get; set; }
 
@@ -818,24 +818,24 @@ namespace Goose
             {
                 using var query = conn.CreateCommand();
                 query.CommandText = "SELECT serialized_data FROM quest_status WHERE player_id=" + playerId;
-                string serialized_data = Convert.ToString(query.ExecuteScalar());
-                var questStatus = JsonHelper.Deserialize<QuestStatus>(serialized_data);
+                string serialized_data = Convert.ToString(query.ExecuteScalar())!;
+                var questStatus = JsonHelper.Deserialize<QuestStatus>(serialized_data)!;
 
-                foreach (var started in questStatus.Started)
+                foreach (var started in questStatus.Started!)
                 {
                     var quest = world.QuestHandler.Get(started);
                     if (quest is not null)
                         this.QuestsStarted.Add(quest);
                 }
 
-                foreach (var completed in questStatus.Completed)
+                foreach (var completed in questStatus.Completed!)
                 {
                     var quest = world.QuestHandler.Get(completed);
                     if (quest is not null)
                         this.QuestsCompleted.Add(quest);
                 }
 
-                foreach (var progress in questStatus.Progress)
+                foreach (var progress in questStatus.Progress!)
                 {
                     var quest = world.QuestHandler.Get(progress.QuestId);
                     if (quest is null)
@@ -901,7 +901,7 @@ namespace Goose
             // could persist the players row against a stale inventory - buy an item, crash,
             // and keep both the gold and the item.
             var work = new List<Action<SQLiteConnection>>();
-            Action guildOnCommit = null;
+            Action? guildOnCommit = null;
 
             // First so the guild INSERT assigns the ID the players row binds.
             if (this.Guild is not null && (this.GuildID == 0 || this.Guild.Dirty))
@@ -930,7 +930,7 @@ namespace Goose
 
             work.Add(this.BuildSaveQuests());
 
-            Action onCommit = null;
+            Action? onCommit = null;
             if (isNew || newPets.Count > 0 || guildOnCommit is not null)
             {
                 onCommit = () =>
@@ -1371,7 +1371,7 @@ namespace Goose
                 }
 
                 this.Map.RemovePlayer(this, world);
-                this.Map = null;
+                this.Map = null!;
                 this.MapID = map.ID;
                 this.MapX = x;
                 this.MapY = y;
@@ -2191,7 +2191,7 @@ namespace Goose
                 buff.SpellEffect.EffectType == SpellEffect.EffectTypes.Stun)
             {
                 // buff will expire before next tick
-                if (buff.BuffExpireEvent.Ticks - world.TimeNow >
+                if (buff.BuffExpireEvent!.Ticks - world.TimeNow >
                     world.Settings.SpellEffectPeriod * world.TimerFrequency)
                 {
                     var ev = new BuffTickEvent();
@@ -2215,7 +2215,7 @@ namespace Goose
             }
             catch (Exception e) { }
 
-            if (buff.SpellEffect.EffectType == SpellEffect.EffectTypes.Tick)
+            if (buff.SpellEffect!.EffectType == SpellEffect.EffectTypes.Tick)
             {
                 buff.SpellEffect.CastFormulaSpell(buff.Caster, buff.Target, world);
             }
@@ -2407,7 +2407,7 @@ namespace Goose
 
             packetBuilder.Append(P.VitalsPercentage(this));
 
-            if (buff.SpellEffect.Stats.Haste != Decimal.Zero)
+            if (buff.SpellEffect!.Stats.Haste != Decimal.Zero)
                 world.Send(this, P.WeaponSpeed(this));
 
             bool sendCharacterUpdate = false;
@@ -2484,7 +2484,7 @@ namespace Goose
                 if (b.SpellEffect.EffectType == SpellEffect.EffectTypes.OnMeleeHit)
                 {
                     if (world.Random.Next(1, 10001) <= b.SpellEffect.OnMeleeHitSpellChance * 100)
-                        b.SpellEffect.OnMeleeHitSpell.Cast(this, hitter, world);
+                        b.SpellEffect.OnMeleeHitSpell!.Cast(this, hitter, world);
                 }
             }
         }
@@ -2500,7 +2500,7 @@ namespace Goose
                 if (b.SpellEffect.EffectType == SpellEffect.EffectTypes.OnAttack)
                 {
                     if (world.Random.Next(1, 10001) <= b.SpellEffect.OnMeleeAttackSpellChance * 100)
-                        b.SpellEffect.OnMeleeAttackSpell.Cast(this, this, world);
+                        b.SpellEffect.OnMeleeAttackSpell!.Cast(this, this, world);
                 }
             }
         }

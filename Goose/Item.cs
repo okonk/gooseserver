@@ -28,9 +28,9 @@ namespace Goose
         [JsonPropertyName("tid")]
         public int TemplateID { get; set; }
         [JsonIgnore]
-        public ItemTemplate Template { get; set; }
+        public ItemTemplate Template { get; set; } = null!;
 
-        public string Name { get; set; }
+        public string Name { get; set; } = null!;
         [JsonPropertyName("desc")]
         [DefaultValue("")]
         public string Description { get; set; } = "";
@@ -117,7 +117,7 @@ namespace Goose
         [JsonIgnore]
         public long ClassRestrictions { get => this.Template.ClassRestrictions; }
         [JsonIgnore]
-        public SpellEffect SpellEffect { get => this.Template.SpellEffect; }
+        public SpellEffect? SpellEffect { get => this.Template.SpellEffect; }
         [JsonIgnore]
         public decimal SpellEffectChance { get => this.Template.SpellEffectChance; }
         [JsonIgnore]
@@ -129,7 +129,7 @@ namespace Goose
         public bool Custom { get => this.Description?.StartsWith("Custom created by ") ?? false; }
 
         [JsonIgnore]
-        public Script<IItemScript> Script { get => this.Template.Script; }
+        public Script<IItemScript>? Script { get => this.Template.Script; }
 
         [DefaultValue("")]
         public string ScriptParams { get; set; } = "";

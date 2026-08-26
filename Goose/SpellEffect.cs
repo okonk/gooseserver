@@ -110,7 +110,7 @@ namespace Goose
         // Every property on this type must be copied in the SpellEffect(SpellEffect)
         // copy constructor below - the reflection test SpellCloneTests guards that.
         public int ID { get; set; }
-        public string Name { get; set; }
+        public string Name { get; set; } = null!;
         public int Animation { get; set; }
         public int AnimationFile { get; set; }
         public SpellDisplays Display { get; set; }
@@ -126,12 +126,12 @@ namespace Goose
         public bool SpellDamageEffects { get; set; }
         public long EnergyType { get; set; }
 
-        public string HPFormula { get; set; }
-        public string MPFormula { get; set; }
-        public string SPFormula { get; set; }
+        public string HPFormula { get; set; } = null!;
+        public string MPFormula { get; set; } = null!;
+        public string SPFormula { get; set; } = null!;
 
-        public string OnEffectText { get; set; }
-        public string OffEffectText { get; set; }
+        public string OnEffectText { get; set; } = null!;
+        public string OffEffectText { get; set; } = null!;
 
         public long TauntAggro { get; set; }
 
@@ -157,8 +157,8 @@ namespace Goose
 
         public int OnMeleeAttackSpellID { get; set; }
         public int OnMeleeHitSpellID { get; set; }
-        public SpellEffect OnMeleeAttackSpell { get; set; }
-        public SpellEffect OnMeleeHitSpell { get; set; }
+        public SpellEffect? OnMeleeAttackSpell { get; set; }
+        public SpellEffect? OnMeleeHitSpell { get; set; }
         public decimal OnMeleeAttackSpellChance { get; set; }
         public decimal OnMeleeHitSpellChance { get; set; }
 
@@ -219,9 +219,9 @@ namespace Goose
          */
         public int BodyID { get; set; }
 
-        public Script<ISpellEffectScript> Script { get; set; }
+        public Script<ISpellEffectScript>? Script { get; set; }
 
-        public string ScriptParams { get; set; }
+        public string ScriptParams { get; set; } = null!;
 
         public SpellEffect()
         {
@@ -327,7 +327,7 @@ namespace Goose
                 return $"{prefix}Increase {label} by {value:N0}";
         }
 
-        private string ConvertFormulaVariable(string variable)
+        private string? ConvertFormulaVariable(string variable)
         {
             return variable switch
             {
@@ -353,7 +353,7 @@ namespace Goose
             tokens[0] = tokens[0].Trim();
             tokens[1] = tokens[1].Trim();
 
-            string stat = "";
+            string? stat = "";
             double mult = 0;
             if (tokens[1][0] == '%')
             {
@@ -638,7 +638,7 @@ namespace Goose
 
             if (caster != target)
             {
-                if (((Player)caster).Group is null || !((Player)caster).Group.Players.Contains((Player)target))
+                if (((Player)caster).Group is null || !((Player)caster).Group!.Players.Contains((Player)target))
                 {
                     return false;
                 }
@@ -821,7 +821,7 @@ namespace Goose
         public bool CanCastSpell(ICharacter caster, ICharacter target)
         {
             if (target is null) return false;
-            if ((caster.Map is not null && !caster.Map.CanCast) && (caster is Player && !((caster as Player).HasPrivilege(AccessPrivilege.CastSpellsWhileBlocked)))) return false;
+            if ((caster.Map is not null && !caster.Map.CanCast) && (caster is Player && !((caster as Player)!.HasPrivilege(AccessPrivilege.CastSpellsWhileBlocked)))) return false;
             if (caster == target)
             {
                 if (((int)this.Effected & (int)SpellEffected.Self) == 0) return false;
@@ -1057,7 +1057,7 @@ namespace Goose
         {
             try
             {
-                return this.Script.Object.Cast(this, caster, target, world);
+                return this.Script!.Object.Cast(this, caster, target, world);
             }
             catch (Exception e)
             {

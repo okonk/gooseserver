@@ -909,8 +909,8 @@ namespace Goose
                 using (var query = conn.CreateCommand())
                 {
                     query.CommandText = "SELECT serialized_data FROM inventory WHERE player_id=" + playerId;
-                    string serialized_data = Convert.ToString(query.ExecuteScalar());
-                    this.inventory = JsonHelper.Deserialize<ItemSlot[]>(serialized_data);
+                    string serialized_data = Convert.ToString(query.ExecuteScalar())!;
+                    this.inventory = JsonHelper.Deserialize<ItemSlot[]>(serialized_data)!;
 
                     foreach (var invSlot in this.inventory)
                     {
@@ -928,8 +928,8 @@ namespace Goose
                 using (var query = conn.CreateCommand())
                 {
                     query.CommandText = "SELECT serialized_data FROM equipped WHERE player_id=" + playerId;
-                    string serialized_data = Convert.ToString(query.ExecuteScalar());
-                    this.equipped = JsonHelper.Deserialize<ItemSlot[]>(serialized_data);
+                    string serialized_data = Convert.ToString(query.ExecuteScalar())!;
+                    this.equipped = JsonHelper.Deserialize<ItemSlot[]>(serialized_data)!;
 
                     foreach (var equipSlot in equipped)
                     {
@@ -959,8 +959,8 @@ namespace Goose
                 using (var query = conn.CreateCommand())
                 {
                     query.CommandText = "SELECT serialized_data FROM combinebag WHERE player_id=" + playerId;
-                    string serialized_data = Convert.ToString(query.ExecuteScalar());
-                    var combineSlots = JsonHelper.Deserialize<ItemSlot[]>(serialized_data);
+                    string serialized_data = Convert.ToString(query.ExecuteScalar())!;
+                    var combineSlots = JsonHelper.Deserialize<ItemSlot[]>(serialized_data)!;
 
                     for (int i = 0; i < combineSlots.Length; i++)
                     {

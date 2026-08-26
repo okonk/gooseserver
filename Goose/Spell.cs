@@ -16,8 +16,8 @@ namespace Goose
         }
 
         public int ID { get; set; }
-        public string Name { get; set; }
-        public string Description { get; set; }
+        public string Name { get; set; } = null!;
+        public string Description { get; set; } = null!;
         public SpellTargets Target { get; set; }
         public long ClassRestrictions { get; set; }
         /**
@@ -35,7 +35,7 @@ namespace Goose
         public decimal SPPercentCost { get; set; }
 
         public int SpellEffectID { get; set; }
-        public SpellEffect SpellEffect { get; set; }
+        public SpellEffect SpellEffect { get; set; } = null!;
 
         public Spell() { }
 

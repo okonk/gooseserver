@@ -40,9 +40,9 @@ namespace Goose.Events
                 foreach (var window in this.Player.Windows)
                 {
                     if (window.Type == Window.WindowTypes.Vendor &&
-                        window.NPC.LoginID == npcid)
+                        window.NPC!.LoginID == npcid)
                     {
-                        npc = window.NPC;
+                        npc = window.NPC!;
                         break;
                     }
                 }
@@ -60,7 +60,7 @@ namespace Goose.Events
                 // log bad npc
                 if (npc is null) return;
 
-                NPCVendorSlot slot = npc.VendorItems[slotid];
+                NPCVendorSlot slot = npc.VendorItems![slotid];
 
                 // log bad slot purchase
                 if (slot is null) return;

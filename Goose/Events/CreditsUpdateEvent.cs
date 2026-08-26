@@ -20,7 +20,7 @@ namespace Goose.Events
                     using var reader = command.ExecuteReader();
                     while (reader.Read())
                     {
-                        player = world.PlayerHandler.GetPlayerFromData(reader["player_name"].ToString());
+                        player = world.PlayerHandler.GetPlayerFromData(reader["player_name"].ToString()!);
 
                         if (player is not null)
                         {
@@ -33,10 +33,10 @@ namespace Goose.Events
                             }
                             else
                             {
-                                pendingSaves.Add((player, credits, reader["txn_id"].ToString()));
+                                pendingSaves.Add((player, credits, reader["txn_id"].ToString()!));
                             }
 
-                            redeemed.Add(reader["txn_id"].ToString());
+                            redeemed.Add(reader["txn_id"].ToString()!);
 
                             world.LogHandler.Log(Log.Types.ReceivedCredits,
                                 player.PlayerID, credits.ToString());

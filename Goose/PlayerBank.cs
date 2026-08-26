@@ -36,7 +36,7 @@ namespace Goose
 
                     ItemContainer container = GetOrCreateContainer(player, npc_id, world.Settings.BankSlotsPerPage);
 
-                    var containerSlots = JsonHelper.Deserialize<ItemSlot[]>(serialized_data);
+                    var containerSlots = JsonHelper.Deserialize<ItemSlot[]>(serialized_data)!;
                     for (int i = 0; i < containerSlots.Length; i++)
                     {
                         var containerSlot = containerSlots[i];

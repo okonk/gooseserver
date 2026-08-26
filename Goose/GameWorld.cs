@@ -30,7 +30,7 @@ namespace Goose
         public MapHandler MapHandler { get; set; }
         public NPCHandler NPCHandler { get; set; }
         public ClassHandler ClassHandler { get; set; }
-        public GameServer GameServer { get; set; }
+        public GameServer? GameServer { get; set; }
         public ItemHandler ItemHandler { get; set; }
         public SpellHandler SpellHandler { get; set; }
         public GuildHandler GuildHandler { get; set; }
@@ -44,12 +44,12 @@ namespace Goose
         public Database Database { get; private set; }
         public GooseSettings Settings { get; }
 
-        public Dictionary<string, int> CharactersCreatedPerIP { get; set; }
+        public Dictionary<string, int> CharactersCreatedPerIP { get; set; } = null!;
 
         /**
          * Rate limits failed login attempts by source IP and by account name.
          */
-        public LoginThrottle LoginThrottle { get; set; }
+        public LoginThrottle LoginThrottle { get; set; } = null!;
 
         /**
          * Largest amount of unparsed data held for a single connection before it is
@@ -94,7 +94,7 @@ namespace Goose
          * Constructs all of our Handler objects
          *
          */
-        public GameWorld(GooseSettings settings, GameServer server = null)
+        public GameWorld(GooseSettings settings, GameServer? server = null)
         {
             this.Settings = settings ?? throw new ArgumentNullException(nameof(settings));
             this.timerfreq = Stopwatch.Frequency;
@@ -323,7 +323,7 @@ namespace Goose
         /// Runs a loading step, logging the item count on success or aborting on failure.
         /// Returns false if the step threw (the server should not continue).
         /// </summary>
-        private bool LoadStep(string name, Action action, Func<int> countFn = null)
+        private bool LoadStep(string name, Action action, Func<int>? countFn = null)
         {
             log.Info("Loading {0}: ", name);
             try
@@ -425,7 +425,7 @@ namespace Goose
             {
                 log.Info("Connection lost: " + sock.RemoteEndPoint.ToString());
 
-                this.GameServer.Disconnect(sock);
+                this.GameServer!.Disconnect(sock);
 
                 Event ev = new LogoutEvent();
                 ev.Data = sock;

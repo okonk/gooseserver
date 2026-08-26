@@ -4,7 +4,7 @@ namespace Goose
 {
     public abstract class ItemContainerWindow : Window
     {
-        public ItemContainer ItemContainer { get; protected set; }
+        public ItemContainer ItemContainer { get; protected set; } = null!;
 
         public override void Populate(Player player, GameWorld world)
         {
@@ -62,8 +62,8 @@ namespace Goose
         {
             if (!fromWindow.ValidateSlotIndex(fromSlotIndex) || !toWindow.ValidateSlotIndex(toSlotIndex)) return;
 
-            if (fromWindow is BankWindow && !(fromWindow as BankWindow).BankerInRange(player)) return;
-            if (toWindow is BankWindow && !(toWindow as BankWindow).BankerInRange(player)) return;
+            if (fromWindow is BankWindow && !(fromWindow as BankWindow)!.BankerInRange(player)) return;
+            if (toWindow is BankWindow && !(toWindow as BankWindow)!.BankerInRange(player)) return;
 
             ItemSlot fromContainer = fromWindow.GetSlot(fromSlotIndex);
             ItemSlot toContainer = toWindow.GetSlot(toSlotIndex);

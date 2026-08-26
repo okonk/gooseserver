@@ -45,7 +45,7 @@ namespace Goose
         public static string Serialize<T>(T value) =>
             JsonSerializer.Serialize(value, DatabaseOptions);
 
-        public static T Deserialize<T>(string json) =>
+        public static T? Deserialize<T>(string json) =>
             JsonSerializer.Deserialize<T>(json, DatabaseOptions);
     }
 }

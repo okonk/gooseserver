@@ -580,7 +580,7 @@ namespace Goose
 
         public static Func<Window, ItemTemplate, GameWorld, int, long, string> VendorSlot = (window, item, world, slotId, stack) =>
         {
-            return "SVS" + VendorItemSlot(item, world, window.NPC, slotId, stack);
+            return "SVS" + VendorItemSlot(item, world, window.NPC!, slotId, stack);
         };
 
         public static Func<string> ClearVendor = () =>

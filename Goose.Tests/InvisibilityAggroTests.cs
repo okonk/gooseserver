@@ -197,7 +197,7 @@ public class InvisibilityAggroTests : IDisposable
     {
         var templateA = Template(seeInvisible: true, id: 1);
         var templateB = Template(seeInvisible: false, id: 2);
-        templateA.Allies.Add(templateB);
+        templateA.Allies!.Add(templateB);
 
         var a = SpawnNpc(templateA, 5, 5);
         var b = SpawnNpc(templateB, 5, 4);

@@ -14,8 +14,8 @@ namespace Goose
         private static readonly NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
 
         private readonly BlockingCollection<WorkItem> _queue = new();
-        private SQLiteConnection _connection;
-        private Task _loopTask;
+        private SQLiteConnection? _connection;
+        private Task? _loopTask;
         private int _dbThreadId;
         private volatile bool _started;
         private volatile bool _stopping;
@@ -24,17 +24,17 @@ namespace Goose
 
         private sealed class SyncWork : WorkItem
         {
-            public Action<SQLiteConnection> Action;
-            public Func<SQLiteConnection, object> Func;
-            public object Result;
-            public Exception Error;
+            public Action<SQLiteConnection>? Action;
+            public Func<SQLiteConnection, object?>? Func;
+            public object? Result;
+            public Exception? Error;
             public ManualResetEventSlim Done = new(false);
         }
 
         private sealed class AsyncWork : WorkItem
         {
-            public Action<SQLiteConnection> Action;
-            public Action<Exception> OnComplete;
+            public Action<SQLiteConnection> Action = null!;
+            public Action<Exception?>? OnComplete;
         }
 
         /// <summary>
@@ -55,7 +55,7 @@ namespace Goose
             var cs = $"Data Source={databasePath}; Version=3; Journal Mode=Wal; BusyTimeout=5000;";
 
             var ready = new ManualResetEventSlim(false);
-            Exception startError = null;
+            Exception? startError = null;
 
             _loopTask = Task.Factory.StartNew(() =>
             {
@@ -126,9 +126,9 @@ namespace Goose
                             try
                             {
                                 if (sync.Func is not null)
-                                    sync.Result = sync.Func(_connection);
+                                    sync.Result = sync.Func(_connection!);
                                 else
-                                    sync.Action(_connection);
+                                    sync.Action!(_connection!);
                             }
                             catch (Exception e)
                             {
@@ -144,7 +144,7 @@ namespace Goose
                         {
                             try
                             {
-                                async.Action(_connection);
+                                async.Action(_connection!);
                                 async.OnComplete?.Invoke(null);
                             }
                             catch (Exception e)
@@ -176,7 +176,7 @@ namespace Goose
             // Allow re-entrant Execute if already on the DB thread (defensive; prefer not needed).
             if (Environment.CurrentManagedThreadId == _dbThreadId)
             {
-                action(_connection);
+                action(_connection!);
                 return;
             }
 
@@ -199,7 +199,7 @@ namespace Goose
             if (!_started) throw new InvalidOperationException("Database has not been started.");
 
             if (Environment.CurrentManagedThreadId == _dbThreadId)
-                return func(_connection);
+                return func(_connection!);
 
             var work = new SyncWork { Func = conn => func(conn) };
             try
@@ -207,7 +207,7 @@ namespace Goose
                 _queue.Add(work);
                 work.Done.Wait();
                 if (work.Error is not null) throw work.Error;
-                return (T)work.Result;
+                return (T)work.Result!;
             }
             finally
             {
@@ -215,7 +215,7 @@ namespace Goose
             }
         }
 
-        public void Enqueue(Action<SQLiteConnection> action, Action<Exception> onComplete = null)
+        public void Enqueue(Action<SQLiteConnection> action, Action<Exception?>? onComplete = null)
         {
             if (action is null) throw new ArgumentNullException(nameof(action));
             if (!_started) throw new InvalidOperationException("Database has not been started.");
@@ -235,7 +235,7 @@ namespace Goose
         /// onCommit, if given, runs only after the COMMIT succeeds - never on the
         /// rollback path and never if COMMIT itself throws.
         /// </summary>
-        public void EnqueueTransaction(Action<SQLiteConnection> action, Action onCommit = null)
+        public void EnqueueTransaction(Action<SQLiteConnection> action, Action? onCommit = null)
         {
             if (action is null) throw new ArgumentNullException(nameof(action));
 

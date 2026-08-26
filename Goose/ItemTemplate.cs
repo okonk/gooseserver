@@ -56,14 +56,14 @@ namespace Goose
         }
 
         public int ID { get; set; }
-        public string Name { get; set; }
-        public string Description { get; set; }
+        public string Name { get; set; } = null!;
+        public string Description { get; set; } = null!;
         public UseTypes UseType { get; set; }
         public int MinLevel { get; set; }
         public int MaxLevel { get; set; }
         public long MinExperience { get; set; }
         public long MaxExperience { get; set; }
-        public AttributeSet BaseStats { get; set; }
+        public AttributeSet BaseStats { get; set; } = null!;
         public int WeaponDelay { get; set; }
         public int WeaponDamage { get; set; }
         public int TotalWeaponDamage { get => this.WeaponDamage; }
@@ -101,7 +101,7 @@ namespace Goose
         /**
          * Spell effect
          */
-        public SpellEffect SpellEffect { get; set; }
+        public SpellEffect? SpellEffect { get; set; }
         public decimal SpellEffectChance { get; set; }
         public int LearnSpellID { get; set; }
 
@@ -110,11 +110,11 @@ namespace Goose
         /// <summary>Overrides the vendor's currency for this item. Null means "use whatever
         /// the vendor deals in". Runtime-only - there is no items column for it, so sheet
         /// data never sets it; scripts do (Scripts/Global/Dimensions.csx).</summary>
-        public string CurrencyId { get; set; }
+        public string? CurrencyId { get; set; }
 
-        public Script<IItemScript> Script { get; set; }
+        public Script<IItemScript>? Script { get; set; }
 
-        public string ScriptParams { get; set; }
+        public string ScriptParams { get; set; } = null!;
 
         public ItemTemplate() { }
 

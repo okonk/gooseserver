@@ -38,7 +38,7 @@ namespace Goose
         /// nothing at all.</summary>
         public ICurrency Resolve(ItemTemplate template, NPC vendor)
         {
-            string id = template?.CurrencyId;
+            string? id = template?.CurrencyId;
             if (string.IsNullOrEmpty(id)) id = vendor?.CurrencyId;
             if (string.IsNullOrEmpty(id)) id = Currency.Gold;
 

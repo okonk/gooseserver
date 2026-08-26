@@ -67,7 +67,7 @@ public sealed class VendorFixture : IDisposable
     public NPCVendorSlot Stock(int slotId, ItemTemplate template, int stack = 1)
     {
         var slot = new NPCVendorSlot { Slot = slotId, ItemTemplate = template, Stack = stack };
-        Vendor.VendorItems[slotId] = slot;
+        Vendor.VendorItems![slotId] = slot;
         return slot;
     }
 

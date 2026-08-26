@@ -48,7 +48,7 @@ namespace Goose
         /// Reads --datadir &lt;path&gt; or --datadir=&lt;path&gt; from the command line. The
         /// GOOSE_DATADIR fallback is handled inside Paths.Initialize.
         /// </summary>
-        private static string ParseDataDir(string[] args)
+        private static string? ParseDataDir(string[] args)
         {
             for (int i = 0; i < args.Length; i++)
             {
@@ -68,7 +68,7 @@ namespace Goose
         private static void ConfigureLogging()
         {
             LogManager.Setup().LoadConfigurationFromFile(Paths.ResolveBase("NLog.config"));
-            LogManager.Configuration.Variables["datadir"] = Paths.ResolveData("Logs");
+            LogManager.Configuration!.Variables["datadir"] = Paths.ResolveData("Logs");
         }
     }
 }

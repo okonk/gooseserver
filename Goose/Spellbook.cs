@@ -39,8 +39,8 @@ namespace Goose
             {
                 using var query = conn.CreateCommand();
                 query.CommandText = "SELECT serialized_data FROM spellbook WHERE player_id=" + playerId;
-                string serialized_data = Convert.ToString(query.ExecuteScalar());
-                var spellIds = JsonHelper.Deserialize<int[]>(serialized_data);
+                string serialized_data = Convert.ToString(query.ExecuteScalar())!;
+                var spellIds = JsonHelper.Deserialize<int[]>(serialized_data)!;
 
                 for (int i = 1; i < this.spells.Length; i++)
                 {

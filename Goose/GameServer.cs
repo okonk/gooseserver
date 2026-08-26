@@ -25,7 +25,7 @@ namespace Goose
          */
         private static readonly TimeSpan PreLoginSweepInterval = TimeSpan.FromSeconds(5);
 
-        private Socket listen;
+        private Socket listen = null!;
         private List<Socket> sockets = new();
 
         /**
@@ -46,7 +46,7 @@ namespace Goose
         private readonly List<Socket> writeList = new();
         private readonly byte[] receiveBuffer = new byte[8192];
 
-        private GameWorld gameworld;
+        private GameWorld gameworld = null!;
 
         /**
          * Console commands. Created once and started before the restart loop below,
@@ -58,7 +58,7 @@ namespace Goose
 
         private class ConnectionInfo
         {
-            public string IP;
+            public string IP = null!;
             public DateTime AcceptedAt;
         }
 

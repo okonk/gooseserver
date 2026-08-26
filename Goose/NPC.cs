@@ -66,11 +66,11 @@ namespace Goose
         /**
          * Current Map object
          */
-        public Map Map { get; set; }
+        public Map Map { get; set; } = null!;
         /**
          * Stats from base, items, buffs
          */
-        public AttributeSet MaxStats { get; set; }
+        public AttributeSet MaxStats { get; set; } = null!;
         /**
          * Current HP
          */
@@ -146,19 +146,19 @@ namespace Goose
         /**
          *
          */
-        public NPCTemplate NPCTemplate { get; set; }
+        public NPCTemplate NPCTemplate { get; set; } = null!;
         /**
          * Character name
          */
-        public string Name { get; set; }
+        public string Name { get; set; } = null!;
         /**
          * Name prefix
          */
-        public string Title { get; set; }
+        public string Title { get; set; } = null!;
         /**
          * Name postfix
          */
-        public string Surname { get; set; }
+        public string Surname { get; set; } = null!;
         /**
          * Facing direction
          */
@@ -166,7 +166,7 @@ namespace Goose
         /**
          * BaseStats, stats loaded from database
          */
-        public AttributeSet BaseStats { get; set; }
+        public AttributeSet BaseStats { get; set; } = null!;
         /**
          * Hair style id
          */
@@ -234,7 +234,7 @@ namespace Goose
         /**
          * Class object
          */
-        public Class Class { get; set; }
+        public Class Class { get; set; } = null!;
         /**
          * Respawn time in seconds
          */
@@ -283,7 +283,7 @@ namespace Goose
         /**
          * Items part of MKC String
          */
-        public string EquippedItems { get; set; }
+        public string EquippedItems { get; set; } = null!;
         /**
          * Weapon damage
          */
@@ -296,29 +296,29 @@ namespace Goose
         /**
          * AggroTarget, the player the npc is aggro at if any
          */
-        public Player AggroTarget { get; set; }
+        public Player? AggroTarget { get; set; }
         /**
          * AggroValue, the amount of aggro the npc has against target
          */
-        public Aggro AggroValue { get; set; }
+        public Aggro AggroValue { get; set; } = null!;
         /**
          * Mapping of all aggros
          */
-        public Dictionary<Player, Aggro> AggroTargetToValue { get; set; }
+        public Dictionary<Player, Aggro> AggroTargetToValue { get; set; } = null!;
 
-        public List<NPCTemplate> Allies { get => this.NPCTemplate.Allies; }
+        public List<NPCTemplate>? Allies { get => this.NPCTemplate.Allies; }
 
         /**
          * So move event doesn't double up
          */
-        public Event MoveEvent { get; set; }
+        public Event? MoveEvent { get; set; }
 
         /**
           * So attack event doesn't double up
           */
-        public Event AttackEvent { get; set; }
+        public Event? AttackEvent { get; set; }
 
-        public List<Buff> Buffs { get; set; }
+        public List<Buff> Buffs { get; set; } = null!;
 
         /**
          * Count of buffs with an Invisible/SeeInvisible spell effect. Public set is
@@ -347,7 +347,7 @@ namespace Goose
             else if (effect.EffectType == SpellEffect.EffectTypes.SeeInvisible) this.SeeInvisibleBuffCount--;
         }
 
-        public NPCVendorSlot[] VendorItems { get => this.NPCTemplate.VendorItems; }
+        public NPCVendorSlot[]? VendorItems { get => this.NPCTemplate.VendorItems; }
 
         public NPCTemplate.BehaviourTypes Behaviour { get => this.NPCTemplate.Behaviour; }
         public long BehaviourTimeout { get => this.NPCTemplate.BehaviourTimeout; }
@@ -358,15 +358,15 @@ namespace Goose
         /// </summary>
         public bool CreditDealer { get => this.NPCTemplate.CreditDealer; }
 
-        public string CurrencyId { get => this.NPCTemplate.CurrencyId; }
+        public string? CurrencyId { get => this.NPCTemplate.CurrencyId; }
 
-        internal List<Quest> Quests { get; set; }
+        internal List<Quest> Quests { get; set; } = null!;
 
-        public Script<INPCScript> Script { get => this.NPCTemplate.Script; }
+        public Script<INPCScript>? Script { get => this.NPCTemplate.Script; }
 
         public string ScriptParams { get => this.NPCTemplate.ScriptParams; }
 
-        public object ScriptStore { get; set; }
+        public object? ScriptStore { get; set; }
 
         public int ArmorPierce { get => this.NPCTemplate.ArmorPierce; }
 
@@ -451,7 +451,7 @@ namespace Goose
 
                     List<Player> remove = [];
 
-                    Player highest = null;
+                    Player? highest = null;
                     NPC.Aggro aggro = new NPC.Aggro(0, 0);
                     foreach (KeyValuePair<Player, NPC.Aggro> p in this.AggroTargetToValue)
                     {
@@ -566,7 +566,7 @@ namespace Goose
                 List<NPC> npcs = this.Map.GetNPCsInRange(this);
                 foreach (var npc in npcs)
                 {
-                    if (!this.Allies.Contains(npc.NPCTemplate)) continue;
+                    if (!this.Allies!.Contains(npc.NPCTemplate)) continue;
                     if (npc.AggroTarget is not null) continue;
 
                     if (Math.Abs(npc.MapX - this.MapX) <= npc.AggroRange &&
@@ -923,7 +923,7 @@ namespace Goose
             }
             else
             {
-                Aggro current = new Aggro(0, 0);
+                Aggro? current = new Aggro(0, 0);
                 // if player exists increment their aggro and check for max
                 if (this.AggroTargetToValue.TryGetValue(player, out current))
                 {
@@ -975,7 +975,7 @@ namespace Goose
             if (this.AggroTarget == player)
             {
                 // Set aggro to next highest
-                Player newaggro = null;
+                Player? newaggro = null;
                 Aggro highest = new Aggro(0, 0);
 
                 foreach (KeyValuePair<Player, Aggro> p in this.AggroTargetToValue)
@@ -1012,7 +1012,7 @@ namespace Goose
                 List<NPC> npcs = this.Map.GetNPCsInRange(this);
                 foreach (var npc in npcs)
                 {
-                    if (!this.Allies.Contains(npc.NPCTemplate)) continue;
+                    if (!this.Allies!.Contains(npc.NPCTemplate)) continue;
                     if (npc.AggroTarget is not null) continue;
 
                     if (Math.Abs(npc.MapX - this.MapX) <= npc.AggroRange &&
@@ -1148,7 +1148,7 @@ namespace Goose
                         }
                     }
 
-                    Object highest = null;
+                    Object? highest = null;
                     long highestdamage = 0;
                     foreach (KeyValuePair<Object, long> p in damages)
                     {
@@ -1168,7 +1168,7 @@ namespace Goose
                         Player.ExperienceMessage expMessage = Player.ExperienceMessage.Normal;
                         long experience = this.Experience;
 
-                        if (this.Level + 9 < ((Player)highest).Level)
+                        if (this.Level + 9 < ((Player)highest!).Level)
                         {
                             experience = (long)(this.Experience * 0.10);
                             expMessage = Player.ExperienceMessage.TooHigh;
@@ -1287,7 +1287,7 @@ namespace Goose
                 {
                     case NPCTemplate.BehaviourTypes.TeleportAggro:
                         bool loseaggro = true;
-                        this.AggroTarget.WarpTo(world, this.Map,
+                        this.AggroTarget!.WarpTo(world, this.Map,
                             this.MapX, this.MapY, !loseaggro);
                         // reset attack time so doesn't keep teleporting if it can't attack
                         this.LastAttackTime = world.TimeNow;
@@ -1298,7 +1298,7 @@ namespace Goose
 
                         // Use PlaceCharacter to find the spot to tele to
                         this.Map.SetCharacter(null, this.MapX, this.MapY);
-                        this.MapX = this.AggroTarget.MapX;
+                        this.MapX = this.AggroTarget!.MapX;
                         this.MapY = this.AggroTarget.MapY;
                         this.Map.PlaceCharacter(this);
 
@@ -1315,7 +1315,7 @@ namespace Goose
                 }
             }
 
-            Player aggro = this.AggroTarget;
+            Player aggro = this.AggroTarget!;
             // Try to attack main aggro first
             if (this.Map == aggro.Map &&
                 Math.Abs(this.MapX - aggro.MapX) <= this.AttackRange &&
@@ -1430,7 +1430,7 @@ namespace Goose
          */
         public void DropItems(Player player, GameWorld world)
         {
-            foreach (var dropinfo in this.NPCTemplate.Drops)
+            foreach (var dropinfo in this.NPCTemplate.Drops!)
             {
                 if (world.Random.Next(1, 1000000001) <=
                     world.Settings.DropRateModifier * dropinfo.DropRate * 10000000)
@@ -1463,7 +1463,7 @@ namespace Goose
 
                     // tile can stack
                     ITile tileResult = this.Map.GetTile(tile.X, tile.Y);
-                    ItemTile maptile = tileResult as ItemTile;
+                    ItemTile? maptile = tileResult as ItemTile;
                     if (maptile is not null)
                     {
                         maptile.ItemSlot.Stack += drop.Stack;
@@ -1520,7 +1520,7 @@ namespace Goose
                 buff.SpellEffect.EffectType == SpellEffect.EffectTypes.Stun)
             {
                 // buff will expire before next tick
-                if (buff.BuffExpireEvent.Ticks - world.TimeNow >
+                if (buff.BuffExpireEvent!.Ticks - world.TimeNow >
                     world.Settings.SpellEffectPeriod * world.TimerFrequency)
                 {
                     var ev = new BuffTickEvent();
@@ -1545,7 +1545,7 @@ namespace Goose
             }
             catch (Exception e) { }
 
-            if (buff.SpellEffect.EffectType == SpellEffect.EffectTypes.Tick)
+            if (buff.SpellEffect!.EffectType == SpellEffect.EffectTypes.Tick)
             {
                 buff.SpellEffect.CastFormulaSpell(buff.Caster, buff.Target, world);
             }
@@ -1693,7 +1693,7 @@ namespace Goose
                 if (b.SpellEffect.EffectType == SpellEffect.EffectTypes.OnMeleeHit)
                 {
                     if (world.Random.Next(1, 10001) <= b.SpellEffect.OnMeleeHitSpellChance * 100)
-                        b.SpellEffect.OnMeleeHitSpell.Cast(this, hitter, world);
+                        b.SpellEffect.OnMeleeHitSpell!.Cast(this, hitter, world);
                 }
             }
         }
@@ -1709,7 +1709,7 @@ namespace Goose
                 if (b.SpellEffect.EffectType == SpellEffect.EffectTypes.OnAttack)
                 {
                     if (world.Random.Next(1, 10001) <= b.SpellEffect.OnMeleeAttackSpellChance * 100)
-                        b.SpellEffect.OnMeleeAttackSpell.Cast(this, hit, world);
+                        b.SpellEffect.OnMeleeAttackSpell!.Cast(this, hit, world);
                 }
             }
         }

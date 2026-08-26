@@ -16,7 +16,7 @@ namespace Goose
         }
         public RankTypes Type { get; set; }
 
-        public List<Player> RanksList { get; set; }
+        public List<Player>? RanksList { get; set; }
 
         private List<string> ranksStrings;
         private long lastUpdated;
@@ -59,7 +59,7 @@ namespace Goose
         {
             this.ranksStrings = [];
 
-            List<Player> result = null;
+            List<Player>? result = null;
 
             switch (this.Type)
             {
@@ -87,7 +87,7 @@ namespace Goose
 
             string line = "";
             int i = 1;
-            foreach (var player in result)
+            foreach (var player in result!)
             {
                 line = this.Type switch
                 {

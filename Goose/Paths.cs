@@ -31,7 +31,7 @@ namespace Goose
         /// the GOOSE_DATADIR environment variable is used; with neither, everything stays
         /// next to the binaries (the historical behaviour).
         /// </summary>
-        public static void Initialize(string dataDir = null)
+        public static void Initialize(string? dataDir = null)
         {
             BaseDir = AppDomain.CurrentDomain.BaseDirectory;
 

@@ -45,7 +45,7 @@ namespace Goose
         long MaxExperience { get; }
 
         long ClassRestrictions { get; }
-        SpellEffect SpellEffect { get; }
+        SpellEffect? SpellEffect { get; }
         decimal SpellEffectChance { get; }
         int LearnSpellID { get; }
 

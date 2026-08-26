@@ -7,10 +7,10 @@ namespace Goose.Quests
     public class Quest
     {
         public int Id { get; set; }
-        public string Name { get; set; }
-        public string Description { get; set; }
-        public string FailText { get; set; }
-        public string PassText { get; set; }
+        public string Name { get; set; } = null!;
+        public string Description { get; set; } = null!;
+        public string FailText { get; set; } = null!;
+        public string PassText { get; set; } = null!;
         public long ClassRestrictions { get; set; }
         public int MinLevel { get; set; }
         public int MaxLevel { get; set; }

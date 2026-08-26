@@ -65,7 +65,7 @@ namespace Goose
 
         public bool BankerInRange(Player player)
         {
-            return Map.InRange(player, this.NPC);
+            return Map.InRange(player, this.NPC!);
         }
 
         private int GetSlotOffset()

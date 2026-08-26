@@ -37,9 +37,9 @@ namespace Goose.Quests
         public RewardType Type { get; set; }
         public long LongValue { get; set; }
         public long LongValue2 { get; set; }
-        public string StringValue { get; set; }
-        public Script<IQuestScript> Script { get; set; }
-        public string ScriptParams { get; set; }
+        public string StringValue { get; set; } = null!;
+        public Script<IQuestScript>? Script { get; set; }
+        public string ScriptParams { get; set; } = null!;
 
         public static QuestReward FromReader(DbDataReader reader, GameWorld world, Quest quest)
         {

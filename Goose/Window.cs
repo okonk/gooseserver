@@ -67,7 +67,7 @@ namespace Goose
         }
         public WindowTypes Type { get; set; }
 
-        public virtual string Title { get; set; }
+        public virtual string Title { get; set; } = null!;
         /**
          * Buttons
          * Seems to be 5 comma separated values
@@ -78,13 +78,13 @@ namespace Goose
          *
          * showCombine,showClose,showBack,showNext,showOK 
          */
-        public virtual string Buttons { get; set; }
+        public virtual string Buttons { get; set; } = null!;
 
-        public NPC NPC { get; set; }
+        public NPC? NPC { get; set; }
 
         public int ID { get; set; }
 
-        public Object Data { get; set; }
+        public Object? Data { get; set; }
 
         /**
          * Create, creates window on player's screen
@@ -117,7 +117,7 @@ namespace Goose
                     switch (this.Type)
                     {
                         case Window.WindowTypes.Vendor:
-                            this.NPC.CloseVendorWindow(this, player, world);
+                            this.NPC!.CloseVendorWindow(this, player, world);
                             break;
                         case Window.WindowTypes.Bank:
                         case Window.WindowTypes.CombineBag:
@@ -153,9 +153,9 @@ namespace Goose
                 case WindowTypes.Vendor:
                     world.Send(player, P.ClearVendor());
                     
-                    for (int i = 1; i < this.NPC.VendorItems.Length; i++)
+                    for (int i = 1; i < this.NPC!.VendorItems!.Length; i++)
                     {
-                        var slot = this.NPC.VendorItems[i];
+                        var slot = this.NPC!.VendorItems![i];
                         if (slot is null) continue;
 
                         world.Send(player, P.VendorSlot(this, slot.ItemTemplate, world, i, 1));
@@ -240,7 +240,7 @@ namespace Goose
          */
         public void PopulateRanks(Player player, GameWorld world)
         {
-            Ranks rank = (Ranks)this.Data;
+            Ranks rank = (Ranks)this.Data!;
             int i = 1;
 
             foreach (string line in rank.GetRanks(world))
@@ -255,7 +255,7 @@ namespace Goose
          */
         public void PopulatePetInfo(Player player, GameWorld world)
         {
-            Pet pet = (Pet)this.Data;
+            Pet pet = (Pet)this.Data!;
 
             int i = 1;
             string line;

@@ -7,7 +7,7 @@ public class PropertiesDictionaryTests
     {
         var props = new PropertiesDictionary { ["dimension.max"] = 3, ["name"] = "abyss", ["on"] = true };
 
-        var restored = JsonHelper.Deserialize<PropertiesDictionary>(JsonHelper.Serialize(props));
+        var restored = JsonHelper.Deserialize<PropertiesDictionary>(JsonHelper.Serialize(props))!;
 
         // JSON integers come back as long; GetProperty<int> must narrow them.
         Assert.Equal(3, restored.GetProperty<int>("dimension.max"));

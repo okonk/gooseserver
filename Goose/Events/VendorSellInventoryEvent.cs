@@ -44,9 +44,9 @@ namespace Goose.Events
                 foreach (var window in this.Player.Windows)
                 {
                     if (window.Type == Window.WindowTypes.Vendor &&
-                        window.NPC.LoginID == npcid)
+                        window.NPC!.LoginID == npcid)
                     {
-                        npc = window.NPC;
+                        npc = window.NPC!;
                         break;
                     }
                 }

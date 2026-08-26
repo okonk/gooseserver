@@ -39,15 +39,15 @@ namespace Goose
         /**
          * Character name
          */
-        public string Name { get; set; }
+        public string Name { get; set; } = null!;
         /**
          * Name prefix
          */
-        public string Title { get; set; }
+        public string Title { get; set; } = null!;
         /**
          * Name postfix
          */
-        public string Surname { get; set; }
+        public string Surname { get; set; } = null!;
         /**
          * Facing direction
          */
@@ -55,7 +55,7 @@ namespace Goose
         /**
          * BaseStats, stats loaded from database
          */
-        public AttributeSet BaseStats { get; set; }
+        public AttributeSet BaseStats { get; set; } = null!;
         /**
          * Hair style id
          */
@@ -163,7 +163,7 @@ namespace Goose
         /**
          * Items part of MKC String
          */
-        public string EquippedItems { get; set; }
+        public string EquippedItems { get; set; } = null!;
         /**
          * Weapon damage
          */
@@ -171,22 +171,22 @@ namespace Goose
         /**
          * Allies, space delimited list of template ids
          */
-        public string AlliesString { get; set; }
+        public string AlliesString { get; set; } = null!;
         /**
          * Allies, list of npctemplates
          */
-        public List<NPCTemplate> Allies { get; set; }
+        public List<NPCTemplate>? Allies { get; set; }
 
         /**
          * Drops, holds a list of the drops
          * 
          */
-        public List<NPCDropInfo> Drops { get; set; }
+        public List<NPCDropInfo>? Drops { get; set; }
 
         /**
          * Holds the items this npc is selling
          */
-        public NPCVendorSlot[] VendorItems { get; set; }
+        public NPCVendorSlot[]? VendorItems { get; set; }
 
         /// <summary>
         /// Does this NPC deal in credits instead of gold?
@@ -195,13 +195,13 @@ namespace Goose
 
         /// <summary>The currency this vendor trades in. Null means gold. Set from the
         /// credit_dealer column at load (NPCHandler.cs:105).</summary>
-        public string CurrencyId { get; set; }
+        public string? CurrencyId { get; set; }
 
         public List<Quest> Quests { get; set; }
 
-        public Script<INPCScript> Script { get; set; }
+        public Script<INPCScript>? Script { get; set; }
 
-        public string ScriptParams { get; set; }
+        public string ScriptParams { get; set; } = null!;
 
         public int ArmorPierce { get; set; }
 

@@ -8,7 +8,7 @@ namespace Goose
         private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
 
         public int Id { get; set; }
-        public string Name { get; set; }
+        public string Name { get; set; } = null!;
         public int MinLevel { get; set; }
         public int MaxLevel { get; set; }
         public long MinExperience { get; set; }
@@ -16,8 +16,8 @@ namespace Goose
         public ItemTemplate.UseTypes UseType { get; set; }
         public ItemTemplate.ItemSlots Slot { get; set; }
         public double Chance { get; set; }
-        public Script<IItemModifierScript> Script { get; set; }
-        public string ScriptParams { get; set; }
+        public Script<IItemModifierScript>? Script { get; set; }
+        public string ScriptParams { get; set; } = null!;
 
         public static ItemModifier FromReader(DbDataReader reader, GameWorld world, Dictionary<int, ItemModifier> modifiers)
         {

@@ -27,8 +27,8 @@ namespace Goose.Quests
             }
         }
 
-        public int[] Started { get; set; }
-        public int[] Completed { get; set; }
-        public QuestProgress[] Progress { get; set; }
+        public int[]? Started { get; set; }
+        public int[]? Completed { get; set; }
+        public QuestProgress[]? Progress { get; set; }
     }
 }

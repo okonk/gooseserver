@@ -25,8 +25,8 @@ namespace Goose
          * map_name
          *
          */
-        public string Name { get; set; }
-        public string FileName { get; set; }
+        public string Name { get; set; } = null!;
+        public string FileName { get; set; } = null!;
         /**
          * map_x
          *
@@ -53,16 +53,16 @@ namespace Goose
         public bool CanSpawnPets { get; set; }
         public bool Muted { get; set; }
 
-        public Script<IMapScript> Script { get; set; }
+        public Script<IMapScript>? Script { get; set; }
 
-        public string ScriptParams { get; set; }
+        public string ScriptParams { get; set; } = null!;
 
-        public object ScriptStore { get; set; }
+        public object? ScriptStore { get; set; }
 
         // Field block: when adding a field to Map, mirror it in CloneAs below or clones
         // will silently diverge from the maps they were copied from.
-        public ICharacter[] characters;
-        public ITile[] tiles;
+        public ICharacter?[] characters = null!;
+        public ITile[] tiles = null!;
         List<Player> players;
         List<int> requiredItems;
         List<NPC> npcs;
@@ -416,7 +416,7 @@ namespace Goose
             // invalid coordinates
             if (x < 1 || x >= this.Width + 1 || y < 1 || y >= this.Height + 1) return true;
 
-            Player ignorePlayer = ignore as Player;
+            Player? ignorePlayer = ignore as Player;
             bool isgm = (ignorePlayer is not null && ignorePlayer.Access == Player.AccessStatus.GameMaster);
 
             ITile tile = this.tiles[y * this.Width + x];
@@ -433,7 +433,7 @@ namespace Goose
             }
 
             ICharacter character = this.GetCharacterAt(x, y);
-            if (character is null || character == ignore || (isgm && ignorePlayer.IsGMInvisible)) return false;
+            if (character is null || character == ignore || (isgm && ignorePlayer!.IsGMInvisible)) return false;
 
             return true;
         }
@@ -670,13 +670,13 @@ namespace Goose
         {
             if (x < 1 || x >= this.Width + 1 || y < 1 || y >= this.Height + 1) return null;
 
-            return this.characters[y * this.Width + x];
+            return this.characters[y * this.Width + x]!;
         }
 
         /**
          * Set Character at x,y to character
          */
-        public void SetCharacter(ICharacter character, int x, int y)
+        public void SetCharacter(ICharacter? character, int x, int y)
         {
             if (x < 1 || x >= this.Width + 1 || y < 1 || y >= this.Height + 1) return;
 

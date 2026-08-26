@@ -91,7 +91,7 @@ namespace Goose.Events
             if (name.Length < 3 || password.Length < 3)
             {
                 world.SendRaw(sock, P.LoginDenied("Please use a longer username or password."));
-                world.GameServer.Disconnect(sock);
+                world.GameServer!.Disconnect(sock);
                 return;
             }
 
@@ -104,14 +104,14 @@ namespace Goose.Events
             {
                 world.SendRaw(sock,
                     P.LoginDenied("Too many failed login attempts. Try again in " + retryAfter + " seconds."));
-                world.GameServer.Disconnect(sock);
+                world.GameServer!.Disconnect(sock);
                 return;
             }
 
             if (world.PlayerHandler.IsLoggedIn(name.ToLower()))
             {
                 world.SendRaw(sock, P.LoginDenied("Character is already logged in."));
-                world.GameServer.Disconnect(sock);
+                world.GameServer!.Disconnect(sock);
                 return;
             }
 
@@ -128,7 +128,7 @@ namespace Goose.Events
                         if (created >= world.Settings.NewCharactersPerDayPerIP)
                         {
                             world.SendRaw(sock, P.LoginDenied("You can't create any more characters today."));
-                            world.GameServer.Disconnect(sock);
+                            world.GameServer!.Disconnect(sock);
                             return;
                         }
                     }
@@ -143,14 +143,14 @@ namespace Goose.Events
                     if (name.Length < 3 || name.Length > 16)
                     {
                         world.SendRaw(sock, P.LoginDenied("Character name must be 3-16 letters."));
-                        world.GameServer.Disconnect(sock);
+                        world.GameServer!.Disconnect(sock);
                         return;
                     }
 
                     if (!name.All(c => (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')))
                     {
                         world.SendRaw(sock, P.LoginDenied("Your name must contain letters only."));
-                        world.GameServer.Disconnect(sock);
+                        world.GameServer!.Disconnect(sock);
                         return;
                     }
 
@@ -164,7 +164,7 @@ namespace Goose.Events
                 else
                 {
                     world.SendRaw(sock, P.LoginDenied("Character does not exist."));
-                    world.GameServer.Disconnect(sock);
+                    world.GameServer!.Disconnect(sock);
                     return;
                 }
             }
@@ -182,7 +182,7 @@ namespace Goose.Events
                     world.LoginThrottle.RecordFailure("name:" + name);
 
                     world.Send(this.Player, P.LoginDenied("Wrong password for character."));
-                    world.GameServer.Disconnect(this.Player.Sock);
+                    world.GameServer!.Disconnect(this.Player.Sock);
                     return;
                 }
 
@@ -221,7 +221,7 @@ namespace Goose.Events
                     if (player.Access == Player.AccessStatus.Banned)
                     {
                         world.Send(this.Player, P.LoginDenied("You have been banned." + banRemaining));
-                        world.GameServer.Disconnect(this.Player.Sock);
+                        world.GameServer!.Disconnect(this.Player.Sock);
                         return;
                     }
                 }
@@ -230,7 +230,7 @@ namespace Goose.Events
             if (world.Settings.LockdownModeEnabled && this.Player.Access != Player.AccessStatus.GameMaster)
             {
                 world.Send(this.Player, P.LoginDenied("Server is currently under maintenance. Try again soon."));
-                world.GameServer.Disconnect(this.Player.Sock);
+                world.GameServer!.Disconnect(this.Player.Sock);
                 return;
             }
 
@@ -238,7 +238,7 @@ namespace Goose.Events
             if (this.Player.LoginID == 0)
             {
                 world.Send(this.Player, P.LoginDenied("The server is full. Try again later."));
-                world.GameServer.Disconnect(this.Player.Sock);
+                world.GameServer!.Disconnect(this.Player.Sock);
                 world.PlayerHandler.RemovePlayer(this.Player);
                 return;
             }

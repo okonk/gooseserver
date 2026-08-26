@@ -37,8 +37,8 @@ namespace Goose
         public Dictionary<int, PlayerGuildStatus> Members { get; set; }
 
         public int ID { get; set; }
-        public string MOTD { get; set; }
-        public string Name { get; set; }
+        public string MOTD { get; set; } = null!;
+        public string Name { get; set; } = null!;
         // Does data need updating
         public bool Dirty { get; set; }
 
@@ -271,7 +271,7 @@ namespace Goose
             });
         }
 
-        public (Action<SQLiteConnection> Save, Action OnCommit) BuildSave(Action<int> onGuildId = null)
+        public (Action<SQLiteConnection> Save, Action OnCommit) BuildSave(Action<int>? onGuildId = null)
         {
             string name = this.Name;
             string motd = this.MOTD;

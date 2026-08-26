@@ -23,8 +23,8 @@ namespace Goose
         /**
          * BaseStats, stats loaded from database
          */
-        public AttributeSet BaseStats { get; set; }
+        public AttributeSet BaseStats { get; set; } = null!;
 
-        public List<Spell> Spells { get; set; }
+        public List<Spell> Spells { get; set; } = null!;
     }
 }
