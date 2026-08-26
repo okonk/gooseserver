@@ -45,14 +45,14 @@ namespace Goose.Quests
         {
             var reward = new QuestReward();
 
-            reward.Id = Convert.ToInt32(reader["id"]);
-            reward.Type = (RewardType)Convert.ToInt32(reader["reward_type"]);
-            reward.LongValue = Convert.ToInt64(reader["long_value"]);
-            reward.LongValue2 = Convert.ToInt64(reader["long_value2"]);
-            reward.StringValue = Convert.ToString(reader["string_value"]);
+            reward.Id = reader.GetInt32("id");
+            reward.Type = (RewardType)reader.GetInt32("reward_type");
+            reward.LongValue = reader.GetInt64("long_value");
+            reward.LongValue2 = reader.GetInt64("long_value2");
+            reward.StringValue = reader.GetString("string_value");
 
-            reward.ScriptParams = Convert.ToString(reader["script_params"]);
-            string scriptPath = Convert.ToString(reader["script_path"]);
+            reward.ScriptParams = reader.GetString("script_params");
+            string scriptPath = reader.GetString("script_path");
             if (!string.IsNullOrEmpty(scriptPath))
             {
                 reward.Script = world.ScriptHandler.GetScript<IQuestScript>(scriptPath);

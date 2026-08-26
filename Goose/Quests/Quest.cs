@@ -38,26 +38,26 @@ namespace Goose.Quests
 
         public static Quest FromReader(DbDataReader reader, Dictionary<int, Quest> quests)
         {
-            int id = Convert.ToInt32(reader["id"]);
+            int id = reader.GetInt32("id");
 
             Quest quest = null;
             if (!quests.TryGetValue(id, out quest))
                 quest = new Quest();
 
             quest.Id = id;
-            quest.Name = Convert.ToString(reader["name"]);
-            quest.Description = Convert.ToString(reader["description"]);
-            quest.FailText = Convert.ToString(reader["fail_text"]);
-            quest.PassText = Convert.ToString(reader["pass_text"]);
-            quest.ClassRestrictions = Convert.ToInt64(reader["class_restrictions"]);
-            quest.MinLevel = Convert.ToInt32(reader["min_level"]);
-            quest.MaxLevel = Convert.ToInt32(reader["max_level"]);
-            quest.MinExperience = Convert.ToInt64(reader["min_experience"]);
-            quest.MaxExperience = Convert.ToInt64(reader["max_experience"]);
-            quest.Repeatable = Convert.ToString(reader["repeatable"]) != "0";
-            quest.ShowProgress = Convert.ToString(reader["show_progress"]) != "0";
-            quest.OnlyOnePlayerCanComplete = Convert.ToString(reader["only_one_player_can_complete"]) != "0";
-            quest.PrerequisiteQuests = Convert.ToString(reader["prerequisite_quests"]).Split([' ', ','], StringSplitOptions.RemoveEmptyEntries).Select(q => Convert.ToInt32(q)).ToList();
+            quest.Name = reader.GetString("name");
+            quest.Description = reader.GetString("description");
+            quest.FailText = reader.GetString("fail_text");
+            quest.PassText = reader.GetString("pass_text");
+            quest.ClassRestrictions = reader.GetInt64("class_restrictions");
+            quest.MinLevel = reader.GetInt32("min_level");
+            quest.MaxLevel = reader.GetInt32("max_level");
+            quest.MinExperience = reader.GetInt64("min_experience");
+            quest.MaxExperience = reader.GetInt64("max_experience");
+            quest.Repeatable = reader.GetString("repeatable") != "0";
+            quest.ShowProgress = reader.GetString("show_progress") != "0";
+            quest.OnlyOnePlayerCanComplete = reader.GetString("only_one_player_can_complete") != "0";
+            quest.PrerequisiteQuests = reader.GetString("prerequisite_quests").Split([' ', ','], StringSplitOptions.RemoveEmptyEntries).Select(q => Convert.ToInt32(q)).ToList();
 
             return quest;
         }

@@ -38,14 +38,14 @@ namespace Goose.Quests
             var requirement = new QuestRequirement();
             requirement.Quest = quest;
 
-            requirement.Id = Convert.ToInt32(reader["id"]);
-            requirement.Type = (RequirementType)Convert.ToInt32(reader["requirement_type"]);
-            requirement.Value = Convert.ToInt64(reader["requirement_value"]);
-            requirement.Value2 = Convert.ToInt64(reader["requirement_value2"]);
-            requirement.KeepRequirement = Convert.ToString(reader["keep_requirement"]) != "0";
+            requirement.Id = reader.GetInt32("id");
+            requirement.Type = (RequirementType)reader.GetInt32("requirement_type");
+            requirement.Value = reader.GetInt64("requirement_value");
+            requirement.Value2 = reader.GetInt64("requirement_value2");
+            requirement.KeepRequirement = reader.GetString("keep_requirement") != "0";
 
-            requirement.ScriptParams = Convert.ToString(reader["script_params"]);
-            string scriptPath = Convert.ToString(reader["script_path"]);
+            requirement.ScriptParams = reader.GetString("script_params");
+            string scriptPath = reader.GetString("script_path");
             if (!string.IsNullOrEmpty(scriptPath))
             {
                 requirement.Script = world.ScriptHandler.GetScript<IQuestScript>(scriptPath);

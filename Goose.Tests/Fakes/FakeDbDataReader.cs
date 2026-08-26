@@ -4,8 +4,8 @@ using System.Data.Common;
 namespace Goose.Tests.Fakes;
 
 /// <summary>Drives the various FromReader methods, which only ever index by column name.
-/// Every other member throws: if a FromReader starts calling GetInt32/GetString, this fake
-/// should fail loudly rather than silently return a default.</summary>
+/// The extension helpers (GetInt32/GetString etc.) route through the name indexer and do not throw;
+/// only direct typed/ordinal accessor calls fail loudly rather than silently return a default.</summary>
 public sealed class FakeDbDataReader : DbDataReader
 {
     private readonly Dictionary<string, object> values;
