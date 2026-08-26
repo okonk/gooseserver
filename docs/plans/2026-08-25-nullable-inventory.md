@@ -1,6 +1,8 @@
 # Nullable Reference Types — Classified Warning Inventory
 
-Captured at HEAD `8e72576` with `<Nullable>enable</Nullable>` enabled in `Goose/Goose.csproj`.
+Captured at HEAD `8e72576` using a temporary local `<Nullable>enable</Nullable>`
+edit to `Goose/Goose.csproj` (the permanent enable landed in `93f41d4`, after
+this capture).
 This is the load-bearing artifact for the Nullable Reference Types Adoption Plan: Tasks 2–4
 fix warnings by area and reduce the per-area counts below to zero; Task 5 proves the build is
 warning-free. If any task stalls, this inventory is sufficient to hand the work to a fresh
@@ -298,6 +300,50 @@ Area 6 (tests and fakes, 308 entries):
 New latent bug recorded: #19 (`GooseSettings` string properties null when the
 settings JSON omits the field).
 
+Empty-string divergence across the three script gates (pre-existing, unchanged by
+the annotations): `IItemScript.CanPickup` and `IMapScript.CanPlayerJoin` consumers
+check `is not null`, so a script returning `""` refuses with an empty message,
+while `IQuestScript.CanComplete` treats `""` as allow (`!string.IsNullOrEmpty`).
+Noted so script authors don't port habits across the three gates.
+
+### Task 5 completion record
+
+Plan complete. Removed the three now-redundant per-file `#nullable enable`
+directives (line 1 of `Goose/Trie.cs`, `Goose/PropertiesDictionary.cs`,
+`Goose/PropertiesDictionaryJsonConverter.cs` — the project enables NRT globally
+since Task 1; the directives were pre-project-wide opt-ins). Removal changed
+nothing: no new warnings appeared.
+
+Final verification (2026-08-26):
+
+- Zero-proof: `dotnet build Goose.sln --no-incremental
+  -p:WarningsAsErrors=nullable` exit 0 — any nullable diagnostic (including
+  codes outside any grep range) would fail that build (a build run with the
+  flag). The 21 remaining warnings are all outside the nullable group: 19
+  pre-existing CS0168 (unused variable) in Goose.csproj, 1 xUnit1012
+  (Goose.Tests/PlayerPropertiesTests.cs, analyzer diagnostic), 1 CA1416
+  (Tools.Tests/BundleStageTests.cs, analyzer diagnostic).
+- `dotnet test Goose.sln` (TRX at `/tmp/goose-final-trx/`,
+  `LogFilePrefix=final`): Goose.Tests 341 passed / 0 failed; Tools.Tests 124
+  passed / 26 skipped / 0 failed — counts match the pre-plan baseline exactly.
+- TRX identity diff vs `/tmp/goose-pre-nullable-trx/` (testName + outcome
+  from every `<UnitTestResult>` element, 491 recorded results per capture =
+  341 Goose.Tests + 150 Tools.Tests; the 26 skipped Tools.Tests tests are
+  recorded by the trx logger as `outcome="NotExecuted"` in each capture):
+  **empty** — every recorded test identity and outcome is identical to the
+  baseline.
+- Integration suite (not in the sln-only baseline; bar is green + a sensible
+  count): `dotnet test Goose.IntegrationTests/Goose.IntegrationTests.csproj`
+  — **219 passed / 0 failed**.
+
+Deferred: a permanent `<WarningsAsErrors>nullable</WarningsAsErrors>` in
+`Goose/Goose.csproj` is deliberately not adopted now (per the plan) so a
+transient build break can't mask a real regression while the codebase is
+young. The zero-proof command above is the re-verification procedure to run
+when checking for nullable-warning regressions; the 21 remaining non-nullable
+warnings are outside the `nullable` group and do not block adopting the flag
+later.
+
 ### Area 2 note: `DataReaderExtensions.GetString`
 
 `Goose/DataReaderExtensions.cs(14)` — `GetString` returns non-nullable `string` (null and
@@ -413,7 +459,10 @@ annotation work; each is suppressed with `!` at the site(s) noted.
     `LoginContinuedEvent.cs:34` (`MOTD.Length`), `Player.cs:638`
     (`StartingItems.Split(' ')`), `LoginEvent.cs:255` (`ServerName`),
     `GuildCreateCommandEvent.cs:50/55` (`DefaultGuildMOTD`), `GameServer.cs:159`
-    (`GameServerIP`). Same class as #7/#14: bad operator data, unguarded.
+    (`GameServerIP`). Same class as #7/#14: bad operator data, unguarded. The
+    `!` at `GooseSettingsLoader.cs:54` also covers a settings file containing
+    the JSON literal `null` (Deserialize → null → the `GameServer` ctor's
+    existing `ArgumentNullException`).
 
 ## Classified inventory
 
