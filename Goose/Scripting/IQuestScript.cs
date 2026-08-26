@@ -21,7 +21,7 @@ namespace Goose.Scripting
         // Reward role
         /// <summary>null or empty to allow completion; otherwise the message shown to the player
         /// instead of completing the quest. Supports \n the same way quest Description does.</summary>
-        string CanComplete(QuestReward reward, Player player, GameWorld world);
+        string? CanComplete(QuestReward reward, Player player, GameWorld world);
         void GiveReward(QuestReward reward, NPC npc, Player player, GameWorld world);
     }
 }

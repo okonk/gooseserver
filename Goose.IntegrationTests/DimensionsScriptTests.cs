@@ -66,7 +66,7 @@ public class DimensionsScriptTests
             f.World.NPCHandler.AddTemplate(t);
         });
 
-        var dim3 = fixture.World.NPCHandler.GetNPCTemplate(162 + 100000 * 3);
+        var dim3 = fixture.World.NPCHandler.GetNPCTemplate(162 + 100000 * 3)!;
         Assert.NotNull(dim3);
         Assert.Equal("Shadow Dog (3)", dim3.Name);
 
@@ -107,7 +107,7 @@ public class DimensionsScriptTests
             f.World.NPCHandler.AddTemplate(t);
         });
 
-        var dim3 = fixture.World.NPCHandler.GetNPCTemplate(162 + 100000 * 3);
+        var dim3 = fixture.World.NPCHandler.GetNPCTemplate(162 + 100000 * 3)!;
 
         Assert.NotNull(dim3);
         Assert.Equal(0, dim3.AggroRange);
@@ -137,7 +137,7 @@ public class DimensionsScriptTests
             f.World.NPCHandler.AddTemplate(t);
         });
 
-        var dim3 = fixture.World.NPCHandler.GetNPCTemplate(162 + 100000 * 3);
+        var dim3 = fixture.World.NPCHandler.GetNPCTemplate(162 + 100000 * 3)!;
 
         Assert.NotNull(dim3);
         Assert.Equal(50, dim3.Level);
@@ -167,7 +167,7 @@ public class DimensionsScriptTests
             f.World.NPCHandler.AddTemplate(t);
         });
 
-        var dim3 = fixture.World.NPCHandler.GetNPCTemplate(162 + 100000 * 3);
+        var dim3 = fixture.World.NPCHandler.GetNPCTemplate(162 + 100000 * 3)!;
 
         Assert.NotNull(dim3);
         Assert.Equal(40, dim3.Level);
@@ -199,13 +199,13 @@ public class DimensionsScriptTests
         for (int dim = 1; dim <= 6; dim++)
         {
             Assert.Null(fixture.World.NPCHandler.GetNPCTemplate(162 + 100000 * dim));
-            Assert.DoesNotContain(fixture.World.MapHandler.GetMap(1 + 100000 * dim).NPCs,
+            Assert.DoesNotContain(fixture.World.MapHandler.GetMap(1 + 100000 * dim)!.NPCs,
                                   n => n.NPCTemplateID == 162 + 100000 * dim);
         }
 
         // The base dealer and its spawn are untouched.
         Assert.NotNull(fixture.World.NPCHandler.GetNPCTemplate(162));
-        Assert.Contains(fixture.World.MapHandler.GetMap(1).NPCs,
+        Assert.Contains(fixture.World.MapHandler.GetMap(1)!.NPCs,
                         n => n.NPCTemplateID == 162);
     }
 
@@ -220,7 +220,7 @@ public class DimensionsScriptTests
             f.World.NPCHandler.AddTemplate(t);
         });
 
-        var basic = fixture.World.NPCHandler.GetNPCTemplate(162);
+        var basic = fixture.World.NPCHandler.GetNPCTemplate(162)!;
         Assert.Equal("Shadow Dog", basic.Name);
         Assert.Equal(3704, basic.BaseStats.HP);
         Assert.Equal(40, basic.Level);
@@ -242,16 +242,16 @@ public class DimensionsScriptTests
             f.World.NPCHandler.AddTemplate(wolf);
         });
 
-        var dim3Dog = fixture.World.NPCHandler.GetNPCTemplate(162 + 100000 * 3);
-        var dim3Wolf = fixture.World.NPCHandler.GetNPCTemplate(163 + 100000 * 3);
+        var dim3Dog = fixture.World.NPCHandler.GetNPCTemplate(162 + 100000 * 3)!;
+        var dim3Wolf = fixture.World.NPCHandler.GetNPCTemplate(163 + 100000 * 3)!;
 
         // Reference identity is what NPC.cs:559 compares, so Same, not Equal.
-        Assert.Same(dim3Wolf, Assert.Single(dim3Dog.Allies));
-        Assert.Same(dim3Dog, Assert.Single(dim3Wolf.Allies));
+        Assert.Same(dim3Wolf, Assert.Single(dim3Dog.Allies!));
+        Assert.Same(dim3Dog, Assert.Single(dim3Wolf.Allies!));
 
         // The base templates keep their own allies.
         Assert.Same(fixture.World.NPCHandler.GetNPCTemplate(163),
-                    Assert.Single(fixture.World.NPCHandler.GetNPCTemplate(162).Allies));
+                    Assert.Single(fixture.World.NPCHandler.GetNPCTemplate(162)!.Allies!));
     }
 
     [Fact]
@@ -267,7 +267,7 @@ public class DimensionsScriptTests
             f.World.NPCHandler.AddTemplate(dog);
         });
 
-        Assert.Empty(fixture.World.NPCHandler.GetNPCTemplate(162 + 100000 * 3).Allies);
+        Assert.Empty(fixture.World.NPCHandler.GetNPCTemplate(162 + 100000 * 3)!.Allies!);
     }
 
     [Fact]
@@ -283,7 +283,7 @@ public class DimensionsScriptTests
             f.World.NPCHandler.AddTemplate(t);
         });
 
-        var dim5 = fixture.World.NPCHandler.GetNPCTemplate(162 + 100000 * 5);
+        var dim5 = fixture.World.NPCHandler.GetNPCTemplate(162 + 100000 * 5)!;
 
         Assert.Equal((long)((3704 + 100000 * Math.Pow(2, 5)) * Math.Pow(4.7, 5)) * 2, dim5.BaseStats.HP);
         // base < 10,000,000 so damage is multiplied by 20
@@ -297,13 +297,13 @@ public class DimensionsScriptTests
     {
         using var fixture = Run(f => f.AddBaseMap(1, "Town", width: 100, height: 100));
 
-        var dim2 = fixture.World.MapHandler.GetMap(1 + 100000 * 2);
+        var dim2 = fixture.World.MapHandler.GetMap(1 + 100000 * 2)!;
 
         Assert.NotNull(dim2);
         Assert.Equal("Town (2)", dim2.Name);
         Assert.True(dim2.CanPVP);                     // PVP is forced on in every dimension
-        Assert.NotSame(fixture.World.MapHandler.GetMap(1).characters, dim2.characters);
-        Assert.NotSame(fixture.World.MapHandler.GetMap(1).tiles, dim2.tiles);
+        Assert.NotSame(fixture.World.MapHandler.GetMap(1)!.characters, dim2.characters);
+        Assert.NotSame(fixture.World.MapHandler.GetMap(1)!.tiles, dim2.tiles);
     }
 
     [Fact]
@@ -316,15 +316,15 @@ public class DimensionsScriptTests
             town.SetTile(3, 3, new WarpTile { WarpMap = cave, WarpX = 7, WarpY = 8 });
         });
 
-        var dim2Town = fixture.World.MapHandler.GetMap(1 + 100000 * 2);
-        var warp = (WarpTile)dim2Town.GetTile(3, 3);
+        var dim2Town = fixture.World.MapHandler.GetMap(1 + 100000 * 2)!;
+        var warp = (WarpTile)dim2Town.GetTile(3, 3)!;
 
         Assert.Equal(2 + 100000 * 2, warp.WarpMap.ID);   // the dimension-2 Cave, not the base one
         Assert.Equal(7, warp.WarpX);
         Assert.Equal(8, warp.WarpY);
 
         // The base map's warp must be untouched.
-        var baseWarp = (WarpTile)fixture.World.MapHandler.GetMap(1).GetTile(3, 3);
+        var baseWarp = (WarpTile)fixture.World.MapHandler.GetMap(1)!.GetTile(3, 3)!;
         Assert.Equal(2, baseWarp.WarpMap.ID);
     }
 
@@ -338,8 +338,8 @@ public class DimensionsScriptTests
         });
 
         // BlockedTile is an empty marker (BlockedTile.cs:8), so sharing the reference is safe.
-        Assert.Same(fixture.World.MapHandler.GetMap(1).GetTile(4, 4),
-                    fixture.World.MapHandler.GetMap(100001).GetTile(4, 4));
+        Assert.Same(fixture.World.MapHandler.GetMap(1)!.GetTile(4, 4),
+                    fixture.World.MapHandler.GetMap(100001)!.GetTile(4, 4));
     }
 
     /// <summary>The clone must not become a way around a key-gated map. requiredItems is
@@ -355,7 +355,7 @@ public class DimensionsScriptTests
             vault.Muted = true;
         });
 
-        var dim2 = fixture.World.MapHandler.GetMap(1 + 100000 * 2);
+        var dim2 = fixture.World.MapHandler.GetMap(1 + 100000 * 2)!;
 
         Assert.Equal(new[] { 1234 }, dim2.RequiredItems);
         Assert.True(dim2.Muted);
@@ -374,7 +374,7 @@ public class DimensionsScriptTests
             f.World.NPCHandler.SpawnNPC(f.World, 1, 50, 50, t, shouldRespawn: true);
         });
 
-        var dim1Map = fixture.World.MapHandler.GetMap(100001);
+        var dim1Map = fixture.World.MapHandler.GetMap(100001)!;
         // The warden shares this map, so pick out the boss clone by template id.
         var spawned = dim1Map.NPCs.Single(n => n.NPCTemplate.NPCTemplateID == 162 + 100000);
 
@@ -436,7 +436,7 @@ public class DimensionsScriptTests
 
         for (int dim = 0; dim < 6; dim++)
         {
-            var quest = fixture.World.QuestHandler.Get(900000 + dim);
+            var quest = fixture.World.QuestHandler.Get(900000 + dim)!;
             Assert.NotNull(quest);
 
             var requirement = quest.Requirements.Single();
@@ -456,8 +456,8 @@ public class DimensionsScriptTests
         using var first = Run(SeedBoss);
         using var second = Run(SeedBoss);
 
-        Assert.Equal(first.World.QuestHandler.Get(900003).Requirements.Single().Id,
-                     second.World.QuestHandler.Get(900003).Requirements.Single().Id);
+        Assert.Equal(first.World.QuestHandler.Get(900003)!.Requirements.Single().Id,
+                     second.World.QuestHandler.Get(900003)!.Requirements.Single().Id);
     }
 
     [Fact]
@@ -525,11 +525,11 @@ public class DimensionsScriptTests
         // 6 is the top, so it has no quest and no warden.
         for (int dim = 0; dim < 6; dim++)
         {
-            var map = fixture.World.MapHandler.GetMap(1 + 100000 * dim);
+            var map = fixture.World.MapHandler.GetMap(1 + 100000 * dim)!;
             Assert.Contains(map.NPCs, n => n.NPCTemplate.NPCTemplateID == 800000 + 100000 * dim);
         }
 
-        Assert.DoesNotContain(fixture.World.MapHandler.GetMap(1 + 100000 * 6).NPCs,
+        Assert.DoesNotContain(fixture.World.MapHandler.GetMap(1 + 100000 * 6)!.NPCs,
                               n => n.NPCTemplate.NPCType == NPCTemplate.Types.Quest);
     }
 
@@ -580,7 +580,7 @@ public class DimensionsScriptTests
         var ids = new List<int>();
         for (int dim = 0; dim < 6; dim++)
         {
-            var quest = fixture.World.QuestHandler.Get(900000 + dim);
+            var quest = fixture.World.QuestHandler.Get(900000 + dim)!;
             ids.AddRange(quest.Requirements.Select(r => r.Id));
             ids.AddRange(quest.Rewards.Select(r => r.Id));
         }
@@ -597,10 +597,10 @@ public class DimensionsScriptTests
     {
         using var fixture = Run(SeedBoss);
 
-        var reward = fixture.World.QuestHandler.Get(900002).Rewards.Single();
+        var reward = fixture.World.QuestHandler.Get(900002)!.Rewards.Single();
         var player = new Player(0);
 
-        reward.Script.Object.GiveReward(reward, npc: null, player, fixture.World);
+        reward.Script!.Object.GiveReward(reward, npc: null!, player, fixture.World);
 
         // Quest index 2 unlocks dimension 3.
         Assert.Equal(3, player.Properties.GetProperty<int>("dimension.max", 0));
@@ -614,8 +614,8 @@ public class DimensionsScriptTests
         var player = new Player(0);
         player.Properties["dimension.max"] = 5;
 
-        var reward = fixture.World.QuestHandler.Get(900000).Rewards.Single();
-        reward.Script.Object.GiveReward(reward, npc: null, player, fixture.World);
+        var reward = fixture.World.QuestHandler.Get(900000)!.Rewards.Single();
+        reward.Script!.Object.GiveReward(reward, npc: null!, player, fixture.World);
 
         Assert.Equal(5, player.Properties.GetProperty<int>("dimension.max", 0));
     }
@@ -627,9 +627,9 @@ public class DimensionsScriptTests
     {
         using var fixture = Run(SeedBoss);
 
-        var reward = fixture.World.QuestHandler.Get(900002).Rewards.Single();
+        var reward = fixture.World.QuestHandler.Get(900002)!.Rewards.Single();
         var player = new Player(0);
-        reward.Script.Object.GiveReward(reward, npc: null, player, fixture.World);
+        reward.Script!.Object.GiveReward(reward, npc: null!, player, fixture.World);
 
         var json = JsonHelper.Serialize(player.Properties.Clone());
         var reloaded = new Player(0);
@@ -650,7 +650,7 @@ public class DimensionsScriptTests
         fixture.AddBaseMap(1, "Town", width: 100, height: 100).MinExperience = 1000;
         fixture.CompileShipped().Object.OnLoaded(fixture.World);
 
-        Assert.Equal(expected, fixture.World.MapHandler.GetMap(1 + 100000 * dim).MinExperience);
+        Assert.Equal(expected, fixture.World.MapHandler.GetMap(1 + 100000 * dim)!.MinExperience);
     }
 
     /// <summary>Map.java:251-260 — a flat floor, not a scale. It ignores the base value
@@ -666,7 +666,7 @@ public class DimensionsScriptTests
         basic.MinExperience = 0;                    // the realistic case
         fixture.CompileShipped().Object.OnLoaded(fixture.World);
 
-        Assert.Equal(expected, fixture.World.MapHandler.GetMap(1 + 100000 * dim).MinExperience);
+        Assert.Equal(expected, fixture.World.MapHandler.GetMap(1 + 100000 * dim)!.MinExperience);
     }
 
     /// <summary>And it ignores a large base value too, rather than taking the max of the
@@ -679,7 +679,7 @@ public class DimensionsScriptTests
                .MinExperience = 999_000_000_000_000L;
         fixture.CompileShipped().Object.OnLoaded(fixture.World);
 
-        Assert.Equal(100_000_000_000L, fixture.World.MapHandler.GetMap(1 + 100000 * 5).MinExperience);
+        Assert.Equal(100_000_000_000L, fixture.World.MapHandler.GetMap(1 + 100000 * 5)!.MinExperience);
     }
 
     /// <summary>The override in abyss touches minExp only.</summary>
@@ -693,6 +693,6 @@ public class DimensionsScriptTests
         fixture.AddBaseMap(1, "Town", width: 100, height: 100).MaxExperience = 1000;
         fixture.CompileShipped().Object.OnLoaded(fixture.World);
 
-        Assert.Equal(expected, fixture.World.MapHandler.GetMap(1 + 100000 * dim).MaxExperience);
+        Assert.Equal(expected, fixture.World.MapHandler.GetMap(1 + 100000 * dim)!.MaxExperience);
     }
 }

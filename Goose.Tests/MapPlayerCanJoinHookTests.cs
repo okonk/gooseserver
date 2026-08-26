@@ -87,7 +87,7 @@ public class MapPlayerCanJoinHookTests : IDisposable
     /// compiles from a file path, so the real path is exercised by writing a one-line .csx
     /// (mirroring the passed script) into the fixture's Scripts/Map directory and compiling
     /// it through the ScriptHandler.</summary>
-    private Map MapWith(BaseMapScript script)
+    private Map MapWith(BaseMapScript? script)
     {
         if (script == null) return new Map { Name = "test", Script = null };
 

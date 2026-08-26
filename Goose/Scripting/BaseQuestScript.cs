@@ -22,7 +22,7 @@ namespace Goose.Scripting
 
         }
 
-        public virtual string CanComplete(QuestReward reward, Player player, GameWorld world)
+        public virtual string? CanComplete(QuestReward reward, Player player, GameWorld world)
         {
             return null;
         }

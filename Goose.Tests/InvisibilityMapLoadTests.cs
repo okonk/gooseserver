@@ -68,7 +68,7 @@ public class InvisibilityMapLoadTests : IDisposable
         p.OnLogin();
         p.Name = "Tester";
         p.Inventory = new Inventory(p, world.Settings);
-        p.Class = world.ClassHandler.GetClass(ClassId);
+        p.Class = world.ClassHandler.GetClass(ClassId)!;
         p.Level = 1;
         p.BaseStats = new AttributeSet { HP = 100, MP = 100 };
         p.MaxStats = p.BaseStats + new AttributeSet();

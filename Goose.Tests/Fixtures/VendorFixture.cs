@@ -45,7 +45,7 @@ public sealed class VendorFixture : IDisposable
             // player.Class.ClassName and player.MaxStats (Packets.cs:372), so the fixture
             // player needs the seeded "Default" class (class 0) and a MaxStats set, like a
             // real logged-in player would have.
-            Class = inner.World.ClassHandler.GetClass(0),
+            Class = inner.World.ClassHandler.GetClass(0)!,
         };
         Player.Inventory = new Inventory(Player, inner.Settings);
 

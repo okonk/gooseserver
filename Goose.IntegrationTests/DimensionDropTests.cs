@@ -29,7 +29,7 @@ public class DimensionDropTests
     public void Dimension_npcs_drop_dimension_equipment()
     {
         using var fixture = Run();
-        var drops = fixture.World.NPCHandler.GetNPCTemplate(162 + 100000 * 4).Drops;
+        var drops = fixture.World.NPCHandler.GetNPCTemplate(162 + 100000 * 4)!.Drops!;
 
         var sword = drops.Single(d => d.ItemTemplate.Name.EndsWith("Sword"));
         Assert.Equal(50 + 100000 * 4, sword.ItemTemplate.ID);
@@ -41,7 +41,7 @@ public class DimensionDropTests
     public void Consumable_drops_stay_at_dimension_zero()
     {
         using var fixture = Run();
-        var drops = fixture.World.NPCHandler.GetNPCTemplate(100162).Drops;
+        var drops = fixture.World.NPCHandler.GetNPCTemplate(100162)!.Drops!;
 
         Assert.Equal(60, drops.Single(d => d.ItemTemplate.Name == "Potion").ItemTemplate.ID);
     }
@@ -50,7 +50,7 @@ public class DimensionDropTests
     public void The_base_drop_table_is_left_alone()
     {
         using var fixture = Run();
-        var drops = fixture.World.NPCHandler.GetNPCTemplate(162).Drops;
+        var drops = fixture.World.NPCHandler.GetNPCTemplate(162)!.Drops!;
 
         // NPCTemplate's copy constructor shares NPCDropInfo instances (NPCTemplate.cs:251),
         // so repointing must allocate new ones or every dimension rewrites dimension 0.
@@ -63,9 +63,9 @@ public class DimensionDropTests
     {
         using var fixture = Run();
 
-        var dim1 = fixture.World.NPCHandler.GetNPCTemplate(100162).Drops
+        var dim1 = fixture.World.NPCHandler.GetNPCTemplate(100162)!.Drops!
             .Single(d => d.ItemTemplate.Name.EndsWith("Sword"));
-        var dim2 = fixture.World.NPCHandler.GetNPCTemplate(200162).Drops
+        var dim2 = fixture.World.NPCHandler.GetNPCTemplate(200162)!.Drops!
             .Single(d => d.ItemTemplate.Name.EndsWith("Sword"));
 
         Assert.NotSame(dim1, dim2);

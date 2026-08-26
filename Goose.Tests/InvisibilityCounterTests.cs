@@ -81,7 +81,7 @@ public class InvisibilityCounterTests : IDisposable
     };
 
     private NPC SpawnNpc(NPCTemplate template) =>
-        world.NPCHandler.SpawnNPC(world, MapId, 5, 5, template, shouldRespawn: false);
+        world.NPCHandler.SpawnNPC(world, MapId, 5, 5, template, shouldRespawn: false)!;
 
     private static Buff NewBuff(ICharacter owner, SpellEffect.EffectTypes effectType)
     {

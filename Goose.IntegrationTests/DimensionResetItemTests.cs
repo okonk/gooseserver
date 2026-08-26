@@ -26,9 +26,9 @@ public class DimensionResetItemTests
             t => { t.Value = 10; t.LearnSpellID = 91; });
         fixture.CompileShipped().Object.OnLoaded(fixture.World);
 
-        var player = fixture.CommandPlayerOn(fixture.World.MapHandler.GetMap(1), 5, 5);
+        var player = fixture.CommandPlayerOn(fixture.World.MapHandler.GetMap(1)!, 5, 5);
         player.Properties["dimension.max"] = 6;
-        fixture.World.CurrencyHandler.Get("spirit").Add(player, spiritBalance, fixture.World);
+        fixture.World.CurrencyHandler.Get("spirit")!.Add(player, spiritBalance, fixture.World);
         player.Sent.Clear();
 
         return (fixture, player);
@@ -37,14 +37,14 @@ public class DimensionResetItemTests
     private static Item Carry(GlobalScriptFixture fixture, Player player, int templateId, int stack = 1)
     {
         var item = new Item();
-        item.LoadFromTemplate(fixture.World.ItemHandler.GetTemplate(templateId));
+        item.LoadFromTemplate(fixture.World.ItemHandler.GetTemplate(templateId)!);
         fixture.World.ItemHandler.AddAndAssignId(item, fixture.World);
         player.Inventory.AddItem(item, stack, fixture.World);
         return item;
     }
 
     private static long Spirit(GlobalScriptFixture fixture, Player player)
-        => fixture.World.CurrencyHandler.Get("spirit").GetBalance(player);
+        => fixture.World.CurrencyHandler.Get("spirit")!.GetBalance(player);
 
     // ---- the paid reroll flow --------------------------------------------
 
@@ -66,7 +66,7 @@ public class DimensionResetItemTests
         {
             Assert.True(fixture.RunCommand(player, "/resetitem 1"));
 
-            var item = player.Inventory.GetSlot(1).Item;
+            var item = player.Inventory.GetSlot(1)!.Item;
             Assert.True(item.HasProperty(ItemProperty.SurnameId), $"reroll {i} landed no suffix");
         }
     }
@@ -85,7 +85,7 @@ public class DimensionResetItemTests
         {
             Assert.True(fixture.RunCommand(player, "/resetitem 1"));
 
-            var item = player.Inventory.GetSlot(1).Item;
+            var item = player.Inventory.GetSlot(1)!.Item;
 
             // One base name plus exactly one " of the ..." suffix, never two.
             // The rarity title (2% Legendary / 2% Stunted) may legally precede the base
@@ -134,7 +134,7 @@ public class DimensionResetItemTests
 
         fixture.RunCommand(player, command);
 
-        var item = player.Inventory.GetSlot(1).Item;
+        var item = player.Inventory.GetSlot(1)!.Item;
         Assert.Equal(before, Spirit(fixture, player));
         // No reroll ran, so the item still carries its clone name with no suffix. (Clones
         // are named PrefixFor(dim) + base name, the clone naming in ScaleItemTemplate (Items.csx) — never assert a literal
@@ -177,7 +177,7 @@ public class DimensionResetItemTests
         fixture.RunCommand(player, "/resetitem 1");
 
         Assert.Equal(before, Spirit(fixture, player));
-        Assert.Equal("Impostor", player.Inventory.GetSlot(1).Item.Name);
+        Assert.Equal("Impostor", player.Inventory.GetSlot(1)!.Item.Name);
         Assert.Contains(player.Sent, m => m.Contains("higher plane"));
     }
 
@@ -204,14 +204,14 @@ public class DimensionResetItemTests
         using var _ = fixture;
         // Force a stackable dimension weapon: StackSize travels to the clone, so raise it
         // on the base before OnLoaded is not possible here — set it on the clone directly.
-        fixture.World.ItemHandler.GetTemplate(50 + Offset * 2).StackSize = 10;
+        fixture.World.ItemHandler.GetTemplate(50 + Offset * 2)!.StackSize = 10;
         Carry(fixture, player, 50 + Offset * 2, stack: 2);
         var before = Spirit(fixture, player);
 
         fixture.RunCommand(player, "/resetitem 1");
 
         Assert.Equal(before, Spirit(fixture, player));
-        Assert.Equal(2, player.Inventory.GetSlot(1).Stack);
+        Assert.Equal(2, player.Inventory.GetSlot(1)!.Stack);
     }
 
     [Fact]

@@ -11,7 +11,7 @@ namespace Goose.Tests
         {
             Assert.True(SetAccessCommand.TryParse(new[] { "Bob" }, out var request, out _));
 
-            Assert.Equal("Bob", request.Name);
+            Assert.Equal("Bob", request!.Name);
             Assert.Equal(Player.AccessStatus.GameMaster, request.Level);
         }
 
@@ -23,24 +23,24 @@ namespace Goose.Tests
         {
             Assert.True(SetAccessCommand.TryParse(new[] { "Bob", level }, out var request, out _));
 
-            Assert.Equal(Player.AccessStatus.Guide, request.Level);
+            Assert.Equal(Player.AccessStatus.Guide, request!.Level);
         }
 
         [Fact]
         public void TryParse_RejectsMissingName()
         {
-            Assert.False(SetAccessCommand.TryParse(new string[0], out var request, out string error));
+            Assert.False(SetAccessCommand.TryParse(new string[0], out var request, out string? error));
 
             Assert.Null(request);
-            Assert.Contains("Usage: /setaccess", error);
+            Assert.Contains("Usage: /setaccess", error!);
         }
 
         [Fact]
         public void TryParse_RejectsUnknownLevelName()
         {
-            Assert.False(SetAccessCommand.TryParse(new[] { "Bob", "wizard" }, out _, out string error));
+            Assert.False(SetAccessCommand.TryParse(new[] { "Bob", "wizard" }, out _, out string? error));
 
-            Assert.Contains("Unknown access level 'wizard'.", error);
+            Assert.Contains("Unknown access level 'wizard'.", error!);
             Assert.Contains("GameMaster", error);
         }
 
@@ -61,7 +61,7 @@ namespace Goose.Tests
         {
             Assert.True(SetAccessCommand.TryParse(new[] { "Bob", "guide", "junk" }, out var request, out _));
 
-            Assert.Equal("Bob", request.Name);
+            Assert.Equal("Bob", request!.Name);
             Assert.Equal(Player.AccessStatus.Guide, request.Level);
         }
     }

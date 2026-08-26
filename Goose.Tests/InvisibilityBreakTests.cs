@@ -103,7 +103,7 @@ public class InvisibilityBreakTests : IDisposable
         AggroRange = 5,
         HairA = 255,
         FaceID = 70,
-    }, shouldRespawn: false);
+    }, shouldRespawn: false)!;
 
     private static Buff NewBuff(ICharacter owner, SpellEffect.EffectTypes effectType)
     {

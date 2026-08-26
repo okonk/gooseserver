@@ -9,7 +9,7 @@ public class TestWorldFixture : IDisposable
     public GooseSettings Settings { get; }
     public GameWorld World { get; }
 
-    public TestWorldFixture(Action<GooseSettings> configure = null)
+    public TestWorldFixture(Action<GooseSettings>? configure = null)
     {
         DataDirectory = Path.Combine(Path.GetTempPath(), "test-world-" + Guid.NewGuid().ToString("N"));
         foreach (var dir in new[] { "Global", "Global/Dimensions" })
@@ -53,7 +53,7 @@ public class TestWorldFixture : IDisposable
         return map;
     }
 
-    public SpellEffect AddBaseSpellEffect(int id, string name, Action<SpellEffect> configure = null)
+    public SpellEffect AddBaseSpellEffect(int id, string name, Action<SpellEffect>? configure = null)
     {
         var effect = new SpellEffect { ID = id, Name = name, MaximumLevelEffected = 99 };
         configure?.Invoke(effect);
@@ -68,7 +68,7 @@ public class TestWorldFixture : IDisposable
             Map = map, MapID = map.ID, MapX = x, MapY = y,
             BaseStats = new AttributeSet(),
             MaxStats = new AttributeSet(),
-            Class = World.ClassHandler.GetClass(0),
+            Class = World.ClassHandler.GetClass(0)!,
         };
     }
 
@@ -88,7 +88,7 @@ public class TestWorldFixture : IDisposable
             State = Player.States.Ready,
             BaseStats = new AttributeSet(),
             MaxStats = new AttributeSet(),
-            Class = World.ClassHandler.GetClass(0),
+            Class = World.ClassHandler.GetClass(0)!,
         };
         player.Inventory = new Inventory(player, this.Settings);
         return player;
@@ -110,13 +110,13 @@ public class TestWorldFixture : IDisposable
         return true;
     }
 
-    public Spell AddBaseSpell(int id, string name, int effectId, Action<Spell> configure = null)
+    public Spell AddBaseSpell(int id, string name, int effectId, Action<Spell>? configure = null)
     {
         var spell = new Spell
         {
             ID = id, Name = name, Description = "",
             SpellEffectID = effectId,
-            SpellEffect = World.SpellHandler.GetSpellEffect(effectId),
+            SpellEffect = World.SpellHandler.GetSpellEffect(effectId)!,
         };
         configure?.Invoke(spell);
         World.SpellHandler.AddSpell(spell);
@@ -124,7 +124,7 @@ public class TestWorldFixture : IDisposable
     }
 
     public ItemTemplate AddBaseItemTemplate(int id, string name, ItemTemplate.UseTypes useType,
-                                            Action<ItemTemplate> configure = null)
+                                            Action<ItemTemplate>? configure = null)
     {
         var template = new ItemTemplate
         {

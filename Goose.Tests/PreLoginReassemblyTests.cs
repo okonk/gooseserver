@@ -79,11 +79,11 @@ namespace Goose.Tests
                 string payload = new string('A', 71);
 
                 world.Received(sock, payload.Substring(0, 30));
-                Assert.Equal(30, world.PreLoginPending(sock).Length);
+                Assert.Equal(30, world.PreLoginPending(sock)!.Length);
                 Assert.Equal(0, world.EventHandler.Count);
 
                 world.Received(sock, payload.Substring(30, 25));
-                Assert.Equal(55, world.PreLoginPending(sock).Length);
+                Assert.Equal(55, world.PreLoginPending(sock)!.Length);
                 Assert.Equal(0, world.EventHandler.Count);
 
                 world.Received(sock, payload.Substring(55));
@@ -115,7 +115,7 @@ namespace Goose.Tests
             var listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             listener.Bind(new System.Net.IPEndPoint(System.Net.IPAddress.Parse("127.0.0.1"), 0));
             listener.Listen(1);
-            client.Connect(new System.Net.IPEndPoint(((System.Net.IPEndPoint)listener.LocalEndPoint).Address, ((System.Net.IPEndPoint)listener.LocalEndPoint).Port));
+            client.Connect(new System.Net.IPEndPoint(((System.Net.IPEndPoint)listener.LocalEndPoint!).Address, ((System.Net.IPEndPoint)listener.LocalEndPoint!).Port));
             Socket accepted = listener.Accept();
             listener.Close();
             return accepted;

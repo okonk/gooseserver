@@ -151,11 +151,11 @@ public class DimensionMapScriptTests
 
         fixture.CompileShipped().Object.OnLoaded(fixture.World);
 
-        var clone = fixture.World.MapHandler.GetMap(100001);
+        var clone = fixture.World.MapHandler.GetMap(100001)!;
         var player = fixture.PlayerOn(clone, 5, 5);
         player.Properties["dimension.max"] = 6;
 
-        clone.Script.Object.OnPlayerEntered(clone, player, fixture.World);
+        clone.Script!.Object.OnPlayerEntered(clone, player, fixture.World);
 
         Assert.Equal(1, inner.EnteredCalls);
         // The dimension now comes from the map id, so ScriptParams carries the base map's.
@@ -171,11 +171,11 @@ public class DimensionMapScriptTests
 
         fixture.CompileShipped().Object.OnLoaded(fixture.World);
 
-        var clone = fixture.World.MapHandler.GetMap(300001);
+        var clone = fixture.World.MapHandler.GetMap(300001)!;
         var player = fixture.PlayerOn(clone, 5, 5);
         player.Properties["dimension.max"] = 6;   // the dimension gate would allow this
 
-        Assert.Equal("Arena is closed.", clone.Script.Object.CanPlayerJoin(clone, player, fixture.World));
+        Assert.Equal("Arena is closed.", clone.Script!.Object.CanPlayerJoin(clone, player, fixture.World));
     }
 
     [Fact]
@@ -187,11 +187,11 @@ public class DimensionMapScriptTests
 
         fixture.CompileShipped().Object.OnLoaded(fixture.World);
 
-        var clone = fixture.World.MapHandler.GetMap(300001);
+        var clone = fixture.World.MapHandler.GetMap(300001)!;
         var player = fixture.PlayerOn(clone, 5, 5);
         player.Properties["dimension.max"] = 1;
 
-        Assert.Contains("maximum dimension", clone.Script.Object.CanPlayerJoin(clone, player, fixture.World));
+        Assert.Contains("maximum dimension", clone.Script!.Object.CanPlayerJoin(clone, player, fixture.World));
     }
 
     [Fact]
@@ -204,13 +204,13 @@ public class DimensionMapScriptTests
 
         fixture.CompileShipped().Object.OnLoaded(fixture.World);
 
-        var clone = fixture.World.MapHandler.GetMap(100001);   // dimension 1
+        var clone = fixture.World.MapHandler.GetMap(100001)!;   // dimension 1
         var player = fixture.PlayerOn(clone, 5, 5);
         player.Properties["dimension.max"] = 0;   // dim 1 > max 0: the gate would refuse a normal player
         player.Access = Player.AccessStatus.GameMaster;   // ...but GMs bypass it (AccessLevels.cs)
         Assert.True(player.HasPrivilege(AccessPrivilege.IgnoreMapRequirements));
 
-        clone.Script.Object.OnPlayerEntered(clone, player, fixture.World);
+        clone.Script!.Object.OnPlayerEntered(clone, player, fixture.World);
 
         // The GM is not relocated, but the base script still sees the entry.
         Assert.Equal(1, inner.EnteredCalls);
@@ -227,11 +227,11 @@ public class DimensionMapScriptTests
 
         fixture.CompileShipped().Object.OnLoaded(fixture.World);
 
-        var clone = fixture.World.MapHandler.GetMap(300001);   // dimension 3
+        var clone = fixture.World.MapHandler.GetMap(300001)!;   // dimension 3
         var player = fixture.PlayerOn(clone, 5, 5);
         player.Properties["dimension.max"] = 1;   // dim 3 > max 1: the gate refuses
 
-        clone.Script.Object.OnPlayerEntered(clone, player, fixture.World);
+        clone.Script!.Object.OnPlayerEntered(clone, player, fixture.World);
 
         // The base script must not see an entry that was warped straight back out.
         Assert.Equal(0, inner.EnteredCalls);
@@ -241,9 +241,9 @@ public class DimensionMapScriptTests
     private sealed class RecordingMapScript : BaseMapScript
     {
         public int EnteredCalls;
-        public string Refusal;
+        public string? Refusal;
 
         public override void OnPlayerEntered(Map map, Player player, GameWorld world) => this.EnteredCalls++;
-        public override string CanPlayerJoin(Map map, Player player, GameWorld world) => this.Refusal;
+        public override string? CanPlayerJoin(Map map, Player player, GameWorld world) => this.Refusal;
     }
 }

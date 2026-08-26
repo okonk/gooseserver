@@ -19,7 +19,7 @@ public class PlayerEconomyOverloadTests
         var map = fixture.AddBaseMap(9100, "Overload Map");
         var player = fixture.PlayerOn(map, 1, 1);
         player.ClassID = 3;
-        player.Class = fixture.World.ClassHandler.GetClass(3);
+        player.Class = fixture.World.ClassHandler.GetClass(3)!;
         player.Level = 10;
         player.Experience = 1_000_000;
         player.ExperienceSold = 0;
@@ -38,7 +38,7 @@ public class PlayerEconomyOverloadTests
         var map = fixture.AddBaseMap(9101, "Overload Map 2");
         var player = fixture.PlayerOn(map, 1, 1);
         player.ClassID = 3;
-        player.Class = fixture.World.ClassHandler.GetClass(3);
+        player.Class = fixture.World.ClassHandler.GetClass(3)!;
         player.Level = 10;
         player.Experience = 1_000_000;
         player.ExperienceSold = 0;
@@ -69,7 +69,7 @@ public class PlayerEconomyOverloadTests
         var map = fixture.AddBaseMap(9102 + (int)modifierLimit, "Overload Map 3");
         var player = fixture.PlayerOn(map, 1, 1);
         player.ClassID = 3;
-        player.Class = fixture.World.ClassHandler.GetClass(3);
+        player.Class = fixture.World.ClassHandler.GetClass(3)!;
         player.Level = 10;
         player.Experience = 50_000;
 
@@ -103,7 +103,7 @@ public class PlayerEconomyOverloadTests
         foreach (var (player, fixture) in new[] { (playerA, fixtureA), (playerB, fixtureB) })
         {
             player.ClassID = 3;
-            player.Class = fixture.World.ClassHandler.GetClass(3);
+            player.Class = fixture.World.ClassHandler.GetClass(3)!;
             player.Level = 10;
             player.Experience = 2000;
         }
@@ -130,7 +130,7 @@ public class PlayerEconomyOverloadTests
         var map = fixture.AddBaseMap(9105, "Overload Map 4");
         var player = fixture.PlayerOn(map, 1, 1);
         player.ClassID = 3;
-        player.Class = fixture.World.ClassHandler.GetClass(3);
+        player.Class = fixture.World.ClassHandler.GetClass(3)!;
         player.Level = 10;
         player.Experience = 0;
 

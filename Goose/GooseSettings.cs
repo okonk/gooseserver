@@ -3,11 +3,11 @@ namespace Goose
 {
     public class GooseSettings
     {
-        public string ServerVersion { get; set; }
-        public string ServerType { get; set; }
-        public string DatabaseName { get; set; }
-        public string DataLinkId { get; set; }
-        public string DataPath { get; set; }
+        public string ServerVersion { get; set; } = null!;
+        public string ServerType { get; set; } = null!;
+        public string DatabaseName { get; set; } = null!;
+        public string DataLinkId { get; set; } = null!;
+        public string DataPath { get; set; } = null!;
 
         /// <summary>
         /// DataPath is relative to the server install dir (it ships with the binaries and is
@@ -17,11 +17,11 @@ namespace Goose
             string.IsNullOrEmpty(DataPath) || Path.IsPathRooted(DataPath)
                 ? DataPath
                 : Path.Combine(Paths.BaseDir, DataPath);
-        public string ServerName { get; set; }
+        public string ServerName { get; set; } = null!;
         public int StartingMapID { get; set; }
         public int StartingMapX { get; set; }
         public int StartingMapY { get; set; }
-        public string StartingItems { get; set; }
+        public string StartingItems { get; set; } = null!;
         public int EquippedSize { get; set; }
         public int SpellbookSize { get; set; }
         public int StartingBodyState { get; set; }
@@ -30,7 +30,7 @@ namespace Goose
 
 
         public bool AutoCharacterCreation { get; set; }
-        public string GameServerIP { get; set; }
+        public string GameServerIP { get; set; } = null!;
         public int GameServerPort { get; set; }
         public int MaxPlayers { get; set; }
         public int BaseHaste { get; set; }
@@ -72,9 +72,9 @@ namespace Goose
         public int StartingHairG { get; set; }
         public int StartingHairB { get; set; }
         public int StartingHairA { get; set; }
-        public string MOTD { get; set; }
-        public string StartingTitle { get; set; }
-        public string StartingSurname { get; set; }
+        public string MOTD { get; set; } = null!;
+        public string StartingTitle { get; set; } = null!;
+        public string StartingSurname { get; set; } = null!;
         public decimal RegenSpeed { get; set; }
         public int GoldItemID { get; set; }
         public int StaminaToHP { get; set; }
@@ -92,7 +92,7 @@ namespace Goose
         public bool LockdownModeEnabled { get; set; }
         public int LogoutLagTime { get; set; }
         public int GuildCreationCost { get; set; }
-        public string DefaultGuildMOTD { get; set; }
+        public string DefaultGuildMOTD { get; set; } = null!;
         public int GuildSavePeriod { get; set; }
         public int RankUpdatePeriod { get; set; }
         public int MaxAC { get; set; }

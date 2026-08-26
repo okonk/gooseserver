@@ -8,7 +8,7 @@ public class DimensionItemScriptTests
 {
     private const string MaxDimension = "dimension.max";
 
-    private static GlobalScriptFixture Run(Action<GlobalScriptFixture> arrange = null)
+    private static GlobalScriptFixture Run(Action<GlobalScriptFixture>? arrange = null)
     {
         var fixture = new GlobalScriptFixture();
         fixture.AddBaseMap(1, "Town", width: 100, height: 100);
@@ -21,7 +21,7 @@ public class DimensionItemScriptTests
     private static Item ItemOf(GlobalScriptFixture fixture, int templateId)
     {
         var item = new Item();
-        item.LoadFromTemplate(fixture.World.ItemHandler.GetTemplate(templateId));
+        item.LoadFromTemplate(fixture.World.ItemHandler.GetTemplate(templateId)!);
         return item;
     }
 
@@ -29,13 +29,13 @@ public class DimensionItemScriptTests
     public void Every_clone_carries_the_dimension_script()
     {
         using var fixture = Run();
-        var script = fixture.World.ItemHandler.GetTemplate(100050).Script;
+        var script = fixture.World.ItemHandler.GetTemplate(100050)!.Script;
 
         Assert.NotNull(script);
         // ScriptHandler caches by path (ScriptHandler.cs:24), so every clone shares one object.
-        Assert.Same(script, fixture.World.ItemHandler.GetTemplate(600050).Script);
+        Assert.Same(script, fixture.World.ItemHandler.GetTemplate(600050)!.Script);
         // The base template is untouched.
-        Assert.Null(fixture.World.ItemHandler.GetTemplate(50).Script);
+        Assert.Null(fixture.World.ItemHandler.GetTemplate(50)!.Script);
     }
 
     [Fact]
@@ -53,7 +53,7 @@ public class DimensionItemScriptTests
             if (!item.HasProperty(ItemProperty.SurnameId)) continue;
 
             suffixed++;
-            var name = fixture.World.ItemHandler.GetSurname(item.GetProperty<int>(ItemProperty.SurnameId)).Name;
+            var name = fixture.World.ItemHandler.GetSurname(item.GetProperty<int>(ItemProperty.SurnameId))!.Name;
             counts[name] = counts.GetValueOrDefault(name) + 1;
         }
 
@@ -90,7 +90,7 @@ public class DimensionItemScriptTests
         using var fixture = Run();
 
         // Roll until a suffix lands - the roll is random by design.
-        Item item = null;
+        Item? item = null;
         for (int i = 0; i < 200 && item == null; i++)
         {
             var candidate = ItemOf(fixture, 300050);
@@ -103,7 +103,7 @@ public class DimensionItemScriptTests
         // The rarity title (2% Legendary / 2% Stunted) may legally precede the base
         // name, so Contains, not Equal (same reasoning as DimensionResetItemTests).
         Assert.Contains(item.Template.Name, item.Name);   // the dim-3 clone name, "Supreme Sword"
-        Assert.Contains(surname.Name, item.Name);         // the rolled suffix, after the base name
+        Assert.Contains(surname!.Name, item.Name);         // the rolled suffix, after the base name
         Assert.NotEqual(new AttributeSet(), item.BaseStats);
     }
 
@@ -129,7 +129,7 @@ public class DimensionItemScriptTests
     public void Refuses_pickup_above_the_players_unlocked_dimension()
     {
         using var fixture = Run();
-        var script = fixture.World.ItemHandler.GetTemplate(300050).Script.Object;
+        var script = fixture.World.ItemHandler.GetTemplate(300050)!.Script!.Object;
         var player = new Player(0);
         player.Properties[MaxDimension] = 2;
 
@@ -149,12 +149,12 @@ public class DimensionItemScriptTests
                 t => t.LearnSpellID = 91);
         });
 
-        var player = new Player(0) { Spellbook = null };
+        var player = new Player(0) { Spellbook = null! };
         player.Spellbook = new Spellbook(player, fixture.Settings);
-        player.Spellbook.AddSpell(fixture.World.SpellHandler.GetSpell(100091), fixture.World);
+        player.Spellbook.AddSpell(fixture.World.SpellHandler.GetSpell(100091)!, fixture.World);
 
         var tome = ItemOf(fixture, 300070);
-        var consumed = tome.Script.Object.OnUseConsumableEvent(player, tome, fixture.World);
+        var consumed = tome.Script!.Object.OnUseConsumableEvent(player, tome, fixture.World);
 
         Assert.True(consumed);
         Assert.Equal(1, CountSpells(fixture, player, 300091));
@@ -174,12 +174,12 @@ public class DimensionItemScriptTests
 
         var player = new Player(0);
         player.Spellbook = new Spellbook(player, fixture.Settings);
-        player.Spellbook.AddSpell(fixture.World.SpellHandler.GetSpell(500091), fixture.World);
+        player.Spellbook.AddSpell(fixture.World.SpellHandler.GetSpell(500091)!, fixture.World);
 
         var tome = ItemOf(fixture, 300070);
 
         // false = do not consume. Inventory.cs:433 removes the item only when true.
-        Assert.False(tome.Script.Object.OnUseConsumableEvent(player, tome, fixture.World));
+        Assert.False(tome.Script!.Object.OnUseConsumableEvent(player, tome, fixture.World));
         Assert.Equal(1, CountSpells(fixture, player, 500091));
     }
 
@@ -199,7 +199,7 @@ public class DimensionItemScriptTests
 
         var tome = ItemOf(fixture, 300070);
 
-        Assert.True(tome.Script.Object.OnUseConsumableEvent(player, tome, fixture.World));
+        Assert.True(tome.Script!.Object.OnUseConsumableEvent(player, tome, fixture.World));
         Assert.Equal(1, CountSpells(fixture, player, 300091));
     }
 
@@ -216,7 +216,7 @@ public class DimensionItemScriptTests
         fixture.CompileShipped().Object.OnLoaded(fixture.World);
 
         var item = ItemOf(fixture, 100051);
-        item.Script.Object.OnMeleeEvent(new Player(0), item, fixture.World);
+        item.Script!.Object.OnMeleeEvent(new Player(0), item, fixture.World);
 
         Assert.Equal(1, inner.MeleeCalls);
         // LoadFromTemplate copies ScriptParams (Item.cs:176), so the inner script still

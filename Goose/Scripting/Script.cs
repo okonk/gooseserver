@@ -9,7 +9,7 @@ namespace Goose.Scripting
     {
         public string FilePath { get; set; }
 
-        public T Object { get; private set; }
+        public T Object { get; private set; } = default!;
 
         public Script(string filePath)
         {
@@ -41,7 +41,7 @@ namespace Goose.Scripting
             var result = script.RunAsync().Result.ReturnValue;
             var scriptType = (Type)result;
 
-            this.Object = (T)Activator.CreateInstance(scriptType);
+            this.Object = (T)Activator.CreateInstance(scriptType)!;
         }
     }
 }

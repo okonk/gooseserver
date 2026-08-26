@@ -21,7 +21,7 @@ namespace Goose.Scripting
 
         }
 
-        public virtual string CanPickup(Player player, Item item, GameWorld world)
+        public virtual string? CanPickup(Player player, Item item, GameWorld world)
         {
             return null;
         }

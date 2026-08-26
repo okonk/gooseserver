@@ -17,7 +17,7 @@ namespace Goose.Scripting
         {
             filePath = this.settings.DataPathAbsolute + "/" + filePath;
 
-            IScript script = null;
+            IScript? script = null;
             if (!this.scripts.TryGetValue(filePath, out script))
             {
                 script = new Script<T>(filePath);

@@ -47,7 +47,7 @@ public class ScriptLoadDirectiveTests : IDisposable
 
     private static int Check(object scriptObject)
     {
-        return (int)scriptObject.GetType().GetMethod("Check").Invoke(scriptObject, null);
+        return (int)scriptObject.GetType().GetMethod("Check")!.Invoke(scriptObject, null)!;
     }
 
     [Fact]

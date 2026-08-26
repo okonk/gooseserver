@@ -37,11 +37,11 @@ return typeof(T);
         var req = new QuestRequirement { Type = RequirementType.Script };
         var reward = new QuestReward { Type = RewardType.Script };
 
-        Assert.True(script.IsMet(req, player, null));
-        Assert.Equal("", script.GetProgressText(req, player, null));
-        Assert.Null(script.CanComplete(reward, player, null));
-        script.OnTakeRequirement(req, player, null);   // must not throw
-        script.GiveReward(reward, null, player, null); // must not throw
+        Assert.True(script.IsMet(req, player, null!));
+        Assert.Equal("", script.GetProgressText(req, player, null!));
+        Assert.Null(script.CanComplete(reward, player, null!));
+        script.OnTakeRequirement(req, player, null!);   // must not throw
+        script.GiveReward(reward, null!, player, null!); // must not throw
     }
 
     [Fact]

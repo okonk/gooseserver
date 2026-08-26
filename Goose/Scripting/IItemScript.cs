@@ -12,7 +12,7 @@ namespace Goose.Scripting
 
         /// <summary>Return a refusal message to block picking this item up, or null to
         /// allow. Consulted by PickupItemEvent. Mirrors IMapScript.CanPlayerJoin.</summary>
-        string CanPickup(Player player, Item item, GameWorld world);
+        string? CanPickup(Player player, Item item, GameWorld world);
 
         /// <summary>Return true to suppress the native title/surname rolls, having done
         /// whatever rolling this item needs. Consulted by ItemHandler.RollTitleAndSurname

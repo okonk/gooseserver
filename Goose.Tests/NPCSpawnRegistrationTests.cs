@@ -74,7 +74,7 @@ public class NPCSpawnRegistrationTests : IDisposable
 
         Assert.NotNull(npc);
         Assert.Equal(before + 1, world.NPCHandler.NPCCount);
-        Assert.Contains(npc, world.MapHandler.GetMap(MapId).NPCs);
+        Assert.Contains(npc, world.MapHandler.GetMap(MapId)!.NPCs);
         Assert.NotEqual(0, npc.LoginID);
     }
 
@@ -104,7 +104,7 @@ public class NPCSpawnRegistrationTests : IDisposable
             BaseStats = new AttributeSet { HP = 7_000_000_000L },
         };
 
-        var npc = world.NPCHandler.SpawnNPC(world, MapId, 5, 5, template, shouldRespawn: false);
+        var npc = world.NPCHandler.SpawnNPC(world, MapId, 5, 5, template, shouldRespawn: false)!;
 
         Assert.Equal(6_000_000_000L, npc.WeaponDamage);
         Assert.Equal(7_000_000_000L, npc.MaxHP);
@@ -117,12 +117,12 @@ public class NPCSpawnRegistrationTests : IDisposable
             Name = "Target",
             Level = 1,
             ClassID = ClassId,
-            Class = world.ClassHandler.GetClass(ClassId),
-            Map = world.MapHandler.GetMap(MapId),
+            Class = world.ClassHandler.GetClass(ClassId)!,
+            Map = world.MapHandler.GetMap(MapId)!,
             MapID = MapId,
             MapX = 5,
             MapY = 5,
-            BoundMap = world.MapHandler.GetMap(MapId),
+            BoundMap = world.MapHandler.GetMap(MapId)!,
             BoundX = 5,
             BoundY = 5,
             State = Player.States.Ready,

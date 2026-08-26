@@ -27,7 +27,7 @@ namespace Goose.Tests
             using var blocker = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             blocker.Bind(new IPEndPoint(IPAddress.Loopback, 0));
             blocker.Listen(10);
-            int port = ((IPEndPoint)blocker.LocalEndPoint).Port;
+            int port = ((IPEndPoint)blocker.LocalEndPoint!).Port;
 
             var settings = new GooseSettings { GameServerIP = "127.0.0.1", GameServerPort = port };
             var server = new GameServer(settings);
@@ -44,7 +44,7 @@ namespace Goose.Tests
             using var socket = server.CreateListenSocket();
 
             Assert.True(socket.IsBound);
-            Assert.NotEqual(0, ((IPEndPoint)socket.LocalEndPoint).Port);
+            Assert.NotEqual(0, ((IPEndPoint)socket.LocalEndPoint!).Port);
         }
 
         [Fact]
@@ -59,7 +59,7 @@ namespace Goose.Tests
         [Fact]
         public void Constructor_NullSettings_ThrowsArgumentNullException()
         {
-            Assert.Throws<ArgumentNullException>(() => new GameServer(null));
+            Assert.Throws<ArgumentNullException>(() => new GameServer(null!));
         }
 
         [Fact]

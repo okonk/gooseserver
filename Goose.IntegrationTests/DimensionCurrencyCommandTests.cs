@@ -17,20 +17,20 @@ public class DimensionCurrencyCommandTests
         fixture.AddBaseMap(1, "Town", width: 100, height: 100);
         fixture.CompileShipped().Object.OnLoaded(fixture.World);
 
-        var player = fixture.CommandPlayerOn(fixture.World.MapHandler.GetMap(1), 5, 5, "Alice");
+        var player = fixture.CommandPlayerOn(fixture.World.MapHandler.GetMap(1)!, 5, 5, "Alice");
         // Not a commoner: /buyexperience refuses class 1.
         player.ClassID = 3;
-        player.Class = fixture.World.ClassHandler.GetClass(3);
+        player.Class = fixture.World.ClassHandler.GetClass(3)!;
         player.Level = 10;
         fixture.RegisterOnlinePlayer(player);
-        fixture.World.CurrencyHandler.Get("spirit").Add(player, spiritBalance, fixture.World);
+        fixture.World.CurrencyHandler.Get("spirit")!.Add(player, spiritBalance, fixture.World);
         player.Sent.Clear();
 
         return (fixture, player);
     }
 
     private static long Spirit(GlobalScriptFixture fixture, Player player)
-        => fixture.World.CurrencyHandler.Get("spirit").GetBalance(player);
+        => fixture.World.CurrencyHandler.Get("spirit")!.GetBalance(player);
 
     // ---- /buygold -------------------------------------------------------
 
@@ -144,7 +144,7 @@ public class DimensionCurrencyCommandTests
         var (fixture, player) = Loaded(spiritBalance: 10);
         using var _ = fixture;
         player.ClassID = 1;
-        player.Class = fixture.World.ClassHandler.GetClass(1);
+        player.Class = fixture.World.ClassHandler.GetClass(1)!;
         player.Experience = 0;
 
         fixture.RunCommand(player, "/buyexperience 1");
@@ -232,7 +232,7 @@ public class DimensionCurrencyCommandTests
     {
         var (fixture, alice) = Loaded(spiritBalance: 100);
         using var _ = fixture;
-        var bob = fixture.CommandPlayerOn(fixture.World.MapHandler.GetMap(1), 6, 5, "Bob");
+        var bob = fixture.CommandPlayerOn(fixture.World.MapHandler.GetMap(1)!, 6, 5, "Bob");
         fixture.RegisterOnlinePlayer(bob);
 
         Assert.True(fixture.RunCommand(alice, "/givesp Bob 40"));
@@ -250,7 +250,7 @@ public class DimensionCurrencyCommandTests
     {
         var (fixture, alice) = Loaded(spiritBalance: 100);
         using var _ = fixture;
-        var bob = fixture.CommandPlayerOn(fixture.World.MapHandler.GetMap(1), 6, 5, "Bob");
+        var bob = fixture.CommandPlayerOn(fixture.World.MapHandler.GetMap(1)!, 6, 5, "Bob");
         bob.PlayerID = 77;
         fixture.RegisterOnlinePlayer(bob);
 
@@ -276,7 +276,7 @@ public class DimensionCurrencyCommandTests
     {
         var (fixture, alice) = Loaded(spiritBalance: 100);
         using var _ = fixture;
-        var bob = fixture.CommandPlayerOn(fixture.World.MapHandler.GetMap(1), 6, 5, "Bob");
+        var bob = fixture.CommandPlayerOn(fixture.World.MapHandler.GetMap(1)!, 6, 5, "Bob");
         fixture.RegisterOnlinePlayer(bob);
 
         fixture.RunCommand(alice, command);
@@ -317,7 +317,7 @@ public class DimensionCurrencyCommandTests
     {
         var (fixture, alice) = Loaded(spiritBalance: 10);
         using var _ = fixture;
-        var bob = fixture.CommandPlayerOn(fixture.World.MapHandler.GetMap(1), 6, 5, "Bob");
+        var bob = fixture.CommandPlayerOn(fixture.World.MapHandler.GetMap(1)!, 6, 5, "Bob");
         fixture.RegisterOnlinePlayer(bob);
 
         fixture.RunCommand(alice, "/givesp Bob 40");
@@ -336,10 +336,10 @@ public class DimensionCurrencyCommandTests
     {
         var (fixture, alice) = Loaded(spiritBalance: 100);
         using var _ = fixture;
-        var bob = fixture.CommandPlayerOn(fixture.World.MapHandler.GetMap(1), 6, 5, "Bob");
+        var bob = fixture.CommandPlayerOn(fixture.World.MapHandler.GetMap(1)!, 6, 5, "Bob");
         fixture.RegisterOnlinePlayer(bob);
         // One under the cap, so any positive transfer crosses it.
-        fixture.World.CurrencyHandler.Get("spirit").Add(bob, 1_000_000_000_000L - 1, fixture.World);
+        fixture.World.CurrencyHandler.Get("spirit")!.Add(bob, 1_000_000_000_000L - 1, fixture.World);
 
         fixture.RunCommand(alice, "/givesp Bob 40");
 
@@ -357,7 +357,7 @@ public class DimensionCurrencyCommandTests
     {
         var (fixture, alice) = Loaded(spiritBalance: 2_000_000_000_000L);
         using var _ = fixture;
-        var bob = fixture.CommandPlayerOn(fixture.World.MapHandler.GetMap(1), 6, 5, "Bob");
+        var bob = fixture.CommandPlayerOn(fixture.World.MapHandler.GetMap(1)!, 6, 5, "Bob");
         fixture.RegisterOnlinePlayer(bob);
 
         fixture.RunCommand(alice, "/givesp Bob 2000000000000");

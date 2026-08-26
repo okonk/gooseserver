@@ -22,7 +22,7 @@ public class DimensionItemTemplateTests
         for (int dim = 1; dim <= 6; dim++)
             Assert.NotNull(fixture.World.ItemHandler.GetTemplate(50 + 100000 * dim));
 
-        var dim3 = fixture.World.ItemHandler.GetTemplate(50 + 100000 * 3);
+        var dim3 = fixture.World.ItemHandler.GetTemplate(50 + 100000 * 3)!;
         Assert.Equal("Supreme Sword", dim3.Name);              // Item.java:416
         Assert.Equal("Abyss (3) A Sword", dim3.Description);   // Item.java:429
         Assert.Equal(110, dim3.GraphicR);                      // 200 - 30*3
@@ -31,7 +31,7 @@ public class DimensionItemTemplateTests
         Assert.Equal(190, dim3.GraphicA);                      // 100 + 30*3
         Assert.Equal(500 * 27, dim3.Value);                    // base * 3^dim
 
-        var dim6 = fixture.World.ItemHandler.GetTemplate(50 + 100000 * 6);
+        var dim6 = fixture.World.ItemHandler.GetTemplate(50 + 100000 * 6)!;
         Assert.Equal("Godly Sword", dim6.Name);
         Assert.Equal(200, dim6.GraphicA);                      // clamped at 200
     }
@@ -42,13 +42,13 @@ public class DimensionItemTemplateTests
         using var fixture = Run(f => f.AddBaseItemTemplate(50, "Sword", ItemTemplate.UseTypes.Weapon,
             t => { t.IsLore = true; t.IsBindOnPickup = true; t.IsBindOnEquip = true; }));
 
-        var dim1 = fixture.World.ItemHandler.GetTemplate(100050);
+        var dim1 = fixture.World.ItemHandler.GetTemplate(100050)!;
         Assert.False(dim1.IsLore);          // Item.java:225-260
         Assert.False(dim1.IsBindOnPickup);
         Assert.False(dim1.IsBindOnEquip);
 
         // The base template is untouched.
-        Assert.True(fixture.World.ItemHandler.GetTemplate(50).IsLore);
+        Assert.True(fixture.World.ItemHandler.GetTemplate(50)!.IsLore);
     }
 
     [Fact]
@@ -77,7 +77,7 @@ public class DimensionItemTemplateTests
             t => { t.Value = value; t.MinExperience = minExp; t.MinLevel = minLevel;
                    t.BaseStats = new AttributeSet { AC = 10, Strength = 20, HP = 100 }; }));
 
-        var dim2 = fixture.World.ItemHandler.GetTemplate(50 + 100000 * 2);
+        var dim2 = fixture.World.ItemHandler.GetTemplate(50 + 100000 * 2)!;
 
         // AttributeSet.java:421 - a1.AC * (0.5*dim) + 10*dim*tier
         Assert.Equal(10 + (int)(10 * 1.0 + 10 * 2 * tier), dim2.BaseStats.AC);
@@ -93,7 +93,7 @@ public class DimensionItemTemplateTests
         using var fixture = Run(f => f.AddBaseItemTemplate(50, "Sword", ItemTemplate.UseTypes.Weapon,
             t => { t.MinLevel = 20; t.BaseStats = new AttributeSet { MeleeDamage = 0.5m }; }));
 
-        var dim2 = fixture.World.ItemHandler.GetTemplate(100050 + 100000);
+        var dim2 = fixture.World.ItemHandler.GetTemplate(100050 + 100000)!;
 
         // AttributeSet.java:433 casts the whole term to int, so 0.5*2 = 1.0 survives but
         // any sub-1.0 product is truncated away. Tier 0.25, dim 2 -> (int)(1.0 + 10*2*0.25) = 6.
@@ -170,8 +170,8 @@ public class DimensionItemTemplateTests
                 t => { t.LearnSpellID = 91; t.MinLevel = 50; });   // tier 0.5, dim 6 -> huge if applied
         });
 
-        var basic = fixture.World.ItemHandler.GetTemplate(70);
-        var dim6 = fixture.World.ItemHandler.GetTemplate(70 + 100000 * 6);
+        var basic = fixture.World.ItemHandler.GetTemplate(70)!;
+        var dim6 = fixture.World.ItemHandler.GetTemplate(70 + 100000 * 6)!;
 
         // AttributeSet.java:380-382 - dimensionDefault returns an empty set for anything
         // that is not equipment, so the tome's stats must match the base template exactly.

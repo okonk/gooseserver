@@ -15,10 +15,10 @@ public class DimensionCommandGateTests
         fixture.AddBaseMap(StartMapId, "Town", width: 100, height: 100);
         fixture.CompileShipped().Object.OnLoaded(fixture.World);
 
-        var player = fixture.CommandPlayerOn(fixture.World.MapHandler.GetMap(StartMapId), 5, 5);
+        var player = fixture.CommandPlayerOn(fixture.World.MapHandler.GetMap(StartMapId)!, 5, 5);
         player.Properties["dimension.max"] = 6;
         player.ClassID = 3;
-        player.Class = fixture.World.ClassHandler.GetClass(3);
+        player.Class = fixture.World.ClassHandler.GetClass(3)!;
         player.Level = 50;
         player.Sent.Clear();
 
@@ -62,7 +62,7 @@ public class DimensionCommandGateTests
     {
         var (fixture, player) = Loaded();
         using var _ = fixture;
-        fixture.World.MapHandler.GetMap(StartMapId + Offset * 2).MaxExperience = 1_000;
+        fixture.World.MapHandler.GetMap(StartMapId + Offset * 2)!.MaxExperience = 1_000;
         player.Experience = 500_000;
 
         fixture.RunCommand(player, "/dimension 2");
@@ -101,7 +101,7 @@ public class DimensionCommandGateTests
         // A cross-map WarpTo leaves the player in LoadingMap with Map == null until the
         // client's DLM ack (Player.cs:1311, DoneLoadingMapEvent). Simulate that ack so the
         // second command sees the player as the server would after the map load.
-        player.Map = fixture.World.MapHandler.GetMap(player.MapID);
+        player.Map = fixture.World.MapHandler.GetMap(player.MapID)!;
         player.State = Player.States.Ready;
 
         player.Experience = 0;

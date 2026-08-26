@@ -37,7 +37,7 @@ public class SpellHandlerRegistrationTests
         handler.AddSpell(new Spell { ID = 5, Name = "First" });
         handler.AddSpell(new Spell { ID = 5, Name = "Second" });
 
-        Assert.Equal("Second", handler.GetSpell(5).Name);
+        Assert.Equal("Second", handler.GetSpell(5)!.Name);
         Assert.Equal(1, handler.Count);
     }
 }

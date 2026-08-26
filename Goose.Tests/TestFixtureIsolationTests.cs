@@ -88,7 +88,7 @@ public class TestFixtureIsolationTests
         template.VendorItems = new NPCVendorSlot[fixture.Settings.VendorSlotSize + 1];
         fixture.World.NPCHandler.AddTemplate(template);
         var npc = fixture.World.NPCHandler.SpawnNPC(fixture.World, 2, 1, 1, template, shouldRespawn: false);
-        return npc.VendorItems!.Length;
+        return npc!.VendorItems!.Length;
     }
 
     private static void WriteGlobalScript(string dataDirectory, string fileName, string className)

@@ -19,9 +19,9 @@ public class DimensionSpellScriptTests
     {
         using var fixture = Run(f => { f.AddBaseMap(1, "Town", width: 100, height: 100); f.AddBaseSpellEffect(42, "Firestorm"); });
 
-        Assert.Equal("Supreme Firestorm", fixture.World.SpellHandler.GetSpellEffect(42 + Offset * 3).Name);
-        Assert.Equal("Godly Firestorm", fixture.World.SpellHandler.GetSpellEffect(42 + Offset * 6).Name);
-        Assert.Equal("Firestorm", fixture.World.SpellHandler.GetSpellEffect(42).Name);   // base untouched
+        Assert.Equal("Supreme Firestorm", fixture.World.SpellHandler.GetSpellEffect(42 + Offset * 3)!.Name);
+        Assert.Equal("Godly Firestorm", fixture.World.SpellHandler.GetSpellEffect(42 + Offset * 6)!.Name);
+        Assert.Equal("Firestorm", fixture.World.SpellHandler.GetSpellEffect(42)!.Name);   // base untouched
         Assert.Null(fixture.World.SpellHandler.GetSpellEffect(42 + Offset * 7));
     }
 
@@ -36,7 +36,7 @@ public class DimensionSpellScriptTests
             e.TargetType = SpellEffect.TargetTypes.Area;
         }); });
 
-        var dim3 = fixture.World.SpellHandler.GetSpellEffect(42 + Offset * 3);
+        var dim3 = fixture.World.SpellHandler.GetSpellEffect(42 + Offset * 3)!;
 
         Assert.Equal((long)(60000 * Math.Pow(1.15, 3)), dim3.Duration);                    // SpellHandler.java:295
         Assert.Equal((long)(500 * Math.Pow(3, 3) + 100000 * Math.Pow(20, 3)), dim3.TauntAggro);  // :298
@@ -57,7 +57,7 @@ public class DimensionSpellScriptTests
             e.Stats.MoveSpeed = 5;  e.Stats.SP = 7;
         }); });
 
-        var dim3 = fixture.World.SpellHandler.GetSpellEffect(42 + Offset * 3);
+        var dim3 = fixture.World.SpellHandler.GetSpellEffect(42 + Offset * 3)!;
 
         Assert.Equal(100 * 4 * 4, dim3.Stats.HP);                 // x (dim+1)^2
         Assert.Equal(50 * 4 * 4, dim3.Stats.MP);
@@ -70,7 +70,7 @@ public class DimensionSpellScriptTests
         Assert.Equal(5, dim3.Stats.MoveSpeed);
         Assert.Equal(7, dim3.Stats.SP);
 
-        Assert.Equal(100, fixture.World.SpellHandler.GetSpellEffect(42).Stats.HP);   // base untouched
+        Assert.Equal(100, fixture.World.SpellHandler.GetSpellEffect(42)!.Stats.HP);   // base untouched
     }
 
     /// <summary>SpellHandler.java:290-294. Dimension buffs only land on level-50 targets,
@@ -87,7 +87,7 @@ public class DimensionSpellScriptTests
             e.MinimumLevelEffected = 20;
         }); });
 
-        Assert.Equal(expected, fixture.World.SpellHandler.GetSpellEffect(42 + Offset * 3).MinimumLevelEffected);
+        Assert.Equal(expected, fixture.World.SpellHandler.GetSpellEffect(42 + Offset * 3)!.MinimumLevelEffected);
     }
 
     /// <summary>SpellHandler.java:310-328. Small shapes grow into bigger ones, and the
@@ -108,14 +108,14 @@ public class DimensionSpellScriptTests
             e.TargetSize = baseSize;
         }); });
 
-        var dim3 = fixture.World.SpellHandler.GetSpellEffect(42 + Offset * 3);
+        var dim3 = fixture.World.SpellHandler.GetSpellEffect(42 + Offset * 3)!;
 
         Assert.Equal((SpellEffect.TargetTypes)expectedType, dim3.TargetType);
         Assert.Equal(expectedSize, dim3.TargetSize);
 
         // The base effect keeps its own shape - the morph is on the clone only.
-        Assert.Equal((SpellEffect.TargetTypes)baseType, fixture.World.SpellHandler.GetSpellEffect(42).TargetType);
-        Assert.Equal(baseSize, fixture.World.SpellHandler.GetSpellEffect(42).TargetSize);
+        Assert.Equal((SpellEffect.TargetTypes)baseType, fixture.World.SpellHandler.GetSpellEffect(42)!.TargetType);
+        Assert.Equal(baseSize, fixture.World.SpellHandler.GetSpellEffect(42)!.TargetSize);
     }
 
     // ---- The preflight ----------------------------------------------------------------
@@ -175,14 +175,14 @@ public class DimensionSpellScriptTests
             });
         });
 
-        var dim3 = fixture.World.SpellHandler.GetSpellEffect(42 + Offset * 3);
+        var dim3 = fixture.World.SpellHandler.GetSpellEffect(42 + Offset * 3)!;
 
         Assert.Equal(9 + Offset * 3, dim3.OnMeleeHitSpellID);
         Assert.Same(fixture.World.SpellHandler.GetSpellEffect(9 + Offset * 3), dim3.OnMeleeHitSpell);
 
         // The base effect keeps its own reference.
         Assert.Same(fixture.World.SpellHandler.GetSpellEffect(9),
-                    fixture.World.SpellHandler.GetSpellEffect(42).OnMeleeHitSpell);
+                    fixture.World.SpellHandler.GetSpellEffect(42)!.OnMeleeHitSpell);
     }
 
     [Fact]
@@ -199,7 +199,7 @@ public class DimensionSpellScriptTests
             });
         });
 
-        var dim3 = fixture.World.SpellHandler.GetSpellEffect(42 + Offset * 3);
+        var dim3 = fixture.World.SpellHandler.GetSpellEffect(42 + Offset * 3)!;
 
         Assert.Null(dim3.OnMeleeHitSpell);
         Assert.Equal(0, dim3.OnMeleeHitSpellID);
@@ -216,7 +216,7 @@ public class DimensionSpellScriptTests
         });
 
         var handler = fixture.World.SpellHandler;
-        var dim3 = handler.GetSpellEffect(42 + Offset * 3);
+        var dim3 = handler.GetSpellEffect(42 + Offset * 3)!;
 
         Assert.Contains(handler.GetSpellEffect(42), dim3.BuffStacksOver);
         Assert.Contains(handler.GetSpellEffect(42 + Offset), dim3.BuffStacksOver);
@@ -236,14 +236,14 @@ public class DimensionSpellScriptTests
 
         var handler = fixture.World.SpellHandler;
 
-        var dim3 = handler.GetSpellEffect(42 + Offset * 3);
+        var dim3 = handler.GetSpellEffect(42 + Offset * 3)!;
         Assert.Contains(handler.GetSpellEffect(42 + Offset * 4), dim3.BuffDoesntStackOver);
         Assert.Contains(handler.GetSpellEffect(42 + Offset * 6), dim3.BuffDoesntStackOver);
         Assert.DoesNotContain(handler.GetSpellEffect(42 + Offset * 2), dim3.BuffDoesntStackOver);
 
         // The dimension-0 effect gets the same treatment, or the base spell would overwrite
         // its own upgrades.
-        var basic = handler.GetSpellEffect(42);
+        var basic = handler.GetSpellEffect(42)!;
         Assert.Contains(handler.GetSpellEffect(42 + Offset), basic.BuffDoesntStackOver);
     }
 
@@ -266,7 +266,7 @@ public class DimensionSpellScriptTests
         });
 
         var handler = fixture.World.SpellHandler;
-        var dim3 = handler.GetSpellEffect(42 + Offset * 3);
+        var dim3 = handler.GetSpellEffect(42 + Offset * 3)!;
 
         Assert.Contains(handler.GetSpellEffect(41), dim3.BuffStacksOver);              // dim 0 Minor Bless
         Assert.Contains(handler.GetSpellEffect(41 + Offset * 3), dim3.BuffStacksOver); // dim 3 Minor Bless
@@ -293,7 +293,7 @@ public class DimensionSpellScriptTests
         });
 
         var handler = fixture.World.SpellHandler;
-        var dim3 = handler.GetSpellEffect(42 + Offset * 3);
+        var dim3 = handler.GetSpellEffect(42 + Offset * 3)!;
 
         Assert.Contains(handler.GetSpellEffect(41 + Offset * 5), dim3.BuffDoesntStackOver);
         Assert.Contains(handler.GetSpellEffect(41 + Offset * 4), dim3.BuffDoesntStackOver);
@@ -302,7 +302,7 @@ public class DimensionSpellScriptTests
         // Every dimension copy of Minor Bless is in exactly one list - that is the invariant.
         for (int k = 0; k <= 6; k++)
         {
-            var minorK = handler.GetSpellEffect(41 + Offset * k);
+            var minorK = handler.GetSpellEffect(41 + Offset * k)!;
             Assert.True(dim3.BuffStacksOver.Contains(minorK) ^ dim3.BuffDoesntStackOver.Contains(minorK),
                         $"Minor Bless at dimension {k} is in neither list, or in both.");
         }
@@ -332,10 +332,10 @@ public class DimensionSpellScriptTests
         var player = fixture.PlayerOn(map, x: 50, y: 50);
         player.State = Player.States.Ready;   // below Ready, AddBuff skips the stacking checks
 
-        var applied = new Buff { SpellEffect = handler.GetSpellEffect(41 + Offset * 5), Target = player };
+        var applied = new Buff { SpellEffect = handler.GetSpellEffect(41 + Offset * 5)!, Target = player };
         player.Buffs.Add(applied);            // added directly: the refusal path is what is under test
 
-        player.AddBuff(new Buff { SpellEffect = handler.GetSpellEffect(42 + Offset * 3), Target = player },
+        player.AddBuff(new Buff { SpellEffect = handler.GetSpellEffect(42 + Offset * 3)!, Target = player },
                        fixture.World, refreshbar: false, updateCharacter: false);
 
         Assert.Single(player.Buffs);
@@ -355,7 +355,7 @@ public class DimensionSpellScriptTests
         });
 
         var handler = fixture.World.SpellHandler;
-        var dim3 = handler.GetSpell(91 + Offset * 3);
+        var dim3 = handler.GetSpell(91 + Offset * 3)!;
 
         Assert.NotNull(dim3);
         Assert.Equal("Supreme Firestorm", dim3.Name);
@@ -378,7 +378,7 @@ public class DimensionSpellScriptTests
             });
         });
 
-        var dim3 = fixture.World.SpellHandler.GetSpell(91 + Offset * 3);
+        var dim3 = fixture.World.SpellHandler.GetSpell(91 + Offset * 3)!;
 
         Assert.Equal((long)(10000 * Math.Pow(0.9, 3)), dim3.Aether);          // SpellHandler.java:279
         Assert.Equal((int)(50 * Math.Pow(3, 3)), dim3.HPStaticCost);          // :280
@@ -397,7 +397,7 @@ public class DimensionSpellScriptTests
             f.AddBaseSpell(91, "Firestorm", 42, s => { s.Aether = 10000; s.Description = "Burns"; });
         });
 
-        var basic = fixture.World.SpellHandler.GetSpell(91);
+        var basic = fixture.World.SpellHandler.GetSpell(91)!;
 
         Assert.Equal("Firestorm", basic.Name);
         Assert.Equal("Burns", basic.Description);
@@ -429,9 +429,9 @@ public class DimensionSpellScriptTests
         var single = (1.15 * Math.Pow(1.25, 2)).ToString(System.Globalization.CultureInfo.InvariantCulture);
         var area = Math.Pow(1.25, 2).ToString(System.Globalization.CultureInfo.InvariantCulture);
 
-        Assert.Equal("(-5 * %clevel) * " + single, handler.GetSpellEffect(42 + Offset * 2).HPFormula);
-        Assert.Equal("(-5 * %clevel) * " + area, handler.GetSpellEffect(43 + Offset * 2).HPFormula);
-        Assert.Contains(".", handler.GetSpellEffect(42 + Offset * 2).HPFormula);
+        Assert.Equal("(-5 * %clevel) * " + single, handler.GetSpellEffect(42 + Offset * 2)!.HPFormula);
+        Assert.Equal("(-5 * %clevel) * " + area, handler.GetSpellEffect(43 + Offset * 2)!.HPFormula);
+        Assert.Contains(".", handler.GetSpellEffect(42 + Offset * 2)!.HPFormula);
     }
 
     // ---- NPC buff replacement ------------------------------------------------------------
@@ -455,13 +455,13 @@ public class DimensionSpellScriptTests
         });
 
         var handler = fixture.World.SpellHandler;
-        var town = fixture.World.MapHandler.GetMap(1);
+        var town = fixture.World.MapHandler.GetMap(1)!;
         var npc = new NPC { Map = town, MapX = 10, MapY = 10 };
         npc.MaxStats = new AttributeSet();
         npc.Buffs = new List<Buff>();   // parameterless NPC ctor leaves both null
 
-        var dim0 = handler.GetSpellEffect(42);
-        var dim3 = handler.GetSpellEffect(42 + Offset * 3);
+        var dim0 = handler.GetSpellEffect(42)!;
+        var dim3 = handler.GetSpellEffect(42 + Offset * 3)!;
 
         // Seed the applied dim-0 buff the way AddBuff's new-buff path applies stats.
         npc.Buffs.Add(new Buff { SpellEffect = dim0, Target = npc });
@@ -491,13 +491,13 @@ public class DimensionSpellScriptTests
         });
 
         var handler = fixture.World.SpellHandler;
-        var town = fixture.World.MapHandler.GetMap(1);
+        var town = fixture.World.MapHandler.GetMap(1)!;
         var npc = new NPC { Map = town, MapX = 10, MapY = 10 };
         npc.MaxStats = new AttributeSet();
         npc.Buffs = new List<Buff>();   // parameterless NPC ctor leaves both null
 
-        var dim0 = handler.GetSpellEffect(42);
-        var dim3 = handler.GetSpellEffect(42 + Offset * 3);
+        var dim0 = handler.GetSpellEffect(42)!;
+        var dim3 = handler.GetSpellEffect(42 + Offset * 3)!;
 
         npc.Buffs.Add(new Buff { SpellEffect = dim0, Target = npc });
         npc.MaxStats += dim0.Stats;

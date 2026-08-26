@@ -20,7 +20,7 @@ namespace Goose.Tests
         [InlineData("  /WHO  ")]
         public void Parse_StripsSlashAndLowercasesName(string line)
         {
-            var parsed = ConsoleCommandParser.Parse(line);
+            var parsed = ConsoleCommandParser.Parse(line)!;
 
             Assert.Equal("who", parsed.Name);
             Assert.Empty(parsed.Args);
@@ -29,7 +29,7 @@ namespace Goose.Tests
         [Fact]
         public void Parse_SplitsArgumentsOnRunsOfWhitespace()
         {
-            var parsed = ConsoleCommandParser.Parse("/setaccess   Bob    guide");
+            var parsed = ConsoleCommandParser.Parse("/setaccess   Bob    guide")!;
 
             Assert.Equal("setaccess", parsed.Name);
             Assert.Equal(new[] { "Bob", "guide" }, parsed.Args);
@@ -38,7 +38,7 @@ namespace Goose.Tests
         [Fact]
         public void Parse_PreservesArgumentCase()
         {
-            var parsed = ConsoleCommandParser.Parse("/setaccess BoB");
+            var parsed = ConsoleCommandParser.Parse("/setaccess BoB")!;
 
             Assert.Equal(new[] { "BoB" }, parsed.Args);
         }

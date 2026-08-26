@@ -30,9 +30,9 @@ namespace Goose.Scripting
     {
         public Dictionary<int, DynamicTile> DynamicTiles { get; set; }
 
-        public DynamicTile GetDynamicTile(int x, int y, int width)
+        public DynamicTile? GetDynamicTile(int x, int y, int width)
         {
-            DynamicTile tile = null;
+            DynamicTile? tile = null;
             if (DynamicTiles.TryGetValue(y * width + x, out tile))
                 return tile;
 
@@ -73,7 +73,7 @@ namespace Goose.Scripting
 
         }
 
-        public virtual string CanPlayerJoin(Map map, Player player, GameWorld world)
+        public virtual string? CanPlayerJoin(Map map, Player player, GameWorld world)
         {
             return null;
         }

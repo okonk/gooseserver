@@ -83,7 +83,7 @@ public class BuiltInCurrencyTests
     {
         var player = new Player(0) { Credits = 5 };
 
-        new CreditsCurrency().Add(player, (long)int.MaxValue + 1000, world: null);
+        new CreditsCurrency().Add(player, (long)int.MaxValue + 1000, world: null!);
 
         Assert.Equal(int.MaxValue, player.Credits);
     }

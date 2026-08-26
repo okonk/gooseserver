@@ -72,7 +72,7 @@ public class InventoryChangeSlotTests
 
         ItemSlot.SwapSlots(ref slot, ref slot);
 
-        Assert.Equal(4, slot.Stack);
+        Assert.Equal(4, slot!.Stack);
     }
 
     [Fact]

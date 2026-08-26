@@ -34,7 +34,7 @@ namespace Goose.Tests
             listener.Listen(1);
 
             var client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            client.Connect(new IPEndPoint(IPAddress.Loopback, ((IPEndPoint)listener.LocalEndPoint).Port));
+            client.Connect(new IPEndPoint(IPAddress.Loopback, ((IPEndPoint)listener.LocalEndPoint!).Port));
             var accepted = listener.Accept();
             listener.Close();
             accepted.Blocking = false;

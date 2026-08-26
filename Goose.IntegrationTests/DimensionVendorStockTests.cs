@@ -44,12 +44,12 @@ public class DimensionVendorStockTests
         merchant.VendorItems = new NPCVendorSlot[fixture.Settings.VendorSlotSize + 1];
         merchant.VendorItems[1] = new NPCVendorSlot
         {
-            Slot = 1, ItemTemplate = fixture.World.ItemHandler.GetTemplate(SwordId),
+            Slot = 1, ItemTemplate = fixture.World.ItemHandler.GetTemplate(SwordId)!,
             Stack = 1, CanSeeStats = true,
         };
         merchant.VendorItems[2] = new NPCVendorSlot
         {
-            Slot = 2, ItemTemplate = fixture.World.ItemHandler.GetTemplate(PotionId),
+            Slot = 2, ItemTemplate = fixture.World.ItemHandler.GetTemplate(PotionId)!,
             Stack = 5, CanSeeStats = false,
         };
         fixture.World.NPCHandler.AddTemplate(merchant);
@@ -60,7 +60,7 @@ public class DimensionVendorStockTests
     }
 
     private static NPCVendorSlot[] StockOf(GlobalScriptFixture fixture, int dim)
-        => fixture.World.NPCHandler.GetNPCTemplate(MerchantId + Offset * dim).VendorItems;
+        => fixture.World.NPCHandler.GetNPCTemplate(MerchantId + Offset * dim)!.VendorItems!;
 
     [Theory]
     [InlineData(1)]
@@ -102,7 +102,7 @@ public class DimensionVendorStockTests
     {
         using var fixture = Loaded();
 
-        var basic = fixture.World.NPCHandler.GetNPCTemplate(MerchantId).VendorItems;
+        var basic = fixture.World.NPCHandler.GetNPCTemplate(MerchantId)!.VendorItems!;
 
         Assert.Equal(SwordId, basic[1].ItemTemplate.ID);
         Assert.Equal(PotionId, basic[2].ItemTemplate.ID);
@@ -158,7 +158,7 @@ public class DimensionVendorStockTests
         merchant.VendorItems = new NPCVendorSlot[fixture.Settings.VendorSlotSize + 1];
         merchant.VendorItems[1] = new NPCVendorSlot
         {
-            Slot = 1, ItemTemplate = fixture.World.ItemHandler.GetTemplate(CreditSwordId),
+            Slot = 1, ItemTemplate = fixture.World.ItemHandler.GetTemplate(CreditSwordId)!,
             Stack = 1, CanSeeStats = true,
         };
         fixture.World.NPCHandler.AddTemplate(merchant);
@@ -177,7 +177,7 @@ public class DimensionVendorStockTests
         dealer.VendorItems = new NPCVendorSlot[fixture.Settings.VendorSlotSize + 1];
         dealer.VendorItems[1] = new NPCVendorSlot
         {
-            Slot = 1, ItemTemplate = fixture.World.ItemHandler.GetTemplate(CreditSwordId),
+            Slot = 1, ItemTemplate = fixture.World.ItemHandler.GetTemplate(CreditSwordId)!,
             Stack = 1, CanSeeStats = true,
         };
         fixture.World.NPCHandler.AddTemplate(dealer);
@@ -194,7 +194,7 @@ public class DimensionVendorStockTests
     {
         using var fixture = LoadedCreditDealer();
 
-        var clone = fixture.World.ItemHandler.GetTemplate(CreditSwordId + Offset * dim);
+        var clone = fixture.World.ItemHandler.GetTemplate(CreditSwordId + Offset * dim)!;
         var expected = 500L * (long)Math.Pow(3, dim);
 
         Assert.Equal("spirit", clone.CurrencyId);
@@ -202,7 +202,7 @@ public class DimensionVendorStockTests
 
         // The clone's own stamp prices it, whatever the vendor deals in - here the regular
         // merchant's clone, since credit dealers no longer come to the dimensions.
-        var vendor = fixture.World.MapHandler.GetMap(1 + Offset * dim).NPCs
+        var vendor = fixture.World.MapHandler.GetMap(1 + Offset * dim)!.NPCs
             .Single(n => n.NPCTemplateID == MerchantId + Offset * dim);
         var currency = fixture.World.CurrencyHandler.Resolve(clone, vendor);
         Assert.Equal("spirit", currency.Id);
@@ -214,16 +214,16 @@ public class DimensionVendorStockTests
     {
         using var fixture = LoadedCreditDealer();
         int dim = 3;
-        var map = fixture.World.MapHandler.GetMap(1 + Offset * dim);
+        var map = fixture.World.MapHandler.GetMap(1 + Offset * dim)!;
         var vendor = map.NPCs.Single(n => n.NPCTemplateID == MerchantId + Offset * dim);
 
         var player = fixture.CommandPlayerOn(map, 26, 20);
         player.Properties["dimension.max"] = 6;
-        fixture.World.CurrencyHandler.Get("spirit").Add(player, 1_000_000, fixture.World);
+        fixture.World.CurrencyHandler.Get("spirit")!.Add(player, 1_000_000, fixture.World);
         player.Windows.Add(new Window { Type = Window.WindowTypes.Vendor, NPC = vendor });
         player.Sent.Clear();
 
-        var spiritBefore = fixture.World.CurrencyHandler.Get("spirit").GetBalance(player);
+        var spiritBefore = fixture.World.CurrencyHandler.Get("spirit")!.GetBalance(player);
 
         new VendorPurchaseInventoryEvent
         {
@@ -231,11 +231,11 @@ public class DimensionVendorStockTests
             Data = "VPI" + vendor.LoginID + ",1",
         }.Ready(fixture.World);
 
-        var price = fixture.World.ItemHandler.GetTemplate(CreditSwordId + Offset * dim).Value;
+        var price = fixture.World.ItemHandler.GetTemplate(CreditSwordId + Offset * dim)!.Value;
 
         Assert.True(price > 0);
-        Assert.Equal(spiritBefore - price, fixture.World.CurrencyHandler.Get("spirit").GetBalance(player));
-        Assert.Equal(CreditSwordId + Offset * dim, player.Inventory.GetSlot(1).Item.TemplateID);
+        Assert.Equal(spiritBefore - price, fixture.World.CurrencyHandler.Get("spirit")!.GetBalance(player));
+        Assert.Equal(CreditSwordId + Offset * dim, player.Inventory.GetSlot(1)!.Item.TemplateID);
     }
 
     /// <summary>Resolution puts the item override above the vendor
@@ -246,7 +246,7 @@ public class DimensionVendorStockTests
     {
         using var fixture = Loaded();
         var handler = fixture.World.CurrencyHandler;
-        var vendor = fixture.World.MapHandler.GetMap(1 + Offset * 3).NPCs
+        var vendor = fixture.World.MapHandler.GetMap(1 + Offset * 3)!.NPCs
             .Single(n => n.NPCTemplateID == MerchantId + Offset * 3);
 
         Assert.Equal("spirit", handler.Resolve(StockOf(fixture, 3)[1].ItemTemplate, vendor).Id);
@@ -266,7 +266,7 @@ public class DimensionVendorStockTests
     public void An_actual_purchase_from_a_spawned_dimension_vendor_charges_spirit()
     {
         using var fixture = Loaded();
-        var map = fixture.World.MapHandler.GetMap(1 + Offset * 3);
+        var map = fixture.World.MapHandler.GetMap(1 + Offset * 3)!;
         var vendor = map.NPCs.Single(n => n.NPCTemplateID == MerchantId + Offset * 3);
 
         var player = fixture.CommandPlayerOn(map, 21, 20);
@@ -274,11 +274,11 @@ public class DimensionVendorStockTests
         // (CanPickup in DimensionItem.csx), and a purchase is a pickup.
         player.Properties["dimension.max"] = 6;
         player.Gold = 5_000_000;
-        fixture.World.CurrencyHandler.Get("spirit").Add(player, 100_000, fixture.World);
+        fixture.World.CurrencyHandler.Get("spirit")!.Add(player, 100_000, fixture.World);
         player.Windows.Add(new Window { Type = Window.WindowTypes.Vendor, NPC = vendor });
         player.Sent.Clear();
 
-        var spiritBefore = fixture.World.CurrencyHandler.Get("spirit").GetBalance(player);
+        var spiritBefore = fixture.World.CurrencyHandler.Get("spirit")!.GetBalance(player);
         var goldBefore = player.Gold;
 
         // VendorFixture.Purchase's packet shape (VendorPurchaseCurrencyTests.cs:11-19).
@@ -288,12 +288,12 @@ public class DimensionVendorStockTests
             Data = "VPI" + vendor.LoginID + ",1",
         }.Ready(fixture.World);
 
-        var clonePrice = fixture.World.ItemHandler.GetTemplate(SwordId + Offset * 3).Value;
+        var clonePrice = fixture.World.ItemHandler.GetTemplate(SwordId + Offset * 3)!.Value;
 
         Assert.Equal(spiritBefore - clonePrice,
-                     fixture.World.CurrencyHandler.Get("spirit").GetBalance(player));
+                     fixture.World.CurrencyHandler.Get("spirit")!.GetBalance(player));
         Assert.Equal(goldBefore, player.Gold);
-        Assert.Equal(SwordId + Offset * 3, player.Inventory.GetSlot(1).Item.TemplateID);
+        Assert.Equal(SwordId + Offset * 3, player.Inventory.GetSlot(1)!.Item.TemplateID);
         Assert.Contains(player.Sent, m => m.Contains("spirit"));
     }
 }

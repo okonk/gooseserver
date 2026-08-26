@@ -51,7 +51,7 @@ namespace Goose
 
             return JsonSerializer.Deserialize<GooseSettings>(
                 File.ReadAllText(settingsPath, Encoding.UTF8),
-                JsonHelper.SettingsOptions);
+                JsonHelper.SettingsOptions)!;
         }
     }
 }

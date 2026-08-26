@@ -469,7 +469,7 @@ namespace Goose
         /// <summary>Lets a spell-effect script replace the built-in description. Used by
         /// DimensionTeleport.csx, whose effects are Script-typed and so would otherwise fall to
         /// the default branch below and lose their destination line.</summary>
-        private List<string> ScriptItemDescription(GameWorld world)
+        private List<string>? ScriptItemDescription(GameWorld world)
         {
             if (this.Script is null) return null;
 

@@ -90,9 +90,9 @@ identical under both counts).
 | 2. Database row mapping | 0 (was 37) | fixed by Task 2 |
 | 3. Collections containing nullable slots | 0 (was 80) | fixed by Task 3 |
 | 4. Packet/event inputs | 0 (was 74) | fixed by Task 3 |
-| 5. Script-facing APIs | 28 (was 33) | 5 entries fixed as side effects of Task 3 (`PickupItemEvent.cs:91/94` and `Map.cs:605/608` `string? refusal` locals; `QuestWindow.GetScriptCannotCompleteMessage` → `string?`); remainder is Task 4 |
-| 6. Tests and fakes (76 Goose.Tests + 232 Goose.IntegrationTests) | 308 | Task 3 added 32 sln-scope cascade warnings and fixed 2 as side effects (`CurrencyHandlerTests.cs(123,92)/(134,82)` null literals, now legal `Resolve(ItemTemplate?, NPC?)` args); IT went 39 → 232 (+192 new cascades, +1 re-emergence — see area 6). All listed in area 6, to be fixed in Task 4 |
-| **Total** | **336** (was 502) | sln 104 + IT 232 |
+| 5. Script-facing APIs | 0 (was 28) | fixed by Task 4 (5 entries had already been fixed as side effects of Task 3: `PickupItemEvent.cs:91/94` and `Map.cs:605/608` `string? refusal` locals; `QuestWindow.GetScriptCannotCompleteMessage` → `string?`) |
+| 6. Tests and fakes (76 Goose.Tests + 232 Goose.IntegrationTests) | 0 (was 308) | fixed by Task 4 |
+| **Total** | **0** (was 502) | sln 0 + IT 0 |
 
 ### Task 2 completion record
 
@@ -226,6 +226,78 @@ New area 6 cascades (fix in Task 4): 32 sln-scope (Goose.Tests/TestSupport) +
 `DimensionsScriptTests.cs(288,87)`, tracked in the Task 2 section) — listed
 in area 6.
 
+### Task 4 completion record
+
+Areas 5 + 6 fixed with annotation-only changes (no control-flow changes, no
+`required`/`init`, no `?? default`). Verification at the Task 4 commit:
+
+- `dotnet build Goose.sln --no-incremental` exit 0; **0** unique nullable
+  warnings (was 104 = area 5 28 + area 6 sln-scope 76).
+- `dotnet build Goose.IntegrationTests/Goose.IntegrationTests.csproj
+  --no-incremental` exit 0; **0** unique nullable warnings in the
+  `[...Goose.IntegrationTests.csproj]` scope (was 232). The only remaining
+  diagnostics in that log are 19 pre-existing CS0168 (unused variable),
+  outside the nullable range.
+- Tests: Goose.Tests 341 passed / 0 failed; Tools.Tests 124 passed / 0 failed.
+
+Annotation strategy used:
+
+Area 5 (script-facing boundary, 28 entries):
+
+- `GooseSettings`'s 12 string properties → `= null!`: the only construction
+  path is `GooseSettingsLoader` JSON deserialization and the shipped
+  `Goose/GooseSettings.json` sets every field; an operator-edited file missing
+  a field is recorded as latent bug #19. `GooseSettingsLoader.Load` →
+  `Deserialize(...)!` (`JsonSerializer.Deserialize` throws on invalid input
+  and returns an instance for a valid object document).
+- `Script<T>.Object` → `= default!` plus `!` at the
+  `Activator.CreateInstance(scriptType)!` assignment (CreateInstance throws or
+  returns an instance; `Object` is null only before `Load()`, and every
+  consumer goes through `ScriptHandler.Get`, which loads).
+- `ScriptHandler.Get` local → `IScript? script = null` (`TryGetValue` out).
+- Null is a real state in the script contracts, so `?`, not `!`:
+  `IItemScript.CanPickup` / `IMapScript.CanPlayerJoin` /
+  `IQuestScript.CanComplete` → `string?` (null = allow; the `Base*Script`
+  defaults return null), `ISpellEffectScript.GetItemDescription` →
+  `IEnumerable<string>?` (null = fall through to the built-in description),
+  `BaseMapScript.GetDynamicTile` → `DynamicTile?` (null = no dynamic tile),
+  and `SpellEffect.ScriptItemDescription` → `List<string>?`. These are
+  annotation-only at the Roslyn boundary: compiled scripts (`.csx`) dispatch
+  dynamically and observe identical behavior (the null returns are unchanged).
+
+Area 6 (tests and fakes, 308 entries):
+
+- `!` at fixture construction sites (fixtures control construction — the norm):
+  `TestWorldFixture` `GetClass(0)!` (classes 0/1/3 are seeded in the
+  constructor before `World` is exposed), `AddBaseSpell`'s
+  `GetSpellEffect(effectId)!` (tests add the effect immediately before), and
+  `Action<T>? configure = null` on the optional fixture parameters.
+- Integration tests: `!` on lookups of entities the same test registered
+  moments earlier — `MapHandler.GetMap(id)!` (`AddBaseMap` or a dimension
+  clone created by the shipped `OnLoaded`), `ClassHandler.GetClass(n)!`,
+  `ItemHandler.GetTemplate(id)!`, `NPCHandler.GetNPCTemplate(id)!`,
+  `SpellHandler.GetSpell/GetSpellEffect(id)!`, `CurrencyHandler.Get("spirit")!`
+  (registered by the shipped `OnLoaded` — pinned by
+  `SpiritCurrencyTests.OnLoaded_RegistersSpirit`), `Inventory.GetSlot(n)!`
+  (the item was just placed by the purchase under test), `Script!.Object`
+  (the test asserts that template/map ships its script), and
+  `NPCTemplate.VendorItems!` in `DimensionVendorStockTests.StockOf` (the base
+  merchant always has `VendorItems` assigned by the fixture, and dimension
+  clones inherit the array via the copy constructor, NPCTemplate.cs:256).
+- `?` where null is a real local state the test exercises:
+  `DimensionItemScriptTests` `Item? item = null` (the no-roll path leaves it
+  null), `GlobalScriptFixture` `Run(Action<GlobalScriptFixture>? arrange = null)`.
+- `PlayerPropertiesPersistenceTests`: `Convert.ToString(ExecuteScalar())!` —
+  the row was inserted/updated by the same test immediately before (the
+  load-path variant of this pattern is latent bug #7).
+- Tests asserting null-on-miss of the new `T?` lookups
+  (`Assert.Null(GetTemplate(50)!.Script)`, `Assert.Null(GetTemplate(1)!.CurrencyId)`,
+  `Assert.Null(script.CanPickup(...))`) were annotated, not changed — the
+  assertion is the contract.
+
+New latent bug recorded: #19 (`GooseSettings` string properties null when the
+settings JSON omits the field).
+
 ### Area 2 note: `DataReaderExtensions.GetString`
 
 `Goose/DataReaderExtensions.cs(14)` — `GetString` returns non-nullable `string` (null and
@@ -333,6 +405,15 @@ annotation work; each is suppressed with `!` at the site(s) noted.
 18. **`NPC.Quests` can contain null entries** — NPCHandler.cs:111
     (`QuestHandler.Get(q)!`): a bad quest id in an NPC sheet's quest list puts
     a null element into `NPC.Quests`, NREing quest progress/completion paths.
+19. **`GooseSettings` string properties are null when the settings JSON omits the
+    field** — Task 4 annotated the 12 string properties `= null!` (the only
+    construction path is `GooseSettingsLoader` JSON deserialization, and the shipped
+    `Goose/GooseSettings.json` sets every field). An operator-edited settings file
+    missing a field leaves the property null and NREs at the unguarded derefs, e.g.
+    `LoginContinuedEvent.cs:34` (`MOTD.Length`), `Player.cs:638`
+    (`StartingItems.Split(' ')`), `LoginEvent.cs:255` (`ServerName`),
+    `GuildCreateCommandEvent.cs:50/55` (`DefaultGuildMOTD`), `GameServer.cs:159`
+    (`GameServerIP`). Same class as #7/#14: bad operator data, unguarded.
 
 ## Classified inventory
 
@@ -765,7 +846,11 @@ Goose/Packets.cs(480,66): warning CS8625: Cannot convert null literal to non-nul
 Goose/Player.cs(2470,44): warning CS8625: Cannot convert null literal to non-nullable reference type.
 Goose/Spellbook.cs(152,53): warning CS8625: Cannot convert null literal to non-nullable reference type.
 
-### Area 5 — Script-facing APIs (28)
+### Area 5 — Script-facing APIs (28) — FIXED by Task 4
+
+All 28 entries below were eliminated by annotation-only changes (see the Task 4
+completion record); entries are retained for traceability (line numbers refer to the
+`8e72576` baseline). The 5 entries marked FIXED by Task 3 remain resolved.
 
 Goose/Events/PickupItemEvent.cs(91,38): warning CS8600: Converting null literal or possible null value to non-nullable type. — FIXED by Task 3 (side effect: `refusal` local is now `string?`)
 Goose/Events/PickupItemEvent.cs(94,35): warning CS8600: Converting null literal or possible null value to non-nullable type. — FIXED by Task 3 (side effect: `refusal` local is now `string?`, accepting the `string?` result of `Script?.Object.CanPickup`)
@@ -801,7 +886,11 @@ Goose/SpellEffect.cs(474,45): warning CS8603: Possible null reference return.
 Goose/SpellEffect.cs(479,24): warning CS8603: Possible null reference return.
 Goose/SpellEffect.cs(484,24): warning CS8603: Possible null reference return.
 
-### Area 6 — Tests and fakes (308 after Task 3 = 76 sln-scope + 232 IT; 85 after Task 2; baseline 60)
+### Area 6 — Tests and fakes (308 after Task 3 = 76 sln-scope + 232 IT; 85 after Task 2; baseline 60) — FIXED by Task 4
+
+All 308 entries below were eliminated by annotation-only changes (see the Task 4
+completion record); entries are retained for traceability. Entries marked FIXED by
+Task 2/Task 3 remain resolved.
 
 Goose.Tests (76 after Task 3 = 46 after Task 2 − 2 Task 3 side-effect fixes + 32 Task 3 cascades; 43 at baseline — plus the 4 shared `TestSupport` entries listed under the IT build below, 47 in the sln scope at baseline; built via Goose.sln):
 

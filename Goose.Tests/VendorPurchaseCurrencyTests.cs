@@ -18,7 +18,7 @@ public class VendorPurchaseCurrencyTests
         ev.Ready(fixture.World);
     }
 
-    private static ItemTemplate Sword(TestWorldFixture _, long value = 100, int credits = 0) =>
+    private static ItemTemplate Sword(TestWorldFixture? _, long value = 100, int credits = 0) =>
         new ItemTemplate
         {
             ID = 1, Name = "Sword", Description = "A Sword", Value = value, Credits = credits,

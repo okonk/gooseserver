@@ -106,7 +106,7 @@ public class InvisibilityTransitionTests : IDisposable
     };
 
     private NPC SpawnNpc(NPCTemplate template) =>
-        world.NPCHandler.SpawnNPC(world, MapId, 5, 5, template, shouldRespawn: false);
+        world.NPCHandler.SpawnNPC(world, MapId, 5, 5, template, shouldRespawn: false)!;
 
     private static Buff NewBuff(ICharacter owner, SpellEffect.EffectTypes effectType)
     {
@@ -371,7 +371,7 @@ public class InvisibilityTransitionTests : IDisposable
     {
         var p = NewPlayer();
         p.State = Player.States.LoadingGame;
-        p.Map = null;
+        p.Map = null!;
 
         var buff = NewBuff(p, SpellEffect.EffectTypes.Invisible);
         p.AddBuff(buff, world);

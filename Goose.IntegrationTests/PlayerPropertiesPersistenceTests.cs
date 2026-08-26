@@ -53,7 +53,7 @@ public class PlayerPropertiesPersistenceTests : IDisposable
         using var cmd = conn.CreateCommand();
         cmd.CommandText = "SELECT player_properties FROM players WHERE player_id=" + playerId;
         var loaded = new Player(0);
-        loaded.LoadPropertiesFromColumn(Convert.ToString(cmd.ExecuteScalar()));
+        loaded.LoadPropertiesFromColumn(Convert.ToString(cmd.ExecuteScalar())!);
         return loaded.Properties;
     }
 

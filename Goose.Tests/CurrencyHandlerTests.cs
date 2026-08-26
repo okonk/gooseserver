@@ -80,7 +80,7 @@ public class CurrencyHandlerTests
         return handler;
     }
 
-    private static NPC VendorWith(string currencyId) =>
+    private static NPC VendorWith(string? currencyId) =>
         new NPC { NPCTemplate = new NPCTemplate { CurrencyId = currencyId } };
 
     [Fact]

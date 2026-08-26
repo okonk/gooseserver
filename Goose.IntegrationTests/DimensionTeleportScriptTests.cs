@@ -50,7 +50,7 @@ public class DimensionTeleportScriptTests
 
             foreach (var id in new[] { 42, 42 + Offset, 42 + Offset * 6 })
             {
-                var effect = fixture.World.SpellHandler.GetSpellEffect(id);
+                var effect = fixture.World.SpellHandler.GetSpellEffect(id)!;
                 Assert.Equal(SpellEffect.EffectTypes.Script, effect.EffectType);
                 Assert.NotNull(effect.Script);
                 Assert.Equal(Offset.ToString(), effect.ScriptParams);
@@ -75,8 +75,8 @@ public class DimensionTeleportScriptTests
             fixture.CompileShipped().Object.OnLoaded(fixture.World);
 
             Assert.Equal(SpellEffect.EffectTypes.Buff,
-                         fixture.World.SpellHandler.GetSpellEffect(43 + Offset * 3).EffectType);
-            Assert.Null(fixture.World.SpellHandler.GetSpellEffect(43 + Offset * 3).Script);
+                         fixture.World.SpellHandler.GetSpellEffect(43 + Offset * 3)!.EffectType);
+            Assert.Null(fixture.World.SpellHandler.GetSpellEffect(43 + Offset * 3)!.Script);
         }
     }
 
@@ -87,8 +87,8 @@ public class DimensionTeleportScriptTests
     {
         using var fixture = RunWithGate();
 
-        var effect = fixture.World.SpellHandler.GetSpellEffect(42 + Offset * 3);
-        var dim3Town = fixture.World.MapHandler.GetMap(1 + Offset * 3);
+        var effect = fixture.World.SpellHandler.GetSpellEffect(42 + Offset * 3)!;
+        var dim3Town = fixture.World.MapHandler.GetMap(1 + Offset * 3)!;
         var player = fixture.PlayerOn(dim3Town, x: 50, y: 50);
         player.Properties["dimension.max"] = 3;      // DimensionMap.csx gates the destination
 
@@ -104,8 +104,8 @@ public class DimensionTeleportScriptTests
     {
         using var fixture = RunWithGate();
 
-        var effect = fixture.World.SpellHandler.GetSpellEffect(42);
-        var player = fixture.PlayerOn(fixture.World.MapHandler.GetMap(1), x: 50, y: 50);
+        var effect = fixture.World.SpellHandler.GetSpellEffect(42)!;
+        var player = fixture.PlayerOn(fixture.World.MapHandler.GetMap(1)!, x: 50, y: 50);
 
         Assert.True(effect.CastSpell(player, player, fixture.World));
         Assert.Equal(2, player.MapID);
@@ -123,8 +123,8 @@ public class DimensionTeleportScriptTests
         // Delete the dimension-3 copy of the destination, leaving the base map only.
         fixture.World.MapHandler.Maps.Remove(2 + Offset * 3);
 
-        var effect = fixture.World.SpellHandler.GetSpellEffect(42 + Offset * 3);
-        var player = fixture.PlayerOn(fixture.World.MapHandler.GetMap(1 + Offset * 3), x: 50, y: 50);
+        var effect = fixture.World.SpellHandler.GetSpellEffect(42 + Offset * 3)!;
+        var player = fixture.PlayerOn(fixture.World.MapHandler.GetMap(1 + Offset * 3)!, x: 50, y: 50);
         player.Properties["dimension.max"] = 3;
 
         Assert.True(effect.CastSpell(player, player, fixture.World));
@@ -138,9 +138,9 @@ public class DimensionTeleportScriptTests
     {
         using var fixture = RunWithGate(teleportMapId: 0);
 
-        var town = fixture.World.MapHandler.GetMap(1);
-        var effect = fixture.World.SpellHandler.GetSpellEffect(42 + Offset * 3);
-        var player = fixture.PlayerOn(fixture.World.MapHandler.GetMap(1 + Offset * 3), x: 50, y: 50);
+        var town = fixture.World.MapHandler.GetMap(1)!;
+        var effect = fixture.World.SpellHandler.GetSpellEffect(42 + Offset * 3)!;
+        var player = fixture.PlayerOn(fixture.World.MapHandler.GetMap(1 + Offset * 3)!, x: 50, y: 50);
         player.BoundMap = town;
         player.BoundID = town.ID;
         player.BoundX = 11;
@@ -161,8 +161,8 @@ public class DimensionTeleportScriptTests
     {
         using var fixture = RunWithGate();
 
-        var effect = fixture.World.SpellHandler.GetSpellEffect(42 + Offset * 3);
-        var dim3Town = fixture.World.MapHandler.GetMap(1 + Offset * 3);
+        var effect = fixture.World.SpellHandler.GetSpellEffect(42 + Offset * 3)!;
+        var dim3Town = fixture.World.MapHandler.GetMap(1 + Offset * 3)!;
         var player = fixture.PlayerOn(dim3Town, x: 50, y: 50);
         player.Properties["dimension.max"] = 0;      // no access to dimension 3
 
@@ -179,8 +179,8 @@ public class DimensionTeleportScriptTests
     {
         using var fixture = RunWithGate();
 
-        var effect = fixture.World.SpellHandler.GetSpellEffect(42);
-        var town = fixture.World.MapHandler.GetMap(1);
+        var effect = fixture.World.SpellHandler.GetSpellEffect(42)!;
+        var town = fixture.World.MapHandler.GetMap(1)!;
         var player = fixture.PlayerOn(town, x: 50, y: 50);
         var npc = new NPC { Map = town, MapX = 51, MapY = 50, CanBeKilled = true };
 
@@ -197,8 +197,8 @@ public class DimensionTeleportScriptTests
     {
         using var fixture = RunWithGate();
 
-        var lines = fixture.World.SpellHandler.GetSpellEffect(42)
-                           .GetItemDescription(fixture.World).ToArray();
+        var lines = fixture.World.SpellHandler.GetSpellEffect(42)!
+                           .GetItemDescription(fixture.World)!.ToArray();
 
         Assert.Equal(new[] { "Teleport to Cave (7, 8) in your current dimension" }, lines);
     }
@@ -231,7 +231,7 @@ public class DimensionTeleportScriptTests
         Assert.Null(fixture.World.SpellHandler.GetSpellEffect(42 + Offset * 3));
         Assert.Null(fixture.World.SpellHandler.GetSpell(91 + Offset * 3));
 
-        var untouched = fixture.World.SpellHandler.GetSpellEffect(42);
+        var untouched = fixture.World.SpellHandler.GetSpellEffect(42)!;
         Assert.Equal(SpellEffect.EffectTypes.Teleport, untouched.EffectType);
         Assert.Null(untouched.Script);
         Assert.Empty(untouched.BuffDoesntStackOver);   // no ladder on the base effect either

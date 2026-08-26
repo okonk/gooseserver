@@ -44,7 +44,7 @@ public class DimensionRebirthTests
         Assert.False(template.CanMove);
         Assert.Equal(NPCTemplate.Types.Quest, template.NPCType);
 
-        var quest = fixture.World.QuestHandler.Get(RebirthQuestId);
+        var quest = fixture.World.QuestHandler.Get(RebirthQuestId)!;
         Assert.NotNull(quest);
         Assert.True(quest.Repeatable);
         Assert.Contains(quest, template.Quests);
@@ -57,7 +57,7 @@ public class DimensionRebirthTests
         var script = fixture.CompileShipped();
         script.Object.OnLoaded(fixture.World);
 
-        var quest = fixture.World.QuestHandler.Get(RebirthQuestId);
+        var quest = fixture.World.QuestHandler.Get(RebirthQuestId)!;
 
         Assert.Contains(quest.Requirements, r => r.Type == RequirementType.NothingEquipped);
 
@@ -76,7 +76,7 @@ public class DimensionRebirthTests
         var script = fixture.CompileShipped();
         script.Object.OnLoaded(fixture.World);
 
-        var reward = Assert.Single(fixture.World.QuestHandler.Get(RebirthQuestId).Rewards);
+        var reward = Assert.Single(fixture.World.QuestHandler.Get(RebirthQuestId)!.Rewards);
         Assert.Equal(RewardType.Script, reward.Type);
         Assert.Equal(RebirthQuestId + 11, reward.Id);
         Assert.Equal("100000000", reward.ScriptParams);
@@ -105,7 +105,7 @@ public class DimensionRebirthTests
         var script = fixture.CompileShipped();
         script.Object.OnLoaded(fixture.World);
 
-        var map = fixture.World.MapHandler.GetMap(1);
+        var map = fixture.World.MapHandler.GetMap(1)!;
         var keeper = Assert.Single(map.NPCs, n => n.NPCTemplateID == RebirthTemplateId);
 
         Assert.Same(keeper, map.GetCharacterAt(RebirthX, RebirthY));
@@ -122,7 +122,7 @@ public class DimensionRebirthTests
     public void Refuses_to_load_when_the_keepers_tile_is_blocked()
     {
         using var fixture = Seeded();
-        var map = fixture.World.MapHandler.GetMap(1);
+        var map = fixture.World.MapHandler.GetMap(1)!;
         map.tiles[RebirthY * map.Width + RebirthX] = new BlockedTile();
 
         var script = fixture.CompileShipped();
@@ -161,7 +161,7 @@ public class DimensionRebirthTests
 
         Assert.Null(fixture.World.NPCHandler.GetNPCTemplate(RebirthTemplateId));
         Assert.Null(fixture.World.QuestHandler.Get(RebirthQuestId));
-        Assert.Empty(fixture.World.MapHandler.GetMap(1).NPCs);
+        Assert.Empty(fixture.World.MapHandler.GetMap(1)!.NPCs);
     }
 
     [Fact]
@@ -171,22 +171,22 @@ public class DimensionRebirthTests
         var script = fixture.CompileShipped();
         script.Object.OnLoaded(fixture.World);
 
-        var requirement = fixture.World.QuestHandler.Get(RebirthQuestId)
+        var requirement = fixture.World.QuestHandler.Get(RebirthQuestId)!
             .Requirements.Single(r => r.Type == RequirementType.Script);
 
-        var map = fixture.World.MapHandler.GetMap(1);
+        var map = fixture.World.MapHandler.GetMap(1)!;
         var player = fixture.PlayerOn(map, 1, 1);
 
         player.Experience = 99_999_999; player.ExperienceSold = 0;
-        Assert.False(requirement.Script.Object.IsMet(requirement, player, fixture.World));
+        Assert.False(requirement.Script!.Object.IsMet(requirement, player, fixture.World));
 
         player.Experience = 100_000_000;
-        Assert.True(requirement.Script.Object.IsMet(requirement, player, fixture.World));
+        Assert.True(requirement.Script!.Object.IsMet(requirement, player, fixture.World));
 
         // Split across both fields — the threshold is on the sum, as every other
         // experience gate in the codebase is (Map.cs:638, QuestWindow.cs:36).
         player.Experience = 50_000_000; player.ExperienceSold = 50_000_000;
-        Assert.True(requirement.Script.Object.IsMet(requirement, player, fixture.World));
+        Assert.True(requirement.Script!.Object.IsMet(requirement, player, fixture.World));
     }
 
     [Fact]
@@ -197,11 +197,11 @@ public class DimensionRebirthTests
         var script = fixture.CompileShipped();
         script.Object.OnLoaded(fixture.World);
 
-        var reward = fixture.World.QuestHandler.Get(RebirthQuestId).Rewards.Single();
-        var map = fixture.World.MapHandler.GetMap(1);
+        var reward = fixture.World.QuestHandler.Get(RebirthQuestId)!.Rewards.Single();
+        var map = fixture.World.MapHandler.GetMap(1)!;
         var player = fixture.PlayerOn(map, 1, 1);
         player.ClassID = 3;
-        player.Class = fixture.World.ClassHandler.GetClass(3);
+        player.Class = fixture.World.ClassHandler.GetClass(3)!;
         player.Level = 50;
         player.Experience = 250_000_000;
         player.ExperienceSold = 0;
@@ -209,9 +209,9 @@ public class DimensionRebirthTests
         // gives (created at login); ChangeClass touches it. Same fix Task 1's tests use.
         player.Spellbook = new Spellbook(player, fixture.Settings);
 
-        reward.Script.Object.GiveReward(reward, null, player, fixture.World);
+        reward.Script!.Object.GiveReward(reward, null!, player, fixture.World);
 
-        var spirit = fixture.World.CurrencyHandler.Get("spirit");
+        var spirit = fixture.World.CurrencyHandler.Get("spirit")!;
         Assert.Equal(2, spirit.GetBalance(player));       // floor(250M / 100M)
         Assert.Equal(0, player.Experience);               // remainder destroyed
         Assert.Equal(0, player.ExperienceSold);           // and no 7% shave to observe

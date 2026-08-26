@@ -27,13 +27,13 @@ namespace Goose.Tests
         }
 
         private static CapturingPlayer NewPlayer(GameWorld world, Map map, string name,
-            Player.AccessStatus access = Player.AccessStatus.Normal, string surname = null)
+            Player.AccessStatus access = Player.AccessStatus.Normal, string? surname = null)
         {
             var player = new CapturingPlayer
             {
                 Sock = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp),
                 Name = name,
-                Surname = surname,
+                Surname = surname!,
                 Level = 10,
                 Access = access,
                 State = Player.States.Ready,

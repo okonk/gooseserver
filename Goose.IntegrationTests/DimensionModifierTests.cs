@@ -25,12 +25,12 @@ public class DimensionModifierTests
         // Chance 0 makes RollModifier's range empty (ItemHandler.cs:272-277), so these can
         // only ever be applied explicitly by the dimension script.
         for (int i = 0; i < 6; i++)
-            Assert.Equal(0, fixture.World.ItemHandler.GetSurname(900000 + i).Chance);
+            Assert.Equal(0, fixture.World.ItemHandler.GetSurname(900000 + i)!.Chance);
 
-        Assert.Equal("of Vita Regen", fixture.World.ItemHandler.GetSurname(900000).Name);
-        Assert.Equal("of Speed", fixture.World.ItemHandler.GetSurname(900005).Name);
-        Assert.Equal("Legendary", fixture.World.ItemHandler.GetTitle(900100).Name);
-        Assert.Equal("Stunted", fixture.World.ItemHandler.GetTitle(900101).Name);
+        Assert.Equal("of Vita Regen", fixture.World.ItemHandler.GetSurname(900000)!.Name);
+        Assert.Equal("of Speed", fixture.World.ItemHandler.GetSurname(900005)!.Name);
+        Assert.Equal("Legendary", fixture.World.ItemHandler.GetTitle(900100)!.Name);
+        Assert.Equal("Stunted", fixture.World.ItemHandler.GetTitle(900101)!.Name);
     }
 
     [Theory]
@@ -43,7 +43,7 @@ public class DimensionModifierTests
         using var fixture = Run();
         var item = ItemOfDimension(fixture, dim: 3);   // tier 0.5
 
-        fixture.World.ItemHandler.GetSurname(surnameId).ApplyStats(item, fixture.World);
+        fixture.World.ItemHandler.GetSurname(surnameId)!.ApplyStats(item, fixture.World);
 
         // AttributeSet.java:422,428,437,438 - 0.04 * dim * tier
         var expected = 0.04m * 3 * 0.5m;
@@ -56,7 +56,7 @@ public class DimensionModifierTests
         using var fixture = Run();
         var item = ItemOfDimension(fixture, dim: 3);
 
-        fixture.World.ItemHandler.GetSurname(900000).ApplyStats(item, fixture.World);
+        fixture.World.ItemHandler.GetSurname(900000)!.ApplyStats(item, fixture.World);
 
         Assert.Equal(0.015m * 3 * 0.5m, item.BaseStats.HPPercentRegen);   // AttributeSet.java:430
         Assert.Equal((int)(1500 * 3 * 0.5), item.BaseStats.HPStaticRegen); // AttributeSet.java:431
@@ -70,8 +70,8 @@ public class DimensionModifierTests
         var legendary = ItemOfDimension(fixture, dim: 1);
         var stunted = ItemOfDimension(fixture, dim: 1);
 
-        fixture.World.ItemHandler.GetTitle(900100).ApplyStats(legendary, fixture.World);
-        fixture.World.ItemHandler.GetTitle(900101).ApplyStats(stunted, fixture.World);
+        fixture.World.ItemHandler.GetTitle(900100)!.ApplyStats(legendary, fixture.World);
+        fixture.World.ItemHandler.GetTitle(900101)!.ApplyStats(stunted, fixture.World);
 
         Assert.Equal(1.25, legendary.StatMultiplier);   // Item.java:394
         Assert.Equal(0.5, stunted.StatMultiplier);      // Item.java:398
@@ -92,7 +92,7 @@ public class DimensionModifierTests
         try
         {
             System.Globalization.CultureInfo.CurrentCulture = new System.Globalization.CultureInfo("de-DE");
-            fixture.World.ItemHandler.GetTitle(900100).ApplyStats(legendary, fixture.World);
+            fixture.World.ItemHandler.GetTitle(900100)!.ApplyStats(legendary, fixture.World);
         }
         finally
         {
@@ -105,7 +105,7 @@ public class DimensionModifierTests
     private static Item ItemOfDimension(GlobalScriptFixture fixture, int dim)
     {
         var item = new Item();
-        item.LoadFromTemplate(fixture.World.ItemHandler.GetTemplate(50 + 100000 * dim));
+        item.LoadFromTemplate(fixture.World.ItemHandler.GetTemplate(50 + 100000 * dim)!);
         return item;
     }
 

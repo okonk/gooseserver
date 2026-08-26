@@ -21,7 +21,7 @@ public class PacketCurrencyTests
         public void Remove(Player player, long amount, GameWorld world) { }
     }
 
-    private static ItemTemplate Template(string currencyId = null)
+    private static ItemTemplate Template(string? currencyId = null)
     {
         return new ItemTemplate
         {
@@ -92,7 +92,7 @@ public class PacketCurrencyTests
         fixture.VendorDealsIn(Currency.Credits);
         var window = fixture.Player.Windows.Find(w => w.Type == Window.WindowTypes.Vendor);
 
-        var packet = P.VendorSlot(window, Template(), fixture.World, 1, 1);
+        var packet = P.VendorSlot(window!, Template(), fixture.World, 1, 1);
 
         Assert.Equal("credits", LastField(packet));
     }

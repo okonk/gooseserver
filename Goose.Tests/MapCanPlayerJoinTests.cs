@@ -12,12 +12,12 @@ public class MapCanPlayerJoinTests
     [Fact]
     public void Base_script_allows_by_default()
     {
-        Assert.Null(new BaseMapScript().CanPlayerJoin(null, null, null));
+        Assert.Null(new BaseMapScript().CanPlayerJoin(null!, null!, null!));
     }
 
     [Fact]
     public void A_refusing_script_blocks_entry()
     {
-        Assert.Equal("denied", new RefusingMapScript().CanPlayerJoin(null, null, null));
+        Assert.Equal("denied", new RefusingMapScript().CanPlayerJoin(null!, null!, null!));
     }
 }
