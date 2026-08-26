@@ -62,7 +62,7 @@ namespace Goose
         // Field block: when adding a field to Map, mirror it in CloneAs below or clones
         // will silently diverge from the maps they were copied from.
         public ICharacter?[] characters = null!;
-        public ITile[] tiles = null!;
+        public ITile?[] tiles = null!;
         List<Player> players;
         List<int> requiredItems;
         List<NPC> npcs;
@@ -133,7 +133,7 @@ namespace Goose
                 Muted = this.Muted,
                 Script = this.Script,
                 ScriptParams = this.ScriptParams,
-                tiles = (ITile[])this.tiles.Clone(),
+                tiles = (ITile?[])this.tiles.Clone(),
                 characters = new ICharacter[this.characters.Length],
             };
 
@@ -275,7 +275,7 @@ namespace Goose
             if ((Math.Abs(character.MapX - x) == 1 && Math.Abs(character.MapY - y) == 0) ||
                 (Math.Abs(character.MapX - x) == 0 && Math.Abs(character.MapY - y) == 1))
             {
-                ITile tile = this.tiles[y * this.Width + x];
+                ITile? tile = this.tiles[y * this.Width + x];
                 if (tile is not null)
                 {
                     if (tile is WarpTile)
@@ -378,7 +378,7 @@ namespace Goose
                                 // so we don't search already searched tiles
                                 if ((y == oy - r || y == oy + r) || (x == ox - r || x == ox + r))
                                 {
-                                    ITile tile = this.GetTile(x, y);
+                                    ITile? tile = this.GetTile(x, y);
                                     if (tile is null)
                                     {
                                         item.X = x;
@@ -419,7 +419,7 @@ namespace Goose
             Player? ignorePlayer = ignore as Player;
             bool isgm = (ignorePlayer is not null && ignorePlayer.Access == Player.AccessStatus.GameMaster);
 
-            ITile tile = this.tiles[y * this.Width + x];
+            ITile? tile = this.tiles[y * this.Width + x];
             if (tile is not null)
             {
                 if (tile is WarpTile)
@@ -432,7 +432,7 @@ namespace Goose
                 }
             }
 
-            ICharacter character = this.GetCharacterAt(x, y);
+            ICharacter? character = this.GetCharacterAt(x, y);
             if (character is null || character == ignore || (isgm && ignorePlayer!.IsGMInvisible)) return false;
 
             return true;
@@ -544,7 +544,7 @@ namespace Goose
                     while (reader.Read())
                     {
                         WarpTile warp = new WarpTile();
-                        warp.WarpMap = world.MapHandler.GetMap(reader.GetInt32("warp_id"));
+                        warp.WarpMap = world.MapHandler.GetMap(reader.GetInt32("warp_id"))!;
                         warp.WarpX = reader.GetInt32("warp_x");
                         warp.WarpY = reader.GetInt32("warp_y");
 
@@ -578,7 +578,7 @@ namespace Goose
          * GetTile, returns the tile at x, y
          *
          */
-        public ITile GetTile(int x, int y)
+        public ITile? GetTile(int x, int y)
         {
             // invalid coordinates
             if (x < 1 || x >= this.Width + 1 || y < 1 || y >= this.Height + 1) return null;
@@ -602,7 +602,7 @@ namespace Goose
         {
             if (player.HasPrivilege(AccessPrivilege.IgnoreMapRequirements)) return true;
 
-            string refusal = null;
+            string? refusal = null;
             try
             {
                 refusal = this.Script?.Object.CanPlayerJoin(this, player, world);
@@ -666,7 +666,7 @@ namespace Goose
          * GetCharacterAt, gets character at x,y
          *
          */
-        public ICharacter GetCharacterAt(int x, int y)
+        public ICharacter? GetCharacterAt(int x, int y)
         {
             if (x < 1 || x >= this.Width + 1 || y < 1 || y >= this.Height + 1) return null;
 

@@ -34,7 +34,7 @@ namespace Goose.Events
                 }
 
                 int r, g, b, a;
-                string error;
+                string? error;
                 ItemSlot lookSlot;
                 ItemSlot statsSlot;
 
@@ -58,9 +58,9 @@ namespace Goose.Events
                         if (!ValidateCustomSlots(world, combineBag, this.Player))
                             return;
 
-                        ItemSlot ticketSlot = combineBag.GetSlot(1);
-                        statsSlot = combineBag.GetSlot(2);
-                        lookSlot = combineBag.GetSlot(3);
+                        ItemSlot ticketSlot = combineBag.GetSlot(1)!;
+                        statsSlot = combineBag.GetSlot(2)!;
+                        lookSlot = combineBag.GetSlot(3)!;
 
                         Item item = new Item();
                         item.LoadFromTemplate(statsSlot.Item.Template);
@@ -81,10 +81,10 @@ namespace Goose.Events
                         item.IsBound = statsSlot.Item.IsBound;
                         item.ScriptParams = statsSlot.Item.ScriptParams;
 
-                        if (statsSlot.Item.ItemProperties.TryGetValue(ItemProperty.TitleId, out object titleId))
+                        if (statsSlot.Item.ItemProperties.TryGetValue(ItemProperty.TitleId, out object? titleId))
                             item.ItemProperties[ItemProperty.TitleId] = titleId;
 
-                        if (statsSlot.Item.ItemProperties.TryGetValue(ItemProperty.SurnameId, out object surnameId))
+                        if (statsSlot.Item.ItemProperties.TryGetValue(ItemProperty.SurnameId, out object? surnameId))
                             item.ItemProperties[ItemProperty.SurnameId] = surnameId;
 
                         world.ItemHandler.AddAndAssignId(item, world);
@@ -124,7 +124,7 @@ namespace Goose.Events
                         if (!ValidateCustomSlots(world, combineBag, this.Player))
                             return;
 
-                        lookSlot = combineBag.GetSlot(3);
+                        lookSlot = combineBag.GetSlot(3)!;
 
                         int prevx = this.Player.MapX;
                         int prevy = this.Player.MapY;
@@ -133,7 +133,7 @@ namespace Goose.Events
                         else prevx -= 1;
 
                         int pose = this.Player.BodyState;
-                        ItemSlot weapon = this.Player.Inventory.GetEquippedSlot(Inventory.EquipSlots.Weapon);
+                        ItemSlot? weapon = this.Player.Inventory.GetEquippedSlot(Inventory.EquipSlots.Weapon);
                         if (weapon is not null)
                         {
                             pose = weapon.Item.BodyState;
@@ -212,7 +212,7 @@ namespace Goose.Events
             string e = "";
             EquipSlots[] slots = new EquipSlots[]{EquipSlots.Chest, EquipSlots.Head,
                 EquipSlots.Legs, EquipSlots.Feet, EquipSlots.Shield, EquipSlots.Weapon};
-            ItemSlot item;
+            ItemSlot? item;
 
             EquipSlots lookSlot = this.Player.Inventory.ItemSlotToEquipSlot(customLook.Item.Slot);
 
@@ -258,7 +258,7 @@ namespace Goose.Events
         {
             EquipSlots lookSlot = this.Player.Inventory.ItemSlotToEquipSlot(customLook.Item.Slot);
 
-            ItemSlot item = this.Player.Inventory.GetEquippedSlot(EquipSlots.Mount);
+            ItemSlot? item = this.Player.Inventory.GetEquippedSlot(EquipSlots.Mount);
             string e = "";
             if (lookSlot == EquipSlots.Mount)
             {
@@ -341,7 +341,7 @@ namespace Goose.Events
         /// <param name="b"></param>
         /// <param name="a"></param>
         /// <returns></returns>
-        public static string ParseRGBA(string[] tokens, out int r, out int g, out int b, out int a)
+        public static string? ParseRGBA(string[] tokens, out int r, out int g, out int b, out int a)
         {
             try
             {

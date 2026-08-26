@@ -19,7 +19,7 @@ namespace Goose.Events
                 string data = ((string)this.Data).Substring(4);
                 if (data.Length <= 0) return;
 
-                string packet = P.Emote(this.Player, data);
+                string? packet = P.Emote(this.Player, data);
                 if (packet is null) return;
 
                 world.Send(this.Player, packet);

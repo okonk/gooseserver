@@ -596,7 +596,7 @@ namespace Goose
         {
             this.ShouldRespawn = shouldRespawn;
 
-            this.Map = world.MapHandler.GetMap(map_id);
+            this.Map = world.MapHandler.GetMap(map_id)!;
             if (this.Map is null) return false;
             this.MapID = map_id;
             this.MapX = map_x;
@@ -645,8 +645,8 @@ namespace Goose
             this.Surname = template.Surname;
             this.Title = template.Title;
             this.WeaponDamage = template.WeaponDamage;
-            this.Class = world.ClassHandler.GetClass(this.ClassID);
-            this.MaxStats += this.Class.GetLevel(this.Level).BaseStats;
+            this.Class = world.ClassHandler.GetClass(this.ClassID)!;
+            this.MaxStats += this.Class.GetLevel(this.Level)!.BaseStats;
             this.Quests = template.Quests;
 
             this.SpawnX = this.MapX;
@@ -1462,7 +1462,7 @@ namespace Goose
                     this.Map.PlaceItem(tile);
 
                     // tile can stack
-                    ITile tileResult = this.Map.GetTile(tile.X, tile.Y);
+                    ITile? tileResult = this.Map.GetTile(tile.X, tile.Y);
                     ItemTile? maptile = tileResult as ItemTile;
                     if (maptile is not null)
                     {

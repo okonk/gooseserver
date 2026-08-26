@@ -29,7 +29,7 @@ namespace Goose.Events
 
                 if (tokens.Length == 4)
                 {
-                    Map map = world.MapHandler.GetMap(mapid);
+                    Map? map = world.MapHandler.GetMap(mapid);
                     if (map is not null)
                     {
                         // invalid coordinates

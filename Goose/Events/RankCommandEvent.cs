@@ -43,7 +43,7 @@ namespace Goose.Events
                         window.Data = world.RankHandler.Gold;
                         break;
                     default:
-                        if (!world.RankHandler.ClassRanks.TryGetValue(argumentLower, out Ranks classRank))
+                        if (!world.RankHandler.ClassRanks.TryGetValue(argumentLower, out Ranks? classRank))
                         {
                             world.Send(this.Player, P.ServerMessage("Usage: /rank [all, gold, <classname>]"));
                             return;

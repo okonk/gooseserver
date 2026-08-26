@@ -34,7 +34,7 @@ namespace Goose.Events
 
                     if (message.Length > 0)
                     {
-                        Player recipient = world.PlayerHandler.GetPlayer(name);
+                        Player? recipient = world.PlayerHandler.GetPlayer(name);
                         if (recipient is not null && recipient.State > Player.States.LoadingGame)
                         {
                             world.LogHandler.Log(Log.Types.Tell, this.Player.PlayerID, message, recipient.PlayerID, this.Player.Map.ID, this.Player.MapX, this.Player.MapY);

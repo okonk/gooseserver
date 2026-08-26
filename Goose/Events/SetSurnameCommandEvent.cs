@@ -26,7 +26,7 @@ namespace Goose.Events
                     surname = tokens[2];
                 }
 
-                Player player = world.PlayerHandler.GetPlayerFromData(name);
+                Player? player = world.PlayerHandler.GetPlayerFromData(name);
                 if (player is not null)
                 {
                     player.Surname = surname;

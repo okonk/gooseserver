@@ -10,7 +10,7 @@ namespace Goose.ConsoleCommands
      */
     public sealed class SetAccessRequest
     {
-        public string Name;
+        public string Name = null!;
         public Player.AccessStatus Level;
     }
 
@@ -38,7 +38,7 @@ namespace Goose.ConsoleCommands
          * matching how the in game command splits its input.
          *
          */
-        public static bool TryParse(string[] args, out SetAccessRequest request, out string error)
+        public static bool TryParse(string[] args, out SetAccessRequest? request, out string? error)
         {
             request = null;
             error = null;
@@ -67,13 +67,13 @@ namespace Goose.ConsoleCommands
          */
         public static void Run(GameWorld world, string[] args)
         {
-            if (!TryParse(args, out SetAccessRequest request, out string error))
+            if (!TryParse(args, out SetAccessRequest? request, out string? error))
             {
                 Console.WriteLine(error);
                 return;
             }
 
-            Player player = world.PlayerHandler.GetPlayerFromData(request.Name);
+            Player? player = world.PlayerHandler.GetPlayerFromData(request!.Name);
             if (player is null)
             {
                 Console.WriteLine("No player named '" + request.Name + "'.");

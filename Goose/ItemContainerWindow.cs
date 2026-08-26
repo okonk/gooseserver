@@ -16,12 +16,12 @@ namespace Goose
 
         public abstract void SendSlot(int slotIndex, Player player, GameWorld world);
 
-        public virtual ItemSlot GetSlot(int slotIndex)
+        public virtual ItemSlot? GetSlot(int slotIndex)
         {
             return this.ItemContainer.GetSlot(slotIndex);
         }
 
-        public virtual void SetSlot(int slotIndex, ItemSlot slot)
+        public virtual void SetSlot(int slotIndex, ItemSlot? slot)
         {
             this.ItemContainer.SetSlot(slotIndex, slot);
         }
@@ -30,8 +30,8 @@ namespace Goose
         {
             if (!ValidateSlotIndex(toSlotIndex)) return;
 
-            ItemSlot inventorySlot = player.Inventory.GetSlot(invSlotIndex);
-            ItemSlot containerSlot = this.GetSlot(toSlotIndex);
+            ItemSlot? inventorySlot = player.Inventory.GetSlot(invSlotIndex);
+            ItemSlot? containerSlot = this.GetSlot(toSlotIndex);
 
             ItemSlot.SwapSlots(ref inventorySlot, ref containerSlot);
 
@@ -46,8 +46,8 @@ namespace Goose
         {
             if (!ValidateSlotIndex(fromSlotIndex)) return;
 
-            ItemSlot containerSlot = this.GetSlot(fromSlotIndex);
-            ItemSlot inventorySlot = player.Inventory.GetSlot(invSlotIndex);
+            ItemSlot? containerSlot = this.GetSlot(fromSlotIndex);
+            ItemSlot? inventorySlot = player.Inventory.GetSlot(invSlotIndex);
 
             ItemSlot.SwapSlots(ref containerSlot, ref inventorySlot);
 
@@ -65,8 +65,8 @@ namespace Goose
             if (fromWindow is BankWindow && !(fromWindow as BankWindow)!.BankerInRange(player)) return;
             if (toWindow is BankWindow && !(toWindow as BankWindow)!.BankerInRange(player)) return;
 
-            ItemSlot fromContainer = fromWindow.GetSlot(fromSlotIndex);
-            ItemSlot toContainer = toWindow.GetSlot(toSlotIndex);
+            ItemSlot? fromContainer = fromWindow.GetSlot(fromSlotIndex);
+            ItemSlot? toContainer = toWindow.GetSlot(toSlotIndex);
 
             ItemSlot.SwapSlots(ref fromContainer, ref toContainer);
 

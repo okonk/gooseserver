@@ -214,17 +214,17 @@ namespace Goose.Quests
                         break;
                     case RequirementType.Item:
                         var item = world.ItemHandler.GetTemplate((int)requirement.Value);
-                        text += $"{item.Name} ({requirement.Value2})\\n";
+                        text += $"{item!.Name} ({requirement.Value2})\\n";
                         break;
                     case RequirementType.TalkToNPC:
                         var talkNPC = world.NPCHandler.GetNPCTemplate((int)requirement.Value);
                         long talkNPCProgress = player.QuestProgress.FirstOrDefault(p => p.Requirement.Id == requirement.Id)?.Value ?? 0;
-                        text += $"Talk to {talkNPC.Name} ({talkNPCProgress}/{requirement.Value2})\\n";
+                        text += $"Talk to {talkNPC!.Name} ({talkNPCProgress}/{requirement.Value2})\\n";
                         break;
                     case RequirementType.Kill:
                         var killNpc = world.NPCHandler.GetNPCTemplate((int)requirement.Value);
                         long killNpcProgress = player.QuestProgress.FirstOrDefault(p => p.Requirement.Id == requirement.Id)?.Value ?? 0;
-                        text += $"Kill {killNpc.Name} ({killNpcProgress:N0}/{requirement.Value2:N0})\\n";
+                        text += $"Kill {killNpc!.Name} ({killNpcProgress:N0}/{requirement.Value2:N0})\\n";
                         break;
                     case RequirementType.ExperienceBanked:
                         text += $"{requirement.Value:N0} xp banked\\n";
@@ -312,7 +312,7 @@ namespace Goose.Quests
 
         /// <summary>The first blocking message from a Script reward, or null if every scripted reward
         /// allows completion. Called before CompleteQuest so a block leaves player state untouched.</summary>
-        private string GetScriptCannotCompleteMessage(Player player, GameWorld world)
+        private string? GetScriptCannotCompleteMessage(Player player, GameWorld world)
         {
             foreach (var reward in this.quest.Rewards.Where(r => r.Type == RewardType.Script))
             {
@@ -355,7 +355,7 @@ namespace Goose.Quests
                         int id = (int)reward.LongValue;
                         int stack = (int)reward.LongValue2;
 
-                        ItemTemplate template = world.ItemHandler.GetTemplate(id);
+                        ItemTemplate? template = world.ItemHandler.GetTemplate(id);
                         if (template is null) continue;
 
                         Item item = new Item();
@@ -387,7 +387,7 @@ namespace Goose.Quests
                         if (!int.TryParse(m[2], out y))
                             continue;
 
-                        Map map = world.MapHandler.GetMap(mapId);
+                        Map? map = world.MapHandler.GetMap(mapId);
                         if (map is null)
                             continue;
 

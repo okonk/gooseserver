@@ -566,7 +566,7 @@ namespace Goose
             this.BoundID = world.Settings.StartingMapID;
             this.BoundX = world.Settings.StartingMapX;
             this.BoundY = world.Settings.StartingMapY;
-            this.BoundMap = world.MapHandler.GetMap(this.BoundID);
+            this.BoundMap = world.MapHandler.GetMap(this.BoundID)!;
             this.Gold = world.Settings.StartingGold;
             this.Level = world.Settings.StartingLevel;
             this.ClassID = world.Settings.StartingClassID;
@@ -618,8 +618,8 @@ namespace Goose
             this.MaxStats.SPPercentRegen = world.Settings.BaseSPPercentRegen;
             this.MaxStats.SPStaticRegen = world.Settings.BaseSPStaticRegen;
 
-            this.Class = world.ClassHandler.GetClass(this.ClassID);
-            this.MaxStats += this.Class.GetLevel(this.Level).BaseStats;
+            this.Class = world.ClassHandler.GetClass(this.ClassID)!;
+            this.MaxStats += this.Class.GetLevel(this.Level)!.BaseStats;
 
             this.BodyState = world.Settings.StartingBodyState;
 
@@ -643,7 +643,7 @@ namespace Goose
                     try
                     {
                         int templateid = Convert.ToInt32(items[i]);
-                        ItemTemplate template = world.ItemHandler.GetTemplate(templateid);
+                        ItemTemplate? template = world.ItemHandler.GetTemplate(templateid);
                         if (template is null)
                         {
                             // log bad id in starting items
@@ -698,7 +698,7 @@ namespace Goose
             this.BoundID = reader.GetInt32("bound_id");
             this.BoundX = reader.GetInt32("bound_x");
             this.BoundY = reader.GetInt32("bound_y");
-            this.BoundMap = world.MapHandler.GetMap(this.BoundID);
+            this.BoundMap = world.MapHandler.GetMap(this.BoundID)!;
             this.Gold = reader.GetInt64("player_gold");
             this.Level = reader.GetInt32("player_level");
             this.ClassID = reader.GetInt32("class_id");
@@ -751,8 +751,8 @@ namespace Goose
             this.MaxStats.SPPercentRegen = world.Settings.BaseSPPercentRegen;
             this.MaxStats.SPStaticRegen = world.Settings.BaseSPStaticRegen;
 
-            this.Class = world.ClassHandler.GetClass(this.ClassID);
-            this.MaxStats += this.Class.GetLevel(this.Level).BaseStats;
+            this.Class = world.ClassHandler.GetClass(this.ClassID)!;
+            this.MaxStats += this.Class.GetLevel(this.Level)!.BaseStats;
 
             this.ToggleSettings = (ToggleSetting)reader.GetInt64("toggle_settings");
             this.AetherThreshold = reader.GetDecimal("aether_threshold");
@@ -1415,7 +1415,7 @@ namespace Goose
 
             this.RemoveStats(this.BaseStats, world);
 
-            this.MaxStats -= this.Class.GetLevel(this.Level).BaseStats;
+            this.MaxStats -= this.Class.GetLevel(this.Level)!.BaseStats;
             this.Level = newLevel;
             if (classid == 1)
             {
@@ -1423,17 +1423,17 @@ namespace Goose
                 // This is a hack, need a better solution
                 this.ExperienceSold = (long)(this.ExperienceSold * (1.0d - experienceLossPercent));
             }
-            this.Experience = (this.Level == 1 ? 0 : this.Class.GetLevel(this.Level - 1).Experience);
+            this.Experience = (this.Level == 1 ? 0 : this.Class.GetLevel(this.Level - 1)!.Experience);
             this.ClassID = classid;
-            this.Class = world.ClassHandler.GetClass(this.ClassID);
+            this.Class = world.ClassHandler.GetClass(this.ClassID)!;
             this.BaseStats.HP = 0;
             this.BaseStats.MP = 0;
             this.BoundID = world.Settings.StartingMapID;
-            this.BoundMap = world.MapHandler.GetMap(this.BoundID);
+            this.BoundMap = world.MapHandler.GetMap(this.BoundID)!;
             this.BoundX = world.Settings.StartingMapX;
             this.BoundY = world.Settings.StartingMapY;
 
-            this.AddStats(this.Class.GetLevel(this.Level).BaseStats, world);
+            this.AddStats(this.Class.GetLevel(this.Level)!.BaseStats, world);
             this.AddStats(this.BaseStats, world);
 
             this.Spellbook.RemoveNonClassSpells(world);
@@ -1446,7 +1446,7 @@ namespace Goose
             {
                 if (level > this.Class.MaxLevel) break;
 
-                foreach (var spell in this.Class.GetLevel(level).Spells)
+                foreach (var spell in this.Class.GetLevel(level)!.Spells)
                 {
                     this.LearnSpell(spell.ID, world);
                 }
@@ -1790,17 +1790,17 @@ namespace Goose
             int levels = 0;
 
             int i = this.Level;
-            ClassLevel level = this.Class.GetLevel(i);
+            ClassLevel? level = this.Class.GetLevel(i);
             while (this.Class.GetLevel(i) is not null)
             {
-                levelup = level.Experience;
+                levelup = level!.Experience;
                 if (levelup == 0) break;
                 if (this.Experience >= levelup)
                 {
                     levels++;
-                    if (this.Class.GetLevel(i + 1) is not null && this.Class.GetLevel(i + 1).Spells.Count > 0)
+                    if (this.Class.GetLevel(i + 1) is not null && this.Class.GetLevel(i + 1)!.Spells.Count > 0)
                     {
-                        foreach (var spell in this.Class.GetLevel(i + 1).Spells)
+                        foreach (var spell in this.Class.GetLevel(i + 1)!.Spells)
                         {
                             this.LearnSpell(spell.ID, world);
                         }
@@ -1821,9 +1821,9 @@ namespace Goose
                 return;
             }
 
-            this.RemoveStats(this.Class.GetLevel(this.Level).BaseStats, world);
+            this.RemoveStats(this.Class.GetLevel(this.Level)!.BaseStats, world);
             this.Level += levels;
-            this.AddStats(this.Class.GetLevel(this.Level).BaseStats, world);
+            this.AddStats(this.Class.GetLevel(this.Level)!.BaseStats, world);
             this.CurrentHP = this.MaxHP;
             this.CurrentMP = this.MaxMP;
             world.Send(this, P.VitalsPercentage(this));
@@ -2004,7 +2004,7 @@ namespace Goose
          */
         public void CastSpell(int spellslot, ICharacter target, GameWorld world)
         {
-            Spell spell = this.Spellbook.GetSlot(spellslot);
+            Spell? spell = this.Spellbook.GetSlot(spellslot);
             if (spell is null) return;
 
             foreach (var b in this.Buffs)

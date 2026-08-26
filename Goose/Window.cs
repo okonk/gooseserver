@@ -264,14 +264,14 @@ namespace Goose
             world.Send(player, line);
             line = P.WindowTextLine(this.ID, i++, "Experience: " + pet.Experience);
             world.Send(player, line);
-            if (pet.Class.GetLevel(pet.Level).Experience == 0)
+            if (pet.Class.GetLevel(pet.Level)!.Experience == 0)
             {
                 line = P.WindowTextLine(this.ID, i++, "Experience Sold: " + pet.ExperienceSold);
                 world.Send(player, line);
             }
             else
             {
-                line = P.WindowTextLine(this.ID, i++, "Next Level: " + (pet.Class.GetLevel(pet.Level).Experience - pet.Experience));
+                line = P.WindowTextLine(this.ID, i++, "Next Level: " + (pet.Class.GetLevel(pet.Level)!.Experience - pet.Experience));
                 world.Send(player, line);
             }
             line = P.WindowTextLine(this.ID, i++, "Level: " + pet.Level);

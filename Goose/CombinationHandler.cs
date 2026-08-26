@@ -35,7 +35,7 @@ namespace Goose
             }
 
             int itemid;
-            ItemTemplate template;
+            ItemTemplate? template;
             int count;
             foreach (var comb in this.combinations.Values)
             {
@@ -121,7 +121,7 @@ namespace Goose
          * Returns the combination found, or null if none
          * 
          */
-        public Combination GetMatch(Dictionary<int, long> combine)
+        public Combination? GetMatch(Dictionary<int, long> combine)
         {
             long c;
             bool matched;

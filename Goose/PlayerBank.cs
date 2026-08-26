@@ -44,7 +44,7 @@ namespace Goose
 
                         world.ItemHandler.AddItem(containerSlot.Item, world);
 
-                        containerSlot.Item.Template = world.ItemHandler.GetTemplate(containerSlot.Item.TemplateID);
+                        containerSlot.Item.Template = world.ItemHandler.GetTemplate(containerSlot.Item.TemplateID)!;
                         containerSlot.Item.RefreshStats();
 
                         container.SetSlot(i, containerSlots[i]);
@@ -91,7 +91,7 @@ namespace Goose
 
         public ItemContainer GetOrCreateContainer(Player player, int npc_id, int slotsPerPage)
         {
-            ItemContainer container = null;
+            ItemContainer? container = null;
             if (!this.bankContainers.TryGetValue(npc_id, out container))
             {
                 container = new ItemContainer(player.NumberOfBankPages * slotsPerPage + 1);

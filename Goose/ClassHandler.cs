@@ -20,9 +20,9 @@ namespace Goose
          * GetClass, returns class object from id
          *
          */
-        public Class GetClass(int id)
+        public Class? GetClass(int id)
         {
-            Class classs;
+            Class? classs;
 
             if (this.classes.TryGetValue(id, out classs))
             {
@@ -68,7 +68,7 @@ namespace Goose
                 ClassLevel c = new ClassLevel();
                 c.ClassID = reader.GetInt32("class_id");
 
-                Class cl = this.GetClass(c.ClassID);
+                Class? cl = this.GetClass(c.ClassID);
                 if (cl is null)
                 {
                     // log something wrong
@@ -114,9 +114,9 @@ namespace Goose
             command.CommandText = "SELECT * FROM classes_levelup_spells";
             using (var reader = command.ExecuteReader())
             {
-            Class clas;
-            ClassLevel level;
-            Spell spell;
+            Class? clas;
+            ClassLevel? level;
+            Spell? spell;
 
             while (reader.Read())
             {

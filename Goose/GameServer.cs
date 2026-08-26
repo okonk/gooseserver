@@ -159,7 +159,7 @@ namespace Goose
             string ip = this.Settings.GameServerIP;
             int port = this.Settings.GameServerPort;
 
-            Socket socket = null;
+            Socket? socket = null;
 
             try
             {
@@ -229,7 +229,7 @@ namespace Goose
                 {
                     if (sock == this.listen)
                     {
-                        Socket newSocket = null;
+                        Socket? newSocket = null;
                         try
                         {
                             newSocket = this.listen.Accept();
@@ -397,7 +397,7 @@ namespace Goose
             string ip;
             try
             {
-                ip = ((IPEndPoint)sock.RemoteEndPoint).Address.ToString();
+                ip = ((IPEndPoint)sock.RemoteEndPoint!).Address.ToString();
             }
             catch (Exception)
             {
@@ -425,7 +425,7 @@ namespace Goose
          */
         private void UnregisterConnection(Socket sock)
         {
-            if (!this.connections.TryGetValue(sock, out ConnectionInfo info)) return;
+            if (!this.connections.TryGetValue(sock, out ConnectionInfo? info)) return;
 
             this.connections.Remove(sock);
 
@@ -452,7 +452,7 @@ namespace Goose
 
             var timeout = TimeSpan.FromSeconds(Math.Max(1, this.Settings.PreLoginTimeoutSeconds));
 
-            List<Socket> stale = null;
+            List<Socket>? stale = null;
 
             foreach (var pair in this.connections)
             {

@@ -86,7 +86,7 @@ namespace Goose
          * GetMap, gets map by id
          * 
          */
-        public Map GetMap(int id)
+        public Map? GetMap(int id)
         {
             return this.maps.TryGetValue(id, out var map) ? map : null;
         }

@@ -113,7 +113,7 @@ namespace Goose
                     template.BodyState = reader.GetInt32("body_state");
 
                     template.SpellEffectID = reader.GetInt32("spell_effect_id");
-                    template.SpellEffect = world.SpellHandler.GetSpellEffect(template.SpellEffectID);
+                    template.SpellEffect = world.SpellHandler.GetSpellEffect(template.SpellEffectID)!;
                     if (template.SpellEffectID != 0 && template.SpellEffect is null)
                     {
                         // log bad spell effect on item
@@ -185,9 +185,9 @@ namespace Goose
         /**
          * GetTemplate, returns template by id
          */
-        public ItemTemplate GetTemplate(int id)
+        public ItemTemplate? GetTemplate(int id)
         {
-            if (this.templates.TryGetValue(id, out ItemTemplate template))
+            if (this.templates.TryGetValue(id, out ItemTemplate? template))
                 return template;
 
             return null;
@@ -214,14 +214,14 @@ namespace Goose
             this.surnames[surname.Id] = surname;
         }
 
-        public ItemModifier GetTitle(int id)
+        public ItemModifier? GetTitle(int id)
         {
-            return this.titles.TryGetValue(id, out ItemModifier title) ? title : null;
+            return this.titles.TryGetValue(id, out ItemModifier? title) ? title : null;
         }
 
-        public ItemModifier GetSurname(int id)
+        public ItemModifier? GetSurname(int id)
         {
-            return this.surnames.TryGetValue(id, out ItemModifier surname) ? surname : null;
+            return this.surnames.TryGetValue(id, out ItemModifier? surname) ? surname : null;
         }
 
         public void AddAndAssignId(Item item, GameWorld world)
@@ -334,7 +334,7 @@ namespace Goose
             }
         }
 
-        private ItemModifier RollModifier(Item item, IReadOnlyCollection<ItemModifier> allModifiers, GameWorld world)
+        private ItemModifier? RollModifier(Item item, IReadOnlyCollection<ItemModifier> allModifiers, GameWorld world)
         {
             var modifiersWithRanges = new List<(ItemModifier Modifier, int StartRange, int EndRange)>();
 

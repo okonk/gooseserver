@@ -25,7 +25,7 @@ namespace Goose.Events
                     modifier = 1;
                 }
 
-                Player player = world.PlayerHandler.GetPlayerFromData(name);
+                Player? player = world.PlayerHandler.GetPlayerFromData(name);
                 if (player is null)
                 {
                     world.Send(this.Player, P.ServerMessage("Player " + name + " doesn't exist."));
@@ -43,7 +43,7 @@ namespace Goose.Events
 
                 player.RemoveStats(player.BaseStats, world);
 
-                player.MaxStats -= player.Class.GetLevel(player.Level).BaseStats;
+                player.MaxStats -= player.Class.GetLevel(player.Level)!.BaseStats;
                 player.Experience += player.ExperienceSold;
                 player.Experience = (long)(player.Experience * modifier);
                 player.ExperienceSold = 0;
@@ -54,7 +54,7 @@ namespace Goose.Events
 
                 player.Class = newClass;
 
-                player.AddStats(player.Class.GetLevel(player.Level).BaseStats, world);
+                player.AddStats(player.Class.GetLevel(player.Level)!.BaseStats, world);
 
                 world.Send(player, P.StatusInfo(player));
                 world.Send(player, P.ExpBar(player));
@@ -65,7 +65,7 @@ namespace Goose.Events
                 {
                     if (level > player.Class.MaxLevel) break;
 
-                    foreach (var spell in player.Class.GetLevel(level).Spells)
+                    foreach (var spell in player.Class.GetLevel(level)!.Spells)
                     {
                         player.LearnSpell(spell.ID, world);
                     }

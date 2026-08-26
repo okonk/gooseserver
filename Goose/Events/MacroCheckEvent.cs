@@ -6,7 +6,7 @@ namespace Goose.Events
     {
         public bool Passed { get; set; }
 
-        public string Code { get; set; }
+        public string Code { get; set; } = null!;
 
         public override void Ready(GameWorld world)
         {

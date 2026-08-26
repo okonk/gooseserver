@@ -10,7 +10,7 @@ namespace Goose.Events
             {
                 // can't sell exp when not max level
                 // this enables commoners to sell exp but uh so what
-                if (this.Player.Class.GetLevel(this.Player.Level).Experience != 0) return;
+                if (this.Player.Class.GetLevel(this.Player.Level)!.Experience != 0) return;
 
                 long bought = 0;
                 long soldexp = 0;

@@ -10,7 +10,7 @@ namespace Goose
      */
     public class Spellbook
     {
-        Spell[] spells;
+        Spell?[] spells;
         /**
          * Lastcast holds when each spell was last cast
          */
@@ -126,7 +126,7 @@ namespace Goose
                 return;
             }
 
-            Spell spell = this.spells[slot];
+            Spell? spell = this.spells[slot];
             if (spell is not null)
             {
                 int targetType = 0;
@@ -169,7 +169,7 @@ namespace Goose
          * GetSlot, returns spell at slot
          *
          */
-        public Spell GetSlot(int slot)
+        public Spell? GetSlot(int slot)
         {
             return this.spells[slot];
         }
@@ -198,7 +198,7 @@ namespace Goose
          */
         public bool LearnSpell(int spellid, GameWorld world)
         {
-            Spell spell = world.SpellHandler.GetSpell(spellid);
+            Spell? spell = world.SpellHandler.GetSpell(spellid);
             if (spell is null)
             {
                 // log bad spell
@@ -250,7 +250,7 @@ namespace Goose
 
             if (this.spells[slot] is not null)
             {
-                world.Send(this.player, P.ServerMessage("You have forgotten " + this.spells[slot].Name + "."));
+                world.Send(this.player, P.ServerMessage("You have forgotten " + this.spells[slot]!.Name + "."));
 
                 this.spells[slot] = null;
                 this.lastcast[slot] = long.MinValue >> 1;
@@ -275,9 +275,9 @@ namespace Goose
                 return;
             }
 
-            Spell spell1 = this.spells[slot1];
+            Spell? spell1 = this.spells[slot1];
             long aether1 = this.lastcast[slot1];
-            Spell spell2 = this.spells[slot2];
+            Spell? spell2 = this.spells[slot2];
             long aether2 = this.lastcast[slot2];
 
             this.spells[slot1] = spell2;
@@ -292,7 +292,7 @@ namespace Goose
 
         public void RemoveNonClassSpells(GameWorld world)
         {
-            Spell slot;
+            Spell? slot;
 
             for (int i = 1; i <= this.settings.SpellbookSize; i++)
             {

@@ -39,7 +39,7 @@ namespace Goose.Events
                 // log bad npc/slot
                 if (npcid <= 0 || slotid <= 0 || slotid > world.Settings.InventorySize) return;
 
-                NPC npc = null;
+                NPC? npc = null;
 
                 foreach (var window in this.Player.Windows)
                 {
@@ -62,7 +62,7 @@ namespace Goose.Events
                     return;
                 }
 
-                ItemSlot slot = this.Player.Inventory.GetSlot(slotid);
+                ItemSlot? slot = this.Player.Inventory.GetSlot(slotid);
                 // log bad slot
                 if (slot is null) return;
 
@@ -79,11 +79,11 @@ namespace Goose.Events
                     return;
                 }
 
-                ItemSlot sellslot = this.Player.Inventory.RemoveItem(slot.Item, stack, world);
+                ItemSlot? sellslot = this.Player.Inventory.RemoveItem(slot.Item, stack, world);
 
                 currency.Add(this.Player, price, world);
 
-                world.Send(this.Player, P.ServerMessage("Sold " + sellslot.Item.Name +
+                world.Send(this.Player, P.ServerMessage("Sold " + sellslot!.Item.Name +
                     (sellslot.Stack > 1 ? " (" + sellslot.Stack + ")" : "") +
                     " for " + price + " " + currency.Name + "."));
 

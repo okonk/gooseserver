@@ -9,7 +9,7 @@ namespace Goose.Events
             if (this.Player.State == Player.States.Ready)
             {
                 string name = ((string)this.Data).Substring("/playerinfo ".Length);
-                Player player = world.PlayerHandler.GetPlayerFromData(name);
+                Player? player = world.PlayerHandler.GetPlayerFromData(name);
                 if (player is not null)
                 {
                     PlayerInfoWindow.Open(world, this.Player, player);

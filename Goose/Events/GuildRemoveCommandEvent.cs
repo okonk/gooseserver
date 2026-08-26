@@ -22,7 +22,7 @@ namespace Goose.Events
                     if (this.Player.Guild.GetRank(this.Player) < Guild.GuildRanks.Officer) return;
 
                     name = name.Substring(1);
-                    Player player = world.PlayerHandler.GetPlayer(name);
+                    Player? player = world.PlayerHandler.GetPlayer(name);
                     if (player is not null && player.State == Player.States.Ready)
                     {
                         if (player.Guild is not null && 

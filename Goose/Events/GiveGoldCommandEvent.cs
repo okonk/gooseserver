@@ -24,7 +24,7 @@ namespace Goose.Events
                     gold = 0;
                 }
 
-                Player player = world.PlayerHandler.GetPlayerFromData(name);
+                Player? player = world.PlayerHandler.GetPlayerFromData(name);
                 if (player is null)
                 {
                     world.Send(this.Player, P.ServerMessage("Player " + name + " doesn't exist."));

@@ -35,7 +35,7 @@ namespace Goose
             {
                 int id = reader.GetInt32("spell_effect_id");
 
-                SpellEffect effect = null;
+                SpellEffect? effect = null;
                 if (!this.effects.TryGetValue(id, out effect))
                     effect = new SpellEffect();
 
@@ -152,7 +152,7 @@ namespace Goose
                 {
                     try
                     {
-                        SpellEffect e = this.GetSpellEffect(Convert.ToInt32(effectid));
+                        SpellEffect? e = this.GetSpellEffect(Convert.ToInt32(effectid));
                         if (e is null)
                         {
                             // log bad spell effect id
@@ -171,7 +171,7 @@ namespace Goose
                 {
                     try
                     {
-                        SpellEffect e = this.GetSpellEffect(Convert.ToInt32(effectid));
+                        SpellEffect? e = this.GetSpellEffect(Convert.ToInt32(effectid));
                         if (e is null)
                         {
                             // log bad spell effect id
@@ -199,9 +199,9 @@ namespace Goose
          * GetSpellEffect, returns spell effect
          *
          */
-        public SpellEffect GetSpellEffect(int id)
+        public SpellEffect? GetSpellEffect(int id)
         {
-            SpellEffect effect = null;
+            SpellEffect? effect = null;
             this.effects.TryGetValue(id, out effect);
             return effect;
         }
@@ -235,7 +235,7 @@ namespace Goose
             {
                 int id = reader.GetInt32("spell_id");
 
-                Spell spell = null;
+                Spell? spell = null;
                 if (!this.spells.TryGetValue(id, out spell))
                     spell = new Spell();
 
@@ -255,7 +255,7 @@ namespace Goose
                 spell.SPStaticCost = reader.GetInt32("sp_static_cost");
 
                 spell.SpellEffectID = reader.GetInt32("spell_effect_id");
-                spell.SpellEffect = this.GetSpellEffect(spell.SpellEffectID);
+                spell.SpellEffect = this.GetSpellEffect(spell.SpellEffectID)!;
 
                 if (spell.SpellEffect is null)
                 {
@@ -277,9 +277,9 @@ namespace Goose
          * GetSpell, returns spell
          *
          */
-        public Spell GetSpell(int id)
+        public Spell? GetSpell(int id)
         {
-            Spell spell = null;
+            Spell? spell = null;
             this.spells.TryGetValue(id, out spell);
             return spell;
         }
@@ -295,7 +295,7 @@ namespace Goose
             return this.spells.Values;
         }
 
-        public Spell GetSpellByName(string name)
+        public Spell? GetSpellByName(string name)
         {
             return this.spells.Values.Where(s => s.Name == name).FirstOrDefault();
         }

@@ -797,7 +797,7 @@ namespace Goose
             }
 
             // if null tele to bound spot. used for gate spells
-            Map map = world.MapHandler.GetMap(this.TeleportMapID);
+            Map? map = world.MapHandler.GetMap(this.TeleportMapID);
             if (map is null)
             {
                 ((Player)target).WarpTo(world, ((Player)target).BoundMap,
@@ -887,8 +887,8 @@ namespace Goose
             }
 
             double successrate = (double)(
-                player.BaseStats.HP + player.Class.GetLevel(player.Level).BaseStats.HP +
-                player.BaseStats.MP + player.Class.GetLevel(player.Level).BaseStats.MP) / (double)target.MaxHP;
+                player.BaseStats.HP + player.Class.GetLevel(player.Level)!.BaseStats.HP +
+                player.BaseStats.MP + player.Class.GetLevel(player.Level)!.BaseStats.MP) / (double)target.MaxHP;
 
 
             if (world.Random.Next(1, 101) <= successrate * 100)
@@ -1084,7 +1084,7 @@ namespace Goose
             {
                 int ox = target.MapX;
                 int oy = target.MapY;
-                ICharacter hit;
+                ICharacter? hit;
                 string packet = "";
                 Map map = target.Map;
                 List<Player> range = map.GetPlayersInRange(target);

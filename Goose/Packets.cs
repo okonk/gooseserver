@@ -29,7 +29,7 @@ namespace Goose
         public static Func<Player, string> ExpBar = (player) =>
         {
             long percent, tnl, exp;
-            if (player.Class.GetLevel(player.Level).Experience == 0)
+            if (player.Class.GetLevel(player.Level)!.Experience == 0)
             {
                 percent = 100;
                 tnl = exp = player.Experience;
@@ -38,9 +38,9 @@ namespace Goose
             {
                 long prev;
                 if (player.Level == 1) prev = 0;
-                else prev = player.Class.GetLevel(player.Level - 1).Experience;
+                else prev = player.Class.GetLevel(player.Level - 1)!.Experience;
 
-                long next = player.Class.GetLevel(player.Level).Experience;
+                long next = player.Class.GetLevel(player.Level)!.Experience;
                 tnl = next - player.Experience;
                 exp = player.Experience;
                 percent = (long)(((float)(exp - prev) / (next - prev)) * 100);
@@ -78,10 +78,10 @@ namespace Goose
         public static Func<Player, string> MakeCharacter = (player) =>
         {
             // Hack to get around the fact pets are a subclass of Player
-            if (player is Pet) return MakePetCharacter((Pet)player);
+            if (player is Pet) return MakePetCharacter!((Pet)player);
 
             int pose = player.BodyState;
-            ItemSlot weapon = player.Inventory.GetEquippedSlot(Inventory.EquipSlots.Weapon);
+            ItemSlot? weapon = player.Inventory.GetEquippedSlot(Inventory.EquipSlots.Weapon);
             if (weapon is not null)
             {
                 pose = weapon.Item.BodyState;
@@ -115,10 +115,10 @@ namespace Goose
 
         public static Func<Player, string> UpdateCharacter = (player) =>
         {
-            if (player is Pet) return UpdatePet((Pet)player);
+            if (player is Pet) return UpdatePet!((Pet)player);
 
             int pose = player.BodyState;
-            ItemSlot weapon = player.Inventory.GetEquippedSlot(Inventory.EquipSlots.Weapon);
+            ItemSlot? weapon = player.Inventory.GetEquippedSlot(Inventory.EquipSlots.Weapon);
             if (weapon is not null)
             {
                 pose = weapon.Item.BodyState;
@@ -286,7 +286,7 @@ namespace Goose
             return "EOB" + tile.X + "," + tile.Y;
         };
 
-        public static Func<Player, string, string> Emote = (player, data) =>
+        public static Func<Player, string, string?> Emote = (player, data) =>
         {
             string[] tokens = data.Split(',');
             if (tokens.Length != 2) return null;
@@ -588,7 +588,7 @@ namespace Goose
             return "VCL";
         };
 
-        public static Func<Spell, int, int, string> SpellSlot = (spell, slotId, targetType) =>
+        public static Func<Spell?, int, int, string> SpellSlot = (spell, slotId, targetType) =>
         {
             if (spell is null)
             {
@@ -606,7 +606,7 @@ namespace Goose
                     (spell.Aether > TimeSpan.FromHours(1).TotalMilliseconds ? 5000 : spell.Aether);
         };
 
-        public static Func<Player, int, string> GroupUpdate = (player, index) =>
+        public static Func<Player?, int, string> GroupUpdate = (player, index) =>
         {
             if (player is null)
             {
@@ -616,7 +616,7 @@ namespace Goose
             return "GUD" + index + "," + player.LoginID + "," + player.Name + "," + player.Level + "," + player.Class.ClassName;
         };
 
-        public static Func<Buff, int, string> BuffBar = (buff, index) =>
+        public static Func<Buff?, int, string> BuffBar = (buff, index) =>
         {
             if (buff is null)
             {

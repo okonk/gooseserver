@@ -11,7 +11,7 @@ namespace Goose
      */
     public class ItemSlot
     {
-        public Item Item { get; set; }
+        public Item Item { get; set; } = null!;
         [DefaultValue(1)]
         public long Stack { get; set; } = 1;
 
@@ -38,7 +38,7 @@ namespace Goose
             return CanStack(other, other.Stack);
         }
 
-        public static void SwapSlots(ref ItemSlot from, ref ItemSlot to)
+        public static void SwapSlots(ref ItemSlot? from, ref ItemSlot? to)
         {
             if (from == to) return;
 
@@ -46,7 +46,7 @@ namespace Goose
 
             if (from is null || to is null)
             {
-                ItemSlot temp = from;
+                ItemSlot? temp = from;
                 from = to;
                 to = temp;
             }

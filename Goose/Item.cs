@@ -223,15 +223,15 @@ namespace Goose
 
         public T GetProperty<T>(ItemProperty prop)
         {
-            if (!this.ItemProperties.TryGetValue(prop, out object value) || value is null)
-                return default;
+            if (!this.ItemProperties.TryGetValue(prop, out object? value) || value is null)
+                return default!;
 
             if (value is T typed)
                 return typed;
 
             // System.Text.Json deserializes Dictionary<..., object> values as JsonElement.
             if (value is JsonElement element)
-                return element.Deserialize<T>();
+                return element.Deserialize<T>()!;
 
             return (T)Convert.ChangeType(value, typeof(T));
         }

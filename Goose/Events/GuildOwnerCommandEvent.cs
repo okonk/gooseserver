@@ -12,7 +12,7 @@ namespace Goose.Events
                 if (this.Player.Guild.GetRank(this.Player) < Guild.GuildRanks.Leader) return;
 
                 string name = ((string)this.Data).Substring(12);
-                Player player = world.PlayerHandler.GetPlayer(name);
+                Player? player = world.PlayerHandler.GetPlayer(name);
                 if (player is not null && player.State == Player.States.Ready)
                 {
                     if (player.Guild == this.Player.Guild && player != this.Player)

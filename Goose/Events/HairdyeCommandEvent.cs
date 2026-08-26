@@ -18,7 +18,7 @@ namespace Goose.Events
 
                 string[] tokens = data.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                 int r, g, b, a;
-                string error;
+                string? error;
 
                 switch (tokens[0].ToLower())
                 {
@@ -66,7 +66,7 @@ namespace Goose.Events
                         else prevx -= 1;
 
                         int pose = this.Player.BodyState;
-                        ItemSlot weapon = this.Player.Inventory.GetEquippedSlot(Inventory.EquipSlots.Weapon);
+                        ItemSlot? weapon = this.Player.Inventory.GetEquippedSlot(Inventory.EquipSlots.Weapon);
                         if (weapon is not null)
                         {
                             pose = weapon.Item.BodyState;
@@ -148,7 +148,7 @@ namespace Goose.Events
         /// <param name="b"></param>
         /// <param name="a"></param>
         /// <returns></returns>
-        public static string ParseRGBA(string[] tokens, out int r, out int g, out int b, out int a)
+        public static string? ParseRGBA(string[] tokens, out int r, out int g, out int b, out int a)
         {
             if (tokens.Length < 5)
             {

@@ -66,9 +66,9 @@ namespace Goose
         private const int MinIllutiaLoginLength = 71;
         private readonly Dictionary<Socket, StringBuilder> preLoginBuffers = new();
 
-        internal string PreLoginPending(Socket sock)
+        internal string? PreLoginPending(Socket sock)
         {
-            return preLoginBuffers.TryGetValue(sock, out StringBuilder sb) ? sb.ToString() : null;
+            return preLoginBuffers.TryGetValue(sock, out StringBuilder? sb) ? sb.ToString() : null;
         }
 
         long timerfreq;
@@ -302,7 +302,7 @@ namespace Goose
             // Add gold item
             var gold = new Item();
             gold.ItemID = this.Settings.ItemIDStartpoint + this.Settings.GoldItemID;
-            gold.LoadFromTemplate(ItemHandler.GetTemplate(this.Settings.GoldItemID));
+            gold.LoadFromTemplate(ItemHandler.GetTemplate(this.Settings.GoldItemID)!);
             this.ItemHandler.AddItem(gold, this);
 
             if (!this.LoadStep("Global Scripts", () => LoadGlobalScripts())) return;
@@ -399,7 +399,7 @@ namespace Goose
          */
         public void NewConnection(Socket sock)
         {
-            log.Info("Connection attempt: " + sock.RemoteEndPoint.ToString());
+            log.Info("Connection attempt: " + sock.RemoteEndPoint!.ToString());
 
             if (this.Settings.ServerType == "Illutia")
             {
@@ -423,7 +423,7 @@ namespace Goose
             preLoginBuffers.Remove(sock);
             try
             {
-                log.Info("Connection lost: " + sock.RemoteEndPoint.ToString());
+                log.Info("Connection lost: " + sock.RemoteEndPoint!.ToString());
 
                 this.GameServer!.Disconnect(sock);
 
@@ -452,7 +452,7 @@ namespace Goose
          */
         public void Received(Socket sock, string data)
         {
-            Player player = this.PlayerHandler.GetPlayer(sock);
+            Player? player = this.PlayerHandler.GetPlayer(sock);
             if (player is not null)
             {
                 preLoginBuffers.Remove(sock);
@@ -475,7 +475,7 @@ namespace Goose
             }
             else
             {
-                if (!preLoginBuffers.TryGetValue(sock, out StringBuilder buffer))
+                if (!preLoginBuffers.TryGetValue(sock, out StringBuilder? buffer))
                 {
                     buffer = new StringBuilder();
                     preLoginBuffers.Add(sock, buffer);

@@ -78,7 +78,7 @@ namespace Goose.Events
                         _ => (x, y),
                     };
 
-                    ICharacter character = this.Player.Map.GetCharacterAt(x, y);
+                    ICharacter? character = this.Player.Map.GetCharacterAt(x, y);
                     if (character is not null) this.Player.Attack(character, world);
                 }
             }

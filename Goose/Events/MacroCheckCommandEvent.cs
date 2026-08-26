@@ -9,7 +9,7 @@ namespace Goose.Events
             if (this.Player.State == Player.States.Ready)
             {
                 string name = ((string)this.Data).Substring("/macrocheck ".Length);
-                Player player = world.PlayerHandler.GetPlayer(name);
+                Player? player = world.PlayerHandler.GetPlayer(name);
                 if (player is not null)
                 {
                     if (player.State != Player.States.Ready)

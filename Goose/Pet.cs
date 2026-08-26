@@ -148,7 +148,7 @@ namespace Goose
             pet.BaseStats.HPStaticRegen = 0;
             pet.BaseStats.MPPercentRegen = 0;
             pet.BaseStats.MPStaticRegen = 0;
-            pet.MaxStats = pet.BaseStats + pet.Class.GetLevel(pet.Level).BaseStats;
+            pet.MaxStats = pet.BaseStats + pet.Class.GetLevel(pet.Level)!.BaseStats;
             pet.MaxStats.Haste += settings.BaseHaste;
             pet.MaxStats.SpellDamage += settings.BaseSpellDamage;
             pet.MaxStats.SpellCrit += settings.BaseSpellCrit;
@@ -163,7 +163,7 @@ namespace Goose
             pet.MaxStats.SPStaticRegen += settings.BaseSPStaticRegen;
             pet.CurrentHP = pet.MaxHP;
             pet.CurrentMP = pet.MaxMP;
-            pet.Experience = pet.Class.GetLevel(pet.Level).Experience/2;
+            pet.Experience = pet.Class.GetLevel(pet.Level)!.Experience/2;
             pet.ExperienceSold = 0;
             pet.WeaponDamage = character.WeaponDamage;
 
@@ -206,7 +206,7 @@ namespace Goose
             pet.Surname = reader.GetString("pet_surname");
             pet.Level = reader.GetInt32("pet_level");
             pet.ClassID = reader.GetInt32("class_id");
-            pet.Class = world.ClassHandler.GetClass(pet.ClassID);
+            pet.Class = world.ClassHandler.GetClass(pet.ClassID)!;
 
             pet.Experience = reader.GetInt64("experience");
             pet.ExperienceSold = reader.GetInt64("experience_sold");
@@ -253,8 +253,8 @@ namespace Goose
             pet.MaxStats.SPPercentRegen += world.Settings.BaseSPPercentRegen;
             pet.MaxStats.SPStaticRegen += world.Settings.BaseSPStaticRegen;
 
-            pet.Class = world.ClassHandler.GetClass(pet.ClassID);
-            pet.MaxStats += pet.Class.GetLevel(pet.Level).BaseStats;
+            pet.Class = world.ClassHandler.GetClass(pet.ClassID)!;
+            pet.MaxStats += pet.Class.GetLevel(pet.Level)!.BaseStats;
 
             pet.CurrentHP = pet.MaxHP;
             pet.CurrentMP = pet.MaxMP;
@@ -819,10 +819,10 @@ namespace Goose
             int levels = 0;
 
             int i = this.Level;
-            ClassLevel level = this.Class.GetLevel(i);
+            ClassLevel? level = this.Class.GetLevel(i);
             while (this.Class.GetLevel(i) is not null)
             {
-                levelup = level.Experience;
+                levelup = level!.Experience;
                 if (levelup == 0) break;
                 if (this.Experience >= levelup)
                 {
@@ -842,9 +842,9 @@ namespace Goose
                 return;
             }
 
-            this.RemoveStats(this.Class.GetLevel(this.Level).BaseStats, world);
+            this.RemoveStats(this.Class.GetLevel(this.Level)!.BaseStats, world);
             this.Level += levels;
-            this.AddStats(this.Class.GetLevel(this.Level).BaseStats, world);
+            this.AddStats(this.Class.GetLevel(this.Level)!.BaseStats, world);
             this.CurrentHP = this.MaxHP;
             this.CurrentMP = this.MaxMP;
 

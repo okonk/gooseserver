@@ -17,7 +17,7 @@ namespace Goose.Events
                     return;
                 }
 
-                Player player = world.PlayerHandler.GetPlayerFromData(tokens[1]);
+                Player? player = world.PlayerHandler.GetPlayerFromData(tokens[1]);
                 if (player is null)
                 {
                     world.Send(this.Player, P.ServerMessage("Couldn't find player."));

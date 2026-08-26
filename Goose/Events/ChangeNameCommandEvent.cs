@@ -19,14 +19,14 @@ namespace Goose.Events
                 string oldname = tokens[1];
                 string newname = tokens[2];
 
-                Player playerCheck = world.PlayerHandler.GetPlayerFromData(newname);
+                Player? playerCheck = world.PlayerHandler.GetPlayerFromData(newname);
                 if (playerCheck is not null)
                 {
                     world.Send(this.Player, P.ServerMessage("New name " + newname + " is already used."));
                     return;
                 }
 
-                Player player = world.PlayerHandler.GetPlayerFromData(oldname);
+                Player? player = world.PlayerHandler.GetPlayerFromData(oldname);
                 if (player is null)
                 {
                     world.Send(this.Player, P.ServerMessage("Old name " + oldname + " doesn't exist."));

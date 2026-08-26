@@ -32,14 +32,14 @@ namespace Goose.Events
                 // log bad drop item stuff
                 if (id <= 0 || stack <= 0) return;
 
-                ItemSlot slot = this.Player.Inventory.GetSlot(id);
+                ItemSlot? slot = this.Player.Inventory.GetSlot(id);
                 if (slot is null) return; // log bad slot
                 if (stack > slot.Stack) return; // log bad stack
 
                 // Can't drop bound item unless gm
                 if (slot.Item.IsBound && !this.Player.HasPrivilege(AccessPrivilege.DropBoundItem)) return;
 
-                ItemSlot drop = this.Player.Inventory.RemoveItem(slot.Item, stack, world);
+                ItemSlot? drop = this.Player.Inventory.RemoveItem(slot.Item, stack, world);
                 if (drop is null) return;
 
                 ItemTile tile = new ItemTile();
@@ -50,7 +50,7 @@ namespace Goose.Events
                 this.Player.Map.PlaceItem(tile);
 
                 // tile can stack
-                ItemTile maptile = (ItemTile)this.Player.Map.GetTile(tile.X, tile.Y);
+                ItemTile? maptile = (ItemTile?)this.Player.Map.GetTile(tile.X, tile.Y);
                 if (maptile is not null && maptile is ItemTile)
                 {
                     maptile.ItemSlot.Stack += drop.Stack;

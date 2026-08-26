@@ -18,7 +18,7 @@ namespace Goose.Events
         {
             if (this.Player.State == Player.States.LoadingGame)
             {
-                Map map = world.MapHandler.GetMap(this.Player.MapID);
+                Map map = world.MapHandler.GetMap(this.Player.MapID)!;
 
                 this.Player.State = Player.States.LoadingMap;
                 

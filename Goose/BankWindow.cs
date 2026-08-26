@@ -78,12 +78,12 @@ namespace Goose
             return (index > 0 && index <= SlotsPerPage);
         }
 
-        public override ItemSlot GetSlot(int slotIndex)
+        public override ItemSlot? GetSlot(int slotIndex)
         {
             return this.ItemContainer.GetSlot(slotIndex + GetSlotOffset());
         }
 
-        public override void SetSlot(int slotIndex, ItemSlot slot)
+        public override void SetSlot(int slotIndex, ItemSlot? slot)
         {
             this.ItemContainer.SetSlot(slotIndex + GetSlotOffset(), slot);
         }
@@ -104,7 +104,7 @@ namespace Goose
 
         public override void SendSlot(int slotIndex, Player player, GameWorld world)
         {
-            ItemSlot slot = this.GetSlot(slotIndex);
+            ItemSlot? slot = this.GetSlot(slotIndex);
             if (slot is not null)
             {
                 world.Send(player, P.BankSlot(this, slot.Item, world, slotIndex, slot.Stack));

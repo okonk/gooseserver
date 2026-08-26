@@ -106,7 +106,7 @@ namespace Goose.Events
                     this.Player.MoveTo(world, x, y);
 
                     // Check if new tile is a warp tile
-                    ITile tile = this.Player.Map.GetTile(x, y);
+                    ITile? tile = this.Player.Map.GetTile(x, y);
                     if (tile is not null && tile is WarpTile)
                     {
                         WarpTile warp = (WarpTile)tile;

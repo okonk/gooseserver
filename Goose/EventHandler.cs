@@ -26,7 +26,7 @@ namespace Goose
             return _eventFactories.GetOrAdd(eventType, (type) =>
             {
                 var ctor = type.GetConstructor(Type.EmptyTypes);
-                return (() => (Event)ctor.Invoke(null));
+                return (() => (Event)ctor!.Invoke(null));
             });
         }
 
@@ -61,8 +61,8 @@ namespace Goose
          */
         private sealed class CommandDefinition
         {
-            public System.Type EventTypeId;
-            public CreateEvent EventFactory;
+            public System.Type EventTypeId = null!;
+            public CreateEvent? EventFactory;
             public AccessPrivilege? RequiredPrivilege;
         }
 
@@ -247,7 +247,7 @@ namespace Goose
          */
         public void RegisterEvent(string key, CreateEvent action)
         {
-            if (this.commandTrie.TryGetValue(key, out CommandDefinition existing) &&
+            if (this.commandTrie.TryGetValue(key, out CommandDefinition? existing) &&
                 existing.RequiredPrivilege.HasValue)
             {
                 log.Error("Refusing to register {0} unprivileged: it already requires {1}. " +
@@ -282,7 +282,7 @@ namespace Goose
          */
         public bool AddEvent(Player player, string packet)
         {
-            if (!this.commandTrie.TryGetLongestPrefix(packet, out CommandDefinition definition, out int matchedLength))
+            if (!this.commandTrie.TryGetLongestPrefix(packet, out CommandDefinition? definition, out int matchedLength))
             {
                 return false;
             }
@@ -362,7 +362,7 @@ namespace Goose
         {
             long now = world.TimeNow;
 
-            while (this.events.TryPeek(out Event ev, out long tick) && tick <= now)
+            while (this.events.TryPeek(out Event? ev, out long tick) && tick <= now)
             {
                 this.events.Dequeue();
 

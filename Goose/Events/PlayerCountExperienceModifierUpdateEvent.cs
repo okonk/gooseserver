@@ -16,7 +16,7 @@ namespace Goose.Events
                     {
                         try
                         {
-                            string IP = player.Sock.RemoteEndPoint.ToString();
+                            string IP = player.Sock.RemoteEndPoint!.ToString()!;
                             IP = IP.Substring(0, IP.IndexOf(":"));
 
                             uniquenonafkips.Add(IP);

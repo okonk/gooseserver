@@ -24,7 +24,7 @@ namespace Goose
         }
 
         /// <summary>The currency with this id, or null if nothing registered it.</summary>
-        public ICurrency Get(string id)
+        public ICurrency? Get(string id)
         {
             if (string.IsNullOrEmpty(id)) return null;
             return this.currencies.TryGetValue(id, out var currency) ? currency : null;
@@ -36,7 +36,7 @@ namespace Goose
         /// An item override wins over the vendor deliberately - a dimension item is worth
         /// spirit wherever it is traded, including at a credit dealer, which today buys
         /// nothing at all.</summary>
-        public ICurrency Resolve(ItemTemplate template, NPC vendor)
+        public ICurrency Resolve(ItemTemplate? template, NPC? vendor)
         {
             string? id = template?.CurrencyId;
             if (string.IsNullOrEmpty(id)) id = vendor?.CurrencyId;

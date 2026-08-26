@@ -35,7 +35,7 @@ namespace Goose
                     {
                         int id = reader.GetInt32("npc_id");
 
-                        NPCTemplate npc = null;
+                        NPCTemplate? npc = null;
                         if (!templates.TryGetValue(id, out npc))
                             npc = new NPCTemplate();
 
@@ -108,7 +108,7 @@ namespace Goose
                         npc.CurrencyId = npc.CreditDealer ? Currency.Credits : null;
 
                         var questIds = reader.GetString("quest_ids").Split([' ', ','], StringSplitOptions.RemoveEmptyEntries).Select(q => Convert.ToInt32(q));
-                        npc.Quests = questIds.Select(q => world.QuestHandler.Get(q)).ToList();
+                        npc.Quests = questIds.Select(q => world.QuestHandler.Get(q)!).ToList();
 
                         string scriptPath = reader.GetString("script_path");
                         if (!string.IsNullOrEmpty(scriptPath))
@@ -131,7 +131,7 @@ namespace Goose
                     {
                         foreach (int ally in npc.AlliesString.Split([' ', ','], StringSplitOptions.RemoveEmptyEntries).Select(q => Convert.ToInt32(q)))
                         {
-                            NPCTemplate a = this.GetNPCTemplate(ally);
+                            NPCTemplate? a = this.GetNPCTemplate(ally);
                             if (a is null)
                             {
                                 // log bad template id in allies
@@ -164,7 +164,7 @@ namespace Goose
                             NPCDropInfo drop = new NPCDropInfo();
                             drop.DropRate = Decimal.Parse(reader.GetString("droprate"));
                             drop.Stack = reader.GetInt32("stack");
-                            drop.ItemTemplate = world.ItemHandler.GetTemplate(reader.GetInt32("item_template_id"));
+                            drop.ItemTemplate = world.ItemHandler.GetTemplate(reader.GetInt32("item_template_id"))!;
 
                             if (drop.ItemTemplate is not null) template.Drops.Add(drop);
                         }
@@ -186,7 +186,7 @@ namespace Goose
                                 vslot.Slot = reader.GetInt32("slot");
                                 vslot.Stack = reader.GetInt32("stack");
                                 vslot.ItemTemplate =
-                                    world.ItemHandler.GetTemplate(reader.GetInt32("item_template_id"));
+                                    world.ItemHandler.GetTemplate(reader.GetInt32("item_template_id"))!;
                                 vslot.CanSeeStats = reader.GetString("stats_visible") != "0";
 
                                 if (vslot.ItemTemplate is not null &&
@@ -220,9 +220,9 @@ namespace Goose
         /**
          * Gets NPCTemplate object from npc_id
          */
-        public NPCTemplate GetNPCTemplate(int npc_id)
+        public NPCTemplate? GetNPCTemplate(int npc_id)
         {
-            NPCTemplate npc = null;
+            NPCTemplate? npc = null;
             if (templates.TryGetValue(npc_id, out npc))
                 return npc;
 
@@ -280,7 +280,7 @@ namespace Goose
                     int map_x = reader.GetInt32("map_x");
                     int map_y = reader.GetInt32("map_y");
 
-                    NPCTemplate template = this.GetNPCTemplate(npc_id);
+                    NPCTemplate? template = this.GetNPCTemplate(npc_id);
                     if (template is null) continue;               // log bad id
                     if (this.SpawnNPC(world, map_id, map_x, map_y, template, shouldRespawn: true) is null)
                     {
@@ -302,7 +302,7 @@ namespace Goose
         /// registers it. Returns null if the map does not exist, in which case nothing is
         /// registered. Every caller - LoadNPCs included - should go through this rather than
         /// calling LoadFromTemplate directly, so there is one definition of "spawned".</summary>
-        public NPC SpawnNPC(GameWorld world, int mapId, int mapX, int mapY, NPCTemplate template, bool shouldRespawn)
+        public NPC? SpawnNPC(GameWorld world, int mapId, int mapX, int mapY, NPCTemplate template, bool shouldRespawn)
         {
             var npc = new NPC();
             if (!npc.LoadFromTemplate(world, mapId, mapX, mapY, template, shouldRespawn)) return null;

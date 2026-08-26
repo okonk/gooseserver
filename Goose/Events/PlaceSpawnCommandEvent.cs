@@ -43,7 +43,7 @@ namespace Goose.Events
             var rng = new Random(npcId);
 
             var item = new Item();
-            item.LoadFromTemplate(world.ItemHandler.GetTemplate(world.Settings.GoldItemID));
+            item.LoadFromTemplate(world.ItemHandler.GetTemplate(world.Settings.GoldItemID)!);
             item.ItemID = world.Settings.ItemIDStartpoint + world.Settings.GoldItemID;
             item.ScriptParams = npcId.ToString();
             item.Name = npc.Name;
@@ -62,7 +62,7 @@ namespace Goose.Events
             this.Player.Map.PlaceItem(tile);
 
             // tile can stack
-            ItemTile maptile = (ItemTile)this.Player.Map.GetTile(tile.X, tile.Y);
+            ItemTile? maptile = (ItemTile?)this.Player.Map.GetTile(tile.X, tile.Y);
             if (maptile is not null && maptile is ItemTile)
             {
                 maptile.ItemSlot.Stack += tile.ItemSlot.Stack;

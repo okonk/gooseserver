@@ -23,7 +23,7 @@ namespace Goose
         {
             int id = reader.GetInt32("id");
 
-            ItemModifier modifier = null;
+            ItemModifier? modifier = null;
             if (!modifiers.TryGetValue(id, out modifier))
                 modifier = new ItemModifier();
 

@@ -49,7 +49,7 @@ namespace Goose.Events
 
                 if (id <= 0 || stack <= 0) return;
 
-                ItemTemplate template = world.ItemHandler.GetTemplate(id);
+                ItemTemplate? template = world.ItemHandler.GetTemplate(id);
                 if (template is null) return;
 
                 Item item = new Item();

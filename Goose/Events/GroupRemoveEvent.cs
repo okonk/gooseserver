@@ -35,7 +35,7 @@ namespace Goose.Events
                 string name = t[1];
                 if (name.Length <= 0) return;
 
-                Player player = world.PlayerHandler.GetPlayer(name);
+                Player? player = world.PlayerHandler.GetPlayer(name);
                 if (player is not null)
                 {
                     if (player.Group is null)

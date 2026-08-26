@@ -16,7 +16,7 @@ namespace Goose.Events
             {
                 string[] tokens = ((string)this.Data).Split(' ', 3);
 
-                Player player = world.PlayerHandler.GetPlayerFromData(tokens[1]);
+                Player? player = world.PlayerHandler.GetPlayerFromData(tokens[1]);
                 if (player is not null)
                 {
                     int daysToBan;

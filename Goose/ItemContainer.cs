@@ -3,11 +3,11 @@ using System.Text;
 
 namespace Goose
 {
-    public class ItemContainer : IEnumerable<ItemSlot>
+    public class ItemContainer : IEnumerable<ItemSlot?>
     {
         private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
 
-        private ItemSlot[] slots;
+        private ItemSlot?[] slots;
 
         public int MaxSlots { get => slots.Length; }
 
@@ -16,7 +16,7 @@ namespace Goose
             slots = new ItemSlot[size];
         }
 
-        public void SetSlot(int slot, ItemSlot itemSlot)
+        public void SetSlot(int slot, ItemSlot? itemSlot)
         {
             if (slot < 0 || slot >= this.slots.Length)
             {
@@ -27,7 +27,7 @@ namespace Goose
             this.slots[slot] = itemSlot;
         }
 
-        public ItemSlot GetSlot(int slot)
+        public ItemSlot? GetSlot(int slot)
         {
             if (slot < 0 || slot >= this.slots.Length)
             {
@@ -38,7 +38,7 @@ namespace Goose
             return this.slots[slot];
         }
 
-        public IEnumerator<ItemSlot> GetEnumerator()
+        public IEnumerator<ItemSlot?> GetEnumerator()
         {
             return slots.AsEnumerable().GetEnumerator();
         }

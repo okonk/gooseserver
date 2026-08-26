@@ -35,7 +35,7 @@ namespace Goose.Events
 
                 if (npcid <= 0 || slotid <= 0 || slotid > world.Settings.VendorSlotSize) return;
 
-                NPC npc = null;
+                NPC? npc = null;
 
                 foreach (var window in this.Player.Windows)
                 {

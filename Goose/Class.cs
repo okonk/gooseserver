@@ -16,7 +16,7 @@ namespace Goose
         public long VitaCost { get; set; }
         public long ManaCost { get; set; }
 
-        public ClassLevel GetLevel(int level)
+        public ClassLevel? GetLevel(int level)
         {
             return this.levels.TryGetValue(level, out var classLevel) ? classLevel : null;
         }

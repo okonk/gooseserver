@@ -37,7 +37,7 @@ namespace Goose
 
         public override void SendSlot(int slotIndex, Player player, GameWorld world)
         {
-            ItemSlot slot = this.ItemContainer.GetSlot(slotIndex);
+            ItemSlot? slot = this.ItemContainer.GetSlot(slotIndex);
             if (slot is not null)
             {
                 world.Send(player, P.CombineSlot(this, slot.Item, world, slotIndex, slot.Stack));

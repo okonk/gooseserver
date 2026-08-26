@@ -71,7 +71,7 @@ namespace Goose
             retryAfterSeconds = 0;
 
             if (string.IsNullOrEmpty(key)) return false;
-            if (!this.entries.TryGetValue(key, out Entry entry)) return false;
+            if (!this.entries.TryGetValue(key, out Entry? entry)) return false;
 
             DateTime now = DateTime.UtcNow;
 
@@ -91,7 +91,7 @@ namespace Goose
 
             DateTime now = DateTime.UtcNow;
 
-            if (!this.entries.TryGetValue(key, out Entry entry))
+            if (!this.entries.TryGetValue(key, out Entry? entry))
             {
                 entry = new Entry { WindowStart = now };
                 this.entries[key] = entry;

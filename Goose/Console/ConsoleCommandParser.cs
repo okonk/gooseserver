@@ -7,8 +7,8 @@ namespace Goose.ConsoleCommands
      */
     public sealed class ParsedCommand
     {
-        public string Name;
-        public string[] Args;
+        public string Name = null!;
+        public string[] Args = null!;
     }
 
     /**
@@ -29,12 +29,12 @@ namespace Goose.ConsoleCommands
          * case is preserved, since player names are arguments.
          *
          */
-        public static ParsedCommand Parse(string line)
+        public static ParsedCommand? Parse(string line)
         {
             if (string.IsNullOrWhiteSpace(line)) return null;
 
             string[] tokens = line.Trim().Split(
-                (char[])null, StringSplitOptions.RemoveEmptyEntries);
+                (char[]?)null, StringSplitOptions.RemoveEmptyEntries);
 
             return new ParsedCommand
             {

@@ -70,9 +70,9 @@ namespace Goose.Quests
             });
         }
 
-        public Quest Get(int questId)
+        public Quest? Get(int questId)
         {
-            Quest quest = null;
+            Quest? quest = null;
 
             if (this.Quests.TryGetValue(questId, out quest))
             {

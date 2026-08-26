@@ -38,8 +38,8 @@ namespace Goose.Events
 				if (fromWindowId <= 0 || fromWindowSlot <= 0 || toWindowId <= 0 || toWindowSlot <= 0) return;
 				if (fromWindowId == toWindowId && fromWindowSlot == toWindowSlot) return;
 
-				ItemContainerWindow fromWindow = null;
-				ItemContainerWindow toWindow = null;
+				ItemContainerWindow? fromWindow = null;
+				ItemContainerWindow? toWindow = null;
 
 				foreach (var window in this.Player.Windows)
 				{

@@ -40,7 +40,7 @@ namespace Goose.Quests
         {
             int id = reader.GetInt32("id");
 
-            Quest quest = null;
+            Quest? quest = null;
             if (!quests.TryGetValue(id, out quest))
                 quest = new Quest();
 

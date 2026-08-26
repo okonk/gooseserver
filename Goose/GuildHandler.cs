@@ -65,7 +65,7 @@ namespace Goose
          * GetGuild, returns guild for id if it exists, else null
          * 
          */
-        public Guild GetGuild(int id)
+        public Guild? GetGuild(int id)
         {
             return this.guilds.TryGetValue(id, out var guild) ? guild : null;
         }

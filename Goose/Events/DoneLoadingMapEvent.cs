@@ -22,7 +22,7 @@ namespace Goose.Events
         {
             if (this.Player.State == Player.States.LoadingMap)
             {
-                Map map = world.MapHandler.GetMap(this.Player.MapID);
+                Map map = world.MapHandler.GetMap(this.Player.MapID)!;
 
                 if (!this.Player.IsGMInvisible)
                 {

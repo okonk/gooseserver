@@ -21,7 +21,7 @@ namespace Goose.Events
             {
                 string packet = (string)this.Data;
                 List<Player> players;
-                string query = null;
+                string? query = null;
                 int matches = 0;
 
                 if (packet.Equals("/who"))

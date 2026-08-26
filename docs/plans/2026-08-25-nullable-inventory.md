@@ -88,11 +88,11 @@ identical under both counts).
 |---|---|---|
 | 1. Model construction | 0 (was 218) | fixed by Task 2 |
 | 2. Database row mapping | 0 (was 37) | fixed by Task 2 |
-| 3. Collections containing nullable slots | 80 | |
-| 4. Packet/event inputs | 74 | |
-| 5. Script-facing APIs | 33 | |
-| 6. Tests and fakes (46 Goose.Tests + 39 Goose.IntegrationTests) | 85 | 1 Goose.Tests warning (`MapPlayerCanJoinHookTests.cs(92,70)`) and 5 IT cascade warnings (`DimensionsScriptTests.cs` `BaseStats.HP` derefs) fixed as side effects of Task 2; remaining IT count is 13 baseline + 26 Task 2 cascades (listed in area 6, to be fixed in Task 4) |
-| **Total** | **272** (was 502) | sln 233 + IT 39 |
+| 3. Collections containing nullable slots | 0 (was 80) | fixed by Task 3 |
+| 4. Packet/event inputs | 0 (was 74) | fixed by Task 3 |
+| 5. Script-facing APIs | 28 (was 33) | 5 entries fixed as side effects of Task 3 (`PickupItemEvent.cs:91/94` and `Map.cs:605/608` `string? refusal` locals; `QuestWindow.GetScriptCannotCompleteMessage` → `string?`); remainder is Task 4 |
+| 6. Tests and fakes (76 Goose.Tests + 232 Goose.IntegrationTests) | 308 | Task 3 added 32 sln-scope cascade warnings and fixed 2 as side effects (`CurrencyHandlerTests.cs(123,92)/(134,82)` null literals, now legal `Resolve(ItemTemplate?, NPC?)` args); IT went 39 → 232 (+192 new cascades, +1 re-emergence — see area 6). All listed in area 6, to be fixed in Task 4 |
+| **Total** | **336** (was 502) | sln 104 + IT 232 |
 
 ### Task 2 completion record
 
@@ -140,6 +140,10 @@ Non-obvious `!` proofs (beyond the per-site ones above):
   `Convert.ToString(ExecuteScalar())` and `JsonHelper.Deserialize<…>(…)!` — the row
   is known to exist (looked up by the player's own id); a missing row is the latent
   bug recorded below.
+- `PlayerBank.cs:39` deserializes bank slots as `ItemSlot[]` while
+  `Inventory.Load` (Inventory.cs:913/932/963) uses `ItemSlot?[]` for the
+  same JSON shape — the runtime `is null` guard works either way; recorded
+  as a known cosmetic inconsistency (no change made).
 - `Player.LoadQuests`: `questStatus.Started!`/`Completed!`/`Progress!`
   (Player.cs:824–838) — `BuildSaveQuests` (Player.cs:1159–1162) always populates
   all three arrays before serializing, so a deserialized row always has them set.
@@ -157,6 +161,70 @@ Classification convention: a warning is assigned to the area that owns the nulla
 contract being fixed. E.g. `this.NPC.MoveEvent = null` inside `NPCMoveEvent` is area 1
 (the `NPC.MoveEvent` property is what gets annotated), while `Event`'s own payload
 properties (`Player`, `Data`, `NPC`) are area 4.
+
+### Task 3 completion record
+
+Areas 3 + 4 fixed with annotation-only changes (no control-flow changes, no
+`required`/`init`, no `?? default`). Verification at the Task 3 commit:
+
+- `dotnet build Goose.sln --no-incremental` exit 0; **104** unique nullable
+  warnings remain. All 154 area 3/4 inventory entries are gone; the remainder
+  is area 5 (28) + area 6 sln-scope (76). The plan's projection was 79 (233 −
+  154); the actual is 104 = 79 + 32 new area 6 test cascades − 2 area 6
+  side-effect fixes (`CurrencyHandlerTests` null literals, now legal
+  `Resolve(ItemTemplate?, NPC?)` args) − 5 area 5 side-effect fixes
+  (`PickupItemEvent.cs:91/94`, `Map.cs:605/608` `string? refusal` locals;
+  `QuestWindow.GetScriptCannotCompleteMessage` → `string?`).
+- Tests: Goose.Tests 341 passed / 0 failed; Tools.Tests 124 passed / 0 failed.
+- `Goose.IntegrationTests` (not in the sln) compiles, exit 0, and now emits
+  **232** unique nullable warnings (was 39): +192 new cascade warnings at
+  consuming sites of the new `?` annotations, plus
+  `DimensionsScriptTests.cs(288,87)` re-emerging (the Task 2 record marked it
+  FIXED, but `dim5` became nullable once `NPCHandler.GetNPCTemplate` returned
+  `NPCTemplate?`). Per the task decision the test/IT sites are **not**
+  annotated in Task 3 — they are area 6 / Task 4 scope. The new sites are
+  listed in area 6, marked "Task 3 cascade — fix in Task 4".
+
+Annotation strategy used:
+
+- Slot collections → element-nullable arrays: `Inventory`/`ItemContainer`
+  `ItemSlot?[]`, `Map.tiles` `ITile?[]` (+ `GetTile` → `ITile?`), `Spellbook`
+  `Spell?[]`, `PlayerHandler.idToPlayer` `Player?[]`. Registry/slot lookups
+  return `T?`: `GetSlot`/`GetEquippedSlot`/`RemoveItem`, `GetTile`,
+  `GetCharacterAt`, `GetPlayer`/`GetPlayerFromData`, `GetMap`,
+  `GetNPCTemplate`/`SpawnNPC`, `GetClass`, `Class.GetLevel`, `GetTemplate`,
+  `GetTitle`/`GetSurname`/`RollModifier`, `GetSpell`/`GetSpellEffect`/
+  `GetSpellByName`, `QuestHandler.Get`, `GuildHandler.GetGuild`,
+  `CurrencyHandler.Get`/`Resolve(ItemTemplate?, NPC?)`, `LoginThrottle`
+  out-params, `ConsoleCommandParser.Parse` → `ParsedCommand?`,
+  `ItemContainerWindow.GetSlot`/`SetSlot` → `ItemSlot?`.
+- `Event.Player`, `Event.NPC`, `Event.Data` kept non-nullable `= null!` —
+  mirroring the Task 2 `Player.Map` decision: ~572 `this.Player` / ~29
+  `this.NPC` / ~78 `Data`-cast unguarded derefs; making them `?` would cascade
+  into every event handler. Latent bugs recorded below.
+- `NPCTemplate.VendorItems` stays `NPCVendorSlot[]?` — its element-nullability
+  sites were not area 3 entries.
+- `!` at call sites where non-null is provable: guarded lookups
+  (`if (x is null) return;`), validated slots (`VendorSellInventoryEvent`
+  `sellslot!` — the stack is pre-validated and the game loop is single-
+  threaded), validated command slots (`CustomCommandEvent.cs:61-63,127`
+  `combineBag.GetSlot(n)!` — provably safe: slot 1 is validated at `Ready`
+  entry (lines 14–19) and slots 2/3 by `ValidateCustomSlots` before each
+  use), static packet funcs (`MakePetCharacter!`/`UpdatePet!` —
+  non-readonly static fields read inside a lambda are "possibly null" to the
+  compiler; both are initialized at type load), `RemoteEndPoint!.ToString()!`
+  (Roslyn taints the result of a call on a possibly-null receiver, so both `!`
+  are needed), and registry lookups where a miss is a data bug (recorded
+  below).
+- Non-obvious `!` proof: `SetConfigCommandEvent.cs:31/33/41/42` `getter!`/
+  `setter!` on the `GetGetMethod()`/`GetSetMethod()` results — provable
+  because all 127 `GooseSettings` accessors are `get; set;` pairs (a future
+  one-way property would NRE silently).
+
+New area 6 cascades (fix in Task 4): 32 sln-scope (Goose.Tests/TestSupport) +
+193 IT (192 listed in the Task 3 cascade list + 1 re-emergence,
+`DimensionsScriptTests.cs(288,87)`, tracked in the Task 2 section) — listed
+in area 6.
 
 ### Area 2 note: `DataReaderExtensions.GetString`
 
@@ -185,7 +253,11 @@ annotation work; each is suppressed with `!` at the site(s) noted.
    map** — NRE at `MoveEvent.cs:113` (`warp.WarpMap.PlayerCanJoin`). `WarpMap` is
    non-nullable `Map` with `= null!` (Goose/WarpTile.cs:7); the move path does not
    guard. The same `MapHandler.GetMap` failure (unknown id) also NREs at
-   DoneLoadingMapEvent.cs:24–28 (`map.PlaceCharacter`).
+   DoneLoadingMapEvent.cs:24–28 (`map.PlaceCharacter`) and, via the `!` sites Task 3
+   added, at `Player.BoundMap` (Player.cs:569/701/1432 — warping to a bound spot
+   with an invalid `bound_id`) and `LoginContinuedEvent.cs:21` (unguarded
+   `P.SendMapFlags(map)`). `NPC.LoadFromTemplate` (NPC.cs:599) has the same pattern
+   but is covered by its existing `is null` check.
 2. **`Player.Map` is null during map transition; `Pet.Map` is null after logout**
    — ~169 unguarded dereferences across the codebase assume the map is set for the
    lifetime of the object. Kept non-nullable `= null!` to avoid churning every call
@@ -224,6 +296,43 @@ annotation work; each is suppressed with `!` at the site(s) noted.
 10. **`SpellEffect.Script` is null when the script file fails to load** —
     `CastScriptSpell` (SpellEffect.cs:1060) NREs on `this.Script!.Object`; the existing
     try/catch logs it.
+11. **`Event.Player` is null for internal (non-player) events** — `Event.Player`
+    is kept non-nullable `= null!` (Task 3, mirroring the `Player.Map` decision):
+    ~572 unguarded `this.Player` derefs across event handlers. Only
+    `LoginEvent.Ready` guards (`if (this.Player is not null) return;`); an
+    internal event (NPC/pet/guild/macro-fired) with a null `Player` NREs at the
+    first `this.Player` use.
+12. **`Event.NPC` is null for player-originated events** — same treatment
+    (~29 `this.NPC` derefs); only `RegenEvent` guards on `this.NPC is not null`.
+13. **`Event.Data` is null for internal events that set no payload** — kept
+    non-nullable `Object` `= null!` (an `Object?` would cascade into ~78 cast
+    sites); handlers that cast `(string)this.Data` / `(Socket)this.Data` etc.
+    NRE or throw `InvalidCastException` if the event fires without a payload.
+14. **Unknown item template id → `ItemHandler.GetTemplate` returns null** —
+    NRE sites: `Inventory.Load` (Inventory.cs:921/940/972; NRE later in
+    `RefreshStats`/item ops), `PlayerBank` load (PlayerBank.cs:47 →
+    `RefreshStats`), the gold item in `GameWorld` (GameWorld.cs:305) and
+    `PlaceSpawnCommandEvent.cs:46` (`LoadFromTemplate(null)`). Guarded,
+    warning-only sites (a working `is null` check skips the entry — no NRE):
+    the spell-effect link (ItemHandler.cs:116 — a bad effect id logs and
+    skips the template), SpellHandler.cs:258, NPCHandler.cs:167/189, and
+    `NPC.LoadFromTemplate` (NPC.cs:599). Same class as #7: a bad id in saved
+    data / settings.
+15. **Unknown `ClassID` → `ClassHandler.GetClass` returns null** — the `!`
+    assignments are NPC.cs:648, Pet.cs:209/256, Player.cs:621/754/1428; the
+    NRE occurs at the subsequent `this.Class.GetLevel(...)!` dereference
+    (NPC.cs:649, Pet.cs:257, Player.cs:622/755/1436).
+16. **`Class.GetLevel` returns null for an unregistered level → NRE** at the ~25
+    `!` sites (Packets.cs `ExpBar`, the Player/Pet level-up loops, NPC/Pet stat
+    application, Window pet display, SpellEffect.cs:890/891, BuyMana/BuyVita/
+    ChangeClass/Pet command events).
+17. **Quest requirement display NREs on deleted templates** —
+    QuestWindow.cs:217/222/227 (`item!.Name`, `talkNPC!.Name`, `killNpc!.Name`):
+    a quest requirement pointing at a removed item/NPC template NREs when the
+    quest window renders.
+18. **`NPC.Quests` can contain null entries** — NPCHandler.cs:111
+    (`QuestHandler.Get(q)!`): a bad quest id in an NPC sheet's quest list puts
+    a null element into `NPC.Quests`, NREing quest progress/completion paths.
 
 ## Classified inventory
 
@@ -496,7 +605,7 @@ Goose/Player.cs(952,16): warning CS8604: Possible null reference argument for pa
 Goose/Spellbook.cs(42,42): warning CS8600: Converting null literal or possible null value to non-nullable type.
 Goose/Spellbook.cs(43,62): warning CS8604: Possible null reference argument for parameter 'json' in 'int[] JsonHelper.Deserialize<int[]>(string json)'.
 
-### Area 3 — Collections containing nullable slots (80)
+### Area 3 — Collections containing nullable slots (80) — FIXED by Task 3
 
 Goose/ChatFilter.cs(38,69): warning CS8600: Converting null literal or possible null value to non-nullable type.
 Goose/Class.cs(21,20): warning CS8603: Possible null reference return.
@@ -579,7 +688,7 @@ Goose/SpellHandler.cs(283,45): warning CS8600: Converting null literal or possib
 Goose/SpellHandler.cs(284,20): warning CS8603: Possible null reference return.
 Goose/SpellHandler.cs(300,20): warning CS8603: Possible null reference return.
 
-### Area 4 — Packet/event inputs (74)
+### Area 4 — Packet/event inputs (74) — FIXED by Task 3
 
 Goose/Console/Commands/SetAccessCommand.cs(13,23): warning CS8618: Non-nullable field 'Name' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the field as nullable.
 Goose/Console/Commands/SetAccessCommand.cs(43,23): warning CS8625: Cannot convert null literal to non-nullable reference type.
@@ -656,10 +765,10 @@ Goose/Packets.cs(480,66): warning CS8625: Cannot convert null literal to non-nul
 Goose/Player.cs(2470,44): warning CS8625: Cannot convert null literal to non-nullable reference type.
 Goose/Spellbook.cs(152,53): warning CS8625: Cannot convert null literal to non-nullable reference type.
 
-### Area 5 — Script-facing APIs (33)
+### Area 5 — Script-facing APIs (28)
 
-Goose/Events/PickupItemEvent.cs(91,38): warning CS8600: Converting null literal or possible null value to non-nullable type.
-Goose/Events/PickupItemEvent.cs(94,35): warning CS8600: Converting null literal or possible null value to non-nullable type.
+Goose/Events/PickupItemEvent.cs(91,38): warning CS8600: Converting null literal or possible null value to non-nullable type. — FIXED by Task 3 (side effect: `refusal` local is now `string?`)
+Goose/Events/PickupItemEvent.cs(94,35): warning CS8600: Converting null literal or possible null value to non-nullable type. — FIXED by Task 3 (side effect: `refusal` local is now `string?`, accepting the `string?` result of `Script?.Object.CanPickup`)
 Goose/GooseSettings.cs(6,23): warning CS8618: Non-nullable property 'ServerVersion' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the property as nullable.
 Goose/GooseSettings.cs(7,23): warning CS8618: Non-nullable property 'ServerType' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the property as nullable.
 Goose/GooseSettings.cs(8,23): warning CS8618: Non-nullable property 'DatabaseName' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the property as nullable.
@@ -673,9 +782,9 @@ Goose/GooseSettings.cs(76,23): warning CS8618: Non-nullable property 'StartingTi
 Goose/GooseSettings.cs(77,23): warning CS8618: Non-nullable property 'StartingSurname' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the property as nullable.
 Goose/GooseSettings.cs(95,23): warning CS8618: Non-nullable property 'DefaultGuildMOTD' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the property as nullable.
 Goose/GooseSettingsLoader.cs(52,20): warning CS8603: Possible null reference return.
-Goose/Map.cs(605,30): warning CS8600: Converting null literal or possible null value to non-nullable type.
-Goose/Map.cs(608,27): warning CS8600: Converting null literal or possible null value to non-nullable type.
-Goose/Quests/QuestWindow.cs(323,20): warning CS8603: Possible null reference return.
+Goose/Map.cs(605,30): warning CS8600: Converting null literal or possible null value to non-nullable type. — FIXED by Task 3 (side effect: `refusal` local is now `string?`)
+Goose/Map.cs(608,27): warning CS8600: Converting null literal or possible null value to non-nullable type. — FIXED by Task 3 (side effect: `refusal` local is now `string?`, accepting the `string?` result of `Script?.Object.CanPlayerJoin`)
+Goose/Quests/QuestWindow.cs(323,20): warning CS8603: Possible null reference return. — FIXED by Task 3 (side effect: `GetScriptCannotCompleteMessage` now returns `string?`)
 Goose/Scripting/BaseItemScript.cs(26,20): warning CS8603: Possible null reference return.
 Goose/Scripting/BaseMapScript.cs(35,32): warning CS8600: Converting null literal or possible null value to non-nullable type.
 Goose/Scripting/BaseMapScript.cs(36,61): warning CS8600: Converting null literal or possible null value to non-nullable type.
@@ -692,9 +801,9 @@ Goose/SpellEffect.cs(474,45): warning CS8603: Possible null reference return.
 Goose/SpellEffect.cs(479,24): warning CS8603: Possible null reference return.
 Goose/SpellEffect.cs(484,24): warning CS8603: Possible null reference return.
 
-### Area 6 — Tests and fakes (85 after Task 2; baseline 60)
+### Area 6 — Tests and fakes (308 after Task 3 = 76 sln-scope + 232 IT; 85 after Task 2; baseline 60)
 
-Goose.Tests (43, built via Goose.sln — plus the 4 shared `TestSupport` entries listed under the IT build below, 47 in the sln scope at baseline / 46 after Task 2):
+Goose.Tests (76 after Task 3 = 46 after Task 2 − 2 Task 3 side-effect fixes + 32 Task 3 cascades; 43 at baseline — plus the 4 shared `TestSupport` entries listed under the IT build below, 47 in the sln scope at baseline; built via Goose.sln):
 
 Goose.Tests/BuiltInCurrencyTests.cs(86,77): warning CS8625: Cannot convert null literal to non-nullable reference type.
 Goose.Tests/CurrencyHandlerTests.cs(91,71): warning CS8625: Cannot convert null literal to non-nullable reference type.
@@ -744,7 +853,7 @@ TestSupport/TestWorldFixture.cs(56,96): warning CS8625: Cannot convert null lite
 TestSupport/TestWorldFixture.cs(113,92): warning CS8625: Cannot convert null literal to non-nullable reference type.
 TestSupport/TestWorldFixture.cs(127,78): warning CS8625: Cannot convert null literal to non-nullable reference type.
 
-Goose.IntegrationTests (39 after Task 2 = 13 baseline + 26 Task 2 cascades; separate build — project not in Goose.sln):
+Goose.IntegrationTests (232 after Task 3 = 13 baseline + 26 Task 2 cascades + 192 Task 3 cascades + 1 re-emergence (`DimensionsScriptTests.cs(288,87)`, tracked in the Task 2 list below); 39 after Task 2; separate build — project not in Goose.sln):
 
 Goose.IntegrationTests/DimensionItemScriptTests.cs(11,82): warning CS8625: Cannot convert null literal to non-nullable reference type.
 Goose.IntegrationTests/DimensionItemScriptTests.cs(93,21): warning CS8600: Converting null literal or possible null value to non-nullable type.
@@ -786,10 +895,240 @@ Goose.IntegrationTests/DimensionsScriptTests.cs(249,45): warning CS8604: Possibl
 Goose.IntegrationTests/DimensionsScriptTests.cs(250,44): warning CS8604: Possible null reference argument for parameter 'collection' in 'NPCTemplate Assert.Single<NPCTemplate>(IEnumerable<NPCTemplate> collection)'.
 Goose.IntegrationTests/DimensionsScriptTests.cs(254,35): warning CS8604: Possible null reference argument for parameter 'collection' in 'NPCTemplate Assert.Single<NPCTemplate>(IEnumerable<NPCTemplate> collection)'.
 Goose.IntegrationTests/DimensionsScriptTests.cs(270,22): warning CS8604: Possible null reference argument for parameter 'collection' in 'void Assert.Empty(IEnumerable collection)'.
-Goose.IntegrationTests/DimensionsScriptTests.cs(288,87): warning CS8602: Dereference of a possibly null reference. — FIXED by Task 2 (side effect: `NPCTemplate.BaseStats` is now `= null!`, so the `BaseStats.HP` deref no longer warns)
+Goose.IntegrationTests/DimensionsScriptTests.cs(288,87): warning CS8602: Dereference of a possibly null reference. — FIXED by Task 2, re-emerged in Task 3 (`dim5` is now `NPCTemplate?` via `GetNPCTemplate`)
 Goose.IntegrationTests/DimensionsScriptTests.cs(603,9): warning CS8602: Dereference of a possibly null reference.
 Goose.IntegrationTests/DimensionsScriptTests.cs(618,9): warning CS8602: Dereference of a possibly null reference.
 Goose.IntegrationTests/DimensionsScriptTests.cs(632,9): warning CS8602: Dereference of a possibly null reference.
 Goose.IntegrationTests/DimensionsScriptTests.cs(74,83): warning CS8602: Dereference of a possibly null reference. — FIXED by Task 2 (side effect: `NPCTemplate.BaseStats` is now `= null!`, so the `BaseStats.HP` deref no longer warns)
 Goose.IntegrationTests/DimensionVendorStockTests.cs(107,31): warning CS8602: Dereference of a possibly null reference.
 Goose.IntegrationTests/DimensionVendorStockTests.cs(63,12): warning CS8603: Possible null reference return.
+
+Task 3 cascade — fix in Task 4, sln scope (32 new warnings in Goose.Tests/TestSupport at consuming sites of the new `?` annotations; 2 side-effect fixes: `CurrencyHandlerTests.cs(123,92)/(134,82)` null literals are now legal `Resolve(ItemTemplate?, NPC?)` args):
+
+Goose.Tests/ConsoleCommandParserTests.cs(25,33): warning CS8602: Dereference of a possibly null reference.
+Goose.Tests/ConsoleCommandParserTests.cs(34,39): warning CS8602: Dereference of a possibly null reference.
+Goose.Tests/ConsoleCommandParserTests.cs(43,43): warning CS8602: Dereference of a possibly null reference.
+Goose.Tests/Fixtures/VendorFixture.cs(48,21): warning CS8601: Possible null reference assignment.
+Goose.Tests/InventoryChangeSlotTests.cs(75,25): warning CS8602: Dereference of a possibly null reference.
+Goose.Tests/InvisibilityAggroTests.cs(110,9): warning CS8603: Possible null reference return.
+Goose.Tests/InvisibilityBreakTests.cs(96,31): warning CS8603: Possible null reference return.
+Goose.Tests/InvisibilityCounterTests.cs(84,9): warning CS8603: Possible null reference return.
+Goose.Tests/InvisibilityMapLoadTests.cs(71,19): warning CS8601: Possible null reference assignment.
+Goose.Tests/InvisibilityTransitionTests.cs(109,9): warning CS8603: Possible null reference return.
+Goose.Tests/NPCSpawnRegistrationTests.cs(109,38): warning CS8602: Dereference of a possibly null reference.
+Goose.Tests/NPCSpawnRegistrationTests.cs(120,21): warning CS8601: Possible null reference assignment.
+Goose.Tests/NPCSpawnRegistrationTests.cs(121,19): warning CS8601: Possible null reference assignment.
+Goose.Tests/NPCSpawnRegistrationTests.cs(125,24): warning CS8601: Possible null reference assignment.
+Goose.Tests/NPCSpawnRegistrationTests.cs(77,30): warning CS8602: Dereference of a possibly null reference.
+Goose.Tests/PlayerEconomyOverloadTests.cs(106,28): warning CS8601: Possible null reference assignment.
+Goose.Tests/PlayerEconomyOverloadTests.cs(133,24): warning CS8601: Possible null reference assignment.
+Goose.Tests/PlayerEconomyOverloadTests.cs(22,24): warning CS8601: Possible null reference assignment.
+Goose.Tests/PlayerEconomyOverloadTests.cs(41,24): warning CS8601: Possible null reference assignment.
+Goose.Tests/PlayerEconomyOverloadTests.cs(72,24): warning CS8601: Possible null reference assignment.
+Goose.Tests/PreLoginReassemblyTests.cs(82,34): warning CS8602: Dereference of a possibly null reference.
+Goose.Tests/PreLoginReassemblyTests.cs(86,34): warning CS8602: Dereference of a possibly null reference.
+Goose.Tests/SetAccessCommandTests.cs(14,33): warning CS8602: Dereference of a possibly null reference.
+Goose.Tests/SetAccessCommandTests.cs(26,53): warning CS8602: Dereference of a possibly null reference.
+Goose.Tests/SetAccessCommandTests.cs(32,88): warning CS8600: Converting null literal or possible null value to non-nullable type.
+Goose.Tests/SetAccessCommandTests.cs(41,90): warning CS8600: Converting null literal or possible null value to non-nullable type.
+Goose.Tests/SetAccessCommandTests.cs(64,33): warning CS8602: Dereference of a possibly null reference.
+Goose.Tests/SpellHandlerRegistrationTests.cs(40,32): warning CS8602: Dereference of a possibly null reference.
+Goose.Tests/TestFixtureIsolationTests.cs(91,16): warning CS8602: Dereference of a possibly null reference.
+TestSupport/TestWorldFixture.cs(119,27): warning CS8601: Possible null reference assignment.
+TestSupport/TestWorldFixture.cs(71,21): warning CS8601: Possible null reference assignment.
+TestSupport/TestWorldFixture.cs(91,21): warning CS8601: Possible null reference assignment.
+
+Task 3 cascade — fix in Task 4, IT (192 new sites at consuming sites of the new `?` annotations; plus `DimensionsScriptTests.cs(288,87)` re-emerging — see above):
+
+Goose.IntegrationTests/DimensionCommandGateTests.cs(104,22): warning CS8601: Possible null reference assignment.
+Goose.IntegrationTests/DimensionCommandGateTests.cs(18,46): warning CS8604: Possible null reference argument for parameter 'map' in 'CapturingPlayer TestWorldFixture.CommandPlayerOn(Map map, int x, int y, string name = "Tester")'.
+Goose.IntegrationTests/DimensionCommandGateTests.cs(21,24): warning CS8601: Possible null reference assignment.
+Goose.IntegrationTests/DimensionCommandGateTests.cs(65,9): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionCurrencyCommandTests.cs(147,24): warning CS8601: Possible null reference assignment.
+Goose.IntegrationTests/DimensionCurrencyCommandTests.cs(20,46): warning CS8604: Possible null reference argument for parameter 'map' in 'CapturingPlayer TestWorldFixture.CommandPlayerOn(Map map, int x, int y, string name = "Tester")'.
+Goose.IntegrationTests/DimensionCurrencyCommandTests.cs(23,24): warning CS8601: Possible null reference assignment.
+Goose.IntegrationTests/DimensionCurrencyCommandTests.cs(235,43): warning CS8604: Possible null reference argument for parameter 'map' in 'CapturingPlayer TestWorldFixture.CommandPlayerOn(Map map, int x, int y, string name = "Tester")'.
+Goose.IntegrationTests/DimensionCurrencyCommandTests.cs(253,43): warning CS8604: Possible null reference argument for parameter 'map' in 'CapturingPlayer TestWorldFixture.CommandPlayerOn(Map map, int x, int y, string name = "Tester")'.
+Goose.IntegrationTests/DimensionCurrencyCommandTests.cs(26,9): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionCurrencyCommandTests.cs(279,43): warning CS8604: Possible null reference argument for parameter 'map' in 'CapturingPlayer TestWorldFixture.CommandPlayerOn(Map map, int x, int y, string name = "Tester")'.
+Goose.IntegrationTests/DimensionCurrencyCommandTests.cs(320,43): warning CS8604: Possible null reference argument for parameter 'map' in 'CapturingPlayer TestWorldFixture.CommandPlayerOn(Map map, int x, int y, string name = "Tester")'.
+Goose.IntegrationTests/DimensionCurrencyCommandTests.cs(33,12): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionCurrencyCommandTests.cs(339,43): warning CS8604: Possible null reference argument for parameter 'map' in 'CapturingPlayer TestWorldFixture.CommandPlayerOn(Map map, int x, int y, string name = "Tester")'.
+Goose.IntegrationTests/DimensionCurrencyCommandTests.cs(342,9): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionCurrencyCommandTests.cs(360,43): warning CS8604: Possible null reference argument for parameter 'map' in 'CapturingPlayer TestWorldFixture.CommandPlayerOn(Map map, int x, int y, string name = "Tester")'.
+Goose.IntegrationTests/DimensionDropTests.cs(32,21): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionDropTests.cs(44,21): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionDropTests.cs(53,21): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionDropTests.cs(66,20): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionDropTests.cs(68,20): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionItemScriptTests.cs(106,25): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionItemScriptTests.cs(154,35): warning CS8604: Possible null reference argument for parameter 'spell' in 'bool Spellbook.AddSpell(Spell spell, GameWorld world)'.
+Goose.IntegrationTests/DimensionItemScriptTests.cs(177,35): warning CS8604: Possible null reference argument for parameter 'spell' in 'bool Spellbook.AddSpell(Spell spell, GameWorld world)'.
+Goose.IntegrationTests/DimensionItemScriptTests.cs(24,31): warning CS8604: Possible null reference argument for parameter 'template' in 'void Item.LoadFromTemplate(ItemTemplate template)'.
+Goose.IntegrationTests/DimensionItemScriptTests.cs(32,22): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionItemScriptTests.cs(36,29): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionItemScriptTests.cs(38,21): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionItemScriptTests.cs(56,24): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionItemTemplateTests.cs(100,33): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionItemTemplateTests.cs(178,22): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionItemTemplateTests.cs(178,42): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionItemTemplateTests.cs(26,39): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionItemTemplateTests.cs(35,37): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionItemTemplateTests.cs(46,22): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionItemTemplateTests.cs(51,21): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionItemTemplateTests.cs(83,60): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionMapScriptTests.cs(155,39): warning CS8604: Possible null reference argument for parameter 'map' in 'Player TestWorldFixture.PlayerOn(Map map, int x, int y)'.
+Goose.IntegrationTests/DimensionMapScriptTests.cs(175,39): warning CS8604: Possible null reference argument for parameter 'map' in 'Player TestWorldFixture.PlayerOn(Map map, int x, int y)'.
+Goose.IntegrationTests/DimensionMapScriptTests.cs(191,39): warning CS8604: Possible null reference argument for parameter 'map' in 'Player TestWorldFixture.PlayerOn(Map map, int x, int y)'.
+Goose.IntegrationTests/DimensionMapScriptTests.cs(208,39): warning CS8604: Possible null reference argument for parameter 'map' in 'Player TestWorldFixture.PlayerOn(Map map, int x, int y)'.
+Goose.IntegrationTests/DimensionMapScriptTests.cs(231,39): warning CS8604: Possible null reference argument for parameter 'map' in 'Player TestWorldFixture.PlayerOn(Map map, int x, int y)'.
+Goose.IntegrationTests/DimensionModifierTests.cs(108,31): warning CS8604: Possible null reference argument for parameter 'template' in 'void Item.LoadFromTemplate(ItemTemplate template)'.
+Goose.IntegrationTests/DimensionModifierTests.cs(28,29): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionModifierTests.cs(30,39): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionModifierTests.cs(31,34): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionModifierTests.cs(32,35): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionModifierTests.cs(33,33): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionModifierTests.cs(46,9): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionModifierTests.cs(59,9): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionModifierTests.cs(73,9): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionModifierTests.cs(74,9): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionModifierTests.cs(95,13): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionRebirthTests.cs(109,36): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionRebirthTests.cs(126,9): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionRebirthTests.cs(164,22): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionRebirthTests.cs(174,27): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionRebirthTests.cs(178,39): warning CS8604: Possible null reference argument for parameter 'map' in 'Player TestWorldFixture.PlayerOn(Map map, int x, int y)'.
+Goose.IntegrationTests/DimensionRebirthTests.cs(200,22): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionRebirthTests.cs(202,39): warning CS8604: Possible null reference argument for parameter 'map' in 'Player TestWorldFixture.PlayerOn(Map map, int x, int y)'.
+Goose.IntegrationTests/DimensionRebirthTests.cs(204,24): warning CS8601: Possible null reference assignment.
+Goose.IntegrationTests/DimensionRebirthTests.cs(215,25): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionRebirthTests.cs(62,25): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionRebirthTests.cs(79,36): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionResetItemTests.cs(137,20): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionResetItemTests.cs(180,34): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionResetItemTests.cs(207,9): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionResetItemTests.cs(214,25): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionResetItemTests.cs(29,46): warning CS8604: Possible null reference argument for parameter 'map' in 'CapturingPlayer TestWorldFixture.CommandPlayerOn(Map map, int x, int y, string name = "Tester")'.
+Goose.IntegrationTests/DimensionResetItemTests.cs(31,9): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionResetItemTests.cs(40,31): warning CS8604: Possible null reference argument for parameter 'template' in 'void Item.LoadFromTemplate(ItemTemplate template)'.
+Goose.IntegrationTests/DimensionResetItemTests.cs(47,12): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionResetItemTests.cs(69,24): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionResetItemTests.cs(88,24): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionSpellScriptTests.cs(113,61): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionSpellScriptTests.cs(117,57): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionSpellScriptTests.cs(118,32): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionSpellScriptTests.cs(180,38): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionSpellScriptTests.cs(185,21): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionSpellScriptTests.cs(204,21): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionSpellScriptTests.cs(221,53): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionSpellScriptTests.cs(22,43): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionSpellScriptTests.cs(23,41): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionSpellScriptTests.cs(240,66): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionSpellScriptTests.cs(24,35): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionSpellScriptTests.cs(247,62): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionSpellScriptTests.cs(271,53): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionSpellScriptTests.cs(298,66): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionSpellScriptTests.cs(306,54): warning CS8604: Possible null reference argument for parameter 'item' in 'bool List<SpellEffect>.Contains(SpellEffect item)'.
+Goose.IntegrationTests/DimensionSpellScriptTests.cs(335,48): warning CS8601: Possible null reference assignment.
+Goose.IntegrationTests/DimensionSpellScriptTests.cs(338,49): warning CS8601: Possible null reference assignment.
+Goose.IntegrationTests/DimensionSpellScriptTests.cs(383,56): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionSpellScriptTests.cs(402,35): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionSpellScriptTests.cs(41,57): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionSpellScriptTests.cs(432,52): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionSpellScriptTests.cs(433,50): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionSpellScriptTests.cs(434,30): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionSpellScriptTests.cs(459,35): warning CS8601: Possible null reference assignment.
+Goose.IntegrationTests/DimensionSpellScriptTests.cs(467,48): warning CS8601: Possible null reference assignment.
+Goose.IntegrationTests/DimensionSpellScriptTests.cs(468,25): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionSpellScriptTests.cs(471,46): warning CS8601: Possible null reference assignment.
+Goose.IntegrationTests/DimensionSpellScriptTests.cs(495,35): warning CS8601: Possible null reference assignment.
+Goose.IntegrationTests/DimensionSpellScriptTests.cs(502,48): warning CS8601: Possible null reference assignment.
+Goose.IntegrationTests/DimensionSpellScriptTests.cs(503,25): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionSpellScriptTests.cs(504,46): warning CS8601: Possible null reference assignment.
+Goose.IntegrationTests/DimensionSpellScriptTests.cs(62,35): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionSpellScriptTests.cs(73,27): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionSpellScriptTests.cs(90,32): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionsScriptTests.cs(202,35): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionsScriptTests.cs(208,25): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionsScriptTests.cs(224,36): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionsScriptTests.cs(249,45): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionsScriptTests.cs(250,44): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionsScriptTests.cs(254,35): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionsScriptTests.cs(270,22): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionsScriptTests.cs(305,24): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionsScriptTests.cs(306,24): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionsScriptTests.cs(320,20): warning CS8600: Converting null literal or possible null value to non-nullable type.
+Goose.IntegrationTests/DimensionsScriptTests.cs(320,30): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionsScriptTests.cs(322,38): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionsScriptTests.cs(327,24): warning CS8600: Converting null literal or possible null value to non-nullable type.
+Goose.IntegrationTests/DimensionsScriptTests.cs(327,34): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionsScriptTests.cs(328,25): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionsScriptTests.cs(341,21): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionsScriptTests.cs(342,21): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionsScriptTests.cs(360,38): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionsScriptTests.cs(379,23): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionsScriptTests.cs(459,22): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionsScriptTests.cs(460,22): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionsScriptTests.cs(529,29): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionsScriptTests.cs(532,31): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionsScriptTests.cs(584,26): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionsScriptTests.cs(600,22): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionsScriptTests.cs(617,22): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionsScriptTests.cs(630,22): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionsScriptTests.cs(653,32): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionsScriptTests.cs(669,32): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionsScriptTests.cs(682,40): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionsScriptTests.cs(696,32): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionTeleportScriptTests.cs(108,39): warning CS8604: Possible null reference argument for parameter 'map' in 'Player TestWorldFixture.PlayerOn(Map map, int x, int y)'.
+Goose.IntegrationTests/DimensionTeleportScriptTests.cs(110,21): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionTeleportScriptTests.cs(127,39): warning CS8604: Possible null reference argument for parameter 'map' in 'Player TestWorldFixture.PlayerOn(Map map, int x, int y)'.
+Goose.IntegrationTests/DimensionTeleportScriptTests.cs(130,21): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionTeleportScriptTests.cs(143,39): warning CS8604: Possible null reference argument for parameter 'map' in 'Player TestWorldFixture.PlayerOn(Map map, int x, int y)'.
+Goose.IntegrationTests/DimensionTeleportScriptTests.cs(144,27): warning CS8601: Possible null reference assignment.
+Goose.IntegrationTests/DimensionTeleportScriptTests.cs(145,26): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionTeleportScriptTests.cs(149,21): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionTeleportScriptTests.cs(166,39): warning CS8604: Possible null reference argument for parameter 'map' in 'Player TestWorldFixture.PlayerOn(Map map, int x, int y)'.
+Goose.IntegrationTests/DimensionTeleportScriptTests.cs(169,22): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionTeleportScriptTests.cs(184,39): warning CS8604: Possible null reference argument for parameter 'map' in 'Player TestWorldFixture.PlayerOn(Map map, int x, int y)'.
+Goose.IntegrationTests/DimensionTeleportScriptTests.cs(187,22): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionTeleportScriptTests.cs(200,21): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionTeleportScriptTests.cs(235,56): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionTeleportScriptTests.cs(54,62): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionTeleportScriptTests.cs(78,26): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionTeleportScriptTests.cs(79,25): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionTeleportScriptTests.cs(92,39): warning CS8604: Possible null reference argument for parameter 'map' in 'Player TestWorldFixture.PlayerOn(Map map, int x, int y)'.
+Goose.IntegrationTests/DimensionTeleportScriptTests.cs(95,21): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionVendorStockTests.cs(105,21): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionVendorStockTests.cs(161,38): warning CS8601: Possible null reference assignment.
+Goose.IntegrationTests/DimensionVendorStockTests.cs(180,38): warning CS8601: Possible null reference assignment.
+Goose.IntegrationTests/DimensionVendorStockTests.cs(200,32): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionVendorStockTests.cs(205,22): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionVendorStockTests.cs(218,22): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionVendorStockTests.cs(222,9): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionVendorStockTests.cs(226,28): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionVendorStockTests.cs(234,21): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionVendorStockTests.cs(237,44): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionVendorStockTests.cs(238,52): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionVendorStockTests.cs(249,22): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionVendorStockTests.cs(270,22): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionVendorStockTests.cs(277,9): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionVendorStockTests.cs(281,28): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionVendorStockTests.cs(291,26): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionVendorStockTests.cs(294,22): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionVendorStockTests.cs(296,44): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/DimensionVendorStockTests.cs(47,38): warning CS8601: Possible null reference assignment.
+Goose.IntegrationTests/DimensionVendorStockTests.cs(52,38): warning CS8601: Possible null reference assignment.
+Goose.IntegrationTests/DimensionVendorStockTests.cs(63,12): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/SpiritCurrencyTests.cs(101,9): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/SpiritCurrencyTests.cs(119,39): warning CS8604: Possible null reference argument for parameter 'map' in 'Player TestWorldFixture.PlayerOn(Map map, int x, int y)'.
+Goose.IntegrationTests/SpiritCurrencyTests.cs(122,9): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/SpiritCurrencyTests.cs(39,32): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/SpiritCurrencyTests.cs(51,21): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/SpiritCurrencyTests.cs(64,31): warning CS8604: Possible null reference argument for parameter 'template' in 'void Item.LoadFromTemplate(ItemTemplate template)'.
+Goose.IntegrationTests/SpiritCurrencyTests.cs(66,39): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/SpiritCurrencyTests.cs(80,39): warning CS8604: Possible null reference argument for parameter 'map' in 'Player TestWorldFixture.PlayerOn(Map map, int x, int y)'.
+Goose.IntegrationTests/SpiritCurrencyTests.cs(83,9): warning CS8602: Dereference of a possibly null reference.
+Goose.IntegrationTests/SpiritCurrencyTests.cs(98,39): warning CS8604: Possible null reference argument for parameter 'map' in 'Player TestWorldFixture.PlayerOn(Map map, int x, int y)'.
+TestSupport/TestWorldFixture.cs(119,27): warning CS8601: Possible null reference assignment.
+TestSupport/TestWorldFixture.cs(71,21): warning CS8601: Possible null reference assignment.
+TestSupport/TestWorldFixture.cs(91,21): warning CS8601: Possible null reference assignment.

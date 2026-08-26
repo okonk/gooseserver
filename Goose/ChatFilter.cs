@@ -5,7 +5,7 @@ namespace Goose
 
     public class ChatFilter
     {
-        Dictionary<string, string> WordFilter;
+        Dictionary<string, string?> WordFilter;
 
         public ChatFilter()
         {
@@ -30,7 +30,7 @@ namespace Goose
 
         public string Filter(string input)
         {
-            string replaced;
+            string? replaced;
             string output = "";
 
             foreach (string word in input.Split(' ', StringSplitOptions.None))

@@ -34,7 +34,7 @@ namespace Goose.Events
 
                 if (id <= world.Settings.InventorySize)
                 {
-                    ItemSlot slot = this.Player.Inventory.GetSlot(id);
+                    ItemSlot? slot = this.Player.Inventory.GetSlot(id);
                     if (slot is null || slot.Item is null) return;
 
                     wasCustom = slot.Item.Custom;
@@ -42,7 +42,7 @@ namespace Goose.Events
                 }
                 else
                 {
-                    ItemSlot slot = this.Player.Inventory.GetEquippedSlot(id);
+                    ItemSlot? slot = this.Player.Inventory.GetEquippedSlot(id);
                     if (slot is null || slot.Item is null) return;
                     if (!this.Player.Inventory.Unequip(id, world)) return;
 
@@ -53,7 +53,7 @@ namespace Goose.Events
 
                 if (wasCustom)
                 {
-                    ItemTemplate template = world.ItemHandler.GetTemplate(world.Settings.RippedCustomTicketId);
+                    ItemTemplate? template = world.ItemHandler.GetTemplate(world.Settings.RippedCustomTicketId);
                     if (template is null) return;
 
                     Item item = new Item();

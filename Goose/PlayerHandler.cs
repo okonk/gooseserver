@@ -20,7 +20,7 @@ namespace Goose
         private Dictionary<Socket, Player> sockToPlayer = new();
         private Dictionary<string, Player> nameToPlayer = new();
         // Support LoginIDs 1..MaxPlayers inclusive; index 0 unused (LoginID 0 = none / full)
-        private Player[] idToPlayer;
+        private Player?[] idToPlayer;
 
         public PlayerHandler(GooseSettings settings)
         {
@@ -116,7 +116,7 @@ namespace Goose
          * Just uses our dictionary mapping to get the Player object
          * 
          */
-        public Player GetPlayer(Socket sock)
+        public Player? GetPlayer(Socket sock)
         {
             if (this.sockToPlayer.TryGetValue(sock, out var player))
                 return player;
@@ -128,7 +128,7 @@ namespace Goose
          * GetPlayer, takes a name and returns the associated Player
          * 
          */
-        public Player GetPlayer(string name)
+        public Player? GetPlayer(string name)
         {
             return this.nameToPlayer.TryGetValue(name.ToLower(), out var player) ? player : null;
         }
@@ -173,7 +173,7 @@ namespace Goose
          * GetPlayerFromData, takes a name and returns the associated Player from the in-memory database
          * 
          */
-        public Player GetPlayerFromData(string name)
+        public Player? GetPlayerFromData(string name)
         {
             name = name.ToLower();
 

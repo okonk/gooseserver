@@ -7,7 +7,7 @@ namespace Goose.Events
         public override void Ready(GameWorld world)
         {
             List<string> redeemed = [];
-            Player player;
+            Player? player;
             int credits;
 
             var pendingSaves = new List<(Player Player, int Credits, string TxnId)>();

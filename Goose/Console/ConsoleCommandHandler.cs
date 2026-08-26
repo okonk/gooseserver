@@ -8,9 +8,9 @@ namespace Goose.ConsoleCommands
      */
     public sealed class ConsoleCommand
     {
-        public Action<GameWorld, string[]> Run;
-        public string Usage;
-        public string Description;
+        public Action<GameWorld, string[]> Run = null!;
+        public string Usage = null!;
+        public string Description = null!;
     }
 
     /**
@@ -50,7 +50,7 @@ namespace Goose.ConsoleCommands
                     Usage = ShutdownCommand.Usage,
                     Description = ShutdownCommand.Description } },
                 { "help", new ConsoleCommand {
-                    Run = (world, args) => HelpCommand.Run(this.commands.Values),
+                    Run = (world, args) => HelpCommand.Run(this.commands!.Values),
                     Usage = HelpCommand.Usage,
                     Description = HelpCommand.Description } }
             };
@@ -96,7 +96,7 @@ namespace Goose.ConsoleCommands
             {
                 while (true)
                 {
-                    string line = Console.ReadLine();
+                    string? line = Console.ReadLine();
 
                     if (line is null) break; // EOF, nothing more is coming
 
@@ -118,13 +118,13 @@ namespace Goose.ConsoleCommands
          */
         public void Update(GameWorld world)
         {
-            while (this.pending.TryDequeue(out string line))
+            while (this.pending.TryDequeue(out string? line))
             {
-                ParsedCommand parsed = ConsoleCommandParser.Parse(line);
+                ParsedCommand? parsed = ConsoleCommandParser.Parse(line);
 
                 if (parsed is null) continue;
 
-                if (!this.commands.TryGetValue(parsed.Name, out ConsoleCommand command))
+                if (!this.commands.TryGetValue(parsed.Name, out ConsoleCommand? command))
                 {
                     Console.WriteLine("Unknown command '" + parsed.Name + "'. Type /help.");
                     continue;

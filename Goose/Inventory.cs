@@ -31,8 +31,8 @@ namespace Goose
             Mount
         }
 
-        ItemSlot[] equipped;
-        ItemSlot[] inventory;
+        ItemSlot?[] equipped;
+        ItemSlot?[] inventory;
         ItemContainer combineContainer;
         /**
          * The player this inventory belongs to
@@ -57,12 +57,12 @@ namespace Goose
             return this.combineContainer;
         }
 
-        public ItemSlot[] GetEquippedSlots()
+        public ItemSlot?[] GetEquippedSlots()
         {
             return this.equipped;
         }
 
-        public ItemSlot[] GetInventorySlots()
+        public ItemSlot?[] GetInventorySlots()
         {
             return this.inventory;
         }
@@ -89,9 +89,9 @@ namespace Goose
                     this.SendSlot(i, world);
                     return true;
                 }
-                else if (this.inventory[i].CanStack(slot))
+                else if (this.inventory[i]!.CanStack(slot))
                 {
-                    this.inventory[i].Stack += slot.Stack;
+                    this.inventory[i]!.Stack += slot.Stack;
                     this.SendSlot(i, world);
 
                     return true;
@@ -113,7 +113,7 @@ namespace Goose
 
             if (this.player.State >= Player.States.LoadingMap)
             {
-                ItemSlot slot = this.inventory[i];
+                ItemSlot? slot = this.inventory[i];
                 if (slot is not null)
                 {
                     world.Send(this.player, P.InventorySlot(slot.Item, world, i, slot.Stack));
@@ -169,7 +169,7 @@ namespace Goose
          * GetSlot, returns slot i
          *
          */
-        public ItemSlot GetSlot(int i)
+        public ItemSlot? GetSlot(int i)
         {
             if (i > 0 && i <= this.settings.InventorySize)
             {
@@ -180,7 +180,7 @@ namespace Goose
             return null;
         }
 
-        public void SetSlot(int i, ItemSlot slot)
+        public void SetSlot(int i, ItemSlot? slot)
         {
             this.inventory[i] = slot;
         }
@@ -193,8 +193,8 @@ namespace Goose
         {
             if (fromSlotId == toSlotId) return;
 
-            ItemSlot fromSlot = this.GetSlot(fromSlotId);
-            ItemSlot toSlot = this.GetSlot(toSlotId);
+            ItemSlot? fromSlot = this.GetSlot(fromSlotId);
+            ItemSlot? toSlot = this.GetSlot(toSlotId);
 
             ItemSlot.SwapSlots(ref fromSlot, ref toSlot);
 
@@ -218,8 +218,8 @@ namespace Goose
                 return;
             }
 
-            ItemSlot slot1 = this.GetSlot(id1);
-            ItemSlot slot2 = this.GetSlot(id2);
+            ItemSlot? slot1 = this.GetSlot(id1);
+            ItemSlot? slot2 = this.GetSlot(id2);
 
             if (slot1 is null) return;
             if (stackSize <= 0) return;
@@ -262,7 +262,7 @@ namespace Goose
          */
         public void Use(int id, GameWorld world)
         {
-            ItemSlot slot = this.GetSlot(id);
+            ItemSlot? slot = this.GetSlot(id);
             if (slot is null) return;
 
             if (!this.player.Map.CanUseItems)
@@ -316,7 +316,7 @@ namespace Goose
             // At this point we have unequipped everything necessary to equip the item, so go and do it
 
             // Remove 1 of the item from inventory
-            ItemSlot slot = this.RemoveItem(item, 1, world);
+            ItemSlot? slot = this.RemoveItem(item, 1, world);
             // if slot is null something went wrong
             if (slot is null)
             {
@@ -378,7 +378,7 @@ namespace Goose
             // Equipping a shield requires the weapon slot to not hold a 2H weapon.
             else if (item.Slot == ItemTemplate.ItemSlots.Shield)
             {
-                ItemSlot weapon = this.GetEquippedSlot(EquipSlots.Weapon);
+                ItemSlot? weapon = this.GetEquippedSlot(EquipSlots.Weapon);
                 if (weapon is not null && weapon.Item.Slot == ItemTemplate.ItemSlots.TwoHanded)
                 {
                     if (!this.Unequip(EquipSlots.Weapon, world))
@@ -444,9 +444,9 @@ namespace Goose
          * Returns ItemSlot with the item and stack
          *
          */
-        public ItemSlot RemoveItem(Item item, long number, GameWorld world)
+        public ItemSlot? RemoveItem(Item item, long number, GameWorld world)
         {
-            ItemSlot slot;
+            ItemSlot? slot;
 
             for (int i = 1; i <= this.settings.InventorySize; i++)
             {
@@ -490,7 +490,7 @@ namespace Goose
         /// <returns></returns>
         public void RemoveItem(int templateId, long number, GameWorld world)
         {
-            ItemSlot slot;
+            ItemSlot? slot;
 
             for (int i = 1; i <= this.settings.InventorySize; i++)
             {
@@ -528,7 +528,7 @@ namespace Goose
          */
         public bool Unequip(EquipSlots equipslot, GameWorld world)
         {
-            ItemSlot slot = this.GetEquippedSlot(equipslot);
+            ItemSlot? slot = this.GetEquippedSlot(equipslot);
             // maybe log something bad, i don't think this should happen
             if (slot is null) return true;
 
@@ -539,7 +539,7 @@ namespace Goose
 
             if (slot.Item.SpellEffect is not null)
             {
-                Buff remove = null;
+                Buff? remove = null;
                 foreach (var buff in this.player.Buffs)
                 {
                     if (buff.ItemBuff && buff.SpellEffect == slot.Item.SpellEffect)
@@ -656,7 +656,7 @@ namespace Goose
          * GetEquippedSlot, returns the equipped item at the specified slot
          *
          */
-        public ItemSlot GetEquippedSlot(EquipSlots slot)
+        public ItemSlot? GetEquippedSlot(EquipSlots slot)
         {
             return this.equipped[(int)slot];
         }
@@ -668,7 +668,7 @@ namespace Goose
          * since i as sent from the client is inventorysize + i
          *
          */
-        public ItemSlot GetEquippedSlot(int i)
+        public ItemSlot? GetEquippedSlot(int i)
         {
             if (i > this.settings.InventorySize &&
                 i <= this.settings.InventorySize + this.settings.EquippedSize + 1)
@@ -691,7 +691,7 @@ namespace Goose
             string e = "";
             EquipSlots[] slots = new EquipSlots[]{EquipSlots.Chest, EquipSlots.Head,
                 EquipSlots.Legs, EquipSlots.Feet, EquipSlots.Shield, EquipSlots.Weapon};
-            ItemSlot item;
+            ItemSlot? item;
             foreach (var eq in slots)
             {
                 item = this.GetEquippedSlot(eq);
@@ -726,7 +726,7 @@ namespace Goose
         public string MountDisplay()
         {
             string e = "";
-            ItemSlot item = this.GetEquippedSlot(EquipSlots.Mount);
+            ItemSlot? item = this.GetEquippedSlot(EquipSlots.Mount);
             if (item is not null)
             {
                 if (item.Item.GraphicA == 0)
@@ -758,7 +758,7 @@ namespace Goose
         {
             if (this.player.State >= Player.States.LoadingMap)
             {
-                ItemSlot slot = this.equipped[(int)equipslot];
+                ItemSlot? slot = this.equipped[(int)equipslot];
                 if (slot is not null)
                 {
                     world.Send(this.player, P.EquipSlot(slot.Item, world, (int)equipslot, slot.Stack));
@@ -823,7 +823,7 @@ namespace Goose
          */
         public long GetWeaponDamage()
         {
-            ItemSlot weapon = this.GetEquippedSlot(EquipSlots.Weapon);
+            ItemSlot? weapon = this.GetEquippedSlot(EquipSlots.Weapon);
             if (weapon is null) return 1;
             return weapon.Item.TotalWeaponDamage;
         }
@@ -836,7 +836,7 @@ namespace Goose
          */
         public int GetWeaponDelay()
         {
-            ItemSlot weapon = this.GetEquippedSlot(EquipSlots.Weapon);
+            ItemSlot? weapon = this.GetEquippedSlot(EquipSlots.Weapon);
             if (weapon is null) return 10;
             return weapon.Item.WeaponDelay;
         }
@@ -910,7 +910,7 @@ namespace Goose
                 {
                     query.CommandText = "SELECT serialized_data FROM inventory WHERE player_id=" + playerId;
                     string serialized_data = Convert.ToString(query.ExecuteScalar())!;
-                    this.inventory = JsonHelper.Deserialize<ItemSlot[]>(serialized_data)!;
+                    this.inventory = JsonHelper.Deserialize<ItemSlot?[]>(serialized_data)!;
 
                     foreach (var invSlot in this.inventory)
                     {
@@ -918,7 +918,7 @@ namespace Goose
 
                         world.ItemHandler.AddItem(invSlot.Item, world);
 
-                        invSlot.Item.Template = world.ItemHandler.GetTemplate(invSlot.Item.TemplateID);
+                        invSlot.Item.Template = world.ItemHandler.GetTemplate(invSlot.Item.TemplateID)!;
                         if (invSlot.Item.Template is null)
                             log.Warn("ItemTemplate '{}' was not found", invSlot.Item.TemplateID);
                         invSlot.Item.RefreshStats();
@@ -929,7 +929,7 @@ namespace Goose
                 {
                     query.CommandText = "SELECT serialized_data FROM equipped WHERE player_id=" + playerId;
                     string serialized_data = Convert.ToString(query.ExecuteScalar())!;
-                    this.equipped = JsonHelper.Deserialize<ItemSlot[]>(serialized_data)!;
+                    this.equipped = JsonHelper.Deserialize<ItemSlot?[]>(serialized_data)!;
 
                     foreach (var equipSlot in equipped)
                     {
@@ -937,7 +937,7 @@ namespace Goose
 
                         world.ItemHandler.AddItem(equipSlot.Item, world);
 
-                        equipSlot.Item.Template = world.ItemHandler.GetTemplate(equipSlot.Item.TemplateID);
+                        equipSlot.Item.Template = world.ItemHandler.GetTemplate(equipSlot.Item.TemplateID)!;
                         if (equipSlot.Item.Template is null)
                             log.Warn("ItemTemplate '{}' was not found", equipSlot.Item.TemplateID);
                         equipSlot.Item.RefreshStats();
@@ -960,7 +960,7 @@ namespace Goose
                 {
                     query.CommandText = "SELECT serialized_data FROM combinebag WHERE player_id=" + playerId;
                     string serialized_data = Convert.ToString(query.ExecuteScalar())!;
-                    var combineSlots = JsonHelper.Deserialize<ItemSlot[]>(serialized_data)!;
+                    var combineSlots = JsonHelper.Deserialize<ItemSlot?[]>(serialized_data)!;
 
                     for (int i = 0; i < combineSlots.Length; i++)
                     {
@@ -969,7 +969,7 @@ namespace Goose
 
                         world.ItemHandler.AddItem(combineSlot.Item, world);
 
-                        combineSlot.Item.Template = world.ItemHandler.GetTemplate(combineSlot.Item.TemplateID);
+                        combineSlot.Item.Template = world.ItemHandler.GetTemplate(combineSlot.Item.TemplateID)!;
                         if (combineSlot.Item.Template is null)
                             log.Warn("ItemTemplate '{}' was not found", combineSlot.Item.TemplateID);
                         combineSlot.Item.RefreshStats();
@@ -999,7 +999,7 @@ namespace Goose
                 combineHash[slot.Item.TemplateID] = have + slot.Stack;
             }
 
-            Combination match = world.CombinationHandler.GetMatch(combineHash);
+            Combination? match = world.CombinationHandler.GetMatch(combineHash);
             if (match is null)
             {
                 world.Send(this.player, P.ServerMessage("Couldn't combine items."));

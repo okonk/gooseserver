@@ -26,7 +26,7 @@ namespace Goose.Events
                     return;
                 }
 
-                Pet match = null;
+                Pet? match = null;
                 foreach (var pet in this.Player.Pets)
                 {
                     if (pet.PetID == id)

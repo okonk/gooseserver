@@ -19,7 +19,7 @@ namespace Goose.Events
                 int x = this.Player.MapX;
                 int y = this.Player.MapY;
                 // check tile at player x,y
-                ITile itile = this.Player.Map.GetTile(x, y);
+                ITile? itile = this.Player.Map.GetTile(x, y);
                 ItemTile tile;
                 if (itile is null)
                 {
@@ -88,7 +88,7 @@ namespace Goose.Events
                 {
                     if (tile.ItemSlot.Item.IsLore && this.Player.HasItem(tile.ItemSlot.Item.Template.ID)) return;
 
-                    string refusal = null;
+                    string? refusal = null;
                     try
                     {
                         refusal = tile.ItemSlot.Item.Script?.Object.CanPickup(this.Player, tile.ItemSlot.Item, world);

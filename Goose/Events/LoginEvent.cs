@@ -44,7 +44,7 @@ namespace Goose.Events
             string packet = (string)(((Object[])this.Data)[1]);
             Socket sock = (Socket)(((Object[])this.Data)[0]);
 
-            string IP = sock.RemoteEndPoint.ToString();
+            string IP = sock.RemoteEndPoint!.ToString()!;
             IP = IP.Substring(0, IP.IndexOf(":"));
 
             string name;
@@ -115,7 +115,7 @@ namespace Goose.Events
                 return;
             }
 
-            Player player = world.PlayerHandler.GetPlayerFromData(name);
+            Player? player = world.PlayerHandler.GetPlayerFromData(name);
 
             if (player is null)
             {
