@@ -29,9 +29,9 @@ namespace Goose
                     while (reader.Read())
                     {
                         Guild guild = new Guild();
-                        guild.ID = Convert.ToInt32(reader["guild_id"]);
-                        guild.Name = Convert.ToString(reader["guild_name"]);
-                        guild.MOTD = Convert.ToString(reader["guild_motd"]);
+                        guild.ID = reader.GetInt32("guild_id");
+                        guild.Name = reader.GetString("guild_name");
+                        guild.MOTD = reader.GetString("guild_motd");
 
                         guilds[guild.ID] = guild;
                     }
@@ -47,8 +47,8 @@ namespace Goose
 
                     while (reader.Read())
                     {
-                        playerid = Convert.ToInt32(reader["player_id"]);
-                        rank = (Guild.GuildRanks) Convert.ToInt32(reader["guild_rank"]);
+                        playerid = reader.GetInt32("player_id");
+                        rank = (Guild.GuildRanks) reader.GetInt32("guild_rank");
                         guild.AddMember(playerid, rank);
                     }
                 }

@@ -679,62 +679,62 @@ namespace Goose
          */
         public void LoadFromReader(GameWorld world, DbDataReader reader)
         {
-            this.Access = (AccessStatus)Convert.ToInt32(reader["access_status"]);
+            this.Access = (AccessStatus)reader.GetInt32("access_status");
 
-            string databaseHash = Convert.ToString(reader["password_hash"]);
-            string base64Salt = Convert.ToString(reader["password_salt"]);
+            string databaseHash = reader.GetString("password_hash");
+            string base64Salt = reader.GetString("password_salt");
 
             this.AutoCreatedNotSaved = false;
-            this.PlayerID = Convert.ToInt32(reader["player_id"]);
-            this.Name = Convert.ToString(reader["player_name"]);
-            this.Title = Convert.ToString(reader["player_title"]);
-            this.Surname = Convert.ToString(reader["player_surname"]);
+            this.PlayerID = reader.GetInt32("player_id");
+            this.Name = reader.GetString("player_name");
+            this.Title = reader.GetString("player_title");
+            this.Surname = reader.GetString("player_surname");
             this.PasswordHash = databaseHash;
             this.PasswordSalt = base64Salt;
-            this.MapID = Convert.ToInt32(reader["map_id"]);
-            this.MapX = Convert.ToInt32(reader["map_x"]);
-            this.MapY = Convert.ToInt32(reader["map_y"]);
-            this.Facing = Convert.ToInt32(reader["player_facing"]);
-            this.BoundID = Convert.ToInt32(reader["bound_id"]);
-            this.BoundX = Convert.ToInt32(reader["bound_x"]);
-            this.BoundY = Convert.ToInt32(reader["bound_y"]);
+            this.MapID = reader.GetInt32("map_id");
+            this.MapX = reader.GetInt32("map_x");
+            this.MapY = reader.GetInt32("map_y");
+            this.Facing = reader.GetInt32("player_facing");
+            this.BoundID = reader.GetInt32("bound_id");
+            this.BoundX = reader.GetInt32("bound_x");
+            this.BoundY = reader.GetInt32("bound_y");
             this.BoundMap = world.MapHandler.GetMap(this.BoundID);
-            this.Gold = Convert.ToInt64(reader["player_gold"]);
-            this.Level = Convert.ToInt32(reader["player_level"]);
-            this.ClassID = Convert.ToInt32(reader["class_id"]);
-            this.GuildID = Convert.ToInt32(reader["guild_id"]);
+            this.Gold = reader.GetInt64("player_gold");
+            this.Level = reader.GetInt32("player_level");
+            this.ClassID = reader.GetInt32("class_id");
+            this.GuildID = reader.GetInt32("guild_id");
             this.Guild = world.GuildHandler.GetGuild(this.GuildID);
-            this.Experience = Convert.ToInt64(reader["experience"]);
-            this.ExperienceSold = Convert.ToInt64(reader["experience_sold"]);
-            this.BodyID = Convert.ToInt32(reader["body_id"]);
-            this.BodyR = Convert.ToInt32(reader["body_r"]);
-            this.BodyG = Convert.ToInt32(reader["body_g"]);
-            this.BodyB = Convert.ToInt32(reader["body_b"]);
-            this.BodyA = Convert.ToInt32(reader["body_a"]);
+            this.Experience = reader.GetInt64("experience");
+            this.ExperienceSold = reader.GetInt64("experience_sold");
+            this.BodyID = reader.GetInt32("body_id");
+            this.BodyR = reader.GetInt32("body_r");
+            this.BodyG = reader.GetInt32("body_g");
+            this.BodyB = reader.GetInt32("body_b");
+            this.BodyA = reader.GetInt32("body_a");
             this.CurrentBodyID = this.BodyID;
-            this.FaceID = Convert.ToInt32(reader["face_id"]);
-            this.HairID = Convert.ToInt32(reader["hair_id"]);
-            this.HairR = Convert.ToInt32(reader["hair_r"]);
-            this.HairG = Convert.ToInt32(reader["hair_g"]);
-            this.HairB = Convert.ToInt32(reader["hair_b"]);
-            this.HairA = Convert.ToInt32(reader["hair_a"]);
-            this.LoadPropertiesFromColumn(Convert.ToString(reader["player_properties"]));
+            this.FaceID = reader.GetInt32("face_id");
+            this.HairID = reader.GetInt32("hair_id");
+            this.HairR = reader.GetInt32("hair_r");
+            this.HairG = reader.GetInt32("hair_g");
+            this.HairB = reader.GetInt32("hair_b");
+            this.HairA = reader.GetInt32("hair_a");
+            this.LoadPropertiesFromColumn(reader.GetString("player_properties"));
 
             this.BaseStats = new AttributeSet();
-            this.BaseStats.HP = Convert.ToInt64(reader["player_hp"]);
-            this.BaseStats.MP = Convert.ToInt64(reader["player_mp"]);
-            this.BaseStats.SP = Convert.ToInt64(reader["player_sp"]);
-            this.BaseStats.AC = Convert.ToInt32(reader["stat_ac"]);
-            this.BaseStats.Strength = Convert.ToInt32(reader["stat_str"]);
-            this.BaseStats.Stamina = Convert.ToInt32(reader["stat_sta"]);
-            this.BaseStats.Intelligence = Convert.ToInt32(reader["stat_int"]);
-            this.BaseStats.Dexterity = Convert.ToInt32(reader["stat_dex"]);
-            this.BaseStats.FireResist = Convert.ToInt32(reader["res_fire"]);
-            this.BaseStats.AirResist = Convert.ToInt32(reader["res_air"]);
-            this.BaseStats.EarthResist = Convert.ToInt32(reader["res_earth"]);
-            this.BaseStats.SpiritResist = Convert.ToInt32(reader["res_spirit"]);
-            this.BaseStats.WaterResist = Convert.ToInt32(reader["res_water"]);
-            this.BaseStats.MoveSpeed = Convert.ToInt32(reader["move_speed"]);
+            this.BaseStats.HP = reader.GetInt64("player_hp");
+            this.BaseStats.MP = reader.GetInt64("player_mp");
+            this.BaseStats.SP = reader.GetInt64("player_sp");
+            this.BaseStats.AC = reader.GetInt32("stat_ac");
+            this.BaseStats.Strength = reader.GetInt32("stat_str");
+            this.BaseStats.Stamina = reader.GetInt32("stat_sta");
+            this.BaseStats.Intelligence = reader.GetInt32("stat_int");
+            this.BaseStats.Dexterity = reader.GetInt32("stat_dex");
+            this.BaseStats.FireResist = reader.GetInt32("res_fire");
+            this.BaseStats.AirResist = reader.GetInt32("res_air");
+            this.BaseStats.EarthResist = reader.GetInt32("res_earth");
+            this.BaseStats.SpiritResist = reader.GetInt32("res_spirit");
+            this.BaseStats.WaterResist = reader.GetInt32("res_water");
+            this.BaseStats.MoveSpeed = reader.GetInt32("move_speed");
 
             this.MaxStats = new AttributeSet();
             this.MaxStats += this.BaseStats;
@@ -754,18 +754,18 @@ namespace Goose
             this.Class = world.ClassHandler.GetClass(this.ClassID);
             this.MaxStats += this.Class.GetLevel(this.Level).BaseStats;
 
-            this.ToggleSettings = (ToggleSetting)Convert.ToInt64(reader["toggle_settings"]);
-            this.AetherThreshold = Convert.ToDecimal(reader["aether_threshold"]);
+            this.ToggleSettings = (ToggleSetting)reader.GetInt64("toggle_settings");
+            this.AetherThreshold = reader.GetDecimal("aether_threshold");
 
-            this.NumberOfBankPages = Convert.ToInt32(reader["bank_pages"]);
-            this.Credits = Convert.ToInt32(reader["donation_credits"]);
-            this.TotalPlayTime = Convert.ToInt64(reader["total_playtime"]);
-            this.TotalAfkTime = Convert.ToInt64(reader["total_afktime"]);
+            this.NumberOfBankPages = reader.GetInt32("bank_pages");
+            this.Credits = reader.GetInt32("donation_credits");
+            this.TotalPlayTime = reader.GetInt64("total_playtime");
+            this.TotalAfkTime = reader.GetInt64("total_afktime");
 
             var unbanDate = reader["unban_date"];
             this.UnbanDate = (unbanDate == DBNull.Value ? null : Convert.ToDateTime(unbanDate));
 
-            this.MacroCheckFailures = Convert.ToInt32(reader["macrocheck_failures"]);
+            this.MacroCheckFailures = reader.GetInt32("macrocheck_failures");
 
             this.LastActive = world.TimeNow;
             this.LastPlaytimeUpdate = world.TimeNow;

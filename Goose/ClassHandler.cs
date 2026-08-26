@@ -47,12 +47,12 @@ namespace Goose
             while (reader.Read())
             {
                 Class c = new Class();
-                c.ClassID = Convert.ToInt32(reader["class_id"]);
-                c.ClassName = Convert.ToString(reader["class_name"]);
-                c.ACMultiplier = Decimal.Parse(Convert.ToString(reader["ac_multiplier"]));
+                c.ClassID = reader.GetInt32("class_id");
+                c.ClassName = reader.GetString("class_name");
+                c.ACMultiplier = Decimal.Parse(reader.GetString("ac_multiplier"));
 
-                c.VitaCost = Convert.ToInt64(reader["vita_cost"]);
-                c.ManaCost = Convert.ToInt64(reader["mana_cost"]);
+                c.VitaCost = reader.GetInt64("vita_cost");
+                c.ManaCost = reader.GetInt64("mana_cost");
 
                 this.classes[c.ClassID] = c;
 
@@ -66,7 +66,7 @@ namespace Goose
             while (reader.Read())
             {
                 ClassLevel c = new ClassLevel();
-                c.ClassID = Convert.ToInt32(reader["class_id"]);
+                c.ClassID = reader.GetInt32("class_id");
 
                 Class cl = this.GetClass(c.ClassID);
                 if (cl is null)
@@ -75,35 +75,35 @@ namespace Goose
                     return;
                 }
 
-                c.Level = Convert.ToInt32(reader["level"]);
-                c.Experience = Convert.ToInt64(reader["level_up_exp"]);
+                c.Level = reader.GetInt32("level");
+                c.Experience = reader.GetInt64("level_up_exp");
 
                 c.BaseStats = new AttributeSet();
-                c.BaseStats.HP = Convert.ToInt64(reader["player_hp"]);
-                c.BaseStats.MP = Convert.ToInt64(reader["player_mp"]);
-                c.BaseStats.SP = Convert.ToInt64(reader["player_sp"]);
-                c.BaseStats.AC = Convert.ToInt32(reader["stat_ac"]);
-                c.BaseStats.Strength = Convert.ToInt32(reader["stat_str"]);
-                c.BaseStats.Stamina = Convert.ToInt32(reader["stat_sta"]);
-                c.BaseStats.Intelligence = Convert.ToInt32(reader["stat_int"]);
-                c.BaseStats.Dexterity = Convert.ToInt32(reader["stat_dex"]);
-                c.BaseStats.FireResist = Convert.ToInt32(reader["res_fire"]);
-                c.BaseStats.AirResist = Convert.ToInt32(reader["res_air"]);
-                c.BaseStats.EarthResist = Convert.ToInt32(reader["res_earth"]);
-                c.BaseStats.SpiritResist = Convert.ToInt32(reader["res_spirit"]);
-                c.BaseStats.WaterResist = Convert.ToInt32(reader["res_water"]);
+                c.BaseStats.HP = reader.GetInt64("player_hp");
+                c.BaseStats.MP = reader.GetInt64("player_mp");
+                c.BaseStats.SP = reader.GetInt64("player_sp");
+                c.BaseStats.AC = reader.GetInt32("stat_ac");
+                c.BaseStats.Strength = reader.GetInt32("stat_str");
+                c.BaseStats.Stamina = reader.GetInt32("stat_sta");
+                c.BaseStats.Intelligence = reader.GetInt32("stat_int");
+                c.BaseStats.Dexterity = reader.GetInt32("stat_dex");
+                c.BaseStats.FireResist = reader.GetInt32("res_fire");
+                c.BaseStats.AirResist = reader.GetInt32("res_air");
+                c.BaseStats.EarthResist = reader.GetInt32("res_earth");
+                c.BaseStats.SpiritResist = reader.GetInt32("res_spirit");
+                c.BaseStats.WaterResist = reader.GetInt32("res_water");
 
-                c.BaseStats.HPPercentRegen = Decimal.Parse(Convert.ToString(reader["hp_percent_regen"]));
-                c.BaseStats.HPStaticRegen = Convert.ToInt32(reader["hp_static_regen"]);
-                c.BaseStats.MPPercentRegen = Decimal.Parse(Convert.ToString(reader["mp_percent_regen"]));
-                c.BaseStats.MPStaticRegen = Convert.ToInt32(reader["mp_static_regen"]);
+                c.BaseStats.HPPercentRegen = Decimal.Parse(reader.GetString("hp_percent_regen"));
+                c.BaseStats.HPStaticRegen = reader.GetInt32("hp_static_regen");
+                c.BaseStats.MPPercentRegen = Decimal.Parse(reader.GetString("mp_percent_regen"));
+                c.BaseStats.MPStaticRegen = reader.GetInt32("mp_static_regen");
 
-                c.BaseStats.Haste = Decimal.Parse(Convert.ToString(reader["haste"]));
-                c.BaseStats.SpellDamage = Decimal.Parse(Convert.ToString(reader["spell_damage"]));
-                c.BaseStats.SpellCrit = Decimal.Parse(Convert.ToString(reader["spell_crit"]));
-                c.BaseStats.MeleeDamage = Decimal.Parse(Convert.ToString(reader["melee_damage"]));
-                c.BaseStats.MeleeCrit = Decimal.Parse(Convert.ToString(reader["melee_crit"]));
-                c.BaseStats.DamageReduction = Decimal.Parse(Convert.ToString(reader["damage_reduce"]));
+                c.BaseStats.Haste = Decimal.Parse(reader.GetString("haste"));
+                c.BaseStats.SpellDamage = Decimal.Parse(reader.GetString("spell_damage"));
+                c.BaseStats.SpellCrit = Decimal.Parse(reader.GetString("spell_crit"));
+                c.BaseStats.MeleeDamage = Decimal.Parse(reader.GetString("melee_damage"));
+                c.BaseStats.MeleeCrit = Decimal.Parse(reader.GetString("melee_crit"));
+                c.BaseStats.DamageReduction = Decimal.Parse(reader.GetString("damage_reduce"));
 
                 c.Spells = [];
 
@@ -120,21 +120,21 @@ namespace Goose
 
             while (reader.Read())
             {
-                clas = this.GetClass(Convert.ToInt32(reader["class_id"]));
+                clas = this.GetClass(reader.GetInt32("class_id"));
                 if (clas is null)
                 {
                     // log bad class id
                     continue;
                 }
 
-                level = clas.GetLevel(Convert.ToInt32(reader["level"]));
+                level = clas.GetLevel(reader.GetInt32("level"));
                 if (level is null)
                 {
                     // log bad level
                     continue;
                 }
 
-                spell = world.SpellHandler.GetSpell(Convert.ToInt32(reader["spell_id"]));
+                spell = world.SpellHandler.GetSpell(reader.GetInt32("spell_id"));
                 if (spell is null)
                 {
                     // log bad spell

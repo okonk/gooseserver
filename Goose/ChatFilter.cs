@@ -22,8 +22,8 @@ namespace Goose
 
                 while (reader.Read())
                 {
-                    WordFilter.Add(Convert.ToString(reader["word"]),
-                        Convert.ToString(reader["filtered"]));
+                    WordFilter.Add(reader.GetString("word"),
+                        reader.GetString("filtered"));
                 }
             });
         }
