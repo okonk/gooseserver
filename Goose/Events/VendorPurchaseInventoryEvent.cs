@@ -60,7 +60,9 @@ namespace Goose.Events
                 // log bad npc
                 if (npc is null) return;
 
-                NPCVendorSlot slot = npc.VendorItems![slotid];
+                if (npc.VendorItems is null || slotid < 0 || slotid >= npc.VendorItems.Length) return;
+
+                NPCVendorSlot slot = npc.VendorItems[slotid];
 
                 // log bad slot purchase
                 if (slot is null) return;

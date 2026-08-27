@@ -152,10 +152,12 @@ namespace Goose
             {
                 case WindowTypes.Vendor:
                     world.Send(player, P.ClearVendor());
-                    
-                    for (int i = 1; i < this.NPC!.VendorItems!.Length; i++)
+
+                    if (this.NPC?.VendorItems is null) return;
+
+                    for (int i = 1; i < this.NPC.VendorItems.Length; i++)
                     {
-                        var slot = this.NPC!.VendorItems![i];
+                        var slot = this.NPC.VendorItems[i];
                         if (slot is null) continue;
 
                         world.Send(player, P.VendorSlot(this, slot.ItemTemplate, world, i, 1));

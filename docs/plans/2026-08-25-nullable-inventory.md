@@ -397,7 +397,10 @@ annotation work; each is suppressed with `!` at the site(s) noted.
    `Item.LoadFromTemplate`). Sheet-loaded templates always have stats; only
    hand-built templates can trip this.
 6. **`NPC.HandleAttackEvent` NREs if `AggroTarget` is cleared while the attack event
-   is still pending** (NPC.cs:1290/1301/1318/1320, `this.AggroTarget!`).
+   is still pending** (NPC.cs:1290/1301/1318/1320, `this.AggroTarget!`) —
+   **Closed 2026-07-09.** Verified: `NPCAttackEvent.Ready` guards before dispatch
+   (Goose/Events/NPCAttackEvent.cs:11-12), so `HandleAttackEvent` never runs with a
+   cleared aggro target.
 7. **Missing DB row on load throws** — `Inventory.Load` (Inventory.cs:913/932/963),
    `Spellbook.Load` (Spellbook.cs:43), `Player.LoadQuests` (Player.cs:822) and
    `PlayerBank` (PlayerBank.cs:39–40) force `Convert.ToString(ExecuteScalar())!` /
@@ -421,7 +424,12 @@ annotation work; each is suppressed with `!` at the site(s) noted.
     internal event (NPC/pet/guild/macro-fired) with a null `Player` NREs at the
     first `this.Player` use.
 12. **`Event.NPC` is null for player-originated events** — same treatment
-    (~29 `this.NPC` derefs); only `RegenEvent` guards on `this.NPC is not null`.
+    (~29 `this.NPC` derefs); only `RegenEvent` guards on `this.NPC is not null` —
+    **Closed 2026-07-09.** Verified: all five consumer events guard or are safe by
+    construction — NPCAttackEvent.cs:11-12, NPCMoveEvent.cs:13-14, RegenEvent
+    (`this.NPC is not null`), BuffExpireEvent.cs:24-30 (the `this.NPC` branch is
+    only reached when `buff.Target is NPC`, which implies `this.NPC` is set),
+    NPCSpawnEvent.cs:9.
 13. **`Event.Data` is null for internal events that set no payload** — kept
     non-nullable `Object` `= null!` (an `Object?` would cascade into ~78 cast
     sites); handlers that cast `(string)this.Data` / `(Socket)this.Data` etc.

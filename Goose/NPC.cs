@@ -1159,32 +1159,39 @@ namespace Goose
                         }
                     }
 
-                    if (highest is Group)
+                    if (highest is not null)
                     {
-                        ((Group)highest).GainExperience(this, world);
-                    }
-                    else
-                    {
-                        Player.ExperienceMessage expMessage = Player.ExperienceMessage.Normal;
-                        long experience = this.Experience;
-
-                        if (this.Level + 9 < ((Player)highest!).Level)
+                        if (highest is Group)
                         {
-                            experience = (long)(this.Experience * 0.10);
-                            expMessage = Player.ExperienceMessage.TooHigh;
-                        }
-
-                        if (highest is Pet)
-                        {
-                            ((Pet)highest).Owner.Killed(this, world);
-                            ((Pet)highest).Owner.AddExperience(experience, world, expMessage);
-                            ((Player)highest).AddExperience(experience, world, expMessage);
+                            ((Group)highest).GainExperience(this, world);
                         }
                         else
                         {
-                            ((Player)highest).Killed(this, world);
-                            ((Player)highest).AddExperience(experience, world, expMessage);
+                            Player.ExperienceMessage expMessage = Player.ExperienceMessage.Normal;
+                            long experience = this.Experience;
+
+                            if (this.Level + 9 < ((Player)highest!).Level)
+                            {
+                                experience = (long)(this.Experience * 0.10);
+                                expMessage = Player.ExperienceMessage.TooHigh;
+                            }
+
+                            if (highest is Pet)
+                            {
+                                ((Pet)highest).Owner.Killed(this, world);
+                                ((Pet)highest).Owner.AddExperience(experience, world, expMessage);
+                                ((Player)highest).AddExperience(experience, world, expMessage);
+                            }
+                            else
+                            {
+                                ((Player)highest).Killed(this, world);
+                                ((Player)highest).AddExperience(experience, world, expMessage);
+                            }
                         }
+                    }
+                    else
+                    {
+                        log.Warn("NPC {0} died with no damage entries; kill reward skipped", this.NPCTemplateID);
                     }
 
                     List<Buff> removebuff = [];
@@ -1199,10 +1206,13 @@ namespace Goose
                         this.RemoveBuff(b, world);
                     }
 
-                    if (highest is Group)
-                        this.DropItems(((Group)highest).Players[0], world);
-                    else
-                        this.DropItems(((Player)highest), world);
+                    if (highest is not null)
+                    {
+                        if (highest is Group)
+                            this.DropItems(((Group)highest).Players[0], world);
+                        else
+                            this.DropItems(((Player)highest), world);
+                    }
                 }
                 else
                 {

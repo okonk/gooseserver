@@ -17,6 +17,18 @@ public class NPCTemplateRegistrationTests
     }
 
     [Fact]
+    public void ResolveQuests_UnknownAndBadIds_AreFilteredNotNull()
+    {
+        var handler = new QuestHandler();
+        handler.AddQuest(new Quest { Id = 1, Name = "Quest One" });
+
+        List<Quest> quests = NPCHandler.ResolveQuests(7, "1 999 notanumber", handler);
+
+        Assert.Single(quests);
+        Assert.DoesNotContain(quests, q => q is null);
+    }
+
+    [Fact]
     public void Copy_constructor_copies_scalars_and_detaches_the_quest_list()
     {
         var quest = new Quest { Id = 1 };
