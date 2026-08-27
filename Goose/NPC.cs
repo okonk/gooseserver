@@ -651,8 +651,15 @@ namespace Goose
             this.Surname = template.Surname;
             this.Title = template.Title;
             this.WeaponDamage = template.WeaponDamage;
-            this.Class = world.ClassHandler.GetClass(this.ClassID)!;
-            this.MaxStats += this.Class.GetLevel(this.Level)!.BaseStats;
+            Class? cls = world.ClassHandler.GetClass(this.ClassID);
+            if (cls is null || cls.GetLevel(this.Level) is null)
+            {
+                log.Error("NPC template {0}: class {1}/level {2} not found; spawn skipped",
+                    template.NPCTemplateID, this.ClassID, this.Level);
+                return false;
+            }
+            this.Class = cls;
+            this.MaxStats += cls.GetLevel(this.Level)!.BaseStats;
             this.Quests = template.Quests;
 
             this.SpawnX = this.MapX;

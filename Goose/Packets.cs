@@ -28,6 +28,8 @@ namespace Goose
 
         public static Func<Player, string> ExpBar = (player) =>
         {
+            if (player.Class.GetLevel(player.Level) is null) return "TNL0,0,0," + player.ExperienceSold;
+
             long percent, tnl, exp;
             if (player.Class.GetLevel(player.Level)!.Experience == 0)
             {

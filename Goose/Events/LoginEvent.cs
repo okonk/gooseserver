@@ -156,7 +156,12 @@ namespace Goose.Events
 
                     player = new Player(0);
                     player.Sock = sock;
-                    player.LoadFromAutoCreate(name, password, world);
+                    if (!player.LoadFromAutoCreate(name, password, world))
+                    {
+                        world.SendRaw(sock, P.LoginDenied("Could not create character. Please try again later."));
+                        world.GameServer!.Disconnect(sock);
+                        return;
+                    }
                     world.PlayerHandler.AddPlayerToData(player);
 
                     this.Player = player;

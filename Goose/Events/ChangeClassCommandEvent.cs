@@ -39,6 +39,12 @@ namespace Goose.Events
                     return;
                 }
 
+                if (player.Class.GetLevel(player.Level) is null || newClass.GetLevel(player.Level) is null)
+                {
+                    world.Send(this.Player, P.ServerMessage("Cannot change class: level data missing."));
+                    return;
+                }
+
                 player.ClassID = newClass.ClassID;
 
                 player.RemoveStats(player.BaseStats, world);

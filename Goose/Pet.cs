@@ -12,6 +12,8 @@ namespace Goose
     /// </summary>
     public class Pet : Player
     {
+        private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
+
         /// <summary>
         /// Maps Login IDs to pet objects
         /// </summary>
@@ -196,7 +198,7 @@ namespace Goose
             return pet;
         }
 
-        public static Pet FromReader(DbDataReader reader, GameWorld world)
+        public static Pet? FromReader(DbDataReader reader, GameWorld world)
         {
             Pet pet = new Pet();
 
@@ -206,7 +208,6 @@ namespace Goose
             pet.Surname = reader.GetString("pet_surname");
             pet.Level = reader.GetInt32("pet_level");
             pet.ClassID = reader.GetInt32("class_id");
-            pet.Class = world.ClassHandler.GetClass(pet.ClassID)!;
 
             pet.Experience = reader.GetInt64("experience");
             pet.ExperienceSold = reader.GetInt64("experience_sold");
@@ -253,8 +254,15 @@ namespace Goose
             pet.MaxStats.SPPercentRegen += world.Settings.BaseSPPercentRegen;
             pet.MaxStats.SPStaticRegen += world.Settings.BaseSPStaticRegen;
 
-            pet.Class = world.ClassHandler.GetClass(pet.ClassID)!;
-            pet.MaxStats += pet.Class.GetLevel(pet.Level)!.BaseStats;
+            Class? cls = world.ClassHandler.GetClass(pet.ClassID);
+            if (cls is null || cls.GetLevel(pet.Level) is null)
+            {
+                log.Error("pet {0}: class {1}/level {2} not found; pet skipped",
+                    pet.Name, pet.ClassID, pet.Level);
+                return null;
+            }
+            pet.Class = cls;
+            pet.MaxStats += cls.GetLevel(pet.Level)!.BaseStats;
 
             pet.CurrentHP = pet.MaxHP;
             pet.CurrentMP = pet.MaxMP;

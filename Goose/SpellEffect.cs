@@ -887,8 +887,8 @@ namespace Goose
             }
 
             double successrate = (double)(
-                player.BaseStats.HP + player.Class.GetLevel(player.Level)!.BaseStats.HP +
-                player.BaseStats.MP + player.Class.GetLevel(player.Level)!.BaseStats.MP) / (double)target.MaxHP;
+                player.BaseStats.HP + (player.Class.GetLevel(player.Level)?.BaseStats.HP ?? 0) +
+                player.BaseStats.MP + (player.Class.GetLevel(player.Level)?.BaseStats.MP ?? 0)) / (double)target.MaxHP;
 
 
             if (world.Random.Next(1, 101) <= successrate * 100)

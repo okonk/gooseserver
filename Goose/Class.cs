@@ -28,6 +28,8 @@ namespace Goose
 
         public int MaxLevel { get => this.levels.Count; }
 
+        internal IEnumerable<int> LevelIds => this.levels.Keys;
+
         /**
          * class_restrictions is an ALLOW list: the bit at index class_id is set for every class
          * that CAN use the thing. 0 is the one special case and means "no restriction at all",

@@ -60,7 +60,7 @@ namespace Goose.Events
                     return;
                 }
 
-                if (match.Class.GetLevel(match.Level)!.Experience != 0) return;
+                if (match.Class.GetLevel(match.Level)?.Experience != 0) return;
 
                 decimal buyrate = 0;
                 long expcost;

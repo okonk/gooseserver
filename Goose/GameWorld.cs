@@ -276,6 +276,9 @@ namespace Goose
             if (!this.LoadStep("Classes", () => this.ClassHandler.LoadClasses(this),
                 () => this.ClassHandler.Count)) return;
 
+            if (this.ClassHandler.Count == 0)
+                throw new FatalStartupException("no valid classes loaded; check the classes/class_info tables");
+
             if (!this.LoadStep("NPC Templates", () => this.NPCHandler.LoadNPCTemplates(this),
                 () => this.NPCHandler.TemplateCount)) return;
 

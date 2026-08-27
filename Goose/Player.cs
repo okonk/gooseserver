@@ -557,11 +557,43 @@ namespace Goose
             return map!;
         }
 
+        internal static bool ResolveClassAndLevel(Player player, GameWorld world)
+        {
+            Class? cls = world.ClassHandler.GetClass(player.ClassID);
+            if (cls is null)
+            {
+                cls = world.ClassHandler.GetFallbackClass();
+                if (cls is null)
+                {
+                    log.Error("Player {0}: no classes loaded; load failed", player.Name);
+                    return false;
+                }
+                log.Error("Player {0}: class {1} not found; using fallback class {2}",
+                    player.Name, player.ClassID, cls.ClassID);
+                player.ClassID = cls.ClassID;   // keep the persisted row and scripts consistent
+            }
+            player.Class = cls;
+
+            var levelIds = cls.LevelIds.OrderBy(i => i).ToList();
+            if (levelIds.Count == 0)
+            {
+                log.Error("Player {0}: class {1} has no level rows; load failed", player.Name, player.ClassID);
+                return false;
+            }
+            var atOrBelow = levelIds.Where(i => i <= player.Level).ToList();
+            int validLevel = atOrBelow.Count > 0 ? atOrBelow[atOrBelow.Count - 1] : levelIds[0];
+            if (validLevel != player.Level)
+                log.Error("Player {0}: level {1} missing for class {2}; loading at level {3}",
+                    player.Name, player.Level, player.ClassID, validLevel);
+            player.Level = validLevel;
+            return true;
+        }
+
         /**
          * LoadFromAutoCreate, fills in player info from server defaults
          *
          */
-        public void LoadFromAutoCreate(string name, string password, GameWorld world)
+        public bool LoadFromAutoCreate(string name, string password, GameWorld world)
         {
             var (passwordHash, base64Salt) = PasswordHasher.Create(password);
 
@@ -634,7 +666,7 @@ namespace Goose
             this.MaxStats.SPPercentRegen = world.Settings.BaseSPPercentRegen;
             this.MaxStats.SPStaticRegen = world.Settings.BaseSPStaticRegen;
 
-            this.Class = world.ClassHandler.GetClass(this.ClassID)!;
+            if (!ResolveClassAndLevel(this, world)) return false;
             this.MaxStats += this.Class.GetLevel(this.Level)!.BaseStats;
 
             this.BodyState = world.Settings.StartingBodyState;
@@ -687,13 +719,14 @@ namespace Goose
             // kind of a hack to ensure the queue should never be empty
             this.moveSpeed.Enqueue(this.BaseStats.MoveSpeed, this.BaseStats.MoveSpeed);
             this.moveSpeed.Enqueue(this.BaseStats.MoveSpeed, this.BaseStats.MoveSpeed);
+            return true;
         }
 
         /**
          * LoadFromReader, loads player info from a Sq1DataReader
          *
          */
-        public void LoadFromReader(GameWorld world, DbDataReader reader)
+        public bool LoadFromReader(GameWorld world, DbDataReader reader)
         {
             this.Access = (AccessStatus)reader.GetInt32("access_status");
 
@@ -767,7 +800,7 @@ namespace Goose
             this.MaxStats.SPPercentRegen = world.Settings.BaseSPPercentRegen;
             this.MaxStats.SPStaticRegen = world.Settings.BaseSPStaticRegen;
 
-            this.Class = world.ClassHandler.GetClass(this.ClassID)!;
+            if (!ResolveClassAndLevel(this, world)) return false;
             this.MaxStats += this.Class.GetLevel(this.Level)!.BaseStats;
 
             this.ToggleSettings = (ToggleSetting)reader.GetInt64("toggle_settings");
@@ -789,6 +822,7 @@ namespace Goose
             // kind of a hack to ensure the queue should never be empty
             this.moveSpeed.Enqueue(this.BaseStats.MoveSpeed, this.BaseStats.MoveSpeed);
             this.moveSpeed.Enqueue(this.BaseStats.MoveSpeed, this.BaseStats.MoveSpeed);
+            return true;
         }
 
 
@@ -822,7 +856,8 @@ namespace Goose
 
                 while (reader.Read())
                 {
-                    this.AddPet(Pet.FromReader(reader, world));
+                    Pet? pet = Pet.FromReader(reader, world);
+                    if (pet is not null) this.AddPet(pet);
                 }
             });
         }
@@ -1445,6 +1480,16 @@ namespace Goose
         public void ChangeClass(int classid, int newLevel, GameWorld world, double experienceLossPercent)
         {
             // todo unequip equipment i guess
+
+            Class? dest = world.ClassHandler.GetClass(classid);
+            if (this.Class.GetLevel(this.Level) is null || dest is null ||
+                dest.GetLevel(newLevel) is null ||
+                (newLevel > 1 && this.Class.GetLevel(newLevel - 1) is null))
+            {
+                log.Error("ChangeClass rejected for {0}: missing level data (class {1} level {2} -> class {3} level {4})",
+                    this.Name, this.ClassID, this.Level, classid, newLevel);
+                return;
+            }
 
             this.RemoveStats(this.BaseStats, world);
 
