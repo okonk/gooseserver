@@ -8,12 +8,37 @@ public class NPCTemplateRegistrationTests
     public void Registered_templates_are_retrievable()
     {
         var handler = new NPCHandler();
-        var template = new NPCTemplate { NPCTemplateID = 100162, Name = "King Terror (1)" };
+        var template = new NPCTemplate { NPCTemplateID = 100162, Name = "King Terror (1)", BaseStats = new AttributeSet() };
 
         handler.AddTemplate(template);
 
         Assert.Same(template, handler.GetNPCTemplate(100162));
         Assert.Contains(template, handler.GetTemplates());
+    }
+
+    [Fact]
+    public void AddTemplate_BareTemplate_RegistersWithNormalizedFields()
+    {
+        var world = new GameWorld(new GooseSettings());
+        var template = new NPCTemplate { NPCTemplateID = 42, Name = "Bare", BaseStats = new AttributeSet() };
+        world.NPCHandler.AddTemplate(template);
+
+        NPCTemplate? loaded = world.NPCHandler.GetNPCTemplate(42);
+        Assert.NotNull(loaded);
+        Assert.Empty(loaded!.Allies!);
+        Assert.Empty(loaded.Quests);
+        Assert.Empty(loaded.Drops!);
+        Assert.Equal("", loaded.EquippedItems);
+    }
+
+    [Fact]
+    public void AddTemplate_MissingBaseStats_IsRejected()
+    {
+        var world = new GameWorld(new GooseSettings());
+        var template = new NPCTemplate { NPCTemplateID = 43, Name = "Bad", BaseStats = null! };
+        world.NPCHandler.AddTemplate(template);
+
+        Assert.Null(world.NPCHandler.GetNPCTemplate(43));
     }
 
     [Fact]

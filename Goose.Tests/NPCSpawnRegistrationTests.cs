@@ -79,6 +79,19 @@ public class NPCSpawnRegistrationTests : IDisposable
     }
 
     [Fact]
+    public void SpawnNPC_InvalidTemplate_Direct_ReturnsNullWithoutNre()
+    {
+        // Bypasses AddTemplate: scripts can hand SpawnNPC a template they never registered.
+        var template = new NPCTemplate { NPCTemplateID = 44, Name = "Bad", BaseStats = null!,
+            ClassID = ClassId, Level = 50 };
+
+        NPC? npc = world.NPCHandler.SpawnNPC(world, MapId, 5, 6, template, false);
+
+        Assert.Null(npc);
+        Assert.DoesNotContain(world.MapHandler.GetMap(MapId)!.NPCs, n => n.NPCTemplateID == 44);
+    }
+
+    [Fact]
     public void An_npc_on_a_map_that_does_not_exist_is_not_registered()
     {
         var before = world.NPCHandler.NPCCount;

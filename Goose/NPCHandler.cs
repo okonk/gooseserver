@@ -245,10 +245,29 @@ namespace Goose
             return null;
         }
 
+        internal static bool ValidateAndNormalize(NPCTemplate template)
+        {
+            if (template is null || template.BaseStats is null || string.IsNullOrWhiteSpace(template.Name))
+                return false;
+
+            template.Allies ??= [];
+            template.Quests ??= [];
+            template.Drops ??= [];
+            template.EquippedItems ??= "";
+
+            return true;
+        }
+
         /// <summary>Registers a script-generated template. Overwrites any existing entry with the
         /// same id - callers that must not collide should check GetNPCTemplate first.</summary>
         public void AddTemplate(NPCTemplate template)
         {
+            if (!ValidateAndNormalize(template))
+            {
+                log.Error("Refusing NPC template {0}: missing Name or BaseStats", template?.NPCTemplateID);
+                return;
+            }
+
             this.templates[template.NPCTemplateID] = template;
         }
 

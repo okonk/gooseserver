@@ -50,7 +50,11 @@ namespace Goose.Events
             var rng = new Random(npcId);
 
             var item = new Item();
-            item.LoadFromTemplate(goldTemplate);
+            if (!item.LoadFromTemplate(goldTemplate))
+            {
+                world.Send(this.Player, P.ServerMessage("Gold item template is missing."));
+                return;
+            }
             item.ItemID = world.Settings.ItemIDStartpoint + world.Settings.GoldItemID;
             item.ScriptParams = npcId.ToString();
             item.Name = npc.Name;

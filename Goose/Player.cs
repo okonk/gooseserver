@@ -651,7 +651,7 @@ namespace Goose
                             continue;
                         }
                         Item item = new Item();
-                        item.LoadFromTemplate(template);
+                        if (!item.LoadFromTemplate(template)) continue;
                         world.ItemHandler.AddAndAssignId(item, world);
 
                         if (!this.Inventory.AddItem(item, 1, world))

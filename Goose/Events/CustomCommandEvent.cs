@@ -63,7 +63,7 @@ namespace Goose.Events
                         lookSlot = combineBag.GetSlot(3)!;
 
                         Item item = new Item();
-                        item.LoadFromTemplate(statsSlot.Item.Template);
+                        if (!item.LoadFromTemplate(statsSlot.Item.Template)) return;
                         item.StatMultiplier = statsSlot.Item.StatMultiplier;
                         item.BaseStats = statsSlot.Item.BaseStats.Clone();
                         item.TotalStats = statsSlot.Item.TotalStats.Clone();

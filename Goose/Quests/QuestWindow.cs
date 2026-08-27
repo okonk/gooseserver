@@ -359,7 +359,7 @@ namespace Goose.Quests
                         if (template is null) continue;
 
                         Item item = new Item();
-                        item.LoadFromTemplate(template);
+                        if (!item.LoadFromTemplate(template)) continue;
                         world.ItemHandler.RollTitleAndSurname(item, world);
                         world.ItemHandler.AddAndAssignId(item, world);
 

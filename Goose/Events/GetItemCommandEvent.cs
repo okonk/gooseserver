@@ -8,6 +8,8 @@ namespace Goose.Events
      */
     public class GetItemCommandEvent : Event
     {
+        private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
+
         public override void Ready(GameWorld world)
         {
             if (this.Player.State == Player.States.Ready)
@@ -53,7 +55,11 @@ namespace Goose.Events
                 if (template is null) return;
 
                 Item item = new Item();
-                item.LoadFromTemplate(template);
+                if (!item.LoadFromTemplate(template))
+                {
+                    log.Error("item template {0}: invalid template; item not given", id);
+                    return;
+                }
 
                 world.ItemHandler.AddAndAssignId(item, world);
 

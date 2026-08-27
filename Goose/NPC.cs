@@ -594,6 +594,12 @@ namespace Goose
          */
         public bool LoadFromTemplate(GameWorld world, int map_id, int map_x, int map_y, NPCTemplate template, bool shouldRespawn)
         {
+            if (!NPCHandler.ValidateAndNormalize(template))
+            {
+                log.Error("NPC template {0}: invalid template; spawn skipped", template?.NPCTemplateID);
+                return false;
+            }
+
             this.ShouldRespawn = shouldRespawn;
 
             this.Map = world.MapHandler.GetMap(map_id)!;
@@ -1459,7 +1465,7 @@ namespace Goose
                     else
                     {
                         drop.Item = new Item();
-                        drop.Item.LoadFromTemplate(dropinfo.ItemTemplate);
+                        if (!drop.Item.LoadFromTemplate(dropinfo.ItemTemplate)) continue;
 
                         world.ItemHandler.RollTitleAndSurname(drop.Item, world);
 
