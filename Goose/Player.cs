@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using System.Text.Json;
 using System.Net.Sockets;
 using System.Data;
 using System.Data.Common;
@@ -818,24 +819,41 @@ namespace Goose
             {
                 using var query = conn.CreateCommand();
                 query.CommandText = "SELECT serialized_data FROM quest_status WHERE player_id=" + playerId;
-                string serialized_data = Convert.ToString(query.ExecuteScalar())!;
-                var questStatus = JsonHelper.Deserialize<QuestStatus>(serialized_data)!;
+                string? raw = Convert.ToString(query.ExecuteScalar());
+                QuestStatus? questStatus = null;
+                if (!string.IsNullOrEmpty(raw))
+                {
+                    try
+                    {
+                        questStatus = JsonHelper.Deserialize<QuestStatus>(raw);
+                    }
+                    catch (JsonException e)
+                    {
+                        log.Error("player {0}: quest_status blob is corrupt; starting empty", playerId, e);
+                    }
+                }
 
-                foreach (var started in questStatus.Started!)
+                if (questStatus is null)
+                {
+                    log.Warn("player {0}: no quest_status row; starting empty", playerId);
+                    return;
+                }
+
+                foreach (var started in questStatus.Started ?? [])
                 {
                     var quest = world.QuestHandler.Get(started);
                     if (quest is not null)
                         this.QuestsStarted.Add(quest);
                 }
 
-                foreach (var completed in questStatus.Completed!)
+                foreach (var completed in questStatus.Completed ?? [])
                 {
                     var quest = world.QuestHandler.Get(completed);
                     if (quest is not null)
                         this.QuestsCompleted.Add(quest);
                 }
 
-                foreach (var progress in questStatus.Progress!)
+                foreach (var progress in questStatus.Progress ?? [])
                 {
                     var quest = world.QuestHandler.Get(progress.QuestId);
                     if (quest is null)

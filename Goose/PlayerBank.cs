@@ -1,11 +1,14 @@
 ﻿using System.Data;
 using System.Data.SQLite;
 using System.Text;
+using System.Text.Json;
 
 namespace Goose
 {
     public class PlayerBank
     {
+        private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
+
         /// <summary>
         /// Maps an NPC ID to the ItemContainer containing the bank's items
         /// </summary>
@@ -36,19 +39,55 @@ namespace Goose
 
                     ItemContainer container = GetOrCreateContainer(player, npc_id, world.Settings.BankSlotsPerPage);
 
-                    var containerSlots = JsonHelper.Deserialize<ItemSlot[]>(serialized_data)!;
-                    for (int i = 0; i < containerSlots.Length; i++)
+                    if (string.IsNullOrEmpty(serialized_data))
+                    {
+                        log.Error("player {0}: bank row for npc {1} is empty; skipped", playerId, npc_id);
+                        continue;
+                    }
+
+                    ItemSlot[]? containerSlots = null;
+                    try
+                    {
+                        containerSlots = JsonHelper.Deserialize<ItemSlot[]>(serialized_data);
+                    }
+                    catch (JsonException e)
+                    {
+                        log.Error("player {0}: bank blob for npc {1} is corrupt; skipped", playerId, npc_id, e);
+                    }
+
+                    if (containerSlots is null)
+                    {
+                        log.Warn("player {0}: no bank data for npc {1}; skipped", playerId, npc_id);
+                        continue;
+                    }
+
+                    for (int i = 0; i < containerSlots.Length && i < container.MaxSlots; i++)
                     {
                         var containerSlot = containerSlots[i];
                         if (containerSlot is null) continue;
 
-                        world.ItemHandler.AddItem(containerSlot.Item, world);
+                        if (containerSlot.Item is null)
+                        {
+                            log.Error("player {0}: slot with null item discarded", playerId);
+                            continue;
+                        }
 
-                        containerSlot.Item.Template = world.ItemHandler.GetTemplate(containerSlot.Item.TemplateID)!;
+                        ItemTemplate? template = world.ItemHandler.GetTemplate(containerSlot.Item.TemplateID);
+                        if (template is null)
+                        {
+                            log.Error("player {0}: item template {1} not found; slot discarded", playerId, containerSlot.Item.TemplateID);
+                            continue;
+                        }
+
+                        world.ItemHandler.AddItem(containerSlot.Item, world);
+                        containerSlot.Item.Template = template;
                         containerSlot.Item.RefreshStats();
 
-                        container.SetSlot(i, containerSlots[i]);
+                        container.SetSlot(i, containerSlot);
                     }
+
+                    if (containerSlots.Length > container.MaxSlots)
+                        log.Warn("player {0}: bank blob for npc {1} has {2} slots, container holds {3}; excess discarded", playerId, npc_id, containerSlots.Length, container.MaxSlots);
                 }
             });
         }

@@ -300,10 +300,18 @@ namespace Goose
             //this.EventHandler.AddEvent(updateCredits);
 
             // Add gold item
-            var gold = new Item();
-            gold.ItemID = this.Settings.ItemIDStartpoint + this.Settings.GoldItemID;
-            gold.LoadFromTemplate(ItemHandler.GetTemplate(this.Settings.GoldItemID)!);
-            this.ItemHandler.AddItem(gold, this);
+            ItemTemplate? goldTemplate = this.ItemHandler.GetTemplate(this.Settings.GoldItemID);
+            if (goldTemplate is null)
+            {
+                log.Error("gold item template {0} not found; gold items disabled", this.Settings.GoldItemID);
+            }
+            else
+            {
+                var gold = new Item();
+                gold.ItemID = this.Settings.ItemIDStartpoint + this.Settings.GoldItemID;
+                gold.LoadFromTemplate(goldTemplate);
+                this.ItemHandler.AddItem(gold, this);
+            }
 
             if (!this.LoadStep("Global Scripts", () => LoadGlobalScripts())) return;
 

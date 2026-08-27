@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using System.Text.Json;
 using System.Data;
 using System.Data.SQLite;
 
@@ -10,6 +11,8 @@ namespace Goose
      */
     public class Spellbook
     {
+        private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
+
         Spell?[] spells;
         /**
          * Lastcast holds when each spell was last cast
@@ -39,10 +42,27 @@ namespace Goose
             {
                 using var query = conn.CreateCommand();
                 query.CommandText = "SELECT serialized_data FROM spellbook WHERE player_id=" + playerId;
-                string serialized_data = Convert.ToString(query.ExecuteScalar())!;
-                var spellIds = JsonHelper.Deserialize<int[]>(serialized_data)!;
+                string? raw = Convert.ToString(query.ExecuteScalar());
+                int[]? spellIds = null;
+                if (!string.IsNullOrEmpty(raw))
+                {
+                    try
+                    {
+                        spellIds = JsonHelper.Deserialize<int[]>(raw);
+                    }
+                    catch (JsonException e)
+                    {
+                        log.Error("player {0}: spellbook blob is corrupt; starting empty", playerId, e);
+                    }
+                }
 
-                for (int i = 1; i < this.spells.Length; i++)
+                if (spellIds is null)
+                {
+                    log.Warn("player {0}: no spellbook row; starting empty", playerId);
+                    return;
+                }
+
+                for (int i = 1; i < this.spells.Length && i < spellIds.Length; i++)
                 {
                     var spellId = spellIds[i];
                     if (spellId == 0)
