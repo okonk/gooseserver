@@ -1438,7 +1438,13 @@ namespace Goose
                     ItemSlot drop = new ItemSlot();
                     if (dropinfo.ItemTemplate.ID == world.Settings.GoldItemID)
                     {
-                        drop.Item = world.ItemHandler.GetGold(world);
+                        Item? goldItem = world.ItemHandler.GetGold(world);
+                        if (goldItem is null)
+                        {
+                            log.Error("npc {0}: gold drop skipped, gold items disabled", this.NPCTemplateID);
+                            continue;
+                        }
+                        drop.Item = goldItem;
                     }
                     else
                     {

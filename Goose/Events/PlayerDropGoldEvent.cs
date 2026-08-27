@@ -36,11 +36,18 @@ namespace Goose.Events
                     return;
                 }
 
+                Item? goldItem = world.ItemHandler.GetGold(world);
+                if (goldItem is null)
+                {
+                    world.Send(this.Player, P.ServerMessage("Gold items are disabled on this server."));
+                    return;
+                }
+
                 this.Player.RemoveGold(gold, world);
 
                 ItemTile tile = new ItemTile();
                 tile.ItemSlot = new ItemSlot();
-                tile.ItemSlot.Item = world.ItemHandler.GetGold(world);
+                tile.ItemSlot.Item = goldItem;
                 tile.ItemSlot.Stack = gold;
                 tile.X = this.Player.MapX;
                 tile.Y = this.Player.MapY;

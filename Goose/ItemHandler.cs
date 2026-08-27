@@ -252,9 +252,13 @@ namespace Goose
          * GetGold, returns item for gold
          * 
          */
-        public Item GetGold(GameWorld world)
+        public Item? GetGold(GameWorld world)
         {
-            return this.items[world.Settings.ItemIDStartpoint + world.Settings.GoldItemID];
+            if (this.items.TryGetValue(world.Settings.ItemIDStartpoint + world.Settings.GoldItemID, out Item? gold))
+                return gold;
+
+            log.Error("gold item template {0} not found; gold items disabled", world.Settings.GoldItemID);
+            return null;
         }
 
         /// <summary>
