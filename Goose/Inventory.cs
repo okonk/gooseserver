@@ -1150,7 +1150,11 @@ namespace Goose
                 }
 
                 item = new Item();
-                item.LoadFromTemplate(template);
+                if (!item.LoadFromTemplate(template))
+                {
+                    log.Error("combine result item {0} failed to load; skipped", template.ID);
+                    continue;
+                }
                 world.ItemHandler.RollTitleAndSurname(item, world);
                 world.ItemHandler.AddAndAssignId(item, world);
 

@@ -309,8 +309,14 @@ namespace Goose
             {
                 var gold = new Item();
                 gold.ItemID = this.Settings.ItemIDStartpoint + this.Settings.GoldItemID;
-                gold.LoadFromTemplate(goldTemplate);
-                this.ItemHandler.AddItem(gold, this);
+                if (!gold.LoadFromTemplate(goldTemplate))
+                {
+                    log.Error("gold item template {0} failed to load; gold items disabled", this.Settings.GoldItemID);
+                }
+                else
+                {
+                    this.ItemHandler.AddItem(gold, this);
+                }
             }
 
             if (!this.LoadStep("Global Scripts", () => LoadGlobalScripts())) return;
