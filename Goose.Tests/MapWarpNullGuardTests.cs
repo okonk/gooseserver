@@ -25,6 +25,7 @@ public class MapWarpNullGuardTests
         using var fixture = new TestWorldFixture(s => { s.StartingMapID = 1; s.MOTD = ""; });
         fixture.AddBaseMap(1, "start");
         var player = fixture.CommandPlayerOn(fixture.AddBaseMap(2, "other"), 1, 1);
+        player.Spellbook = new Spellbook(player, fixture.Settings);
         player.State = Player.States.LoadingGame;
         player.MapID = 999;
 
@@ -32,5 +33,6 @@ public class MapWarpNullGuardTests
 
         Assert.Equal(1, player.MapID);
         Assert.Equal(Player.States.LoadingMap, player.State);
+        Assert.Contains(player.Sent, s => s.StartsWith("SCMMap1.map"));
     }
 }
