@@ -270,6 +270,9 @@ namespace Goose
             if (!this.LoadStep("Maps", () => this.MapHandler.LoadMaps(this),
                 () => this.MapHandler.Count)) return;
 
+            if (this.MapHandler.GetMap(this.Settings.StartingMapID) is null)
+                throw new FatalStartupException("starting map " + this.Settings.StartingMapID + " not found");
+
             if (!this.LoadStep("Classes", () => this.ClassHandler.LoadClasses(this),
                 () => this.ClassHandler.Count)) return;
 

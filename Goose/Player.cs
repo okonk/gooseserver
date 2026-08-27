@@ -542,6 +542,21 @@ namespace Goose
             this.Buffer.Append(data);
         }
 
+        private Map ResolveBoundMap(GameWorld world)
+        {
+            Map? map = world.MapHandler.GetMap(this.BoundID);
+            if (map is null)
+            {
+                log.Error("Player {0}: bound map {1} not found; rebinding to starting map", this.Name, this.BoundID);
+                this.BoundID = world.Settings.StartingMapID;
+                this.BoundX = world.Settings.StartingMapX;
+                this.BoundY = world.Settings.StartingMapY;
+                map = world.MapHandler.GetMap(this.BoundID);
+            }
+            // Starting map existence is validated at startup (GameWorld LoadStep chain).
+            return map!;
+        }
+
         /**
          * LoadFromAutoCreate, fills in player info from server defaults
          *
@@ -567,7 +582,7 @@ namespace Goose
             this.BoundID = world.Settings.StartingMapID;
             this.BoundX = world.Settings.StartingMapX;
             this.BoundY = world.Settings.StartingMapY;
-            this.BoundMap = world.MapHandler.GetMap(this.BoundID)!;
+            this.BoundMap = this.ResolveBoundMap(world);
             this.Gold = world.Settings.StartingGold;
             this.Level = world.Settings.StartingLevel;
             this.ClassID = world.Settings.StartingClassID;
@@ -699,7 +714,7 @@ namespace Goose
             this.BoundID = reader.GetInt32("bound_id");
             this.BoundX = reader.GetInt32("bound_x");
             this.BoundY = reader.GetInt32("bound_y");
-            this.BoundMap = world.MapHandler.GetMap(this.BoundID)!;
+            this.BoundMap = this.ResolveBoundMap(world);
             this.Gold = reader.GetInt64("player_gold");
             this.Level = reader.GetInt32("player_level");
             this.ClassID = reader.GetInt32("class_id");
@@ -1447,7 +1462,7 @@ namespace Goose
             this.BaseStats.HP = 0;
             this.BaseStats.MP = 0;
             this.BoundID = world.Settings.StartingMapID;
-            this.BoundMap = world.MapHandler.GetMap(this.BoundID)!;
+            this.BoundMap = this.ResolveBoundMap(world);
             this.BoundX = world.Settings.StartingMapX;
             this.BoundY = world.Settings.StartingMapY;
 
