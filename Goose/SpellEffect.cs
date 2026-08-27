@@ -1055,9 +1055,15 @@ namespace Goose
         /// </summary>
         private bool CastScriptSpell(ICharacter caster, ICharacter target, GameWorld world)
         {
+            if (this.Script is null)
+            {
+                log.Error("Spell effect {0} has type Script but no script loaded", this.ID);
+                return false;
+            }
+
             try
             {
-                return this.Script!.Object.Cast(this, caster, target, world);
+                return this.Script.Object.Cast(this, caster, target, world);
             }
             catch (Exception e)
             {

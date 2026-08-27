@@ -2191,7 +2191,8 @@ namespace Goose
                 buff.SpellEffect.EffectType == SpellEffect.EffectTypes.Stun)
             {
                 // buff will expire before next tick
-                if (buff.BuffExpireEvent!.Ticks - world.TimeNow >
+                if (buff.BuffExpireEvent is not null &&
+                    buff.BuffExpireEvent.Ticks - world.TimeNow >
                     world.Settings.SpellEffectPeriod * world.TimerFrequency)
                 {
                     var ev = new BuffTickEvent();
@@ -2483,8 +2484,9 @@ namespace Goose
             {
                 if (b.SpellEffect.EffectType == SpellEffect.EffectTypes.OnMeleeHit)
                 {
-                    if (world.Random.Next(1, 10001) <= b.SpellEffect.OnMeleeHitSpellChance * 100)
-                        b.SpellEffect.OnMeleeHitSpell!.Cast(this, hitter, world);
+                    SpellEffect? spell = b.SpellEffect.OnMeleeHitSpell;
+                    if (spell is not null && world.Random.Next(1, 10001) <= b.SpellEffect.OnMeleeHitSpellChance * 100)
+                        spell.Cast(this, hitter, world);
                 }
             }
         }
@@ -2499,8 +2501,9 @@ namespace Goose
             {
                 if (b.SpellEffect.EffectType == SpellEffect.EffectTypes.OnAttack)
                 {
-                    if (world.Random.Next(1, 10001) <= b.SpellEffect.OnMeleeAttackSpellChance * 100)
-                        b.SpellEffect.OnMeleeAttackSpell!.Cast(this, this, world);
+                    SpellEffect? spell = b.SpellEffect.OnMeleeAttackSpell;
+                    if (spell is not null && world.Random.Next(1, 10001) <= b.SpellEffect.OnMeleeAttackSpellChance * 100)
+                        spell.Cast(this, this, world);
                 }
             }
         }
