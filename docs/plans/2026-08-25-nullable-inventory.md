@@ -377,9 +377,14 @@ the `deferred-null-ref-fixes` branch:
    with an invalid `bound_id`) and `LoginContinuedEvent.cs:21` (unguarded
    `P.SendMapFlags(map)`). `NPC.LoadFromTemplate` (NPC.cs:599) has the same pattern
    but is covered by its existing `is null` check.
-   — **Fixed (Task 6, `5e21b9f` + `b3bf2b2`)**: unresolved warp and login target
-   maps now fall back to the starting map instead of NREing; the login fallback is
-   asserted to reach the client (`MapWarpNullGuardTests`).
+   — **Fixed (Task 6, `5e21b9f` + `b3bf2b2`)**: no NRE on any of these paths. An
+   unknown `warp_id` in a `warptiles` row is skipped at map load (logged; the
+   pre-existing tile at that coordinate stays), and stepping on a null-`WarpMap`
+   warp tile at runtime bounces the player back to their previous position
+   (MoveEvent else-branch). A saved map (login) or bound map that no longer
+   exists falls back to the starting map (`LoginContinuedEvent`,
+   `Player.ResolveBoundMap`); the login fallback is asserted to reach the client
+   (`MapWarpNullGuardTests`).
 2. **`Player.Map` is null during map transition; `Pet.Map` is null after logout**
    — ~169 unguarded dereferences across the codebase assume the map is set for the
    lifetime of the object. Kept non-nullable `= null!` to avoid churning every call
@@ -388,7 +393,7 @@ the `deferred-null-ref-fixes` branch:
    (DoneLoadingMapEvent.cs:78); logout guards on `player.Map is not null`
    (LogoutEvent.cs:42) and never nulls it. `Pet.Map` is null after logout
    (Pet.cs:536).
-   — **Fixed (Task 8, `587cb6a`)**: rather than guarding the ~169 call sites, the
+   — **Fixed for the player map-transition window (Task 8, `587cb6a`)**: rather than guarding the ~169 call sites, the
    single event-execution chokepoint `EventHandler.Update` drops client-originated
    events at **execution time** (immediately after `Dequeue`) while
    `Player.State` is `LoadingGame` (allowing only `LCNT`/`PONG`) or `LoadingMap`
@@ -403,8 +408,12 @@ the `deferred-null-ref-fixes` branch:
    carry `Player`, and `BuffExpireEvent.Ready` reschedules only when *not yet*
    expired — dropping an at-expiry event during a load would leave the buff
    permanent, so they must keep running in both windows. Drops are counted in
-   `EventHandler.DroppedDuringMapLoad`. `Pet.Map` after logout remains an accepted
-   risk (logout already guards on `player.Map is not null`).
+   `EventHandler.DroppedDuringMapLoad`. The post-logout window is **not** covered
+   by this fix: after logout (`NotLoggedIn`) the player is disconnected but queued
+   client events can still run with `Map == null`, contained only by the per-event
+   catch. That is a retained accepted risk (the plan explicitly decided
+   `NotLoggedIn` needs no guard, since logout already guards on
+   `player.Map is not null`) and a follow-up candidate.
 3. **Tick-type buff with `Duration == 0`** — `BuffExpireEvent` is only created when the
    duration is positive, so `NPC.AddBuff` (NPC.cs:1523) and `Player.AddBuff`
    (Player.cs:2194) NRE on `buff.BuffExpireEvent!.Ticks` for a zero-duration
