@@ -364,8 +364,9 @@ the class is `internal`, so no external `DbDataReader` implementation can reach 
 
 ## Latent bugs (deferred)
 
-Behavior-affecting findings recorded while annotating. None are fixed by the
-annotation work; each is suppressed with `!` at the site(s) noted.
+Behavior-affecting findings recorded while annotating. None were fixed by the
+annotation work; each was suppressed with `!` at the site(s) noted. Status as of
+the `deferred-null-ref-fixes` branch:
 
 1. **`WarpTile.WarpMap` is null when `MapHandler.GetMap` fails to resolve the target
    map** — NRE at `MoveEvent.cs:113` (`warp.WarpMap.PlayerCanJoin`). `WarpMap` is
@@ -376,6 +377,9 @@ annotation work; each is suppressed with `!` at the site(s) noted.
    with an invalid `bound_id`) and `LoginContinuedEvent.cs:21` (unguarded
    `P.SendMapFlags(map)`). `NPC.LoadFromTemplate` (NPC.cs:599) has the same pattern
    but is covered by its existing `is null` check.
+   — **Fixed (Task 6, `5e21b9f` + `b3bf2b2`)**: unresolved warp and login target
+   maps now fall back to the starting map instead of NREing; the login fallback is
+   asserted to reach the client (`MapWarpNullGuardTests`).
 2. **`Player.Map` is null during map transition; `Pet.Map` is null after logout**
    — ~169 unguarded dereferences across the codebase assume the map is set for the
    lifetime of the object. Kept non-nullable `= null!` to avoid churning every call
@@ -384,18 +388,41 @@ annotation work; each is suppressed with `!` at the site(s) noted.
    (DoneLoadingMapEvent.cs:78); logout guards on `player.Map is not null`
    (LogoutEvent.cs:42) and never nulls it. `Pet.Map` is null after logout
    (Pet.cs:536).
+   — **Fixed (Task 8, `587cb6a`)**: rather than guarding the ~169 call sites, the
+   single event-execution chokepoint `EventHandler.Update` drops client-originated
+   events at **execution time** (immediately after `Dequeue`) while
+   `Player.State` is `LoadingGame` (allowing only `LCNT`/`PONG`) or `LoadingMap`
+   (allowing only `DLM`/`PONG`). Execution time, not enqueue time: `Update` drains
+   all due events in one call and a warp happens **inline** inside an earlier
+   event's `Ready` (`MoveEvent` → `WarpTo`), so an event enqueued while `Ready`
+   can still execute against `Map == null` — an enqueue-time filter misses that
+   race; the per-event guard at dequeue closes it and also covers events with
+   future ticks that come due mid-load. Client-originated only
+   (`Event.ClientOriginated`, set in both construction branches of
+   `AddEvent(Player, string)`): internal scheduled events (`BuffTickEvent`, `BuffExpireEvent`) also
+   carry `Player`, and `BuffExpireEvent.Ready` reschedules only when *not yet*
+   expired — dropping an at-expiry event during a load would leave the buff
+   permanent, so they must keep running in both windows. Drops are counted in
+   `EventHandler.DroppedDuringMapLoad`. `Pet.Map` after logout remains an accepted
+   risk (logout already guards on `player.Map is not null`).
 3. **Tick-type buff with `Duration == 0`** — `BuffExpireEvent` is only created when the
    duration is positive, so `NPC.AddBuff` (NPC.cs:1523) and `Player.AddBuff`
    (Player.cs:2194) NRE on `buff.BuffExpireEvent!.Ticks` for a zero-duration
    Tick/Viral/Root/Stun effect.
+   — **Fixed (Task 1, `eaa9e2f`)**: zero-duration tick-type effects no longer
+   schedule an expire event and the tick path guards the null.
 4. **`NPC` kill-reward path NREs when the damages dictionary is empty** —
    `NPC.cs:1171` dereferences the "highest damager" lookup result, which is null when
    no damage entries exist.
+   — **Fixed (Task 3, `a079dfd`)**: the kill-reward path guards the empty case.
 5. **`NPC.LoadFromTemplate` NREs on a code-built template with null `BaseStats`**
    (NPC.cs:610, `template.BaseStats`; the property is non-nullable `= null!`, like
    `ItemTemplate.BaseStats`, which has the identical NRE path in
    `Item.LoadFromTemplate`). Sheet-loaded templates always have stats; only
    hand-built templates can trip this.
+   — **Fixed (Task 5, `2432657` + `53dd798`)**: NPC/item templates are validated
+   and normalized at every entry point, and `LoadFromTemplate` results are
+   checked at the gold and combine sites.
 6. **`NPC.HandleAttackEvent` NREs if `AggroTarget` is cleared while the attack event
    is still pending** (NPC.cs:1290/1301/1318/1320, `this.AggroTarget!`) —
    **Closed 2026-07-09.** Verified: `NPCAttackEvent.Ready` guards before dispatch
@@ -408,21 +435,31 @@ annotation work; each is suppressed with `!` at the site(s) noted.
    null, `Convert.ToString(null)` returns null, and `JsonSerializer.Deserialize(null)`
    throws `ArgumentNullException` (a NULL/empty `serialized_data` cell in
    `PlayerBank` throws `JsonException`).
+   — **Fixed (Task 2, `f7b43de` + `ca4df7c`)**: missing, empty, or corrupt player
+   data rows load as empty instead of throwing; `GetGold` fails soft when the
+   gold item is disabled.
 8. **`NPC.VendorItems` is null for non-vendor NPCs** — the only guard is
    `PlayerRightClickEvent.cs:58`; other vendor-window paths (`Window.cs` populate,
    `VendorPurchaseInventoryEvent`) use `!` and assume a vendor NPC.
+   — **Fixed (Task 3, `a079dfd`)**: the remaining vendor-window paths guard
+   `VendorItems`.
 9. **`SpellEffect.OnMeleeHitSpell` / `OnMeleeAttackSpell` are null when the
    `*SpellID` column is 0** — NRE at NPC.cs:1696/1712 and Player.cs:2487/2503 if an
    OnMeleeHit/OnAttack effect has no linked spell.
+   — **Fixed (Task 1, `eaa9e2f`)**: the melee reaction paths guard the null
+   linked spell.
 10. **`SpellEffect.Script` is null when the script file fails to load** —
     `CastScriptSpell` (SpellEffect.cs:1060) NREs on `this.Script!.Object`; the existing
     try/catch logs it.
+    — **Fixed (Task 1, `eaa9e2f`)**: `CastScriptSpell` guards the null script.
 11. **`Event.Player` is null for internal (non-player) events** — `Event.Player`
     is kept non-nullable `= null!` (Task 3, mirroring the `Player.Map` decision):
     ~572 unguarded `this.Player` derefs across event handlers. Only
     `LoginEvent.Ready` guards (`if (this.Player is not null) return;`); an
     internal event (NPC/pet/guild/macro-fired) with a null `Player` NREs at the
     first `this.Player` use.
+    — **Accepted design (kept)**: internal events use `NPC`/`Data` rather than
+    `Player`; the contract is documented, so no per-event guards are added.
 12. **`Event.NPC` is null for player-originated events** — same treatment
     (~29 `this.NPC` derefs); only `RegenEvent` guards on `this.NPC is not null` —
     **Closed 2026-07-09.** Verified: all five consumer events guard or are safe by
@@ -434,6 +471,8 @@ annotation work; each is suppressed with `!` at the site(s) noted.
     non-nullable `Object` `= null!` (an `Object?` would cascade into ~78 cast
     sites); handlers that cast `(string)this.Data` / `(Socket)this.Data` etc.
     NRE or throw `InvalidCastException` if the event fires without a payload.
+    — **Accepted design (kept)**: same contract as #11 — internal events that
+    need a payload are documented to set one; no per-event guards are added.
 14. **Unknown item template id → `ItemHandler.GetTemplate` returns null** —
     NRE sites: `Inventory.Load` (Inventory.cs:921/940/972; NRE later in
     `RefreshStats`/item ops), `PlayerBank` load (PlayerBank.cs:47 →
@@ -444,21 +483,30 @@ annotation work; each is suppressed with `!` at the site(s) noted.
     skips the template), SpellHandler.cs:258, NPCHandler.cs:167/189, and
     `NPC.LoadFromTemplate` (NPC.cs:599). Same class as #7: a bad id in saved
     data / settings.
+    — **Fixed (Task 2, `f7b43de` + `ca4df7c`)**: unknown template ids in saved
+    data are skipped and the gold path fails soft.
 15. **Unknown `ClassID` → `ClassHandler.GetClass` returns null** — the `!`
     assignments are NPC.cs:648, Pet.cs:209/256, Player.cs:621/754/1428; the
     NRE occurs at the subsequent `this.Class.GetLevel(...)!` dereference
     (NPC.cs:649, Pet.cs:257, Player.cs:622/755/1436).
+    — **Fixed (Task 7, `f431514` + `340ed49`)**: class lookups are guarded
+    against missing rows and change-class validates before mutating.
 16. **`Class.GetLevel` returns null for an unregistered level → NRE** at the ~25
     `!` sites (Packets.cs `ExpBar`, the Player/Pet level-up loops, NPC/Pet stat
     application, Window pet display, SpellEffect.cs:890/891, BuyMana/BuyVita/
     ChangeClass/Pet command events).
+    — **Fixed (Task 7, `f431514` + `340ed49`)**: level lookups are guarded at
+    the dereference sites.
 17. **Quest requirement display NREs on deleted templates** —
     QuestWindow.cs:217/222/227 (`item!.Name`, `talkNPC!.Name`, `killNpc!.Name`):
     a quest requirement pointing at a removed item/NPC template NREs when the
     quest window renders.
+    — **Fixed (Task 3, `a079dfd`)**: the quest window guards deleted templates.
 18. **`NPC.Quests` can contain null entries** — NPCHandler.cs:111
     (`QuestHandler.Get(q)!`): a bad quest id in an NPC sheet's quest list puts
     a null element into `NPC.Quests`, NREing quest progress/completion paths.
+    — **Fixed (Task 3, `a079dfd`)**: bad quest ids in NPC sheets are filtered
+    out.
 19. **`GooseSettings` string properties are null when the settings JSON omits the
     field** — Task 4 annotated the 12 string properties `= null!` (the only
     construction path is `GooseSettingsLoader` JSON deserialization, and the shipped
@@ -471,6 +519,20 @@ annotation work; each is suppressed with `!` at the site(s) noted.
     `!` at `GooseSettingsLoader.cs:54` also covers a settings file containing
     the JSON literal `null` (Deserialize → null → the `GameServer` ctor's
     existing `ArgumentNullException`).
+    — **Fixed (Task 4, `28860ae`)**: missing string fields default to empty.
+
+### Sweep findings (Task 5)
+
+- Null `Allies`/`Quests`/`EquippedItems` on script-built templates — **fixed**
+  (Task 5, `2432657`): templates are normalized at every entry point.
+- Null `ItemSlot.Item` — **fixed** (Task 2, `f7b43de` + `ca4df7c`): slots with
+  no item load as empty.
+- `RenewBuff` does not resync `BuffExpireEvent` when `BuffStacksOver` swaps
+  effects — **new deferred behavioral item**: a buff first applied with
+  duration 0 (no expire event) becomes permanent if renewed with a duration>0
+  effect. Fixing requires a behavioral decision on whether renewal should
+  extend or replace the expiry, not just an NRE guard.
+
 
 ## Classified inventory
 
