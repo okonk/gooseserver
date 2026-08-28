@@ -203,6 +203,10 @@ namespace Goose
             Pet pet = new Pet();
 
             pet.PetID = reader.GetInt32("pet_id");
+            if (pet.PetID >= Pet.CurrentID)
+            {
+                Pet.CurrentID = pet.PetID + 1;
+            }
             pet.Title = reader.GetString("pet_title");
             pet.Name = reader.GetString("pet_name");
             pet.Surname = reader.GetString("pet_surname");
@@ -282,11 +286,6 @@ namespace Goose
 
             pet.AutoCreatedNotSaved = false;
             pet.Delete = false;
-
-            if (pet.PetID >= Pet.CurrentID)
-            {
-                Pet.CurrentID = pet.PetID + 1;
-            }
 
             return pet;
         }
