@@ -304,12 +304,14 @@ namespace Goose
             if (definition.EventFactory is not null)
             {
                 e = definition.EventFactory(player, packet);
+                e.ClientOriginated = true;
             }
             else
             {
                 e = GetOrCreateFactory(definition.EventTypeId)();
                 e.Player = player;
                 e.Data = packet;
+                e.ClientOriginated = true;
             }
             this.AddEvent(e);
             return true;
@@ -343,6 +345,7 @@ namespace Goose
         }
 
         internal int Count => this.events.Count;
+        internal int DroppedDuringMapLoad { get; private set; }
         internal Event Peek() => this.events.Peek();
 
         /**
@@ -365,6 +368,17 @@ namespace Goose
             while (this.events.TryPeek(out Event? ev, out long tick) && tick <= now)
             {
                 this.events.Dequeue();
+
+                // Warps run inline inside an earlier event's Ready, so check state at
+                // execution time. Internal scheduled events must keep running or buffs go permanent.
+                if (ev.ClientOriginated && ev.Player is Player p &&
+                    ((p.State == Player.States.LoadingGame && ev is not (LoginContinuedEvent or PlayerPongEvent)) ||
+                     (p.State == Player.States.LoadingMap && ev is not (DoneLoadingMapEvent or PlayerPongEvent))))
+                {
+                    this.DroppedDuringMapLoad++;
+                    log.Debug("Dropped {0} for {1} (state {2}).", ev.GetType().Name, p.Name, p.State);
+                    continue;
+                }
 
                 try
                 {

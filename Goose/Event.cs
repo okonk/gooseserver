@@ -7,6 +7,7 @@ namespace Goose
     public abstract class Event
     {
         public long Ticks { get; set; }
+        internal bool ClientOriginated;
         public Player Player { get; set; } = null!;
         public Object Data { get; set; } = null!;
         public NPC NPC { get; set; } = null!;
