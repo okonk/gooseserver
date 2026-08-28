@@ -36,20 +36,25 @@ namespace Goose.Events
                     ? this.Player.Inventory.GetSlot(id)
                     : this.Player.Inventory.GetEquippedSlot(id);
                 if (slot is null || slot.Item is null) return;
-                if (id > world.Settings.InventorySize && !this.Player.Inventory.Unequip(id, world)) return;
 
+                Item? replacement = null;
                 if (slot.Item.Custom)
                 {
                     ItemTemplate? template = world.ItemHandler.GetTemplate(world.Settings.RippedCustomTicketId);
                     if (template is null) return;
 
-                    Item replacement = new Item();
+                    replacement = new Item();
                     if (!replacement.LoadFromTemplate(template))
                     {
                         log.Error("custom ticket template {0}: invalid template; destroy skipped", world.Settings.RippedCustomTicketId);
                         return;
                     }
+                }
 
+                if (id > world.Settings.InventorySize && !this.Player.Inventory.Unequip(id, world)) return;
+
+                if (replacement is not null)
+                {
                     this.Player.Inventory.RemoveItem(slot.Item, slot.Stack, world);
 
                     world.ItemHandler.AddAndAssignId(replacement, world);
