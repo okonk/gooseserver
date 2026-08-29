@@ -203,13 +203,17 @@ legacy event classes — two alias pairs share one class):
 subcommands with their own usage/help.
 
 `/help dimensions` opens on the Dimensions section's page(s). Name resolution:
-exact command name and section name are both checked; if both exist, the page
-shows the command details first, then the section's list (and a warning is
-logged at registration for the collision).
+exact command name and section name are both checked. **Command and section
+visibility are resolved independently and every visible result is shown:**
+visible command → details first; visible section → list after; either one
+alone → just that one; neither visible → no reply. A name collision (command
+and section with the same name) is logged at registration as a warning — but
+an *inaccessible* same-named command never suppresses a visible section.
 
 Privilege filtering: only commands the player may use are shown;
 `/help hax` and `/help nonexistent` both get no reply for a player lacking the
-privilege (anti-probing).
+privilege (anti-probing) — per result, so a public section sharing a
+restricted command's name is still visible.
 
 Word wrap: the quest window has a fixed line length. `HelpFormatter` wraps
 text at a named constant (`MaxLineLength = 42`, confirmed limit TBD) on word

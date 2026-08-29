@@ -104,7 +104,7 @@ Deletion-safety: before each batch's deletions, re-run the Part 2 grep pattern f
 
 - ★ `/ban Bob 30` (GM, `RegisterOnlinePlayer` + fixture DB as needed) vs Normal → swallowed, no reply.
 - ★ `/summon Ghost` → `Couldn't find player Ghost.`; `/summon Bob` with Bob in `LoadingMap` → `Player is still loading a map.` (in-body check survived).
-- `/broadcast hello world` sent by a **GM** caller → `world.SendToAll` message contains `[Game Master]: hello world` — `AccessPrivilege.GameMaster.ToString()` is `"GameMaster"`, and the legacy `Replace("Master", " Master")` yields `"Game Master"`, not `GM` (`BroadcastCommandEvent.cs`); a Normal caller can't run it at all.
+- `/broadcast hello world` sent by a **GM** caller → `world.SendToAll` message contains `[Game Master]: hello world` — the legacy formats the caller's `Player.Access` (a `Player.AccessStatus`; `GameMaster` is the `Player.AccessStatus` member, not an `AccessPrivilege`), whose `ToString()` is `"GameMaster"`, and `Replace("Master", " Master")` yields `"Game Master"`, not `GM` (`BroadcastCommandEvent.cs`); a Normal caller can't run it at all.
 - ★ `/givecredits Bob 0` → silent no-op (validation return kept, not converted to a usage error).
 - `/changeclass Bob Warrior 1.5` → decimal modifier bound; `/changeclass Bob Warrior` → modifier null.
 - `/playerinfo Bob` → `PlayerInfoWindow` added to the viewer's `Windows`.

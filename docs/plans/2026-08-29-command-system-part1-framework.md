@@ -111,20 +111,28 @@ Test cases (adversarial ones marked ★):
 | ★ `int` token `"abc"` | error = usage line (no exception escapes) |
 | ★ numeric parsing uses invariant culture (`"1.5"` for `double` ok, `"1,5"` fails) | as stated |
 | `bool` from `on/off/true/false/1/0` case-insensitive; `"maybe"` → usage error | as stated |
-| ★ exact usage strings: `(ctx, int n)` → `Usage: /testcmd <n>`; `(ctx, string command, string name, string[] rest)` → `Usage: /search <command> <name>` (rest omitted); `(ctx, string a, string? b = null)` → `Usage: /cmd <a>` (optional omitted) | exact strings |
+| ★ exact usage strings: `(ctx, int n)` → `Usage: /testcmd <n>`; `(ctx, string command, string name, string[] rest)` → `Usage: /search <command> <name> [rest...]` (rest optional — empty input valid); `(ctx, string required, string[] rest)` → `Usage: /cmd <required> <rest...>` (rest required); `(ctx, string a, string? b = null)` → `Usage: /cmd <a> [b]`; `(ctx, int? mapId = null, int? mapx = null, int? mapy = null)` → `Usage: /warp [mapId] [mapx] [mapy]` | exact strings |
 | `string[] rest` as final param captures all remaining tokens; none → empty array | as stated |
 | ★ `string[] rest` not in final position → rejected at discovery (tested in Task 2) | n/a here |
 | `Player` param: token resolves via `PlayerHandler.GetPlayer` (use `RegisterOnlinePlayer`) | bound to that `Player` |
 | ★ `Player` param, unknown name | error = `Couldn't find player <name>.` |
 | `Player?` with `= null` default, token missing | bound to null |
 | ★ extra tokens beyond the parameters, no `rest` | **ignored** (bound args correct, no error) — `/kick Bob extra` parity |
-| `Usage`: optional → `[name]`, required → `<name>`, rest → `<name>`; key trailing space trimmed | e.g. `/warp [mapId] [x] [y]` |
+| `Usage`: **exact algorithm** — required scalar → `<name>`; defaulted scalar → `[name]`; `string[]` rest → `<name...>` if empty input is invalid (a required token precedes it) else `[name...]`; key trailing space trimmed; an explicit `Usage` override (below) wins over the algorithm entirely | `/warp [mapId] [mapx] [mapy]` |
 
 Red: tests fail to compile (no `CommandBinder`). Green: implement minimal binder.
 
 **Step 3: Implement `CommandBinder`**
 
-Binding algorithm: iterate `parameters` (skip the leading `CommandContext` — it is injected by the invoker, not the binder); for each, `rest` (`string[]`) consumes all remaining tokens; `Player` resolves the next token (missing → default if present else usage error; unresolvable → the fixed "Couldn't find player" message); numerics parse invariant-culture; `bool` per the set above; missing token with `HasDefaultValue` → default; otherwise usage error. `Usage` renders the key (trailing space trimmed) + one segment per **required** parameter (no default, not a `string[]`); optional parameters and `string[]` tails are omitted — this is also why the internal parameter name `rest` can never leak into a usage line.
+Binding algorithm: iterate `parameters` (skip the leading `CommandContext` — it is injected by the invoker, not the binder); for each, `rest` (`string[]`) consumes all remaining tokens; `Player` resolves the next token (missing → default if present else usage error; unresolvable → the fixed "Couldn't find player" message); numerics parse invariant-culture; `bool` per the set above; missing token with `HasDefaultValue` → default; otherwise usage error.
+
+**Usage generation — the one algorithm (this text replaces every earlier variant):**
+1. If the definition/subcommand carries an explicit `Usage` override, use it verbatim after `Usage: ` and stop. Override: optional `public string? Usage { get; set; }` on both `CommandAttribute` and `SubcommandAttribute` (class-level applies to the bare command; subcommand-level to that subcommand) — for exceptional legacy commands whose real syntax the algorithm can't express.
+2. Otherwise render key (trailing space trimmed) + one segment per parameter, in order:
+   - required scalar (no default, not `string[]`) → `<name>`
+   - defaulted scalar → `[name]`
+   - `string[]` rest → `<name...>` if empty input is invalid (any required parameter precedes it), else `[name...]`
+3. Rest parameter names must be meaningful (`message`, `query`, `name` — not `rest`); the algorithm renders whatever the parameter is called, so the name shows up in usage.
 
 **Step 4: Run tests**
 
@@ -185,10 +193,13 @@ public void SeedBuiltins();                       // scans typeof(GameWorld).Ass
 public bool Register(string key, string section, string help, Delegate handler);            // privilege = null (open)
 public bool Register(string key, AccessPrivilege privilege, string section,
                      string help, Delegate handler);
-public bool TryGet(string key, out CommandDefinition definition);   // hits on any alias key
-CommandSnapshot Snapshot { get; }                  // single volatile reference: { Trie, ByKey, Ordered }
-public IReadOnlyList<CommandSection> Sections { get; }  // derived from Snapshot.Ordered; CommandSection { Name, List<CommandDefinition> }
-public static bool IsUsableBy(Player player, CommandDefinition def); // null privilege = true
+internal bool TryGet(string key, out CommandDefinition definition);   // hits on any alias key
+internal CommandSnapshot Snapshot { get; }            // single volatile reference: { Trie, ByKey, Ordered }
+internal IReadOnlyList<CommandSection> Sections { get; }  // derived from Snapshot.Ordered; CommandSection { Name, List<CommandDefinition> }
+internal static bool IsUsableBy(Player player, CommandDefinition def); // null privilege = true
+```
+
+**Accessibility (must compile — no inconsistent accessibility):** `CommandDefinition`, `SubcommandInfo`, `CommandSnapshot`, `CommandSection`, `CommandBinder`, `HelpFormatter` are all `internal`; only the script-facing `Register` overloads and `SeedBuiltins` are `public` (their signatures use public types only — `string`, `AccessPrivilege`, `Delegate`). `CommandAttribute`/`SubcommandAttribute` stay `public` (attributes on public command classes). `HelpWindow`/`HelpCommand` (Goose assembly) and all tests (friend assembly via `InternalsVisibleTo`) use the internal surface.
 // internal seams (Goose.Tests has InternalsVisibleTo):
 internal void SeedAttributedTypes(IEnumerable<Type> types);  // SeedBuiltins() = SeedAttributedTypes(Goose assembly types)
 internal bool RegisterKeys(string[] keys, AccessPrivilege? privilege, string section, string help, Delegate handler);
@@ -204,7 +215,11 @@ Tests (★ adversarial):
 | ★ `Register` key without `/` prefix, or with an internal space (`"/bad key"`) | returns false, logged, `TryGet` miss |
 | ★ `Register` replacing a restricted key with an open one | returns false (downgrade refused), original definition intact |
 | `Register` replacing a restricted key with a different restricted privilege | replaces — **privileges are capabilities, not an ordered hierarchy** (Ban is not "more restrictive" than Warp); the only refused direction is restricted → open |
-| ★ `RegisterKeys(["/a ", "/b "], ...)` where one key conflicts with a different definition | returns false, **nothing registered** (atomic: the non-conflicting key is not half-registered either), original definitions intact |
+| ★ `RegisterKeys(["/a ", "/b "], ...)` where the two keys belong to **two different** existing definitions | returns false, both originals intact (cross-definition conflict) |
+| ★ multi-key replacement frees all old keys: register def A under `/invite ` + `/groupadd `, then `RegisterKeys(["/groupadd "], ...)` with def B → def B owns `/groupadd ` **only**; `/invite ` is gone from the trie and `ByKey` | old aliases disappear unless re-registered |
+| ★ new multi-key registration with one occupied + one new key: A owns `/invite `; `RegisterKeys(["/invite ", "/groupadd "], ...)` with B → B owns **both** keys, A removed | alias set grows on replacement |
+| ★ downgrade protection on multi-key replacement: A open under `/a `; `RegisterKeys(["/a "], restricted, ...)` → false, A unchanged; open → different-restricted → true | capabilities rule |
+| ★ ordering: replacing a definition keeps its position in `Ordered` (first occurrence); a brand-new definition appends | help order stable across in-place re-registration |
 | `Register` same key again with new help/handler | replaces in place — `Ordered`/`Sections` show the definition once, no duplicate |
 | ★ `Register` handler whose `string[] rest` is not the final parameter | returns false |
 | `Sections` groups by `Section`, preserves registration order | as stated |
@@ -217,7 +232,12 @@ Red: compile failure. Green: implement.
 **Step 3: Implement `CommandRegistry`**
 
 - Storage is an **immutable snapshot** published through a single `volatile` reference: `CommandSnapshot { Trie<CommandDefinition> Trie (every alias key → def), IReadOnlyDictionary<string, CommandDefinition> ByKey (every alias key), IReadOnlyList<CommandDefinition> Ordered }`. **Immutability is by construction discipline**: each mutation builds brand-new `Trie`/`Dictionary`/`List` instances and publishes them; a published instance is never mutated afterwards (the trie is the existing mutable `Trie<T>` class — the rule is simply that a published trie is never touched again, every mutation builds a new one). `CommandDefinition` carries `string[] Keys` + `PrimaryKey` (first key — usage strings and help). Readers (dispatch, help) take one snapshot reference and can never observe a half-updated state; help and dispatch always see the same version. (Alias-ready now so Part 2's multi-key attributes need no storage rework; Part 1 registrations simply have `Keys.Length == 1`.)
-- Mutation protocol (one lock, used by `SeedBuiltins` and `Register`): **1.** validate the complete definition first — every key's format, handler shape (delegate, first param `CommandContext`, `rest` final), no key conflict with a *different* definition, no restricted → open downgrade on any key; any failure → return false, nothing mutated. **2.** build the new ordered list (replace the existing definition in place if any key was already registered to it, else append), new `ByKey`, new trie. **3.** publish the new snapshot. Rebuild is O(total keys) and only happens on registration (startup + script reloads).
+- Mutation protocol (one lock, used by `SeedBuiltins` and `Register`) — **exact algorithm**: a registration owns its full key set; replacing a definition frees **all** of its keys.
+  1. Validate every key's format (and handler shape for `Register`); any failure → return false, nothing mutated.
+  2. Collect the set of existing definitions owning any of the new keys. If it contains **two or more distinct definitions** → return false (cross-definition conflict), nothing mutated.
+  3. If exactly one (the *replaced* definition): its keys are all freed — any subset may be re-registered, and keys **not** re-registered disappear. If the new privilege is restricted and the replaced privilege is open → return false (downgrade protection). Restricted → different-restricted is allowed (capabilities rule).
+  4. Build the new ordered list (replaced definition removed; new definition inserted at the replaced one's **first** occurrence position, else appended), new `ByKey`, new trie → publish the new snapshot.
+  Rebuild is O(total keys) and only happens on registration (startup + script reloads). This is the script-reload semantic: re-registering a command's keys takes over whatever those keys touched, and old aliases not re-registered are gone.
 - `SeedBuiltins`: `typeof(GameWorld).Assembly.GetTypes()`, filter `[Command]` + assignable to `BaseCommand`, validate (key format, valid shape per Task 1, `rest` final, duplicate keys → log error and skip), instantiate, capture methods, insert.
 - `Sections`: derived from the snapshot's ordered list (cheap; help is user-input-rate). **Legacy definitions (`RegisterLegacy`) have `Section == null` and are excluded from help/`Sections`** until Parts 2–3 migrate them with real metadata.
 
@@ -280,7 +300,7 @@ Red: new behaviors fail (commands not dispatched). Green: implement.
 4. `CheckAccess` (via the command instance) → privilege → `!AccessLevels.HasPrivilege` → debug log, return (swallowed).
 5. Subcommand privilege → same swallow.
 6. `CommandBinder.Bind` on the selected target's parameters → error → `ctx.Send(error)`, return.
-7. Invoke: `Execute`/subcommand method via the captured `MethodInfo` with `[ctx, ...args]`; exceptions propagate to the existing per-event catch in `EventHandler.Update` (`Goose/EventHandler.cs` Update loop) so logging behavior is unchanged.
+7. Invoke: `Execute`/subcommand method via the captured `MethodInfo` with `[ctx, ...args]`. **Exception hygiene:** wrap the invoke in `try/catch (TargetInvocationException tie) { throw tie.InnerException; }` — reflection's wrapper is dropped, so a migrated command that throws `InvalidOperationException` reaches the existing per-event catch in `EventHandler.Update` as `InvalidOperationException`, not a `TargetInvocationException` wrapping it (diagnostics parity with the legacy events, which threw directly).
 
 **Step 3: Rewire `EventHandler`**
 
@@ -327,8 +347,8 @@ git commit -m "feat: dispatch commands through the registry; legacy commands reg
 ```csharp
 public const int MaxLineLength = 42;
 public static List<string> Wrap(string line);                    // word wrap, hard-break overlong words
-public static List<List<string>> BuildPages(Player player, CommandRegistry registry,
-                                            string? name);       // pages for the window
+public static List<List<string>>? BuildPages(Player player, CommandRegistry registry,
+                                            string? name);       // pages for the window; null = nothing to show (caller sends nothing)
 ```
 
 Tests (★ adversarial):
@@ -341,6 +361,7 @@ Tests (★ adversarial):
 | ★ `name` = command the player lacks privilege for → `BuildPages` returns null (caller sends nothing) | null |
 | `name` unknown → null | null |
 | ★ `name` matching both a command and a section (register a test section named after a command) → command detail page first, then the section's commands | both present, order |
+| ★ restricted command + public section, same name: Normal's `BuildPages` returns **only the section pages** (command invisible → omitted, section not suppressed); GM's returns command details + section | independent visibility resolution |
 | Command page: help text, usage line, subcommands with usage+help | exact format |
 | ★ open command with one open + one restricted subcommand: Normal's command page lists only the open subcommand; GM's lists both | subcommand filtering |
 | ★ section whose wrapped output exceeds `MaxLinesPerPage` (register enough test commands) → split across ≥ 3 pages, no line lost or duplicated | pagination |
@@ -362,10 +383,10 @@ Red: compile failure. Green: implement.
 - `HelpWindow : Window` — model on `Goose/PlayerInfoWindow.cs`: ctor sets `ID = ++player.LastWindowID`, `Frame = WindowFrames.Quest`, `Type = WindowTypes.Help`, stores `List<List<string>> pages` + `pageNumber`; `Populate` sends each line via `P.WindowTextLine(this.ID, i, line)` (`Goose/Packets.cs:422`); `Clicked` per the PlayerInfoWindow pattern (`Goose/PlayerInfoWindow.cs:135-157`) with clamping; static `Open(GameWorld, Player, List<List<string>> pages)`.
 - `HelpFormatter.BuildPages`:
   - `name` null → `[SectionListPage, SectionPage(s) for each visible section]`.
-  - command (case-insensitive key match, trailing space trimmed on the input) → visibility check (null → no reply); else `[CommandPage (+ section commands appended if a same-named section exists)]`.
+  - **Name resolution — command and section visibility are resolved independently; every visible result is shown.** Input (case-insensitive, trailing space trimmed) matching a command and/or a section: visible command (`IsUsableBy`) → command details first; visible section (has ≥1 visible entry) → section page(s) after. Either one alone → just that one. Neither visible → `null` (no reply). An *inaccessible* same-named command never suppresses a visible section (anti-probing applies per-result, not to the name as a whole).
   - section (case-insensitive) → `[SectionPage]` (only visible commands).
   - Visibility: `CommandRegistry.IsUsableBy(player, def)`. **Subcommands are filtered too**: a subcommand line is shown only if the command is usable *and* the subcommand's own privilege passes — an open command with a restricted subcommand must not reveal the subcommand's name/usage to unprivileged players.
-  - **Pagination height**: `public const int MaxLinesPerPage = 32;` — **every** page type (section list, section pages, command-detail pages) passes through the same height splitter at this limit. 32 is the demonstrated floor: `PlayerInfoWindow` sends 32 text lines in its base case (34 window calls − `MakeWindow` − `EndWindow`, and *more* when bank pages loop in) and renders correctly in production. Still worth one in-game glance at a full GM page; if the client truncates, lower the constant — it is a single constant.
+  - **Pagination height**: `public const int MaxLinesPerPage = 19;` — **every** page type (section list, section pages, command-detail pages) passes through the same height splitter at this limit. 19 is the demonstrated value: `PlayerInfoWindow`'s base page sends exactly 19 `WindowTextLine` lines (`Goose/PlayerInfoWindow.cs:40-58`) and renders correctly in production; the larger bank/equipment pages are separate windows, not evidence for a single window. If in-game testing shows the client safely takes more, the constant is the single place to raise it.
   - **Legacy definitions are skipped** (`Section == null`) — in Part 1, `/help` shows only `/help` itself plus any script-registered commands; sections grow as Parts 2–3 migrate.
 - `HelpCommand : BaseCommand`:
 
@@ -445,7 +466,8 @@ git commit -m "test: end-to-end coverage for the command framework"
 | Replace-on-reregister (script reload semantics) | `CommandRegistryTests` + `CommandFrameworkTests` |
 | Registration thread-safe vs dispatch | `CommandRegistryTests` ★ + `CommandFrameworkTests` ★ |
 | Help never reveals commands the player lacks | `HelpTests` ★ + `CommandFrameworkTests` |
-| Command+section name collision shows both | `HelpTests` ★ |
+| Command+section name collision shows both (visible viewer) | `HelpTests` ★ |
+| ★ Inaccessible command never suppresses a same-named visible section | `HelpTests` |
 | Help lines ≤ 42 chars | `HelpTests` wrap cases |
 | Legacy commands byte-for-byte unchanged | `CommandDispatchTests` baseline + full existing suite (395) |
 | Non-`Ready` player: command no-op | `CommandDispatchTests` |
