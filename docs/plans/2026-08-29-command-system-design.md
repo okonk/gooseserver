@@ -303,6 +303,9 @@ privileges, same visible behavior. **Known intended deltas** (the Part 3
 design-alignment sweep walks this list):
 
 - Parse errors reply with the auto usage line (was silent).
+- Every framework-emitted usage line carries the `Usage: ` prefix, including
+  `Usage`-override lines; legacy `/hairdye` and `/custom` usage lines had no
+  prefix (formatting delta, test-pinned).
 - `/tell` to a missing player: "Couldn't find player `<name>`." via
   `P.ServerMessage` (was "`<name>` is not online." via `P.TellMessage`).
 - Whitespace normalization: token-bound commands no longer see doubled or

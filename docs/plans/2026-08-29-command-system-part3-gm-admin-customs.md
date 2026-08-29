@@ -72,27 +72,13 @@ Identical to Part 2's rule (read event → new class with verbatim key/privilege
 | `/updatesql` | `UpdateSqlCommandEvent` | — | verbatim |
 | `/hax ` | `HaxCommandEvent` | — (no typed params) | **raw fidelity**: legacy sends `Substring(5)` verbatim — `ctx.World.Send(ctx.Player, ctx.Remainder)` with no `P.ServerMessage` wrap. A token join would normalize doubled/trailing spaces and corrupt the injected packet |
 | `/gmhax ` | `GMHaxCommandEvent` | — (no typed params) | same raw-fidelity rule: the raw remainder is embedded in the CHP packet; move the in-body packet building verbatim over `ctx.Remainder` |
-| `/custom` | `CustomCommandEvent` | subcommands, Task 3 | |
+| `/custom` | `CustomCommandEvent` | subcommands, Task 2 | |
 
 Deletion-safety: before each batch's deletions, re-run the Part 2 grep pattern for that batch's class names; every Part 3 event is currently referenced only by `Goose/EventHandler.cs` (verify, and if any new reference appears, keep the class and flag it).
 
 ---
 
-### Task 0: Multi-name subcommands (for `/custom`'s `create`|`make` alias)
-
-**Files:**
-- Modify: `Goose/Commands/SubcommandAttribute.cs`, `Goose/Commands/CommandRegistry.cs` (discovery validation)
-- Test: `Goose.Tests/CommandRegistryTests.cs`
-
-**Step 1: Failing tests** — a `[Subcommand("make", "create", ...)]` method is reachable via both first tokens (case-insensitive); the help page lists the **first** name; unknown tokens still get the subcommand list.
-
-**Step 2: Implement** — `SubcommandAttribute(params string[] names)`; definition stores all names, first is primary (help/usage).
-
-**Step 3: Run** `dotnet test Goose.Tests` — green. **Step 4: Commit** `feat: subcommand alias names`
-
----
-
-### Task 1: Migrate GM batch A — target-player commands (17)
+### Task 0: Migrate GM batch A — target-player commands (17)
 
 **Files:**
 - Create: `Goose/Commands/SummonCommand.cs`, `ApproachCommand.cs`, `KickCommand.cs`, `UnbanCommand.cs`, `BanCommand.cs`, `BroadcastCommand.cs`, `PlayerInfoCommand.cs`, `GiveGoldCommand.cs`, `GiveExperienceCommand.cs`, `GiveCreditsCommand.cs`, `SetTitleCommand.cs`, `SetSurnameCommand.cs`, `ChangeClassCommand.cs`, `ChangeNameCommand.cs`, `CheckNameCommand.cs`, `SetPasswordCommand.cs`, `MacroCheckCommand.cs`
@@ -113,7 +99,7 @@ Run `dotnet test` (both). Commit: `refactor: migrate GM target-player commands`.
 
 ---
 
-### Task 2: Migrate GM batch B + Admin (16)
+### Task 1: Migrate GM batch B + Admin (16)
 
 **Files:**
 - Create: `Goose/Commands/WarpCommand.cs`, `GetItemCommand.cs`, `SpawnNpcCommand.cs`, `PlaceSpawnCommand.cs`, `SearchCommand.cs`, `MuteMapCommand.cs`, `ShutdownCommand.cs`, `SetAccessCommand.cs`, `SetConfigCommand.cs`, `SaveConfigCommand.cs`, `RespawnMapCommand.cs`, `ReloadScriptsCommand.cs`, `ReloadSqlCommand.cs`, `UpdateSqlCommand.cs`, `HaxCommand.cs`, `GmHaxCommand.cs`
@@ -135,7 +121,7 @@ Run `dotnet test` (both). Commit: `refactor: migrate GM world commands and Admin
 
 ---
 
-### Task 3: Migrate `/custom` (subcommands)
+### Task 2: Migrate `/custom` (subcommands)
 
 **Files:**
 - Create: `Goose/Commands/CustomCommand.cs`
@@ -145,7 +131,7 @@ Run `dotnet test` (both). Commit: `refactor: migrate GM world commands and Admin
 
 **Steps:**
 
-- Subcommands: `help` (no args), `kill` (no args), `preview` and `make` both `(int r, int g, int b, int a, string[] name)`; `make` carries alias names `make`/`create` via the multi-name `SubcommandAttribute` (Part 2 Task 0). `Usage` overrides: `/custom make <r> <g> <b> <a> <name...>` and `/custom preview <r> <g> <b> <a> <name...>`. **name = `string.Join(" ", name)`** — legacy `Split(' ', 6, RemoveEmptyEntries)` makes `tokens[5]` the rest of the line, so `/custom make 1 2 3 4 My Sword` names the item "My Sword". **Empty `name` → `ctx.Send(ctx.Usage)`** (legacy `tokens.Length < 6` → usage for both subcommands; the binder can't express "tail must be non-empty", so the guard lives in the body).
+- Subcommands: `help` (no args), `kill` (no args), `preview` and `make` both `(int r, int g, int b, int a, string[] name)`; `make` carries alias names `make`/`create` via the multi-name `SubcommandAttribute` (Part 2 Task 0). `Usage` overrides: `/custom make <r> <g> <b> <a> <name...>` and `/custom preview <r> <g> <b> <a> <name...>` (emitted with the framework's `Usage: ` prefix — legacy `/custom` usage lines had none; intended formatting delta, test-pinned). **name = `string.Join(" ", name)`** — legacy `Split(' ', 6, RemoveEmptyEntries)` makes `tokens[5]` the rest of the line, so `/custom make 1 2 3 4 My Sword` names the item "My Sword". **Empty `name` → `ctx.Send(ctx.Usage)`** (legacy `tokens.Length < 6` → usage for both subcommands; the binder can't express "tail must be non-empty", so the guard lives in the body).
 - Move `ParseRGBA`, `ValidateCustomSlots`, `EquippedDisplay`, `MountDisplay` into the new class verbatim (they are static/instance helpers on the legacy class).
 - Section: `Customs`.
 
@@ -163,7 +149,7 @@ Run `dotnet test` (both). Commit: `refactor: migrate /custom to subcommands`.
 
 ---
 
-### Task 4: Migrate dimension scripts and harden `RegisterEvent`
+### Task 3: Migrate dimension scripts and harden `RegisterEvent`
 
 **Files:**
 - Modify: `Goose/Data/Illutia/Scripts/Global/Dimensions.csx:229-233` (five `RegisterEvent` calls → five `world.Commands.Register` calls), `Goose/Data/Illutia/Scripts/Global/Dimensions/Commands.csx` (five event classes → five static handler methods or lambdas), `Goose/EventHandler.cs:248` (`RegisterEvent`: reject `/` keys with a logged error; delete the privilege overload at :267), `Goose.Tests/EventHandlerTests.cs`
@@ -194,7 +180,7 @@ Commit: `refactor: dimension scripts use Commands.Register; RegisterEvent restri
 
 ---
 
-### Task 5: Final integration, compliance sweep, design alignment
+### Task 4: Final integration, compliance sweep, design alignment
 
 **Files:**
 - Create: `Goose.IntegrationTests/Part3MigrationTests.cs`
@@ -228,12 +214,12 @@ Commit: `test: Part 3 final integration and compliance sweep`
 | `RegisterEvent` rejects `/` keys, still serves non-command packets | `DimensionCommandRegistrationTests` ★ + `EventHandlerTests` |
 | Aspereta `GID` registration unaffected | `DimensionCommandRegistrationTests` ★ |
 | Help shows all sections with correct visibility; `/help custom` lists subcommands | `Part3MigrationTests` |
-| No legacy `/` command survives in the seed table | Task 5 compliance sweep |
+| No legacy `/` command survives in the seed table | Task 4 compliance sweep |
 
 ## Part 3 exit criteria (project completion)
 
 - Zero `/` keys in `_SeedCommands`; every in-game slash command runs through `CommandRegistry`.
-- 69 of the 70 referenced legacy command event classes deleted (suffixed + non-suffixed like `WarpEvent`/`WhoEvent`), plus the dead `InstaLevelCommandEvent.cs`; `RefreshPositionEvent` is the single survivor (kept for `RPU`), per the Task 5 explicit-list sweep.
+- 69 of the 70 referenced legacy command event classes deleted (suffixed + non-suffixed like `WarpEvent`/`WhoEvent`), plus the dead `InstaLevelCommandEvent.cs`; `RefreshPositionEvent` is the single survivor (kept for `RPU`), per the Task 4 explicit-list sweep.
 - Dimension scripts register via `world.Commands.Register`; `RegisterEvent` is non-command-only.
 - `dotnet test` green across `Goose.Tests` and `Goose.IntegrationTests`, including all pre-existing dimension and Aspereta tests.
 - `/help` window shows the full section model; parse errors reply with usage; denials stay silent.

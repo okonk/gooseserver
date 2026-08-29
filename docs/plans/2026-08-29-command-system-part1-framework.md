@@ -64,6 +64,7 @@ public sealed class CommandAttribute : Attribute
     public AccessPrivilege? Privilege { get; }   // null = open
     public string Section { get; set; } = "General";
     public string Help { get; set; } = null!;
+    public string? Usage { get; set; }   // verbatim usage override (text after the `Usage: ` prefix)
 
     // Attribute constructor parameters cannot be nullable value types, and
     // `this(key, null)` does not compile against a non-nullable enum — separate bodies:
@@ -78,13 +79,14 @@ public sealed class SubcommandAttribute : Attribute
     public string Name { get; }
     public AccessPrivilege? Privilege { get; }
     public string Help { get; set; } = null!;
+    public string? Usage { get; set; }   // verbatim usage override (text after the `Usage: ` prefix)
     public SubcommandAttribute(string name) { Name = name; }
     public SubcommandAttribute(string name, AccessPrivilege privilege) { Name = name; Privilege = privilege; }
 }
 ```
 
-- `BaseCommand`: abstract class with `protected virtual AccessPrivilege? CheckAccess(CommandContext ctx, string[] args) => null;` **plus an internal non-virtual forwarder** `internal AccessPrivilege? CheckAccessInternal(CommandContext ctx, string[] args) => CheckAccess(ctx, args);` — `CommandEvent` calls the forwarder (it can't call the protected member); subclasses override the protected one, the surface stays clean.
-- `CommandContext`: `Player Player`, `GameWorld World`, `CommandRegistry Registry`, `string[] Args` (tokens after the command key, split on whitespace with empty entries removed, including a subcommand token), `string Remainder` (the raw packet text after the key, lossless), `string Usage` (the selected target's precomputed usage line, override applied — for parse-error replies and in-body empty-input guards), `void Send(string message)` → `World.Send(Player, P.ServerMessage(message))`.
+- `BaseCommand`: **`public abstract class BaseCommand`** (public because `HelpCommand` and the command classes planned in Parts 2–3 derive from it) with `protected virtual AccessPrivilege? CheckAccess(CommandContext ctx, string[] args) => null;` **plus an internal non-virtual forwarder** `internal AccessPrivilege? CheckAccessInternal(CommandContext ctx, string[] args) => CheckAccess(ctx, args);` — `CommandEvent` calls the forwarder (it can't call the protected member); subclasses override the protected one, the surface stays clean.
+- `CommandContext`: **`public sealed class CommandContext`** (public because separately compiled `.csx` script handlers name it in their signatures). Members: `Player Player`, `GameWorld World`, `CommandRegistry Registry`, `string[] Args` (tokens after the command key, split on whitespace with empty entries removed, including a subcommand token), `string Remainder` (the raw packet text after the key, lossless), `string Usage` (the selected target's precomputed usage line, override applied — for parse-error replies and in-body empty-input guards), `void Send(string message)` → `World.Send(Player, P.ServerMessage(message))`.
 - **Binder extras policy: extra tokens beyond the declared parameters (no `rest`) are ignored** — legacy commands mostly ignored extras (`/kick Bob extra`); erroring on them would change dozens of commands. **Whitespace normalization is a documented delta** (legacy `Substring`/`Split` saw raw text); commands sensitive to raw whitespace take `ctx.Remainder`.
 - Key validation helper (used by Task 2): key must start with `/` and contain no spaces except an optional single trailing space.
 
@@ -94,9 +96,12 @@ public sealed class SubcommandAttribute : Attribute
 
 ```csharp
 // Bind tokens to a parameter list. Returns null args + error message on failure.
+// usage = the selected target's precomputed usage line (override already applied, `Usage: ` prefix included).
+// Missing token / conversion failure → error = usage. Unknown Player → the specific
+// "Couldn't find player <name>." error (not the usage line).
 public static (object?[] args, string? error) Bind(
     GameWorld world, Player player, string key,
-    ParameterInfo[] parameters, string[] tokens);
+    ParameterInfo[] parameters, string[] tokens, string usage);
 // Usage string from key + parameters (also used by help and error replies).
 // usageOverride (from CommandDefinition.UsageOverride / SubcommandInfo.UsageOverride) wins verbatim.
 public static string Usage(string key, ParameterInfo[] parameters, string? usageOverride = null);
@@ -128,13 +133,13 @@ Red: tests fail to compile (no `CommandBinder`). Green: implement minimal binder
 Binding algorithm: iterate `parameters` (skip the leading `CommandContext` — it is injected by the invoker, not the binder); for each, `rest` (`string[]`) consumes all remaining tokens; `Player` resolves the next token (missing → default if present else usage error; unresolvable → the fixed "Couldn't find player" message); numerics parse invariant-culture; `bool` per the set above; missing token with `HasDefaultValue` → default; otherwise usage error.
 
 **Usage generation — the one algorithm (this text replaces every earlier variant):**
-1. If the definition/subcommand carries an explicit `Usage` override, use it verbatim after `Usage: ` and stop. Override: optional `public string? Usage { get; set; }` on both `CommandAttribute` and `SubcommandAttribute` (class-level applies to the bare command; subcommand-level to that subcommand) — for exceptional legacy commands whose real syntax the algorithm can't express.
+1. If the definition/subcommand carries an explicit `Usage` override, use it verbatim after `Usage: ` and stop. Override: `public string? Usage { get; set; }` on both `CommandAttribute` and `SubcommandAttribute` (class-level applies to the bare command; subcommand-level to that subcommand) — for exceptional legacy commands whose real syntax the algorithm can't express. **The framework prefixes `Usage: ` on every usage line it emits** (parse-error replies, in-body guard replies, help detail lines) — legacy `/hairdye` and `/custom` usage lines had no prefix; that is an **intended formatting delta**, test-pinned in Parts 2–3.
 2. Otherwise render key (trailing space trimmed) + one segment per parameter, in order:
    - required scalar (no default, not `string[]`) → `<name>`
    - defaulted scalar → `[name]`
    - `string[]` tail → always `[name...]` (optional by default). A tail's requiredness is a property of the command, not inferable from parameter types, so it is never inferred — commands where the tail is effectively required carry a `Usage` override (e.g. `/broadcast`, `/tell`, `/custom make`, `/setconfig`).
 3. Tail parameter names must be meaningful (`message`, `query`, `name` — not `rest`); the algorithm renders whatever the parameter is called, so the name shows up in usage.
-4. **Carrying the override:** `CommandDefinition.UsageOverride` and `SubcommandInfo.UsageOverride` (set from the attribute's `Usage` property at discovery; `null` for script-registered commands, which get the algorithm). `CommandEvent` precomputes the selected target's usage line into `CommandContext.Usage` (binder + override applied), so both the parse-error reply and in-body guards (`ctx.Send(ctx.Usage)`) use one precomputed string; `HelpFormatter` uses the same binder call for help lines.
+4. **Carrying the override:** `CommandDefinition.UsageOverride` and `SubcommandInfo.UsageOverride` (set from the attribute's `Usage` property at discovery; `null` for script-registered commands, which get the algorithm). `CommandEvent` precomputes the selected target's usage line (`CommandBinder.Usage(key, target.Parameters, target.UsageOverride)`), stores it in `CommandContext.Usage`, **and passes it to `Bind`** — so the parse-error reply, in-body guards (`ctx.Send(ctx.Usage)`), and the binder's own error string are one and the same precomputed line; `HelpFormatter` uses the same binder call for help lines.
 
 **Step 4: Run tests**
 
@@ -191,6 +196,8 @@ Discovery model for new-style commands: at scan time instantiate the class once 
 `CommandRegistry` surface:
 
 ```csharp
+public sealed class CommandRegistry   // public — GameWorld.Commands exposes it
+{
 public void SeedBuiltins();                       // scans typeof(GameWorld).Assembly for [Command]
 // two overloads — open commands (scripts) omit the privilege entirely:
 public bool Register(string key, string section, string help, Delegate handler);            // privilege = null (open)
@@ -200,9 +207,10 @@ internal bool TryGet(string key, out CommandDefinition definition);   // hits on
 internal CommandSnapshot Snapshot { get; }            // single volatile reference: { Trie, ByKey, Ordered }
 internal IReadOnlyList<CommandSection> Sections { get; }  // derived from Snapshot.Ordered; CommandSection { Name, List<CommandDefinition> }
 internal static bool IsUsableBy(Player player, CommandDefinition def); // null privilege = true
+}
 ```
 
-**Accessibility (must compile — no inconsistent accessibility):** `CommandDefinition`, `SubcommandInfo`, `CommandSnapshot`, `CommandSection`, `CommandBinder`, `HelpFormatter` are all `internal`; only the script-facing `Register` overloads and `SeedBuiltins` are `public` (their signatures use public types only — `string`, `AccessPrivilege`, `Delegate`). `CommandAttribute`/`SubcommandAttribute` stay `public` (attributes on public command classes). `HelpWindow`/`HelpCommand` (Goose assembly) and all tests (friend assembly via `InternalsVisibleTo`) use the internal surface.
+**Accessibility (must compile — no inconsistent accessibility):** the exact split — **public:** `CommandRegistry` (with its `Register` overloads and `SeedBuiltins`), `BaseCommand`, `CommandContext`, `CommandAttribute`, `SubcommandAttribute`; **internal:** `CommandDefinition`, `SubcommandInfo`, `CommandSnapshot`, `CommandSection`, `CommandBinder`, `HelpFormatter`, `CommandEvent` (an `Event` subclass queued internally; scripts never name it). Public signatures use public types only (`string`, `AccessPrivilege`, `Delegate`, `CommandContext`). `HelpWindow` (Goose assembly) and all tests (friend assembly via `InternalsVisibleTo`) use the internal surface.
 // internal seams (Goose.Tests has InternalsVisibleTo):
 internal void SeedAttributedTypes(IEnumerable<Type> types);  // SeedBuiltins() = SeedAttributedTypes(Goose assembly types)
 internal bool RegisterKeys(string[] keys, AccessPrivilege? privilege, string section, string help, Delegate handler);
@@ -302,8 +310,8 @@ Red: new behaviors fail (commands not dispatched). Green: implement.
 3. If `def` has subcommands: first token selects (case-insensitive); none/unknown → `ctx.Send` the subcommand list (each: `name` + usage + help) and return.
 4. `CheckAccess` (via the command instance) → privilege → `!AccessLevels.HasPrivilege` → debug log, return (swallowed).
 5. Subcommand privilege → same swallow.
-6. `CommandBinder.Bind` on the selected target's parameters → error → `ctx.Send(error)`, return.
-7. Invoke: `Execute`/subcommand method via the captured `MethodInfo` with `[ctx, ...args]`. **Exception hygiene:** wrap the invoke in `try { ... } catch (TargetInvocationException tie) { if (tie.InnerException is not null) ExceptionDispatchInfo.Capture(tie.InnerException).Throw(); throw; }` — reflection's wrapper is dropped and the **original stack trace is preserved** (`ExceptionDispatchInfo`, not `throw tie.InnerException`, which would reset the stack), so a migrated command that throws `InvalidOperationException` reaches the existing per-event catch in `EventHandler.Update` as `InvalidOperationException` with its real frames (diagnostics parity with the legacy events, which threw directly).
+6. Precompute the selected target's usage line into `ctx.Usage` (binder algorithm + `UsageOverride`), then `CommandBinder.Bind(world, player, key, target.Parameters, Args, ctx.Usage)` → error → `ctx.Send(error)`, return.
+7. Invoke: **attributed commands** — `Execute`/subcommand method via the captured `MethodInfo` with `[ctx, ...args]`. **Script-registered commands** (`def.Handler` non-null): the parameter source is `def.Handler.Method.GetParameters()` — binding (step 6), usage generation (no override exists for scripts), and the rest-last validation all use it; invoke with `def.Handler.DynamicInvoke([ctx, ..args])` (equivalently `def.Handler.Method.Invoke(def.Handler.Target, ...)`); `HelpFormatter` uses the same parameter source for script usage lines. **Exception hygiene (both paths):** wrap the invoke in `try { ... } catch (TargetInvocationException tie) { if (tie.InnerException is not null) ExceptionDispatchInfo.Capture(tie.InnerException).Throw(); throw; }` — reflection's wrapper is dropped and the **original stack trace is preserved** (`ExceptionDispatchInfo`, not `throw tie.InnerException`, which would reset the stack), so a migrated command that throws `InvalidOperationException` reaches the existing per-event catch in `EventHandler.Update` as `InvalidOperationException` with its real frames (diagnostics parity with the legacy events, which threw directly).
 
 **Step 3: Rewire `EventHandler`**
 
@@ -311,7 +319,7 @@ Red: new behaviors fail (commands not dispatched). Green: implement.
 - `AddEvent(Player, string)`: first `registry.Snapshot.Trie.TryGetLongestPrefix(packet, out def, out len)`. If hit: legacy definition → existing code path (factory/type instantiation, `ClientOriginated = true`, enqueue). New-style: class-level privilege check with the existing swallow + debug log (`Goose/EventHandler.cs:283` block), then enqueue `CommandEvent` **carrying `len`** (the matched length, per Task 3 step 2). If miss: fall through to the packet trie exactly as today.
 - `_SeedCommands`: convert the table to registrations — non-command packet entries unchanged in the packet trie; every `/` entry becomes `registry.RegisterLegacy(key, typeof(XCommandEvent), privilege)` (same keys, same trailing spaces, same privileges — copy verbatim). `RegisterLegacy` takes no section/help — legacy commands stay out of help until migrated (Task 2 storage note).
 - Rename the nested `EventHandler.CommandDefinition` to `PacketDefinition` (it now describes non-command packets only; avoids colliding with the new top-level `Goose.Commands.CommandDefinition`). The `Open`/`Restricted` helpers become `PacketDefinition.Open/Restricted` for the packet table.
-- `RegisterEvent`: **unchanged signatures in this part** — both overloads keep working for all keys, with a warning logged for `/` keys (shipped `.csx` scripts depend on this until Part 3; see the ⚠ ordering constraint below). Hard rejection + overload deletion land in Part 3 Task 5.
+- `RegisterEvent`: **unchanged signatures in this part** — both overloads keep working for all keys, with a warning logged for `/` keys (shipped `.csx` scripts depend on this until Part 3; see the ⚠ ordering constraint below). Hard rejection + overload deletion land in Part 3 Task 3.
 
 **Mutation impact (dispatch path):**
 - Source of truth: command definitions move from the private `_SeedCommands` table into `CommandRegistry`; the packet trie keeps the non-command entries.
@@ -378,12 +386,13 @@ Tests (★ adversarial):
 | `Buttons`: page 0 → back hidden; middle page → both; last page → next hidden | `"0,1,0,1,0"` / `"0,1,1,1,0"` / `"0,1,1,0,0"` |
 | `Clicked(Next)` / `Clicked(Back)` re-send with adjacent page; `Clicked(Close)` removes from `player.Windows` | as stated |
 | ★ `Clicked(Next)` on last page / `Clicked(Back)` on page 0 → clamped, no crash | stays on page |
+| ★ line numbering is one-based: the first `WindowTextLine` of a fresh page uses line **1** (assert on the packet, don't just trust the implementation) | line 1, then 2, 3… |
 
 Red: compile failure. Green: implement.
 
 **Step 2: Implement**
 
-- `HelpWindow : Window` — model on `Goose/PlayerInfoWindow.cs`: ctor sets `ID = ++player.LastWindowID`, `Frame = WindowFrames.Quest`, `Type = WindowTypes.Help`, stores `List<List<string>> pages` + `pageNumber`; `Populate` sends each line via `P.WindowTextLine(this.ID, i, line)` (`Goose/Packets.cs:422`); `Clicked` per the PlayerInfoWindow pattern (`Goose/PlayerInfoWindow.cs:135-157`) with clamping; static `Open(GameWorld, Player, List<List<string>> pages)`.
+- `HelpWindow : Window` — model on `Goose/PlayerInfoWindow.cs`: ctor sets `ID = ++player.LastWindowID`, `Frame = WindowFrames.Quest`, `Type = WindowTypes.Help`, stores `List<List<string>> pages` + `pageNumber`; `Populate` sends each line via `P.WindowTextLine(this.ID, lineNumber, line)` (`Goose/Packets.cs:422`) with **one-based** `lineNumber` (first line = 1) — every existing window starts at 1 (`Goose/PlayerInfoWindow.cs:37`); `Clicked` per the PlayerInfoWindow pattern (`Goose/PlayerInfoWindow.cs:135-157`) with clamping; static `Open(GameWorld, Player, List<List<string>> pages)`.
 - `HelpFormatter.BuildPages`:
   - `name` null → `[SectionListPage, SectionPage(s) for each visible section]`.
   - **Name resolution — command and section visibility are resolved independently; every visible result is shown.** Input (case-insensitive, trailing space trimmed) matching a command and/or a section: visible command (`IsUsableBy`) → command details first; visible section (has ≥1 visible entry) → section page(s) after. Either one alone → just that one. Neither visible → `null` (no reply). An *inaccessible* same-named command never suppresses a visible section (anti-probing applies per-result, not to the name as a whole).
