@@ -18,11 +18,20 @@ namespace Goose.Events
      */
     class DoneLoadingMapEvent : Event
     {
+        private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
+
         public override void Ready(GameWorld world)
         {
             if (this.Player.State == Player.States.LoadingMap)
             {
-                Map map = world.MapHandler.GetMap(this.Player.MapID)!;
+                Map? map = world.MapHandler.GetMap(this.Player.MapID);
+                if (map is null)
+                {
+                    log.Error("Player {0}: map {1} not found on done-loading-map; disconnecting",
+                        this.Player.Name, this.Player.MapID);
+                    world.GameServer!.Disconnect(this.Player.Sock);
+                    return;
+                }
 
                 if (!this.Player.IsGMInvisible)
                 {

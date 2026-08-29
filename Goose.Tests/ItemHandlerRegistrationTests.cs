@@ -63,6 +63,23 @@ public class ItemHandlerRegistrationTests
     }
 
     [Fact]
+    public void AddTemplate_MissingBaseStats_IsRejected()
+    {
+        var world = new GameWorld(new GooseSettings());
+        world.ItemHandler.AddTemplate(new ItemTemplate { ID = 43, Name = "Bad", BaseStats = null! });
+
+        Assert.Null(world.ItemHandler.GetTemplate(43));
+    }
+
+    [Fact]
+    public void LoadFromTemplate_InvalidTemplate_ReturnsFalse()
+    {
+        var item = new Item();
+
+        Assert.False(item.LoadFromTemplate(new ItemTemplate { ID = 45, Name = "", BaseStats = null! }));
+    }
+
+    [Fact]
     public void AddTitle_and_AddSurname_register_into_separate_dictionaries()
     {
         var world = new GameWorld(new GooseSettings());

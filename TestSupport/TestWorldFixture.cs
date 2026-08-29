@@ -151,6 +151,18 @@ public class TestWorldFixture : IDisposable
         classes[classId] = cls;
     }
 
+    public void SeedClassLevels(int classId, string name, int[] levels)
+    {
+        var cls = new Class { ClassID = classId, ClassName = name, ACMultiplier = 1m };
+        foreach (int level in levels)
+            cls.AddLevel(new ClassLevel { Level = level, BaseStats = new AttributeSet(), Spells = new List<Spell>() });
+
+        var classes = (Dictionary<int, Class>)typeof(ClassHandler)
+            .GetField("classes", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .GetValue(World.ClassHandler)!;
+        classes[classId] = cls;
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(DataDirectory)) Directory.Delete(DataDirectory, recursive: true);

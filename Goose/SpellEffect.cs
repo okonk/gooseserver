@@ -887,8 +887,8 @@ namespace Goose
             }
 
             double successrate = (double)(
-                player.BaseStats.HP + player.Class.GetLevel(player.Level)!.BaseStats.HP +
-                player.BaseStats.MP + player.Class.GetLevel(player.Level)!.BaseStats.MP) / (double)target.MaxHP;
+                player.BaseStats.HP + (player.Class.GetLevel(player.Level)?.BaseStats.HP ?? 0) +
+                player.BaseStats.MP + (player.Class.GetLevel(player.Level)?.BaseStats.MP ?? 0)) / (double)target.MaxHP;
 
 
             if (world.Random.Next(1, 101) <= successrate * 100)
@@ -1055,9 +1055,15 @@ namespace Goose
         /// </summary>
         private bool CastScriptSpell(ICharacter caster, ICharacter target, GameWorld world)
         {
+            if (this.Script is null)
+            {
+                log.Error("Spell effect {0} has type Script but no script loaded", this.ID);
+                return false;
+            }
+
             try
             {
-                return this.Script!.Object.Cast(this, caster, target, world);
+                return this.Script.Object.Cast(this, caster, target, world);
             }
             catch (Exception e)
             {

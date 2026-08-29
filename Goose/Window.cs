@@ -152,10 +152,12 @@ namespace Goose
             {
                 case WindowTypes.Vendor:
                     world.Send(player, P.ClearVendor());
-                    
-                    for (int i = 1; i < this.NPC!.VendorItems!.Length; i++)
+
+                    if (this.NPC?.VendorItems is null) return;
+
+                    for (int i = 1; i < this.NPC.VendorItems.Length; i++)
                     {
-                        var slot = this.NPC!.VendorItems![i];
+                        var slot = this.NPC.VendorItems[i];
                         if (slot is null) continue;
 
                         world.Send(player, P.VendorSlot(this, slot.ItemTemplate, world, i, 1));
@@ -264,14 +266,15 @@ namespace Goose
             world.Send(player, line);
             line = P.WindowTextLine(this.ID, i++, "Experience: " + pet.Experience);
             world.Send(player, line);
-            if (pet.Class.GetLevel(pet.Level)!.Experience == 0)
+            ClassLevel? level = pet.Class.GetLevel(pet.Level);
+            if (level is not null && level.Experience == 0)
             {
                 line = P.WindowTextLine(this.ID, i++, "Experience Sold: " + pet.ExperienceSold);
                 world.Send(player, line);
             }
-            else
+            else if (level is not null)
             {
-                line = P.WindowTextLine(this.ID, i++, "Next Level: " + (pet.Class.GetLevel(pet.Level)!.Experience - pet.Experience));
+                line = P.WindowTextLine(this.ID, i++, "Next Level: " + (level.Experience - pet.Experience));
                 world.Send(player, line);
             }
             line = P.WindowTextLine(this.ID, i++, "Level: " + pet.Level);

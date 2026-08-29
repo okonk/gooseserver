@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using System.Text.Json;
 using System.Net.Sockets;
 using System.Data;
 using System.Data.Common;
@@ -541,11 +542,58 @@ namespace Goose
             this.Buffer.Append(data);
         }
 
+        private Map ResolveBoundMap(GameWorld world)
+        {
+            Map? map = world.MapHandler.GetMap(this.BoundID);
+            if (map is null)
+            {
+                log.Error("Player {0}: bound map {1} not found; rebinding to starting map", this.Name, this.BoundID);
+                this.BoundID = world.Settings.StartingMapID;
+                this.BoundX = world.Settings.StartingMapX;
+                this.BoundY = world.Settings.StartingMapY;
+                map = world.MapHandler.GetMap(this.BoundID);
+            }
+            // Starting map existence is validated at startup (GameWorld LoadStep chain).
+            return map!;
+        }
+
+        internal static bool ResolveClassAndLevel(Player player, GameWorld world)
+        {
+            Class? cls = world.ClassHandler.GetClass(player.ClassID);
+            if (cls is null)
+            {
+                cls = world.ClassHandler.GetFallbackClass();
+                if (cls is null)
+                {
+                    log.Error("Player {0}: no classes loaded; load failed", player.Name);
+                    return false;
+                }
+                log.Error("Player {0}: class {1} not found; using fallback class {2}",
+                    player.Name, player.ClassID, cls.ClassID);
+                player.ClassID = cls.ClassID;   // keep the persisted row and scripts consistent
+            }
+            player.Class = cls;
+
+            var levelIds = cls.LevelIds.OrderBy(i => i).ToList();
+            if (levelIds.Count == 0)
+            {
+                log.Error("Player {0}: class {1} has no level rows; load failed", player.Name, player.ClassID);
+                return false;
+            }
+            var atOrBelow = levelIds.Where(i => i <= player.Level).ToList();
+            int validLevel = atOrBelow.Count > 0 ? atOrBelow[atOrBelow.Count - 1] : levelIds[0];
+            if (validLevel != player.Level)
+                log.Error("Player {0}: level {1} missing for class {2}; loading at level {3}",
+                    player.Name, player.Level, player.ClassID, validLevel);
+            player.Level = validLevel;
+            return true;
+        }
+
         /**
          * LoadFromAutoCreate, fills in player info from server defaults
          *
          */
-        public void LoadFromAutoCreate(string name, string password, GameWorld world)
+        public bool LoadFromAutoCreate(string name, string password, GameWorld world)
         {
             var (passwordHash, base64Salt) = PasswordHasher.Create(password);
 
@@ -566,7 +614,7 @@ namespace Goose
             this.BoundID = world.Settings.StartingMapID;
             this.BoundX = world.Settings.StartingMapX;
             this.BoundY = world.Settings.StartingMapY;
-            this.BoundMap = world.MapHandler.GetMap(this.BoundID)!;
+            this.BoundMap = this.ResolveBoundMap(world);
             this.Gold = world.Settings.StartingGold;
             this.Level = world.Settings.StartingLevel;
             this.ClassID = world.Settings.StartingClassID;
@@ -618,7 +666,7 @@ namespace Goose
             this.MaxStats.SPPercentRegen = world.Settings.BaseSPPercentRegen;
             this.MaxStats.SPStaticRegen = world.Settings.BaseSPStaticRegen;
 
-            this.Class = world.ClassHandler.GetClass(this.ClassID)!;
+            if (!ResolveClassAndLevel(this, world)) return false;
             this.MaxStats += this.Class.GetLevel(this.Level)!.BaseStats;
 
             this.BodyState = world.Settings.StartingBodyState;
@@ -650,7 +698,7 @@ namespace Goose
                             continue;
                         }
                         Item item = new Item();
-                        item.LoadFromTemplate(template);
+                        if (!item.LoadFromTemplate(template)) continue;
                         world.ItemHandler.AddAndAssignId(item, world);
 
                         if (!this.Inventory.AddItem(item, 1, world))
@@ -671,13 +719,14 @@ namespace Goose
             // kind of a hack to ensure the queue should never be empty
             this.moveSpeed.Enqueue(this.BaseStats.MoveSpeed, this.BaseStats.MoveSpeed);
             this.moveSpeed.Enqueue(this.BaseStats.MoveSpeed, this.BaseStats.MoveSpeed);
+            return true;
         }
 
         /**
          * LoadFromReader, loads player info from a Sq1DataReader
          *
          */
-        public void LoadFromReader(GameWorld world, DbDataReader reader)
+        public bool LoadFromReader(GameWorld world, DbDataReader reader)
         {
             this.Access = (AccessStatus)reader.GetInt32("access_status");
 
@@ -698,7 +747,7 @@ namespace Goose
             this.BoundID = reader.GetInt32("bound_id");
             this.BoundX = reader.GetInt32("bound_x");
             this.BoundY = reader.GetInt32("bound_y");
-            this.BoundMap = world.MapHandler.GetMap(this.BoundID)!;
+            this.BoundMap = this.ResolveBoundMap(world);
             this.Gold = reader.GetInt64("player_gold");
             this.Level = reader.GetInt32("player_level");
             this.ClassID = reader.GetInt32("class_id");
@@ -751,7 +800,7 @@ namespace Goose
             this.MaxStats.SPPercentRegen = world.Settings.BaseSPPercentRegen;
             this.MaxStats.SPStaticRegen = world.Settings.BaseSPStaticRegen;
 
-            this.Class = world.ClassHandler.GetClass(this.ClassID)!;
+            if (!ResolveClassAndLevel(this, world)) return false;
             this.MaxStats += this.Class.GetLevel(this.Level)!.BaseStats;
 
             this.ToggleSettings = (ToggleSetting)reader.GetInt64("toggle_settings");
@@ -773,6 +822,7 @@ namespace Goose
             // kind of a hack to ensure the queue should never be empty
             this.moveSpeed.Enqueue(this.BaseStats.MoveSpeed, this.BaseStats.MoveSpeed);
             this.moveSpeed.Enqueue(this.BaseStats.MoveSpeed, this.BaseStats.MoveSpeed);
+            return true;
         }
 
 
@@ -806,7 +856,8 @@ namespace Goose
 
                 while (reader.Read())
                 {
-                    this.AddPet(Pet.FromReader(reader, world));
+                    Pet? pet = Pet.FromReader(reader, world);
+                    if (pet is not null) this.AddPet(pet);
                 }
             });
         }
@@ -818,24 +869,41 @@ namespace Goose
             {
                 using var query = conn.CreateCommand();
                 query.CommandText = "SELECT serialized_data FROM quest_status WHERE player_id=" + playerId;
-                string serialized_data = Convert.ToString(query.ExecuteScalar())!;
-                var questStatus = JsonHelper.Deserialize<QuestStatus>(serialized_data)!;
+                string? raw = Convert.ToString(query.ExecuteScalar());
+                QuestStatus? questStatus = null;
+                if (!string.IsNullOrEmpty(raw))
+                {
+                    try
+                    {
+                        questStatus = JsonHelper.Deserialize<QuestStatus>(raw);
+                    }
+                    catch (JsonException e)
+                    {
+                        log.Error("player {0}: quest_status blob is corrupt; starting empty", playerId, e);
+                    }
+                }
 
-                foreach (var started in questStatus.Started!)
+                if (questStatus is null)
+                {
+                    log.Warn("player {0}: no quest_status row; starting empty", playerId);
+                    return;
+                }
+
+                foreach (var started in questStatus.Started ?? [])
                 {
                     var quest = world.QuestHandler.Get(started);
                     if (quest is not null)
                         this.QuestsStarted.Add(quest);
                 }
 
-                foreach (var completed in questStatus.Completed!)
+                foreach (var completed in questStatus.Completed ?? [])
                 {
                     var quest = world.QuestHandler.Get(completed);
                     if (quest is not null)
                         this.QuestsCompleted.Add(quest);
                 }
 
-                foreach (var progress in questStatus.Progress!)
+                foreach (var progress in questStatus.Progress ?? [])
                 {
                     var quest = world.QuestHandler.Get(progress.QuestId);
                     if (quest is null)
@@ -1413,6 +1481,16 @@ namespace Goose
         {
             // todo unequip equipment i guess
 
+            Class? dest = world.ClassHandler.GetClass(classid);
+            if (this.Class.GetLevel(this.Level) is null || dest is null ||
+                dest.GetLevel(newLevel) is null ||
+                (newLevel > 1 && this.Class.GetLevel(newLevel - 1) is null))
+            {
+                log.Error("ChangeClass rejected for {0}: missing level data (class {1} level {2} -> class {3} level {4})",
+                    this.Name, this.ClassID, this.Level, classid, newLevel);
+                return;
+            }
+
             this.RemoveStats(this.BaseStats, world);
 
             this.MaxStats -= this.Class.GetLevel(this.Level)!.BaseStats;
@@ -1429,7 +1507,7 @@ namespace Goose
             this.BaseStats.HP = 0;
             this.BaseStats.MP = 0;
             this.BoundID = world.Settings.StartingMapID;
-            this.BoundMap = world.MapHandler.GetMap(this.BoundID)!;
+            this.BoundMap = this.ResolveBoundMap(world);
             this.BoundX = world.Settings.StartingMapX;
             this.BoundY = world.Settings.StartingMapY;
 
@@ -2191,7 +2269,8 @@ namespace Goose
                 buff.SpellEffect.EffectType == SpellEffect.EffectTypes.Stun)
             {
                 // buff will expire before next tick
-                if (buff.BuffExpireEvent!.Ticks - world.TimeNow >
+                if (buff.BuffExpireEvent is not null &&
+                    buff.BuffExpireEvent.Ticks - world.TimeNow >
                     world.Settings.SpellEffectPeriod * world.TimerFrequency)
                 {
                     var ev = new BuffTickEvent();
@@ -2483,8 +2562,9 @@ namespace Goose
             {
                 if (b.SpellEffect.EffectType == SpellEffect.EffectTypes.OnMeleeHit)
                 {
-                    if (world.Random.Next(1, 10001) <= b.SpellEffect.OnMeleeHitSpellChance * 100)
-                        b.SpellEffect.OnMeleeHitSpell!.Cast(this, hitter, world);
+                    SpellEffect? spell = b.SpellEffect.OnMeleeHitSpell;
+                    if (spell is not null && world.Random.Next(1, 10001) <= b.SpellEffect.OnMeleeHitSpellChance * 100)
+                        spell.Cast(this, hitter, world);
                 }
             }
         }
@@ -2499,8 +2579,9 @@ namespace Goose
             {
                 if (b.SpellEffect.EffectType == SpellEffect.EffectTypes.OnAttack)
                 {
-                    if (world.Random.Next(1, 10001) <= b.SpellEffect.OnMeleeAttackSpellChance * 100)
-                        b.SpellEffect.OnMeleeAttackSpell!.Cast(this, this, world);
+                    SpellEffect? spell = b.SpellEffect.OnMeleeAttackSpell;
+                    if (spell is not null && world.Random.Next(1, 10001) <= b.SpellEffect.OnMeleeAttackSpellChance * 100)
+                        spell.Cast(this, this, world);
                 }
             }
         }

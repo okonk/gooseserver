@@ -12,6 +12,8 @@ namespace Goose.Events
      */
     public class DestroyItemEvent : Event
     {
+        private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
+
         public override void Ready(GameWorld world)
         {
             if (this.Player.State == Player.States.Ready)
@@ -30,39 +32,37 @@ namespace Goose.Events
                 if (id <= 0 || id > world.Settings.InventorySize +
                     world.Settings.EquippedSize) return;
 
-                bool wasCustom = false;
+                ItemSlot? slot = id <= world.Settings.InventorySize
+                    ? this.Player.Inventory.GetSlot(id)
+                    : this.Player.Inventory.GetEquippedSlot(id);
+                if (slot is null || slot.Item is null) return;
 
-                if (id <= world.Settings.InventorySize)
-                {
-                    ItemSlot? slot = this.Player.Inventory.GetSlot(id);
-                    if (slot is null || slot.Item is null) return;
-
-                    wasCustom = slot.Item.Custom;
-                    this.Player.Inventory.RemoveItem(slot.Item, slot.Stack, world);
-                }
-                else
-                {
-                    ItemSlot? slot = this.Player.Inventory.GetEquippedSlot(id);
-                    if (slot is null || slot.Item is null) return;
-                    if (!this.Player.Inventory.Unequip(id, world)) return;
-
-                    wasCustom = slot.Item.Custom;
-
-                    this.Player.Inventory.RemoveItem(slot.Item, slot.Stack, world);
-                }
-
-                if (wasCustom)
+                Item? replacement = null;
+                if (slot.Item.Custom)
                 {
                     ItemTemplate? template = world.ItemHandler.GetTemplate(world.Settings.RippedCustomTicketId);
                     if (template is null) return;
 
-                    Item item = new Item();
-                    item.LoadFromTemplate(template);
-
-                    world.ItemHandler.AddAndAssignId(item, world);
-
-                    this.Player.Inventory.AddItem(item, 1, world);
+                    replacement = new Item();
+                    if (!replacement.LoadFromTemplate(template))
+                    {
+                        log.Error("custom ticket template {0}: invalid template; destroy skipped", world.Settings.RippedCustomTicketId);
+                        return;
+                    }
                 }
+
+                if (id > world.Settings.InventorySize && !this.Player.Inventory.Unequip(id, world)) return;
+
+                if (replacement is not null)
+                {
+                    this.Player.Inventory.RemoveItem(slot.Item, slot.Stack, world);
+
+                    world.ItemHandler.AddAndAssignId(replacement, world);
+                    this.Player.Inventory.AddItem(replacement, 1, world);
+                    return;
+                }
+
+                this.Player.Inventory.RemoveItem(slot.Item, slot.Stack, world);
             }
         }
     }

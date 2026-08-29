@@ -193,11 +193,22 @@ namespace Goose
             return null;
         }
 
+        internal static bool Validate(ItemTemplate template)
+        {
+            return template is not null && template.BaseStats is not null && !string.IsNullOrWhiteSpace(template.Name);
+        }
+
         /// <summary>Registers a generated template. Mirrors NPCHandler.AddTemplate
         /// (NPCHandler.cs:231) and SpellHandler.AddSpell. Overwrites silently, so callers
         /// generating ids must check GetTemplate first.</summary>
         public void AddTemplate(ItemTemplate template)
         {
+            if (!Validate(template))
+            {
+                log.Error("Refusing item template {0}: missing Name or BaseStats", template?.ID);
+                return;
+            }
+
             this.templates[template.ID] = template;
         }
 
@@ -252,9 +263,13 @@ namespace Goose
          * GetGold, returns item for gold
          * 
          */
-        public Item GetGold(GameWorld world)
+        public Item? GetGold(GameWorld world)
         {
-            return this.items[world.Settings.ItemIDStartpoint + world.Settings.GoldItemID];
+            if (this.items.TryGetValue(world.Settings.ItemIDStartpoint + world.Settings.GoldItemID, out Item? gold))
+                return gold;
+
+            log.Error("gold item template {0} not found; gold items disabled", world.Settings.GoldItemID);
+            return null;
         }
 
         /// <summary>

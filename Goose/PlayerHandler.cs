@@ -11,6 +11,8 @@ namespace Goose
      */
     public class PlayerHandler
     {
+        private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
+
         /// <summary>
         /// A mapping of all player names to their corresponding Player object. Loaded on startup
         /// </summary>
@@ -194,12 +196,14 @@ namespace Goose
                 while (reader.Read())
                 {
                     Player player = new Player(0);
-                    player.LoadFromReader(world, reader);
+                    bool ok = player.LoadFromReader(world, reader);
 
                     if (player.PlayerID >= this.CurrentID)
                     {
                         this.CurrentID = player.PlayerID + 1;
                     }
+
+                    if (!ok) { log.Error("Player row {0} failed to load; skipped", player.PlayerID); continue; }
 
                     if (player.Access == Player.AccessStatus.Deleted) continue;
 

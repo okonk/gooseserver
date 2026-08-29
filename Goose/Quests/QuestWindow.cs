@@ -214,17 +214,17 @@ namespace Goose.Quests
                         break;
                     case RequirementType.Item:
                         var item = world.ItemHandler.GetTemplate((int)requirement.Value);
-                        text += $"{item!.Name} ({requirement.Value2})\\n";
+                        text += $"{(item?.Name ?? "Unknown item")} ({requirement.Value2})\\n";
                         break;
                     case RequirementType.TalkToNPC:
                         var talkNPC = world.NPCHandler.GetNPCTemplate((int)requirement.Value);
                         long talkNPCProgress = player.QuestProgress.FirstOrDefault(p => p.Requirement.Id == requirement.Id)?.Value ?? 0;
-                        text += $"Talk to {talkNPC!.Name} ({talkNPCProgress}/{requirement.Value2})\\n";
+                        text += $"Talk to {(talkNPC?.Name ?? "Unknown NPC")} ({talkNPCProgress}/{requirement.Value2})\\n";
                         break;
                     case RequirementType.Kill:
                         var killNpc = world.NPCHandler.GetNPCTemplate((int)requirement.Value);
                         long killNpcProgress = player.QuestProgress.FirstOrDefault(p => p.Requirement.Id == requirement.Id)?.Value ?? 0;
-                        text += $"Kill {killNpc!.Name} ({killNpcProgress:N0}/{requirement.Value2:N0})\\n";
+                        text += $"Kill {(killNpc?.Name ?? "Unknown NPC")} ({killNpcProgress:N0}/{requirement.Value2:N0})\\n";
                         break;
                     case RequirementType.ExperienceBanked:
                         text += $"{requirement.Value:N0} xp banked\\n";
@@ -359,7 +359,7 @@ namespace Goose.Quests
                         if (template is null) continue;
 
                         Item item = new Item();
-                        item.LoadFromTemplate(template);
+                        if (!item.LoadFromTemplate(template)) continue;
                         world.ItemHandler.RollTitleAndSurname(item, world);
                         world.ItemHandler.AddAndAssignId(item, world);
 

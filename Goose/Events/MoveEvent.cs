@@ -110,7 +110,7 @@ namespace Goose.Events
                     if (tile is not null && tile is WarpTile)
                     {
                         WarpTile warp = (WarpTile)tile;
-                        if (warp.WarpMap.PlayerCanJoin(this.Player, world))
+                        if (warp.WarpMap is not null && warp.WarpMap.PlayerCanJoin(this.Player, world))
                         {
                             this.Player.WarpTo(world, warp.WarpMap, warp.WarpX, warp.WarpY);
                         }

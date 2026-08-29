@@ -9,6 +9,8 @@ namespace Goose
      */
     public class ClassHandler
     {
+        private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
+
         Dictionary<int, Class> classes;
 
         public ClassHandler()
@@ -55,8 +57,6 @@ namespace Goose
                 c.ManaCost = reader.GetInt64("mana_cost");
 
                 this.classes[c.ClassID] = c;
-
-                world.RankHandler.AddClass(c);
             }
             }
 
@@ -71,8 +71,8 @@ namespace Goose
                 Class? cl = this.GetClass(c.ClassID);
                 if (cl is null)
                 {
-                    // log something wrong
-                    return;
+                    log.Error("class_info row for unknown class {0} skipped", c.ClassID);
+                    continue;
                 }
 
                 c.Level = reader.GetInt32("level");
@@ -111,6 +111,17 @@ namespace Goose
             }
             }
 
+            var rejected = this.classes.Values.Where(c => !ValidateLevels(c)).Select(c => c.ClassID).ToList();
+            foreach (int id in rejected)
+            {
+                log.Error("class {0} ({1}): level rows must be contiguous 1..N; class rejected",
+                    id, this.classes[id].ClassName);
+                this.classes.Remove(id);
+            }
+
+            foreach (Class c in this.classes.Values)
+                world.RankHandler.AddClass(c);
+
             command.CommandText = "SELECT * FROM classes_levelup_spells";
             using (var reader = command.ExecuteReader())
             {
@@ -146,6 +157,14 @@ namespace Goose
             }
             });
         }
+
+        internal static bool ValidateLevels(Class c)
+        {
+            var ids = c.LevelIds.OrderBy(i => i).ToList();
+            return ids.Count > 0 && ids[0] == 1 && ids[ids.Count - 1] == ids.Count;
+        }
+
+        public Class? GetFallbackClass() => this.classes.Values.OrderBy(c => c.ClassID).FirstOrDefault();
 
         /**
          * Count, returns class count

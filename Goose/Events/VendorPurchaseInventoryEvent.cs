@@ -10,6 +10,8 @@ namespace Goose.Events
      */
     public class VendorPurchaseInventoryEvent : Event
     {
+        private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
+
         public override void Ready(GameWorld world)
         {
             if (this.Player.State == Player.States.Ready)
@@ -60,7 +62,9 @@ namespace Goose.Events
                 // log bad npc
                 if (npc is null) return;
 
-                NPCVendorSlot slot = npc.VendorItems![slotid];
+                if (npc.VendorItems is null || slotid < 0 || slotid >= npc.VendorItems.Length) return;
+
+                NPCVendorSlot slot = npc.VendorItems[slotid];
 
                 // log bad slot purchase
                 if (slot is null) return;
@@ -84,7 +88,11 @@ namespace Goose.Events
                 }
 
                 Item item = new Item();
-                item.LoadFromTemplate(slot.ItemTemplate);
+                if (!item.LoadFromTemplate(slot.ItemTemplate))
+                {
+                    log.Error("item template {0}: invalid template; purchase skipped", slot.ItemTemplate.ID);
+                    return;
+                }
 
                 world.ItemHandler.RollTitleAndSurname(item, world);
 

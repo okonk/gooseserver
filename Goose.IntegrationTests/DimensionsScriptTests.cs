@@ -545,7 +545,8 @@ public class DimensionsScriptTests
     {
         var fixture = new GlobalScriptFixture();
         SeedBoss(fixture);
-        fixture.World.NPCHandler.AddTemplate(new NPCTemplate { NPCTemplateID = id, Name = "Impostor" });
+        // BaseStats is required: AddTemplate rejects bare templates, which would defeat the collision the preflight must catch.
+        fixture.World.NPCHandler.AddTemplate(new NPCTemplate { NPCTemplateID = id, Name = "Impostor", BaseStats = new AttributeSet() });
 
         using (fixture)
         {

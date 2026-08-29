@@ -14,11 +14,28 @@ namespace Goose.Events
      */
     class LoginContinuedEvent : Event
     {
+        private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
+
         public override void Ready(GameWorld world)
         {
             if (this.Player.State == Player.States.LoadingGame)
             {
-                Map map = world.MapHandler.GetMap(this.Player.MapID)!;
+                Map? map = world.MapHandler.GetMap(this.Player.MapID);
+                if (map is null)
+                {
+                    log.Error("Player {0}: saved map {1} not found; falling back to starting map {2}",
+                        this.Player.Name, this.Player.MapID, world.Settings.StartingMapID);
+                    this.Player.MapID = world.Settings.StartingMapID;
+                    this.Player.MapX = world.Settings.StartingMapX;
+                    this.Player.MapY = world.Settings.StartingMapY;
+                    map = world.MapHandler.GetMap(world.Settings.StartingMapID);
+                }
+                if (map is null)
+                {
+                    world.Send(this.Player, P.LoginDenied("Server maps are unavailable."));
+                    world.GameServer!.Disconnect(this.Player.Sock);
+                    return;
+                }
 
                 this.Player.State = Player.States.LoadingMap;
                 

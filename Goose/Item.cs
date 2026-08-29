@@ -149,8 +149,10 @@ namespace Goose
          * This is when we want an item the same as the template.
          *
          */
-        public void LoadFromTemplate(ItemTemplate template)
+        public bool LoadFromTemplate(ItemTemplate template)
         {
+            if (!ItemHandler.Validate(template)) return false;
+
             this.Template = template;
             this.TemplateID = this.Template.ID;
             this.TotalStats += this.Template.BaseStats;
@@ -171,6 +173,8 @@ namespace Goose
             this.BodyState = this.Template.BodyState;
 
             this.ScriptParams = this.Template.ScriptParams;
+
+            return true;
         }
 
         /**

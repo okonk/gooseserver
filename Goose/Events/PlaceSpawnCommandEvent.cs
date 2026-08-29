@@ -40,10 +40,21 @@ namespace Goose.Events
                 return;
             }
 
+            ItemTemplate? goldTemplate = world.ItemHandler.GetTemplate(world.Settings.GoldItemID);
+            if (goldTemplate is null)
+            {
+                world.Send(this.Player, P.ServerMessage("Gold item template is missing."));
+                return;
+            }
+
             var rng = new Random(npcId);
 
             var item = new Item();
-            item.LoadFromTemplate(world.ItemHandler.GetTemplate(world.Settings.GoldItemID)!);
+            if (!item.LoadFromTemplate(goldTemplate))
+            {
+                world.Send(this.Player, P.ServerMessage("Gold item template is missing."));
+                return;
+            }
             item.ItemID = world.Settings.ItemIDStartpoint + world.Settings.GoldItemID;
             item.ScriptParams = npcId.ToString();
             item.Name = npc.Name;

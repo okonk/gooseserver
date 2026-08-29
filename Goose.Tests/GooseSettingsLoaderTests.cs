@@ -78,6 +78,33 @@ namespace Goose.Tests
         }
 
         [Fact]
+        public void Load_MissingStringFields_DefaultsToEmpty()
+        {
+            Directory.CreateDirectory(baseDir);
+            File.WriteAllText(SettingsPath(baseDir), "{\"StartingMapID\": 7}");
+
+            GooseSettings settings = GooseSettingsLoader.Load(baseDir, dataDir);
+
+            Assert.Equal(7, settings.StartingMapID);
+            foreach (string? value in new[]
+            {
+                settings.ServerVersion, settings.ServerType, settings.DatabaseName, settings.DataLinkId,
+                settings.DataPath, settings.ServerName, settings.StartingItems, settings.GameServerIP,
+                settings.MOTD, settings.StartingTitle, settings.StartingSurname, settings.DefaultGuildMOTD,
+            })
+                Assert.NotNull(value);
+        }
+
+        [Fact]
+        public void Load_NullDocument_ThrowsFatalStartupException()
+        {
+            Directory.CreateDirectory(baseDir);
+            File.WriteAllText(SettingsPath(baseDir), "null");
+
+            Assert.Throws<FatalStartupException>(() => GooseSettingsLoader.Load(baseDir, dataDir));
+        }
+
+        [Fact]
         public void Load_SameBaseAndDataRoot_ReadsFileWithoutCopying()
         {
             WriteSettings(baseDir, "shipped");

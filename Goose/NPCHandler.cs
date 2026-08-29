@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using Goose.Quests;
 using Goose.Scripting;
 
 namespace Goose
@@ -9,6 +10,8 @@ namespace Goose
      */
     public class NPCHandler
     {
+        private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
+
         private Dictionary<int, NPCTemplate> templates = new();
         private List<NPC> npcs = new();
         private Dictionary<int, NPC> idToNPC = new();
@@ -16,6 +19,20 @@ namespace Goose
         public IEnumerable<NPCTemplate> GetTemplates()
         {
             return templates.Values;
+        }
+
+        internal static List<Quest> ResolveQuests(int npcTemplateId, string rawQuestIds, QuestHandler handler)
+        {
+            var quests = new List<Quest>();
+            foreach (string token in rawQuestIds.Split([' ', ','], StringSplitOptions.RemoveEmptyEntries))
+            {
+                int id;
+                if (!int.TryParse(token, out id)) { log.Error("NPC template {0}: bad quest id '{1}'", npcTemplateId, token); continue; }
+                Quest? quest = handler.Get(id);
+                if (quest is null) { log.Error("NPC template {0}: unknown quest {1}", npcTemplateId, id); continue; }
+                quests.Add(quest);
+            }
+            return quests;
         }
 
         /**
@@ -107,8 +124,7 @@ namespace Goose
                         // uniform: item override, then vendor, then gold.
                         npc.CurrencyId = npc.CreditDealer ? Currency.Credits : null;
 
-                        var questIds = reader.GetString("quest_ids").Split([' ', ','], StringSplitOptions.RemoveEmptyEntries).Select(q => Convert.ToInt32(q));
-                        npc.Quests = questIds.Select(q => world.QuestHandler.Get(q)!).ToList();
+                        npc.Quests = ResolveQuests(npc.NPCTemplateID, reader.GetString("quest_ids"), world.QuestHandler);
 
                         string scriptPath = reader.GetString("script_path");
                         if (!string.IsNullOrEmpty(scriptPath))
@@ -229,10 +245,29 @@ namespace Goose
             return null;
         }
 
+        internal static bool ValidateAndNormalize(NPCTemplate template)
+        {
+            if (template is null || template.BaseStats is null || string.IsNullOrWhiteSpace(template.Name))
+                return false;
+
+            template.Allies ??= [];
+            template.Quests ??= [];
+            template.Drops ??= [];
+            template.EquippedItems ??= "";
+
+            return true;
+        }
+
         /// <summary>Registers a script-generated template. Overwrites any existing entry with the
         /// same id - callers that must not collide should check GetNPCTemplate first.</summary>
         public void AddTemplate(NPCTemplate template)
         {
+            if (!ValidateAndNormalize(template))
+            {
+                log.Error("Refusing NPC template {0}: missing Name or BaseStats", template?.NPCTemplateID);
+                return;
+            }
+
             this.templates[template.NPCTemplateID] = template;
         }
 

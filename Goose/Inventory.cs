@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Text;
+using System.Text.Json;
 using System.Data;
 using System.Data.SQLite;
 
@@ -906,78 +907,128 @@ namespace Goose
             int playerId = this.player.PlayerID;
             world.Database.Execute(conn =>
             {
-                using (var query = conn.CreateCommand())
+                this.inventory = this.LoadSlots(conn, playerId, "inventory", this.settings.InventorySize + 1);
+                for (int i = 0; i < this.inventory.Length; i++)
                 {
-                    query.CommandText = "SELECT serialized_data FROM inventory WHERE player_id=" + playerId;
-                    string serialized_data = Convert.ToString(query.ExecuteScalar())!;
-                    this.inventory = JsonHelper.Deserialize<ItemSlot?[]>(serialized_data)!;
+                    ItemSlot? invSlot = this.inventory[i];
+                    if (invSlot is null) continue;
 
-                    foreach (var invSlot in this.inventory)
+                    if (invSlot.Item is null)
                     {
-                        if (invSlot is null) continue;
+                        log.Error("player {0}: slot with null item discarded", playerId);
+                        this.inventory[i] = null;
+                        continue;
+                    }
 
-                        world.ItemHandler.AddItem(invSlot.Item, world);
+                    ItemTemplate? template = world.ItemHandler.GetTemplate(invSlot.Item.TemplateID);
+                    if (template is null)
+                    {
+                        log.Error("player {0}: item template {1} not found; slot discarded", playerId, invSlot.Item.TemplateID);
+                        this.inventory[i] = null;
+                        continue;
+                    }
 
-                        invSlot.Item.Template = world.ItemHandler.GetTemplate(invSlot.Item.TemplateID)!;
-                        if (invSlot.Item.Template is null)
-                            log.Warn("ItemTemplate '{}' was not found", invSlot.Item.TemplateID);
-                        invSlot.Item.RefreshStats();
+                    world.ItemHandler.AddItem(invSlot.Item, world);
+                    invSlot.Item.Template = template;
+                    invSlot.Item.RefreshStats();
+                }
+
+                this.equipped = this.LoadSlots(conn, playerId, "equipped", this.settings.EquippedSize + 1);
+                for (int i = 0; i < this.equipped.Length; i++)
+                {
+                    ItemSlot? equipSlot = this.equipped[i];
+                    if (equipSlot is null) continue;
+
+                    if (equipSlot.Item is null)
+                    {
+                        log.Error("player {0}: slot with null item discarded", playerId);
+                        this.equipped[i] = null;
+                        continue;
+                    }
+
+                    ItemTemplate? template = world.ItemHandler.GetTemplate(equipSlot.Item.TemplateID);
+                    if (template is null)
+                    {
+                        log.Error("player {0}: item template {1} not found; slot discarded", playerId, equipSlot.Item.TemplateID);
+                        this.equipped[i] = null;
+                        continue;
+                    }
+
+                    world.ItemHandler.AddItem(equipSlot.Item, world);
+                    equipSlot.Item.Template = template;
+                    equipSlot.Item.RefreshStats();
+
+                    this.player.AddStats(equipSlot.Item.TotalStats, world);
+                    if (equipSlot.Item.SpellEffect is not null)
+                    {
+                        Buff buff = new Buff();
+                        buff.Caster = this.player;
+                        buff.Target = this.player;
+                        buff.ItemBuff = true;
+                        buff.SpellEffect = equipSlot.Item.SpellEffect;
+
+                        this.player.AddBuff(buff, world, false);
                     }
                 }
 
-                using (var query = conn.CreateCommand())
+                var combineSlots = this.LoadSlots(conn, playerId, "combinebag", this.settings.CombineBagSize + 1);
+                for (int i = 0; i < combineSlots.Length; i++)
                 {
-                    query.CommandText = "SELECT serialized_data FROM equipped WHERE player_id=" + playerId;
-                    string serialized_data = Convert.ToString(query.ExecuteScalar())!;
-                    this.equipped = JsonHelper.Deserialize<ItemSlot?[]>(serialized_data)!;
+                    var combineSlot = combineSlots[i];
+                    if (combineSlot is null) continue;
 
-                    foreach (var equipSlot in equipped)
+                    if (combineSlot.Item is null)
                     {
-                        if (equipSlot is null) continue;
-
-                        world.ItemHandler.AddItem(equipSlot.Item, world);
-
-                        equipSlot.Item.Template = world.ItemHandler.GetTemplate(equipSlot.Item.TemplateID)!;
-                        if (equipSlot.Item.Template is null)
-                            log.Warn("ItemTemplate '{}' was not found", equipSlot.Item.TemplateID);
-                        equipSlot.Item.RefreshStats();
-
-                        this.player.AddStats(equipSlot.Item.TotalStats, world);
-                        if (equipSlot.Item.SpellEffect is not null)
-                        {
-                            Buff buff = new Buff();
-                            buff.Caster = this.player;
-                            buff.Target = this.player;
-                            buff.ItemBuff = true;
-                            buff.SpellEffect = equipSlot.Item.SpellEffect;
-
-                            this.player.AddBuff(buff, world, false);
-                        }
+                        log.Error("player {0}: slot with null item discarded", playerId);
+                        continue;
                     }
-                }
 
-                using (var query = conn.CreateCommand())
-                {
-                    query.CommandText = "SELECT serialized_data FROM combinebag WHERE player_id=" + playerId;
-                    string serialized_data = Convert.ToString(query.ExecuteScalar())!;
-                    var combineSlots = JsonHelper.Deserialize<ItemSlot?[]>(serialized_data)!;
-
-                    for (int i = 0; i < combineSlots.Length; i++)
+                    ItemTemplate? template = world.ItemHandler.GetTemplate(combineSlot.Item.TemplateID);
+                    if (template is null)
                     {
-                        var combineSlot = combineSlots[i];
-                        if (combineSlot is null) continue;
-
-                        world.ItemHandler.AddItem(combineSlot.Item, world);
-
-                        combineSlot.Item.Template = world.ItemHandler.GetTemplate(combineSlot.Item.TemplateID)!;
-                        if (combineSlot.Item.Template is null)
-                            log.Warn("ItemTemplate '{}' was not found", combineSlot.Item.TemplateID);
-                        combineSlot.Item.RefreshStats();
-
-                        this.combineContainer.SetSlot(i, combineSlot);
+                        log.Error("player {0}: item template {1} not found; slot discarded", playerId, combineSlot.Item.TemplateID);
+                        continue;
                     }
+
+                    world.ItemHandler.AddItem(combineSlot.Item, world);
+                    combineSlot.Item.Template = template;
+                    combineSlot.Item.RefreshStats();
+
+                    this.combineContainer.SetSlot(i, combineSlot);
                 }
             });
+        }
+
+        private ItemSlot?[] LoadSlots(SQLiteConnection conn, int playerId, string table, int size)
+        {
+            using var query = conn.CreateCommand();
+            query.CommandText = "SELECT serialized_data FROM " + table + " WHERE player_id=" + playerId;
+            string? raw = Convert.ToString(query.ExecuteScalar());
+            ItemSlot?[]? data = null;
+            if (!string.IsNullOrEmpty(raw))
+            {
+                try
+                {
+                    data = JsonHelper.Deserialize<ItemSlot?[]>(raw);
+                }
+                catch (JsonException e)
+                {
+                    log.Error("player {0}: {1} blob is corrupt; starting empty", playerId, table, e);
+                }
+            }
+
+            if (data is null)
+            {
+                log.Warn("player {0}: no {1} row; starting empty", playerId, table);
+                return new ItemSlot[size];
+            }
+
+            var normalized = new ItemSlot?[size];
+            for (int i = 0; i < Math.Min(data.Length, size); i++)
+                normalized[i] = data[i];
+            if (data.Length != size)
+                log.Warn("player {0}: {1} blob has {2} slots, expected {3}", playerId, table, data.Length, size);
+            return normalized;
         }
 
         /**
@@ -1099,7 +1150,11 @@ namespace Goose
                 }
 
                 item = new Item();
-                item.LoadFromTemplate(template);
+                if (!item.LoadFromTemplate(template))
+                {
+                    log.Error("combine result item {0} failed to load; skipped", template.ID);
+                    continue;
+                }
                 world.ItemHandler.RollTitleAndSurname(item, world);
                 world.ItemHandler.AddAndAssignId(item, world);
 

@@ -49,9 +49,26 @@ namespace Goose
 
             log.Info("Loaded settings from {0}", settingsPath);
 
-            return JsonSerializer.Deserialize<GooseSettings>(
+            GooseSettings? settings = JsonSerializer.Deserialize<GooseSettings>(
                 File.ReadAllText(settingsPath, Encoding.UTF8),
-                JsonHelper.SettingsOptions)!;
+                JsonHelper.SettingsOptions);
+            if (settings is null)
+                throw new FatalStartupException("GooseSettings.json is empty or null");
+
+            List<string> missing = [];
+            foreach (System.Reflection.PropertyInfo prop in
+                typeof(GooseSettings).GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)
+                .Where(p => p.PropertyType == typeof(string) && p.CanWrite))
+            {
+                if (prop.GetValue(settings) is null)
+                {
+                    prop.SetValue(settings, "");
+                    missing.Add(prop.Name);
+                }
+            }
+            if (missing.Count > 0)
+                log.Warn("GooseSettings.json is missing fields (defaulted to empty): {0}", string.Join(", ", missing));
+            return settings;
         }
     }
 }

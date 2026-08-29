@@ -270,8 +270,14 @@ namespace Goose
             if (!this.LoadStep("Maps", () => this.MapHandler.LoadMaps(this),
                 () => this.MapHandler.Count)) return;
 
+            if (this.MapHandler.GetMap(this.Settings.StartingMapID) is null)
+                throw new FatalStartupException("starting map " + this.Settings.StartingMapID + " not found");
+
             if (!this.LoadStep("Classes", () => this.ClassHandler.LoadClasses(this),
                 () => this.ClassHandler.Count)) return;
+
+            if (this.ClassHandler.Count == 0)
+                throw new FatalStartupException("no valid classes loaded; check the classes/class_info tables");
 
             if (!this.LoadStep("NPC Templates", () => this.NPCHandler.LoadNPCTemplates(this),
                 () => this.NPCHandler.TemplateCount)) return;
@@ -300,10 +306,24 @@ namespace Goose
             //this.EventHandler.AddEvent(updateCredits);
 
             // Add gold item
-            var gold = new Item();
-            gold.ItemID = this.Settings.ItemIDStartpoint + this.Settings.GoldItemID;
-            gold.LoadFromTemplate(ItemHandler.GetTemplate(this.Settings.GoldItemID)!);
-            this.ItemHandler.AddItem(gold, this);
+            ItemTemplate? goldTemplate = this.ItemHandler.GetTemplate(this.Settings.GoldItemID);
+            if (goldTemplate is null)
+            {
+                log.Error("gold item template {0} not found; gold items disabled", this.Settings.GoldItemID);
+            }
+            else
+            {
+                var gold = new Item();
+                gold.ItemID = this.Settings.ItemIDStartpoint + this.Settings.GoldItemID;
+                if (!gold.LoadFromTemplate(goldTemplate))
+                {
+                    log.Error("gold item template {0} failed to load; gold items disabled", this.Settings.GoldItemID);
+                }
+                else
+                {
+                    this.ItemHandler.AddItem(gold, this);
+                }
+            }
 
             if (!this.LoadStep("Global Scripts", () => LoadGlobalScripts())) return;
 

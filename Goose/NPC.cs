@@ -594,6 +594,12 @@ namespace Goose
          */
         public bool LoadFromTemplate(GameWorld world, int map_id, int map_x, int map_y, NPCTemplate template, bool shouldRespawn)
         {
+            if (!NPCHandler.ValidateAndNormalize(template))
+            {
+                log.Error("NPC template {0}: invalid template; spawn skipped", template?.NPCTemplateID);
+                return false;
+            }
+
             this.ShouldRespawn = shouldRespawn;
 
             this.Map = world.MapHandler.GetMap(map_id)!;
@@ -645,8 +651,15 @@ namespace Goose
             this.Surname = template.Surname;
             this.Title = template.Title;
             this.WeaponDamage = template.WeaponDamage;
-            this.Class = world.ClassHandler.GetClass(this.ClassID)!;
-            this.MaxStats += this.Class.GetLevel(this.Level)!.BaseStats;
+            Class? cls = world.ClassHandler.GetClass(this.ClassID);
+            if (cls is null || cls.GetLevel(this.Level) is null)
+            {
+                log.Error("NPC template {0}: class {1}/level {2} not found; spawn skipped",
+                    template.NPCTemplateID, this.ClassID, this.Level);
+                return false;
+            }
+            this.Class = cls;
+            this.MaxStats += cls.GetLevel(this.Level)!.BaseStats;
             this.Quests = template.Quests;
 
             this.SpawnX = this.MapX;
@@ -1159,32 +1172,39 @@ namespace Goose
                         }
                     }
 
-                    if (highest is Group)
+                    if (highest is not null)
                     {
-                        ((Group)highest).GainExperience(this, world);
-                    }
-                    else
-                    {
-                        Player.ExperienceMessage expMessage = Player.ExperienceMessage.Normal;
-                        long experience = this.Experience;
-
-                        if (this.Level + 9 < ((Player)highest!).Level)
+                        if (highest is Group)
                         {
-                            experience = (long)(this.Experience * 0.10);
-                            expMessage = Player.ExperienceMessage.TooHigh;
-                        }
-
-                        if (highest is Pet)
-                        {
-                            ((Pet)highest).Owner.Killed(this, world);
-                            ((Pet)highest).Owner.AddExperience(experience, world, expMessage);
-                            ((Player)highest).AddExperience(experience, world, expMessage);
+                            ((Group)highest).GainExperience(this, world);
                         }
                         else
                         {
-                            ((Player)highest).Killed(this, world);
-                            ((Player)highest).AddExperience(experience, world, expMessage);
+                            Player.ExperienceMessage expMessage = Player.ExperienceMessage.Normal;
+                            long experience = this.Experience;
+
+                            if (this.Level + 9 < ((Player)highest!).Level)
+                            {
+                                experience = (long)(this.Experience * 0.10);
+                                expMessage = Player.ExperienceMessage.TooHigh;
+                            }
+
+                            if (highest is Pet)
+                            {
+                                ((Pet)highest).Owner.Killed(this, world);
+                                ((Pet)highest).Owner.AddExperience(experience, world, expMessage);
+                                ((Player)highest).AddExperience(experience, world, expMessage);
+                            }
+                            else
+                            {
+                                ((Player)highest).Killed(this, world);
+                                ((Player)highest).AddExperience(experience, world, expMessage);
+                            }
                         }
+                    }
+                    else
+                    {
+                        log.Warn("NPC {0} died with no damage entries; kill reward skipped", this.NPCTemplateID);
                     }
 
                     List<Buff> removebuff = [];
@@ -1199,10 +1219,13 @@ namespace Goose
                         this.RemoveBuff(b, world);
                     }
 
-                    if (highest is Group)
-                        this.DropItems(((Group)highest).Players[0], world);
-                    else
-                        this.DropItems(((Player)highest), world);
+                    if (highest is not null)
+                    {
+                        if (highest is Group)
+                            this.DropItems(((Group)highest).Players[0], world);
+                        else
+                            this.DropItems(((Player)highest), world);
+                    }
                 }
                 else
                 {
@@ -1438,12 +1461,18 @@ namespace Goose
                     ItemSlot drop = new ItemSlot();
                     if (dropinfo.ItemTemplate.ID == world.Settings.GoldItemID)
                     {
-                        drop.Item = world.ItemHandler.GetGold(world);
+                        Item? goldItem = world.ItemHandler.GetGold(world);
+                        if (goldItem is null)
+                        {
+                            log.Error("npc {0}: gold drop skipped, gold items disabled", this.NPCTemplateID);
+                            continue;
+                        }
+                        drop.Item = goldItem;
                     }
                     else
                     {
                         drop.Item = new Item();
-                        drop.Item.LoadFromTemplate(dropinfo.ItemTemplate);
+                        if (!drop.Item.LoadFromTemplate(dropinfo.ItemTemplate)) continue;
 
                         world.ItemHandler.RollTitleAndSurname(drop.Item, world);
 
@@ -1520,7 +1549,8 @@ namespace Goose
                 buff.SpellEffect.EffectType == SpellEffect.EffectTypes.Stun)
             {
                 // buff will expire before next tick
-                if (buff.BuffExpireEvent!.Ticks - world.TimeNow >
+                if (buff.BuffExpireEvent is not null &&
+                    buff.BuffExpireEvent.Ticks - world.TimeNow >
                     world.Settings.SpellEffectPeriod * world.TimerFrequency)
                 {
                     var ev = new BuffTickEvent();
@@ -1692,8 +1722,9 @@ namespace Goose
             {
                 if (b.SpellEffect.EffectType == SpellEffect.EffectTypes.OnMeleeHit)
                 {
-                    if (world.Random.Next(1, 10001) <= b.SpellEffect.OnMeleeHitSpellChance * 100)
-                        b.SpellEffect.OnMeleeHitSpell!.Cast(this, hitter, world);
+                    SpellEffect? spell = b.SpellEffect.OnMeleeHitSpell;
+                    if (spell is not null && world.Random.Next(1, 10001) <= b.SpellEffect.OnMeleeHitSpellChance * 100)
+                        spell.Cast(this, hitter, world);
                 }
             }
         }
@@ -1708,8 +1739,9 @@ namespace Goose
             {
                 if (b.SpellEffect.EffectType == SpellEffect.EffectTypes.OnAttack)
                 {
-                    if (world.Random.Next(1, 10001) <= b.SpellEffect.OnMeleeAttackSpellChance * 100)
-                        b.SpellEffect.OnMeleeAttackSpell!.Cast(this, hit, world);
+                    SpellEffect? spell = b.SpellEffect.OnMeleeAttackSpell;
+                    if (spell is not null && world.Random.Next(1, 10001) <= b.SpellEffect.OnMeleeAttackSpellChance * 100)
+                        spell.Cast(this, hit, world);
                 }
             }
         }

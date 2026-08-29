@@ -543,13 +543,22 @@ namespace Goose
 
                     while (reader.Read())
                     {
-                        WarpTile warp = new WarpTile();
-                        warp.WarpMap = world.MapHandler.GetMap(reader.GetInt32("warp_id"))!;
-                        warp.WarpX = reader.GetInt32("warp_x");
-                        warp.WarpY = reader.GetInt32("warp_y");
-
+                        int warpId = reader.GetInt32("warp_id");
                         int x = reader.GetInt32("map_x");
                         int y = reader.GetInt32("map_y");
+
+                        Map? warpMap = world.MapHandler.GetMap(warpId);
+                        if (warpMap is null)
+                        {
+                            log.Error("map {0}: warp tile at ({1},{2}) references unknown map {3}; tile skipped",
+                                mapId, x, y, warpId);
+                            continue;
+                        }
+
+                        WarpTile warp = new WarpTile();
+                        warp.WarpMap = warpMap;
+                        warp.WarpX = reader.GetInt32("warp_x");
+                        warp.WarpY = reader.GetInt32("warp_y");
 
                         this.tiles[y * this.Width + x] = warp;
                     }
