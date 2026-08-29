@@ -148,9 +148,12 @@ public sealed class CustomCommand
 ```
 
 - First token selects the subcommand (case-insensitive, matching current
-  `/custom` behavior); remaining tokens bind to its parameters.
+  `/custom` behavior); the tokens **after** the subcommand token bind to its
+  parameters (the selector is never a parameter).
 - Bare command or unknown subcommand → framework sends that command's help
-  (subcommand list + usage lines).
+  (subcommand list + usage lines), **filtered by subcommand privilege** — a
+  restricted subcommand's name/usage never appears for an unprivileged player
+  (same anti-probing rule as the help window).
 - Subcommand privileges are checked after the subcommand token matches,
   before its handler runs; denial is swallowed. Class-level privilege gates
   before subcommand dispatch.
