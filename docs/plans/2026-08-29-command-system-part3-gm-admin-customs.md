@@ -51,7 +51,7 @@ Identical to Part 2's rule (read event → new class with verbatim key/privilege
 | `/givecredits ` | `GiveCreditsCommandEvent` | `string name, int credits` | `GetPlayerFromData` in-body; keep the silent `credits <= 0` return (validation, not access — no `CheckAccess` needed) |
 | `/settitle ` | `SetTitleCommandEvent` | `string name, string[] title` | title = join — legacy `Split(' ', 3)` makes `tokens[2]` the **rest of the line** (titles may contain spaces); `GetPlayerFromData` in-body |
 | `/setsurname ` | `SetSurnameCommandEvent` | `string name, string[] surname` | surname = join; same |
-| `/changeclass ` | `ChangeClassCommandEvent` | `string name, string cl, decimal? modifier = null` | `GetPlayerFromData` in-body; `decimal` binder from Part 2 Task 0 |
+| `/changeclass ` | `ChangeClassCommandEvent` | `string name, string cl, decimal? modifier = null` | `GetPlayerFromData` in-body; `decimal` binder from Part 1 |
 | `/changename ` | `ChangeNameCommandEvent` | `string oldname, string newname` | two `GetPlayerFromData` lookups in-body |
 | `/checkname ` | `CheckNameCommandEvent` | `string[] name` | name = join (old `Substring(11)` = rest of line); `GetPlayerFromData` in-body |
 | `/setpassword ` | `GMSetPasswordCommandEvent` | `string name, string[] password` | password = join — legacy `Split(' ', 3)` makes `tokens[2]` the rest of the line (passwords may contain spaces); `GetPlayerFromData` in-body |
@@ -131,7 +131,7 @@ Run `dotnet test` (both). Commit: `refactor: migrate GM world commands and Admin
 
 **Steps:**
 
-- Subcommands: `help` (no args), `kill` (no args), `preview` and `make` both `(int r, int g, int b, int a, string[] name)`; `make` carries alias names `make`/`create` via the multi-name `SubcommandAttribute` (Part 2 Task 0). `Usage` overrides: `/custom make <r> <g> <b> <a> <name...>` and `/custom preview <r> <g> <b> <a> <name...>` (emitted with the framework's `Usage: ` prefix — legacy `/custom` usage lines had none; intended formatting delta, test-pinned). **name = `string.Join(" ", name)`** — legacy `Split(' ', 6, RemoveEmptyEntries)` makes `tokens[5]` the rest of the line, so `/custom make 1 2 3 4 My Sword` names the item "My Sword". **Empty `name` → `ctx.Send(ctx.Usage)`** (legacy `tokens.Length < 6` → usage for both subcommands; the binder can't express "tail must be non-empty", so the guard lives in the body).
+- Subcommands: `help` (no args), `kill` (no args), `preview` and `make` both `(int r, int g, int b, int a, string[] name)`; `make` carries alias names `make`/`create` via the multi-name `SubcommandAttribute` (Part 2 Task 0) — **invocation via the `create` alias still prints the primary name in every usage line** (`Usage: /custom make …`, test-pinned). `Usage` overrides: `/custom make <r> <g> <b> <a> <name...>` and `/custom preview <r> <g> <b> <a> <name...>` (emitted with the framework's `Usage: ` prefix — legacy `/custom` usage lines had none; intended formatting delta, test-pinned). **name = `string.Join(" ", name)`** — legacy `Split(' ', 6, RemoveEmptyEntries)` makes `tokens[5]` the rest of the line, so `/custom make 1 2 3 4 My Sword` names the item "My Sword". **Empty `name` → `ctx.Send(ctx.Usage)`** (legacy `tokens.Length < 6` → usage for both subcommands; the binder can't express "tail must be non-empty", so the guard lives in the body).
 - Move `ParseRGBA`, `ValidateCustomSlots`, `EquippedDisplay`, `MountDisplay` into the new class verbatim (they are static/instance helpers on the legacy class).
 - Section: `Customs`.
 

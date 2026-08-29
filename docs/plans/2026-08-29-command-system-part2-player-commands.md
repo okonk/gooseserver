@@ -56,7 +56,7 @@ Design doc: `docs/plans/2026-08-29-command-system-design.md`
 | `/buymana` | `BuyManaCommandEvent` | `int buys = 1` | same |
 | `/rank` | `RankCommandEvent` | `string? arg = null` | old code strips one leading space then lowercases |
 | `/hairdye` | `HairdyeCommandEvent` | `string[] args` | `Usage = "/hairdye [preview|kill|accept] <r> <g> <b> <a>"` (override = the legacy usage text, `HairdyeCommandEvent.cs:14`; the framework emits it as `Usage: /hairdye [preview|kill|accept] <r> <g> <b> <a>` — the legacy line had no `Usage: ` prefix, an intended formatting delta, test-pinned). **legacy has no bare-numeric dye path** — bare/`help` sends that usage line, then the switch is `accept`/`gogodyeme`/`preview`/`kill` with no default case, and each verb takes four ints *after* the verb (`ParseRGBA` reads `tokens[1..4]`, so `/hairdye accept 255 0 0 255` is 5 tokens). Handler: `args` empty or `args[0] == "help"` → `ctx.Send(ctx.Usage)` (exact emitted line: `Usage: /hairdye [preview|kill|accept] <r> <g> <b> <a>` — test-pinned); else move the switch and `ParseRGBA` verbatim over `args`; unknown verb → silent no-op (legacy parity) |
-| `/aether ` | `AetherCommandEvent` | `decimal thres` | **requires `decimal` binder support (Task 0)** |
+| `/aether ` | `AetherCommandEvent` | `decimal thres` | `decimal` binder from Part 1 |
 | `/mc ` | `MacroConfirmCommandEvent` | `string[] code` | code = join — old `Substring("/mc ".Length)` is the rest of the line |
 | `/group ` | `GroupChatEvent` | `string[] message` | message = join |
 | `/invite ` + `/groupadd ` | `GroupAddEvent` | `string name` | alias pair (Task 0) |
@@ -79,15 +79,14 @@ Design doc: `docs/plans/2026-08-29-command-system-design.md`
 
 ---
 
-### Task 0: Framework prerequisites — multi-key aliases and `decimal`
+### Task 0: Framework prerequisite — multi-key aliases
 
 **Files:**
-- Modify: `Goose/Commands/CommandAttribute.cs`, `Goose/Commands/CommandBinder.cs`, `Goose/Commands/CommandRegistry.cs`
-- Test: `Goose.Tests/CommandBinderTests.cs` (add `decimal` cases), `Goose.Tests/CommandRegistryTests.cs` (add alias cases)
+- Modify: `Goose/Commands/CommandAttribute.cs`, `Goose/Commands/CommandRegistry.cs`
+- Test: `Goose.Tests/CommandRegistryTests.cs` (add alias cases)
 
 **Step 1: Failing tests**
 
-- Binder: `decimal` binds from `"1.5"` (invariant); `"1,5"` → usage error; `decimal` with default works.
 - Registry/discovery: a `[Command("/invite ", "/groupadd ", ...)]` class registers under **both** keys; `TryGet` hits both; help lists the **first** key as the command's usage key; replacing/downgrade checks apply per key (registering `/groupadd` again as open when the alias pair is restricted → refused).
 - ★ Different-length alias binding: dispatch `/invite Bob` and `/groupadd Bob` (keys 8 vs 10 chars) — both must bind `name == "Bob"` exactly. This is the regression test for Part 1's matched-length cut point (`CommandEvent` must use the trie's `matchedLength`, never `PrimaryKey.Length`); a cut-point bug is invisible for same-length keys, and for some key pairs `RemoveEmptyEntries` can mask it (when the wrong cut lands on a space) — so assert the exact bound value for **both** aliases; for `/invite `/`/groupadd ` specifically, a wrong cut corrupts the token either way (`"d Bob"` / `"b"`), which is why this pair is a good regression fixture.
 
@@ -105,12 +104,11 @@ public CommandAttribute(string firstKey, string secondKey, AccessPrivilege privi
 ```
 
 No ambiguity: a string second arg can't convert to `AccessPrivilege` and vice versa. Validate every key. The equivalent multi-name `SubcommandAttribute` (`Names` array + `PrimaryName`, same four-constructor shape) lands here too — Part 3's `/custom make|create` alias needs it.
-- Part 1's registry storage is already alias-ready (the snapshot's `ByKey`/trie map every key to one definition) — this task adds the multi-key attribute, the discovery path (one class with N keys → one definition under all N keys via `RegisterKeys`), and the per-key downgrade/conflict checks.
-- Binder: add `decimal` (invariant parse) alongside the other numerics.
+- Part 1's registry storage is already alias-ready (the snapshot's `ByKey`/trie map every key to one definition) — this task adds the multi-key attribute, the discovery path (one class with N keys → one definition under all N keys via `RegisterKeys`), and the per-key downgrade/conflict checks. (The `decimal` binder already landed in Part 1 — no binder work here.)
 
 **Step 3: Run** `dotnet test Goose.Tests` — green.
 
-**Step 4: Commit** `feat: command alias keys and decimal parameter support`
+**Step 4: Commit** `feat: command alias keys`
 
 ---
 
