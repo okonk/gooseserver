@@ -1277,7 +1277,7 @@ namespace Goose
             }
             catch (Exception e)
             {
-                // TODO: need a logging system
+                log.Error(e, "Map OnPlayerMove {0} ({1}) player {2} ({3}) Exception", this.Map.Name, this.Map.ID, this.Name, this.LoginID);
             }
 
             List<Player> afterRange = this.Map.GetPlayersInRange(this);

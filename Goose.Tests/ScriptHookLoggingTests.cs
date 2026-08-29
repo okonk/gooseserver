@@ -1,0 +1,112 @@
+using Goose.Scripting;
+using Goose.Testing;
+
+namespace Goose.Tests;
+
+// CapturingLog swaps the global NLog configuration; DisableParallelization keeps
+// this class from running concurrently with any other test class.
+[CollectionDefinition("NLog", DisableParallelization = true)]
+public class NLogCollection { }
+
+[Collection("NLog")]
+public class ScriptHookLoggingTests
+{
+    [Fact]
+    public void Map_AddPlayer_WithThrowingOnPlayerEntered_LogsMapAndPlayerIds()
+    {
+        using var fixture = new TestWorldFixture();
+        using var log = new CapturingLog();
+        var map = fixture.AddBaseMap(7, "HookMap");
+        map.Script = ScriptStub.For<IMapScript>(new ThrowingEnteredScript());
+        var player = fixture.PlayerOn(map, 1, 1);
+        player.Name = "HookPlayer";
+        player.LoginID = 42;
+
+        map.AddPlayer(player, fixture.World);
+
+        Assert.Contains(log.Messages, m =>
+            m.Contains("HookMap") && m.Contains("7") &&
+            m.Contains("HookPlayer") && m.Contains("42"));
+    }
+
+    [Fact]
+    public void Npc_Attacked_WithThrowingOnAttackedEvent_LogsNpcNameAndTemplateId()
+    {
+        using var fixture = new TestWorldFixture();
+        using var log = new CapturingLog();
+        var map = fixture.AddBaseMap(1, "m");
+        var player = fixture.CommandPlayerOn(map, 1, 1);
+        var template = new NPCTemplate
+        {
+            NPCTemplateID = 100162,
+            Name = "HookNpc",
+            Level = 5,
+            ClassID = 1,
+            CanBeKilled = true,
+            BaseStats = new AttributeSet { HP = 100 },
+        };
+        var npc = fixture.World.NPCHandler.SpawnNPC(fixture.World, 1, 3, 3, template, false)!;
+        npc.NPCTemplate.Script = ScriptStub.For<INPCScript>(new ThrowingAttackedScript());
+
+        npc.Attacked(player, 10, fixture.World);
+
+        Assert.Equal(90, npc.CurrentHP);
+        Assert.Contains(log.Messages, m =>
+            m.Contains("HookNpc") && m.Contains("100162"));
+    }
+
+    [Fact]
+    public void Npc_Killed_WithThrowingOnKilledEvent_MapHookStillRuns()
+    {
+        using var fixture = new TestWorldFixture();
+        using var log = new CapturingLog();
+        var map = fixture.AddBaseMap(1, "m");
+        var player = fixture.CommandPlayerOn(map, 1, 1);
+        var template = new NPCTemplate
+        {
+            NPCTemplateID = 100162,
+            Name = "HookNpc",
+            Level = 5,
+            ClassID = 1,
+            CanBeKilled = true,
+            BaseStats = new AttributeSet { HP = 100 },
+        };
+        var npc = fixture.World.NPCHandler.SpawnNPC(fixture.World, 1, 3, 3, template, false)!;
+        npc.NPCTemplate.Script = ScriptStub.For<INPCScript>(new ThrowingKilledScript());
+        var mapScript = new RecordingMapScript();
+        map.Script = ScriptStub.For<IMapScript>(mapScript);
+
+        npc.Attacked(player, 100, fixture.World);
+
+        Assert.Equal(0, npc.CurrentHP);
+        Assert.Equal(1, mapScript.OnNPCKilledEventCalls);
+        Assert.Contains(log.Messages, m =>
+            m.Contains("NPC OnKilledEvent") && m.Contains("HookNpc") && m.Contains("100162"));
+    }
+
+    private sealed class ThrowingEnteredScript : BaseMapScript
+    {
+        public override void OnPlayerEntered(Map map, Player player, GameWorld world)
+            => throw new InvalidOperationException("boom");
+    }
+
+    private sealed class ThrowingAttackedScript : BaseNPCScript
+    {
+        public override void OnAttackedEvent(NPC npc, ICharacter attacker, long damage, GameWorld world)
+            => throw new InvalidOperationException("boom");
+    }
+
+    private sealed class ThrowingKilledScript : BaseNPCScript
+    {
+        public override void OnKilledEvent(NPC npc, ICharacter killer, GameWorld world)
+            => throw new InvalidOperationException("boom");
+    }
+
+    private sealed class RecordingMapScript : BaseMapScript
+    {
+        public int OnNPCKilledEventCalls { get; private set; }
+
+        public override void OnNPCKilledEvent(Map map, NPC npc, ICharacter killer, GameWorld world)
+            => this.OnNPCKilledEventCalls++;
+    }
+}

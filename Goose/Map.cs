@@ -191,7 +191,7 @@ namespace Goose
             }
             catch (Exception e)
             {
-                // TODO: need a logging system
+                log.Error(e, "Map OnPlayerEntered {0} ({1}) player {2} ({3}) Exception", this.Name, this.ID, player.Name, player.LoginID);
             }
         }
 
@@ -209,7 +209,7 @@ namespace Goose
             }
             catch (Exception e)
             {
-                // TODO: need a logging system
+                log.Error(e, "Map OnPlayerLeft {0} ({1}) player {2} ({3}) Exception", this.Name, this.ID, player.Name, player.LoginID);
             }
         }
 
