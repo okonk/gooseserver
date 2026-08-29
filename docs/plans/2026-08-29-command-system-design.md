@@ -227,7 +227,19 @@ world.Commands.Register(
   own `rest` first token. Help shows the script command as a single entry.
 - Thread-safe (atomic trie swap). Stale commands after reload stay live
   (same as today).
-- Old `RegisterEvent` overloads are deleted.
+- `EventHandler.RegisterEvent(key, factory)` is kept for **non-command
+  packets only** (Aspereta.csx:237 registers the `GID` packet through it).
+  Keys starting with `/` are rejected with a logged error — slash commands
+  must go through `Commands.Register`. The
+  `RegisterEvent(key, factory, privilege)` overload (unused anywhere) is
+  deleted.
+- The shipped dimension scripts migrate to the new API in Part 3:
+  `Dimensions.csx:229-233` (`/dimension`, `/resetitem`, `/buygold`,
+  `/buyexperience`, `/givesp`) and their event classes in
+  `Dimensions/Commands.csx` become `world.Commands.Register` calls with
+  section `"Dimensions"`. Their existing integration tests
+  (`DimensionCommandGateTests`, `DimensionCurrencyCommandTests`, ...) are the
+  regression net.
 
 ## 6. Migration and testing
 
@@ -239,8 +251,10 @@ Order:
 2. Migrate all 59 commands in batches by area (GM/player, guild, pets,
    custom, ...). Each batch: new command class(es), old `*CommandEvent`
    deleted, entry removed from `_SeedCommands`. Non-command packets stay.
-3. Delete old `RegisterEvent` overloads and their test; `EventHandler`
-   dispatches via the registry.
+3. Migrate the dimension scripts to `world.Commands.Register` (Part 3);
+   keep `RegisterEvent(key, factory)` for non-command packets, reject `/`
+   keys there, delete the privilege overload and update its test.
+   `EventHandler` dispatches via the registry.
 
 Behavior preservation: same keys (including trailing spaces), same
 privileges, same visible behavior. Intended changes only: parse errors reply
