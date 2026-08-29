@@ -1,0 +1,131 @@
+using System;
+using System.Globalization;
+using System.Reflection;
+
+namespace Goose.Commands
+{
+    internal static class CommandBinder
+    {
+        public static (object?[]? args, string? error) Bind(
+            GameWorld world, Player player,
+            ParameterInfo[] parameters, string[] tokens, string usage)
+        {
+            var args = new object?[parameters.Length];
+            var tokenIndex = 0;
+            var startIndex = 0;
+
+            if (parameters.Length > 0 && parameters[0].ParameterType == typeof(CommandContext))
+                startIndex = 1;
+
+            for (var i = startIndex; i < parameters.Length; i++)
+            {
+                var parameter = parameters[i];
+
+                if (parameter.ParameterType == typeof(string[]))
+                {
+                    var rest = new string[tokens.Length - tokenIndex];
+                    Array.Copy(tokens, tokenIndex, rest, 0, rest.Length);
+                    args[i] = rest;
+                    tokenIndex = tokens.Length;
+                    continue;
+                }
+
+                if (tokenIndex < tokens.Length)
+                {
+                    var token = tokens[tokenIndex];
+                    tokenIndex++;
+
+                    if (parameter.ParameterType == typeof(Player))
+                    {
+                        var target = world.PlayerHandler.GetPlayer(token);
+                        if (target is null)
+                            return (null, $"Couldn't find player {token}.");
+                        args[i] = target;
+                        continue;
+                    }
+
+                    if (parameter.ParameterType == typeof(bool))
+                    {
+                        if (!TryParseBool(token, out var value))
+                            return (null, usage);
+                        args[i] = value;
+                        continue;
+                    }
+
+                    var underlying = Nullable.GetUnderlyingType(parameter.ParameterType) ?? parameter.ParameterType;
+
+                    // Invariant culture, no thousands separators: tokens are wire input, not locale-formatted.
+                    const NumberStyles numeric = NumberStyles.Float & ~NumberStyles.AllowThousands;
+                    if (underlying == typeof(int) && int.TryParse(token, NumberStyles.Integer, CultureInfo.InvariantCulture, out var intValue))
+                    { args[i] = intValue; continue; }
+                    if (underlying == typeof(long) && long.TryParse(token, NumberStyles.Integer, CultureInfo.InvariantCulture, out var longValue))
+                    { args[i] = longValue; continue; }
+                    if (underlying == typeof(float) && float.TryParse(token, numeric, CultureInfo.InvariantCulture, out var floatValue))
+                    { args[i] = floatValue; continue; }
+                    if (underlying == typeof(double) && double.TryParse(token, numeric, CultureInfo.InvariantCulture, out var doubleValue))
+                    { args[i] = doubleValue; continue; }
+                    if (underlying == typeof(decimal) && decimal.TryParse(token, numeric, CultureInfo.InvariantCulture, out var decimalValue))
+                    { args[i] = decimalValue; continue; }
+                    if (underlying == typeof(string))
+                    { args[i] = token; continue; }
+
+                    return (null, usage);
+                }
+
+                if (parameter.HasDefaultValue)
+                {
+                    args[i] = parameter.DefaultValue;
+                    continue;
+                }
+
+                return (null, usage);
+            }
+
+            return (args, null);
+        }
+
+        public static string Usage(string key, ParameterInfo[] parameters, string? usageOverride = null)
+        {
+            if (usageOverride is not null)
+                return $"Usage: {usageOverride}";
+
+            var segments = new System.Text.StringBuilder("Usage: ").Append(key.TrimEnd());
+            var startIndex = 0;
+            if (parameters.Length > 0 && parameters[0].ParameterType == typeof(CommandContext))
+                startIndex = 1;
+
+            for (var i = startIndex; i < parameters.Length; i++)
+            {
+                var parameter = parameters[i];
+                if (parameter.ParameterType == typeof(string[]))
+                    segments.Append(" [").Append(parameter.Name).Append("...]");
+                else if (parameter.HasDefaultValue)
+                    segments.Append(" [").Append(parameter.Name).Append(']');
+                else
+                    segments.Append(" <").Append(parameter.Name).Append('>');
+            }
+
+            return segments.ToString();
+        }
+
+        private static bool TryParseBool(string token, out bool value)
+        {
+            switch (token.ToLowerInvariant())
+            {
+                case "on":
+                case "true":
+                case "1":
+                    value = true;
+                    return true;
+                case "off":
+                case "false":
+                case "0":
+                    value = false;
+                    return true;
+                default:
+                    value = false;
+                    return false;
+            }
+        }
+    }
+}
