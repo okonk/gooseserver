@@ -185,6 +185,60 @@ public class ScriptHookLoggingTests
             m.Contains("HookEffect") && m.Contains("8"));
     }
 
+    [Fact]
+    public void ResolveAllies_BadIds_KeepsValidOnesAndLogsBadIds()
+    {
+        using var log = new CapturingLog();
+        var handler = new NPCHandler();
+        handler.AddTemplate(new NPCTemplate { NPCTemplateID = 100, Name = "AllyNpc", BaseStats = new AttributeSet() });
+        handler.AddTemplate(new NPCTemplate { NPCTemplateID = 7, Name = "Ally7", BaseStats = new AttributeSet() });
+        handler.AddTemplate(new NPCTemplate { NPCTemplateID = 1, Name = "Ally1", BaseStats = new AttributeSet() });
+        var npc = new NPCTemplate { NPCTemplateID = 100, Name = "AllyNpc", BaseStats = new AttributeSet() };
+
+        var allies = NPCHandler.ResolveAllies(npc, "999 7 1", handler);
+
+        Assert.Equal(2, allies.Count);
+        Assert.Contains(allies, a => a.NPCTemplateID == 7);
+        Assert.Contains(allies, a => a.NPCTemplateID == 1);
+        Assert.Contains(log.Messages, m =>
+            m.Contains("bad ally template id 999") && m.Contains("AllyNpc") && m.Contains("100"));
+    }
+
+    [Fact]
+    public void ResolveAllies_NonNumeric_LogsErrorAndReturnsEmpty()
+    {
+        using var log = new CapturingLog();
+        var handler = new NPCHandler();
+        var npc = new NPCTemplate { NPCTemplateID = 100, Name = "AllyNpc", BaseStats = new AttributeSet() };
+
+        var allies = NPCHandler.ResolveAllies(npc, "notanumber", handler);
+
+        Assert.Empty(allies);
+        Assert.Contains(log.Messages, m =>
+            m.Contains("failed parsing allies") && m.Contains("notanumber") && m.Contains("100"));
+    }
+
+    [Fact]
+    public void LoadFromAutoCreate_BadStartingItemId_LogsWarning()
+    {
+        using var fixture = new TestWorldFixture(s =>
+        {
+            s.StartingMapID = 1;
+            s.StartingItems = "999 123";
+        });
+        using var log = new CapturingLog();
+        fixture.AddBaseMap(1, "Spawn");
+        fixture.AddBaseItemTemplate(123, "HookItem", ItemTemplate.UseTypes.NoUse);
+        var player = new Player(0);
+
+        bool ok = player.LoadFromAutoCreate("Newbie", "pass", fixture.World);
+
+        Assert.True(ok);
+        Assert.True(player.Inventory.HasItem(123));
+        Assert.Contains(log.Messages, m =>
+            m.Contains("bad starting item id 999") && m.Contains("Newbie"));
+    }
+
     private sealed class ThrowingUseScript : BaseItemScript
     {
         public override bool OnUseConsumableEvent(Player player, Item item, GameWorld world)

@@ -116,7 +116,7 @@ namespace Goose
                     template.SpellEffect = world.SpellHandler.GetSpellEffect(template.SpellEffectID)!;
                     if (template.SpellEffectID != 0 && template.SpellEffect is null)
                     {
-                        // log bad spell effect on item
+                        log.Warn("item template {0} ({1}): bad spell effect id {2}", template.Name, template.ID, template.SpellEffectID);
                         continue;
                     }
                     template.SpellEffectChance = Decimal.Parse(reader.GetString("spell_effect_chance"));

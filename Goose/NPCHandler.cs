@@ -21,6 +21,31 @@ namespace Goose
             return templates.Values;
         }
 
+        internal static List<NPCTemplate> ResolveAllies(NPCTemplate npc, string alliesString, NPCHandler handler)
+        {
+            var allies = new List<NPCTemplate>();
+            try
+            {
+                foreach (int ally in alliesString.Split([' ', ','], StringSplitOptions.RemoveEmptyEntries).Select(q => Convert.ToInt32(q)))
+                {
+                    NPCTemplate? a = handler.GetNPCTemplate(ally);
+                    if (a is null)
+                    {
+                        log.Warn("npc {0} ({1}): bad ally template id {2}", npc.Name, npc.NPCTemplateID, ally);
+                    }
+                    else
+                    {
+                        allies.Add(a);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                log.Error(e, "npc {0} ({1}): failed parsing allies '{2}'", npc.Name, npc.NPCTemplateID, alliesString);
+            }
+            return allies;
+        }
+
         internal static List<Quest> ResolveQuests(int npcTemplateId, string rawQuestIds, QuestHandler handler)
         {
             var quests = new List<Quest>();
@@ -141,29 +166,7 @@ namespace Goose
 
                 foreach (var npc in this.templates.Values)
                 {
-                    var allies = new List<NPCTemplate>();
-
-                    try
-                    {
-                        foreach (int ally in npc.AlliesString.Split([' ', ','], StringSplitOptions.RemoveEmptyEntries).Select(q => Convert.ToInt32(q)))
-                        {
-                            NPCTemplate? a = this.GetNPCTemplate(ally);
-                            if (a is null)
-                            {
-                                // log bad template id in allies
-                            }
-                            else
-                            {
-                                allies.Add(a);
-                            }
-                        }
-                    }
-                    catch (Exception)
-                    {
-
-                    }
-
-                    npc.Allies = allies;
+                    npc.Allies = ResolveAllies(npc, npc.AlliesString, this);
                 }
 
                 foreach (var template in this.templates.Values)
@@ -201,8 +204,8 @@ namespace Goose
                                 NPCVendorSlot vslot = new NPCVendorSlot();
                                 vslot.Slot = reader.GetInt32("slot");
                                 vslot.Stack = reader.GetInt32("stack");
-                                vslot.ItemTemplate =
-                                    world.ItemHandler.GetTemplate(reader.GetInt32("item_template_id"))!;
+                                int itemId = reader.GetInt32("item_template_id");
+                                vslot.ItemTemplate = world.ItemHandler.GetTemplate(itemId)!;
                                 vslot.CanSeeStats = reader.GetString("stats_visible") != "0";
 
                                 if (vslot.ItemTemplate is not null &&
@@ -212,7 +215,8 @@ namespace Goose
                                 }
                                 else
                                 {
-                                    // log bad vendor slot/item
+                                    log.Warn("npc {0} ({1}): bad vendor entry, slot {2}, item template id {3}",
+                                        template.Name, template.NPCTemplateID, vslot.Slot, itemId);
                                 }
                             }
                         }
@@ -316,10 +320,15 @@ namespace Goose
                     int map_y = reader.GetInt32("map_y");
 
                     NPCTemplate? template = this.GetNPCTemplate(npc_id);
-                    if (template is null) continue;               // log bad id
+                    if (template is null)
+                    {
+                        log.Warn("npc spawns: bad npc id {0}", npc_id);
+                        continue;
+                    }
                     if (this.SpawnNPC(world, map_id, map_x, map_y, template, shouldRespawn: true) is null)
                     {
-                        // couldn't load map
+                        log.Warn("npc spawns: failed to spawn npc {0} ({1}) on map {2} at {3},{4}",
+                            template.Name, npc_id, map_id, map_x, map_y);
                     }
                 }
             });

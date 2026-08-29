@@ -131,24 +131,27 @@ namespace Goose
 
             while (reader.Read())
             {
-                clas = this.GetClass(reader.GetInt32("class_id"));
+                int classId = reader.GetInt32("class_id");
+                clas = this.GetClass(classId);
                 if (clas is null)
                 {
-                    // log bad class id
+                    log.Warn("class levels: bad class id {0}", classId);
                     continue;
                 }
 
-                level = clas.GetLevel(reader.GetInt32("level"));
+                int levelId = reader.GetInt32("level");
+                level = clas.GetLevel(levelId);
                 if (level is null)
                 {
-                    // log bad level
+                    log.Warn("class levels: bad level {0} for class {1}", levelId, classId);
                     continue;
                 }
 
-                spell = world.SpellHandler.GetSpell(reader.GetInt32("spell_id"));
+                int spellId = reader.GetInt32("spell_id");
+                spell = world.SpellHandler.GetSpell(spellId);
                 if (spell is null)
                 {
-                    // log bad spell
+                    log.Warn("class levels: bad spell id {0} for class {1} level {2}", spellId, classId, levelId);
                     continue;
                 }
 

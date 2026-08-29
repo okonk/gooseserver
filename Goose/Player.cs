@@ -683,7 +683,9 @@ namespace Goose
             this.LastPlaytimeUpdate = world.TimeNow;
 
             this.Inventory = new Inventory(this, world.Settings);
-            string[] items = world.Settings.StartingItems.Split(' ');
+            // null/empty means no starting items: only the shipped config supplies the value,
+            // and empty tokens would throw in Convert.ToInt32 below.
+            string[] items = (world.Settings.StartingItems ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries);
             if (items.Length > 0)
             {
                 for (int i = 0; i < items.Length; i++)
@@ -694,7 +696,7 @@ namespace Goose
                         ItemTemplate? template = world.ItemHandler.GetTemplate(templateid);
                         if (template is null)
                         {
-                            // log bad id in starting items
+                            log.Warn("player {0} ({1}): bad starting item id {2}", this.Name, this.PlayerID, items[i]);
                             continue;
                         }
                         Item item = new Item();
@@ -703,13 +705,13 @@ namespace Goose
 
                         if (!this.Inventory.AddItem(item, 1, world))
                         {
-                            // log not enough inventory space for starting items
+                            log.Warn("player {0} ({1}): no inventory space for starting item {2} ({3})",
+                                this.Name, this.PlayerID, item.Name, templateid);
                         }
                     }
-                    catch (Exception)
+                    catch (Exception e)
                     {
-                        // eaten
-                        // log bad id in starting items
+                        log.Error(e, "player {0} ({1}): failed loading starting item {2}", this.Name, this.PlayerID, items[i]);
                     }
                 }
             }
@@ -2113,8 +2115,9 @@ namespace Goose
             if ((spell.Target == Spell.SpellTargets.Group || spell.Target == Spell.SpellTargets.Self) &&
                 target != this)
             {
+                log.Warn("player {0} ({1}): invalid target {2} ({3}) for spell {4} ({5}), casting on self",
+                    this.Name, this.LoginID, target?.Name, target?.LoginID, spell.Name, spell.ID);
                 target = this;
-                // log bad target
             }
 
             long lastcast = this.Spellbook.GetSlotLastCast(spellslot);

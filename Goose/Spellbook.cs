@@ -142,7 +142,7 @@ namespace Goose
         {
             if (slot < 1 || slot > this.settings.SpellbookSize)
             {
-                // log bad spell slot
+                log.Warn("player {0} ({1}): bad spellbook slot {2}", this.player.Name, this.player.LoginID, slot);
                 return;
             }
 
@@ -221,7 +221,7 @@ namespace Goose
             Spell? spell = world.SpellHandler.GetSpell(spellid);
             if (spell is null)
             {
-                // log bad spell
+                log.Warn("player {0} ({1}): bad spell id {2} in LearnSpell", this.player.Name, this.player.LoginID, spellid);
                 return false;
             }
 
