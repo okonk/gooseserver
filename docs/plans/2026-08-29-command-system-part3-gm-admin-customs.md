@@ -44,27 +44,27 @@ Identical to Part 2's rule (read event → new class with verbatim key/privilege
 | `/kick ` | `KickCommandEvent` | `Player target` | keep `State != NotLoggedIn` guard + `LostConnection` + kick log |
 | `/unban ` | `UnbanCommandEvent` | `string name` | `GetPlayerFromData` in-body |
 | `/ban ` | `BanCommandEvent` | `string name, int? days = null` | `GetPlayerFromData` in-body; keep the ban-type switch on `days` presence |
-| `/broadcast ` | `BroadcastCommandEvent` | `string[] rest` | message = join; keep the `[Access]:` prefix formatting; **empty input → silent return** (legacy `data.Length <= 0` guard — rest-only, so this is a body guard, not a usage error) |
+| `/broadcast ` | `BroadcastCommandEvent` | `string[] message` | message = join; `Usage = "/broadcast <message...>"` (override — the tail is effectively required); keep the `[Access]:` prefix formatting; **empty input → silent return** (legacy `data.Length <= 0` guard — body guard, not a usage error) |
 | `/playerinfo ` | `PlayerInfoCommandEvent` | `string name` | `GetPlayerFromData` in-body; opens `PlayerInfoWindow` |
 | `/givegold ` | `GiveGoldCommandEvent` | `string name, long gold` | `GetPlayerFromData` in-body |
 | `/giveexperience ` | `GiveExperienceCommandEvent` | `string name, long exp` | same |
 | `/givecredits ` | `GiveCreditsCommandEvent` | `string name, int credits` | `GetPlayerFromData` in-body; keep the silent `credits <= 0` return (validation, not access — no `CheckAccess` needed) |
-| `/settitle ` | `SetTitleCommandEvent` | `string name, string[] rest` | title = join — legacy `Split(' ', 3)` makes `tokens[2]` the **rest of the line** (titles may contain spaces); `GetPlayerFromData` in-body |
-| `/setsurname ` | `SetSurnameCommandEvent` | `string name, string[] rest` | surname = join; same |
+| `/settitle ` | `SetTitleCommandEvent` | `string name, string[] title` | title = join — legacy `Split(' ', 3)` makes `tokens[2]` the **rest of the line** (titles may contain spaces); `GetPlayerFromData` in-body |
+| `/setsurname ` | `SetSurnameCommandEvent` | `string name, string[] surname` | surname = join; same |
 | `/changeclass ` | `ChangeClassCommandEvent` | `string name, string cl, decimal? modifier = null` | `GetPlayerFromData` in-body; `decimal` binder from Part 2 Task 0 |
 | `/changename ` | `ChangeNameCommandEvent` | `string oldname, string newname` | two `GetPlayerFromData` lookups in-body |
-| `/checkname ` | `CheckNameCommandEvent` | `string[] rest` | name = join (old `Substring(11)` = rest of line); `GetPlayerFromData` in-body |
-| `/setpassword ` | `GMSetPasswordCommandEvent` | `string name, string[] rest` | password = join — legacy `Split(' ', 3)` makes `tokens[2]` the rest of the line (passwords may contain spaces); `GetPlayerFromData` in-body |
-| `/macrocheck ` | `MacroCheckCommandEvent` | `string[] rest` | name = join; online `GetPlayer` in-body |
+| `/checkname ` | `CheckNameCommandEvent` | `string[] name` | name = join (old `Substring(11)` = rest of line); `GetPlayerFromData` in-body |
+| `/setpassword ` | `GMSetPasswordCommandEvent` | `string name, string[] password` | password = join — legacy `Split(' ', 3)` makes `tokens[2]` the rest of the line (passwords may contain spaces); `GetPlayerFromData` in-body |
+| `/macrocheck ` | `MacroCheckCommandEvent` | `string[] name` | name = join; online `GetPlayer` in-body |
 | `/warp ` | `WarpEvent` | `int mapId = 1, int mapx = 50, int mapy = 50` | keep bounds check + map-exists check. Legacy only warps when `tokens.Length == 4` (`Goose/Events/WarpEvent.cs:30`), and the key's trailing space means bare `/warp` never matches — the defaults are unreachable in legacy. Preserve exactly: in `Execute`, `if (ctx.Args.Length != 3) return;` (silent). The parameter defaults stay (harmless, and they make the usage line read `/warp [mapId] [mapx] [mapy]`) |
 | `/getitem ` | `GetItemCommandEvent` | `int id, string? arg2 = null, string? arg3 = null` | mixed token: `arg2` is a stack int or the word `powerful`; `arg3` may be `powerful` — keep the in-body parsing verbatim |
 | `/spawnnpc ` | `SpawnNPCCommandEvent` | `int id` | keep `id <= 0` silent return |
 | `/placespawn` | `PlaceSpawnCommandEvent` | `int npcId` | old self-usage messages become the framework usage line (intended delta) |
-| `/search ` | `SearchCommandEvent` | `string command, string name, string[] rest` | query = join(`[name, ..rest]`) — legacy `Split(' ', 3)` makes `tokens[2]` the rest of the line (the regex is built over it); the required `name` token makes `/search item` a framework usage error (legacy `tokens.Length < 3` → usage) — a bare `string[] rest` would have bound it with an empty query; keep search bodies |
+| `/search ` | `SearchCommandEvent` | `string command, string name, string[] query` | query = join(`[name, ..query]`) — legacy `Split(' ', 3)` makes `tokens[2]` the rest of the line (the regex is built over it); the required `name` token makes `/search item` a framework usage error (legacy `tokens.Length < 3` → usage); keep search bodies |
 | `/mutemap` | `MuteMapEvent` | — | no args |
 | `/shutdown` | `ShutdownCommandEvent` | — | verbatim |
 | `/setaccess` | `SetAccessCommandEvent` | `string name, string access` | `GetPlayerFromData` in-body |
-| `/setconfig ` | `SetConfigCommandEvent` | `string setting, string value, string[] rest` | value = join(`[value, ..rest]`) (may contain spaces; old `Split(' ', 2)`); required `value` makes `/setconfig x` a framework usage error (legacy `tokens.Length < 3` → usage) |
+| `/setconfig ` | `SetConfigCommandEvent` | `string setting, string[] value` | `Usage = "/setconfig <setting> <value...>"` (override); value = join (may contain spaces; old `Split(' ', 2)`); **empty `value` → `ctx.Send(ctx.Usage)`** (legacy `tokens.Length < 3` → usage; the binder can't express "tail must be non-empty", so the guard lives in the body) |
 | `/saveconfig` | `SaveConfigCommandEvent` | — | verbatim (no-op body with comment — keep the comment, it explains why) |
 | `/respawnmap` | `RespawnMapCommandEvent` | — | verbatim |
 | `/reloadscripts` | `ReloadScriptsCommandEvent` | — | verbatim, including the `Task.Run` and its TODO comment |
@@ -145,7 +145,7 @@ Run `dotnet test` (both). Commit: `refactor: migrate GM world commands and Admin
 
 **Steps:**
 
-- Subcommands: `help` (no args), `kill` (no args), `preview` and `make` both `(int r, int g, int b, int a, string name, string[] rest)`; `make` carries alias names `make`/`create` via the multi-name `SubcommandAttribute` (Part 2 Task 0). **name = first required token, then `string.Join(" ", [name, ..rest])`** — legacy `Split(' ', 6, RemoveEmptyEntries)` makes `tokens[5]` the rest of the line, so `/custom make 1 2 3 4 My Sword` names the item "My Sword"; the required `name` token also makes name-less input a framework usage error (legacy `tokens.Length < 6` → usage), which a bare `string[] rest` would not.
+- Subcommands: `help` (no args), `kill` (no args), `preview` and `make` both `(int r, int g, int b, int a, string[] name)`; `make` carries alias names `make`/`create` via the multi-name `SubcommandAttribute` (Part 2 Task 0). `Usage` overrides: `/custom make <r> <g> <b> <a> <name...>` and `/custom preview <r> <g> <b> <a> <name...>`. **name = `string.Join(" ", name)`** — legacy `Split(' ', 6, RemoveEmptyEntries)` makes `tokens[5]` the rest of the line, so `/custom make 1 2 3 4 My Sword` names the item "My Sword". **Empty `name` → `ctx.Send(ctx.Usage)`** (legacy `tokens.Length < 6` → usage for both subcommands; the binder can't express "tail must be non-empty", so the guard lives in the body).
 - Move `ParseRGBA`, `ValidateCustomSlots`, `EquippedDisplay`, `MountDisplay` into the new class verbatim (they are static/instance helpers on the legacy class).
 - Section: `Customs`.
 
@@ -153,9 +153,9 @@ Tests:
 
 - **Shared precondition (explicit):** legacy checks the combine-bag ticket *before any parsing* (`CustomCommandEvent.cs:14`); in the new framework the bare/unknown-subcommand paths are answered by the framework before any handler runs, so the ticket check is **duplicated verbatim at the top of each of the four subcommand handlers** (`help`, `kill`, `preview`, `make`) — no new pre-invocation hook. Only the bare/unknown paths skip it (documented delta).
 - ★ Bare `/custom` → subcommand list (help/kill/preview/make with usage), not the old ticket-usage line, **and no ticket check** (delta); `/custom help` with ticket → the ticket instructions (kept); `/custom help` **without** ticket → the legacy ticket refusal (precondition pinned).
-- ★ `/custom make 255 0 0 255 MySword` and `/custom create 255 0 0 255 MySword` → identical behavior (alias pinned); `/custom make 255 0 0 255 My Sword` → item named `My Sword` (multi-word name via rest join — regression-pinned).
+- ★ `/custom make 255 0 0 255 MySword` and `/custom create 255 0 0 255 MySword` → identical behavior (alias pinned); `/custom make 255 0 0 255 My Sword` → item named `My Sword` (multi-word name via tail join — regression-pinned).
 - `/custom make 300 0 0 0 X` → the legacy `invalid r value` message (in-body `ParseRGBA` kept).
-- ★ `/custom make 1 2 3 4` and `/custom preview 1 2 3 4` (no name) → framework usage reply — legacy required a name for **both** subcommands even though preview never used it (`CustomCommandEvent`'s `Split(' ', 6)` length check).
+- ★ `/custom make 1 2 3 4` and `/custom preview 1 2 3 4` (no name) → the usage line (in-body empty-name guard sending `ctx.Usage`) — legacy required a name for **both** subcommands even though preview never used it (`CustomCommandEvent`'s `Split(' ', 6)` length check).
 - `/custom preview ...` → preview packet path executes (assert the `MKC`-shaped packet in `Sent`).
 - Missing combine-bag ticket → the legacy refusal message.
 

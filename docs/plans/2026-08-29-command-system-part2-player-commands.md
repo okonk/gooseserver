@@ -27,7 +27,7 @@ Design doc: `docs/plans/2026-08-29-command-system-design.md`
 
 1. Read the legacy event class in full.
 2. Create the new command class in `Goose/Commands/` with the attribute (key verbatim including trailing space, privilege verbatim — `Open` entries omit it — section + help text per the design doc's section list).
-3. Move the `Ready` body into `Execute` verbatim: drop the `Player.State == Ready` check (framework-enforced) and the token parsing (binder-supplied parameters). Keep every game-logic line, message string, and edge case unchanged. **Rest-only parity:** where the signature is `string[] rest` alone, `rest` binds successfully even with zero tokens — port the legacy empty-input guard verbatim instead of treating empty as a parse error (e.g. `/shout`, `/group`, `/guild`, `/mc`, `/auction`, `/broadcast`: legacy silently returns on empty; `/guildmotd` empty = clear; `/hairdye` empty = legacy usage line).
+3. Move the `Ready` body into `Execute` verbatim: drop the `Player.State == Ready` check (framework-enforced) and the token parsing (binder-supplied parameters). Keep every game-logic line, message string, and edge case unchanged. **Tail parity:** a bare `string[]` tail binds successfully even with zero tokens — port the legacy empty-input guard verbatim instead of treating empty as a parse error (e.g. `/shout`, `/group`, `/guild`, `/mc`, `/auction`, `/broadcast`: legacy silently returns on empty; `/guildmotd` empty = clear; `/hairdye` empty = legacy usage line). Tail parameter names are user-visible in usage lines — name them meaningfully (`message`, `query`, `name`, `password`, `code`), never `rest`.
 4. Remove the key from `_SeedCommands` (the non-command packet entries never move).
 5. Delete the legacy event class — **unless** it is referenced elsewhere (verified below); then keep it and leave its other key(s) registered legacy.
 6. Add/adjust tests in the batch's test file; run the full suite.
@@ -40,34 +40,34 @@ Design doc: `docs/plans/2026-08-29-command-system-design.md`
 
 | Key(s) | Legacy event | `Execute` parameters | Notes |
 |---|---|---|---|
-| `/who` | `WhoEvent` | `string[] rest` | **(a required `string[]` after an optional `string?` is not valid C# — rest-only).** Handler branches verbatim on `rest` (`WhoEvent.cs:27-55`): (1) empty → **map** players, no query; (2) `rest[0] == "all"` → all players, query = join(`rest[1..]`); (3) `rest[0] == "guild"` **and** `Player.Guild is not null` → guild online members, query = join(`rest[1..]`); (4) otherwise (incl. `/who bob` and `/who guild` while guildless) → all players, query = join(**all** of `rest`, first token included). ⚠ Fixture: `RegisterOnlinePlayer` only populates the name lookup — `/who all` tests must also add the players to `PlayerHandler.Players` (call `AddPlayer` or add a fixture helper doing both), or the all-players branch iterates an empty list |
-| `/tell ` | `TellEvent` | `Player target, string[] rest` | message = `string.Join(" ", rest)`; keep the 300-char cap and `UpdateIdleStatus` call; missing target now gets "Couldn't find player" (intended delta) |
-| `/shout ` | `ShoutCommandEvent` | `string[] rest` | message = join; keep mute check |
+| `/who` | `WhoEvent` | `string[] query` | **(a required `string[]` after an optional `string?` is not valid C# — tail-only).** Handler branches verbatim on `query` (`WhoEvent.cs:27-55`): (1) empty → **map** players, no query; (2) `query[0] == "all"` → all players, query = join(`query[1..]`); (3) `query[0] == "guild"` **and** `Player.Guild is not null` → guild online members, query = join(`query[1..]`); (4) otherwise (incl. `/who bob` and `/who guild` while guildless) → all players, query = join(**all** of `query`, first token included). ⚠ Fixture: `RegisterOnlinePlayer` only populates the name lookup — `/who all` tests must also add the players to `PlayerHandler.Players` (call `AddPlayer` or add a fixture helper doing both), or the all-players branch iterates an empty list |
+| `/tell ` | `TellEvent` | `Player target, string[] message` | message = join; `Usage = "/tell <target> <message...>"` (override — the tail is effectively required); keep the 300-char cap and `UpdateIdleStatus` call; **empty message → silent** (legacy `message.Length > 0` guard, `TellEvent.cs`); missing target now gets "Couldn't find player" (intended delta) |
+| `/shout ` | `ShoutCommandEvent` | `string[] message` | message = join; keep mute check |
 | `/random` | `RandomCommandEvent` | — (no args) | keep mute check |
-| `/auction ` | `AuctionCommandEvent` | `string[] rest` | message = join; keep mute check |
+| `/auction ` | `AuctionCommandEvent` | `string[] message` | message = join; keep mute check |
 | `/dropgold ` | `PlayerDropGoldEvent` | `int gold` | |
 | `/location` | `LocationEvent` | — | |
 | `/refresh` | `RefreshPositionEvent` | — | **class kept for `RPU`**; new command calls the same logic — extract the shared body into a static helper on the event class or duplicate the 2 lines; prefer the helper |
 | `/charinfo` | `CharacterInfoCommandEvent` | — | |
 | `/credits` | `CreditsCommandEvent` | — | |
 | `/playtime` | `PlaytimeCommandEvent` | — | |
-| `/changepassword ` | `ChangePasswordCommandEvent` | `string[] rest` | password = join — old `Substring(16)` is the **rest of the line**; passwords may contain spaces |
+| `/changepassword ` | `ChangePasswordCommandEvent` | `string[] password` | password = join — old `Substring(16)` is the **rest of the line**; passwords may contain spaces |
 | `/buyvita` | `BuyVitaCommandEvent` | `int buys = 1` | **bare `/buyvita` (no trailing space in key) buys 1 in legacy** (`Split(' ')[1]` throws → catch → default 1) — the default preserves that; bad token → usage reply (intended delta) |
 | `/buymana` | `BuyManaCommandEvent` | `int buys = 1` | same |
 | `/rank` | `RankCommandEvent` | `string? arg = null` | old code strips one leading space then lowercases |
-| `/hairdye` | `HairdyeCommandEvent` | `string[] rest` | **legacy has no bare-numeric dye path** — bare/`help` sends the usage line (`HairdyeCommandEvent.cs:13-16`), then the switch is `accept`/`gogodyeme`/`preview`/`kill` with no default case, and each verb takes four ints *after* the verb (`ParseRGBA` reads `tokens[1..4]`, so `/hairdye accept 255 0 0 255` is 5 tokens). Handler: `rest` empty or `rest[0] == "help"` → legacy usage message; else move the switch and `ParseRGBA` verbatim over `rest`; unknown verb → silent no-op (legacy parity) |
+| `/hairdye` | `HairdyeCommandEvent` | `string[] args` | `Usage = "/hairdye [preview|kill|accept] <r> <g> <b> <a>"` (override = the legacy usage line verbatim, `HairdyeCommandEvent.cs:14`). **legacy has no bare-numeric dye path** — bare/`help` sends that usage line, then the switch is `accept`/`gogodyeme`/`preview`/`kill` with no default case, and each verb takes four ints *after* the verb (`ParseRGBA` reads `tokens[1..4]`, so `/hairdye accept 255 0 0 255` is 5 tokens). Handler: `args` empty or `args[0] == "help"` → legacy usage message; else move the switch and `ParseRGBA` verbatim over `args`; unknown verb → silent no-op (legacy parity) |
 | `/aether ` | `AetherCommandEvent` | `decimal thres` | **requires `decimal` binder support (Task 0)** |
-| `/mc ` | `MacroConfirmCommandEvent` | `string[] rest` | code = join — old `Substring("/mc ".Length)` is the rest of the line |
-| `/group ` | `GroupChatEvent` | `string[] rest` | message = join |
+| `/mc ` | `MacroConfirmCommandEvent` | `string[] code` | code = join — old `Substring("/mc ".Length)` is the rest of the line |
+| `/group ` | `GroupChatEvent` | `string[] message` | message = join |
 | `/invite ` + `/groupadd ` | `GroupAddEvent` | `string name` | alias pair (Task 0) |
 | `/disband` + `/groupremove` | `GroupRemoveEvent` | — (no typed params; handler reads `ctx.Remainder`) | **trailing-space edge is load-bearing** (`GroupRemoveEvent.cs:19-29`): `Split(' ')` without `RemoveEmptyEntries` distinguishes no-token (leave group) from empty-token (silent no-op). Handler: `Remainder` empty → leave-group path; `Remainder.Trim()` empty → silent return; else name = trimmed. A token-only binder would collapse the two and send `/groupremove ` down the leave path |
 | `/togglegroup` | `ToggleGroupCommandEvent` | — | |
-| `/toggle ` | `ToggleCommandEvent` | `string setting, string[] rest` | **`CheckAccess` override**: `setting` ∈ {`gm-invisible`, `invisible`} → `AccessPrivilege.GMInvisible`; ∈ {`who-invisible`, `whoinvisible`} → `AccessPrivilege.WhoInvisible`; else null. Case-insensitive compare (old code lowercases). Remove the now-redundant in-body `HasPrivilege` checks for those two cases only — every other case's logic is verbatim |
-| `/guild ` | `GuildChatCommandEvent` | `string[] rest` | message = join |
-| `/guildcreate ` | `GuildCreateCommandEvent` | `string[] rest` | guild name = join (may contain spaces) |
+| `/toggle ` | `ToggleCommandEvent` | `string setting` | legacy reads only `tokens[1]` — no tail parameter (extras ignored by the binder policy). **`CheckAccess` override**: `setting` ∈ {`gm-invisible`, `invisible`} → `AccessPrivilege.GMInvisible`; ∈ {`who-invisible`, `whoinvisible`} → `AccessPrivilege.WhoInvisible`; else null. Case-insensitive compare (old code lowercases). Remove the now-redundant in-body `HasPrivilege` checks for those two cases only — every other case's logic is verbatim |
+| `/guild ` | `GuildChatCommandEvent` | `string[] message` | message = join |
+| `/guildcreate ` | `GuildCreateCommandEvent` | `string[] name` | guild name = join (may contain spaces) |
 | `/guildadd ` | `GuildAddCommandEvent` | `string name` | |
 | `/guildremove` | `GuildRemoveCommandEvent` | — (no typed params; handler reads `ctx.Remainder`) | same trailing-space edge as `/groupremove` (`Substring(12)` + `name.Length > 0 → Substring(1)`): empty remainder → leave-guild path, whitespace-only → the legacy rank-check/"Couldn't find player" path — move verbatim over `Remainder` |
-| `/guildmotd` | `GuildMotdCommandEvent` | `string[] rest` | MOTD = join (may be empty = clear) |
+| `/guildmotd` | `GuildMotdCommandEvent` | `string[] message` | MOTD = join (may be empty = clear) |
 | `/guildowner ` | `GuildOwnerCommandEvent` | `string name` | |
 | `/guildofficer ` | `GuildOfficerCommandEvent` | `string name` | |
 | `/petlist` | `PetListCommandEvent` | — | |

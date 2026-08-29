@@ -110,8 +110,9 @@ Parameter binding:
   normalizes. Commands whose behavior depends on raw whitespace use
   `ctx.Remainder` instead (see mapping notes).
 - Supported types: `int`, `long`, `float`, `double`, `bool`, `string`,
-  `Player`, and `string[] rest` as a final parameter (captures all remaining
-  tokens). `Player?` / `string?` with a default are optional.
+  `Player`, and a `string[]` tail as the final parameter (captures all
+  remaining tokens; name it meaningfully — it appears in usage lines).
+  `Player?` / `string?` with a default are optional.
 - `Player` binds the next token via `world.PlayerHandler.GetPlayer(name)`
   (online players only); no match → framework sends
   `Couldn't find player <name>.`. Commands that target offline players too
@@ -122,9 +123,12 @@ Parameter binding:
   framework sends the auto-generated usage line. No per-command
   `try/catch` around parsing.
 - `bool` parses: on/off/true/false/1/0 (case-insensitive).
-- Usage strings are generated from the declaration: `/warp [mapId] [x] [y]`,
-  `/broadcast <message>`, `/kick <player>`. Brackets = optional, angle
-  brackets = required.
+- Usage strings are generated from the declaration — required scalars
+  `<name>`, defaulted scalars `[name]`, `string[]` tails always `[name...]`
+  (a tail's requiredness is a property of the command, never inferred) — or
+  an explicit `Usage` override on the attribute, which wins verbatim for
+  commands whose tail is effectively required: `/warp [mapId] [mapx] [mapy]`,
+  `/broadcast <message...>` (override), `/kick <player>`.
 - `Player.State == Ready` is enforced by the framework: a `CommandEvent`
   whose player isn't `Ready` is a no-op (matches today's per-command checks,
   in one place).
@@ -136,7 +140,7 @@ Subcommands:
 public sealed class CustomCommand
 {
     [Subcommand("make", Help = "Consume the ticket and source items.")]
-    public void Make(CommandContext ctx, int r, int g, int b, int a, string[] rest) { ... }
+    public void Make(CommandContext ctx, int r, int g, int b, int a, string[] name) { ... }
 
     [Subcommand("help", Help = "Show how customisation works.")]
     public void Help(CommandContext ctx) { ... }

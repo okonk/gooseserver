@@ -84,7 +84,7 @@ public sealed class SubcommandAttribute : Attribute
 ```
 
 - `BaseCommand`: abstract class with `protected virtual AccessPrivilege? CheckAccess(CommandContext ctx, string[] args) => null;` **plus an internal non-virtual forwarder** `internal AccessPrivilege? CheckAccessInternal(CommandContext ctx, string[] args) => CheckAccess(ctx, args);` — `CommandEvent` calls the forwarder (it can't call the protected member); subclasses override the protected one, the surface stays clean.
-- `CommandContext`: `Player Player`, `GameWorld World`, `CommandRegistry Registry`, `string[] Args` (tokens after the command key, split on whitespace with empty entries removed, including a subcommand token), `string Remainder` (the raw packet text after the key, lossless), `void Send(string message)` → `World.Send(Player, P.ServerMessage(message))`.
+- `CommandContext`: `Player Player`, `GameWorld World`, `CommandRegistry Registry`, `string[] Args` (tokens after the command key, split on whitespace with empty entries removed, including a subcommand token), `string Remainder` (the raw packet text after the key, lossless), `string Usage` (the selected target's precomputed usage line, override applied — for parse-error replies and in-body empty-input guards), `void Send(string message)` → `World.Send(Player, P.ServerMessage(message))`.
 - **Binder extras policy: extra tokens beyond the declared parameters (no `rest`) are ignored** — legacy commands mostly ignored extras (`/kick Bob extra`); erroring on them would change dozens of commands. **Whitespace normalization is a documented delta** (legacy `Substring`/`Split` saw raw text); commands sensitive to raw whitespace take `ctx.Remainder`.
 - Key validation helper (used by Task 2): key must start with `/` and contain no spaces except an optional single trailing space.
 
@@ -98,7 +98,8 @@ public static (object?[] args, string? error) Bind(
     GameWorld world, Player player, string key,
     ParameterInfo[] parameters, string[] tokens);
 // Usage string from key + parameters (also used by help and error replies).
-public static string Usage(string key, ParameterInfo[] parameters);
+// usageOverride (from CommandDefinition.UsageOverride / SubcommandInfo.UsageOverride) wins verbatim.
+public static string Usage(string key, ParameterInfo[] parameters, string? usageOverride = null);
 ```
 
 Test cases (adversarial ones marked ★):
@@ -111,14 +112,14 @@ Test cases (adversarial ones marked ★):
 | ★ `int` token `"abc"` | error = usage line (no exception escapes) |
 | ★ numeric parsing uses invariant culture (`"1.5"` for `double` ok, `"1,5"` fails) | as stated |
 | `bool` from `on/off/true/false/1/0` case-insensitive; `"maybe"` → usage error | as stated |
-| ★ exact usage strings: `(ctx, int n)` → `Usage: /testcmd <n>`; `(ctx, string command, string name, string[] rest)` → `Usage: /search <command> <name> [rest...]` (rest optional — empty input valid); `(ctx, string required, string[] rest)` → `Usage: /cmd <required> <rest...>` (rest required); `(ctx, string a, string? b = null)` → `Usage: /cmd <a> [b]`; `(ctx, int? mapId = null, int? mapx = null, int? mapy = null)` → `Usage: /warp [mapId] [mapx] [mapy]` | exact strings |
-| `string[] rest` as final param captures all remaining tokens; none → empty array | as stated |
-| ★ `string[] rest` not in final position → rejected at discovery (tested in Task 2) | n/a here |
+| ★ exact usage strings: `(ctx, int n)` → `Usage: /testcmd <n>`; `(ctx, string command, string name, string[] query)` → `Usage: /search <command> <name> [query...]`; `(ctx, string required, string[] message)` → `Usage: /cmd <required> [message...]`; `(ctx, string a, string? b = null)` → `Usage: /cmd <a> [b]`; `(ctx, int? mapId = null, int? mapx = null, int? mapy = null)` → `Usage: /warp [mapId] [mapx] [mapy]`; with override `Usage = "/custom make <r> <g> <b> <a> <name...>"` → `Usage: /custom make <r> <g> <b> <a> <name...>` regardless of the algorithm | exact strings |
+| `string[]` tail as final param captures all remaining tokens; none → empty array | as stated |
+| ★ a `string[]` parameter not in final position → rejected at discovery (tested in Task 2) | n/a here |
 | `Player` param: token resolves via `PlayerHandler.GetPlayer` (use `RegisterOnlinePlayer`) | bound to that `Player` |
 | ★ `Player` param, unknown name | error = `Couldn't find player <name>.` |
 | `Player?` with `= null` default, token missing | bound to null |
 | ★ extra tokens beyond the parameters, no `rest` | **ignored** (bound args correct, no error) — `/kick Bob extra` parity |
-| `Usage`: **exact algorithm** — required scalar → `<name>`; defaulted scalar → `[name]`; `string[]` rest → `<name...>` if empty input is invalid (a required token precedes it) else `[name...]`; key trailing space trimmed; an explicit `Usage` override (below) wins over the algorithm entirely | `/warp [mapId] [mapx] [mapy]` |
+| `Usage`: **exact algorithm** — required scalar → `<name>`; defaulted scalar → `[name]`; `string[]` tail → always `[name...]` (optional by default — a tail's requiredness is a property of the command, not inferable from parameter types, so it is never inferred; commands where the tail is effectively required carry a `Usage` override); key trailing space trimmed; an explicit `Usage` override (below) wins over the algorithm entirely | `/warp [mapId] [mapx] [mapy]` |
 
 Red: tests fail to compile (no `CommandBinder`). Green: implement minimal binder.
 
@@ -131,8 +132,9 @@ Binding algorithm: iterate `parameters` (skip the leading `CommandContext` — i
 2. Otherwise render key (trailing space trimmed) + one segment per parameter, in order:
    - required scalar (no default, not `string[]`) → `<name>`
    - defaulted scalar → `[name]`
-   - `string[]` rest → `<name...>` if empty input is invalid (any required parameter precedes it), else `[name...]`
-3. Rest parameter names must be meaningful (`message`, `query`, `name` — not `rest`); the algorithm renders whatever the parameter is called, so the name shows up in usage.
+   - `string[]` tail → always `[name...]` (optional by default). A tail's requiredness is a property of the command, not inferable from parameter types, so it is never inferred — commands where the tail is effectively required carry a `Usage` override (e.g. `/broadcast`, `/tell`, `/custom make`, `/setconfig`).
+3. Tail parameter names must be meaningful (`message`, `query`, `name` — not `rest`); the algorithm renders whatever the parameter is called, so the name shows up in usage.
+4. **Carrying the override:** `CommandDefinition.UsageOverride` and `SubcommandInfo.UsageOverride` (set from the attribute's `Usage` property at discovery; `null` for script-registered commands, which get the algorithm). `CommandEvent` precomputes the selected target's usage line into `CommandContext.Usage` (binder + override applied), so both the parse-error reply and in-body guards (`ctx.Send(ctx.Usage)`) use one precomputed string; `HelpFormatter` uses the same binder call for help lines.
 
 **Step 4: Run tests**
 
@@ -167,6 +169,7 @@ internal sealed class CommandDefinition
     public AccessPrivilege? Privilege { get; }     // null = open
     public string? Section { get; }                // null = legacy (excluded from help)
     public string Help { get; }
+    public string? UsageOverride { get; }          // verbatim usage line (no `Usage: ` prefix)
     // new-style (one of the two invoker groups is non-null):
     public object? Instance { get; }               // BaseCommand instance (attributed commands)
     public Delegate? Handler { get; }              // script-registered delegate
@@ -176,9 +179,9 @@ internal sealed class CommandDefinition
     public Delegate? LegacyFactory { get; }        // (Player, Object) => Event
     public Type? LegacyType { get; }
 }
-public sealed record SubcommandInfo(
+internal sealed record SubcommandInfo(
     string PrimaryName, string[] Names, MethodInfo Method,
-    ParameterInfo[] Parameters, string Help, AccessPrivilege? Privilege);
+    ParameterInfo[] Parameters, string Help, AccessPrivilege? Privilege, string? UsageOverride);
 ```
 
 Discovery model for new-style commands: at scan time instantiate the class once (`Activator.CreateInstance`), capture the `Execute` `MethodInfo` and any `[Subcommand]` methods. **Valid shapes (exactly one must hold):** (a) exactly one `Execute`, with zero or more subcommands; (b) zero `Execute` and at least one subcommand (subcommand-only, e.g. `/custom` in Part 3). **Rejected:** zero targets, or more than one `Execute`. Test a real subcommand-only class in this task (two `[Subcommand]` methods, no `Execute` → discovered and dispatchable). Invocation per command is reflection `MethodInfo.Invoke` — commands are user-input-rate, not hot path; do not cache delegates per invocation.
@@ -218,10 +221,10 @@ Tests (★ adversarial):
 | ★ `RegisterKeys(["/a ", "/b "], ...)` where the two keys belong to **two different** existing definitions | returns false, both originals intact (cross-definition conflict) |
 | ★ multi-key replacement frees all old keys: register def A under `/invite ` + `/groupadd `, then `RegisterKeys(["/groupadd "], ...)` with def B → def B owns `/groupadd ` **only**; `/invite ` is gone from the trie and `ByKey` | old aliases disappear unless re-registered |
 | ★ new multi-key registration with one occupied + one new key: A owns `/invite `; `RegisterKeys(["/invite ", "/groupadd "], ...)` with B → B owns **both** keys, A removed | alias set grows on replacement |
-| ★ downgrade protection on multi-key replacement: A open under `/a `; `RegisterKeys(["/a "], restricted, ...)` → false, A unchanged; open → different-restricted → true | capabilities rule |
+| ★ downgrade protection on multi-key replacement: A **restricted** under `/a `; `RegisterKeys(["/a "], ...)` **open** → false, A unchanged; open → restricted → true; restricted → different-restricted → true | capabilities rule — only restricted → open is refused |
 | ★ ordering: replacing a definition keeps its position in `Ordered` (first occurrence); a brand-new definition appends | help order stable across in-place re-registration |
 | `Register` same key again with new help/handler | replaces in place — `Ordered`/`Sections` show the definition once, no duplicate |
-| ★ `Register` handler whose `string[] rest` is not the final parameter | returns false |
+| ★ `Register` handler whose `string[]` parameter is not the final one | returns false |
 | `Sections` groups by `Section`, preserves registration order | as stated |
 | ★ concurrent `Register` from 8 threads while another thread reads **one captured `Snapshot`** (all reads through that single reference stay mutually consistent; the final published snapshot has every key resolvable) | as stated |
 | ★ `FindNameCollisions` — section exists, then a command registered whose trimmed primary key matches the section name; and the reverse order (command first, section introduced later) → the collision is reported in **both** orders, and each publish logs a warning per collision | both orders |
@@ -235,7 +238,7 @@ Red: compile failure. Green: implement.
 - Mutation protocol (one lock, used by `SeedBuiltins` and `Register`) — **exact algorithm**: a registration owns its full key set; replacing a definition frees **all** of its keys.
   1. Validate every key's format (and handler shape for `Register`); any failure → return false, nothing mutated.
   2. Collect the set of existing definitions owning any of the new keys. If it contains **two or more distinct definitions** → return false (cross-definition conflict), nothing mutated.
-  3. If exactly one (the *replaced* definition): its keys are all freed — any subset may be re-registered, and keys **not** re-registered disappear. If the new privilege is restricted and the replaced privilege is open → return false (downgrade protection). Restricted → different-restricted is allowed (capabilities rule).
+  3. If exactly one (the *replaced* definition): its keys are all freed — any subset may be re-registered, and keys **not** re-registered disappear. If the **replaced** privilege is restricted and the **new** privilege is open → return false (downgrade protection — the only refused direction). Open → restricted, and restricted → different-restricted, are both allowed (capabilities rule).
   4. Build the new ordered list (replaced definition removed; new definition inserted at the replaced one's **first** occurrence position, else appended), new `ByKey`, new trie → publish the new snapshot.
   Rebuild is O(total keys) and only happens on registration (startup + script reloads). This is the script-reload semantic: re-registering a command's keys takes over whatever those keys touched, and old aliases not re-registered are gone.
 - `SeedBuiltins`: `typeof(GameWorld).Assembly.GetTypes()`, filter `[Command]` + assignable to `BaseCommand`, validate (key format, valid shape per Task 1, `rest` final, duplicate keys → log error and skip), instantiate, capture methods, insert.
@@ -300,7 +303,7 @@ Red: new behaviors fail (commands not dispatched). Green: implement.
 4. `CheckAccess` (via the command instance) → privilege → `!AccessLevels.HasPrivilege` → debug log, return (swallowed).
 5. Subcommand privilege → same swallow.
 6. `CommandBinder.Bind` on the selected target's parameters → error → `ctx.Send(error)`, return.
-7. Invoke: `Execute`/subcommand method via the captured `MethodInfo` with `[ctx, ...args]`. **Exception hygiene:** wrap the invoke in `try/catch (TargetInvocationException tie) { throw tie.InnerException; }` — reflection's wrapper is dropped, so a migrated command that throws `InvalidOperationException` reaches the existing per-event catch in `EventHandler.Update` as `InvalidOperationException`, not a `TargetInvocationException` wrapping it (diagnostics parity with the legacy events, which threw directly).
+7. Invoke: `Execute`/subcommand method via the captured `MethodInfo` with `[ctx, ...args]`. **Exception hygiene:** wrap the invoke in `try { ... } catch (TargetInvocationException tie) { if (tie.InnerException is not null) ExceptionDispatchInfo.Capture(tie.InnerException).Throw(); throw; }` — reflection's wrapper is dropped and the **original stack trace is preserved** (`ExceptionDispatchInfo`, not `throw tie.InnerException`, which would reset the stack), so a migrated command that throws `InvalidOperationException` reaches the existing per-event catch in `EventHandler.Update` as `InvalidOperationException` with its real frames (diagnostics parity with the legacy events, which threw directly).
 
 **Step 3: Rewire `EventHandler`**
 
