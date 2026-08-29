@@ -64,12 +64,6 @@ namespace Goose.Commands
                 log.Error("Rejecting {0}: invalid key {1}.", type.FullName, attribute.Key);
                 return;
             }
-            if (this._snapshot.ByKey.ContainsKey(attribute.Key))
-            {
-                log.Error("Rejecting {0}: key {1} is already registered.", type.FullName, attribute.Key);
-                return;
-            }
-
             var targets = new List<MethodInfo>(subcommands);
             if (executes.Count == 1)
                 targets.Insert(0, executes[0]);
@@ -105,6 +99,15 @@ namespace Goose.Commands
         {
             lock (this._gate)
             {
+                var snapshot = this._snapshot;
+                foreach (var key in keys)
+                {
+                    if (snapshot.ByKey.ContainsKey(key))
+                    {
+                        log.Error("Refusing to register {0}: key is already registered.", key);
+                        return false;
+                    }
+                }
                 return this.Publish(keys, privilege, section, help, usageOverride,
                     () => new CommandDefinition(keys, privilege, section, help, usageOverride,
                         instance, null, executeMethod, subcommands, null, null));

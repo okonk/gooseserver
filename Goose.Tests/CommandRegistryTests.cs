@@ -240,7 +240,11 @@ public class CommandRegistryTests
     public void Concurrent_register_against_captured_snapshot()
     {
         var registry = new CommandRegistry();
+        for (var i = 0; i < 200; i++)
+            Assert.True(registry.Register($"/seed_{i} ", "S", "h", NoArgs));
+
         var snapshot = registry.Snapshot;
+        Assert.Equal(200, snapshot.ByKey.Count);
         var errors = new List<Exception>();
         var gate = new object();
 
@@ -254,6 +258,11 @@ public class CommandRegistryTests
                     {
                         if (!snapshot.Trie.TryGetValue(key, out var trieDef) || !ReferenceEquals(def, trieDef))
                             throw new InvalidOperationException("captured snapshot inconsistent");
+                    }
+                    foreach (var def in snapshot.Ordered)
+                    {
+                        if (!ReferenceEquals(snapshot.ByKey[def.PrimaryKey], def))
+                            throw new InvalidOperationException("ordered/key mismatch");
                     }
                 }
             }
