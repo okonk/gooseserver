@@ -104,7 +104,7 @@ Deletion-safety: before each batch's deletions, re-run the Part 2 grep pattern f
 
 - ★ `/ban Bob 30` (GM, `RegisterOnlinePlayer` + fixture DB as needed) vs Normal → swallowed, no reply.
 - ★ `/summon Ghost` → `Couldn't find player Ghost.`; `/summon Bob` with Bob in `LoadingMap` → `Player is still loading a map.` (in-body check survived).
-- `/broadcast hello world` → `world.SendToAll` message contains `[Normal]: hello world` (join preserved spaces).
+- `/broadcast hello world` sent by a **GM** caller → `world.SendToAll` message contains `[GM]: hello world` (the prefix is the *caller's* access — `BroadcastCommandEvent.cs`: `Access.ToString()` with `Master`→` Master`; a Normal caller can't run it at all, so `[Normal]:` was never a reachable assertion).
 - ★ `/givecredits Bob 0` → silent no-op (validation return kept, not converted to a usage error).
 - `/changeclass Bob Warrior 1.5` → decimal modifier bound; `/changeclass Bob Warrior` → modifier null.
 - `/playerinfo Bob` → `PlayerInfoWindow` added to the viewer's `Windows`.
@@ -151,7 +151,8 @@ Run `dotnet test` (both). Commit: `refactor: migrate GM world commands and Admin
 
 Tests:
 
-- ★ Bare `/custom` → subcommand list (help/kill/preview/make with usage), not the old ticket-usage line; `/custom help` → the ticket instructions (kept).
+- **Shared precondition (explicit):** legacy checks the combine-bag ticket *before any parsing* (`CustomCommandEvent.cs:14`); in the new framework the bare/unknown-subcommand paths are answered by the framework before any handler runs, so the ticket check is **duplicated verbatim at the top of each of the four subcommand handlers** (`help`, `kill`, `preview`, `make`) — no new pre-invocation hook. Only the bare/unknown paths skip it (documented delta).
+- ★ Bare `/custom` → subcommand list (help/kill/preview/make with usage), not the old ticket-usage line, **and no ticket check** (delta); `/custom help` with ticket → the ticket instructions (kept); `/custom help` **without** ticket → the legacy ticket refusal (precondition pinned).
 - ★ `/custom make 255 0 0 255 MySword` and `/custom create 255 0 0 255 MySword` → identical behavior (alias pinned); `/custom make 255 0 0 255 My Sword` → item named `My Sword` (multi-word name via rest join — regression-pinned).
 - `/custom make 300 0 0 0 X` → the legacy `invalid r value` message (in-body `ParseRGBA` kept).
 - `/custom preview ...` → preview packet path executes (assert the `MKC`-shaped packet in `Sent`).
@@ -180,7 +181,7 @@ Run `dotnet test` (both). Commit: `refactor: migrate /custom to subcommands`.
 3. Harden `EventHandler.RegisterEvent(string, CreateEvent)`: key starts with `/` → log error, return without registering. Delete `RegisterEvent(string, CreateEvent, AccessPrivilege)`. Update `Goose.Tests/EventHandlerTests.cs`: the downgrade-policy test now covers the registry (already in Part 1/2 tests) — replace with: `/` key rejected, non-`/` key (e.g. `"GID"`) still registers and dispatches.
 4. New integration tests (`GlobalScriptFixture`, mirroring `DimensionCommandGateTests` setup):
    - `RunCommand(player, "/dimension 5")` still warps (regression through the new registration path).
-   - ★ `/dimension` with no arg → framework usage reply (was the custom `/dimension <0-6>` line — intended delta, pinned).
+   - ★ bare `/dimension` → `RunCommand` returns **false** and nothing is sent — the key is `/dimension ` (trailing space, `Dimensions.csx:229`), so the trie cannot match bare input, exactly as legacy; the usage line is only reachable via `/dimension <bad>` (keep that case asserting the legacy `/dimension <0-6>` line).
    - ★ `/givesp Bob 10` end-to-end: spirit transfers, both players messaged (uses `RegisterOnlinePlayer`).
    - ★ Aspereta-style non-command registration still works: `world.EventHandler.RegisterEvent("GID", factory)` dispatches.
    - ★ `RegisterEvent("/sneaky ", factory)` → not dispatchable, error logged.
@@ -200,7 +201,7 @@ Commit: `refactor: dimension scripts use Commands.Register; RegisterEvent restri
 1. End-to-end: `/warp 2 5 5` (GM) warps; `/warp 2 5 5` (Normal) swallowed; `/custom make ...` full flow with fixture combine bag; `/help` — the fixture loads **no dimension scripts**, so the sections are exactly the seven built-in ones: a GM sees all seven (incl. `GM`/`Admin`), a Normal player sees only `General`/`Party`/`Guild`/`Pets`/`Customs`; `/help custom` shows the four subcommands (`make`, not `create`, as the listed name).
 2. Compliance sweep:
    - Delete `Goose/Events/InstaLevelCommandEvent.cs` — unreferenced dead code (verified: no references anywhere); without this the sweep below would trip on it.
-   - `ls Goose/Events/*CommandEvent.cs` → only `RefreshPositionEvent.cs` remains (kept for the `RPU` packet); list it explicitly in the commit message.
+   - **Explicit deletion list** (a filename glob can't see the non-suffixed classes): take the 70 legacy command class names from the original `_SeedCommands` slash table (git history), then `git grep` each name in `Goose/` — exactly one may still be referenced: `RefreshPositionEvent` (by the `RPU` registration in `_SeedCommands`). All 69 others: zero references, files deleted. List the survivors in the commit message.
    - `_SeedCommands` contains zero `/` keys.
    - `git grep "RegisterEvent"` → only the non-command `GID` usage in Aspereta.csx, the definition, and its test.
    - No `.csx` file references a deleted event class.
@@ -229,7 +230,7 @@ Commit: `test: Part 3 final integration and compliance sweep`
 ## Part 3 exit criteria (project completion)
 
 - Zero `/` keys in `_SeedCommands`; every in-game slash command runs through `CommandRegistry`.
-- All 70 referenced legacy command event classes deleted (58 suffixed + 12 non-suffixed like `WarpEvent`/`WhoEvent`), plus the dead `InstaLevelCommandEvent.cs`; only `RefreshPositionEvent` survives, justified in the Task 5 commit message.
+- 69 of the 70 referenced legacy command event classes deleted (suffixed + non-suffixed like `WarpEvent`/`WhoEvent`), plus the dead `InstaLevelCommandEvent.cs`; `RefreshPositionEvent` is the single survivor (kept for `RPU`), per the Task 5 explicit-list sweep.
 - Dimension scripts register via `world.Commands.Register`; `RegisterEvent` is non-command-only.
 - `dotnet test` green across `Goose.Tests` and `Goose.IntegrationTests`, including all pre-existing dimension and Aspereta tests.
 - `/help` window shows the full section model; parse errors reply with usage; denials stay silent.

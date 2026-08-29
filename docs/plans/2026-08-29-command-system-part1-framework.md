@@ -85,7 +85,7 @@ public sealed class SubcommandAttribute : Attribute
 }
 ```
 
-- `BaseCommand`: abstract class with `protected virtual AccessPrivilege? CheckAccess(CommandContext ctx, string[] args) => null;`. Command classes derive from it so `CheckAccess` is overridable.
+- `BaseCommand`: abstract class with `protected virtual AccessPrivilege? CheckAccess(CommandContext ctx, string[] args) => null;` **plus an internal non-virtual forwarder** `internal AccessPrivilege? CheckAccessInternal(CommandContext ctx, string[] args) => CheckAccess(ctx, args);` — `CommandEvent` calls the forwarder (it can't call the protected member); subclasses override the protected one, the surface stays clean.
 - `CommandContext`: `Player Player`, `GameWorld World`, `CommandRegistry Registry`, `string[] Args` (tokens after the command key, split on whitespace with empty entries removed, including a subcommand token), `string Remainder` (the raw packet text after the key, lossless), `void Send(string message)` → `World.Send(Player, P.ServerMessage(message))`.
 - **Binder extras policy: extra tokens beyond the declared parameters (no `rest`) are ignored** — legacy commands mostly ignored extras (`/kick Bob extra`); erroring on them would change dozens of commands. **Whitespace normalization is a documented delta** (legacy `Substring`/`Split` saw raw text); commands sensitive to raw whitespace take `ctx.Remainder`.
 - Key validation helper (used by Task 2): key must start with `/` and contain no spaces except an optional single trailing space.
@@ -152,7 +152,7 @@ git commit -m "feat: command attributes, context, and typed parameter binder"
 
 Fields: `string Key`, `AccessPrivilege? Privilege`, `string Section`, `string Help`, `string[]? SubcommandNames` (null = no subcommands), per-target `ParameterInfo[] Parameters` + `Delegate`/`object instance + MethodInfo` invoker, and `System.Type? LegacyEventType` (non-null = legacy: run the old event class, no parsing).
 
-Discovery model for new-style commands: at scan time instantiate the class once (`Activator.CreateInstance`), capture the `Execute` `MethodInfo` (required, exactly one) and any `[Subcommand]` methods. Invocation per command is reflection `MethodInfo.Invoke` — commands are user-input-rate, not hot path; do not cache delegates per invocation.
+Discovery model for new-style commands: at scan time instantiate the class once (`Activator.CreateInstance`), capture the `Execute` `MethodInfo` and any `[Subcommand]` methods. **Valid shapes (exactly one must hold):** (a) exactly one `Execute`, with zero or more subcommands; (b) zero `Execute` and at least one subcommand (subcommand-only, e.g. `/custom` in Part 3). **Rejected:** zero targets, or more than one `Execute`. Test a real subcommand-only class in this task (two `[Subcommand]` methods, no `Execute` → discovered and dispatchable). Invocation per command is reflection `MethodInfo.Invoke` — commands are user-input-rate, not hot path; do not cache delegates per invocation.
 
 **Step 2: Write the failing registry tests**
 
@@ -160,11 +160,13 @@ Discovery model for new-style commands: at scan time instantiate the class once 
 
 ```csharp
 public void SeedBuiltins();                       // scans typeof(GameWorld).Assembly for [Command]
-public bool Register(string key, AccessPrivilege? privilege, string section,
+// two overloads — open commands (scripts) omit the privilege entirely:
+public bool Register(string key, string section, string help, Delegate handler);            // privilege = null (open)
+public bool Register(string key, AccessPrivilege privilege, string section,
                      string help, Delegate handler);
-public bool TryGet(string key, out CommandDefinition definition);
-public Trie<CommandDefinition> Trie { get; }      // volatile snapshot reference
-public IReadOnlyList<CommandSection> Sections { get; }  // for help; CommandSection { Name, List<CommandDefinition> }
+public bool TryGet(string key, out CommandDefinition definition);   // hits on any alias key
+CommandSnapshot Snapshot { get; }                  // single volatile reference: { Trie, ByKey, Ordered }
+public IReadOnlyList<CommandSection> Sections { get; }  // derived from Snapshot.Ordered; CommandSection { Name, List<CommandDefinition> }
 public static bool IsUsableBy(Player player, CommandDefinition def); // null privilege = true
 ```
 
@@ -176,7 +178,9 @@ Tests (★ adversarial):
 | `Register` valid key → `TryGet` hit, `Trie` contains it | true |
 | ★ `Register` key without `/` prefix, or with an internal space (`"/bad key"`) | returns false, logged, `TryGet` miss |
 | ★ `Register` replacing a restricted key with an open one | returns false (downgrade refused), original definition intact |
-| `Register` replacing a key with same or more restrictive privilege | replaces |
+| `Register` replacing a restricted key with a different restricted privilege | replaces — **privileges are capabilities, not an ordered hierarchy** (Ban is not "more restrictive" than Warp); the only refused direction is restricted → open |
+| ★ `Register` with two keys where one conflicts with a different definition | returns false, **nothing registered** (atomic: the non-conflicting key is not half-registered either), original definitions intact |
+| `Register` same key again with new help/handler | replaces in place — `Ordered`/`Sections` show the definition once, no duplicate |
 | ★ `Register` handler whose `string[] rest` is not the final parameter | returns false |
 | `Sections` groups by `Section`, preserves registration order | as stated |
 | ★ concurrent `Register` from 8 threads while another thread reads `Trie` — no exceptions, final state consistent (every key resolvable, trie matches dictionary) | as stated |
@@ -186,10 +190,10 @@ Red: compile failure. Green: implement.
 
 **Step 3: Implement `CommandRegistry`**
 
-- Storage: `ConcurrentDictionary<string, CommandDefinition>` for lookup + a lock-guarded `List<CommandDefinition>` preserving insertion order (needed for `Sections` ordering and deterministic trie rebuilds — `ConcurrentDictionary` enumeration order is not stable) + `private volatile Trie<CommandDefinition> _trie`. Every mutation rebuilds the trie from the ordered list and swaps the reference (lock-free readers; rebuild is O(total keys) and only happens on registration, i.e. startup + script reloads).
-- `SeedBuiltins`: `typeof(GameWorld).Assembly.GetTypes()`, filter `[Command]` + assignable to `BaseCommand`, validate (key format, single `Execute`, `rest` final, duplicate keys → log error and skip), instantiate, capture methods, insert.
-- `Register`: validate key format + handler shape (delegate, first param `CommandContext`, `rest` final); downgrade check against existing entry; insert + rebuild.
-- `Sections`: derived from the insertion-ordered list on each call (cheap; help is user-input-rate).
+- Storage is an **immutable snapshot** published through a single `volatile` reference: `CommandSnapshot { Trie<CommandDefinition> Trie (every alias key → def), Dictionary<string, CommandDefinition> ByKey (every alias key), List<CommandDefinition> Ordered }`. `CommandDefinition` carries `string[] Keys` + `PrimaryKey` (first key — usage strings and help). Readers (dispatch, help) take one snapshot reference and can never observe a half-updated state; help and dispatch always see the same version. (Alias-ready now so Part 2's multi-key attributes need no storage rework; Part 1 registrations simply have `Keys.Length == 1`.)
+- Mutation protocol (one lock, used by `SeedBuiltins` and `Register`): **1.** validate the complete definition first — every key's format, handler shape (delegate, first param `CommandContext`, `rest` final), no key conflict with a *different* definition, no restricted → open downgrade on any key; any failure → return false, nothing mutated. **2.** build the new ordered list (replace the existing definition in place if any key was already registered to it, else append), new `ByKey`, new trie. **3.** publish the new snapshot. Rebuild is O(total keys) and only happens on registration (startup + script reloads).
+- `SeedBuiltins`: `typeof(GameWorld).Assembly.GetTypes()`, filter `[Command]` + assignable to `BaseCommand`, validate (key format, valid shape per Task 1, `rest` final, duplicate keys → log error and skip), instantiate, capture methods, insert.
+- `Sections`: derived from the snapshot's ordered list (cheap; help is user-input-rate). **Legacy definitions (`RegisterLegacy`) have `Section == null` and are excluded from help/`Sections`** until Parts 2–3 migrate them with real metadata.
 
 **Step 4: Wire `GameWorld.Commands`**
 
@@ -236,15 +240,16 @@ Use `TestWorldFixture` (`RunCommand`, `CommandPlayerOn`, `CapturingPlayer.Sent`)
 | `EventHandler.RegisterEvent("/evil", factory)` (slash key) | **Part 1: warning logged, still registered** (shipped `.csx` scripts depend on it until Part 3); hard rejection lands in Part 3 |
 | `EventHandler.RegisterEvent("GID", factory)` (non-slash) | still works (Aspereta dependency) |
 | Existing `RegisterEvent_DoesNotReplaceRestrictedCommandWithOpenFactory` semantics now live in the registry: re-test via `world.Commands.Register` replacing `/shutdown` open | refused |
+| (different-length alias binding — the regression test for the matched-length cut point — is in **Part 2 Task 3**, where the multi-key API lands: `/invite Bob` vs `/groupadd Bob` must both bind `name == "Bob"` exactly) | — |
 
-Red: new behaviors fail (commands not dispatched, `RegisterEvent` still accepts `/` keys). Green: implement.
+Red: new behaviors fail (commands not dispatched). Green: implement.
 
 **Step 2: Implement `CommandEvent`**
 
 `CommandEvent : Event` carrying `CommandDefinition Definition` and `string Packet`. `Ready(GameWorld)`:
 
 1. `Player is not { State: Player.States.Ready }` → debug log, return (framework-level replacement of the per-command state checks).
-2. `tokens = Packet.Substring(def.Key.Length).Split(' ', StringSplitOptions.RemoveEmptyEntries)`.
+2. `string matchedKey = Packet[..matchedLength]` where `matchedLength` comes from `TryGetLongestPrefix` (passed in by `AddEvent`) — **never `def.Key.Length` or `PrimaryKey.Length`**: alias keys can have different lengths (`/invite ` vs `/groupadd `), and the matched key is the only correct cut point. `Remainder = Packet.Substring(matchedKey.Length)`; `Args = Remainder.Split(' ', StringSplitOptions.RemoveEmptyEntries)`.
 3. If `def` has subcommands: first token selects (case-insensitive); none/unknown → `ctx.Send` the subcommand list (each: `name` + usage + help) and return.
 4. `CheckAccess` (via the command instance) → privilege → `!AccessLevels.HasPrivilege` → debug log, return (swallowed).
 5. Subcommand privilege → same swallow.
@@ -254,10 +259,10 @@ Red: new behaviors fail (commands not dispatched, `RegisterEvent` still accepts 
 **Step 3: Rewire `EventHandler`**
 
 - Ctor: after `_SeedCommands()`, call `world-less` `SeedBuiltins` — the registry is passed in or the ctor takes it; simplest: `GameWorld` ctor creates `Commands` **before** `EventHandler` and passes it: `this.EventHandler = new EventHandler(this.Commands);` (update `Goose/GameWorld.cs:105`).
-- `AddEvent(Player, string)`: first `registry.Trie.TryGetLongestPrefix(packet, out def, out len)`. If hit: legacy definition → existing code path (factory/type instantiation, `ClientOriginated = true`, enqueue). New-style: class-level privilege check with the existing swallow + debug log (`Goose/EventHandler.cs:283` block), then enqueue `CommandEvent`. If miss: fall through to the packet trie exactly as today.
-- `_SeedCommands`: convert the table to registrations — non-command packet entries unchanged in the packet trie; every `/` entry becomes `registry.RegisterLegacy(key, typeof(XCommandEvent), privilege)` (same keys, same trailing spaces, same privileges — copy verbatim).
+- `AddEvent(Player, string)`: first `registry.Snapshot.Trie.TryGetLongestPrefix(packet, out def, out len)`. If hit: legacy definition → existing code path (factory/type instantiation, `ClientOriginated = true`, enqueue). New-style: class-level privilege check with the existing swallow + debug log (`Goose/EventHandler.cs:283` block), then enqueue `CommandEvent` **carrying `len`** (the matched length, per Task 3 step 2). If miss: fall through to the packet trie exactly as today.
+- `_SeedCommands`: convert the table to registrations — non-command packet entries unchanged in the packet trie; every `/` entry becomes `registry.RegisterLegacy(key, typeof(XCommandEvent), privilege)` (same keys, same trailing spaces, same privileges — copy verbatim). `RegisterLegacy` takes no section/help — legacy commands stay out of help until migrated (Task 2 storage note).
 - Rename the nested `EventHandler.CommandDefinition` to `PacketDefinition` (it now describes non-command packets only; avoids colliding with the new top-level `Goose.Commands.CommandDefinition`). The `Open`/`Restricted` helpers become `PacketDefinition.Open/Restricted` for the packet table.
-- `RegisterEvent(string, CreateEvent)`: reject keys starting with `/` (log error, return). Delete the `(string, CreateEvent, AccessPrivilege)` overload and update `Goose.Tests/EventHandlerTests.cs` accordingly (its policy test moves to the registry, covered by Task 2/3 tests).
+- `RegisterEvent`: **unchanged signatures in this part** — both overloads keep working for all keys, with a warning logged for `/` keys (shipped `.csx` scripts depend on this until Part 3; see the ⚠ ordering constraint below). Hard rejection + overload deletion land in Part 3 Task 5.
 
 **Mutation impact (dispatch path):**
 - Source of truth: command definitions move from the private `_SeedCommands` table into `CommandRegistry`; the packet trie keeps the non-command entries.
@@ -311,6 +316,8 @@ Tests (★ adversarial):
 | `name` unknown → null | null |
 | ★ `name` matching both a command and a section (register a test section named after a command) → command detail page first, then the section's commands | both present, order |
 | Command page: help text, usage line, subcommands with usage+help | exact format |
+| ★ open command with one open + one restricted subcommand: Normal's command page lists only the open subcommand; GM's lists both | subcommand filtering |
+| ★ section whose wrapped output exceeds `MaxLinesPerPage` (register enough test commands) → split across ≥ 3 pages, no line lost or duplicated | pagination |
 | `Sections` order in page 1 = registration order; each line `Name (count)` | exact format |
 
 `HelpWindow` tests (use `CommandPlayerOn`, build pages directly):
@@ -331,7 +338,9 @@ Red: compile failure. Green: implement.
   - `name` null → `[SectionListPage, SectionPage(s) for each visible section]`.
   - command (case-insensitive key match, trailing space trimmed on the input) → visibility check (null → no reply); else `[CommandPage (+ section commands appended if a same-named section exists)]`.
   - section (case-insensitive) → `[SectionPage]` (only visible commands).
-  - Visibility: `CommandRegistry.IsUsableBy(player, def)`.
+  - Visibility: `CommandRegistry.IsUsableBy(player, def)`. **Subcommands are filtered too**: a subcommand line is shown only if the command is usable *and* the subcommand's own privilege passes — an open command with a restricted subcommand must not reveal the subcommand's name/usage to unprivileged players.
+  - **Pagination height**: `public const int MaxLinesPerPage = 30;` — `SectionPage` splits wrapped entries across pages at this limit. 30 is a known-safe bound: `PlayerInfoWindow` sends ~28 lines in one quest window (`Goose/PlayerInfoWindow.cs:40-58`+); verify in-game and lower the constant if the client truncates.
+  - **Legacy definitions are skipped** (`Section == null`) — in Part 1, `/help` shows only `/help` itself plus any script-registered commands; sections grow as Parts 2–3 migrate.
 - `HelpCommand : BaseCommand`:
 
 ```csharp
@@ -376,7 +385,7 @@ Use `TestWorldFixture` (linked into `Goose.IntegrationTests`, verified in its cs
 | Case | Expected |
 |---|---|
 | `RunCommand(player, "/help")` → `Sent` contains a `P.MakeWindow`-shaped packet; window added to `player.Windows` | window opened |
-| Normal player's `/help` pages omit Admin/GM sections; GM's include them (build pages via the formatter from the same registry the window used, or assert on `Sent` text lines) | filtering holds end-to-end |
+| Privilege filtering end-to-end: `world.Commands.Register("/itestgm ", AccessPrivilege.Ban, "Admin", "Test.", (CommandContext ctx) => ctx.Send("gm ok"))`; Normal's `/help` pages omit the `Admin` section, GM's include it (assert on `Sent` text lines). Legacy commands are not in help yet in Part 1 — do not assert on them | filtering holds end-to-end |
 | `world.Commands.Register("/itestcmd ", null, "General", "Test.", (CommandContext ctx, int n) => ctx.Send("got " + n))` then `RunCommand(player, "/itestcmd 7")` → `Sent` contains `got 7` | script-style registration works through the queue |
 | Re-register the same key with a new handler → next run uses the new handler (reload semantics) | replaced |
 | ★ Registration from a background `Task` while the game thread (test thread) runs `RunCommand` concurrently for 100 iterations → no exceptions, command resolvable after the join | thread-safe in the real path |

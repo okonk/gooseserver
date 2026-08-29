@@ -40,7 +40,7 @@ Design doc: `docs/plans/2026-08-29-command-system-design.md`
 
 | Key(s) | Legacy event | `Execute` parameters | Notes |
 |---|---|---|---|
-| `/who` | `WhoEvent` | `string? scope = null, string[] rest` | old code splits the packet: `/who`, `/who all [query...]`, `/who guild [query...]`. **Name-only form `/who bob` means scope=all with query including "bob"** (`WhoEvent.cs:48-51`: `players = all; query = join(search, 1, ...)`). Handler: if `scope` is null → all players, query = `string.Join(" ", [name, ..rest])`; else branch per legacy with query = `rest` joined |
+| `/who` | `WhoEvent` | `string[] rest` | **(a required `string[]` after an optional `string?` is not valid C# — rest-only).** Handler branches verbatim on `rest` (`WhoEvent.cs:27-55`): (1) empty → **map** players, no query; (2) `rest[0] == "all"` → all players, query = join(`rest[1..]`); (3) `rest[0] == "guild"` **and** `Player.Guild is not null` → guild online members, query = join(`rest[1..]`); (4) otherwise (incl. `/who bob` and `/who guild` while guildless) → all players, query = join(**all** of `rest`, first token included). ⚠ Fixture: `RegisterOnlinePlayer` only populates the name lookup — `/who all` tests must also add the players to `PlayerHandler.Players` (call `AddPlayer` or add a fixture helper doing both), or the all-players branch iterates an empty list |
 | `/tell ` | `TellEvent` | `Player target, string[] rest` | message = `string.Join(" ", rest)`; keep the 300-char cap and `UpdateIdleStatus` call; missing target now gets "Couldn't find player" (intended delta) |
 | `/shout ` | `ShoutCommandEvent` | `string[] rest` | message = join; keep mute check |
 | `/random` | `RandomCommandEvent` | — (no args) | keep mute check |
@@ -89,11 +89,11 @@ Design doc: `docs/plans/2026-08-29-command-system-design.md`
 
 - Binder: `decimal` binds from `"1.5"` (invariant); `"1,5"` → usage error; `decimal` with default works.
 - Registry/discovery: a `[Command("/invite ", "/groupadd ", ...)]` class registers under **both** keys; `TryGet` hits both; help lists the **first** key as the command's usage key; replacing/downgrade checks apply per key (registering `/groupadd` again as open when the alias pair is restricted → refused).
+- ★ Different-length alias binding: dispatch `/invite Bob` and `/groupadd Bob` (keys 8 vs 10 chars) — both must bind `name == "Bob"` exactly. This is the regression test for Part 1's matched-length cut point (`CommandEvent` must use the trie's `matchedLength`, never `PrimaryKey.Length`); a cut-point bug is invisible for same-length keys, and for some key pairs `RemoveEmptyEntries` can mask it (when the wrong cut lands on a space) — so assert the exact bound value for **both** aliases; for `/invite `/`/groupadd ` specifically, a wrong cut corrupts the token either way (`"d Bob"` / `"b"`), which is why this pair is a good regression fixture.
 
 **Step 2: Implement**
 
-- `CommandAttribute(string key, ...)` → `CommandAttribute(string firstKey, string secondKey = null, ...)` or `params string[]` — pick `params string[]`; validate each key.
-- `CommandDefinition` gains `string[] Keys`; first key is `PrimaryKey` (used for usage strings and help). Registry inserts all keys pointing at the same definition; the ordered list stores the definition once.
+- `CommandAttribute(string key, ...)` → `params string[]` keys; validate each key. Part 1's registry storage is already alias-ready (the snapshot's `ByKey`/trie map every key to one definition, `CommandDefinition` has `string[] Keys` + `PrimaryKey`) — this task only adds the multi-key attribute, the discovery path (one class with N keys → one definition under all N keys), and the per-key downgrade/conflict checks.
 - Binder: add `decimal` (invariant parse) alongside the other numerics.
 
 **Step 3: Run** `dotnet test Goose.Tests` — green.
@@ -113,7 +113,7 @@ Design doc: `docs/plans/2026-08-29-command-system-design.md`
 **Steps:** migrate per the rule + mapping table (Sections: all `General`). Tests (one per command is overkill; assert the behavior-bearing ones):
 
 - `/tell`: `RegisterOnlinePlayer` a target; `RunCommand(p, "/tell Bob hello there")` → both players' `Sent` contain the tell lines; `RunCommand(p, "/tell Ghost hi")` → `Sent` contains `Couldn't find player Ghost.` (★ the intended delta, regression-pinned).
-- `/who all`: with two online players, reply lists both; `/who` (no args) lists map players.
+- `/who all`: with two online players, reply lists both; `/who` (no args) lists map players. **Both need the players in `PlayerHandler.Players`, not just the name lookup — `RegisterOnlinePlayer` alone leaves the all-players branch empty (mapping-table fixture note).**
 - `/dropgold 50`: gold decreases (assert via player's gold before/after) — or at minimum no usage error and the event's side effects fire.
 - `/changepassword abc`: password path executes (assert no usage reply; use the event's own success/failure message).
 - `/changepassword my secret pw`: full multi-word password reaches the handler (join, not first-token).
@@ -141,7 +141,6 @@ Run `dotnet test` (both projects). Commit: `refactor: migrate General batch A co
 - `/aether 1.5` → executes (decimal bound); `/aether abc` → usage reply.
 - `/rank` no-arg and with-arg paths both execute.
 - ★ `/hairdye accept 255 0 0 255` (sufficient gold) → dye path runs, cost charged; `/hairdye 255 0 0 255` (no verb) → silent no-op (legacy has no bare-numeric path — regression-pinned); `/hairdye accept 300 0 0 0` → legacy out-of-range refusal message.
-- ★ `/groupremove ` (trailing space, empty name) → silent no-op, player stays in group; `/groupremove Bob` → Bob removed; bare `/disband` → leave-group path. (Requires `ctx.Remainder` — the token-only binder would break this.)
 
 Run `dotnet test` (both). Commit: `refactor: migrate General batch B commands incl. /toggle CheckAccess`.
 
@@ -157,7 +156,8 @@ Run `dotnet test` (both). Commit: `refactor: migrate General batch B commands in
 
 **Steps:** migrate per rule + table. Sections: Party / Guild. Tests:
 
-- ★ Alias dispatch: `RunCommand(p, "/invite Bob")` and `RunCommand(p, "/groupadd Bob")` both reach the same handler (assert the event's reply/side effect for each).
+- ★ Alias dispatch: `RunCommand(p, "/invite Bob")` and `RunCommand(p, "/groupadd Bob")` both reach the same handler **with `name == "Bob"` exactly** (the keys have different lengths — 8 vs 10; assert the bound value, not just that the handler ran, or a `PrimaryKey.Length` cut-point bug stays hidden for single-token args).
+- ★ `/groupremove ` (trailing space, empty name) → silent no-op, player stays in group; `/groupremove Bob` → Bob removed; bare `/disband` → leave-group path. (Requires `ctx.Remainder` — the token-only binder would break this.)
 - ★ Help shows the first key only: `/groupadd` appears in help as `/invite` (assert via `HelpFormatter.BuildPages` lines) — pins the alias help policy.
 - `/guildmotd hello world` → MOTD set to `hello world` (join, spaces preserved); `/guildmotd` → cleared (old behavior).
 - `/guildcreate Test Guild` → guild created with name `Test Guild`.
@@ -196,7 +196,7 @@ Run `dotnet test` (both). Commit: `refactor: migrate Pets commands to the comman
    - `/tell` to an online player (both sides receive), to a missing player (fixed message).
    - `/toggle gm-invisible` denied (Normal, swallowed) and allowed (GM).
    - `/guildmotd` with a multi-word MOTD.
-   - `/who all` with two registered online players.
+   - `/who all` with two registered online players (registered via a fixture helper that populates **both** the name lookup and `PlayerHandler.Players`).
    - ★ `/help` now lists the migrated commands under General/Party/Guild/Pets for a GM, and hides nothing newly for a Normal player (compare section lists before/after via `HelpFormatter` with the live registry).
    - ★ A migrated command's parse failure replies with the usage line end-to-end (`/dropgold abc`).
 2. Compliance sweep: grep `Goose/Events/` — no deleted class remains; `_SeedCommands` contains no key from this part's table; `git grep "GroupAddEvent\|TellEvent\|..."` returns nothing outside history.

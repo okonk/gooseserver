@@ -222,7 +222,12 @@ window. Chat usage-error messages do not wrap.
 - Denial is swallowed: no reply, debug log only (dispatcher, `CheckAccess`,
   subcommand privilege, and help all consistent).
 - The registry refuses to replace a restricted key with an open registration
-  (existing policy, existing test).
+  (existing policy, existing test). Privileges are **capabilities, not an
+  ordered severity hierarchy** — restricted → a different restricted privilege
+  is allowed; restricted → open is the only refused direction.
+- Transitional state (Part 1 only): legacy commands registered via
+  `RegisterLegacy` carry no section/help metadata and are **excluded from
+  help** until Parts 2–3 migrate them with attribute metadata.
 - `CommandEvent` no-ops unless the player is `Ready`; commands remain
   `ClientOriginated` events so the queue's drop-during-map-load behavior
   applies.
@@ -236,11 +241,15 @@ window. Chat usage-error messages do not wrap.
 ```csharp
 world.Commands.Register(
     key: "/dimmoney",
-    privilege: AccessPrivilege.Ban,   // or omit for Open
+    privilege: AccessPrivilege.Ban,   // open commands use the overload without this parameter
     section: "Dimensions",
     help: "Set a player's dimension money.",
     handler: (CommandContext ctx, Player target, int amount) => { ... });
 ```
+
+Two overloads: `Register(key, section, help, handler)` (open) and
+`Register(key, privilege, section, help, handler)` — an open script never
+passes a privilege value at all.
 
 - Same binding engine as built-ins: the delegate's parameters are inspected
   identically — typed parsing, `Player` resolution, `rest`, defaults,
