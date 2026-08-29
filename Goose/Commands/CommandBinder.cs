@@ -96,6 +96,42 @@ namespace Goose.Commands
             return !key.Contains(' ');
         }
 
+        public static bool IsValidTarget(ParameterInfo[] parameters, out string? error)
+        {
+            if (parameters.Length == 0 || parameters[0].ParameterType != typeof(CommandContext))
+            {
+                error = "first parameter must be CommandContext";
+                return false;
+            }
+
+            for (var i = 1; i < parameters.Length; i++)
+            {
+                var type = parameters[i].ParameterType;
+
+                if (type == typeof(string[]))
+                {
+                    if (i != parameters.Length - 1)
+                    {
+                        error = "string[] may only be the final parameter";
+                        return false;
+                    }
+                    continue;
+                }
+
+                var underlying = Nullable.GetUnderlyingType(type) ?? type;
+                if (underlying != typeof(string) && underlying != typeof(int) && underlying != typeof(long)
+                    && underlying != typeof(float) && underlying != typeof(double) && underlying != typeof(decimal)
+                    && underlying != typeof(bool) && underlying != typeof(Player))
+                {
+                    error = $"unsupported parameter type {type.Name}";
+                    return false;
+                }
+            }
+
+            error = null;
+            return true;
+        }
+
         public static string Usage(string key, ParameterInfo[] parameters, string? usageOverride = null)
         {
             if (usageOverride is not null)
