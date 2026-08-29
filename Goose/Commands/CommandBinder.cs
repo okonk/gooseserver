@@ -10,12 +10,14 @@ namespace Goose.Commands
             GameWorld world, Player player,
             ParameterInfo[] parameters, string[] tokens, string usage)
         {
-            var args = new object?[parameters.Length];
             var tokenIndex = 0;
             var startIndex = 0;
 
             if (parameters.Length > 0 && parameters[0].ParameterType == typeof(CommandContext))
                 startIndex = 1;
+
+            // The invoker composes [ctx, .. args]; the context slot is not part of args.
+            var args = new object?[parameters.Length - startIndex];
 
             for (var i = startIndex; i < parameters.Length; i++)
             {
@@ -25,7 +27,7 @@ namespace Goose.Commands
                 {
                     var rest = new string[tokens.Length - tokenIndex];
                     Array.Copy(tokens, tokenIndex, rest, 0, rest.Length);
-                    args[i] = rest;
+                    args[i - startIndex] = rest;
                     tokenIndex = tokens.Length;
                     continue;
                 }
@@ -35,46 +37,46 @@ namespace Goose.Commands
                     var token = tokens[tokenIndex];
                     tokenIndex++;
 
-                    if (parameter.ParameterType == typeof(Player))
+                    var underlying = Nullable.GetUnderlyingType(parameter.ParameterType) ?? parameter.ParameterType;
+
+                    if (underlying == typeof(Player))
                     {
                         var target = world.PlayerHandler.GetPlayer(token);
                         if (target is null)
                             return (null, $"Couldn't find player {token}.");
-                        args[i] = target;
+                        args[i - startIndex] = target;
                         continue;
                     }
 
-                    if (parameter.ParameterType == typeof(bool))
+                    if (underlying == typeof(bool))
                     {
                         if (!TryParseBool(token, out var value))
                             return (null, usage);
-                        args[i] = value;
+                        args[i - startIndex] = value;
                         continue;
                     }
-
-                    var underlying = Nullable.GetUnderlyingType(parameter.ParameterType) ?? parameter.ParameterType;
 
                     // Invariant culture, no thousands separators: tokens are wire input, not locale-formatted.
                     const NumberStyles numeric = NumberStyles.Float & ~NumberStyles.AllowThousands;
                     if (underlying == typeof(int) && int.TryParse(token, NumberStyles.Integer, CultureInfo.InvariantCulture, out var intValue))
-                    { args[i] = intValue; continue; }
+                    { args[i - startIndex] = intValue; continue; }
                     if (underlying == typeof(long) && long.TryParse(token, NumberStyles.Integer, CultureInfo.InvariantCulture, out var longValue))
-                    { args[i] = longValue; continue; }
+                    { args[i - startIndex] = longValue; continue; }
                     if (underlying == typeof(float) && float.TryParse(token, numeric, CultureInfo.InvariantCulture, out var floatValue))
-                    { args[i] = floatValue; continue; }
+                    { args[i - startIndex] = floatValue; continue; }
                     if (underlying == typeof(double) && double.TryParse(token, numeric, CultureInfo.InvariantCulture, out var doubleValue))
-                    { args[i] = doubleValue; continue; }
+                    { args[i - startIndex] = doubleValue; continue; }
                     if (underlying == typeof(decimal) && decimal.TryParse(token, numeric, CultureInfo.InvariantCulture, out var decimalValue))
-                    { args[i] = decimalValue; continue; }
+                    { args[i - startIndex] = decimalValue; continue; }
                     if (underlying == typeof(string))
-                    { args[i] = token; continue; }
+                    { args[i - startIndex] = token; continue; }
 
                     return (null, usage);
                 }
 
                 if (parameter.HasDefaultValue)
                 {
-                    args[i] = parameter.DefaultValue;
+                    args[i - startIndex] = parameter.DefaultValue;
                     continue;
                 }
 
@@ -82,6 +84,15 @@ namespace Goose.Commands
             }
 
             return (args, null);
+        }
+
+        public static bool IsValidKey(string key)
+        {
+            if (key.Length == 0 || key[0] != '/')
+                return false;
+            if (key.Length > 1 && key[^1] == ' ')
+                key = key[..^1];
+            return !key.Contains(' ');
         }
 
         public static string Usage(string key, ParameterInfo[] parameters, string? usageOverride = null)

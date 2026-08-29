@@ -41,6 +41,8 @@ public class CommandBinderTests
     private static void MNullablePlayer(CommandContext ctx, Player? target = null) { }
     private static void MNullableInt(CommandContext ctx, int? mapId = null) { }
     private static void MNullableDecimal(CommandContext ctx, decimal? price = null) { }
+    private static void MNullableBool(CommandContext ctx, bool? enabled = null) { }
+    private static void MShapePin(CommandContext ctx, int n) { }
     private static void MKick(CommandContext ctx, Player target) { }
 
     [Fact]
@@ -52,12 +54,26 @@ public class CommandBinderTests
             ParamsOf(nameof(MPositional)), ["1", "2", "3.5", "4.5", "5.5", "hi"], "Usage: /m");
 
         Assert.Null(error);
-        Assert.Equal(1, args![1]);
-        Assert.Equal(2L, args![2]);
-        Assert.Equal(3.5f, args![3]);
-        Assert.Equal(4.5, args![4]);
-        Assert.Equal(5.5m, args![5]);
-        Assert.Equal("hi", args![6]);
+        Assert.Equal(6, args!.Length);
+        Assert.Equal(1, args[0]);
+        Assert.Equal(2L, args[1]);
+        Assert.Equal(3.5f, args[2]);
+        Assert.Equal(4.5, args[3]);
+        Assert.Equal(5.5m, args[4]);
+        Assert.Equal("hi", args[5]);
+    }
+
+    [Fact]
+    public void Bind_returns_only_non_context_arguments()
+    {
+        using var fixture = NewFixture();
+
+        var (args, error) = CommandBinder.Bind(fixture.World, Alice(fixture),
+            ParamsOf(nameof(MShapePin)), ["5"], "Usage: /m <n>");
+
+        Assert.Null(error);
+        Assert.Equal(1, args!.Length);
+        Assert.Equal(5, args[0]);
     }
 
     [Fact]
@@ -69,7 +85,7 @@ public class CommandBinderTests
             ParamsOf(nameof(MDefaultedInt)), Array.Empty<string>(), "Usage: /m [n]");
 
         Assert.Null(error);
-        Assert.Equal(7, args![1]);
+        Assert.Equal(7, args![0]);
     }
 
     [Fact]
@@ -104,7 +120,7 @@ public class CommandBinderTests
 
         var (dArgs, dError) = CommandBinder.Bind(fixture.World, player, ParamsOf(nameof(MDouble)), ["1.5"], "Usage: /d <d>");
         Assert.Null(dError);
-        Assert.Equal(1.5, dArgs![1]);
+        Assert.Equal(1.5, dArgs![0]);
 
         var (dBadArgs, dBadError) = CommandBinder.Bind(fixture.World, player, ParamsOf(nameof(MDouble)), ["1,5"], "Usage: /d <d>");
         Assert.Null(dBadArgs);
@@ -112,7 +128,7 @@ public class CommandBinderTests
 
         var (eArgs, eError) = CommandBinder.Bind(fixture.World, player, ParamsOf(nameof(MDecimal)), ["1.5"], "Usage: /e <e>");
         Assert.Null(eError);
-        Assert.Equal(1.5m, eArgs![1]);
+        Assert.Equal(1.5m, eArgs![0]);
 
         var (eBadArgs, eBadError) = CommandBinder.Bind(fixture.World, player, ParamsOf(nameof(MDecimal)), ["1,5"], "Usage: /e <e>");
         Assert.Null(eBadArgs);
@@ -134,7 +150,7 @@ public class CommandBinderTests
             ParamsOf(nameof(MBool)), [token], "Usage: /m <b>");
 
         Assert.Null(error);
-        Assert.Equal(expected, args![1]);
+        Assert.Equal(expected, args![0]);
     }
 
     [Fact]
@@ -179,8 +195,8 @@ public class CommandBinderTests
             ParamsOf(nameof(MStringTail)), ["x", "y", "z"], "Usage: /m <a> [rest...]");
 
         Assert.Null(error);
-        Assert.Equal("x", args![1]);
-        Assert.Equal(new[] { "y", "z" }, args![2]);
+        Assert.Equal("x", args![0]);
+        Assert.Equal(new[] { "y", "z" }, args![1]);
     }
 
     [Fact]
@@ -192,8 +208,8 @@ public class CommandBinderTests
             ParamsOf(nameof(MStringTail)), ["x"], "Usage: /m <a> [rest...]");
 
         Assert.Null(error);
-        Assert.NotNull(args![2]);
-        Assert.Empty((string[])args[2]!);
+        Assert.NotNull(args![1]);
+        Assert.Empty((string[])args[1]!);
     }
 
     [Fact]
@@ -205,7 +221,7 @@ public class CommandBinderTests
             ParamsOf(nameof(MPlayer)), ["Alice"], "Usage: /m <target>");
 
         Assert.Null(error);
-        Assert.Same(Alice(fixture), args![1]);
+        Assert.Same(Alice(fixture), args![0]);
     }
 
     [Fact]
@@ -229,7 +245,58 @@ public class CommandBinderTests
             ParamsOf(nameof(MNullablePlayer)), Array.Empty<string>(), "Usage: /m [target]");
 
         Assert.Null(error);
-        Assert.Null(args![1]);
+        Assert.Null(args![0]);
+    }
+
+    [Fact]
+    public void Nullable_player_with_token_resolves_player()
+    {
+        using var fixture = NewFixture();
+
+        var (args, error) = CommandBinder.Bind(fixture.World, Alice(fixture),
+            ParamsOf(nameof(MNullablePlayer)), ["Alice"], "Usage: /m [target]");
+
+        Assert.Null(error);
+        Assert.Same(Alice(fixture), args![0]);
+    }
+
+    [Fact]
+    public void Nullable_player_with_unknown_token_is_specific_error()
+    {
+        using var fixture = NewFixture();
+
+        var (args, error) = CommandBinder.Bind(fixture.World, Alice(fixture),
+            ParamsOf(nameof(MNullablePlayer)), ["Nobody"], "Usage: /m [target]");
+
+        Assert.Null(args);
+        Assert.Equal("Couldn't find player Nobody.", error);
+    }
+
+    [Fact]
+    public void Nullable_bool_binds()
+    {
+        using var fixture = NewFixture();
+        var player = Alice(fixture);
+
+        var (missing, missingError) = CommandBinder.Bind(fixture.World, player,
+            ParamsOf(nameof(MNullableBool)), Array.Empty<string>(), "Usage: /nb [enabled]");
+        Assert.Null(missingError);
+        Assert.Null(missing![0]);
+
+        var (onArgs, onError) = CommandBinder.Bind(fixture.World, player,
+            ParamsOf(nameof(MNullableBool)), ["on"], "Usage: /nb [enabled]");
+        Assert.Null(onError);
+        Assert.Equal(true, onArgs![0]);
+
+        var (offArgs, offError) = CommandBinder.Bind(fixture.World, player,
+            ParamsOf(nameof(MNullableBool)), ["off"], "Usage: /nb [enabled]");
+        Assert.Null(offError);
+        Assert.Equal(false, offArgs![0]);
+
+        var (badArgs, badError) = CommandBinder.Bind(fixture.World, player,
+            ParamsOf(nameof(MNullableBool)), ["maybe"], "Usage: /nb [enabled]");
+        Assert.Null(badArgs);
+        Assert.Equal("Usage: /nb [enabled]", badError);
     }
 
     [Fact]
@@ -241,12 +308,12 @@ public class CommandBinderTests
         var (iMissing, iMissingError) = CommandBinder.Bind(fixture.World, player,
             ParamsOf(nameof(MNullableInt)), Array.Empty<string>(), "Usage: /i [mapId]");
         Assert.Null(iMissingError);
-        Assert.Null(iMissing![1]);
+        Assert.Null(iMissing![0]);
 
         var (iArgs, iError) = CommandBinder.Bind(fixture.World, player,
             ParamsOf(nameof(MNullableInt)), ["5"], "Usage: /i [mapId]");
         Assert.Null(iError);
-        Assert.Equal(5, iArgs![1]);
+        Assert.Equal(5, iArgs![0]);
 
         var (iBadArgs, iBadError) = CommandBinder.Bind(fixture.World, player,
             ParamsOf(nameof(MNullableInt)), ["abc"], "Usage: /i [mapId]");
@@ -256,12 +323,12 @@ public class CommandBinderTests
         var (dMissing, dMissingError) = CommandBinder.Bind(fixture.World, player,
             ParamsOf(nameof(MNullableDecimal)), Array.Empty<string>(), "Usage: /d [price]");
         Assert.Null(dMissingError);
-        Assert.Null(dMissing![1]);
+        Assert.Null(dMissing![0]);
 
         var (dArgs, dError) = CommandBinder.Bind(fixture.World, player,
             ParamsOf(nameof(MNullableDecimal)), ["1.5"], "Usage: /d [price]");
         Assert.Null(dError);
-        Assert.Equal(1.5m, dArgs![1]);
+        Assert.Equal(1.5m, dArgs![0]);
 
         var (dBadArgs, dBadError) = CommandBinder.Bind(fixture.World, player,
             ParamsOf(nameof(MNullableDecimal)), ["abc"], "Usage: /d [price]");
@@ -280,6 +347,18 @@ public class CommandBinderTests
             ParamsOf(nameof(MKick)), ["Bob", "extra"], "Usage: /kick <target>");
 
         Assert.Null(error);
-        Assert.Equal("Bob", ((Player)args![1]!).Name);
+        Assert.Equal("Bob", ((Player)args![0]!).Name);
+    }
+
+    [Theory]
+    [InlineData("/cmd ", true)]
+    [InlineData("/cmd", true)]
+    [InlineData("/", true)]
+    [InlineData("cmd", false)]
+    [InlineData("/bad key", false)]
+    [InlineData("/cmd  ", false)]
+    public void IsValidKey_enforces_slash_prefix_and_single_trailing_space(string key, bool expected)
+    {
+        Assert.Equal(expected, CommandBinder.IsValidKey(key));
     }
 }
