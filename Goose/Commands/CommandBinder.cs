@@ -62,9 +62,10 @@ namespace Goose.Commands
                     { args[i - startIndex] = intValue; continue; }
                     if (underlying == typeof(long) && long.TryParse(token, NumberStyles.Integer, CultureInfo.InvariantCulture, out var longValue))
                     { args[i - startIndex] = longValue; continue; }
-                    if (underlying == typeof(float) && float.TryParse(token, numeric, CultureInfo.InvariantCulture, out var floatValue))
+                    // float/double TryParse saturates to ±Infinity on overflow instead of failing.
+                    if (underlying == typeof(float) && float.TryParse(token, numeric, CultureInfo.InvariantCulture, out var floatValue) && float.IsFinite(floatValue))
                     { args[i - startIndex] = floatValue; continue; }
-                    if (underlying == typeof(double) && double.TryParse(token, numeric, CultureInfo.InvariantCulture, out var doubleValue))
+                    if (underlying == typeof(double) && double.TryParse(token, numeric, CultureInfo.InvariantCulture, out var doubleValue) && double.IsFinite(doubleValue))
                     { args[i - startIndex] = doubleValue; continue; }
                     if (underlying == typeof(decimal) && decimal.TryParse(token, numeric, CultureInfo.InvariantCulture, out var decimalValue))
                     { args[i - startIndex] = decimalValue; continue; }

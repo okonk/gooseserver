@@ -24,7 +24,7 @@ public class CommandBinderTests
     private static void MPositional(CommandContext ctx, int a, long b, float c, double d, decimal e, string s) { }
     private static void MDefaultedInt(CommandContext ctx, int n = 7) { }
     private static void MRequiredInt(CommandContext ctx, int n) { }
-    private static void MIntBad(CommandContext ctx, int n) { }
+    private static void MFloat(CommandContext ctx, float f) { }
     private static void MDouble(CommandContext ctx, double d) { }
     private static void MDecimal(CommandContext ctx, decimal e) { }
     private static void MBool(CommandContext ctx, bool b) { }
@@ -106,10 +106,33 @@ public class CommandBinderTests
         using var fixture = NewFixture();
 
         var (args, error) = CommandBinder.Bind(fixture.World, Alice(fixture),
-            ParamsOf(nameof(MIntBad)), ["abc"], "Usage: /cmd <n>");
+            ParamsOf(nameof(MRequiredInt)), ["abc"], "Usage: /cmd <n>");
 
         Assert.Null(args);
         Assert.Equal("Usage: /cmd <n>", error);
+    }
+
+    [Theory]
+    [InlineData("99999999999999999999", "int")]
+    [InlineData("123456789012345678901234567890", "decimal")]
+    [InlineData("1e999", "float")]
+    [InlineData("1e999", "double")]
+    public void Numeric_overflow_returns_usage_error_without_exception(string token, string type)
+    {
+        using var fixture = NewFixture();
+        var parameters = type switch
+        {
+            "int" => ParamsOf(nameof(MRequiredInt)),
+            "decimal" => ParamsOf(nameof(MDecimal)),
+            "float" => ParamsOf(nameof(MFloat)),
+            _ => ParamsOf(nameof(MDouble)),
+        };
+
+        var (args, error) = CommandBinder.Bind(fixture.World, Alice(fixture),
+            parameters, [token], "Usage: /o <n>");
+
+        Assert.Null(args);
+        Assert.Equal("Usage: /o <n>", error);
     }
 
     [Fact]
