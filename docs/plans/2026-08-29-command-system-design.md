@@ -93,8 +93,12 @@ Parameter binding:
 - Supported types: `int`, `long`, `float`, `double`, `bool`, `string`,
   `Player`, and `string[] rest` as a final parameter (captures all remaining
   tokens). `Player?` / `string?` with a default are optional.
-- `Player` binds the next token via `world.PlayerHandler.GetPlayer(name)`;
-  no match → framework sends `Couldn't find player <name>.`
+- `Player` binds the next token via `world.PlayerHandler.GetPlayer(name)`
+  (online players only); no match → framework sends
+  `Couldn't find player <name>.`. Commands that target offline players too
+  (`/ban`, `/setpassword`, `/givecredits`, `/playerinfo`) use `string name`
+  + `PlayerHandler.GetPlayerFromData(name)` (`Goose/PlayerHandler.cs:178`) in
+  the handler body, not the `Player` parameter.
 - Missing token for a non-optional parameter, or failed conversion →
   framework sends the auto-generated usage line. No per-command
   `try/catch` around parsing.
@@ -128,8 +132,9 @@ public sealed class CustomCommand
   before its handler runs; denial is swallowed. Class-level privilege gates
   before subcommand dispatch.
 
-Argument-dependent access (`/toggle`, `/givecredits`): the command class may
-override
+Argument-dependent access (`/toggle`; `/givecredits`'s argument-dependent
+behavior is plain validation, not access, and migrates verbatim): the command
+class may override
 
 ```csharp
 protected override AccessPrivilege? CheckAccess(CommandContext ctx, string[] args) =>
