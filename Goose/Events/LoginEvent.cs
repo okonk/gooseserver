@@ -82,8 +82,10 @@ namespace Goose.Events
                     name = Encoding.ASCII.GetString(data, 35, data[51]);
                     password = Encoding.ASCII.GetString(data, 52, data[68]);
                 }
-                catch
+                catch (Exception)
                 {
+                    // Malformed login packet from an untrusted client; dropping is
+                    // the response.
                     return;
                 }
             }

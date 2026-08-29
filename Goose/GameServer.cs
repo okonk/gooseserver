@@ -99,7 +99,7 @@ namespace Goose
                     {
                         this.StopWorld();
                     }
-                    catch { }
+                    catch (Exception) { }
 
                     Environment.ExitCode = 1;
                     break;
@@ -128,7 +128,7 @@ namespace Goose
                     {
                         this.StopWorld();
                     }
-                    catch { }
+                    catch (Exception) { }
 
                     System.Threading.Thread.Sleep(10000);
                     continue;
@@ -339,7 +339,7 @@ namespace Goose
                 {
                     sock.Close();
                 }
-                catch { }
+                catch (Exception) { }
             }
         }
 

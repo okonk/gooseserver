@@ -1,3 +1,5 @@
+using System.Net.Sockets;
+using Goose.Events;
 using Goose.Scripting;
 using Goose.Testing;
 
@@ -237,6 +239,42 @@ public class ScriptHookLoggingTests
         Assert.True(player.Inventory.HasItem(123));
         Assert.Contains(log.Messages, m =>
             m.Contains("bad starting item id 999") && m.Contains("Newbie"));
+    }
+
+    [Fact]
+    public void GameWorld_LostConnection_DisposedSocket_LogsAndSchedulesLogout()
+    {
+        var settings = new GooseSettings();
+        var world = new GameWorld(settings, new GameServer(settings));
+        using var log = new CapturingLog();
+        using var sock = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+        sock.Close();
+
+        world.LostConnection(sock);
+
+        Assert.Contains(log.Messages, m => m.Contains("Connection lost"));
+        Assert.IsType<LogoutEvent>(world.EventHandler.Peek());
+    }
+
+    [Fact]
+    public void GameWorld_Send_ThrowingPlayerSend_DropsConnection()
+    {
+        var settings = new GooseSettings();
+        var world = new GameWorld(settings, new GameServer(settings));
+
+        var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+        var player = new ThrowingPlayer { Name = "Thrower", Sock = socket };
+        world.PlayerHandler.AddPlayer(player, world);
+
+        world.Send(player, "x");
+
+        Assert.IsType<LogoutEvent>(world.EventHandler.Peek());
+    }
+
+    private sealed class ThrowingPlayer : Player
+    {
+        public ThrowingPlayer() : base(0) { }
+        public override bool Send(string data) => throw new InvalidOperationException("test");
     }
 
     private sealed class ThrowingUseScript : BaseItemScript

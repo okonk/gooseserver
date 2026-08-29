@@ -38,8 +38,9 @@ namespace Goose.Events
                                     rollback.CommandText = "ROLLBACK;";
                                     rollback.ExecuteNonQuery();
                                 }
-                                catch
+                                catch (Exception rollbackEx)
                                 {
+                                    log.Error(rollbackEx, "Failed to roll back after script failure");
                                 }
 
                                 throw;
