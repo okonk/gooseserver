@@ -156,7 +156,9 @@ public sealed class CustomCommand
   (same anti-probing rule as the help window).
 - Subcommand privileges are checked after the subcommand token matches,
   before its handler runs; denial is swallowed. Class-level privilege gates
-  before subcommand dispatch.
+  before subcommand dispatch. The command instance's argument-dependent
+  `CheckAccess` runs **before any subcommand response** — a denied caller
+  gets no reply, not even the subcommand list.
 
 Argument-dependent access (`/toggle`; `/givecredits`'s argument-dependent
 behavior is plain validation, not access, and migrates verbatim): the command
