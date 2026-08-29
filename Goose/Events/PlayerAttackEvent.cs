@@ -10,6 +10,8 @@ namespace Goose.Events
      */
     class PlayerAttackEvent : Event
     {
+        private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
+
         public override void Ready(GameWorld world)
         {
             if (this.Player.State == Player.States.Ready)
@@ -53,7 +55,11 @@ namespace Goose.Events
                         {
                             weaponSlot.Item.Script?.Object.OnMeleeEvent(this.Player, weaponSlot.Item, world);
                         }
-                        catch (Exception e) { }
+                        catch (Exception e)
+                        {
+                            log.Error(e, "Item OnMeleeEvent {0} ({1}) player {2} ({3}) Exception",
+                                weaponSlot.Item.Name, weaponSlot.Item.TemplateID, this.Player.Name, this.Player.LoginID);
+                        }
                     }
 
                     List<Player> range = this.Player.Map.GetPlayersInRange(this.Player);

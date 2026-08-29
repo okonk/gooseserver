@@ -84,6 +84,135 @@ public class ScriptHookLoggingTests
             m.Contains("NPC OnKilledEvent") && m.Contains("HookNpc") && m.Contains("100162"));
     }
 
+    [Fact]
+    public void UseConsumable_ThrowingScript_DoesNotConsumeItem()
+    {
+        using var fixture = new TestWorldFixture();
+        using var log = new CapturingLog();
+        var map = fixture.AddBaseMap(1, "m");
+        var player = fixture.CommandPlayerOn(map, 1, 1);
+        var template = fixture.AddBaseItemTemplate(501, "HookPotion", ItemTemplate.UseTypes.OneTime,
+            t =>
+            {
+                t.SpellEffectID = 0;
+                t.SpellEffect = null;
+                t.Script = ScriptStub.For<IItemScript>(new ThrowingUseScript());
+            });
+        var item = new Item();
+        item.LoadFromTemplate(template);
+        player.Inventory.AddItem(item, 1, fixture.World);
+
+        player.Inventory.UseConsumable(item, fixture.World);
+
+        Assert.True(player.Inventory.HasItem(501));
+        Assert.Contains(log.Messages, m =>
+            m.Contains("HookPotion") && m.Contains("501"));
+    }
+
+    [Fact]
+    public void UseConsumable_ScriptReturningTrue_StillConsumes()
+    {
+        using var fixture = new TestWorldFixture();
+        var map = fixture.AddBaseMap(1, "m");
+        var player = fixture.CommandPlayerOn(map, 1, 1);
+        var template = fixture.AddBaseItemTemplate(502, "HookPotion", ItemTemplate.UseTypes.OneTime,
+            t => t.Script = ScriptStub.For<IItemScript>(new ConsumeUseScript()));
+        var item = new Item();
+        item.LoadFromTemplate(template);
+        player.Inventory.AddItem(item, 1, fixture.World);
+
+        player.Inventory.UseConsumable(item, fixture.World);
+
+        Assert.False(player.Inventory.HasItem(502));
+    }
+
+    [Fact]
+    public void UseConsumable_ScriptReturningFalse_KeepsItem()
+    {
+        using var fixture = new TestWorldFixture();
+        var map = fixture.AddBaseMap(1, "m");
+        var player = fixture.CommandPlayerOn(map, 1, 1);
+        var template = fixture.AddBaseItemTemplate(503, "HookPotion", ItemTemplate.UseTypes.OneTime,
+            t => t.Script = ScriptStub.For<IItemScript>(new KeepUseScript()));
+        var item = new Item();
+        item.LoadFromTemplate(template);
+        player.Inventory.AddItem(item, 1, fixture.World);
+
+        player.Inventory.UseConsumable(item, fixture.World);
+
+        Assert.True(player.Inventory.HasItem(503));
+    }
+
+    [Fact]
+    public void Player_AddBuff_ThrowingOnBuffAdded_BuffAppliedAndLogged()
+    {
+        using var fixture = new TestWorldFixture();
+        using var log = new CapturingLog();
+        var map = fixture.AddBaseMap(1, "m");
+        var player = fixture.CommandPlayerOn(map, 1, 1);
+        var effect = fixture.AddBaseSpellEffect(7, "HookEffect",
+            e =>
+            {
+                e.Stats = new AttributeSet { Strength = 3 };
+                e.Script = ScriptStub.For<ISpellEffectScript>(new ThrowingBuffAddedScript());
+            });
+        var buff = new Buff { Caster = player, Target = player, SpellEffect = effect };
+
+        player.AddBuff(buff, fixture.World);
+
+        Assert.Contains(buff, player.Buffs);
+        Assert.Equal(3, player.MaxStats.Strength);
+        Assert.Contains(log.Messages, m =>
+            m.Contains("HookEffect") && m.Contains("7"));
+    }
+
+    [Fact]
+    public void Player_RemoveBuff_ThrowingOnBuffRemoved_Logged()
+    {
+        using var fixture = new TestWorldFixture();
+        using var log = new CapturingLog();
+        var map = fixture.AddBaseMap(1, "m");
+        var player = fixture.CommandPlayerOn(map, 1, 1);
+        var effect = fixture.AddBaseSpellEffect(8, "HookEffect",
+            e => e.Script = ScriptStub.For<ISpellEffectScript>(new ThrowingBuffRemovedScript()));
+        var buff = new Buff { Caster = player, Target = player, SpellEffect = effect };
+        player.AddBuff(buff, fixture.World);
+
+        player.RemoveBuff(buff, fixture.World);
+
+        Assert.DoesNotContain(buff, player.Buffs);
+        Assert.Contains(log.Messages, m =>
+            m.Contains("HookEffect") && m.Contains("8"));
+    }
+
+    private sealed class ThrowingUseScript : BaseItemScript
+    {
+        public override bool OnUseConsumableEvent(Player player, Item item, GameWorld world)
+            => throw new InvalidOperationException("boom");
+    }
+
+    private sealed class ConsumeUseScript : BaseItemScript
+    {
+        public override bool OnUseConsumableEvent(Player player, Item item, GameWorld world) => true;
+    }
+
+    private sealed class KeepUseScript : BaseItemScript
+    {
+        public override bool OnUseConsumableEvent(Player player, Item item, GameWorld world) => false;
+    }
+
+    private sealed class ThrowingBuffAddedScript : BaseSpellEffectScript
+    {
+        public override void OnBuffAdded(Buff buff, GameWorld world)
+            => throw new InvalidOperationException("boom");
+    }
+
+    private sealed class ThrowingBuffRemovedScript : BaseSpellEffectScript
+    {
+        public override void OnBuffRemoved(Buff buff, GameWorld world)
+            => throw new InvalidOperationException("boom");
+    }
+
     private sealed class ThrowingEnteredScript : BaseMapScript
     {
         public override void OnPlayerEntered(Map map, Player player, GameWorld world)

@@ -1582,7 +1582,11 @@ namespace Goose
             {
                 buff.SpellEffect?.Script?.Object.OnBuffAdded(buff, world);
             }
-            catch (Exception e) { }
+            catch (Exception e)
+            {
+                log.Error(e, "SpellEffect OnBuffAdded {0} ({1}) target {2} ({3}) Exception",
+                    buff.SpellEffect.Name, buff.SpellEffect.ID, buff.Target?.Name, buff.Target?.LoginID);
+            }
 
             if (buff.SpellEffect!.EffectType == SpellEffect.EffectTypes.Tick)
             {
@@ -1694,7 +1698,11 @@ namespace Goose
             {
                 buff.SpellEffect?.Script?.Object.OnBuffRemoved(buff, world);
             }
-            catch (Exception e) { }
+            catch (Exception e)
+            {
+                log.Error(e, "SpellEffect OnBuffRemoved {0} ({1}) target {2} ({3}) Exception",
+                    buff.SpellEffect.Name, buff.SpellEffect.ID, buff.Target?.Name, buff.Target?.LoginID);
+            }
 
             var packetBuilder = new StringBuilder();
 

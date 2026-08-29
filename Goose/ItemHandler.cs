@@ -244,7 +244,10 @@ namespace Goose
             {
                 item.Script?.Object.OnCreateEvent(item, world);
             }
-            catch (Exception e) { }
+            catch (Exception e)
+            {
+                log.Error(e, "Item OnCreateEvent {0} ({1}) Exception", item.Name, item.TemplateID);
+            }
 
             this.items[item.ItemID] = item;
         }

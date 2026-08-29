@@ -430,7 +430,13 @@ namespace Goose
                 {
                     remove = item.Script?.Object.OnUseConsumableEvent(player, item, world) ?? true;
                 }
-                catch (Exception e) { }
+                catch (Exception e)
+                {
+                    // fail-closed: a broken script must not consume the player's item
+                    remove = false;
+                    log.Error(e, "Item OnUseConsumableEvent {0} ({1}) player {2} ({3}) Exception; item kept",
+                        item.Name, item.TemplateID, player.Name, player.LoginID);
+                }
             }
 
             if (remove)
