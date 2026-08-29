@@ -13,7 +13,6 @@ namespace Goose.Tests
     {
         private static (GameWorld world, Socket client, Socket accepted) NewWorldAndLoopbackPair()
         {
-            // StartingItems must be non-null (LoadFromAutoCreate splits it unguarded);
             // MaxPlayers > 0 or login denies with "The server is full".
             var settings = new GooseSettings
             {

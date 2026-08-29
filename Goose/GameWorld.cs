@@ -596,13 +596,13 @@ namespace Goose
             {
                 if (!player.Send(data))
                 {
-                    log.Warn("Player {0} send buffer exceeded, dropping connection", player.Name);
+                    log.Warn("Player {0} ({1}) send buffer exceeded, dropping connection", player.Name, player.LoginID);
                     this.LostConnection(player.Sock);
                 }
             }
             catch (Exception e)
             {
-                log.Error(e, "Player {0} send threw, dropping connection", player.Name);
+                log.Error(e, "Player {0} ({1}) send threw, dropping connection", player.Name, player.LoginID);
                 this.LostConnection(player.Sock);
             }
         }
