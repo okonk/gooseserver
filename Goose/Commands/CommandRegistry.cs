@@ -91,11 +91,12 @@ namespace Goose.Commands
             }).ToList();
 
             this.RegisterAttributed([attribute.Key], attribute.Privilege, attribute.Section, attribute.Help,
-                attribute.Usage, instance, executes.Count == 1 ? executes[0] : null, infos);
+                attribute.Usage, instance, executes.Count == 1 ? executes[0] : null, infos, type.FullName);
         }
 
         internal bool RegisterAttributed(string[] keys, AccessPrivilege? privilege, string? section, string help,
-            string? usageOverride, object instance, MethodInfo? executeMethod, List<SubcommandInfo> subcommands)
+            string? usageOverride, object instance, MethodInfo? executeMethod, List<SubcommandInfo> subcommands,
+            string logContext)
         {
             lock (this._gate)
             {
@@ -104,7 +105,7 @@ namespace Goose.Commands
                 {
                     if (snapshot.ByKey.ContainsKey(key))
                     {
-                        log.Error("Refusing to register {0}: key is already registered.", key);
+                        log.Error("Rejecting {0}: key {1} is already registered.", logContext, key);
                         return false;
                     }
                 }

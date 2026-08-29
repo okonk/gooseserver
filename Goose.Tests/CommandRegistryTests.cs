@@ -364,6 +364,17 @@ public class CommandRegistryLoggingTests
     }
 
     [Fact]
+    public void Seed_duplicate_key_rejected_with_type_logged()
+    {
+        using var log = new CapturingLog();
+        var registry = new CommandRegistry();
+        registry.SeedAttributedTypes([typeof(SubOnlyCommand)]);
+        registry.SeedAttributedTypes([typeof(SubOnlyCommand)]);
+
+        Assert.Contains(log.Messages, m => m.Contains("SubOnlyCommand") && m.Contains("/subonly"));
+    }
+
+    [Fact]
     public void Each_publish_logs_a_warning_per_collision()
     {
         using var log = new CapturingLog();
