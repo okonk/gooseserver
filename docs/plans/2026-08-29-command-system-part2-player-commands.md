@@ -27,14 +27,14 @@ Design doc: `docs/plans/2026-08-29-command-system-design.md`
 
 1. Read the legacy event class in full.
 2. Create the new command class in `Goose/Commands/` with the attribute (key verbatim including trailing space, privilege verbatim — `Open` entries omit it — section + help text per the design doc's section list).
-3. Move the `Ready` body into `Execute` verbatim: drop the `Player.State == Ready` check (framework-enforced) and the token parsing (binder-supplied parameters). Keep every game-logic line, message string, and edge case unchanged.
+3. Move the `Ready` body into `Execute` verbatim: drop the `Player.State == Ready` check (framework-enforced) and the token parsing (binder-supplied parameters). Keep every game-logic line, message string, and edge case unchanged. **Rest-only parity:** where the signature is `string[] rest` alone, `rest` binds successfully even with zero tokens — port the legacy empty-input guard verbatim instead of treating empty as a parse error (e.g. `/shout`, `/group`, `/guild`, `/mc`, `/auction`, `/broadcast`: legacy silently returns on empty; `/guildmotd` empty = clear; `/hairdye` empty = legacy usage line).
 4. Remove the key from `_SeedCommands` (the non-command packet entries never move).
 5. Delete the legacy event class — **unless** it is referenced elsewhere (verified below); then keep it and leave its other key(s) registered legacy.
 6. Add/adjust tests in the batch's test file; run the full suite.
 
 **Deletion-safety (verified by grep, `Goose/**/*.cs` excluding the event file itself):** every Part 2 event is referenced only by `Goose/EventHandler.cs` — **except `RefreshPositionEvent`, which is also the `RPU` packet's event. Keep `RefreshPositionEvent.cs`; only its `/refresh` key migrates; `RPU` stays legacy.** `GiveCreditsCommandEvent`'s grep hit on `CreditsCommandEvent` is a substring of its own class name — safe.
 
-**Two-key aliases:** `/invite ` + `/groupadd ` both map to `GroupAddEvent`; `/disband` + `/groupremove` both map to `GroupRemoveEvent`. One attribute = one key, so Task 0 adds multi-key support.
+**Two-key aliases:** `/invite ` + `/groupadd ` both map to `GroupAddEvent`; `/disband` + `/groupremove` both map to `GroupRemoveEvent`. Part 1's storage is alias-ready; Task 0 adds the multi-key attribute + discovery path.
 
 ## Per-command parameter mapping (verified against the legacy sources)
 
@@ -93,7 +93,19 @@ Design doc: `docs/plans/2026-08-29-command-system-design.md`
 
 **Step 2: Implement**
 
-- `CommandAttribute(string key, ...)` → `params string[]` keys; validate each key. Part 1's registry storage is already alias-ready (the snapshot's `ByKey`/trie map every key to one definition, `CommandDefinition` has `string[] Keys` + `PrimaryKey`) — this task only adds the multi-key attribute, the discovery path (one class with N keys → one definition under all N keys), and the per-key downgrade/conflict checks.
+- Exact compilable attribute constructors (attribute parameters can't be nullable value types — separate bodies; the `Key` property becomes `string[] Keys` + `PrimaryKey => Keys[0]`):
+
+```csharp
+public CommandAttribute(string key) { Keys = [key]; }
+public CommandAttribute(string key, AccessPrivilege privilege) { Keys = [key]; Privilege = privilege; }
+public CommandAttribute(string firstKey, string secondKey, params string[] additionalKeys)
+    { Keys = [firstKey, secondKey, .. additionalKeys]; }
+public CommandAttribute(string firstKey, string secondKey, AccessPrivilege privilege, params string[] additionalKeys)
+    { Keys = [firstKey, secondKey, .. additionalKeys]; Privilege = privilege; }
+```
+
+No ambiguity: a string second arg can't convert to `AccessPrivilege` and vice versa. Validate every key. The equivalent multi-name `SubcommandAttribute` (`Names` array + `PrimaryName`, same four-constructor shape) lands here too — Part 3's `/custom make|create` alias needs it.
+- Part 1's registry storage is already alias-ready (the snapshot's `ByKey`/trie map every key to one definition) — this task adds the multi-key attribute, the discovery path (one class with N keys → one definition under all N keys via `RegisterKeys`), and the per-key downgrade/conflict checks.
 - Binder: add `decimal` (invariant parse) alongside the other numerics.
 
 **Step 3: Run** `dotnet test Goose.Tests` — green.

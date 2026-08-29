@@ -44,7 +44,7 @@ Identical to Part 2's rule (read event → new class with verbatim key/privilege
 | `/kick ` | `KickCommandEvent` | `Player target` | keep `State != NotLoggedIn` guard + `LostConnection` + kick log |
 | `/unban ` | `UnbanCommandEvent` | `string name` | `GetPlayerFromData` in-body |
 | `/ban ` | `BanCommandEvent` | `string name, int? days = null` | `GetPlayerFromData` in-body; keep the ban-type switch on `days` presence |
-| `/broadcast ` | `BroadcastCommandEvent` | `string[] rest` | message = join; keep the `[Access]:` prefix formatting |
+| `/broadcast ` | `BroadcastCommandEvent` | `string[] rest` | message = join; keep the `[Access]:` prefix formatting; **empty input → silent return** (legacy `data.Length <= 0` guard — rest-only, so this is a body guard, not a usage error) |
 | `/playerinfo ` | `PlayerInfoCommandEvent` | `string name` | `GetPlayerFromData` in-body; opens `PlayerInfoWindow` |
 | `/givegold ` | `GiveGoldCommandEvent` | `string name, long gold` | `GetPlayerFromData` in-body |
 | `/giveexperience ` | `GiveExperienceCommandEvent` | `string name, long exp` | same |
@@ -60,11 +60,11 @@ Identical to Part 2's rule (read event → new class with verbatim key/privilege
 | `/getitem ` | `GetItemCommandEvent` | `int id, string? arg2 = null, string? arg3 = null` | mixed token: `arg2` is a stack int or the word `powerful`; `arg3` may be `powerful` — keep the in-body parsing verbatim |
 | `/spawnnpc ` | `SpawnNPCCommandEvent` | `int id` | keep `id <= 0` silent return |
 | `/placespawn` | `PlaceSpawnCommandEvent` | `int npcId` | old self-usage messages become the framework usage line (intended delta) |
-| `/search ` | `SearchCommandEvent` | `string command, string[] rest` | name = join — legacy `Split(' ', 3)` makes `tokens[2]` the rest of the line (the regex is built over it); keep search bodies; old self-usage becomes framework usage |
+| `/search ` | `SearchCommandEvent` | `string command, string name, string[] rest` | query = join(`[name, ..rest]`) — legacy `Split(' ', 3)` makes `tokens[2]` the rest of the line (the regex is built over it); the required `name` token makes `/search item` a framework usage error (legacy `tokens.Length < 3` → usage) — a bare `string[] rest` would have bound it with an empty query; keep search bodies |
 | `/mutemap` | `MuteMapEvent` | — | no args |
 | `/shutdown` | `ShutdownCommandEvent` | — | verbatim |
 | `/setaccess` | `SetAccessCommandEvent` | `string name, string access` | `GetPlayerFromData` in-body |
-| `/setconfig ` | `SetConfigCommandEvent` | `string setting, string[] rest` | value = join (may contain spaces; old `Split(' ', 2)`); old self-usage becomes framework usage |
+| `/setconfig ` | `SetConfigCommandEvent` | `string setting, string value, string[] rest` | value = join(`[value, ..rest]`) (may contain spaces; old `Split(' ', 2)`); required `value` makes `/setconfig x` a framework usage error (legacy `tokens.Length < 3` → usage) |
 | `/saveconfig` | `SaveConfigCommandEvent` | — | verbatim (no-op body with comment — keep the comment, it explains why) |
 | `/respawnmap` | `RespawnMapCommandEvent` | — | verbatim |
 | `/reloadscripts` | `ReloadScriptsCommandEvent` | — | verbatim, including the `Task.Run` and its TODO comment |
@@ -104,7 +104,7 @@ Deletion-safety: before each batch's deletions, re-run the Part 2 grep pattern f
 
 - ★ `/ban Bob 30` (GM, `RegisterOnlinePlayer` + fixture DB as needed) vs Normal → swallowed, no reply.
 - ★ `/summon Ghost` → `Couldn't find player Ghost.`; `/summon Bob` with Bob in `LoadingMap` → `Player is still loading a map.` (in-body check survived).
-- `/broadcast hello world` sent by a **GM** caller → `world.SendToAll` message contains `[GM]: hello world` (the prefix is the *caller's* access — `BroadcastCommandEvent.cs`: `Access.ToString()` with `Master`→` Master`; a Normal caller can't run it at all, so `[Normal]:` was never a reachable assertion).
+- `/broadcast hello world` sent by a **GM** caller → `world.SendToAll` message contains `[Game Master]: hello world` — `AccessPrivilege.GameMaster.ToString()` is `"GameMaster"`, and the legacy `Replace("Master", " Master")` yields `"Game Master"`, not `GM` (`BroadcastCommandEvent.cs`); a Normal caller can't run it at all.
 - ★ `/givecredits Bob 0` → silent no-op (validation return kept, not converted to a usage error).
 - `/changeclass Bob Warrior 1.5` → decimal modifier bound; `/changeclass Bob Warrior` → modifier null.
 - `/playerinfo Bob` → `PlayerInfoWindow` added to the viewer's `Windows`.
@@ -145,7 +145,7 @@ Run `dotnet test` (both). Commit: `refactor: migrate GM world commands and Admin
 
 **Steps:**
 
-- Subcommands: `help` (no args), `kill` (no args), `preview` (`int r, int g, int b, int a, string[] rest`), `make` with alias names `make`/`create` (same params). **name = `string.Join(" ", rest)`** — legacy `Split(' ', 6, RemoveEmptyEntries)` makes `tokens[5]` the rest of the line, so `/custom make 1 2 3 4 My Sword` names the item "My Sword"; a single `string` param would truncate it.
+- Subcommands: `help` (no args), `kill` (no args), `preview` and `make` both `(int r, int g, int b, int a, string name, string[] rest)`; `make` carries alias names `make`/`create` via the multi-name `SubcommandAttribute` (Part 2 Task 0). **name = first required token, then `string.Join(" ", [name, ..rest])`** — legacy `Split(' ', 6, RemoveEmptyEntries)` makes `tokens[5]` the rest of the line, so `/custom make 1 2 3 4 My Sword` names the item "My Sword"; the required `name` token also makes name-less input a framework usage error (legacy `tokens.Length < 6` → usage), which a bare `string[] rest` would not.
 - Move `ParseRGBA`, `ValidateCustomSlots`, `EquippedDisplay`, `MountDisplay` into the new class verbatim (they are static/instance helpers on the legacy class).
 - Section: `Customs`.
 
@@ -155,6 +155,7 @@ Tests:
 - ★ Bare `/custom` → subcommand list (help/kill/preview/make with usage), not the old ticket-usage line, **and no ticket check** (delta); `/custom help` with ticket → the ticket instructions (kept); `/custom help` **without** ticket → the legacy ticket refusal (precondition pinned).
 - ★ `/custom make 255 0 0 255 MySword` and `/custom create 255 0 0 255 MySword` → identical behavior (alias pinned); `/custom make 255 0 0 255 My Sword` → item named `My Sword` (multi-word name via rest join — regression-pinned).
 - `/custom make 300 0 0 0 X` → the legacy `invalid r value` message (in-body `ParseRGBA` kept).
+- ★ `/custom make 1 2 3 4` and `/custom preview 1 2 3 4` (no name) → framework usage reply — legacy required a name for **both** subcommands even though preview never used it (`CustomCommandEvent`'s `Split(' ', 6)` length check).
 - `/custom preview ...` → preview packet path executes (assert the `MKC`-shaped packet in `Sent`).
 - Missing combine-bag ticket → the legacy refusal message.
 
@@ -181,7 +182,9 @@ Run `dotnet test` (both). Commit: `refactor: migrate /custom to subcommands`.
 3. Harden `EventHandler.RegisterEvent(string, CreateEvent)`: key starts with `/` → log error, return without registering. Delete `RegisterEvent(string, CreateEvent, AccessPrivilege)`. Update `Goose.Tests/EventHandlerTests.cs`: the downgrade-policy test now covers the registry (already in Part 1/2 tests) — replace with: `/` key rejected, non-`/` key (e.g. `"GID"`) still registers and dispatches.
 4. New integration tests (`GlobalScriptFixture`, mirroring `DimensionCommandGateTests` setup):
    - `RunCommand(player, "/dimension 5")` still warps (regression through the new registration path).
-   - ★ bare `/dimension` → `RunCommand` returns **false** and nothing is sent — the key is `/dimension ` (trailing space, `Dimensions.csx:229`), so the trie cannot match bare input, exactly as legacy; the usage line is only reachable via `/dimension <bad>` (keep that case asserting the legacy `/dimension <0-6>` line).
+   - ★ bare `/dimension` → `RunCommand` returns **false** and nothing is sent — the key is `/dimension ` (trailing space, `Dimensions.csx:229`), so the trie cannot match bare input, exactly as legacy.
+   - ★ `/dimension 7` (bound, out of range) → the legacy `/dimension <0-6>` line (in-body range check kept — legacy sends it for out-of-range, `Commands.csx:24`).
+   - ★ `/dimension abc` → framework usage `Usage: /dimension <dim>` (binder rejects before the handler — intended delta from legacy's `/dimension <0-6>` line for unparseable input).
    - ★ `/givesp Bob 10` end-to-end: spirit transfers, both players messaged (uses `RegisterOnlinePlayer`).
    - ★ Aspereta-style non-command registration still works: `world.EventHandler.RegisterEvent("GID", factory)` dispatches.
    - ★ `RegisterEvent("/sneaky ", factory)` → not dispatchable, error logged.
