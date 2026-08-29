@@ -10,6 +10,8 @@ namespace Goose
      */
     public class SpellHandler
     {
+        private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
+
         private Dictionary<int, SpellEffect> effects;
         private Dictionary<int, Spell> spells;
 
@@ -148,42 +150,44 @@ namespace Goose
                 s.OnMeleeAttackSpell = this.GetSpellEffect(s.OnMeleeAttackSpellID);
                 s.OnMeleeHitSpell = this.GetSpellEffect(s.OnMeleeHitSpellID);
 
-                foreach (string effectid in s.BuffStacksOverString.Split(' '))
+                // Both columns default to '' in the schema: without RemoveEmptyEntries the empty
+                // token would reach the catch below and log an error for every effect on startup.
+                foreach (string effectid in s.BuffStacksOverString.Split(' ', StringSplitOptions.RemoveEmptyEntries))
                 {
                     try
                     {
                         SpellEffect? e = this.GetSpellEffect(Convert.ToInt32(effectid));
                         if (e is null)
                         {
-                            // log bad spell effect id
+                            log.Warn("spell {0} ({1}): bad spell effect id {2} in buff-stacks-over", s.Name, s.ID, effectid);
                         }
                         else
                         {
                             s.BuffStacksOver.Add(e);
                         }
                     }
-                    catch (Exception)
+                    catch (Exception ex)
                     {
-
+                        log.Error(ex, "spell {0} ({1}): bad spell effect token '{2}' in buff-stacks-over", s.Name, s.ID, effectid);
                     }
                 }
-                foreach (string effectid in s.BuffDoesntStackOverString.Split(' '))
+                foreach (string effectid in s.BuffDoesntStackOverString.Split(' ', StringSplitOptions.RemoveEmptyEntries))
                 {
                     try
                     {
                         SpellEffect? e = this.GetSpellEffect(Convert.ToInt32(effectid));
                         if (e is null)
                         {
-                            // log bad spell effect id
+                            log.Warn("spell {0} ({1}): bad spell effect id {2} in buff-doesnt-stack-over", s.Name, s.ID, effectid);
                         }
                         else
                         {
                             s.BuffDoesntStackOver.Add(e);
                         }
                     }
-                    catch (Exception)
+                    catch (Exception ex)
                     {
-
+                        log.Error(ex, "spell {0} ({1}): bad spell effect token '{2}' in buff-doesnt-stack-over", s.Name, s.ID, effectid);
                     }
                 }
             }
@@ -259,7 +263,7 @@ namespace Goose
 
                 if (spell.SpellEffect is null)
                 {
-                    // log bad spell effect
+                    log.Warn("spell {0} ({1}): bad spell effect id {2}", spell.Name, spell.ID, spell.SpellEffectID);
                     continue;
                 }
 

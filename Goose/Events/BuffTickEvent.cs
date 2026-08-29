@@ -4,6 +4,8 @@ namespace Goose.Events
 {
     public class BuffTickEvent : Event
     {
+        private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
+
         public override void Ready(GameWorld world)
         {
             Buff buff = (Buff)this.Data;
@@ -24,7 +26,11 @@ namespace Goose.Events
                 {
                     buff.SpellEffect?.Script?.Object.OnBuffTick(buff, world);
                 }
-                catch (Exception e) { }
+                catch (Exception e)
+                {
+                    log.Error(e, "SpellEffect OnBuffTick {0} ({1}) target {2} ({3}) Exception",
+                        buff.SpellEffect.Name, buff.SpellEffect.ID, buff.Target?.Name, buff.Target?.LoginID);
+                }
             }
             else if (buff.SpellEffect.EffectType == SpellEffect.EffectTypes.Tick)
             {

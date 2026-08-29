@@ -1074,7 +1074,7 @@ namespace Goose
             }
             catch (Exception e)
             {
-                // TODO: need a logging system
+                log.Error(e, "NPC OnAttackedEvent {0} ({1}) Exception", this.Name, this.NPCTemplateID);
             }
 
             if (character is Player)
@@ -1115,14 +1115,23 @@ namespace Goose
 
                 if (this.CurrentHP <= 0)
                 {
+                    // separate try/catch: a throwing NPC hook must not skip the map hook
                     try
                     {
                         this.Script?.Object.OnKilledEvent(this, character, world);
+                    }
+                    catch (Exception e)
+                    {
+                        log.Error(e, "NPC OnKilledEvent {0} ({1}) Exception", this.Name, this.NPCTemplateID);
+                    }
+
+                    try
+                    {
                         this.Map.Script?.Object.OnNPCKilledEvent(this.Map, this, character, world);
                     }
                     catch (Exception e)
                     {
-                        // TODO: need a logging system
+                        log.Error(e, "Map OnNPCKilledEvent {0} ({1}) npc {2} ({3}) Exception", this.Map.Name, this.Map.ID, this.Name, this.NPCTemplateID);
                     }
 
                     // move off this square so null
@@ -1573,7 +1582,11 @@ namespace Goose
             {
                 buff.SpellEffect?.Script?.Object.OnBuffAdded(buff, world);
             }
-            catch (Exception e) { }
+            catch (Exception e)
+            {
+                log.Error(e, "SpellEffect OnBuffAdded {0} ({1}) target {2} ({3}) Exception",
+                    buff.SpellEffect.Name, buff.SpellEffect.ID, buff.Target?.Name, buff.Target?.LoginID);
+            }
 
             if (buff.SpellEffect!.EffectType == SpellEffect.EffectTypes.Tick)
             {
@@ -1685,7 +1698,11 @@ namespace Goose
             {
                 buff.SpellEffect?.Script?.Object.OnBuffRemoved(buff, world);
             }
-            catch (Exception e) { }
+            catch (Exception e)
+            {
+                log.Error(e, "SpellEffect OnBuffRemoved {0} ({1}) target {2} ({3}) Exception",
+                    buff.SpellEffect.Name, buff.SpellEffect.ID, buff.Target?.Name, buff.Target?.LoginID);
+            }
 
             var packetBuilder = new StringBuilder();
 

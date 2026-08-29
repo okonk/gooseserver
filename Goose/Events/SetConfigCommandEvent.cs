@@ -5,13 +5,18 @@ namespace Goose.Events
 {
     public class SetConfigCommandEvent : Event
     {
+        private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
+
         public override void Ready(GameWorld world)
         {
             if (this.Player.State == Player.States.Ready)
             {
-                string data = ((string)this.Data).Substring(11);
-
-                string[] tokens = data.Split(' ', 2);
+                string data = (string)this.Data;
+                if (data.Length < 11) { world.Send(this.Player, P.ServerMessage("Usage: /setconfig <setting> <value>")); return; }
+                string rest = data.Substring(11).Trim();
+                if (rest.Length == 0) { world.Send(this.Player, P.ServerMessage("Usage: /setconfig <setting> <value>")); return; }
+                string[] tokens = rest.Split(' ', 2);
+                if (tokens.Length < 2) { world.Send(this.Player, P.ServerMessage("Usage: /setconfig <setting> <value>")); return; }
 
                 // Reflection.. fun
                 // Get GameSettings type
@@ -42,9 +47,11 @@ namespace Goose.Events
                         setter!.Invoke(world.Settings,
                             new object[] { parser!.Invoke(null, new object[] { tokens[1] })! });
                     }
-                    catch
+                    catch (Exception e)
                     {
-
+                        log.Error(e, "SetConfigCommand {0} {1} Exception", tokens[0], tokens[1]);
+                        world.Send(this.Player, P.ServerMessage("Couldn't set value '" + tokens[1] + "' for " + tokens[0] + "."));
+                        return;
                     }
                 }
 

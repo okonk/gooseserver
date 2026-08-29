@@ -427,7 +427,8 @@ namespace Goose
                 {
                     sock.Send(Encoding.ASCII.GetBytes("IMN00000000" + "\x1"));
                 }
-                catch { }
+                // Client may already be gone by the time the handshake is sent.
+                catch (Exception) { }
             }
         }
 
@@ -441,22 +442,19 @@ namespace Goose
         public void LostConnection(Socket sock)
         {
             preLoginBuffers.Remove(sock);
+            string endpoint;
+            try { endpoint = sock.RemoteEndPoint!.ToString(); } catch { endpoint = "unknown"; }
+            log.Info("Connection lost: " + endpoint);
+            try { this.GameServer!.Disconnect(sock); }
+            catch (Exception e) { log.Error(e, "Disconnect failed for {0}", endpoint); }
             try
             {
-                log.Info("Connection lost: " + sock.RemoteEndPoint!.ToString());
-
-                this.GameServer!.Disconnect(sock);
-
                 Event ev = new LogoutEvent();
                 ev.Data = sock;
                 ev.Ticks += (this.Settings.LogoutLagTime * this.TimerFrequency);
-
                 this.EventHandler.AddEvent(ev);
             }
-            catch (Exception)
-            {
-                //eaten
-            }
+            catch (Exception e) { log.Error(e, "Failed to schedule logout for {0}", endpoint); }
         }
 
         /**
@@ -598,13 +596,14 @@ namespace Goose
             {
                 if (!player.Send(data))
                 {
-                    log.Warn("Player {0} send buffer exceeded, dropping connection", player.Name);
+                    log.Warn("Player {0} ({1}) send buffer exceeded, dropping connection", player.Name, player.LoginID);
                     this.LostConnection(player.Sock);
                 }
             }
-            catch (Exception)
+            catch (Exception e)
             {
-
+                log.Error(e, "Player {0} ({1}) send threw, dropping connection", player.Name, player.LoginID);
+                this.LostConnection(player.Sock);
             }
         }
 
@@ -625,6 +624,8 @@ namespace Goose
             {
                 sock.Send(Encoding.ASCII.GetBytes(data));
             }
+            // Pre-login rejection path; the caller (LoginEvent) disconnects after
+            // sending, so a dead socket needs no drop here.
             catch (Exception)
             {
             }

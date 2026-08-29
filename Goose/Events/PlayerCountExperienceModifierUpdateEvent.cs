@@ -23,8 +23,8 @@ namespace Goose.Events
                         }
                         catch (ObjectDisposedException)
                         {
-                            // eat exception to stop crash
-                            // TODO: figure out how to solve the problem in a better way?
+                            // Socket may be disposed mid-enumeration as a player
+                            // disconnects; that player simply isn't counted this tick.
                         }
                     }
                 }

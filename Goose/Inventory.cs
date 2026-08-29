@@ -177,7 +177,7 @@ namespace Goose
                 return this.inventory[i];
             }
 
-            // log bad slot id
+            log.Warn("player {0} ({1}): bad inventory slot id {2}", this.player.Name, this.player.LoginID, i);
             return null;
         }
 
@@ -215,7 +215,8 @@ namespace Goose
             if (id1 <= 0 || id1 > this.settings.InventorySize ||
                 id2 <= 0 || id2 > this.settings.InventorySize)
             {
-                // log id out of inventory range
+                log.Warn("player {0} ({1}): slot out of range in SplitSlots {2}/{3}",
+                    this.player.Name, this.player.LoginID, id1, id2);
                 return;
             }
 
@@ -321,7 +322,8 @@ namespace Goose
             // if slot is null something went wrong
             if (slot is null)
             {
-                // log something here
+                log.Warn("player {0} ({1}): failed to remove item {2} ({3}) before equipping",
+                    this.player.Name, this.player.LoginID, item.Name, item.TemplateID);
                 return false;
             }
 
@@ -430,7 +432,13 @@ namespace Goose
                 {
                     remove = item.Script?.Object.OnUseConsumableEvent(player, item, world) ?? true;
                 }
-                catch (Exception e) { }
+                catch (Exception e)
+                {
+                    // fail-closed: a broken script must not consume the player's item
+                    remove = false;
+                    log.Error(e, "Item OnUseConsumableEvent {0} ({1}) player {2} ({3}) Exception; item kept",
+                        item.Name, item.TemplateID, player.Name, player.LoginID);
+                }
             }
 
             if (remove)
@@ -556,7 +564,8 @@ namespace Goose
                 }
                 else
                 {
-                    // log bad buff
+                    log.Warn("player {0} ({1}): no buff to remove while unequipping slot {2}",
+                        this.player.Name, this.player.LoginID, equipslot);
                 }
             }
 
@@ -677,7 +686,7 @@ namespace Goose
                 return this.equipped[i - this.settings.InventorySize - 1];
             }
 
-            // log bad slot id
+            log.Warn("player {0} ({1}): bad equipped slot id {2}", this.player.Name, this.player.LoginID, i);
             return null;
         }
 

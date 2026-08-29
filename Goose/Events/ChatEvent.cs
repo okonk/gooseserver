@@ -14,6 +14,7 @@ namespace Goose.Events
      */
     class ChatEvent : Event
     {
+        private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
         private const int MaxMessageLength = 300;
 
         public override void Ready(GameWorld world)
@@ -67,7 +68,7 @@ namespace Goose.Events
                     }
                     catch (Exception e)
                     {
-                        // TODO: need a logging system
+                        log.Error(e, "NPC OnPlayerChatEvent {0} ({1}) Exception", npc.Name, npc.NPCTemplateID);
                     }
                 }
 

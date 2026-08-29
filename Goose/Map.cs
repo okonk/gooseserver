@@ -191,7 +191,7 @@ namespace Goose
             }
             catch (Exception e)
             {
-                // TODO: need a logging system
+                log.Error(e, "Map OnPlayerEntered {0} ({1}) player {2} ({3}) Exception", this.Name, this.ID, player.Name, player.LoginID);
             }
         }
 
@@ -209,7 +209,7 @@ namespace Goose
             }
             catch (Exception e)
             {
-                // TODO: need a logging system
+                log.Error(e, "Map OnPlayerLeft {0} ({1}) player {2} ({3}) Exception", this.Name, this.ID, player.Name, player.LoginID);
             }
         }
 
@@ -463,7 +463,11 @@ namespace Goose
                         {
                             map.Script?.Object.OnLoadTile(map, x, y, k, graphic, sheet, flags, world);
                         }
-                        catch (Exception e) { }
+                        catch (Exception e)
+                        {
+                            log.Error(e, "Map OnLoadTile {0} ({1}) at {2},{3} layer {4} Exception",
+                                map.Name, map.ID, x, y, k);
+                        }
                     }
 
                     if ((flags & 2) > 0)
@@ -500,7 +504,11 @@ namespace Goose
                         {
                             map.Script?.Object.OnLoadTile(map, x, y, k, graphic, sheet, flags, world);
                         }
-                        catch (Exception e) { }
+                        catch (Exception e)
+                        {
+                            log.Error(e, "Map OnLoadTile {0} ({1}) at {2},{3} layer {4} Exception",
+                                map.Name, map.ID, x, y, k);
+                        }
                     }
 
                     if ((flags & 1) > 0)
@@ -522,7 +530,10 @@ namespace Goose
             {
                 this.Script?.Object.OnLoad(this, world);
             }
-            catch (Exception e) { }
+            catch (Exception e)
+            {
+                log.Error(e, "Map OnLoad {0} ({1}) Exception", this.Name, this.ID);
+            }
 
             using (var fileStream = File.Open(world.Settings.DataPathAbsolute + "/Maps/" + FileName, FileMode.Open, FileAccess.Read))
             using (var mapReader = new BinaryReader(fileStream))
@@ -580,7 +591,10 @@ namespace Goose
             {
                 this.Script?.Object.OnFinishedLoad(this, world);
             }
-            catch (Exception e) { }
+            catch (Exception e)
+            {
+                log.Error(e, "Map OnFinishedLoad {0} ({1}) Exception", this.Name, this.ID);
+            }
         }
 
         /**
