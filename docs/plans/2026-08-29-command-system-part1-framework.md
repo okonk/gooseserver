@@ -86,7 +86,8 @@ public sealed class SubcommandAttribute : Attribute
 ```
 
 - `BaseCommand`: abstract class with `protected virtual AccessPrivilege? CheckAccess(CommandContext ctx, string[] args) => null;`. Command classes derive from it so `CheckAccess` is overridable.
-- `CommandContext`: `Player Player`, `GameWorld World`, `CommandRegistry Registry`, `string[] Args` (all tokens after the command key, including a subcommand token), `void Send(string message)` → `World.Send(Player, P.ServerMessage(message))`.
+- `CommandContext`: `Player Player`, `GameWorld World`, `CommandRegistry Registry`, `string[] Args` (tokens after the command key, split on whitespace with empty entries removed, including a subcommand token), `string Remainder` (the raw packet text after the key, lossless), `void Send(string message)` → `World.Send(Player, P.ServerMessage(message))`.
+- **Binder extras policy: extra tokens beyond the declared parameters (no `rest`) are ignored** — legacy commands mostly ignored extras (`/kick Bob extra`); erroring on them would change dozens of commands. **Whitespace normalization is a documented delta** (legacy `Substring`/`Split` saw raw text); commands sensitive to raw whitespace take `ctx.Remainder`.
 - Key validation helper (used by Task 2): key must start with `/` and contain no spaces except an optional single trailing space.
 
 **Step 2: Write the failing binder tests**
@@ -117,6 +118,7 @@ Test cases (adversarial ones marked ★):
 | `Player` param: token resolves via `PlayerHandler.GetPlayer` (use `RegisterOnlinePlayer`) | bound to that `Player` |
 | ★ `Player` param, unknown name | error = `Couldn't find player <name>.` |
 | `Player?` with `= null` default, token missing | bound to null |
+| ★ extra tokens beyond the parameters, no `rest` | **ignored** (bound args correct, no error) — `/kick Bob extra` parity |
 | `Usage`: optional → `[name]`, required → `<name>`, rest → `<name>`; key trailing space trimmed | e.g. `/warp [mapId] [x] [y]` |
 
 Red: tests fail to compile (no `CommandBinder`). Green: implement minimal binder.
@@ -231,7 +233,7 @@ Use `TestWorldFixture` (`RunCommand`, `CommandPlayerOn`, `CapturingPlayer.Sent`)
 | `CheckAccess` override: token `"invis"` + Normal player → swallowed; GM → runs | as stated |
 | Subcommand command: bare key → sends subcommand list; unknown sub → same; valid sub → runs with remaining tokens bound | as stated |
 | ★ Subcommand privilege: sub requires `AccessPrivilege.Ban`; Normal → swallowed even though command itself is open | as stated |
-| `EventHandler.RegisterEvent("/evil", factory)` (slash key) | rejected, logged, not dispatchable |
+| `EventHandler.RegisterEvent("/evil", factory)` (slash key) | **Part 1: warning logged, still registered** (shipped `.csx` scripts depend on it until Part 3); hard rejection lands in Part 3 |
 | `EventHandler.RegisterEvent("GID", factory)` (non-slash) | still works (Aspereta dependency) |
 | Existing `RegisterEvent_DoesNotReplaceRestrictedCommandWithOpenFactory` semantics now live in the registry: re-test via `world.Commands.Register` replacing `/shutdown` open | refused |
 
@@ -254,6 +256,7 @@ Red: new behaviors fail (commands not dispatched, `RegisterEvent` still accepts 
 - Ctor: after `_SeedCommands()`, call `world-less` `SeedBuiltins` — the registry is passed in or the ctor takes it; simplest: `GameWorld` ctor creates `Commands` **before** `EventHandler` and passes it: `this.EventHandler = new EventHandler(this.Commands);` (update `Goose/GameWorld.cs:105`).
 - `AddEvent(Player, string)`: first `registry.Trie.TryGetLongestPrefix(packet, out def, out len)`. If hit: legacy definition → existing code path (factory/type instantiation, `ClientOriginated = true`, enqueue). New-style: class-level privilege check with the existing swallow + debug log (`Goose/EventHandler.cs:283` block), then enqueue `CommandEvent`. If miss: fall through to the packet trie exactly as today.
 - `_SeedCommands`: convert the table to registrations — non-command packet entries unchanged in the packet trie; every `/` entry becomes `registry.RegisterLegacy(key, typeof(XCommandEvent), privilege)` (same keys, same trailing spaces, same privileges — copy verbatim).
+- Rename the nested `EventHandler.CommandDefinition` to `PacketDefinition` (it now describes non-command packets only; avoids colliding with the new top-level `Goose.Commands.CommandDefinition`). The `Open`/`Restricted` helpers become `PacketDefinition.Open/Restricted` for the packet table.
 - `RegisterEvent(string, CreateEvent)`: reject keys starting with `/` (log error, return). Delete the `(string, CreateEvent, AccessPrivilege)` overload and update `Goose.Tests/EventHandlerTests.cs` accordingly (its policy test moves to the registry, covered by Task 2/3 tests).
 
 **Mutation impact (dispatch path):**
@@ -415,5 +418,5 @@ git commit -m "test: end-to-end coverage for the command framework"
 ## Part 1 exit criteria
 
 - `dotnet test` green across `Goose.Tests` and `Goose.IntegrationTests` (including all pre-existing dimension tests — the `.csx` scripts still run on `RegisterEvent`).
-- `/help` works in-game; all 68 legacy commands dispatch exactly as before.
+- `/help` works in-game; all 72 legacy command keys dispatch exactly as before.
 - No file in `Goose/Events/*CommandEvent.cs` modified yet (migration is Parts 2–3).

@@ -18,7 +18,7 @@ Design doc: `docs/plans/2026-08-29-command-system-design.md`
 |---|---|
 | Part 1 surface: `CommandAttribute`, `BaseCommand`, `CommandContext` (`Player`, `World`, `Registry`, `Args`, `Send`), `CommandBinder.Bind/Usage`, `CommandRegistry` | `Goose/Commands/` (Part 1) |
 | Legacy seed table to edit (keys + privileges copied verbatim) | `Goose/EventHandler.cs:120` (`_SeedCommands`) |
-| `EventHandler.RegisterLegacy(key, Type, AccessPrivilege?)` (Part 1 Task 3) | `Goose/Commands/CommandRegistry.cs` |
+`CommandRegistry.RegisterLegacy(key, Type, AccessPrivilege?)` (Part 1 Task 3) | `Goose/Commands/CommandRegistry.cs` |
 | `TestWorldFixture.RunCommand / CommandPlayerOn / RegisterOnlinePlayer`, `CapturingPlayer.Sent` | `TestSupport/TestWorldFixture.cs:105,75,88` |
 | `PlayerHandler.GetPlayer(string)` case-insensitive | `Goose/PlayerHandler.cs:133` |
 | `Player.HasPrivilege` | `Goose/Player.cs:529` |
@@ -40,7 +40,7 @@ Design doc: `docs/plans/2026-08-29-command-system-design.md`
 
 | Key(s) | Legacy event | `Execute` parameters | Notes |
 |---|---|---|---|
-| `/who` | `WhoEvent` | `string? scope = null, string[] rest` | old code splits the packet: `/who`, `/who all [query...]`, `/who guild [query...]`; query = `rest` joined |
+| `/who` | `WhoEvent` | `string? scope = null, string[] rest` | old code splits the packet: `/who`, `/who all [query...]`, `/who guild [query...]`. **Name-only form `/who bob` means scope=all with query including "bob"** (`WhoEvent.cs:48-51`: `players = all; query = join(search, 1, ...)`). Handler: if `scope` is null → all players, query = `string.Join(" ", [name, ..rest])`; else branch per legacy with query = `rest` joined |
 | `/tell ` | `TellEvent` | `Player target, string[] rest` | message = `string.Join(" ", rest)`; keep the 300-char cap and `UpdateIdleStatus` call; missing target now gets "Couldn't find player" (intended delta) |
 | `/shout ` | `ShoutCommandEvent` | `string[] rest` | message = join; keep mute check |
 | `/random` | `RandomCommandEvent` | — (no args) | keep mute check |
@@ -51,22 +51,22 @@ Design doc: `docs/plans/2026-08-29-command-system-design.md`
 | `/charinfo` | `CharacterInfoCommandEvent` | — | |
 | `/credits` | `CreditsCommandEvent` | — | |
 | `/playtime` | `PlaytimeCommandEvent` | — | |
-| `/changepassword ` | `ChangePasswordCommandEvent` | `string password` | old `Substring(16)` = single token after key |
-| `/buyvita` | `BuyVitaCommandEvent` | `int buys` | old default-on-parse-failure (`buys` stays 1) becomes a usage reply (intended delta) |
-| `/buymana` | `BuyManaCommandEvent` | `int buys` | same |
+| `/changepassword ` | `ChangePasswordCommandEvent` | `string[] rest` | password = join — old `Substring(16)` is the **rest of the line**; passwords may contain spaces |
+| `/buyvita` | `BuyVitaCommandEvent` | `int buys = 1` | **bare `/buyvita` (no trailing space in key) buys 1 in legacy** (`Split(' ')[1]` throws → catch → default 1) — the default preserves that; bad token → usage reply (intended delta) |
+| `/buymana` | `BuyManaCommandEvent` | `int buys = 1` | same |
 | `/rank` | `RankCommandEvent` | `string? arg = null` | old code strips one leading space then lowercases |
-| `/hairdye` | `HairdyeCommandEvent` | `string? arg = null, int? g = null, int? b = null, int? a = null` | `arg` is `"help"` or the red value; keep the internal `ParseRGBA`-style validation and help text. Not subcommands (the numeric path has no name token) |
+| `/hairdye` | `HairdyeCommandEvent` | `string[] rest` | **legacy has no bare-numeric dye path** — bare/`help` sends the usage line (`HairdyeCommandEvent.cs:13-16`), then the switch is `accept`/`gogodyeme`/`preview`/`kill` with no default case, and each verb takes four ints *after* the verb (`ParseRGBA` reads `tokens[1..4]`, so `/hairdye accept 255 0 0 255` is 5 tokens). Handler: `rest` empty or `rest[0] == "help"` → legacy usage message; else move the switch and `ParseRGBA` verbatim over `rest`; unknown verb → silent no-op (legacy parity) |
 | `/aether ` | `AetherCommandEvent` | `decimal thres` | **requires `decimal` binder support (Task 0)** |
-| `/mc ` | `MacroConfirmCommandEvent` | `string code` | |
+| `/mc ` | `MacroConfirmCommandEvent` | `string[] rest` | code = join — old `Substring("/mc ".Length)` is the rest of the line |
 | `/group ` | `GroupChatEvent` | `string[] rest` | message = join |
 | `/invite ` + `/groupadd ` | `GroupAddEvent` | `string name` | alias pair (Task 0) |
-| `/disband` + `/groupremove` | `GroupRemoveEvent` | `string? name = null` | old `Split(' ')` — `/disband` takes no name; alias pair |
+| `/disband` + `/groupremove` | `GroupRemoveEvent` | — (no typed params; handler reads `ctx.Remainder`) | **trailing-space edge is load-bearing** (`GroupRemoveEvent.cs:19-29`): `Split(' ')` without `RemoveEmptyEntries` distinguishes no-token (leave group) from empty-token (silent no-op). Handler: `Remainder` empty → leave-group path; `Remainder.Trim()` empty → silent return; else name = trimmed. A token-only binder would collapse the two and send `/groupremove ` down the leave path |
 | `/togglegroup` | `ToggleGroupCommandEvent` | — | |
 | `/toggle ` | `ToggleCommandEvent` | `string setting, string[] rest` | **`CheckAccess` override**: `setting` ∈ {`gm-invisible`, `invisible`} → `AccessPrivilege.GMInvisible`; ∈ {`who-invisible`, `whoinvisible`} → `AccessPrivilege.WhoInvisible`; else null. Case-insensitive compare (old code lowercases). Remove the now-redundant in-body `HasPrivilege` checks for those two cases only — every other case's logic is verbatim |
 | `/guild ` | `GuildChatCommandEvent` | `string[] rest` | message = join |
 | `/guildcreate ` | `GuildCreateCommandEvent` | `string[] rest` | guild name = join (may contain spaces) |
 | `/guildadd ` | `GuildAddCommandEvent` | `string name` | |
-| `/guildremove` | `GuildRemoveCommandEvent` | `string? name = null` | old code tolerates a stray leading space |
+| `/guildremove` | `GuildRemoveCommandEvent` | — (no typed params; handler reads `ctx.Remainder`) | same trailing-space edge as `/groupremove` (`Substring(12)` + `name.Length > 0 → Substring(1)`): empty remainder → leave-guild path, whitespace-only → the legacy rank-check/"Couldn't find player" path — move verbatim over `Remainder` |
 | `/guildmotd` | `GuildMotdCommandEvent` | `string[] rest` | MOTD = join (may be empty = clear) |
 | `/guildowner ` | `GuildOwnerCommandEvent` | `string name` | |
 | `/guildofficer ` | `GuildOfficerCommandEvent` | `string name` | |
@@ -116,6 +116,8 @@ Design doc: `docs/plans/2026-08-29-command-system-design.md`
 - `/who all`: with two online players, reply lists both; `/who` (no args) lists map players.
 - `/dropgold 50`: gold decreases (assert via player's gold before/after) — or at minimum no usage error and the event's side effects fire.
 - `/changepassword abc`: password path executes (assert no usage reply; use the event's own success/failure message).
+- `/changepassword my secret pw`: full multi-word password reaches the handler (join, not first-token).
+- `/buyvita` bare → buys 1 (legacy default preserved); `/buyvita abc` → usage reply.
 - ★ Parse failure: `RunCommand(p, "/dropgold abc")` → `Sent` contains `Usage: /dropgold <gold>` (framework reply, was silent).
 - `/refresh`: still works and `RPU` packet still dispatches (both keys alive).
 
@@ -137,8 +139,9 @@ Run `dotnet test` (both projects). Commit: `refactor: migrate General batch A co
 - ★ `/toggle who-invisible` as Normal → swallowed; GM → works.
 - `/toggle exp` (open case) as Normal → works, no privilege involvement.
 - `/aether 1.5` → executes (decimal bound); `/aether abc` → usage reply.
-- `/hairdye help` → help text; `/hairdye 255 0 0 255` → dye path; `/hairdye 300 0 0 0` → the legacy out-of-range refusal message (keep verbatim).
 - `/rank` no-arg and with-arg paths both execute.
+- ★ `/hairdye accept 255 0 0 255` (sufficient gold) → dye path runs, cost charged; `/hairdye 255 0 0 255` (no verb) → silent no-op (legacy has no bare-numeric path — regression-pinned); `/hairdye accept 300 0 0 0` → legacy out-of-range refusal message.
+- ★ `/groupremove ` (trailing space, empty name) → silent no-op, player stays in group; `/groupremove Bob` → Bob removed; bare `/disband` → leave-group path. (Requires `ctx.Remainder` — the token-only binder would break this.)
 
 Run `dotnet test` (both). Commit: `refactor: migrate General batch B commands incl. /toggle CheckAccess`.
 
@@ -219,6 +222,6 @@ Commit: `test: Part 2 migration integration coverage and compliance sweep`.
 
 ## Part 2 exit criteria
 
-- 38 commands migrated; 11 legacy event classes deleted (13 minus `RefreshPositionEvent` kept for `RPU`); `_SeedCommands` holds only non-command packets, GM/Admin/Customs legacy entries, and `RPU`.
+- 38 commands migrated; 35 legacy event classes deleted (38 keys − 2 alias pairs = 36 classes, minus `RefreshPositionEvent` kept for `RPU`); `_SeedCommands` holds only non-command packets, GM/Admin/Customs legacy entries, and `RPU`.
 - `dotnet test` green across both test projects, including all dimension tests.
 - `/help` shows the four migrated sections with correct per-privilege visibility.

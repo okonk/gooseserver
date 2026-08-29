@@ -45,7 +45,9 @@ New folder `Goose/Commands/`:
   `"General"`.
 - `SubcommandAttribute` — `[Subcommand("make", Help = "...")]` on handler
   methods; may carry its own privilege.
-- `CommandContext` — `Player`, `GameWorld`, raw tokens, `ctx.Send(...)`.
+- `CommandContext` — `Player`, `GameWorld`, `string[] Args` (tokens after the key,
+  whitespace-normalized), `string Remainder` (the raw packet text after the key,
+  lossless — used where legacy behavior depends on raw whitespace), `ctx.Send(...)`.
 - `CommandRegistry` — owns all definitions: a
   `ConcurrentDictionary<string, CommandDefinition>` plus the trie. Built-in
   commands discovered by scanning the Goose assembly once at startup; script
@@ -55,7 +57,10 @@ New folder `Goose/Commands/`:
   (compiled delegate to the class method, or a script delegate).
 - `CommandEvent` — single `Event` subclass carrying a parsed
   `CommandInvocation` (definition + bound arguments); `Ready` invokes the
-  handler. All 59 old `*CommandEvent` classes are deleted.
+  handler. All 70 referenced legacy command event classes are deleted (59
+  `*CommandEvent.cs` files incl. the unreferenced dead `InstaLevelCommandEvent.cs`,
+  plus the 12 non-suffixed classes like `WarpEvent`/`WhoEvent`), except
+  `RefreshPositionEvent`, which stays for the `RPU` packet.
 
 Dispatch path unchanged in shape: `EventHandler.AddEvent(player, packet)` →
 trie longest-prefix match → permission check (swallowed on deny, debug log) →
@@ -67,18 +72,26 @@ registration, swap the reference) so script registration from the
 `/reloadscripts` background thread is safe; the game thread's read path is
 lock-free.
 
+The existing nested `EventHandler.CommandDefinition` is renamed to
+`PacketDefinition` — after migration it only describes non-command packets,
+and the name must not collide with the new top-level `CommandDefinition`.
+
 Known property (kept from today): a command a script registered before a
 reload but no longer registers after it stays live (stale).
 
 ## 2. Command declaration API
 
 ```csharp
-[Command("/warp", AccessPrivilege.Warp, Section = "GM",
+[Command("/warp ", AccessPrivilege.Warp, Section = "GM",
     Help = "Teleport to a map position.")]
 public sealed class WarpCommand
 {
     public void Execute(CommandContext ctx, int mapId = 1, int x = 50, int y = 50)
     {
+        // Legacy only acted when all three args were present (WarpEvent.cs:30);
+        // the trailing-space key means bare /warp never matched.
+        if (ctx.Args.Length != 3) return;
+
         Map? map = ctx.World.MapHandler.GetMap(mapId);
         if (map is null || x < 1 || x >= map.Width + 1 || y < 1 || y >= map.Height + 1) return;
         ctx.Player.WarpTo(ctx.World, map, x, y);
@@ -90,6 +103,12 @@ Parameter binding:
 
 - Tokens after the command key are split on whitespace, bound positionally to
   `Execute` parameters.
+- **Extra tokens** beyond the declared parameters (and no `rest`) are **ignored** —
+  closest to legacy behavior, which mostly ignored extras (`/kick Bob extra`).
+- **Whitespace normalization is a known delta**: legacy `Substring`/`Split` saw raw
+  text, so `/tell  Bob hi` (double space) behaved differently; the token binder
+  normalizes. Commands whose behavior depends on raw whitespace use
+  `ctx.Remainder` instead (see mapping notes).
 - Supported types: `int`, `long`, `float`, `double`, `bool`, `string`,
   `Player`, and `string[] rest` as a final parameter (captures all remaining
   tokens). `Player?` / `string?` with a default are optional.
@@ -138,7 +157,8 @@ class may override
 
 ```csharp
 protected override AccessPrivilege? CheckAccess(CommandContext ctx, string[] args) =>
-    args.Length > 0 && args[0] == "invis" ? AccessPrivilege.GMInvisible : null;
+    args.Length > 0 && (args[0] == "gm-invisible" || args[0] == "invisible")
+        ? AccessPrivilege.GMInvisible : null;
 ```
 
 checked after the class-level privilege passes; denial is swallowed.
@@ -148,8 +168,8 @@ checked after the class-level privilege passes; denial is swallowed.
 Two built-ins, both `Open`: `/help` and `/help <name>`.
 
 Sections: `CommandAttribute.Section` (default `"General"`); script
-registration takes a `section` parameter. Built-in sections (all 68 existing
-commands explicitly assigned):
+registration takes a `section` parameter. Built-in sections (all 72 command keys explicitly assigned; 70 distinct
+legacy event classes — two alias pairs share one class):
 
 - **General**: `/help`, `/who`, `/tell`, `/shout`, `/random`, `/auction`,
   `/dropgold`, `/location`, `/refresh`, `/charinfo`, `/credits`, `/playtime`,
@@ -262,10 +282,29 @@ Order:
    `EventHandler` dispatches via the registry.
 
 Behavior preservation: same keys (including trailing spaces), same
-privileges, same visible behavior. Intended changes only: parse errors reply
-with usage (was silent); `/tell` to a missing player says "Couldn't find
-player" (was silent); help exists. Edge-case logic (e.g. `/custom` slot
-validation, `/warp` defaults) moves into handlers verbatim.
+privileges, same visible behavior. **Known intended deltas** (the Part 3
+design-alignment sweep walks this list):
+
+- Parse errors reply with the auto usage line (was silent).
+- `/tell` to a missing player: "Couldn't find player `<name>`." via
+  `P.ServerMessage` (was "`<name>` is not online." via `P.TellMessage`).
+- Whitespace normalization: token-bound commands no longer see doubled or
+  trailing spaces (`/tell  Bob hi` now reaches Bob). Commands using
+  `ctx.Remainder` keep raw behavior.
+- `/toggle gm-invisible|who-invisible` for unprivileged players: swallowed
+  (was a usage-line reply), per the anti-probing policy.
+- `/custom help`/`/custom kill` no longer require the ticket in slot 1
+  (legacy checked the ticket before subcommand dispatch; the framework
+  dispatches first).
+- `/groupremove ` / `/guildremove ` with a trailing space: silent no-op
+  preserved via `ctx.Remainder` (not a delta — pinned in tests).
+- Scripts can no longer shadow a built-in open command via
+  `RegisterEvent` (old single trie: later insert overwrote; new: the command
+  registry is checked first). No shipped script does this.
+- Help exists.
+
+Edge-case logic (e.g. `/custom` slot validation, `/warp` all-or-nothing args)
+moves into handlers verbatim.
 
 Tests:
 

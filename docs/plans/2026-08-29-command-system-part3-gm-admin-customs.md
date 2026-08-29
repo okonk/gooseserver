@@ -49,18 +49,18 @@ Identical to Part 2's rule (read event → new class with verbatim key/privilege
 | `/givegold ` | `GiveGoldCommandEvent` | `string name, long gold` | `GetPlayerFromData` in-body |
 | `/giveexperience ` | `GiveExperienceCommandEvent` | `string name, long exp` | same |
 | `/givecredits ` | `GiveCreditsCommandEvent` | `string name, int credits` | `GetPlayerFromData` in-body; keep the silent `credits <= 0` return (validation, not access — no `CheckAccess` needed) |
-| `/settitle ` | `SetTitleCommandEvent` | `string name, string title` | `GetPlayerFromData` in-body |
-| `/setsurname ` | `SetSurnameCommandEvent` | `string name, string surname` | same |
+| `/settitle ` | `SetTitleCommandEvent` | `string name, string[] rest` | title = join — legacy `Split(' ', 3)` makes `tokens[2]` the **rest of the line** (titles may contain spaces); `GetPlayerFromData` in-body |
+| `/setsurname ` | `SetSurnameCommandEvent` | `string name, string[] rest` | surname = join; same |
 | `/changeclass ` | `ChangeClassCommandEvent` | `string name, string cl, decimal? modifier = null` | `GetPlayerFromData` in-body; `decimal` binder from Part 2 Task 0 |
 | `/changename ` | `ChangeNameCommandEvent` | `string oldname, string newname` | two `GetPlayerFromData` lookups in-body |
 | `/checkname ` | `CheckNameCommandEvent` | `string[] rest` | name = join (old `Substring(11)` = rest of line); `GetPlayerFromData` in-body |
-| `/setpassword ` | `GMSetPasswordCommandEvent` | `string name, string password` | `GetPlayerFromData` in-body |
+| `/setpassword ` | `GMSetPasswordCommandEvent` | `string name, string[] rest` | password = join — legacy `Split(' ', 3)` makes `tokens[2]` the rest of the line (passwords may contain spaces); `GetPlayerFromData` in-body |
 | `/macrocheck ` | `MacroCheckCommandEvent` | `string[] rest` | name = join; online `GetPlayer` in-body |
 | `/warp ` | `WarpEvent` | `int mapId = 1, int mapx = 50, int mapy = 50` | keep bounds check + map-exists check. Legacy only warps when `tokens.Length == 4` (`Goose/Events/WarpEvent.cs:30`), and the key's trailing space means bare `/warp` never matches — the defaults are unreachable in legacy. Preserve exactly: in `Execute`, `if (ctx.Args.Length != 3) return;` (silent). The parameter defaults stay (harmless, and they make the usage line read `/warp [mapId] [mapx] [mapy]`) |
 | `/getitem ` | `GetItemCommandEvent` | `int id, string? arg2 = null, string? arg3 = null` | mixed token: `arg2` is a stack int or the word `powerful`; `arg3` may be `powerful` — keep the in-body parsing verbatim |
 | `/spawnnpc ` | `SpawnNPCCommandEvent` | `int id` | keep `id <= 0` silent return |
 | `/placespawn` | `PlaceSpawnCommandEvent` | `int npcId` | old self-usage messages become the framework usage line (intended delta) |
-| `/search ` | `SearchCommandEvent` | `string command, string name` | keep regex search bodies; old self-usage becomes framework usage |
+| `/search ` | `SearchCommandEvent` | `string command, string[] rest` | name = join — legacy `Split(' ', 3)` makes `tokens[2]` the rest of the line (the regex is built over it); keep search bodies; old self-usage becomes framework usage |
 | `/mutemap` | `MuteMapEvent` | — | no args |
 | `/shutdown` | `ShutdownCommandEvent` | — | verbatim |
 | `/setaccess` | `SetAccessCommandEvent` | `string name, string access` | `GetPlayerFromData` in-body |
@@ -70,8 +70,8 @@ Identical to Part 2's rule (read event → new class with verbatim key/privilege
 | `/reloadscripts` | `ReloadScriptsCommandEvent` | — | verbatim, including the `Task.Run` and its TODO comment |
 | `/reloadsql` | `ReloadSqlCommandEvent` | — | verbatim |
 | `/updatesql` | `UpdateSqlCommandEvent` | — | verbatim |
-| `/hax ` | `HaxCommandEvent` | `string[] rest` | raw pass-through: `ctx.World.Send(ctx.Player, string.Join(" ", rest))` — no `P.ServerMessage` wrap, exactly as the old `Substring(5)` |
-| `/gmhax ` | `GMHaxCommandEvent` | `string[] rest` | complex in-body packet building; keep verbatim on the joined rest |
+| `/hax ` | `HaxCommandEvent` | — (no typed params) | **raw fidelity**: legacy sends `Substring(5)` verbatim — `ctx.World.Send(ctx.Player, ctx.Remainder)` with no `P.ServerMessage` wrap. A token join would normalize doubled/trailing spaces and corrupt the injected packet |
+| `/gmhax ` | `GMHaxCommandEvent` | — (no typed params) | same raw-fidelity rule: the raw remainder is embedded in the CHP packet; move the in-body packet building verbatim over `ctx.Remainder` |
 | `/custom` | `CustomCommandEvent` | subcommands, Task 3 | |
 
 Deletion-safety: before each batch's deletions, re-run the Part 2 grep pattern for that batch's class names; every Part 3 event is currently referenced only by `Goose/EventHandler.cs` (verify, and if any new reference appears, keep the class and flag it).
@@ -96,7 +96,7 @@ Deletion-safety: before each batch's deletions, re-run the Part 2 grep pattern f
 
 **Files:**
 - Create: `Goose/Commands/SummonCommand.cs`, `ApproachCommand.cs`, `KickCommand.cs`, `UnbanCommand.cs`, `BanCommand.cs`, `BroadcastCommand.cs`, `PlayerInfoCommand.cs`, `GiveGoldCommand.cs`, `GiveExperienceCommand.cs`, `GiveCreditsCommand.cs`, `SetTitleCommand.cs`, `SetSurnameCommand.cs`, `ChangeClassCommand.cs`, `ChangeNameCommand.cs`, `CheckNameCommand.cs`, `SetPasswordCommand.cs`, `MacroCheckCommand.cs`
-- Modify: `Goose/EventHandler.cs` (remove 17 keys)
+- Modify: `Goose/EventHandler.cs` (remove 17 keys), `TestSupport/TestWorldFixture.cs` (add `RegisterDatabasePlayer(Player)` — reflection-populates the private `allNameToPlayer` dict, `Goose/PlayerHandler.cs:19`, mirroring the existing `RegisterOnlinePlayer` at `TestSupport/TestWorldFixture.cs:88`; needed because `GetPlayerFromData` targets are often offline/DB-only)
 - Delete: the 17 legacy events
 - Test: `Goose.Tests/Part3GmATests.cs`
 
@@ -125,7 +125,7 @@ Run `dotnet test` (both). Commit: `refactor: migrate GM target-player commands`.
 
 - ★ `/warp 2 5 5` → warps to 2,5,5; `/warp 2` (partial args) → silent no-op, player does not move (the in-body `ctx.Args.Length != 3` guard preserves the legacy `tokens.Length == 4` all-or-nothing behavior — regression-pinned); bare `/warp` → no trie match (trailing-space key), `RunCommand` returns false, nothing sent (legacy parity).
 - `/getitem 5 2` → item added with stack 2; `/getitem 5 powerful` → powerful path; `/getitem 5 2 powerful` → both.
-- `/hax M1,5,5` → raw packet echoed to the player unmodified (★ regression: must not gain a `$7` prefix).
+- ★ `/hax M1,5,5` → raw packet echoed to the player unmodified (must not gain a `$7` prefix); ★ `/hax  M1,5,5` (double space) → the doubled space survives in `Sent` (raw `ctx.Remainder` fidelity — a token join would fail this).
 - `/setconfig foo bar baz` → value = `bar baz` (join).
 - `/search item sword` → regex results unchanged (assert one known match from the fixture templates).
 - `/mutemap` → map `Muted` flips and map broadcast sent.
@@ -145,14 +145,14 @@ Run `dotnet test` (both). Commit: `refactor: migrate GM world commands and Admin
 
 **Steps:**
 
-- Subcommands: `help` (no args), `kill` (no args), `preview` (`int r, int g, int b, int a, string name`), `make` with alias names `make`/`create` (same params).
+- Subcommands: `help` (no args), `kill` (no args), `preview` (`int r, int g, int b, int a, string[] rest`), `make` with alias names `make`/`create` (same params). **name = `string.Join(" ", rest)`** — legacy `Split(' ', 6, RemoveEmptyEntries)` makes `tokens[5]` the rest of the line, so `/custom make 1 2 3 4 My Sword` names the item "My Sword"; a single `string` param would truncate it.
 - Move `ParseRGBA`, `ValidateCustomSlots`, `EquippedDisplay`, `MountDisplay` into the new class verbatim (they are static/instance helpers on the legacy class).
 - Section: `Customs`.
 
 Tests:
 
 - ★ Bare `/custom` → subcommand list (help/kill/preview/make with usage), not the old ticket-usage line; `/custom help` → the ticket instructions (kept).
-- ★ `/custom make 255 0 0 255 MySword` and `/custom create 255 0 0 255 MySword` → identical behavior (alias pinned).
+- ★ `/custom make 255 0 0 255 MySword` and `/custom create 255 0 0 255 MySword` → identical behavior (alias pinned); `/custom make 255 0 0 255 My Sword` → item named `My Sword` (multi-word name via rest join — regression-pinned).
 - `/custom make 300 0 0 0 X` → the legacy `invalid r value` message (in-body `ParseRGBA` kept).
 - `/custom preview ...` → preview packet path executes (assert the `MKC`-shaped packet in `Sent`).
 - Missing combine-bag ticket → the legacy refusal message.
@@ -197,9 +197,10 @@ Commit: `refactor: dimension scripts use Commands.Register; RegisterEvent restri
 
 **Steps:**
 
-1. End-to-end: `/warp 2 5 5` (GM) warps; `/warp 2 5 5` (Normal) swallowed; `/custom make ...` full flow with fixture combine bag; `/help` for a GM shows all seven sections including `Admin`, for a Normal player only `General`/`Party`/`Guild`/`Pets`/`Customs`; `/help custom` shows the four subcommands.
+1. End-to-end: `/warp 2 5 5` (GM) warps; `/warp 2 5 5` (Normal) swallowed; `/custom make ...` full flow with fixture combine bag; `/help` — the fixture loads **no dimension scripts**, so the sections are exactly the seven built-in ones: a GM sees all seven (incl. `GM`/`Admin`), a Normal player sees only `General`/`Party`/`Guild`/`Pets`/`Customs`; `/help custom` shows the four subcommands (`make`, not `create`, as the listed name).
 2. Compliance sweep:
-   - `ls Goose/Events/*CommandEvent.cs` → only non-command remnants that were kept for other packets (e.g. `RefreshPositionEvent` for `RPU`) — list them explicitly in the commit message.
+   - Delete `Goose/Events/InstaLevelCommandEvent.cs` — unreferenced dead code (verified: no references anywhere); without this the sweep below would trip on it.
+   - `ls Goose/Events/*CommandEvent.cs` → only `RefreshPositionEvent.cs` remains (kept for the `RPU` packet); list it explicitly in the commit message.
    - `_SeedCommands` contains zero `/` keys.
    - `git grep "RegisterEvent"` → only the non-command `GID` usage in Aspereta.csx, the definition, and its test.
    - No `.csx` file references a deleted event class.
@@ -228,7 +229,7 @@ Commit: `test: Part 3 final integration and compliance sweep`
 ## Part 3 exit criteria (project completion)
 
 - Zero `/` keys in `_SeedCommands`; every in-game slash command runs through `CommandRegistry`.
-- All 59 original `*CommandEvent` classes deleted except those kept for non-command packets (each kept class justified in the Task 5 commit message).
+- All 70 referenced legacy command event classes deleted (58 suffixed + 12 non-suffixed like `WarpEvent`/`WhoEvent`), plus the dead `InstaLevelCommandEvent.cs`; only `RefreshPositionEvent` survives, justified in the Task 5 commit message.
 - Dimension scripts register via `world.Commands.Register`; `RegisterEvent` is non-command-only.
 - `dotnet test` green across `Goose.Tests` and `Goose.IntegrationTests`, including all pre-existing dimension and Aspereta tests.
 - `/help` window shows the full section model; parse errors reply with usage; denials stay silent.
