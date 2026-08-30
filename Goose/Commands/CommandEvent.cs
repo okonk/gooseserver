@@ -51,26 +51,24 @@ namespace Goose.Commands
             string usageKey;
             string[] targetTokens;
 
-            if (def.Subcommands.Count > 0)
+            SubcommandInfo? sub = null;
+            if (def.Subcommands.Count > 0 && args.Length > 0)
+                sub = def.Subcommands.FirstOrDefault(s => s.Names.Any(n =>
+                    string.Equals(n, args[0], StringComparison.OrdinalIgnoreCase)));
+
+            if (sub is { Privilege: not null } && !this.Player.HasPrivilege(sub.Privilege.Value))
             {
-                SubcommandInfo? sub = null;
-                if (args.Length > 0)
-                    sub = def.Subcommands.FirstOrDefault(s => s.Names.Any(n =>
-                        string.Equals(n, args[0], StringComparison.OrdinalIgnoreCase)));
-
-                if (sub is null)
-                {
-                    this.SendSubcommandList(ctx, def);
-                    return;
-                }
-
-                if (sub.Privilege is not null && !this.Player.HasPrivilege(sub.Privilege.Value))
+                if (def.ExecuteMethod is null)
                 {
                     log.Debug("Refused {0} for {1}: missing {2}.",
                         sub.PrimaryName, this.Player.Name, sub.Privilege.Value);
                     return;
                 }
+                sub = null;
+            }
 
+            if (sub is not null)
+            {
                 target = sub.Method;
                 parameters = sub.Parameters;
                 usageParameters = sub.Parameters;
@@ -90,14 +88,19 @@ namespace Goose.Commands
                 usageKey = def.PrimaryKey;
                 targetTokens = args;
             }
-            else
+            else if (def.ExecuteMethod is not null)
             {
-                target = def.ExecuteMethod!;
+                target = def.ExecuteMethod;
                 parameters = target.GetParameters();
                 usageParameters = parameters;
                 usageOverride = def.UsageOverride;
                 usageKey = def.PrimaryKey;
                 targetTokens = args;
+            }
+            else
+            {
+                this.SendSubcommandList(ctx, def);
+                return;
             }
 
             ctx.Usage = CommandBinder.Usage(usageKey, usageParameters, usageOverride);

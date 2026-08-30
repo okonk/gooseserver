@@ -211,6 +211,57 @@ namespace Goose.Tests
 
             Assert.True(world.RunCommand(player, "/tcustom delete x"));
             Assert.Empty(player.Sent);
+            Assert.DoesNotContain(player.Sent, s => s.Contains("Usage: /tcustom make"));
+        }
+
+        [Fact]
+        public void MixedCommand_bare_key_runs_default_execute()
+        {
+            var (world, player, _) = WorldAndPlayer();
+            world.World.Commands.SeedAttributedTypes([typeof(MixedCommand)]);
+
+            Assert.True(world.RunCommand(player, "/tmixed"));
+            Assert.Contains(player.Sent, s => s.Contains("default"));
+            Assert.DoesNotContain(player.Sent, s => s.Contains("Usage: /tmixed"));
+        }
+
+        [Fact]
+        public void MixedCommand_matching_selector_runs_subcommand()
+        {
+            var (world, player, _) = WorldAndPlayer();
+            world.World.Commands.SeedAttributedTypes([typeof(MixedCommand)]);
+
+            Assert.True(world.RunCommand(player, "/tmixed make"));
+            Assert.Contains(player.Sent, s => s.Contains("mixed make ran"));
+            Assert.DoesNotContain(player.Sent, s => s.Contains("exec make"));
+        }
+
+        [Fact]
+        public void MixedCommand_unknown_selector_falls_through_to_execute()
+        {
+            var (world, player, _) = WorldAndPlayer();
+            world.World.Commands.SeedAttributedTypes([typeof(MixedCommand)]);
+
+            Assert.True(world.RunCommand(player, "/tmixed bogus"));
+            Assert.Contains(player.Sent, s => s.Contains("exec bogus"));
+            Assert.DoesNotContain(player.Sent, s => s.Contains("Usage: /tmixed"));
+        }
+
+        [Fact]
+        public void MixedCommand_restricted_selector_falls_through_for_normal_and_runs_for_gm()
+        {
+            var (world, player, map) = WorldAndPlayer();
+            world.World.Commands.SeedAttributedTypes([typeof(MixedCommand)]);
+
+            Assert.True(world.RunCommand(player, "/tmixed secret"));
+            Assert.Contains(player.Sent, s => s.Contains("exec secret"));
+            Assert.DoesNotContain(player.Sent, s => s.Contains("mixed secret ran"));
+            Assert.DoesNotContain(player.Sent, s => s.Contains("Usage: /tmixed"));
+
+            var gm = world.CommandPlayerOn(map, 2, 2, "GM");
+            gm.Access = Player.AccessStatus.GameMaster;
+            Assert.True(world.RunCommand(gm, "/tmixed secret"));
+            Assert.Contains(gm.Sent, s => s.Contains("mixed secret ran"));
         }
 
         [Fact]
@@ -338,5 +389,18 @@ namespace Goose.Tests
 
         [Subcommand("sub")]
         public void Sub(CommandContext ctx) => ctx.Send("sub ran");
+    }
+
+    [Command("/tmixed", Help = "Test mixed command.")]
+    internal sealed class MixedCommand : BaseCommand
+    {
+        public void Execute(CommandContext ctx, string? token = null)
+            => ctx.Send(token is null ? "default" : $"exec {token}");
+
+        [Subcommand("make")]
+        public void Make(CommandContext ctx) => ctx.Send("mixed make ran");
+
+        [Subcommand("secret", AccessPrivilege.Ban)]
+        public void Secret(CommandContext ctx) => ctx.Send("mixed secret ran");
     }
 }
