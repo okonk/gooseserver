@@ -83,7 +83,7 @@ namespace Goose.Tests
         }
 
         [Fact]
-        public void GetItem_powerful_word_gives_stack_one()
+        public void GetItem_unparseable_stack_falls_back_to_one()
         {
             var (fixture, gm, _) = WorldAndGm();
             using (fixture)
@@ -99,7 +99,7 @@ namespace Goose.Tests
         }
 
         [Fact]
-        public void GetItem_stack_and_powerful_keeps_stack()
+        public void GetItem_extra_tokens_are_ignored()
         {
             var (fixture, gm, _) = WorldAndGm();
             using (fixture)

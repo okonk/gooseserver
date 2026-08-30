@@ -5,12 +5,11 @@ namespace Goose.Commands
     {
         private static readonly NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
 
-        public void Execute(CommandContext ctx, int id, string? stack = null, string? powerful = null)
+        public void Execute(CommandContext ctx, int id, string? stack = null)
         {
             var world = ctx.World;
 
             int count = 1;
-            bool isPowerful = false;
 
             if (stack is not null)
             {
@@ -21,13 +20,7 @@ namespace Goose.Commands
                 catch (Exception)
                 {
                     count = 1;
-
-                    isPowerful = stack.Equals("powerful", StringComparison.OrdinalIgnoreCase);
                 }
-            }
-            if (powerful is not null)
-            {
-                isPowerful = powerful.Equals("powerful", StringComparison.OrdinalIgnoreCase);
             }
 
             if (id <= 0 || count <= 0) return;
