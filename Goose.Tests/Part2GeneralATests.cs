@@ -339,6 +339,53 @@ namespace Goose.Tests
         }
 
         [Fact]
+        public void Random_with_max_rolls_to_that_max()
+        {
+            var (fixture, player, map) = WorldAndPlayer();
+            using (fixture)
+            {
+                map.CanChat = true;
+                map.AddPlayer(player, fixture.World);
+
+                fixture.RunCommand(player, "/random 50");
+
+                Assert.Contains(player.Sent, s => s.Contains("Tester rolls ") && s.Contains(" out of 50."));
+            }
+        }
+
+        [Fact]
+        public void Random_with_extra_tokens_falls_back_to_default()
+        {
+            var (fixture, player, map) = WorldAndPlayer();
+            using (fixture)
+            {
+                map.CanChat = true;
+                map.AddPlayer(player, fixture.World);
+
+                fixture.RunCommand(player, "/random 50 60");
+
+                Assert.Contains(player.Sent, s => s.Contains(" out of 1000."));
+                Assert.DoesNotContain(player.Sent, s => s.Contains("Usage:"));
+            }
+        }
+
+        [Fact]
+        public void Random_with_non_number_falls_back_to_default_silently()
+        {
+            var (fixture, player, map) = WorldAndPlayer();
+            using (fixture)
+            {
+                map.CanChat = true;
+                map.AddPlayer(player, fixture.World);
+
+                fixture.RunCommand(player, "/random abc");
+
+                Assert.Contains(player.Sent, s => s.Contains(" out of 1000."));
+                Assert.DoesNotContain(player.Sent, s => s.Contains("Usage:"));
+            }
+        }
+
+        [Fact]
         public void Location_reports_map_and_coordinates()
         {
             var (fixture, player, _) = WorldAndPlayer();
