@@ -327,7 +327,7 @@ namespace Goose.Tests
         }
 
         [Fact]
-        public void RegisterEventOpenFactoryShadowedByRestrictedLegacyCommand()
+        public void RegisterEventOpenFactoryShadowedByRestrictedBuiltinCommand()
         {
             var (world, player, map) = WorldAndPlayer();
             var factoryCalled = false;
@@ -340,7 +340,8 @@ namespace Goose.Tests
 
             Assert.True(world.World.Commands.TryGet("/shutdown", out var def));
             Assert.Equal(AccessPrivilege.Shutdown, def!.Privilege);
-            Assert.Equal(typeof(Goose.Events.ShutdownCommandEvent), def.LegacyType);
+            Assert.Null(def!.LegacyType);
+            Assert.IsType<ShutdownCommand>(def.Instance);
 
             Assert.True(world.RunCommand(player, "/shutdown"));
             Assert.True(world.World.Running);
@@ -355,7 +356,7 @@ namespace Goose.Tests
 
             Assert.True(world.World.Commands.TryGet("/shutdown", out def));
             Assert.Equal(AccessPrivilege.Shutdown, def!.Privilege);
-            Assert.Equal(typeof(Goose.Events.ShutdownCommandEvent), def.LegacyType);
+            Assert.IsType<ShutdownCommand>(def.Instance);
         }
     }
 

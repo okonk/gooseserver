@@ -47,7 +47,7 @@ public class CommandFrameworkTests
 
         Assert.True(fixture.RunCommand(gm, "/help"));
         Assert.Contains(gm.Sent, m => m.Contains("General (20)"));
-        Assert.Contains(gm.Sent, m => m.Contains("Admin (1)"));
+        Assert.Contains(gm.Sent, m => m.Contains("Admin (11)"));
     }
 
     [Fact]

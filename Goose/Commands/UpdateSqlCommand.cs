@@ -1,0 +1,75 @@
+namespace Goose.Commands
+{
+    [Command("/updatesql", AccessPrivilege.ReloadSQL, Section = "Admin", Help = "Apply SQL updates.")]
+    public sealed class UpdateSqlCommand : BaseCommand
+    {
+        private static readonly NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
+
+        public void Execute(CommandContext ctx)
+        {
+            var world = ctx.World;
+            var player = ctx.Player;
+
+            world.Send(player, "$7Updating sql...");
+
+            Task.Run(() =>
+            {
+                try
+                {
+                    var sqlData = CsvToSql.Core.CsvToSqlConverter.Convert(world.Settings.DataLinkId);
+
+                    // sqlData already contains its own BEGIN TRANSACTION;/COMMIT;, so it
+                    // must not be wrapped in another transaction.
+                    world.Database.Enqueue(conn =>
+                    {
+                        using var command = conn.CreateCommand();
+                        command.CommandText = sqlData;
+                        try
+                        {
+                            command.ExecuteNonQuery();
+                        }
+                        catch
+                        {
+                            // A mid-script failure leaves the script's own transaction
+                            // open on the shared connection, breaking subsequent writes.
+                            try
+                            {
+                                using var rollback = conn.CreateCommand();
+                                rollback.CommandText = "ROLLBACK;";
+                                rollback.ExecuteNonQuery();
+                            }
+                            catch (Exception rollbackEx)
+                            {
+                                log.Error(rollbackEx, "Failed to roll back after script failure");
+                            }
+
+                            throw;
+                        }
+                    }, (e) => UpdateCompletedCallback(e, world, player));
+
+                    log.Info("Added sql command to queue");
+                }
+                catch (Exception e)
+                {
+                    log.Error(e, "Failed updating sql data");
+                    world.Send(player, "$7Failed updating sql: " + e.Message);
+                }
+            });
+        }
+
+        private static void UpdateCompletedCallback(Exception? error, GameWorld world, Player player)
+        {
+            // Transaction is committed/rolled back inside the Enqueue work item.
+            // Do not call Database.Execute from this completion callback (deadlock risk).
+            if (error is not null)
+            {
+                log.Error(error, "Updating sql failed");
+                world.Send(player, "$7Failed updating sql: " + error.Message);
+            }
+            else
+            {
+                log.Info("Updating sql success");
+            }
+        }
+    }
+}

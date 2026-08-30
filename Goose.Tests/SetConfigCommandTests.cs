@@ -101,6 +101,6 @@ public class SetConfigCommandTests : IDisposable
         Assert.True(fixtureA.RunCommand(gmA, "/setconfig "));
 
         Assert.Equal(10, fixtureA.Settings.IdleTimeout);
-        Assert.Contains(gmA.Sent, m => m.Contains("Usage: /setconfig <setting> <value>"));
+        Assert.Contains(gmA.Sent, m => m.Contains("Usage: /setconfig <setting> <value...>"));
     }
 }

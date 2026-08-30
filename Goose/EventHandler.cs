@@ -166,23 +166,7 @@ namespace Goose
                 this.packetTrie.Insert(key, def);
             }
 
-            this.commands.RegisterLegacy("/warp ", typeof(WarpEvent), AccessPrivilege.Warp);
-            this.commands.RegisterLegacy("/shutdown", typeof(ShutdownCommandEvent), AccessPrivilege.Shutdown);
-            this.commands.RegisterLegacy("/getitem ", typeof(GetItemCommandEvent), AccessPrivilege.SpawnItem);
-            this.commands.RegisterLegacy("/hax ", typeof(HaxCommandEvent), AccessPrivilege.Debug);
-            this.commands.RegisterLegacy("/gmhax ", typeof(GMHaxCommandEvent), AccessPrivilege.Debug);
-            this.commands.RegisterLegacy("/setconfig ", typeof(SetConfigCommandEvent), AccessPrivilege.SetConfig);
-            this.commands.RegisterLegacy("/saveconfig", typeof(SaveConfigCommandEvent), AccessPrivilege.SetConfig);
-            this.commands.RegisterLegacy("/respawnmap", typeof(RespawnMapCommandEvent), AccessPrivilege.RespawnMap);
-            this.commands.RegisterLegacy("/spawnnpc ", typeof(SpawnNPCCommandEvent), AccessPrivilege.SpawnNPC);
-            this.commands.RegisterLegacy("/search ", typeof(SearchCommandEvent), AccessPrivilege.Search);
             this.commands.RegisterLegacy("/custom", typeof(CustomCommandEvent), null);
-            this.commands.RegisterLegacy("/mutemap", typeof(MuteMapEvent), AccessPrivilege.MuteMap);
-            this.commands.RegisterLegacy("/setaccess", typeof(SetAccessCommandEvent), AccessPrivilege.SetAccess);
-            this.commands.RegisterLegacy("/reloadscripts", typeof(ReloadScriptsCommandEvent), AccessPrivilege.ReloadScripts);
-            this.commands.RegisterLegacy("/reloadsql", typeof(ReloadSqlCommandEvent), AccessPrivilege.ReloadSQL);
-            this.commands.RegisterLegacy("/updatesql", typeof(UpdateSqlCommandEvent), AccessPrivilege.ReloadSQL);
-            this.commands.RegisterLegacy("/placespawn", typeof(PlaceSpawnCommandEvent), AccessPrivilege.PlaceSpawn);
         }
 
         /**
