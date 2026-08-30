@@ -87,8 +87,6 @@ namespace Goose.Tests
         {
             var (_, player, _) = WorldAndPlayer();
             var registry = new CommandRegistry();
-            // 42-char first line plus a 41-char word: at the old 42-char continuation
-            // budget the indented line would have been 43 chars.
             var help = new string('a', 42) + " " + new string('b', 41);
             Assert.True(registry.Register("/long", "Big", help, NoArgs));
 
@@ -96,6 +94,41 @@ namespace Goose.Tests
             Assert.NotNull(pages);
             Assert.All(pages!.SelectMany(p => p), line => Assert.True(line.Length <= 42, line));
             Assert.Contains(pages.SelectMany(p => p), line => line == "  " + new string('b', 40));
+        }
+
+        [Fact]
+        public void BuildPages_hard_break_then_full_word_continuation_fits_42()
+        {
+            var (_, player, _) = WorldAndPlayer();
+            var registry = new CommandRegistry();
+            var help = new string('a', 50) + " " + new string('b', 42);
+            Assert.True(registry.Register("/lb", "Big", help, NoArgs));
+
+            var pages = HelpFormatter.BuildPages(player, registry, "lb");
+            Assert.NotNull(pages);
+            Assert.All(pages!.SelectMany(p => p), line => Assert.True(line.Length <= 42, line));
+            Assert.Equal(
+                [
+                    new string('a', 42),
+                    "  " + new string('a', 8),
+                    "  " + new string('b', 40),
+                    "  " + new string('b', 2),
+                    "Usage: /lb",
+                ],
+                pages[0]);
+        }
+
+        [Fact]
+        public void BuildPages_long_section_name_wraps_in_list()
+        {
+            var (_, player, _) = WorldAndPlayer();
+            var registry = new CommandRegistry();
+            var section = new string('S', 45);
+            Assert.True(registry.Register("/longsec", section, "h", NoArgs));
+
+            var pages = HelpFormatter.BuildPages(player, registry, null);
+            Assert.NotNull(pages);
+            Assert.Equal([new string('S', 42), new string('S', 3), "(1)"], pages![0]);
         }
 
         [Fact]

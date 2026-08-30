@@ -85,7 +85,7 @@ namespace Goose.Tests
                 (CommandContext ctx, Player target) => ctx.Send("told " + target.Name)));
 
             Assert.True(world.RunCommand(player, "/itell nosuchplayer"));
-            Assert.Single(player.Sent, s => s.Contains("Couldn't find player nosuchplayer."));
+            Assert.Equal([P.ServerMessage("Couldn't find player nosuchplayer.") + "\x01"], player.Sent);
         }
 
         [Fact]

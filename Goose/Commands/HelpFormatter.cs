@@ -36,6 +36,7 @@ namespace Goose.Commands
                             remaining = remaining[len..];
                             chunkBudget = continuationBudget;
                         }
+                        budget = continuationBudget;
                         break;
                     }
 
@@ -70,7 +71,7 @@ namespace Goose.Commands
                 {
                     var visible = section.Commands.Count(def => CommandRegistry.IsUsableBy(player, def));
                     if (visible == 0) continue;
-                    listLines.Add($"{section.Name} ({visible})");
+                    listLines.AddRange(Wrap($"{section.Name} ({visible})"));
                 }
                 if (listLines.Count > 0)
                     pages.AddRange(SplitPages(listLines));
@@ -166,8 +167,6 @@ namespace Goose.Commands
 
         private static void AddWrapped(List<string> lines, string text)
         {
-            // Continuation lines carry a 2-space indent, so their content budget
-            // is reduced to keep rendered lines within MaxLineLength.
             var wrapped = Wrap(text, MaxLineLength, MaxLineLength - 2);
             for (var i = 0; i < wrapped.Count; i++)
                 lines.Add(i == 0 ? wrapped[i] : "  " + wrapped[i]);
