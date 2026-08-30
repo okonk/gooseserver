@@ -160,6 +160,44 @@ namespace Goose.Tests
         }
 
         [Fact]
+        public void GuildRemove_bare_leaves_guild()
+        {
+            var (fixture, player, _) = WorldAndPlayer();
+            using (fixture)
+            {
+                player.PlayerID = 1;
+                var guild = MakeGuild((player, Guild.GuildRanks.Leader));
+
+                Assert.True(fixture.RunCommand(player, "/guildremove"));
+
+                Assert.Null(player.Guild);
+                Assert.Equal(Guild.GuildRanks.Deleted, guild.Members[player.PlayerID].Rank);
+                Assert.Contains(player.Sent, s => s.Contains("You left the guild."));
+            }
+        }
+
+        [Fact]
+        public void GuildRemove_double_leading_space_does_not_resolve_name()
+        {
+            var (fixture, player, map) = WorldAndPlayer();
+            using (fixture)
+            {
+                player.PlayerID = 1;
+                var bob = fixture.CommandPlayerOn(map, 3, 2, "Bob");
+                bob.PlayerID = 2;
+                fixture.RegisterOnlinePlayer(bob);
+                var guild = MakeGuild(
+                    (player, Guild.GuildRanks.Leader),
+                    (bob, Guild.GuildRanks.Member));
+
+                Assert.True(fixture.RunCommand(player, "/guildremove  Bob"));
+
+                Assert.Contains(player.Sent, s => s.Contains("Couldn't find player."));
+                Assert.Same(guild, bob.Guild);
+            }
+        }
+
+        [Fact]
         public void GroupChat_sends_to_group()
         {
             var (fixture, player, _) = WorldAndPlayer();
