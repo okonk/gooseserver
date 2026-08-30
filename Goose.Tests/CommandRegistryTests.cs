@@ -218,7 +218,7 @@ public class CommandRegistryTests
     public void Register_null_key_refused()
     {
         var registry = new CommandRegistry();
-        Assert.False(registry.Register(null, "S", "help", NoArgs));
+        Assert.False(registry.Register(null!, "S", "help", NoArgs));
         Assert.Empty(registry.Snapshot.ByKey);
     }
 
@@ -226,17 +226,17 @@ public class CommandRegistryTests
     public void Register_null_handler_refused()
     {
         var registry = new CommandRegistry();
-        Assert.False(registry.Register("/x ", "S", "help", null));
+        Assert.False(registry.Register("/x ", "S", "help", null!));
         Assert.False(registry.TryGet("/x ", out _));
     }
 
     [Theory]
     [InlineData("")]
     [InlineData(null)]
-    public void Register_empty_help_refused(string help)
+    public void Register_empty_help_refused(string? help)
     {
         var registry = new CommandRegistry();
-        Assert.False(registry.Register("/help ", "S", help, NoArgs));
+        Assert.False(registry.Register("/help ", "S", help!, NoArgs));
         Assert.False(registry.TryGet("/help ", out _));
     }
 
