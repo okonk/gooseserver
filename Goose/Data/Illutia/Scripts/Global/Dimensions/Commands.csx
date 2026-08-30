@@ -2,12 +2,8 @@ using System;
 using Goose;
 using Goose.Commands;
 
-/// <summary>Handlers for the dimension commands, registered from Dimensions.csx's
-/// OnLoaded via world.Commands.Register. The keys keep their trailing spaces so the
-/// command trie matches them as a longest prefix, exactly like "/tell " and "/warp ".</summary>
 public static class DimensionCommands
 {
-    /// <summary>Handles "/dimension &lt;n&gt;".</summary>
     public static void Dimension(CommandContext ctx, int dim)
     {
         if (dim < 0 || dim > Dimensions.DimensionCount)
@@ -42,8 +38,6 @@ public static class DimensionCommands
         ctx.Player.WarpTo(ctx.World, target, Dimensions.WardenX, Dimensions.WardenY);
     }
 
-    /// <summary>Handles "/resetitem &lt;n&gt;": rerolls one dimension equipment item's suffix
-    /// and rarity for ResetItemCostBase^dim spirit.</summary>
     public static void ResetItem(CommandContext ctx, int slotId)
     {
         var world = ctx.World;
@@ -145,8 +139,6 @@ public static class DimensionCommands
             item.ItemID);
     }
 
-    /// <summary>Handles "/buygold &lt;amount&gt;": trades spirit for gold at GoldPerSpirit
-    /// each.</summary>
     public static void BuyGold(CommandContext ctx, long amount)
     {
         if (amount <= 0)
@@ -185,8 +177,6 @@ public static class DimensionCommands
             + ", spirit " + before + " -> " + (before - amount));
     }
 
-    /// <summary>Handles "/buyexperience &lt;amount&gt;": buys experience at
-    /// ExpPerSpiritPurchase each, unmodified by the world's experience modifier.</summary>
     public static void BuyExperience(CommandContext ctx, long amount)
     {
         if (amount <= 0)
@@ -244,8 +234,6 @@ public static class DimensionCommands
             + ", spirit " + before + " -> " + (before - amount));
     }
 
-    /// <summary>Handles "/givesp &lt;player&gt; &lt;amount&gt;": transfers spirit between two
-    /// online players.</summary>
     public static void GiveSpirit(CommandContext ctx, Player target, long amount)
     {
         if (target.State != Player.States.Ready)
