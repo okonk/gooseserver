@@ -3,25 +3,23 @@ namespace Goose.Commands
     [Command("/guildadd ", Section = "Guild", Help = "Add a player to your guild.")]
     public sealed class GuildAddCommand : BaseCommand
     {
-        public void Execute(CommandContext ctx, string name)
+        public void Execute(CommandContext ctx, Player name)
         {
             var world = ctx.World;
 
             if (ctx.Player.Guild is null) return;
             if (ctx.Player.Guild.GetRank(ctx.Player) < Guild.GuildRanks.Officer) return;
 
-            Player? player = world.PlayerHandler.GetPlayer(name);
-            if (player is not null && player.State == Player.States.Ready)
+            if (name.State != Player.States.Ready)
             {
-                if (player.Guild is null)
-                {
-                    ctx.Player.Guild.JoinGuild(player, world);
-                    world.LogHandler.Log(Log.Types.JoinGuild, player.PlayerID, ctx.Player.Guild.ID.ToString(), ctx.Player.PlayerID);
-                }
+                ctx.Send($"Couldn't find player {name.Name}.");
+                return;
             }
-            else
+
+            if (name.Guild is null)
             {
-                world.Send(ctx.Player, P.ServerMessage("Couldn't find player."));
+                ctx.Player.Guild.JoinGuild(name, world);
+                world.LogHandler.Log(Log.Types.JoinGuild, name.PlayerID, ctx.Player.Guild.ID.ToString(), ctx.Player.PlayerID);
             }
         }
     }

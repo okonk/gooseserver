@@ -270,8 +270,10 @@ namespace Goose.Tests
         }
 
         [Fact]
-        public void GuildRemove_double_leading_space_does_not_resolve_name()
+        public void GuildRemove_double_leading_space_resolves_name()
         {
+            // Legacy required exactly one leading space after the key; the binder
+            // tokenizes with RemoveEmptyEntries, so extra spaces are normalized.
             var (fixture, player, map) = WorldAndPlayer();
             using (fixture)
             {
@@ -279,14 +281,74 @@ namespace Goose.Tests
                 var bob = fixture.CommandPlayerOn(map, 3, 2, "Bob");
                 bob.PlayerID = 2;
                 fixture.RegisterOnlinePlayer(bob);
-                var guild = MakeGuild(
+                MakeGuild(
                     (player, Guild.GuildRanks.Leader),
                     (bob, Guild.GuildRanks.Member));
 
                 Assert.True(fixture.RunCommand(player, "/guildremove  Bob"));
 
-                Assert.Contains(player.Sent, s => s.Contains("Couldn't find player."));
-                Assert.Same(guild, bob.Guild);
+                Assert.Null(bob.Guild);
+            }
+        }
+
+        [Fact]
+        public void GuildAdd_unknown_player_gets_normal_not_found_message()
+        {
+            var (fixture, player, _) = WorldAndPlayer();
+            using (fixture)
+            {
+                player.PlayerID = 1;
+                MakeGuild((player, Guild.GuildRanks.Leader));
+
+                Assert.True(fixture.RunCommand(player, "/guildadd Ghost"));
+
+                Assert.Contains(player.Sent, s => s.Contains("Couldn't find player Ghost."));
+            }
+        }
+
+        [Fact]
+        public void GuildOfficer_unknown_player_gets_normal_not_found_message()
+        {
+            var (fixture, player, _) = WorldAndPlayer();
+            using (fixture)
+            {
+                player.PlayerID = 1;
+                MakeGuild((player, Guild.GuildRanks.Leader));
+
+                Assert.True(fixture.RunCommand(player, "/guildofficer Ghost"));
+
+                Assert.Contains(player.Sent, s => s.Contains("Couldn't find player Ghost."));
+            }
+        }
+
+        [Fact]
+        public void GuildOwner_unknown_player_gets_normal_not_found_message()
+        {
+            var (fixture, player, _) = WorldAndPlayer();
+            using (fixture)
+            {
+                player.PlayerID = 1;
+                MakeGuild((player, Guild.GuildRanks.Leader));
+
+                Assert.True(fixture.RunCommand(player, "/guildowner Ghost"));
+
+                Assert.Contains(player.Sent, s => s.Contains("Couldn't find player Ghost."));
+            }
+        }
+
+        [Fact]
+        public void GuildRemove_unknown_player_gets_normal_not_found_message()
+        {
+            var (fixture, player, _) = WorldAndPlayer();
+            using (fixture)
+            {
+                player.PlayerID = 1;
+                MakeGuild((player, Guild.GuildRanks.Leader));
+
+                Assert.True(fixture.RunCommand(player, "/guildremove Ghost"));
+
+                Assert.Contains(player.Sent, s => s.Contains("Couldn't find player Ghost."));
+                Assert.NotNull(player.Guild);
             }
         }
 
