@@ -3,7 +3,7 @@ namespace Goose.Commands
     [Command("/petspawn ", Section = "Pets", Help = "Spawn one of your pets.")]
     public sealed class PetSpawnCommand : BaseCommand
     {
-        public void Execute(CommandContext ctx, int id)
+        public void Execute(CommandContext ctx, string[] id)
         {
             var world = ctx.World;
 
@@ -13,7 +13,19 @@ namespace Goose.Commands
                 return;
             }
 
-            if (id <= 0)
+            string data = string.Join(" ", id);
+            int petId = 0;
+
+            try
+            {
+                petId = Convert.ToInt32(data);
+            }
+            catch (Exception)
+            {
+                petId = 0;
+            }
+
+            if (petId <= 0)
             {
                 world.Send(ctx.Player, P.ServerMessage("Invalid pet ID."));
                 return;
@@ -22,7 +34,7 @@ namespace Goose.Commands
             Pet? match = null;
             foreach (var pet in ctx.Player.Pets)
             {
-                if (pet.PetID == id)
+                if (pet.PetID == petId)
                 {
                     match = pet;
                     break;

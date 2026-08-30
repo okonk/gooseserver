@@ -3,14 +3,15 @@ namespace Goose.Commands
     [Command("/guildowner ", Section = "Guild", Help = "Transfer guild ownership to another member.")]
     public sealed class GuildOwnerCommand : BaseCommand
     {
-        public void Execute(CommandContext ctx, string name)
+        public void Execute(CommandContext ctx, string[] name)
         {
             var world = ctx.World;
 
             if (ctx.Player.Guild is null) return;
             if (ctx.Player.Guild.GetRank(ctx.Player) < Guild.GuildRanks.Leader) return;
 
-            Player? player = world.PlayerHandler.GetPlayer(name);
+            string lookup = string.Join(" ", name);
+            Player? player = world.PlayerHandler.GetPlayer(lookup);
             if (player is not null && player.State == Player.States.Ready)
             {
                 if (player.Guild == ctx.Player.Guild && player != ctx.Player)

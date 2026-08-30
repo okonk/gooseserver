@@ -67,6 +67,24 @@ namespace Goose.Tests
         }
 
         [Fact]
+        public void Invite_extra_tokens_fail_lookup_and_do_not_add()
+        {
+            var (fixture, player, map) = WorldAndPlayer();
+            using (fixture)
+            {
+                var bob = fixture.CommandPlayerOn(map, 3, 2, "Bob");
+                bob.GroupInvitesEnabled = true;
+                fixture.RegisterOnlinePlayer(bob);
+
+                Assert.True(fixture.RunCommand(player, "/invite Bob junk"));
+
+                Assert.Contains(player.Sent, s => s.Contains("Couldn't find player."));
+                Assert.Null(bob.Group);
+                Assert.Null(player.Group);
+            }
+        }
+
+        [Fact]
         public void GroupRemove_trailing_space_is_silent_noop()
         {
             var (fixture, player, _) = WorldAndPlayer();
@@ -146,6 +164,20 @@ namespace Goose.Tests
         }
 
         [Fact]
+        public void GuildMotd_double_space_collapses_to_single()
+        {
+            var (fixture, player, _) = WorldAndPlayer();
+            using (fixture)
+            {
+                player.PlayerID = 1;
+                var guild = MakeGuild((player, Guild.GuildRanks.Leader));
+
+                Assert.True(fixture.RunCommand(player, "/guildmotd a  b"));
+                Assert.Equal("a b", guild.MOTD);
+            }
+        }
+
+        [Fact]
         public void GuildCreate_joins_multiword_name()
         {
             var (fixture, player, _) = WorldAndPlayer();
@@ -156,6 +188,24 @@ namespace Goose.Tests
                 Assert.NotNull(player.Guild);
                 Assert.Equal("Test Guild", player.Guild!.Name);
                 Assert.Equal(Guild.GuildRanks.Leader, player.Guild.GetRank(player));
+            }
+        }
+
+        [Fact]
+        public void GuildAdd_extra_tokens_fail_lookup_and_do_not_add()
+        {
+            var (fixture, player, map) = WorldAndPlayer();
+            using (fixture)
+            {
+                player.PlayerID = 1;
+                MakeGuild((player, Guild.GuildRanks.Leader));
+                var bob = fixture.CommandPlayerOn(map, 3, 2, "Bob");
+                fixture.RegisterOnlinePlayer(bob);
+
+                Assert.True(fixture.RunCommand(player, "/guildadd Bob junk"));
+
+                Assert.Contains(player.Sent, s => s.Contains("Couldn't find player."));
+                Assert.Null(bob.Guild);
             }
         }
 

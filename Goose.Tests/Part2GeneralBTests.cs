@@ -97,6 +97,20 @@ namespace Goose.Tests
         }
 
         [Fact]
+        public void Rank_all_extra_tokens_still_opens_all_ranks_window()
+        {
+            var (fixture, player, _) = WorldAndPlayer();
+            using (fixture)
+            {
+                fixture.RunCommand(player, "/rank all extra");
+
+                var window = Assert.Single(player.Windows);
+                Assert.Equal(Window.WindowTypes.Rank, window.Type);
+                Assert.Equal("All Ranks", window.Title);
+            }
+        }
+
+        [Fact]
         public void Rank_gold_opens_gold_ranks_window()
         {
             var (fixture, player, _) = WorldAndPlayer();
@@ -246,15 +260,43 @@ namespace Goose.Tests
         }
 
         [Fact]
-        public void Aether_bad_token_sends_usage()
+        public void Aether_bad_token_silently_sets_zero()
         {
             var (fixture, player, _) = WorldAndPlayer();
             using (fixture)
             {
                 fixture.RunCommand(player, "/aether abc");
 
-                Assert.Contains(player.Sent, s => s.Contains("Usage: /aether <thres>"));
+                Assert.Empty(player.Sent);
                 Assert.Equal(0, player.AetherThreshold);
+            }
+        }
+
+        [Fact]
+        public void Aether_extra_tokens_silently_set_zero()
+        {
+            var (fixture, player, _) = WorldAndPlayer();
+            using (fixture)
+            {
+                fixture.RunCommand(player, "/aether 1.5 junk");
+
+                Assert.Empty(player.Sent);
+                Assert.Equal(0, player.AetherThreshold);
+            }
+        }
+
+        [Fact]
+        public void Aether_bare_is_silent_noop()
+        {
+            var (fixture, player, _) = WorldAndPlayer();
+            using (fixture)
+            {
+                player.AetherThreshold = 2.5m;
+
+                fixture.RunCommand(player, "/aether ");
+
+                Assert.Empty(player.Sent);
+                Assert.Equal(2.5m, player.AetherThreshold);
             }
         }
 

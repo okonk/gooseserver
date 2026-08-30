@@ -81,7 +81,7 @@ namespace Goose.Tests
         }
 
         [Fact]
-        public void PetSpawn_bad_id_sends_usage()
+        public void PetSpawn_bad_id_sends_legacy_failure()
         {
             var (fixture, player, map) = WorldAndPlayer();
             using (fixture)
@@ -90,7 +90,23 @@ namespace Goose.Tests
 
                 Assert.True(fixture.RunCommand(player, "/petspawn abc"));
 
-                Assert.Contains(player.Sent, s => s.Contains("Usage: /petspawn <id>"));
+                Assert.Contains(player.Sent, s => s.Contains("Invalid pet ID."));
+            }
+        }
+
+        [Fact]
+        public void PetSpawn_extra_tokens_corrupt_whole_rest_parse()
+        {
+            var (fixture, player, map) = WorldAndPlayer();
+            using (fixture)
+            {
+                map.CanSpawnPets = true;
+                MakePet(fixture, player, 5, "Rex");
+
+                Assert.True(fixture.RunCommand(player, "/petspawn 5 junk"));
+
+                Assert.Contains(player.Sent, s => s.Contains("Invalid pet ID."));
+                Assert.False(player.Pets[0].IsAlive);
             }
         }
 
@@ -116,14 +132,29 @@ namespace Goose.Tests
         }
 
         [Fact]
-        public void PetInfo_bad_id_sends_usage()
+        public void PetInfo_bad_id_sends_legacy_failure()
         {
             var (fixture, player, _) = WorldAndPlayer();
             using (fixture)
             {
                 Assert.True(fixture.RunCommand(player, "/petinfo abc"));
 
-                Assert.Contains(player.Sent, s => s.Contains("Usage: /petinfo <id>"));
+                Assert.Contains(player.Sent, s => s.Contains("Invalid pet ID."));
+            }
+        }
+
+        [Fact]
+        public void PetInfo_extra_tokens_corrupt_whole_rest_parse()
+        {
+            var (fixture, player, _) = WorldAndPlayer();
+            using (fixture)
+            {
+                MakePet(fixture, player, 5, "Rex");
+
+                Assert.True(fixture.RunCommand(player, "/petinfo 5 junk"));
+
+                Assert.Contains(player.Sent, s => s.Contains("Invalid pet ID."));
+                Assert.Empty(player.Windows);
             }
         }
 
@@ -259,14 +290,14 @@ namespace Goose.Tests
         }
 
         [Fact]
-        public void PetDelete_bad_id_sends_usage()
+        public void PetDelete_bad_id_sends_legacy_failure()
         {
             var (fixture, player, _) = WorldAndPlayer();
             using (fixture)
             {
                 Assert.True(fixture.RunCommand(player, "/petdelete abc"));
 
-                Assert.Contains(player.Sent, s => s.Contains("Usage: /petdelete <id>"));
+                Assert.Contains(player.Sent, s => s.Contains("Invalid pet ID."));
             }
         }
     }
