@@ -181,9 +181,9 @@ registration takes a `section` parameter. Built-in sections (all 72 command keys
 legacy event classes — two alias pairs share one class):
 
 - **General**: `/help`, `/who`, `/tell`, `/shout`, `/random`, `/auction`,
-  `/dropgold`, `/location`, `/refresh`, `/charinfo`, `/credits`, `/playtime`,
-  `/changepassword`, `/buyvita`, `/buymana`, `/rank`, `/hairdye`, `/aether`,
-  `/toggle`, `/mc`
+  `/dropgold`, `/location`, `/refresh`, `/charinfo`, `/credits`, `/givecredits`,
+  `/playtime`, `/changepassword`, `/buyvita`, `/buymana`, `/rank`, `/hairdye`,
+  `/aether`, `/toggle`, `/mc`
 - **Party**: `/group`, `/groupadd`, `/invite`, `/groupremove`, `/disband`,
   `/togglegroup`
 - **Guild**: `/guild`, `/guildcreate`, `/guildadd`, `/guildremove`,
@@ -193,7 +193,7 @@ legacy event classes — two alias pairs share one class):
 - **Customs**: `/custom`
 - **GM**: `/warp`, `/summon`, `/approach`, `/kick`, `/ban`, `/unban`,
   `/broadcast`, `/getitem`, `/spawnnpc`, `/placespawn`, `/search`, `/mutemap`,
-  `/playerinfo`, `/givegold`, `/giveexperience`, `/givecredits`, `/settitle`,
+  `/playerinfo`, `/givegold`, `/giveexperience`, `/settitle`,
   `/setsurname`, `/changeclass`, `/changename`, `/checkname`, `/setpassword`,
   `/macrocheck`
 - **Admin**: `/shutdown`, `/setaccess`, `/setconfig`, `/saveconfig`,

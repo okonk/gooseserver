@@ -41,12 +41,12 @@ public class CommandFrameworkTests
             (CommandContext ctx) => ctx.Send("gm ok")));
 
         Assert.True(fixture.RunCommand(normal, "/help"));
-        Assert.Contains(normal.Sent, m => m.Contains("General (20)"));
+        Assert.Contains(normal.Sent, m => m.Contains("General (21)"));
         Assert.DoesNotContain(normal.Sent, m => m.Contains("Admin"));
         Assert.DoesNotContain(normal.Sent, m => m.Contains("/itestgm"));
 
         Assert.True(fixture.RunCommand(gm, "/help"));
-        Assert.Contains(gm.Sent, m => m.Contains("General (20)"));
+        Assert.Contains(gm.Sent, m => m.Contains("General (21)"));
         Assert.Contains(gm.Sent, m => m.Contains("Admin (11)"));
     }
 

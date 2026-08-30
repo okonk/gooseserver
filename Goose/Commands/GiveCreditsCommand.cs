@@ -1,6 +1,6 @@
 namespace Goose.Commands
 {
-    [Command("/givecredits ", Section = "GM", Help = "Give donation credits to a player.")]
+    [Command("/givecredits ", Section = "General", Help = "Give donation credits to a player.")]
     public sealed class GiveCreditsCommand : BaseCommand
     {
         public void Execute(CommandContext ctx, string name, int credits)

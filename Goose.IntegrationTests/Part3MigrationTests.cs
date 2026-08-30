@@ -120,15 +120,14 @@ namespace Goose.IntegrationTests
 
                 var lines = HelpLines(fixture, gm, null);
                 foreach (var header in new[]
-                    { "General (20)", "GM (23)", "Admin (10)", "Guild (7)", "Pets (6)", "Party (4)", "Customs (1)" })
+                    { "General (21)", "GM (22)", "Admin (10)", "Guild (7)", "Pets (6)", "Party (4)", "Customs (1)" })
                     Assert.Contains(lines, l => l == header);
             }
         }
 
-        /// <summary>A Normal player sees the GM section with count 1: /givecredits is
-        /// Open (legacy table) but lives in the GM section, and a section is visible if it
-        /// contains at least one usable command. Admin has no Open commands, so it is
-        /// hidden entirely.</summary>
+        /// <summary>Sections are visible only if they contain a usable command: GM and
+        /// Admin have no Open commands, so a Normal player sees exactly the five
+        /// player sections.</summary>
         [Fact]
         public void Help_normal_sees_only_the_open_sections()
         {
@@ -140,8 +139,9 @@ namespace Goose.IntegrationTests
 
                 var lines = HelpLines(fixture, player, null);
                 foreach (var header in new[]
-                    { "General (20)", "GM (1)", "Guild (7)", "Pets (6)", "Party (4)", "Customs (1)" })
+                    { "General (21)", "Guild (7)", "Pets (6)", "Party (4)", "Customs (1)" })
                     Assert.Contains(lines, l => l == header);
+                Assert.DoesNotContain(lines, l => l.StartsWith("GM ("));
                 Assert.DoesNotContain(lines, l => l.StartsWith("Admin ("));
                 Assert.Contains(lines, l => l.StartsWith("Usage: /givecredits "));
                 Assert.DoesNotContain(lines, l => l.StartsWith("Usage: /warp "));
