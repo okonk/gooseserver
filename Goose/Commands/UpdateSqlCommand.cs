@@ -69,6 +69,7 @@ namespace Goose.Commands
             else
             {
                 log.Info("Updating sql success");
+                world.Send(player, "$7Updating sql success");
             }
         }
     }
