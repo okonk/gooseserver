@@ -85,11 +85,6 @@ namespace Goose
             return new PacketDefinition { EventTypeId = eventType, RequiredPrivilege = privilege };
         }
 
-        private static PacketDefinition Restricted(CreateEvent factory, AccessPrivilege privilege)
-        {
-            return new PacketDefinition { EventFactory = factory, RequiredPrivilege = privilege };
-        }
-
         /**
          * Constructor, constructs sortedlist
          *
@@ -172,44 +167,27 @@ namespace Goose
          * RegisterEvent, registers a packet any player may use via a custom factory.
          *
          * Used by global scripts that need custom event creation logic.
+         * Command keys ("/...") are refused: they belong in the CommandRegistry.
          *
          */
         public void RegisterEvent(string key, CreateEvent action)
         {
             if (key.StartsWith('/'))
             {
-                log.Warn("RegisterEvent({0}): command keys should use CommandRegistry.Register.", key);
-                this.commands.RegisterLegacy(key, action, null);
+                log.Error("Refusing to register {0}: command keys must use CommandRegistry.Register.", key);
                 return;
             }
 
             if (this.packetTrie.TryGetValue(key, out PacketDefinition? existing) &&
                 existing.RequiredPrivilege.HasValue)
             {
-                log.Error("Refusing to register {0} unprivileged: it already requires {1}. " +
-                    "Use the RegisterEvent overload that states a privilege.",
+                log.Error("Refusing to register {0} unprivileged: it already requires {1}.",
                     key, existing.RequiredPrivilege.Value);
 
                 return;
             }
 
             this.packetTrie.Insert(key, Open(action));
-        }
-
-        /**
-         * RegisterEvent, registers a packet requiring a privilege via a custom factory.
-         *
-         */
-        public void RegisterEvent(string key, CreateEvent action, AccessPrivilege privilege)
-        {
-            if (key.StartsWith('/'))
-            {
-                log.Warn("RegisterEvent({0}): command keys should use CommandRegistry.Register.", key);
-                this.commands.RegisterLegacy(key, action, privilege);
-                return;
-            }
-
-            this.packetTrie.Insert(key, Restricted(action, privilege));
         }
 
         /**

@@ -301,17 +301,20 @@ namespace Goose.Tests
         }
 
         [Fact]
-        public void RegisterEventSlashKeyStillWorks()
+        public void RegisterEventSlashKeyRegistersNothing()
         {
             var (world, player, _) = WorldAndPlayer();
-            world.World.EventHandler.RegisterEvent("/evil ", (p, d) => new StubEvent { Player = p, Data = d });
+            var factoryCalled = false;
+            world.World.EventHandler.RegisterEvent("/evil ", (p, d) =>
+            {
+                factoryCalled = true;
+                return new StubEvent { Player = p, Data = d };
+            });
 
-            Assert.True(world.World.Commands.TryGet("/evil ", out var def));
-            Assert.NotNull(def!.LegacyFactory);
-            Assert.Null(def.LegacyType);
-
-            Assert.True(world.RunCommand(player, "/evil "));
-            Assert.Contains(player.Sent, s => s.Contains("evil ran"));
+            Assert.False(world.World.Commands.TryGet("/evil ", out _));
+            Assert.False(world.RunCommand(player, "/evil "));
+            Assert.Empty(player.Sent);
+            Assert.False(factoryCalled);
         }
 
         [Fact]
@@ -327,7 +330,7 @@ namespace Goose.Tests
         }
 
         [Fact]
-        public void RegisterEventOpenFactoryShadowedByRestrictedBuiltinCommand()
+        public void RegisterEventSlashKeyLeavesRestrictedBuiltinIntact()
         {
             var (world, player, map) = WorldAndPlayer();
             var factoryCalled = false;
@@ -340,7 +343,6 @@ namespace Goose.Tests
 
             Assert.True(world.World.Commands.TryGet("/shutdown", out var def));
             Assert.Equal(AccessPrivilege.Shutdown, def!.Privilege);
-            Assert.Null(def!.LegacyType);
             Assert.IsType<ShutdownCommand>(def.Instance);
 
             Assert.True(world.RunCommand(player, "/shutdown"));
@@ -353,10 +355,6 @@ namespace Goose.Tests
             Assert.True(world.RunCommand(gm, "/shutdown"));
             Assert.False(world.World.Running);
             Assert.False(factoryCalled);
-
-            Assert.True(world.World.Commands.TryGet("/shutdown", out def));
-            Assert.Equal(AccessPrivilege.Shutdown, def!.Privilege);
-            Assert.IsType<ShutdownCommand>(def.Instance);
         }
     }
 
@@ -366,13 +364,13 @@ namespace Goose.Tests
         private static void ThrowingHandler(CommandContext ctx) => throw new InvalidOperationException("boom");
 
         [Fact]
-        public void RegisterEventSlashKeyLogsWarning()
+        public void RegisterEventSlashKeyLogsError()
         {
             using var log = new CapturingLog();
             var world = new TestWorldFixture();
             world.World.EventHandler.RegisterEvent("/evil ", (p, d) => new StubEvent { Player = p, Data = d });
 
-            Assert.Contains(log.Messages, m => m.Contains("/evil"));
+            Assert.Contains(log.Messages, m => m.Contains("/evil") && m.Contains("CommandRegistry.Register"));
         }
 
         [Fact]
