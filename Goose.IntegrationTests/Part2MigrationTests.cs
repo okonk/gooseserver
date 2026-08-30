@@ -12,6 +12,7 @@ namespace Goose.IntegrationTests
             var fixture = new TestWorldFixture();
             var map = fixture.AddBaseMap(1, "Test");
             var player = fixture.CommandPlayerOn(map, 1, 2, "Tester");
+            player.Access = Player.AccessStatus.Normal;
             return (fixture, player, map);
         }
 
@@ -140,18 +141,19 @@ namespace Goose.IntegrationTests
                 Assert.True(fixture.RunCommand(gm, "/help"));
                 Assert.Contains(gm.Sent, m => m.StartsWith("MKW"));
                 Assert.Contains(gm.Sent, m => m.StartsWith("ENW"));
+                Assert.Contains(gm.Windows, w => w is HelpWindow);
 
                 var gmLines = HelpLines(gm, fixture.World.Commands);
                 foreach (var header in new[] { "General (20)", "Party (4)", "Guild (7)", "Pets (6)" })
                     Assert.Contains(gmLines, l => l.Contains(header));
                 foreach (var key in MigratedKeys)
-                    Assert.Contains(gmLines, l => l.StartsWith("Usage: " + key));
+                    Assert.Contains(gmLines, l => l.StartsWith("Usage: " + key + " "));
 
                 var normalLines = HelpLines(normal, fixture.World.Commands);
                 foreach (var header in new[] { "General (20)", "Party (4)", "Guild (7)", "Pets (6)" })
                     Assert.Contains(normalLines, l => l.Contains(header));
                 foreach (var key in MigratedKeys)
-                    Assert.Contains(normalLines, l => l.StartsWith("Usage: " + key));
+                    Assert.Contains(normalLines, l => l.StartsWith("Usage: " + key + " "));
             }
         }
 
