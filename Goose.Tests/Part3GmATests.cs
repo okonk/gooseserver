@@ -550,7 +550,7 @@ namespace Goose.Tests
             {
                 Assert.True(fixture.RunCommand(gm, "/macrocheck Ghost"));
 
-                Assert.Contains(gm.Sent, s => s.Contains("Couldn't find player."));
+                Assert.Contains(gm.Sent, s => s.Contains("Couldn't find player Ghost."));
             }
         }
 

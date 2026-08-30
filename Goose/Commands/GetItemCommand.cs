@@ -5,32 +5,32 @@ namespace Goose.Commands
     {
         private static readonly NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
 
-        public void Execute(CommandContext ctx, int id, string? arg2 = null, string? arg3 = null)
+        public void Execute(CommandContext ctx, int id, string? stack = null, string? powerful = null)
         {
             var world = ctx.World;
 
-            int stack = 1;
-            bool powerful = false;
+            int count = 1;
+            bool isPowerful = false;
 
-            if (arg2 is not null)
+            if (stack is not null)
             {
                 try
                 {
-                    stack = Convert.ToInt32(arg2);
+                    count = Convert.ToInt32(stack);
                 }
                 catch (Exception)
                 {
-                    stack = 1;
+                    count = 1;
 
-                    powerful = arg2.Equals("powerful", StringComparison.OrdinalIgnoreCase);
+                    isPowerful = stack.Equals("powerful", StringComparison.OrdinalIgnoreCase);
                 }
             }
-            if (arg3 is not null)
+            if (powerful is not null)
             {
-                powerful = arg3.Equals("powerful", StringComparison.OrdinalIgnoreCase);
+                isPowerful = powerful.Equals("powerful", StringComparison.OrdinalIgnoreCase);
             }
 
-            if (id <= 0 || stack <= 0) return;
+            if (id <= 0 || count <= 0) return;
 
             ItemTemplate? template = world.ItemHandler.GetTemplate(id);
             if (template is null) return;
@@ -44,10 +44,10 @@ namespace Goose.Commands
 
             world.ItemHandler.AddAndAssignId(item, world);
 
-            ctx.Player.Inventory.AddItem(item, stack, world);
+            ctx.Player.Inventory.AddItem(item, count, world);
 
             world.LogHandler.Log(Log.Types.GetItem,
-                ctx.Player.PlayerID, item.Name + " " + item.ItemID + " " + stack,
+                ctx.Player.PlayerID, item.Name + " " + item.ItemID + " " + count,
                 0, ctx.Player.Map.ID, ctx.Player.MapX, ctx.Player.MapY);
         }
     }
