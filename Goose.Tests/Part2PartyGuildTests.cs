@@ -1,0 +1,369 @@
+using Goose;
+using Goose.Commands;
+using Goose.Testing;
+using Xunit;
+
+namespace Goose.Tests
+{
+    public class Part2PartyGuildTests
+    {
+        private static (TestWorldFixture fixture, TestWorldFixture.CapturingPlayer player, Map map) WorldAndPlayer()
+        {
+            var fixture = new TestWorldFixture();
+            var map = fixture.AddBaseMap(1, "Test");
+            var player = fixture.CommandPlayerOn(map, 1, 2, "Tester");
+            return (fixture, player, map);
+        }
+
+        private static Group MakeGroup(params Player[] players)
+        {
+            var group = new Group();
+            foreach (var p in players)
+            {
+                group.Players.Add(p);
+                p.Group = group;
+            }
+            return group;
+        }
+
+        private static Guild MakeGuild(params (Player player, Guild.GuildRanks rank)[] members)
+        {
+            var guild = new Guild { ID = 5, Name = "TestGuild", MOTD = "old" };
+            foreach (var (player, rank) in members)
+            {
+                guild.AddMember(player.PlayerID, rank, true, true);
+                guild.OnlineMembers.Add(player);
+                player.Guild = guild;
+            }
+            return guild;
+        }
+
+        [Fact]
+        public void Invite_alias_keys_bind_exact_name()
+        {
+            var (fixture, player, map) = WorldAndPlayer();
+            using (fixture)
+            {
+                var bob = fixture.CommandPlayerOn(map, 3, 2, "Bob");
+                bob.GroupInvitesEnabled = true;
+                fixture.RegisterOnlinePlayer(bob);
+
+                Assert.True(fixture.RunCommand(player, "/invite Bob"));
+
+                Assert.DoesNotContain(player.Sent, s => s.Contains("Couldn't find player."));
+                Assert.NotNull(bob.Group);
+                Assert.Same(player.Group, bob.Group);
+                Assert.Contains(bob.Sent, s => s.Contains("You have joined a group."));
+
+                var ann = fixture.CommandPlayerOn(map, 4, 2, "Ann");
+                ann.GroupInvitesEnabled = true;
+                fixture.RegisterOnlinePlayer(ann);
+
+                Assert.True(fixture.RunCommand(player, "/groupadd Ann"));
+
+                Assert.Same(player.Group, ann.Group);
+                Assert.Contains(ann.Sent, s => s.Contains("You have joined a group."));
+            }
+        }
+
+        [Fact]
+        public void Invite_extra_tokens_are_ignored_and_adds_player()
+        {
+            var (fixture, player, map) = WorldAndPlayer();
+            using (fixture)
+            {
+                var bob = fixture.CommandPlayerOn(map, 3, 2, "Bob");
+                bob.GroupInvitesEnabled = true;
+                fixture.RegisterOnlinePlayer(bob);
+
+                Assert.True(fixture.RunCommand(player, "/invite Bob junk"));
+
+                Assert.NotNull(bob.Group);
+                Assert.Same(player.Group, bob.Group);
+            }
+        }
+
+        [Fact]
+        public void GroupRemove_trailing_space_leaves_group()
+        {
+            // Legacy silently no-op'd a bare trailing space; the binder tokenizes with
+            // RemoveEmptyEntries, so "/groupremove " now behaves like bare /groupremove.
+            var (fixture, player, _) = WorldAndPlayer();
+            using (fixture)
+            {
+                MakeGroup(player);
+
+                Assert.True(fixture.RunCommand(player, "/groupremove "));
+
+                Assert.Null(player.Group);
+            }
+        }
+
+        [Fact]
+        public void Invite_unknown_player_gets_normal_not_found_message()
+        {
+            var (fixture, player, _) = WorldAndPlayer();
+            using (fixture)
+            {
+                Assert.True(fixture.RunCommand(player, "/invite Ghost"));
+
+                Assert.Contains(player.Sent, s => s.Contains("Couldn't find player Ghost."));
+            }
+        }
+
+        [Fact]
+        public void Invite_loading_player_gets_normal_not_found_message()
+        {
+            var (fixture, player, map) = WorldAndPlayer();
+            using (fixture)
+            {
+                var bob = fixture.CommandPlayerOn(map, 3, 2, "Bob");
+                bob.State = Player.States.LoadingMap;
+                fixture.RegisterOnlinePlayer(bob);
+
+                Assert.True(fixture.RunCommand(player, "/invite Bob"));
+
+                Assert.Contains(player.Sent, s => s.Contains("Couldn't find player Bob."));
+                Assert.Null(bob.Group);
+            }
+        }
+
+        [Fact]
+        public void GroupRemove_unknown_player_gets_normal_not_found_message()
+        {
+            var (fixture, player, _) = WorldAndPlayer();
+            using (fixture)
+            {
+                MakeGroup(player);
+
+                Assert.True(fixture.RunCommand(player, "/groupremove Ghost"));
+
+                Assert.Contains(player.Sent, s => s.Contains("Couldn't find player Ghost."));
+                Assert.NotNull(player.Group);
+            }
+        }
+
+        [Fact]
+        public void GroupRemove_named_player_removes_them()
+        {
+            var (fixture, player, map) = WorldAndPlayer();
+            using (fixture)
+            {
+                var bob = fixture.CommandPlayerOn(map, 3, 2, "Bob");
+                fixture.RegisterOnlinePlayer(bob);
+                MakeGroup(player, bob);
+
+                Assert.True(fixture.RunCommand(player, "/groupremove Bob"));
+
+                Assert.Null(bob.Group);
+            }
+        }
+
+        [Fact]
+        public void Disband_leaves_group()
+        {
+            var (fixture, player, _) = WorldAndPlayer();
+            using (fixture)
+            {
+                MakeGroup(player);
+
+                Assert.True(fixture.RunCommand(player, "/disband"));
+
+                Assert.Null(player.Group);
+                Assert.Contains(player.Sent, s => s.Contains("You have left the group."));
+            }
+        }
+
+        [Fact]
+        public void Help_shows_first_alias_key_only()
+        {
+            var (fixture, player, _) = WorldAndPlayer();
+            using (fixture)
+            {
+                var pages = HelpFormatter.BuildPages(player, fixture.World.Commands, "groupadd");
+
+                Assert.NotNull(pages);
+                var lines = pages!.SelectMany(p => p).ToList();
+                Assert.Contains(lines, l => l.Contains("/invite"));
+                Assert.DoesNotContain(lines, l => l.Contains("/groupadd"));
+            }
+        }
+
+        [Fact]
+        public void GuildMotd_sets_and_clears()
+        {
+            var (fixture, player, _) = WorldAndPlayer();
+            using (fixture)
+            {
+                player.PlayerID = 1;
+                var guild = MakeGuild((player, Guild.GuildRanks.Leader));
+
+                Assert.True(fixture.RunCommand(player, "/guildmotd hello world"));
+                Assert.Equal("hello world", guild.MOTD);
+                Assert.Contains(player.Sent, s => s.Contains("[guild-notice] MOTD: hello world"));
+
+                Assert.True(fixture.RunCommand(player, "/guildmotd"));
+                Assert.Equal("", guild.MOTD);
+            }
+        }
+
+        [Fact]
+        public void GuildMotd_double_space_collapses_to_single()
+        {
+            var (fixture, player, _) = WorldAndPlayer();
+            using (fixture)
+            {
+                player.PlayerID = 1;
+                var guild = MakeGuild((player, Guild.GuildRanks.Leader));
+
+                Assert.True(fixture.RunCommand(player, "/guildmotd a  b"));
+                Assert.Equal("a b", guild.MOTD);
+            }
+        }
+
+        [Fact]
+        public void GuildCreate_joins_multiword_name()
+        {
+            var (fixture, player, _) = WorldAndPlayer();
+            using (fixture)
+            {
+                Assert.True(fixture.RunCommand(player, "/guildcreate Test Guild"));
+
+                Assert.NotNull(player.Guild);
+                Assert.Equal("Test Guild", player.Guild!.Name);
+                Assert.Equal(Guild.GuildRanks.Leader, player.Guild.GetRank(player));
+            }
+        }
+
+        [Fact]
+        public void GuildAdd_extra_tokens_are_ignored_and_adds_player()
+        {
+            var (fixture, player, map) = WorldAndPlayer();
+            using (fixture)
+            {
+                player.PlayerID = 1;
+                var guild = MakeGuild((player, Guild.GuildRanks.Leader));
+                var bob = fixture.CommandPlayerOn(map, 3, 2, "Bob");
+                fixture.RegisterOnlinePlayer(bob);
+
+                Assert.True(fixture.RunCommand(player, "/guildadd Bob junk"));
+
+                Assert.Same(guild, bob.Guild);
+            }
+        }
+
+        [Fact]
+        public void GuildRemove_bare_leaves_guild()
+        {
+            var (fixture, player, _) = WorldAndPlayer();
+            using (fixture)
+            {
+                player.PlayerID = 1;
+                var guild = MakeGuild((player, Guild.GuildRanks.Leader));
+
+                Assert.True(fixture.RunCommand(player, "/guildremove"));
+
+                Assert.Null(player.Guild);
+                Assert.Equal(Guild.GuildRanks.Deleted, guild.Members[player.PlayerID].Rank);
+                Assert.Contains(player.Sent, s => s.Contains("You left the guild."));
+            }
+        }
+
+        [Fact]
+        public void GuildRemove_double_leading_space_resolves_name()
+        {
+            // Legacy required exactly one leading space after the key; the binder
+            // tokenizes with RemoveEmptyEntries, so extra spaces are normalized.
+            var (fixture, player, map) = WorldAndPlayer();
+            using (fixture)
+            {
+                player.PlayerID = 1;
+                var bob = fixture.CommandPlayerOn(map, 3, 2, "Bob");
+                bob.PlayerID = 2;
+                fixture.RegisterOnlinePlayer(bob);
+                MakeGuild(
+                    (player, Guild.GuildRanks.Leader),
+                    (bob, Guild.GuildRanks.Member));
+
+                Assert.True(fixture.RunCommand(player, "/guildremove  Bob"));
+
+                Assert.Null(bob.Guild);
+            }
+        }
+
+        [Fact]
+        public void GuildAdd_unknown_player_gets_normal_not_found_message()
+        {
+            var (fixture, player, _) = WorldAndPlayer();
+            using (fixture)
+            {
+                player.PlayerID = 1;
+                MakeGuild((player, Guild.GuildRanks.Leader));
+
+                Assert.True(fixture.RunCommand(player, "/guildadd Ghost"));
+
+                Assert.Contains(player.Sent, s => s.Contains("Couldn't find player Ghost."));
+            }
+        }
+
+        [Fact]
+        public void GuildOfficer_unknown_player_gets_normal_not_found_message()
+        {
+            var (fixture, player, _) = WorldAndPlayer();
+            using (fixture)
+            {
+                player.PlayerID = 1;
+                MakeGuild((player, Guild.GuildRanks.Leader));
+
+                Assert.True(fixture.RunCommand(player, "/guildofficer Ghost"));
+
+                Assert.Contains(player.Sent, s => s.Contains("Couldn't find player Ghost."));
+            }
+        }
+
+        [Fact]
+        public void GuildOwner_unknown_player_gets_normal_not_found_message()
+        {
+            var (fixture, player, _) = WorldAndPlayer();
+            using (fixture)
+            {
+                player.PlayerID = 1;
+                MakeGuild((player, Guild.GuildRanks.Leader));
+
+                Assert.True(fixture.RunCommand(player, "/guildowner Ghost"));
+
+                Assert.Contains(player.Sent, s => s.Contains("Couldn't find player Ghost."));
+            }
+        }
+
+        [Fact]
+        public void GuildRemove_unknown_player_gets_normal_not_found_message()
+        {
+            var (fixture, player, _) = WorldAndPlayer();
+            using (fixture)
+            {
+                player.PlayerID = 1;
+                MakeGuild((player, Guild.GuildRanks.Leader));
+
+                Assert.True(fixture.RunCommand(player, "/guildremove Ghost"));
+
+                Assert.Contains(player.Sent, s => s.Contains("Couldn't find player Ghost."));
+                Assert.NotNull(player.Guild);
+            }
+        }
+
+        [Fact]
+        public void GroupChat_sends_to_group()
+        {
+            var (fixture, player, _) = WorldAndPlayer();
+            using (fixture)
+            {
+                MakeGroup(player);
+
+                Assert.True(fixture.RunCommand(player, "/group hi"));
+
+                Assert.Contains(player.Sent, s => s.Contains("[group] Tester: hi"));
+            }
+        }
+    }
+}

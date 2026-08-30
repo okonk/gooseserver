@@ -1,39 +1,28 @@
 using System;
 using Goose;
+using Goose.Commands;
 
-/// <summary>Handles "/dimension <n>". Registered with a trailing space so the command
-/// trie matches it as a longest-prefix, exactly like "/tell " and "/warp "
-/// (EventHandler.cs:123).</summary>
-public class DimensionCommandEvent : Event
+public static class DimensionCommands
 {
-    public static Event Create(Player player, Object data)
+    public static void Dimension(CommandContext ctx, int dim)
     {
-        return new DimensionCommandEvent { Player = player, Data = data };
-    }
-
-    public override void Ready(GameWorld world)
-    {
-        if (this.Player.State != Player.States.Ready) return;
-
-        var tokens = ((string)this.Data).Split(' ');
-        int dim;
-        if (tokens.Length < 2 || !int.TryParse(tokens[1], out dim) || dim < 0 || dim > Dimensions.DimensionCount)
+        if (dim < 0 || dim > Dimensions.DimensionCount)
         {
-            world.Send(this.Player, P.ServerMessage("/dimension <0-" + Dimensions.DimensionCount + ">"));
+            ctx.Send("/dimension <0-" + Dimensions.DimensionCount + ">");
             return;
         }
 
-        int max = DimensionHelpers.MaxDimensionOf(this.Player);
+        int max = DimensionHelpers.MaxDimensionOf(ctx.Player);
         if (dim > max)
         {
-            world.Send(this.Player, P.ServerMessage(DimensionHelpers.MaxDimensionRefusal(max)));
+            ctx.Send(DimensionHelpers.MaxDimensionRefusal(max));
             return;
         }
 
-        var target = world.MapHandler.GetMap(Dimensions.StartMapId + Dimensions.Offset * dim);
+        var target = ctx.World.MapHandler.GetMap(Dimensions.StartMapId + Dimensions.Offset * dim);
         if (target == null)
         {
-            world.Send(this.Player, P.ServerMessage("That dimension does not exist."));
+            ctx.Send("That dimension does not exist.");
             return;
         }
 
@@ -44,40 +33,26 @@ public class DimensionCommandEvent : Event
         // DimensionMap.csx's own hook) is bypassed by the one route players actually use.
         //
         // PlayerCanJoin sends its own refusal, so there is nothing to say here.
-        if (!target.PlayerCanJoin(this.Player, world)) return;
+        if (!target.PlayerCanJoin(ctx.Player, ctx.World)) return;
 
-        this.Player.WarpTo(world, target, Dimensions.WardenX, Dimensions.WardenY);
-    }
-}
-
-/// <summary>Handles "/resetitem &lt;n&gt;": rerolls one dimension equipment item's suffix
-/// and rarity for ResetItemCostBase^dim spirit. Registered with a trailing space so the
-/// command trie matches it as a longest-prefix, exactly like "/dimension ".</summary>
-public class ResetItemCommandEvent : Event
-{
-    public static Event Create(Player player, Object data)
-    {
-        return new ResetItemCommandEvent { Player = player, Data = data };
+        ctx.Player.WarpTo(ctx.World, target, Dimensions.WardenX, Dimensions.WardenY);
     }
 
-    public override void Ready(GameWorld world)
+    public static void ResetItem(CommandContext ctx, int slotId)
     {
-        if (this.Player.State != Player.States.Ready) return;
+        var world = ctx.World;
 
-        var tokens = ((string)this.Data).Split(' ');
-        int slotId;
-        if (tokens.Length < 2 || !int.TryParse(tokens[1], out slotId) ||
-            slotId < 1 || slotId > world.Settings.InventorySize)
+        if (slotId < 1 || slotId > world.Settings.InventorySize)
         {
-            world.Send(this.Player, P.ServerMessage(
-                "/resetitem <1-" + world.Settings.InventorySize + "> - rerolls a dimension item's suffix."));
+            ctx.Send(
+                "/resetitem <1-" + world.Settings.InventorySize + "> - rerolls a dimension item's suffix.");
             return;
         }
 
-        var slot = this.Player.Inventory.GetSlot(slotId);
+        var slot = ctx.Player.Inventory.GetSlot(slotId);
         if (slot == null || slot.Item == null)
         {
-            world.Send(this.Player, P.ServerMessage("No item exists at that inventory slot."));
+            ctx.Send("No item exists at that inventory slot.");
             return;
         }
 
@@ -87,7 +62,7 @@ public class ResetItemCommandEvent : Event
         // of two would rewrite both for one charge. Refuse rather than split.
         if (slot.Stack != 1)
         {
-            world.Send(this.Player, P.ServerMessage("Only a single item can be reset, not a stack."));
+            ctx.Send("Only a single item can be reset, not a stack.");
             return;
         }
 
@@ -98,7 +73,7 @@ public class ResetItemCommandEvent : Event
         int dim = DimensionHelpers.DimensionOf(item.TemplateID);
         if (dim < 1 || dim > Dimensions.DimensionCount)
         {
-            world.Send(this.Player, P.ServerMessage("Only items from a higher plane can be reset."));
+            ctx.Send("Only items from a higher plane can be reset.");
             return;
         }
 
@@ -110,14 +85,14 @@ public class ResetItemCommandEvent : Event
             world.ItemHandler.GetTemplate(DimensionHelpers.BaseId(item.TemplateID)) == null ||
             registered.Script == null)
         {
-            world.Send(this.Player, P.ServerMessage("Only items from a higher plane can be reset."));
+            ctx.Send("Only items from a higher plane can be reset.");
             return;
         }
 
         // Dimension tomes are Scroll consumables; nothing but gear carries modifiers.
         if (item.UseType != ItemTemplate.UseTypes.Armor && item.UseType != ItemTemplate.UseTypes.Weapon)
         {
-            world.Send(this.Player, P.ServerMessage("Only weapons and armor can be reset."));
+            ctx.Send("Only weapons and armor can be reset.");
             return;
         }
 
@@ -128,11 +103,10 @@ public class ResetItemCommandEvent : Event
 
         // The balance check is the guard, not a nicety: Part 5 established that Remove
         // does not itself refuse an overdraft.
-        long before = spirit.GetBalance(this.Player);
+        long before = spirit.GetBalance(ctx.Player);
         if (before < cost)
         {
-            world.Send(this.Player, P.ServerMessage(
-                "Not enough " + spirit.Name + " to reset this item. (" + cost + ")"));
+            ctx.Send("Not enough " + spirit.Name + " to reset this item. (" + cost + ")");
             return;
         }
 
@@ -147,198 +121,146 @@ public class ResetItemCommandEvent : Event
             // charge below never runs, so the player's cost is the modifiers the reset
             // stripped - say so, then rethrow so the event loop's catch
             // (EventHandler.cs:373) still logs it rather than this block swallowing it.
-            world.Send(this.Player, P.ServerMessage("The void refused the remaking."));
+            ctx.Send("The void refused the remaking.");
             throw;
         }
-        spirit.Remove(this.Player, cost, world);
+        spirit.Remove(ctx.Player, cost, world);
 
-        this.Player.Inventory.SendSlot(slotId, world);
-        world.Send(this.Player, P.ServerMessage(
-            "You spend " + cost + " " + spirit.Name + " to remake " + item.Name + "."));
+        ctx.Player.Inventory.SendSlot(slotId, world);
+        ctx.Send("You spend " + cost + " " + spirit.Name + " to remake " + item.Name + ".");
 
         // Its own log type, not CreatedCustom: that is the GM item-creation log, and
         // folding a paid player reroll into it makes both unqueryable. otherid carries the
         // item's id so a reroll can be joined to the item it rewrote.
-        world.LogHandler.Log(Log.Types.ResetItem, this.Player,
+        world.LogHandler.Log(Log.Types.ResetItem, ctx.Player,
             "ResetItem: template " + item.TemplateID + " dim " + dim
             + " cost " + cost + " " + spirit.ShortName
             + " balance " + before + " -> " + (before - cost),
             item.ItemID);
     }
-}
 
-/// <summary>Handles "/buygold &lt;amount&gt;": trades spirit for gold at GoldPerSpirit
-/// each. Registered with a trailing space so the command trie matches it as a
-/// longest-prefix, exactly like "/dimension ".</summary>
-public class BuyGoldCommandEvent : Event
-{
-    public static Event Create(Player player, Object data)
+    public static void BuyGold(CommandContext ctx, long amount)
     {
-        return new BuyGoldCommandEvent { Player = player, Data = data };
-    }
-
-    public override void Ready(GameWorld world)
-    {
-        if (this.Player.State != Player.States.Ready) return;
-
-        var tokens = ((string)this.Data).Split(' ');
-        long amount;
-        if (!Dimensions.TryParseAmount(tokens, 1, out amount))
+        if (amount <= 0)
         {
-            world.Send(this.Player, P.ServerMessage(
-                "/buygold <amount> - trades spirit for gold at "
-                + Dimensions.GoldPerSpirit.ToString("N0") + " each."));
+            ctx.Send("/buygold <amount> - trades spirit for gold at "
+                + Dimensions.GoldPerSpirit.ToString("N0") + " each.");
             return;
         }
 
-        var spirit = world.CurrencyHandler.Get(Dimensions.SpiritCurrencyId);
-        var gold = world.CurrencyHandler.Get(Currency.Gold);   // no CurrencyHandler.Gold property
+        var spirit = ctx.World.CurrencyHandler.Get(Dimensions.SpiritCurrencyId);
+        var gold = ctx.World.CurrencyHandler.Get(Currency.Gold);   // no CurrencyHandler.Gold property
         if (spirit == null || gold == null) return;
 
         // Before the balance check: a wrapped product would pass any check made after it.
         if (amount > long.MaxValue / Dimensions.GoldPerSpirit)
         {
-            world.Send(this.Player, P.ServerMessage("That is more gold than exists."));
+            ctx.Send("That is more gold than exists.");
             return;
         }
 
-        long before = spirit.GetBalance(this.Player);
+        long before = spirit.GetBalance(ctx.Player);
         if (before < amount)
         {
-            world.Send(this.Player, P.ServerMessage("Not enough " + spirit.Name + "."));
+            ctx.Send("Not enough " + spirit.Name + ".");
             return;
         }
 
         long granted = amount * Dimensions.GoldPerSpirit;
 
-        spirit.Remove(this.Player, amount, world);
-        gold.Add(this.Player, granted, world);
+        spirit.Remove(ctx.Player, amount, ctx.World);
+        gold.Add(ctx.Player, granted, ctx.World);
 
-        world.Send(this.Player, P.ServerMessage(
-            "You trade " + amount + " " + spirit.Name + " for " + granted.ToString("N0") + " gold."));
-        world.LogHandler.Log(Log.Types.BuyGold, this.Player,
+        ctx.Send("You trade " + amount + " " + spirit.Name + " for " + granted.ToString("N0") + " gold.");
+        ctx.World.LogHandler.Log(Log.Types.BuyGold, ctx.Player,
             "BuyGold: " + amount + " " + spirit.ShortName + " -> " + granted + " gold"
             + ", spirit " + before + " -> " + (before - amount));
     }
-}
 
-/// <summary>Handles "/buyexperience &lt;amount&gt;": buys experience at
-/// ExpPerSpiritPurchase each, unmodified by the world's experience modifier. Registered
-/// with a trailing space so the command trie matches it as a longest-prefix, exactly like
-/// "/dimension ".</summary>
-public class BuyExperienceCommandEvent : Event
-{
-    public static Event Create(Player player, Object data)
+    public static void BuyExperience(CommandContext ctx, long amount)
     {
-        return new BuyExperienceCommandEvent { Player = player, Data = data };
-    }
-
-    public override void Ready(GameWorld world)
-    {
-        if (this.Player.State != Player.States.Ready) return;
-
-        var tokens = ((string)this.Data).Split(' ');
-        long amount;
-        if (!Dimensions.TryParseAmount(tokens, 1, out amount))
+        if (amount <= 0)
         {
-            world.Send(this.Player, P.ServerMessage(
-                "/buyexperience <amount> - buys experience at "
-                + Dimensions.ExpPerSpiritPurchase.ToString("N0") + " each."));
+            ctx.Send("/buyexperience <amount> - buys experience at "
+                + Dimensions.ExpPerSpiritPurchase.ToString("N0") + " each.");
             return;
         }
 
-        if (this.Player.ClassID == 1)
+        if (ctx.Player.ClassID == 1)
         {
-            world.Send(this.Player, P.ServerMessage("Choose a class before you buy experience."));
+            ctx.Send("Choose a class before you buy experience.");
             return;
         }
 
         if (amount > long.MaxValue / Dimensions.ExpPerSpiritPurchase)
         {
-            world.Send(this.Player, P.ServerMessage("That is more experience than exists."));
+            ctx.Send("That is more experience than exists.");
             return;
         }
 
         long granted = amount * Dimensions.ExpPerSpiritPurchase;
-        long total = this.Player.Experience + this.Player.ExperienceSold;
+        long total = ctx.Player.Experience + ctx.Player.ExperienceSold;
 
         // Prospective, not current. AddExperience early-returns when the CURRENT total is
         // over the cap (Player.cs:1653-1660), so checking the same condition here only
         // catches players who are already past it - a player one experience under the cap
         // passes, buys, and lands 24,999,999 above a ceiling the server is meant to
         // enforce. Test what the purchase would produce.
-        if (world.Settings.ExperienceCap > 0 && total + granted > world.Settings.ExperienceCap)
+        if (ctx.World.Settings.ExperienceCap > 0 && total + granted > ctx.World.Settings.ExperienceCap)
         {
-            long affordable = (world.Settings.ExperienceCap - total) / Dimensions.ExpPerSpiritPurchase;
-            world.Send(this.Player, P.ServerMessage(affordable > 0
+            long affordable = (ctx.World.Settings.ExperienceCap - total) / Dimensions.ExpPerSpiritPurchase;
+            ctx.Send(affordable > 0
                 ? "That would carry you past the experience cap. You can buy at most " + affordable + "."
-                : "You have reached the experience cap."));
+                : "You have reached the experience cap.");
             return;
         }
 
-        var spirit = world.CurrencyHandler.Get(Dimensions.SpiritCurrencyId);
+        var spirit = ctx.World.CurrencyHandler.Get(Dimensions.SpiritCurrencyId);
         if (spirit == null) return;
 
-        long before = spirit.GetBalance(this.Player);
+        long before = spirit.GetBalance(ctx.Player);
         if (before < amount)
         {
-            world.Send(this.Player, P.ServerMessage("Not enough " + spirit.Name + "."));
+            ctx.Send("Not enough " + spirit.Name + ".");
             return;
         }
 
-        spirit.Remove(this.Player, amount, world);
-        this.Player.AddExperience(granted, world, Player.ExperienceMessage.Normal, applyModifiers: false);
+        spirit.Remove(ctx.Player, amount, ctx.World);
+        ctx.Player.AddExperience(granted, ctx.World, Player.ExperienceMessage.Normal, applyModifiers: false);
 
-        world.Send(this.Player, P.ServerMessage(
-            "You spend " + amount + " " + spirit.Name + " to gain " + granted.ToString("N0") + " experience."));
-        world.LogHandler.Log(Log.Types.BuyExperience, this.Player,
+        ctx.Send("You spend " + amount + " " + spirit.Name + " to gain " + granted.ToString("N0") + " experience.");
+        ctx.World.LogHandler.Log(Log.Types.BuyExperience, ctx.Player,
             "BuyExperience: " + amount + " " + spirit.ShortName + " -> " + granted + " exp"
             + ", spirit " + before + " -> " + (before - amount));
     }
-}
 
-/// <summary>Handles "/givesp &lt;player&gt; &lt;amount&gt;": transfers spirit between two
-/// online players. Registered with a trailing space so the command trie matches it as a
-/// longest-prefix, exactly like "/dimension ".</summary>
-public class GiveSpiritCommandEvent : Event
-{
-    public static Event Create(Player player, Object data)
+    public static void GiveSpirit(CommandContext ctx, Player target, long amount)
     {
-        return new GiveSpiritCommandEvent { Player = player, Data = data };
-    }
-
-    public override void Ready(GameWorld world)
-    {
-        if (this.Player.State != Player.States.Ready) return;
-
-        var tokens = ((string)this.Data).Split(' ');
-        long amount;
-        if (tokens.Length < 3 || !Dimensions.TryParseAmount(tokens, 2, out amount))
+        if (target.State != Player.States.Ready)
         {
-            world.Send(this.Player, P.ServerMessage("/givesp <player> <amount>"));
+            ctx.Send(target.Name + " is not online.");
             return;
         }
 
-        var target = world.PlayerHandler.GetPlayer(tokens[1]);
-        if (target == null || target.State != Player.States.Ready)
+        if (amount <= 0)
         {
-            world.Send(this.Player, P.ServerMessage(tokens[1] + " is not online."));
+            ctx.Send("/givesp <player> <amount>");
             return;
         }
 
-        if (target == this.Player)
+        if (target == ctx.Player)
         {
-            world.Send(this.Player, P.ServerMessage("You cannot give spirit to yourself."));
+            ctx.Send("You cannot give spirit to yourself.");
             return;
         }
 
-        var spirit = world.CurrencyHandler.Get(Dimensions.SpiritCurrencyId);
+        var spirit = ctx.World.CurrencyHandler.Get(Dimensions.SpiritCurrencyId);
         if (spirit == null) return;
 
-        long senderBefore = spirit.GetBalance(this.Player);
+        long senderBefore = spirit.GetBalance(ctx.Player);
         if (senderBefore < amount)
         {
-            world.Send(this.Player, P.ServerMessage("Not enough " + spirit.Name + "."));
+            ctx.Send("Not enough " + spirit.Name + ".");
             return;
         }
 
@@ -349,27 +271,26 @@ public class GiveSpiritCommandEvent : Event
         long targetBefore = spirit.GetBalance(target);
         if (targetBefore > Dimensions.MaxSpiritBalance - amount)
         {
-            world.Send(this.Player, P.ServerMessage(target.Name + " cannot hold that much " + spirit.Name + "."));
+            ctx.Send(target.Name + " cannot hold that much " + spirit.Name + ".");
             return;
         }
 
-        spirit.Remove(this.Player, amount, world);
-        spirit.Add(target, amount, world);
+        spirit.Remove(ctx.Player, amount, ctx.World);
+        spirit.Add(target, amount, ctx.World);
 
-        world.Send(this.Player, P.ServerMessage(
-            "You give " + amount + " " + spirit.Name + " to " + target.Name + "."));
-        world.Send(target, P.ServerMessage(
-            this.Player.Name + " gives you " + amount + " " + spirit.Name + "."));
+        ctx.Send("You give " + amount + " " + spirit.Name + " to " + target.Name + ".");
+        ctx.World.Send(target, P.ServerMessage(
+            ctx.Player.Name + " gives you " + amount + " " + spirit.Name + "."));
 
         // One entry per side, each naming the counterparty in otherid and carrying its own
         // before/after. Two rows rather than one because logs are queried per player.
-        world.LogHandler.Log(Log.Types.GiveSpirit, this.Player,
+        ctx.World.LogHandler.Log(Log.Types.GiveSpirit, ctx.Player,
             "GiveSpirit: sent " + amount + " " + spirit.ShortName + " to " + target.Name
             + ", balance " + senderBefore + " -> " + (senderBefore - amount),
             target.PlayerID);
-        world.LogHandler.Log(Log.Types.GiveSpirit, target,
-            "GiveSpirit: received " + amount + " " + spirit.ShortName + " from " + this.Player.Name
+        ctx.World.LogHandler.Log(Log.Types.GiveSpirit, target,
+            "GiveSpirit: received " + amount + " " + spirit.ShortName + " from " + ctx.Player.Name
             + ", balance " + targetBefore + " -> " + (targetBefore + amount),
-            this.Player.PlayerID);
+            ctx.Player.PlayerID);
     }
 }

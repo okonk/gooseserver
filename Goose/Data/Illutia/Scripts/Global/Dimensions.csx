@@ -179,18 +179,6 @@ public partial class Dimensions : BaseGlobalScript
     /// refusal rather than as a corrupted balance.</summary>
     public const long MaxSpiritBalance = 1_000_000_000_000L;
 
-    /// <summary>Shared by all four commands. Returns false for a missing, unparseable,
-    /// zero or negative amount - each command prints its own usage line, so this does not
-    /// message.</summary>
-    public static bool TryParseAmount(string[] tokens, int index, out long amount)
-    {
-        amount = 0;
-        if (tokens.Length <= index) return false;
-        if (!long.TryParse(tokens[index], out amount)) return false;
-
-        return amount > 0;
-    }
-
     public override void OnLoaded(GameWorld world)
     {
         if (!Enabled) return;
@@ -226,11 +214,11 @@ public partial class Dimensions : BaseGlobalScript
         RepointDrops(world);
         RepointVendorStock(world);
 
-        world.EventHandler.RegisterEvent("/dimension ", DimensionCommandEvent.Create);
-        world.EventHandler.RegisterEvent("/resetitem ", ResetItemCommandEvent.Create);
-        world.EventHandler.RegisterEvent("/buygold ", BuyGoldCommandEvent.Create);
-        world.EventHandler.RegisterEvent("/buyexperience ", BuyExperienceCommandEvent.Create);
-        world.EventHandler.RegisterEvent("/givesp ", GiveSpiritCommandEvent.Create);
+        world.Commands.Register("/dimension ", "Dimensions", "Warp to a dimension.", DimensionCommands.Dimension);
+        world.Commands.Register("/resetitem ", "Dimensions", "Reroll a dimension item's suffix.", DimensionCommands.ResetItem);
+        world.Commands.Register("/buygold ", "Dimensions", "Trade spirit for gold.", DimensionCommands.BuyGold);
+        world.Commands.Register("/buyexperience ", "Dimensions", "Buy experience with spirit.", DimensionCommands.BuyExperience);
+        world.Commands.Register("/givesp ", "Dimensions", "Give spirit to another player.", DimensionCommands.GiveSpirit);
     }
 }
 

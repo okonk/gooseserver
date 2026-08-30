@@ -64,6 +64,7 @@ namespace Goose
             MacroCheck,
             PlayerInfo,
             ItemInfo,
+            Help,
         }
         public WindowTypes Type { get; set; }
 

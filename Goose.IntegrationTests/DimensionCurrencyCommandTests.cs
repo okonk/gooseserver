@@ -294,7 +294,7 @@ public class DimensionCurrencyCommandTests
         fixture.RunCommand(alice, "/givesp Nobody 40");
 
         Assert.Equal(100, Spirit(fixture, alice));
-        Assert.Contains(alice.Sent, m => m.Contains("not online"));
+        Assert.Contains(alice.Sent, m => m.Contains("Couldn't find player Nobody"));
     }
 
     /// <summary>Self-transfer is not a no-op if it is allowed: Remove then Add both run

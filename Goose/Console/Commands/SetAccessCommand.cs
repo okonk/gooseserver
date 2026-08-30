@@ -101,7 +101,7 @@ namespace Goose.ConsoleCommands
          *
          * Deliberately not Enum.TryParse: that also accepts numeric strings, so "9"
          * and even undefined values like "42" would parse. Matching the in game
-         * /setaccess in Events/SetAccessCommandEvent.cs means names only.
+         * /setaccess in Commands/SetAccessCommand.cs means names only.
          *
          */
         public static bool TryParseLevel(string text, out Player.AccessStatus level)

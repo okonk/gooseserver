@@ -2,6 +2,7 @@
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
 
+using Goose.Commands;
 using Goose.Events;
 using Goose.Quests;
 using Goose.Scripting;
@@ -27,6 +28,7 @@ namespace Goose
 
         public PlayerHandler PlayerHandler { get; set; }
         public EventHandler EventHandler { get; set; }
+        public CommandRegistry Commands { get; }
         public MapHandler MapHandler { get; set; }
         public NPCHandler NPCHandler { get; set; }
         public ClassHandler ClassHandler { get; set; }
@@ -102,7 +104,8 @@ namespace Goose
 
             this.GameServer = server;
             this.PlayerHandler = new PlayerHandler(this.Settings);
-            this.EventHandler = new EventHandler();
+            this.Commands = new CommandRegistry();
+            this.EventHandler = new EventHandler(this.Commands);
             this.MapHandler = new MapHandler();
             this.NPCHandler = new NPCHandler();
             this.ClassHandler = new ClassHandler();
