@@ -315,7 +315,8 @@ namespace Goose
                     }
                     else
                     {
-                        e = GetOrCreateFactory(definition.LegacyType)();
+                        // The branch condition above guarantees LegacyType is set here.
+                        e = GetOrCreateFactory(definition.LegacyType!)();
                         e.Player = player;
                         e.Data = packet;
                     }

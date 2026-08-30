@@ -1,6 +1,6 @@
 namespace Goose.Commands
 {
-    public class HelpWindow : Window
+    internal class HelpWindow : Window
     {
         public override string Title => "Command Help";
 

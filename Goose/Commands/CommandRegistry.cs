@@ -43,7 +43,7 @@ namespace Goose.Commands
 
         private void SeedAttributedType(Type type, CommandAttribute attribute)
         {
-            var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance);
+            var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static);
             var executes = methods.Where(m => m.Name == "Execute" && !m.IsSpecialName).ToList();
             var subcommands = methods
                 .Where(m => m.GetCustomAttribute<SubcommandAttribute>() is not null)
@@ -169,28 +169,27 @@ namespace Goose.Commands
         }
 
         internal IReadOnlyList<CommandSection> Sections
+            => this.SectionsOf(this._snapshot);
+
+        internal IReadOnlyList<CommandSection> SectionsOf(CommandSnapshot snapshot)
         {
-            get
+            var sections = new List<CommandSection>();
+            var index = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var def in snapshot.Ordered)
             {
-                var snapshot = this._snapshot;
-                var sections = new List<CommandSection>();
-                var index = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-
-                foreach (var def in snapshot.Ordered)
+                if (def.Section is null)
+                    continue;
+                if (!index.TryGetValue(def.Section, out var i))
                 {
-                    if (def.Section is null)
-                        continue;
-                    if (!index.TryGetValue(def.Section, out var i))
-                    {
-                        i = sections.Count;
-                        index[def.Section] = i;
-                        sections.Add(new CommandSection(def.Section));
-                    }
-                    sections[i].Commands.Add(def);
+                    i = sections.Count;
+                    index[def.Section] = i;
+                    sections.Add(new CommandSection(def.Section));
                 }
-
-                return sections;
+                sections[i].Commands.Add(def);
             }
+
+            return sections;
         }
 
         internal IReadOnlyList<string> FindNameCollisions()

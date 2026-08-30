@@ -78,6 +78,30 @@ namespace Goose.Tests
         }
 
         [Fact]
+        public void UnknownPlayerParamSendsFixedMessage()
+        {
+            var (world, player, _) = WorldAndPlayer();
+            Assert.True(world.World.Commands.Register("/itell ", "General", "Test.",
+                (CommandContext ctx, Player target) => ctx.Send("told " + target.Name)));
+
+            Assert.True(world.RunCommand(player, "/itell nosuchplayer"));
+            Assert.Single(player.Sent, s => s.Contains("Couldn't find player nosuchplayer."));
+        }
+
+        [Fact]
+        public void StaticExecuteCommandRuns()
+        {
+            var (world, player, _) = WorldAndPlayer();
+            world.World.Commands.SeedAttributedTypes([typeof(StaticExecuteCommand), typeof(StaticSubCommand)]);
+
+            Assert.True(world.RunCommand(player, "/sstatic"));
+            Assert.Contains(player.Sent, s => s.Contains("static ran"));
+
+            Assert.True(world.RunCommand(player, "/ssub spin"));
+            Assert.Contains(player.Sent, s => s.Contains("static spin ran"));
+        }
+
+        [Fact]
         public void UnknownCommandNoMatch()
         {
             var (world, player, _) = WorldAndPlayer();

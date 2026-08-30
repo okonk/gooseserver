@@ -83,6 +83,22 @@ namespace Goose.Tests
         }
 
         [Fact]
+        public void BuildPages_every_rendered_line_fits_42_chars()
+        {
+            var (_, player, _) = WorldAndPlayer();
+            var registry = new CommandRegistry();
+            // 42-char first line plus a 41-char word: at the old 42-char continuation
+            // budget the indented line would have been 43 chars.
+            var help = new string('a', 42) + " " + new string('b', 41);
+            Assert.True(registry.Register("/long", "Big", help, NoArgs));
+
+            var pages = HelpFormatter.BuildPages(player, registry, null);
+            Assert.NotNull(pages);
+            Assert.All(pages!.SelectMany(p => p), line => Assert.True(line.Length <= 42, line));
+            Assert.Contains(pages.SelectMany(p => p), line => line == "  " + new string('b', 40));
+        }
+
+        [Fact]
         public void BuildPages_name_without_privilege_returns_null()
         {
             var (_, player, _) = WorldAndPlayer();

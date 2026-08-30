@@ -42,6 +42,30 @@ public class CommandRegistryTests
     }
 
     [Fact]
+    public void Seed_static_execute_is_discovered()
+    {
+        var registry = new CommandRegistry();
+        registry.SeedAttributedTypes([typeof(StaticExecuteCommand)]);
+
+        Assert.True(registry.TryGet("/sstatic", out var def));
+        Assert.True(def!.ExecuteMethod!.IsStatic);
+        Assert.Empty(def.Subcommands);
+    }
+
+    [Fact]
+    public void Seed_static_subcommand_is_discovered()
+    {
+        var registry = new CommandRegistry();
+        registry.SeedAttributedTypes([typeof(StaticSubCommand)]);
+
+        Assert.True(registry.TryGet("/ssub", out var def));
+        Assert.Null(def!.ExecuteMethod);
+        var sub = Assert.Single(def.Subcommands);
+        Assert.Equal("spin", sub.PrimaryName);
+        Assert.True(sub.Method.IsStatic);
+    }
+
+    [Fact]
     public void Seed_two_execute_methods_rejected()
     {
         var registry = new CommandRegistry();
@@ -450,4 +474,17 @@ public sealed class TwoExecuteCommand : BaseCommand
 [Command("/noexec")]
 public sealed class NoTargetsCommand : BaseCommand
 {
+}
+
+[Command("/sstatic", Help = "Static execute test command.")]
+public sealed class StaticExecuteCommand : BaseCommand
+{
+    public static void Execute(CommandContext ctx) => ctx.Send("static ran");
+}
+
+[Command("/ssub", Help = "Static subcommand test command.")]
+public sealed class StaticSubCommand : BaseCommand
+{
+    [Subcommand("spin")]
+    public static void Spin(CommandContext ctx) => ctx.Send("static spin ran");
 }

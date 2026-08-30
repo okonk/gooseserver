@@ -2,39 +2,53 @@ using System.Reflection;
 
 namespace Goose.Commands
 {
-    public static class HelpFormatter
+    internal static class HelpFormatter
     {
         public const int MaxLineLength = 42;
         public const int MaxLinesPerPage = 19;
 
         public static List<string> Wrap(string line)
+            => Wrap(line, MaxLineLength, MaxLineLength);
+
+        private static List<string> Wrap(string line, int firstBudget, int continuationBudget)
         {
             var lines = new List<string>();
             var current = "";
+            var budget = firstBudget;
 
             foreach (var word in line.Split(' '))
             {
-                if (word.Length > MaxLineLength)
+                while (true)
                 {
-                    if (current.Length > 0)
+                    if (word.Length > budget)
                     {
-                        lines.Add(current);
-                        current = "";
+                        if (current.Length > 0)
+                        {
+                            lines.Add(current);
+                            current = "";
+                        }
+                        var remaining = word;
+                        var chunkBudget = budget;
+                        while (remaining.Length > 0)
+                        {
+                            var len = Math.Min(chunkBudget, remaining.Length);
+                            lines.Add(remaining[..len]);
+                            remaining = remaining[len..];
+                            chunkBudget = continuationBudget;
+                        }
+                        break;
                     }
-                    for (var i = 0; i < word.Length; i += MaxLineLength)
-                        lines.Add(word.Substring(i, Math.Min(MaxLineLength, word.Length - i)));
-                    continue;
-                }
 
-                var candidate = current.Length == 0 ? word : current + " " + word;
-                if (candidate.Length <= MaxLineLength)
-                {
-                    current = candidate;
-                }
-                else
-                {
+                    var candidate = current.Length == 0 ? word : current + " " + word;
+                    if (candidate.Length <= budget)
+                    {
+                        current = candidate;
+                        break;
+                    }
+
                     lines.Add(current);
-                    current = word;
+                    current = "";
+                    budget = continuationBudget;
                 }
             }
 
@@ -45,7 +59,8 @@ namespace Goose.Commands
 
         public static List<List<string>>? BuildPages(Player player, CommandRegistry registry, string? name)
         {
-            var sections = registry.Sections;
+            var snapshot = registry.Snapshot;
+            var sections = registry.SectionsOf(snapshot);
             var pages = new List<List<string>>();
 
             if (name is null)
@@ -70,7 +85,7 @@ namespace Goose.Commands
 
             var input = name.TrimEnd(' ');
 
-            var command = FindCommand(player, registry, input);
+            var command = FindCommand(player, snapshot, input);
             if (command is not null)
                 pages.AddRange(SplitPages(CommandLines(player, command)));
 
@@ -86,9 +101,9 @@ namespace Goose.Commands
             return pages.Count > 0 ? pages : null;
         }
 
-        private static CommandDefinition? FindCommand(Player player, CommandRegistry registry, string name)
+        private static CommandDefinition? FindCommand(Player player, CommandSnapshot snapshot, string name)
         {
-            foreach (var def in registry.Snapshot.Ordered)
+            foreach (var def in snapshot.Ordered)
             {
                 if (def.Section is null) continue;
                 if (!CommandRegistry.IsUsableBy(player, def)) continue;
@@ -151,7 +166,9 @@ namespace Goose.Commands
 
         private static void AddWrapped(List<string> lines, string text)
         {
-            var wrapped = Wrap(text);
+            // Continuation lines carry a 2-space indent, so their content budget
+            // is reduced to keep rendered lines within MaxLineLength.
+            var wrapped = Wrap(text, MaxLineLength, MaxLineLength - 2);
             for (var i = 0; i < wrapped.Count; i++)
                 lines.Add(i == 0 ? wrapped[i] : "  " + wrapped[i]);
         }

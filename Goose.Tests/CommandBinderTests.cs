@@ -72,8 +72,7 @@ public class CommandBinderTests
             ParamsOf(nameof(MShapePin)), ["5"], "Usage: /m <n>");
 
         Assert.Null(error);
-        Assert.Equal(1, args!.Length);
-        Assert.Equal(5, args[0]);
+        Assert.Equal(5, Assert.Single(args!));
     }
 
     [Fact]
