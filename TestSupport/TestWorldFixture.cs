@@ -104,6 +104,14 @@ public class TestWorldFixture : IDisposable
         byName[player.Name.ToLower()] = player;
     }
 
+    public void RegisterDatabasePlayer(Player player)
+    {
+        var byName = (Dictionary<string, Player>)typeof(PlayerHandler)
+            .GetField("allNameToPlayer", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .GetValue(World.PlayerHandler)!;
+        byName[player.Name.ToLower()] = player;
+    }
+
     public void AddOnlinePlayer(Player player)
     {
         // AddPlayer keys sockToPlayer by Sock, so a dummy socket is required.

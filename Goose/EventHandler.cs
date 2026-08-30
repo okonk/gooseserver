@@ -166,40 +166,23 @@ namespace Goose
                 this.packetTrie.Insert(key, def);
             }
 
-            this.commands.RegisterLegacy("/summon ", typeof(SummonEvent), AccessPrivilege.Summon);
             this.commands.RegisterLegacy("/warp ", typeof(WarpEvent), AccessPrivilege.Warp);
-            this.commands.RegisterLegacy("/approach ", typeof(ApproachEvent), AccessPrivilege.Approach);
             this.commands.RegisterLegacy("/shutdown", typeof(ShutdownCommandEvent), AccessPrivilege.Shutdown);
             this.commands.RegisterLegacy("/getitem ", typeof(GetItemCommandEvent), AccessPrivilege.SpawnItem);
             this.commands.RegisterLegacy("/hax ", typeof(HaxCommandEvent), AccessPrivilege.Debug);
             this.commands.RegisterLegacy("/gmhax ", typeof(GMHaxCommandEvent), AccessPrivilege.Debug);
-            this.commands.RegisterLegacy("/ban ", typeof(BanCommandEvent), AccessPrivilege.Ban);
-            this.commands.RegisterLegacy("/kick ", typeof(KickCommandEvent), AccessPrivilege.Kick);
-            this.commands.RegisterLegacy("/broadcast ", typeof(BroadcastCommandEvent), AccessPrivilege.Broadcast);
             this.commands.RegisterLegacy("/setconfig ", typeof(SetConfigCommandEvent), AccessPrivilege.SetConfig);
             this.commands.RegisterLegacy("/saveconfig", typeof(SaveConfigCommandEvent), AccessPrivilege.SetConfig);
             this.commands.RegisterLegacy("/respawnmap", typeof(RespawnMapCommandEvent), AccessPrivilege.RespawnMap);
-            this.commands.RegisterLegacy("/unban ", typeof(UnbanCommandEvent), AccessPrivilege.Ban);
-            this.commands.RegisterLegacy("/checkname ", typeof(CheckNameCommandEvent), AccessPrivilege.ChangeName);
-            this.commands.RegisterLegacy("/changeclass ", typeof(ChangeClassCommandEvent), AccessPrivilege.ClassChange);
-            this.commands.RegisterLegacy("/changename ", typeof(ChangeNameCommandEvent), AccessPrivilege.ChangeName);
-            this.commands.RegisterLegacy("/giveexperience ", typeof(GiveExperienceCommandEvent), AccessPrivilege.GiveExperience);
-            this.commands.RegisterLegacy("/givegold ", typeof(GiveGoldCommandEvent), AccessPrivilege.GiveGold);
-            this.commands.RegisterLegacy("/settitle ", typeof(SetTitleCommandEvent), AccessPrivilege.SetTitle);
-            this.commands.RegisterLegacy("/setsurname ", typeof(SetSurnameCommandEvent), AccessPrivilege.SetSurname);
-            this.commands.RegisterLegacy("/givecredits ", typeof(GiveCreditsCommandEvent), null);
             this.commands.RegisterLegacy("/spawnnpc ", typeof(SpawnNPCCommandEvent), AccessPrivilege.SpawnNPC);
             this.commands.RegisterLegacy("/search ", typeof(SearchCommandEvent), AccessPrivilege.Search);
             this.commands.RegisterLegacy("/custom", typeof(CustomCommandEvent), null);
             this.commands.RegisterLegacy("/mutemap", typeof(MuteMapEvent), AccessPrivilege.MuteMap);
             this.commands.RegisterLegacy("/setaccess", typeof(SetAccessCommandEvent), AccessPrivilege.SetAccess);
-            this.commands.RegisterLegacy("/macrocheck ", typeof(MacroCheckCommandEvent), AccessPrivilege.MacroCheck);
             this.commands.RegisterLegacy("/reloadscripts", typeof(ReloadScriptsCommandEvent), AccessPrivilege.ReloadScripts);
             this.commands.RegisterLegacy("/reloadsql", typeof(ReloadSqlCommandEvent), AccessPrivilege.ReloadSQL);
             this.commands.RegisterLegacy("/updatesql", typeof(UpdateSqlCommandEvent), AccessPrivilege.ReloadSQL);
             this.commands.RegisterLegacy("/placespawn", typeof(PlaceSpawnCommandEvent), AccessPrivilege.PlaceSpawn);
-            this.commands.RegisterLegacy("/playerinfo ", typeof(PlayerInfoCommandEvent), AccessPrivilege.PlayerInfoCheck);
-            this.commands.RegisterLegacy("/setpassword ", typeof(GMSetPasswordCommandEvent), AccessPrivilege.SetPassword);
         }
 
         /**
