@@ -104,8 +104,8 @@ namespace Goose
 
             this.GameServer = server;
             this.PlayerHandler = new PlayerHandler(this.Settings);
-            this.EventHandler = new EventHandler();
             this.Commands = new CommandRegistry();
+            this.EventHandler = new EventHandler(this.Commands);
             this.MapHandler = new MapHandler();
             this.NPCHandler = new NPCHandler();
             this.ClassHandler = new ClassHandler();

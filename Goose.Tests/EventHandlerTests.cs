@@ -1,4 +1,6 @@
 using Goose;
+using Goose.Commands;
+using Goose.Testing;
 using Xunit;
 
 namespace Goose.Tests
@@ -6,27 +8,14 @@ namespace Goose.Tests
     public class EventHandlerTests
     {
         [Fact]
-        public void RegisterEvent_DoesNotReplaceRestrictedCommandWithOpenFactory()
+        public void Register_ReplacingRestrictedLegacyCommandWithOpenRefused()
         {
-            var handler = new Goose.EventHandler();
-            var factoryCalled = false;
-            var player = new Player { Access = Player.AccessStatus.Normal };
+            using var world = new TestWorldFixture();
 
-            handler.RegisterEvent("/shutdown", (eventPlayer, data) =>
-            {
-                factoryCalled = true;
-                return new StubEvent();
-            });
+            Assert.False(world.World.Commands.Register("/shutdown", "Admin", "shut down", new Action<CommandContext>(_ => { })));
 
-            Assert.True(handler.AddEvent(player, "/shutdown"));
-            Assert.False(factoryCalled);
-        }
-
-        private sealed class StubEvent : Goose.Event
-        {
-            public override void Ready(GameWorld world)
-            {
-            }
+            Assert.True(world.World.Commands.TryGet("/shutdown", out var def));
+            Assert.Equal(AccessPrivilege.Shutdown, def!.Privilege);
         }
     }
 }

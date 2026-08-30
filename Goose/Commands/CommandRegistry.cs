@@ -115,6 +115,31 @@ namespace Goose.Commands
             }
         }
 
+        internal bool RegisterLegacy(string key, Type eventType, AccessPrivilege? privilege)
+            => this.RegisterLegacy(key, privilege, eventType, null);
+
+        internal bool RegisterLegacy(string key, AccessPrivilege? privilege, Type? eventType, EventHandler.CreateEvent? factory)
+        {
+            lock (this._gate)
+            {
+                if (eventType is null && factory is null)
+                {
+                    log.Error("Rejecting legacy command {0}: no event type or factory.", key);
+                    return false;
+                }
+                var snapshot = this._snapshot;
+                if (snapshot.ByKey.ContainsKey(key))
+                {
+                    log.Error("Rejecting legacy command {0}: key already registered.", key);
+                    return false;
+                }
+                return this.Publish([key], privilege, null, "", null,
+                    () => new CommandDefinition([key], privilege, null, "", null,
+                        null, factory, null, [], factory, eventType),
+                    requireHelp: false);
+            }
+        }
+
         internal bool RegisterKeys(string[] keys, AccessPrivilege? privilege, string? section, string help, Delegate handler)
         {
             lock (this._gate)
@@ -195,7 +220,7 @@ namespace Goose.Commands
         // One lock for all mutations; each publish builds fresh Trie/Dictionary/List
         // instances so a published snapshot is never mutated afterwards.
         private bool Publish(string[] keys, AccessPrivilege? privilege, string? section, string help,
-            string? usageOverride, Func<CommandDefinition> factory)
+            string? usageOverride, Func<CommandDefinition> factory, bool requireHelp = true)
         {
             if (keys is null || keys.Length == 0)
             {
@@ -210,7 +235,7 @@ namespace Goose.Commands
                     return false;
                 }
             }
-            if (string.IsNullOrEmpty(help))
+            if (requireHelp && string.IsNullOrEmpty(help))
             {
                 log.Error("Refusing to register {0}: empty help.", keys[0]);
                 return false;

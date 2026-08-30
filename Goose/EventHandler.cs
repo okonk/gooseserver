@@ -2,6 +2,7 @@
 using System.Text;
 using System.Runtime.InteropServices;
 
+using Goose.Commands;
 using Goose.Events;
 
 namespace Goose
@@ -41,85 +42,84 @@ namespace Goose
         PriorityQueue<Event, long> events;
 
         /**
-         * Command trie for O(k) prefix matching on incoming packets.
-         * Each node that represents a complete command key holds a CommandDefinition.
-         * LongestPrefixMatch returns the deepest (longest) match, so "/group " beats
-         * "/group" when the packet is "/group add someone".
+         * Packet trie for O(k) prefix matching on incoming non-command packets
+         * (movement, clicks, login, chat). Command keys ("/...") live in the
+         * CommandRegistry, which AddEvent consults first; this trie is the
+         * fall-through for everything else.
          */
-        Trie<CommandDefinition> commandTrie;
+        Trie<PacketDefinition> packetTrie;
+
+        CommandRegistry commands;
+
         public delegate Event CreateEvent(Player player, Object data);
 
         /**
-         * CommandDefinition, a dispatch table entry
+         * PacketDefinition, a dispatch table entry for non-command packets.
          *
-         * RequiredPrivilege is null for commands any player may use. Anything else is
+         * RequiredPrivilege is null for packets any player may send. Anything else is
          * refused by AddEvent unless the caller holds that privilege.
          *
-         * EventFactory is used for script-registered commands that need custom creation
+         * EventFactory is used for script-registered packets that need custom creation
          * logic. When null, EventTypeId is used to instantiate the event directly.
          *
          */
-        private sealed class CommandDefinition
+        private sealed class PacketDefinition
         {
             public System.Type EventTypeId = null!;
             public CreateEvent? EventFactory;
             public AccessPrivilege? RequiredPrivilege;
         }
 
-        private static CommandDefinition Open(System.Type eventType)
+        private static PacketDefinition Open(System.Type eventType)
         {
-            return new CommandDefinition { EventTypeId = eventType, RequiredPrivilege = null };
+            return new PacketDefinition { EventTypeId = eventType, RequiredPrivilege = null };
         }
 
-        private static CommandDefinition Open(CreateEvent factory)
+        private static PacketDefinition Open(CreateEvent factory)
         {
-            return new CommandDefinition { EventFactory = factory, RequiredPrivilege = null };
+            return new PacketDefinition { EventFactory = factory, RequiredPrivilege = null };
         }
 
-        private static CommandDefinition Restricted(System.Type eventType, AccessPrivilege privilege)
+        private static PacketDefinition Restricted(System.Type eventType, AccessPrivilege privilege)
         {
-            return new CommandDefinition { EventTypeId = eventType, RequiredPrivilege = privilege };
+            return new PacketDefinition { EventTypeId = eventType, RequiredPrivilege = privilege };
         }
 
-        private static CommandDefinition Restricted(CreateEvent factory, AccessPrivilege privilege)
+        private static PacketDefinition Restricted(CreateEvent factory, AccessPrivilege privilege)
         {
-            return new CommandDefinition { EventFactory = factory, RequiredPrivilege = privilege };
+            return new PacketDefinition { EventFactory = factory, RequiredPrivilege = privilege };
         }
 
         /**
          * Constructor, constructs sortedlist
          *
+         * Command definitions live in the CommandRegistry (passed in by GameWorld);
+         * every registration states its access requirement there, so a newly added
+         * command cannot silently default to being reachable by anyone, and
+         * downgrading a restricted key is refused at registration time. Commands
+         * whose requirement varies by argument (/toggle, /custom, /givecredits) are
+         * Open in the registry and enforce the finer rule themselves.
          */
-        public EventHandler()
+        public EventHandler(CommandRegistry commands)
         {
+            this.commands = commands;
             this.events = new PriorityQueue<Event, long>();
-            // Every entry states its access requirement, either Open or Restricted. The
-            // dispatcher used to hold bare delegates and perform no authorization at all,
-            // leaving every check to the individual handler - which is how /hax shipped
-            // ungated. Requiring the decision here means a newly added command cannot
-            // silently default to being reachable by anyone.
-            //
-            // This table is now the only place a command's access requirement is stated.
-            // The duplicate HasPrivilege checks the handlers used to carry have been
-            // removed, so an entry that is wrong here is wrong everywhere - see
-            // RegisterEvent, which refuses to downgrade a restricted entry for that reason.
-            //
-            // Commands whose requirement varies by argument rather than by command
-            // (/toggle, /custom, /givecredits) are Open here and enforce the finer rule
-            // themselves. Handlers still check Player.State; the dispatcher does not.
-            this.commandTrie = new Trie<CommandDefinition>();
+            this.packetTrie = new Trie<PacketDefinition>();
             this._SeedCommands();
+            this.commands.SeedBuiltins();
         }
 
         /**
-         * SeedCommands, populates the trie with built-in command definitions.
+         * SeedCommands, populates the packet trie with non-command packets and
+         * registers the legacy command table in the CommandRegistry.
          *
-         * See the comment in the constructor for the access-control policy.
+         * Legacy keys register without section/help: they stay out of /help until
+         * migrated to attributed commands.
          *
          */
         private void _SeedCommands()
         {
-            var commands = new (string Key, CommandDefinition Def)[]
+            var packets = new (string Key, PacketDefinition Def)[]
             {
                 ("LOGIN", Open(typeof(LoginEvent))),
                 ("LCNT", Open(typeof(LoginContinuedEvent))),
@@ -133,121 +133,127 @@ namespace Goose
                 ("F2", Open(typeof(FacingEvent))),
                 ("F3", Open(typeof(FacingEvent))),
                 ("F4", Open(typeof(FacingEvent))),
-                ("/tell ", Open(typeof(TellEvent))),
-                ("/who", Open(typeof(WhoEvent))),
-                ("/summon ", Restricted(typeof(SummonEvent), AccessPrivilege.Summon)),
-                ("/warp ", Restricted(typeof(WarpEvent), AccessPrivilege.Warp)),
-                ("/approach ", Restricted(typeof(ApproachEvent), AccessPrivilege.Approach)),
                 ("CHANGE", Open(typeof(InventoryChangeSlotEvent))),
                 ("SPLIT", Open(typeof(InventorySplitEvent))),
                 ("USE", Open(typeof(InventoryUseEvent))),
                 ("GET", Open(typeof(PickupItemEvent))),
                 ("DRP", Open(typeof(PlayerDropItemEvent))),
-                ("/dropgold ", Open(typeof(PlayerDropGoldEvent))),
                 ("ATT", Open(typeof(PlayerAttackEvent))),
                 ("PONG", Open(typeof(PlayerPongEvent))),
-                ("/shutdown", Restricted(typeof(ShutdownCommandEvent), AccessPrivilege.Shutdown)),
-                ("/location", Open(typeof(LocationEvent))),
                 ("RPU", Open(typeof(RefreshPositionEvent))),
-                ("/refresh", Open(typeof(RefreshPositionEvent))),
                 ("CAST", Open(typeof(PlayerCastSpellEvent))),
-                ("/getitem ", Restricted(typeof(GetItemCommandEvent), AccessPrivilege.SpawnItem)),
-                ("/hax ", Restricted(typeof(HaxCommandEvent), AccessPrivilege.Debug)),
-                ("/gmhax ", Restricted(typeof(GMHaxCommandEvent), AccessPrivilege.Debug)),
-                ("/togglegroup", Open(typeof(ToggleGroupCommandEvent))),
-                ("/group ", Open(typeof(GroupChatEvent))),
-                ("/invite ", Open(typeof(GroupAddEvent))),
-                ("/groupadd ", Open(typeof(GroupAddEvent))),
-                ("/disband", Open(typeof(GroupRemoveEvent))),
-                ("/groupremove", Open(typeof(GroupRemoveEvent))),
-                ("RC", Open(typeof(PlayerRightClickEvent))),
-                ("WBC", Open(typeof(WindowButtonClickEvent))),
-                ("VPI", Open(typeof(VendorPurchaseInventoryEvent))),
-                ("VSI", Open(typeof(VendorSellInventoryEvent))),
-                ("/ban ", Restricted(typeof(BanCommandEvent), AccessPrivilege.Ban)),
-                ("/kick ", Restricted(typeof(KickCommandEvent), AccessPrivilege.Kick)),
-                ("/shout ", Open(typeof(ShoutCommandEvent))),
-                ("/auction ", Open(typeof(AuctionCommandEvent))),
-                ("/random", Open(typeof(RandomCommandEvent))),
-                ("/broadcast ", Restricted(typeof(BroadcastCommandEvent), AccessPrivilege.Broadcast)),
                 ("EMOT", Open(typeof(EmoteEvent))),
-                ("/buyvita", Open(typeof(BuyVitaCommandEvent))),
-                ("/buymana", Open(typeof(BuyManaCommandEvent))),
                 ("DITM", Open(typeof(DestroyItemEvent))),
                 ("DSPL", Open(typeof(DestroySpellEvent))),
                 ("SWAP", Open(typeof(SpellbookSwapEvent))),
                 ("OCB", Open(typeof(OpenCombineBagEvent))),
                 ("ITW", Open(typeof(InventoryToWindowEvent))),
                 ("WTI", Open(typeof(WindowToInventoryEvent))),
-                ("/charinfo", Open(typeof(CharacterInfoCommandEvent))),
-                ("/guildcreate ", Open(typeof(GuildCreateCommandEvent))),
-                ("/guildadd ", Open(typeof(GuildAddCommandEvent))),
-                ("/guildremove", Open(typeof(GuildRemoveCommandEvent))),
-                ("/guildmotd", Open(typeof(GuildMotdCommandEvent))),
-                ("/guildowner ", Open(typeof(GuildOwnerCommandEvent))),
-                ("/guildofficer ", Open(typeof(GuildOfficerCommandEvent))),
-                ("/guild ", Open(typeof(GuildChatCommandEvent))),
-                ("/rank", Open(typeof(RankCommandEvent))),
-                ("/setconfig ", Restricted(typeof(SetConfigCommandEvent), AccessPrivilege.SetConfig)),
-                ("/saveconfig", Restricted(typeof(SaveConfigCommandEvent), AccessPrivilege.SetConfig)),
-                ("/respawnmap", Restricted(typeof(RespawnMapCommandEvent), AccessPrivilege.RespawnMap)),
-                ("/changepassword ", Open(typeof(ChangePasswordCommandEvent))),
                 ("KBUF", Open(typeof(KillBuffEvent))),
-                ("/toggle ", Open(typeof(ToggleCommandEvent))),
-                ("/aether ", Open(typeof(AetherCommandEvent))),
-                ("/petlist", Open(typeof(PetListCommandEvent))),
-                ("/petspawn ", Open(typeof(PetSpawnCommandEvent))),
-                ("/petinfo ", Open(typeof(PetInfoCommandEvent))),
-                ("/petdamage ", Open(typeof(PetDamageCommandEvent))),
-                ("/petvita ", Open(typeof(PetVitaCommandEvent))),
-                ("/petdelete ", Open(typeof(PetDeleteCommandEvent))),
-                ("/unban ", Restricted(typeof(UnbanCommandEvent), AccessPrivilege.Ban)),
-                ("/checkname ", Restricted(typeof(CheckNameCommandEvent), AccessPrivilege.ChangeName)),
-                ("/changeclass ", Restricted(typeof(ChangeClassCommandEvent), AccessPrivilege.ClassChange)),
-                ("/changename ", Restricted(typeof(ChangeNameCommandEvent), AccessPrivilege.ChangeName)),
-                ("/giveexperience ", Restricted(typeof(GiveExperienceCommandEvent), AccessPrivilege.GiveExperience)),
-                ("/givegold ", Restricted(typeof(GiveGoldCommandEvent), AccessPrivilege.GiveGold)),
-                ("/credits", Open(typeof(CreditsCommandEvent))),
-                ("/playtime", Open(typeof(PlaytimeCommandEvent))),
-                ("/settitle ", Restricted(typeof(SetTitleCommandEvent), AccessPrivilege.SetTitle)),
-                ("/setsurname ", Restricted(typeof(SetSurnameCommandEvent), AccessPrivilege.SetSurname)),
-                ("/givecredits ", Open(typeof(GiveCreditsCommandEvent))),
-                ("/hairdye", Open(typeof(HairdyeCommandEvent))),
                 ("SBN", Open(typeof(SpellbookNextEvent))),
                 ("SBB", Open(typeof(SpellbookBackEvent))),
                 ("LC", Open(typeof(PlayerLeftClickEvent))),
-                ("/spawnnpc ", Restricted(typeof(SpawnNPCCommandEvent), AccessPrivilege.SpawnNPC)),
-                ("/search ", Restricted(typeof(SearchCommandEvent), AccessPrivilege.Search)),
+                ("RC", Open(typeof(PlayerRightClickEvent))),
+                ("WBC", Open(typeof(WindowButtonClickEvent))),
+                ("VPI", Open(typeof(VendorPurchaseInventoryEvent))),
+                ("VSI", Open(typeof(VendorSellInventoryEvent))),
                 ("WTW", Open(typeof(WindowToWindowEvent))),
-                ("/custom", Open(typeof(CustomCommandEvent))),
-                ("SID", Open(typeof(SpellInfoEvent))),
-                ("/mutemap", Restricted(typeof(MuteMapEvent), AccessPrivilege.MuteMap)),
-                ("/setaccess", Restricted(typeof(SetAccessCommandEvent), AccessPrivilege.SetAccess)),
-                ("/macrocheck ", Restricted(typeof(MacroCheckCommandEvent), AccessPrivilege.MacroCheck)),
-                ("/mc ", Open(typeof(MacroConfirmCommandEvent))),
-                ("/reloadscripts", Restricted(typeof(ReloadScriptsCommandEvent), AccessPrivilege.ReloadScripts)),
-                ("/reloadsql", Restricted(typeof(ReloadSqlCommandEvent), AccessPrivilege.ReloadSQL)),
-                ("/updatesql", Restricted(typeof(UpdateSqlCommandEvent), AccessPrivilege.ReloadSQL)),
-                ("/placespawn", Restricted(typeof(PlaceSpawnCommandEvent), AccessPrivilege.PlaceSpawn)),
-                ("/playerinfo ", Restricted(typeof(PlayerInfoCommandEvent), AccessPrivilege.PlayerInfoCheck)),
-                ("/setpassword ", Restricted(typeof(GMSetPasswordCommandEvent), AccessPrivilege.SetPassword))
+                ("SID", Open(typeof(SpellInfoEvent)))
             };
 
-            foreach (var (key, def) in commands)
+            foreach (var (key, def) in packets)
             {
-                this.commandTrie.Insert(key, def);
+                this.packetTrie.Insert(key, def);
             }
+
+            this.commands.RegisterLegacy("/tell ", typeof(TellEvent), null);
+            this.commands.RegisterLegacy("/who", typeof(WhoEvent), null);
+            this.commands.RegisterLegacy("/summon ", typeof(SummonEvent), AccessPrivilege.Summon);
+            this.commands.RegisterLegacy("/warp ", typeof(WarpEvent), AccessPrivilege.Warp);
+            this.commands.RegisterLegacy("/approach ", typeof(ApproachEvent), AccessPrivilege.Approach);
+            this.commands.RegisterLegacy("/dropgold ", typeof(PlayerDropGoldEvent), null);
+            this.commands.RegisterLegacy("/shutdown", typeof(ShutdownCommandEvent), AccessPrivilege.Shutdown);
+            this.commands.RegisterLegacy("/location", typeof(LocationEvent), null);
+            this.commands.RegisterLegacy("/refresh", typeof(RefreshPositionEvent), null);
+            this.commands.RegisterLegacy("/getitem ", typeof(GetItemCommandEvent), AccessPrivilege.SpawnItem);
+            this.commands.RegisterLegacy("/hax ", typeof(HaxCommandEvent), AccessPrivilege.Debug);
+            this.commands.RegisterLegacy("/gmhax ", typeof(GMHaxCommandEvent), AccessPrivilege.Debug);
+            this.commands.RegisterLegacy("/togglegroup", typeof(ToggleGroupCommandEvent), null);
+            this.commands.RegisterLegacy("/group ", typeof(GroupChatEvent), null);
+            this.commands.RegisterLegacy("/invite ", typeof(GroupAddEvent), null);
+            this.commands.RegisterLegacy("/groupadd ", typeof(GroupAddEvent), null);
+            this.commands.RegisterLegacy("/disband", typeof(GroupRemoveEvent), null);
+            this.commands.RegisterLegacy("/groupremove", typeof(GroupRemoveEvent), null);
+            this.commands.RegisterLegacy("/ban ", typeof(BanCommandEvent), AccessPrivilege.Ban);
+            this.commands.RegisterLegacy("/kick ", typeof(KickCommandEvent), AccessPrivilege.Kick);
+            this.commands.RegisterLegacy("/shout ", typeof(ShoutCommandEvent), null);
+            this.commands.RegisterLegacy("/auction ", typeof(AuctionCommandEvent), null);
+            this.commands.RegisterLegacy("/random", typeof(RandomCommandEvent), null);
+            this.commands.RegisterLegacy("/broadcast ", typeof(BroadcastCommandEvent), AccessPrivilege.Broadcast);
+            this.commands.RegisterLegacy("/buyvita", typeof(BuyVitaCommandEvent), null);
+            this.commands.RegisterLegacy("/buymana", typeof(BuyManaCommandEvent), null);
+            this.commands.RegisterLegacy("/charinfo", typeof(CharacterInfoCommandEvent), null);
+            this.commands.RegisterLegacy("/guildcreate ", typeof(GuildCreateCommandEvent), null);
+            this.commands.RegisterLegacy("/guildadd ", typeof(GuildAddCommandEvent), null);
+            this.commands.RegisterLegacy("/guildremove", typeof(GuildRemoveCommandEvent), null);
+            this.commands.RegisterLegacy("/guildmotd", typeof(GuildMotdCommandEvent), null);
+            this.commands.RegisterLegacy("/guildowner ", typeof(GuildOwnerCommandEvent), null);
+            this.commands.RegisterLegacy("/guildofficer ", typeof(GuildOfficerCommandEvent), null);
+            this.commands.RegisterLegacy("/guild ", typeof(GuildChatCommandEvent), null);
+            this.commands.RegisterLegacy("/rank", typeof(RankCommandEvent), null);
+            this.commands.RegisterLegacy("/setconfig ", typeof(SetConfigCommandEvent), AccessPrivilege.SetConfig);
+            this.commands.RegisterLegacy("/saveconfig", typeof(SaveConfigCommandEvent), AccessPrivilege.SetConfig);
+            this.commands.RegisterLegacy("/respawnmap", typeof(RespawnMapCommandEvent), AccessPrivilege.RespawnMap);
+            this.commands.RegisterLegacy("/changepassword ", typeof(ChangePasswordCommandEvent), null);
+            this.commands.RegisterLegacy("/toggle ", typeof(ToggleCommandEvent), null);
+            this.commands.RegisterLegacy("/aether ", typeof(AetherCommandEvent), null);
+            this.commands.RegisterLegacy("/petlist", typeof(PetListCommandEvent), null);
+            this.commands.RegisterLegacy("/petspawn ", typeof(PetSpawnCommandEvent), null);
+            this.commands.RegisterLegacy("/petinfo ", typeof(PetInfoCommandEvent), null);
+            this.commands.RegisterLegacy("/petdamage ", typeof(PetDamageCommandEvent), null);
+            this.commands.RegisterLegacy("/petvita ", typeof(PetVitaCommandEvent), null);
+            this.commands.RegisterLegacy("/petdelete ", typeof(PetDeleteCommandEvent), null);
+            this.commands.RegisterLegacy("/unban ", typeof(UnbanCommandEvent), AccessPrivilege.Ban);
+            this.commands.RegisterLegacy("/checkname ", typeof(CheckNameCommandEvent), AccessPrivilege.ChangeName);
+            this.commands.RegisterLegacy("/changeclass ", typeof(ChangeClassCommandEvent), AccessPrivilege.ClassChange);
+            this.commands.RegisterLegacy("/changename ", typeof(ChangeNameCommandEvent), AccessPrivilege.ChangeName);
+            this.commands.RegisterLegacy("/giveexperience ", typeof(GiveExperienceCommandEvent), AccessPrivilege.GiveExperience);
+            this.commands.RegisterLegacy("/givegold ", typeof(GiveGoldCommandEvent), AccessPrivilege.GiveGold);
+            this.commands.RegisterLegacy("/credits", typeof(CreditsCommandEvent), null);
+            this.commands.RegisterLegacy("/playtime", typeof(PlaytimeCommandEvent), null);
+            this.commands.RegisterLegacy("/settitle ", typeof(SetTitleCommandEvent), AccessPrivilege.SetTitle);
+            this.commands.RegisterLegacy("/setsurname ", typeof(SetSurnameCommandEvent), AccessPrivilege.SetSurname);
+            this.commands.RegisterLegacy("/givecredits ", typeof(GiveCreditsCommandEvent), null);
+            this.commands.RegisterLegacy("/hairdye", typeof(HairdyeCommandEvent), null);
+            this.commands.RegisterLegacy("/spawnnpc ", typeof(SpawnNPCCommandEvent), AccessPrivilege.SpawnNPC);
+            this.commands.RegisterLegacy("/search ", typeof(SearchCommandEvent), AccessPrivilege.Search);
+            this.commands.RegisterLegacy("/custom", typeof(CustomCommandEvent), null);
+            this.commands.RegisterLegacy("/mutemap", typeof(MuteMapEvent), AccessPrivilege.MuteMap);
+            this.commands.RegisterLegacy("/setaccess", typeof(SetAccessCommandEvent), AccessPrivilege.SetAccess);
+            this.commands.RegisterLegacy("/macrocheck ", typeof(MacroCheckCommandEvent), AccessPrivilege.MacroCheck);
+            this.commands.RegisterLegacy("/mc ", typeof(MacroConfirmCommandEvent), null);
+            this.commands.RegisterLegacy("/reloadscripts", typeof(ReloadScriptsCommandEvent), AccessPrivilege.ReloadScripts);
+            this.commands.RegisterLegacy("/reloadsql", typeof(ReloadSqlCommandEvent), AccessPrivilege.ReloadSQL);
+            this.commands.RegisterLegacy("/updatesql", typeof(UpdateSqlCommandEvent), AccessPrivilege.ReloadSQL);
+            this.commands.RegisterLegacy("/placespawn", typeof(PlaceSpawnCommandEvent), AccessPrivilege.PlaceSpawn);
+            this.commands.RegisterLegacy("/playerinfo ", typeof(PlayerInfoCommandEvent), AccessPrivilege.PlayerInfoCheck);
+            this.commands.RegisterLegacy("/setpassword ", typeof(GMSetPasswordCommandEvent), AccessPrivilege.SetPassword);
         }
 
         /**
-         * RegisterEvent, registers a command any player may use via a custom factory.
+         * RegisterEvent, registers a packet any player may use via a custom factory.
          *
          * Used by global scripts that need custom event creation logic.
          *
          */
         public void RegisterEvent(string key, CreateEvent action)
         {
-            if (this.commandTrie.TryGetValue(key, out CommandDefinition? existing) &&
+            // Shipped .csx scripts still register "/" keys through this path until
+            // they migrate to CommandRegistry.Register (Part 3).
+            if (key.StartsWith('/'))
+                log.Warn("RegisterEvent({0}): command keys should use CommandRegistry.Register.", key);
+
+            if (this.packetTrie.TryGetValue(key, out PacketDefinition? existing) &&
                 existing.RequiredPrivilege.HasValue)
             {
                 log.Error("Refusing to register {0} unprivileged: it already requires {1}. " +
@@ -257,24 +263,27 @@ namespace Goose
                 return;
             }
 
-            this.commandTrie.Insert(key, Open(action));
+            this.packetTrie.Insert(key, Open(action));
         }
 
         /**
-         * RegisterEvent, registers a command requiring a privilege via a custom factory.
+         * RegisterEvent, registers a packet requiring a privilege via a custom factory.
          *
          */
         public void RegisterEvent(string key, CreateEvent action, AccessPrivilege privilege)
         {
-            this.commandTrie.Insert(key, Restricted(action, privilege));
+            if (key.StartsWith('/'))
+                log.Warn("RegisterEvent({0}): command keys should use CommandRegistry.Register.", key);
+
+            this.packetTrie.Insert(key, Restricted(action, privilege));
         }
 
         /**
          * AddEvent, creates Event object from packet and adds it to events
          *
-         * Walks the command trie following the packet characters and returns the
-         * longest registered prefix. O(k) where k is the packet length, replacing
-         * the previous O(n) dictionary scan.
+         * Tries the command registry first (longest registered command prefix),
+         * then falls through to the packet trie for non-command packets.
+         * O(k) where k is the packet length.
          *
          * If we find a matching command we return true.
          * If we don't find a match returns false.
@@ -282,38 +291,79 @@ namespace Goose
          */
         public bool AddEvent(Player player, string packet)
         {
-            if (!this.commandTrie.TryGetLongestPrefix(packet, out CommandDefinition? definition, out int matchedLength))
+            if (this.commands.Snapshot.Trie.TryGetLongestPrefix(packet, out CommandDefinition? definition, out int matchedLength))
+            {
+                string matchedKey = packet[..matchedLength];
+
+                if (definition.Privilege is not null &&
+                    (player is null || !AccessLevels.HasPrivilege(player, definition.Privilege.Value)))
+                {
+                    // Matched but refused. Swallowed rather than answered so an
+                    // unprivileged player cannot probe which commands exist.
+                    log.Debug("Refused {0} for {1}: missing {2}.",
+                        matchedKey, player?.Name ?? "unknown", definition.Privilege.Value);
+
+                    return true;
+                }
+
+                if (definition.LegacyType is not null || definition.LegacyFactory is not null)
+                {
+                    Event e;
+                    if (definition.LegacyFactory is not null)
+                    {
+                        e = ((CreateEvent)definition.LegacyFactory)(player, packet);
+                    }
+                    else
+                    {
+                        e = GetOrCreateFactory(definition.LegacyType)();
+                        e.Player = player;
+                        e.Data = packet;
+                    }
+                    e.ClientOriginated = true;
+                    this.AddEvent(e);
+                    return true;
+                }
+
+                this.AddEvent(new CommandEvent(definition, packet, matchedLength)
+                {
+                    Player = player,
+                    ClientOriginated = true
+                });
+                return true;
+            }
+
+            if (!this.packetTrie.TryGetLongestPrefix(packet, out PacketDefinition? packetDefinition, out int packetLength))
             {
                 return false;
             }
 
-            string matchedKey = packet.Substring(0, matchedLength);
+            string packetKey = packet[..packetLength];
 
-            if (definition.RequiredPrivilege.HasValue &&
-                (player is null || !AccessLevels.HasPrivilege(player, definition.RequiredPrivilege.Value)))
+            if (packetDefinition.RequiredPrivilege.HasValue &&
+                (player is null || !AccessLevels.HasPrivilege(player, packetDefinition.RequiredPrivilege.Value)))
             {
                 // Matched but refused. Swallowed rather than answered so an
                 // unprivileged player cannot probe which commands exist.
                 log.Debug("Refused {0} for {1}: missing {2}.",
-                    matchedKey, player?.Name ?? "unknown", definition.RequiredPrivilege.Value);
+                    packetKey, player?.Name ?? "unknown", packetDefinition.RequiredPrivilege.Value);
 
                 return true;
             }
 
-            Event e;
-            if (definition.EventFactory is not null)
+            Event pe;
+            if (packetDefinition.EventFactory is not null)
             {
-                e = definition.EventFactory(player, packet);
-                e.ClientOriginated = true;
+                pe = packetDefinition.EventFactory(player, packet);
+                pe.ClientOriginated = true;
             }
             else
             {
-                e = GetOrCreateFactory(definition.EventTypeId)();
-                e.Player = player;
-                e.Data = packet;
-                e.ClientOriginated = true;
+                pe = GetOrCreateFactory(packetDefinition.EventTypeId)();
+                pe.Player = player;
+                pe.Data = packet;
+                pe.ClientOriginated = true;
             }
-            this.AddEvent(e);
+            this.AddEvent(pe);
             return true;
         }
 
