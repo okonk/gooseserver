@@ -34,6 +34,29 @@ namespace Goose.Tests
             Assert.True(world.RunCommand(player, "/evil "));
             Assert.Contains(player.Sent, s => s.Contains("second ran"));
             Assert.DoesNotContain(player.Sent, s => s.Contains("first ran"));
+            Assert.True(SecondFactoryEvent.ClientOriginatedSeen);
+        }
+
+        [Fact]
+        public void RegisterEvent_null_slash_factory_refuses_and_keeps_prior_definition()
+        {
+            using var world = new TestWorldFixture();
+            var map = world.AddBaseMap(1, "Test");
+            var player = world.CommandPlayerOn(map, 1, 1);
+
+            world.World.EventHandler.RegisterEvent("/null ", (p, d) => new NullFactoryEvent { Player = p, Data = d });
+            var snapshot = world.World.Commands.Snapshot;
+            Assert.True(world.World.Commands.TryGet("/null ", out var def));
+            Assert.NotNull(def!.LegacyFactory);
+
+            world.World.EventHandler.RegisterEvent("/null ", null!);
+
+            Assert.Same(snapshot, world.World.Commands.Snapshot);
+            Assert.True(world.World.Commands.TryGet("/null ", out def));
+            Assert.NotNull(def!.LegacyFactory);
+
+            Assert.True(world.RunCommand(player, "/null "));
+            Assert.Contains(player.Sent, s => s.Contains("null ran"));
         }
 
         [Fact]
@@ -67,7 +90,18 @@ namespace Goose.Tests
 
     internal sealed class SecondFactoryEvent : Event
     {
-        public override void Ready(GameWorld world) => world.Send(this.Player, "second ran");
+        public static bool ClientOriginatedSeen;
+
+        public override void Ready(GameWorld world)
+        {
+            ClientOriginatedSeen = this.ClientOriginated;
+            world.Send(this.Player, "second ran");
+        }
+    }
+
+    internal sealed class NullFactoryEvent : Event
+    {
+        public override void Ready(GameWorld world) => world.Send(this.Player, "null ran");
     }
 
     internal sealed class RestrictedFactoryEvent : Event
