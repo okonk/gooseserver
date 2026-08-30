@@ -5,15 +5,20 @@ namespace Goose.Commands
     [AttributeUsage(AttributeTargets.Class)]
     public sealed class CommandAttribute : Attribute
     {
-        public string Key { get; }
+        public string[] Keys { get; }
+        public string PrimaryKey => this.Keys[0];
         public AccessPrivilege? Privilege { get; }
         public string Section { get; set; } = "General";
         public string Help { get; set; } = null!;
         public string? Usage { get; set; }
 
         // Attribute constructor parameters cannot be nullable value types, so the
-        // no-privilege overload gets its own body instead of `this(key, null)`.
-        public CommandAttribute(string key) { Key = key; }
-        public CommandAttribute(string key, AccessPrivilege privilege) { Key = key; Privilege = privilege; }
+        // no-privilege overloads get their own bodies instead of `this(..., null)`.
+        public CommandAttribute(string key) { Keys = [key]; }
+        public CommandAttribute(string key, AccessPrivilege privilege) { Keys = [key]; Privilege = privilege; }
+        public CommandAttribute(string firstKey, string secondKey, params string[] additionalKeys)
+            { Keys = [firstKey, secondKey, .. additionalKeys]; }
+        public CommandAttribute(string firstKey, string secondKey, AccessPrivilege privilege, params string[] additionalKeys)
+            { Keys = [firstKey, secondKey, .. additionalKeys]; Privilege = privilege; }
     }
 }

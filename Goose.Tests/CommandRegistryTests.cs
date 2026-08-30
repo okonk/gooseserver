@@ -1,5 +1,6 @@
 using Goose;
 using Goose.Commands;
+using Goose.Testing;
 
 namespace Goose.Tests;
 
@@ -63,6 +64,94 @@ public class CommandRegistryTests
         var sub = Assert.Single(def.Subcommands);
         Assert.Equal("spin", sub.PrimaryName);
         Assert.True(sub.Method.IsStatic);
+    }
+
+    [Fact]
+    public void Seed_multikey_class_registers_under_all_keys()
+    {
+        var registry = new CommandRegistry();
+        registry.SeedAttributedTypes([typeof(AliasKeyCommand)]);
+
+        Assert.True(registry.TryGet("/invite ", out var primary));
+        Assert.True(registry.TryGet("/groupadd ", out var alias));
+        Assert.Same(primary, alias);
+        Assert.Equal("/invite ", primary!.PrimaryKey);
+        Assert.Equal(["/invite ", "/groupadd "], primary.Keys);
+        Assert.True(registry.Snapshot.Trie.ContainsKey("/invite "));
+        Assert.True(registry.Snapshot.Trie.ContainsKey("/groupadd "));
+        Assert.Single(registry.Snapshot.Ordered);
+    }
+
+    [Fact]
+    public void Seed_multikey_help_lists_primary_key_usage()
+    {
+        var registry = new CommandRegistry();
+        registry.SeedAttributedTypes([typeof(AliasKeyCommand)]);
+
+        var pages = HelpFormatter.BuildPages(new Player(0), registry, "groupadd");
+        Assert.NotNull(pages);
+        Assert.Contains(pages![0], l => l.StartsWith("Usage: /invite"));
+    }
+
+    [Fact]
+    public void Seed_multikey_invalid_key_rejected()
+    {
+        var registry = new CommandRegistry();
+        registry.SeedAttributedTypes([typeof(BadAliasKeyCommand)]);
+
+        Assert.False(registry.TryGet("/okalias ", out _));
+        Assert.Empty(registry.Snapshot.ByKey);
+    }
+
+    [Fact]
+    public void Seed_multikey_subcommand_registers_all_names()
+    {
+        var registry = new CommandRegistry();
+        registry.SeedAttributedTypes([typeof(MultiNameSubCommand)]);
+
+        Assert.True(registry.TryGet("/malias", out var def));
+        var make = def!.Subcommands.First(s => s.PrimaryName == "make");
+        Assert.Equal(["make", "create"], make.Names);
+        var wipe = def.Subcommands.First(s => s.PrimaryName == "wipe");
+        Assert.Equal(["wipe", "purge"], wipe.Names);
+        Assert.Equal(AccessPrivilege.Ban, wipe.Privilege);
+    }
+
+    [Fact]
+    public void Seed_restricted_alias_pair_refuses_open_replacement_on_any_key()
+    {
+        var registry = new CommandRegistry();
+        registry.SeedAttributedTypes([typeof(RestrictedAliasCommand)]);
+
+        Assert.True(registry.TryGet("/rinvite ", out var restricted));
+        Assert.Equal(AccessPrivilege.Ban, restricted!.Privilege);
+
+        Assert.False(registry.Register("/rgroupadd ", "S", "open", NoArgs));
+
+        Assert.True(registry.TryGet("/rinvite ", out var after));
+        Assert.Same(restricted, after);
+        Assert.True(registry.TryGet("/rgroupadd ", out after));
+        Assert.Same(restricted, after);
+    }
+
+    [Fact]
+    public void Dispatch_different_length_alias_keys_bind_exact_tokens()
+    {
+        using var world = new TestWorldFixture();
+        var map = world.AddBaseMap(1, "Test");
+        var player = world.CommandPlayerOn(map, 1, 1);
+        world.World.Commands.SeedAttributedTypes([typeof(DifferentLengthAliasCommand), typeof(MultiNameSubCommand)]);
+
+        Assert.True(world.RunCommand(player, "/dinvite Bob"));
+        Assert.Contains(player.Sent, s => s.Contains("invited Bob"));
+
+        player.Sent.Clear();
+        Assert.True(world.RunCommand(player, "/dgroupadd Bob"));
+        Assert.Contains(player.Sent, s => s.Contains("invited Bob"));
+
+        player.Sent.Clear();
+        Assert.True(world.RunCommand(player, "/malias create Thing"));
+        Assert.Contains(player.Sent, s => s.Contains("made Thing"));
     }
 
     [Fact]
@@ -457,6 +546,16 @@ public class CommandRegistryLoggingTests
     }
 
     [Fact]
+    public void Seed_invalid_alias_key_is_logged()
+    {
+        using var log = new CapturingLog();
+        var registry = new CommandRegistry();
+        registry.SeedAttributedTypes([typeof(BadAliasKeyCommand)]);
+
+        Assert.Contains(log.Messages, m => m.Contains("invalid key"));
+    }
+
+    [Fact]
     public void Seed_duplicate_key_rejected_with_type_logged()
     {
         using var log = new CapturingLog();
@@ -505,6 +604,42 @@ public sealed class NoTargetsCommand : BaseCommand
 public sealed class OpenTarget
 {
     public void Handle(CommandContext ctx) { }
+}
+
+[Command("/invite ", "/groupadd ", Help = "Alias test command.")]
+public sealed class AliasKeyCommand : BaseCommand
+{
+    public void Execute(CommandContext ctx, string name) => ctx.Send($"invited {name}");
+}
+
+// The legacy /invite and /groupadd are two separate definitions, which one
+// multi-key definition cannot replace, so the dispatch regression uses its own pair.
+[Command("/dinvite ", "/dgroupadd ", Help = "Different-length alias test command.")]
+public sealed class DifferentLengthAliasCommand : BaseCommand
+{
+    public void Execute(CommandContext ctx, string name) => ctx.Send($"invited {name}");
+}
+
+[Command("/okalias ", "bad key")]
+public sealed class BadAliasKeyCommand : BaseCommand
+{
+    public void Execute(CommandContext ctx) { }
+}
+
+[Command("/rinvite ", "/rgroupadd ", AccessPrivilege.Ban, Help = "Restricted alias test command.")]
+public sealed class RestrictedAliasCommand : BaseCommand
+{
+    public void Execute(CommandContext ctx) { }
+}
+
+[Command("/malias", Help = "Multi-name subcommand test command.")]
+public sealed class MultiNameSubCommand : BaseCommand
+{
+    [Subcommand("make", "create", Help = "Make a thing.")]
+    public void Make(CommandContext ctx, string name) => ctx.Send($"made {name}");
+
+    [Subcommand("wipe", "purge", AccessPrivilege.Ban, Help = "Wipe things.")]
+    public void Wipe(CommandContext ctx) { }
 }
 
 [Command("/sstatic", Help = "Static execute test command.")]

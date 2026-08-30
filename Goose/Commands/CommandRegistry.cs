@@ -59,10 +59,13 @@ namespace Goose.Commands
                 log.Error("Rejecting {0}: no Execute or [Subcommand] methods.", type.FullName);
                 return;
             }
-            if (!CommandBinder.IsValidKey(attribute.Key))
+            foreach (var key in attribute.Keys)
             {
-                log.Error("Rejecting {0}: invalid key {1}.", type.FullName, attribute.Key);
-                return;
+                if (!CommandBinder.IsValidKey(key))
+                {
+                    log.Error("Rejecting {0}: invalid key {1}.", type.FullName, key);
+                    return;
+                }
             }
             var targets = new List<MethodInfo>(subcommands);
             if (executes.Count == 1)
@@ -87,10 +90,10 @@ namespace Goose.Commands
             var infos = subcommands.Select(m =>
             {
                 var sub = m.GetCustomAttribute<SubcommandAttribute>()!;
-                return new SubcommandInfo(sub.Name, [sub.Name], m, m.GetParameters(), sub.Help, sub.Privilege, sub.Usage);
+                return new SubcommandInfo(sub.PrimaryName, sub.Names, m, m.GetParameters(), sub.Help, sub.Privilege, sub.Usage);
             }).ToList();
 
-            this.RegisterAttributed([attribute.Key], attribute.Privilege, attribute.Section, attribute.Help,
+            this.RegisterAttributed(attribute.Keys, attribute.Privilege, attribute.Section, attribute.Help,
                 attribute.Usage, instance, executes.Count == 1 ? executes[0] : null, infos, type.FullName ?? type.ToString());
         }
 
