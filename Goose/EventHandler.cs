@@ -179,12 +179,6 @@ namespace Goose
             this.commands.RegisterLegacy("/setconfig ", typeof(SetConfigCommandEvent), AccessPrivilege.SetConfig);
             this.commands.RegisterLegacy("/saveconfig", typeof(SaveConfigCommandEvent), AccessPrivilege.SetConfig);
             this.commands.RegisterLegacy("/respawnmap", typeof(RespawnMapCommandEvent), AccessPrivilege.RespawnMap);
-            this.commands.RegisterLegacy("/petlist", typeof(PetListCommandEvent), null);
-            this.commands.RegisterLegacy("/petspawn ", typeof(PetSpawnCommandEvent), null);
-            this.commands.RegisterLegacy("/petinfo ", typeof(PetInfoCommandEvent), null);
-            this.commands.RegisterLegacy("/petdamage ", typeof(PetDamageCommandEvent), null);
-            this.commands.RegisterLegacy("/petvita ", typeof(PetVitaCommandEvent), null);
-            this.commands.RegisterLegacy("/petdelete ", typeof(PetDeleteCommandEvent), null);
             this.commands.RegisterLegacy("/unban ", typeof(UnbanCommandEvent), AccessPrivilege.Ban);
             this.commands.RegisterLegacy("/checkname ", typeof(CheckNameCommandEvent), AccessPrivilege.ChangeName);
             this.commands.RegisterLegacy("/changeclass ", typeof(ChangeClassCommandEvent), AccessPrivilege.ClassChange);
