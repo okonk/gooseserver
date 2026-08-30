@@ -125,6 +125,38 @@ namespace Goose.Tests
         }
 
         [Fact]
+        public void Make_with_ticket_stack_above_one_keeps_ticket_and_replaces_stats_slot()
+        {
+            var (fixture, player, _) = WorldAndPlayer();
+            using (fixture)
+            {
+                var ticket = fixture.AddBaseItemTemplate(823, "Custom Ticket", ItemTemplate.UseTypes.Armor, t => t.StackSize = 10);
+                var stats = fixture.AddBaseItemTemplate(900, "Steel Sword", ItemTemplate.UseTypes.Weapon);
+                var look = fixture.AddBaseItemTemplate(901, "Shadow Sword", ItemTemplate.UseTypes.Weapon);
+                var bag = player.Inventory.GetCombineBagContainer();
+                bag.SetSlot(1, new ItemSlot { Item = LoadItem(ticket), Stack = 2 });
+                bag.SetSlot(2, new ItemSlot { Item = LoadItem(stats) });
+                bag.SetSlot(3, new ItemSlot { Item = LoadItem(look) });
+
+                Assert.True(fixture.RunCommand(player, "/custom make 255 0 0 255 MySword"));
+
+                var ticketSlot = bag.GetSlot(1)!;
+                Assert.Equal(823, ticketSlot.Item.TemplateID);
+                Assert.Equal(1, ticketSlot.Stack);
+
+                var customSlot = bag.GetSlot(2)!;
+                Assert.Equal("MySword", customSlot.Item.Name);
+                Assert.Equal(900, customSlot.Item.TemplateID);
+                Assert.Equal(255, customSlot.Item.GraphicR);
+                Assert.Equal(0, customSlot.Item.GraphicG);
+                Assert.Equal(0, customSlot.Item.GraphicB);
+                Assert.Equal(255, customSlot.Item.GraphicA);
+
+                Assert.Null(bag.GetSlot(3));
+            }
+        }
+
+        [Fact]
         public void Create_alias_behaves_identically_to_make()
         {
             var (fixture, player, _) = WorldAndPlayer();
