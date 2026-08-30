@@ -215,6 +215,49 @@ public class CommandRegistryTests
     }
 
     [Fact]
+    public void Register_null_key_refused()
+    {
+        var registry = new CommandRegistry();
+        Assert.False(registry.Register(null, "S", "help", NoArgs));
+        Assert.Empty(registry.Snapshot.ByKey);
+    }
+
+    [Fact]
+    public void Register_null_handler_refused()
+    {
+        var registry = new CommandRegistry();
+        Assert.False(registry.Register("/x ", "S", "help", null));
+        Assert.False(registry.TryGet("/x ", out _));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(null)]
+    public void Register_empty_help_refused(string help)
+    {
+        var registry = new CommandRegistry();
+        Assert.False(registry.Register("/help ", "S", help, NoArgs));
+        Assert.False(registry.TryGet("/help ", out _));
+    }
+
+    [Fact]
+    public void RegisterKeys_empty_keys_refused()
+    {
+        var registry = new CommandRegistry();
+        Assert.False(registry.RegisterKeys([], null, "S", "help", NoArgs));
+        Assert.Empty(registry.Snapshot.ByKey);
+    }
+
+    [Fact]
+    public void RegisterKeys_duplicate_keys_in_request_refused()
+    {
+        var registry = new CommandRegistry();
+        Assert.False(registry.RegisterKeys(["/dup ", "/dup "], null, "S", "help", NoArgs));
+        Assert.False(registry.TryGet("/dup ", out _));
+        Assert.Empty(registry.Snapshot.ByKey);
+    }
+
+    [Fact]
     public void Register_handler_unsupported_type_refused()
     {
         var registry = new CommandRegistry();
@@ -386,7 +429,7 @@ public class CommandRegistryLoggingTests
     }
 }
 
-[Command("/subonly")]
+[Command("/subonly", Help = "Subcommand-only test command.")]
 public sealed class SubOnlyCommand : BaseCommand
 {
     [Subcommand("alpha")]

@@ -91,7 +91,7 @@ namespace Goose.Commands
             }).ToList();
 
             this.RegisterAttributed([attribute.Key], attribute.Privilege, attribute.Section, attribute.Help,
-                attribute.Usage, instance, executes.Count == 1 ? executes[0] : null, infos, type.FullName);
+                attribute.Usage, instance, executes.Count == 1 ? executes[0] : null, infos, type.FullName ?? type.ToString());
         }
 
         internal bool RegisterAttributed(string[] keys, AccessPrivilege? privilege, string? section, string help,
@@ -119,6 +119,11 @@ namespace Goose.Commands
         {
             lock (this._gate)
             {
+                if (handler is null)
+                {
+                    log.Error("Refusing to register: handler is null.");
+                    return false;
+                }
                 if (!CommandBinder.IsValidTarget(handler.Method.GetParameters(), out var error))
                 {
                     log.Error("Refusing to register {0}: {1}.", keys.Length > 0 ? keys[0] : "?", error);
@@ -192,18 +197,23 @@ namespace Goose.Commands
         private bool Publish(string[] keys, AccessPrivilege? privilege, string? section, string help,
             string? usageOverride, Func<CommandDefinition> factory)
         {
-            if (keys.Length == 0)
+            if (keys is null || keys.Length == 0)
             {
                 log.Error("Refusing to register: no keys.");
                 return false;
             }
             foreach (var key in keys)
             {
-                if (!CommandBinder.IsValidKey(key))
+                if (key is null || !CommandBinder.IsValidKey(key))
                 {
-                    log.Error("Refusing to register {0}: invalid key.", key);
+                    log.Error("Refusing to register {0}: invalid key.", key ?? "(null)");
                     return false;
                 }
+            }
+            if (string.IsNullOrEmpty(help))
+            {
+                log.Error("Refusing to register {0}: empty help.", keys[0]);
+                return false;
             }
             if (keys.Distinct(StringComparer.Ordinal).Count() != keys.Length)
             {
