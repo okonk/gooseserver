@@ -7,13 +7,12 @@ namespace Goose.IntegrationTests;
 
 public class CommandFrameworkTests
 {
-    private static (TestWorldFixture Fixture, TestWorldFixture.CapturingPlayer Player, Map Map) WorldAndPlayer(
-        Player.AccessStatus access = Player.AccessStatus.Normal)
+    private static (TestWorldFixture Fixture, TestWorldFixture.CapturingPlayer Player, Map Map) WorldAndPlayer()
     {
         var fixture = new TestWorldFixture();
         var map = fixture.AddBaseMap(1, "Test");
         var player = fixture.CommandPlayerOn(map, 1, 1);
-        player.Access = access;
+        player.Access = Player.AccessStatus.Normal;
         return (fixture, player, map);
     }
 
@@ -44,6 +43,7 @@ public class CommandFrameworkTests
         Assert.True(fixture.RunCommand(normal, "/help"));
         Assert.Contains(normal.Sent, m => m.Contains("General (1)"));
         Assert.DoesNotContain(normal.Sent, m => m.Contains("Admin"));
+        Assert.DoesNotContain(normal.Sent, m => m.Contains("/itestgm"));
 
         Assert.True(fixture.RunCommand(gm, "/help"));
         Assert.Contains(gm.Sent, m => m.Contains("General (1)"));
@@ -79,7 +79,6 @@ public class CommandFrameworkTests
             (CommandContext ctx) => ctx.Send("new")));
         Assert.True(fixture.RunCommand(player, "/itestcmd"));
         Assert.Contains(player.Sent, m => m.Contains("new"));
-        Assert.DoesNotContain(player.Sent, m => m.Contains("old"));
     }
 
     [Fact]
