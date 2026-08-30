@@ -306,6 +306,10 @@ namespace Goose.Tests
             var (world, player, _) = WorldAndPlayer();
             world.World.EventHandler.RegisterEvent("/evil ", (p, d) => new StubEvent { Player = p, Data = d });
 
+            Assert.True(world.World.Commands.TryGet("/evil ", out var def));
+            Assert.NotNull(def!.LegacyFactory);
+            Assert.Null(def.LegacyType);
+
             Assert.True(world.RunCommand(player, "/evil "));
             Assert.Contains(player.Sent, s => s.Contains("evil ran"));
         }
@@ -315,6 +319,8 @@ namespace Goose.Tests
         {
             var (world, player, _) = WorldAndPlayer();
             world.World.EventHandler.RegisterEvent("GID", (p, d) => new StubEvent { Player = p, Data = d });
+
+            Assert.False(world.World.Commands.TryGet("GID", out _));
 
             Assert.True(world.RunCommand(player, "GID"));
             Assert.Contains(player.Sent, s => s.Contains("evil ran"));
@@ -332,6 +338,10 @@ namespace Goose.Tests
             });
             world.World.Running = true;
 
+            Assert.True(world.World.Commands.TryGet("/shutdown", out var def));
+            Assert.Equal(AccessPrivilege.Shutdown, def!.Privilege);
+            Assert.Equal(typeof(Goose.Events.ShutdownCommandEvent), def.LegacyType);
+
             Assert.True(world.RunCommand(player, "/shutdown"));
             Assert.True(world.World.Running);
             Assert.Empty(player.Sent);
@@ -342,6 +352,10 @@ namespace Goose.Tests
             Assert.True(world.RunCommand(gm, "/shutdown"));
             Assert.False(world.World.Running);
             Assert.False(factoryCalled);
+
+            Assert.True(world.World.Commands.TryGet("/shutdown", out def));
+            Assert.Equal(AccessPrivilege.Shutdown, def!.Privilege);
+            Assert.Equal(typeof(Goose.Events.ShutdownCommandEvent), def.LegacyType);
         }
     }
 

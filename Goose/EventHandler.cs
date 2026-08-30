@@ -248,10 +248,12 @@ namespace Goose
          */
         public void RegisterEvent(string key, CreateEvent action)
         {
-            // Shipped .csx scripts still register "/" keys through this path until
-            // they migrate to CommandRegistry.Register (Part 3).
             if (key.StartsWith('/'))
+            {
                 log.Warn("RegisterEvent({0}): command keys should use CommandRegistry.Register.", key);
+                this.commands.RegisterLegacy(key, action, null);
+                return;
+            }
 
             if (this.packetTrie.TryGetValue(key, out PacketDefinition? existing) &&
                 existing.RequiredPrivilege.HasValue)
@@ -273,7 +275,11 @@ namespace Goose
         public void RegisterEvent(string key, CreateEvent action, AccessPrivilege privilege)
         {
             if (key.StartsWith('/'))
+            {
                 log.Warn("RegisterEvent({0}): command keys should use CommandRegistry.Register.", key);
+                this.commands.RegisterLegacy(key, action, privilege);
+                return;
+            }
 
             this.packetTrie.Insert(key, Restricted(action, privilege));
         }

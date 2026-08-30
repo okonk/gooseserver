@@ -116,17 +116,9 @@ namespace Goose.Commands
         }
 
         internal bool RegisterLegacy(string key, Type eventType, AccessPrivilege? privilege)
-            => this.RegisterLegacy(key, privilege, eventType, null);
-
-        internal bool RegisterLegacy(string key, AccessPrivilege? privilege, Type? eventType, EventHandler.CreateEvent? factory)
         {
             lock (this._gate)
             {
-                if (eventType is null && factory is null)
-                {
-                    log.Error("Rejecting legacy command {0}: no event type or factory.", key);
-                    return false;
-                }
                 var snapshot = this._snapshot;
                 if (snapshot.ByKey.ContainsKey(key))
                 {
@@ -135,7 +127,18 @@ namespace Goose.Commands
                 }
                 return this.Publish([key], privilege, null, "", null,
                     () => new CommandDefinition([key], privilege, null, "", null,
-                        null, factory, null, [], factory, eventType),
+                        null, null, null, [], null, eventType),
+                    requireHelp: false);
+            }
+        }
+
+        internal bool RegisterLegacy(string key, EventHandler.CreateEvent factory, AccessPrivilege? privilege)
+        {
+            lock (this._gate)
+            {
+                return this.Publish([key], privilege, null, "", null,
+                    () => new CommandDefinition([key], privilege, null, "", null,
+                        null, null, null, [], factory, null),
                     requireHelp: false);
             }
         }
