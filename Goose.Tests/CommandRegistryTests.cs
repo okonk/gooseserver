@@ -318,6 +318,18 @@ public class CommandRegistryTests
     }
 
     [Fact]
+    public void Sections_group_case_insensitively_and_preserve_first_spelling()
+    {
+        var registry = new CommandRegistry();
+        Assert.True(registry.Register("/a ", "Admin", "a", NoArgs));
+        Assert.True(registry.Register("/b ", "ADMIN", "b", NoArgs));
+
+        var section = Assert.Single(registry.Sections);
+        Assert.Equal("Admin", section.Name);
+        Assert.Equal(["/a ", "/b "], section.Commands.Select(d => d.PrimaryKey).ToArray());
+    }
+
+    [Fact]
     public void Concurrent_register_against_captured_snapshot()
     {
         var registry = new CommandRegistry();

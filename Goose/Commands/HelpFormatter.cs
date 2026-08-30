@@ -26,6 +26,7 @@ namespace Goose.Commands
                         {
                             lines.Add(current);
                             current = "";
+                            budget = continuationBudget;
                         }
                         var remaining = word;
                         var chunkBudget = budget;
@@ -84,7 +85,7 @@ namespace Goose.Commands
                 return pages.Count > 0 ? pages : null;
             }
 
-            var input = name.TrimEnd(' ');
+            var input = NormalizeKey(name);
 
             var command = FindCommand(player, snapshot, input);
             if (command is not null)
@@ -102,13 +103,19 @@ namespace Goose.Commands
             return pages.Count > 0 ? pages : null;
         }
 
+        private static string NormalizeKey(string key)
+        {
+            var trimmed = key.TrimEnd(' ');
+            return trimmed.Length > 0 && trimmed[0] == '/' ? trimmed[1..] : trimmed;
+        }
+
         private static CommandDefinition? FindCommand(Player player, CommandSnapshot snapshot, string name)
         {
             foreach (var def in snapshot.Ordered)
             {
                 if (def.Section is null) continue;
                 if (!CommandRegistry.IsUsableBy(player, def)) continue;
-                if (string.Equals(def.PrimaryKey.Trim().TrimStart('/'), name, StringComparison.OrdinalIgnoreCase))
+                if (def.Keys.Any(key => string.Equals(NormalizeKey(key), name, StringComparison.OrdinalIgnoreCase)))
                     return def;
             }
             return null;

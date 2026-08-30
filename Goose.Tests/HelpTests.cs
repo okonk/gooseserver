@@ -163,13 +163,51 @@ namespace Goose.Tests
         {
             var (_, player, _) = WorldAndPlayer();
             var registry = new CommandRegistry();
-            Assert.True(registry.Register("/dup", AccessPrivilege.Ban, "Box", "Restricted dup.", NoArgs));
+            Assert.True(registry.RegisterKeys(["/dup2 ", "/dup"], AccessPrivilege.Ban, "Box", "Restricted dup.", NoArgs));
             Assert.True(registry.Register("/dup ", "Box", "Open dup.", NoArgs));
 
+            Assert.Null(HelpFormatter.BuildPages(player, registry, "dup2"));
             var pages = HelpFormatter.BuildPages(player, registry, "dup");
             Assert.NotNull(pages);
             Assert.Single(pages!);
             Assert.Equal(["Open dup.", "Usage: /dup"], pages[0]);
+        }
+
+        [Fact]
+        public void BuildPages_alias_name_resolves_definition_with_primary_usage()
+        {
+            var (_, player, _) = WorldAndPlayer();
+            var registry = new CommandRegistry();
+            Assert.True(registry.RegisterKeys(["/alpha ", "/alp "], null, "Box", "Alias help.", NoArgs));
+
+            var pages = HelpFormatter.BuildPages(player, registry, "alp");
+            Assert.NotNull(pages);
+            Assert.Equal(["Alias help.", "Usage: /alpha"], pages![0]);
+
+            var slashPages = HelpFormatter.BuildPages(player, registry, "/ALP ");
+            Assert.NotNull(slashPages);
+            Assert.Equal(["Alias help.", "Usage: /alpha"], slashPages![0]);
+        }
+
+        [Fact]
+        public void BuildPages_overlong_word_after_prefix_fits_with_indent()
+        {
+            var (_, player, _) = WorldAndPlayer();
+            var registry = new CommandRegistry();
+            var help = "ab " + new string('c', 45);
+            Assert.True(registry.Register("/ow", "Big", help, NoArgs));
+
+            var pages = HelpFormatter.BuildPages(player, registry, "ow");
+            Assert.NotNull(pages);
+            Assert.All(pages!.SelectMany(p => p), line => Assert.True(line.Length <= HelpFormatter.MaxLineLength, line));
+            Assert.Equal(
+                [
+                    "ab",
+                    "  " + new string('c', 40),
+                    "  " + new string('c', 5),
+                    "Usage: /ow",
+                ],
+                pages[0]);
         }
 
         [Fact]
