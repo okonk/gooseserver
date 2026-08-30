@@ -166,7 +166,6 @@ namespace Goose
                 this.packetTrie.Insert(key, def);
             }
 
-            this.commands.RegisterLegacy("/custom", typeof(CustomCommandEvent), null);
         }
 
         /**
