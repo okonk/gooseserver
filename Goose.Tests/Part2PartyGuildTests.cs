@@ -84,8 +84,10 @@ namespace Goose.Tests
         }
 
         [Fact]
-        public void GroupRemove_trailing_space_is_silent_noop()
+        public void GroupRemove_trailing_space_leaves_group()
         {
+            // Legacy silently no-op'd a bare trailing space; the binder tokenizes with
+            // RemoveEmptyEntries, so "/groupremove " now behaves like bare /groupremove.
             var (fixture, player, _) = WorldAndPlayer();
             using (fixture)
             {
@@ -93,8 +95,51 @@ namespace Goose.Tests
 
                 Assert.True(fixture.RunCommand(player, "/groupremove "));
 
+                Assert.Null(player.Group);
+            }
+        }
+
+        [Fact]
+        public void Invite_unknown_player_gets_normal_not_found_message()
+        {
+            var (fixture, player, _) = WorldAndPlayer();
+            using (fixture)
+            {
+                Assert.True(fixture.RunCommand(player, "/invite Ghost"));
+
+                Assert.Contains(player.Sent, s => s.Contains("Couldn't find player Ghost."));
+            }
+        }
+
+        [Fact]
+        public void Invite_loading_player_gets_normal_not_found_message()
+        {
+            var (fixture, player, map) = WorldAndPlayer();
+            using (fixture)
+            {
+                var bob = fixture.CommandPlayerOn(map, 3, 2, "Bob");
+                bob.State = Player.States.LoadingMap;
+                fixture.RegisterOnlinePlayer(bob);
+
+                Assert.True(fixture.RunCommand(player, "/invite Bob"));
+
+                Assert.Contains(player.Sent, s => s.Contains("Couldn't find player Bob."));
+                Assert.Null(bob.Group);
+            }
+        }
+
+        [Fact]
+        public void GroupRemove_unknown_player_gets_normal_not_found_message()
+        {
+            var (fixture, player, _) = WorldAndPlayer();
+            using (fixture)
+            {
+                MakeGroup(player);
+
+                Assert.True(fixture.RunCommand(player, "/groupremove Ghost"));
+
+                Assert.Contains(player.Sent, s => s.Contains("Couldn't find player Ghost."));
                 Assert.NotNull(player.Group);
-                Assert.Empty(player.Sent);
             }
         }
 
