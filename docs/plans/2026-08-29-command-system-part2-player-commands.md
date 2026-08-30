@@ -2,7 +2,7 @@
 
 **Goal:** Migrate the General, Party, Guild, and Pets command sections (38 commands) from legacy event classes to `[Command]` classes on the Part 1 framework, deleting the old events and legacy registrations.
 
-**Architecture:** Each legacy `*CommandEvent` becomes a `BaseCommand`-derived class in `Goose/Commands/` whose `Execute` body is the old `Ready` body verbatim minus the state check and hand-parsing (the binder now supplies typed parameters). The legacy registration is removed from `EventHandler`'s seed table. Behavior is preserved; the only intended deltas are framework-generated usage replies on parse failure and the new `/help` visibility of these commands.
+**Architecture:** Each legacy `*CommandEvent` becomes a `BaseCommand`-derived class in `Goose/Commands/` whose `Execute` body is the old `Ready` body verbatim minus the state check and hand-parsing (the binder now supplies typed parameters). The legacy registration is removed from `EventHandler`'s seed table. Behavior is preserved; the only intended deltas are framework-generated usage replies on parse failure and the new `/help` visibility of these commands. User-confirmed widening: the single-value commands (`/aether `, `/petspawn `, `/petinfo `, `/petdelete `, `/invite `/`/groupadd `, `/guildadd `, `/guildowner `, `/guildofficer `, `/random`) ignore extra tokens and reply with the framework usage line on invalid values, instead of the legacy whole-rest parse/lookup failures.
 
 **Tech Stack:** C# / .NET 10, xUnit, Part 1 framework (`Goose/Commands/`).
 

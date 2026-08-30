@@ -3,7 +3,7 @@ namespace Goose.Commands
     [Command("/random", Section = "General", Help = "Roll a random number for everyone nearby.")]
     public sealed class RandomCommand : BaseCommand
     {
-        public void Execute(CommandContext ctx, string[] max)
+        public void Execute(CommandContext ctx, int? max = null)
         {
             var world = ctx.World;
 
@@ -13,21 +13,7 @@ namespace Goose.Commands
                 return;
             }
 
-            int upper = 0;
-            string data = string.Join(" ", max);
-
-            if (data.Length > 0)
-            {
-                try
-                {
-                    upper = Convert.ToInt32(data) + 1;
-                }
-                catch (Exception)
-                {
-                    upper = 0;
-                }
-            }
-
+            int upper = max is null ? 1001 : max.Value + 1;
             if (upper <= 0) upper = 1001;
 
             int rnd = world.Random.Next(1, upper);

@@ -260,20 +260,20 @@ namespace Goose.Tests
         }
 
         [Fact]
-        public void Aether_bad_token_silently_sets_zero()
+        public void Aether_bad_token_sends_usage()
         {
             var (fixture, player, _) = WorldAndPlayer();
             using (fixture)
             {
                 fixture.RunCommand(player, "/aether abc");
 
-                Assert.Empty(player.Sent);
+                Assert.Contains(player.Sent, s => s.Contains("Usage: /aether <thres>"));
                 Assert.Equal(0, player.AetherThreshold);
             }
         }
 
         [Fact]
-        public void Aether_extra_tokens_silently_set_zero()
+        public void Aether_extra_tokens_are_ignored()
         {
             var (fixture, player, _) = WorldAndPlayer();
             using (fixture)
@@ -281,12 +281,12 @@ namespace Goose.Tests
                 fixture.RunCommand(player, "/aether 1.5 junk");
 
                 Assert.Empty(player.Sent);
-                Assert.Equal(0, player.AetherThreshold);
+                Assert.Equal(1.5m, player.AetherThreshold);
             }
         }
 
         [Fact]
-        public void Aether_bare_is_silent_noop()
+        public void Aether_bare_gets_usage_reply()
         {
             var (fixture, player, _) = WorldAndPlayer();
             using (fixture)
@@ -295,7 +295,7 @@ namespace Goose.Tests
 
                 fixture.RunCommand(player, "/aether ");
 
-                Assert.Empty(player.Sent);
+                Assert.Contains(player.Sent, s => s.Contains("Usage: /aether <thres>"));
                 Assert.Equal(2.5m, player.AetherThreshold);
             }
         }

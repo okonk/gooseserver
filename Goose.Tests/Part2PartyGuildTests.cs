@@ -67,7 +67,7 @@ namespace Goose.Tests
         }
 
         [Fact]
-        public void Invite_extra_tokens_fail_lookup_and_do_not_add()
+        public void Invite_extra_tokens_are_ignored_and_adds_player()
         {
             var (fixture, player, map) = WorldAndPlayer();
             using (fixture)
@@ -78,9 +78,8 @@ namespace Goose.Tests
 
                 Assert.True(fixture.RunCommand(player, "/invite Bob junk"));
 
-                Assert.Contains(player.Sent, s => s.Contains("Couldn't find player."));
-                Assert.Null(bob.Group);
-                Assert.Null(player.Group);
+                Assert.NotNull(bob.Group);
+                Assert.Same(player.Group, bob.Group);
             }
         }
 
@@ -192,20 +191,19 @@ namespace Goose.Tests
         }
 
         [Fact]
-        public void GuildAdd_extra_tokens_fail_lookup_and_do_not_add()
+        public void GuildAdd_extra_tokens_are_ignored_and_adds_player()
         {
             var (fixture, player, map) = WorldAndPlayer();
             using (fixture)
             {
                 player.PlayerID = 1;
-                MakeGuild((player, Guild.GuildRanks.Leader));
+                var guild = MakeGuild((player, Guild.GuildRanks.Leader));
                 var bob = fixture.CommandPlayerOn(map, 3, 2, "Bob");
                 fixture.RegisterOnlinePlayer(bob);
 
                 Assert.True(fixture.RunCommand(player, "/guildadd Bob junk"));
 
-                Assert.Contains(player.Sent, s => s.Contains("Couldn't find player."));
-                Assert.Null(bob.Guild);
+                Assert.Same(guild, bob.Guild);
             }
         }
 

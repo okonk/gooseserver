@@ -354,7 +354,7 @@ namespace Goose.Tests
         }
 
         [Fact]
-        public void Random_with_extra_tokens_falls_back_to_default()
+        public void Random_with_extra_tokens_ignores_extras()
         {
             var (fixture, player, map) = WorldAndPlayer();
             using (fixture)
@@ -364,13 +364,12 @@ namespace Goose.Tests
 
                 fixture.RunCommand(player, "/random 50 60");
 
-                Assert.Contains(player.Sent, s => s.Contains(" out of 1000."));
-                Assert.DoesNotContain(player.Sent, s => s.Contains("Usage:"));
+                Assert.Contains(player.Sent, s => s.Contains(" out of 50."));
             }
         }
 
         [Fact]
-        public void Random_with_non_number_falls_back_to_default_silently()
+        public void Random_with_non_number_gets_usage_reply()
         {
             var (fixture, player, map) = WorldAndPlayer();
             using (fixture)
@@ -380,8 +379,8 @@ namespace Goose.Tests
 
                 fixture.RunCommand(player, "/random abc");
 
-                Assert.Contains(player.Sent, s => s.Contains(" out of 1000."));
-                Assert.DoesNotContain(player.Sent, s => s.Contains("Usage:"));
+                Assert.Contains(player.Sent, s => s.Contains("Usage: /random [max]"));
+                Assert.DoesNotContain(player.Sent, s => s.Contains("rolls"));
             }
         }
 

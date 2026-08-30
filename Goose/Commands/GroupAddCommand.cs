@@ -3,12 +3,11 @@ namespace Goose.Commands
     [Command("/invite ", "/groupadd ", Section = "Party", Help = "Invite a player to your group.")]
     public sealed class GroupAddCommand : BaseCommand
     {
-        public void Execute(CommandContext ctx, string[] name)
+        public void Execute(CommandContext ctx, string name)
         {
             var world = ctx.World;
 
-            string lookup = string.Join(" ", name);
-            Player? player = world.PlayerHandler.GetPlayer(lookup);
+            Player? player = world.PlayerHandler.GetPlayer(name);
             if (player is not null && player.State == Player.States.Ready)
             {
                 if (player == ctx.Player)

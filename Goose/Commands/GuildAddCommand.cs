@@ -3,15 +3,14 @@ namespace Goose.Commands
     [Command("/guildadd ", Section = "Guild", Help = "Add a player to your guild.")]
     public sealed class GuildAddCommand : BaseCommand
     {
-        public void Execute(CommandContext ctx, string[] name)
+        public void Execute(CommandContext ctx, string name)
         {
             var world = ctx.World;
 
             if (ctx.Player.Guild is null) return;
             if (ctx.Player.Guild.GetRank(ctx.Player) < Guild.GuildRanks.Officer) return;
 
-            string lookup = string.Join(" ", name);
-            Player? player = world.PlayerHandler.GetPlayer(lookup);
+            Player? player = world.PlayerHandler.GetPlayer(name);
             if (player is not null && player.State == Player.States.Ready)
             {
                 if (player.Guild is null)

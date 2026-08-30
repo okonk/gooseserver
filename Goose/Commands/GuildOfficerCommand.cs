@@ -3,15 +3,14 @@ namespace Goose.Commands
     [Command("/guildofficer ", Section = "Guild", Help = "Toggle a guild member's officer rank.")]
     public sealed class GuildOfficerCommand : BaseCommand
     {
-        public void Execute(CommandContext ctx, string[] name)
+        public void Execute(CommandContext ctx, string name)
         {
             var world = ctx.World;
 
             if (ctx.Player.Guild is null) return;
             if (ctx.Player.Guild.GetRank(ctx.Player) < Guild.GuildRanks.Leader) return;
 
-            string lookup = string.Join(" ", name);
-            Player? player = world.PlayerHandler.GetPlayer(lookup);
+            Player? player = world.PlayerHandler.GetPlayer(name);
             if (player is not null && player.State == Player.States.Ready)
             {
                 if (player.Guild == ctx.Player.Guild && player != ctx.Player)
