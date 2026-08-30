@@ -1,3 +1,5 @@
+using System.Net;
+using System.Net.Sockets;
 using System.Reflection;
 using Goose.Scripting;
 
@@ -100,6 +102,13 @@ public class TestWorldFixture : IDisposable
             .GetField("nameToPlayer", BindingFlags.NonPublic | BindingFlags.Instance)!
             .GetValue(World.PlayerHandler)!;
         byName[player.Name.ToLower()] = player;
+    }
+
+    public void AddOnlinePlayer(Player player)
+    {
+        // AddPlayer keys sockToPlayer by Sock, so a dummy socket is required.
+        player.Sock = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+        World.PlayerHandler.AddPlayer(player, World);
     }
 
     public bool RunCommand(Player player, string packet)
