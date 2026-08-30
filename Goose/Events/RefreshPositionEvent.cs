@@ -8,12 +8,17 @@ namespace Goose.Events
      */
     public class RefreshPositionEvent : Event
     {
+        public static void Refresh(Player player, GameWorld world)
+        {
+            // Fix the clients position
+            world.Send(player, P.SetYourPosition(player));
+        }
+
         public override void Ready(GameWorld world)
         {
             if (this.Player.State == Player.States.Ready)
             {
-                // Fix the clients position
-                world.Send(this.Player, P.SetYourPosition(this.Player));
+                Refresh(this.Player, world);
             }
         }
     }

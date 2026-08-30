@@ -166,15 +166,10 @@ namespace Goose
                 this.packetTrie.Insert(key, def);
             }
 
-            this.commands.RegisterLegacy("/tell ", typeof(TellEvent), null);
-            this.commands.RegisterLegacy("/who", typeof(WhoEvent), null);
             this.commands.RegisterLegacy("/summon ", typeof(SummonEvent), AccessPrivilege.Summon);
             this.commands.RegisterLegacy("/warp ", typeof(WarpEvent), AccessPrivilege.Warp);
             this.commands.RegisterLegacy("/approach ", typeof(ApproachEvent), AccessPrivilege.Approach);
-            this.commands.RegisterLegacy("/dropgold ", typeof(PlayerDropGoldEvent), null);
             this.commands.RegisterLegacy("/shutdown", typeof(ShutdownCommandEvent), AccessPrivilege.Shutdown);
-            this.commands.RegisterLegacy("/location", typeof(LocationEvent), null);
-            this.commands.RegisterLegacy("/refresh", typeof(RefreshPositionEvent), null);
             this.commands.RegisterLegacy("/getitem ", typeof(GetItemCommandEvent), AccessPrivilege.SpawnItem);
             this.commands.RegisterLegacy("/hax ", typeof(HaxCommandEvent), AccessPrivilege.Debug);
             this.commands.RegisterLegacy("/gmhax ", typeof(GMHaxCommandEvent), AccessPrivilege.Debug);
@@ -186,13 +181,9 @@ namespace Goose
             this.commands.RegisterLegacy("/groupremove", typeof(GroupRemoveEvent), null);
             this.commands.RegisterLegacy("/ban ", typeof(BanCommandEvent), AccessPrivilege.Ban);
             this.commands.RegisterLegacy("/kick ", typeof(KickCommandEvent), AccessPrivilege.Kick);
-            this.commands.RegisterLegacy("/shout ", typeof(ShoutCommandEvent), null);
-            this.commands.RegisterLegacy("/auction ", typeof(AuctionCommandEvent), null);
-            this.commands.RegisterLegacy("/random", typeof(RandomCommandEvent), null);
             this.commands.RegisterLegacy("/broadcast ", typeof(BroadcastCommandEvent), AccessPrivilege.Broadcast);
             this.commands.RegisterLegacy("/buyvita", typeof(BuyVitaCommandEvent), null);
             this.commands.RegisterLegacy("/buymana", typeof(BuyManaCommandEvent), null);
-            this.commands.RegisterLegacy("/charinfo", typeof(CharacterInfoCommandEvent), null);
             this.commands.RegisterLegacy("/guildcreate ", typeof(GuildCreateCommandEvent), null);
             this.commands.RegisterLegacy("/guildadd ", typeof(GuildAddCommandEvent), null);
             this.commands.RegisterLegacy("/guildremove", typeof(GuildRemoveCommandEvent), null);
@@ -204,7 +195,6 @@ namespace Goose
             this.commands.RegisterLegacy("/setconfig ", typeof(SetConfigCommandEvent), AccessPrivilege.SetConfig);
             this.commands.RegisterLegacy("/saveconfig", typeof(SaveConfigCommandEvent), AccessPrivilege.SetConfig);
             this.commands.RegisterLegacy("/respawnmap", typeof(RespawnMapCommandEvent), AccessPrivilege.RespawnMap);
-            this.commands.RegisterLegacy("/changepassword ", typeof(ChangePasswordCommandEvent), null);
             this.commands.RegisterLegacy("/toggle ", typeof(ToggleCommandEvent), null);
             this.commands.RegisterLegacy("/aether ", typeof(AetherCommandEvent), null);
             this.commands.RegisterLegacy("/petlist", typeof(PetListCommandEvent), null);
@@ -219,8 +209,6 @@ namespace Goose
             this.commands.RegisterLegacy("/changename ", typeof(ChangeNameCommandEvent), AccessPrivilege.ChangeName);
             this.commands.RegisterLegacy("/giveexperience ", typeof(GiveExperienceCommandEvent), AccessPrivilege.GiveExperience);
             this.commands.RegisterLegacy("/givegold ", typeof(GiveGoldCommandEvent), AccessPrivilege.GiveGold);
-            this.commands.RegisterLegacy("/credits", typeof(CreditsCommandEvent), null);
-            this.commands.RegisterLegacy("/playtime", typeof(PlaytimeCommandEvent), null);
             this.commands.RegisterLegacy("/settitle ", typeof(SetTitleCommandEvent), AccessPrivilege.SetTitle);
             this.commands.RegisterLegacy("/setsurname ", typeof(SetSurnameCommandEvent), AccessPrivilege.SetSurname);
             this.commands.RegisterLegacy("/givecredits ", typeof(GiveCreditsCommandEvent), null);

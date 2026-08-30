@@ -2,12 +2,11 @@ using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using Goose;
-using Goose.Events;
 using Xunit;
 
 namespace Goose.Tests
 {
-    public class WhoEventTests
+    public class WhoCommandTests
     {
         private class CapturingPlayer : Player
         {
@@ -49,8 +48,8 @@ namespace Goose.Tests
         private static List<string> RunWho(CapturingPlayer requester, GameWorld world, string packet)
         {
             requester.Sent.Clear();
-            var ev = new WhoEvent { Player = requester, Data = packet };
-            ev.Ready(world);
+            world.EventHandler.AddEvent(requester, packet);
+            world.EventHandler.Update(world);
             return requester.Sent.Select(s => s.Length > 0 && s[^1] == '\x01' ? s[..^1] : s).ToList();
         }
 
