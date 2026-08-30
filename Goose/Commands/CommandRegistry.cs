@@ -136,6 +136,11 @@ namespace Goose.Commands
         {
             lock (this._gate)
             {
+                if (factory is null)
+                {
+                    log.Error("Rejecting legacy command {0}: factory is null.", key);
+                    return false;
+                }
                 return this.Publish([key], privilege, null, "", null,
                     () => new CommandDefinition([key], privilege, null, "", null,
                         null, null, null, [], factory, null),
