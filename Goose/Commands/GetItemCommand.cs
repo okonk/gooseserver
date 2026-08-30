@@ -5,25 +5,11 @@ namespace Goose.Commands
     {
         private static readonly NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
 
-        public void Execute(CommandContext ctx, int id, string? stack = null)
+        public void Execute(CommandContext ctx, int id, int stack = 1)
         {
             var world = ctx.World;
 
-            int count = 1;
-
-            if (stack is not null)
-            {
-                try
-                {
-                    count = Convert.ToInt32(stack);
-                }
-                catch (Exception)
-                {
-                    count = 1;
-                }
-            }
-
-            if (id <= 0 || count <= 0) return;
+            if (id <= 0 || stack <= 0) return;
 
             ItemTemplate? template = world.ItemHandler.GetTemplate(id);
             if (template is null) return;
@@ -37,10 +23,10 @@ namespace Goose.Commands
 
             world.ItemHandler.AddAndAssignId(item, world);
 
-            ctx.Player.Inventory.AddItem(item, count, world);
+            ctx.Player.Inventory.AddItem(item, stack, world);
 
             world.LogHandler.Log(Log.Types.GetItem,
-                ctx.Player.PlayerID, item.Name + " " + item.ItemID + " " + count,
+                ctx.Player.PlayerID, item.Name + " " + item.ItemID + " " + stack,
                 0, ctx.Player.Map.ID, ctx.Player.MapX, ctx.Player.MapY);
         }
     }

@@ -83,7 +83,7 @@ namespace Goose.Tests
         }
 
         [Fact]
-        public void GetItem_unparseable_stack_falls_back_to_one()
+        public void GetItem_unparseable_stack_replies_with_usage()
         {
             var (fixture, gm, _) = WorldAndGm();
             using (fixture)
@@ -92,9 +92,8 @@ namespace Goose.Tests
 
                 Assert.True(fixture.RunCommand(gm, "/getitem 5 powerful"));
 
-                var slot = gm.Inventory.GetInventorySlots().FirstOrDefault(s => s?.Item.Name == "Sword");
-                Assert.NotNull(slot);
-                Assert.Equal(1, slot!.Stack);
+                Assert.DoesNotContain(gm.Inventory.GetInventorySlots(), s => s?.Item.Name == "Sword");
+                Assert.Contains(gm.Sent, s => s.Contains("Usage: /getitem <id> [stack]"));
             }
         }
 
