@@ -94,6 +94,20 @@ namespace Goose.Tests
         }
 
         [Fact]
+        public void BuildPages_same_name_prefers_first_usable_definition()
+        {
+            var (_, player, _) = WorldAndPlayer();
+            var registry = new CommandRegistry();
+            Assert.True(registry.Register("/dup", AccessPrivilege.Ban, "Box", "Restricted dup.", NoArgs));
+            Assert.True(registry.Register("/dup ", "Box", "Open dup.", NoArgs));
+
+            var pages = HelpFormatter.BuildPages(player, registry, "dup");
+            Assert.NotNull(pages);
+            Assert.Single(pages!);
+            Assert.Equal(["Open dup.", "Usage: /dup"], pages[0]);
+        }
+
+        [Fact]
         public void BuildPages_unknown_name_returns_null()
         {
             var (_, player, _) = WorldAndPlayer();
@@ -273,7 +287,7 @@ namespace Goose.Tests
             Assert.Contains(P.WindowTextLine(window.ID, 1, "p0a") + "\x1", player.Sent);
 
             window.Clicked(Window.ButtonTypes.Close, 0, 0, 0, player, world.World);
-            Assert.False(player.Windows.Contains(window));
+            Assert.DoesNotContain(window, player.Windows);
         }
 
         [Fact]

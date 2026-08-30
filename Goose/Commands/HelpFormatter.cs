@@ -45,12 +45,13 @@ namespace Goose.Commands
 
         public static List<List<string>>? BuildPages(Player player, CommandRegistry registry, string? name)
         {
+            var sections = registry.Sections;
             var pages = new List<List<string>>();
 
             if (name is null)
             {
                 var listLines = new List<string>();
-                foreach (var section in registry.Sections)
+                foreach (var section in sections)
                 {
                     var visible = section.Commands.Count(def => CommandRegistry.IsUsableBy(player, def));
                     if (visible == 0) continue;
@@ -58,7 +59,7 @@ namespace Goose.Commands
                 }
                 if (listLines.Count > 0)
                     pages.AddRange(SplitPages(listLines));
-                foreach (var section in registry.Sections)
+                foreach (var section in sections)
                 {
                     var lines = SectionLines(player, section);
                     if (lines.Count > 0)
@@ -69,11 +70,11 @@ namespace Goose.Commands
 
             var input = name.TrimEnd(' ');
 
-            var command = FindCommand(registry, input);
-            if (command is not null && CommandRegistry.IsUsableBy(player, command))
+            var command = FindCommand(player, registry, input);
+            if (command is not null)
                 pages.AddRange(SplitPages(CommandLines(player, command)));
 
-            var namedSection = registry.Sections
+            var namedSection = sections
                 .FirstOrDefault(s => string.Equals(s.Name, input, StringComparison.OrdinalIgnoreCase));
             if (namedSection is not null)
             {
@@ -85,11 +86,12 @@ namespace Goose.Commands
             return pages.Count > 0 ? pages : null;
         }
 
-        private static CommandDefinition? FindCommand(CommandRegistry registry, string name)
+        private static CommandDefinition? FindCommand(Player player, CommandRegistry registry, string name)
         {
             foreach (var def in registry.Snapshot.Ordered)
             {
                 if (def.Section is null) continue;
+                if (!CommandRegistry.IsUsableBy(player, def)) continue;
                 if (string.Equals(def.PrimaryKey.Trim().TrimStart('/'), name, StringComparison.OrdinalIgnoreCase))
                     return def;
             }
