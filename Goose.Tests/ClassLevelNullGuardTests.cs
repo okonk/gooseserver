@@ -1,6 +1,5 @@
 using System.Reflection;
 using Goose;
-using Goose.Events;
 using Goose.Testing;
 using Goose.Tests.Fakes;
 
@@ -159,8 +158,8 @@ public class ClassLevelNullGuardTests
         var map = fixture.AddBaseMap(1, "m");
         var player = fixture.CommandPlayerOn(map, 1, 1);
         player.Level = 99;
-        var ev = new BuyVitaCommandEvent { Player = player };
+        fixture.RunCommand(player, "/buyvita");
 
-        ev.Ready(fixture.World);
+        Assert.DoesNotContain(player.Sent, s => s.Contains("Bought"));
     }
 }

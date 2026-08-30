@@ -182,8 +182,6 @@ namespace Goose
             this.commands.RegisterLegacy("/ban ", typeof(BanCommandEvent), AccessPrivilege.Ban);
             this.commands.RegisterLegacy("/kick ", typeof(KickCommandEvent), AccessPrivilege.Kick);
             this.commands.RegisterLegacy("/broadcast ", typeof(BroadcastCommandEvent), AccessPrivilege.Broadcast);
-            this.commands.RegisterLegacy("/buyvita", typeof(BuyVitaCommandEvent), null);
-            this.commands.RegisterLegacy("/buymana", typeof(BuyManaCommandEvent), null);
             this.commands.RegisterLegacy("/guildcreate ", typeof(GuildCreateCommandEvent), null);
             this.commands.RegisterLegacy("/guildadd ", typeof(GuildAddCommandEvent), null);
             this.commands.RegisterLegacy("/guildremove", typeof(GuildRemoveCommandEvent), null);
@@ -191,12 +189,9 @@ namespace Goose
             this.commands.RegisterLegacy("/guildowner ", typeof(GuildOwnerCommandEvent), null);
             this.commands.RegisterLegacy("/guildofficer ", typeof(GuildOfficerCommandEvent), null);
             this.commands.RegisterLegacy("/guild ", typeof(GuildChatCommandEvent), null);
-            this.commands.RegisterLegacy("/rank", typeof(RankCommandEvent), null);
             this.commands.RegisterLegacy("/setconfig ", typeof(SetConfigCommandEvent), AccessPrivilege.SetConfig);
             this.commands.RegisterLegacy("/saveconfig", typeof(SaveConfigCommandEvent), AccessPrivilege.SetConfig);
             this.commands.RegisterLegacy("/respawnmap", typeof(RespawnMapCommandEvent), AccessPrivilege.RespawnMap);
-            this.commands.RegisterLegacy("/toggle ", typeof(ToggleCommandEvent), null);
-            this.commands.RegisterLegacy("/aether ", typeof(AetherCommandEvent), null);
             this.commands.RegisterLegacy("/petlist", typeof(PetListCommandEvent), null);
             this.commands.RegisterLegacy("/petspawn ", typeof(PetSpawnCommandEvent), null);
             this.commands.RegisterLegacy("/petinfo ", typeof(PetInfoCommandEvent), null);
@@ -212,14 +207,12 @@ namespace Goose
             this.commands.RegisterLegacy("/settitle ", typeof(SetTitleCommandEvent), AccessPrivilege.SetTitle);
             this.commands.RegisterLegacy("/setsurname ", typeof(SetSurnameCommandEvent), AccessPrivilege.SetSurname);
             this.commands.RegisterLegacy("/givecredits ", typeof(GiveCreditsCommandEvent), null);
-            this.commands.RegisterLegacy("/hairdye", typeof(HairdyeCommandEvent), null);
             this.commands.RegisterLegacy("/spawnnpc ", typeof(SpawnNPCCommandEvent), AccessPrivilege.SpawnNPC);
             this.commands.RegisterLegacy("/search ", typeof(SearchCommandEvent), AccessPrivilege.Search);
             this.commands.RegisterLegacy("/custom", typeof(CustomCommandEvent), null);
             this.commands.RegisterLegacy("/mutemap", typeof(MuteMapEvent), AccessPrivilege.MuteMap);
             this.commands.RegisterLegacy("/setaccess", typeof(SetAccessCommandEvent), AccessPrivilege.SetAccess);
             this.commands.RegisterLegacy("/macrocheck ", typeof(MacroCheckCommandEvent), AccessPrivilege.MacroCheck);
-            this.commands.RegisterLegacy("/mc ", typeof(MacroConfirmCommandEvent), null);
             this.commands.RegisterLegacy("/reloadscripts", typeof(ReloadScriptsCommandEvent), AccessPrivilege.ReloadScripts);
             this.commands.RegisterLegacy("/reloadsql", typeof(ReloadSqlCommandEvent), AccessPrivilege.ReloadSQL);
             this.commands.RegisterLegacy("/updatesql", typeof(UpdateSqlCommandEvent), AccessPrivilege.ReloadSQL);
