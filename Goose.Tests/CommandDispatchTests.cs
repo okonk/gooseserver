@@ -224,11 +224,37 @@ namespace Goose.Tests
             Assert.True(world.RunCommand(player, "GID"));
             Assert.Contains(player.Sent, s => s.Contains("evil ran"));
         }
+
+        [Fact]
+        public void RegisterEventOpenFactoryShadowedByRestrictedLegacyCommand()
+        {
+            var (world, player, map) = WorldAndPlayer();
+            var factoryCalled = false;
+            world.World.EventHandler.RegisterEvent("/shutdown", (p, d) =>
+            {
+                factoryCalled = true;
+                return new StubEvent { Player = p, Data = d };
+            });
+            world.World.Running = true;
+
+            Assert.True(world.RunCommand(player, "/shutdown"));
+            Assert.True(world.World.Running);
+            Assert.Empty(player.Sent);
+            Assert.False(factoryCalled);
+
+            var gm = world.CommandPlayerOn(map, 2, 2, "GM");
+            gm.Access = Player.AccessStatus.GameMaster;
+            Assert.True(world.RunCommand(gm, "/shutdown"));
+            Assert.False(world.World.Running);
+            Assert.False(factoryCalled);
+        }
     }
 
     [Collection("NLog")]
     public class CommandDispatchLoggingTests
     {
+        private static void ThrowingHandler(CommandContext ctx) => throw new InvalidOperationException("boom");
+
         [Fact]
         public void RegisterEventSlashKeyLogsWarning()
         {
@@ -237,6 +263,22 @@ namespace Goose.Tests
             world.World.EventHandler.RegisterEvent("/evil ", (p, d) => new StubEvent { Player = p, Data = d });
 
             Assert.Contains(log.Messages, m => m.Contains("/evil"));
+        }
+
+        [Fact]
+        public void ThrowingHandlerLogsOriginalExceptionType()
+        {
+            using var log = new CapturingLog();
+            var world = new TestWorldFixture();
+            var map = world.AddBaseMap(1, "Test");
+            var player = world.CommandPlayerOn(map, 1, 1);
+            player.Access = Player.AccessStatus.Normal;
+            Assert.True(world.World.Commands.Register("/boom", "Test", "test command", ThrowingHandler));
+
+            world.RunCommand(player, "/boom");
+
+            Assert.Contains(log.Messages, m => m.Contains("InvalidOperationException"));
+            Assert.DoesNotContain(log.Messages, m => m.Contains("TargetInvocationException"));
         }
     }
 
