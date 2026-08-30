@@ -87,6 +87,31 @@ namespace Goose.Commands
             return (args, null);
         }
 
+        public static ParameterInfo[] InvocationParameters(Delegate handler)
+            => handler.GetType().GetMethod("Invoke")!.GetParameters();
+
+        public static ParameterInfo[] UsageParameters(Delegate handler)
+        {
+            var invoke = InvocationParameters(handler);
+            var method = handler.Method.GetParameters();
+            if (SameTypes(method, invoke))
+                return method;
+            // A closed static delegate's Method still carries the pre-bound leading parameter.
+            if (method.Length == invoke.Length + 1 && SameTypes(method.AsSpan(1), invoke))
+                return method.AsSpan(1).ToArray();
+            return invoke;
+        }
+
+        private static bool SameTypes(ReadOnlySpan<ParameterInfo> a, ReadOnlySpan<ParameterInfo> b)
+        {
+            if (a.Length != b.Length)
+                return false;
+            for (var i = 0; i < a.Length; i++)
+                if (a[i].ParameterType != b[i].ParameterType)
+                    return false;
+            return true;
+        }
+
         public static bool IsValidKey(string key)
         {
             if (key.Length == 0 || key[0] != '/')

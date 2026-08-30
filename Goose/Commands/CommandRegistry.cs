@@ -149,7 +149,7 @@ namespace Goose.Commands
                     log.Error("Refusing to register: handler is null.");
                     return false;
                 }
-                if (!CommandBinder.IsValidTarget(handler.Method.GetParameters(), out var error))
+                if (!CommandBinder.IsValidTarget(CommandBinder.InvocationParameters(handler), out var error))
                 {
                     log.Error("Refusing to register {0}: {1}.", keys.Length > 0 ? keys[0] : "?", error);
                     return false;

@@ -123,6 +123,26 @@ namespace Goose.Tests
         }
 
         [Fact]
+        public void Register_closed_static_delegate_is_accepted_and_runs()
+        {
+            var (world, player, _) = WorldAndPlayer();
+            var capture = new ClosedCapture();
+            var closed = (Action<CommandContext, int>)Delegate.CreateDelegate(
+                typeof(Action<CommandContext, int>), capture,
+                typeof(ClosedDelegateTargets).GetMethod("ClosedStatic")!);
+
+            Assert.True(world.World.Commands.Register("/closed", "Test", "closed test", closed));
+
+            Assert.True(world.RunCommand(player, "/closed 7"));
+            Assert.Equal(7, capture.Value);
+            Assert.Contains(player.Sent, s => s.Contains("closed 7"));
+
+            Assert.True(world.RunCommand(player, "/closed"));
+            Assert.Contains(player.Sent, s => s.Contains("Usage: /closed <n>"));
+            Assert.DoesNotContain(player.Sent, s => s.Contains("capture"));
+        }
+
+        [Fact]
         public void ParseErrorSendsUsage()
         {
             var (world, player, _) = WorldAndPlayer();
@@ -360,6 +380,20 @@ namespace Goose.Tests
     internal sealed class StubEvent : Event
     {
         public override void Ready(GameWorld world) => world.Send(this.Player, "evil ran");
+    }
+
+    internal sealed class ClosedCapture
+    {
+        public int Value;
+    }
+
+    internal static class ClosedDelegateTargets
+    {
+        public static void ClosedStatic(ClosedCapture capture, CommandContext ctx, int n)
+        {
+            capture.Value = n;
+            ctx.Send($"closed {n}");
+        }
     }
 
     [Command("/gated", Help = "Test gated command.")]

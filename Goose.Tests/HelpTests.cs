@@ -83,6 +83,22 @@ namespace Goose.Tests
         }
 
         [Fact]
+        public void BuildPages_closed_static_delegate_uses_unbound_parameter_names()
+        {
+            var (_, player, _) = WorldAndPlayer();
+            var registry = new CommandRegistry();
+            var capture = new ClosedCapture();
+            var closed = (Action<CommandContext, int>)Delegate.CreateDelegate(
+                typeof(Action<CommandContext, int>), capture,
+                typeof(ClosedDelegateTargets).GetMethod("ClosedStatic")!);
+            Assert.True(registry.Register("/closed ", "Test", "closed test", closed));
+
+            var pages = HelpFormatter.BuildPages(player, registry, "closed");
+            Assert.NotNull(pages);
+            Assert.Equal(["closed test", "Usage: /closed <n>"], pages![0]);
+        }
+
+        [Fact]
         public void BuildPages_every_rendered_line_fits_42_chars()
         {
             var (_, player, _) = WorldAndPlayer();

@@ -282,6 +282,20 @@ public class CommandRegistryTests
     }
 
     [Fact]
+    public void Register_open_instance_delegate_with_receiver_first_is_refused()
+    {
+        var registry = new CommandRegistry();
+        var before = registry.Snapshot;
+        var open = (Action<OpenTarget, CommandContext>)Delegate.CreateDelegate(
+            typeof(Action<OpenTarget, CommandContext>), typeof(OpenTarget).GetMethod("Handle")!);
+
+        Assert.False(registry.Register("/openinst ", "S", "help", open));
+        Assert.False(registry.TryGet("/openinst ", out _));
+        Assert.Same(before, registry.Snapshot);
+        Assert.Empty(registry.Snapshot.ByKey);
+    }
+
+    [Fact]
     public void Register_handler_unsupported_type_refused()
     {
         var registry = new CommandRegistry();
@@ -474,6 +488,11 @@ public sealed class TwoExecuteCommand : BaseCommand
 [Command("/noexec")]
 public sealed class NoTargetsCommand : BaseCommand
 {
+}
+
+public sealed class OpenTarget
+{
+    public void Handle(CommandContext ctx) { }
 }
 
 [Command("/sstatic", Help = "Static execute test command.")]

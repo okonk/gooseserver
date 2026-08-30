@@ -78,12 +78,8 @@ namespace Goose.Commands
             }
             else if (def.Handler is not null)
             {
-                // The delegate's own Invoke parameters are what DynamicInvoke accepts;
-                // Handler.Method.GetParameters() can differ for closed/open delegates.
-                parameters = def.Handler.GetType().GetMethod("Invoke")!.GetParameters();
-                // Invoke parameters are unnamed argN; the bound method keeps the
-                // original names for the usage text.
-                usageParameters = def.Handler.Method.GetParameters();
+                parameters = CommandBinder.InvocationParameters(def.Handler);
+                usageParameters = CommandBinder.UsageParameters(def.Handler);
                 usageOverride = def.UsageOverride;
                 usageKey = def.PrimaryKey;
                 targetTokens = args;

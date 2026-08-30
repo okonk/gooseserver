@@ -154,7 +154,7 @@ namespace Goose.Commands
             }
             else if (def.Handler is not null)
             {
-                parameters = def.Handler.Method.GetParameters();
+                parameters = CommandBinder.UsageParameters(def.Handler);
                 usageOverride = null;
             }
             else
