@@ -1,7 +1,7 @@
 namespace Goose.Commands
 {
     [Command("/hairdye", Section = "General", Help = "Preview or apply a new hair color.",
-        Usage = "/hairdye [preview|kill|accept] <r> <g> <b> <a>")]
+        Usage = "/hairdye [preview/kill/accept] <r> <g> <b> <a>")]
     public sealed class HairdyeCommand : BaseCommand
     {
         public void Execute(CommandContext ctx, string[] args)
@@ -143,7 +143,7 @@ namespace Goose.Commands
                 g = 0;
                 b = 0;
                 a = 0;
-                return P.ServerMessage("/hairdye [preview|kill|accept] <r> <g> <b> <a>");
+                return P.ServerMessage("/hairdye [preview/kill/accept] <r> <g> <b> <a>");
             }
 
             try

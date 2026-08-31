@@ -20,11 +20,9 @@ spell to see monster info
 Change guilds to not update DB itself
 daily quests
 Readd server browser stuff
-/help command
 Global chat
 convert decimals -> doubles
 look into wrath etc spawns what can be done to make training better but not encourage macroing
-logging everywhere
 increase bank slot item
 flag for hiding other equips when cloak is equipped
 global script threading issues
@@ -116,6 +114,8 @@ pets commit 8e919ffaff6c
 invert class restrictions (more logical, adding a class doesn't break everything)
 something buggy with move speed
 /who search
+/help command
+logging everywhere
 
 
 

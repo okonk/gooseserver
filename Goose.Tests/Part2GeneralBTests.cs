@@ -230,7 +230,7 @@ namespace Goose.Tests
             {
                 fixture.RunCommand(player, "/hairdye");
 
-                Assert.Contains(player.Sent, s => s.Contains("Usage: /hairdye [preview|kill|accept] <r> <g> <b> <a>"));
+                Assert.Contains(player.Sent, s => s.Contains("Usage: /hairdye [preview/kill/accept] <r> <g> <b> <a>"));
             }
         }
 
@@ -242,7 +242,7 @@ namespace Goose.Tests
             {
                 fixture.RunCommand(player, "/hairdye help");
 
-                Assert.Contains(player.Sent, s => s.Contains("Usage: /hairdye [preview|kill|accept] <r> <g> <b> <a>"));
+                Assert.Contains(player.Sent, s => s.Contains("Usage: /hairdye [preview/kill/accept] <r> <g> <b> <a>"));
             }
         }
 

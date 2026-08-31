@@ -445,8 +445,7 @@ namespace Goose
         public void LostConnection(Socket sock)
         {
             preLoginBuffers.Remove(sock);
-            string endpoint;
-            try { endpoint = sock.RemoteEndPoint!.ToString(); } catch { endpoint = "unknown"; }
+            var endpoint = this.GameServer?.ConnectionIP(sock) ?? "unknown";
             log.Info("Connection lost: " + endpoint);
             try { this.GameServer!.Disconnect(sock); }
             catch (Exception e) { log.Error(e, "Disconnect failed for {0}", endpoint); }

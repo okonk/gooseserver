@@ -419,6 +419,9 @@ namespace Goose
             return true;
         }
 
+        internal string? ConnectionIP(Socket sock)
+            => this.connections.TryGetValue(sock, out var info) ? info.IP : null;
+
         /**
          * UnregisterConnection, drops our bookkeeping for a closed socket
          *

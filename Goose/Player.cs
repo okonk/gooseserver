@@ -2297,8 +2297,9 @@ namespace Goose
             }
             catch (Exception e)
             {
+                var target = buff.Target;
                 log.Error(e, "SpellEffect OnBuffAdded {0} ({1}) target {2} ({3}) Exception",
-                    buff.SpellEffect.Name, buff.SpellEffect.ID, buff.Target?.Name, buff.Target?.LoginID);
+                    buff.SpellEffect.Name, buff.SpellEffect.ID, target.Name, target.LoginID);
             }
 
             if (buff.SpellEffect!.EffectType == SpellEffect.EffectTypes.Tick)

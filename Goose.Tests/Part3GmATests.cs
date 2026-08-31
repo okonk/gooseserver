@@ -531,6 +531,9 @@ namespace Goose.Tests
             using (fixture)
             {
                 var bob = MakeBob(fixture, map, Player.States.Ready);
+                // LastMacroCheckTime is in stopwatch ticks; backdate past the 2h cooldown so the guard
+                // passes regardless of machine uptime (a fresh player has LastMacroCheckTime = 0).
+                bob.LastMacroCheckTime = fixture.World.TimeNow - (long)(TimeSpan.FromHours(3).TotalSeconds * fixture.World.TimerFrequency);
                 fixture.RegisterOnlinePlayer(bob);
 
                 Assert.True(fixture.RunCommand(gm, "/macrocheck Bob"));

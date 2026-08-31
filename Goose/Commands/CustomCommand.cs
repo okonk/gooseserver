@@ -2,7 +2,7 @@ using static Goose.Inventory;
 
 namespace Goose.Commands
 {
-    [Command("/custom", Section = "Customs", Help = "/custom [help|preview|kill|make] <r> <g> <b> <a> <custom name>")]
+    [Command("/custom", Section = "Customs", Help = "Customise an item's colour and look using a custom ticket.")]
     public sealed class CustomCommand : BaseCommand
     {
         [Subcommand("help", Help = "Show the custom instructions.")]

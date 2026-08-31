@@ -90,7 +90,7 @@ public class CommandRegistryTests
 
         var pages = HelpFormatter.BuildPages(new Player(0), registry, "groupadd");
         Assert.NotNull(pages);
-        Assert.Contains(pages![0], l => l.StartsWith("Usage: /invite"));
+        Assert.Contains(pages![0], l => l.StartsWith("/invite"));
     }
 
     [Fact]

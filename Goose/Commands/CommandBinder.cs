@@ -157,12 +157,14 @@ namespace Goose.Commands
             return true;
         }
 
+        public const string UsagePrefix = "Usage: ";
+
         public static string Usage(string key, ParameterInfo[] parameters, string? usageOverride = null)
         {
             if (usageOverride is not null)
-                return $"Usage: {usageOverride}";
+                return UsagePrefix + usageOverride;
 
-            var segments = new System.Text.StringBuilder("Usage: ").Append(key.TrimEnd());
+            var segments = new System.Text.StringBuilder(UsagePrefix).Append(key.TrimEnd());
             var startIndex = 0;
             if (parameters.Length > 0 && parameters[0].ParameterType == typeof(CommandContext))
                 startIndex = 1;

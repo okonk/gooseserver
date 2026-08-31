@@ -9,6 +9,7 @@ namespace Goose.Commands
 
         private readonly object _gate = new();
         private volatile CommandSnapshot _snapshot = new();
+        private readonly HashSet<string> _reportedCollisions = new(StringComparer.OrdinalIgnoreCase);
 
 
         public void SeedBuiltins()
@@ -314,7 +315,8 @@ namespace Goose.Commands
             this._snapshot = published;
 
             foreach (var name in this.Collisions(published))
-                log.Warn("Command name {0} collides with a section name.", name);
+                if (this._reportedCollisions.Add(name))
+                    log.Debug("Command name {0} collides with a section name.", name);
 
             return true;
         }

@@ -24,26 +24,26 @@ namespace Goose.Tests
         public void Wrap_short_line_is_unchanged()
         {
             Assert.Equal(["hello world"], HelpFormatter.Wrap("hello world"));
-            Assert.Equal([new string('a', 42)], HelpFormatter.Wrap(new string('a', 42)));
+            Assert.Equal([new string('a', 53)], HelpFormatter.Wrap(new string('a', 53)));
         }
 
         [Fact]
         public void Wrap_breaks_at_last_word_boundary()
         {
             Assert.Equal(
-                ["The quick brown fox jumps over the lazy", "dog"],
-                HelpFormatter.Wrap("The quick brown fox jumps over the lazy dog"));
+                ["The quick brown fox jumps over the lazy dog and the", "hungry wolf"],
+                HelpFormatter.Wrap("The quick brown fox jumps over the lazy dog and the hungry wolf"));
         }
 
         [Fact]
         public void Wrap_hard_breaks_overlong_word()
         {
             Assert.Equal(
-                ["ab", new string('a', 42), new string('a', 3)],
-                HelpFormatter.Wrap("ab " + new string('a', 45)));
+                ["ab", new string('a', 53), new string('a', 5)],
+                HelpFormatter.Wrap("ab " + new string('a', 58)));
             Assert.Equal(
-                [new string('b', 42), new string('b', 8)],
-                HelpFormatter.Wrap(new string('b', 50)));
+                [new string('b', 53), new string('b', 7)],
+                HelpFormatter.Wrap(new string('b', 60)));
         }
 
         [Fact]
@@ -59,13 +59,15 @@ namespace Goose.Tests
             Assert.NotNull(normalPages);
             Assert.Equal(2, normalPages!.Count);
             Assert.Equal(["Pub (1)"], normalPages[0]);
-            Assert.Equal(["Usage: /open - An open command"], normalPages[1]);
+            Assert.Equal(["Pub", "", "/open - An open command"], normalPages[1]);
 
             var gmPages = HelpFormatter.BuildPages(gm, registry, null);
             Assert.NotNull(gmPages);
-            Assert.Equal(3, gmPages!.Count);
+            Assert.Equal(2, gmPages!.Count);
             Assert.Equal(["Pub (1)", "Priv (1)"], gmPages[0]);
-            Assert.Equal(["Usage: /secret - A restricted command"], gmPages[2]);
+            Assert.Equal(
+                ["Pub", "", "/open - An open command", "", "Priv", "", "/secret - A restricted command"],
+                gmPages[1]);
         }
 
         [Fact]
@@ -73,13 +75,33 @@ namespace Goose.Tests
         {
             var (_, player, _) = WorldAndPlayer();
             var registry = new CommandRegistry();
-            Assert.True(registry.Register("/custom ", "Crafting", "Build a custom item.", OneString));
+            Assert.True(registry.Register("/custom ", "Crafting", "Build a custom item from the provided recipe name.", OneString));
 
             var pages = HelpFormatter.BuildPages(player, registry, null);
             Assert.NotNull(pages);
             Assert.Equal(
-                ["Usage: /custom <name> - Build a custom", "  item."],
+                ["Crafting", "", "/custom <name> - Build a custom item from the", "  provided recipe name."],
                 pages![1]);
+        }
+
+        [Fact]
+        public void BuildPages_section_page_lists_subcommands_below_command()
+        {
+            var (_, normal, _) = WorldAndPlayer();
+            var registry = new CommandRegistry();
+            registry.SeedAttributedTypes([typeof(Warp2Command)]);
+
+            var pages = HelpFormatter.BuildPages(normal, registry, "Travel");
+            Assert.NotNull(pages);
+            Assert.Single(pages!);
+            Assert.Equal(
+                [
+                    "Travel",
+                    "",
+                    "/warp2 <name> - Warp players around.",
+                    "/warp2 here <target> - Warp to a location.",
+                ],
+                pages[0]);
         }
 
         [Fact]
@@ -95,41 +117,40 @@ namespace Goose.Tests
 
             var pages = HelpFormatter.BuildPages(player, registry, "closed");
             Assert.NotNull(pages);
-            Assert.Equal(["closed test", "Usage: /closed <n>"], pages![0]);
+            Assert.Equal(["closed test", "/closed <n>"], pages![0]);
         }
 
         [Fact]
-        public void BuildPages_every_rendered_line_fits_42_chars()
+        public void BuildPages_every_rendered_line_fits_53_chars()
         {
             var (_, player, _) = WorldAndPlayer();
             var registry = new CommandRegistry();
-            var help = new string('a', 42) + " " + new string('b', 41);
+            var help = new string('a', 55) + " " + new string('b', 54);
             Assert.True(registry.Register("/long", "Big", help, NoArgs));
 
             var pages = HelpFormatter.BuildPages(player, registry, null);
             Assert.NotNull(pages);
-            Assert.All(pages!.SelectMany(p => p), line => Assert.True(line.Length <= 42, line));
-            Assert.Contains(pages.SelectMany(p => p), line => line == "  " + new string('b', 40));
+            Assert.All(pages!.SelectMany(p => p), line => Assert.True(line.Length <= 53, line));
+            Assert.Contains(pages.SelectMany(p => p), line => line == "  " + new string('b', 51));
         }
 
         [Fact]
-        public void BuildPages_hard_break_then_full_word_continuation_fits_42()
+        public void BuildPages_hard_break_then_full_word_continuation_fits_53()
         {
             var (_, player, _) = WorldAndPlayer();
             var registry = new CommandRegistry();
-            var help = new string('a', 50) + " " + new string('b', 42);
+            var help = new string('a', 60) + " " + new string('b', 50);
             Assert.True(registry.Register("/lb", "Big", help, NoArgs));
 
             var pages = HelpFormatter.BuildPages(player, registry, "lb");
             Assert.NotNull(pages);
-            Assert.All(pages!.SelectMany(p => p), line => Assert.True(line.Length <= 42, line));
+            Assert.All(pages!.SelectMany(p => p), line => Assert.True(line.Length <= 53, line));
             Assert.Equal(
                 [
-                    new string('a', 42),
-                    "  " + new string('a', 8),
-                    "  " + new string('b', 40),
-                    "  " + new string('b', 2),
-                    "Usage: /lb",
+                    new string('a', 53),
+                    "  " + new string('a', 7),
+                    "  " + new string('b', 50),
+                    "/lb",
                 ],
                 pages[0]);
         }
@@ -139,12 +160,12 @@ namespace Goose.Tests
         {
             var (_, player, _) = WorldAndPlayer();
             var registry = new CommandRegistry();
-            var section = new string('S', 45);
+            var section = new string('S', 60);
             Assert.True(registry.Register("/longsec", section, "h", NoArgs));
 
             var pages = HelpFormatter.BuildPages(player, registry, null);
             Assert.NotNull(pages);
-            Assert.Equal([new string('S', 42), new string('S', 3), "(1)"], pages![0]);
+            Assert.Equal([new string('S', 53), new string('S', 7), "(1)"], pages![0]);
         }
 
         [Fact]
@@ -170,7 +191,7 @@ namespace Goose.Tests
             var pages = HelpFormatter.BuildPages(player, registry, "dup");
             Assert.NotNull(pages);
             Assert.Single(pages!);
-            Assert.Equal(["Open dup.", "Usage: /dup"], pages[0]);
+            Assert.Equal(["Open dup.", "/dup"], pages[0]);
         }
 
         [Fact]
@@ -182,11 +203,11 @@ namespace Goose.Tests
 
             var pages = HelpFormatter.BuildPages(player, registry, "alp");
             Assert.NotNull(pages);
-            Assert.Equal(["Alias help.", "Usage: /alpha"], pages![0]);
+            Assert.Equal(["Alias help.", "/alpha"], pages![0]);
 
             var slashPages = HelpFormatter.BuildPages(player, registry, "/ALP ");
             Assert.NotNull(slashPages);
-            Assert.Equal(["Alias help.", "Usage: /alpha"], slashPages![0]);
+            Assert.Equal(["Alias help.", "/alpha"], slashPages![0]);
         }
 
         [Fact]
@@ -194,7 +215,7 @@ namespace Goose.Tests
         {
             var (_, player, _) = WorldAndPlayer();
             var registry = new CommandRegistry();
-            var help = "ab " + new string('c', 45);
+            var help = "ab " + new string('c', 60);
             Assert.True(registry.Register("/ow", "Big", help, NoArgs));
 
             var pages = HelpFormatter.BuildPages(player, registry, "ow");
@@ -203,9 +224,9 @@ namespace Goose.Tests
             Assert.Equal(
                 [
                     "ab",
-                    "  " + new string('c', 40),
-                    "  " + new string('c', 5),
-                    "Usage: /ow",
+                    "  " + new string('c', 51),
+                    "  " + new string('c', 9),
+                    "/ow",
                 ],
                 pages[0]);
         }
@@ -221,7 +242,7 @@ namespace Goose.Tests
         }
 
         [Fact]
-        public void BuildPages_name_matches_command_and_section_shows_both_in_order()
+        public void BuildPages_name_matches_command_and_section_shows_section_only()
         {
             var (_, player, _) = WorldAndPlayer();
             var registry = new CommandRegistry();
@@ -230,9 +251,8 @@ namespace Goose.Tests
 
             var pages = HelpFormatter.BuildPages(player, registry, "test");
             Assert.NotNull(pages);
-            Assert.Equal(2, pages!.Count);
-            Assert.Equal(["A test command.", "Usage: /test"], pages[0]);
-            Assert.Equal(["Usage: /other - Another command."], pages[1]);
+            Assert.Single(pages!);
+            Assert.Equal(["test", "", "/other - Another command."], pages[0]);
         }
 
         [Fact]
@@ -246,14 +266,13 @@ namespace Goose.Tests
 
             var normalPages = HelpFormatter.BuildPages(normal, registry, "admin");
             Assert.NotNull(normalPages);
-            var expected = new List<List<string>> { new() { "Usage: /other - A public command." } };
+            var expected = new List<List<string>> { new() { "admin", "", "/other - A public command." } };
             Assert.Equal(expected, normalPages!);
 
             var gmPages = HelpFormatter.BuildPages(gm, registry, "admin");
             Assert.NotNull(gmPages);
-            Assert.Equal(2, gmPages!.Count);
-            Assert.Equal(["Admin stuff.", "Usage: /admin"], gmPages[0]);
-            Assert.Equal(["Usage: /other - A public command."], gmPages[1]);
+            Assert.Single(gmPages!);
+            Assert.Equal(["admin", "", "/other - A public command."], gmPages[0]);
         }
 
         [Fact]
@@ -268,9 +287,8 @@ namespace Goose.Tests
             Assert.Equal(
                 [
                     "Warp players around.",
-                    "Usage: /warp2 <name>",
-                    "Usage: /warp2 here <target> - Warp to a",
-                    "  location.",
+                    "/warp2 <name>",
+                    "/warp2 here <target> - Warp to a location.",
                 ],
                 pages![0]);
         }
@@ -288,9 +306,8 @@ namespace Goose.Tests
             Assert.Equal(
                 [
                     "Warp players around.",
-                    "Usage: /warp2 <name>",
-                    "Usage: /warp2 here <target> - Warp to a",
-                    "  location.",
+                    "/warp2 <name>",
+                    "/warp2 here <target> - Warp to a location.",
                 ],
                 normalPages![0]);
 
@@ -299,10 +316,9 @@ namespace Goose.Tests
             Assert.Equal(
                 [
                     "Warp players around.",
-                    "Usage: /warp2 <name>",
-                    "Usage: /warp2 here <target> - Warp to a",
-                    "  location.",
-                    "Usage: /warp2 all - Warp everyone.",
+                    "/warp2 <name>",
+                    "/warp2 here <target> - Warp to a location.",
+                    "/warp2 all - Warp everyone.",
                 ],
                 gmPages![0]);
         }
@@ -318,12 +334,85 @@ namespace Goose.Tests
             var pages = HelpFormatter.BuildPages(player, registry, "Big");
             Assert.NotNull(pages);
             Assert.Equal(3, pages!.Count);
-            Assert.Equal(19, pages[0].Count);
-            Assert.Equal(19, pages[1].Count);
+            Assert.Equal(20, pages[0].Count);
+            Assert.Equal(20, pages[1].Count);
             Assert.Equal(2, pages[2].Count);
 
-            var expected = Enumerable.Range(1, 40).Select(i => $"Usage: /c{i:D2} - h{i}").ToList();
+            var expected = new List<string> { "Big", "" };
+            expected.AddRange(Enumerable.Range(1, 40).Select(i => $"/c{i:D2} - h{i}"));
             Assert.Equal(expected, pages.SelectMany(p => p).ToList());
+        }
+
+        [Fact]
+        public void BuildPages_wrapped_command_that_does_not_fit_moves_to_next_page()
+        {
+            var (_, player, _) = WorldAndPlayer();
+            var registry = new CommandRegistry();
+            for (var i = 1; i <= 19; i++)
+                Assert.True(registry.Register($"/f{i:D2}", "Big", $"h{i}", NoArgs));
+            Assert.True(registry.Register("/wrap", "Big", "aaaaaaaaaa bbbbbbbbbb cccccccccc dddddddddd eeeee", NoArgs));
+
+            var pages = HelpFormatter.BuildPages(player, registry, "Big");
+            Assert.NotNull(pages);
+            Assert.Equal(2, pages!.Count);
+            Assert.Equal(20, pages[0].Count);
+            Assert.Equal(
+                [
+                    "/f19 - h19",
+                    "/wrap - aaaaaaaaaa bbbbbbbbbb cccccccccc dddddddddd",
+                    "  eeeee",
+                ],
+                pages[1]);
+        }
+
+        [Fact]
+        public void BuildPages_sections_fitting_exactly_share_page()
+        {
+            var (_, player, _) = WorldAndPlayer();
+            var registry = new CommandRegistry();
+            Assert.True(registry.Register("/a1", "First", "h1", NoArgs));
+            for (var i = 1; i <= 14; i++)
+                Assert.True(registry.Register($"/b{i:D2}", "Second", $"h{i}", NoArgs));
+
+            var pages = HelpFormatter.BuildPages(player, registry, null);
+            Assert.NotNull(pages);
+            Assert.Equal(2, pages!.Count);
+            Assert.Equal(20, pages[1].Count);
+            Assert.Equal("First", pages[1][0]);
+            Assert.Equal("", pages[1][3]);
+            Assert.Equal("Second", pages[1][4]);
+        }
+
+        [Fact]
+        public void BuildPages_section_that_does_not_fit_moves_to_next_page()
+        {
+            var (_, player, _) = WorldAndPlayer();
+            var registry = new CommandRegistry();
+            Assert.True(registry.Register("/a1", "First", "h1", NoArgs));
+            for (var i = 1; i <= 16; i++)
+                Assert.True(registry.Register($"/b{i:D2}", "Second", $"h{i}", NoArgs));
+
+            var pages = HelpFormatter.BuildPages(player, registry, null);
+            Assert.NotNull(pages);
+            Assert.Equal(3, pages!.Count);
+            Assert.Equal(["First", "", "/a1 - h1"], pages[1]);
+            Assert.Equal("Second", pages[2][0]);
+            Assert.Equal(18, pages[2].Count);
+        }
+
+        [Fact]
+        public void BuildPages_block_taller_than_page_is_hard_split()
+        {
+            var (_, player, _) = WorldAndPlayer();
+            var registry = new CommandRegistry();
+            Assert.True(registry.Register("/big", "Solo", new string('a', 1100), NoArgs));
+
+            var pages = HelpFormatter.BuildPages(player, registry, "big");
+            Assert.NotNull(pages);
+            Assert.Equal(2, pages!.Count);
+            Assert.Equal(20, pages[0].Count);
+            Assert.Equal(3, pages[1].Count);
+            Assert.Equal("/big", pages[1][2]);
         }
 
         [Fact]
