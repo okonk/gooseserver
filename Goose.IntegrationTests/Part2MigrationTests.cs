@@ -147,13 +147,13 @@ namespace Goose.IntegrationTests
                 foreach (var header in new[] { "General (21)", "Party (4)", "Guild (7)", "Pets (6)" })
                     Assert.Contains(gmLines, l => l.Contains(header));
                 foreach (var key in MigratedKeys)
-                    Assert.Contains(gmLines, l => l.StartsWith("Usage: " + key + " "));
+                    Assert.Contains(gmLines, l => l.StartsWith(key + " "));
 
                 var normalLines = HelpLines(normal, fixture.World.Commands);
                 foreach (var header in new[] { "General (21)", "Party (4)", "Guild (7)", "Pets (6)" })
                     Assert.Contains(normalLines, l => l.Contains(header));
                 foreach (var key in MigratedKeys)
-                    Assert.Contains(normalLines, l => l.StartsWith("Usage: " + key + " "));
+                    Assert.Contains(normalLines, l => l.StartsWith(key + " "));
             }
         }
 

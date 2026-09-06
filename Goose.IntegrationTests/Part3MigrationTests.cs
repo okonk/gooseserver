@@ -143,8 +143,8 @@ namespace Goose.IntegrationTests
                     Assert.Contains(lines, l => l == header);
                 Assert.DoesNotContain(lines, l => l.StartsWith("GM ("));
                 Assert.DoesNotContain(lines, l => l.StartsWith("Admin ("));
-                Assert.Contains(lines, l => l.StartsWith("Usage: /givecredits "));
-                Assert.DoesNotContain(lines, l => l.StartsWith("Usage: /warp "));
+                Assert.Contains(lines, l => l.StartsWith("/givecredits "));
+                Assert.DoesNotContain(lines, l => l.StartsWith("/warp "));
             }
         }
 
@@ -157,12 +157,13 @@ namespace Goose.IntegrationTests
                 Assert.True(fixture.RunCommand(player, "/help custom"));
                 Assert.Contains(player.Windows, w => w is HelpWindow);
 
-                var text = string.Join(" ", HelpLines(fixture, player, "custom").Select(l => l.TrimStart()));
-                Assert.Contains("Usage: /custom help - Show the custom instructions.", text);
-                Assert.Contains("Usage: /custom kill - Remove the custom preview from the map.", text);
-                Assert.Contains("Usage: /custom preview <r> <g> <b> <a> <name...> - Preview the custom's colour and look.", text);
-                Assert.Contains("Usage: /custom make <r> <g> <b> <a> <name...>", text);
-                Assert.Equal(4, text.Split("Usage: /custom ", StringSplitOptions.RemoveEmptyEntries).Length - 1);
+                var lines = HelpLines(fixture, player, "custom");
+                var text = string.Join(" ", lines.Select(l => l.TrimStart()));
+                Assert.Contains("/custom help - Show the custom instructions.", text);
+                Assert.Contains("/custom kill - Remove the custom preview from the map.", text);
+                Assert.Contains("/custom preview <r> <g> <b> <a> <name...> - Preview the custom's colour and look.", text);
+                Assert.Contains("/custom make <r> <g> <b> <a> <name...> - Create the custom. Destroys the custom ticket and source items.", text);
+                Assert.Equal(4, lines.Count(l => l.StartsWith("/custom ")));
                 Assert.DoesNotContain("/custom create", text);
             }
         }

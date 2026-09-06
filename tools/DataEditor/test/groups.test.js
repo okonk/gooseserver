@@ -392,13 +392,14 @@ test('ops reports the id column of a sheet that has a pk', () => {
 });
 
 test('ops reports Text columns so the server pins their format', () => {
-  // Quest Rewards, not Quest Reqs: Reqs has no Text column, so asserting over its (empty) list
-  // asserts nothing. string_value is column F and the server pins it to '@' so a reward value
-  // like "1.10" is not stored as a number.
+  // Quest Rewards, not Quest Reqs: asserting over Reqs would exercise different script columns.
+  // string_value is column F and the two quest-script columns follow it; the server pins each
+  // to '@' so a reward value like "1.10" is not stored as a number.
   const ops = Groups.ops(schemaOf('Quest Rewards'), [], [], {});
   const names = schemaOf('Quest Rewards').columns.map((c) => c.name);
-  assert.deepEqual(ops.textColumns, [names.indexOf('string_value')]);
-  assert.deepEqual(ops.textColumns, [5]);
+  assert.deepEqual(ops.textColumns,
+    ['string_value', 'script_path', 'script_params'].map((n) => names.indexOf(n)));
+  assert.deepEqual(ops.textColumns, [5, 6, 7]);
 });
 
 test('an existing row with no loaded snapshot is written, never appended', () => {

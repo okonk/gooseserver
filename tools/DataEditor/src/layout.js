@@ -42,8 +42,8 @@ var Layout = (function () {
           'stat_sta', 'stat_dex', 'stat_int', 'res_fire', 'res_water', 'res_spirit', 'res_air',
           'res_earth', 'weapon_damage', 'armor_pierce', 'attack_range', 'attack_speed'] },
       { title: 'Behaviour', columns: ['npc_facing', 'aggro_range', 'move_speed', 'stationary',
-          'stunnable', 'rootable', 'slowable', 'invincible', 'stuck_behaviour', 'stuck_timeout',
-          'respawn_time'] },
+          'stunnable', 'rootable', 'slowable', 'invincible', 'see_invisible', 'stuck_behaviour',
+          'stuck_timeout', 'respawn_time'] },
       { title: 'Regen', columns: ['hp_percent_regen', 'hp_static_regen', 'mp_percent_regen',
           'mp_static_regen'] },
       // experience is the XP reward for killing this NPC, not a combat stat of its own.
