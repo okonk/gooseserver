@@ -6,6 +6,7 @@ namespace Goose.Tools.SchemaGen;
 /// JSON (see SchemaJs) because the Apps Script side reads them directly.</summary>
 public sealed record SchemaColumn(
     string Name,
+    string? Header,
     string Kind,
     string Sql,
     string? Default,
@@ -38,6 +39,7 @@ public static class SchemaModel
             t.Table,
             t.Columns.Select(c => new SchemaColumn(
                 c.Name,
+                c.Header,
                 c.Kind.ToString(),
                 c.Type.Sql,
                 c.Default,

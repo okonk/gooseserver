@@ -11,6 +11,7 @@ namespace CsvToSql.Core.Schema
     public sealed class Column
     {
         public string Name { get; }
+        public string Header { get; private set; }
         public ColumnKind Kind { get; }
         public SqlType Type { get; }
         public string Default { get; private set; }
@@ -49,6 +50,17 @@ namespace CsvToSql.Core.Schema
         public Column Nullable() { IsNullable = true; return this; }
 
         public Column Ref(string sheet) { RefSheet = sheet; return this; }
+
+        /// <summary>The human-facing row-1 label of the worksheet column, copied verbatim from
+        /// the workbook — it is display text for the editor, not a SQL or descriptor name.</summary>
+        public Column HeaderText(string header)
+        {
+            if (string.IsNullOrWhiteSpace(header))
+                throw new ArgumentException("Header text must not be null, empty, or whitespace.",
+                    nameof(header));
+            Header = header;
+            return this;
+        }
 
         public Column PrimaryKey()
         {

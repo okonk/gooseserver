@@ -47,6 +47,11 @@ column:
 
     dotnet run --project tools/SchemaGen -- tools/DataEditor/schema.js
 
+With a second path it also emits the map editor's schema as JSON — the four consumed sheets
+(NPCs, NPC Spawns, Warptiles, Maps) with their complete column lists and verified row-1 headers:
+
+    dotnet run --project tools/SchemaGen -- tools/DataEditor/schema.js tools/DataEditor/schema.json
+
 `Checked_in_schema_js_is_up_to_date` fails if you forget.
 
 ## SpriteBundle

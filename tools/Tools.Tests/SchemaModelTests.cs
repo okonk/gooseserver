@@ -105,9 +105,25 @@ public class SchemaModelTests
         var model = SchemaModel.Build();
 
         Assert.Equal(SchemaRegistry.Tables.Select(t => t.Sheet), model.Sheets.Select(s => s.Sheet));
-        Assert.Equal(
-            SchemaRegistry.Tables.Single(t => t.Sheet == "Items").Columns.Select(c => c.Name),
-            model.Sheets.Single(s => s.Sheet == "Items").Columns.Select(c => c.Name));
+        foreach (var table in SchemaRegistry.Tables)
+        {
+            Assert.Equal(
+                table.Columns.Select(c => c.Name),
+                model.Sheets.Single(s => s.Sheet == table.Sheet).Columns.Select(c => c.Name));
+        }
+    }
+
+    [Fact]
+    public void Headers_are_projected_from_the_descriptors()
+    {
+        var model = SchemaModel.Build();
+
+        foreach (var table in SchemaRegistry.Tables)
+        {
+            Assert.Equal(
+                table.Columns.Select(c => c.Header),
+                model.Sheets.Single(s => s.Sheet == table.Sheet).Columns.Select(c => c.Header));
+        }
     }
 
     [Fact]

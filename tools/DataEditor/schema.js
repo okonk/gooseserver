@@ -447,6 +447,7 @@ var GOOSE_SCHEMA = {
       "columns": [
         {
           "name": "npc_id",
+          "header": "ID",
           "kind": "Id",
           "sql": "INTEGER",
           "required": true,
@@ -454,6 +455,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "npc_type",
+          "header": "type (Monster)",
           "kind": "Enum",
           "sql": "SMALLINT",
           "default": "2",
@@ -468,6 +470,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "npc_name",
+          "header": "name",
           "kind": "Text",
           "sql": "TEXT",
           "required": true,
@@ -475,6 +478,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "npc_title",
+          "header": "title",
           "kind": "Text",
           "sql": "TEXT",
           "default": "\u0027\u0027",
@@ -483,6 +487,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "npc_surname",
+          "header": "surname",
           "kind": "Text",
           "sql": "TEXT",
           "default": "\u0027\u0027",
@@ -491,6 +496,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "respawn_time",
+          "header": "respawn time",
           "kind": "Int",
           "sql": "INT",
           "default": "0",
@@ -499,6 +505,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "npc_facing",
+          "header": "facing (3)",
           "kind": "Int",
           "sql": "SMALLINT",
           "default": "3",
@@ -507,6 +514,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "npc_level",
+          "header": "lvl (1)",
           "kind": "Int",
           "sql": "SMALLINT",
           "default": "1",
@@ -515,6 +523,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "experience",
+          "header": "exp (0)",
           "kind": "Int",
           "sql": "BIGINT",
           "default": "0",
@@ -523,6 +532,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "aggro_range",
+          "header": "aggro range (0)",
           "kind": "Int",
           "sql": "SMALLINT",
           "default": "0",
@@ -531,6 +541,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "attack_range",
+          "header": "attack range (0)",
           "kind": "Int",
           "sql": "SMALLINT",
           "default": "0",
@@ -539,6 +550,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "attack_speed",
+          "header": "attack speed (2)",
           "kind": "Decimal",
           "sql": "DECIMAL(9,4)",
           "default": "2",
@@ -547,6 +559,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "move_speed",
+          "header": "move speed (2)",
           "kind": "Decimal",
           "sql": "DECIMAL(9,4)",
           "default": "2",
@@ -555,6 +568,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "stationary",
+          "header": "stationary (0)",
           "kind": "Bool",
           "sql": "CHAR(1)",
           "default": "\u00270\u0027",
@@ -563,6 +577,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "stunnable",
+          "header": "stunnable (0)",
           "kind": "Bool",
           "sql": "CHAR(1)",
           "default": "\u00270\u0027",
@@ -571,6 +586,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "rootable",
+          "header": "rootable (0)",
           "kind": "Bool",
           "sql": "CHAR(1)",
           "default": "\u00270\u0027",
@@ -579,6 +595,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "slowable",
+          "header": "slowable (0)",
           "kind": "Bool",
           "sql": "CHAR(1)",
           "default": "\u00270\u0027",
@@ -587,6 +604,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "invincible",
+          "header": "invincible (0)",
           "kind": "Bool",
           "sql": "CHAR(1)",
           "default": "\u00270\u0027",
@@ -595,6 +613,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "see_invisible",
+          "header": "see_invisible (0)",
           "kind": "Bool",
           "sql": "CHAR(1)",
           "default": "\u00270\u0027",
@@ -603,6 +622,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "npc_hp",
+          "header": "hp (0)",
           "kind": "Int",
           "sql": "INT",
           "default": "0",
@@ -611,6 +631,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "npc_mp",
+          "header": "mp (0)",
           "kind": "Int",
           "sql": "INT",
           "default": "0",
@@ -619,6 +640,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "npc_sp",
+          "header": "sp (0)",
           "kind": "Int",
           "sql": "INT",
           "default": "0",
@@ -627,6 +649,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "class_id",
+          "header": "class id",
           "kind": "Id",
           "sql": "SMALLINT",
           "default": "1",
@@ -636,6 +659,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "stat_ac",
+          "header": "ac (0)",
           "kind": "Int",
           "sql": "SMALLINT",
           "default": "0",
@@ -644,6 +668,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "stat_str",
+          "header": "str (0)",
           "kind": "Int",
           "sql": "SMALLINT",
           "default": "0",
@@ -652,6 +677,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "stat_sta",
+          "header": "sta (0)",
           "kind": "Int",
           "sql": "SMALLINT",
           "default": "0",
@@ -660,6 +686,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "stat_dex",
+          "header": "dex (0)",
           "kind": "Int",
           "sql": "SMALLINT",
           "default": "0",
@@ -668,6 +695,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "stat_int",
+          "header": "int (0)",
           "kind": "Int",
           "sql": "SMALLINT",
           "default": "0",
@@ -676,6 +704,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "res_fire",
+          "header": "fr (0)",
           "kind": "Int",
           "sql": "SMALLINT",
           "default": "0",
@@ -684,6 +713,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "res_water",
+          "header": "wr (0)",
           "kind": "Int",
           "sql": "SMALLINT",
           "default": "0",
@@ -692,6 +722,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "res_spirit",
+          "header": "sr (0)",
           "kind": "Int",
           "sql": "SMALLINT",
           "default": "0",
@@ -700,6 +731,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "res_air",
+          "header": "ar (0)",
           "kind": "Int",
           "sql": "SMALLINT",
           "default": "0",
@@ -708,6 +740,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "res_earth",
+          "header": "er (0)",
           "kind": "Int",
           "sql": "SMALLINT",
           "default": "0",
@@ -716,6 +749,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "body_state",
+          "header": "body state (3)",
           "kind": "Int",
           "sql": "SMALLINT",
           "default": "3",
@@ -724,6 +758,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "body_id",
+          "header": "body id (1)",
           "kind": "Int",
           "sql": "SMALLINT",
           "default": "1",
@@ -732,6 +767,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "body_r",
+          "header": "body r",
           "kind": "Int",
           "sql": "SMALLINT",
           "default": "0",
@@ -740,6 +776,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "body_g",
+          "header": "body g",
           "kind": "Int",
           "sql": "SMALLINT",
           "default": "0",
@@ -748,6 +785,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "body_b",
+          "header": "body b",
           "kind": "Int",
           "sql": "SMALLINT",
           "default": "0",
@@ -756,6 +794,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "body_a",
+          "header": "body a",
           "kind": "Int",
           "sql": "SMALLINT",
           "default": "0",
@@ -764,6 +803,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "face_id",
+          "header": "face id (0)",
           "kind": "Int",
           "sql": "SMALLINT",
           "default": "0",
@@ -772,6 +812,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "hair_id",
+          "header": "hair id (0)",
           "kind": "Int",
           "sql": "SMALLINT",
           "default": "0",
@@ -780,6 +821,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "hair_r",
+          "header": "hair r",
           "kind": "Int",
           "sql": "SMALLINT",
           "default": "0",
@@ -788,6 +830,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "hair_g",
+          "header": "hair g",
           "kind": "Int",
           "sql": "SMALLINT",
           "default": "0",
@@ -796,6 +839,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "hair_b",
+          "header": "hair b",
           "kind": "Int",
           "sql": "SMALLINT",
           "default": "0",
@@ -804,6 +848,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "hair_a",
+          "header": "hair a",
           "kind": "Int",
           "sql": "SMALLINT",
           "default": "0",
@@ -812,6 +857,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "equipped_items",
+          "header": "equipped items (0,*,0,*,0,*,0,*,0,*,0,*)",
           "kind": "Text",
           "sql": "TEXT",
           "default": "\u00270,*,0,*,0,*,0,*,0,*,0,*\u0027",
@@ -820,6 +866,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "weapon_damage",
+          "header": "weapon dmg (1)",
           "kind": "Int",
           "sql": "INT",
           "default": "1",
@@ -828,6 +875,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "armor_pierce",
+          "header": "armor pierce",
           "kind": "Int",
           "sql": "INT",
           "default": "0",
@@ -836,6 +884,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "hp_percent_regen",
+          "header": "hp % reg",
           "kind": "Decimal",
           "sql": "DECIMAL(9,4)",
           "default": "0",
@@ -844,6 +893,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "hp_static_regen",
+          "header": "hp static reg",
           "kind": "Int",
           "sql": "INT",
           "default": "0",
@@ -852,6 +902,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "mp_percent_regen",
+          "header": "mp % reg",
           "kind": "Decimal",
           "sql": "DECIMAL(9,4)",
           "default": "0",
@@ -860,6 +911,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "mp_static_regen",
+          "header": "mp static reg",
           "kind": "Int",
           "sql": "INT",
           "default": "0",
@@ -868,6 +920,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "npc_alliance",
+          "header": "alliance",
           "kind": "Text",
           "sql": "TEXT",
           "default": "\u0027\u0027",
@@ -876,6 +929,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "stuck_behaviour",
+          "header": "stuck behaviour (DoNothing)",
           "kind": "Enum",
           "sql": "SMALLINT",
           "default": "0",
@@ -889,6 +943,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "stuck_timeout",
+          "header": "stuck timeout (20)",
           "kind": "Int",
           "sql": "INT",
           "default": "20",
@@ -897,6 +952,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "credit_dealer",
+          "header": "credit dealer (0)",
           "kind": "Bool",
           "sql": "CHAR(1)",
           "default": "\u00270\u0027",
@@ -905,6 +961,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "quest_ids",
+          "header": "quest ids",
           "kind": "Text",
           "sql": "TEXT",
           "default": "\u0027\u0027",
@@ -913,6 +970,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "script_path",
+          "header": "script_path",
           "kind": "Text",
           "sql": "TEXT",
           "default": "\u0027Scripts/NPC/BaseNPC.csx\u0027",
@@ -921,6 +979,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "script_params",
+          "header": "script params",
           "kind": "Text",
           "sql": "TEXT",
           "default": "\u0027\u0027",
@@ -969,6 +1028,7 @@ var GOOSE_SCHEMA = {
       "columns": [
         {
           "name": "npc_id",
+          "header": "npc id",
           "kind": "Id",
           "sql": "INT",
           "required": true,
@@ -977,6 +1037,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "map_id",
+          "header": "map id",
           "kind": "Id",
           "sql": "SMALLINT",
           "required": true,
@@ -985,6 +1046,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "map_x",
+          "header": "map x",
           "kind": "Int",
           "sql": "SMALLINT",
           "required": true,
@@ -992,6 +1054,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "map_y",
+          "header": "map y",
           "kind": "Int",
           "sql": "SMALLINT",
           "required": true,
@@ -2239,6 +2302,7 @@ var GOOSE_SCHEMA = {
       "columns": [
         {
           "name": "map_id",
+          "header": "map id",
           "kind": "Id",
           "sql": "SMALLINT",
           "required": true,
@@ -2247,6 +2311,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "map_x",
+          "header": "map x",
           "kind": "Int",
           "sql": "SMALLINT",
           "required": true,
@@ -2254,6 +2319,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "map_y",
+          "header": "map y",
           "kind": "Int",
           "sql": "SMALLINT",
           "required": true,
@@ -2261,6 +2327,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "warp_id",
+          "header": "warp to map id",
           "kind": "Id",
           "sql": "SMALLINT",
           "required": true,
@@ -2269,6 +2336,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "warp_x",
+          "header": "warp to x",
           "kind": "Int",
           "sql": "SMALLINT",
           "required": true,
@@ -2276,6 +2344,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "warp_y",
+          "header": "warp to y",
           "kind": "Int",
           "sql": "SMALLINT",
           "required": true,
@@ -2291,6 +2360,7 @@ var GOOSE_SCHEMA = {
       "columns": [
         {
           "name": "map_id",
+          "header": "id",
           "kind": "Id",
           "sql": "INTEGER",
           "required": true,
@@ -2298,6 +2368,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "map_name",
+          "header": "name",
           "kind": "Text",
           "sql": "TEXT",
           "required": true,
@@ -2305,6 +2376,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "map_filename",
+          "header": "filename",
           "kind": "Text",
           "sql": "TEXT",
           "required": true,
@@ -2312,6 +2384,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "min_level",
+          "header": "min_level (0)",
           "kind": "Int",
           "sql": "SMALLINT",
           "default": "0",
@@ -2320,6 +2393,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "max_level",
+          "header": "max_level (0)",
           "kind": "Int",
           "sql": "SMALLINT",
           "default": "0",
@@ -2328,6 +2402,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "min_experience",
+          "header": "min_experience (0)",
           "kind": "Int",
           "sql": "BIGINT",
           "default": "0",
@@ -2336,6 +2411,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "max_experience",
+          "header": "max_experience (0)",
           "kind": "Int",
           "sql": "BIGINT",
           "default": "0",
@@ -2344,6 +2420,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "pvp_enabled",
+          "header": "pvp_enabled (0)",
           "kind": "Bool",
           "sql": "CHAR(1)",
           "default": "\u00270\u0027",
@@ -2352,6 +2429,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "chat_enabled",
+          "header": "chat_enabled (1)",
           "kind": "Bool",
           "sql": "CHAR(1)",
           "default": "\u00271\u0027",
@@ -2360,6 +2438,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "auction_enabled",
+          "header": "auction_enabled (1)",
           "kind": "Bool",
           "sql": "CHAR(1)",
           "default": "\u00271\u0027",
@@ -2368,6 +2447,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "shout_enabled",
+          "header": "shout_enabled (1)",
           "kind": "Bool",
           "sql": "CHAR(1)",
           "default": "\u00271\u0027",
@@ -2376,6 +2456,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "spells_enabled",
+          "header": "spells_enabled (1)",
           "kind": "Bool",
           "sql": "CHAR(1)",
           "default": "\u00271\u0027",
@@ -2384,6 +2465,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "bind_enabled",
+          "header": "bind_enabled (0)",
           "kind": "Bool",
           "sql": "CHAR(1)",
           "default": "\u00270\u0027",
@@ -2392,6 +2474,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "items_enabled",
+          "header": "items_enabled (1)",
           "kind": "Bool",
           "sql": "CHAR(1)",
           "default": "\u00271\u0027",
@@ -2400,6 +2483,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "pets_enabled",
+          "header": "pets_enabled (1)",
           "kind": "Bool",
           "sql": "CHAR(1)",
           "default": "\u00271\u0027",
@@ -2408,6 +2492,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "script_path",
+          "header": "script path",
           "kind": "Text",
           "sql": "TEXT",
           "default": "\u0027\u0027",
@@ -2416,6 +2501,7 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "script_params",
+          "header": "script params",
           "kind": "Text",
           "sql": "TEXT",
           "default": "\u0027\u0027",

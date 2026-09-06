@@ -59,6 +59,44 @@ public class SchemaJsTests
     }
 
     [Fact]
+    public void Headers_are_additive_to_the_existing_shape()
+    {
+        using var doc = ParseBody(SchemaJs.Render(SchemaModel.Build()));
+
+        var sheets = doc.RootElement.GetProperty("sheets").EnumerateArray().ToList();
+        var columns = sheets.SelectMany(s => s.GetProperty("columns").EnumerateArray()).ToList();
+
+        Assert.NotEmpty(columns);
+        Assert.All(columns, c =>
+        {
+            Assert.True(c.TryGetProperty("name", out _));
+            Assert.True(c.TryGetProperty("kind", out _));
+            Assert.True(c.TryGetProperty("sql", out _));
+            Assert.True(c.TryGetProperty("required", out _));
+            Assert.True(c.TryGetProperty("pk", out _));
+        });
+
+        // Only the map editor's consumed sheets carry verified headers; the rest are unchanged.
+        foreach (var s in sheets)
+        {
+            var sheetName = s.GetProperty("sheet").GetString();
+            var sheetColumns = s.GetProperty("columns").EnumerateArray().ToList();
+            if (sheetName is "NPCs" or "NPC Spawns" or "Warptiles" or "Maps")
+            {
+                Assert.All(sheetColumns, c =>
+                {
+                    var header = c.GetProperty("header").GetString();
+                    Assert.False(string.IsNullOrWhiteSpace(header));
+                });
+            }
+            else
+            {
+                Assert.All(sheetColumns, c => Assert.False(c.TryGetProperty("header", out _)));
+            }
+        }
+    }
+
+    [Fact]
     public void Checked_in_schema_js_is_up_to_date()
     {
         var path = Path.Combine(RepoRoot(), "tools", "DataEditor", "schema.js");
@@ -68,6 +106,8 @@ public class SchemaJsTests
             File.ReadAllText(path) == SchemaJs.Render(SchemaModel.Build()),
             "tools/DataEditor/schema.js is stale. Re-run: " +
             "dotnet run --project tools/SchemaGen -- tools/DataEditor/schema.js");
+
+        Assert.Contains("\"header\":", File.ReadAllText(path));
     }
 
     /// <summary>The test binary sits at tools/Tools.Tests/bin/&lt;config&gt;/net10.0.</summary>

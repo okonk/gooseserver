@@ -4,35 +4,41 @@ public static class Program
 {
     public static int Main(string[] args)
     {
-        if (args.Length != 1)
+        if (args.Length is not (1 or 2))
         {
-            Console.Error.WriteLine("usage: SchemaGen <output-path/schema.js>");
+            Console.Error.WriteLine("usage: SchemaGen <output-path/schema.js> [output-path/schema.json]");
             return 1;
         }
 
         var model = SchemaModel.Build();
-        var js = SchemaJs.Render(model);
 
-        string path;
+        if (!Write(args[0], SchemaJs.Render(model)))
+            return 1;
+        if (args.Length == 2 && !Write(args[1], SchemaJson.Render(model)))
+            return 1;
+
+        return 0;
+    }
+
+    private static bool Write(string path, string contents)
+    {
         try
         {
-            path = Path.GetFullPath(args[0]);
-            var directory = Path.GetDirectoryName(path);
+            var full = Path.GetFullPath(path);
+            var directory = Path.GetDirectoryName(full);
             if (!string.IsNullOrEmpty(directory))
             {
                 Directory.CreateDirectory(directory);
             }
 
-            File.WriteAllText(path, js);
+            File.WriteAllText(full, contents);
+            Console.WriteLine($"Wrote {full} ({new FileInfo(full).Length:N0} bytes)");
+            return true;
         }
         catch (Exception e)
         {
-            Console.Error.WriteLine($"Could not write '{args[0]}': {e.GetBaseException().Message}");
-            return 1;
+            Console.Error.WriteLine($"Could not write '{path}': {e.GetBaseException().Message}");
+            return false;
         }
-
-        Console.WriteLine($"Wrote {path} ({new FileInfo(path).Length:N0} bytes, " +
-                          $"{model.Sheets.Count} sheets)");
-        return 0;
     }
 }
