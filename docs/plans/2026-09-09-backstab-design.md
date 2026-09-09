@@ -7,7 +7,7 @@ Add a reusable `Backstab.csx` spell-effect script. Backstab checks the tile dire
 ## Scope
 
 - Add `Goose/Data/Illutia/Scripts/Spell/Backstab.csx`.
-- Extract formula HP calculation and damage modifiers into a reusable `SpellEffect` API.
+- Extract formula HP/MP calculation and damage modifiers into a reusable `SpellEffect` API.
 - Refactor ordinary formula casts to use the extracted API without behavior changes.
 - Add coverage to `Goose.IntegrationTests`.
 - Do not change existing Backstab spell-effect data or generated SQL.
@@ -15,14 +15,14 @@ Add a reusable `Backstab.csx` spell-effect script. Backstab checks the tile dire
 
 ## Architecture
 
-`SpellEffect` will expose a formula HP calculation helper for scripts. It will parse a supplied HP formula and preserve the current formula-spell processing rules:
+`SpellEffect` will expose a formula-result helper for scripts. It will parse supplied HP and MP formulas and preserve the current formula-spell processing rules and ordering:
 
 - spell critical strikes;
 - caster spell-damage scaling;
 - the existing PvP exception for damaging player targets;
-- the server-wide damage modifier.
+- the server-wide HP damage modifier.
 
-`CastFormulaSpell` will delegate its HP calculation to this helper. Its MP behavior, damage application, status updates, and animations remain unchanged.
+`CastFormulaSpell` will delegate its HP and MP calculation to this helper. Its damage application, status updates, and animations remain unchanged.
 
 `Backstab.csx` will own its positional targeting and visual behavior. It will reuse `SpellEffect.CanCastSpell` for target eligibility and the extracted formula helper for damage processing.
 
