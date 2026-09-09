@@ -50,6 +50,8 @@
           Link="DimensionScripts/DimensionSurname.csx" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Goose/Data/Illutia/Scripts/Global/Dimensions/DimensionRarity.csx"
           Link="DimensionScripts/DimensionRarity.csx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Goose/Data/Illutia/Scripts/Spell/Backstab.csx"
+          Link="SpellScripts/Backstab.csx" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup>
     <Using Include="Xunit" />
