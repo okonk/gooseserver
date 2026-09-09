@@ -23,7 +23,6 @@ Readd server browser stuff
 Global chat
 convert decimals -> doubles
 look into wrath etc spawns what can be done to make training better but not encourage macroing
-increase bank slot item
 flag for hiding other equips when cloak is equipped
 global script threading issues
 support for sounds
@@ -35,10 +34,6 @@ change priest group heal to have more range but heal less the further away the h
 
 
 
-
-Map editor
-client
-make a data writer (done somewhat)
 patcher system
 discord bridge bot
 
@@ -116,6 +111,10 @@ something buggy with move speed
 /who search
 /help command
 logging everywhere
+Map editor
+client
+make a data writer (done somewhat)
+increase bank slot item
 
 
 

@@ -16,6 +16,12 @@ namespace Goose
             slots = new ItemSlot[size];
         }
 
+        public void Resize(int size)
+        {
+            if (size < 0) throw new ArgumentOutOfRangeException(nameof(size));
+            Array.Resize(ref this.slots, size);
+        }
+
         public void SetSlot(int slot, ItemSlot? itemSlot)
         {
             if (slot < 0 || slot >= this.slots.Length)
