@@ -196,6 +196,7 @@ public class BackstabScriptTests
             Level = 10,
             BaseStats = new AttributeSet(),
             MaxStats = new AttributeSet { HP = 1000, MP = 100 },
+            NPCTemplate = new NPCTemplate(),
             CanBeKilled = true,
             Buffs = [],
             AggroTargetToValue = []

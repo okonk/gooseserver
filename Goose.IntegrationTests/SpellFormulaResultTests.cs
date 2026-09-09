@@ -47,6 +47,7 @@ public class SpellFormulaResultTests
         var target = fixture.CommandPlayerOn(map, 5, 4, "Target");
         target.MaxStats.HP = 200;
         target.MaxStats.MP = 100;
+        target.MaxStats.Dexterity = -1;
         target.CurrentHP = 100;
         target.CurrentMP = 10;
         var effect = new SpellEffect
