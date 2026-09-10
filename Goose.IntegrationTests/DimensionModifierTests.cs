@@ -93,6 +93,32 @@ public class DimensionModifierTests
         {
             System.Globalization.CultureInfo.CurrentCulture = new System.Globalization.CultureInfo("de-DE");
             fixture.World.ItemHandler.GetTitle(900100)!.ApplyStats(legendary, fixture.World);
+
+            // Former Decimal.Parse columns: this pins reader.GetDouble as culture-free,
+            // where a culture-mismatched parse of the de-DE formatted text yields 12345.
+            var (dbWorld, dbPath) = NewClassDatabaseWorld();
+            try
+            {
+                dbWorld.Database.Execute(conn =>
+                {
+                    using var cmd = conn.CreateCommand();
+                    cmd.CommandText = "UPDATE class_info SET haste=1234.5, spell_damage=1234.5 WHERE class_id=1 AND level=1";
+                    cmd.ExecuteNonQuery();
+                });
+                dbWorld.ClassHandler.LoadClasses(dbWorld);
+                var level = dbWorld.ClassHandler.GetClass(1)!.GetLevel(1)!;
+                Assert.Equal(1234.5, level.BaseStats.Haste);
+                Assert.Equal(1234.5, level.BaseStats.SpellDamage);
+            }
+            finally
+            {
+                dbWorld.Database.Stop();
+                foreach (var suffix in new[] { "", "-wal", "-shm" })
+                {
+                    var path = dbPath + suffix;
+                    if (File.Exists(path)) File.Delete(path);
+                }
+            }
         }
         finally
         {
@@ -100,6 +126,24 @@ public class DimensionModifierTests
         }
 
         Assert.Equal(1.25, legendary.StatMultiplier);
+    }
+
+    private static (GameWorld, string) NewClassDatabaseWorld()
+    {
+        var settings = new GooseSettings
+        {
+            InventorySize = 30, EquippedSize = 20, CombineBagSize = 10, SpellbookSize = 30,
+        };
+        var world = new GameWorld(settings, new GameServer(settings));
+        var dbPath = Path.Combine(Path.GetTempPath(), "culture-" + Guid.NewGuid().ToString("N") + ".db");
+        world.Database.Start(dbPath);
+        world.Database.Execute(conn =>
+        {
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "sql", "classes.sql"));
+            cmd.ExecuteNonQuery();
+        });
+        return (world, dbPath);
     }
 
     private static Item ItemOfDimension(GlobalScriptFixture fixture, int dim)
