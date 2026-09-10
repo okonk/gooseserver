@@ -393,7 +393,7 @@ namespace Goose
 
         public int NumberOfBankPages { get; set; }
 
-        public decimal AdditionalExperienceModifier { get; set; }
+        public double AdditionalExperienceModifier { get; set; }
 
         public bool SPRegenSwitch { get; set; }
 
@@ -425,7 +425,7 @@ namespace Goose
         public bool IsGM { get => (this.Access == AccessStatus.GameMaster && ((this.ToggleSettings & Player.ToggleSetting.GM) == 0)); }
         public bool ShowItemBuffs { get => ((this.ToggleSettings & Player.ToggleSetting.ItemBuffs) == 0); }
 
-        public decimal AetherThreshold { get; set; }
+        public double AetherThreshold { get; set; }
 
         /// <summary>
         /// Holds all of the Player's pets
@@ -806,7 +806,7 @@ namespace Goose
             this.MaxStats += this.Class.GetLevel(this.Level)!.BaseStats;
 
             this.ToggleSettings = (ToggleSetting)reader.GetInt64("toggle_settings");
-            this.AetherThreshold = reader.GetDecimal("aether_threshold");
+            this.AetherThreshold = reader.GetDouble("aether_threshold");
 
             this.NumberOfBankPages = reader.GetInt32("bank_pages");
             this.Credits = reader.GetInt32("donation_credits");
@@ -1469,7 +1469,7 @@ namespace Goose
 
             RegenEvent ev = new RegenEvent();
             // H6: clamp to >= 1, a 0/negative period re-enqueues at now and spins EventHandler.Update
-            ev.Ticks += (long)(Math.Max(1m, world.Settings.RegenSpeed) * world.TimerFrequency);
+            ev.Ticks += (long)(Math.Max(1.0, world.Settings.RegenSpeed) * world.TimerFrequency);
             ev.Data = this;
 
             this.RegenEventExists = true;
@@ -2156,9 +2156,9 @@ namespace Goose
                     this.CurrentMP -= spell.MPStaticCost;
                     this.CurrentSP -= spell.SPStaticCost;
 
-                    this.CurrentHP -= (long)(this.CurrentHP * (spell.HPPercentCost / 100.0m));
-                    this.CurrentMP -= (long)(this.CurrentMP * (spell.MPPercentCost / 100.0m));
-                    this.CurrentSP -= (long)(this.CurrentSP * (spell.SPPercentCost / 100.0m));
+                    this.CurrentHP -= (long)(this.CurrentHP * (spell.HPPercentCost / 100.0));
+                    this.CurrentMP -= (long)(this.CurrentMP * (spell.MPPercentCost / 100.0));
+                    this.CurrentSP -= (long)(this.CurrentSP * (spell.SPPercentCost / 100.0));
 
                     if (this.CurrentHP <= 0) this.CurrentHP = 1;
                     if (this.CurrentMP < 0) this.CurrentMP = 0;
@@ -2193,7 +2193,7 @@ namespace Goose
             }
             else
             {
-                decimal wait = (((decimal)((spell.Aether / 1000.0) * world.TimerFrequency) - (now - lastcast))
+                double wait = ((((spell.Aether / 1000.0) * world.TimerFrequency) - (now - lastcast))
                     / world.TimerFrequency);
                 wait = Math.Round(wait, 2);
                 if (wait >= this.AetherThreshold)
@@ -2279,7 +2279,7 @@ namespace Goose
                     var ev = new BuffTickEvent();
                     ev.Data = buff;
                     ev.Player = this;
-                    ev.Ticks += (long)(Math.Max(1m, world.Settings.SpellEffectPeriod) * world.TimerFrequency);
+                    ev.Ticks += (long)(Math.Max(1.0, world.Settings.SpellEffectPeriod) * world.TimerFrequency);
 
                     world.EventHandler.AddEvent(ev);
                 }
@@ -2309,7 +2309,7 @@ namespace Goose
 
             packetBuilder.Append(P.VitalsPercentage(this));
 
-            if (buff.SpellEffect.Stats.Haste != Decimal.Zero)
+            if (buff.SpellEffect.Stats.Haste != 0)
                 world.Send(this, P.WeaponSpeed(this));
 
             bool sendCharacterUpdate = false;
@@ -2498,7 +2498,7 @@ namespace Goose
 
             packetBuilder.Append(P.VitalsPercentage(this));
 
-            if (buff.SpellEffect!.Stats.Haste != Decimal.Zero)
+            if (buff.SpellEffect!.Stats.Haste != 0)
                 world.Send(this, P.WeaponSpeed(this));
 
             bool sendCharacterUpdate = false;

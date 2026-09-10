@@ -119,7 +119,7 @@ namespace Goose
                         log.Warn("item template {0} ({1}): bad spell effect id {2}", template.Name, template.ID, template.SpellEffectID);
                         continue;
                     }
-                    template.SpellEffectChance = Decimal.Parse(reader.GetString("spell_effect_chance"));
+                    template.SpellEffectChance = reader.GetDouble("spell_effect_chance");
                     template.LearnSpellID = reader.GetInt32("learn_spell_id");
 
                     template.Credits = reader.GetInt32("credits_value");

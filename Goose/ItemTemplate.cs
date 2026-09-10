@@ -102,7 +102,7 @@ namespace Goose
          * Spell effect
          */
         public SpellEffect? SpellEffect { get; set; }
-        public decimal SpellEffectChance { get; set; }
+        public double SpellEffectChance { get; set; }
         public int LearnSpellID { get; set; }
 
         public int Credits { get; set; }

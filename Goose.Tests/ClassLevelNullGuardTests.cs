@@ -99,8 +99,8 @@ public class ClassLevelNullGuardTests
             // every column Pet.FromReader reads — the fake reader's name indexer throws
             // KeyNotFoundException on a missing key
             ["respawn_time"] = 0, ["next_respawn_time"] = 0L, ["equipped_items"] = "",
-            ["body_state"] = 0, ["aggro_range"] = 0, ["move_speed"] = 1m,
-            ["attack_range"] = 1, ["attack_speed"] = 1m,
+            ["body_state"] = 0, ["aggro_range"] = 0, ["move_speed"] = 1.0,
+            ["attack_range"] = 1, ["attack_speed"] = 1.0,
         });
 
         Assert.Null(Pet.FromReader(reader, fixture.World));

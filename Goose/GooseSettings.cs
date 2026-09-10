@@ -39,13 +39,13 @@ namespace Goose
         public int BaseMeleeDamage { get; set; }
         public int BaseMeleeCrit { get; set; }
         public int BaseDamageReduction { get; set; }
-        public decimal BaseHPPercentRegen { get; set; }
+        public double BaseHPPercentRegen { get; set; }
         public int BaseHPStaticRegen { get; set; }
-        public decimal BaseMPPercentRegen { get; set; }
+        public double BaseMPPercentRegen { get; set; }
         public int BaseMPStaticRegen { get; set; }
-        public decimal BaseSPPercentRegen { get; set; }
+        public double BaseSPPercentRegen { get; set; }
         public int BaseSPStaticRegen { get; set; }
-        public decimal SpRespawnPercentage { get; set; }
+        public double SpRespawnPercentage { get; set; }
         public int StartingHP { get; set; }
         public int StartingMP { get; set; }
         public int StartingSP { get; set; }
@@ -75,15 +75,15 @@ namespace Goose
         public string MOTD { get; set; } = null!;
         public string StartingTitle { get; set; } = null!;
         public string StartingSurname { get; set; } = null!;
-        public decimal RegenSpeed { get; set; }
+        public double RegenSpeed { get; set; }
         public int GoldItemID { get; set; }
         public int StaminaToHP { get; set; }
         public int IntelligenceToMP { get; set; }
-        public decimal DamageModifier { get; set; }
-        public decimal ExperienceModifier { get; set; }
+        public double DamageModifier { get; set; }
+        public double ExperienceModifier { get; set; }
         public int PlayerSavePeriod { get; set; }
         public int ItemProtectedTime { get; set; }
-        public decimal SpellEffectPeriod { get; set; }
+        public double SpellEffectPeriod { get; set; }
         public int VitaBuyAmount { get; set; }
         public int ManaBuyAmount { get; set; }
         public int IncreaseVitaBuyAmount { get; set; }
@@ -97,7 +97,7 @@ namespace Goose
         public int RankUpdatePeriod { get; set; }
         public int MaxAC { get; set; }
         public int ExperienceModifierLimit { get; set; }
-        public decimal DropRateModifier { get; set; }
+        public double DropRateModifier { get; set; }
         public bool SpeedhackDetectionEnabled { get; set; }
         public int ItemGroundExistTime { get; set; }
         public int ItemGroundSweepTime { get; set; }
@@ -133,7 +133,7 @@ namespace Goose
         public int PetCountLimit { get; set; }
         public int IdleTimeout { get; set; }
         public int PlayerCountExperienceModifierInterval { get; set; }
-        public decimal PlayerCountExperienceModifier { get; set; }
+        public double PlayerCountExperienceModifier { get; set; }
         public int CreditUpdateInterval { get; set; }
         public int StartingMoveSpeed { get; set; }
         public int StartingBodyR { get; set; }

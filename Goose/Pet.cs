@@ -92,7 +92,7 @@ namespace Goose
         /// <summary>
         /// Time between movement events
         /// </summary>
-        public decimal MoveSpeed { get; set; }
+        public double MoveSpeed { get; set; }
 
         /// <summary>
         /// The current attack event
@@ -102,7 +102,7 @@ namespace Goose
         /// <summary>
         /// Time between attack events
         /// </summary>
-        public decimal AttackSpeed { get; set; }
+        public double AttackSpeed { get; set; }
 
         /// <summary>
         /// Maximum distance in tiles from pet that can be hit
@@ -280,9 +280,9 @@ namespace Goose
             pet.BodyState = reader.GetInt32("body_state");
 
             pet.AggroRange = reader.GetInt32("aggro_range");
-            pet.MoveSpeed = reader.GetDecimal("move_speed");
+            pet.MoveSpeed = reader.GetDouble("move_speed");
             pet.AttackRange = reader.GetInt32("attack_range");
-            pet.AttackSpeed = reader.GetDecimal("attack_speed");
+            pet.AttackSpeed = reader.GetDouble("attack_speed");
 
             pet.AutoCreatedNotSaved = false;
             pet.Delete = false;

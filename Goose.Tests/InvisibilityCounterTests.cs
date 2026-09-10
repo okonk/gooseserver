@@ -35,7 +35,7 @@ public class InvisibilityCounterTests : IDisposable
 
     private void RegisterClass(int id, string name, int level)
     {
-        var cls = new Class { ClassID = id, ClassName = name, ACMultiplier = 1m };
+        var cls = new Class { ClassID = id, ClassName = name, ACMultiplier = 1.0 };
         cls.AddLevel(new ClassLevel { Level = level, BaseStats = new AttributeSet() });
 
         var classes = (Dictionary<int, Class>)typeof(ClassHandler)
@@ -53,7 +53,7 @@ public class InvisibilityCounterTests : IDisposable
     {
         var p = new Player(0);
         p.Inventory = new Inventory(p, world.Settings);
-        var klass = new Class { ClassID = 1, ClassName = "Test", ACMultiplier = 1m };
+        var klass = new Class { ClassID = 1, ClassName = "Test", ACMultiplier = 1.0 };
         klass.AddLevel(new ClassLevel { Level = 1, ClassID = 1, BaseStats = new AttributeSet() });
         p.Class = klass;
         p.BaseStats = new AttributeSet { HP = 100, MP = 100 };
@@ -282,7 +282,7 @@ public class InvisibilityCounterTests : IDisposable
     [Fact]
     public void Pet_AddingInvisibleBuff_FlipsIsInvisibleAndPacketField()
     {
-        var klass = new Class { ClassID = 1, ClassName = "Test", ACMultiplier = 1m };
+        var klass = new Class { ClassID = 1, ClassName = "Test", ACMultiplier = 1.0 };
         klass.AddLevel(new ClassLevel { Level = 1, ClassID = 1, BaseStats = new AttributeSet() });
 
         var pet = new Pet

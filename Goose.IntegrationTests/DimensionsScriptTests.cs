@@ -59,7 +59,7 @@ public class DimensionsScriptTests
             // (npcs.sql:20), and invincible NPCs keep their sheet stats.
             var t = new NPCTemplate { NPCTemplateID = 162, Name = "Shadow Dog", Level = 40,
                                       WeaponDamage = 365, RespawnTime = 50, Experience = 750,
-                                      AttackSpeed = 1.5m, MoveSpeed = 1.5m, AttackRange = 1,
+                                      AttackSpeed = 1.5, MoveSpeed = 1.5, AttackRange = 1,
                                       CanBeKilled = true,
                                       CanBeRooted = true, CanBeStunned = true, CanBeSlowed = false };
             t.BaseStats = new AttributeSet { HP = 3704 };

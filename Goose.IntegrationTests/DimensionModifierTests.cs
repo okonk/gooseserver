@@ -46,7 +46,7 @@ public class DimensionModifierTests
         fixture.World.ItemHandler.GetSurname(surnameId)!.ApplyStats(item, fixture.World);
 
         // AttributeSet.java:422,428,437,438 - 0.04 * dim * tier
-        var expected = 0.04m * 3 * 0.5m;
+        var expected = 0.04 * 3 * 0.5;
         Assert.Equal(expected, StatOf(item.BaseStats, stat));
     }
 
@@ -58,7 +58,7 @@ public class DimensionModifierTests
 
         fixture.World.ItemHandler.GetSurname(900000)!.ApplyStats(item, fixture.World);
 
-        Assert.Equal(0.015m * 3 * 0.5m, item.BaseStats.HPPercentRegen);   // AttributeSet.java:430
+        Assert.Equal(0.015 * 3 * 0.5, item.BaseStats.HPPercentRegen);   // AttributeSet.java:430
         Assert.Equal((int)(1500 * 3 * 0.5), item.BaseStats.HPStaticRegen); // AttributeSet.java:431
         Assert.Equal(0, item.BaseStats.MPStaticRegen);
     }
@@ -109,7 +109,7 @@ public class DimensionModifierTests
         return item;
     }
 
-    private static decimal StatOf(AttributeSet stats, string name) => name switch
+    private static double StatOf(AttributeSet stats, string name) => name switch
     {
         "SpellCrit" => stats.SpellCrit,
         "SpellDamage" => stats.SpellDamage,

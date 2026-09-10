@@ -30,9 +30,9 @@ namespace Goose.Events
                 }
             }
 
-            decimal oldModifier = world.ExperienceModifier;
+            double oldModifier = world.ExperienceModifier;
 
-            decimal experiencemodifier = uniquenonafkips.Count / world.Settings.PlayerCountExperienceModifierInterval;
+            double experiencemodifier = uniquenonafkips.Count / world.Settings.PlayerCountExperienceModifierInterval;
             experiencemodifier *= world.Settings.PlayerCountExperienceModifier;
 
             experiencemodifier += world.Settings.ExperienceModifier;

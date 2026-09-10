@@ -93,8 +93,8 @@ namespace Goose
                         npc.WeaponDamage = reader.GetInt64("weapon_damage");
                         npc.AggroRange = reader.GetInt32("aggro_range");
                         npc.AttackRange = reader.GetInt32("attack_range");
-                        npc.AttackSpeed = Decimal.Parse(reader.GetString("attack_speed"));
-                        npc.MoveSpeed = Decimal.Parse(reader.GetString("move_speed"));
+                        npc.AttackSpeed = reader.GetDouble("attack_speed");
+                        npc.MoveSpeed = reader.GetDouble("move_speed");
                         npc.CanMove = reader.GetString("stationary") != "1";
                         npc.CanBeStunned = reader.GetString("stunnable") != "0";
                         npc.SeeInvisible = "1".Equals(reader.GetString("see_invisible"));
@@ -132,9 +132,9 @@ namespace Goose
                         npc.BaseStats.SpiritResist = reader.GetInt32("res_spirit");
                         npc.BaseStats.WaterResist = reader.GetInt32("res_water");
 
-                        npc.BaseStats.HPPercentRegen = Decimal.Parse(reader.GetString("hp_percent_regen"));
+                        npc.BaseStats.HPPercentRegen = reader.GetDouble("hp_percent_regen");
                         npc.BaseStats.HPStaticRegen = reader.GetInt32("hp_static_regen");
-                        npc.BaseStats.MPPercentRegen = Decimal.Parse(reader.GetString("mp_percent_regen"));
+                        npc.BaseStats.MPPercentRegen = reader.GetDouble("mp_percent_regen");
                         npc.BaseStats.MPStaticRegen = reader.GetInt32("mp_static_regen");
 
                         npc.AlliesString = reader.GetString("npc_alliance");
@@ -181,7 +181,7 @@ namespace Goose
                         while (reader.Read())
                         {
                             NPCDropInfo drop = new NPCDropInfo();
-                            drop.DropRate = Decimal.Parse(reader.GetString("droprate"));
+                            drop.DropRate = reader.GetDouble("droprate");
                             drop.Stack = reader.GetInt32("stack");
                             drop.ItemTemplate = world.ItemHandler.GetTemplate(reader.GetInt32("item_template_id"))!;
 

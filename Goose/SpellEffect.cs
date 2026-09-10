@@ -153,16 +153,16 @@ namespace Goose
         public int BuffGraphic { get; set; }
         public int BuffGraphicFile { get; set; }
 
-        public decimal RandomJoinChance { get; set; }
+        public double RandomJoinChance { get; set; }
 
         public int OnMeleeAttackSpellID { get; set; }
         public int OnMeleeHitSpellID { get; set; }
         public SpellEffect? OnMeleeAttackSpell { get; set; }
         public SpellEffect? OnMeleeHitSpell { get; set; }
-        public decimal OnMeleeAttackSpellChance { get; set; }
-        public decimal OnMeleeHitSpellChance { get; set; }
+        public double OnMeleeAttackSpellChance { get; set; }
+        public double OnMeleeHitSpellChance { get; set; }
 
-        public decimal SnarePercent { get; set; }
+        public double SnarePercent { get; set; }
 
         public string BuffStacksOverString { get; set; }
         public string BuffDoesntStackOverString { get; set; }
@@ -311,7 +311,7 @@ namespace Goose
             }
         }
 
-        private string GetPercentageDescription(string label, decimal value, string prefix)
+        private string GetPercentageDescription(string label, double value, string prefix)
         {
             if (value < 0)
                 return $"{prefix}Decrease {label} by {Math.Abs(value) * 100:F0}%";
@@ -1347,9 +1347,9 @@ namespace Goose
             string buffer = "";
             char token;
             char op;
-            decimal value;
+            double value;
 
-            var symbolToValue = new Dictionary<string, decimal>();
+            var symbolToValue = new Dictionary<string, double>();
             symbolToValue.Add("%cchp", caster.CurrentHP);
             symbolToValue.Add("%ccmp", caster.CurrentMP);
             symbolToValue.Add("%ccsp", caster.CurrentSP);
@@ -1391,7 +1391,7 @@ namespace Goose
                         }
                         else
                         {
-                            value = Convert.ToDecimal(buffer);
+                            value = Convert.ToDouble(buffer);
                         }
 
                         result.Add(value);
@@ -1427,7 +1427,7 @@ namespace Goose
                         }
                         else
                         {
-                            value = Convert.ToDecimal(buffer);
+                            value = Convert.ToDouble(buffer);
                         }
 
                         result.Add(value);
@@ -1501,7 +1501,7 @@ namespace Goose
                         }
                         else
                         {
-                            value = Convert.ToDecimal(buffer);
+                            value = Convert.ToDouble(buffer);
                         }
 
                         result.Add(value);
@@ -1538,7 +1538,7 @@ namespace Goose
                 }
                 else
                 {
-                    value = Convert.ToDecimal(buffer);
+                    value = Convert.ToDouble(buffer);
                 }
 
                 result.Add(value);
@@ -1554,7 +1554,7 @@ namespace Goose
                     result.Add(operators.Pop());
             }
 
-            decimal rs, ls;
+            double rs, ls;
             Object cur;
 
             while (result.Count > 1)
@@ -1564,8 +1564,8 @@ namespace Goose
 
                 if (cur is char)
                 {
-                    rs = (decimal)result[result.Count - 1];
-                    ls = (decimal)result[result.Count - 2];
+                    rs = (double)result[result.Count - 1];
+                    ls = (double)result[result.Count - 2];
 
                     result.RemoveAt(result.Count - 1);
                     result.RemoveAt(result.Count - 1);

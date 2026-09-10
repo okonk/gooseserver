@@ -254,7 +254,7 @@ namespace Goose.Tests
             {
                 fixture.RunCommand(player, "/aether 1.5");
 
-                Assert.Equal(1.5m, player.AetherThreshold);
+                Assert.Equal(1.5, player.AetherThreshold);
                 Assert.Empty(player.Sent);
             }
         }
@@ -281,7 +281,7 @@ namespace Goose.Tests
                 fixture.RunCommand(player, "/aether 1.5 junk");
 
                 Assert.Empty(player.Sent);
-                Assert.Equal(1.5m, player.AetherThreshold);
+                Assert.Equal(1.5, player.AetherThreshold);
             }
         }
 
@@ -291,12 +291,12 @@ namespace Goose.Tests
             var (fixture, player, _) = WorldAndPlayer();
             using (fixture)
             {
-                player.AetherThreshold = 2.5m;
+                player.AetherThreshold = 2.5;
 
                 fixture.RunCommand(player, "/aether ");
 
                 Assert.Contains(player.Sent, s => s.Contains("Usage: /aether <thres>"));
-                Assert.Equal(2.5m, player.AetherThreshold);
+                Assert.Equal(2.5, player.AetherThreshold);
             }
         }
 

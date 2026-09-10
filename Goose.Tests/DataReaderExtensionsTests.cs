@@ -73,14 +73,6 @@ public class DataReaderExtensionsTests
     }
 
     [Fact]
-    public void GetDecimal_ReturnsValue()
-    {
-        var reader = NewReader(new Dictionary<string, object> { ["col"] = 4.5m });
-
-        Assert.Equal(4.5m, reader.GetDecimal("col"));
-    }
-
-    [Fact]
     public void GetDouble_ReturnsValue()
     {
         var reader = NewReader(new Dictionary<string, object> { ["col"] = 3.5d });

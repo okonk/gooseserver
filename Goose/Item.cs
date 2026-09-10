@@ -119,7 +119,7 @@ namespace Goose
         [JsonIgnore]
         public SpellEffect? SpellEffect { get => this.Template.SpellEffect; }
         [JsonIgnore]
-        public decimal SpellEffectChance { get => this.Template.SpellEffectChance; }
+        public double SpellEffectChance { get => this.Template.SpellEffectChance; }
         [JsonIgnore]
         public int LearnSpellID { get => this.Template.LearnSpellID; }
         [JsonIgnore]

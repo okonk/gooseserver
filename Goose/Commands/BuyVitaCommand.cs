@@ -18,12 +18,12 @@ namespace Goose.Commands
 
             ctx.Player.RemoveStats(ctx.Player.BaseStats, world, false);
 
-            decimal buyrate = 0;
+            double buyrate = 0;
 
             for (int i = 1; i <= buys; i++)
             {
                 buyrate =
-                    ((ctx.Player.BaseStats.HP / world.Settings.IncreaseVitaBuyAmount) * (decimal).2) + 1;
+                    ((ctx.Player.BaseStats.HP / world.Settings.IncreaseVitaBuyAmount) * 0.2) + 1;
 
                 if (ctx.Player.Experience >= ctx.Player.Class.VitaCost * buyrate)
                 {

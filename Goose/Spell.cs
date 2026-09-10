@@ -28,11 +28,11 @@ namespace Goose
         public int GraphicFile { get; set; }
 
         public int HPStaticCost { get; set; }
-        public decimal HPPercentCost { get; set; }
+        public double HPPercentCost { get; set; }
         public int MPStaticCost { get; set; }
-        public decimal MPPercentCost { get; set; }
+        public double MPPercentCost { get; set; }
         public int SPStaticCost { get; set; }
-        public decimal SPPercentCost { get; set; }
+        public double SPPercentCost { get; set; }
 
         public int SpellEffectID { get; set; }
         public SpellEffect SpellEffect { get; set; } = null!;

@@ -11,11 +11,11 @@ namespace Goose
         public long HP { get; set; }
         public long MP { get; set; }
         public long SP { get; set; }
-        public decimal HPPercentRegen { get; set; }
+        public double HPPercentRegen { get; set; }
         public int HPStaticRegen { get; set; }
-        public decimal MPPercentRegen { get; set; }
+        public double MPPercentRegen { get; set; }
         public int MPStaticRegen { get; set; }
-        public decimal SPPercentRegen { get; set; }
+        public double SPPercentRegen { get; set; }
         public int SPStaticRegen { get; set; }
         public int Strength { get; set; }
         public int Stamina { get; set; }
@@ -27,12 +27,12 @@ namespace Goose
         public int AirResist { get; set; }
         public int EarthResist { get; set; }
         public int AC { get; set; }
-        public decimal Haste { get; set; }
-        public decimal SpellDamage { get; set; }
-        public decimal SpellCrit { get; set; }
-        public decimal MeleeDamage { get; set; }
-        public decimal MeleeCrit { get; set; }
-        public decimal DamageReduction { get; set; }
+        public double Haste { get; set; }
+        public double SpellDamage { get; set; }
+        public double SpellCrit { get; set; }
+        public double MeleeDamage { get; set; }
+        public double MeleeCrit { get; set; }
+        public double DamageReduction { get; set; }
         public int MoveSpeed { get; set; }
 
         public AttributeSet()
@@ -170,7 +170,7 @@ namespace Goose
         public static AttributeSet operator *(AttributeSet a1, double mult)
         {
             // quick hack, fix later
-            decimal multiplier = (decimal)mult;
+            double multiplier = mult;
 
             AttributeSet temp = new AttributeSet();
 

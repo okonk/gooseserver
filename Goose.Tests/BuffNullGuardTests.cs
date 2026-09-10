@@ -49,7 +49,7 @@ public class BuffNullGuardTests
         var map = fixture.AddBaseMap(1, "m");
         var player = fixture.CommandPlayerOn(map, 1, 1);
         var effect = fixture.AddBaseSpellEffect(1, "onhit",
-            e => { e.EffectType = SpellEffect.EffectTypes.OnMeleeHit; e.OnMeleeHitSpellChance = 100m; });
+            e => { e.EffectType = SpellEffect.EffectTypes.OnMeleeHit; e.OnMeleeHitSpellChance = 100.0; });
         player.Buffs.Add(new Buff { Caster = player, Target = player, SpellEffect = effect });
 
         player.OnMeleeHit(player, fixture.World);
@@ -64,7 +64,7 @@ public class BuffNullGuardTests
         var map = fixture.AddBaseMap(1, "m");
         var player = fixture.CommandPlayerOn(map, 1, 1);
         var effect = fixture.AddBaseSpellEffect(1, "onattack",
-            e => { e.EffectType = SpellEffect.EffectTypes.OnAttack; e.OnMeleeAttackSpellChance = 100m; });
+            e => { e.EffectType = SpellEffect.EffectTypes.OnAttack; e.OnMeleeAttackSpellChance = 100.0; });
         player.Buffs.Add(new Buff { Caster = player, Target = player, SpellEffect = effect });
 
         player.OnMeleeAttack(player, fixture.World);
