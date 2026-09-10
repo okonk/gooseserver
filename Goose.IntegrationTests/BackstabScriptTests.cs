@@ -5,11 +5,11 @@ namespace Goose.IntegrationTests;
 public class BackstabScriptTests
 {
     [Theory]
-    [InlineData(1, 5, 4)]
-    [InlineData(2, 6, 5)]
-    [InlineData(3, 5, 6)]
-    [InlineData(4, 4, 5)]
-    public void Cast_hits_the_character_one_tile_in_front_of_the_self_target(int facing, int targetX, int targetY)
+    [InlineData(Direction.Up, 5, 4)]
+    [InlineData(Direction.Right, 6, 5)]
+    [InlineData(Direction.Down, 5, 6)]
+    [InlineData(Direction.Left, 4, 5)]
+    public void Cast_hits_the_character_one_tile_in_front_of_the_self_target(Direction facing, int targetX, int targetY)
     {
         using var fixture = CreateFixture();
         var (map, effect, caster) = CreateScenario(fixture, facing);
@@ -27,8 +27,8 @@ public class BackstabScriptTests
     public void Cast_hits_an_npc_one_tile_in_front()
     {
         using var fixture = CreateFixture();
-        var (map, effect, caster) = CreateScenario(fixture, 2);
-        var victim = CreateNpc(map, 6, 5, 3);
+        var (map, effect, caster) = CreateScenario(fixture, Direction.Right);
+        var victim = CreateNpc(map, 6, 5, Direction.Down);
         map.SetCharacter(victim, 6, 5);
 
         var result = effect.Cast(caster, caster, fixture.World);
@@ -42,9 +42,9 @@ public class BackstabScriptTests
     {
         using var fixture = CreateFixture();
         var (map, effect, caster) = CreateScenario(
-            fixture, 2, "-1.5 * (%cstr + %cwdmg + %clevel)");
+            fixture, Direction.Right, "-1.5 * (%cstr + %cwdmg + %clevel)");
         effect.ScriptParams = "100";
-        var victim = CreatePlayer(fixture, map, 6, 5, "Victim", 202, 3);
+        var victim = CreatePlayer(fixture, map, 6, 5, "Victim", 202, Direction.Down);
         map.SetCharacter(victim, 6, 5);
 
         effect.Cast(caster, caster, fixture.World);
@@ -56,8 +56,8 @@ public class BackstabScriptTests
     public void Cast_applies_same_facing_bonus_after_formula_processing()
     {
         using var fixture = CreateFixture();
-        var (map, effect, caster) = CreateScenario(fixture, 2);
-        var victim = CreatePlayer(fixture, map, 6, 5, "Victim", 202, 2);
+        var (map, effect, caster) = CreateScenario(fixture, Direction.Right);
+        var victim = CreatePlayer(fixture, map, 6, 5, "Victim", 202, Direction.Right);
         map.SetCharacter(victim, 6, 5);
 
         effect.Cast(caster, caster, fixture.World);
@@ -69,9 +69,9 @@ public class BackstabScriptTests
     public void Cast_rejects_an_ineligible_player_but_still_sends_animation()
     {
         using var fixture = CreateFixture();
-        var (map, effect, caster) = CreateScenario(fixture, 2);
+        var (map, effect, caster) = CreateScenario(fixture, Direction.Right);
         effect.Effected = SpellEffect.SpellEffected.NPC;
-        var victim = CreatePlayer(fixture, map, 6, 5, "Victim", 202, 3);
+        var victim = CreatePlayer(fixture, map, 6, 5, "Victim", 202, Direction.Down);
         map.SetCharacter(victim, 6, 5);
 
         var result = effect.Cast(caster, caster, fixture.World);
@@ -85,8 +85,8 @@ public class BackstabScriptTests
     public void Cast_sends_animation_to_caster_and_nearby_players_on_an_empty_tile()
     {
         using var fixture = CreateFixture();
-        var (map, effect, caster) = CreateScenario(fixture, 2);
-        var observer = CreatePlayer(fixture, map, 4, 5, "Observer", 303, 1);
+        var (map, effect, caster) = CreateScenario(fixture, Direction.Right);
+        var observer = CreatePlayer(fixture, map, 4, 5, "Observer", 303, Direction.Up);
         map.AddPlayer(caster, fixture.World);
         map.AddPlayer(observer, fixture.World);
 
@@ -102,7 +102,7 @@ public class BackstabScriptTests
     public void Cast_sends_animation_for_an_out_of_bounds_front_tile()
     {
         using var fixture = CreateFixture();
-        var (map, effect, caster) = CreateScenario(fixture, 1);
+        var (map, effect, caster) = CreateScenario(fixture, Direction.Up);
         caster.MapX = 1;
         caster.MapY = 1;
 
@@ -119,7 +119,7 @@ public class BackstabScriptTests
 
     private static (Map Map, SpellEffect Effect, TestWorldFixture.CapturingPlayer Caster) CreateScenario(
         TestWorldFixture fixture,
-        int facing,
+        Direction facing,
         string hpFormula = "-2 * (%cstr + %cwdmg + %clevel)")
     {
         var map = fixture.AddBaseMap(1, "Test");
@@ -152,7 +152,7 @@ public class BackstabScriptTests
         int y,
         string name,
         int loginId,
-        int facing)
+        Direction facing)
     {
         var player = fixture.CommandPlayerOn(map, x, y, name);
         player.LoginID = loginId;
@@ -166,7 +166,7 @@ public class BackstabScriptTests
         return player;
     }
 
-    private static NPC CreateNpc(Map map, int x, int y, int facing)
+    private static NPC CreateNpc(Map map, int x, int y, Direction facing)
     {
         var npc = new NPC
         {
@@ -190,9 +190,16 @@ public class BackstabScriptTests
         return npc;
     }
 
-    private static int DifferentFacing(int facing)
+    private static Direction DifferentFacing(Direction facing)
     {
-        return facing == 4 ? 1 : facing + 1;
+        return facing switch
+        {
+            Direction.Up => Direction.Right,
+            Direction.Right => Direction.Down,
+            Direction.Down => Direction.Left,
+            Direction.Left => Direction.Up,
+            _ => Direction.Up
+        };
     }
 
     private static string ExpectedAnimation(ICharacter caster, int x, int y, SpellEffect effect)

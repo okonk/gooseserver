@@ -240,7 +240,14 @@ public class AsperetaMode : BaseGlobalScript
         BankWindow.BankFrame = Window.WindowFrames.TenSlot; 
         CombineBagWindow.IdGenerator = (player) => { return ++player.LastWindowID; };
 
-        FacingEvent.FacingConverter = (facing) => { return (facing == 2 ? 3 : (facing == 3 ? 4 : (facing == 4 ? 2 : facing))); };
+        FacingEvent.FacingConverter = (facing) => facing switch
+        {
+            1 => Direction.Up,
+            2 => Direction.Down,
+            3 => Direction.Left,
+            4 => Direction.Right,
+            _ => (Direction)facing
+        };
 
         P.ClassUpdate = (@class) => { return null; };
 
@@ -313,7 +320,7 @@ public class AsperetaMode : BaseGlobalScript
                            "" + "," + // Guild name
                            player.MapX + "," +
                            player.MapY + "," +
-                           player.Facing + "," +
+                           (int)player.Facing + "," +
                            (int)(((float)player.CurrentHP / player.MaxStats.HP) * 100) + "," + // HP %
                            player.CurrentBodyID + "," +
                            (player.CurrentBodyID >= 100 ? 1 : pose) + "," +
@@ -361,7 +368,7 @@ public class AsperetaMode : BaseGlobalScript
                            "" + "," + // Guild name
                            npc.MapX + "," +
                            npc.MapY + "," +
-                           npc.Facing + "," +
+                           (int)npc.Facing + "," +
                            (int)(((float)npc.CurrentHP / npc.MaxStats.HP) * 100) + "," + // HP %
                            npc.CurrentBodyID + "," +
                            (npc.CurrentBodyID >= 100 ? 1 : npc.BodyState) + "," +
@@ -400,7 +407,7 @@ public class AsperetaMode : BaseGlobalScript
                            "" + "," + // Guild name
                            npc.MapX + "," +
                            npc.MapY + "," +
-                           npc.Facing + "," +
+                           (int)npc.Facing + "," +
                            (int)(((float)npc.CurrentHP / npc.MaxStats.HP) * 100) + "," + // HP %
                            npc.CurrentBodyID + "," +
                            (npc.CurrentBodyID >= 100 ? 1 : npc.BodyState) + "," +

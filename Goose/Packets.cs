@@ -97,7 +97,7 @@ namespace Goose
                           "" + "," + // Guild name
                           player.MapX + "," +
                           player.MapY + "," +
-                          player.Facing + "," +
+                          (int)player.Facing + "," +
                           (int)(((float)player.CurrentHP / player.MaxHP) * 100) + "," + // HP %
                           player.CurrentBodyID + "," +
                           player.BodyR + "," + // Body Color R
@@ -178,7 +178,7 @@ namespace Goose
                         "" + "," + // Guild name
                         npc.MapX + "," +
                         npc.MapY + "," +
-                        npc.Facing + "," +
+                        (int)npc.Facing + "," +
                         (int)(((float)npc.CurrentHP / npc.MaxHP) * 100) + "," + // HP %
                         npc.CurrentBodyID + "," +
                         npc.BodyR + "," + // Body Color R
@@ -206,7 +206,7 @@ namespace Goose
                         "" + "," + // Guild name
                         npc.MapX + "," +
                         npc.MapY + "," +
-                        npc.Facing + "," +
+                        (int)npc.Facing + "," +
                         (int)(((float)npc.CurrentHP / npc.MaxHP) * 100) + "," + // HP %
                         npc.CurrentBodyID + "," +
                         npc.BodyR + "," + // Body Color R
@@ -339,7 +339,7 @@ namespace Goose
 
         public static Func<ICharacter, string> ChangeHeading = (target) =>
         {
-            return "CHH" + target.LoginID + "," + target.Facing;
+            return "CHH" + target.LoginID + "," + (int)target.Facing;
         };
 
         public static Func<ICharacter, string> MoveCharacter = (target) =>

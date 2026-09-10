@@ -87,7 +87,7 @@ namespace Goose
                         npc.Title = reader.GetString("npc_title");
                         npc.Surname = reader.GetString("npc_surname");
                         npc.RespawnTime = reader.GetInt32("respawn_time");
-                        npc.Facing = reader.GetInt32("npc_facing");
+                        npc.Facing = (Direction)reader.GetInt32("npc_facing");
                         npc.Level = reader.GetInt32("npc_level");
                         npc.Experience = reader.GetInt64("experience");
                         npc.WeaponDamage = reader.GetInt64("weapon_damage");

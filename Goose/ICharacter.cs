@@ -30,7 +30,7 @@ namespace Goose
         /**
          * Facing direction
          */
-        int Facing { get; set; }
+        Direction Facing { get; set; }
         /**
          * BaseStats, stats loaded from database
          */

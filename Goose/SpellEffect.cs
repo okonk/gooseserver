@@ -1120,10 +1120,10 @@ namespace Goose
                     {
                         (x, y) = caster.Facing switch
                         {
-                            1 => (x, y - 1),
-                            2 => (x + 1, y),
-                            3 => (x, y + 1),
-                            4 => (x - 1, y),
+                            Direction.Up => (x, y - 1),
+                            Direction.Right => (x + 1, y),
+                            Direction.Down => (x, y + 1),
+                            Direction.Left => (x - 1, y),
                             _ => (x, y),
                         };
 
@@ -1279,10 +1279,10 @@ namespace Goose
                     {
                         (x, y) = caster.Facing switch
                         {
-                            1 => (ox - i, y - 1),
-                            2 => (x + 1, oy - i),
-                            3 => (ox - i, y + 1),
-                            4 => (x - 1, oy - i),
+                            Direction.Up => (ox - i, y - 1),
+                            Direction.Right => (x + 1, oy - i),
+                            Direction.Down => (ox - i, y + 1),
+                            Direction.Left => (x - 1, oy - i),
                             _ => (x, y),
                         };
 
@@ -1290,10 +1290,10 @@ namespace Goose
                         {
                             (x, y) = caster.Facing switch
                             {
-                                1 => (x + 1, y),
-                                2 => (x, y + 1),
-                                3 => (x + 1, y),
-                                4 => (x, y + 1),
+                                Direction.Up => (x + 1, y),
+                                Direction.Right => (x, y + 1),
+                                Direction.Down => (x + 1, y),
+                                Direction.Left => (x, y + 1),
                                 _ => (x, y),
                             };
 

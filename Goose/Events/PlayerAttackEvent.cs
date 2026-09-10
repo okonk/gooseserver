@@ -77,10 +77,10 @@ namespace Goose.Events
                     // check tile 1 square in front of player
                     (x, y) = this.Player.Facing switch
                     {
-                        1 => (x, y - 1),
-                        2 => (x + 1, y),
-                        3 => (x, y + 1),
-                        4 => (x - 1, y),
+                        Direction.Up => (x, y - 1),
+                        Direction.Right => (x + 1, y),
+                        Direction.Down => (x, y + 1),
+                        Direction.Left => (x - 1, y),
                         _ => (x, y),
                     };
 

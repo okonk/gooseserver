@@ -328,7 +328,7 @@ namespace Goose
                     "(" +
                     this.PetID + "," +
                     " @petName, @petTitle, @petSurname, " +
-                    this.Facing + ", " +
+                    (int)this.Facing + ", " +
                     this.Level + ", " +
                     this.Experience + ", " +
                     this.ExperienceSold + ", " +
@@ -397,7 +397,7 @@ namespace Goose
                     "pet_name=@petName, " +
                     "pet_title=@petTitle, " +
                     "pet_surname=@petSurname, " +
-                    "pet_facing=" + this.Facing + ", " +
+                    "pet_facing=" + (int)this.Facing + ", " +
                     "pet_level=" + this.Level + ", " +
                     "experience=" + this.Experience + ", " +
                     "experience_sold=" + this.ExperienceSold + ", " +
@@ -563,7 +563,7 @@ namespace Goose
          * 1,2,3,4 = up,right,down,left
          *
          */
-        public int NextStepTo(int x, int y, GameWorld world)
+        public Direction NextStepTo(int x, int y, GameWorld world)
         {
             int nx, ny;
             int dx, dy;
@@ -571,13 +571,13 @@ namespace Goose
             dx = x - this.MapX;
             dy = y - this.MapY;
 
-            if (dx == 0 && dy == -1) return 1;
-            if (dx == 0 && dy == 1) return 3;
-            if (dx == 1 && dy == 0) return 2;
-            if (dx == -1 && dy == 0) return 4;
+            if (dx == 0 && dy == -1) return Direction.Up;
+            if (dx == 0 && dy == 1) return Direction.Down;
+            if (dx == 1 && dy == 0) return Direction.Right;
+            if (dx == -1 && dy == 0) return Direction.Left;
 
             int shortestpath = Math.Abs(x - (this.MapX)) + Math.Abs(y - (this.MapY));
-            int shortest = 1;
+            Direction shortest = Direction.Up;
 
             int temp;
             int f1 = 0, f2 = 0, f3 = 0, f4 = 0;
@@ -590,7 +590,7 @@ namespace Goose
                 if (this.CanMoveTo(nx, ny))
                 {
                     shortestpath = temp;
-                    shortest = 1;
+                    shortest = Direction.Up;
                     f1++;
                 }
             }
@@ -603,7 +603,7 @@ namespace Goose
                 if (this.CanMoveTo(nx, ny))
                 {
                     shortestpath = temp;
-                    shortest = 2;
+                    shortest = Direction.Right;
                     f2++;
                 }
             }
@@ -616,7 +616,7 @@ namespace Goose
                 if (this.CanMoveTo(nx, ny))
                 {
                     shortestpath = temp;
-                    shortest = 3;
+                    shortest = Direction.Down;
                     f3++;
                 }
             }
@@ -629,26 +629,26 @@ namespace Goose
                 if (this.CanMoveTo(nx, ny))
                 {
                     shortestpath = temp;
-                    shortest = 4;
+                    shortest = Direction.Left;
                     f4++;
                 }
             }
             nx = this.MapX;
             ny = this.MapY;
-            if ((f1 == f2) && (f1 == 1)) { shortest = (Math.Abs(x - nx) > Math.Abs(y - ny)) ? 2 : 1; }
-            if ((f1 == f4) && (f1 == 1)) { shortest = (Math.Abs(x - nx) > Math.Abs(y - ny)) ? 4 : 1; }
-            if ((f2 == f3) && (f2 == 1)) { shortest = (Math.Abs(x - nx) > Math.Abs(y - ny)) ? 2 : 3; }
-            if ((f3 == f4) && (f3 == 1)) { shortest = (Math.Abs(x - nx) > Math.Abs(y - ny)) ? 4 : 3; }
+            if ((f1 == f2) && (f1 == 1)) { shortest = (Math.Abs(x - nx) > Math.Abs(y - ny)) ? Direction.Right : Direction.Up; }
+            if ((f1 == f4) && (f1 == 1)) { shortest = (Math.Abs(x - nx) > Math.Abs(y - ny)) ? Direction.Left : Direction.Up; }
+            if ((f2 == f3) && (f2 == 1)) { shortest = (Math.Abs(x - nx) > Math.Abs(y - ny)) ? Direction.Right : Direction.Down; }
+            if ((f3 == f4) && (f3 == 1)) { shortest = (Math.Abs(x - nx) > Math.Abs(y - ny)) ? Direction.Left : Direction.Down; }
 
             int rand = 0;
 
             if (shortestpath == Math.Abs(x - (this.MapX)) + Math.Abs(y - (this.MapY)))
             {
                 rand = world.Random.Next(1, 3);
-                if (d1 == 1) { shortest = (rand == 1) ? 2 : 4; }
-                if (d2 == 1) { shortest = (rand == 1) ? 1 : 3; }
-                if (d3 == 1) { shortest = (rand == 1) ? 2 : 4; }
-                if (d4 == 1) { shortest = (rand == 1) ? 1 : 3; }
+                if (d1 == 1) { shortest = (rand == 1) ? Direction.Right : Direction.Left; }
+                if (d2 == 1) { shortest = (rand == 1) ? Direction.Up : Direction.Down; }
+                if (d3 == 1) { shortest = (rand == 1) ? Direction.Right : Direction.Left; }
+                if (d4 == 1) { shortest = (rand == 1) ? Direction.Up : Direction.Down; }
             }
             return shortest;
         }
@@ -714,7 +714,7 @@ namespace Goose
          * FaceTo, faces to direction
          *
          */
-        public void FaceTo(int direction, GameWorld world)
+        public void FaceTo(Direction direction, GameWorld world)
         {
             if (this.Facing == direction) return;
 
