@@ -574,20 +574,8 @@ namespace Goose
             var range = target.Map.GetPlayersInRange(target);
             var packets = new List<string>();
 
-            long hpresult = this.ParseFormula(this.HPFormula, caster, target);
-            long mpresult = this.ParseFormula(this.MPFormula, caster, target);
-            //int spresult = this.ParseFormula(this.SPFormula, caster, target);
-
-            // if target is a player then no sd for pvp if not a heal
-            if (!(hpresult < 0 && target is Player) && this.SpellDamageEffects)
-            {
-                if (world.Random.Next(1, 10001) <= caster.MaxStats.SpellCrit * 10000) hpresult *= 2;
-                hpresult = (long)(hpresult * (1 + caster.MaxStats.SpellDamage));
-
-                if (world.Random.Next(1, 10001) <= caster.MaxStats.SpellCrit * 10000) mpresult *= 2;
-                mpresult = (long)(mpresult * (1 + caster.MaxStats.SpellDamage));
-            }
-            hpresult = (long)(hpresult * world.Settings.DamageModifier);
+            var (hpresult, mpresult) = this.CalculateFormulaResults(
+                this.HPFormula, this.MPFormula, caster, target, world);
             target.CurrentMP += mpresult;
             if (hpresult != 0)
             {
@@ -625,6 +613,29 @@ namespace Goose
             }
 
             return true;
+        }
+
+        public (long HP, long MP) CalculateFormulaResults(
+            string hpFormula,
+            string mpFormula,
+            ICharacter caster,
+            ICharacter target,
+            GameWorld world)
+        {
+            long hpresult = this.ParseFormula(hpFormula, caster, target);
+            long mpresult = this.ParseFormula(mpFormula, caster, target);
+
+            if (!(hpresult < 0 && target is Player) && this.SpellDamageEffects)
+            {
+                if (world.Random.Next(1, 10001) <= caster.MaxStats.SpellCrit * 10000) hpresult *= 2;
+                hpresult = (long)(hpresult * (1 + caster.MaxStats.SpellDamage));
+
+                if (world.Random.Next(1, 10001) <= caster.MaxStats.SpellCrit * 10000) mpresult *= 2;
+                mpresult = (long)(mpresult * (1 + caster.MaxStats.SpellDamage));
+            }
+            hpresult = (long)(hpresult * world.Settings.DamageModifier);
+
+            return (hpresult, mpresult);
         }
 
         /**

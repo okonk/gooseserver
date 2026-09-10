@@ -1,0 +1,47 @@
+using System;
+using System.Globalization;
+using Goose;
+using Goose.Scripting;
+
+public class Backstab : BaseSpellEffectScript
+{
+    public override bool Cast(SpellEffect thisEffect, ICharacter caster, ICharacter target, GameWorld world)
+    {
+        var (x, y) = caster.Facing switch
+        {
+            1 => (caster.MapX, caster.MapY - 1),
+            2 => (caster.MapX + 1, caster.MapY),
+            3 => (caster.MapX, caster.MapY + 1),
+            4 => (caster.MapX - 1, caster.MapY),
+            _ => (caster.MapX, caster.MapY)
+        };
+
+        var packet = string.Join("\x1", P.Attack(caster),
+            P.SpellTile(x, y, thisEffect.Animation, thisEffect.AnimationFile));
+        if (caster is Player player)
+            world.Send(player, packet);
+        foreach (var nearbyPlayer in caster.Map.GetPlayersInRange(caster))
+            world.Send(nearbyPlayer, packet);
+
+        var occupant = caster.Map.GetCharacterAt(x, y);
+        if (occupant is null || !thisEffect.CanCastSpell(caster, occupant))
+            return true;
+
+        if (!decimal.TryParse(thisEffect.ScriptParams, NumberStyles.Number,
+                CultureInfo.InvariantCulture, out var multiplier) || multiplier <= 0)
+            multiplier = 2m;
+
+        var formula = "-" + multiplier.ToString(CultureInfo.InvariantCulture) +
+            " * (%cstr + %cwdmg + %clevel)";
+        var (hpResult, _) = thisEffect.CalculateFormulaResults(formula, "0", caster, occupant, world);
+        var damage = -hpResult;
+        if (caster.Facing == occupant.Facing)
+            damage = (long)(damage * 1.5m);
+        if (damage > 0)
+            occupant.Attacked(caster, damage, world);
+
+        return true;
+    }
+}
+
+return typeof(Backstab);
