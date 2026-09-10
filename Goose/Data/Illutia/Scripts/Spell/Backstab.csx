@@ -1,5 +1,4 @@
 using System;
-using System.Globalization;
 using Goose;
 using Goose.Scripting;
 
@@ -27,13 +26,8 @@ public class Backstab : BaseSpellEffectScript
         if (occupant is null || !thisEffect.CanCastSpell(caster, occupant))
             return true;
 
-        if (!decimal.TryParse(thisEffect.ScriptParams, NumberStyles.Number,
-                CultureInfo.InvariantCulture, out var multiplier) || multiplier <= 0)
-            multiplier = 2m;
-
-        var formula = "-" + multiplier.ToString(CultureInfo.InvariantCulture) +
-            " * (%cstr + %cwdmg + %clevel)";
-        var (hpResult, _) = thisEffect.CalculateFormulaResults(formula, "0", caster, occupant, world);
+        var (hpResult, _) = thisEffect.CalculateFormulaResults(
+            thisEffect.HPFormula, "0", caster, occupant, world);
         var damage = -hpResult;
         if (caster.Facing == occupant.Facing)
             damage = (long)(damage * 1.5m);

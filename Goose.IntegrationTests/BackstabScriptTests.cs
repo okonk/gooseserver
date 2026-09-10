@@ -38,10 +38,12 @@ public class BackstabScriptTests
     }
 
     [Fact]
-    public void Cast_uses_a_decimal_configured_multiplier_when_facings_differ()
+    public void Cast_uses_the_configured_hp_formula_when_facings_differ()
     {
         using var fixture = CreateFixture();
-        var (map, effect, caster) = CreateScenario(fixture, 2, "1.5");
+        var (map, effect, caster) = CreateScenario(
+            fixture, 2, "-1.5 * (%cstr + %cwdmg + %clevel)");
+        effect.ScriptParams = "100";
         var victim = CreatePlayer(fixture, map, 6, 5, "Victim", 202, 3);
         map.SetCharacter(victim, 6, 5);
 
@@ -61,24 +63,6 @@ public class BackstabScriptTests
         effect.Cast(caster, caster, fixture.World);
 
         Assert.Equal(980, victim.CurrentHP);
-    }
-
-    [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    [InlineData("not-a-number")]
-    [InlineData("0")]
-    [InlineData("-3")]
-    public void Cast_falls_back_to_multiplier_two_for_invalid_or_non_positive_params(string? scriptParams)
-    {
-        using var fixture = CreateFixture();
-        var (map, effect, caster) = CreateScenario(fixture, 2, scriptParams);
-        var victim = CreatePlayer(fixture, map, 6, 5, "Victim", 202, 3);
-        map.SetCharacter(victim, 6, 5);
-
-        effect.Cast(caster, caster, fixture.World);
-
-        Assert.Equal(987, victim.CurrentHP);
     }
 
     [Fact]
@@ -136,7 +120,7 @@ public class BackstabScriptTests
     private static (Map Map, SpellEffect Effect, TestWorldFixture.CapturingPlayer Caster) CreateScenario(
         TestWorldFixture fixture,
         int facing,
-        string? scriptParams = "2")
+        string hpFormula = "-2 * (%cstr + %cwdmg + %clevel)")
     {
         var map = fixture.AddBaseMap(1, "Test");
         map.CanCast = true;
@@ -155,7 +139,7 @@ public class BackstabScriptTests
             e.WorksInPVP = true;
             e.Animation = 12;
             e.AnimationFile = 3;
-            e.ScriptParams = scriptParams!;
+            e.HPFormula = hpFormula;
             e.Script = fixture.CompileSpellEffectScript(scriptBody, "Backstab.csx");
         });
         return (map, effect, caster);
