@@ -271,7 +271,7 @@ public partial class Dimensions
     /// notably MoveSpeed and SP. Deliberate deviation, see the design doc.</summary>
     private void ScaleBuffStats(AttributeSet stats, int dim)
     {
-        decimal linear = 1m + 0.5m * dim;
+        double linear = 1.0 + 0.5 * dim;
 
         stats.HP = stats.HP * (dim + 1) * (dim + 1);
         stats.MP = stats.MP * (dim + 1) * (dim + 1);
@@ -302,7 +302,7 @@ public partial class Dimensions
 
     /// <summary>SpellHandler.java:260. Single-target spells get an extra 1.15.
     ///
-    /// InvariantCulture is required: ParseFormula reads literals with Convert.ToDecimal and no
+    /// InvariantCulture is required: ParseFormula reads literals with Convert.ToDouble and no
     /// format provider (SpellEffect.cs:1311), and shipped sheet data already uses '.' as the
     /// separator ("0.10 * %ccmp"), so '.' is the convention the parser is fed everywhere.</summary>
     private string ScaleFormula(string formula, SpellEffect.TargetTypes targetType, int dim)

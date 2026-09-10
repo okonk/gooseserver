@@ -260,12 +260,12 @@ public partial class Dimensions
             HP = (long)(a1.HP * dim + Math.Pow(10 * dim, 4) * tier),
             MP = (long)(a1.MP * dim + Math.Pow(10 * dim, 4) * tier),
 
-            DamageReduction = a1.DamageReduction * (decimal)half,
-            Haste = a1.Haste * (decimal)half,
-            SpellCrit = a1.SpellCrit * (decimal)half,
-            SpellDamage = a1.SpellDamage * (decimal)half,
-            HPPercentRegen = a1.HPPercentRegen * (decimal)half,
-            MPPercentRegen = a1.MPPercentRegen * (decimal)half,
+            DamageReduction = a1.DamageReduction * half,
+            Haste = a1.Haste * half,
+            SpellCrit = a1.SpellCrit * half,
+            SpellDamage = a1.SpellDamage * half,
+            HPPercentRegen = a1.HPPercentRegen * half,
+            MPPercentRegen = a1.MPPercentRegen * half,
             HPStaticRegen = (int)(a1.HPStaticRegen * half),
             MPStaticRegen = (int)(a1.MPStaticRegen * half),
 

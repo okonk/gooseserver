@@ -120,13 +120,13 @@ public partial class Dimensions
             clone.CanBeStunned = false;
             clone.CanBeSlowed = true;
             clone.AttackSpeed = ScaleAttackSpeed(basic.AttackSpeed, dim);
-            clone.MoveSpeed = Math.Max(basic.MoveSpeed - 0.15m * dim, 0.15m);   // NPC.java:907
+            clone.MoveSpeed = Math.Max(basic.MoveSpeed - 0.15 * dim, 0.15);   // NPC.java:907
             clone.WeaponDamage = ScaleDamage(basic.WeaponDamage, dim);
             clone.Experience = ScaleExperience(basic.Experience, basic.Level, dim);
             clone.RespawnTime = ScaleRespawn(basic.RespawnTime, dim);
 
             clone.BaseStats.HP = ScaleHP(basic.BaseStats.HP, dim);
-            clone.BaseStats.HPPercentRegen = basic.BaseStats.HPPercentRegen + 0.004m * (dim + 1);  // NPC.java:879
+            clone.BaseStats.HPPercentRegen = basic.BaseStats.HPPercentRegen + 0.004 * (dim + 1);  // NPC.java:879
         }
 
         Recolour(clone, dim);   // NPC.java:1019
@@ -150,10 +150,10 @@ public partial class Dimensions
     }
 
     /// <summary>NPC.java:945. The dim>=5 branch raises the value back to 0.7 - faithful, if odd.</summary>
-    private decimal ScaleAttackSpeed(decimal attackSpeed, int dim)
+    private double ScaleAttackSpeed(double attackSpeed, int dim)
     {
-        attackSpeed = Math.Max(attackSpeed - 0.175m * dim, 0.2m);
-        if (dim >= 5 && attackSpeed > 0.5m) attackSpeed = 0.7m;
+        attackSpeed = Math.Max(attackSpeed - 0.175 * dim, 0.2);
+        if (dim >= 5 && attackSpeed > 0.5) attackSpeed = 0.7;
         return attackSpeed;
     }
 
@@ -283,8 +283,8 @@ public partial class Dimensions
             WeaponDamage = 0,
             AggroRange = 0,
             AttackRange = 1,
-            AttackSpeed = 1m,
-            MoveSpeed = 1m,
+            AttackSpeed = 1.0,
+            MoveSpeed = 1.0,
             RespawnTime = 0,
             Experience = 0,
 
@@ -437,8 +437,8 @@ public partial class Dimensions
             WeaponDamage = 0,
             AggroRange = 0,
             AttackRange = 1,
-            AttackSpeed = 1m,
-            MoveSpeed = 1m,
+            AttackSpeed = 1.0,
+            MoveSpeed = 1.0,
             RespawnTime = 0,
             Experience = 0,
 
