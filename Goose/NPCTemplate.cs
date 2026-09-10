@@ -51,7 +51,7 @@ namespace Goose
         /**
          * Facing direction
          */
-        public int Facing { get; set; }
+        public Direction Facing { get; set; }
         /**
          * BaseStats, stats loaded from database
          */

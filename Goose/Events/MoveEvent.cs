@@ -54,9 +54,11 @@ namespace Goose.Events
 
                 if (((string)this.Data).Length == 1) return; // log bad move event
 
-                int direction = Convert.ToInt32(((string)this.Data)[1].ToString());
+                int rawDirection = Convert.ToInt32(((string)this.Data)[1].ToString());
 
-                if (direction <= 0 || direction >= 5) return; // log bad move event
+                if (rawDirection <= 0 || rawDirection >= 5) return; // log bad move event
+
+                Direction direction = (Direction)rawDirection;
 
                 /* Speedhack detection */
                 if (world.Settings.SpeedhackDetectionEnabled)
@@ -92,10 +94,10 @@ namespace Goose.Events
 
                 (x, y) = direction switch
                 {
-                    1 => (x, y - 1),
-                    2 => (x + 1, y),
-                    3 => (x, y + 1),
-                    4 => (x - 1, y),
+                    Direction.Up => (x, y - 1),
+                    Direction.Right => (x + 1, y),
+                    Direction.Down => (x, y + 1),
+                    Direction.Left => (x - 1, y),
                     _ => (x, y),
                 };
 

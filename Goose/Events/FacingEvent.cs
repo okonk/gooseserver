@@ -18,7 +18,7 @@ namespace Goose.Events
     public class FacingEvent : Event
     {
         // Needed because Aspereta needs to convert the facing
-        public static Func<int, int> FacingConverter = (facing) => { return facing; };
+        public static Func<int, Direction> FacingConverter = (facing) => { return (Direction)facing; };
 
         public override void Ready(GameWorld world)
         {
@@ -37,11 +37,11 @@ namespace Goose.Events
 
                 if (((string)this.Data).Length == 1) return; // log bad facing event
 
-                int facing = Convert.ToInt32(((string)this.Data)[1].ToString());
+                int rawFacing = Convert.ToInt32(((string)this.Data)[1].ToString());
 
-                if (facing <= 0 || facing >= 5) return; // log bad facing event
+                if (rawFacing <= 0 || rawFacing >= 5) return; // log bad facing event
 
-                facing = FacingConverter(facing);
+                Direction facing = FacingConverter(rawFacing);
 
                 if (this.Player.Facing != facing)
                 {

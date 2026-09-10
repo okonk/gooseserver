@@ -40,6 +40,22 @@ namespace Goose.Tests
         }
 
         [Fact]
+        public void Facing_is_serialized_as_its_numeric_value()
+        {
+            var player = NewPlayer();
+            player.Facing = Direction.Right;
+            var pet = NewPet();
+            pet.Facing = Direction.Right;
+            var npc = NewNPC();
+            npc.Facing = Direction.Right;
+
+            Assert.Contains(",0,0,2,", P.MakeCharacter(player));
+            Assert.Contains(",0,0,2,", P.MakePetCharacter(pet));
+            Assert.Contains(",0,0,2,", P.MakeNPCCharacter(npc));
+            Assert.Equal("CHH0,2", P.ChangeHeading(player));
+        }
+
+        [Fact]
         public void MakeCharacter_PinsInvisFieldBeforeFaceID()
         {
             var packet = P.MakeCharacter(NewPlayer());

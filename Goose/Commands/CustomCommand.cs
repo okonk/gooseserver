@@ -102,7 +102,7 @@ namespace Goose.Commands
                     "" + "," + // Guild name
                     prevx + "," +
                     prevy + "," +
-                    ctx.Player.Facing + "," +
+                    (int)ctx.Player.Facing + "," +
                     100 + "," + // HP %
                     ctx.Player.BodyID + "," +
                     ctx.Player.BodyR + "," + // Body Color R
@@ -133,7 +133,7 @@ namespace Goose.Commands
                     "" + "," + // Guild name
                     prevx + "," +
                     prevy + "," +
-                    ctx.Player.Facing + "," +
+                    (int)ctx.Player.Facing + "," +
                     100 + "," + // HP %
                     ctx.Player.BodyID + "," +
                     pose + "," +

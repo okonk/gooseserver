@@ -206,10 +206,10 @@ public class ZombieNPC : BaseNPCScript
 
 		switch (npc.Facing)
 		{
-			case 1: y--; break;
-			case 2: x++; break;
-			case 3: y++; break;
-			case 4: x--; break;
+			case Direction.Up: y--; break;
+			case Direction.Right: x++; break;
+			case Direction.Down: y++; break;
+			case Direction.Left: x--; break;
 		}
 
 		if (target.MapX != x || target.MapY != y)

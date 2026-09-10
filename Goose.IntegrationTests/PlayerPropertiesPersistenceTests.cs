@@ -69,6 +69,7 @@ public class PlayerPropertiesPersistenceTests : IDisposable
             Surname = "",
             PasswordHash = "hash",
             PasswordSalt = "salt",
+            Facing = Direction.Right,
             BaseStats = new AttributeSet(),
         };
         return player;

@@ -39,7 +39,7 @@ namespace Goose.Events
                     }
                 }
 
-                int direction = 1;
+                Direction direction = Direction.Up;
                 switch (pet.Mode) 
                 {
                     case Pet.Modes.Neutral:
@@ -72,10 +72,10 @@ namespace Goose.Events
 
                 (x, y) = direction switch
                 {
-                    1 => (x, y - 1),
-                    2 => (x + 1, y),
-                    3 => (x, y + 1),
-                    4 => (x - 1, y),
+                    Direction.Up => (x, y - 1),
+                    Direction.Right => (x + 1, y),
+                    Direction.Down => (x, y + 1),
+                    Direction.Left => (x - 1, y),
                     _ => (x, y),
                 };
 

@@ -144,7 +144,7 @@ namespace Goose
         /**
          * Facing direction
          */
-        public int Facing { get; set; }
+        public Direction Facing { get; set; }
         /**
          * BaseStats, stats loaded from database
          */
@@ -610,7 +610,7 @@ namespace Goose
             this.MapX = world.Settings.StartingMapX;
             this.MapY = world.Settings.StartingMapY;
 
-            this.Facing = 2;
+            this.Facing = Direction.Right;
             this.BoundID = world.Settings.StartingMapID;
             this.BoundX = world.Settings.StartingMapX;
             this.BoundY = world.Settings.StartingMapY;
@@ -745,7 +745,7 @@ namespace Goose
             this.MapID = reader.GetInt32("map_id");
             this.MapX = reader.GetInt32("map_x");
             this.MapY = reader.GetInt32("map_y");
-            this.Facing = reader.GetInt32("player_facing");
+            this.Facing = (Direction)reader.GetInt32("player_facing");
             this.BoundID = reader.GetInt32("bound_id");
             this.BoundX = reader.GetInt32("bound_x");
             this.BoundY = reader.GetInt32("bound_y");
@@ -1046,7 +1046,7 @@ namespace Goose
                 this.MapID + ", " +
                 this.MapX + ", " +
                 this.MapY + ", " +
-                this.Facing + ", " +
+                (int)this.Facing + ", " +
                 this.BoundID + ", " +
                 this.BoundX + ", " +
                 this.BoundY + ", " +
@@ -1129,7 +1129,7 @@ namespace Goose
                 "map_id=" + this.MapID + ", " +
                 "map_x=" + this.MapX + ", " +
                 "map_y=" + this.MapY + ", " +
-                "player_facing=" + this.Facing + ", " +
+                "player_facing=" + (int)this.Facing + ", " +
                 "bound_id=" + this.BoundID + ", " +
                 "bound_x=" + this.BoundX + ", " +
                 "bound_y=" + this.BoundY + ", " +

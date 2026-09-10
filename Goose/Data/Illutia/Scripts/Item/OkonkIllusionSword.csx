@@ -15,10 +15,10 @@ public class OkonkIllusionSword : BaseItemScript
 
 		switch (player.Facing)
 		{
-			case 1: y--; break;
-			case 2: x++; break;
-			case 3: y++; break;
-			case 4: x--; break;
+			case Direction.Up: y--; break;
+			case Direction.Right: x++; break;
+			case Direction.Down: y++; break;
+			case Direction.Left: x--; break;
 		}
 
 		var character = player.Map.GetCharacterAt(x, y);

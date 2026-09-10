@@ -8,10 +8,10 @@ public class Backstab : BaseSpellEffectScript
     {
         var (x, y) = caster.Facing switch
         {
-            1 => (caster.MapX, caster.MapY - 1),
-            2 => (caster.MapX + 1, caster.MapY),
-            3 => (caster.MapX, caster.MapY + 1),
-            4 => (caster.MapX - 1, caster.MapY),
+            Direction.Up => (caster.MapX, caster.MapY - 1),
+            Direction.Right => (caster.MapX + 1, caster.MapY),
+            Direction.Down => (caster.MapX, caster.MapY + 1),
+            Direction.Left => (caster.MapX - 1, caster.MapY),
             _ => (caster.MapX, caster.MapY)
         };
 
