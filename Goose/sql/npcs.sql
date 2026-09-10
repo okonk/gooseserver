@@ -11,8 +11,8 @@ CREATE TABLE npc_templates (
   experience BIGINT DEFAULT 0 NOT NULL,
   aggro_range SMALLINT DEFAULT 0 NOT NULL,
   attack_range SMALLINT DEFAULT 0 NOT NULL,
-  attack_speed DECIMAL(9,4) DEFAULT 2 NOT NULL,
-  move_speed DECIMAL(9,4) DEFAULT 2 NOT NULL,
+  attack_speed REAL DEFAULT 2 NOT NULL,
+  move_speed REAL DEFAULT 2 NOT NULL,
   stationary CHAR(1) DEFAULT '0' NOT NULL,
   stunnable CHAR(1) DEFAULT '0' NOT NULL,
   rootable CHAR(1) DEFAULT '0' NOT NULL,
@@ -46,9 +46,9 @@ CREATE TABLE npc_templates (
   hair_a SMALLINT DEFAULT 0 NOT NULL,
   equipped_items TEXT DEFAULT '0,*,0,*,0,*,0,*,0,*,0,*' NOT NULL,
   weapon_damage INT DEFAULT 1 NOT NULL,
-  hp_percent_regen DECIMAL(9,4) DEFAULT 0 NOT NULL,
+  hp_percent_regen REAL DEFAULT 0 NOT NULL,
   hp_static_regen INT DEFAULT 0 NOT NULL,
-  mp_percent_regen DECIMAL(9,4) DEFAULT 0 NOT NULL,
+  mp_percent_regen REAL DEFAULT 0 NOT NULL,
   mp_static_regen INT DEFAULT 0 NOT NULL,
   npc_alliance TEXT DEFAULT '' NOT NULL,
   stuck_behaviour SMALLINT DEFAULT 0 NOT NULL,
@@ -79,7 +79,7 @@ CREATE TABLE npc_drops (
   npc_template_id INT NOT NULL,
   item_template_id INT NOT NULL,
   stack INT NOT NULL,
-  droprate DECIMAL(9,4) NOT NULL
+  droprate REAL NOT NULL
 );
 
 CREATE INDEX npc_drops_npc_template_id_idx ON npc_drops(npc_template_id);

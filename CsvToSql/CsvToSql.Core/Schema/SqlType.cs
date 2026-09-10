@@ -14,10 +14,7 @@ namespace CsvToSql.Core.Schema
         public static readonly SqlType Text = new("TEXT");
         public static readonly SqlType Char1 = new("CHAR(1)");
         public static readonly SqlType Varchar64 = new("VARCHAR(64)");
-        public static readonly SqlType Decimal94 = new("DECIMAL(9,4)");
-        public static readonly SqlType Decimal92 = new("DECIMAL(9,2)");
-        public static readonly SqlType Decimal52 = new("DECIMAL(5,2)");
-        public static readonly SqlType Decimal54 = new("DECIMAL(5,4)");
+        public static readonly SqlType Real = new("REAL");
 
         public override string ToString() => Sql;
     }

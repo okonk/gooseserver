@@ -46,16 +46,16 @@ namespace CsvToSql
             Col.Int("res_spirit", SqlType.SmallInt, def: 0),
             Col.Int("res_air", SqlType.SmallInt, def: 0),
             Col.Int("res_earth", SqlType.SmallInt, def: 0),
-            Col.Decimal("hp_percent_regen", SqlType.Decimal94, def: "0"),
+            Col.Double("hp_percent_regen", scale: 4, max: 99999.9999, def: "0"),
             Col.Int("hp_static_regen", SqlType.Int, def: 0),
-            Col.Decimal("mp_percent_regen", SqlType.Decimal94, def: "0"),
+            Col.Double("mp_percent_regen", scale: 4, max: 99999.9999, def: "0"),
             Col.Int("mp_static_regen", SqlType.Int, def: 0),
-            Col.Decimal("haste", SqlType.Decimal94, def: "0"),
-            Col.Decimal("spell_damage", SqlType.Decimal94, def: "0"),
-            Col.Decimal("spell_crit", SqlType.Decimal94, def: "0"),
-            Col.Decimal("melee_damage", SqlType.Decimal94, def: "0"),
-            Col.Decimal("melee_crit", SqlType.Decimal94, def: "0"),
-            Col.Decimal("damage_reduce", SqlType.Decimal94, def: "0"),
+            Col.Double("haste", scale: 4, max: 99999.9999, def: "0"),
+            Col.Double("spell_damage", scale: 4, max: 99999.9999, def: "0"),
+            Col.Double("spell_crit", scale: 4, max: 99999.9999, def: "0"),
+            Col.Double("melee_damage", scale: 4, max: 99999.9999, def: "0"),
+            Col.Double("melee_crit", scale: 4, max: 99999.9999, def: "0"),
+            Col.Double("damage_reduce", scale: 4, max: 99999.9999, def: "0"),
             Col.Int("move_speed", SqlType.SmallInt, def: 0),
             Col.Int("body_id", SqlType.SmallInt, def: 0),
 
@@ -91,14 +91,14 @@ namespace CsvToSql
             Col.Text("buff_doesnt_stack_over", def: "''"),
             Col.Text("buff_stacks_over", def: "''"),
 
-            Col.Decimal("random_join_chance", SqlType.Decimal52, def: "0"),
+            Col.Double("random_join_chance", scale: 2, max: 999.99, def: "0"),
 
             Col.Id("on_hit_spell_effect_id", SqlType.Int, def: 0).Ref("Spell Effects"),
-            Col.Decimal("on_hit_spell_chance", SqlType.Decimal52, def: "100"),
+            Col.Double("on_hit_spell_chance", scale: 2, max: 999.99, def: "100"),
             Col.Id("on_attack_spell_effect_id", SqlType.Int, def: 0).Ref("Spell Effects"),
-            Col.Decimal("on_attack_spell_chance", SqlType.Decimal52, def: "100"),
+            Col.Double("on_attack_spell_chance", scale: 2, max: 999.99, def: "100"),
 
-            Col.Decimal("snare_percent", SqlType.Decimal52, def: "0"),
+            Col.Double("snare_percent", scale: 2, max: 999.99, def: "0"),
 
             Col.Bool("only_hits_one_npc", def: false),
 

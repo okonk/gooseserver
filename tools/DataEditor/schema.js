@@ -374,11 +374,13 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "spell_effect_chance",
-          "kind": "Decimal",
-          "sql": "DECIMAL(9,4)",
+          "kind": "Double",
+          "sql": "REAL",
           "default": "100",
           "required": false,
-          "pk": false
+          "pk": false,
+          "scale": 4,
+          "max": 99999.9999
         },
         {
           "name": "learn_spell_id",
@@ -551,20 +553,24 @@ var GOOSE_SCHEMA = {
         {
           "name": "attack_speed",
           "header": "attack speed (2)",
-          "kind": "Decimal",
-          "sql": "DECIMAL(9,4)",
+          "kind": "Double",
+          "sql": "REAL",
           "default": "2",
           "required": false,
-          "pk": false
+          "pk": false,
+          "scale": 4,
+          "max": 99999.9999
         },
         {
           "name": "move_speed",
           "header": "move speed (2)",
-          "kind": "Decimal",
-          "sql": "DECIMAL(9,4)",
+          "kind": "Double",
+          "sql": "REAL",
           "default": "2",
           "required": false,
-          "pk": false
+          "pk": false,
+          "scale": 4,
+          "max": 99999.9999
         },
         {
           "name": "stationary",
@@ -885,11 +891,13 @@ var GOOSE_SCHEMA = {
         {
           "name": "hp_percent_regen",
           "header": "hp % reg",
-          "kind": "Decimal",
-          "sql": "DECIMAL(9,4)",
+          "kind": "Double",
+          "sql": "REAL",
           "default": "0",
           "required": false,
-          "pk": false
+          "pk": false,
+          "scale": 4,
+          "max": 99999.9999
         },
         {
           "name": "hp_static_regen",
@@ -903,11 +911,13 @@ var GOOSE_SCHEMA = {
         {
           "name": "mp_percent_regen",
           "header": "mp % reg",
-          "kind": "Decimal",
-          "sql": "DECIMAL(9,4)",
+          "kind": "Double",
+          "sql": "REAL",
           "default": "0",
           "required": false,
-          "pk": false
+          "pk": false,
+          "scale": 4,
+          "max": 99999.9999
         },
         {
           "name": "mp_static_regen",
@@ -1093,10 +1103,12 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "droprate",
-          "kind": "Decimal",
-          "sql": "DECIMAL(9,4)",
+          "kind": "Double",
+          "sql": "REAL",
           "required": true,
-          "pk": false
+          "pk": false,
+          "scale": 4,
+          "max": 99999.9999
         }
       ],
       "composites": [],
@@ -1529,11 +1541,13 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "hp_percent_cost",
-          "kind": "Decimal",
-          "sql": "DECIMAL(9,4)",
+          "kind": "Double",
+          "sql": "REAL",
           "default": "0",
           "required": false,
-          "pk": false
+          "pk": false,
+          "scale": 4,
+          "max": 99999.9999
         },
         {
           "name": "mp_static_cost",
@@ -1545,11 +1559,13 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "mp_percent_cost",
-          "kind": "Decimal",
-          "sql": "DECIMAL(9,4)",
+          "kind": "Double",
+          "sql": "REAL",
           "default": "0",
           "required": false,
-          "pk": false
+          "pk": false,
+          "scale": 4,
+          "max": 99999.9999
         },
         {
           "name": "sp_static_cost",
@@ -1561,11 +1577,13 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "sp_percent_cost",
-          "kind": "Decimal",
-          "sql": "DECIMAL(9,4)",
+          "kind": "Double",
+          "sql": "REAL",
           "default": "0",
           "required": false,
-          "pk": false
+          "pk": false,
+          "scale": 4,
+          "max": 99999.9999
         },
         {
           "name": "spell_effect_id",
@@ -1906,11 +1924,13 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "hp_percent_regen",
-          "kind": "Decimal",
-          "sql": "DECIMAL(9,4)",
+          "kind": "Double",
+          "sql": "REAL",
           "default": "0",
           "required": false,
-          "pk": false
+          "pk": false,
+          "scale": 4,
+          "max": 99999.9999
         },
         {
           "name": "hp_static_regen",
@@ -1922,11 +1942,13 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "mp_percent_regen",
-          "kind": "Decimal",
-          "sql": "DECIMAL(9,4)",
+          "kind": "Double",
+          "sql": "REAL",
           "default": "0",
           "required": false,
-          "pk": false
+          "pk": false,
+          "scale": 4,
+          "max": 99999.9999
         },
         {
           "name": "mp_static_regen",
@@ -1938,51 +1960,63 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "haste",
-          "kind": "Decimal",
-          "sql": "DECIMAL(9,4)",
+          "kind": "Double",
+          "sql": "REAL",
           "default": "0",
           "required": false,
-          "pk": false
+          "pk": false,
+          "scale": 4,
+          "max": 99999.9999
         },
         {
           "name": "spell_damage",
-          "kind": "Decimal",
-          "sql": "DECIMAL(9,4)",
+          "kind": "Double",
+          "sql": "REAL",
           "default": "0",
           "required": false,
-          "pk": false
+          "pk": false,
+          "scale": 4,
+          "max": 99999.9999
         },
         {
           "name": "spell_crit",
-          "kind": "Decimal",
-          "sql": "DECIMAL(9,4)",
+          "kind": "Double",
+          "sql": "REAL",
           "default": "0",
           "required": false,
-          "pk": false
+          "pk": false,
+          "scale": 4,
+          "max": 99999.9999
         },
         {
           "name": "melee_damage",
-          "kind": "Decimal",
-          "sql": "DECIMAL(9,4)",
+          "kind": "Double",
+          "sql": "REAL",
           "default": "0",
           "required": false,
-          "pk": false
+          "pk": false,
+          "scale": 4,
+          "max": 99999.9999
         },
         {
           "name": "melee_crit",
-          "kind": "Decimal",
-          "sql": "DECIMAL(9,4)",
+          "kind": "Double",
+          "sql": "REAL",
           "default": "0",
           "required": false,
-          "pk": false
+          "pk": false,
+          "scale": 4,
+          "max": 99999.9999
         },
         {
           "name": "damage_reduce",
-          "kind": "Decimal",
-          "sql": "DECIMAL(9,4)",
+          "kind": "Double",
+          "sql": "REAL",
           "default": "0",
           "required": false,
-          "pk": false
+          "pk": false,
+          "scale": 4,
+          "max": 99999.9999
         },
         {
           "name": "move_speed",
@@ -2187,11 +2221,13 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "random_join_chance",
-          "kind": "Decimal",
-          "sql": "DECIMAL(5,2)",
+          "kind": "Double",
+          "sql": "REAL",
           "default": "0",
           "required": false,
-          "pk": false
+          "pk": false,
+          "scale": 2,
+          "max": 999.99
         },
         {
           "name": "on_hit_spell_effect_id",
@@ -2204,11 +2240,13 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "on_hit_spell_chance",
-          "kind": "Decimal",
-          "sql": "DECIMAL(5,2)",
+          "kind": "Double",
+          "sql": "REAL",
           "default": "100",
           "required": false,
-          "pk": false
+          "pk": false,
+          "scale": 2,
+          "max": 999.99
         },
         {
           "name": "on_attack_spell_effect_id",
@@ -2221,19 +2259,23 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "on_attack_spell_chance",
-          "kind": "Decimal",
-          "sql": "DECIMAL(5,2)",
+          "kind": "Double",
+          "sql": "REAL",
           "default": "100",
           "required": false,
-          "pk": false
+          "pk": false,
+          "scale": 2,
+          "max": 999.99
         },
         {
           "name": "snare_percent",
-          "kind": "Decimal",
-          "sql": "DECIMAL(5,2)",
+          "kind": "Double",
+          "sql": "REAL",
           "default": "0",
           "required": false,
-          "pk": false
+          "pk": false,
+          "scale": 2,
+          "max": 999.99
         },
         {
           "name": "only_hits_one_npc",
@@ -2752,10 +2794,12 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "chance",
-          "kind": "Decimal",
-          "sql": "DECIMAL(5,4)",
+          "kind": "Double",
+          "sql": "REAL",
           "required": true,
-          "pk": false
+          "pk": false,
+          "scale": 4,
+          "max": 9.9999
         },
         {
           "name": "script_path",
@@ -2873,10 +2917,12 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "chance",
-          "kind": "Decimal",
-          "sql": "DECIMAL(5,4)",
+          "kind": "Double",
+          "sql": "REAL",
           "required": true,
-          "pk": false
+          "pk": false,
+          "scale": 4,
+          "max": 9.9999
         },
         {
           "name": "script_path",
@@ -2918,11 +2964,13 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "ac_multiplier",
-          "kind": "Decimal",
-          "sql": "DECIMAL(9,2)",
+          "kind": "Double",
+          "sql": "REAL",
           "default": "1",
           "required": false,
-          "pk": false
+          "pk": false,
+          "scale": 2,
+          "max": 9999999.99
         },
         {
           "name": "vita_cost",
@@ -3077,11 +3125,13 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "hp_percent_regen",
-          "kind": "Decimal",
-          "sql": "DECIMAL(9,4)",
+          "kind": "Double",
+          "sql": "REAL",
           "default": "0",
           "required": false,
-          "pk": false
+          "pk": false,
+          "scale": 4,
+          "max": 99999.9999
         },
         {
           "name": "hp_static_regen",
@@ -3093,11 +3143,13 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "mp_percent_regen",
-          "kind": "Decimal",
-          "sql": "DECIMAL(9,4)",
+          "kind": "Double",
+          "sql": "REAL",
           "default": "0",
           "required": false,
-          "pk": false
+          "pk": false,
+          "scale": 4,
+          "max": 99999.9999
         },
         {
           "name": "mp_static_regen",
@@ -3109,51 +3161,63 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "haste",
-          "kind": "Decimal",
-          "sql": "DECIMAL(9,4)",
+          "kind": "Double",
+          "sql": "REAL",
           "default": "0",
           "required": false,
-          "pk": false
+          "pk": false,
+          "scale": 4,
+          "max": 99999.9999
         },
         {
           "name": "spell_damage",
-          "kind": "Decimal",
-          "sql": "DECIMAL(9,4)",
+          "kind": "Double",
+          "sql": "REAL",
           "default": "0",
           "required": false,
-          "pk": false
+          "pk": false,
+          "scale": 4,
+          "max": 99999.9999
         },
         {
           "name": "spell_crit",
-          "kind": "Decimal",
-          "sql": "DECIMAL(9,4)",
+          "kind": "Double",
+          "sql": "REAL",
           "default": "0",
           "required": false,
-          "pk": false
+          "pk": false,
+          "scale": 4,
+          "max": 99999.9999
         },
         {
           "name": "melee_damage",
-          "kind": "Decimal",
-          "sql": "DECIMAL(9,4)",
+          "kind": "Double",
+          "sql": "REAL",
           "default": "0",
           "required": false,
-          "pk": false
+          "pk": false,
+          "scale": 4,
+          "max": 99999.9999
         },
         {
           "name": "melee_crit",
-          "kind": "Decimal",
-          "sql": "DECIMAL(9,4)",
+          "kind": "Double",
+          "sql": "REAL",
           "default": "0",
           "required": false,
-          "pk": false
+          "pk": false,
+          "scale": 4,
+          "max": 99999.9999
         },
         {
           "name": "damage_reduce",
-          "kind": "Decimal",
-          "sql": "DECIMAL(9,4)",
+          "kind": "Double",
+          "sql": "REAL",
           "default": "0",
           "required": false,
-          "pk": false
+          "pk": false,
+          "scale": 4,
+          "max": 99999.9999
         }
       ],
       "composites": [],

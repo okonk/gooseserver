@@ -17,8 +17,8 @@ namespace CsvToSql
             Col.Int("experience", SqlType.BigInt, def: 0).HeaderText("exp (0)"),
             Col.Int("aggro_range", SqlType.SmallInt, def: 0).HeaderText("aggro range (0)"),
             Col.Int("attack_range", SqlType.SmallInt, def: 0).HeaderText("attack range (0)"),
-            Col.Decimal("attack_speed", SqlType.Decimal94, def: "2").HeaderText("attack speed (2)"),
-            Col.Decimal("move_speed", SqlType.Decimal94, def: "2").HeaderText("move speed (2)"),
+            Col.Double("attack_speed", scale: 4, max: 99999.9999, def: "2").HeaderText("attack speed (2)"),
+            Col.Double("move_speed", scale: 4, max: 99999.9999, def: "2").HeaderText("move speed (2)"),
             Col.Bool("stationary", def: false).HeaderText("stationary (0)"),
             Col.Bool("stunnable", def: false).HeaderText("stunnable (0)"),
             Col.Bool("rootable", def: false).HeaderText("rootable (0)"),
@@ -72,9 +72,9 @@ namespace CsvToSql
             Col.Int("armor_pierce", SqlType.Int, def: 0).HeaderText("armor pierce"),
 
             // Regeneration
-            Col.Decimal("hp_percent_regen", SqlType.Decimal94, def: "0").HeaderText("hp % reg"),
+            Col.Double("hp_percent_regen", scale: 4, max: 99999.9999, def: "0").HeaderText("hp % reg"),
             Col.Int("hp_static_regen", SqlType.Int, def: 0).HeaderText("hp static reg"),
-            Col.Decimal("mp_percent_regen", SqlType.Decimal94, def: "0").HeaderText("mp % reg"),
+            Col.Double("mp_percent_regen", scale: 4, max: 99999.9999, def: "0").HeaderText("mp % reg"),
             Col.Int("mp_static_regen", SqlType.Int, def: 0).HeaderText("mp static reg"),
 
             // Behaviour

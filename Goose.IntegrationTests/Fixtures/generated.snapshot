@@ -1,14 +1,14 @@
 TABLE: class_info
   COL: class_id INT NOT NULL
-  COL: damage_reduce DECIMAL(9,4) DEFAULT 0 NOT NULL
-  COL: haste DECIMAL(9,4) DEFAULT 0 NOT NULL
-  COL: hp_percent_regen DECIMAL(9,4) DEFAULT 0 NOT NULL
+  COL: damage_reduce REAL DEFAULT 0 NOT NULL
+  COL: haste REAL DEFAULT 0 NOT NULL
+  COL: hp_percent_regen REAL DEFAULT 0 NOT NULL
   COL: hp_static_regen INT DEFAULT 0 NOT NULL
   COL: level SMALLINT NOT NULL
   COL: level_up_exp BIGINT DEFAULT 0 NOT NULL
-  COL: melee_crit DECIMAL(9,4) DEFAULT 0 NOT NULL
-  COL: melee_damage DECIMAL(9,4) DEFAULT 0 NOT NULL
-  COL: mp_percent_regen DECIMAL(9,4) DEFAULT 0 NOT NULL
+  COL: melee_crit REAL DEFAULT 0 NOT NULL
+  COL: melee_damage REAL DEFAULT 0 NOT NULL
+  COL: mp_percent_regen REAL DEFAULT 0 NOT NULL
   COL: mp_static_regen INT DEFAULT 0 NOT NULL
   COL: player_hp INT DEFAULT 0 NOT NULL
   COL: player_mp INT DEFAULT 0 NOT NULL
@@ -18,8 +18,8 @@ TABLE: class_info
   COL: res_fire SMALLINT DEFAULT 0 NOT NULL
   COL: res_spirit SMALLINT DEFAULT 0 NOT NULL
   COL: res_water SMALLINT DEFAULT 0 NOT NULL
-  COL: spell_crit DECIMAL(9,4) DEFAULT 0 NOT NULL
-  COL: spell_damage DECIMAL(9,4) DEFAULT 0 NOT NULL
+  COL: spell_crit REAL DEFAULT 0 NOT NULL
+  COL: spell_damage REAL DEFAULT 0 NOT NULL
   COL: stat_ac SMALLINT DEFAULT 0 NOT NULL
   COL: stat_dex SMALLINT DEFAULT 0 NOT NULL
   COL: stat_int SMALLINT DEFAULT 0 NOT NULL
@@ -281,7 +281,7 @@ class_id=6|damage_reduce=0|haste=0|hp_percent_regen=0|hp_static_regen=0|level=48
 class_id=6|damage_reduce=0|haste=0|hp_percent_regen=0|hp_static_regen=0|level=49|level_up_exp=4165000|melee_crit=0|melee_damage=0|mp_percent_regen=0|mp_static_regen=0|player_hp=4126|player_mp=6150|player_sp=0|res_air=0|res_earth=0|res_fire=0|res_spirit=0|res_water=0|spell_crit=0|spell_damage=0|stat_ac=0|stat_dex=0|stat_int=0|stat_sta=0|stat_str=0
 class_id=6|damage_reduce=0|haste=0|hp_percent_regen=0|hp_static_regen=0|level=50|level_up_exp=0|melee_crit=0|melee_damage=0|mp_percent_regen=0|mp_static_regen=0|player_hp=4300|player_mp=6400|player_sp=0|res_air=0|res_earth=0|res_fire=0|res_spirit=0|res_water=0|spell_crit=0|spell_damage=0|stat_ac=0|stat_dex=0|stat_int=0|stat_sta=0|stat_str=0
 TABLE: classes
-  COL: ac_multiplier DECIMAL(9,2) DEFAULT 1 NOT NULL
+  COL: ac_multiplier REAL DEFAULT 1 NOT NULL
   COL: class_id INTEGER PRIMARY KEY
   COL: class_name TEXT NOT NULL
   COL: mana_cost BIGINT DEFAULT 200000 NOT NULL
@@ -780,7 +780,7 @@ class_restrictions=0|combination_id=70|combination_name=Haste Potion|max_experie
 class_restrictions=0|combination_id=71|combination_name=Spell Damage Potion|max_experience=0|max_level=50|min_experience=0|min_level=1
 class_restrictions=0|combination_id=72|combination_name=Spell Critical Potion|max_experience=0|max_level=50|min_experience=0|min_level=1
 TABLE: item_surnames
-  COL: chance DECIMAL(5,4) NOT NULL
+  COL: chance REAL NOT NULL
   COL: id INTEGER PRIMARY KEY
   COL: item_slot SMALLINT DEFAULT 20
   COL: item_usetype SMALLINT DEFAULT 0
@@ -833,7 +833,7 @@ TABLE: item_templates
   COL: res_water SMALLINT DEFAULT 0 NOT NULL
   COL: script_params TEXT DEFAULT '' NOT NULL
   COL: script_path TEXT DEFAULT '' NOT NULL
-  COL: spell_effect_chance DECIMAL(9,4) DEFAULT 100 NOT NULL
+  COL: spell_effect_chance REAL DEFAULT 100 NOT NULL
   COL: spell_effect_id INT DEFAULT 0 NOT NULL
   COL: stack_size SMALLINT DEFAULT 1 NOT NULL
   COL: stat_ac SMALLINT DEFAULT 0 NOT NULL
@@ -1493,7 +1493,7 @@ bindonequip=0|bindonpickup=0|body_state=3|class_restrictions=0|credits_value=0|e
 bindonequip=0|bindonpickup=0|body_state=3|class_restrictions=0|credits_value=0|event=0|graphic_a=150|graphic_b=255|graphic_equip=1|graphic_file=2278|graphic_g=255|graphic_r=255|graphic_tile=332204|item_description=|item_name=Rabbit Fur Pants|item_slot=11|item_template_id=650|item_type=12|item_usetype=2|item_value=300|learn_spell_id=0|lore=0|max_experience=0|max_level=0|min_experience=0|min_level=1|player_hp=10|player_mp=10|player_sp=0|res_air=0|res_earth=0|res_fire=0|res_spirit=0|res_water=0|script_params=|script_path=|spell_effect_chance=100|spell_effect_id=0|stack_size=1|stat_ac=10|stat_dex=0|stat_int=0|stat_sta=0|stat_str=2|weapon_damage=0|weapon_delay=10
 bindonequip=0|bindonpickup=0|body_state=3|class_restrictions=0|credits_value=0|event=0|graphic_a=0|graphic_b=0|graphic_equip=273|graphic_file=2281|graphic_g=0|graphic_r=0|graphic_tile=332524|item_description=|item_name=Tank|item_slot=13|item_template_id=651|item_type=0|item_usetype=2|item_value=150000|learn_spell_id=0|lore=1|max_experience=0|max_level=0|min_experience=0|min_level=0|player_hp=0|player_mp=0|player_sp=0|res_air=0|res_earth=0|res_fire=0|res_spirit=0|res_water=0|script_params=|script_path=|spell_effect_chance=100|spell_effect_id=259|stack_size=1|stat_ac=0|stat_dex=0|stat_int=0|stat_sta=0|stat_str=0|weapon_damage=0|weapon_delay=10
 TABLE: item_titles
-  COL: chance DECIMAL(5,4) NOT NULL
+  COL: chance REAL NOT NULL
   COL: id INTEGER PRIMARY KEY
   COL: item_slot SMALLINT DEFAULT 20
   COL: item_usetype SMALLINT DEFAULT 0
@@ -1578,7 +1578,7 @@ auction_enabled=1|bind_enabled=0|chat_enabled=1|items_enabled=1|map_filename=Map
 auction_enabled=1|bind_enabled=0|chat_enabled=1|items_enabled=1|map_filename=Map10043.map|map_id=43|map_name=Bear Kingdom|max_experience=0|max_level=0|min_experience=200000000|min_level=0|pets_enabled=1|pvp_enabled=0|script_params=|script_path=|shout_enabled=1|spells_enabled=1
 auction_enabled=1|bind_enabled=0|chat_enabled=1|items_enabled=1|map_filename=Map10044.map|map_id=44|map_name=Starving Pits|max_experience=0|max_level=0|min_experience=0|min_level=0|pets_enabled=1|pvp_enabled=0|script_params=|script_path=|shout_enabled=1|spells_enabled=1
 TABLE: npc_drops
-  COL: droprate DECIMAL(9,4) NOT NULL
+  COL: droprate REAL NOT NULL
   COL: item_template_id INT NOT NULL
   COL: npc_template_id INT NOT NULL
   COL: stack INT NOT NULL
@@ -6430,7 +6430,7 @@ TABLE: npc_templates
   COL: aggro_range SMALLINT DEFAULT 0 NOT NULL
   COL: armor_pierce INT DEFAULT 0 NOT NULL
   COL: attack_range SMALLINT DEFAULT 0 NOT NULL
-  COL: attack_speed DECIMAL(9,4) DEFAULT 2 NOT NULL
+  COL: attack_speed REAL DEFAULT 2 NOT NULL
   COL: body_a SMALLINT DEFAULT 0 NOT NULL
   COL: body_b SMALLINT DEFAULT 0 NOT NULL
   COL: body_g SMALLINT DEFAULT 0 NOT NULL
@@ -6447,11 +6447,11 @@ TABLE: npc_templates
   COL: hair_g SMALLINT DEFAULT 0 NOT NULL
   COL: hair_id SMALLINT DEFAULT 0 NOT NULL
   COL: hair_r SMALLINT DEFAULT 0 NOT NULL
-  COL: hp_percent_regen DECIMAL(9,4) DEFAULT 0 NOT NULL
+  COL: hp_percent_regen REAL DEFAULT 0 NOT NULL
   COL: hp_static_regen INT DEFAULT 0 NOT NULL
   COL: invincible CHAR(1) DEFAULT '0' NOT NULL
-  COL: move_speed DECIMAL(9,4) DEFAULT 2 NOT NULL
-  COL: mp_percent_regen DECIMAL(9,4) DEFAULT 0 NOT NULL
+  COL: move_speed REAL DEFAULT 2 NOT NULL
+  COL: mp_percent_regen REAL DEFAULT 0 NOT NULL
   COL: mp_static_regen INT DEFAULT 0 NOT NULL
   COL: npc_alliance TEXT DEFAULT '' NOT NULL
   COL: npc_facing SMALLINT DEFAULT 3 NOT NULL
@@ -6986,7 +6986,7 @@ TABLE: spell_effects
   COL: buff_graphic_file INT DEFAULT 0 NOT NULL
   COL: buff_removable CHAR(1) DEFAULT '1' NOT NULL
   COL: buff_stacks_over TEXT DEFAULT '' NOT NULL
-  COL: damage_reduce DECIMAL(9,4) DEFAULT 0 NOT NULL
+  COL: damage_reduce REAL DEFAULT 0 NOT NULL
   COL: do_attack_animation CHAR(1) DEFAULT '0' NOT NULL
   COL: do_cast_animation CHAR(1) DEFAULT '1' NOT NULL
   COL: effect_duration BIGINT DEFAULT 0 NOT NULL
@@ -6997,28 +6997,28 @@ TABLE: spell_effects
   COL: hair_g SMALLINT DEFAULT 0 NOT NULL
   COL: hair_id SMALLINT DEFAULT 0 NOT NULL
   COL: hair_r SMALLINT DEFAULT 0 NOT NULL
-  COL: haste DECIMAL(9,4) DEFAULT 0 NOT NULL
+  COL: haste REAL DEFAULT 0 NOT NULL
   COL: hp INT DEFAULT 0 NOT NULL
   COL: hp_change_formula TEXT DEFAULT '0' NOT NULL
-  COL: hp_percent_regen DECIMAL(9,4) DEFAULT 0 NOT NULL
+  COL: hp_percent_regen REAL DEFAULT 0 NOT NULL
   COL: hp_static_regen INT DEFAULT 0 NOT NULL
   COL: max_level_effected INT DEFAULT 50 NOT NULL
-  COL: melee_crit DECIMAL(9,4) DEFAULT 0 NOT NULL
-  COL: melee_damage DECIMAL(9,4) DEFAULT 0 NOT NULL
+  COL: melee_crit REAL DEFAULT 0 NOT NULL
+  COL: melee_damage REAL DEFAULT 0 NOT NULL
   COL: min_level_effected INT DEFAULT 1 NOT NULL
   COL: move_speed SMALLINT DEFAULT 0 NOT NULL
   COL: mp INT DEFAULT 0 NOT NULL
   COL: mp_change_formula TEXT DEFAULT '0' NOT NULL
-  COL: mp_percent_regen DECIMAL(9,4) DEFAULT 0 NOT NULL
+  COL: mp_percent_regen REAL DEFAULT 0 NOT NULL
   COL: mp_static_regen INT DEFAULT 0 NOT NULL
   COL: offeffect_text TEXT DEFAULT '' NOT NULL
-  COL: on_attack_spell_chance DECIMAL(5,2) DEFAULT 100 NOT NULL
+  COL: on_attack_spell_chance REAL DEFAULT 100 NOT NULL
   COL: on_attack_spell_effect_id INT DEFAULT 0 NOT NULL
-  COL: on_hit_spell_chance DECIMAL(5,2) DEFAULT 100 NOT NULL
+  COL: on_hit_spell_chance REAL DEFAULT 100 NOT NULL
   COL: on_hit_spell_effect_id INT DEFAULT 0 NOT NULL
   COL: oneffect_text TEXT DEFAULT '' NOT NULL
   COL: only_hits_one_npc CHAR(1) DEFAULT '0' NOT NULL
-  COL: random_join_chance DECIMAL(5,2) DEFAULT 0 NOT NULL
+  COL: random_join_chance REAL DEFAULT 0 NOT NULL
   COL: res_air SMALLINT DEFAULT 0 NOT NULL
   COL: res_earth SMALLINT DEFAULT 0 NOT NULL
   COL: res_fire SMALLINT DEFAULT 0 NOT NULL
@@ -7026,13 +7026,13 @@ TABLE: spell_effects
   COL: res_water SMALLINT DEFAULT 0 NOT NULL
   COL: script_params TEXT DEFAULT '' NOT NULL
   COL: script_path TEXT DEFAULT '' NOT NULL
-  COL: snare_percent DECIMAL(5,2) DEFAULT 0 NOT NULL
+  COL: snare_percent REAL DEFAULT 0 NOT NULL
   COL: sp INT DEFAULT 0 NOT NULL
   COL: sp_change_formula TEXT DEFAULT '0' NOT NULL
   COL: spell_animation INT DEFAULT 0 NOT NULL
   COL: spell_animation_file INT DEFAULT 0 NOT NULL
-  COL: spell_crit DECIMAL(9,4) DEFAULT 0 NOT NULL
-  COL: spell_damage DECIMAL(9,4) DEFAULT 0 NOT NULL
+  COL: spell_crit REAL DEFAULT 0 NOT NULL
+  COL: spell_damage REAL DEFAULT 0 NOT NULL
   COL: spell_damage_effects CHAR(1) DEFAULT '0' NOT NULL
   COL: spell_display INT DEFAULT 0 NOT NULL
   COL: spell_effect_id INTEGER PRIMARY KEY
@@ -7313,11 +7313,11 @@ body_a=0|body_b=0|body_g=0|body_id=0|body_r=0|buff_doesnt_stack_over=|buff_graph
 body_a=0|body_b=0|body_g=0|body_id=0|body_r=0|buff_doesnt_stack_over=|buff_graphic=50754|buff_graphic_file=104|buff_removable=1|buff_stacks_over=282 283 284|damage_reduce=0|do_attack_animation=0|do_cast_animation=1|effect_duration=0|effect_type=1|face_id=0|hair_a=0|hair_b=0|hair_g=0|hair_id=0|hair_r=0|haste=0|hp=0|hp_change_formula=0|hp_percent_regen=0|hp_static_regen=0|max_level_effected=50|melee_crit=0|melee_damage=0|min_level_effected=1|move_speed=128|mp=0|mp_change_formula=0|mp_percent_regen=0|mp_static_regen=0|offeffect_text=|on_attack_spell_chance=100|on_attack_spell_effect_id=0|on_hit_spell_chance=100|on_hit_spell_effect_id=0|oneffect_text=|only_hits_one_npc=0|random_join_chance=0|res_air=0|res_earth=0|res_fire=0|res_spirit=0|res_water=0|script_params=|script_path=|snare_percent=0|sp=0|sp_change_formula=0|spell_animation=0|spell_animation_file=0|spell_crit=0|spell_damage=0|spell_damage_effects=0|spell_display=0|spell_effect_id=259|spell_effect_name=Mount Speed II|spell_effected=1|spell_energy_type=0|stat_ac=0|stat_dex=0|stat_int=0|stat_sta=0|stat_str=0|target_size=0|target_type=0|taunt_aggro=0|teleport_map=1|teleport_x=50|teleport_y=50|works_in_pvp=1|works_not_in_pvp=0
 TABLE: spells
   COL: class_restrictions BIGINT DEFAULT 0 NOT NULL
-  COL: hp_percent_cost DECIMAL(9,4) DEFAULT 0 NOT NULL
+  COL: hp_percent_cost REAL DEFAULT 0 NOT NULL
   COL: hp_static_cost INT DEFAULT 0 NOT NULL
-  COL: mp_percent_cost DECIMAL(9,4) DEFAULT 0 NOT NULL
+  COL: mp_percent_cost REAL DEFAULT 0 NOT NULL
   COL: mp_static_cost INT DEFAULT 0 NOT NULL
-  COL: sp_percent_cost DECIMAL(9,4) DEFAULT 0 NOT NULL
+  COL: sp_percent_cost REAL DEFAULT 0 NOT NULL
   COL: sp_static_cost INT DEFAULT 0 NOT NULL
   COL: spell_aether BIGINT DEFAULT 100 NOT NULL
   COL: spell_description TEXT DEFAULT '' NOT NULL

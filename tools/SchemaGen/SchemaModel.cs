@@ -13,7 +13,9 @@ public sealed record SchemaColumn(
     bool Required,
     bool Pk,
     string? Ref,
-    IReadOnlyList<string>? EnumNames);
+    IReadOnlyList<string>? EnumNames,
+    int? Scale,
+    double? Max);
 
 public sealed record SchemaComposite(
     string Kind,
@@ -46,7 +48,9 @@ public static class SchemaModel
                 c.IsRequired,
                 c.IsPrimaryKey,
                 c.RefSheet,
-                c.Kind == ColumnKind.Enum ? c.EnumNames : null)).ToList(),
+                c.Kind == ColumnKind.Enum ? c.EnumNames : null,
+                c.Scale,
+                c.Max)).ToList(),
             t.Composites.Select(k => new SchemaComposite(
                 k.Kind.ToString(),
                 k.Columns,

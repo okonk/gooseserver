@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace CsvToSql.Core.Schema
 {
     /// <summary>How a cell value is escaped on the way into SQL, and how the editor renders it.</summary>
-    public enum ColumnKind { Id, Int, Decimal, Text, Bool, Enum }
+    public enum ColumnKind { Id, Int, Double, Text, Bool, Enum }
 
     /// <summary>One spreadsheet column. Descriptors are a flat ordered list: index i maps to
     /// worksheet cell i + 1 (see CsvToSqlBase.Convert), so never merge or reorder them.</summary>
@@ -28,17 +28,22 @@ namespace CsvToSql.Core.Schema
         /// cannot stand in for it. The DEFAULT is still emitted.</summary>
         public bool IsNullable { get; private set; }
         public bool IsPrimaryKey { get; private set; }
+        public int? Scale { get; }
+        public double? Max { get; }
         public string RefSheet { get; private set; }
         public Type EnumType { get; private set; }
         public IReadOnlyList<string> EnumNames =>
             EnumType == null ? [] : System.Enum.GetNames(EnumType);
 
-        internal Column(string name, ColumnKind kind, SqlType type, string def = null)
+        internal Column(string name, ColumnKind kind, SqlType type, string def = null,
+            int? scale = null, double? max = null)
         {
             Name = name;
             Kind = kind;
             Type = type;
             Default = def;
+            Scale = scale;
+            Max = max;
         }
 
         /// <summary>Drops any DEFAULT — a column cannot both have one and require a cell value.

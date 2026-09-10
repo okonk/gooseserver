@@ -41,7 +41,7 @@ CREATE TABLE item_templates (
   stack_size SMALLINT DEFAULT 1 NOT NULL,
   body_state SMALLINT DEFAULT 3 NOT NULL,
   spell_effect_id INT DEFAULT 0 NOT NULL,
-  spell_effect_chance DECIMAL(9,4) DEFAULT 100 NOT NULL,
+  spell_effect_chance REAL DEFAULT 100 NOT NULL,
   learn_spell_id INT DEFAULT 0 NOT NULL,
   credits_value INT DEFAULT 0 NOT NULL,
   script_path TEXT DEFAULT '' NOT NULL,

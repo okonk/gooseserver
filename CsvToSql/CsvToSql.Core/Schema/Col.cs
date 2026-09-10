@@ -12,8 +12,8 @@ namespace CsvToSql.Core.Schema
         public static Column Int(string name, SqlType type = null, int? def = null) =>
             Make(name, ColumnKind.Int, type ?? SqlType.Int, def?.ToString());
 
-        public static Column Decimal(string name, SqlType type = null, string def = null) =>
-            Make(name, ColumnKind.Decimal, type ?? SqlType.Decimal94, def);
+        public static Column Double(string name, int? scale = null, double? max = null, string def = null) =>
+            Make(name, ColumnKind.Double, SqlType.Real, def, scale, max);
 
         public static Column Text(string name, SqlType type = null, string def = null) =>
             Make(name, ColumnKind.Text, type ?? SqlType.Text, def);
@@ -28,9 +28,10 @@ namespace CsvToSql.Core.Schema
             Make(name, ColumnKind.Enum, type ?? SqlType.SmallInt, def?.ToString())
                 .WithEnum(typeof(T));
 
-        private static Column Make(string name, ColumnKind kind, SqlType type, string def)
+        private static Column Make(string name, ColumnKind kind, SqlType type, string def,
+            int? scale = null, double? max = null)
         {
-            var c = new Column(name, kind, type, def);
+            var c = new Column(name, kind, type, def, scale, max);
             if (def == null) c.Required();
             return c;
         }

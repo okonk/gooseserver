@@ -16,11 +16,11 @@ namespace CsvToSql
             Col.Int("spellbook_graphic_file", SqlType.Int, def: 0),
 
             Col.Int("hp_static_cost", SqlType.Int, def: 0),
-            Col.Decimal("hp_percent_cost", SqlType.Decimal94, def: "0"),
+            Col.Double("hp_percent_cost", scale: 4, max: 99999.9999, def: "0"),
             Col.Int("mp_static_cost", SqlType.Int, def: 0),
-            Col.Decimal("mp_percent_cost", SqlType.Decimal94, def: "0"),
+            Col.Double("mp_percent_cost", scale: 4, max: 99999.9999, def: "0"),
             Col.Int("sp_static_cost", SqlType.Int, def: 0),
-            Col.Decimal("sp_percent_cost", SqlType.Decimal94, def: "0"),
+            Col.Double("sp_percent_cost", scale: 4, max: 99999.9999, def: "0"),
 
             Col.Id("spell_effect_id", SqlType.Int).Ref("Spell Effects"),
         };
