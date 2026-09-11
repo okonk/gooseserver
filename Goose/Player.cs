@@ -1755,7 +1755,7 @@ namespace Goose
             double maxac = world.Settings.MaxAC;
             double absorb = (1 - ((double)(character.MaxStats.AC * character.Class.ACMultiplier) / maxac));
 
-            if (world.Random.Next(1, 10001) <= this.MaxStats.MeleeCrit * 10000) damage *= 2;
+            if (world.Random.Next(1, 10001) <= Utils.ExactProduct(this.MaxStats.MeleeCrit, 10000)) damage *= 2;
             damage *= (double)world.Settings.DamageModifier;
             damage *= (1 + (double)this.MaxStats.MeleeDamage);
             damage *= (1 - (double)character.MaxStats.DamageReduction);
@@ -2156,9 +2156,9 @@ namespace Goose
                     this.CurrentMP -= spell.MPStaticCost;
                     this.CurrentSP -= spell.SPStaticCost;
 
-                    this.CurrentHP -= (long)(this.CurrentHP * (spell.HPPercentCost / 100.0));
-                    this.CurrentMP -= (long)(this.CurrentMP * (spell.MPPercentCost / 100.0));
-                    this.CurrentSP -= (long)(this.CurrentSP * (spell.SPPercentCost / 100.0));
+                    this.CurrentHP -= Utils.MultiplyAndTruncate(this.CurrentHP, spell.HPPercentCost / 100.0);
+                    this.CurrentMP -= Utils.MultiplyAndTruncate(this.CurrentMP, spell.MPPercentCost / 100.0);
+                    this.CurrentSP -= Utils.MultiplyAndTruncate(this.CurrentSP, spell.SPPercentCost / 100.0);
 
                     if (this.CurrentHP <= 0) this.CurrentHP = 1;
                     if (this.CurrentMP < 0) this.CurrentMP = 0;
@@ -2575,7 +2575,7 @@ namespace Goose
                 if (b.SpellEffect.EffectType == SpellEffect.EffectTypes.OnMeleeHit)
                 {
                     SpellEffect? spell = b.SpellEffect.OnMeleeHitSpell;
-                    if (spell is not null && world.Random.Next(1, 10001) <= b.SpellEffect.OnMeleeHitSpellChance * 100)
+                    if (spell is not null && world.Random.Next(1, 10001) <= Utils.ExactProduct(b.SpellEffect.OnMeleeHitSpellChance, 100))
                         spell.Cast(this, hitter, world);
                 }
             }
@@ -2592,7 +2592,7 @@ namespace Goose
                 if (b.SpellEffect.EffectType == SpellEffect.EffectTypes.OnAttack)
                 {
                     SpellEffect? spell = b.SpellEffect.OnMeleeAttackSpell;
-                    if (spell is not null && world.Random.Next(1, 10001) <= b.SpellEffect.OnMeleeAttackSpellChance * 100)
+                    if (spell is not null && world.Random.Next(1, 10001) <= Utils.ExactProduct(b.SpellEffect.OnMeleeAttackSpellChance, 100))
                         spell.Cast(this, this, world);
                 }
             }

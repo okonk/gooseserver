@@ -1423,7 +1423,7 @@ namespace Goose
             double maxac = world.Settings.MaxAC;
             double absorb = (1 - ((character.MaxStats.AC - this.ArmorPierce) * (double)character.Class.ACMultiplier) / maxac);
 
-            if (world.Random.Next(1, 10001) <= this.MaxStats.MeleeCrit * 10000) damage *= 2;
+            if (world.Random.Next(1, 10001) <= Utils.ExactProduct(this.MaxStats.MeleeCrit, 10000)) damage *= 2;
             damage *= (1 + (double)this.MaxStats.MeleeDamage);
             damage *= (1 - (double)character.MaxStats.DamageReduction);
             damage *= absorb;
@@ -1464,8 +1464,8 @@ namespace Goose
         {
             foreach (var dropinfo in this.NPCTemplate.Drops!)
             {
-                if (world.Random.Next(1, 1000000001) <=
-                    world.Settings.DropRateModifier * dropinfo.DropRate * 10000000)
+                if (world.Random.Next(1, 1000000001) <= Utils.ExactProduct(
+                    world.Settings.DropRateModifier, dropinfo.DropRate, 10000000))
                 {
                     ItemSlot drop = new ItemSlot();
                     if (dropinfo.ItemTemplate.ID == world.Settings.GoldItemID)
@@ -1741,7 +1741,7 @@ namespace Goose
                 if (b.SpellEffect.EffectType == SpellEffect.EffectTypes.OnMeleeHit)
                 {
                     SpellEffect? spell = b.SpellEffect.OnMeleeHitSpell;
-                    if (spell is not null && world.Random.Next(1, 10001) <= b.SpellEffect.OnMeleeHitSpellChance * 100)
+                    if (spell is not null && world.Random.Next(1, 10001) <= Utils.ExactProduct(b.SpellEffect.OnMeleeHitSpellChance, 100))
                         spell.Cast(this, hitter, world);
                 }
             }
@@ -1758,7 +1758,7 @@ namespace Goose
                 if (b.SpellEffect.EffectType == SpellEffect.EffectTypes.OnAttack)
                 {
                     SpellEffect? spell = b.SpellEffect.OnMeleeAttackSpell;
-                    if (spell is not null && world.Random.Next(1, 10001) <= b.SpellEffect.OnMeleeAttackSpellChance * 100)
+                    if (spell is not null && world.Random.Next(1, 10001) <= Utils.ExactProduct(b.SpellEffect.OnMeleeAttackSpellChance, 100))
                         spell.Cast(this, hit, world);
                 }
             }

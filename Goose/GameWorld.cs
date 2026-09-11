@@ -686,7 +686,7 @@ namespace Goose
 
         public bool RollChance(double chance)
         {
-            return this.Random.Next(1, 1000000001) <= chance * 1000000000;
+            return this.Random.Next(1, 1000000001) <= Utils.ExactProduct(chance, 1000000000);
         }
     }
 }

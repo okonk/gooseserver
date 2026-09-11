@@ -46,7 +46,7 @@ namespace Goose.Commands
             {
                 buyrate =
                     ((match.WeaponDamage / world.Settings.IncreasePetDamageBuyCost) * 0.2) + 1;
-                expcost = (long)(world.Settings.PetDamageCost * buyrate);
+                expcost = Utils.MultiplyAndTruncate(world.Settings.PetDamageCost, buyrate);
 
                 if (match.Experience >= expcost)
                 {

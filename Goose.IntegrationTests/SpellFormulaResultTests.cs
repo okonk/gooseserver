@@ -39,6 +39,23 @@ public class SpellFormulaResultTests
     }
 
     [Fact]
+    public void CalculateFormulaResults_normalizes_exact_decimal_arithmetic()
+    {
+        using var fixture = new TestWorldFixture(settings => settings.DamageModifier = 1);
+        var map = fixture.AddBaseMap(1, "Test");
+        var caster = fixture.CommandPlayerOn(map, 5, 5);
+        caster.MaxStats.SpellDamage = 0.13;
+        caster.MaxStats.SpellCrit = 0;
+        var target = CreateNpc(map);
+        var scalingEffect = new SpellEffect { SpellDamageEffects = true };
+        var formulaEffect = new SpellEffect();
+
+        Assert.Equal(113, scalingEffect.CalculateFormulaResults("100", "0", caster, target, fixture.World).HP);
+        Assert.Equal(2, formulaEffect.ParseFormula("0.15/0.1", caster, target));
+        Assert.Equal(1, formulaEffect.ParseFormula("1.4999999999999998", caster, target));
+    }
+
+    [Fact]
     public void CastFormulaSpell_applies_calculated_hp_and_mp_results()
     {
         using var fixture = new TestWorldFixture(settings => settings.DamageModifier = 2.0);

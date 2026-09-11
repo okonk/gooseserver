@@ -25,13 +25,14 @@ namespace Goose.Commands
                 buyrate =
                     ((ctx.Player.BaseStats.MP / world.Settings.IncreaseManaBuyAmount) * 0.2) + 1;
 
-                if (ctx.Player.Experience >= (long)(ctx.Player.Class.ManaCost * buyrate))
+                long cost = Utils.MultiplyAndTruncate(ctx.Player.Class.ManaCost, buyrate);
+                if (ctx.Player.Experience >= cost)
                 {
-                    ctx.Player.Experience -= (long)(ctx.Player.Class.ManaCost * buyrate);
-                    ctx.Player.ExperienceSold += (long)(ctx.Player.Class.ManaCost * buyrate);
+                    ctx.Player.Experience -= cost;
+                    ctx.Player.ExperienceSold += cost;
                     ctx.Player.BaseStats.MP += world.Settings.ManaBuyAmount;
                     bought += world.Settings.ManaBuyAmount;
-                    soldexp += (long)(ctx.Player.Class.ManaCost * buyrate);
+                    soldexp += cost;
                 }
                 else
                 {

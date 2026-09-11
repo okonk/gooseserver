@@ -421,7 +421,7 @@ namespace Goose
 
             bool remove = true;
 
-            if (item.SpellEffect is not null && world.Random.Next(1, 100001) <= item.SpellEffectChance * 1000)
+            if (item.SpellEffect is not null && world.Random.Next(1, 100001) <= Utils.ExactProduct(item.SpellEffectChance, 1000))
             {
                 item.SpellEffect.Cast(this.player, this.player, world);
             }

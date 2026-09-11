@@ -36,6 +36,27 @@ namespace Goose
             return cd;
         }
 
+        internal static decimal ToExactDecimal(double value)
+        {
+            string text = value.ToString("R", System.Globalization.CultureInfo.InvariantCulture);
+            return decimal.Parse(text, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        internal static long MultiplyAndTruncate(long value, double factor)
+        {
+            return (long)(value * ToExactDecimal(factor));
+        }
+
+        internal static decimal ExactProduct(double value, long scale)
+        {
+            return ToExactDecimal(value) * scale;
+        }
+
+        internal static decimal ExactProduct(double first, double second, long scale)
+        {
+            return ToExactDecimal(first) * ToExactDecimal(second) * scale;
+        }
+
         public static string FormatNumber(long num)
         {
             bool negative = num < 0;

@@ -12,16 +12,31 @@ namespace Goose.Tests;
 public class DoubleBehaviorTests
 {
     [Fact]
-    public void RollChance_0_5_lands_in_50_percent_band()
+    public void RollChance_handles_zero_and_one_boundaries()
     {
         using var fixture = new TestWorldFixture();
 
-        const int rolls = 20000;
-        int hits = 0;
-        for (int i = 0; i < rolls; i++)
-            if (fixture.World.RollChance(0.5)) hits++;
+        for (int i = 0; i < 1000; i++)
+        {
+            Assert.False(fixture.World.RollChance(0));
+            Assert.True(fixture.World.RollChance(1));
+        }
+    }
 
-        Assert.InRange(hits / (double)rolls, 0.48, 0.52);
+    [Theory]
+    [InlineData(100, 0.29, 29)]
+    [InlineData(100, 0.2975, 29)]
+    [InlineData(1, 0.9999999999999999, 0)]
+    [InlineData(10000000000000, 0.41, 4100000000000)]
+    public void MultiplyAndTruncate_preserves_decimal_product_semantics(long value, double factor, long expected)
+    {
+        Assert.Equal(expected, Utils.MultiplyAndTruncate(value, factor));
+    }
+
+    [Fact]
+    public void ExactProduct_preserves_a_less_than_one_probability()
+    {
+        Assert.Equal(999999999.9999999m, Utils.ExactProduct(0.9999999999999999, 1000000000));
     }
 
     [Theory]
@@ -153,7 +168,7 @@ public class DoubleBehaviorTests
     }
 
     [Fact]
-    public void BuyVita_price_pins_integer_division_and_long_truncation()
+    public void BuyVita_price_normalizes_an_exact_integer_product()
     {
         using var fixture = new TestWorldFixture(s =>
         {
@@ -162,16 +177,27 @@ public class DoubleBehaviorTests
         });
         var player = fixture.CommandPlayerOn(fixture.AddBaseMap(1, "Town"), 1, 1, "Buyer");
         player.Level = 1;
-        player.Experience = 10000;
-        player.BaseStats.HP = 1001;
-        fixture.World.ClassHandler.GetClass(0)!.VitaCost = 1000;
+        player.Experience = 300000;
+        player.BaseStats.HP = 200;
+        fixture.World.ClassHandler.GetClass(0)!.VitaCost = 180000;
 
         Assert.True(fixture.RunCommand(player, "/buyvita"));
 
-        Assert.Equal(7000, player.Experience);
-        Assert.Equal(3000, player.ExperienceSold);
-        Assert.Equal(1051, player.BaseStats.HP);
-        Assert.Contains(player.Sent, m => m.Contains("Bought 50 hp for 3000 experience."));
+        Assert.Equal(48000, player.Experience);
+        Assert.Equal(252000, player.ExperienceSold);
+        Assert.Equal(250, player.BaseStats.HP);
+        Assert.Contains(player.Sent, m => m.Contains("Bought 50 hp for 252000 experience."));
+    }
+
+    [Fact]
+    public void WeaponSpeed_normalizes_an_exact_millisecond_result()
+    {
+        var player = new FixedWeaponDelayPlayer(7)
+        {
+            MaxStats = new AttributeSet { Haste = 0.05 },
+        };
+
+        Assert.Equal("WPS665,0,0", P.WeaponSpeed(player));
     }
 
     [Fact]
@@ -302,6 +328,11 @@ public class DoubleBehaviorTests
         },
         _ => throw new ArgumentOutOfRangeException(nameof(speed)),
     };
+
+    private sealed class FixedWeaponDelayPlayer(int weaponDelay) : Player(0)
+    {
+        public override int WeaponDelay => weaponDelay;
+    }
 
     private sealed class LoopbackPeer : IDisposable
     {

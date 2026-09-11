@@ -35,7 +35,7 @@ namespace Goose.Commands
 
             player.MaxStats -= player.Class.GetLevel(player.Level)!.BaseStats;
             player.Experience += player.ExperienceSold;
-            player.Experience = (long)(player.Experience * rate);
+            player.Experience = Utils.MultiplyAndTruncate(player.Experience, rate);
             player.ExperienceSold = 0;
             player.BaseStats.HP = 0;
             player.BaseStats.MP = 0;

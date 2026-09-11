@@ -25,13 +25,14 @@ namespace Goose.Commands
                 buyrate =
                     ((ctx.Player.BaseStats.HP / world.Settings.IncreaseVitaBuyAmount) * 0.2) + 1;
 
-                if (ctx.Player.Experience >= ctx.Player.Class.VitaCost * buyrate)
+                long cost = Utils.MultiplyAndTruncate(ctx.Player.Class.VitaCost, buyrate);
+                if (ctx.Player.Experience >= cost)
                 {
-                    ctx.Player.Experience -= (long)(ctx.Player.Class.VitaCost * buyrate);
-                    ctx.Player.ExperienceSold += (long)(ctx.Player.Class.VitaCost * buyrate);
+                    ctx.Player.Experience -= cost;
+                    ctx.Player.ExperienceSold += cost;
                     ctx.Player.BaseStats.HP += world.Settings.VitaBuyAmount;
                     bought += world.Settings.VitaBuyAmount;
-                    soldexp += (long)(ctx.Player.Class.VitaCost * buyrate);
+                    soldexp += cost;
                 }
                 else
                 {

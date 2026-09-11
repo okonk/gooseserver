@@ -627,13 +627,13 @@ namespace Goose
 
             if (!(hpresult < 0 && target is Player) && this.SpellDamageEffects)
             {
-                if (world.Random.Next(1, 10001) <= caster.MaxStats.SpellCrit * 10000) hpresult *= 2;
-                hpresult = (long)(hpresult * (1 + caster.MaxStats.SpellDamage));
+                if (world.Random.Next(1, 10001) <= Utils.ExactProduct(caster.MaxStats.SpellCrit, 10000)) hpresult *= 2;
+                hpresult = Utils.MultiplyAndTruncate(hpresult, 1 + caster.MaxStats.SpellDamage);
 
-                if (world.Random.Next(1, 10001) <= caster.MaxStats.SpellCrit * 10000) mpresult *= 2;
-                mpresult = (long)(mpresult * (1 + caster.MaxStats.SpellDamage));
+                if (world.Random.Next(1, 10001) <= Utils.ExactProduct(caster.MaxStats.SpellCrit, 10000)) mpresult *= 2;
+                mpresult = Utils.MultiplyAndTruncate(mpresult, 1 + caster.MaxStats.SpellDamage);
             }
-            hpresult = (long)(hpresult * world.Settings.DamageModifier);
+            hpresult = Utils.MultiplyAndTruncate(hpresult, world.Settings.DamageModifier);
 
             return (hpresult, mpresult);
         }
@@ -1234,19 +1234,19 @@ namespace Goose
                             {
                                 done.Add(point);
 
-                                if (world.Random.Next(1, 10001) <= this.RandomJoinChance * 100)
+                                if (world.Random.Next(1, 10001) <= Utils.ExactProduct(this.RandomJoinChance, 100))
                                 {
                                     points.Add(new Point(point.x - 1, point.y));
                                 }
-                                if (world.Random.Next(1, 10001) <= this.RandomJoinChance * 100)
+                                if (world.Random.Next(1, 10001) <= Utils.ExactProduct(this.RandomJoinChance, 100))
                                 {
                                     points.Add(new Point(point.x + 1, point.y));
                                 }
-                                if (world.Random.Next(1, 10001) <= this.RandomJoinChance * 100)
+                                if (world.Random.Next(1, 10001) <= Utils.ExactProduct(this.RandomJoinChance, 100))
                                 {
                                     points.Add(new Point(point.x, point.y - 1));
                                 }
-                                if (world.Random.Next(1, 10001) <= this.RandomJoinChance * 100)
+                                if (world.Random.Next(1, 10001) <= Utils.ExactProduct(this.RandomJoinChance, 100))
                                 {
                                     points.Add(new Point(point.x, point.y + 1));
                                 }
@@ -1347,9 +1347,9 @@ namespace Goose
             string buffer = "";
             char token;
             char op;
-            double value;
+            decimal value;
 
-            var symbolToValue = new Dictionary<string, double>();
+            var symbolToValue = new Dictionary<string, decimal>();
             symbolToValue.Add("%cchp", caster.CurrentHP);
             symbolToValue.Add("%ccmp", caster.CurrentMP);
             symbolToValue.Add("%ccsp", caster.CurrentSP);
@@ -1391,7 +1391,7 @@ namespace Goose
                         }
                         else
                         {
-                            value = Convert.ToDouble(buffer);
+                            value = Convert.ToDecimal(buffer);
                         }
 
                         result.Add(value);
@@ -1427,7 +1427,7 @@ namespace Goose
                         }
                         else
                         {
-                            value = Convert.ToDouble(buffer);
+                            value = Convert.ToDecimal(buffer);
                         }
 
                         result.Add(value);
@@ -1501,7 +1501,7 @@ namespace Goose
                         }
                         else
                         {
-                            value = Convert.ToDouble(buffer);
+                            value = Convert.ToDecimal(buffer);
                         }
 
                         result.Add(value);
@@ -1538,7 +1538,7 @@ namespace Goose
                 }
                 else
                 {
-                    value = Convert.ToDouble(buffer);
+                    value = Convert.ToDecimal(buffer);
                 }
 
                 result.Add(value);
@@ -1554,7 +1554,7 @@ namespace Goose
                     result.Add(operators.Pop());
             }
 
-            double rs, ls;
+            decimal rs, ls;
             Object cur;
 
             while (result.Count > 1)
@@ -1564,8 +1564,8 @@ namespace Goose
 
                 if (cur is char)
                 {
-                    rs = (double)result[result.Count - 1];
-                    ls = (double)result[result.Count - 2];
+                    rs = (decimal)result[result.Count - 1];
+                    ls = (decimal)result[result.Count - 2];
 
                     result.RemoveAt(result.Count - 1);
                     result.RemoveAt(result.Count - 1);
