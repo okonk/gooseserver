@@ -271,11 +271,11 @@ namespace Goose
         /**
          * Attack speed in seconds
          */
-        public decimal AttackSpeed { get; set; }
+        public double AttackSpeed { get; set; }
         /**
          * Move speed in seconds
          */
-        public decimal MoveSpeed { get; set; }
+        public double MoveSpeed { get; set; }
         /**
          * Stationary
          */
@@ -407,7 +407,7 @@ namespace Goose
             Direction direction;
             if (this.AggroTarget is null)
             {
-                if (this.MoveSpeed <= Decimal.Zero) return;
+                if (this.MoveSpeed <= 0) return;
                 if (!this.CanMove)
                 {
                     // Return to spawn point if stationary npc
@@ -738,16 +738,16 @@ namespace Goose
          */
         public void AddMoveEvent(GameWorld world)
         {
-            if (this.MoveEvent is null && this.MoveSpeed > Decimal.Zero)
+            if (this.MoveEvent is null && this.MoveSpeed > 0)
             {
-                decimal snared = 0;
+                double snared = 0;
 
                 foreach (var buff in this.Buffs)
                 {
                     if (buff.SpellEffect.EffectType == SpellEffect.EffectTypes.Snare)
                     {
-                        if (snared == 0) snared = (buff.SpellEffect.SnarePercent / (decimal)100.0);
-                        else snared *= (buff.SpellEffect.SnarePercent / (decimal)100.0);
+                        if (snared == 0) snared = (buff.SpellEffect.SnarePercent / 100.0);
+                        else snared *= (buff.SpellEffect.SnarePercent / 100.0);
                     }
                 }
 
@@ -888,7 +888,7 @@ namespace Goose
 
             RegenEvent ev = new RegenEvent();
             // H6: clamp to >= 1, a 0/negative period re-enqueues at now and spins EventHandler.Update
-            ev.Ticks += (long)(Math.Max(1m, world.Settings.RegenSpeed) * world.TimerFrequency);
+            ev.Ticks += (long)(Math.Max(1.0, world.Settings.RegenSpeed) * world.TimerFrequency);
             ev.NPC = this;
 
             this.RegenEventExists = true;
@@ -1385,16 +1385,16 @@ namespace Goose
         {
             if (this.AttackEvent is not null) return;
             if (this.AggroTarget is null) return;
-            if (this.AttackSpeed <= Decimal.Zero || this.AttackRange <= 0) return;
+            if (this.AttackSpeed <= 0 || this.AttackRange <= 0) return;
 
-            decimal snared = 0;
+            double snared = 0;
 
             foreach (var buff in this.Buffs)
             {
                 if (buff.SpellEffect.EffectType == SpellEffect.EffectTypes.Snare)
                 {
-                    if (snared == 0) snared = (buff.SpellEffect.SnarePercent / (decimal)100.0);
-                    else snared *= (buff.SpellEffect.SnarePercent / (decimal)100.0);
+                    if (snared == 0) snared = (buff.SpellEffect.SnarePercent / 100.0);
+                    else snared *= (buff.SpellEffect.SnarePercent / 100.0);
                 }
             }
 
@@ -1566,7 +1566,7 @@ namespace Goose
                     ev.Data = buff;
                     ev.NPC = this;
                     // H6: clamp to >= 1, a 0/negative period re-enqueues at now and spins EventHandler.Update
-                    ev.Ticks += (long)(Math.Max(1m, world.Settings.SpellEffectPeriod) * world.TimerFrequency);
+                    ev.Ticks += (long)(Math.Max(1.0, world.Settings.SpellEffectPeriod) * world.TimerFrequency);
 
                     world.EventHandler.AddEvent(ev);
                 }

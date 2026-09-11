@@ -10,11 +10,11 @@ CREATE TABLE spells (
   spellbook_graphic_file INT NOT NULL,
   
   hp_static_cost INT DEFAULT 0 NOT NULL,
-  hp_percent_cost DECIMAL(9,4) DEFAULT 0 NOT NULL,
+  hp_percent_cost REAL DEFAULT 0 NOT NULL,
   mp_static_cost INT DEFAULT 0 NOT NULL,
-  mp_percent_cost DECIMAL(9,4) DEFAULT 0 NOT NULL,
+  mp_percent_cost REAL DEFAULT 0 NOT NULL,
   sp_static_cost INT DEFAULT 0 NOT NULL,
-  sp_percent_cost DECIMAL(9,4) DEFAULT 0 NOT NULL,
+  sp_percent_cost REAL DEFAULT 0 NOT NULL,
 
   spell_effect_id INT NOT NULL
 );
@@ -86,17 +86,17 @@ CREATE TABLE spell_effects (
   res_spirit SMALLINT DEFAULT 0 NOT NULL,
   res_air SMALLINT DEFAULT 0 NOT NULL,
   res_earth SMALLINT DEFAULT 0 NOT NULL,
-  hp_percent_regen DECIMAL(9,4) DEFAULT 0 NOT NULL,
+  hp_percent_regen REAL DEFAULT 0 NOT NULL,
   hp_static_regen INT DEFAULT 0 NOT NULL,
-  mp_percent_regen DECIMAL(9,4) DEFAULT 0 NOT NULL,
+  mp_percent_regen REAL DEFAULT 0 NOT NULL,
   mp_static_regen INT DEFAULT 0 NOT NULL,
-  haste DECIMAL(9,4) DEFAULT 0 NOT NULL,
-  spell_damage DECIMAL(9,4) DEFAULT 0 NOT NULL,
-  spell_crit DECIMAL(9,4) DEFAULT 0 NOT NULL,
-  melee_damage DECIMAL(9,4) DEFAULT 0 NOT NULL,
-  melee_crit DECIMAL(9,4) DEFAULT 0 NOT NULL,
-  damage_reduce DECIMAL(9,4) DEFAULT 0 NOT NULL,
-  move_speed DECIMAL(9,4) DEFAULT 0 NOT NULL,
+  haste REAL DEFAULT 0 NOT NULL,
+  spell_damage REAL DEFAULT 0 NOT NULL,
+  spell_crit REAL DEFAULT 0 NOT NULL,
+  melee_damage REAL DEFAULT 0 NOT NULL,
+  melee_crit REAL DEFAULT 0 NOT NULL,
+  damage_reduce REAL DEFAULT 0 NOT NULL,
+  move_speed REAL DEFAULT 0 NOT NULL,
   body_id SMALLINT DEFAULT 0 NOT NULL,
   
   oneffect_text TEXT DEFAULT '' NOT NULL,
@@ -131,14 +131,14 @@ CREATE TABLE spell_effects (
   buff_doesnt_stack_over TEXT DEFAULT '' NOT NULL,
   buff_stacks_over TEXT DEFAULT '' NOT NULL,
   
-  random_join_chance DECIMAL(5,2) DEFAULT 0 NOT NULL,
+  random_join_chance REAL DEFAULT 0 NOT NULL,
   
   on_hit_spell_effect_id INT DEFAULT 0 NOT NULL,
-  on_hit_spell_chance DECIMAL(5,2) DEFAULT 100 NOT NULL,
+  on_hit_spell_chance REAL DEFAULT 100 NOT NULL,
   on_attack_spell_effect_id INT DEFAULT 0 NOT NULL,
-  on_attack_spell_chance DECIMAL(5,2) DEFAULT 100 NOT NULL,
+  on_attack_spell_chance REAL DEFAULT 100 NOT NULL,
   
-  snare_percent DECIMAL(5,2) DEFAULT 0 NOT NULL,
+  snare_percent REAL DEFAULT 0 NOT NULL,
   
   only_hits_one_npc CHAR(1) DEFAULT '0' NOT NULL,
 

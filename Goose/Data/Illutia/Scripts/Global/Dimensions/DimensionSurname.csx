@@ -19,7 +19,7 @@ public class DimensionSurname : BaseItemModifierScript
         if (dim <= 0) return;
 
         double tier = DimensionHelpers.Tier(world.ItemHandler.GetTemplate(DimensionHelpers.BaseId(item.TemplateID)));
-        decimal scale = (decimal)(dim * tier);
+        double scale = dim * tier;
         // Invariant for consistency with DimensionRarity.csx: int.Parse is safe for ASCII
         // digits in every culture, but explicit is better than implicit here.
         int index = int.Parse(modifier.ScriptParams, System.Globalization.CultureInfo.InvariantCulture);
@@ -27,24 +27,24 @@ public class DimensionSurname : BaseItemModifierScript
         switch (index)
         {
             case 0:   // of Vita Regen - AttributeSet.java:430,431
-                item.BaseStats.HPPercentRegen += 0.015m * scale;
+                item.BaseStats.HPPercentRegen += 0.015 * scale;
                 item.BaseStats.HPStaticRegen += (int)(1500 * dim * tier);
                 break;
             case 1:   // of Mana Regen - AttributeSet.java:435,436
-                item.BaseStats.MPPercentRegen += 0.015m * scale;
+                item.BaseStats.MPPercentRegen += 0.015 * scale;
                 item.BaseStats.MPStaticRegen += (int)(1500 * dim * tier);
                 break;
             case 2:   // of Criticality - AttributeSet.java:437
-                item.BaseStats.SpellCrit += 0.04m * scale;
+                item.BaseStats.SpellCrit += 0.04 * scale;
                 break;
             case 3:   // of Spell Damage - AttributeSet.java:438
-                item.BaseStats.SpellDamage += 0.04m * scale;
+                item.BaseStats.SpellDamage += 0.04 * scale;
                 break;
             case 4:   // of Reduction - AttributeSet.java:422
-                item.BaseStats.DamageReduction += 0.04m * scale;
+                item.BaseStats.DamageReduction += 0.04 * scale;
                 break;
             case 5:   // of Speed - AttributeSet.java:428
-                item.BaseStats.Haste += 0.04m * scale;
+                item.BaseStats.Haste += 0.04 * scale;
                 break;
         }
 

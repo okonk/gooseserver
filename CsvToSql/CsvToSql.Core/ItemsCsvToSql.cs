@@ -60,7 +60,7 @@ namespace CsvToSql
             Col.Int("body_state", SqlType.SmallInt, def: 3),
 
             Col.Id("spell_effect_id", SqlType.Int, def: 0).Ref("Spell Effects"),
-            Col.Decimal("spell_effect_chance", SqlType.Decimal94, def: "100"),
+            Col.Double("spell_effect_chance", scale: 4, max: 99999.9999, def: "100"),
             Col.Id("learn_spell_id", SqlType.Int, def: 0).Ref("Spells"),
 
             Col.Int("credits_value", SqlType.Int, def: 0),

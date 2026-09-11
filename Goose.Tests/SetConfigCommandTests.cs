@@ -93,6 +93,31 @@ public class SetConfigCommandTests : IDisposable
     }
 
     [Fact]
+    public void DoubleSetting_BindsFractionalValue()
+    {
+        var gmA = RegisterGM(fixtureA, "GM-A");
+
+        Assert.True(fixtureA.RunCommand(gmA, "/setconfig BaseHPPercentRegen 0.02"));
+
+        Assert.Equal(0.02, fixtureA.Settings.BaseHPPercentRegen);
+        Assert.Contains(gmA.Sent, m => m.Contains("[GM] Set Game Setting BaseHPPercentRegen to: 0.02"));
+    }
+
+    [Theory]
+    [InlineData("NaN")]
+    [InlineData("1e400")]
+    public void NonFiniteDoubleSetting_IsRejected(string token)
+    {
+        var gmA = RegisterGM(fixtureA, "GM-A");
+
+        Assert.True(fixtureA.RunCommand(gmA, "/setconfig BaseHPPercentRegen " + token));
+
+        Assert.Equal(0.0, fixtureA.Settings.BaseHPPercentRegen);
+        Assert.Contains(gmA.Sent, m => m.Contains("Couldn't set value '" + token + "' for BaseHPPercentRegen."));
+        Assert.DoesNotContain(gmA.Sent, m => m.Contains("[GM] Set Game Setting"));
+    }
+
+    [Fact]
     public void MissingValue_SendsUsage()
     {
         var gmA = RegisterGM(fixtureA, "GM-A");

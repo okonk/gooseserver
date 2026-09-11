@@ -43,7 +43,7 @@ CREATE TABLE players (
   hair_g SMALLINT DEFAULT 0 NOT NULL,
   hair_b SMALLINT DEFAULT 0 NOT NULL,
   hair_a SMALLINT DEFAULT 0 NOT NULL,
-  aether_threshold DECIMAL(9,4) DEFAULT 0 NOT NULL,
+  aether_threshold REAL DEFAULT 0 NOT NULL,
   toggle_settings BIGINT DEFAULT 0 NOT NULL,
   donation_credits INT DEFAULT 0 NOT NULL,
   total_playtime BIGINT DEFAULT 0 NOT NULL,

@@ -51,7 +51,7 @@ namespace Goose
                 Class c = new Class();
                 c.ClassID = reader.GetInt32("class_id");
                 c.ClassName = reader.GetString("class_name");
-                c.ACMultiplier = Decimal.Parse(reader.GetString("ac_multiplier"));
+                c.ACMultiplier = reader.GetDouble("ac_multiplier");
 
                 c.VitaCost = reader.GetInt64("vita_cost");
                 c.ManaCost = reader.GetInt64("mana_cost");
@@ -93,17 +93,17 @@ namespace Goose
                 c.BaseStats.SpiritResist = reader.GetInt32("res_spirit");
                 c.BaseStats.WaterResist = reader.GetInt32("res_water");
 
-                c.BaseStats.HPPercentRegen = Decimal.Parse(reader.GetString("hp_percent_regen"));
+                c.BaseStats.HPPercentRegen = reader.GetDouble("hp_percent_regen");
                 c.BaseStats.HPStaticRegen = reader.GetInt32("hp_static_regen");
-                c.BaseStats.MPPercentRegen = Decimal.Parse(reader.GetString("mp_percent_regen"));
+                c.BaseStats.MPPercentRegen = reader.GetDouble("mp_percent_regen");
                 c.BaseStats.MPStaticRegen = reader.GetInt32("mp_static_regen");
 
-                c.BaseStats.Haste = Decimal.Parse(reader.GetString("haste"));
-                c.BaseStats.SpellDamage = Decimal.Parse(reader.GetString("spell_damage"));
-                c.BaseStats.SpellCrit = Decimal.Parse(reader.GetString("spell_crit"));
-                c.BaseStats.MeleeDamage = Decimal.Parse(reader.GetString("melee_damage"));
-                c.BaseStats.MeleeCrit = Decimal.Parse(reader.GetString("melee_crit"));
-                c.BaseStats.DamageReduction = Decimal.Parse(reader.GetString("damage_reduce"));
+                c.BaseStats.Haste = reader.GetDouble("haste");
+                c.BaseStats.SpellDamage = reader.GetDouble("spell_damage");
+                c.BaseStats.SpellCrit = reader.GetDouble("spell_crit");
+                c.BaseStats.MeleeDamage = reader.GetDouble("melee_damage");
+                c.BaseStats.MeleeCrit = reader.GetDouble("melee_crit");
+                c.BaseStats.DamageReduction = reader.GetDouble("damage_reduce");
 
                 c.Spells = [];
 

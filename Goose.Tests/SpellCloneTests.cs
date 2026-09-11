@@ -95,7 +95,7 @@ public class SpellCloneTests
     {
         [typeof(int)] = 7,
         [typeof(long)] = 7L,
-        [typeof(decimal)] = 1.5m,
+        [typeof(double)] = 1.5,
         [typeof(bool)] = true,
         [typeof(string)] = "sample",
     };

@@ -33,8 +33,8 @@ public class TestFixtureIsolationTests
             Assert.Equal(40, b.Settings.InventorySize);
             Assert.Equal(11, a.Settings.VendorSlotSize);
             Assert.Equal(41, b.Settings.VendorSlotSize);
-            Assert.Equal(2m, a.World.ExperienceModifier);
-            Assert.Equal(7m, b.World.ExperienceModifier);
+            Assert.Equal(2.0, a.World.ExperienceModifier);
+            Assert.Equal(7.0, b.World.ExperienceModifier);
 
             Assert.Equal(11, InventorySlots(a));
             Assert.Equal(41, InventorySlots(b));
@@ -62,8 +62,8 @@ public class TestFixtureIsolationTests
 
         var reloaded = b.World.ScriptHandler.GetScript<IGlobalScript>("Scripts/Global/B.csx");
         Assert.Same(scriptB, reloaded);
-        Assert.Equal(3m, b.Settings.ExperienceModifier);
-        Assert.Equal(3m, b.World.ExperienceModifier);
+        Assert.Equal(3.0, b.Settings.ExperienceModifier);
+        Assert.Equal(3.0, b.World.ExperienceModifier);
 
         var map = b.AddBaseMap(1, "Town");
         var player = b.CommandPlayerOn(map, 1, 1);

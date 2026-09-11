@@ -24,18 +24,9 @@ var Validation = (function () {
     return RANGE_TEXT[sql] ? RANGE_TEXT[sql][index] : String(RANGES[sql][index]);
   }
 
-  // "DECIMAL(5,2)" -> { precision: 5, scale: 2 }. Anything else -> null.
-  function decimalSpec(sql) {
-    var m = /^DECIMAL\((\d+),\s*(\d+)\)$/.exec(sql || '');
-    if (!m) return null;
-    return { precision: Number(m[1]), scale: Number(m[2]) };
-  }
-
-  // Largest magnitude a DECIMAL(p,s) can hold, as a display string: p - s integer
-  // digits then s fraction digits, all nines.
-  function decimalMax(spec) {
-    var whole = new Array(spec.precision - spec.scale + 1).join('9') || '0';
-    return spec.scale > 0 ? whole + '.' + new Array(spec.scale + 1).join('9') : whole;
+  function numericSpec(column) {
+    if (column.max === undefined || column.max === null) return null;
+    return { scale: column.scale, max: column.max };
   }
 
   function validateCell(column, raw, idSets) {
@@ -87,7 +78,7 @@ var Validation = (function () {
       return { ok: true, write: true };
     }
 
-    // Numeric kinds: Id, Int, Decimal. ColumnKind is closed (Column.cs:7) and the other
+    // Numeric kinds: Id, Int, Double. ColumnKind is closed (Column.cs:7) and the other
     // three kinds have all returned above, so everything reaching here is numeric.
     var parts = /^-?(\d+)(?:\.(\d+))?$/.exec(value);
     if (!parts) {
@@ -109,29 +100,21 @@ var Validation = (function () {
       }
     }
 
-    // DECIMAL(p,s) is checked by digit count, not magnitude: p total digits, s of them
-    // after the point, so p - s before it. Too many integer digits is a MySQL error.
-    // Too many fraction digits is not — MySQL truncates with a warning — but silently
-    // rounding someone's Titles.chance is worse than telling them, so we reject.
-    // Zeros that only pad the display are stripped from both ends first.
-    var spec = decimalSpec(column.sql);
+    var spec = numericSpec(column);
     if (spec) {
-      var whole = parts[1].replace(/^0+(?=\d)/, '');
-      var fraction = (parts[2] || '').replace(/0+$/, '');
-      // DECIMAL(p,p) holds only a fraction, so "0" is the only legal integer part.
-      if (spec.precision === spec.scale ? whole !== '0'
-                                        : whole.length > spec.precision - spec.scale) {
+      if (Math.abs(Number(value)) > spec.max) {
         return {
           ok: false, write: true,
-          message: column.name + ' must be between -' + decimalMax(spec) + ' and ' +
-                   decimalMax(spec) + ' (' + column.sql + ')',
+          message: column.name + ' must be between -' + spec.max + ' and ' +
+                   spec.max + ' (REAL)',
         };
       }
+      var fraction = (parts[2] || '').replace(/0+$/, '');
       if (fraction.length > spec.scale) {
         return {
           ok: false, write: true,
           message: column.name + ' allows at most ' + spec.scale + ' decimal place' +
-                   (spec.scale === 1 ? '' : 's') + ' (' + column.sql + ')',
+                   (spec.scale === 1 ? '' : 's') + ' (REAL)',
         };
       }
     }

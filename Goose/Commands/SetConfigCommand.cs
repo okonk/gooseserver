@@ -37,8 +37,14 @@ namespace Goose.Commands
                 try
                 {
                     MethodInfo? parser = getter.ReturnType.GetMethod("Parse", new Type[] { typeof(string) });
-                    setter!.Invoke(world.Settings,
-                        new object[] { parser!.Invoke(null, new object[] { valueText })! });
+                    object? parsed = parser!.Invoke(null, new object[] { valueText });
+                    // /setconfig bypasses the binder, whose double.IsFinite check does not cover this path.
+                    if (parsed is double parsedDouble && !double.IsFinite(parsedDouble))
+                    {
+                        ctx.Send("Couldn't set value '" + valueText + "' for " + setting + ".");
+                        return;
+                    }
+                    setter!.Invoke(world.Settings, new object[] { parsed! });
                 }
                 catch (Exception e)
                 {

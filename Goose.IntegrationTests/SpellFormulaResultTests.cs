@@ -7,11 +7,11 @@ public class SpellFormulaResultTests
     [Fact]
     public void CalculateFormulaResults_applies_spell_and_global_scaling_for_npc_target()
     {
-        using var fixture = new TestWorldFixture(settings => settings.DamageModifier = 2m);
+        using var fixture = new TestWorldFixture(settings => settings.DamageModifier = 2.0);
         var map = fixture.AddBaseMap(1, "Test");
         var caster = fixture.CommandPlayerOn(map, 5, 5);
-        caster.MaxStats.SpellDamage = 0.5m;
-        caster.MaxStats.SpellCrit = 0m;
+        caster.MaxStats.SpellDamage = 0.5;
+        caster.MaxStats.SpellCrit = 0.0;
         var target = CreateNpc(map);
         var effect = new SpellEffect { SpellDamageEffects = true };
 
@@ -24,11 +24,11 @@ public class SpellFormulaResultTests
     [Fact]
     public void CalculateFormulaResults_bypasses_spell_scaling_for_player_damage()
     {
-        using var fixture = new TestWorldFixture(settings => settings.DamageModifier = 2m);
+        using var fixture = new TestWorldFixture(settings => settings.DamageModifier = 2.0);
         var map = fixture.AddBaseMap(1, "Test");
         var caster = fixture.CommandPlayerOn(map, 5, 5);
-        caster.MaxStats.SpellDamage = 0.5m;
-        caster.MaxStats.SpellCrit = 0m;
+        caster.MaxStats.SpellDamage = 0.5;
+        caster.MaxStats.SpellCrit = 0.0;
         var target = fixture.CommandPlayerOn(map, 5, 4, "Target");
         var effect = new SpellEffect { SpellDamageEffects = true };
 
@@ -41,7 +41,7 @@ public class SpellFormulaResultTests
     [Fact]
     public void CastFormulaSpell_applies_calculated_hp_and_mp_results()
     {
-        using var fixture = new TestWorldFixture(settings => settings.DamageModifier = 2m);
+        using var fixture = new TestWorldFixture(settings => settings.DamageModifier = 2.0);
         var map = fixture.AddBaseMap(1, "Test");
         var caster = CreateNpc(map);
         var target = fixture.CommandPlayerOn(map, 5, 4, "Target");

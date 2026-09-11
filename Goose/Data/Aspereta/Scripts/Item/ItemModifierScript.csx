@@ -92,31 +92,31 @@ public class ItemModifierScript : BaseItemModifierScript
                 item.BaseStats.Dexterity += (int)value; 
                 break;
             case OperationType.SpellDamage: 
-                item.BaseStats.SpellDamage += (decimal)(value / 100); 
+                item.BaseStats.SpellDamage += value / 100; 
                 break;
             case OperationType.SpellCrit: 
-                item.BaseStats.SpellCrit += (decimal)(value / 100); 
+                item.BaseStats.SpellCrit += value / 100; 
                 break;
             case OperationType.MeleeDamage: 
-                item.BaseStats.MeleeDamage += (decimal)(value / 100); 
+                item.BaseStats.MeleeDamage += value / 100; 
                 break;
             case OperationType.MeleeCrit: 
-                item.BaseStats.MeleeCrit += (decimal)(value / 100); 
+                item.BaseStats.MeleeCrit += value / 100; 
                 break;
             case OperationType.Haste: 
-                item.BaseStats.Haste += (decimal)(value / 100); 
+                item.BaseStats.Haste += value / 100; 
                 break;
             case OperationType.DamageReduction: 
-                item.BaseStats.DamageReduction += (decimal)(value / 100); 
+                item.BaseStats.DamageReduction += value / 100; 
                 break;
             case OperationType.HPPercentRegen: 
-                item.BaseStats.HPPercentRegen += (decimal)(value / 100); 
+                item.BaseStats.HPPercentRegen += value / 100; 
                 break;
             case OperationType.HPStaticRegen: 
                 item.BaseStats.HPStaticRegen += (int)value; 
                 break;
             case OperationType.MPPercentRegen: 
-                item.BaseStats.MPPercentRegen += (decimal)(value / 100); 
+                item.BaseStats.MPPercentRegen += value / 100; 
                 break;
             case OperationType.MPStaticRegen: 
                 item.BaseStats.MPStaticRegen += (int)value; 

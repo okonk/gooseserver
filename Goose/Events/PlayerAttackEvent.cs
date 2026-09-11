@@ -39,7 +39,7 @@ namespace Goose.Events
                 if (this.Player.IsMounted(world))
                     return;
 
-                long delay = (long)((this.Player.WeaponDelay / 10.0m * (1 - Math.Min(0.95m, this.Player.MaxStats.Haste)) * 0.9m) *
+                long delay = (long)((this.Player.WeaponDelay / 10.0 * (1 - Math.Min(0.95, this.Player.MaxStats.Haste)) * 0.9) *
                     world.TimerFrequency);
                 long now = world.TimeNow;
 

@@ -91,13 +91,13 @@ public class DimensionItemTemplateTests
     public void Ports_the_melee_damage_truncation_faithfully()
     {
         using var fixture = Run(f => f.AddBaseItemTemplate(50, "Sword", ItemTemplate.UseTypes.Weapon,
-            t => { t.MinLevel = 20; t.BaseStats = new AttributeSet { MeleeDamage = 0.5m }; }));
+            t => { t.MinLevel = 20; t.BaseStats = new AttributeSet { MeleeDamage = 0.5 }; }));
 
         var dim2 = fixture.World.ItemHandler.GetTemplate(100050 + 100000)!;
 
         // AttributeSet.java:433 casts the whole term to int, so 0.5*2 = 1.0 survives but
         // any sub-1.0 product is truncated away. Tier 0.25, dim 2 -> (int)(1.0 + 10*2*0.25) = 6.
-        Assert.Equal(0.5m + 6m, dim2.BaseStats.MeleeDamage);
+        Assert.Equal(0.5 + 6.0, dim2.BaseStats.MeleeDamage);
     }
 
     [Fact]

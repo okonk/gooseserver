@@ -416,12 +416,12 @@ test('an out-of-range Bool falls back to a text input instead of being normalise
   assert.equal(collectOne(c, control), '2');
 });
 
-test('Text, Int, Id and Decimal all render a text input', () => {
+test('Text, Int, Id and Double all render a text input', () => {
   const cases = [
     ['Items', 'item_name', 'Text'],
     ['Items', 'player_hp', 'Int'],
     ['Items', 'item_template_id', 'Id'],
-    ['Titles', 'chance', 'Decimal'],
+    ['Titles', 'chance', 'Double'],
   ];
   cases.forEach(([sheetName, columnName, kind]) => {
     const c = column(sheetName, columnName);

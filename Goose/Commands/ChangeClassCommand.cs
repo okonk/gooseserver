@@ -3,11 +3,11 @@ namespace Goose.Commands
     [Command("/changeclass ", AccessPrivilege.ClassChange, Section = "GM", Help = "Change a player's class.")]
     public sealed class ChangeClassCommand : BaseCommand
     {
-        public void Execute(CommandContext ctx, string name, string cl, decimal? modifier = null)
+        public void Execute(CommandContext ctx, string name, string cl, double? modifier = null)
         {
             var world = ctx.World;
 
-            decimal rate = modifier ?? 1m;
+            double rate = modifier ?? 1.0;
 
             Player? player = world.PlayerHandler.GetPlayerFromData(name);
             if (player is null)

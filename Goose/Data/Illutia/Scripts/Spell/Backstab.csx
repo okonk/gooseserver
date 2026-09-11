@@ -30,7 +30,7 @@ public class Backstab : BaseSpellEffectScript
             thisEffect.HPFormula, "0", caster, occupant, world);
         var damage = -hpResult;
         if (caster.Facing == occupant.Facing)
-            damage = (long)(damage * 1.5m);
+            damage = (long)(damage * 1.5);
         if (damage > 0)
             occupant.Attacked(caster, damage, world);
 

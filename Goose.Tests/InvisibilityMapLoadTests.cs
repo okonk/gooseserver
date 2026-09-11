@@ -40,7 +40,7 @@ public class InvisibilityMapLoadTests : IDisposable
 
     private void RegisterClass(int id, string name, int level)
     {
-        var cls = new Class { ClassID = id, ClassName = name, ACMultiplier = 1m };
+        var cls = new Class { ClassID = id, ClassName = name, ACMultiplier = 1.0 };
         cls.AddLevel(new ClassLevel { Level = level, BaseStats = new AttributeSet() });
 
         var classes = (Dictionary<int, Class>)typeof(ClassHandler)

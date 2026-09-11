@@ -151,11 +151,11 @@ namespace Goose
         /**
          * Attack speed in seconds
          */
-        public decimal AttackSpeed { get; set; }
+        public double AttackSpeed { get; set; }
         /**
          * Move speed in seconds
          */
-        public decimal MoveSpeed { get; set; }
+        public double MoveSpeed { get; set; }
         /**
          * Stationary
          */

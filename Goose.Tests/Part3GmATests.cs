@@ -403,7 +403,7 @@ namespace Goose.Tests
         }
 
         [Fact]
-        public void ChangeClass_binds_decimal_modifier()
+        public void ChangeClass_binds_double_modifier()
         {
             var (fixture, gm, map) = WorldAndGm();
             using (fixture)

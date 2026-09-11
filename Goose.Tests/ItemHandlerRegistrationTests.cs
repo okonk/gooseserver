@@ -8,12 +8,12 @@ public class ItemHandlerRegistrationTests
         ID = 42, Name = "Sword", Description = "A sword", UseType = ItemTemplate.UseTypes.Weapon,
         Slot = ItemTemplate.ItemSlots.OneHanded, Type = ItemTemplate.ItemTypes.OneHandedSword,
         MinLevel = 10, MaxLevel = 50, MinExperience = 100, MaxExperience = 200,
-        BaseStats = new AttributeSet { HP = 5, Strength = 3, Haste = 0.25m },
+        BaseStats = new AttributeSet { HP = 5, Strength = 3, Haste = 0.25 },
         WeaponDamage = 7, WeaponDelay = 3, Value = 1000, ClassRestrictions = 6,
         GraphicEquipped = 1, GraphicTile = 2, GraphicFile = 3,
         GraphicR = 200, GraphicG = 150, GraphicB = 100, GraphicA = 120,
         IsLore = true, IsBindOnPickup = true, IsBindOnEquip = true, IsEvent = true,
-        StackSize = 1, BodyState = 4, SpellEffectID = 9, SpellEffectChance = 5m,
+        StackSize = 1, BodyState = 4, SpellEffectID = 9, SpellEffectChance = 5.0,
         LearnSpellID = 11, Credits = 12, ScriptParams = "params",
     };
 
@@ -35,7 +35,7 @@ public class ItemHandlerRegistrationTests
         Assert.Equal(11, copy.LearnSpellID);
         Assert.Equal("params", copy.ScriptParams);
         Assert.Equal(5, copy.BaseStats.HP);
-        Assert.Equal(0.25m, copy.BaseStats.Haste);
+        Assert.Equal(0.25, copy.BaseStats.Haste);
     }
 
     [Fact]

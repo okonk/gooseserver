@@ -37,7 +37,8 @@ namespace Goose.Commands
 
             if (match.NextRespawnTime > world.TimeNow)
             {
-                decimal wait = ((decimal)(world.TimeNow - match.NextRespawnTime) / world.TimerFrequency);
+                // (double) keeps this floating-point; the operands are long, so dropping the cast would make it integer division.
+                double wait = (double)(world.TimeNow - match.NextRespawnTime) / world.TimerFrequency;
                 wait = Math.Round(wait, 2);
 
                 world.Send(ctx.Player, P.ServerMessage("You must wait " + wait + " seconds to spawn this pet."));

@@ -114,7 +114,7 @@ public class BackstabScriptTests
 
     private static TestWorldFixture CreateFixture()
     {
-        return new TestWorldFixture(settings => settings.DamageModifier = 1m);
+        return new TestWorldFixture(settings => settings.DamageModifier = 1.0);
     }
 
     private static (Map Map, SpellEffect Effect, TestWorldFixture.CapturingPlayer Caster) CreateScenario(

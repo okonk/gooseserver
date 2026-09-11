@@ -39,7 +39,7 @@ public class InvisibilityTransitionTests : IDisposable
 
     private void RegisterClass(int id, string name, int level)
     {
-        var cls = new Class { ClassID = id, ClassName = name, ACMultiplier = 1m };
+        var cls = new Class { ClassID = id, ClassName = name, ACMultiplier = 1.0 };
         cls.AddLevel(new ClassLevel { Level = level, BaseStats = new AttributeSet() });
 
         var classes = (Dictionary<int, Class>)typeof(ClassHandler)
@@ -66,7 +66,7 @@ public class InvisibilityTransitionTests : IDisposable
         var p = new Player(0);
         p.OnLogin();
         p.Inventory = new Inventory(p, world.Settings);
-        var klass = new Class { ClassID = ClassId, ClassName = "Test", ACMultiplier = 1m };
+        var klass = new Class { ClassID = ClassId, ClassName = "Test", ACMultiplier = 1.0 };
         klass.AddLevel(new ClassLevel { Level = 1, ClassID = ClassId, BaseStats = new AttributeSet() });
         p.Class = klass;
         p.BaseStats = new AttributeSet { HP = 100, MP = 100 };

@@ -12,7 +12,7 @@ public class TableDdlTests
             Col.Id("npc_template_id", SqlType.Int).Ref("NPCs"),
             Col.Id("item_template_id", SqlType.Int).Ref("Items"),
             Col.Int("stack"),
-            Col.Decimal("droprate"),
+            Col.Double("droprate"),
         }, indexes: null);
 
         Assert.Equal(
@@ -21,7 +21,7 @@ public class TableDdlTests
             "  npc_template_id INT NOT NULL,\n" +
             "  item_template_id INT NOT NULL,\n" +
             "  stack INT NOT NULL,\n" +
-            "  droprate DECIMAL(9,4) NOT NULL\n" +
+            "  droprate REAL NOT NULL\n" +
             ");\n", ddl);
     }
 

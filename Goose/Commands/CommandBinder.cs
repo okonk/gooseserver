@@ -67,8 +67,6 @@ namespace Goose.Commands
                     { args[i - startIndex] = floatValue; continue; }
                     if (underlying == typeof(double) && double.TryParse(token, numeric, CultureInfo.InvariantCulture, out var doubleValue) && double.IsFinite(doubleValue))
                     { args[i - startIndex] = doubleValue; continue; }
-                    if (underlying == typeof(decimal) && decimal.TryParse(token, numeric, CultureInfo.InvariantCulture, out var decimalValue))
-                    { args[i - startIndex] = decimalValue; continue; }
                     if (underlying == typeof(string))
                     { args[i - startIndex] = token; continue; }
 
@@ -145,7 +143,7 @@ namespace Goose.Commands
 
                 var underlying = Nullable.GetUnderlyingType(type) ?? type;
                 if (underlying != typeof(string) && underlying != typeof(int) && underlying != typeof(long)
-                    && underlying != typeof(float) && underlying != typeof(double) && underlying != typeof(decimal)
+                    && underlying != typeof(float) && underlying != typeof(double)
                     && underlying != typeof(bool) && underlying != typeof(Player))
                 {
                     error = $"unsupported parameter type {type.Name}";

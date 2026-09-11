@@ -13,9 +13,6 @@ namespace Goose
         public static string GetString(this DbDataReader reader, string column)
             => Convert.ToString(reader[column])!;
 
-        public static decimal GetDecimal(this DbDataReader reader, string column)
-            => Convert.ToDecimal(reader[column]);
-
         public static double GetDouble(this DbDataReader reader, string column)
             => Convert.ToDouble(reader[column]);
     }

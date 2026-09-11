@@ -126,33 +126,33 @@ test('validateRecord collects every failure', () => {
   assert.deepEqual(r.errors.map((e) => e.column).sort(), ['kind', 'name']);
 });
 
-// --- Decimal precision and scale -------------------------------------------------
+// --- Double precision and scale --------------------------------------------------
 
-test('decimal within DECIMAL(5,2) is accepted', () => {
-  const c = col({ kind: 'Decimal', sql: 'DECIMAL(5,2)' });
+test('double within max 999.99 is accepted', () => {
+  const c = col({ kind: 'Double', sql: 'REAL', scale: 2, max: 999.99 });
   assert.equal(Validation.validateCell(c, '999.99').ok, true);
   assert.equal(Validation.validateCell(c, '-999.99').ok, true);
   assert.equal(Validation.validateCell(c, '12').ok, true);
 });
 
-test('decimal exceeding DECIMAL(5,2) integer digits is rejected', () => {
-  const c = col({ name: 'snare_percent', kind: 'Decimal', sql: 'DECIMAL(5,2)' });
+test('double exceeding max 999.99 is rejected', () => {
+  const c = col({ name: 'snare_percent', kind: 'Double', sql: 'REAL', scale: 2, max: 999.99 });
   const r = Validation.validateCell(c, '1000');
   assert.equal(r.ok, false);
   assert.match(r.message, /snare_percent/);
   assert.match(r.message, /999\.99/);
 });
 
-test('decimal exceeding DECIMAL(5,4) integer digits is rejected', () => {
-  const c = col({ name: 'chance', kind: 'Decimal', sql: 'DECIMAL(5,4)' });
+test('double exceeding max 9.9999 is rejected', () => {
+  const c = col({ name: 'chance', kind: 'Double', sql: 'REAL', scale: 4, max: 9.9999 });
   assert.equal(Validation.validateCell(c, '9.9999').ok, true);
   const r = Validation.validateCell(c, '12.5');
   assert.equal(r.ok, false);
   assert.match(r.message, /9\.9999/);
 });
 
-test('decimal with too many fraction digits is rejected', () => {
-  const c = col({ kind: 'Decimal', sql: 'DECIMAL(5,2)' });
+test('double with too many fraction digits is rejected', () => {
+  const c = col({ kind: 'Double', sql: 'REAL', scale: 2, max: 999.99 });
   const r = Validation.validateCell(c, '99999.99999');
   assert.equal(r.ok, false);
   const s = Validation.validateCell(c, '1.234');
@@ -160,18 +160,20 @@ test('decimal with too many fraction digits is rejected', () => {
   assert.match(s.message, /2 decimal place/);
 });
 
-test('padding zeros do not make a representable decimal fail', () => {
+test('padding zeros do not make a representable double fail', () => {
   // A cell number-formatted to a fixed width reads back as "0.500"; that is still
-  // exactly DECIMAL(5,2), so only the display is wider.
-  assert.equal(Validation.validateCell(col({ kind: 'Decimal', sql: 'DECIMAL(5,2)' }), '0.500').ok,
-               true);
-  assert.equal(Validation.validateCell(col({ kind: 'Decimal', sql: 'DECIMAL(5,4)' }), '0000.5').ok,
-               true);
+  // within max 999.99, so only the display is wider.
+  assert.equal(
+    Validation.validateCell(col({ kind: 'Double', sql: 'REAL', scale: 2, max: 999.99 }), '0.500').ok,
+    true);
+  assert.equal(
+    Validation.validateCell(col({ kind: 'Double', sql: 'REAL', scale: 4, max: 9.9999 }), '0000.5').ok,
+    true);
 });
 
-test('a scale-only decimal allows just the fraction', () => {
-  // DECIMAL(4,4) holds 0.9999 and nothing above 1.
-  const c = col({ kind: 'Decimal', sql: 'DECIMAL(4,4)' });
+test('a scale-only double allows just the fraction', () => {
+  // max 0.9999 holds 0.9999 and nothing above 1.
+  const c = col({ kind: 'Double', sql: 'REAL', scale: 4, max: 0.9999 });
   assert.equal(Validation.validateCell(c, '0.9999').ok, true);
   assert.equal(Validation.validateCell(c, '1.0').ok, false);
 });

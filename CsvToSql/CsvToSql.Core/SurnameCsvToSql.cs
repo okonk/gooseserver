@@ -17,7 +17,7 @@ namespace CsvToSql
             Col.Int("max_experience", SqlType.BigInt, def: 0).Nullable(),
             Col.Enum<ItemsCsvToSql.UseTypes>("item_usetype", SqlType.SmallInt, def: 0).Nullable(),
             Col.Enum<ItemsCsvToSql.ItemSlots>("item_slot", SqlType.SmallInt, def: 20).Nullable(),
-            Col.Decimal("chance", SqlType.Decimal54),
+            Col.Double("chance", scale: 4, max: 9.9999),
             Col.Text("script_path", def: "''"),
             Col.Text("script_params", def: "''"),
         };

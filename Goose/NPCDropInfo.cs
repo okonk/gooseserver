@@ -4,7 +4,7 @@ namespace Goose
 {
     public class NPCDropInfo
     {
-        public Decimal DropRate { get; set; }
+        public double DropRate { get; set; }
         public int Stack { get; set; }
         public ItemTemplate ItemTemplate { get; set; } = null!;
     }

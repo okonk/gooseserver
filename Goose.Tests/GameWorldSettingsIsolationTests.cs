@@ -20,8 +20,8 @@ public class GameWorldSettingsIsolationTests : IDisposable
         rootA = MakeRoot("iso-a");
         rootB = MakeRoot("iso-b");
 
-        settingsA = new GooseSettings { DataPath = rootA, ExperienceModifier = 2.5m };
-        settingsB = new GooseSettings { DataPath = rootB, ExperienceModifier = 3.5m };
+        settingsA = new GooseSettings { DataPath = rootA, ExperienceModifier = 2.5 };
+        settingsB = new GooseSettings { DataPath = rootB, ExperienceModifier = 3.5 };
 
         WriteSample(rootA, "Alpha", 11, "Sample.csx");
         WriteSample(rootB, "Beta", 22, "Sample.csx");
@@ -67,8 +67,8 @@ return typeof({className});
         Assert.Same(settingsA, worldA.Settings);
         Assert.Same(settingsB, worldB.Settings);
         Assert.NotSame(worldA.Settings, worldB.Settings);
-        Assert.Equal(2.5m, worldA.ExperienceModifier);
-        Assert.Equal(3.5m, worldB.ExperienceModifier);
+        Assert.Equal(2.5, worldA.ExperienceModifier);
+        Assert.Equal(3.5, worldB.ExperienceModifier);
     }
 
     [Fact]
@@ -107,13 +107,13 @@ return typeof({className});
     [Fact]
     public void GameServerRestartSeam_ConstructsWorldFromItsOwnSettings()
     {
-        var settings = new GooseSettings { DataPath = MakeRoot("iso-server"), ExperienceModifier = 4.5m };
+        var settings = new GooseSettings { DataPath = MakeRoot("iso-server"), ExperienceModifier = 4.5 };
         var server = new GameServer(settings);
 
         var world = server.CreateWorld();
 
         Assert.Same(settings, world.Settings);
         Assert.Same(server, world.GameServer);
-        Assert.Equal(4.5m, world.ExperienceModifier);
+        Assert.Equal(4.5, world.ExperienceModifier);
     }
 }

@@ -39,13 +39,13 @@ namespace Goose.Commands
 
             if (match.Class.GetLevel(match.Level)?.Experience != 0) return;
 
-            decimal buyrate = 0;
+            double buyrate = 0;
             long expcost;
 
             for (int i = 1; i <= buys; i++)
             {
                 buyrate =
-                    ((match.WeaponDamage / world.Settings.IncreasePetDamageBuyCost) * (decimal).2) + 1;
+                    ((match.WeaponDamage / world.Settings.IncreasePetDamageBuyCost) * 0.2) + 1;
                 expcost = (long)(world.Settings.PetDamageCost * buyrate);
 
                 if (match.Experience >= expcost)

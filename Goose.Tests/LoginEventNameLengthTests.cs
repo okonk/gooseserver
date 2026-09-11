@@ -46,7 +46,7 @@ namespace Goose.Tests
         private static void RegisterStartingClass(GameWorld world, GooseSettings settings)
         {
             int id = settings.StartingClassID;
-            var cls = new Class { ClassID = id, ClassName = "Default", ACMultiplier = 1m };
+            var cls = new Class { ClassID = id, ClassName = "Default", ACMultiplier = 1.0 };
             cls.AddLevel(new ClassLevel { Level = settings.StartingLevel, BaseStats = new AttributeSet() });
 
             var classes = (Dictionary<int, Class>)typeof(ClassHandler)

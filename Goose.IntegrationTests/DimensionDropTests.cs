@@ -16,8 +16,8 @@ public class DimensionDropTests
         npc.BaseStats = new AttributeSet { HP = 3704 };
         npc.Drops = new List<NPCDropInfo>
         {
-            new NPCDropInfo { ItemTemplate = sword, DropRate = 0.1m, Stack = 1 },
-            new NPCDropInfo { ItemTemplate = potion, DropRate = 0.5m, Stack = 3 },
+            new NPCDropInfo { ItemTemplate = sword, DropRate = 0.1, Stack = 1 },
+            new NPCDropInfo { ItemTemplate = potion, DropRate = 0.5, Stack = 3 },
         };
         fixture.World.NPCHandler.AddTemplate(npc);
 
@@ -33,7 +33,7 @@ public class DimensionDropTests
 
         var sword = drops.Single(d => d.ItemTemplate.Name.EndsWith("Sword"));
         Assert.Equal(50 + 100000 * 4, sword.ItemTemplate.ID);
-        Assert.Equal(0.1m, sword.DropRate);   // rate and stack are carried across unchanged
+        Assert.Equal(0.1, sword.DropRate);   // rate and stack are carried across unchanged
         Assert.Equal(1, sword.Stack);
     }
 

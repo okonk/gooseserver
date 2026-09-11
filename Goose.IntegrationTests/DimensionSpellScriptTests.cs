@@ -53,7 +53,7 @@ public class DimensionSpellScriptTests
             e.Stats.HP = 100;  e.Stats.MP = 50;
             e.Stats.HPStaticRegen = 3;
             e.Stats.AC = 10;   e.Stats.Strength = 4;
-            e.Stats.SpellDamage = 0.2m;
+            e.Stats.SpellDamage = 0.2;
             e.Stats.MoveSpeed = 5;  e.Stats.SP = 7;
         }); });
 
@@ -62,9 +62,9 @@ public class DimensionSpellScriptTests
         Assert.Equal(100 * 4 * 4, dim3.Stats.HP);                 // x (dim+1)^2
         Assert.Equal(50 * 4 * 4, dim3.Stats.MP);
         Assert.Equal((int)(3 * Math.Pow(4, 3)), dim3.Stats.HPStaticRegen);
-        Assert.Equal((int)(10 * 2.5m), dim3.Stats.AC);            // x (1 + 0.5*dim)
+        Assert.Equal((int)(10 * 2.5), dim3.Stats.AC);            // x (1 + 0.5*dim)
         Assert.Equal(4 * 3, dim3.Stats.Strength);                 // x dim
-        Assert.Equal(0.2m * 2.5m, dim3.Stats.SpellDamage);
+        Assert.Equal(0.2 * 2.5, dim3.Stats.SpellDamage);
 
         // Not in abyss's scaled list, and not zeroed here.
         Assert.Equal(5, dim3.Stats.MoveSpeed);
@@ -374,7 +374,7 @@ public class DimensionSpellScriptTests
             f.AddBaseSpell(91, "Firestorm", 42, s =>
             {
                 s.Aether = 10000; s.HPStaticCost = 50; s.MPStaticCost = 100;
-                s.SPStaticCost = 7; s.MPPercentCost = 0.25m;
+                s.SPStaticCost = 7; s.MPPercentCost = 0.25;
             });
         });
 
@@ -384,7 +384,7 @@ public class DimensionSpellScriptTests
         Assert.Equal((int)(50 * Math.Pow(3, 3)), dim3.HPStaticCost);          // :280
         Assert.Equal((int)(100 * Math.Pow(3, 3)), dim3.MPStaticCost);         // :281
         Assert.Equal(7, dim3.SPStaticCost);                                   // abyss leaves SP alone
-        Assert.Equal(0.25m, dim3.MPPercentCost);                              // percent costs unscaled
+        Assert.Equal(0.25, dim3.MPPercentCost);                              // percent costs unscaled
     }
 
     [Fact]

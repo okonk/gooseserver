@@ -35,7 +35,7 @@ public class DimensionVendorStockTests
             NPCTemplateID = MerchantId, Name = "Merchant", Level = 1, ClassID = 3,
             NPCType = NPCTemplate.Types.Vendor,
             CanBeKilled = false, CanMove = false,
-            AttackSpeed = 1m, MoveSpeed = 1m,
+            AttackSpeed = 1.0, MoveSpeed = 1.0,
             AlliesString = "", Allies = new List<NPCTemplate>(), Drops = new List<NPCDropInfo>(),
             BaseStats = new AttributeSet { HP = 100 },
         };
@@ -151,7 +151,7 @@ public class DimensionVendorStockTests
             NPCTemplateID = MerchantId, Name = "Merchant", Level = 1, ClassID = 3,
             NPCType = NPCTemplate.Types.Vendor,
             CanBeKilled = false, CanMove = false,
-            AttackSpeed = 1m, MoveSpeed = 1m,
+            AttackSpeed = 1.0, MoveSpeed = 1.0,
             AlliesString = "", Allies = new List<NPCTemplate>(), Drops = new List<NPCDropInfo>(),
             BaseStats = new AttributeSet { HP = 100 },
         };
@@ -170,7 +170,7 @@ public class DimensionVendorStockTests
             NPCType = NPCTemplate.Types.Vendor,
             CanBeKilled = false, CanMove = false,
             CreditDealer = true, CurrencyId = Currency.Credits,
-            AttackSpeed = 1m, MoveSpeed = 1m,
+            AttackSpeed = 1.0, MoveSpeed = 1.0,
             AlliesString = "", Allies = new List<NPCTemplate>(), Drops = new List<NPCDropInfo>(),
             BaseStats = new AttributeSet { HP = 100 },
         };

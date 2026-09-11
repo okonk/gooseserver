@@ -97,17 +97,17 @@ namespace Goose
                 effect.Stats.SpiritResist = reader.GetInt32("res_spirit");
                 effect.Stats.WaterResist = reader.GetInt32("res_water");
 
-                effect.Stats.HPPercentRegen = Decimal.Parse(reader.GetString("hp_percent_regen"));
+                effect.Stats.HPPercentRegen = reader.GetDouble("hp_percent_regen");
                 effect.Stats.HPStaticRegen = reader.GetInt32("hp_static_regen");
-                effect.Stats.MPPercentRegen = Decimal.Parse(reader.GetString("mp_percent_regen"));
+                effect.Stats.MPPercentRegen = reader.GetDouble("mp_percent_regen");
                 effect.Stats.MPStaticRegen = reader.GetInt32("mp_static_regen");
 
-                effect.Stats.DamageReduction = Decimal.Parse(reader.GetString("damage_reduce"));
-                effect.Stats.Haste = Decimal.Parse(reader.GetString("haste"));
-                effect.Stats.MeleeCrit = Decimal.Parse(reader.GetString("melee_crit"));
-                effect.Stats.MeleeDamage = Decimal.Parse(reader.GetString("melee_damage"));
-                effect.Stats.SpellCrit = Decimal.Parse(reader.GetString("spell_crit"));
-                effect.Stats.SpellDamage = Decimal.Parse(reader.GetString("spell_damage"));
+                effect.Stats.DamageReduction = reader.GetDouble("damage_reduce");
+                effect.Stats.Haste = reader.GetDouble("haste");
+                effect.Stats.MeleeCrit = reader.GetDouble("melee_crit");
+                effect.Stats.MeleeDamage = reader.GetDouble("melee_damage");
+                effect.Stats.SpellCrit = reader.GetDouble("spell_crit");
+                effect.Stats.SpellDamage = reader.GetDouble("spell_damage");
                 effect.Stats.MoveSpeed = reader.GetInt32("move_speed");
 
                 effect.WorksInPVP = reader.GetString("works_in_pvp") != "0";
@@ -117,16 +117,16 @@ namespace Goose
                 effect.BuffGraphic = reader.GetInt32("buff_graphic");
                 effect.BuffGraphicFile = reader.GetInt32("buff_graphic_file");
 
-                effect.RandomJoinChance = Decimal.Parse(reader.GetString("random_join_chance"));
+                effect.RandomJoinChance = reader.GetDouble("random_join_chance");
 
                 effect.OnMeleeAttackSpellID = reader.GetInt32("on_attack_spell_effect_id");
                 effect.OnMeleeAttackSpellChance =
-                    Decimal.Parse(reader.GetString("on_attack_spell_chance"));
+                    reader.GetDouble("on_attack_spell_chance");
                 effect.OnMeleeHitSpellID = reader.GetInt32("on_hit_spell_effect_id");
                 effect.OnMeleeHitSpellChance =
-                    Decimal.Parse(reader.GetString("on_hit_spell_chance"));
+                    reader.GetDouble("on_hit_spell_chance");
 
-                effect.SnarePercent = Decimal.Parse(reader.GetString("snare_percent"));
+                effect.SnarePercent = reader.GetDouble("snare_percent");
 
                 effect.BuffStacksOverString = reader.GetString("buff_stacks_over");
                 effect.BuffDoesntStackOverString = reader.GetString("buff_doesnt_stack_over");
@@ -251,11 +251,11 @@ namespace Goose
                 spell.Aether = reader.GetInt64("spell_aether");
                 spell.Graphic = reader.GetInt32("spellbook_graphic");
                 spell.GraphicFile = reader.GetInt32("spellbook_graphic_file");
-                spell.HPPercentCost = Decimal.Parse(reader.GetString("hp_percent_cost"));
+                spell.HPPercentCost = reader.GetDouble("hp_percent_cost");
                 spell.HPStaticCost = reader.GetInt32("hp_static_cost");
-                spell.MPPercentCost = Decimal.Parse(reader.GetString("mp_percent_cost"));
+                spell.MPPercentCost = reader.GetDouble("mp_percent_cost");
                 spell.MPStaticCost = reader.GetInt32("mp_static_cost");
-                spell.SPPercentCost = Decimal.Parse(reader.GetString("sp_percent_cost"));
+                spell.SPPercentCost = reader.GetDouble("sp_percent_cost");
                 spell.SPStaticCost = reader.GetInt32("sp_static_cost");
 
                 spell.SpellEffectID = reader.GetInt32("spell_effect_id");

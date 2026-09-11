@@ -87,7 +87,7 @@ public class PropertiesDictionary : Dictionary<string, object>
             return typedValue;
         }
 
-        // Handle numeric conversions (JSON deserializes integers as long, decimals as double)
+        // Handle numeric conversions (JSON deserializes integers as long; numeric property targets are double)
         var targetType = Nullable.GetUnderlyingType(typeof(T)) ?? typeof(T);
         
         if (IsNumericType(targetType) && IsNumericType(value.GetType()))
@@ -129,8 +129,7 @@ public class PropertiesDictionary : Dictionary<string, object>
                type == typeof(short) || type == typeof(ushort) ||
                type == typeof(int) || type == typeof(uint) ||
                type == typeof(long) || type == typeof(ulong) ||
-               type == typeof(float) || type == typeof(double) ||
-               type == typeof(decimal);
+               type == typeof(float) || type == typeof(double);
     }
 
     /// <summary>

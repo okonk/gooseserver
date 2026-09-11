@@ -88,7 +88,7 @@ namespace Goose
 
         public bool Running { get; set; }
 
-        public decimal ExperienceModifier { get; set; }
+        public double ExperienceModifier { get; set; }
 
         /**
          * Constructor

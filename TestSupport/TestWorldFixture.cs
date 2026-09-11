@@ -157,7 +157,7 @@ public class TestWorldFixture : IDisposable
 
     public void SeedClass(int classId, string name, int maxLevel)
     {
-        var cls = new Class { ClassID = classId, ClassName = name, ACMultiplier = 1m };
+        var cls = new Class { ClassID = classId, ClassName = name, ACMultiplier = 1.0 };
         for (int level = 1; level <= maxLevel; level++)
             // Spells must be a real list: Player.ChangeClass iterates GetLevel(n).Spells.
             cls.AddLevel(new ClassLevel { Level = level, BaseStats = new AttributeSet(), Spells = new List<Spell>() });
@@ -170,7 +170,7 @@ public class TestWorldFixture : IDisposable
 
     public void SeedClassLevels(int classId, string name, int[] levels)
     {
-        var cls = new Class { ClassID = classId, ClassName = name, ACMultiplier = 1m };
+        var cls = new Class { ClassID = classId, ClassName = name, ACMultiplier = 1.0 };
         foreach (int level in levels)
             cls.AddLevel(new ClassLevel { Level = level, BaseStats = new AttributeSet(), Spells = new List<Spell>() });
 

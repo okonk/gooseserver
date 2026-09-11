@@ -12,7 +12,7 @@ namespace Goose
 
         public int ClassID { get; set; }
         public string ClassName { get; set; } = null!;
-        public decimal ACMultiplier { get; set; }
+        public double ACMultiplier { get; set; }
         public long VitaCost { get; set; }
         public long ManaCost { get; set; }
 

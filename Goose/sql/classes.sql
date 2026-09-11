@@ -2,7 +2,7 @@ DROP TABLE IF EXISTS classes;
 CREATE TABLE classes (
   class_id INTEGER PRIMARY KEY,
   class_name TEXT NOT NULL,
-  ac_multiplier DECIMAL(9,2) DEFAULT 1 NOT NULL,
+  ac_multiplier REAL DEFAULT 1 NOT NULL,
   vita_cost BIGINT DEFAULT 200000 NOT NULL,
   mana_cost BIGINT DEFAULT 200000 NOT NULL
 );
@@ -33,16 +33,16 @@ CREATE TABLE class_info (
   res_spirit SMALLINT DEFAULT 0 NOT NULL,
   res_air SMALLINT DEFAULT 0 NOT NULL,
   res_earth SMALLINT DEFAULT 0 NOT NULL,
-  hp_percent_regen DECIMAL(9,4) DEFAULT 0 NOT NULL,
+  hp_percent_regen REAL DEFAULT 0 NOT NULL,
   hp_static_regen INT DEFAULT 0 NOT NULL,
-  mp_percent_regen DECIMAL(9,4) DEFAULT 0 NOT NULL,
+  mp_percent_regen REAL DEFAULT 0 NOT NULL,
   mp_static_regen INT DEFAULT 0 NOT NULL,
-  haste DECIMAL(9,4) DEFAULT 0 NOT NULL,
-  spell_damage DECIMAL(9,4) DEFAULT 0 NOT NULL,
-  spell_crit DECIMAL(9,4) DEFAULT 0 NOT NULL,
-  melee_damage DECIMAL(9,4) DEFAULT 0 NOT NULL,
-  melee_crit DECIMAL(9,4) DEFAULT 0 NOT NULL,
-  damage_reduce DECIMAL(9,4) DEFAULT 0 NOT NULL
+  haste REAL DEFAULT 0 NOT NULL,
+  spell_damage REAL DEFAULT 0 NOT NULL,
+  spell_crit REAL DEFAULT 0 NOT NULL,
+  melee_damage REAL DEFAULT 0 NOT NULL,
+  melee_crit REAL DEFAULT 0 NOT NULL,
+  damage_reduce REAL DEFAULT 0 NOT NULL
 );
 
 /* Commoner */

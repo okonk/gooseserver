@@ -107,7 +107,7 @@ namespace Goose.Tests
         [Fact]
         public void AddRegenEvent_ZeroRegenSpeed_EnqueuesFutureRegen()
         {
-            _world.Settings.RegenSpeed = 0m;
+            _world.Settings.RegenSpeed = 0.0;
 
             var player = new Player(0)
             {

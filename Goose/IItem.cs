@@ -46,7 +46,7 @@ namespace Goose
 
         long ClassRestrictions { get; }
         SpellEffect? SpellEffect { get; }
-        decimal SpellEffectChance { get; }
+        double SpellEffectChance { get; }
         int LearnSpellID { get; }
 
         int Credits { get; }

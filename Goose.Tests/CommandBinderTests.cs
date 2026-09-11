@@ -21,12 +21,12 @@ public class CommandBinderTests
     private static ParameterInfo[] ParamsOf(string name)
         => typeof(CommandBinderTests).GetMethod(name, BindingFlags.NonPublic | BindingFlags.Static)!.GetParameters();
 
-    private static void MPositional(CommandContext ctx, int a, long b, float c, double d, decimal e, string s) { }
+    private static void MPositional(CommandContext ctx, int a, long b, float c, double d, double e, string s) { }
     private static void MDefaultedInt(CommandContext ctx, int n = 7) { }
     private static void MRequiredInt(CommandContext ctx, int n) { }
     private static void MFloat(CommandContext ctx, float f) { }
     private static void MDouble(CommandContext ctx, double d) { }
-    private static void MDecimal(CommandContext ctx, decimal e) { }
+    private static void MDecimal(CommandContext ctx, double e) { }
     private static void MBool(CommandContext ctx, bool b) { }
     private static void MIntOnly(CommandContext ctx, int n) { }
     private static void MNoArgs(CommandContext ctx) { }
@@ -40,7 +40,7 @@ public class CommandBinderTests
     private static void MPlayer(CommandContext ctx, Player target) { }
     private static void MNullablePlayer(CommandContext ctx, Player? target = null) { }
     private static void MNullableInt(CommandContext ctx, int? mapId = null) { }
-    private static void MNullableDecimal(CommandContext ctx, decimal? price = null) { }
+    private static void MNullableDecimal(CommandContext ctx, double? price = null) { }
     private static void MNullableBool(CommandContext ctx, bool? enabled = null) { }
     private static void MShapePin(CommandContext ctx, int n) { }
     private static void MKick(CommandContext ctx, Player target) { }
@@ -59,7 +59,7 @@ public class CommandBinderTests
         Assert.Equal(2L, args[1]);
         Assert.Equal(3.5f, args[2]);
         Assert.Equal(4.5, args[3]);
-        Assert.Equal(5.5m, args[4]);
+        Assert.Equal(5.5, args[4]);
         Assert.Equal("hi", args[5]);
     }
 
@@ -113,16 +113,14 @@ public class CommandBinderTests
 
     [Theory]
     [InlineData("99999999999999999999", "int")]
-    [InlineData("123456789012345678901234567890", "decimal")]
     [InlineData("1e999", "float")]
-    [InlineData("1e999", "double")]
+    [InlineData("1e400", "double")]
     public void Numeric_overflow_returns_usage_error_without_exception(string token, string type)
     {
         using var fixture = NewFixture();
         var parameters = type switch
         {
             "int" => ParamsOf(nameof(MRequiredInt)),
-            "decimal" => ParamsOf(nameof(MDecimal)),
             "float" => ParamsOf(nameof(MFloat)),
             _ => ParamsOf(nameof(MDouble)),
         };
@@ -132,6 +130,18 @@ public class CommandBinderTests
 
         Assert.Null(args);
         Assert.Equal("Usage: /o <n>", error);
+    }
+
+    [Fact]
+    public void Double_token_beyond_28_digits_binds_as_finite_double()
+    {
+        using var fixture = NewFixture();
+
+        var (args, error) = CommandBinder.Bind(fixture.World, Alice(fixture),
+            ParamsOf(nameof(MDouble)), ["123456789012345678901234567890"], "Usage: /o <n>");
+
+        Assert.Null(error);
+        Assert.Equal(1.2345678901234568E+29, args![0]);
     }
 
     [Fact]
@@ -150,7 +160,7 @@ public class CommandBinderTests
 
         var (eArgs, eError) = CommandBinder.Bind(fixture.World, player, ParamsOf(nameof(MDecimal)), ["1.5"], "Usage: /e <e>");
         Assert.Null(eError);
-        Assert.Equal(1.5m, eArgs![0]);
+        Assert.Equal(1.5, eArgs![0]);
 
         var (eBadArgs, eBadError) = CommandBinder.Bind(fixture.World, player, ParamsOf(nameof(MDecimal)), ["1,5"], "Usage: /e <e>");
         Assert.Null(eBadArgs);
@@ -350,7 +360,7 @@ public class CommandBinderTests
         var (dArgs, dError) = CommandBinder.Bind(fixture.World, player,
             ParamsOf(nameof(MNullableDecimal)), ["1.5"], "Usage: /d [price]");
         Assert.Null(dError);
-        Assert.Equal(1.5m, dArgs![0]);
+        Assert.Equal(1.5, dArgs![0]);
 
         var (dBadArgs, dBadError) = CommandBinder.Bind(fixture.World, player,
             ParamsOf(nameof(MNullableDecimal)), ["abc"], "Usage: /d [price]");
