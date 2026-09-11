@@ -32,3 +32,14 @@ tools/DataEditor/.clasp.json
 # CsvToSql.Console writes this to the current working directory, not the project
 # directory, so it must not be anchored to a path.
 illutiaData.sql
+
+# Python bytecode from the goose-game-data skill's helper, which is imported directly
+# and so drops a __pycache__ next to its source.
+*.pyc
+__pycache__/
+
+# Working copy of the gws OAuth credentials. gws rewrites its token cache on every API
+# call and ~/.config/gws is read-only under the agent sandbox, so the goose-game-data
+# skill points GOOGLE_WORKSPACE_CLI_CONFIG_DIR at this directory instead. It holds live
+# refresh tokens — never commit it.
+.gws/
