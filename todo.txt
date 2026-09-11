@@ -21,7 +21,6 @@ Change guilds to not update DB itself
 daily quests
 Readd server browser stuff
 Global chat
-convert decimals -> doubles
 look into wrath etc spawns what can be done to make training better but not encourage macroing
 flag for hiding other equips when cloak is equipped
 global script threading issues
@@ -115,7 +114,9 @@ Map editor
 client
 make a data writer (done somewhat)
 increase bank slot item
-
+make backstab do more damage from behind
+Add enum direction for facing
+convert decimals -> doubles
 
 
 random thoughts:
