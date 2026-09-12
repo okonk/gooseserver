@@ -40,6 +40,7 @@ return typeof(T);
         Assert.True(script.IsMet(req, player, null!));
         Assert.Equal("", script.GetProgressText(req, player, null!));
         Assert.Null(script.CanComplete(reward, player, null!));
+        Assert.Equal(0, script.GetRequiredInventorySpace(reward, player, null!));
         script.OnTakeRequirement(req, player, null!);   // must not throw
         script.GiveReward(reward, null!, player, null!); // must not throw
     }

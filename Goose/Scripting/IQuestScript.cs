@@ -23,5 +23,12 @@ namespace Goose.Scripting
         /// instead of completing the quest. Supports \n the same way quest Description does.</summary>
         string? CanComplete(QuestReward reward, Player player, GameWorld world);
         void GiveReward(QuestReward reward, NPC npc, Player player, GameWorld world);
+
+        /// <summary>Inventory slots the reward will need, summed with the built-in Item rows by
+        /// PlayerHasEnoughInventorySpaceForReward and checked before the quest completes. Return 0
+        /// when the reward hands over nothing. Under-report and Inventory.AddItem drops the item
+        /// after the quest is already complete; over-report and the player is refused a turn-in
+        /// they could have made.</summary>
+        int GetRequiredInventorySpace(QuestReward reward, Player player, GameWorld world);
     }
 }

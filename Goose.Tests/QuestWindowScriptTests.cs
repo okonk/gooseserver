@@ -73,6 +73,26 @@ public class QuestWindowScriptTests
         return (npc, player, quest);
     }
 
+    /// <summary>Fills inventory slots with unstackable loot, leaving <paramref name="leaveFreeSlots"/>
+    /// free, so the engine's space check has nothing to hand over.</summary>
+    private static void FillInventory(Player player, QuestScriptFixture fixture, int leaveFreeSlots = 0)
+    {
+        fixture.World.ItemHandler.AddTemplate(new ItemTemplate
+        {
+            ID = 900, Name = "Loot", Description = "Loot", StackSize = 1,
+            BaseStats = new AttributeSet(), ScriptParams = "",
+        });
+
+        var template = fixture.World.ItemHandler.GetTemplate(900)!;
+        for (var i = 0; i < fixture.Settings.InventorySize - leaveFreeSlots; i++)
+        {
+            var item = new Item();
+            item.LoadFromTemplate(template);
+            fixture.World.ItemHandler.AddAndAssignId(item, fixture.World);
+            Assert.True(player.Inventory.AddItem(item, 1, fixture.World));
+        }
+    }
+
     [Fact]
     public void A_script_requirement_that_is_not_met_fails_the_quest()
     {
@@ -162,6 +182,103 @@ return typeof(T);
 
         // Base GetProgressText returns "" — nothing is appended to the built-in header.
         Assert.Equal("Requirements\\n\\n", window.GetQuestProgressText(player, scripts.World));
+    }
+
+    [Fact]
+    public void A_script_reward_needing_a_slot_is_refused_by_the_engine_space_check()
+    {
+        // The gate must run before the quest completes, and must use the engine's own message:
+        // GiveRewards ignores AddItem's false, so a reward that does not fit is gone for good
+        // once CompleteQuest has run.
+        using var scripts = new QuestScriptFixture();
+        var script = scripts.Compile(@"
+using Goose; using Goose.Quests; using Goose.Scripting;
+public class T : BaseQuestScript
+{
+    public static bool GaveReward = false;
+    public override int GetRequiredInventorySpace(QuestReward reward, Player player, GameWorld world)
+        => 1;
+    public override void GiveReward(QuestReward reward, NPC npc, Player player, GameWorld world)
+        => GaveReward = true;
+}
+return typeof(T);
+");
+        var (npc, player, quest) = QuestFixture(script, scripts.Settings, rewardType: RewardType.Script);
+        FillInventory(player, scripts);
+
+        var window = new QuestWindow(npc, player, quest, scripts.World);
+        window.Clicked(Window.ButtonTypes.Next, npc.NPCTemplate.NPCTemplateID, 0, 0, player, scripts.World);
+
+        Assert.DoesNotContain(player.QuestsCompleted, q => q.Id == quest.Id);
+        Assert.False((bool)script.Object.GetType().GetField("GaveReward")!.GetValue(null)!);
+        Assert.Equal("You don't have enough inventory space to accept \\nthe reward.\\nDelete an item and try again.",
+                     window.GetCurrentText(player, scripts.World));
+    }
+
+    [Fact]
+    public void A_script_reward_needing_no_slots_completes_a_full_inventory()
+    {
+        using var scripts = new QuestScriptFixture();
+        var script = scripts.Compile(@"
+using Goose; using Goose.Quests; using Goose.Scripting;
+public class T : BaseQuestScript { }
+return typeof(T);
+");
+        var (npc, player, quest) = QuestFixture(script, scripts.Settings, rewardType: RewardType.Script);
+        FillInventory(player, scripts);
+
+        var window = new QuestWindow(npc, player, quest, scripts.World);
+        window.Clicked(Window.ButtonTypes.Next, npc.NPCTemplate.NPCTemplateID, 0, 0, player, scripts.World);
+
+        Assert.Contains(player.QuestsCompleted, q => q.Id == quest.Id);
+    }
+
+    [Fact]
+    public void Script_and_item_reward_rows_add_up()
+    {
+        // One free slot, one Item row and one script row wanting a slot each: the engine's own
+        // count alone would allow the turn-in and drop one of the two rewards.
+        using var scripts = new QuestScriptFixture();
+        var script = scripts.Compile(@"
+using Goose; using Goose.Quests; using Goose.Scripting;
+public class T : BaseQuestScript
+{
+    public override int GetRequiredInventorySpace(QuestReward reward, Player player, GameWorld world)
+        => 1;
+}
+return typeof(T);
+");
+        var (npc, player, quest) = QuestFixture(script, scripts.Settings, rewardType: RewardType.Script);
+        quest.Rewards.Add(new QuestReward { Id = 101, Type = RewardType.Item, LongValue = 4242 });
+        FillInventory(player, scripts, leaveFreeSlots: 1);
+
+        var window = new QuestWindow(npc, player, quest, scripts.World);
+        window.Clicked(Window.ButtonTypes.Next, npc.NPCTemplate.NPCTemplateID, 0, 0, player, scripts.World);
+
+        Assert.DoesNotContain(player.QuestsCompleted, q => q.Id == quest.Id);
+    }
+
+    [Fact]
+    public void A_script_cannot_loosen_the_gate_with_a_negative_count()
+    {
+        using var scripts = new QuestScriptFixture();
+        var script = scripts.Compile(@"
+using Goose; using Goose.Quests; using Goose.Scripting;
+public class T : BaseQuestScript
+{
+    public override int GetRequiredInventorySpace(QuestReward reward, Player player, GameWorld world)
+        => -5;
+}
+return typeof(T);
+");
+        var (npc, player, quest) = QuestFixture(script, scripts.Settings, rewardType: RewardType.Script);
+        quest.Rewards.Add(new QuestReward { Id = 101, Type = RewardType.Item, LongValue = 4242 });
+        FillInventory(player, scripts);
+
+        var window = new QuestWindow(npc, player, quest, scripts.World);
+        window.Clicked(Window.ButtonTypes.Next, npc.NPCTemplate.NPCTemplateID, 0, 0, player, scripts.World);
+
+        Assert.DoesNotContain(player.QuestsCompleted, q => q.Id == quest.Id);
     }
 
     [Fact]

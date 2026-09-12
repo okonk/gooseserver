@@ -303,11 +303,19 @@ namespace Goose.Quests
 
         private bool PlayerHasEnoughInventorySpaceForReward(Player player, GameWorld world)
         {
-            var itemRewards = quest.Rewards.Where(r => r.Type == RewardType.Item);
             // assume 1 slot per reward item
-            var freeSlots = player.Inventory.GetNumberOfFreeSlots();
+            var requiredSlots = quest.Rewards.Count(r => r.Type == RewardType.Item);
 
-            return freeSlots >= itemRewards.Count();
+            // A script reporting 0 or less cannot loosen the gate: AddItem returns false when it
+            // finds no room and GiveRewards ignores the result, so the reward would be dropped
+            // after the quest was already marked complete.
+            foreach (var reward in quest.Rewards.Where(r => r.Type == RewardType.Script))
+            {
+                var required = reward.Script?.Object.GetRequiredInventorySpace(reward, player, world) ?? 0;
+                if (required > 0) requiredSlots += required;
+            }
+
+            return player.Inventory.GetNumberOfFreeSlots() >= requiredSlots;
         }
 
         /// <summary>The first blocking message from a Script reward, or null if every scripted reward

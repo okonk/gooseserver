@@ -31,5 +31,10 @@ namespace Goose.Scripting
         {
 
         }
+
+        public virtual int GetRequiredInventorySpace(QuestReward reward, Player player, GameWorld world)
+        {
+            return 0;
+        }
     }
 }
