@@ -10,6 +10,7 @@ namespace CsvToSql
             Col.Id("map_id", SqlType.SmallInt).Ref("Maps").HeaderText("map id"),
             Col.Int("map_x", SqlType.SmallInt).HeaderText("map x"),
             Col.Int("map_y", SqlType.SmallInt).HeaderText("map y"),
+            Col.Text("properties", SqlType.Text, "''").HeaderText("properties"),
         };
     }
 }

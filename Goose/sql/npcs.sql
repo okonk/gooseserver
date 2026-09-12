@@ -70,7 +70,8 @@ CREATE TABLE npc_spawns (
   npc_id INT NOT NULL,
   map_id SMALLINT NOT NULL,
   map_x SMALLINT NOT NULL,
-  map_y SMALLINT NOT NULL
+  map_y SMALLINT NOT NULL,
+  properties TEXT DEFAULT '' NOT NULL
 );
 
 
