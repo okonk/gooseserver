@@ -121,7 +121,7 @@ commands.
 | --- | --- | --- | --- |
 | Items | item_templates | 46 | item_template_id |
 | NPCs | npc_templates | 59 | npc_id |
-| NPC Spawns | npc_spawns | 4 | — (composite) |
+| NPC Spawns | npc_spawns | 5 | — (composite) |
 | NPC Drops | npc_drops | 4 | — (composite) |
 | NPC Vendor Items | npc_vendor_items | 5 | — (composite) |
 | Quests | quests | 14 | id |
@@ -206,6 +206,8 @@ which is why most mobs carry no explicit hp while high-level bosses add a large 
 
 `N stationary` is **inverted** at load: `npc.CanMove = reader.GetString("stationary") != "1"`
 (`NPCHandler.cs:98`). It behaves as a property of a *placement* rather than of the mob.
+A spawn row's `E properties` cell is now the per-placement override mechanism for exactly this
+kind of thing, and folding `stationary` into it is a live option.
 
 `BA alliance` holds **template ids** that assist one another: when an NPC aggros, it pulls every
 ally standing within that ally's own aggro range (`NPC.cs:569`, `1028`). Because it stores ids,
@@ -213,7 +215,11 @@ retiring a template means rewriting the alliance list on every NPC that named it
 
 ### NPC Spawns / NPC Drops / NPC Vendor Items
 
-- **NPC Spawns** — `A npc id` · `B map id` · `C map x` · `D map y`, all required.
+- **NPC Spawns** — `A npc id` · `B map id` · `C map x` · `D map y` · `E properties` (JSON; blank = no overrides), the first four required.
+  Keys are camelCase NPC property names; this cut supports exactly one, `canMove`, and its value
+  must be the **JSON boolean** `true`/`false` — `1`/`0` is how the sheet's Bool columns are
+  written, and it is valid JSON here but throws at load, which stops the server from starting.
+  `canMove` overrides the NPC template's `stationary`/movement setting for that one spawn.
 - **NPC Drops** — `A npc id` · `B item id` · `C stack size` · `D droprate`, all required.
 - **NPC Vendor Items** — `A npc id` · `B item id` · `C stack` (1) · `D stats visible` (1) ·
   `E slot number` (required, 0-based). The NPC needs `type = Vendor` to show stock.
