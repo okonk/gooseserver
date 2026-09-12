@@ -318,6 +318,7 @@ namespace Goose
                     int map_id = reader.GetInt32("map_id");
                     int map_x = reader.GetInt32("map_x");
                     int map_y = reader.GetInt32("map_y");
+                    var properties = ParseSpawnProperties(reader.GetString("properties"), npc_id, map_id, map_x, map_y);
 
                     NPCTemplate? template = this.GetNPCTemplate(npc_id);
                     if (template is null)
@@ -325,13 +326,30 @@ namespace Goose
                         log.Warn("npc spawns: bad npc id {0}", npc_id);
                         continue;
                     }
-                    if (this.SpawnNPC(world, map_id, map_x, map_y, template, shouldRespawn: true) is null)
+                    if (this.SpawnNPC(world, map_id, map_x, map_y, template, shouldRespawn: true, properties) is null)
                     {
                         log.Warn("npc spawns: failed to spawn npc {0} ({1}) on map {2} at {3},{4}",
                             template.Name, npc_id, map_id, map_x, map_y);
                     }
                 }
             });
+        }
+
+        internal static PropertiesDictionary ParseSpawnProperties(string json,
+            int npcId, int mapId, int mapX, int mapY)
+        {
+            if (string.IsNullOrWhiteSpace(json)) return new PropertiesDictionary();
+
+            try
+            {
+                return JsonHelper.Deserialize<PropertiesDictionary>(json) ?? new PropertiesDictionary();
+            }
+            catch (Exception e)
+            {
+                log.Error(e, "npc_spawns: npc {0} on map {1} at {2},{3} has unreadable properties: {4}",
+                    npcId, mapId, mapX, mapY, json);
+                return new PropertiesDictionary();
+            }
         }
 
         /// <summary>Registers an already-loaded NPC so NPCCount and anything enumerating the
