@@ -383,6 +383,30 @@ public class DimensionsScriptTests
         Assert.Equal(50, spawned.SpawnY);
     }
 
+    [Fact]
+    public void Dimension_copies_inherit_the_spawn_rows_properties()
+    {
+        var template = new NPCTemplate
+        {
+            NPCTemplateID = 162, Name = "Shadow Dog", Level = 40, ClassID = 0,
+            MoveSpeed = 1.5, CanBeKilled = true, CanMove = false,
+        };
+        template.BaseStats = new AttributeSet { HP = 3704 };
+
+        using var fixture = Run(f =>
+        {
+            f.AddBaseMap(1, "Town", width: 100, height: 100);
+            f.World.NPCHandler.AddTemplate(template);
+            f.World.NPCHandler.SpawnNPC(f.World, 1, 5, 5, template, shouldRespawn: true,
+                new PropertiesDictionary { ["canMove"] = true });
+        });
+
+        var dimensionCopy = fixture.World.MapHandler.GetMap(1 + 100000)!
+            .NPCs.Single(n => n.NPCTemplateID == 162 + 100000);
+
+        Assert.True(dimensionCopy.CanMove);
+    }
+
     /// <summary>The done criteria are stated in NPCCount ("~82,000 NPCs"), so the generated
     /// spawns must actually be registered with the handler. Only SpawnNPC (Part 1 task 4) does
     /// that - NPC.LoadFromTemplate adds to the map and the login-id lookup and nothing else.</summary>

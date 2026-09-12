@@ -34,7 +34,8 @@ public partial class Dimensions
                 // shouldRespawn: true - respawning is self-sustaining on the NPC, matching how
                 // LoadNPCs creates the base spawns.
                 world.NPCHandler.SpawnNPC(world, basic.Map.ID + Offset * dim,
-                                          basic.SpawnX, basic.SpawnY, template, shouldRespawn: true);
+                                          basic.SpawnX, basic.SpawnY, template, shouldRespawn: true,
+                                          basic.Properties?.Clone());
             }
         }
     }
