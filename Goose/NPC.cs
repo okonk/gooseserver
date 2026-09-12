@@ -47,6 +47,8 @@ namespace Goose
 
         public bool ShouldRespawn { get; set; }
 
+        public PropertiesDictionary Properties { get; set; } = new PropertiesDictionary();
+
         /**
          * LoginID is the ID assigned by the server on login
          */
@@ -592,7 +594,8 @@ namespace Goose
          * LoadFromTemplate
          *
          */
-        public bool LoadFromTemplate(GameWorld world, int map_id, int map_x, int map_y, NPCTemplate template, bool shouldRespawn)
+        public bool LoadFromTemplate(GameWorld world, int map_id, int map_x, int map_y, NPCTemplate template, bool shouldRespawn,
+            PropertiesDictionary? properties = null)
         {
             if (!NPCHandler.ValidateAndNormalize(template))
             {
@@ -601,6 +604,7 @@ namespace Goose
             }
 
             this.ShouldRespawn = shouldRespawn;
+            this.Properties = properties ?? new PropertiesDictionary();
 
             this.Map = world.MapHandler.GetMap(map_id)!;
             if (this.Map is null) return false;
@@ -627,7 +631,7 @@ namespace Goose
             // Template see-invisible is a persistent +1 so buff churn can never
             // drop it, and it stacks with real SeeInvisible buffs.
             if (template.SeeInvisible) this.SeeInvisibleBuffCount++;
-            this.CanMove = template.CanMove;
+            this.CanMove = this.Properties.GetProperty("canMove", template.CanMove);
             this.ClassID = template.ClassID;
             this.EquippedItems = template.EquippedItems;
             this.Experience = template.Experience;

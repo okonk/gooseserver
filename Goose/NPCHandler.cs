@@ -346,10 +346,11 @@ namespace Goose
         /// registers it. Returns null if the map does not exist, in which case nothing is
         /// registered. Every caller - LoadNPCs included - should go through this rather than
         /// calling LoadFromTemplate directly, so there is one definition of "spawned".</summary>
-        public NPC? SpawnNPC(GameWorld world, int mapId, int mapX, int mapY, NPCTemplate template, bool shouldRespawn)
+        public NPC? SpawnNPC(GameWorld world, int mapId, int mapX, int mapY, NPCTemplate template, bool shouldRespawn,
+            PropertiesDictionary? properties = null)
         {
             var npc = new NPC();
-            if (!npc.LoadFromTemplate(world, mapId, mapX, mapY, template, shouldRespawn)) return null;
+            if (!npc.LoadFromTemplate(world, mapId, mapX, mapY, template, shouldRespawn, properties)) return null;
 
             this.AddNPC(npc);
             return npc;
