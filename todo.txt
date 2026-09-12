@@ -15,6 +15,10 @@ scp -r Goose/Data/Illutia/Scripts/ root@game.illutia.net:/root/StagingGooseServe
 scp root@game.illutia.net:/root/GooseServer/IllutiaGoose.db /run/user/1000/gvfs/smb-share:server=bloom.local,share=media/Dump/Goose/IllutiaGoose_2025-01-10.db
 
 
+make one-time quests work (needs to store the flag somewhere)
+make unique rewards for being the first to kill a boss
+new graphic viewer, maybe built into map editor?
+
 change droprate to double
 spell to see monster info
 Change guilds to not update DB itself
