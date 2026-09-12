@@ -140,7 +140,6 @@
     "IdleTimeout": 600,
     "PlayerCountExperienceModifierInterval": 1000,
     "PlayerCountExperienceModifier": 1,
-    "CreditUpdateInterval": 60,
     "StartingMoveSpeed": 320,
     "StartingBodyR": 0,
     "StartingBodyG": 0,

@@ -22,7 +22,8 @@ namespace Goose
             PickupItem = 11,
             PlayerDropItem = 12,
             Tell = 13,
-            ReceivedCredits = 14,
+            // 14 was ReceivedCredits, which only the PayPal redemption event ever wrote.
+            // Left as a gap: the value is persisted in logs.log_type.
             GaveCredits = 15,
             InvalidPassword = 16,
             CreatedCustom,

@@ -322,9 +322,6 @@ namespace Goose
             updateExperienceModifier.Ticks += this.TimerFrequency * Math.Max(1, this.Settings.IdleTimeout);
             this.EventHandler.AddEvent(updateExperienceModifier);
 
-            //Event updateCredits = new CreditsUpdateEvent();
-            //this.EventHandler.AddEvent(updateCredits);
-
             // Add gold item
             ItemTemplate? goldTemplate = this.ItemHandler.GetTemplate(this.Settings.GoldItemID);
             if (goldTemplate is null)
