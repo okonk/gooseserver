@@ -1,12 +1,12 @@
-﻿using System.Text;
+using System.Text;
 
 namespace Goose.Events
 {
     /**
      * KillBuffEvent, KBUFid event
-     * 
+     *
      * When a player clicks a buff in buff bar to remove it.
-     * 
+     *
      */
     public class KillBuffEvent : Event
     {

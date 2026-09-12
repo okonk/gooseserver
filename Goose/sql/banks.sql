@@ -3,7 +3,7 @@ CREATE TABLE bank_items (
   npc_id INT NOT NULL,
   player_id INT NOT NULL,
   serialized_data TEXT NOT NULL,
-  
+
   PRIMARY KEY(npc_id, player_id)
 );
 

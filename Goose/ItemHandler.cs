@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Text;
 
 using Goose.Events;
@@ -8,7 +8,7 @@ namespace Goose
 {
     /**
      * ItemHandler, handles item templates/items
-     * 
+     *
      */
     public class ItemHandler
     {
@@ -50,7 +50,7 @@ namespace Goose
 
         /**
          * LoadTemplates, loads item templates
-         * 
+         *
          */
         public void LoadTemplates(GameWorld world)
         {
@@ -175,7 +175,7 @@ namespace Goose
 
         /**
          * TemplateCount, returns item template count
-         * 
+         *
          */
         public int TemplateCount { get => this.templates.Count; }
 
@@ -264,7 +264,7 @@ namespace Goose
 
         /**
          * GetGold, returns item for gold
-         * 
+         *
          */
         public Item? GetGold(GameWorld world)
         {

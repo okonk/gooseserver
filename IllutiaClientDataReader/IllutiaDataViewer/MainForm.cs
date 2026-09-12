@@ -1,4 +1,4 @@
-﻿using IllutiaClientDataReader;
+using IllutiaClientDataReader;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -77,7 +77,7 @@ namespace IllutiaDataViewer
 
             if (compiledEnc.SheetToAnimation.ContainsKey(selectedFile.FileNumber))
             {
-                this.animationInfoTextBox.Text = string.Format("{0}: {1}", 
+                this.animationInfoTextBox.Text = string.Format("{0}: {1}",
                     compiledEnc.SheetToAnimation[selectedFile.FileNumber].Type, compiledEnc.SheetToAnimation[selectedFile.FileNumber].Id);
             }
             else
@@ -165,7 +165,7 @@ namespace IllutiaDataViewer
 
                 default:
                     var equipType = (AnimationType)Enum.Parse(typeof(AnimationType), selectedFilter.ToString());
-                    filteredAdfs = filteredAdfs.Where(a => compiledEnc.SheetToAnimation.ContainsKey(a.FileNumber) 
+                    filteredAdfs = filteredAdfs.Where(a => compiledEnc.SheetToAnimation.ContainsKey(a.FileNumber)
                         && compiledEnc.SheetToAnimation[a.FileNumber].Type == equipType);
 
                     break;

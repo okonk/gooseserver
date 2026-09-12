@@ -1,10 +1,10 @@
-﻿using System.Text;
+using System.Text;
 
 namespace Goose
 {
     /**
      * Buff holds info about a buff on a player
-     * 
+     *
      */
     public class Buff
     {

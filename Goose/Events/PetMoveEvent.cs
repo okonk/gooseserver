@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 
 namespace Goose.Events
 {
@@ -28,7 +28,7 @@ namespace Goose.Events
                     }
                 }
 
-                if (pet.Target is not null && 
+                if (pet.Target is not null &&
                     (pet.Target.Map != pet.Map || (pet.Target is NPC && ((NPC)pet.Target).State != Goose.NPC.States.Alive)))
                 {
                     pet.Target = null;
@@ -40,11 +40,11 @@ namespace Goose.Events
                 }
 
                 Direction direction = Direction.Up;
-                switch (pet.Mode) 
+                switch (pet.Mode)
                 {
                     case Pet.Modes.Neutral:
-                        direction = pet.NextStepTo(pet.Owner.MapX + world.Random.Next(-2, 2), 
-                                                   pet.Owner.MapY + world.Random.Next(-2, 2), 
+                        direction = pet.NextStepTo(pet.Owner.MapX + world.Random.Next(-2, 2),
+                                                   pet.Owner.MapY + world.Random.Next(-2, 2),
                                                    world);
                         break;
                     case Pet.Modes.Follow:

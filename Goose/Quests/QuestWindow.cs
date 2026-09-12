@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 
 namespace Goose.Quests
 {
@@ -279,7 +279,7 @@ namespace Goose.Quests
                             if (player.Inventory.GetEquippedSlot(slot) is not null)
                                 return false;
                         }
-                        
+
                         break;
                     case RequirementType.Script:
                         if (!requirement.Script!.Object.IsMet(requirement, player, world))
@@ -520,9 +520,9 @@ namespace Goose.Quests
                             break;
                         case RequirementType.TalkToNPC:
                         case RequirementType.Kill:
-                            var progress = player.QuestProgress.FirstOrDefault(p => p.Requirement.Quest.Id == quest.Id 
+                            var progress = player.QuestProgress.FirstOrDefault(p => p.Requirement.Quest.Id == quest.Id
                                 && p.Requirement.Type == requirement.Type
-                                && p.Requirement.Value == requirement.Value 
+                                && p.Requirement.Value == requirement.Value
                                 && p.Requirement.Value2 == requirement.Value2);
                             if (progress is not null)
                             {

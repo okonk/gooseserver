@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using System.Net;
 using System.Net.Sockets;
 using Goose.ConsoleCommands;
@@ -8,7 +8,7 @@ namespace Goose
     /**
      * The GameServer class handles all of the basic Socket handling to do with a server
      * It contains the GameWorld class where all of the game specific stuff happens
-     * 
+     *
      */
     public class GameServer
     {
@@ -140,10 +140,10 @@ namespace Goose
 
         /**
          * Start, server setup
-         * 
+         *
          * Calls along to the GameWorld.Start()
          * Sets up a listen socket and adds it to the socket list
-         * 
+         *
          */
         public void Start()
         {
@@ -178,17 +178,17 @@ namespace Goose
 
         /**
          * GameLoop, the main game loop
-         * 
+         *
          * Handles all of the low level socket details
          * Eg, on a new connection it calls GameWorld.NewConnection(Socket)
          * on a closed connection calls GameWorld.LostConnection(Socket)
          * on receiving data calls GameWorld.Received(Socket, String)
-         * 
+         *
          * At the end of the loop it calls GameWorld.Update(),
          * Update returns a bool to specify to keep the server going or not
-         * 
+         *
          * Once the loop is stopped this.Stop() is called to tidy up
-         * 
+         *
          */
         public void GameLoop()
         {
@@ -315,11 +315,11 @@ namespace Goose
 
         /**
          * Stop, server shutdown tidyup
-         * 
+         *
          * Calls along to GameWorld.Stop()
-         * 
+         *
          * Closes all sockets
-         * 
+         *
          */
         public void Stop()
         {
@@ -345,9 +345,9 @@ namespace Goose
 
         /**
          * Disconnect, disconnect socket
-         * 
+         *
          * Closes socket then removes from our sockets list
-         * 
+         *
          */
         public void Disconnect(Socket sock)
         {

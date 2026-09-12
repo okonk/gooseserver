@@ -1,13 +1,13 @@
-﻿using System.Text;
+using System.Text;
 
 namespace Goose.Events
 {
     /**
      * InventoryUseEvent, event for "USE" packet
-     * 
+     *
      * Called when someone uses an item in their inventory
      * Packet format: USEslotid
-     * 
+     *
      */
     class InventoryUseEvent : Event
     {

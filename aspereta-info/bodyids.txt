@@ -64,4 +64,4 @@
     * 163.Monkey
     * 164.Wolfy Illusion
     * 165.Bear
-    * 166. Faery 
+    * 166. Faery

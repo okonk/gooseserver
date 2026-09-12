@@ -4,10 +4,10 @@ CREATE TABLE paypal_logs (
 
 CREATE TABLE paypal_payments (
   txn_id TEXT NOT NULL,
-  player_name TEXT NOT NULL, 
-  credits SMALLINT NOT NULL, 
-  price REAL NOT NULL, 
+  player_name TEXT NOT NULL,
+  credits SMALLINT NOT NULL,
+  price REAL NOT NULL,
   redeemed CHAR(1) DEFAULT '0' NOT NULL,
-  
+
   PRIMARY KEY (txn_id)
 );

@@ -24,7 +24,7 @@ for rate in rates:
         if level == 50: level_up_exp = 0
         hp = hp + int(math.ceil(level * 2 * (300000.0 / rate[1])))
         mp = mp + int(math.ceil(level * 2 * (300000.0 / rate[2])))
-            
+
 
 f.close()
 

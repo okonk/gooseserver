@@ -27,4 +27,4 @@
     * 26.Snake Tiara
     * 27.Monkey helmet
     * 28.Laurels
-    * 29.Doom helmet 
+    * 29.Doom helmet

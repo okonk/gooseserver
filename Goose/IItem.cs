@@ -1,12 +1,12 @@
-﻿using System.Text;
+using System.Text;
 
 namespace Goose
 {
     /**
      * Item interface
-     * 
+     *
      * so can interchange ItemTemplate/Items mainly used for Item info window
-     * 
+     *
      */
     public interface IItem
     {

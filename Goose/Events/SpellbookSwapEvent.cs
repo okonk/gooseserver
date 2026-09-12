@@ -1,14 +1,14 @@
-﻿using System.Text;
+using System.Text;
 
 namespace Goose.Events
 {
     /**
      * SpellbookSwapEvent, swap two spell in spellbook
-     * 
+     *
      * Packet: SWAP id1, id2
-     * 
+     *
      * Not sure why the spaces are there but k
-     * 
+     *
      */
     public class SpellbookSwapEvent : Event
     {

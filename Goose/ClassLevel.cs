@@ -1,10 +1,10 @@
-﻿using System.Text;
+using System.Text;
 
 namespace Goose
 {
     /**
      * ClassLevel, holds information about a level for a class
-     * 
+     *
      */
     public class ClassLevel
     {

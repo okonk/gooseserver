@@ -1,10 +1,10 @@
-﻿using System.Text;
+using System.Text;
 
 namespace Goose
 {
     /**
      * Spell, holds information for a spell
-     * 
+     *
      */
     public class Spell
     {

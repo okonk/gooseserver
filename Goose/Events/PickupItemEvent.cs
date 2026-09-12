@@ -1,12 +1,12 @@
-﻿using System.Text;
+using System.Text;
 
 namespace Goose.Events
 {
     /**
      * PickupItemEvent, event for "GET" packet
-     * 
+     *
      * Called when someone presses comma
-     * 
+     *
      */
     class PickupItemEvent : Event
     {
@@ -69,15 +69,15 @@ namespace Goose.Events
                 }
 
                 // Can't pick up cause not owner and it's not past the time limit
-                if (!(tile.PickupTime < world.TimeNow || 
-                        (tile.Owner == this.Player || 
+                if (!(tile.PickupTime < world.TimeNow ||
+                        (tile.Owner == this.Player ||
                             (tile.Owner.Group is not null && tile.Owner.Group.Players.Contains(this.Player)))))
                 {
                     return;
                 }
 
                 // picked up gold
-                if (tile.ItemSlot.Item.ItemID == 
+                if (tile.ItemSlot.Item.ItemID ==
                     world.Settings.ItemIDStartpoint + world.Settings.GoldItemID)
                 {
                     this.Player.AddGold(tile.ItemSlot.Stack, world);
@@ -117,7 +117,7 @@ namespace Goose.Events
                         }
 
                         world.LogHandler.Log(Log.Types.PickupItem,
-                            this.Player.PlayerID, tile.ItemSlot.Item.ItemID + " " + tile.ItemSlot.Item.Template.ID + " " + tile.ItemSlot.Item.Name + " " + tile.ItemSlot.Stack, 
+                            this.Player.PlayerID, tile.ItemSlot.Item.ItemID + " " + tile.ItemSlot.Item.Template.ID + " " + tile.ItemSlot.Item.Name + " " + tile.ItemSlot.Stack,
                             0, this.Player.Map.ID, this.Player.MapX, this.Player.MapY);
                     }
                     else

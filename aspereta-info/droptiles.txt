@@ -268,7 +268,7 @@
     * 120401 ruby
     * 120402 black pearl
     * 120403 green pearl
-    * 120404 - 120499 nothing 
+    * 120404 - 120499 nothing
 
 120500 - 121200:
 
@@ -277,7 +277,7 @@
     * 120502 - GOP
     * 120503 - Purple Mineral thing
     * 120504 - Pink Unrefined Ore
-    * 120505 - Light Blue Unrefined Ore 
+    * 120505 - Light Blue Unrefined Ore
 
 120506-120599 - Nothing
 
@@ -289,7 +289,7 @@
     * 120605 - Brown Pelt
     * 120606 - Red Pelt
     * 120607 - Chicken Leg
-    * 120608 - Bat Wing 
+    * 120608 - Bat Wing
 
 120609-120699 - Nothing
 
@@ -309,7 +309,7 @@
     * 120713 - Candy Cane
     * 120714 - Gingerbread Costume
     * 120715 - Santa Hat
-    * 120716 - Monkey Hat 
+    * 120716 - Monkey Hat
 
 120717-120799 - Nothing
 
@@ -320,20 +320,20 @@
     * 120804 - Grey Cat
     * 120805 - White bomb
     * 120806 - Red bomb
-    * 120807 - Green bomb 
+    * 120807 - Green bomb
 
 120808-120899 - Nothing
 
     * 120900 - Penguin Costume
     * 120901 - Reaper Costume
-    * 120902 - Devil Costume 
+    * 120902 - Devil Costume
 
 120903-120999 - Nothing
 
     * 121000 - Snake Tiara
     * 121001 - Snake Helm
     * 121002 - Some Female Top (Probably Frill)
-    * 121003 - Skirt 
+    * 121003 - Skirt
 
 121004-121099 - Nothing
 
@@ -393,12 +393,12 @@
     * 121153 - White King
     * 121154 - Gold Slime Piece
     * 121155 - Red Slime Piece
-    * 121156 - Blue Slime Piece 
+    * 121156 - Blue Slime Piece
 
 121157-121160 - Nothing
 
-    * 121161 - White Knight (back) 
+    * 121161 - White Knight (back)
 
-121162-121199 - nothing 
+121162-121199 - nothing
 
 121300ish - drinks mostly

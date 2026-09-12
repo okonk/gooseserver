@@ -1,20 +1,20 @@
-﻿using System.Text;
+using System.Text;
 
 namespace Goose.Events
 {
     /**
      * DoneLoadingMapEvent, event for DLM
-     * 
+     *
      * Called in response to SCMMapId,MapVersion,MapName
      * Packet format: DLM
-     * 
+     *
      * Server responds:
      * - SMNMapname - Send Map Name, I'm unsure why it sends it twice or if it's even needed
      * - DSM - Done Sending Map
-     * - MKC - See Player.MKCString() for full syntax. 
+     * - MKC - See Player.MKCString() for full syntax.
      * This is sent to all players in the range of the player. Including the player himself.
      * - SUCId - Set Your Character (I think) - Tells the client which character is the player
-     * 
+     *
      */
     class DoneLoadingMapEvent : Event
     {

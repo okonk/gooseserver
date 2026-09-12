@@ -1,14 +1,14 @@
-﻿using System.Text;
+using System.Text;
 
 namespace Goose.Events
 {
     /**
      * EmoteEvent
-     * 
+     *
      * Format: EMOTanimId,sheetNum
-     * 
+     *
      * animId is 1080-1091, sheetNum 8-10
-     * 
+     *
      */
     public class EmoteEvent : Event
     {

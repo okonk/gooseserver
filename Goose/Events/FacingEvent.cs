@@ -1,19 +1,19 @@
-﻿using System.Text;
+using System.Text;
 
 namespace Goose.Events
 {
     /**
      * MoveEvent, event for "F" + 1-4 packet
-     * 
+     *
      * Called when someone moves
      * Packet format: FDirection
      * Direction being 1-4. For some reason these differ from the moving.
      * direction for facing is as follows. 1,2,3,4 = up,left,right,down
-     * 
+     *
      * Server responds: CHHLoginID,Facing
      * NOTE: Server remaps the directions 1,2,3,4 = 1,3,4,2
      * Server sends the response to everyone in the area including the player who generated it
-     * 
+     *
      */
     public class FacingEvent : Event
     {

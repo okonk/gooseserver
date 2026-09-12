@@ -1,10 +1,10 @@
-﻿using System.Text;
+using System.Text;
 
 namespace Goose.Events
 {
     /**
      * Called when someone types /refresh
-     * 
+     *
      */
     public class RefreshPositionEvent : Event
     {

@@ -15,11 +15,11 @@ CREATE TABLE pets (
   attack_range SMALLINT DEFAULT 0 NOT NULL,
   attack_speed REAL DEFAULT 2 NOT NULL,
   move_speed REAL DEFAULT 2 NOT NULL,
-  
+
   pet_hp INT DEFAULT 0 NOT NULL,
   pet_mp INT DEFAULT 0 NOT NULL,
   pet_sp INT DEFAULT 0 NOT NULL,
-  
+
   class_id SMALLINT DEFAULT 1 NOT NULL,
   stat_ac SMALLINT DEFAULT 0 NOT NULL,
   stat_str SMALLINT DEFAULT 0 NOT NULL,
@@ -45,7 +45,7 @@ CREATE TABLE pets (
   hair_a SMALLINT DEFAULT 0 NOT NULL,
   equipped_items TEXT DEFAULT '0,*,0,*,0,*,0,*,0,*,0,*' NOT NULL,
   weapon_damage INT DEFAULT 1 NOT NULL,
-  
+
   hp_percent_regen REAL DEFAULT 0 NOT NULL,
   hp_static_regen INT DEFAULT 0 NOT NULL,
   mp_percent_regen REAL DEFAULT 0 NOT NULL,

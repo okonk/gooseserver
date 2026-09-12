@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 
 namespace Goose
 {
@@ -9,7 +9,7 @@ namespace Goose
 
         /**
          * LoadCombinations, loads all combinations from the database
-         * 
+         *
          */
         public void LoadCombinations(GameWorld world)
         {
@@ -42,7 +42,7 @@ namespace Goose
                 // Load required items
                 comb.RequiredHash = [];
 
-                command.CommandText = "SELECT item_template_id FROM combination_item_required " + 
+                command.CommandText = "SELECT item_template_id FROM combination_item_required " +
                     "WHERE combination_id=" + comb.ID;
                 using (var reader = command.ExecuteReader())
                 {
@@ -98,7 +98,7 @@ namespace Goose
                     template = world.ItemHandler.GetTemplate(itemid);
                     if (template is null)
                     {
-                        throw new Exception("result Item ID " + itemid + 
+                        throw new Exception("result Item ID " + itemid +
                             " doesn't exist. In combination " + comb.Name);
                     }
 
@@ -111,15 +111,15 @@ namespace Goose
 
         /**
          * Count, returns the number of combinations
-         * 
+         *
          */
         public int Count { get => this.combinations.Keys.Count; }
 
         /**
          * GetMatch, takes a dictionary and tries to match the ingredients with an existing combination
-         * 
+         *
          * Returns the combination found, or null if none
-         * 
+         *
          */
         public Combination? GetMatch(Dictionary<int, long> combine)
         {

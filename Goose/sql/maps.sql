@@ -3,12 +3,12 @@ CREATE TABLE maps (
   map_id INTEGER PRIMARY KEY,
   map_name TEXT NOT NULL,
   map_filename TEXT NOT NULL,
-  
+
   min_level SMALLINT DEFAULT 0 NOT NULL,
   max_level SMALLINT DEFAULT 0 NOT NULL,
   min_experience BIGINT DEFAULT 0 NOT NULL,
   max_experience BIGINT DEFAULT 0 NOT NULL,
-  
+
   pvp_enabled CHAR(1) DEFAULT '0' NOT NULL,
   chat_enabled CHAR(1) DEFAULT '1' NOT NULL,
   auction_enabled CHAR(1) DEFAULT '1' NOT NULL,

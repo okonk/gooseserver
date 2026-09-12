@@ -1,15 +1,15 @@
-﻿using Goose.Scripting;
+using Goose.Scripting;
 using System.Text;
 
 namespace Goose
 {
     /**
      * ItemTemplate, base stats for an item
-     * 
+     *
      */
     public class ItemTemplate : IItem
     {
-        public enum UseTypes 
+        public enum UseTypes
         {
             NoUse = 0,
             OneTime,

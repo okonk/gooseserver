@@ -1,12 +1,12 @@
-﻿using System.Text;
+using System.Text;
 
 namespace Goose.Events
 {
     /**
      * PlayerRightClickEvent, Player right clicked
-     * 
+     *
      * Packet format: RCx,y
-     * 
+     *
      */
     public class PlayerRightClickEvent : Event
     {
@@ -31,7 +31,7 @@ namespace Goose.Events
                         }
                         catch (Exception)
                         {
-                            x = 0; 
+                            x = 0;
                             y = 0;
                         }
                     }

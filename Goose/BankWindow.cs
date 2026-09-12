@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 
 namespace Goose
 {
@@ -98,7 +98,7 @@ namespace Goose
         public override void WindowToInventory(Player player, int fromSlotIndex, int invSlotIndex, GameWorld world)
         {
             if (!BankerInRange(player)) return;
-            
+
             base.WindowToInventory(player, fromSlotIndex, invSlotIndex, world);
         }
 

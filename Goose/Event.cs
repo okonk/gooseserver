@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
 
@@ -14,7 +14,7 @@ namespace Goose
 
         /**
          * Constructor
-         * 
+         *
          * Ticks defaults to the current time
          */
         public Event()

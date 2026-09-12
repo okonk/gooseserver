@@ -1,12 +1,12 @@
-﻿using System.Text;
+using System.Text;
 
 namespace Goose
 {
     /**
      * Class, holds class information
-     * 
+     *
      */
-    public class Class 
+    public class Class
     {
         private Dictionary<int, ClassLevel> levels = new();
 

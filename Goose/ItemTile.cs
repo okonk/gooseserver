@@ -1,12 +1,12 @@
-﻿using System.Text;
+using System.Text;
 
 namespace Goose
 {
     /**
      * ItemTile
-     * 
+     *
      * Holds an x,y and an ItemSlot
-     * 
+     *
      */
     public class ItemTile : ITile
     {
@@ -17,7 +17,7 @@ namespace Goose
 
         /**
          * If dropped by NPC only this player can pick up until pickuptime below
-         * 
+         *
          */
         public Player Owner { get; set; } = null!;
         public long PickupTime { get; set; }

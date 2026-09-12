@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 
 using Goose.Events;
 using Goose.Scripting;
@@ -7,9 +7,9 @@ namespace Goose
 {
     /**
      * MapHandler
-     * 
+     *
      * Handles loading and storage of Map objects
-     * 
+     *
      */
     public class MapHandler
     {
@@ -17,7 +17,7 @@ namespace Goose
 
         /**
          * Constructor, constructs map list
-         * 
+         *
          */
         public MapHandler()
         {
@@ -28,7 +28,7 @@ namespace Goose
 
         /**
          * LoadMaps, loads all maps
-         * 
+         *
          */
         public void LoadMaps(GameWorld world)
         {
@@ -84,7 +84,7 @@ namespace Goose
 
         /**
          * GetMap, gets map by id
-         * 
+         *
          */
         public Map? GetMap(int id)
         {
@@ -93,7 +93,7 @@ namespace Goose
 
         /**
          * Count, returns map count
-         * 
+         *
          */
         public int Count
         {

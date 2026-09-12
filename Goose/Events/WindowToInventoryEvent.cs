@@ -1,11 +1,11 @@
-﻿using System.Text;
+using System.Text;
 
 namespace Goose.Events
 {
     /**
      * WindowToInventoryEvent
-     * 
-     * 
+     *
+     *
      */
     class WindowToInventoryEvent : Event
     {

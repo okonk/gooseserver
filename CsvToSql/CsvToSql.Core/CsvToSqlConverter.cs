@@ -1,4 +1,4 @@
-﻿using ClosedXML.Excel;
+using ClosedXML.Excel;
 using CsvToSql.Core.Schema;
 using System;
 using System.IO;

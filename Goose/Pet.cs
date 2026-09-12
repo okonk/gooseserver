@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using System.Data;
 using System.Data.Common;
 

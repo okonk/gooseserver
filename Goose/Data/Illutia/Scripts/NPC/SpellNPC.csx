@@ -1,4 +1,4 @@
-﻿using Goose;
+using Goose;
 using Goose.Scripting;
 
 public class SpellNPC : BaseNPCScript

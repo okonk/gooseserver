@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using Goose.Quests;
 using Goose.Scripting;
 
@@ -6,7 +6,7 @@ namespace Goose
 {
     /**
      * NPCHandler, loads/holds npcs
-     * 
+     *
      */
     public class NPCHandler
     {
@@ -62,7 +62,7 @@ namespace Goose
 
         /**
          * LoadNPCTemplates, loads npc templatess from database
-         * 
+         *
          */
         public void LoadNPCTemplates(GameWorld world)
         {
@@ -227,13 +227,13 @@ namespace Goose
 
         /**
          * TemplateCount, returns npc template count
-         * 
+         *
          */
         public int TemplateCount { get => this.templates.Count; }
 
         /**
          * NPCCount, returns npc count
-         * 
+         *
          */
         public int NPCCount { get => this.npcs.Count; }
 
@@ -302,7 +302,7 @@ namespace Goose
 
         /**
          * LoadNPCs, loads npc spawns from database
-         * 
+         *
          */
         public void LoadNPCs(GameWorld world)
         {

@@ -1,4 +1,4 @@
-﻿using CsvToSql.Core.Schema;
+using CsvToSql.Core.Schema;
 
 namespace CsvToSql
 {
@@ -152,7 +152,7 @@ namespace CsvToSql
 
         /**
          * Spell Types
-         * 
+         *
          * Formula = only use formulas
          * Buff, temporarily increase stats/change body until effect wears off
          * Permanent, permanently change stats/body
@@ -161,7 +161,7 @@ namespace CsvToSql
          * Taunt, uses formula but does taunt damage also
          * Viral, uses tick but also if it effects anyone it infects them too
          * Tame, used for pet taming spells
-         * 
+         *
          */
         public enum EffectTypes
         {
@@ -192,7 +192,7 @@ namespace CsvToSql
         /**
          * Spell Energy Type
          * Possibly values for bitmask
-         * 
+         *
          */
         public enum EnergyTypes
         {

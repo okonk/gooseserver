@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 
 namespace Goose.Scripting
 {
@@ -60,7 +60,7 @@ namespace Goose.Scripting
         }
 
         public virtual void OnLoadTile(Map map, int x, int y, int layerNumber, int graphic, short sheet, int flags, GameWorld world)
-        { 
+        {
 }
 
         public virtual void OnFinishedLoad(Map map, GameWorld world)

@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
 

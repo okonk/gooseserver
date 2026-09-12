@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -50,7 +50,7 @@ namespace IllutiaClientDataReader
                 this.Height = reader.ReadInt32();
 
                 this.Tiles = new Tile[this.Width * this.Height];
-                
+
                 for (int i = 0; i < this.Height; i++)
                 {
                     for (int j = 0; j < this.Width; j++)

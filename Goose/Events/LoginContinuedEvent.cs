@@ -1,16 +1,16 @@
-﻿using System.Text;
+using System.Text;
 
 namespace Goose.Events
 {
     /**
      * LoginContinuedEvent, event for LCNT
-     * 
+     *
      * Called in response to LOKServername
      * Packet format: LCNT
-     * 
+     *
      * Server responds: SCMMapId,MapVersion,MapName
      * Send Current Map
-     * 
+     *
      */
     class LoginContinuedEvent : Event
     {
@@ -38,7 +38,7 @@ namespace Goose.Events
                 }
 
                 this.Player.State = Player.States.LoadingMap;
-                
+
                 world.Send(this.Player, P.SendMapFlags(map));
                 world.Send(this.Player, P.SendCurrentMap(map));
 
@@ -52,12 +52,12 @@ namespace Goose.Events
                 {
                     world.Send(this.Player, P.ServerMessage(world.Settings.MOTD));
                 }
-                world.Send(this.Player, P.ServerMessage("There are currently " + 
-                                        world.PlayerHandler.PlayerCount + 
+                world.Send(this.Player, P.ServerMessage("There are currently " +
+                                        world.PlayerHandler.PlayerCount +
                                         " players online."));
                 if (world.Settings.ExperienceModifier != 1)
                 {
-                    world.Send(this.Player, P.ServerMessage("Current experience rate is " + 
+                    world.Send(this.Player, P.ServerMessage("Current experience rate is " +
                         world.ExperienceModifier + "x."));
                 }
                 world.Send(this.Player, P.StatusInfo(this.Player));

@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using System.Text.Json;
 using System.Net.Sockets;
 using System.Data;
@@ -2326,7 +2326,7 @@ namespace Goose
             if (buff.SpellEffect.Animation != 0)
                 packetBuilder.Append("\x1").Append(P.SpellPlayer(this.LoginID, buff.SpellEffect.Animation, buff.SpellEffect.AnimationFile));
 
-            if (buff.SpellEffect.DoAttackAnimation) 
+            if (buff.SpellEffect.DoAttackAnimation)
                 packetBuilder.Append("\x1").Append(P.Attack(this));
 
             if (buff.SpellEffect.OnEffectText != "")

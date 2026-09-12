@@ -1,10 +1,10 @@
-﻿using System.Text;
+using System.Text;
 
 namespace Goose.Events
 {
     /**
      * DestroySpellEvent, delete spell from spellbook
-     * 
+     *
      */
     public class DestroySpellEvent : Event
     {

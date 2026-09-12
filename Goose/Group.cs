@@ -1,10 +1,10 @@
-﻿using System.Text;
+using System.Text;
 
 namespace Goose
 {
     /**
      * Group, holds group related information
-     * 
+     *
      */
     public class Group
     {
@@ -20,9 +20,9 @@ namespace Goose
 
         /**
          * AddPlayer, adds player to group
-         * 
+         *
          * Updates everyone about new member
-         * 
+         *
          */
         public void AddPlayer(Player player, GameWorld world, Player adder)
         {
@@ -48,9 +48,9 @@ namespace Goose
 
         /**
           * RemovePlayer, removes player from group
-          * 
+          *
           * Updates everyone about member leaving
-          * 
+          *
           */
         public void RemovePlayer(Player player, GameWorld world, bool kicked, Player kicker)
         {
@@ -84,7 +84,7 @@ namespace Goose
 
         /**
          * SendPartyWindow, sends party window to player
-         * 
+         *
          */
         public void SendPartyWindow(Player player, GameWorld world)
         {
@@ -125,7 +125,7 @@ namespace Goose
             {
                 if (p.ChatFilterEnabled)
                 {
-                    if (!filtered) 
+                    if (!filtered)
                     {
                         filteredpacket += world.ChatFilter.Filter(message);
                         filtered = true;
@@ -141,7 +141,7 @@ namespace Goose
 
         /**
          * ItemPickup, player picked up an item
-         * 
+         *
          */
         public void ItemPickup(Player player, ItemSlot itemslot, GameWorld world)
         {
@@ -154,7 +154,7 @@ namespace Goose
 
         /**
          * GainExperience, distributes experience to the group
-         * 
+         *
          */
         public void GainExperience(NPC npc, GameWorld world)
         {

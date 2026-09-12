@@ -1,4 +1,4 @@
-﻿using CsvToSql.Core.Schema;
+using CsvToSql.Core.Schema;
 
 namespace CsvToSql
 {

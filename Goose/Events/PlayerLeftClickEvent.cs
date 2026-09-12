@@ -1,13 +1,13 @@
-﻿using Goose.Quests;
+using Goose.Quests;
 using System.Text;
 
 namespace Goose.Events
 {
     /**
      * PlayerLeftClickEvent, Player left clicked
-     * 
+     *
      * Packet format: LCx,y
-     * 
+     *
      */
     public class PlayerLeftClickEvent : Event
     {
@@ -32,7 +32,7 @@ namespace Goose.Events
                         }
                         catch (Exception)
                         {
-                            x = 0; 
+                            x = 0;
                             y = 0;
                         }
                     }

@@ -1,4 +1,4 @@
-﻿using System.Data;
+using System.Data;
 using System.Data.SQLite;
 using System.Text;
 using System.Text.Json;

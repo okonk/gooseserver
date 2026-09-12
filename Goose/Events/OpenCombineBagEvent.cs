@@ -1,12 +1,12 @@
-﻿using System.Text;
+using System.Text;
 
 namespace Goose.Events
 {
     /**
      * OpenCombineBagEvent, opens combine bag
-     * 
+     *
      * Packet: OCB
-     * 
+     *
      */
     class OpenCombineBagEvent : Event
     {

@@ -59,4 +59,4 @@ Weapons
     * 57.Moon Shield
     * 58.Ham
     * 59.Slime staff
-    * 60.Sanguine Chaos 
+    * 60.Sanguine Chaos

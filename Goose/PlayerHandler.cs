@@ -1,13 +1,13 @@
-﻿using System.Text;
+using System.Text;
 using System.Net.Sockets;
 
 namespace Goose
 {
     /**
      * PlayerHandler, handles Player objects
-     * 
+     *
      * Has a list of Players and a mapping of Sockets to Players
-     * 
+     *
      */
     public class PlayerHandler
     {
@@ -41,12 +41,12 @@ namespace Goose
 
         /**
          * AddPlayer, adds a player to the handler
-         * 
+         *
          * Takes a Player, adds the player to Players list
          * Also adds a key to the dictionary to map Socket to Player
-         * 
+         *
          * Automatically gives a player an ID
-         * 
+         *
          */
         public void AddPlayer(Player player, GameWorld world)
         {
@@ -60,10 +60,10 @@ namespace Goose
 
         /**
          * RemovePlayer, removes a player from the PlayerHandler by Socket
-         * 
+         *
          * First finds the associated Player from the Socket
          * Then calls RemovePlayer(Player)
-         * 
+         *
          */
         public void RemovePlayer(Socket sock)
         {
@@ -75,9 +75,9 @@ namespace Goose
 
         /**
          * RemovePlayer, removes a player from the PlayerHandler by Player
-         * 
+         *
          * Removes the Player from our dictionary and list.
-         * 
+         *
          */
         public void RemovePlayer(Player player)
         {
@@ -114,9 +114,9 @@ namespace Goose
 
         /**
          * GetPlayer, takes a socket and returns the associated Player
-         * 
+         *
          * Just uses our dictionary mapping to get the Player object
-         * 
+         *
          */
         public Player? GetPlayer(Socket sock)
         {
@@ -128,7 +128,7 @@ namespace Goose
 
         /**
          * GetPlayer, takes a name and returns the associated Player
-         * 
+         *
          */
         public Player? GetPlayer(string name)
         {
@@ -137,7 +137,7 @@ namespace Goose
 
         /**
          * IsLoggedIn, checks if a player is logged in
-         * 
+         *
          */
         public bool IsLoggedIn(string name)
         {
@@ -146,25 +146,25 @@ namespace Goose
 
         /**
          * PlayerCount, readonly, returns the player count
-         * 
+         *
          */
-        public int PlayerCount 
+        public int PlayerCount
         {
             get => this.players.Count;
         }
 
         /**
          * Players, readonly, returns the current players
-         * 
+         *
          */
-        public List<Player> Players 
+        public List<Player> Players
         {
             get => this.players;
         }
 
         /**
          * PlayerDataCount, readonly, returns the player database count
-         * 
+         *
          */
         public int PlayerDataCount
         {
@@ -173,7 +173,7 @@ namespace Goose
 
         /**
          * GetPlayerFromData, takes a name and returns the associated Player from the in-memory database
-         * 
+         *
          */
         public Player? GetPlayerFromData(string name)
         {

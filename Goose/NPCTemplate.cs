@@ -1,4 +1,4 @@
-﻿using Goose.Quests;
+using Goose.Quests;
 using Goose.Scripting;
 using System.Text;
 
@@ -6,7 +6,7 @@ namespace Goose
 {
     /**
      * NPCTemplate, holds all of the information to create an npc
-     * 
+     *
      */
     public class NPCTemplate
     {
@@ -21,7 +21,7 @@ namespace Goose
         /**
          * BehaviourTypes specifies the behaviour of the npc when it hasn't attacked
          * for the specified time
-         * 
+         *
          */
         public enum BehaviourTypes
         {
@@ -179,7 +179,7 @@ namespace Goose
 
         /**
          * Drops, holds a list of the drops
-         * 
+         *
          */
         public List<NPCDropInfo>? Drops { get; set; }
 

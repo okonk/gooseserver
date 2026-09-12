@@ -1,12 +1,12 @@
-﻿using System.Text;
+using System.Text;
 
 namespace Goose.Events
 {
     /**
      * SpellbookBackEvent, put spell on previous page
-     * 
+     *
      * SBBslot
-     * 
+     *
      */
     public class SpellbookBackEvent : Event
     {

@@ -1,4 +1,4 @@
-﻿using Goose;
+using Goose;
 using Goose.Scripting;
 using System;
 using System.Collections.Generic;

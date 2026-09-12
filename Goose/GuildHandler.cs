@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 
 using Goose.Events;
 
@@ -6,7 +6,7 @@ namespace Goose
 {
     /**
      * GuildHandler, handles loading/saving of guilds
-     * 
+     *
      */
     public class GuildHandler
     {
@@ -15,7 +15,7 @@ namespace Goose
 
         /**
          * LoadGuilds, loads all guild data
-         * 
+         *
          */
         public void LoadGuilds(GameWorld world)
         {
@@ -57,13 +57,13 @@ namespace Goose
 
         /**
          * Count, returns the number of guilds
-         * 
+         *
          */
         public int Count { get => this.guilds.Count; }
 
         /**
          * GetGuild, returns guild for id if it exists, else null
-         * 
+         *
          */
         public Guild? GetGuild(int id)
         {
@@ -72,7 +72,7 @@ namespace Goose
 
         /**
          * AddGuild, adds a guild to the temporary new guilds buffer until saved
-         * 
+         *
          */
         public void AddGuild(Guild guild)
         {
@@ -81,7 +81,7 @@ namespace Goose
 
         /**
          * Save, saves all guilds that are marked as dirty
-         * 
+         *
          */
         public void Save(GameWorld world)
         {
@@ -108,7 +108,7 @@ namespace Goose
 
         /**
          * AddSaveEvent, adds save event to the event handler
-         * 
+         *
          */
         public void AddSaveEvent(GameWorld world)
         {

@@ -1,10 +1,10 @@
-﻿using System.Text;
+using System.Text;
 
 namespace Goose.Events
 {
     /**
      * NPCMoveEvent
-     * 
+     *
      */
     public class NPCMoveEvent : Event
     {

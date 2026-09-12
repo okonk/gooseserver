@@ -1,10 +1,10 @@
-﻿using System.Text;
+using System.Text;
 
 namespace Goose.Events
 {
     /**
      * PlayerPongEvent, event for PONG packet
-     * 
+     *
      */
     public class PlayerPongEvent : Event
     {

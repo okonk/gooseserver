@@ -1,16 +1,16 @@
-﻿using System.Text;
+using System.Text;
 
 namespace Goose.Events
 {
     /**
      * WindowButtonClickEvent
-     * 
+     *
      * Player clicked a button in a window
-     * 
+     *
      * Format: WBCbuttonid,windowid,npcid,0,0
-     * 
+     *
      * 0s are currently unknown
-     * 
+     *
      */
     public class WindowButtonClickEvent : Event
     {

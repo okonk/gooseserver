@@ -1,11 +1,11 @@
-﻿using System.Text;
+using System.Text;
 
 namespace Goose.Events
 {
     /**
      * Clears all items that have existed longer than world.Settings.ItemGroundExistTime seconds.
      * Checks every world.Settings.ItemGroundSweepTime seconds.
-     * 
+     *
      */
     public class ClearMapItemsEvent : Event
     {

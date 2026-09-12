@@ -1,12 +1,12 @@
-﻿using System.Text;
+using System.Text;
 
 namespace Goose
 {
     /**
      * Window
-     * 
+     *
      * Holds information about a window in game
-     * 
+     *
      */
     public class Window
     {
@@ -19,7 +19,7 @@ namespace Goose
             Next,
             ShowOk
         }
-        
+
 
         public enum WindowFrames
         {
@@ -73,11 +73,11 @@ namespace Goose
          * Buttons
          * Seems to be 5 comma separated values
          * one for each button type
-         * 
+         *
          * eg vendor window is 0,1,0,0,0
          * The 1 making a close button on the window
          *
-         * showCombine,showClose,showBack,showNext,showOK 
+         * showCombine,showClose,showBack,showNext,showOK
          */
         public virtual string Buttons { get; set; } = null!;
 
@@ -89,7 +89,7 @@ namespace Goose
 
         /**
          * Create, creates window on player's screen
-         * 
+         *
          */
         public void Create(Player player, GameWorld world)
         {
@@ -145,7 +145,7 @@ namespace Goose
 
         /**
          * Populate, initially populates the window
-         * 
+         *
          */
         public virtual void Populate(Player player, GameWorld world)
         {
@@ -178,7 +178,7 @@ namespace Goose
 
         /**
          * Refresh, repopulates the window
-         * 
+         *
          */
         public virtual void Refresh(Player player, GameWorld world)
         {
@@ -208,7 +208,7 @@ namespace Goose
 
         /**
          * PopulateCharInfo, populates character info window
-         * 
+         *
          */
         public void PopulateCharInfo(Player player, GameWorld world)
         {
@@ -239,7 +239,7 @@ namespace Goose
 
         /**
          * Ranks window
-         * 
+         *
          */
         public void PopulateRanks(Player player, GameWorld world)
         {
@@ -254,7 +254,7 @@ namespace Goose
 
         /**
          * PopulatePetInfo, populates pet info window
-         * 
+         *
          */
         public void PopulatePetInfo(Player player, GameWorld world)
         {

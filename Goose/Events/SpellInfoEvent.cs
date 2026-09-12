@@ -1,10 +1,10 @@
-﻿using System.Text;
+using System.Text;
 
 namespace Goose.Events
 {
     /*
      * SIDslotNo
-     * 
+     *
      */
     public class SpellInfoEvent : Event
     {

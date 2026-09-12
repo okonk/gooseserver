@@ -1,13 +1,13 @@
-﻿using System.Text;
+using System.Text;
 
 namespace Goose.Events
 {
     /**
      * InventoryChangeSlotEvent, event for "CHANGE" packet
-     * 
+     *
      * Called when someone moves an item in their inventory
      * Packet format: CHANGEslotid1,slotid2
-     * 
+     *
      */
     class InventoryChangeSlotEvent : Event
     {

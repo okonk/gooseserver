@@ -1,4 +1,4 @@
-﻿namespace IllutiaMapViewer
+namespace IllutiaMapViewer
 {
     partial class MainForm
     {
@@ -36,20 +36,20 @@
             this.showRoofsCheckBox = new System.Windows.Forms.CheckBox();
             this.selectedLabel = new System.Windows.Forms.Label();
             this.SuspendLayout();
-            // 
+            //
             // mapsComboBox
-            // 
+            //
             this.mapsComboBox.FormattingEnabled = true;
             this.mapsComboBox.Location = new System.Drawing.Point(12, 12);
             this.mapsComboBox.Name = "mapsComboBox";
             this.mapsComboBox.Size = new System.Drawing.Size(144, 21);
             this.mapsComboBox.TabIndex = 0;
             this.mapsComboBox.SelectedIndexChanged += new System.EventHandler(this.mapsComboBox_SelectedIndexChanged);
-            // 
+            //
             // drawArea
-            // 
-            this.drawArea.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
+            //
+            this.drawArea.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
+            | System.Windows.Forms.AnchorStyles.Left)
             | System.Windows.Forms.AnchorStyles.Right)));
             this.drawArea.Location = new System.Drawing.Point(12, 39);
             this.drawArea.Name = "drawArea";
@@ -58,10 +58,10 @@
             this.drawArea.Paint += new System.Windows.Forms.PaintEventHandler(this.drawArea_Paint);
             this.drawArea.MouseClick += new System.Windows.Forms.MouseEventHandler(this.drawArea_MouseClick);
             this.drawArea.Resize += new System.EventHandler(this.drawArea_Resize);
-            // 
+            //
             // vScrollBar
-            // 
-            this.vScrollBar.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            //
+            this.vScrollBar.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
             | System.Windows.Forms.AnchorStyles.Right)));
             this.vScrollBar.LargeChange = 32;
             this.vScrollBar.Location = new System.Drawing.Point(609, 39);
@@ -70,19 +70,19 @@
             this.vScrollBar.SmallChange = 32;
             this.vScrollBar.TabIndex = 2;
             this.vScrollBar.Scroll += new System.Windows.Forms.ScrollEventHandler(this.vScrollBar_Scroll);
-            // 
+            //
             // hScrollBar
-            // 
-            this.hScrollBar.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
+            //
+            this.hScrollBar.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)
             | System.Windows.Forms.AnchorStyles.Right)));
             this.hScrollBar.Location = new System.Drawing.Point(12, 390);
             this.hScrollBar.Name = "hScrollBar";
             this.hScrollBar.Size = new System.Drawing.Size(597, 17);
             this.hScrollBar.TabIndex = 3;
             this.hScrollBar.Scroll += new System.Windows.Forms.ScrollEventHandler(this.hScrollBar_Scroll);
-            // 
+            //
             // blockedTilesCheckBox
-            // 
+            //
             this.blockedTilesCheckBox.AutoSize = true;
             this.blockedTilesCheckBox.Checked = true;
             this.blockedTilesCheckBox.CheckState = System.Windows.Forms.CheckState.Checked;
@@ -93,9 +93,9 @@
             this.blockedTilesCheckBox.Text = "Blocked Tiles";
             this.blockedTilesCheckBox.UseVisualStyleBackColor = true;
             this.blockedTilesCheckBox.CheckedChanged += new System.EventHandler(this.blockedTilesCheckBox_CheckedChanged);
-            // 
+            //
             // showRoofsCheckBox
-            // 
+            //
             this.showRoofsCheckBox.AutoSize = true;
             this.showRoofsCheckBox.Checked = true;
             this.showRoofsCheckBox.CheckState = System.Windows.Forms.CheckState.Checked;
@@ -106,18 +106,18 @@
             this.showRoofsCheckBox.Text = "Roofs";
             this.showRoofsCheckBox.UseVisualStyleBackColor = true;
             this.showRoofsCheckBox.CheckedChanged += new System.EventHandler(this.showRoofsCheckBox_CheckedChanged);
-            // 
+            //
             // selectedLabel
-            // 
+            //
             this.selectedLabel.AutoSize = true;
             this.selectedLabel.Location = new System.Drawing.Point(334, 12);
             this.selectedLabel.Name = "selectedLabel";
             this.selectedLabel.Size = new System.Drawing.Size(71, 13);
             this.selectedLabel.TabIndex = 6;
             this.selectedLabel.Text = "Selected: x, y";
-            // 
+            //
             // MainForm
-            // 
+            //
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(635, 416);

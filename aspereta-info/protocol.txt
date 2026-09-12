@@ -2,39 +2,39 @@
 
 Okay I'm going to add the Server/Client Protocol here. Every packet ends in the ASCII character 1. Now. It all starts with LOGIN. The client connects to the server and sends the string:
 
-    * LOGINusername,password,BETA8,4.4.0 
+    * LOGINusername,password,BETA8,4.4.0
 
 or somewhat like that anyway. That string is from Illutia. Aspereta is ALPHA and version 2-3. Anyway. If the username and password is valid the server sends back:
 
-    * LOKrealmname 
+    * LOKrealmname
 
 Where realmname is the name of the server or realm. If the information is wrong or user is banned or whatever reason the server doesn't want the connection it can send back:
 
-    * LNOreason goes here 
+    * LNOreason goes here
 
 Where you replace "reason goes here" with a message and the client will display it to the user. After LOKrealmname the client sends 'login continue':
 
-    * LCNT 
+    * LCNT
 
 To which the server replies with 'send current map':
 
-    * SCMmapid,mapversion,mapname 
+    * SCMmapid,mapversion,mapname
 
 It also sends the 'information string' to the client:
 
-    * SNFguildname,,classname,level,max_hp,max_mp,max_sp,cur_,cur_mp,cur_sp,stat_str,stat_sta,stat_int,stat_dex,ac,res_f,res_w,res_e,res_a,res_s,gold 
+    * SNFguildname,,classname,level,max_hp,max_mp,max_sp,cur_,cur_mp,cur_sp,stat_str,stat_sta,stat_int,stat_dex,ac,res_f,res_w,res_e,res_a,res_s,gold
 
 The client responds to 'send current map' with 'done loading map':
 
-    * DLM 
+    * DLM
 
 The server then sends the map name again. Not sure why:
 
-    * SMNmapname 
+    * SMNmapname
 
 The server also sends 'DSM' ('done sending map'?):
 
-    * DSM 
+    * DSM
 
 Then the server sends 'make character' to the client and all the other players in the area:
 
@@ -51,7 +51,7 @@ invis = not sure at moment rly.
 
 The server also sends 'SUC' to the client:
 
-    * SUCid 
+    * SUCid
 
 Not too sure what SUC means but I think what it does is make the client centered on that id.
 
@@ -73,23 +73,23 @@ invis = not sure at moment rly.
 
 Regen event:
 
-    * VCid,hp percent,mp percent 
+    * VCid,hp percent,mp percent
 
 GM Mode:
 
-    * AMAid,1 
+    * AMAid,1
 
 Character moving:
 
 Client:
 
-    * Mdirection 
+    * Mdirection
 
 direction being a number 1-4 corresponding to 1,2,3,4 = up,right,down,left
 
 Server:
 
-    * MOCid,x,y 
+    * MOCid,x,y
 
 Not much to explain there. Server sends to all other clients in area to notify of moving event.
 
@@ -97,7 +97,7 @@ Character facing:
 
 Client:
 
-    * Fdirection 
+    * Fdirection
 
 direction being 1-4. For some reason these differ from the moving.
 
@@ -105,30 +105,30 @@ direction for facing is as follows. 1,2,3,4 = up,left,right,down
 
 Server:
 
-    * CHHid,direction 
+    * CHHid,direction
 
 direction as above in F packet.
 
 Destroy a character on client:
 
-    * ERCid 
+    * ERCid
 
 black text:
 
-    * #message 
+    * #message
 
 different colours text:
 
-    * $nmessage 
+    * $nmessage
 
 n being a number not sure of range.
 
 Client packet for text entry:
 
-    *  ;message 
+    *  ;message
 
 server sends to clients on message:
 
-    * ^id,name: message 
+    * ^id,name: message
 
-Guess you could change name/message if you wanted. 
+Guess you could change name/message if you wanted.

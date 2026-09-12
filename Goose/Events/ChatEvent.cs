@@ -1,16 +1,16 @@
-﻿using System.Text;
+using System.Text;
 
 namespace Goose.Events
 {
     /**
      * ChatEvent, event for ";" packet
-     * 
+     *
      * Called when someone types a message
      * Packet format: ;Message
-     * 
+     *
      * Server responds: ^LoginID, Name: Message
      * Server sends the response to everyone in the area including the player
-     * 
+     *
      */
     class ChatEvent : Event
     {
@@ -47,7 +47,7 @@ namespace Goose.Events
                 {
                     if (player.ChatFilterEnabled)
                     {
-                        if (!filtered) 
+                        if (!filtered)
                         {
                             filteredpacket += world.ChatFilter.Filter(message);
                             filtered = true;

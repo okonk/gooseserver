@@ -1,4 +1,4 @@
-﻿using IllutiaClientDataReader;
+using IllutiaClientDataReader;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -77,7 +77,7 @@ namespace IllutiaMapViewer
                         int drawX = (x * 32) - (xOffset * 32);
                         int drawY = (y * 32) - (yOffset * 32);
 
-                        if (layer.Sheet != 0 && layer.Graphic != 0 && (layerIndex < 4 || (layerIndex == 4 && showRoofsCheckBox.Checked))) 
+                        if (layer.Sheet != 0 && layer.Graphic != 0 && (layerIndex < 4 || (layerIndex == 4 && showRoofsCheckBox.Checked)))
                         {
                             Image graphic = this.GetGraphic(layer.Sheet, layer.Graphic);
 

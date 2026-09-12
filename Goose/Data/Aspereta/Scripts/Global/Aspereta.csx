@@ -237,7 +237,7 @@ public class AsperetaMode : BaseGlobalScript
         world.EventHandler.RegisterEvent("GID", ItemInfoEvent.Create);
 
         BankWindow.IdGenerator = (player) => { return ++player.LastWindowID; };
-        BankWindow.BankFrame = Window.WindowFrames.TenSlot; 
+        BankWindow.BankFrame = Window.WindowFrames.TenSlot;
         CombineBagWindow.IdGenerator = (player) => { return ++player.LastWindowID; };
 
         FacingEvent.FacingConverter = (facing) => facing switch
@@ -449,28 +449,28 @@ public class AsperetaMode : BaseGlobalScript
 
         P.ItemSlot = (item, world, slotId, stack) =>
         {
-            return 
-                slotId + "," + 
-                item.ItemID + "," + 
+            return
+                slotId + "," +
+                item.ItemID + "," +
                 item.Name + "," +
-                stack + "," + 
+                stack + "," +
                 item.GraphicTile + "," +
-                item.GraphicR + "," + 
+                item.GraphicR + "," +
                 item.GraphicG + "," +
-                item.GraphicB + "," + 
+                item.GraphicB + "," +
                 item.GraphicA;
         };
 
         P.EquipSlot = (item, world, slotId, stack) =>
         {
-            return "WNF11," + slotId + "," + 
+            return "WNF11," + slotId + "," +
                 item.Name + "|" +
-                stack + "|" + 
-                item.ItemID + "|" + 
+                stack + "|" +
+                item.ItemID + "|" +
                 item.GraphicTile + "|" +
-                item.GraphicR + "|" + 
+                item.GraphicR + "|" +
                 item.GraphicG + "|" +
-                item.GraphicB + "|" + 
+                item.GraphicB + "|" +
                 item.GraphicA;
         };
 
@@ -481,14 +481,14 @@ public class AsperetaMode : BaseGlobalScript
 
         P.BankSlot = (window, item, world, slotId, stack) =>
         {
-            return "WNF" + window.ID + "," + slotId + "," + 
+            return "WNF" + window.ID + "," + slotId + "," +
                 item.Name + "|" +
-                stack + "|" + 
-                item.ItemID + "|" + 
+                stack + "|" +
+                item.ItemID + "|" +
                 item.GraphicTile + "|" +
-                item.GraphicR + "|" + 
+                item.GraphicR + "|" +
                 item.GraphicG + "|" +
-                item.GraphicB + "|" + 
+                item.GraphicB + "|" +
                 item.GraphicA;
         };
 
@@ -537,13 +537,13 @@ public class AsperetaMode : BaseGlobalScript
                     (spell.Aether > TimeSpan.FromHours(1).TotalMilliseconds ? 5000 : spell.Aether) ;
         };
 
-        P.SpellPlayer = (loginId, animationId, animationFile) => 
-        { 
-            return "SPP" + loginId + "," + animationId; 
+        P.SpellPlayer = (loginId, animationId, animationFile) =>
+        {
+            return "SPP" + loginId + "," + animationId;
         };
 
-        P.SpellTile = (x, y, animationId, animationFile) => 
-        { 
+        P.SpellTile = (x, y, animationId, animationFile) =>
+        {
             return "SPA" +
                 x + "," +
                 y + "," +
@@ -557,17 +557,17 @@ public class AsperetaMode : BaseGlobalScript
             return "EMOT" + target.LoginID + ",8";
         };
 
-        P.BuffBar = (buff, index) => 
+        P.BuffBar = (buff, index) =>
         {
             if (buff == null)
             {
                 return "BUF" + index;
             }
 
-            return "BUF" + index + "," + buff.SpellEffect.BuffGraphic + "," + buff.SpellEffect.Name; 
+            return "BUF" + index + "," + buff.SpellEffect.BuffGraphic + "," + buff.SpellEffect.Name;
         };
 
-        P.ExpBar = (player) => 
+        P.ExpBar = (player) =>
         {
             long percent, tnl, exp;
             bool xpCapped = false;

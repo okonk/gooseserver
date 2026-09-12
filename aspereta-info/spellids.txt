@@ -43,7 +43,7 @@ spells 115000 - 115056
 
 115037 purple radar kinda thing
 115038 root
-115039 big sun stun fast 
+115039 big sun stun fast
 115040 big sun stun properly animated?
 115041 sword buff thing
 115042 sos

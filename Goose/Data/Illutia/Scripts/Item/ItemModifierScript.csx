@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Goose;
@@ -64,62 +64,62 @@ public class ItemModifierScript : BaseItemModifierScript
             case OperationType.StatMultiplier:
                 item.StatMultiplier *= value;
                 break;
-            case OperationType.WeaponDamage: 
-                item.WeaponDamage += (int)value; 
+            case OperationType.WeaponDamage:
+                item.WeaponDamage += (int)value;
                 break;
-            case OperationType.HP: 
-                item.BaseStats.HP += (int)value; 
+            case OperationType.HP:
+                item.BaseStats.HP += (int)value;
                 break;
-            case OperationType.MP: 
-                item.BaseStats.MP += (int)value; 
+            case OperationType.MP:
+                item.BaseStats.MP += (int)value;
                 break;
-            case OperationType.SP: 
-                item.BaseStats.SP += (int)value; 
+            case OperationType.SP:
+                item.BaseStats.SP += (int)value;
                 break;
-            case OperationType.AC: 
-                item.BaseStats.AC += (int)value; 
+            case OperationType.AC:
+                item.BaseStats.AC += (int)value;
                 break;
-            case OperationType.STR: 
-                item.BaseStats.Strength += (int)value; 
+            case OperationType.STR:
+                item.BaseStats.Strength += (int)value;
                 break;
-            case OperationType.INT: 
-                item.BaseStats.Intelligence += (int)value; 
+            case OperationType.INT:
+                item.BaseStats.Intelligence += (int)value;
                 break;
-            case OperationType.STA: 
-                item.BaseStats.Stamina += (int)value; 
+            case OperationType.STA:
+                item.BaseStats.Stamina += (int)value;
                 break;
-            case OperationType.DEX: 
-                item.BaseStats.Dexterity += (int)value; 
+            case OperationType.DEX:
+                item.BaseStats.Dexterity += (int)value;
                 break;
-            case OperationType.SpellDamage: 
-                item.BaseStats.SpellDamage += value / 100; 
+            case OperationType.SpellDamage:
+                item.BaseStats.SpellDamage += value / 100;
                 break;
-            case OperationType.SpellCrit: 
-                item.BaseStats.SpellCrit += value / 100; 
+            case OperationType.SpellCrit:
+                item.BaseStats.SpellCrit += value / 100;
                 break;
-            case OperationType.MeleeDamage: 
-                item.BaseStats.MeleeDamage += value / 100; 
+            case OperationType.MeleeDamage:
+                item.BaseStats.MeleeDamage += value / 100;
                 break;
-            case OperationType.MeleeCrit: 
-                item.BaseStats.MeleeCrit += value / 100; 
+            case OperationType.MeleeCrit:
+                item.BaseStats.MeleeCrit += value / 100;
                 break;
-            case OperationType.Haste: 
-                item.BaseStats.Haste += value / 100; 
+            case OperationType.Haste:
+                item.BaseStats.Haste += value / 100;
                 break;
-            case OperationType.DamageReduction: 
-                item.BaseStats.DamageReduction += value / 100; 
+            case OperationType.DamageReduction:
+                item.BaseStats.DamageReduction += value / 100;
                 break;
-            case OperationType.HPPercentRegen: 
-                item.BaseStats.HPPercentRegen += value / 100; 
+            case OperationType.HPPercentRegen:
+                item.BaseStats.HPPercentRegen += value / 100;
                 break;
-            case OperationType.HPStaticRegen: 
-                item.BaseStats.HPStaticRegen += (int)value; 
+            case OperationType.HPStaticRegen:
+                item.BaseStats.HPStaticRegen += (int)value;
                 break;
-            case OperationType.MPPercentRegen: 
-                item.BaseStats.MPPercentRegen += value / 100; 
+            case OperationType.MPPercentRegen:
+                item.BaseStats.MPPercentRegen += value / 100;
                 break;
-            case OperationType.MPStaticRegen: 
-                item.BaseStats.MPStaticRegen += (int)value; 
+            case OperationType.MPStaticRegen:
+                item.BaseStats.MPStaticRegen += (int)value;
                 break;
         }
     }

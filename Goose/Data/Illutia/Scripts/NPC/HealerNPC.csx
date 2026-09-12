@@ -29,7 +29,7 @@ public class HealerNPC : BaseNPCScript
 
             HealerNPC.spell.Cast(npc, buddy, world);
         }
-		
+
         npc.HandleAttackEvent(world);
 	}
 }

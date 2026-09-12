@@ -89,7 +89,7 @@ public class PropertiesDictionary : Dictionary<string, object>
 
         // Handle numeric conversions (JSON deserializes integers as long; numeric property targets are double)
         var targetType = Nullable.GetUnderlyingType(typeof(T)) ?? typeof(T);
-        
+
         if (IsNumericType(targetType) && IsNumericType(value.GetType()))
         {
             try

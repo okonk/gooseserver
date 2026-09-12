@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using System.Data;
 using System.Data.SqlClient;
 using System.Net.Sockets;
@@ -258,7 +258,7 @@ namespace Goose.Events
             this.Player.State = Player.States.LoadingGame;
 
             this.Player.OnLogin();
-            
+
             world.Send(this.Player, P.LoginAccepted(world.Settings.ServerName));
 
             this.Player.Windows = [];
