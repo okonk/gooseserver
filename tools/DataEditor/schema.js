@@ -1069,6 +1069,15 @@ var GOOSE_SCHEMA = {
           "sql": "SMALLINT",
           "required": true,
           "pk": false
+        },
+        {
+          "name": "properties",
+          "header": "properties",
+          "kind": "Text",
+          "sql": "TEXT",
+          "default": "\u0027\u0027",
+          "required": false,
+          "pk": false
         }
       ],
       "composites": [],
