@@ -62,6 +62,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\TestSupport\TestWorldFixture.cs" Link="Fixtures\TestWorldFixture.cs" />
+    <Compile Include="..\TestSupport\SchemaDdl.cs" Link="Fixtures\SchemaDdl.cs" />
     <Compile Include="..\TestSupport\ScriptStub.cs" Link="Fixtures\ScriptStub.cs" />
   </ItemGroup>
 </Project>

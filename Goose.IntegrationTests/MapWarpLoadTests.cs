@@ -5,7 +5,7 @@ public class MapWarpLoadTests : PlayerFirstSaveTestBase
     private readonly string dataPath =
         Path.Combine(Path.GetTempPath(), "mapwarp-" + Guid.NewGuid().ToString("N") + ".dir");
 
-    public MapWarpLoadTests() : base("maps", "warptiles")
+    public MapWarpLoadTests() : base([], ["maps", "map_required_items", "warptiles"])
     {
         // Code-built settings leave ServerType null, which routes LoadData to
         // AsperetaMapLoader (Goose/Map.cs); the map files below are Illutia format.
@@ -18,6 +18,10 @@ public class MapWarpLoadTests : PlayerFirstSaveTestBase
         world.Database.Execute(conn =>
         {
             using var cmd = conn.CreateCommand();
+            cmd.CommandText =
+                "INSERT INTO maps (map_id, map_filename, map_name) VALUES (1, 'Map1.map', '1'), (2, 'Map2.map', '1')";
+            cmd.ExecuteNonQuery();
+
             cmd.CommandText =
                 "INSERT INTO warptiles (map_id, map_x, map_y, warp_id, warp_x, warp_y) VALUES (1, 3, 3, 999, 1, 1), (1, 4, 4, 2, 1, 1)";
             cmd.ExecuteNonQuery();

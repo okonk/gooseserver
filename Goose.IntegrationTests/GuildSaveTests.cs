@@ -1,8 +1,12 @@
+using Goose.Testing;
+
 namespace Goose.IntegrationTests;
 
 public class GuildSaveTests : PlayerFirstSaveTestBase
 {
-    public GuildSaveTests() : base("players", "banks", "pets", "quests", "guilds") { }
+    public GuildSaveTests()
+        : base(["players", "banks", "pets", "guilds"],
+               ["quest_requirements", "quest_rewards"]) { }
 
     [Fact]
     public void A_new_guild_is_persisted_with_the_player_row()
@@ -68,7 +72,7 @@ public class GuildSaveTests : PlayerFirstSaveTestBase
 
 public class GuildMemberUpsertTests : PlayerFirstSaveTestBase
 {
-    public GuildMemberUpsertTests() : base("guilds") { }
+    public GuildMemberUpsertTests() : base(["guilds"]) { }
 
     [Fact]
     public void Re_running_a_member_upsert_without_clearing_flags_does_not_violate_the_primary_key()
@@ -183,7 +187,7 @@ public class GuildMemberUpsertTests : PlayerFirstSaveTestBase
 
 public class GuildSaveCadenceTests : PlayerFirstSaveTestBase
 {
-    public GuildSaveCadenceTests() : base("guilds") { }
+    public GuildSaveCadenceTests() : base(["guilds"]) { }
 
     [Fact]
     public void The_save_cadence_persists_a_dirty_existing_guild()
@@ -224,9 +228,8 @@ public class GuildSaveCadenceTests : PlayerFirstSaveTestBase
 
 public class GuildSaveRollbackTests : PlayerFirstSaveTestBase
 {
-    // quest_status deliberately absent: the quest upsert is the last part of a player
-    // save, so it fails and rolls back everything queued before it.
-    public GuildSaveRollbackTests() : base("players", "banks", "pets", "guilds") { }
+    public GuildSaveRollbackTests()
+        : base(["players", "banks", "pets", "guilds"], withQuestStatus: false) { }
 
     [Fact]
     public void A_failed_player_save_rolls_back_the_new_guild_too()
@@ -274,7 +277,10 @@ public class GuildSaveRollbackTests : PlayerFirstSaveTestBase
         world.Database.Execute(conn =>
         {
             using var cmd = conn.CreateCommand();
-            cmd.CommandText = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "sql", "quests.sql"));
+            // Restores everything the save writes that the constructor left absent.
+            cmd.CommandText =
+                "CREATE TABLE quest_status (player_id INT NOT NULL, serialized_data TEXT NOT NULL, " +
+                "PRIMARY KEY(player_id));" + SchemaDdl.ForAll("quest_requirements", "quest_rewards");
             cmd.ExecuteNonQuery();
         });
 

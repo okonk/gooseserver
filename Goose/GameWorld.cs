@@ -132,11 +132,12 @@ namespace Goose
         {
             this.Database.Execute(conn =>
             {
+                // Only the tables the spreadsheet pipeline does not own. Everything the game
+                // data sheets describe arrives with the import below, which drops and recreates
+                // those tables wholesale.
                 foreach (var schemaFile in new[]
                 {
-                    "items", "maps", "classes", "npcs", "players", "spells", "banks",
-                    "quests", "combinations", "logs", "pets", "guilds", "warptiles",
-                    "wordfilter", "paypal",
+                    "players", "banks", "logs", "pets", "guilds", "wordfilter",
                 })
                 {
                     ExecuteSql(conn, File.ReadAllText(Paths.ResolveBase("sql/" + schemaFile + ".sql"), Encoding.UTF8));
@@ -166,6 +167,8 @@ namespace Goose
             this.Database.Execute(conn =>
             {
                 AddColumnIfMissing(conn, "players", "player_properties", "TEXT DEFAULT '' NOT NULL");
+                CreateTableIfMissing(conn, "quest_status",
+                    "player_id INT NOT NULL, serialized_data TEXT NOT NULL, PRIMARY KEY(player_id)");
             });
         }
 
@@ -188,6 +191,20 @@ namespace Goose
 
             using var command = connection.CreateCommand();
             command.CommandText = "ALTER TABLE " + table + " ADD COLUMN " + column + " " + definition;
+            command.ExecuteNonQuery();
+        }
+
+        internal static void CreateTableIfMissing(SQLiteConnection connection, string table, string columns)
+        {
+            using (var probe = connection.CreateCommand())
+            {
+                probe.CommandText = "SELECT 1 FROM sqlite_master WHERE type='table' AND name=@name";
+                probe.Parameters.AddWithValue("@name", table);
+                if (probe.ExecuteScalar() is not null) return;
+            }
+
+            using var command = connection.CreateCommand();
+            command.CommandText = "CREATE TABLE " + table + " (" + columns + ")";
             command.ExecuteNonQuery();
         }
 

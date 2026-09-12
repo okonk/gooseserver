@@ -4,7 +4,7 @@ namespace Goose.IntegrationTests;
 
 public class PlayerLoadMissingRowTests : PlayerFirstSaveTestBase
 {
-    public PlayerLoadMissingRowTests() : base("players", "banks", "quests") { }
+    public PlayerLoadMissingRowTests() : base(["players", "banks"]) { }
 
     [Fact]
     public void Loaders_NoRows_LeaveStateEmpty()

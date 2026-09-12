@@ -82,3 +82,10 @@ CREATE TABLE spellbook (
 
   PRIMARY KEY(player_id)
 );
+
+CREATE TABLE quest_status (
+  player_id INT NOT NULL,
+  serialized_data TEXT NOT NULL,
+
+  PRIMARY KEY(player_id)
+);

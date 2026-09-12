@@ -1,7 +1,7 @@
 namespace Goose
 {
     /// <summary>Donation credits. Selected by the vendor, never by the item: credits_value
-    /// defaults to 0 (items.sql:46), so an item-level test would match every row.</summary>
+    /// defaults to 0 (ItemsCsvToSql.cs:66), so an item-level test would match every row.</summary>
     public class CreditsCurrency : ICurrency
     {
         public string Id { get => Currency.Credits; }

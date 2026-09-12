@@ -69,7 +69,7 @@ public class BuiltInCurrencyTests
     }
 
     /// <summary>Reproduces VendorSellInventoryEvent.cs:75 - credit dealers buy nothing.
-    /// Unconditional, because credits_value defaults to 0 (items.sql:46) so the old
+    /// Unconditional, because credits_value defaults to 0 (ItemsCsvToSql.cs:66) so the old
     /// Credits >= 0 test was true for every row.</summary>
     [Fact]
     public void Credits_RefusesEverySale()

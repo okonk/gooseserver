@@ -1,4 +1,5 @@
 using Goose.IntegrationTests.Fixtures;
+using Goose.Testing;
 
 namespace Goose.IntegrationTests;
 
@@ -140,7 +141,15 @@ public class DimensionModifierTests
         world.Database.Execute(conn =>
         {
             using var cmd = conn.CreateCommand();
-            cmd.CommandText = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "sql", "classes.sql"));
+            cmd.CommandText = SchemaDdl.ForAll("classes", "class_info", "classes_levelup_spells");
+            cmd.ExecuteNonQuery();
+
+            cmd.CommandText =
+                "INSERT INTO classes (class_id, class_name, ac_multiplier, vita_cost, mana_cost) " +
+                "VALUES (1, 'Test', 1, 10000, 10000)";
+            cmd.ExecuteNonQuery();
+
+            cmd.CommandText = "INSERT INTO class_info (class_id, level) VALUES (1, 1)";
             cmd.ExecuteNonQuery();
         });
         return (world, dbPath);

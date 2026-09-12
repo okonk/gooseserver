@@ -23,8 +23,7 @@ public class NPCSpawnPropertiesLoadTests
         {
             using (var schema = conn.CreateCommand())
             {
-                schema.CommandText = File.ReadAllText(
-                    Path.Combine(AppContext.BaseDirectory, "sql", "npcs.sql"));
+                schema.CommandText = SchemaDdl.For("npc_spawns");
                 schema.ExecuteNonQuery();
             }
 
