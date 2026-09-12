@@ -3,6 +3,7 @@ using Goose.Testing;
 
 namespace Goose.Tests;
 
+[Collection("NLog")]
 public class NPCSpawnPropertiesLoadTests
 {
     private const int MapId = 1;
@@ -88,5 +89,14 @@ public class NPCSpawnPropertiesLoadTests
         fixture.World.NPCHandler.LoadNPCs(fixture.World);
 
         Assert.False(OnlyNpc(fixture).CanMove);
+    }
+
+    [Fact]
+    public void A_wrongly_typed_value_still_stops_the_load()
+    {
+        using var fixture = WorldWithSpawnRow("{\"canMove\":1}");
+
+        Assert.Throws<InvalidCastException>(() =>
+            fixture.World.NPCHandler.LoadNPCs(fixture.World));
     }
 }
