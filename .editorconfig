@@ -1,6 +1,20 @@
 # Top-most EditorConfig file
 root = true
 
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# install.bat is run by cmd.exe, which needs CRLF.
+[*.bat]
+end_of_line = crlf
+
+# Two trailing spaces are a hard line break in Markdown, so it is never trimmed.
+[*.md]
+trim_trailing_whitespace = false
+
 # Tab indentation
 [*.cs]
 indent_style = space
