@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Reflection;
 using Goose.Scripting;
 using Goose.Testing;
@@ -54,19 +55,39 @@ public sealed class GlobalScriptFixture : TestWorldFixture
         }
     }
 
+    /// <summary>Roslyn-compiles a shipped script once per process and hands the same object to
+    /// every later fixture. No shipped script keeps instance state - every hook takes the world
+    /// as a parameter - and 210 of this suite's 275 tests compile the same 17-file graph, which
+    /// cost 444 s of the suite's 489 s of test time when every fixture recompiled it. The world
+    /// that performed the compile stays alive through the closure; each caller wraps the shared
+    /// object for its own world.</summary>
+    private static readonly ConcurrentDictionary<string, Lazy<object>> ShippedCompiles = new();
+
+    private Script<T> Shipped<T>(string relativePath)
+    {
+        var compiled = ShippedCompiles.GetOrAdd(relativePath,
+            path => new Lazy<object>(
+                // GetScript compiles from disk immediately and throws if that fails, so a
+                // handler that returned one has a loaded object.
+                () => World.ScriptHandler.GetScript<T>(path).Object!,
+                LazyThreadSafetyMode.ExecutionAndPublication));
+
+        return ScriptStub.For((T)compiled.Value);
+    }
+
     /// <summary>Compiles the real shipped Dimensions.csx, so tests exercise what ships
     /// rather than a paraphrase of it.</summary>
     public Script<IGlobalScript> CompileShipped(string fileName = "Dimensions.csx")
     {
         InstallShippedScripts();
-        return World.ScriptHandler.GetScript<IGlobalScript>("Scripts/Global/" + fileName);
+        return Shipped<IGlobalScript>("Scripts/Global/" + fileName);
     }
 
     /// <summary>As CompileShipped, for the map script - Task 5's tests drive it directly.</summary>
     public Script<IMapScript> CompileShippedMapScript(string fileName = "DimensionMap.csx")
     {
         InstallShippedScripts();
-        return World.ScriptHandler.GetScript<IMapScript>("Scripts/Global/Dimensions/" + fileName);
+        return Shipped<IMapScript>("Scripts/Global/Dimensions/" + fileName);
     }
 
     /// <summary>Compiles an arbitrary script body, for the one test that needs a variant of
