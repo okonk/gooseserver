@@ -17,7 +17,8 @@ scp root@game.illutia.net:/root/GooseServer/IllutiaGoose.db /run/user/1000/gvfs/
 
 make one-time quests work (needs to store the flag somewhere)
 make unique rewards for being the first to kill a boss
-new graphic viewer, maybe built into map editor?
+map editor - reload tabs on launch
+map editor - multi select tiles in palette
 
 change droprate to double
 spell to see monster info
