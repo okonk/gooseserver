@@ -143,6 +143,15 @@ and finished with:
 
     * ENWwindowid
 
+Window close (server -> client):
+
+    * CLWwindowid
+
+server tells the client to discard a window it still has open (e.g. a quest
+option list after a line was picked, or stale windows replaced by new MKW
+packets). The client frees the window locally and must NOT send a WBC in
+response. Unknown window ids are ignored.
+
 Window text line (server -> client):
 
     * WNFwindowid,linesequence,text|stack|item|sheet|graphic|*
@@ -155,3 +164,8 @@ buttonid 0-5 is a Window.ButtonTypes. For option-list windows
 (WindowFrames.OptionList = 27) buttonid 20-29 is a line click:
 line = buttonid - 20 (Goose.Window.LineClickOffset/LineClickCount; client
 counterpart OptionListWindow.LineClickOffset in Goose2ClientGodot).
+
+Option-list windows longer than 10 lines are paged by the server: it sets the
+back/next MKW button flags per page and, on a WBC back/next, re-sends
+MKW+WNF+ENW with the same window id (line numbers restart at 1; line-click
+ids stay 20-29 and refer to the current page).

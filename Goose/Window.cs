@@ -73,6 +73,7 @@ namespace Goose
             ItemInfo,
             Help,
             OptionList,
+            QuestInfo,
         }
         public WindowTypes Type { get; set; }
 
@@ -307,6 +308,14 @@ namespace Goose
             world.Send(player, P.MakeWindow(this));
             this.Populate(player, world);
             world.Send(player, P.EndWindow(this));
+        }
+
+        // Server-side close: drops the window and tells the client to discard it.
+        // Only for windows the client did not close itself (a WBC close is not echoed).
+        public void Close(Player player, GameWorld world)
+        {
+            if (player.Windows.Remove(this))
+                world.Send(player, P.CloseWindow(this.ID));
         }
     }
 }

@@ -49,42 +49,72 @@ namespace Goose.Quests
         /// <param name="world"></param>
         public static void Handle(NPC npc, Player player, GameWorld world)
         {
-            player.Windows.RemoveAll(w => w.Type == WindowTypes.Quest && w.NPC == npc);
+            foreach (var w in player.Windows.Where(w => (w.Type == WindowTypes.Quest || w.Type == WindowTypes.OptionList) && w.NPC == npc).ToList())
+                w.Close(player, world);
+
+            var quests = GetAvailableQuests(npc, player);
+            if (quests.Count == 0) return;
+
+            if (quests.Count == 1)
+            {
+                StartQuest(quests[0], player);
+                new QuestWindow(npc, player, quests[0], world);
+            }
+            else
+            {
+                player.TalkedTo(npc, world);
+                new OptionListWindow(player, world, npc.Name,
+                    quests.Select(q => q.Name).ToList(),
+                    (line, p, w) =>
+                    {
+                        var quest = quests[line];
+                        QuestWindow.StartQuest(quest, p);
+                        new QuestWindow(npc, p, quest, w);
+                    },
+                    npc);
+            }
+        }
+
+        internal static List<Quest> GetAvailableQuests(NPC npc, Player player)
+        {
+            var available = new List<Quest>();
 
             foreach (var quest in npc.Quests)
             {
                 if (player.QuestsCompleted.Any(q => q.Id == quest.Id) && !quest.Repeatable)
                     continue;
 
-                foreach (var prereq in quest.PrerequisiteQuests)
-                {
-                    if (!player.QuestsCompleted.Any(q => q.Id == prereq))
-                        return;
-                }
+                if (quest.PrerequisiteQuests.Any(prereq => !player.QuestsCompleted.Any(q => q.Id == prereq)))
+                    continue;
 
                 if ((quest.MaxLevel > 0 && player.Level > quest.MaxLevel) || (quest.MaxExperience > 0 && player.Experience + player.ExperienceSold > quest.MaxExperience))
-                    return;
+                    continue;
 
                 if (!player.Class.CanUse(quest.ClassRestrictions))
-                    return;
+                    continue;
 
-                if (!player.QuestsStarted.Any(q => q.Id == quest.Id))
+                available.Add(quest);
+            }
+
+            return available;
+        }
+
+        internal static void StartQuest(Quest quest, Player player)
+        {
+            if (player.QuestsStarted.Any(q => q.Id == quest.Id))
+                return;
+
+            player.QuestsStarted.Add(quest);
+
+            foreach (var requirement in quest.Requirements)
+            {
+                if (requirement.Type == RequirementType.Kill || requirement.Type == RequirementType.TalkToNPC)
                 {
-                    player.QuestsStarted.Add(quest);
-
-                    foreach (var requirement in quest.Requirements)
+                    if (!player.QuestProgress.Any(q => q.Requirement.Id == requirement.Id))
                     {
-                        if (requirement.Type == RequirementType.Kill || requirement.Type == RequirementType.TalkToNPC)
-                        {
-                            if (!player.QuestProgress.Any(q => q.Requirement.Id == requirement.Id))
-                            {
-                                player.QuestProgress.Add(new QuestProgress() { Requirement = requirement, Value = 0 });
-                            }
-                        }
+                        player.QuestProgress.Add(new QuestProgress() { Requirement = requirement, Value = 0 });
                     }
                 }
-
-                var questWindow = new QuestWindow(npc, player, quest, world);
             }
         }
 
@@ -154,7 +184,7 @@ namespace Goose.Quests
                         // player has opened the quest window twice, and already completed it in one
                         if (!quest.Repeatable && player.QuestsCompleted.Any(q => q.Id == quest.Id))
                         {
-                            player.Windows.Remove(this);
+                            this.Close(player, world);
                             return;
                         }
 
@@ -202,10 +232,13 @@ namespace Goose.Quests
         }
 
         public string GetQuestProgressText(Player player, GameWorld world)
+            => GetQuestProgressText(this.quest, player, world);
+
+        public static string GetQuestProgressText(Quest quest, Player player, GameWorld world)
         {
             string text = "Requirements\\n\\n";
 
-            foreach (var requirement in this.quest.Requirements.OrderBy(r => r.Type))
+            foreach (var requirement in quest.Requirements.OrderBy(r => r.Type))
             {
                 switch (requirement.Type)
                 {

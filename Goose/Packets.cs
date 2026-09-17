@@ -644,5 +644,10 @@ namespace Goose
         {
             return "ENW" + window.ID;
         };
+
+        public static Func<int, string> CloseWindow = (windowId) =>
+        {
+            return "CLW" + windowId;
+        };
     }
 }
