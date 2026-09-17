@@ -21,6 +21,7 @@ namespace Goose.Events
         public override void Ready(GameWorld world)
         {
             Socket sock = (Socket)this.Data;
+            world.ForgetLostConnection(sock);
             Player? player = world.PlayerHandler.GetPlayer(sock);
 
             if (player is null)

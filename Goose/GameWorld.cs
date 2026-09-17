@@ -67,6 +67,7 @@ namespace Goose
         // Illutia login wire format: 2 header bytes + 69 body bytes (LoginEvent.cs)
         private const int MinIllutiaLoginLength = 71;
         private readonly Dictionary<Socket, StringBuilder> preLoginBuffers = new();
+        private readonly HashSet<Socket> pendingLogouts = new();
 
         internal string? PreLoginPending(Socket sock)
         {
@@ -458,6 +459,10 @@ namespace Goose
          */
         public void LostConnection(Socket sock)
         {
+            // A disposed socket is reported from every failed send until the logout
+            // event fires; only the first report logs and schedules the logout.
+            if (!this.pendingLogouts.Add(sock)) return;
+
             preLoginBuffers.Remove(sock);
             var endpoint = this.GameServer?.ConnectionIP(sock) ?? "unknown";
             log.Info("Connection lost: " + endpoint);
@@ -471,6 +476,11 @@ namespace Goose
                 this.EventHandler.AddEvent(ev);
             }
             catch (Exception e) { log.Error(e, "Failed to schedule logout for {0}", endpoint); }
+        }
+
+        internal void ForgetLostConnection(Socket sock)
+        {
+            this.pendingLogouts.Remove(sock);
         }
 
         /**
@@ -615,6 +625,10 @@ namespace Goose
                     log.Warn("Player {0} ({1}) send buffer exceeded, dropping connection", player.Name, player.LoginID);
                     this.LostConnection(player.Sock);
                 }
+            }
+            catch (ObjectDisposedException)
+            {
+                this.LostConnection(player.Sock);
             }
             catch (Exception e)
             {

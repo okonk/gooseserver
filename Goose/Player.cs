@@ -2709,8 +2709,15 @@ namespace Goose
 
             lock (socketLock)
             {
-                var bytesSent = this.sock.Send(this.SendBuffer.ToArray());
-                this.SendBuffer.RemoveRange(0, bytesSent);
+                try
+                {
+                    var bytesSent = this.sock.Send(this.SendBuffer.ToArray());
+                    this.SendBuffer.RemoveRange(0, bytesSent);
+                }
+                catch (ObjectDisposedException)
+                {
+                    this.SendBuffer.Clear();
+                }
             }
         }
 
