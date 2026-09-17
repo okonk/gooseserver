@@ -9,16 +9,18 @@ namespace Goose.Quests
         }
 
         private readonly Quest quest;
+        private readonly Action<Player, GameWorld>? onBack;
         private QuestInfoState state = QuestInfoState.QuestDescription;
 
-        public QuestInfoWindow(Quest quest, Player player, GameWorld world)
+        public QuestInfoWindow(Quest quest, Player player, GameWorld world, Action<Player, GameWorld>? onBack = null)
         {
             this.ID = ++player.LastWindowID;
             this.Title = quest.Name;
-            this.Buttons = "0,1,0,1,0";
+            this.Buttons = onBack is null ? "0,1,0,1,0" : "0,1,1,1,0";
             this.Frame = WindowFrames.Quest;
             this.Type = WindowTypes.QuestInfo;
             this.quest = quest;
+            this.onBack = onBack;
 
             player.Windows.Add(this);
             this.SendCreate(player, world);
@@ -59,9 +61,13 @@ namespace Goose.Quests
                     if (this.state == QuestInfoState.QuestDescription)
                     {
                         this.state = QuestInfoState.QuestRequirements;
-                        this.Buttons = "0,1,0,0,0";
+                        this.Buttons = this.onBack is null ? "0,1,0,0,0" : "0,1,1,0,0";
                         this.SendCreate(player, world);
                     }
+                    break;
+                case ButtonTypes.Back:
+                    this.Close(player, world);
+                    this.onBack?.Invoke(player, world);
                     break;
                 default:
                     player.Windows.Remove(this);

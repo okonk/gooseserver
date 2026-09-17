@@ -38,8 +38,16 @@ namespace Goose.Commands
                 })
                 .ToList();
 
-            new OptionListWindow(player, world, "Active Quests", lines,
-                (line, p, w) => new QuestInfoWindow(active[line], p, w), null);
+            OptionListWindow? list = null;
+
+            void OpenList(Player p, GameWorld w, int page)
+            {
+                list = new OptionListWindow(p, w, "Active Quests", lines,
+                    (line, pp, ww) => new QuestInfoWindow(active[line], pp, ww,
+                        (bp, bw) => OpenList(bp, bw, list!.Page)), null, page);
+            }
+
+            OpenList(player, world, 0);
         }
 
         private static string? FindGrantingNpc(GameWorld world, int questId)

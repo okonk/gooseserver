@@ -118,6 +118,32 @@ public class QuestsCommandTests
     }
 
     [Fact]
+    public void BackButton_ReopensQuestListOnSamePage()
+    {
+        var quests = Enumerable.Range(1, 12).Select(i => (i, $"Quest {i}")).ToArray();
+        var (_, player, ctx) = Setup(quests);
+
+        new QuestsCommand().Execute(ctx);
+        player.Windows[0].Clicked(Window.ButtonTypes.Next, 0, 0, 0, player, ctx.World);
+        player.Windows[0].LineClicked(0, 0, player, ctx.World);
+
+        var info = Assert.IsType<QuestInfoWindow>(player.Windows[0]);
+        Assert.Equal("0,1,1,1,0", info.Buttons);
+
+        player.Sent.Clear();
+        info.Clicked(Window.ButtonTypes.Back, 0, 0, 0, player, ctx.World);
+
+        Assert.Contains(player.Sent, s => s.StartsWith($"CLW{info.ID}"));
+        Assert.Single(player.Windows);
+        var list = Assert.IsType<OptionListWindow>(player.Windows[0]);
+        Assert.Equal(1, list.Page);
+        var lines = player.Sent.Where(s => s.StartsWith("WNF")).ToArray();
+        Assert.Equal(2, lines.Length);
+        Assert.Contains(lines, s => s.Contains("Quest 11"));
+        Assert.Contains(lines, s => s.Contains("Quest 12"));
+    }
+
+    [Fact]
     public void Execute_MoreThanTenActiveQuests_PagesAndOpensCorrectQuest()
     {
         var quests = Enumerable.Range(1, 12).Select(i => (i, $"Quest {i}")).ToArray();

@@ -74,6 +74,7 @@ namespace Goose
             Help,
             OptionList,
             QuestInfo,
+            Recipe,
         }
         public WindowTypes Type { get; set; }
 

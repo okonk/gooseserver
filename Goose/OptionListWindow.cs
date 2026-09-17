@@ -6,7 +6,7 @@ namespace Goose
         private readonly Action<int, Player, GameWorld> onLineClicked;
         private int page;
 
-        public OptionListWindow(Player player, GameWorld world, string title, List<string> lines, Action<int, Player, GameWorld> onLineClicked, NPC? npc = null)
+        public OptionListWindow(Player player, GameWorld world, string title, List<string> lines, Action<int, Player, GameWorld> onLineClicked, NPC? npc = null, int startPage = 0)
         {
             this.ID = ++player.LastWindowID;
             this.Title = title;
@@ -15,11 +15,14 @@ namespace Goose
             this.NPC = npc;
             this.lines = lines;
             this.onLineClicked = onLineClicked;
+            this.page = Math.Min(Math.Max(startPage, 0), Math.Max(this.PageCount - 1, 0));
             this.Buttons = this.GetPagingButtons();
 
             player.Windows.Add(this);
             this.SendCreate(player, world);
         }
+
+        public int Page { get => this.page; }
 
         private int PageCount => (this.lines.Count + LineClickCount - 1) / LineClickCount;
 

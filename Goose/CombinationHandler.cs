@@ -118,6 +118,10 @@ namespace Goose
          */
         public int Count { get => this.combinations.Keys.Count; }
 
+        public IReadOnlyCollection<Combination> GetAll() => this.combinations.Values;
+
+        public void Add(Combination combination) => this.combinations[combination.ID] = combination;
+
         /**
          * GetMatch, takes a dictionary and tries to match the ingredients with an existing combination
          *
