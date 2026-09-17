@@ -42,13 +42,20 @@ namespace Goose.Events
                     buttonid = -1;
                 }
 
-                if (buttonid <= -1 || buttonid >= Enum.GetValues(typeof(Window.ButtonTypes)).Length) return;
+                // WBC button ids in [Window.LineClickOffset, Window.LineClickOffset + Window.LineClickCount)
+                // are option-list line clicks.
+                bool isLine = buttonid >= Window.LineClickOffset
+                    && buttonid < Window.LineClickOffset + Window.LineClickCount;
+                if (buttonid <= -1 || (!isLine && buttonid >= Enum.GetValues(typeof(Window.ButtonTypes)).Length)) return;
 
                 foreach (var window in this.Player.Windows)
                 {
                     if (window.ID == windowid)
                     {
-                        window.Clicked((Window.ButtonTypes)buttonid, npcid, id2, id3, this.Player, world);
+                        if (isLine)
+                            window.LineClicked(buttonid - Window.LineClickOffset, npcid, this.Player, world);
+                        else
+                            window.Clicked((Window.ButtonTypes)buttonid, npcid, id2, id3, this.Player, world);
 
                         return;
                     }

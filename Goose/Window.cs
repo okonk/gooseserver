@@ -49,8 +49,15 @@ namespace Goose
             Paper = 24,
             Trade = 25,
             Bank = 26,
+            OptionList = 27,
         }
         public WindowFrames Frame { get; set; }
+
+        // WBC button ids in [LineClickOffset, LineClickOffset + LineClickCount) are
+        // option-list line clicks (line = id - LineClickOffset). Client counterpart:
+        // OptionListWindow.LineClickOffset in Goose2ClientGodot.
+        public const int LineClickOffset = 20;
+        public const int LineClickCount = 10;
         public enum WindowTypes
         {
             Vendor = 1,
@@ -65,6 +72,7 @@ namespace Goose
             PlayerInfo,
             ItemInfo,
             Help,
+            OptionList,
         }
         public WindowTypes Type { get; set; }
 
@@ -140,6 +148,10 @@ namespace Goose
                     }
                     break;
             }
+        }
+
+        public virtual void LineClicked(int line, int npcid, Player player, GameWorld world)
+        {
         }
 
 

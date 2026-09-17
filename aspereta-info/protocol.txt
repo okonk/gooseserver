@@ -132,3 +132,26 @@ server sends to clients on message:
     * ^id,name: message
 
 Guess you could change name/message if you wanted.
+
+Window packets (server -> client):
+
+    * MKWwindowid,frame,title,buttons,npcid,0,0
+
+make window. frame is a WindowFrames value (Goose/Window.cs). buttons is five
+0/1 flags (combine,close,back,next,ok). The window is then filled with lines
+and finished with:
+
+    * ENWwindowid
+
+Window text line (server -> client):
+
+    * WNFwindowid,linesequence,text|stack|item|sheet|graphic|*
+
+Window button click (client -> server):
+
+    * WBCbuttonid,windowid,npcid,id2,id3
+
+buttonid 0-5 is a Window.ButtonTypes. For option-list windows
+(WindowFrames.OptionList = 27) buttonid 20-29 is a line click:
+line = buttonid - 20 (Goose.Window.LineClickOffset/LineClickCount; client
+counterpart OptionListWindow.LineClickOffset in Goose2ClientGodot).
