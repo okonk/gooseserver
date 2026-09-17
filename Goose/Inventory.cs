@@ -1136,6 +1136,10 @@ namespace Goose
                 {
                     var newSlot = new ItemSlot { Item = item, Stack = slotcount };
                     newcombine.SetSlot(i, newSlot);
+                    // A result item may only be written to a slot the new bag leaves empty. This
+                    // slot holds the leftover, so it is not one: treating it as free overwrote
+                    // and destroyed the leftover whenever the bag had no room elsewhere.
+                    freeslots.Remove(i);
                 }
                 else
                 {

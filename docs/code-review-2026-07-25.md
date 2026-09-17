@@ -26,6 +26,7 @@ Fixed in a second round:
 | Finding | Fix |
 |---|---|
 | H3 — crafting cost bypass | `CombinationHandler.GetMatch` requires at least the recipe quantity; `Inventory.Combine` tallies stack quantities rather than slot counts, so matching and consumption finally agree on units |
+| H3 follow-up — too many ingredients shadowed the intended recipe | `GetMatch` returned the first recipe a bag satisfied, and since surplus ingredients are allowed, a shorter recipe containing a longer one always won: needle + thread + cat hair + leather padding made Cloth (id 3) instead of Cat Ears (id 10). It now returns the most specific satisfied recipe (`Combination.RequiredTotal`), which is deterministic because recipes are enumerated in combination id order. A tie between same-sized recipes resolves to the lower id. `Inventory.Combine` also no longer counts a slot that kept a returned leftover as free for a result item, which let the result overwrite that leftover |
 | H7 — bind laundering via split | New `Item.CloneWithoutId` copies all per-item state (`IsBound`, rolled stats, description, title/surname) instead of rebuilding from the template |
 | H5 — no connection cap, no rate limiting | New `LoginThrottle` locks out by IP and by account name after repeated failures; `GameServer` enforces `MaxConnections`, `MaxConnectionsPerIP` and a pre-login timeout |
 | M6 — no cross-entity transaction | New `Database.EnqueueTransaction`; each sub-save became a `BuildSave` returning composable work, and a full player save now commits as one transaction |

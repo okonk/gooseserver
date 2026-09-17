@@ -41,6 +41,7 @@ namespace Goose
             {
                 // Load required items
                 comb.RequiredHash = [];
+                comb.RequiredTotal = 0;
 
                 command.CommandText = "SELECT item_template_id FROM combination_item_required " +
                     "WHERE combination_id=" + comb.ID;
@@ -73,6 +74,8 @@ namespace Goose
                     {
                         comb.RequiredHash[itemid] = (int)comb.RequiredHash[itemid] + 1;
                     }
+
+                    comb.RequiredTotal++;
                 }
                 }
 
@@ -123,12 +126,13 @@ namespace Goose
          */
         public Combination? GetMatch(Dictionary<int, long> combine)
         {
+            Combination? best = null;
             long c;
-            bool matched;
+            bool satisfied;
 
             foreach (var comb in this.combinations.Values)
             {
-                matched = true;
+                satisfied = true;
 
                 foreach (KeyValuePair<int, int> req in comb.RequiredHash)
                 {
@@ -140,15 +144,22 @@ namespace Goose
                     // allowed and returned to the combine bag by the consumption loop.
                     if (c < req.Value)
                     {
-                        matched = false;
+                        satisfied = false;
                         break;
                     }
                 }
 
-                if (matched) return comb;
+                if (!satisfied) continue;
+
+                // Every recipe a bag satisfies is a candidate, because surplus ingredients
+                // are allowed, but only the most specific one is meant: several recipes take
+                // needle + thread (Cloth, ids 1-6) and one takes needle + thread + cat hair +
+                // leather padding (Cat Ears, id 10). Returning the first candidate returned
+                // Cloth for the cat ear ingredients.
+                if (best is null || comb.RequiredTotal > best.RequiredTotal) best = comb;
             }
 
-            return null;
+            return best;
         }
     }
 }
