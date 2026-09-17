@@ -2416,6 +2416,10 @@ namespace Goose
             {
                 this.ClearNPCAggroIfUnseen(world);
             }
+            else if (wasInvisible && !isInvisible)
+            {
+                this.NotifyNPCsOfVisibility(world);
+            }
 
             bool canSee = this.CanSeeInvisible;
             if (canSee != wasCanSee)
@@ -2431,6 +2435,15 @@ namespace Goose
             foreach (var npc in this.Map.GetNPCsInRange(this))
             {
                 if (!npc.CanSeeInvisible) npc.RemoveAggro(this);
+            }
+        }
+
+        private void NotifyNPCsOfVisibility(GameWorld world)
+        {
+            foreach (var npc in this.Map.GetNPCsInRange(this))
+            {
+                if (npc.CanSeeInvisible) continue;
+                npc.AggroIfInRange(this, world);
             }
         }
 
