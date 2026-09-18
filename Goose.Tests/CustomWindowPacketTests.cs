@@ -482,5 +482,30 @@ namespace Goose.Tests
                 Assert.Same(window, CustomWindow.FindOpen(player));
             }
         }
+
+        [Fact]
+        public void Cwc_zero_stack_stats_refused_and_consumes_nothing()
+        {
+            var (fixture, player, _, _, _, window) = Setup(
+                settings: s => s.InventorySize = 5,
+                ticketSlot: 1, statsSlot: 3, lookSlot: 2);
+            using (fixture)
+            {
+                var statsItem = player.Inventory.GetSlot(3)!.Item;
+                player.Inventory.SetSlot(3, new ItemSlot { Item = statsItem, Stack = 0 });
+
+                Assert.True(fixture.RunCommand(player, "CWC2,3,10,20,30,40,X"));
+
+                Assert.Contains(player.Sent, s => s.Contains("Items missing for customisation"));
+                Assert.DoesNotContain(player.Sent, s => s.Contains("Created custom"));
+                Assert.Equal(901, player.Inventory.GetSlot(2)!.Item.TemplateID);
+                Assert.Equal(1, player.Inventory.GetSlot(2)!.Stack);
+                Assert.Equal(900, player.Inventory.GetSlot(3)!.Item.TemplateID);
+                Assert.Equal(0, player.Inventory.GetSlot(3)!.Stack);
+                Assert.Equal(823, player.Inventory.GetSlot(1)!.Item.TemplateID);
+                Assert.Equal(1, player.Inventory.GetSlot(1)!.Stack);
+                Assert.Same(window, CustomWindow.FindOpen(player));
+            }
+        }
     }
 }

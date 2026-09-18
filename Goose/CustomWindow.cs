@@ -134,6 +134,14 @@ namespace Goose
             if (target == -1 && lookSlot.Stack == 1) target = lookSlotId;
             if (target == -1 && statsSlot.Stack == 1) target = statsSlotId;
 
+            // A zero/negative stack from corrupted data would otherwise be partially
+            // consumed before a later RemoveItem fails; guard up front so nothing is lost.
+            if (lookSlot.Stack < 1 || statsSlot.Stack < 1 || ticketSlot.Stack < 1)
+            {
+                world.Send(player, P.ServerMessage("Items missing for customisation"));
+                return;
+            }
+
             if (player.Inventory.RemoveItem(lookSlot.Item, 1, world) is null
                 || player.Inventory.RemoveItem(statsSlot.Item, 1, world) is null
                 || player.Inventory.RemoveItem(ticketSlot.Item, 1, world) is null)
