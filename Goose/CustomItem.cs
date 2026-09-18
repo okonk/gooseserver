@@ -2,18 +2,23 @@ namespace Goose
 {
     public static class CustomItem
     {
-        public static bool ValidateItems(GameWorld world, Player player, Item statsItem, Item lookItem)
+        public static bool ValidateSingleItem(GameWorld world, Player player, Item item)
         {
-            if ((statsItem.UseType != ItemTemplate.UseTypes.Armor &&
-                 statsItem.UseType != ItemTemplate.UseTypes.Weapon)
-                || (lookItem.UseType != ItemTemplate.UseTypes.Armor &&
-                    lookItem.UseType != ItemTemplate.UseTypes.Weapon)
-                || IsInvisibleSlot(statsItem.Slot)
-                || IsInvisibleSlot(lookItem.Slot))
+            if ((item.UseType != ItemTemplate.UseTypes.Armor &&
+                 item.UseType != ItemTemplate.UseTypes.Weapon)
+                || IsInvisibleSlot(item.Slot))
             {
                 world.Send(player, P.ServerMessage("Items to be customised must be equipment and must be visible items."));
                 return false;
             }
+
+            return true;
+        }
+
+        public static bool ValidateItems(GameWorld world, Player player, Item statsItem, Item lookItem)
+        {
+            if (!ValidateSingleItem(world, player, statsItem)) return false;
+            if (!ValidateSingleItem(world, player, lookItem)) return false;
 
             if ((statsItem.Slot == ItemTemplate.ItemSlots.OneHanded || statsItem.Slot == ItemTemplate.ItemSlots.TwoHanded)
                 && (lookItem.Slot == ItemTemplate.ItemSlots.OneHanded || lookItem.Slot == ItemTemplate.ItemSlots.TwoHanded))

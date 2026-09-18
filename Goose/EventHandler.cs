@@ -150,6 +150,8 @@ namespace Goose
                 ("LC", Open(typeof(PlayerLeftClickEvent))),
                 ("RC", Open(typeof(PlayerRightClickEvent))),
                 ("WBC", Open(typeof(WindowButtonClickEvent))),
+                ("CWS", Open(typeof(CustomWindowSlotEvent))),
+                ("CWC", Open(typeof(CustomWindowCreateEvent))),
                 ("VPI", Open(typeof(VendorPurchaseInventoryEvent))),
                 ("VSI", Open(typeof(VendorSellInventoryEvent))),
                 ("WTW", Open(typeof(WindowToWindowEvent))),
