@@ -66,6 +66,37 @@ namespace Goose.Tests
         }
 
         [Fact]
+        public void PetSpawn_on_alive_pet_repositions_without_cooldown()
+        {
+            var (fixture, player, map) = WorldAndPlayer();
+            using (fixture)
+            {
+                map.CanSpawnPets = true;
+                var pet = MakePet(fixture, player, 5, "Rex");
+
+                Assert.True(fixture.RunCommand(player, "/petspawn 5"));
+                Assert.True(pet.IsAlive);
+                Assert.Equal(player.MapX, pet.MapX);
+                Assert.Equal(player.MapY, pet.MapY);
+
+                pet.MapX = 7;
+                pet.MapY = 7;
+                player.Sent.Clear();
+
+                Assert.True(fixture.RunCommand(player, "/petspawn 5"));
+
+                Assert.NotEqual(7, player.MapX);
+                Assert.NotEqual(7, player.MapY);
+                Assert.True(pet.IsAlive);
+                Assert.Same(map, pet.Map);
+                Assert.Equal(player.MapX, pet.MapX);
+                Assert.Equal(player.MapY, pet.MapY);
+                Assert.Equal(0, pet.NextRespawnTime);
+                Assert.DoesNotContain(player.Sent, s => s.Contains("You must wait"));
+            }
+        }
+
+        [Fact]
         public void PetSpawn_active_cooldown_is_refused_with_positive_wait()
         {
             var (fixture, player, map) = WorldAndPlayer();

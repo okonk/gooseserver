@@ -1,3 +1,4 @@
+using Goose;
 using Goose.Testing;
 
 namespace Goose.IntegrationTests;
@@ -44,6 +45,58 @@ public class PetCooldownTests : IDisposable
 
         var reloadedPet = Assert.Single(reloadedOwner.Pets);
         Assert.Equal(pet.NextRespawnTime, reloadedPet.NextRespawnTime);
+    }
+
+    [Fact]
+    public void Death_then_reload_blocks_spawn_until_cooldown_expires()
+    {
+        var pet = CreatePersistedPet();
+
+        pet.Attacked(new NPC(), 1, fixture.World);
+        Assert.False(pet.IsAlive);
+        Assert.True(pet.NextRespawnTime > DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+
+        var reloadedOwner = new TestWorldFixture.CapturingPlayer
+        {
+            PlayerID = owner.PlayerID,
+            Name = "Reloaded",
+            Map = map,
+            MapID = map.ID,
+            MapX = map.Width,
+            MapY = map.Height,
+            State = Player.States.Ready,
+            BaseStats = new AttributeSet(),
+            MaxStats = new AttributeSet(),
+            Class = fixture.World.ClassHandler.GetClass(0)!,
+        };
+        reloadedOwner.Inventory = new Inventory(reloadedOwner, fixture.Settings);
+        reloadedOwner.LoadPets(fixture.World);
+
+        var reloadedPet = Assert.Single(reloadedOwner.Pets);
+        Assert.Equal(pet.NextRespawnTime, reloadedPet.NextRespawnTime);
+        Assert.False(reloadedPet.IsAlive);
+
+        map.CanSpawnPets = true;
+
+        Assert.True(fixture.RunCommand(reloadedOwner, "/petspawn 1"));
+
+        Assert.False(reloadedPet.IsAlive);
+        Assert.Null(reloadedPet.Map);
+        string sent = Assert.Single(reloadedOwner.Sent, s => s.Contains("You must wait "));
+        const string prefix = "You must wait ";
+        int waitStart = sent.IndexOf(prefix, StringComparison.Ordinal) + prefix.Length;
+        int waitEnd = sent.IndexOf(' ', waitStart);
+        Assert.True(int.TryParse(sent.Substring(waitStart, waitEnd - waitStart), out int wait),
+            $"Unparseable wait: '{sent}'");
+        Assert.True(wait > 0, $"Expected a positive wait, got {wait}.");
+
+        reloadedPet.NextRespawnTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds() - 1;
+        reloadedOwner.Sent.Clear();
+
+        Assert.True(fixture.RunCommand(reloadedOwner, "/petspawn 1"));
+
+        Assert.True(reloadedPet.IsAlive);
+        Assert.Same(map, reloadedPet.Map);
     }
 
     [Fact]
