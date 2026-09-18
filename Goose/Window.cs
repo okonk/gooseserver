@@ -50,6 +50,7 @@ namespace Goose
             Trade = 25,
             Bank = 26,
             OptionList = 27,
+            Custom = 28,
         }
         public WindowFrames Frame { get; set; }
 
@@ -75,6 +76,7 @@ namespace Goose
             OptionList,
             QuestInfo,
             Recipe,
+            Custom,
         }
         public WindowTypes Type { get; set; }
 
