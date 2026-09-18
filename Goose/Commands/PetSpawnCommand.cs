@@ -35,12 +35,10 @@ namespace Goose.Commands
                 return;
             }
 
-            if (match.NextRespawnTime > world.TimeNow)
+            long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            if (match.NextRespawnTime > now)
             {
-                // (double) keeps this floating-point; the operands are long, so dropping the cast would make it integer division.
-                double wait = (double)(world.TimeNow - match.NextRespawnTime) / world.TimerFrequency;
-                wait = Math.Round(wait, 2);
-
+                long wait = match.NextRespawnTime - now;
                 world.Send(ctx.Player, P.ServerMessage("You must wait " + wait + " seconds to spawn this pet."));
                 return;
             }

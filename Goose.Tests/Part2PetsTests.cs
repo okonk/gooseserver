@@ -66,6 +66,66 @@ namespace Goose.Tests
         }
 
         [Fact]
+        public void PetSpawn_active_cooldown_is_refused_with_positive_wait()
+        {
+            var (fixture, player, map) = WorldAndPlayer();
+            using (fixture)
+            {
+                map.CanSpawnPets = true;
+                var pet = MakePet(fixture, player, 5, "Rex");
+                long expiry = DateTimeOffset.UtcNow.ToUnixTimeSeconds() + 120;
+                pet.NextRespawnTime = expiry;
+
+                Assert.True(fixture.RunCommand(player, "/petspawn 5"));
+
+                Assert.False(pet.IsAlive);
+                Assert.Null(pet.Map);
+                Assert.Equal(expiry, pet.NextRespawnTime);
+                Assert.Contains(player.Sent, s => System.Text.RegularExpressions.Regex.IsMatch(
+                    s,
+                    @"You must wait [1-9]\d* seconds to spawn this pet\."));
+            }
+        }
+
+        [Fact]
+        public void PetSpawn_at_expiry_is_allowed()
+        {
+            var (fixture, player, map) = WorldAndPlayer();
+            using (fixture)
+            {
+                map.CanSpawnPets = true;
+                var pet = MakePet(fixture, player, 5, "Rex");
+                pet.NextRespawnTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+
+                Assert.True(fixture.RunCommand(player, "/petspawn 5"));
+
+                Assert.True(pet.IsAlive);
+                Assert.Same(map, pet.Map);
+            }
+        }
+
+        [Fact]
+        public void PetSpawn_other_pet_is_not_blocked_by_cooldown()
+        {
+            var (fixture, player, map) = WorldAndPlayer();
+            using (fixture)
+            {
+                map.CanSpawnPets = true;
+                var coolingPet = MakePet(fixture, player, 5, "Rex");
+                long expiry = DateTimeOffset.UtcNow.ToUnixTimeSeconds() + 120;
+                coolingPet.NextRespawnTime = expiry;
+                var availablePet = MakePet(fixture, player, 6, "Fido");
+
+                Assert.True(fixture.RunCommand(player, "/petspawn 6"));
+
+                Assert.True(availablePet.IsAlive);
+                Assert.Same(map, availablePet.Map);
+                Assert.False(coolingPet.IsAlive);
+                Assert.Equal(expiry, coolingPet.NextRespawnTime);
+            }
+        }
+
+        [Fact]
         public void PetSpawn_disabled_map_is_refused()
         {
             var (fixture, player, map) = WorldAndPlayer();
