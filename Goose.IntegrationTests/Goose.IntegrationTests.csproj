@@ -52,6 +52,8 @@
           Link="DimensionScripts/DimensionRarity.csx" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Goose/Data/Illutia/Scripts/Spell/Backstab.csx"
           Link="SpellScripts/Backstab.csx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Goose/Data/Illutia/Scripts/Item/CustomTicket.csx"
+          Link="ItemScripts/CustomTicket.csx" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup>
     <Using Include="Xunit" />
