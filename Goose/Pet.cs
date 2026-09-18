@@ -13,6 +13,7 @@ namespace Goose
     public class Pet : Player
     {
         private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
+        private const int CooldownSeconds = 120;
 
         /// <summary>
         /// Maps Login IDs to pet objects
@@ -60,7 +61,7 @@ namespace Goose
         public Player Owner { get; set; } = null!;
 
         /// <summary>
-        /// System time of allowed next respawn
+        /// UTC Unix seconds of allowed next respawn
         /// </summary>
         public long NextRespawnTime { get; set; }
 
@@ -315,6 +316,7 @@ namespace Goose
             string petName = this.Name;
             string petTitle = this.Title;
             string petSurname = this.Surname;
+            long nextRespawnTime = this.NextRespawnTime;
 
             if (this.AutoCreatedNotSaved)
             {
@@ -322,7 +324,7 @@ namespace Goose
                     "pet_facing, pet_level, experience, experience_sold, " +
                     "pet_hp, pet_mp, pet_sp, class_id, stat_ac, stat_str, stat_sta, " +
                     "stat_dex, stat_int, res_fire, res_water, res_spirit, res_air, res_earth, body_id, body_r, body_g, body_b, body_a, " +
-                    "face_id, hair_id, hair_r, hair_g, hair_b, hair_a, respawn_time, aggro_range, attack_speed, attack_range, " +
+                    "face_id, hair_id, hair_r, hair_g, hair_b, hair_a, respawn_time, next_respawn_time, aggro_range, attack_speed, attack_range, " +
                     "move_speed, body_state, equipped_items, weapon_damage, hp_percent_regen, hp_static_regen, " +
                     "mp_percent_regen, mp_static_regen, owner_id) VALUES" +
                     "(" +
@@ -358,6 +360,7 @@ namespace Goose
                     this.HairB + ", " +
                     this.HairA + ", " +
                     this.RespawnTime + ", " +
+                    nextRespawnTime + ", " +
                     this.AggroRange + ", " +
                     this.AttackSpeed + ", " +
                     this.AttackRange + ", " +
@@ -427,6 +430,7 @@ namespace Goose
                     "hair_b=" + this.HairB + ", " +
                     "hair_a=" + this.HairA + ", " +
                     "respawn_time=" + this.RespawnTime + ", " +
+                    "next_respawn_time=" + nextRespawnTime + ", " +
                     "aggro_range=" + this.AggroRange + ", " +
                     "attack_speed=" + this.AttackSpeed + ", " +
                     "attack_range=" + this.AttackRange + ", " +
@@ -541,6 +545,15 @@ namespace Goose
             Pet.LoginIDToPet.Remove(this.LoginID);
             this.Map.SetCharacter(null, this.MapX, this.MapY);
             this.Map = null!;
+        }
+
+        public void DestroyWithCooldown(GameWorld world)
+        {
+            if (!this.IsAlive) return;
+
+            this.NextRespawnTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds() + CooldownSeconds;
+            this.SaveToDatabase(world);
+            this.Destroy(world);
         }
 
         public void AddMoveEvent(GameWorld world)
@@ -791,7 +804,7 @@ namespace Goose
 
             if (this.CurrentHP <= 0)
             {
-                this.Destroy(world);
+                this.DestroyWithCooldown(world);
             }
             else
             {

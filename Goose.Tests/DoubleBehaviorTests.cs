@@ -297,6 +297,63 @@ public class DoubleBehaviorTests
         Assert.Equal(1e21, mpRegen);
     }
 
+    [Fact]
+    public void Pet_save_round_trips_next_respawn_time_on_insert_and_update()
+    {
+        using var fixture = new TestWorldFixture();
+        using var conn = new SQLiteConnection("Data Source=:memory:;Version=3;");
+        conn.Open();
+        using (var cmd = conn.CreateCommand())
+        {
+            cmd.CommandText = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "sql", "pets.sql"));
+            cmd.ExecuteNonQuery();
+        }
+
+        var pet = new Pet
+        {
+            PetID = 1,
+            Name = "Pet",
+            Title = "",
+            Surname = "",
+            Level = 1,
+            ClassID = 1,
+            Class = fixture.World.ClassHandler.GetClass(1)!,
+            Owner = new Player(0) { PlayerID = 5 },
+            BaseStats = new AttributeSet(),
+            AutoCreatedNotSaved = true,
+            NextRespawnTime = 1_900_000_000,
+        };
+        var insert = pet.BuildSave();
+        pet.NextRespawnTime = 0;
+        insert(conn);
+
+        Assert.Equal(1_900_000_000, ReadNextRespawnTime(conn));
+
+        pet.AutoCreatedNotSaved = false;
+        pet.NextRespawnTime = 1_900_000_120;
+        var update = pet.BuildSave();
+        pet.NextRespawnTime = 0;
+        update(conn);
+
+        Assert.Equal(1_900_000_120, ReadNextRespawnTime(conn));
+
+        using var loadCommand = conn.CreateCommand();
+        loadCommand.CommandText = "SELECT * FROM pets WHERE pet_id=1";
+        using var reader = loadCommand.ExecuteReader();
+        Assert.True(reader.Read());
+        var loaded = Pet.FromReader(reader, fixture.World);
+
+        Assert.NotNull(loaded);
+        Assert.Equal(1_900_000_120, loaded.NextRespawnTime);
+    }
+
+    private static long ReadNextRespawnTime(SQLiteConnection conn)
+    {
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = "SELECT next_respawn_time FROM pets WHERE pet_id=1";
+        return Convert.ToInt64(cmd.ExecuteScalar());
+    }
+
     private static Buff SnareBuff(int percent) => new()
     {
         SpellEffect = new SpellEffect

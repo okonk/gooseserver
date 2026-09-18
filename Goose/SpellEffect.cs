@@ -947,7 +947,7 @@ namespace Goose
             Pet pet = (Pet)target;
             if (pet.Owner != caster) return false;
 
-            pet.Destroy(world);
+            pet.DestroyWithCooldown(world);
 
             return true;
         }
