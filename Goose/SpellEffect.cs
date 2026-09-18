@@ -912,7 +912,7 @@ namespace Goose
             }
             else
             {
-                world.Send(player, P.ServerMessage("Failed to tame " + target.Name + ". (" + target.MaxHP + " hp)"));
+                world.Send(player, P.ServerMessage($"Failed to tame {target.Name}. ({target.MaxHP} hp, {successrate * 100:F2}% chance)"));
                 return false;
             }
         }
