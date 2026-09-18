@@ -61,7 +61,7 @@ namespace Goose.Commands
                 return;
             }
 
-            string? error = ParseRGBA(r, g, b, a);
+            string? error = CustomItem.ParseRGBA(r, g, b, a);
             if (error is not null)
             {
                 ctx.Send(error);
@@ -168,7 +168,7 @@ namespace Goose.Commands
                 return;
             }
 
-            string? error = ParseRGBA(r, g, b, a);
+            string? error = CustomItem.ParseRGBA(r, g, b, a);
             if (error is not null)
             {
                 ctx.Send(error);
@@ -182,32 +182,11 @@ namespace Goose.Commands
             ItemSlot statsSlot = combineBag.GetSlot(2)!;
             ItemSlot lookSlot = combineBag.GetSlot(3)!;
 
-            Item item = new Item();
-            if (!item.LoadFromTemplate(statsSlot.Item.Template)) return;
-            item.StatMultiplier = statsSlot.Item.StatMultiplier;
-            item.BaseStats = statsSlot.Item.BaseStats.Clone();
-            item.TotalStats = statsSlot.Item.TotalStats.Clone();
-            item.TotalWeaponDamage = statsSlot.Item.TotalWeaponDamage;
-            item.BodyState = lookSlot.Item.BodyState;
-            item.GraphicEquipped = lookSlot.Item.GraphicEquipped;
-            item.GraphicR = r;
-            item.GraphicG = g;
-            item.GraphicB = b;
-            item.GraphicA = a;
-            item.GraphicTile = lookSlot.Item.GraphicTile;
-            item.GraphicFile = lookSlot.Item.GraphicFile;
-
             string nameText = string.Join(" ", name);
-            item.Name = (nameText.Length > 255 ? nameText.Substring(0, 255) : nameText).Replace(",", "");
-            item.Description = "Custom created by " + ctx.Player.Name;
-            item.IsBound = statsSlot.Item.IsBound;
-            item.ScriptParams = statsSlot.Item.ScriptParams;
+            string itemName = (nameText.Length > 255 ? nameText.Substring(0, 255) : nameText).Replace(",", "");
 
-            if (statsSlot.Item.ItemProperties.TryGetValue(ItemProperty.TitleId, out object? titleId))
-                item.ItemProperties[ItemProperty.TitleId] = titleId;
-
-            if (statsSlot.Item.ItemProperties.TryGetValue(ItemProperty.SurnameId, out object? surnameId))
-                item.ItemProperties[ItemProperty.SurnameId] = surnameId;
+            Item? item = CustomItem.BuildCustomItem(statsSlot.Item, lookSlot.Item, r, g, b, a, itemName, ctx.Player.Name);
+            if (item is null) return;
 
             world.ItemHandler.AddAndAssignId(item, world);
 
@@ -330,44 +309,7 @@ namespace Goose.Commands
                 return false;
             }
 
-            if ((statsSlot.Item.UseType != ItemTemplate.UseTypes.Armor &&
-                 statsSlot.Item.UseType != ItemTemplate.UseTypes.Weapon)
-                || (lookSlot.Item.UseType != ItemTemplate.UseTypes.Armor &&
-                    lookSlot.Item.UseType != ItemTemplate.UseTypes.Weapon)
-                || statsSlot.Item.Slot == ItemTemplate.ItemSlots.Ring
-                || statsSlot.Item.Slot == ItemTemplate.ItemSlots.Necklace
-                || statsSlot.Item.Slot == ItemTemplate.ItemSlots.Pauldrons
-                || statsSlot.Item.Slot == ItemTemplate.ItemSlots.Cloak
-                || statsSlot.Item.Slot == ItemTemplate.ItemSlots.Belt
-                || statsSlot.Item.Slot == ItemTemplate.ItemSlots.Gloves)
-            {
-                world.Send(player, P.ServerMessage("Items to be customised must be equipment and must be visible items."));
-                return false;
-            }
-
-            if ((statsSlot.Item.Slot == ItemTemplate.ItemSlots.OneHanded || statsSlot.Item.Slot == ItemTemplate.ItemSlots.TwoHanded)
-                && (lookSlot.Item.Slot == ItemTemplate.ItemSlots.OneHanded || lookSlot.Item.Slot == ItemTemplate.ItemSlots.TwoHanded))
-            {
-                return true;
-            }
-
-            if (statsSlot.Item.Slot != lookSlot.Item.Slot)
-            {
-                world.Send(player, P.ServerMessage("Items to be customised must be of the same equipment type."));
-                return false;
-            }
-
-            return true;
-        }
-
-        public static string? ParseRGBA(int r, int g, int b, int a)
-        {
-            if (r < 0 || r > 255) return "/custom: invalid r value";
-            if (g < 0 || g > 255) return "/custom: invalid g value";
-            if (b < 0 || b > 255) return "/custom: invalid b value";
-            if (a < 0 || a > 255) return "/custom: invalid a value";
-
-            return null;
+            return CustomItem.ValidateItems(world, player, statsSlot.Item, lookSlot.Item);
         }
     }
 }
