@@ -14,22 +14,22 @@ Work in the worktree: `/home/agent/workspace/illutiagooseserver/.worktrees/custo
 
 | API | Citation |
 | --- | --- |
-| `Event` base: `Player`, `Data` (string), `Ready(GameWorld)` | `Goose/Event.cs:5-31` |
+| `Event` base: `Player`, `Data` (object, string at runtime), `Ready(GameWorld)` | `Goose/Event.cs:5-31` |
 | Packet registration: `("WBC", Open(typeof(WindowButtonClickEvent)))` in ctor map | `Goose/EventHandler.cs:152` |
-| Event state gate: `this.Player.State == Player.States.Ready` | `Goose/Events/WindowButtonClickEvent.cs:14` |
+| Event state gate: `this.Player.State == Player.States.Ready` | `Goose/Events/WindowButtonClickEvent.cs:19` |
 | `Window` enums: `WindowFrames` (last = `OptionList = 27`), `WindowTypes` (last = `Recipe`) | `Goose/Window.cs:29-77` |
-| `Window.Create` sends `MKW` + `Populate` + `ENW`; `Window.Close` removes + sends `CLW` | `Goose/Window.cs:86-99, 310-315` |
+| `Window.Create` sends `MKW` + `Populate` + `ENW`; `Window.Close` removes + sends `CLW` | `Goose/Window.cs:104-120, 316-320` |
 | `P.MakeWindow` / `P.EndWindow` / `P.CloseWindow` / `P.ServerMessage` / `P.InventorySlot` | `Goose/Packets.cs:632, 643, 648, 9, 553` |
-| `Inventory.UseConsumable` — main inventory only, calls `OnUseConsumableEvent`, removes item only if it returns `true` (fail-closed on exception) | `Goose/Inventory.cs:401-447` |
+| `Inventory.UseConsumable` — calls `OnUseConsumableEvent`, removes item only if it returns `true` (fail-closed on exception); reached from the client `USE` packet only for `UseType.OneTime` via `Inventory.Use` | `Goose/Inventory.cs:401-447, 265-285` |
 | `Inventory.RemoveItem(Item, long, GameWorld)` — nulls slot (stack==1) or decrements; sends slot update | `Goose/Inventory.cs:452-495` |
 | `Inventory.AddItem(Item, long, GameWorld)` — first free/stackable slot, sends update, `bool` | `Goose/Inventory.cs:78-103` |
 | `Inventory.GetNumberOfFreeSlots()` | `Goose/Inventory.cs:129-137` |
-| `Inventory.GetSlot(int)` / `SetSlot(int, ItemSlot?)` | `Goose/ItemContainer.cs:36`, `Goose/Inventory.cs:184` |
+| `Inventory.GetSlot(int)` / `SetSlot(int, ItemSlot?)` | `Goose/Inventory.cs:173-184` |
 | `ItemHandler.AddAndAssignId(Item, GameWorld)` — assigns id, fires `OnCreateEvent`, stores item | `Goose/ItemHandler.cs:235-251` |
 | Template script binding: `template.Script = world.ScriptHandler.GetScript<IItemScript>(scriptPath)` from DB `script_path` | `Goose/ItemHandler.cs:128-131` |
 | `Script<T>` loads/compiles a `.csx` file; script ends `return typeof(X);` | `Goose/Scripting/Script.cs:14-60`, `Goose/Data/Illutia/Scripts/Item/HairCutItem.csx` |
 | `Item.Custom` derived from `Description.StartsWith("Custom created by ")` — drives destroy→ripped-ticket | `Goose/Item.cs:129`, `Goose/Events/DestroyItemEvent.cs:41` |
-| Existing `/custom` logic to factor: `ValidateCustomSlots`, `ParseRGBA`, item-build block in `Make` | `Goose/Commands/CustomCommand.cs:281-330, 355-364, 135-165` |
+| Existing `/custom` logic to factor: `ValidateCustomSlots`, `ParseRGBA`, item-build block in `Make` | `Goose/Commands/CustomCommand.cs:322-361, 363-371, 185-210` |
 | Test harness: `TestWorldFixture` (`CommandPlayerOn`, `RunCommand(player, packet)` dispatches raw packets through the real `EventHandler`, `CapturingPlayer.Sent`, `AddBaseItemTemplate`) | `TestSupport/TestWorldFixture.cs:66-156` |
 | `/custom` test pattern to mirror | `Goose.Tests/Part3CustomTests.cs:1-40` |
 | `CompileSpellEffectScript` pattern for compiling a test script from a string | `TestSupport/TestWorldFixture.cs:37-43` |
@@ -54,12 +54,14 @@ Work in the worktree: `/home/agent/workspace/illutiagooseserver/.worktrees/custo
 - Test: `Goose.Tests/CustomItemTests.cs`
 
 **Mutation impact:**
-- Source of truth changed: `/custom` behaviour currently inline in `Goose/Commands/CustomCommand.cs` (`ValidateCustomSlots` 281-330, `ParseRGBA` 355-364, item-build block in `Make` 135-165).
+- Source of truth changed: `/custom` behaviour currently inline in `Goose/Commands/CustomCommand.cs` (`ValidateCustomSlots` 322-361, `ParseRGBA` 363-371, item-build block in `Make` 185-210).
 - Important readers: `Goose.Tests/Part3CustomTests.cs` (full behaviour suite for `/custom`), `Goose.Tests/CommandDispatchTests.cs` / `HelpTests.cs` (command surface).
 - Derived/cached state affected: none.
-- Required propagation sequence: pure refactor — move logic verbatim into `CustomItem`, call it from `CustomCommand`. No packet or state change.
-- Invariants to preserve: every `Part3CustomTests` test stays green unmodified; `/custom` error messages byte-identical.
-- Observable proof required: `dotnet test Goose.Tests` fully green (821 baseline) with `Part3CustomTests` untouched.
+- Required propagation sequence: move validation/RGBA/build logic into `CustomItem`, call it from `CustomCommand`. **Two deliberate, documented `/custom` behaviour changes** (everything else byte-identical):
+  1. The invisible-slot exclusions (ring/necklace/pauldrons/cloak/belt/gloves) currently apply to the **stats item only** (`CustomCommand.cs:339-344`); the shared helper applies them to **both** items. A look item in an excluded slot is now rejected by `/custom` too. This matches the design doc's "same rules" and is a bug fix, not a regression.
+  2. Nothing else: `/custom` keeps its own inline name handling (truncate-to-255-then-strip-commas, no empty refusal — `CustomCommand.cs:200-202`) and its own `maxAlpha = 255`. `CustomItem.SanitizeName` (trim → strip commas → truncate 255 → null if empty) is used **only by the window**.
+- Invariants to preserve: every `Part3CustomTests` test stays green unmodified; `/custom` error messages byte-identical for all inputs the old code accepted.
+- Observable proof required: `dotnet test Goose.Tests` fully green (821 baseline) with `Part3CustomTests` untouched, plus the two new legacy-semantics tests below.
 
 **Step 1: Write the failing tests**
 
@@ -69,13 +71,16 @@ Work in the worktree: `/home/agent/workspace/illutiagooseserver/.worktrees/custo
   - both valid same-type equipment → true
   - stats Chest + look Helmet → false (adversarial: catches a helper that drops the same-type rule)
   - stats OneHanded + look TwoHanded → true (the weapon exception)
-  - either item a Ring/Necklace/Pauldrons/Cloak/Belt/Gloves → false
+  - **either** item a Ring/Necklace/Pauldrons/Cloak/Belt/Gloves → false (deliberate tightening: today only the stats item is exclusion-checked, `CustomCommand.cs:339-344`)
   - either item not Armor/Weapon use-type → false
+- Legacy-semantics regression tests (run `/custom make` through `fixture.RunCommand`, pattern `Part3CustomTests.cs`):
+  - 300-char name containing commas → created item name is truncated to 255 **first**, then commas stripped (old order preserved)
+  - look item a Ring (stats a valid chest) → now refused with the equipment message (documents the deliberate tightening)
 - `ParseRGBA` (signature: `static string? ParseRGBA(int r, int g, int b, int a, int maxAlpha = 255)`):
   - r/g/b 0 and 255 → null; -1 and 256 → error (per channel)
   - `maxAlpha: 200`: a=200 → null, a=201 → error (adversarial: catches hard-coded 255)
   - default: a=255 → null
-- `SanitizeName` (signature: `static string? SanitizeName(string raw)` — trim, strip commas, truncate to 255, null if empty result):
+- `SanitizeName` (signature: `static string? SanitizeName(string raw)` — trim, strip commas, truncate to 255, null if empty result; **window-only**, `/custom` keeps its inline handling):
   - `"  My Sword  "` → `"My Sword"`
   - `"a,b,c"` → `"abc"`
   - 300 chars → 255 chars
@@ -90,10 +95,10 @@ Run: `dotnet test Goose.Tests --filter CustomItemTests` — expected FAIL (class
 
 **Step 2: Implement `Goose/CustomItem.cs`**
 
-Move the logic verbatim from `CustomCommand` (messages included). Then refactor `CustomCommand`:
+Move the logic from `CustomCommand` (messages included). Then refactor `CustomCommand`:
 - `ValidateCustomSlots` body → null-check the two combine-bag slots, then call `CustomItem.ValidateItems`.
 - `ParseRGBA` calls → `CustomItem.ParseRGBA(r, g, b, a)` (default maxAlpha keeps `/custom` at 255).
-- `Make` name handling → `CustomItem.SanitizeName(string.Join(" ", name))`; item-build block → `CustomItem.BuildCustomItem`.
+- `Make` item-build block → `CustomItem.BuildCustomItem` — but keep `Make`'s existing name line (`(nameText.Length > 255 ? nameText.Substring(0, 255) : nameText).Replace(",", "")`) untouched; do NOT route it through `SanitizeName`.
 
 **Step 3: Green**
 
@@ -174,18 +179,26 @@ git commit -m "Add CustomWindow (frame 28) for ticket-driven customisation"
 
 **`CustomWindowCreateEvent` behaviour** (delegates to `CustomWindow.Create(world, player, lookSlotId, statsSlotId, r, g, b, a, rawName)`):
 
-1. No open window → ignore silently.
-2. Re-fetch fresh: ticket = `player.Inventory.GetSlot(TicketSlotId)`, look/stats = `GetSlot(...)`. Ticket must exist and `TemplateID == world.Settings.CustomTicketId`; look/stats must exist and be non-zero and distinct.
+1. No open window → ignore silently (stale packet).
+2. Re-fetch fresh: ticket = `player.Inventory.GetSlot(TicketSlotId)`, look/stats = `GetSlot(...)` (main inventory only). Look/stats ids must be non-zero, distinct from each other, and **neither may equal `TicketSlotId`** (a modified client never saw the `CWS` rejection). Ticket must exist and `TemplateID == world.Settings.CustomTicketId`.
 3. `CustomItem.ValidateItems(world, player, statsItem, lookItem)`.
 4. `CustomItem.ParseRGBA(r, g, b, a, maxAlpha: 200)`; `CustomItem.SanitizeName(rawName)` (null → refuse).
-5. Optimistic capacity: `player.Inventory.GetNumberOfFreeSlots() + freedByConsumes >= 1` where `freedByConsumes` = 2 (look and stats are equipment, stack 1) + 1 if the ticket slot's `Stack == 1`. Runs before any mutation.
-6. Consume, in order: `RemoveItem(lookItem, 1, world)`, `RemoveItem(statsItem, 1, world)`, `RemoveItem(ticketItem, 1, world)` (`Goose/Inventory.cs:452` — nulls or decrements and sends the slot update).
-7. `var item = CustomItem.BuildCustomItem(statsItem, lookItem, r, g, b, a, name, player.Name);` then `world.ItemHandler.AddAndAssignId(item, world)` (`Goose/ItemHandler.cs:235`).
-8. Place: if the ticket slot is now empty → `SetSlot(TicketSlotId, new ItemSlot { Item = item, Stack = 1 })` + `SendSlot(TicketSlotId, world)`; else `player.Inventory.AddItem(item, 1, world)` (first free slot; step 5 guarantees success).
-9. Log: `world.LogHandler.Log(Log.Types.CreatedCustom, player, $"{item.Name} ({item.TemplateID}) {lookItem.TemplateID}|{r},{g},{b},{a}", item.ItemID)` — same format as `CustomCommand.cs:190-191`.
-10. `this.Close(player, world)` (sends `CLW`, `Goose/Window.cs:310`).
+5. **Compute the placement target BEFORE consuming** (no `AddItem` — its `CanStack` path could merge the custom item into a remaining stack of the same template, `Goose/Inventory.cs:80-99`): if the ticket slot's `Stack == 1` → target = `TicketSlotId` (freed by the consume); else target = first slot `i` with `GetSlot(i) is null` (must exist, see step 6).
+6. Optimistic capacity from **actual stacks**: `freedByConsumes = (lookSlot.Stack == 1 ? 1 : 0) + (statsSlot.Stack == 1 ? 1 : 0) + (ticketSlot.Stack == 1 ? 1 : 0)`; require `player.Inventory.GetNumberOfFreeSlots() + freedByConsumes >= 1`. Runs before any mutation. (Equipment is stack-1 in practice, so this is a backstop, but it must be exact — a stacked look/stats item frees nothing.)
+7. Consume, checking every result (`RemoveItem` returns null if the item vanished or the stack shrank, `Goose/Inventory.cs:456-490`): `RemoveItem(lookItem, 1, world)` → `RemoveItem(statsItem, 1, world)` → `RemoveItem(ticketItem, 1, world)`. If any returns null (impossible after step 2 in the serial event loop, but guard anyway): `log.Error`, server message, abort — no item created, window stays open.
+8. `var item = CustomItem.BuildCustomItem(statsItem, lookItem, r, g, b, a, name, player.Name);` then `world.ItemHandler.AddAndAssignId(item, world)` (`Goose/ItemHandler.cs:235`).
+9. Place: `SetSlot(target, new ItemSlot { Item = item, Stack = 1 })` + `SendSlot(target, world)` (target computed in step 5; empty by construction).
+10. Log: `world.LogHandler.Log(Log.Types.CreatedCustom, player, $"{item.Name} ({item.TemplateID}) {lookItem.TemplateID}|{r},{g},{b},{a}", item.ItemID)` — same format as `CustomCommand.cs:222-223`.
+11. Success server message: `P.ServerMessage("Created custom: " + item.Name)`.
+12. `this.Close(player, world)` (sends `CLW`, `Goose/Window.cs:316`).
 
-On any failure at steps 2-5: server message, **nothing consumed**, window stays open.
+**Failure messages** (all: nothing consumed, window stays open):
+- ticket missing / not the ticket template → `"You need a custom ticket to customise an item."`
+- look/stats id zero, missing slot, equal to each other, or equal to `TicketSlotId` → `"Items missing for customisation"`
+- equipment/same-type failures → the existing `/custom` wording (via `ValidateItems`)
+- RGBA out of range → the `ParseRGBA` messages (`"/custom: invalid r value"` etc.)
+- empty name → `"Custom name cannot be empty."`
+- capacity failure → `"Not enough inventory space for the custom."`
 
 **Step 1 (TDD order): write the failing tests first** in `Goose.Tests/CustomWindowPacketTests.cs`. Scenario helper: fixture with `CustomTicketId = 823` (pattern `Part3CustomTests.cs:8-16`), ticket/stats/look templates (900/901, both `Weapon`, default slot `OneHanded` from `AddBaseItemTemplate`), items placed in main inventory slots via `player.Inventory.SetSlot(i, new ItemSlot { Item = ... })` (pattern `Part3CustomTests.cs:30-34` but on the main inventory), open a `CustomWindow` directly. Drive packets with `fixture.RunCommand(player, "CWS...")` / `"CWC..."` (dispatches through the real `EventHandler`, `TestWorldFixture.cs:122-128`).
 
@@ -201,15 +214,18 @@ Tests:
 - `CWS` with an id equal to the ticket slot → message, no `CWG`.
 - `CWS` with an empty inventory slot id (non-zero, null slot) → message, no `CWG`.
 - `CWS` with no open window → nothing sent.
-- `CWC` happy path (`CWC5,6,10,20,30,40,My Sword`): ticket, look, and stats slots all emptied/decremented; a new item exists in the freed ticket slot with `Name "My Sword"`, `GraphicR/G/B/A = 10/20/30/40`, `GraphicEquipped`/`BodyState` from the look item, stats from the stats item, `Description "Custom created by <name>"`; `CLW<windowId>` sent; window removed from `player.Windows`.
+- `CWC` happy path (`CWC5,6,10,20,30,40,My Sword`): ticket, look, and stats slots all emptied/decremented; a new item exists in the freed ticket slot with `Name "My Sword"`, `GraphicR/G/B/A = 10/20/30/40`, `GraphicEquipped`/`BodyState` from the look item, stats from the stats item, `Description "Custom created by <name>"`; success server message sent; `CLW<windowId>` sent; window removed from `player.Windows`; a `Log.Types.CreatedCustom` entry in the `CustomCommand.cs:222-223` format appears in `world.LogHandler.Pending` (`Goose/LogHandler.cs:12`).
 - `CWC` with `a = 201` → message, nothing consumed (all three slots still hold their items) (adversarial: catches the 255 cap).
 - `CWC` with `a = 200` → succeeds (boundary).
 - `CWC` with empty name (`CWC5,6,10,20,30,40,`) → message, nothing consumed.
 - `CWC` with commas in name (`...,a,My,Sword`) → succeeds, `Name == "MySword"`.
 - `CWC` where the look item was moved out of its slot after a prior `CWS` → message, nothing consumed (fresh re-validation).
 - `CWC` with look id == stats id → message, nothing consumed.
+- `CWC` with look id == the ticket slot id (no prior `CWS` — modified client) → message, nothing consumed (adversarial: catches trusting `CWS`-time validation only).
+- `CWC` with an out-of-range slot id (e.g. `CWC999,6,...`) → message, nothing consumed.
+- Look item with `GraphicEquipped = 0`: `CWS` → `CWG0,<pose>`; `CWC` → succeeds, result `GraphicEquipped == 0` (design: allowed, no special handling).
 - Optimistic capacity: set `InventorySize` small (e.g. 5 via the `GooseSettings` configure delegate), fill every slot (ticket + look + stats + 2 fillers), `CWC` → succeeds and the new item lands in a freed slot.
-- Ticket with `Stack = 2`: `CWC` → ticket slot keeps `Stack = 1`, new item placed in a different free slot.
+- Ticket with `Stack = 2`: `CWC` → ticket slot keeps `Stack = 1`, new item placed in a different free slot (target computed pre-consume, step 5).
 
 Run: `dotnet test Goose.Tests --filter CustomWindowPacketTests` — expected FAIL (packets unregistered: `RunCommand` returns false / nothing sent).
 
@@ -290,7 +306,7 @@ python3 $S update Items --id 643 --set "script path=Scripts/Item/CustomTicket.cs
 python3 $S read Items --where item_template_id=643      # confirm it landed
 ```
 
-Note: a running server picks this up on next start or `/updatesql` (skill, "How the data reaches the server"). The Aspereta data set has its own ticket id if/when it is wired up — out of scope here (YAGNI).
+Note: a running server picks this up on next start or `/updatesql` (skill, "How the data reaches the server"). **Also verify the ticket's `usetype` is `OneTime`** — `Inventory.Use` only routes `OneTime` items to `UseConsumable` (`Goose/Inventory.cs:279-281`); a wrongly-typed ticket would compile and pass every test here but never open the window from a client `USE` packet. If it is not `OneTime`, add `--set usetype=OneTime` to the update (dry-run first). The Aspereta data set has its own ticket id if/when it is wired up — out of scope here (YAGNI).
 
 **Step 6: Commit**
 
@@ -308,10 +324,11 @@ git commit -m "Open the custom window from the custom ticket item script"
 
 | Invariant | Proved by |
 | --- | --- |
-| `/custom` behaviour unchanged by the refactor | unmodified `Part3CustomTests` green (Task 1) |
+| `/custom` behaviour preserved by the refactor (plus the one documented tightening: excluded-slot check now applies to the look item too) | unmodified `Part3CustomTests` green + legacy-semantics regression tests (Task 1) |
 | `CWG` sent only for a valid look-slot drop | `CWS valid stats only → no CWG` (Task 3) |
 | Same-type rule with 1H/2H exception | `CWS both valid different types` + `1H + 2H` (Task 3) |
-| Look/stats ids distinct and not the ticket slot | `CWS look id == stats id`, `CWS id == ticket slot` (Task 3) |
+| Look/stats ids distinct and not the ticket slot, enforced at `CWC` time too | `CWS look id == stats id`, `CWS id == ticket slot`, `CWC look id == ticket slot` (Task 3) |
+| Result placed in a freed slot, never stacked into a same-template stack | pre-consume target computation + `CWC` happy-path/stacked-ticket placement asserts (Task 3) |
 | A capped at 200 server-side | `CWC a = 201` refused, `a = 200` succeeds (Task 3) |
 | Name sanitization (trim/commas/255/empty) | `CustomItemTests.SanitizeName` + `CWC` comma/empty-name tests (Tasks 1, 3) |
 | Fresh re-validation at create; failure consumes nothing | `CWC look item moved`, `CWC a=201` nothing-consumed asserts (Task 3) |
@@ -325,7 +342,8 @@ git commit -m "Open the custom window from the custom ticket item script"
 
 - Packet strings exactly as the design doc: `CWS<l>,<s>`, `CWG<id>,<pose>`, `CWC<l>,<s>,<r>,<g>,<b>,<a>,<name>`.
 - Window: frame 28, title `Custom`, buttons `0,1,0,0,1`.
-- Error messages reuse the `/custom` wording (`"Items missing for customisation"`, `"Items to be customised must be equipment and must be visible items."`, `"Items to be customised must be of the same equipment type."`) so client-side UX matches.
+- Error messages reuse the `/custom` wording (`"Items missing for customisation"`, `"Items to be customised must be equipment and must be visible items."`, `"Items to be customised must be of the same equipment type."`) so client-side UX matches; window-specific failures use the wording in the failure-message list (Task 3).
+- Success sends the updated inventory slots, a server message ("Created custom: <name>"), and `CLW` (design: all three).
 - `pose` = look item `BodyState` (design: "pose = body state").
 - Create is driven by `CWC` only; the OK button in the `MKW` flags is chrome the client maps to `CWC` (no `WBC` handling needed server-side).
 

@@ -60,7 +60,7 @@ Factored out of `CustomCommand.ValidateCustomSlots` into a reusable helper used 
 `/custom` and the window:
 
 - Both items: `UseType` Armor or Weapon.
-- Excluded slots: Ring, Necklace, Pauldrons, Cloak, Belt, Gloves.
+- Excluded slots: Ring, Necklace, Pauldrons, Cloak, Belt, Gloves — applied to **both** items. (Today `/custom` applies these exclusions to the stats item only, `CustomCommand.cs:339-344`; sharing the helper deliberately tightens `/custom` for look items too.)
 - Same equipment type for look and stats, with the existing exception that OneHanded and
   TwoHanded weapons may mix.
 - `GraphicEquipped == 0` is allowed, handled no differently.
@@ -112,7 +112,7 @@ effectively main-inventory-only; no extra check.
    params, title/surname properties, `GraphicTile`/`GraphicFile` copied from the look
    item); place it in the ticket's slot (a freed slot, stack 1); log via
    `Log.Types.CreatedCustom` in the same format as `/custom`.
-5. Send the updated inventory slots, a server message, and close the window (CLW).
+5. Send the updated inventory slots, a success server message (`"Created custom: <name>"`), and close the window (CLW).
 
 On any failure: server message, nothing consumed, window stays open for retry.
 
