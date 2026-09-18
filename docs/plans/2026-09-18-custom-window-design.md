@@ -86,7 +86,7 @@ same as `/custom`).
 - Constructed by the ticket's item script in `OnUseConsumableEvent`: stores the ticket's
   `ItemSlot` on the window and sends the `MKW`. If the player already has a `CustomWindow`
   open, the use is refused ("already customising").
-- `Clicked(ShowOk)` → create logic. Close/Exit removes the window from `player.Windows`;
+- Create is driven by `CWC` only; the OK button in the `MKW` flags is chrome the client maps to `CWC` (no `WBC` handling server-side). Close/Exit removes the window from `player.Windows`;
   nothing is consumed.
 - Handles `CWS` (validation + `CWG` reply) and `CWC` (create).
 
