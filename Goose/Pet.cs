@@ -315,6 +315,7 @@ namespace Goose
             string petName = this.Name;
             string petTitle = this.Title;
             string petSurname = this.Surname;
+            long nextRespawnTime = this.NextRespawnTime;
 
             if (this.AutoCreatedNotSaved)
             {
@@ -322,7 +323,7 @@ namespace Goose
                     "pet_facing, pet_level, experience, experience_sold, " +
                     "pet_hp, pet_mp, pet_sp, class_id, stat_ac, stat_str, stat_sta, " +
                     "stat_dex, stat_int, res_fire, res_water, res_spirit, res_air, res_earth, body_id, body_r, body_g, body_b, body_a, " +
-                    "face_id, hair_id, hair_r, hair_g, hair_b, hair_a, respawn_time, aggro_range, attack_speed, attack_range, " +
+                    "face_id, hair_id, hair_r, hair_g, hair_b, hair_a, respawn_time, next_respawn_time, aggro_range, attack_speed, attack_range, " +
                     "move_speed, body_state, equipped_items, weapon_damage, hp_percent_regen, hp_static_regen, " +
                     "mp_percent_regen, mp_static_regen, owner_id) VALUES" +
                     "(" +
@@ -358,6 +359,7 @@ namespace Goose
                     this.HairB + ", " +
                     this.HairA + ", " +
                     this.RespawnTime + ", " +
+                    nextRespawnTime + ", " +
                     this.AggroRange + ", " +
                     this.AttackSpeed + ", " +
                     this.AttackRange + ", " +
@@ -427,6 +429,7 @@ namespace Goose
                     "hair_b=" + this.HairB + ", " +
                     "hair_a=" + this.HairA + ", " +
                     "respawn_time=" + this.RespawnTime + ", " +
+                    "next_respawn_time=" + nextRespawnTime + ", " +
                     "aggro_range=" + this.AggroRange + ", " +
                     "attack_speed=" + this.AttackSpeed + ", " +
                     "attack_range=" + this.AttackRange + ", " +
