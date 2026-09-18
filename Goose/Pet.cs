@@ -13,6 +13,7 @@ namespace Goose
     public class Pet : Player
     {
         private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
+        private const int CooldownSeconds = 120;
 
         /// <summary>
         /// Maps Login IDs to pet objects
@@ -60,7 +61,7 @@ namespace Goose
         public Player Owner { get; set; } = null!;
 
         /// <summary>
-        /// System time of allowed next respawn
+        /// UTC Unix seconds of allowed next respawn
         /// </summary>
         public long NextRespawnTime { get; set; }
 
@@ -546,6 +547,15 @@ namespace Goose
             this.Map = null!;
         }
 
+        public void DestroyWithCooldown(GameWorld world)
+        {
+            if (!this.IsAlive) return;
+
+            this.NextRespawnTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds() + CooldownSeconds;
+            this.SaveToDatabase(world);
+            this.Destroy(world);
+        }
+
         public void AddMoveEvent(GameWorld world)
         {
             if (this.MoveEvent is null)
@@ -794,7 +804,7 @@ namespace Goose
 
             if (this.CurrentHP <= 0)
             {
-                this.Destroy(world);
+                this.DestroyWithCooldown(world);
             }
             else
             {
