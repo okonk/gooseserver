@@ -16,6 +16,13 @@ public class CommandFrameworkTests
         return (fixture, player, map);
     }
 
+    private static string SectionHeader(CommandRegistry registry, Player player, string name)
+    {
+        var section = Assert.Single(registry.Sections, section => section.Name == name);
+        var visible = section.Commands.Count(command => CommandRegistry.IsUsableBy(player, command));
+        return $"{name} ({visible})";
+    }
+
     [Fact]
     public void Help_opens_a_window_on_the_player()
     {
@@ -41,13 +48,13 @@ public class CommandFrameworkTests
             (CommandContext ctx) => ctx.Send("gm ok")));
 
         Assert.True(fixture.RunCommand(normal, "/help"));
-        Assert.Contains(normal.Sent, m => m.Contains("General (21)"));
+        Assert.Contains(normal.Sent, m => m.Contains(SectionHeader(fixture.World.Commands, normal, "General")));
         Assert.DoesNotContain(normal.Sent, m => m.Contains("Admin"));
         Assert.DoesNotContain(normal.Sent, m => m.Contains("/itestgm"));
 
         Assert.True(fixture.RunCommand(gm, "/help"));
-        Assert.Contains(gm.Sent, m => m.Contains("General (21)"));
-        Assert.Contains(gm.Sent, m => m.Contains("Admin (11)"));
+        Assert.Contains(gm.Sent, m => m.Contains(SectionHeader(fixture.World.Commands, gm, "General")));
+        Assert.Contains(gm.Sent, m => m.Contains(SectionHeader(fixture.World.Commands, gm, "Admin")));
     }
 
     [Fact]

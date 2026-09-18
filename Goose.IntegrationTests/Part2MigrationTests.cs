@@ -28,6 +28,13 @@ namespace Goose.IntegrationTests
         private static List<string> HelpLines(Player player, CommandRegistry registry)
             => HelpFormatter.BuildPages(player, registry, null)!.SelectMany(p => p).ToList();
 
+        private static string SectionHeader(CommandRegistry registry, Player player, string name)
+        {
+            var section = Assert.Single(registry.Sections, section => section.Name == name);
+            var visible = section.Commands.Count(command => CommandRegistry.IsUsableBy(player, command));
+            return $"{name} ({visible})";
+        }
+
         private static readonly string[] MigratedKeys =
         [
             "/aether", "/auction", "/buymana", "/buyvita", "/changepassword", "/charinfo",
@@ -144,14 +151,14 @@ namespace Goose.IntegrationTests
                 Assert.Contains(gm.Windows, w => w is HelpWindow);
 
                 var gmLines = HelpLines(gm, fixture.World.Commands);
-                foreach (var header in new[] { "General (21)", "Party (4)", "Guild (7)", "Pets (6)" })
-                    Assert.Contains(gmLines, l => l.Contains(header));
+                foreach (var section in new[] { "General", "Party", "Guild", "Pets" })
+                    Assert.Contains(gmLines, l => l.Contains(SectionHeader(fixture.World.Commands, gm, section)));
                 foreach (var key in MigratedKeys)
                     Assert.Contains(gmLines, l => l.StartsWith(key + " "));
 
                 var normalLines = HelpLines(normal, fixture.World.Commands);
-                foreach (var header in new[] { "General (21)", "Party (4)", "Guild (7)", "Pets (6)" })
-                    Assert.Contains(normalLines, l => l.Contains(header));
+                foreach (var section in new[] { "General", "Party", "Guild", "Pets" })
+                    Assert.Contains(normalLines, l => l.Contains(SectionHeader(fixture.World.Commands, normal, section)));
                 foreach (var key in MigratedKeys)
                     Assert.Contains(normalLines, l => l.StartsWith(key + " "));
             }

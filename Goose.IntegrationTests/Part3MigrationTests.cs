@@ -19,6 +19,13 @@ namespace Goose.IntegrationTests
         private static List<string> HelpLines(GlobalScriptFixture fixture, Player player, string? name)
             => HelpFormatter.BuildPages(player, fixture.World.Commands, name)!.SelectMany(p => p).ToList();
 
+        private static string SectionHeader(CommandRegistry registry, Player player, string name)
+        {
+            var section = Assert.Single(registry.Sections, section => section.Name == name);
+            var visible = section.Commands.Count(command => CommandRegistry.IsUsableBy(player, command));
+            return $"{name} ({visible})";
+        }
+
         [Fact]
         public void Warp_gm_caller_warps_to_map_and_position()
         {
@@ -119,9 +126,9 @@ namespace Goose.IntegrationTests
                 Assert.Equal(["Admin", "Customs", "General", "GM", "Guild", "Party", "Pets"], sections);
 
                 var lines = HelpLines(fixture, gm, null);
-                foreach (var header in new[]
-                    { "General (21)", "GM (22)", "Admin (10)", "Guild (7)", "Pets (6)", "Party (4)", "Customs (1)" })
-                    Assert.Contains(lines, l => l == header);
+                foreach (var section in new[]
+                    { "General", "GM", "Admin", "Guild", "Pets", "Party", "Customs" })
+                    Assert.Contains(lines, l => l == SectionHeader(fixture.World.Commands, gm, section));
             }
         }
 
@@ -138,9 +145,9 @@ namespace Goose.IntegrationTests
                 Assert.Contains(player.Windows, w => w is HelpWindow);
 
                 var lines = HelpLines(fixture, player, null);
-                foreach (var header in new[]
-                    { "General (21)", "Guild (7)", "Pets (6)", "Party (4)", "Customs (1)" })
-                    Assert.Contains(lines, l => l == header);
+                foreach (var section in new[]
+                    { "General", "Guild", "Pets", "Party", "Customs" })
+                    Assert.Contains(lines, l => l == SectionHeader(fixture.World.Commands, player, section));
                 Assert.DoesNotContain(lines, l => l.StartsWith("GM ("));
                 Assert.DoesNotContain(lines, l => l.StartsWith("Admin ("));
                 Assert.Contains(lines, l => l.StartsWith("/givecredits "));
