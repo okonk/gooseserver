@@ -81,9 +81,16 @@ namespace Goose.Tests
                 Assert.False(pet.IsAlive);
                 Assert.Null(pet.Map);
                 Assert.Equal(expiry, pet.NextRespawnTime);
-                Assert.Contains(player.Sent, s => System.Text.RegularExpressions.Regex.IsMatch(
-                    s,
-                    @"You must wait [1-9]\d* seconds to spawn this pet\."));
+
+                string sent = Assert.Single(player.Sent, s =>
+                    s.Contains("You must wait ") && s.EndsWith(" seconds to spawn this pet."));
+                const string prefix = "You must wait ";
+                const string suffix = " seconds to spawn this pet.";
+                int waitStart = sent.IndexOf(prefix, StringComparison.Ordinal) + prefix.Length;
+                string waitText = sent.Substring(waitStart, sent.Length - waitStart - suffix.Length);
+                Assert.True(int.TryParse(waitText, out int wait), $"Unparseable wait: '{waitText}'");
+
+                Assert.InRange(wait, 1, 120);
             }
         }
 
@@ -101,6 +108,25 @@ namespace Goose.Tests
 
                 Assert.True(pet.IsAlive);
                 Assert.Same(map, pet.Map);
+            }
+        }
+
+        [Fact]
+        public void PetSpawn_expired_nonzero_cooldown_is_allowed()
+        {
+            var (fixture, player, map) = WorldAndPlayer();
+            using (fixture)
+            {
+                map.CanSpawnPets = true;
+                var pet = MakePet(fixture, player, 5, "Rex");
+                long expiry = DateTimeOffset.UtcNow.ToUnixTimeSeconds() - 100;
+                pet.NextRespawnTime = expiry;
+
+                Assert.True(fixture.RunCommand(player, "/petspawn 5"));
+
+                Assert.True(pet.IsAlive);
+                Assert.Same(map, pet.Map);
+                Assert.Equal(expiry, pet.NextRespawnTime);
             }
         }
 
