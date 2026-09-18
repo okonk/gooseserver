@@ -49,23 +49,29 @@
 **Files:**
 - Create: `Goose.Tests/ItemModifierSelectionTests.cs`
 - Modify: `Goose/ItemHandler.cs:355-380`
-- Modify: `Goose.IntegrationTests/DimensionModifierTests.cs:26-27`
+- Modify: `Goose/GameWorld.cs:79-104`
+- Modify: `Goose.IntegrationTests/DimensionModifierTests.cs:19-34`
+- Modify: `reports/game_balance/generate_report.py:1400,1504-1506`
+- Modify: `reports/game_balance/report_renderer.py:700`
+- Modify: `reports/game_balance/leveling-balance-report.html:16`
 
 **Mutation impact:**
 - Source of truth changed: the selection algorithm in `ItemHandler.RollModifier`; authored `ItemModifier.Chance` remains loaded from `item_titles` and `item_surnames` by `ItemModifier.FromReader` at `Goose/ItemModifier.cs:22-48`.
 - Important readers: `RollTitleAndSurname` at `Goose/ItemHandler.cs:313-353`, invoked for drops, inventory combinations, purchases, and quest rewards.
-- Derived/cached state affected: no caches. The selected modifier still propagates through the existing item name mutation, `TitleId`/`SurnameId` property assignment, and `ApplyStats` call.
-- Required propagation sequence: filter applicable rows, independently call `world.RollChance(modifier.Chance)` for each, return null for no successes, otherwise call `world.Random.Next(candidates.Count)` once and return that candidate; the unchanged caller applies it.
+- Derived/cached state affected: no caches. The selected modifier still propagates through the existing item name mutation, `TitleId`/`SurnameId` property assignment, and `ApplyStats` call. The generated balance-report narrative must describe candidate chances rather than weighted outcomes.
+- Required propagation sequence: filter applicable rows, independently call `world.RollChance(modifier.Chance)` for each, return null for no successes, otherwise call `world.Random.Next(candidates.Count)` once and return that candidate; the unchanged caller applies it. Add an internal constructor seam so tests can supply a deterministic `Random` without changing production construction.
 - Invariants to preserve: inapplicable and zero-chance rows never enter the pool; at most one modifier per title/surname pool is applied; every successful candidate has equal winner probability; title and surname outer gates remain unchanged.
 - Observable proof required: a partial-chance singleton sometimes applies and sometimes yields none; two guaranteed candidates both win across repeated real-domain rolls, while each item has only one modifier property.
 
 **Steps:**
-1. Add regression tests using real `GameWorld`, `ItemTemplate`, `Item`, and `ItemModifier` objects. Confirm the singleton partial-chance test fails because the old implementation always picks it.
-2. Replace weighted ranges with a candidate list and uniform selection.
-3. Update the stale dimension-test comment describing the old empty-range mechanism.
-4. Run `dotnet test Goose.Tests/Goose.Tests.csproj --filter FullyQualifiedName~ItemModifierSelectionTests` and expect all tests to pass.
-5. Run `dotnet test Goose.sln --no-restore` and expect the full solution to pass.
-6. Commit as `Fix title and surname candidate selection`.
+1. Add deterministic regression tests using real `GameWorld`, `ItemTemplate`, `Item`, and `ItemModifier` objects with a sequence-driven `Random`. Confirm the singleton partial-chance test fails because the old implementation always picks it.
+2. Add an internal `GameWorld` constructor overload that accepts a `Random`; keep the public constructor behavior unchanged.
+3. Replace weighted ranges with a candidate list and uniform selection.
+4. Remove the stale dimension-test comment and verify both script-owned title chances as well as surname chances remain zero.
+5. Update the balance-report source and generated narrative to describe candidate admission and uniform winner selection.
+6. Run `dotnet test Goose.Tests/Goose.Tests.csproj --filter FullyQualifiedName~ItemModifierSelectionTests` and expect all tests to pass.
+7. Validate the checked-in report with `assert_report_invariants`, then run `dotnet test Goose.sln --no-restore` and expect the full solution to pass.
+8. Commit as `Fix title and surname candidate selection`.
 
 | Invariant | Proved by |
 |-----------|-----------|

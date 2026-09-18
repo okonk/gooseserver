@@ -1397,7 +1397,7 @@ def _compact_report(data: ReportData, report_summary: dict[str, Any]) -> str:
         ("Q27 gold→XP loop", "Repeatable Potion Stock buys 40 small potions for 2,000g and returns 1,600g plus 1,000 raw/2,000 live XP: 400g net converts to XP."),
         ("Elemental Strike", "Rank 8 costs 4,000ms for -250 while rank 9 costs 1,000ms for -300, so rank 8 is dominated once rank 9 unlocks."),
         ("Backstab", "Cooldowns are nonmonotonic across ranks: 18s, 23s, 27s, 23s, 18s."),
-        ("Random modifiers", f"Title and surname outer gates roll independently at {modifier_rate:g}%. Armor title outcomes are 50% none and 16.7% each Powerful/Strong/Broken; weapon title outcomes are 50% none and 12.5% each Powerful/Strong/Broken/Sharp. Modifier templates require min_level >=1, so authored min_level=0 equipment is ineligible."),
+        ("Random modifiers", f"Title and surname outer gates roll independently at {modifier_rate:g}%. Each applicable modifier independently enters a candidate pool using its authored chance; an empty pool applies nothing, and one successful candidate is chosen uniformly. Modifier templates require min_level >=1, so authored min_level=0 equipment is ineligible."),
     ]
     modifier_rows = [("Title", row["id"], row["name"], row["min_level"], row["item_usetype"], row["chance"], row["script_params"]) for row in data.item_titles] + [("Surname", row["id"], row["name"], row["min_level"], row["item_usetype"], row["chance"], row["script_params"]) for row in data.item_surnames]
     level_bands = Counter((data.effective_item_levels[item_id] - 1) // 5 * 5 + 1 for item_id in valid)
@@ -1432,7 +1432,7 @@ def _compact_report(data: ReportData, report_summary: dict[str, Any]) -> str:
         report_table("table-endgame", "XP-gated level-50 NPCs", ("ID", "NPC", "Level", "Maps", "HP", "AC", "Hit", "APS", "Pressure", "Raw XP", "Live XP", "XP/HP", "Kills"), endgame_rows),
         report_table("table-quests", "Quest analytics", ("ID", "Quest", "Authored", "Effective", "Mismatch", "Repeat", "Gold", "Raw XP", "Live XP", "Requirements", "Prerequisites"), quest_rows),
         report_table("table-spells", "Spell pacing", ("ID", "Spell", "Family", "Unlock", "Cooldown ms", "MP", "SP", "Effect", "Sources"), spell_rows),
-        report_table("table-modifiers", "Random modifiers", ("Kind", "ID", "Name", "Min level", "Use", "Weight", "Effect"), modifier_rows),
+        report_table("table-modifiers", "Random modifiers", ("Kind", "ID", "Name", "Min level", "Use", "Candidate chance", "Effect"), modifier_rows),
         report_table("table-findings", "Prioritized findings", ("Finding", "Evidence"), findings),
     ]
     cards = "".join(f'<article class="card"><strong>{html.escape(title)}</strong><p>{html.escape(text)}</p></article>' for title, text in findings)
@@ -1502,8 +1502,8 @@ def assert_report_invariants(document: str) -> None:
     assert "querySelectorAll('table.sortable').forEach(table=>table.querySelectorAll('th').forEach((th,index)=>" in document
     assert "search.addEventListener('input',applySearch)" in document
     assert "title and surname outer rolls are independently 50%" in document
-    assert "Armor titles are 50% none and 16.7% each" in document
-    assert "weapon titles are 50% none and 12.5% each" in document
+    assert "Each applicable modifier independently enters a candidate pool" in document
+    assert "one successful candidate is chosen uniformly" in document
     assert "min_level=0</code> are ineligible" in document
     assert "0.5%" not in document
     assert not re.search(r"(?:https?:)?//", document, re.IGNORECASE)

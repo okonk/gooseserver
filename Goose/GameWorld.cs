@@ -98,10 +98,15 @@ namespace Goose
          *
          */
         public GameWorld(GooseSettings settings, GameServer? server = null)
+            : this(settings, server, new Random())
+        {
+        }
+
+        internal GameWorld(GooseSettings settings, GameServer? server, Random random)
         {
             this.Settings = settings ?? throw new ArgumentNullException(nameof(settings));
             this.timerfreq = Stopwatch.Frequency;
-            this.rng = new Random();
+            this.rng = random ?? throw new ArgumentNullException(nameof(random));
 
             this.GameServer = server;
             this.PlayerHandler = new PlayerHandler(this.Settings);

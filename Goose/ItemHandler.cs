@@ -212,9 +212,6 @@ namespace Goose
             this.templates[template.ID] = template;
         }
 
-        /// <summary>Registers a generated title. A modifier with Chance 0 can never be
-        /// selected by RollModifier (its range is empty), so script-owned modifiers
-        /// register at 0 and are applied explicitly.</summary>
         public void AddTitle(ItemModifier title)
         {
             this.titles[title.Id] = title;
@@ -354,29 +351,17 @@ namespace Goose
 
         private ItemModifier? RollModifier(Item item, IReadOnlyCollection<ItemModifier> allModifiers, GameWorld world)
         {
-            var modifiersWithRanges = new List<(ItemModifier Modifier, int StartRange, int EndRange)>();
+            var candidates = new List<ItemModifier>();
 
-            var nextStart = 0;
             foreach (var modifier in allModifiers)
             {
-                if (!modifier.ModifierAppliesToItem(item, world))
-                    continue;
-
-                var currentLength = (int)(modifier.Chance * 100);
-                var currentEnd = nextStart + currentLength - 1;
-                modifiersWithRanges.Add((modifier, nextStart, currentEnd));
-
-                nextStart = currentEnd + 1;
+                if (modifier.ModifierAppliesToItem(item, world) && world.RollChance(modifier.Chance))
+                    candidates.Add(modifier);
             }
 
-            var number = world.Random.Next(0, nextStart);
-            foreach (var (modifier, startRange, endRange) in modifiersWithRanges)
-            {
-                if (number >= startRange && number <= endRange)
-                    return modifier;
-            }
-
-            return null;
+            return candidates.Count == 0
+                ? null
+                : candidates[world.Random.Next(candidates.Count)];
         }
     }
 }

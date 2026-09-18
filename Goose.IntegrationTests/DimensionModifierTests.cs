@@ -23,10 +23,10 @@ public class DimensionModifierTests
         Assert.Equal(6, fixture.World.ItemHandler.SurnameCount);
         Assert.Equal(2, fixture.World.ItemHandler.TitleCount);
 
-        // Chance 0 makes RollModifier's range empty (ItemHandler.cs:272-277), so these can
-        // only ever be applied explicitly by the dimension script.
         for (int i = 0; i < 6; i++)
             Assert.Equal(0, fixture.World.ItemHandler.GetSurname(900000 + i)!.Chance);
+        for (int i = 0; i < 2; i++)
+            Assert.Equal(0, fixture.World.ItemHandler.GetTitle(900100 + i)!.Chance);
 
         Assert.Equal("of Vita Regen", fixture.World.ItemHandler.GetSurname(900000)!.Name);
         Assert.Equal("of Speed", fixture.World.ItemHandler.GetSurname(900005)!.Name);
