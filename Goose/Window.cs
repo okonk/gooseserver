@@ -77,6 +77,7 @@ namespace Goose
             QuestInfo,
             Recipe,
             Custom,
+            Generic,
         }
         public WindowTypes Type { get; set; }
 
