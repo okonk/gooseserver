@@ -126,6 +126,11 @@ public class InvestigateSpell : BaseSpellEffectScript
         InvestigateWindow.Open(world, player, npc);
         return true;
     }
+
+    public override IEnumerable<string>? GetItemDescription(SpellEffect thisEffect, GameWorld world)
+    {
+        return new[] { "Reveals a creature's combat stats in a window" };
+    }
 }
 
 return typeof(InvestigateSpell);
