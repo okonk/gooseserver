@@ -35,10 +35,6 @@ public class PacketCurrencyTests
     /// the second-to-last field of an item slot packet.</summary>
     private static string CurrencyName(string packet) => packet.Split('|')[^2];
 
-    /// <summary>The vendor packet does not carry the extra-stats field, so its currency name
-    /// is still the last field.</summary>
-    private static string LastField(string packet) => packet.Substring(packet.LastIndexOf('|') + 1);
-
     [Fact]
     public void ItemSlot_NamesGoldForAnOrdinaryItem()
     {
@@ -72,7 +68,7 @@ public class PacketCurrencyTests
 
         var packet = P.VendorItemSlot(Template(), fixture.World, fixture.Vendor, 1, 1);
 
-        Assert.Equal("credits", LastField(packet));
+        Assert.Equal("credits", CurrencyName(packet));
     }
 
     /// <summary>Resolve gives the item override precedence, so a spirit-priced item reads as
@@ -86,7 +82,7 @@ public class PacketCurrencyTests
 
         var packet = P.VendorItemSlot(Template("spirit"), fixture.World, fixture.Vendor, 1, 1);
 
-        Assert.Equal("spirit", LastField(packet));
+        Assert.Equal("spirit", CurrencyName(packet));
     }
 
     [Fact]
@@ -98,7 +94,7 @@ public class PacketCurrencyTests
 
         var packet = P.VendorSlot(window!, Template(), fixture.World, 1, 1);
 
-        Assert.Equal("credits", LastField(packet));
+        Assert.Equal("credits", CurrencyName(packet));
     }
 
     /// <summary>The name is appended, not inserted: everything the client already parses has

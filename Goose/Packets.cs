@@ -567,7 +567,8 @@ namespace Goose
                     item.GraphicG + "|" +
                     item.GraphicB + "|" +
                     item.GraphicA + "|" +
-                    world.CurrencyHandler.Resolve(item, vendor).Name;
+                    world.CurrencyHandler.Resolve(item, vendor).Name + "|" +
+                    ExtraStatsPayload(item.BaseStats);
         };
 
         public static Func<Window, Item, GameWorld, int, long, string> BankSlot = (window, item, world, slotId, stack) =>

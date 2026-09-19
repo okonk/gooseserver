@@ -45,6 +45,19 @@ public class PacketExtraStatsTests
     }
 
     [Fact]
+    public void VendorItemSlot_reports_template_stats()
+    {
+        using var fixture = new VendorFixture();
+        var template = Template();
+        template.BaseStats.Haste = 0.04;
+
+        var fields = P.VendorItemSlot(template, fixture.World, fixture.Vendor, 1, 1).Split('|');
+
+        Assert.Equal("400", fields[^1]);
+        Assert.Equal("gold", fields[^2]);
+    }
+
+    [Fact]
     public void ItemSlot_reports_basis_points_in_the_documented_order()
     {
         using var fixture = new VendorFixture();
