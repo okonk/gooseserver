@@ -31,9 +31,9 @@ public class PacketCurrencyTests
         };
     }
 
-    /// <summary>The name is the last field, so an old client that stops parsing at GraphicA
-    /// is unaffected.</summary>
-    private static string LastField(string packet) => packet.Substring(packet.LastIndexOf('|') + 1);
+    /// <summary>The extra-stats payload is appended after the currency name, so the name is
+    /// the second-to-last field of an item slot packet.</summary>
+    private static string CurrencyName(string packet) => packet.Split('|')[^2];
 
     [Fact]
     public void ItemSlot_NamesGoldForAnOrdinaryItem()
@@ -43,7 +43,7 @@ public class PacketCurrencyTests
 
         var packet = P.ItemSlot(item, fixture.World, 1, 1);
 
-        Assert.Equal("gold", LastField(packet));
+        Assert.Equal("gold", CurrencyName(packet));
     }
 
     [Fact]
@@ -55,7 +55,7 @@ public class PacketCurrencyTests
 
         var packet = P.ItemSlot(item, fixture.World, 1, 1);
 
-        Assert.Equal("spirit", LastField(packet));
+        Assert.Equal("spirit", CurrencyName(packet));
     }
 
     /// <summary>A credit dealer's stock carries no item-level currency, so the label can only
@@ -68,7 +68,7 @@ public class PacketCurrencyTests
 
         var packet = P.VendorItemSlot(Template(), fixture.World, fixture.Vendor, 1, 1);
 
-        Assert.Equal("credits", LastField(packet));
+        Assert.Equal("credits", CurrencyName(packet));
     }
 
     /// <summary>Resolve gives the item override precedence, so a spirit-priced item reads as
@@ -82,7 +82,7 @@ public class PacketCurrencyTests
 
         var packet = P.VendorItemSlot(Template("spirit"), fixture.World, fixture.Vendor, 1, 1);
 
-        Assert.Equal("spirit", LastField(packet));
+        Assert.Equal("spirit", CurrencyName(packet));
     }
 
     [Fact]
@@ -94,7 +94,7 @@ public class PacketCurrencyTests
 
         var packet = P.VendorSlot(window!, Template(), fixture.World, 1, 1);
 
-        Assert.Equal("credits", LastField(packet));
+        Assert.Equal("credits", CurrencyName(packet));
     }
 
     /// <summary>The name is appended, not inserted: everything the client already parses has
@@ -109,7 +109,7 @@ public class PacketCurrencyTests
 
         var fields = P.ItemSlot(item, fixture.World, 1, 1).Split('|');
 
-        Assert.Equal("123", fields[^2]);
-        Assert.Equal("gold", fields[^1]);
+        Assert.Equal("123", fields[^3]);
+        Assert.Equal("gold", fields[^2]);
     }
 }
