@@ -7,6 +7,14 @@ namespace Goose
         // replaced by item operations while the window is open.
         public int TicketSlotId { get; }
 
+        // Last confirmed slot assignment from HandleSlot; Create refuses requests
+        // that don't match it so a stale or tampered CWC can't consume items.
+        // Item references, not ItemIDs: unsaved items all share ItemID 0.
+        public int LookSlotId { get; private set; }
+        public int StatsSlotId { get; private set; }
+        public Item? LookItem { get; private set; }
+        public Item? StatsItem { get; private set; }
+
         public CustomWindow(Player player, GameWorld world, int ticketSlotId)
         {
             this.TicketSlotId = ticketSlotId;
@@ -66,6 +74,11 @@ namespace Goose
             else if (lookItem is not null && !CustomItem.ValidateSingleItem(world, player, lookItem)) return;
             else if (statsItem is not null && !CustomItem.ValidateSingleItem(world, player, statsItem)) return;
 
+            window.LookSlotId = lookSlotId;
+            window.StatsSlotId = statsSlotId;
+            window.LookItem = lookItem;
+            window.StatsItem = statsItem;
+
             if (lookItem is not null)
                 world.Send(player, "CWG" + lookItem.GraphicEquipped + "," + lookItem.BodyState);
         }
@@ -91,6 +104,14 @@ namespace Goose
                 || statsSlotId == window.TicketSlotId)
             {
                 world.Send(player, P.ServerMessage("Items missing for customisation"));
+                return;
+            }
+
+            if (lookSlotId != window.LookSlotId || statsSlotId != window.StatsSlotId
+                || !ReferenceEquals(lookSlot.Item, window.LookItem)
+                || !ReferenceEquals(statsSlot.Item, window.StatsItem))
+            {
+                world.Send(player, P.ServerMessage("Items changed in the custom window. Place them again."));
                 return;
             }
 

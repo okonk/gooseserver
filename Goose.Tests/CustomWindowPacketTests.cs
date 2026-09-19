@@ -192,6 +192,7 @@ namespace Goose.Tests
             var (fixture, player, _, _, _, window) = Setup();
             using (fixture)
             {
+                Assert.True(fixture.RunCommand(player, "CWS5,6"));
                 Assert.True(fixture.RunCommand(player, "CWC5,6,10,20,30,40,My Sword"));
 
                 Assert.Null(player.Inventory.GetSlot(5));
@@ -226,6 +227,7 @@ namespace Goose.Tests
             var (fixture, player, _, _, _, window) = Setup();
             using (fixture)
             {
+                Assert.True(fixture.RunCommand(player, "CWS5,6"));
                 Assert.True(fixture.RunCommand(player, "CWC5,6,10,20,30,201,X"));
 
                 Assert.Contains(player.Sent, s => s.Contains("/custom: invalid a value"));
@@ -240,6 +242,7 @@ namespace Goose.Tests
             var (fixture, player, _, _, _, _) = Setup();
             using (fixture)
             {
+                Assert.True(fixture.RunCommand(player, "CWS5,6"));
                 Assert.True(fixture.RunCommand(player, "CWC5,6,10,20,30,200,X"));
 
                 Assert.Null(player.Inventory.GetSlot(5));
@@ -255,6 +258,7 @@ namespace Goose.Tests
             var (fixture, player, _, _, _, window) = Setup();
             using (fixture)
             {
+                Assert.True(fixture.RunCommand(player, "CWS5,6"));
                 Assert.True(fixture.RunCommand(player, "CWC5,6,10,20,30,40,"));
 
                 Assert.Contains(player.Sent, s => s.Contains("Custom name cannot be empty."));
@@ -269,6 +273,7 @@ namespace Goose.Tests
             var (fixture, player, _, _, _, _) = Setup();
             using (fixture)
             {
+                Assert.True(fixture.RunCommand(player, "CWS5,6"));
                 Assert.True(fixture.RunCommand(player, "CWC5,6,10,20,30,40,My,Sword"));
 
                 Assert.Equal("MySword", player.Inventory.GetSlot(7)!.Item.Name);
@@ -308,6 +313,65 @@ namespace Goose.Tests
 
                 Assert.Contains(player.Sent, s => s.Contains("Items missing for customisation"));
                 AssertNothingConsumed(player);
+                Assert.Same(window, CustomWindow.FindOpen(player));
+            }
+        }
+
+        [Fact]
+        public void Cwc_without_prior_cws_refused_and_consumes_nothing()
+        {
+            var (fixture, player, _, _, _, window) = Setup();
+            using (fixture)
+            {
+                Assert.True(fixture.RunCommand(player, "CWC5,6,10,20,30,40,X"));
+
+                Assert.Contains(player.Sent, s => s.Contains("Items changed in the custom window"));
+                AssertNothingConsumed(player);
+                Assert.Same(window, CustomWindow.FindOpen(player));
+            }
+        }
+
+        [Fact]
+        public void Cwc_item_replaced_in_same_slot_refused_and_consumes_nothing()
+        {
+            var (fixture, player, _, _, _, window) = Setup();
+            using (fixture)
+            {
+                Assert.True(fixture.RunCommand(player, "CWS5,6"));
+
+                var replacement = LoadItem(fixture.AddBaseItemTemplate(902, "Mystic Sword", ItemTemplate.UseTypes.Weapon));
+                player.Inventory.SetSlot(5, new ItemSlot { Item = replacement });
+
+                Assert.True(fixture.RunCommand(player, "CWC5,6,10,20,30,40,X"));
+
+                Assert.Contains(player.Sent, s => s.Contains("Items changed in the custom window"));
+                Assert.DoesNotContain(player.Sent, s => s.Contains("Created custom"));
+                Assert.Equal(902, player.Inventory.GetSlot(5)!.Item.TemplateID);
+                Assert.Equal(900, player.Inventory.GetSlot(6)!.Item.TemplateID);
+                Assert.Equal(823, player.Inventory.GetSlot(7)!.Item.TemplateID);
+                Assert.Same(window, CustomWindow.FindOpen(player));
+            }
+        }
+
+        [Fact]
+        public void Cwc_slot_ids_differ_from_confirmed_refused_and_consumes_nothing()
+        {
+            var (fixture, player, _, _, _, window) = Setup();
+            using (fixture)
+            {
+                Assert.True(fixture.RunCommand(player, "CWS5,6"));
+
+                var otherLook = LoadItem(fixture.AddBaseItemTemplate(902, "Mystic Sword", ItemTemplate.UseTypes.Weapon));
+                var otherStats = LoadItem(fixture.AddBaseItemTemplate(903, "Iron Sword", ItemTemplate.UseTypes.Weapon));
+                player.Inventory.SetSlot(1, new ItemSlot { Item = otherLook });
+                player.Inventory.SetSlot(2, new ItemSlot { Item = otherStats });
+
+                Assert.True(fixture.RunCommand(player, "CWC1,2,10,20,30,40,X"));
+
+                Assert.Contains(player.Sent, s => s.Contains("Items changed in the custom window"));
+                AssertNothingConsumed(player);
+                Assert.Equal(902, player.Inventory.GetSlot(1)!.Item.TemplateID);
+                Assert.Equal(903, player.Inventory.GetSlot(2)!.Item.TemplateID);
                 Assert.Same(window, CustomWindow.FindOpen(player));
             }
         }
@@ -358,6 +422,7 @@ namespace Goose.Tests
             var (fixture, player, _, _, _, _) = Setup(lookGraphicEquipped: 0);
             using (fixture)
             {
+                Assert.True(fixture.RunCommand(player, "CWS5,6"));
                 Assert.True(fixture.RunCommand(player, "CWC5,6,10,20,30,40,X"));
 
                 Assert.Equal(0, player.Inventory.GetSlot(7)!.Item.GraphicEquipped);
@@ -377,6 +442,7 @@ namespace Goose.Tests
                 player.Inventory.SetSlot(5, new ItemSlot { Item = LoadItem(filler) });
                 Assert.Equal(0, player.Inventory.GetNumberOfFreeSlots());
 
+                Assert.True(fixture.RunCommand(player, "CWS2,3"));
                 Assert.True(fixture.RunCommand(player, "CWC2,3,10,20,30,40,X"));
 
                 Assert.Equal("X", player.Inventory.GetSlot(1)!.Item.Name);
@@ -398,6 +464,7 @@ namespace Goose.Tests
                 var ticketItem = player.Inventory.GetSlot(7)!.Item;
                 player.Inventory.SetSlot(7, new ItemSlot { Item = ticketItem, Stack = 2 });
 
+                Assert.True(fixture.RunCommand(player, "CWS5,6"));
                 Assert.True(fixture.RunCommand(player, "CWC5,6,10,20,30,40,X"));
 
                 var ticketSlot = player.Inventory.GetSlot(7)!;
@@ -428,6 +495,7 @@ namespace Goose.Tests
                 player.Inventory.SetSlot(5, new ItemSlot { Item = LoadItem(filler) });
                 Assert.Equal(0, player.Inventory.GetNumberOfFreeSlots());
 
+                Assert.True(fixture.RunCommand(player, "CWS2,3"));
                 Assert.True(fixture.RunCommand(player, "CWC2,3,10,20,30,40,X"));
 
                 var ticketSlot = player.Inventory.GetSlot(1)!;
@@ -468,6 +536,7 @@ namespace Goose.Tests
                 player.Inventory.SetSlot(5, new ItemSlot { Item = LoadItem(filler) });
                 Assert.Equal(0, player.Inventory.GetNumberOfFreeSlots());
 
+                Assert.True(fixture.RunCommand(player, "CWS2,3"));
                 Assert.True(fixture.RunCommand(player, "CWC2,3,10,20,30,40,X"));
 
                 Assert.Contains(player.Sent, s => s.Contains("Not enough inventory space for the custom."));
@@ -494,6 +563,7 @@ namespace Goose.Tests
                 var statsItem = player.Inventory.GetSlot(3)!.Item;
                 player.Inventory.SetSlot(3, new ItemSlot { Item = statsItem, Stack = 0 });
 
+                Assert.True(fixture.RunCommand(player, "CWS2,3"));
                 Assert.True(fixture.RunCommand(player, "CWC2,3,10,20,30,40,X"));
 
                 Assert.Contains(player.Sent, s => s.Contains("Items missing for customisation"));
