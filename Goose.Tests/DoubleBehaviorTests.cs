@@ -104,7 +104,7 @@ public class DoubleBehaviorTests
 
         var fields = P.ItemSlot(item, fixture.World, 1, 1).Split('|');
 
-        Assert.Equal("55", fields[^9]);
+        Assert.Equal("55", fields[^10]);
     }
 
     [Fact]

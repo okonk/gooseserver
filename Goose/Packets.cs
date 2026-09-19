@@ -4,6 +4,35 @@ namespace Goose
 {
     public static class P
     {
+        private static int ExtraStatPercent(double value) =>
+            (int)Math.Round(Utils.ExactProduct(value, 10000), MidpointRounding.AwayFromZero);
+
+        // Order is append-only and mirrored by the client (Goose2ClientGodot ItemStats.cs /
+        // ItemTooltipText.Build): haste, spellDamage, spellCrit, meleeDamage, meleeCrit,
+        // damageReduction, hpPercentRegen, hpStaticRegen, mpPercentRegen, mpStaticRegen,
+        // spPercentRegen, spStaticRegen.
+        private static string ExtraStatsPayload(AttributeSet stats)
+        {
+            int[] values =
+            [
+                ExtraStatPercent(stats.Haste),
+                ExtraStatPercent(stats.SpellDamage),
+                ExtraStatPercent(stats.SpellCrit),
+                ExtraStatPercent(stats.MeleeDamage),
+                ExtraStatPercent(stats.MeleeCrit),
+                ExtraStatPercent(stats.DamageReduction),
+                ExtraStatPercent(stats.HPPercentRegen),
+                stats.HPStaticRegen,
+                ExtraStatPercent(stats.MPPercentRegen),
+                stats.MPStaticRegen,
+                ExtraStatPercent(stats.SPPercentRegen),
+                stats.SPStaticRegen,
+            ];
+
+            int last = Array.FindLastIndex(values, value => value != 0);
+            return last < 0 ? "" : string.Join(",", values.AsSpan(0, last + 1).ToArray());
+        }
+
         public static Func<string, string> LoginAccepted = (message) => { return "LOK" + message; };
         public static Func<string, string> LoginDenied = (message) => { return "LNO" + message; };
         public static Func<string, string> ServerMessage = (message) => { return "$7" + message; };
@@ -480,7 +509,8 @@ namespace Goose
                     // The name the client labels Value with. No vendor is in scope here, so
                     // this is the item's own currency - which is the right answer anyway,
                     // since an item override wins wherever it is traded (CurrencyHandler.cs:41).
-                    world.CurrencyHandler.Resolve(item.Template, null).Name;
+                    world.CurrencyHandler.Resolve(item.Template, null).Name + "|" +
+                    ExtraStatsPayload(item.TotalStats);
         };
 
         /// <summary>The vendor is threaded in only to name the currency: a credit dealer's

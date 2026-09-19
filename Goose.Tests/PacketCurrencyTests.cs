@@ -31,8 +31,12 @@ public class PacketCurrencyTests
         };
     }
 
-    /// <summary>The name is the last field, so an old client that stops parsing at GraphicA
-    /// is unaffected.</summary>
+    /// <summary>The extra-stats payload is appended after the currency name, so the name is
+    /// the second-to-last field of an item slot packet.</summary>
+    private static string CurrencyName(string packet) => packet.Split('|')[^2];
+
+    /// <summary>The vendor packet does not carry the extra-stats field, so its currency name
+    /// is still the last field.</summary>
     private static string LastField(string packet) => packet.Substring(packet.LastIndexOf('|') + 1);
 
     [Fact]
@@ -43,7 +47,7 @@ public class PacketCurrencyTests
 
         var packet = P.ItemSlot(item, fixture.World, 1, 1);
 
-        Assert.Equal("gold", LastField(packet));
+        Assert.Equal("gold", CurrencyName(packet));
     }
 
     [Fact]
@@ -55,7 +59,7 @@ public class PacketCurrencyTests
 
         var packet = P.ItemSlot(item, fixture.World, 1, 1);
 
-        Assert.Equal("spirit", LastField(packet));
+        Assert.Equal("spirit", CurrencyName(packet));
     }
 
     /// <summary>A credit dealer's stock carries no item-level currency, so the label can only
@@ -109,7 +113,7 @@ public class PacketCurrencyTests
 
         var fields = P.ItemSlot(item, fixture.World, 1, 1).Split('|');
 
-        Assert.Equal("123", fields[^2]);
-        Assert.Equal("gold", fields[^1]);
+        Assert.Equal("123", fields[^3]);
+        Assert.Equal("gold", fields[^2]);
     }
 }
