@@ -6,13 +6,11 @@ using Goose.Scripting;
 public class InvestigateWindow : Window
 {
     private readonly NPC npc;
-    private readonly List<List<string>> pages;
-    private int pageNumber = 0;
+    private List<string> lines;
 
     public override string Title => "Investigate: " + npc.Name;
 
-    public override string Buttons
-        => "0,1," + (pageNumber == 0 ? 0 : 1) + "," + (pageNumber < pages.Count - 1 ? 1 : 0) + ",0";
+    public override string Buttons => "0,0,0,0,0";
 
     public InvestigateWindow(GameWorld world, Player player, NPC npc)
     {
@@ -21,7 +19,7 @@ public class InvestigateWindow : Window
         this.Frame = WindowFrames.GenericInfo;
         this.Type = WindowTypes.Generic;
         this.NPC = npc;
-        this.pages = BuildPages(npc);
+        this.lines = BuildLines(npc, player);
 
         this.SendCreate(player, world);
     }
@@ -31,7 +29,7 @@ public class InvestigateWindow : Window
         var existing = player.Windows.FirstOrDefault(w => w.Type == WindowTypes.Generic && w.NPC == npc);
         if (existing is InvestigateWindow window)
         {
-            window.pageNumber = 0;
+            window.lines = BuildLines(npc, player);
             window.SendCreate(player, world);
             return;
         }
@@ -39,76 +37,84 @@ public class InvestigateWindow : Window
         player.Windows.Add(new InvestigateWindow(world, player, npc));
     }
 
-    private static List<List<string>> BuildPages(NPC npc)
+    // The client's info window is 140px tall with an 11.18px row pitch from y=22, so it shows
+    // 10 rows and anything past that is drawn off the frame.
+    private static List<string> BuildLines(NPC npc, Player player)
     {
-        string yn(bool v) => v ? "Yes" : "No";
-        string behaviour = npc.NPCTemplate.Behaviour switch
+        var lines = new List<string>
         {
-            NPCTemplate.BehaviourTypes.TeleportAggro => "Teleport on aggro",
-            NPCTemplate.BehaviourTypes.TeleportToAggro => "Teleport to aggro",
-            _ => "None",
+            $"Level: {npc.Level}   Class: {npc.Class?.ClassName ?? "?"}",
+            $"HP: {npc.MaxHP:N0}   AC: {npc.MaxStats.AC:N0}   Regen: {npc.MaxStats.HPPercentRegen * 100:0.##}% +{npc.MaxStats.HPStaticRegen:N0}",
+            $"Damage: {npc.WeaponDamage:N0}   Armor Pierce: {npc.ArmorPierce:N0}",
+            $"Attack Speed: {Math.Round(npc.AttackSpeed, 2)}   Move Speed: {Math.Round(npc.MoveSpeed, 2)}",
+            $"Attack Range: {npc.AttackRange}   Aggro Range: {npc.AggroRange}",
+            $"Experience: {npc.Experience:N0}   Respawn: {Respawn(npc)}",
+            $"Tame Chance: {TameChance(npc, player)}",
         };
 
-        List<string> page1 = new List<string>
+        switch (npc.NPCTemplate.Behaviour)
         {
-            "Max HP: " + npc.MaxHP,
-            "Level: " + npc.Level,
-            "Class: " + (npc.Class?.ClassName ?? "?"),
-            "Damage: " + npc.WeaponDamage,
-            "AC: " + npc.MaxStats.AC,
-            "Armor pierce: " + npc.ArmorPierce,
-            "Aggro range: " + npc.AggroRange,
-            "Attack range: " + npc.AttackRange,
-            "Attack speed: " + Math.Round(npc.AttackSpeed, 2),
-            "Move speed: " + Math.Round(npc.MoveSpeed, 2),
-        };
+            case NPCTemplate.BehaviourTypes.TeleportAggro:
+                lines.Add("On aggro: pulls you to it");
+                break;
+            case NPCTemplate.BehaviourTypes.TeleportToAggro:
+                lines.Add("On aggro: teleports to you");
+                break;
+        }
 
-        List<string> page2 = new List<string>
-        {
-            "HP regen: " + Math.Round(npc.MaxStats.HPPercentRegen * 100, 0) + "% +" + npc.MaxStats.HPStaticRegen,
-            "Experience: " + npc.Experience,
-            "See invisible: " + yn(npc.CanSeeInvisible),
-            "CC: stun " + yn(npc.CanBeStunned) + " root " + yn(npc.CanBeRooted) + " slow " + yn(npc.CanBeSlowed),
-            "Behaviour: " + behaviour,
-            "Respawn: " + npc.RespawnTime + "s",
-        };
+        lines.Add("Sees Invisible: " + (npc.CanSeeInvisible ? "Yes" : "No"));
+        lines.Add(CrowdControlLine(npc));
 
-        return new List<List<string>> { page1, page2 };
+        return lines;
+    }
+
+    private static string Respawn(NPC npc)
+    {
+        if (npc.RespawnTime <= 0) return "never";
+        return Utils.FormatDuration(npc.RespawnTime * 1000L).Trim();
+    }
+
+    // Mirrors SpellEffect.CastTameSpell: the tamer's base HP and MP plus their class level's,
+    // over the target's max HP, and the spell refuses stationary or invincible targets.
+    private static string TameChance(NPC npc, Player player)
+    {
+        if (!npc.CanBeKilled || npc.MoveSpeed == 0) return "not tameable";
+        if (npc.MaxHP <= 0) return "100.00%";
+
+        var classLevel = player.Class?.GetLevel(player.Level);
+        long tamer = player.BaseStats.HP + (classLevel?.BaseStats.HP ?? 0) +
+                     player.BaseStats.MP + (classLevel?.BaseStats.MP ?? 0);
+
+        return Math.Min(100.0, (double)tamer / npc.MaxHP * 100).ToString("F2") + "%";
+    }
+
+    private static string CrowdControlLine(NPC npc)
+    {
+        var vulnerable = new List<string>();
+        var immune = new List<string>();
+
+        (npc.CanBeStunned ? vulnerable : immune).Add("stun");
+        (npc.CanBeRooted ? vulnerable : immune).Add("root");
+        (npc.CanBeSlowed ? vulnerable : immune).Add("slow");
+
+        string affected = string.Join(", ", vulnerable);
+        string resistant = string.Join(", ", immune);
+
+        if (vulnerable.Count == 0) return "Immune to " + resistant;
+        if (immune.Count == 0) return "Vulnerable to: " + affected;
+        return "Vulnerable to: " + affected + " (immune to " + resistant + ")";
     }
 
     public override void Populate(Player player, GameWorld world)
     {
         int lineno = 1;
-        foreach (var line in pages[pageNumber])
+        foreach (var line in lines)
             world.Send(player, P.WindowTextLine(this.ID, lineno++, line));
     }
 
     public override void Clicked(ButtonTypes buttonid, int npcid, int id2, int id3, Player player, GameWorld world)
     {
-        switch (buttonid)
-        {
-            case ButtonTypes.Exit:
-            case ButtonTypes.Close:
-                player.Windows.Remove(this);
-                break;
-            case ButtonTypes.Next:
-                if (pageNumber < pages.Count - 1)
-                {
-                    pageNumber++;
-                    this.SendCreate(player, world);
-                }
-                break;
-            case ButtonTypes.Back:
-                if (pageNumber > 0)
-                {
-                    pageNumber--;
-                    this.SendCreate(player, world);
-                }
-                break;
-            default:
-                player.Windows.Remove(this);
-                break;
-        }
+        player.Windows.Remove(this);
     }
 }
 
