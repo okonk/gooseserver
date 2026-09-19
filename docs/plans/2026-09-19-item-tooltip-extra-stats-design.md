@@ -181,4 +181,5 @@ cosmetic, and no enforcement is added.
 ## Repositories
 
 The protocol owner is this repo; the design lives here. Client tasks land in
-`~/code/Goose2ClientGodot`, which needs its own branch once the server side is agreed.
+`~/code/Goose2ClientGodot`, which needs its own branch once the server side is agreed; its
+plan lives with it at `docs/plans/2026-09-19-item-tooltip-extra-stats-client.md`.
