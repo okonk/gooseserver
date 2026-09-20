@@ -47,7 +47,7 @@ namespace Goose
                     sheet = this.lineGraphics[absolute].Sheet;
                     graphic = this.lineGraphics[absolute].Graphic;
                 }
-                world.Send(player, P.WindowLine(this.ID, lineNo++, line, sheet, graphic, false, 0, 0, 0));
+                world.Send(player, P.WindowLine(this.ID, lineNo++, line, sheet, graphic, 0, 0, 0, 0));
             }
         }
 

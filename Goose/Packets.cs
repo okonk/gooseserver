@@ -455,11 +455,11 @@ namespace Goose
         };
 
         // Extended WNF: sheet/graphic drive a leading 32x32 icon on the client; the trailing
-        // field is "*" (no colour) or r|g|b|a (client ignores alpha, forces 100%).
-        public static Func<int, int, string, int, int, bool, int, int, int, string> WindowLine =
-            (windowId, lineNo, line, sheet, graphic, hasColor, r, g, b) =>
+        // field is "*" (no tint) or r|g|b|a, which tints the icon (a is the blend factor).
+        public static Func<int, int, string, int, int, int, int, int, int, string> WindowLine =
+            (windowId, lineNo, line, sheet, graphic, r, g, b, a) =>
             {
-                var color = hasColor ? $"{r}|{g}|{b}|255" : "*";
+                var color = a > 0 ? $"{r}|{g}|{b}|{a}" : "*";
                 return $"WNF{windowId},{lineNo},{line}|0|0|{sheet}|{graphic}|{color}";
             };
 
