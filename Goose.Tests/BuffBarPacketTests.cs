@@ -11,7 +11,7 @@ public class BuffBarPacketTests
         var map = fixture.AddBaseMap(1, "m");
         var player = fixture.CommandPlayerOn(map, 1, 1);
         var effect = fixture.AddBaseSpellEffect(1, "Speed",
-            e => { e.Duration = (long)(120.0 * fixture.World.TimerFrequency); e.BuffGraphic = 5; e.BuffGraphicFile = 12; });
+            e => { e.Duration = 120; e.BuffGraphic = 5; e.BuffGraphicFile = 12; });
         player.Buffs.Add(new Buff { Caster = player, Target = player, SpellEffect = effect });
 
         player.SendBuffBar(fixture.World);

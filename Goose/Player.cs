@@ -2567,7 +2567,7 @@ namespace Goose
             {
                 if (buff.ItemBuff && !this.ShowItemBuffs) continue;
 
-                world.Send(this, P.BuffBar(buff, i, buff.SpellEffect.Duration * 1000 / world.TimerFrequency));
+                world.Send(this, P.BuffBar(buff, i, buff.SpellEffect.Duration * 1000));
                 i++;
             }
 
