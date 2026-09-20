@@ -637,7 +637,7 @@ namespace Goose
                     targetType + "," +
                     spell.Graphic + "," +
                     spell.GraphicFile + "," +
-                    (spell.Aether > TimeSpan.FromHours(1).TotalMilliseconds ? 5000 : spell.Aether);
+                    spell.Aether;
         };
 
         public static Func<int, long, string> SpellCooldownRemaining = (slotId, remainingMs) =>

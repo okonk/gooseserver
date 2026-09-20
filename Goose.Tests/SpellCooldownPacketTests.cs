@@ -60,6 +60,17 @@ namespace Goose.Tests
         }
 
         [Fact]
+        public void SpellSlot_SendsFullCooldownEvenOverOneHour()
+        {
+            var spell = NewSpell();
+            spell.Aether = (long)TimeSpan.FromHours(2).TotalMilliseconds;
+
+            var packet = P.SpellSlot(spell, 1, 0);
+
+            Assert.EndsWith("," + spell.Aether, packet);
+        }
+
+        [Fact]
         public void CastSpell_WhenOnCooldown_SendsRemainingCooldown()
         {
             var (p, world) = NewCaster();
