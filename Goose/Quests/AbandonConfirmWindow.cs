@@ -46,7 +46,7 @@ namespace Goose.Quests
                         player.QuestProgress.RemoveAll(p => p.Requirement.Quest.Id == this.quest.Id);
                         world.Send(player, P.ServerMessage($"Abandoned quest: {this.quest.Name}"));
                     }
-                    player.Windows.Remove(this);
+                    this.Close(player, world);
                     break;
                 default:
                     player.Windows.Remove(this);
