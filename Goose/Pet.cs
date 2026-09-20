@@ -463,7 +463,9 @@ namespace Goose
         /// <param name="world"></param>
         public void Spawn(GameWorld world)
         {
-            this.Destroy(world);
+            // Only a pet that is not on a map may be spawned: re-spawning an alive pet
+            // would tear it down and build a duplicate copy instead of repositioning it.
+            if (this.IsAlive) return;
 
             this.LoginID = Pet.GetLoginID(world.Settings);
             Pet.LoginIDToPet[this.LoginID] = this;

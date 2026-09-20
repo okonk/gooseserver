@@ -66,31 +66,33 @@ namespace Goose.Tests
         }
 
         [Fact]
-        public void PetSpawn_on_alive_pet_repositions_without_cooldown()
+        public void PetSpawn_the_same_alive_pet_twice_is_refused_and_leaves_it_untouched()
         {
             var (fixture, player, map) = WorldAndPlayer();
             using (fixture)
             {
                 map.CanSpawnPets = true;
                 var pet = MakePet(fixture, player, 5, "Rex");
+                pet.BaseStats = new AttributeSet { HP = 10, MP = 10 };
+                pet.MaxStats = new AttributeSet { HP = 10, MP = 10 };
 
                 Assert.True(fixture.RunCommand(player, "/petspawn 5"));
                 Assert.True(pet.IsAlive);
                 Assert.Equal(player.MapX, pet.MapX);
                 Assert.Equal(player.MapY, pet.MapY);
 
-                pet.MapX = 7;
-                pet.MapY = 7;
+                int loginId = pet.LoginID;
+                pet.CurrentHP = 1;
+                pet.CurrentMP = 1;
                 player.Sent.Clear();
 
                 Assert.True(fixture.RunCommand(player, "/petspawn 5"));
 
-                Assert.NotEqual(7, player.MapX);
-                Assert.NotEqual(7, player.MapY);
-                Assert.True(pet.IsAlive);
+                Assert.Contains(player.Sent, s => s.Contains("That pet is already spawned."));
+                Assert.Equal(loginId, pet.LoginID);
+                Assert.Equal(1, pet.CurrentHP);
+                Assert.Equal(1, pet.CurrentMP);
                 Assert.Same(map, pet.Map);
-                Assert.Equal(player.MapX, pet.MapX);
-                Assert.Equal(player.MapY, pet.MapY);
                 Assert.Equal(0, pet.NextRespawnTime);
                 Assert.DoesNotContain(player.Sent, s => s.Contains("You must wait"));
             }

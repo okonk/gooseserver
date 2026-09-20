@@ -35,6 +35,12 @@ namespace Goose.Commands
                 return;
             }
 
+            if (match.IsAlive)
+            {
+                world.Send(ctx.Player, P.ServerMessage("That pet is already spawned."));
+                return;
+            }
+
             long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
             if (match.NextRespawnTime > now)
             {
