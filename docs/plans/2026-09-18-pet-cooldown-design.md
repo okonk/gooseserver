@@ -40,9 +40,13 @@ The following operations continue using ordinary `Destroy` and do not start a co
 - Owner map transition
 - Owner idle cleanup
 - Pet deletion
-- Internal cleanup when spawning or repositioning an already-alive pet
 
-Invoking `/petspawn` on an already-alive pet continues to reposition it to its owner.
+## Spawn Refusal for a Pet Already on a Map
+
+A pet that is already on a map cannot be spawned again. `/petspawn` replies "That pet
+is already spawned." and returns before the cooldown check, and `Pet.Spawn` itself
+returns without touching a live pet. This replaces the earlier repositioning behavior,
+where spawning an alive pet tore it down and rebuilt it at its owner.
 
 ## Testing
 
