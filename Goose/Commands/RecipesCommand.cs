@@ -30,7 +30,13 @@ namespace Goose.Commands
                 .Select(c =>
                 {
                     var result = c.ResultItems.FirstOrDefault();
-                    return (Sheet: result?.GraphicFile ?? 0, Graphic: result?.GraphicTile ?? 0);
+                    return (
+                        Sheet: result?.GraphicFile ?? 0,
+                        Graphic: result?.GraphicTile ?? 0,
+                        R: result?.GraphicR ?? 0,
+                        G: result?.GraphicG ?? 0,
+                        B: result?.GraphicB ?? 0,
+                        A: result?.GraphicA ?? 0);
                 })
                 .ToList();
 

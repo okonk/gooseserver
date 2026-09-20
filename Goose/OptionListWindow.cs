@@ -3,11 +3,11 @@ namespace Goose
     public class OptionListWindow : Window
     {
         private readonly List<string> lines;
-        private readonly List<(int Sheet, int Graphic)>? lineGraphics;
+        private readonly List<(int Sheet, int Graphic, int R, int G, int B, int A)>? lineGraphics;
         private readonly Action<int, Player, GameWorld> onLineClicked;
         private int page;
 
-        public OptionListWindow(Player player, GameWorld world, string title, List<string> lines, Action<int, Player, GameWorld> onLineClicked, NPC? npc = null, int startPage = 0, List<(int Sheet, int Graphic)>? lineGraphics = null)
+        public OptionListWindow(Player player, GameWorld world, string title, List<string> lines, Action<int, Player, GameWorld> onLineClicked, NPC? npc = null, int startPage = 0, List<(int Sheet, int Graphic, int R, int G, int B, int A)>? lineGraphics = null)
         {
             this.ID = ++player.LastWindowID;
             this.Title = title;
@@ -41,13 +41,12 @@ namespace Goose
             foreach (var line in this.lines.Skip(firstIndex).Take(LineClickCount))
             {
                 int absolute = firstIndex + lineNo - 1;
-                int sheet = 0, graphic = 0;
+                int sheet = 0, graphic = 0, r = 0, g = 0, b = 0, a = 0;
                 if (this.lineGraphics is not null && absolute < this.lineGraphics.Count)
                 {
-                    sheet = this.lineGraphics[absolute].Sheet;
-                    graphic = this.lineGraphics[absolute].Graphic;
+                    (sheet, graphic, r, g, b, a) = this.lineGraphics[absolute];
                 }
-                world.Send(player, P.WindowLine(this.ID, lineNo++, line, sheet, graphic, 0, 0, 0, 0));
+                world.Send(player, P.WindowLine(this.ID, lineNo++, line, sheet, graphic, r, g, b, a));
             }
         }
 

@@ -32,7 +32,8 @@ public class RecipesCommandTests
         }
         foreach (var (itemId, itemName) in results)
         {
-            combination.ResultItems.Add(world.AddBaseItemTemplate(itemId, itemName, ItemTemplate.UseTypes.NoUse));
+            combination.ResultItems.Add(world.AddBaseItemTemplate(itemId, itemName, ItemTemplate.UseTypes.NoUse,
+                t => t.GraphicA = 0));
         }
         world.World.CombinationHandler.Add(combination);
         return combination;
@@ -81,7 +82,7 @@ public class RecipesCommandTests
     {
         var (world, player, ctx) = Setup();
         var result = world.AddBaseItemTemplate(10, "Cloth", ItemTemplate.UseTypes.NoUse,
-            t => { t.GraphicFile = 5; t.GraphicTile = 7; });
+            t => { t.GraphicFile = 5; t.GraphicTile = 7; t.GraphicR = 200; t.GraphicG = 50; t.GraphicB = 50; t.GraphicA = 255; });
         world.World.CombinationHandler.Add(new Combination
         {
             ID = 1,
@@ -92,7 +93,7 @@ public class RecipesCommandTests
 
         new RecipesCommand().Execute(ctx);
 
-        Assert.Equal(["WNF1001,1,Cloth|0|0|5|7|*"],
+        Assert.Equal(["WNF1001,1,Cloth|0|0|5|7|200|50|50|255"],
             player.Sent.Where(s => s.StartsWith("WNF")).ToArray());
     }
 
