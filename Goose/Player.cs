@@ -2567,13 +2567,13 @@ namespace Goose
             {
                 if (buff.ItemBuff && !this.ShowItemBuffs) continue;
 
-                world.Send(this, P.BuffBar(buff, i));
+                world.Send(this, P.BuffBar(buff, i, buff.SpellEffect.Duration * 1000 / world.TimerFrequency));
                 i++;
             }
 
             while (i <= world.Settings.BuffBarVisibleSize)
             {
-                world.Send(this, P.BuffBar(null, i));
+                world.Send(this, P.BuffBar(null, i, 0));
                 i++;
             }
         }
