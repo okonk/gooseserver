@@ -61,6 +61,8 @@ public class QuestOptionListTests
         var list = Assert.IsType<OptionListWindow>(player.Windows[0]);
         Assert.Equal(Window.WindowFrames.OptionList, list.Frame);
         Assert.Equal(npc, list.NPC);
+        Assert.Equal(["WNL1001,Welcome, adventurer!"],
+            player.Sent.Where(s => s.StartsWith("WNL")).ToArray());
         Assert.Equal(["WNF1001,1,Quest One|0|0|0|0|*", "WNF1001,2,Quest Two|0|0|0|0|*", "WNF1001,3,Quest Three|0|0|0|0|*"],
             player.Sent.Where(s => s.StartsWith("WNF")).ToArray());
         Assert.Empty(player.QuestsStarted);

@@ -7,7 +7,7 @@ namespace Goose
         private readonly Action<int, Player, GameWorld> onLineClicked;
         private int page;
 
-        public OptionListWindow(Player player, GameWorld world, string title, List<string> lines, Action<int, Player, GameWorld> onLineClicked, NPC? npc = null, int startPage = 0, List<(int Sheet, int Graphic, int R, int G, int B, int A)>? lineGraphics = null)
+        public OptionListWindow(Player player, GameWorld world, string title, List<string> lines, Action<int, Player, GameWorld> onLineClicked, NPC? npc = null, int startPage = 0, List<(int Sheet, int Graphic, int R, int G, int B, int A)>? lineGraphics = null, string? openingLine = null)
         {
             this.ID = ++player.LastWindowID;
             this.Title = title;
@@ -17,6 +17,7 @@ namespace Goose
             this.lines = lines;
             this.lineGraphics = lineGraphics;
             this.onLineClicked = onLineClicked;
+            this.OpeningLine = openingLine;
             this.page = Math.Min(Math.Max(startPage, 0), Math.Max(this.PageCount - 1, 0));
             this.Buttons = this.GetPagingButtons();
 

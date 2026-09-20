@@ -71,7 +71,8 @@ namespace Goose.Quests
                         QuestWindow.StartQuest(quest, p);
                         new QuestWindow(npc, p, quest, w);
                     },
-                    npc);
+                    npc,
+                    openingLine: "Welcome, adventurer!");
             }
         }
 
