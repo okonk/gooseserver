@@ -94,7 +94,7 @@ namespace Goose.Events
                     return;
                 }
 
-                world.ItemHandler.RollTitleAndSurname(item, world);
+                world.ItemHandler.RollTitleAndSurname(item, world, rollNative: false);
 
                 world.ItemHandler.AddAndAssignId(item, world);
 

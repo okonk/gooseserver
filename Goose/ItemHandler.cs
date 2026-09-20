@@ -307,7 +307,7 @@ namespace Goose
             item.RefreshStats();
         }
 
-        public void RollTitleAndSurname(Item item, GameWorld world)
+        public void RollTitleAndSurname(Item item, GameWorld world, bool rollNative = true)
         {
             // Above the use-type filter deliberately: a script-owned item (dimension tomes)
             // must be able to claim the roll even when nothing native would apply to it.
@@ -322,6 +322,9 @@ namespace Goose
                     log.Error(e, "Exception in OnRollModifiersEvent for template {templateId}", item.TemplateID);
                 }
             }
+
+            if (!rollNative)
+                return;
 
             if (item.UseType != ItemTemplate.UseTypes.Armor && item.UseType != ItemTemplate.UseTypes.Weapon)
                 return;
