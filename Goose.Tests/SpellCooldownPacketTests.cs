@@ -100,5 +100,32 @@ namespace Goose.Tests
             Assert.Contains(",60,Fizzle", payload);
             Assert.Equal(0, CdrRemainingMs(p));
         }
+
+        [Fact]
+        public void CastSpell_WhenFizzles_SendsCooldownOnlyToCaster()
+        {
+            var (p, world) = NewCaster();
+            var spell = NewSpell();
+            spell.MPStaticCost = 50;
+            p.Spellbook.AddSpell(spell, world);
+            p.CurrentMP = 0;
+
+            var nearby = new Player(1);
+            nearby.OnLogin();
+            nearby.Sock = NewUnconnectedSocket();
+            nearby.MapX = p.MapX;
+            nearby.MapY = p.MapY;
+            p.Map.AddPlayer(p, world);
+            p.Map.AddPlayer(nearby, world);
+
+            p.CastSpell(1, p, world);
+
+            var casterPayload = Encoding.Latin1.GetString(p.SendBuffer.ToArray());
+            var nearbyPayload = Encoding.Latin1.GetString(nearby.SendBuffer.ToArray());
+
+            Assert.Contains(",60,Fizzle", casterPayload);
+            Assert.Contains(",60,Fizzle", nearbyPayload);
+            Assert.DoesNotContain("CDR", nearbyPayload);
+        }
     }
 }
