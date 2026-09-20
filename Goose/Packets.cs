@@ -454,6 +454,20 @@ namespace Goose
             return $"WNF{windowId},{lineNo},{line}|0|0|0|0|*";
         };
 
+        // Extended WNF: sheet/graphic drive a leading 32x32 icon on the client; the trailing
+        // field is "*" (no colour) or r|g|b|a (client ignores alpha, forces 100%).
+        public static Func<int, int, string, int, int, bool, int, int, int, string> WindowLine =
+            (windowId, lineNo, line, sheet, graphic, hasColor, r, g, b) =>
+            {
+                var color = hasColor ? $"{r}|{g}|{b}|255" : "*";
+                return $"WNF{windowId},{lineNo},{line}|0|0|{sheet}|{graphic}|{color}";
+            };
+
+        public static Func<int, string, string> OpeningLine = (windowId, text) =>
+        {
+            return $"WNL{windowId},{text}";
+        };
+
         public static Func<Item, GameWorld, int, long, string> ItemSlot = (item, world, slotId, stack) =>
         {
             var spellEffect = item.SpellEffect;
