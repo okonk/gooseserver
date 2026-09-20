@@ -82,6 +82,9 @@ namespace Goose
         public WindowTypes Type { get; set; }
 
         public virtual string Title { get; set; } = null!;
+
+        // Optional non-clickable opening line (WNL), sent after MKW and before the WNF lines.
+        public string? OpeningLine { get; set; }
         /**
          * Buttons
          * Seems to be 5 comma separated values
@@ -118,6 +121,8 @@ namespace Goose
             };
 
             world.Send(player, P.MakeWindow(this));
+            if (this.OpeningLine is not null)
+                world.Send(player, P.OpeningLine(this.ID, this.OpeningLine));
             this.Populate(player, world);
             world.Send(player, P.EndWindow(this));
         }
@@ -310,6 +315,8 @@ namespace Goose
         public void SendCreate(Player player, GameWorld world)
         {
             world.Send(player, P.MakeWindow(this));
+            if (this.OpeningLine is not null)
+                world.Send(player, P.OpeningLine(this.ID, this.OpeningLine));
             this.Populate(player, world);
             world.Send(player, P.EndWindow(this));
         }

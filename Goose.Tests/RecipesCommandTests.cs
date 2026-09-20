@@ -77,6 +77,26 @@ public class RecipesCommandTests
     }
 
     [Fact]
+    public void Execute_SendsOutputItemIconOnEachLine()
+    {
+        var (world, player, ctx) = Setup();
+        var result = world.AddBaseItemTemplate(10, "Cloth", ItemTemplate.UseTypes.NoUse,
+            t => { t.GraphicFile = 5; t.GraphicTile = 7; });
+        world.World.CombinationHandler.Add(new Combination
+        {
+            ID = 1,
+            Name = "Cloth",
+            RequiredHash = [],
+            ResultItems = [result],
+        });
+
+        new RecipesCommand().Execute(ctx);
+
+        Assert.Equal(["WNF1001,1,Cloth|0|0|5|7|*"],
+            player.Sent.Where(s => s.StartsWith("WNF")).ToArray());
+    }
+
+    [Fact]
     public void Execute_MultipleResultItems_AreJoinedOnOneLine()
     {
         var (world, player, ctx) = Setup();

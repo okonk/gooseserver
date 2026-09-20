@@ -3,10 +3,11 @@ namespace Goose
     public class OptionListWindow : Window
     {
         private readonly List<string> lines;
+        private readonly List<(int Sheet, int Graphic)>? lineGraphics;
         private readonly Action<int, Player, GameWorld> onLineClicked;
         private int page;
 
-        public OptionListWindow(Player player, GameWorld world, string title, List<string> lines, Action<int, Player, GameWorld> onLineClicked, NPC? npc = null, int startPage = 0)
+        public OptionListWindow(Player player, GameWorld world, string title, List<string> lines, Action<int, Player, GameWorld> onLineClicked, NPC? npc = null, int startPage = 0, List<(int Sheet, int Graphic)>? lineGraphics = null)
         {
             this.ID = ++player.LastWindowID;
             this.Title = title;
@@ -14,6 +15,7 @@ namespace Goose
             this.Type = WindowTypes.OptionList;
             this.NPC = npc;
             this.lines = lines;
+            this.lineGraphics = lineGraphics;
             this.onLineClicked = onLineClicked;
             this.page = Math.Min(Math.Max(startPage, 0), Math.Max(this.PageCount - 1, 0));
             this.Buttons = this.GetPagingButtons();
@@ -35,8 +37,18 @@ namespace Goose
         public override void Populate(Player player, GameWorld world)
         {
             int lineNo = 1;
-            foreach (var line in this.lines.Skip(this.page * LineClickCount).Take(LineClickCount))
-                world.Send(player, P.WindowTextLine(this.ID, lineNo++, line));
+            int firstIndex = this.page * LineClickCount;
+            foreach (var line in this.lines.Skip(firstIndex).Take(LineClickCount))
+            {
+                int absolute = firstIndex + lineNo - 1;
+                int sheet = 0, graphic = 0;
+                if (this.lineGraphics is not null && absolute < this.lineGraphics.Count)
+                {
+                    sheet = this.lineGraphics[absolute].Sheet;
+                    graphic = this.lineGraphics[absolute].Graphic;
+                }
+                world.Send(player, P.WindowLine(this.ID, lineNo++, line, sheet, graphic, false, 0, 0, 0));
+            }
         }
 
         public override void Clicked(ButtonTypes buttonid, int npcid, int id2, int id3, Player player, GameWorld world)
