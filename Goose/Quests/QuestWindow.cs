@@ -174,7 +174,12 @@ namespace Goose.Quests
                     text = "You don't have enough spellbook space to accept \\nthe reward.\\nDelete a spell and try again.";
                     break;
                 case QuestWindowState.QuestNotRightLevel:
-                    text = "You don't meet the level or experience \\nrequirements. Come back to me when you're \\nstronger.";
+                    text = "You don't meet the level or experience \\nrequirements for this quest.";
+                    if (quest.MinLevel > 0)
+                        text += $"\\nLevel {quest.MinLevel} required.";
+                    if (quest.MinExperience > 0)
+                        text += $"\\n{Utils.FormatNumber(quest.MinExperience)} experience required.";
+                    text += "\\nCome back to me when you're stronger.";
                     break;
                 case QuestWindowState.QuestProgress:
                     text = GetQuestProgressText(player, world);
