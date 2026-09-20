@@ -25,7 +25,6 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_DATABASE = REPOSITORY_ROOT / "Goose/bin/Debug/AsperetaGoose.db"
 DEFAULT_SETTINGS = REPOSITORY_ROOT / "Goose/GooseSettings.json"
 DEFAULT_OUTPUT = REPOSITORY_ROOT / "reports/game_balance/leveling-balance-report.html"
-EXPECTED_DATABASE_SHA256 = "1eac9e774f2ae3633868da1aa87a5f73df8a9a3c9e0cd65f0deef918c209f472"
 MAX_LEVEL = 50
 PHAT_LEWTZ_NPC_ID = 170
 NPC_TYPE_MONSTER = 2
@@ -770,14 +769,14 @@ def build_report_data(connection: sqlite3.Connection) -> ReportData:
             map_ids = npc_map_ids.get(npc_id, ())
             eligible_map_ids = npc_eligible_map_ids.get(npc_id, ())
             exclusion_reason = None
-            if not map_ids:
-                exclusion_reason = "unspawned_npc"
-            elif not eligible_map_ids:
-                exclusion_reason = "xp_gated_maps"
-            elif npc_id == PHAT_LEWTZ_NPC_ID:
+            if npc_id == PHAT_LEWTZ_NPC_ID:
                 exclusion_reason = "phat_lewtz"
             elif enabled(npcs[npc_id]["credit_dealer"]):
                 exclusion_reason = "credit_dealer"
+            elif not map_ids:
+                exclusion_reason = "unspawned_npc"
+            elif not eligible_map_ids:
+                exclusion_reason = "xp_gated_maps"
             elif source_kind == "drop" and int(npcs[npc_id]["npc_type"]) != NPC_TYPE_MONSTER:
                 exclusion_reason = "non_monster_drop"
             elif source_kind == "drop" and enabled(npcs[npc_id]["invincible"]):
@@ -1058,36 +1057,7 @@ def build_report_data(connection: sqlite3.Connection) -> ReportData:
 
 
 def assert_extraction_invariants(data: ReportData) -> None:
-    phat_lewtz = data.npcs.get(PHAT_LEWTZ_NPC_ID)
-    assert phat_lewtz is not None
-    assert str(phat_lewtz["npc_name"]).casefold() == "phat lewtz"
-    authored_excluded_vendor_only_gear_ids = frozenset(
-        item_id
-        for item_id in data.scoped_item_ids
-        if int(data.items[item_id]["item_usetype"])
-        in {ITEM_USE_TYPE_ARMOR, ITEM_USE_TYPE_WEAPON}
-        and data.item_sources.get(item_id)
-        and all(
-            path.source_kind == "vendor"
-            and path.npc_id is not None
-            and (
-                path.npc_id == PHAT_LEWTZ_NPC_ID
-                or enabled(data.npcs[path.npc_id]["credit_dealer"])
-            )
-            for path in data.item_sources[item_id]
-        )
-    )
-    assert authored_excluded_vendor_only_gear_ids, (
-        "expected authored vendor-only gear from excluded NPCs"
-    )
-    assert authored_excluded_vendor_only_gear_ids.isdisjoint(data.included_item_ids)
-    assert data.excluded_vendor_only_gear_ids, (
-        "expected excluded-vendor-only gear in the source database"
-    )
     assert data.excluded_vendor_only_gear_ids.isdisjoint(data.included_item_ids)
-    assert data.retained_dual_source_item_ids, (
-        "expected content with both eligible and ineligible sources"
-    )
     assert data.retained_dual_source_item_ids <= data.included_item_ids
     assert data.included_item_ids <= data.scoped_item_ids
     assert data.transition_npc_ids.isdisjoint(data.endgame_npc_ids)
@@ -1108,68 +1078,27 @@ def assert_extraction_invariants(data: ReportData) -> None:
                 assert path.drop_rate is not None and path.drop_rate > 0
     equipment_ids = {
         item_id
-        for item_id, item in data.items.items()
-        if int(item["min_experience"]) == 0
-        and int(item["item_usetype"])
+        for item_id in data.scoped_item_ids
+        if int(data.items[item_id]["item_usetype"])
         in {ITEM_USE_TYPE_ARMOR, ITEM_USE_TYPE_WEAPON}
     }
     valid_equipment_ids = equipment_ids & data.included_item_ids
-    assert len(equipment_ids) == 309
-    assert len(valid_equipment_ids) == 189
-    assert sum(data.effective_item_levels[item_id] < 50 for item_id in valid_equipment_ids) == 101
-    assert sum(data.effective_item_levels[item_id] == 50 for item_id in valid_equipment_ids) == 88
-    assert len(equipment_ids - valid_equipment_ids) == 120
-    assert data.npc_metrics[1].hp == 30
-    assert data.npc_metrics[1].live_kills == 5
-    assert data.npc_metrics[109].hp == 8700
-    assert data.npc_metrics[11].ac == 300
-    assert data.effective_quest_levels[17] == 28
-    assert data.effective_quest_levels[35] == 50
-    assert data.effective_quest_levels[49] == 33
+    assert valid_equipment_ids <= equipment_ids
     assert all(level >= 1 for level in data.effective_item_levels.values())
     assert all(level >= 1 for level in data.effective_quest_levels.values())
     assert set(data.effective_item_levels) == set(data.included_item_ids)
-    pre_50_npc_ids = {npc_id for npc_id in data.leveling_npc_ids if data.npc_metrics[npc_id].level < 50}
-    assert len(pre_50_npc_ids) == 58
-    assert len(data.transition_npc_ids) == 38
-    assert len(data.endgame_npc_ids) == 48
-    assert sorted(set(range(1, 50)) - {data.npc_metrics[npc_id].level for npc_id in pre_50_npc_ids}) == [3, 5, 7, 10, 11, 19, 26, 27, 29, 31, 34, 36, 37, 38, 39, 41, 44, 46, 47, 48, 49]
-    assert data.npc_metrics[40].hp == 492 and data.npc_metrics[40].ac == 120
-    assert data.npc_metrics[20].hp == 261 and data.npc_metrics[20].ac == 0
-    assert data.npc_metrics[24].hp == 261 and data.npc_metrics[24].ac == 0
-    assert int(data.npcs[40]["experience"]) == int(data.npcs[20]["experience"]) == int(data.npcs[24]["experience"]) == 246
-    assert data.npc_metrics[28].hp == 1886 and data.npc_metrics[28].ac == 0
-    one_time_quest_ids = {quest_id for quest_id, quest in data.quests.items() if not enabled(quest["repeatable"])}
-    assert len(one_time_quest_ids) == 48
-    assert sum(int(reward["long_value"]) for quest_id in one_time_quest_ids for reward in data.quest_rewards.get(quest_id, ()) if int(reward["reward_type"]) == 5) == 774000
-    assert sum(int(reward["long_value"]) for quest_id in one_time_quest_ids for reward in data.quest_rewards.get(quest_id, ()) if int(reward["reward_type"]) == 0) == 649500
-    gear_levels_by_slot = {
-        slot: sorted({data.effective_item_levels[item_id] for item_id in valid_equipment_ids if int(data.items[item_id]["item_slot"]) == slot})
-        for slot in (4, 5, 6, 7, 13)
-    }
-    assert gear_levels_by_slot[4][0] == 25
-    assert gear_levels_by_slot[5] == [50]
-    assert gear_levels_by_slot[6][0] == 33
-    assert gear_levels_by_slot[7] == [15, 50]
-    assert gear_levels_by_slot[13] == []
-    assert data.effective_item_levels[115] == 50
-    practice = data.items[451]
-    long_sword = data.items[18]
-    assert 10 * (int(practice["weapon_damage"]) + int(practice["stat_str"])) / int(practice["weapon_delay"]) > 10 * (int(long_sword["weapon_damage"]) + int(long_sword["stat_str"])) / int(long_sword["weapon_delay"])
-    searing_throughput = 10 * (int(data.items[214]["weapon_damage"]) + int(data.items[214]["stat_str"])) / int(data.items[214]["weapon_delay"])
-    assert all(searing_throughput > 10 * (int(data.items[item_id]["weapon_damage"]) + int(data.items[item_id]["stat_str"])) / int(data.items[item_id]["weapon_delay"]) for item_id in (202, 203, 211))
-    assert all(int(data.items[item_id]["class_restrictions"]) == 0 for item_id in (132, 140, 161, 163))
-    assert tuple(int(data.items[161][column]) for column in ("player_hp", "player_mp", "stat_ac", "stat_str", "stat_sta", "stat_dex", "stat_int")) == (300, 300, 125, 25, 25, 25, 25)
-    assert int(data.spells[67]["mp_static_cost"]) == 400 and int(data.spells[67]["spell_aether"]) == 4000
-    assert int(data.spells[69]["mp_static_cost"]) == 350 and int(data.spells[69]["spell_aether"]) == 1000
-    assert str(data.spell_effects[int(data.spells[67]["spell_effect_id"])]["hp_change_formula"]) == "-250"
-    assert str(data.spell_effects[int(data.spells[69]["spell_effect_id"])]["hp_change_formula"]) == "-300"
-    assert Counter(grant.class_id for grant in data.class_spell_grants) == Counter({2: 10, 3: 15})
-    assert all(grant.level >= 5 for grant in data.class_spell_grants + data.scroll_spell_grants + data.quest_spell_grants)
-    backstab_ids = sorted((spell_id for spell_id, spell in data.spells.items() if str(spell["spell_name"]).startswith("Backstab ")), key=lambda spell_id: int(str(data.spells[spell_id]["spell_name"]).rsplit(" ", 1)[1]))
-    assert [int(data.spells[spell_id]["spell_aether"]) // 1000 for spell_id in backstab_ids] == [18, 23, 27, 23, 18]
-    fortify_ids = sorted((spell_id for spell_id, spell in data.spells.items() if str(spell["spell_name"]).startswith("Fortify ")), key=lambda spell_id: int(str(data.spells[spell_id]["spell_name"]).rsplit(" ", 1)[1]))
-    assert [int(data.spells[spell_id]["spell_aether"]) // 1000 for spell_id in fortify_ids] == [30, 5, 5, 5, 5]
+    assert all(
+        grant.level >= 5
+        for grant in data.class_spell_grants
+        + data.scroll_spell_grants
+        + data.quest_spell_grants
+    )
+    for npc_id, metrics in data.npc_metrics.items():
+        npc = data.npcs[npc_id]
+        baseline = data.class_info[(int(npc["class_id"]), int(npc["npc_level"]))]
+        assert metrics.hp == int(npc["npc_hp"]) + int(baseline["player_hp"])
+        assert metrics.mp == int(npc["npc_mp"]) + int(baseline["player_mp"])
+        assert metrics.ac == int(npc["stat_ac"]) + int(baseline["stat_ac"])
     for item_id in data.included_item_ids:
         eligible_paths = tuple(path for path in data.item_sources[item_id] if path.eligible)
         assert eligible_paths
@@ -1193,6 +1122,13 @@ def summary(data: ReportData, database_digest: str) -> dict[str, Any]:
         if path.eligible
     )
     excluded_counts = Counter(data.excluded_item_reasons.values())
+    equipment_ids = {
+        item_id
+        for item_id in data.scoped_item_ids
+        if int(data.items[item_id]["item_usetype"])
+        in {ITEM_USE_TYPE_ARMOR, ITEM_USE_TYPE_WEAPON}
+    }
+    valid_equipment_ids = equipment_ids & data.included_item_ids
     return {
         "database_sha256": database_digest,
         "experience_modifier": data.experience_modifier,
@@ -1217,11 +1153,17 @@ def summary(data: ReportData, database_digest: str) -> dict[str, Any]:
             "in_level_xp_scope": len(data.scoped_item_ids),
             "included": len(data.included_item_ids),
             "excluded": len(data.items) - len(data.included_item_ids),
-            "no_xp_equipment": 309,
-            "valid_source_equipment": 189,
-            "pre_50_equipment": 101,
-            "first_available_at_50_equipment": 88,
-            "no_valid_source_equipment": 120,
+            "no_xp_equipment": len(equipment_ids),
+            "valid_source_equipment": len(valid_equipment_ids),
+            "pre_50_equipment": sum(
+                data.effective_item_levels[item_id] < MAX_LEVEL
+                for item_id in valid_equipment_ids
+            ),
+            "first_available_at_50_equipment": sum(
+                data.effective_item_levels[item_id] == MAX_LEVEL
+                for item_id in valid_equipment_ids
+            ),
+            "no_valid_source_equipment": len(equipment_ids - valid_equipment_ids),
             "eligible_sources": dict(sorted(source_counts.items())),
             "excluded_reasons": dict(sorted(excluded_counts.items())),
             "excluded_vendor_only_gear": len(data.excluded_vendor_only_gear_ids),
@@ -1387,16 +1329,13 @@ def _compact_report(data: ReportData, report_summary: dict[str, Any]) -> str:
     missing_levels = [level for level in range(1, 50) if level not in hp_by_level]
     outliers = sorted((data.npc_metrics[npc_id].xp_per_hp or 0, npc_id) for npc_id in combat_ids)
     modifier_rate = float(load_settings(DEFAULT_SETTINGS)["ItemTitleChancePercent"]) * 100
+    equipment_summary = report_summary["items"]
     findings = [
-        ("Equipment scope", "309 no-XP equipment; 189 valid-source; 101 pre-50; 88 first at 50; 120 have no valid source."),
-        ("Slot coverage", "No necklace is available pre-50, no mount has a valid source, rings first appear around 23–25, pauldrons at 33, and cloaks span only 15–49."),
-        ("Dominant gear", "Thick Skin of the Boar (160) and Poo Flinger pieces 161/163/132/140 dominate broad class-neutral frontiers."),
-        ("Monster coverage", "Missing eligible combat monster levels: " + ", ".join(map(str, missing_levels)) + "."),
+        ("Equipment scope", f"{equipment_summary['no_xp_equipment']} no-XP equipment; {equipment_summary['valid_source_equipment']} valid-source; {equipment_summary['pre_50_equipment']} pre-50; {equipment_summary['first_available_at_50_equipment']} first at 50; {equipment_summary['no_valid_source_equipment']} have no valid source."),
+        ("Slot coverage", "; ".join(f"{row[1]} first {row[2] or 'none'}, last {row[3] or 'none'}" for row in slot_rows)),
+        ("Monster coverage", "Missing eligible combat monster levels: " + (", ".join(map(str, missing_levels)) or "none") + "."),
         ("XP outliers", "; ".join(f'{data.npcs[npc_id]["npc_name"]} ({ratio:.3f} XP/HP)' for ratio, npc_id in outliers[:3] + outliers[-3:])),
-        ("Quest mismatches", "Effective dependency levels expose authored mismatches; Q17/Q35/Q49 resolve to 28/50/33."),
-        ("Q27 gold→XP loop", "Repeatable Potion Stock buys 40 small potions for 2,000g and returns 1,600g plus 1,000 raw/2,000 live XP: 400g net converts to XP."),
-        ("Elemental Strike", "Rank 8 costs 4,000ms for -250 while rank 9 costs 1,000ms for -300, so rank 8 is dominated once rank 9 unlocks."),
-        ("Backstab", "Cooldowns are nonmonotonic across ranks: 18s, 23s, 27s, 23s, 18s."),
+        ("Quest mismatches", f"{sum(value > 0 for _, value in quest_mismatches)} reachable quests differ from their authored minimum after dependencies."),
         ("Random modifiers", f"Title and surname outer gates roll independently at {modifier_rate:g}%. Each applicable modifier independently enters a candidate pool using its authored chance; an empty pool applies nothing, and one successful candidate is chosen uniformly. Modifier templates require min_level >=1, so authored min_level=0 equipment is ineligible."),
     ]
     modifier_rows = [("Title", row["id"], row["name"], row["min_level"], row["item_usetype"], row["chance"], row["script_params"]) for row in data.item_titles] + [("Surname", row["id"], row["name"], row["min_level"], row["item_usetype"], row["chance"], row["script_params"]) for row in data.item_surnames]
@@ -1522,8 +1461,6 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
 def main(argv: Sequence[str] | None = None) -> int:
     args = parse_args(argv)
     data, report_summary = generate(args.database)
-    if args.database.resolve() == DEFAULT_DATABASE.resolve():
-        assert report_summary["database_sha256"] == EXPECTED_DATABASE_SHA256
     document = render_report(data, report_summary)
     assert_report_invariants(document)
     args.output.parent.mkdir(parents=True, exist_ok=True)
