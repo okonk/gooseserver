@@ -75,6 +75,24 @@ namespace Goose.Quests
             }
         }
 
+        internal static List<Quest> GetActiveQuests(Player player)
+        {
+            return player.QuestsStarted
+                .Where(q => !(player.QuestsCompleted.Any(c => c.Id == q.Id) && !q.Repeatable))
+                .ToList();
+        }
+
+        internal static string? FindGrantingNpc(GameWorld world, int questId)
+        {
+            foreach (var template in world.NPCHandler.GetTemplates())
+            {
+                if (template.Quests.Any(q => q.Id == questId))
+                    return template.Name;
+            }
+
+            return null;
+        }
+
         internal static List<Quest> GetAvailableQuests(NPC npc, Player player)
         {
             var available = new List<Quest>();
@@ -371,10 +389,14 @@ namespace Goose.Quests
                 player.QuestsCompleted.Add(quest);
             }
 
-            if (!quest.Repeatable)
+            // A completed repeatable quest is done until the player re-accepts it at the NPC.
+            // Its progress is dropped too: kills while inactive would still credit it.
+            if (quest.Repeatable)
             {
-                player.QuestProgress.RemoveAll(p => p.Requirement.Quest.Id == quest.Id);
+                player.QuestsStarted.RemoveAll(q => q.Id == quest.Id);
             }
+
+            player.QuestProgress.RemoveAll(p => p.Requirement.Quest.Id == quest.Id);
 
             this.TakeRequirements(player, world);
             this.GiveRewards(npc, player, world);

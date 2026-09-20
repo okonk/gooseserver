@@ -10,9 +10,7 @@ namespace Goose.Commands
             var player = ctx.Player;
             var world = ctx.World;
 
-            var active = player.QuestsStarted
-                .Where(q => !(player.QuestsCompleted.Any(c => c.Id == q.Id) && !q.Repeatable))
-                .ToList();
+            var active = QuestWindow.GetActiveQuests(player);
 
             if (active.Count == 0)
             {
@@ -33,7 +31,7 @@ namespace Goose.Commands
             var lines = active
                 .Select(q =>
                 {
-                    var npcName = FindGrantingNpc(world, q.Id);
+                    var npcName = QuestWindow.FindGrantingNpc(world, q.Id);
                     return npcName is null ? q.Name : $"{q.Name} ({npcName})";
                 })
                 .ToList();
@@ -48,17 +46,6 @@ namespace Goose.Commands
             }
 
             OpenList(player, world, 0);
-        }
-
-        private static string? FindGrantingNpc(GameWorld world, int questId)
-        {
-            foreach (var template in world.NPCHandler.GetTemplates())
-            {
-                if (template.Quests.Any(q => q.Id == questId))
-                    return template.Name;
-            }
-
-            return null;
         }
     }
 }

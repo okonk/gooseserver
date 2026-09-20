@@ -43,3 +43,6 @@ __pycache__/
 # skill points GOOGLE_WORKSPACE_CLI_CONFIG_DIR at this directory instead. It holds live
 # refresh tokens — never commit it.
 .gws/
+
+# local scratch data dumps
+.scratch/
