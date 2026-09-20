@@ -52,6 +52,15 @@ namespace Goose.Tests
             return long.Parse(packet.Substring(3).Split(',')[1]);
         }
 
+        private static long? LastSssRemainingMs(Player p)
+        {
+            var payload = Encoding.Latin1.GetString(p.SendBuffer.ToArray());
+            var packet = payload.Split('\x1').LastOrDefault(s => s.StartsWith("SSS"));
+            if (packet is null) return null;
+
+            return long.Parse(packet.Substring(3).Split(',')[^1]);
+        }
+
         [Fact]
         public void SpellCooldownRemaining_FormatsSlotAndRemainingMs()
         {
@@ -65,9 +74,42 @@ namespace Goose.Tests
             var spell = NewSpell();
             spell.Aether = (long)TimeSpan.FromHours(2).TotalMilliseconds;
 
-            var packet = P.SpellSlot(spell, 1, 0);
+            var packet = P.SpellSlot(spell, 1, 0, 0);
 
-            Assert.EndsWith("," + spell.Aether, packet);
+            Assert.EndsWith("," + spell.Aether + ",0", packet);
+        }
+
+        [Fact]
+        public void SpellSlot_AppendsRemainingMs()
+        {
+            var packet = P.SpellSlot(NewSpell(), 1, 0, 1500);
+
+            Assert.EndsWith(",10000,1500", packet);
+        }
+
+        [Fact]
+        public void SendSlot_NeverCast_SendsZeroRemaining()
+        {
+            var (p, world) = NewCaster();
+            p.Spellbook.AddSpell(NewSpell(), world);
+
+            p.Spellbook.SendSlot(1, world);
+
+            Assert.Equal(0, LastSssRemainingMs(p));
+        }
+
+        [Fact]
+        public void SendSlot_WhileOnCooldown_SendsRemainingNotTotal()
+        {
+            var (p, world) = NewCaster();
+            p.Spellbook.AddSpell(NewSpell(), world);
+            p.Spellbook.SetSlotLastCast(1, world.TimeNow - (long)(4.0 * world.TimerFrequency));
+
+            p.Spellbook.SendSlot(1, world);
+
+            var remaining = LastSssRemainingMs(p);
+            Assert.NotNull(remaining);
+            Assert.InRange(remaining!.Value, 5950, 6000);
         }
 
         [Fact]

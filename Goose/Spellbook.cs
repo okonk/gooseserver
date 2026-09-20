@@ -165,11 +165,20 @@ namespace Goose
                     }
                 }
 
-                world.Send(this.player, P.SpellSlot(spell, slot, targetType));
+                // lastcast starts negative for never-cast slots; the guard keeps the
+                // subtraction from overflowing long before the * 1000.
+                long remainingMs = 0;
+                if (spell.Aether > 0 && this.lastcast[slot] > 0)
+                {
+                    remainingMs = spell.Aether - (world.TimeNow - this.lastcast[slot]) * 1000 / world.TimerFrequency;
+                    if (remainingMs < 0) remainingMs = 0;
+                }
+
+                world.Send(this.player, P.SpellSlot(spell, slot, targetType, remainingMs));
             }
             else
             {
-                world.Send(this.player, P.SpellSlot(null, slot, 0));
+                world.Send(this.player, P.SpellSlot(null, slot, 0, 0));
             }
         }
 

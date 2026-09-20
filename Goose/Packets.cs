@@ -622,7 +622,7 @@ namespace Goose
             return "VCL";
         };
 
-        public static Func<Spell?, int, int, string> SpellSlot = (spell, slotId, targetType) =>
+        public static Func<Spell?, int, int, long, string> SpellSlot = (spell, slotId, targetType, remainingMs) =>
         {
             if (spell is null)
             {
@@ -637,7 +637,8 @@ namespace Goose
                     targetType + "," +
                     spell.Graphic + "," +
                     spell.GraphicFile + "," +
-                    spell.Aether;
+                    spell.Aether + "," +
+                    remainingMs;
         };
 
         public static Func<int, long, string> SpellCooldownRemaining = (slotId, remainingMs) =>
