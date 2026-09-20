@@ -557,7 +557,7 @@ public class AsperetaMode : BaseGlobalScript
             return "EMOT" + target.LoginID + ",8";
         };
 
-        P.BuffBar = (buff, index) =>
+        P.BuffBar = (buff, index, durationMs) =>
         {
             if (buff == null)
             {
