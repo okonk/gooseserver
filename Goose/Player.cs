@@ -2185,6 +2185,7 @@ namespace Goose
                     string packet = P.BattleTextYellow(this, "Fizzle");
 
                     world.Send(this, packet);
+                    world.Send(this, P.SpellCooldownRemaining(spellslot, 0));
                     foreach (var player in this.Map.GetPlayersInRange(this))
                     {
                         world.Send(player, packet);
@@ -2196,6 +2197,7 @@ namespace Goose
                 double wait = ((((spell.Aether / 1000.0) * world.TimerFrequency) - (now - lastcast))
                     / world.TimerFrequency);
                 wait = Math.Round(wait, 2);
+                world.Send(this, P.SpellCooldownRemaining(spellslot, (long)(wait * 1000)));
                 if (wait >= this.AetherThreshold)
                 {
                     world.Send(this, P.BattleTextYellow(this, Utils.FormatDuration((long)(wait * 1000))));

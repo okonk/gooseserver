@@ -640,6 +640,11 @@ namespace Goose
                     (spell.Aether > TimeSpan.FromHours(1).TotalMilliseconds ? 5000 : spell.Aether);
         };
 
+        public static Func<int, long, string> SpellCooldownRemaining = (slotId, remainingMs) =>
+        {
+            return "CDR" + slotId + "," + remainingMs;
+        };
+
         public static Func<Player?, int, string> GroupUpdate = (player, index) =>
         {
             if (player is null)
