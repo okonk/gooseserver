@@ -2567,18 +2567,17 @@ namespace Goose
             {
                 if (buff.ItemBuff && !this.ShowItemBuffs) continue;
 
-                // Remaining ms, not total: the full bar is re-sent on every add/renew/remove,
-                // so a total duration would make the client restart unrelated buffs' countdowns.
-                long remainingMs = buff.SpellEffect.Duration > 0
-                    ? Math.Max(0, (buff.TimeCast + buff.SpellEffect.Duration * world.TimerFrequency - world.TimeNow) * 1000 / world.TimerFrequency)
+                long totalMs = buff.SpellEffect.Duration > 0 ? buff.SpellEffect.Duration * 1000 : 0;
+                long remainingMs = totalMs > 0
+                    ? Math.Max(0, Math.Min(totalMs, (buff.TimeCast + buff.SpellEffect.Duration * world.TimerFrequency - world.TimeNow) * 1000 / world.TimerFrequency))
                     : 0;
-                world.Send(this, P.BuffBar(buff, i, remainingMs));
+                world.Send(this, P.BuffBar(buff, i, remainingMs, totalMs));
                 i++;
             }
 
             while (i <= world.Settings.BuffBarVisibleSize)
             {
-                world.Send(this, P.BuffBar(null, i, 0));
+                world.Send(this, P.BuffBar(null, i, 0, 0));
                 i++;
             }
         }

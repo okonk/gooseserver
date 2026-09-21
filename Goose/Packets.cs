@@ -670,14 +670,14 @@ namespace Goose
             return "GUD" + index + "," + player.LoginID + "," + player.Name + "," + player.Level + "," + player.Class.ClassName;
         };
 
-        public static Func<Buff?, int, long, string> BuffBar = (buff, index, durationMs) =>
+        public static Func<Buff?, int, long, long, string> BuffBar = (buff, index, remainingMs, totalMs) =>
         {
             if (buff is null)
             {
                 return "BUF" + index;
             }
 
-            return "BUF" + index + "," + buff.SpellEffect.BuffGraphic + "," + buff.SpellEffect.BuffGraphicFile + "," + buff.SpellEffect.Name + "," + durationMs;
+            return "BUF" + index + "," + buff.SpellEffect.BuffGraphic + "," + buff.SpellEffect.BuffGraphicFile + "," + buff.SpellEffect.Name + "," + remainingMs + "," + totalMs;
         };
 
         public static Func<Window, string> MakeWindow = (window) =>

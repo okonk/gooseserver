@@ -17,14 +17,15 @@ public class BuffBarPacketTests
 
         player.SendBuffBar(fixture.World);
 
-        var remainingMs = ParseRemainingMs(player.Sent, "BUF1,");
+        var (remainingMs, totalMs) = ParseRemainingAndTotalMs(player.Sent, "BUF1,");
         Assert.InRange(remainingMs, 119000, 120000);
+        Assert.Equal(120000, totalMs);
         Assert.Contains("BUF2" + "\x01", player.Sent);
         Assert.Contains("BUF3" + "\x01", player.Sent);
     }
 
     [Fact]
-    public void SendBuffBar_PartiallyElapsedBuff_SendsRemainingNotTotal()
+    public void SendBuffBar_PartiallyElapsedBuff_SendsRemainingAndTotal()
     {
         using var fixture = new TestWorldFixture();
         var map = fixture.AddBaseMap(1, "m");
@@ -36,20 +37,21 @@ public class BuffBarPacketTests
 
         player.SendBuffBar(fixture.World);
 
-        var remainingMs = ParseRemainingMs(player.Sent, "BUF1,");
+        var (remainingMs, totalMs) = ParseRemainingAndTotalMs(player.Sent, "BUF1,");
         Assert.InRange(remainingMs, 59000, 60000);
+        Assert.Equal(120000, totalMs);
     }
 
-    private static long ParseRemainingMs(List<string> sent, string prefix)
+    private static (long, long) ParseRemainingAndTotalMs(List<string> sent, string prefix)
     {
-        var packet = sent.Single(s => s.StartsWith(prefix));
-        return long.Parse(packet.TrimEnd('\x01').Split(',')[4]);
+        var packet = sent.Single(s => s.StartsWith(prefix)).TrimEnd('\x01').Split(',');
+        return (long.Parse(packet[4]), long.Parse(packet[5]));
     }
 
     [Fact]
     public void SendBuffBar_PermanentBuff_SendsZeroDuration()
     {
-        // Duration 0 → "BUF1,5,12,Charm,0" (client shows no sweep for 0)
+        // Duration 0 → "BUF1,5,12,Charm,0,0" (client shows no sweep for 0)
         using var fixture = new TestWorldFixture();
         var map = fixture.AddBaseMap(1, "m");
         var player = fixture.CommandPlayerOn(map, 1, 1);
@@ -59,7 +61,7 @@ public class BuffBarPacketTests
 
         player.SendBuffBar(fixture.World);
 
-        Assert.Contains("BUF1,5,12,Charm,0" + "\x01", player.Sent);
+        Assert.Contains("BUF1,5,12,Charm,0,0" + "\x01", player.Sent);
     }
 
     [Fact]
