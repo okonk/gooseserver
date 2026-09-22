@@ -107,11 +107,19 @@ namespace Goose
         // Depth, not a bool: Equip/Unequip nest AddItem/RemoveItem/Unequip calls and must
         // publish a single icon refresh for the final state, never the intermediate one.
         private int questIconRefreshDepth;
+        // Set by a suppressed RefreshQuestIcons (which only fires after a real mutation),
+        // so a failed compound operation that still mutated state publishes one refresh.
+        private bool questIconRefreshDirty;
 
         private void RefreshQuestIcons(GameWorld world)
         {
-            if (this.questIconRefreshDepth > 0) return;
+            if (this.questIconRefreshDepth > 0)
+            {
+                this.questIconRefreshDirty = true;
+                return;
+            }
 
+            this.questIconRefreshDirty = false;
             world.QuestHandler.RefreshIcons(this.player, world);
         }
 
@@ -328,8 +336,12 @@ namespace Goose
         public bool Equip(Item item, GameWorld world)
         {
             bool result = false;
+            this.questIconRefreshDirty = false;
             this.SuppressQuestIconRefresh(world, () => result = this.EquipCore(item, world));
-            if (result) this.RefreshQuestIcons(world);
+            // EquipCore can mutate state (conflicting/target-slot unequip) and then fail;
+            // publish the final state exactly once whenever anything changed.
+            if (result || this.questIconRefreshDirty)
+                this.RefreshQuestIcons(world);
             return result;
         }
 

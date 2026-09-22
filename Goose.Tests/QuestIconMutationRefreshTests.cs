@@ -156,6 +156,75 @@ public class QuestIconMutationRefreshTests
     }
 
     [Fact]
+    public void Equip_PartiallyMutatedFailure_PublishesExactlyOneFinalIcon()
+    {
+        var quest = MakeQuest(1, Req(1, RequirementType.Item, 100, 1));
+        var (world, _, player, npc) = Setup(null, quest);
+        player.QuestsStarted.Add(quest);
+
+        world.AddBaseItemTemplate(100, "Shield", ItemTemplate.UseTypes.Armor,
+            t => t.Slot = ItemTemplate.ItemSlots.Shield);
+        world.AddBaseItemTemplate(200, "Sword", ItemTemplate.UseTypes.Weapon);
+        world.AddBaseItemTemplate(300, "Greatsword", ItemTemplate.UseTypes.Weapon,
+            t => t.Slot = ItemTemplate.ItemSlots.TwoHanded);
+        Item FromTemplate(int id)
+        {
+            var item = new Item();
+            item.LoadFromTemplate(world.World.ItemHandler.GetTemplate(id)!);
+            world.World.ItemHandler.AddAndAssignId(item, world.World);
+            return item;
+        }
+        var shield = FromTemplate(100);
+        var sword = FromTemplate(200);
+        var greatsword = FromTemplate(300);
+
+        // Leave exactly one free inventory slot with shield + sword equipped and the
+        // 2H weapon in the bag: equipping it moves the shield into the last free slot,
+        // then the sword cannot be unequipped because the inventory is now full.
+        for (var i = 0; i < world.Settings.InventorySize - 2; i++)
+            Assert.True(player.Inventory.AddItem(MakeItem(world, 999), 1, world.World));
+        Assert.True(player.Inventory.AddItem(greatsword, 1, world.World));
+        Assert.True(player.Inventory.AddItem(shield, 1, world.World));
+        Assert.True(player.Inventory.Equip(shield, world.World));
+        Assert.True(player.Inventory.AddItem(sword, 1, world.World));
+        Assert.True(player.Inventory.Equip(sword, world.World));
+        player.Sent.Clear();
+
+        Assert.False(player.Inventory.Equip(greatsword, world.World));
+
+        Assert.NotNull(player.Inventory.GetEquippedSlot(Inventory.EquipSlots.Weapon));
+        Assert.Null(player.Inventory.GetEquippedSlot(Inventory.EquipSlots.Shield));
+        Assert.True(player.Inventory.HasItem(100, 1));
+        Assert.True(player.Inventory.HasItem(300, 1));
+
+        Assert.Equal([ReadyChi(world, npc.LoginID)], Chis(player, npc.LoginID));
+    }
+
+    [Fact]
+    public void Equip_NoMutationFailure_SendsNoIconRefresh()
+    {
+        var quest = MakeQuest(1, Req(1, RequirementType.Item, 100, 1));
+        var (world, _, player, npc) = Setup(null, quest);
+        player.QuestsStarted.Add(quest);
+        world.AddBaseItemTemplate(100, "Shield", ItemTemplate.UseTypes.Armor,
+            t => t.Slot = ItemTemplate.ItemSlots.Shield);
+        var shield = new Item();
+        shield.LoadFromTemplate(world.World.ItemHandler.GetTemplate(100)!);
+        world.World.ItemHandler.AddAndAssignId(shield, world.World);
+        Assert.True(player.Inventory.AddItem(shield, 1, world.World));
+        Assert.True(player.Inventory.Equip(shield, world.World));
+        // Full inventory: the shield cannot be unequipped to make room, so the
+        // operation fails before mutating anything and must publish nothing.
+        for (var i = 0; i < world.Settings.InventorySize; i++)
+            Assert.True(player.Inventory.AddItem(MakeItem(world, 999), 1, world.World));
+        player.Sent.Clear();
+
+        Assert.False(player.Inventory.Equip(shield, world.World));
+
+        Assert.Empty(Chis(player, npc.LoginID));
+    }
+
+    [Fact]
     public void InventoryToWindow_CrossingItemRequirement_ClearsIcon()
     {
         var quest = MakeQuest(1, Req(1, RequirementType.Item, 100, 1));

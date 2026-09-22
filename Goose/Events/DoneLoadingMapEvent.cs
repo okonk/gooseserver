@@ -75,6 +75,10 @@ namespace Goose.Events
                     }
                 }
 
+                // Must be set before the NPC loop: SendIcon's quest resolution can run
+                // scripted requirements that read Player.Map.
+                this.Player.Map = map;
+
                 List<NPC> npcrange = map.GetNPCsInRange(this.Player);
                 foreach (var npc in npcrange)
                 {
@@ -85,7 +89,6 @@ namespace Goose.Events
                         npc.AggroIfInRange(this.Player, world);
                 }
 
-                this.Player.Map = map;
                 this.Player.Map.AddPlayer(this.Player, world);
 
                 this.Player.AddRegenEvent(world);

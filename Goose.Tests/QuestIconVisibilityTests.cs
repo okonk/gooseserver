@@ -108,6 +108,44 @@ public class QuestIconVisibilityTests : IDisposable
     }
 
     [Fact]
+    public void InitialMapLoad_ScriptedRequirementReadingMap_ResolvesAgainstNewMap()
+    {
+        var destination = world.AddBaseMap(2, "Destination", 40, 40);
+
+        var script = world.CompileQuestScript(@"
+using Goose; using Goose.Quests; using Goose.Scripting;
+public class T : BaseQuestScript
+{
+    public override bool IsMet(QuestRequirement requirement, Player player, GameWorld world)
+        => player.Map is not null && player.Map.ID == 2;
+}
+return typeof(T);
+");
+        var quest = new Quest { Id = 1, Name = "Q", Description = "d" };
+        quest.Requirements.Add(new QuestRequirement
+        {
+            Id = 1, Type = RequirementType.Script, Script = script, Quest = quest,
+        });
+
+        var npc = world.World.NPCHandler.SpawnNPC(world.World, 2, 10, 10, NewTemplate(quest), false)!;
+
+        var player = world.CommandPlayerOn(destination, 10, 10, "Hero");
+        // Simulate the post-teleport state: removed from the old map, Map is null.
+        player.Map = null!;
+        player.MapID = destination.ID;
+        player.QuestsStarted.Add(quest);
+        player.State = Player.States.LoadingMap;
+
+        var ev = new DoneLoadingMapEvent { Player = player, Ticks = world.World.TimeNow };
+        world.World.EventHandler.AddEvent(ev);
+        world.World.EventHandler.Update(world.World);
+
+        var s = world.Settings;
+        Assert.Contains(player.Sent, pkt =>
+            pkt.StartsWith($"CHI{npc.LoginID},{s.QuestReadyIconSheet},{s.QuestReadyIconGraphic}"));
+    }
+
+    [Fact]
     public void SameNpc_SendsDifferentIconPayloadsToDifferentViewers()
     {
         var map = NewMap();
