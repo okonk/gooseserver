@@ -133,7 +133,7 @@ public class QuestAbandonCommandTests
         Assert.DoesNotContain(fixture.Player.QuestsStarted, q => q.Id == fixture.Quest.Id);
         Assert.Empty(fixture.Player.QuestProgress);
 
-        QuestWindow.StartQuest(fixture.Quest, fixture.Player);
+        QuestWindow.StartQuest(fixture.Quest, fixture.Player, fixture.World.World);
 
         Assert.Contains(fixture.Player.QuestsStarted, q => q.Id == fixture.Quest.Id);
         var progress = Assert.Single(fixture.Player.QuestProgress);

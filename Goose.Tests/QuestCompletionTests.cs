@@ -79,7 +79,7 @@ public class QuestCompletionTests
         fixture.Player.QuestsStarted.Add(fixture.Quest);
         CompleteViaWindow(fixture);
 
-        QuestWindow.StartQuest(fixture.Quest, fixture.Player);
+        QuestWindow.StartQuest(fixture.Quest, fixture.Player, fixture.World.World);
 
         Assert.Contains(fixture.Player.QuestsStarted, q => q.Id == fixture.Quest.Id);
     }
@@ -107,7 +107,7 @@ public class QuestCompletionTests
         fixture.Player.QuestProgress.Add(new QuestProgress { Requirement = requirement, Value = 10 });
 
         CompleteViaWindow(fixture);
-        QuestWindow.StartQuest(fixture.Quest, fixture.Player);
+        QuestWindow.StartQuest(fixture.Quest, fixture.Player, fixture.World.World);
 
         var progress = Assert.Single(fixture.Player.QuestProgress);
         Assert.Equal(0, progress.Value);

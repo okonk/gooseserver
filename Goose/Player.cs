@@ -1211,17 +1211,22 @@ namespace Goose
 
         private void UpdatePossibleQuestProgress(RequirementType requirementType, long requirementValue, GameWorld world)
         {
+            bool changed = false;
             foreach (var progress in this.QuestProgress)
             {
                 if (progress.Requirement.Type == requirementType && progress.Requirement.Value == requirementValue)
                 {
                     progress.Value++;
+                    changed = true;
                     if (!QuestCreditFilterEnabled)
                     {
                         world.Send(this, P.BattleTextYellow(this, "Quest Credit: " + progress.Requirement.Quest.Name));
                     }
                 }
             }
+
+            if (changed)
+                world.QuestHandler.RefreshIcons(this, world);
         }
 
         private Action<SQLiteConnection> BuildSaveQuests()

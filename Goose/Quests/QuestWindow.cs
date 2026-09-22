@@ -57,7 +57,7 @@ namespace Goose.Quests
 
             if (quests.Count == 1)
             {
-                StartQuest(quests[0], player);
+                StartQuest(quests[0], player, world);
                 new QuestWindow(npc, player, quests[0], world);
             }
             else
@@ -68,7 +68,7 @@ namespace Goose.Quests
                     (line, p, w) =>
                     {
                         var quest = quests[line];
-                        QuestWindow.StartQuest(quest, p);
+                        QuestWindow.StartQuest(quest, p, w);
                         new QuestWindow(npc, p, quest, w);
                     },
                     npc,
@@ -118,7 +118,7 @@ namespace Goose.Quests
             return available;
         }
 
-        internal static void StartQuest(Quest quest, Player player)
+        internal static void StartQuest(Quest quest, Player player, GameWorld world)
         {
             if (player.QuestsStarted.Any(q => q.Id == quest.Id))
                 return;
@@ -135,6 +135,8 @@ namespace Goose.Quests
                     }
                 }
             }
+
+            world.QuestHandler.RefreshIcons(player, world);
         }
 
         public override void Populate(Player player, GameWorld world)
@@ -362,6 +364,8 @@ namespace Goose.Quests
 
             this.TakeRequirements(player, world);
             this.GiveRewards(npc, player, world);
+
+            world.QuestHandler.RefreshIcons(player, world);
         }
 
         private void GiveRewards(NPC npc, Player player, GameWorld world)
