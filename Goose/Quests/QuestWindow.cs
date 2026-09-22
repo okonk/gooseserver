@@ -30,7 +30,7 @@ namespace Goose.Quests
             this.NPC = npc;
             this.quest = quest;
 
-            if (player.Level < quest.MinLevel || player.Experience + player.ExperienceSold < quest.MinExperience)
+            if (!QuestStateResolver.MeetsMinimumGates(quest, player))
                 this.state = QuestWindowState.QuestNotRightLevel;
             else
                 this.state = QuestWindowState.QuestDescription;
@@ -304,51 +304,7 @@ namespace Goose.Quests
         }
 
         public bool PlayerMeetsRequirements(Player player, GameWorld world)
-        {
-            foreach (var requirement in this.quest.Requirements)
-            {
-                switch (requirement.Type)
-                {
-                    case RequirementType.Gold:
-                        if (player.Gold < requirement.Value)
-                            return false;
-                        break;
-                    case RequirementType.Item:
-                        if (!player.Inventory.HasItem((int)requirement.Value, requirement.Value2))
-                            return false;
-                        break;
-                    case RequirementType.TalkToNPC:
-                    case RequirementType.Kill:
-                        if (!player.QuestProgress.Any(p => p.Requirement.Id == requirement.Id && p.Value >= p.Requirement.Value2))
-                            return false;
-                        break;
-                    case RequirementType.ExperienceBanked:
-                        if (player.Experience < requirement.Value)
-                            return false;
-                        break;
-                    case RequirementType.ExperienceSold:
-                        if (player.ExperienceSold < requirement.Value)
-                            return false;
-                        break;
-                    case RequirementType.NothingEquipped:
-                        foreach (Inventory.EquipSlots slot in Enum.GetValues(typeof(Inventory.EquipSlots)))
-                        {
-                            if (player.Inventory.GetEquippedSlot(slot) is not null)
-                                return false;
-                        }
-
-                        break;
-                    case RequirementType.Script:
-                        if (!requirement.Script!.Object.IsMet(requirement, player, world))
-                            return false;
-                        break;
-                    default:
-                        return false;
-                }
-            }
-
-            return true;
-        }
+            => QuestStateResolver.MeetsRequirements(this.quest, player, world);
 
         private bool PlayerHasEnoughSpellbookSpaceForReward(Player player)
         {

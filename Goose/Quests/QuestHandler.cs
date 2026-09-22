@@ -87,5 +87,31 @@ namespace Goose.Quests
         {
             this.Quests[quest.Id] = quest;
         }
+
+        public void SendIcon(Player viewer, NPC npc, GameWorld world)
+        {
+            switch (QuestStateResolver.Resolve(npc, viewer, world))
+            {
+                case QuestIconState.Ready:
+                    world.SendCharacterIcon(viewer, npc, world.Settings.QuestReadyIconSheet, world.Settings.QuestReadyIconGraphic);
+                    break;
+                case QuestIconState.Available:
+                    world.SendCharacterIcon(viewer, npc, world.Settings.QuestAvailableIconSheet, world.Settings.QuestAvailableIconGraphic);
+                    break;
+                default:
+                    // Always send, even clear: a stale icon must not survive a quest ending.
+                    world.SendCharacterIcon(viewer, npc, 0, 0);
+                    break;
+            }
+        }
+
+        public void RefreshIcons(Player viewer, GameWorld world)
+        {
+            if (viewer.State != Player.States.Ready || viewer.Map is null)
+                return;
+
+            foreach (var npc in viewer.Map.GetNPCsInRange(viewer))
+                SendIcon(viewer, npc, world);
+        }
     }
 }

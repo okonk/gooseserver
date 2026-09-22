@@ -61,6 +61,12 @@ namespace Goose.Commands
                 }
             }
 
+            if (setting is "QuestAvailableIconSheet" or "QuestAvailableIconGraphic" or "QuestReadyIconSheet" or "QuestReadyIconGraphic")
+            {
+                foreach (var player in world.PlayerHandler.Players)
+                    world.QuestHandler.RefreshIcons(player, world);
+            }
+
             world.SendToAll(P.ServerMessage("[GM] Set Game Setting " + setting + " to: " + valueText));
         }
 
