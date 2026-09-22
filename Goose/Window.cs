@@ -58,7 +58,7 @@ namespace Goose
         // option-list line clicks (line = id - LineClickOffset). Client counterpart:
         // OptionListWindow.LineClickOffset in Goose2ClientGodot.
         public const int LineClickOffset = 20;
-        public const int LineClickCount = 10;
+        public const int LineClickCount = 8;
         public enum WindowTypes
         {
             Vendor = 1,

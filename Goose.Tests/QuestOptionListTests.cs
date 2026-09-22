@@ -168,9 +168,9 @@ public class QuestOptionListTests
     }
 
     [Fact]
-    public void Handle_MoreThanTenQuests_PagesOptionListAtLineLimit()
+    public void Handle_MoreThanEightQuests_PagesOptionListAtLineLimit()
     {
-        var quests = Enumerable.Range(1, 11).Select(i => MakeQuest(i, $"Quest {i}")).ToArray();
+        var quests = Enumerable.Range(1, Window.LineClickCount + 1).Select(i => MakeQuest(i, $"Quest {i}")).ToArray();
         var (world, npc, player) = Setup(quests);
 
         QuestWindow.Handle(npc, player, world.World);
@@ -179,14 +179,14 @@ public class QuestOptionListTests
         var list = player.Windows[0];
         Assert.Equal("0,1,0,1,0", list.Buttons);
         var lines = player.Sent.Where(s => s.StartsWith("WNF")).ToArray();
-        Assert.Equal(10, lines.Length);
-        Assert.DoesNotContain(lines, s => s.Contains("Quest 11|"));
+        Assert.Equal(Window.LineClickCount, lines.Length);
+        Assert.DoesNotContain(lines, s => s.Contains($"Quest {Window.LineClickCount + 1}|"));
     }
 
     [Fact]
     public void NextPage_SendsRemainingLinesAndHidesNextButton()
     {
-        var quests = Enumerable.Range(1, 11).Select(i => MakeQuest(i, $"Quest {i}")).ToArray();
+        var quests = Enumerable.Range(1, Window.LineClickCount + 1).Select(i => MakeQuest(i, $"Quest {i}")).ToArray();
         var (world, npc, player) = Setup(quests);
 
         QuestWindow.Handle(npc, player, world.World);
@@ -195,13 +195,13 @@ public class QuestOptionListTests
 
         var list = player.Windows[0];
         Assert.Equal("0,1,1,0,0", list.Buttons);
-        Assert.Equal(["WNF1001,1,Quest 11|0|0|0|0|*"], player.Sent.Where(s => s.StartsWith("WNF")).ToArray());
+        Assert.Equal(["WNF1001,1,Quest 9|0|0|0|0|*"], player.Sent.Where(s => s.StartsWith("WNF")).ToArray());
     }
 
     [Fact]
     public void NextPage_LineClick_UsesGlobalQuestIndex()
     {
-        var quests = Enumerable.Range(1, 11).Select(i => MakeQuest(i, $"Quest {i}")).ToArray();
+        var quests = Enumerable.Range(1, Window.LineClickCount + 1).Select(i => MakeQuest(i, $"Quest {i}")).ToArray();
         var (world, npc, player) = Setup(quests);
 
         QuestWindow.Handle(npc, player, world.World);
@@ -210,13 +210,13 @@ public class QuestOptionListTests
 
         Assert.Single(player.Windows);
         Assert.Equal(Window.WindowTypes.Quest, player.Windows[0].Type);
-        Assert.Contains(player.QuestsStarted, q => q.Id == 11);
+        Assert.Contains(player.QuestsStarted, q => q.Id == Window.LineClickCount + 1);
     }
 
     [Fact]
     public void Back_ReturnsToFirstPage()
     {
-        var quests = Enumerable.Range(1, 11).Select(i => MakeQuest(i, $"Quest {i}")).ToArray();
+        var quests = Enumerable.Range(1, Window.LineClickCount + 1).Select(i => MakeQuest(i, $"Quest {i}")).ToArray();
         var (world, npc, player) = Setup(quests);
 
         QuestWindow.Handle(npc, player, world.World);
@@ -227,7 +227,7 @@ public class QuestOptionListTests
         var list = player.Windows[0];
         Assert.Equal("0,1,0,1,0", list.Buttons);
         var lines = player.Sent.Where(s => s.StartsWith("WNF")).ToArray();
-        Assert.Equal(10, lines.Length);
+        Assert.Equal(Window.LineClickCount, lines.Length);
         Assert.Contains(lines, s => s.Contains("Quest 1|"));
     }
 

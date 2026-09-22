@@ -135,7 +135,7 @@ public class RecipesCommandTests
     public void BackButton_ReopensListOnSamePage()
     {
         var (world, player, ctx) = Setup();
-        for (var i = 1; i <= 12; i++)
+        for (var i = 1; i <= Window.LineClickCount + 4; i++)
             MakeCombination(world, i, $"Recipe {i}",
                 [(1, "Thread", 1)], [(10 + i, $"Recipe {i}")]);
 
@@ -154,33 +154,33 @@ public class RecipesCommandTests
         var list = Assert.IsType<OptionListWindow>(player.Windows[0]);
         Assert.Equal(1, list.Page);
         var lines = player.Sent.Where(s => s.StartsWith("WNF")).ToArray();
-        Assert.Equal(2, lines.Length);
-        Assert.Contains(lines, s => s.Contains("Recipe 11"));
-        Assert.Contains(lines, s => s.Contains("Recipe 12"));
+        Assert.Equal(4, lines.Length);
+        Assert.Contains(lines, s => s.Contains($"Recipe {Window.LineClickCount + 1}"));
+        Assert.Contains(lines, s => s.Contains($"Recipe {Window.LineClickCount + 4}"));
     }
 
     [Fact]
-    public void Execute_MoreThanTenCombinations_PagesAndOpensCorrectRecipe()
+    public void Execute_MoreThanEightCombinations_PagesAndOpensCorrectRecipe()
     {
         var (world, player, ctx) = Setup();
-        for (var i = 1; i <= 12; i++)
+        for (var i = 1; i <= Window.LineClickCount + 4; i++)
             MakeCombination(world, i, $"Recipe {i}",
                 [(1, "Thread", 1)], [(10 + i, $"Recipe {i}")]);
 
         new RecipesCommand().Execute(ctx);
         var lines = player.Sent.Where(s => s.StartsWith("WNF")).ToArray();
-        Assert.Equal(10, lines.Length);
+        Assert.Equal(Window.LineClickCount, lines.Length);
 
         player.Sent.Clear();
         player.Windows[0].Clicked(Window.ButtonTypes.Next, 0, 0, 0, player, ctx.World);
         lines = player.Sent.Where(s => s.StartsWith("WNF")).ToArray();
-        Assert.Equal(2, lines.Length);
+        Assert.Equal(4, lines.Length);
 
         player.Windows[0].LineClicked(1, 0, player, ctx.World);
 
         Assert.Single(player.Windows);
         var info = Assert.IsType<RecipeWindow>(player.Windows[0]);
-        Assert.Equal("Recipe 12", info.Title);
+        Assert.Equal($"Recipe {Window.LineClickCount + 2}", info.Title);
     }
 
     [Fact]

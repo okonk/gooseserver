@@ -120,7 +120,7 @@ public class QuestsCommandTests
     [Fact]
     public void BackButton_ReopensQuestListOnSamePage()
     {
-        var quests = Enumerable.Range(1, 12).Select(i => (i, $"Quest {i}")).ToArray();
+        var quests = Enumerable.Range(1, Window.LineClickCount + 4).Select(i => (i, $"Quest {i}")).ToArray();
         var (_, player, ctx) = Setup(quests);
 
         new QuestsCommand().Execute(ctx);
@@ -138,25 +138,25 @@ public class QuestsCommandTests
         var list = Assert.IsType<OptionListWindow>(player.Windows[0]);
         Assert.Equal(1, list.Page);
         var lines = player.Sent.Where(s => s.StartsWith("WNF")).ToArray();
-        Assert.Equal(2, lines.Length);
-        Assert.Contains(lines, s => s.Contains("Quest 11"));
-        Assert.Contains(lines, s => s.Contains("Quest 12"));
+        Assert.Equal(4, lines.Length);
+        Assert.Contains(lines, s => s.Contains($"Quest {Window.LineClickCount + 1}"));
+        Assert.Contains(lines, s => s.Contains($"Quest {Window.LineClickCount + 4}"));
     }
 
     [Fact]
-    public void Execute_MoreThanTenActiveQuests_PagesAndOpensCorrectQuest()
+    public void Execute_MoreThanEightActiveQuests_PagesAndOpensCorrectQuest()
     {
-        var quests = Enumerable.Range(1, 12).Select(i => (i, $"Quest {i}")).ToArray();
+        var quests = Enumerable.Range(1, Window.LineClickCount + 4).Select(i => (i, $"Quest {i}")).ToArray();
         var (_, player, ctx) = Setup(quests);
 
         new QuestsCommand().Execute(ctx);
         var lines = player.Sent.Where(s => s.StartsWith("WNF")).ToArray();
-        Assert.Equal(10, lines.Length);
+        Assert.Equal(Window.LineClickCount, lines.Length);
 
         player.Sent.Clear();
         player.Windows[0].Clicked(Window.ButtonTypes.Next, 0, 0, 0, player, ctx.World);
         lines = player.Sent.Where(s => s.StartsWith("WNF")).ToArray();
-        Assert.Equal(2, lines.Length);
+        Assert.Equal(4, lines.Length);
 
         player.Windows[0].LineClicked(1, 0, player, ctx.World);
 
