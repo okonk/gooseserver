@@ -62,6 +62,7 @@ namespace Goose.Events
                     if (pet.IsAlive) pet.Destroy(world);
                 }
 
+                player.UpdatePlayTime(world);
                 player.SaveToDatabase(world);
 
                 if (player.Group is not null)
