@@ -25,7 +25,10 @@ namespace Goose.Events
 
             if (pet.Target is NPC && ((NPC)pet.Target).State == Goose.NPC.States.Dead)
             {
-                pet.Mode = Pet.Modes.Neutral;
+                if (pet.Mode == Pet.Modes.Attack)
+                {
+                    pet.Mode = Pet.Modes.Neutral;
+                }
                 pet.Target = null;
                 return;
             }
