@@ -46,3 +46,6 @@ __pycache__/
 
 # local scratch data dumps
 .scratch/
+
+# generated boss tracker page
+boss_tracker.html
