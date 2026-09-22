@@ -543,6 +543,7 @@ namespace Goose
             foreach (var player in afterRange.Except<Player>(beforeRange))
             {
                 world.Send(player, mkc);
+                world.QuestHandler.SendIcon(player, this, world);
             }
             // Send to everyone MOC
             string packet = P.MoveCharacter(this);
@@ -728,6 +729,7 @@ namespace Goose
             foreach (var player in range)
             {
                 world.Send(player, packet);
+                world.QuestHandler.SendIcon(player, this, world);
 
                 if (!player.IsGMInvisible)
                     this.AggroIfInRange(player, world);

@@ -79,6 +79,7 @@ namespace Goose.Events
                 foreach (var npc in npcrange)
                 {
                     world.Send(this.Player, P.MakeNPCCharacter(npc));
+                    world.QuestHandler.SendIcon(this.Player, npc, world);
 
                     if (!this.Player.IsGMInvisible)
                         npc.AggroIfInRange(this.Player, world);

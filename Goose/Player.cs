@@ -1315,6 +1315,7 @@ namespace Goose
             foreach (var npc in afterNPCRange.Except<NPC>(beforeNPCRange))
             {
                 world.Send(this, P.MakeNPCCharacter(npc));
+                world.QuestHandler.SendIcon(this, npc, world);
             }
 
             if (!IsGMInvisible)
@@ -1426,6 +1427,7 @@ namespace Goose
                 foreach (var npc in this.Map.GetNPCsInRange(this))
                 {
                     world.Send(this, P.MakeNPCCharacter(npc));
+                    world.QuestHandler.SendIcon(this, npc, world);
 
                     if (!IsGMInvisible)
                         npc.AggroIfInRange(this, world);
