@@ -105,6 +105,63 @@ namespace Goose.Tests
         }
 
         [Fact]
+        public void Load_MissingQuestIconFields_DefaultsToShippedValues()
+        {
+            Directory.CreateDirectory(baseDir);
+            File.WriteAllText(SettingsPath(baseDir), "{\"StartingMapID\": 7}");
+
+            GooseSettings settings = GooseSettingsLoader.Load(baseDir, dataDir);
+
+            Assert.Equal(2276, settings.QuestAvailableIconSheet);
+            Assert.Equal(332038, settings.QuestAvailableIconGraphic);
+            Assert.Equal(2276, settings.QuestReadyIconSheet);
+            Assert.Equal(332038, settings.QuestReadyIconGraphic);
+        }
+
+        [Theory]
+        [InlineData(0, 0, 0, 0)]
+        [InlineData(5, 0, 2276, 332038)]
+        public void Load_ValidIconPairs_Loads(int availSheet, int availGraphic, int readySheet, int readyGraphic)
+        {
+            Directory.CreateDirectory(baseDir);
+            File.WriteAllText(SettingsPath(baseDir),
+                "{\"QuestAvailableIconSheet\": " + availSheet +
+                ", \"QuestAvailableIconGraphic\": " + availGraphic +
+                ", \"QuestReadyIconSheet\": " + readySheet +
+                ", \"QuestReadyIconGraphic\": " + readyGraphic + "}");
+
+            GooseSettings settings = GooseSettingsLoader.Load(baseDir, dataDir);
+
+            Assert.Equal(availSheet, settings.QuestAvailableIconSheet);
+            Assert.Equal(availGraphic, settings.QuestAvailableIconGraphic);
+            Assert.Equal(readySheet, settings.QuestReadyIconSheet);
+            Assert.Equal(readyGraphic, settings.QuestReadyIconGraphic);
+        }
+
+        [Theory]
+        [InlineData(0, 2, 0, 0, "QuestAvailableIconSheet", "QuestAvailableIconGraphic")]
+        [InlineData(-1, 2, 0, 0, "QuestAvailableIconSheet", "QuestAvailableIconGraphic")]
+        [InlineData(0, -1, 0, 0, "QuestAvailableIconSheet", "QuestAvailableIconGraphic")]
+        [InlineData(0, 0, 0, 3, "QuestReadyIconSheet", "QuestReadyIconGraphic")]
+        [InlineData(0, 0, 1, -3, "QuestReadyIconSheet", "QuestReadyIconGraphic")]
+        public void Load_InvalidIconPair_ThrowsFatalStartupExceptionNamingThePair(
+            int availSheet, int availGraphic, int readySheet, int readyGraphic,
+            string expectedSheetSetting, string expectedGraphicSetting)
+        {
+            Directory.CreateDirectory(baseDir);
+            File.WriteAllText(SettingsPath(baseDir),
+                "{\"QuestAvailableIconSheet\": " + availSheet +
+                ", \"QuestAvailableIconGraphic\": " + availGraphic +
+                ", \"QuestReadyIconSheet\": " + readySheet +
+                ", \"QuestReadyIconGraphic\": " + readyGraphic + "}");
+
+            var ex = Assert.Throws<FatalStartupException>(() => GooseSettingsLoader.Load(baseDir, dataDir));
+
+            Assert.Contains(expectedSheetSetting, ex.Message);
+            Assert.Contains(expectedGraphicSetting, ex.Message);
+        }
+
+        [Fact]
         public void Load_SameBaseAndDataRoot_ReadsFileWithoutCopying()
         {
             WriteSettings(baseDir, "shipped");

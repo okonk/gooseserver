@@ -128,4 +128,60 @@ public class SetConfigCommandTests : IDisposable
         Assert.Equal(10, fixtureA.Settings.IdleTimeout);
         Assert.Contains(gmA.Sent, m => m.Contains("Usage: /setconfig <setting> <value...>"));
     }
+
+    [Fact]
+    public void ValidIconSetting_MutatesTheSetting()
+    {
+        var gmA = RegisterGM(fixtureA, "GM-A");
+
+        Assert.True(fixtureA.RunCommand(gmA, "/setconfig QuestAvailableIconGraphic 0"));
+        Assert.True(fixtureA.RunCommand(gmA, "/setconfig QuestAvailableIconSheet 0"));
+
+        Assert.Equal(0, fixtureA.Settings.QuestAvailableIconSheet);
+        Assert.Equal(0, fixtureA.Settings.QuestAvailableIconGraphic);
+        Assert.Equal(2276, fixtureA.Settings.QuestReadyIconSheet);
+        Assert.Equal(332038, fixtureA.Settings.QuestReadyIconGraphic);
+        Assert.Contains(gmA.Sent, m => m.Contains("[GM] Set Game Setting QuestAvailableIconGraphic to: 0"));
+    }
+
+    [Fact]
+    public void InvalidIconSetting_IsRejectedAndRollsBack()
+    {
+        var gmA = RegisterGM(fixtureA, "GM-A");
+
+        Assert.True(fixtureA.RunCommand(gmA, "/setconfig QuestAvailableIconSheet -1"));
+
+        Assert.Equal(2276, fixtureA.Settings.QuestAvailableIconSheet);
+        Assert.Equal(332038, fixtureA.Settings.QuestAvailableIconGraphic);
+        Assert.Contains(gmA.Sent, m => m.Contains("Couldn't set value '-1' for QuestAvailableIconSheet."));
+        Assert.DoesNotContain(gmA.Sent, m => m.Contains("[GM] Set Game Setting"));
+    }
+
+    [Fact]
+    public void ZeroSheetWithNonZeroGraphic_IsRejectedAsInvalidPair()
+    {
+        var gmA = RegisterGM(fixtureA, "GM-A");
+
+        Assert.True(fixtureA.RunCommand(gmA, "/setconfig QuestAvailableIconSheet 0"));
+
+        Assert.Equal(2276, fixtureA.Settings.QuestAvailableIconSheet);
+        Assert.Contains(gmA.Sent, m => m.Contains("Couldn't set value '0' for QuestAvailableIconSheet."));
+        Assert.DoesNotContain(gmA.Sent, m => m.Contains("[GM] Set Game Setting"));
+    }
+
+    [Fact]
+    public void InvalidIconPairAfterValidChange_RollsBackToThePriorValue()
+    {
+        var gmA = RegisterGM(fixtureA, "GM-A");
+
+        Assert.True(fixtureA.RunCommand(gmA, "/setconfig QuestAvailableIconSheet 5"));
+        Assert.Equal(5, fixtureA.Settings.QuestAvailableIconSheet);
+
+        Assert.True(fixtureA.RunCommand(gmA, "/setconfig QuestAvailableIconGraphic -3"));
+
+        Assert.Equal(5, fixtureA.Settings.QuestAvailableIconSheet);
+        Assert.Equal(332038, fixtureA.Settings.QuestAvailableIconGraphic);
+        Assert.Contains(gmA.Sent, m => m.Contains("Couldn't set value '-3' for QuestAvailableIconGraphic."));
+        Assert.DoesNotContain(gmA.Sent, m => m.Contains("[GM] Set Game Setting QuestAvailableIconGraphic"));
+    }
 }

@@ -157,5 +157,10 @@
     "PartyWindowMax": 10,
     "CombineBagSize": 10,
     "NumberOfRanks": 10,
-    "ItemIDStartpoint": 5000
+    "ItemIDStartpoint": 5000,
+
+    "QuestAvailableIconSheet": 2276,
+    "QuestAvailableIconGraphic": 332038,
+    "QuestReadyIconSheet": 2276,
+    "QuestReadyIconGraphic": 332038
 }

@@ -153,5 +153,25 @@ namespace Goose
         public int CombineBagSize { get; set; }
         public int NumberOfRanks { get; set; }
         public int ItemIDStartpoint { get; set; }
+        public int QuestAvailableIconSheet { get; set; } = 2276;
+        public int QuestAvailableIconGraphic { get; set; } = 332038;
+        public int QuestReadyIconSheet { get; set; } = 2276;
+        public int QuestReadyIconGraphic { get; set; } = 332038;
+
+        // (0,0) means "no icon"; a sheet of 0 with a non-zero graphic is not a valid client reference.
+        public static bool IsValidIconPair(int sheet, int graphic)
+            => (sheet == 0 && graphic == 0) || (sheet > 0 && graphic >= 0);
+
+        public void ValidateQuestIconSettings()
+        {
+            if (!IsValidIconPair(QuestAvailableIconSheet, QuestAvailableIconGraphic))
+                throw new FatalStartupException(
+                    "Invalid quest icon pair QuestAvailableIconSheet/QuestAvailableIconGraphic: (" +
+                    QuestAvailableIconSheet + ", " + QuestAvailableIconGraphic + ")");
+            if (!IsValidIconPair(QuestReadyIconSheet, QuestReadyIconGraphic))
+                throw new FatalStartupException(
+                    "Invalid quest icon pair QuestReadyIconSheet/QuestReadyIconGraphic: (" +
+                    QuestReadyIconSheet + ", " + QuestReadyIconGraphic + ")");
+        }
     }
 }

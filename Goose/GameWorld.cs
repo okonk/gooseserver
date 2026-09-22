@@ -642,6 +642,11 @@ namespace Goose
             }
         }
 
+        public void SendCharacterIcon(Player viewer, ICharacter character, int sheet, int graphic)
+        {
+            Send(viewer, P.CharacterIcon(character, sheet, graphic));
+        }
+
         /**
          * SendRaw, sends data directly to a socket before a Player object exists.
          *

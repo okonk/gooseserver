@@ -87,6 +87,8 @@ namespace Goose
         public static Func<Player, string> SetYourPosition = (player) => { return "SUP" + player.MapX + "," + player.MapY; };
         // TODO: No clue what "AMA" stands for. AdminModeActivate?
         public static Func<int, string> AdminMode = (loginId) => { return "AMA" + loginId + ",1"; };
+        public static Func<ICharacter, int, int, string> CharacterIcon = (character, sheet, graphic) =>
+            { return "CHI" + character.LoginID + "," + sheet + "," + graphic; };
 
         /**
          * MKCString, returns the MKC packet string for this character

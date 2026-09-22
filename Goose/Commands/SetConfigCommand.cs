@@ -44,7 +44,14 @@ namespace Goose.Commands
                         ctx.Send("Couldn't set value '" + valueText + "' for " + setting + ".");
                         return;
                     }
+                    object? previous = getter.Invoke(world.Settings, null);
                     setter!.Invoke(world.Settings, new object[] { parsed! });
+                    if (!IsIconPairValid(world.Settings, setting))
+                    {
+                        setter!.Invoke(world.Settings, new object[] { previous! });
+                        ctx.Send("Couldn't set value '" + valueText + "' for " + setting + ".");
+                        return;
+                    }
                 }
                 catch (Exception e)
                 {
@@ -56,5 +63,16 @@ namespace Goose.Commands
 
             world.SendToAll(P.ServerMessage("[GM] Set Game Setting " + setting + " to: " + valueText));
         }
+
+        // Icon settings only make sense as (sheet, graphic) pairs, so a change to one
+        // half is validated against the other half before it is accepted.
+        private static bool IsIconPairValid(GooseSettings settings, string setting) => setting switch
+        {
+            "QuestAvailableIconSheet" or "QuestAvailableIconGraphic" =>
+                GooseSettings.IsValidIconPair(settings.QuestAvailableIconSheet, settings.QuestAvailableIconGraphic),
+            "QuestReadyIconSheet" or "QuestReadyIconGraphic" =>
+                GooseSettings.IsValidIconPair(settings.QuestReadyIconSheet, settings.QuestReadyIconGraphic),
+            _ => true
+        };
     }
 }
