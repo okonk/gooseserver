@@ -30,6 +30,8 @@ namespace Goose.Commands
                 player.SaveToDatabase(world);
             }
 
+            world.QuestHandler.RefreshIcons(player, world);
+
             world.LogHandler.Log(Log.Types.GiveExperience,
                 ctx.Player.PlayerID, exp.ToString() + " to " + player.PlayerID,
                 player.PlayerID, ctx.Player.Map.ID, ctx.Player.MapX, ctx.Player.MapY);

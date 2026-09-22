@@ -163,18 +163,39 @@ namespace Goose
                 return;
             }
 
-            if (player.Inventory.RemoveItem(lookSlot.Item, 1, world) is null
-                || player.Inventory.RemoveItem(statsSlot.Item, 1, world) is null
-                || player.Inventory.RemoveItem(ticketSlot.Item, 1, world) is null)
+            bool completed = false;
+            bool changed = false;
+            player.Inventory.SuppressQuestIconRefresh(world, () =>
             {
-                log.Error("Custom create for player {0}: item vanished during consumption", player.Name);
-                world.Send(player, P.ServerMessage("Items missing for customisation"));
+                if (player.Inventory.RemoveItem(lookSlot.Item, 1, world) is null)
+                {
+                    log.Error("Custom create for player {0}: item vanished during consumption", player.Name);
+                    world.Send(player, P.ServerMessage("Items missing for customisation"));
+                    return;
+                }
+
+                changed = true;
+                if (player.Inventory.RemoveItem(statsSlot.Item, 1, world) is null
+                    || player.Inventory.RemoveItem(ticketSlot.Item, 1, world) is null)
+                {
+                    log.Error("Custom create for player {0}: item vanished during consumption", player.Name);
+                    world.Send(player, P.ServerMessage("Items missing for customisation"));
+                    return;
+                }
+
+                completed = true;
+            });
+            if (!completed)
+            {
+                // A partially consumed transaction still changed the inventory; publish it.
+                if (changed) world.QuestHandler.RefreshIcons(player, world);
                 return;
             }
 
             world.ItemHandler.AddAndAssignId(item, world);
             player.Inventory.SetSlot(target, new ItemSlot { Item = item, Stack = 1 });
             player.Inventory.SendSlot(target, world);
+            world.QuestHandler.RefreshIcons(player, world);
 
             world.LogHandler.Log(Log.Types.CreatedCustom, player,
                 $"{item.Name} ({item.TemplateID}) {lookSlot.Item.TemplateID}|{r},{g},{b},{a}", item.ItemID);

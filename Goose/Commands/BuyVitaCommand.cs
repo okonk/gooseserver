@@ -46,6 +46,7 @@ namespace Goose.Commands
 
             world.Send(ctx.Player, P.ServerMessage("Bought " + bought + " hp for " + soldexp + " experience."));
             world.Send(ctx.Player, P.ExpBar(ctx.Player));
+            world.QuestHandler.RefreshIcons(ctx.Player, world);
         }
     }
 }

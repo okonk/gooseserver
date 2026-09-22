@@ -29,6 +29,7 @@ namespace Goose.Commands
             world.Send(ctx.Player, P.ServerMessage("Macrocheck passed. You earned 1mil experience."));
             world.Send(ctx.Player, P.StatusInfo(ctx.Player));
             world.Send(ctx.Player, P.ExpBar(ctx.Player));
+            world.QuestHandler.RefreshIcons(ctx.Player, world);
         }
     }
 }

@@ -47,6 +47,8 @@ namespace Goose.Commands
                         world.Send(player, chpstring);
                     }
 
+                    world.QuestHandler.RefreshIcons(ctx.Player, world);
+
                     break;
                 case "preview":
                     error = ParseRGBA(args, out r, out g, out b, out a);

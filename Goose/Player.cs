@@ -1538,6 +1538,8 @@ namespace Goose
                     this.LearnSpell(spell.ID, world);
                 }
             }
+
+            world.QuestHandler.RefreshIcons(this, world);
         }
 
         /**
@@ -1624,6 +1626,7 @@ namespace Goose
             this.Gold += amount;
 
             world.Send(this, P.StatusInfo(this));
+            world.QuestHandler.RefreshIcons(this, world);
         }
 
         /**
@@ -1636,6 +1639,7 @@ namespace Goose
             this.Gold -= amount;
 
             world.Send(this, P.StatusInfo(this));
+            world.QuestHandler.RefreshIcons(this, world);
         }
 
         /**
@@ -1865,6 +1869,7 @@ namespace Goose
             }
 
             this.ProcessLevelUp(world);
+            world.QuestHandler.RefreshIcons(this, world);
         }
 
         /**

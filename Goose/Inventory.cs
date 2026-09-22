@@ -88,6 +88,7 @@ namespace Goose
                     this.inventory[i] = slot;
 
                     this.SendSlot(i, world);
+                    this.RefreshQuestIcons(world);
                     return true;
                 }
                 else if (this.inventory[i]!.CanStack(slot))
@@ -95,11 +96,36 @@ namespace Goose
                     this.inventory[i]!.Stack += slot.Stack;
                     this.SendSlot(i, world);
 
+                    this.RefreshQuestIcons(world);
                     return true;
                 }
             }
 
             return false;
+        }
+
+        // Depth, not a bool: Equip/Unequip nest AddItem/RemoveItem/Unequip calls and must
+        // publish a single icon refresh for the final state, never the intermediate one.
+        private int questIconRefreshDepth;
+
+        private void RefreshQuestIcons(GameWorld world)
+        {
+            if (this.questIconRefreshDepth > 0) return;
+
+            world.QuestHandler.RefreshIcons(this.player, world);
+        }
+
+        public void SuppressQuestIconRefresh(GameWorld world, Action operation)
+        {
+            this.questIconRefreshDepth++;
+            try
+            {
+                operation();
+            }
+            finally
+            {
+                this.questIconRefreshDepth--;
+            }
         }
 
         /**
@@ -301,6 +327,14 @@ namespace Goose
          */
         public bool Equip(Item item, GameWorld world)
         {
+            bool result = false;
+            this.SuppressQuestIconRefresh(world, () => result = this.EquipCore(item, world));
+            if (result) this.RefreshQuestIcons(world);
+            return result;
+        }
+
+        private bool EquipCore(Item item, GameWorld world)
+        {
             EquipSlots equipslot = this.ItemSlotToEquipSlot(item.Slot);
             if (equipslot == 0) return false;
 
@@ -471,6 +505,7 @@ namespace Goose
                 {
                     this.inventory[i] = null;
                     this.SendSlot(i, world);
+                    this.RefreshQuestIcons(world);
                     return slot;
                 }
                 else
@@ -483,6 +518,7 @@ namespace Goose
                     world.ItemHandler.AddAndAssignId(removed.Item, world);
                     removed.Stack = number;
 
+                    this.RefreshQuestIcons(world);
                     return removed;
                 }
             }
@@ -501,12 +537,14 @@ namespace Goose
         {
             ItemSlot? slot;
 
+            bool removed = false;
             for (int i = 1; i <= this.settings.InventorySize; i++)
             {
                 slot = this.inventory[i];
 
                 if (slot is null) continue;
                 if (slot.Item.TemplateID != templateId) continue;
+                removed = true;
 
                 if (slot.Stack == number)
                 {
@@ -527,6 +565,8 @@ namespace Goose
                     number -= slot.Stack;
                 }
             }
+
+            if (removed) this.RefreshQuestIcons(world);
         }
 
         /**
@@ -541,7 +581,9 @@ namespace Goose
             // maybe log something bad, i don't think this should happen
             if (slot is null) return true;
 
-            if (!this.AddItem(slot.Item, slot.Stack, world)) return false;
+            bool added = false;
+            this.SuppressQuestIconRefresh(world, () => added = this.AddItem(slot.Item, slot.Stack, world));
+            if (!added) return false;
 
             this.equipped[(int)equipslot] = null;
             this.player.RemoveStats(slot.Item.TotalStats, world);
@@ -580,6 +622,7 @@ namespace Goose
                 world.Send(p, updateCharacter);
             }
 
+            this.RefreshQuestIcons(world);
             return true;
         }
 

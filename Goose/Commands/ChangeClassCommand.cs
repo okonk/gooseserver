@@ -72,6 +72,8 @@ namespace Goose.Commands
                 player.SaveToDatabase(world);
             }
 
+            world.QuestHandler.RefreshIcons(player, world);
+
             world.LogHandler.Log(Log.Types.ClassChange,
                 ctx.Player.PlayerID, player.PlayerID + " " + cl + " " + rate,
                 0, ctx.Player.Map.ID, ctx.Player.MapX, ctx.Player.MapY);

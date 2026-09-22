@@ -40,6 +40,9 @@ namespace Goose
 
             player.Inventory.SendSlot(invSlotIndex, world);
             this.SendSlot(toSlotIndex, player, world);
+
+            if (inventorySlot is not null || containerSlot is not null)
+                world.QuestHandler.RefreshIcons(player, world);
         }
 
         public override void WindowToInventory(Player player, int fromSlotIndex, int invSlotIndex, GameWorld world)
@@ -56,6 +59,9 @@ namespace Goose
 
             this.SendSlot(fromSlotIndex, player, world);
             player.Inventory.SendSlot(invSlotIndex, world);
+
+            if (inventorySlot is not null || containerSlot is not null)
+                world.QuestHandler.RefreshIcons(player, world);
         }
 
         public static void WindowToWindow(Player player, ItemContainerWindow fromWindow, int fromSlotIndex, ItemContainerWindow toWindow, int toSlotIndex, GameWorld world)
