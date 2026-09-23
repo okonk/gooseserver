@@ -2259,7 +2259,7 @@ namespace Goose
                     (buff.SpellEffect == b.SpellEffect ||
                     buff.SpellEffect.BuffStacksOver.Contains(b.SpellEffect)))
                 {
-                    RenewBuff(b, buff, wasInvisible, wasCanSee, range, updateCharacter, world);
+                    RenewBuff(b, buff, wasInvisible, wasCanSee, range, updateCharacter, refreshbar, world);
 
                     return;
                 }
@@ -2301,6 +2301,9 @@ namespace Goose
 
             this.Buffs.Add(buff);
             this.AddToInvisCounters(buff.SpellEffect);
+
+            if (!buff.ItemBuff && this.Group is not null)
+                this.Group.SendBuffAdded(this, buff, world);
 
             // Add/remove stats
             this.AddStats(buff.SpellEffect.Stats, world, updateCharacter: updateCharacter);
@@ -2366,7 +2369,7 @@ namespace Goose
             if (refreshbar) this.SendBuffBar(world);
         }
 
-        private void RenewBuff(Buff existingBuff, Buff newBuff, bool wasInvisible, bool wasCanSee, List<Player> range, bool updateCharacter, GameWorld world)
+        private void RenewBuff(Buff existingBuff, Buff newBuff, bool wasInvisible, bool wasCanSee, List<Player> range, bool updateCharacter, bool refreshbar, GameWorld world)
         {
             var packetBuilder = new StringBuilder();
 
@@ -2384,9 +2387,19 @@ namespace Goose
             if (existingBuff.SpellEffect.OffEffectText != "") world.Send(this, P.ServerMessage(existingBuff.SpellEffect.OffEffectText));
             if (newBuff.SpellEffect.OnEffectText != "") world.Send(this, P.ServerMessage(newBuff.SpellEffect.OnEffectText));
 
+            int oldEffectId = existingBuff.SpellEffect.ID;
+
             existingBuff.TimeCast = world.TimeNow;
             existingBuff.SpellEffect = newBuff.SpellEffect;
             existingBuff.Caster = newBuff.Caster;
+
+            if (this.Group is not null)
+            {
+                if (oldEffectId == existingBuff.SpellEffect.ID)
+                    this.Group.SendBuffAdded(this, existingBuff, world);
+                else
+                    this.Group.SendBuffReplaced(this, oldEffectId, existingBuff, world);
+            }
 
             if (newBuff.SpellEffect.Animation != 0)
             {
@@ -2396,7 +2409,7 @@ namespace Goose
                     packetBuilder.Append("\x1").Append(P.Attack(this));
             }
 
-            this.SendBuffBar(world);
+            if (refreshbar) this.SendBuffBar(world);
 
             bool sendCharacterUpdate = this.FireInvisTransitions(world, wasInvisible, wasCanSee);
 
@@ -2502,7 +2515,14 @@ namespace Goose
 
             // Only decrement when the buff was actually on the list - a double-remove
             // must not drive the counters negative.
-            if (this.Buffs.Remove(buff)) this.RemoveFromInvisCounters(buff.SpellEffect);
+            bool removed = this.Buffs.Remove(buff);
+            if (removed)
+            {
+                this.RemoveFromInvisCounters(buff.SpellEffect);
+
+                if (!buff.ItemBuff && this.Group is not null)
+                    this.Group.SendBuffRemoved(this, buff.SpellEffect.ID, world);
+            }
 
             if (buff.BuffExpireEvent is not null)
             {
