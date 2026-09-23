@@ -270,6 +270,27 @@ public class PartyMemberBuffSyncTests
     }
 
     [Fact]
+    public void RemoveBuff_TargetMidWarp_NoThrow_NoDelta()
+    {
+        using var ctx = new GroupedPlayers();
+        var world = ctx.Fixture.World;
+        var effect = ctx.Fixture.AddBaseSpellEffect(5, "Charm",
+            e => { e.Duration = 0; e.BuffGraphic = 7; e.BuffGraphicFile = 11; });
+        var buff = new Buff { Caster = ctx.Target, Target = ctx.Target, SpellEffect = effect };
+        ctx.Target.AddBuff(buff, world);
+
+        var otherMap = ctx.Fixture.AddBaseMap(2, "m2");
+        ctx.Target.WarpTo(world, otherMap, 1, 1);
+        Assert.Null(ctx.Target.Map);
+        ctx.Viewer.Sent.Clear();
+
+        ctx.Target.RemoveBuff(buff, world);
+
+        Assert.Empty(PartyDeltas(ctx.Viewer.Sent));
+        Assert.DoesNotContain(ctx.Target.Buffs, b => b.SpellEffect == effect);
+    }
+
+    [Fact]
     public void AddBuff_ViewerOutOfRange_PublishesNothing()
     {
         using var ctx = new GroupedPlayers();

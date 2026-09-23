@@ -126,6 +126,9 @@ namespace Goose
 
         public IEnumerable<Player> GetBuffDeltaRecipients(Player target)
         {
+            // Map is null while the target is mid-warp (WarpTo sets it before the load completes).
+            if (target.Map is null) yield break;
+
             foreach (var p in this.Players)
             {
                 if (p == target || p.State != Player.States.Ready) continue;
