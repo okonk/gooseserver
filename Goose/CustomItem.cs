@@ -2,11 +2,20 @@ namespace Goose
 {
     public static class CustomItem
     {
+        /// <summary>Equipment in a slot the client draws: what /custom accepts, and the test
+        /// for a genuine custom item anywhere else - the "Custom created by ..." description
+        /// prefix (Item.Custom) can be carried by items /custom never made, such as /hairdye
+        /// potions.</summary>
+        public static bool IsCustomEquipment(Item item)
+        {
+            return (item.UseType == ItemTemplate.UseTypes.Armor
+                    || item.UseType == ItemTemplate.UseTypes.Weapon)
+                && !IsInvisibleSlot(item.Slot);
+        }
+
         public static bool ValidateSingleItem(GameWorld world, Player player, Item item)
         {
-            if ((item.UseType != ItemTemplate.UseTypes.Armor &&
-                 item.UseType != ItemTemplate.UseTypes.Weapon)
-                || IsInvisibleSlot(item.Slot))
+            if (!IsCustomEquipment(item))
             {
                 world.Send(player, P.ServerMessage("Items to be customised must be equipment and must be visible items."));
                 return false;
@@ -57,7 +66,7 @@ namespace Goose
 
         public static string? SanitizeName(string raw)
         {
-            string name = raw.Trim().Replace(",", "");
+            string name = new string(raw.Where(c => c != ',' && c != '|' && !char.IsControl(c)).ToArray()).Trim();
             if (name.Length > 255) name = name.Substring(0, 255);
             return name.Length == 0 ? null : name;
         }

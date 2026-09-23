@@ -152,97 +152,292 @@ namespace Goose.Tests
             }
         }
 
+        private static ItemTemplate PotionTemplate(TestWorldFixture fixture, int id = 900)
+        {
+            fixture.Settings.HairDyePotionId = id;
+            return fixture.AddBaseItemTemplate(id, "Hair Dye", ItemTemplate.UseTypes.OneTime, t =>
+            {
+                t.StackSize = 99;
+                t.GraphicTile = 821122;
+                t.GraphicFile = 20408;
+            });
+        }
+
+        private static Item NewPotion(ItemTemplate template, string name, int r, int g, int b, int a)
+        {
+            var item = new Item();
+            item.LoadFromTemplate(template);
+            item.Name = name;
+            item.Description = "Custom created by Tester";
+            item.GraphicR = r;
+            item.GraphicG = g;
+            item.GraphicB = b;
+            item.GraphicA = a;
+            item.ScriptParams = $"{r},{g},{b},{a}";
+            return item;
+        }
+
+        private static ItemSlot? FindPotion(Player player, string name)
+        {
+            for (int i = 1; i <= 30; i++)
+            {
+                var slot = player.Inventory.GetSlot(i);
+                if (slot is not null && slot.Item.Name == name) return slot;
+            }
+
+            return null;
+        }
+
         [Fact]
-        public void Hairdye_accept_charges_cost_and_dyed()
+        public void Hairdye_create_charges_cost_and_gives_five_potions()
         {
             var (fixture, player, _) = WorldAndPlayer();
             using (fixture)
             {
-                fixture.Settings.HairdyeCommandCost = 100;
-                player.Gold = 100;
+                PotionTemplate(fixture);
+                fixture.Settings.HairdyeCommandCost = 5000;
+                player.Gold = 5000;
 
-                fixture.RunCommand(player, "/hairdye accept 255 0 0 255");
+                fixture.RunCommand(player, "/hairdye create 255 0 0 200 Blood Red");
 
                 Assert.Equal(0, player.Gold);
-                Assert.Equal(255, player.HairR);
-                Assert.Equal(0, player.HairG);
-                Assert.Equal(0, player.HairB);
-                Assert.Equal(255, player.HairA);
-                Assert.Contains(player.Sent, s => s.Contains(P.UpdateCharacter(player)));
-            }
-        }
-
-        [Fact]
-        public void Hairdye_accept_insufficient_gold_is_refused()
-        {
-            var (fixture, player, _) = WorldAndPlayer();
-            using (fixture)
-            {
-                fixture.Settings.HairdyeCommandCost = 100;
-                player.Gold = 50;
-
-                fixture.RunCommand(player, "/hairdye accept 255 0 0 255");
-
-                Assert.Contains(player.Sent, s => s.Contains("/hairdye accept requires 100 gold."));
-                Assert.Equal(50, player.Gold);
                 Assert.Equal(0, player.HairR);
+                Assert.Equal(0, player.HairA);
+
+                var potion = FindPotion(player, "Blood Red");
+                Assert.NotNull(potion);
+                Assert.Equal(5, potion!.Stack);
+                Assert.Equal("Custom created by Tester", potion.Item.Description);
+                Assert.True(potion.Item.Custom);
+                Assert.Equal(821122, potion.Item.GraphicTile);
+                Assert.Equal(20408, potion.Item.GraphicFile);
+                Assert.Equal(255, potion.Item.GraphicR);
+                Assert.Equal(0, potion.Item.GraphicG);
+                Assert.Equal(0, potion.Item.GraphicB);
+                Assert.Equal(200, potion.Item.GraphicA);
+                Assert.Equal("255,0,0,200", potion.Item.ScriptParams);
+                Assert.Contains(player.Sent, s => s.Contains("Bought 5 Blood Red for 5000 gold."));
+                Assert.Contains(player.Sent, s => s.Contains(P.StatusInfo(player)));
             }
         }
 
         [Fact]
-        public void Hairdye_bare_numeric_without_verb_is_silent_noop()
+        public void Hairdye_create_insufficient_gold_is_refused()
         {
             var (fixture, player, _) = WorldAndPlayer();
             using (fixture)
             {
-                fixture.Settings.HairdyeCommandCost = 100;
-                player.Gold = 100;
+                PotionTemplate(fixture);
+                fixture.Settings.HairdyeCommandCost = 5000;
+                player.Gold = 4999;
 
-                fixture.RunCommand(player, "/hairdye 255 0 0 255");
+                fixture.RunCommand(player, "/hairdye create 255 0 0 200 Blood Red");
 
-                Assert.Empty(player.Sent);
-                Assert.Equal(100, player.Gold);
-                Assert.Equal(0, player.HairR);
+                Assert.Contains(player.Sent, s => s.Contains("/hairdye create requires 5000 gold."));
+                Assert.Equal(4999, player.Gold);
+                Assert.Null(FindPotion(player, "Blood Red"));
             }
         }
 
         [Fact]
-        public void Hairdye_accept_out_of_range_sends_refusal()
+        public void Hairdye_create_out_of_range_sends_refusal()
         {
             var (fixture, player, _) = WorldAndPlayer();
             using (fixture)
             {
-                fixture.Settings.HairdyeCommandCost = 100;
-                player.Gold = 100;
+                PotionTemplate(fixture);
+                fixture.Settings.HairdyeCommandCost = 5000;
+                player.Gold = 5000;
 
-                fixture.RunCommand(player, "/hairdye accept 300 0 0 0");
+                fixture.RunCommand(player, "/hairdye create 300 0 0 0 Blood Red");
 
                 Assert.Contains(player.Sent, s => s.Contains("/hairdye: invalid r value"));
-                Assert.Equal(100, player.Gold);
+                Assert.Equal(5000, player.Gold);
             }
         }
 
         [Fact]
-        public void Hairdye_bare_sends_usage()
+        public void Hairdye_create_without_name_sends_usage()
+        {
+            var (fixture, player, _) = WorldAndPlayer();
+            using (fixture)
+            {
+                PotionTemplate(fixture);
+                fixture.Settings.HairdyeCommandCost = 5000;
+                player.Gold = 5000;
+
+                fixture.RunCommand(player, "/hairdye create 255 0 0 200");
+
+                Assert.Contains(player.Sent, s => s.Contains("Usage: /hairdye create <r> <g> <b> <a> <name...>"));
+                Assert.Equal(5000, player.Gold);
+            }
+        }
+
+        [Fact]
+        public void Hairdye_create_strips_packet_delimiters_from_the_name()
+        {
+            var (fixture, player, _) = WorldAndPlayer();
+            using (fixture)
+            {
+                PotionTemplate(fixture);
+                fixture.Settings.HairdyeCommandCost = 5000;
+                player.Gold = 5000;
+
+                fixture.RunCommand(player, "/hairdye create 255 0 0 200 Blood,|Red");
+
+                var potion = FindPotion(player, "BloodRed");
+                Assert.NotNull(potion);
+                Assert.Equal(5, potion!.Stack);
+                var packet = Assert.Single(player.Sent, s => s.StartsWith("SIS"));
+                Assert.Equal("BloodRed", packet.Split('|')[4]);
+            }
+        }
+
+        [Fact]
+        public void Hairdye_create_merges_into_an_identical_stack()
+        {
+            var (fixture, player, _) = WorldAndPlayer();
+            using (fixture)
+            {
+                var template = PotionTemplate(fixture);
+                fixture.Settings.HairdyeCommandCost = 5000;
+                player.Gold = 5000;
+
+                var existing = NewPotion(template, "Blood Red", 255, 0, 0, 200);
+                fixture.World.ItemHandler.AddAndAssignId(existing, fixture.World);
+                player.Inventory.SetSlot(3, new ItemSlot { Item = existing, Stack = 2 });
+                int itemCount = fixture.World.ItemHandler.GetItems().Count();
+
+                fixture.RunCommand(player, "/hairdye create 255 0 0 200 Blood Red");
+
+                Assert.Equal(7, player.Inventory.GetSlot(3)!.Stack);
+                Assert.Equal(itemCount, fixture.World.ItemHandler.GetItems().Count());
+            }
+        }
+
+        [Fact]
+        public void Hairdye_create_merges_into_an_unlimited_stack_when_inventory_is_full()
+        {
+            var (fixture, player, _) = WorldAndPlayer();
+            using (fixture)
+            {
+                var template = PotionTemplate(fixture);
+                template.StackSize = 0;
+                fixture.Settings.HairdyeCommandCost = 5000;
+                player.Gold = 5000;
+
+                var existing = NewPotion(template, "Blood Red", 255, 0, 0, 200);
+                fixture.World.ItemHandler.AddAndAssignId(existing, fixture.World);
+                player.Inventory.SetSlot(1, new ItemSlot { Item = existing, Stack = 100 });
+
+                var filler = fixture.AddBaseItemTemplate(901, "Filler", ItemTemplate.UseTypes.OneTime, t => t.StackSize = 99);
+                var fillerItem = new Item();
+                fillerItem.LoadFromTemplate(filler);
+                for (int i = 2; i <= fixture.Settings.InventorySize; i++)
+                    player.Inventory.SetSlot(i, new ItemSlot { Item = fillerItem, Stack = 1 });
+
+                fixture.RunCommand(player, "/hairdye create 255 0 0 200 Blood Red");
+
+                Assert.Equal(105, player.Inventory.GetSlot(1)!.Stack);
+                Assert.Equal(0, player.Gold);
+            }
+        }
+
+        [Fact]
+        public void Hairdye_create_refuses_a_template_stack_smaller_than_the_purchase()
+        {
+            var (fixture, player, _) = WorldAndPlayer();
+            using (fixture)
+            {
+                var template = PotionTemplate(fixture);
+                template.StackSize = 4;
+                fixture.Settings.HairdyeCommandCost = 5000;
+                player.Gold = 5000;
+
+                fixture.RunCommand(player, "/hairdye create 255 0 0 200 Blood Red");
+
+                Assert.Equal(5000, player.Gold);
+                Assert.Null(FindPotion(player, "Blood Red"));
+            }
+        }
+
+        [Fact]
+        public void Hairdye_create_never_merges_into_another_colour()
+        {
+            var (fixture, player, _) = WorldAndPlayer();
+            using (fixture)
+            {
+                var template = PotionTemplate(fixture);
+                fixture.Settings.HairdyeCommandCost = 5000;
+                player.Gold = 5000;
+
+                var blue = NewPotion(template, "Blood Red", 0, 0, 255, 200);
+                fixture.World.ItemHandler.AddAndAssignId(blue, fixture.World);
+                player.Inventory.SetSlot(1, new ItemSlot { Item = blue, Stack = 5 });
+
+                fixture.RunCommand(player, "/hairdye create 255 0 0 200 Blood Red");
+
+                Assert.Equal(5, player.Inventory.GetSlot(1)!.Stack);
+                Assert.Equal("0,0,255,200", player.Inventory.GetSlot(1)!.Item.ScriptParams);
+
+                var red = player.Inventory.GetSlot(2);
+                Assert.NotNull(red);
+                Assert.Equal(5, red!.Stack);
+                Assert.Equal("255,0,0,200", red.Item.ScriptParams);
+                Assert.Equal(255, red.Item.GraphicR);
+            }
+        }
+
+        [Fact]
+        public void Hairdye_create_without_inventory_space_is_refused()
+        {
+            var (fixture, player, _) = WorldAndPlayer();
+            using (fixture)
+            {
+                PotionTemplate(fixture);
+                fixture.Settings.HairdyeCommandCost = 5000;
+                player.Gold = 5000;
+
+                var filler = fixture.AddBaseItemTemplate(901, "Filler", ItemTemplate.UseTypes.OneTime, t => t.StackSize = 99);
+                var fillerItem = new Item();
+                fillerItem.LoadFromTemplate(filler);
+                for (int i = 1; i <= fixture.Settings.InventorySize; i++)
+                    player.Inventory.SetSlot(i, new ItemSlot { Item = fillerItem, Stack = 1 });
+
+                fixture.RunCommand(player, "/hairdye create 255 0 0 200 Blood Red");
+
+                Assert.Contains(player.Sent, s => s.Contains("You don't have enough inventory space for the potions."));
+                Assert.Equal(5000, player.Gold);
+                Assert.Null(FindPotion(player, "Blood Red"));
+            }
+        }
+
+        [Fact]
+        public void Hairdye_bare_lists_subcommands()
         {
             var (fixture, player, _) = WorldAndPlayer();
             using (fixture)
             {
                 fixture.RunCommand(player, "/hairdye");
 
-                Assert.Contains(player.Sent, s => s.Contains("Usage: /hairdye [preview/kill/accept] <r> <g> <b> <a>"));
+                var list = string.Join("\n", player.Sent);
+                Assert.Contains("preview", list);
+                Assert.Contains("kill", list);
+                Assert.Contains("create", list);
+                Assert.Contains("Usage: /hairdye create <r> <g> <b> <a> <name...>", list);
             }
         }
 
         [Fact]
-        public void Hairdye_help_sends_usage()
+        public void Hairdye_unknown_subcommand_lists_subcommands()
         {
             var (fixture, player, _) = WorldAndPlayer();
             using (fixture)
             {
-                fixture.RunCommand(player, "/hairdye help");
+                fixture.RunCommand(player, "/hairdye 255 0 0 255");
 
-                Assert.Contains(player.Sent, s => s.Contains("Usage: /hairdye [preview/kill/accept] <r> <g> <b> <a>"));
+                var list = string.Join("\n", player.Sent);
+                Assert.Contains("Usage: /hairdye create <r> <g> <b> <a> <name...>", list);
             }
         }
 

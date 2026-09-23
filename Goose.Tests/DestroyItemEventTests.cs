@@ -12,7 +12,7 @@ public class DestroyItemEventTests
         {
             ID = id, Name = "Ticket", Description = description, Value = 10,
             BaseStats = new AttributeSet(), StackSize = 1, ScriptParams = "",
-            Slot = ItemTemplate.ItemSlots.Helmet,
+            Slot = ItemTemplate.ItemSlots.Helmet, UseType = ItemTemplate.UseTypes.Armor,
         };
 
     [Fact]
@@ -43,4 +43,46 @@ public class DestroyItemEventTests
             Assert.NotSame(item, slot?.Item);
         }
     }
+
+    [Fact]
+    public void DestroyCustomFlaggedConsumable_DestroysItWithoutRefundingAPiece()
+    {
+        using var fixture = new VendorFixture();
+        fixture.World.Settings.RippedCustomTicketId = 697;
+        fixture.World.ItemHandler.AddTemplate(RippedTicketPiece(697));
+
+        var potion = new Item();
+        potion.LoadFromTemplate(CustomFlaggedPotion(698));
+        fixture.World.ItemHandler.AddAndAssignId(potion, fixture.World);
+        Assert.True(fixture.Player.Inventory.AddItem(potion, 5, fixture.World));
+
+        var ev = new DestroyItemEvent
+        {
+            Player = fixture.Player,
+            Data = "DITM1",
+        };
+        ev.Ready(fixture.World);
+
+        Assert.Null(fixture.Player.Inventory.GetSlot(1));
+        foreach (var slot in fixture.Player.Inventory.GetInventorySlots())
+        {
+            Assert.NotEqual(697, slot?.Item.TemplateID);
+        }
+    }
+
+    private static ItemTemplate RippedTicketPiece(int id) =>
+        new ItemTemplate
+        {
+            ID = id, Name = "Ripped Ticket Piece", Description = "", Value = 0,
+            BaseStats = new AttributeSet(), StackSize = 99, ScriptParams = "",
+            Slot = ItemTemplate.ItemSlots.Misc,
+        };
+
+    private static ItemTemplate CustomFlaggedPotion(int id) =>
+        new ItemTemplate
+        {
+            ID = id, Name = "Hair Dye", Description = "Custom created by Tester", Value = 1000,
+            BaseStats = new AttributeSet(), StackSize = 99, ScriptParams = "",
+            Slot = ItemTemplate.ItemSlots.Misc, UseType = ItemTemplate.UseTypes.OneTime,
+        };
 }

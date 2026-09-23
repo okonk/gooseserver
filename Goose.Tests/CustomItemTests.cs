@@ -216,10 +216,10 @@ namespace Goose.Tests
         }
 
         [Fact]
-        public void SanitizeName_trims_and_strips_commas()
+        public void SanitizeName_removes_packet_delimiters_and_control_characters()
         {
             Assert.Equal("My Sword", CustomItem.SanitizeName("  My Sword  "));
-            Assert.Equal("abc", CustomItem.SanitizeName("a,b,c"));
+            Assert.Equal("abcdef", CustomItem.SanitizeName("a,b|c\u0001d\ne\tf"));
         }
 
         [Fact]

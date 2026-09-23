@@ -38,7 +38,10 @@ namespace Goose.Events
                 if (slot is null || slot.Item is null) return;
 
                 Item? replacement = null;
-                if (slot.Item.Custom)
+                // Ripped ticket pieces refund /custom gear only. Dye potions share the
+                // "Custom created by ..." description (Item.Custom), and two pieces combine
+                // into a 200k custom ticket (combination 73), so consumables get no refund.
+                if (slot.Item.Custom && CustomItem.IsCustomEquipment(slot.Item))
                 {
                     ItemTemplate? template = world.ItemHandler.GetTemplate(world.Settings.RippedCustomTicketId);
                     if (template is null) return;

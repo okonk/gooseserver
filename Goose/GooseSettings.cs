@@ -140,6 +140,7 @@ namespace Goose
         public int StartingBodyB { get; set; }
         public int StartingBodyA { get; set; }
         public int HairdyeCommandCost { get; set; }
+        public int HairDyePotionId { get; set; }
         public int CustomTicketId { get; set; }
         public int RippedCustomTicketId { get; set; }
         public double RespawnTimeBackoff { get; set; }

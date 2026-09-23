@@ -91,6 +91,23 @@ public class InventoryChangeSlotTests
     }
 
     [Fact]
+    public void InventorySwapDifferentSlots_SameTemplateDifferentVariantsDoNotMerge()
+    {
+        using var fixture = new VendorFixture();
+        var red = PutInSlot(fixture, Piles(1, "Pile", stackSize: 10), 1, 4);
+        var blue = PutInSlot(fixture, Piles(1, "Pile", stackSize: 10), 2, 2);
+        red.Item.ScriptParams = "255,0,0,255";
+        blue.Item.ScriptParams = "0,0,255,255";
+
+        fixture.Player.Inventory.SwapSlots(1, 2, fixture.World);
+
+        Assert.Same(blue.Item, fixture.Player.Inventory.GetSlot(1)?.Item);
+        Assert.Equal(2, fixture.Player.Inventory.GetSlot(1)!.Stack);
+        Assert.Same(red.Item, fixture.Player.Inventory.GetSlot(2)?.Item);
+        Assert.Equal(4, fixture.Player.Inventory.GetSlot(2)!.Stack);
+    }
+
+    [Fact]
     public void InventorySwapDifferentSlots_DifferentTemplatesStillSwap()
     {
         using var fixture = new VendorFixture();

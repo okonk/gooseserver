@@ -54,6 +54,8 @@
           Link="SpellScripts/Backstab.csx" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Goose/Data/Illutia/Scripts/Item/CustomTicket.csx"
           Link="ItemScripts/CustomTicket.csx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Goose/Data/Illutia/Scripts/Item/HairDyePotion.csx"
+          Link="ItemScripts/HairDyePotion.csx" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup>
     <Using Include="Xunit" />

@@ -18,6 +18,7 @@
     "BankSlotsPerPage": 30,
     "CustomTicketId": 643,
     "RippedCustomTicketId": 697,
+    "HairDyePotionId": 699,
     "StartingFaceID": 2,
     "StartingHairID": 33,
 
@@ -145,7 +146,7 @@
     "StartingBodyG": 0,
     "StartingBodyB": 0,
     "StartingBodyA": 0,
-    "HairdyeCommandCost": 10000,
+    "HairdyeCommandCost": 5000,
     "RespawnTimeBackoff": 1.05,
     "ChangeClassExperienceLossPercent": 0.07,
     "ItemTitleChancePercent": 0.5,
