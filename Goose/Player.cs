@@ -1304,6 +1304,7 @@ namespace Goose
                     {
                         world.Send(player, gmstring);
                     }
+                    this.Group?.SendBuffSnapshotIfVisible(player, this, world);
                 }
 
                 if (!player.IsGMInvisible)
@@ -1313,6 +1314,7 @@ namespace Goose
                     {
                         world.Send(this, P.AdminMode(player.LoginID));
                     }
+                    this.Group?.SendBuffSnapshotIfVisible(this, player, world);
                 }
             }
 
@@ -1418,6 +1420,7 @@ namespace Goose
                         {
                             world.Send(player, gmstring);
                         }
+                        this.Group?.SendBuffSnapshotIfVisible(player, this, world);
                     }
 
                     if (!player.IsGMInvisible)
@@ -1427,6 +1430,7 @@ namespace Goose
                         {
                             world.Send(this, P.AdminMode(player.LoginID));
                         }
+                        this.Group?.SendBuffSnapshotIfVisible(this, player, world);
                     }
                 }
                 foreach (var npc in this.Map.GetNPCsInRange(this))

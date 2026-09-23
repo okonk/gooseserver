@@ -44,6 +44,13 @@ namespace Goose
             {
                 this.SendPartyWindow(p, world);
             }
+
+            foreach (var p in this.Players)
+            {
+                if (p == player) continue;
+                this.SendBuffSnapshotIfVisible(p, player, world);
+                this.SendBuffSnapshotIfVisible(player, p, world);
+            }
         }
 
         /**
@@ -109,6 +116,17 @@ namespace Goose
                 world.Send(player, P.GroupUpdate(null, i));
                 i++;
             }
+        }
+
+        public void SendBuffSnapshotIfVisible(Player viewer, Player target, GameWorld world)
+        {
+            if (viewer.Group != this || target.Group != this) return;
+            if (viewer.State != Player.States.Ready || target.State != Player.States.Ready) return;
+            if (viewer.Map is null || target.Map is null) return;
+            if (!Map.InRange(viewer, target)) return;
+            if (target.IsGMInvisible) return;
+
+            this.SendBuffSnapshot(viewer, target, world);
         }
 
         public void SendBuffSnapshot(Player viewer, Player target, GameWorld world)

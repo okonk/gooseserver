@@ -63,6 +63,10 @@ namespace Goose.Events
                         {
                             world.Send(player, gmstring);
                         }
+                        if (this.Player.Group is not null && player.Group == this.Player.Group)
+                        {
+                            this.Player.Group.SendBuffSnapshot(player, this.Player, world);
+                        }
                     }
 
                     if (!player.IsGMInvisible)
@@ -106,6 +110,11 @@ namespace Goose.Events
                 if (this.Player.Group is not null)
                 {
                     this.Player.Group.SendPartyWindow(this.Player, world);
+                    foreach (var p in this.Player.Group.Players)
+                    {
+                        if (p == this.Player) continue;
+                        this.Player.Group.SendBuffSnapshotIfVisible(this.Player, p, world);
+                    }
                 }
             }
         }
