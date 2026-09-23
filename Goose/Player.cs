@@ -2579,10 +2579,7 @@ namespace Goose
             {
                 if (buff.ItemBuff && !this.ShowItemBuffs) continue;
 
-                long totalMs = buff.SpellEffect.Duration > 0 ? buff.SpellEffect.Duration * 1000 : 0;
-                long remainingMs = totalMs > 0
-                    ? Math.Max(0, Math.Min(totalMs, (buff.TimeCast + buff.SpellEffect.Duration * world.TimerFrequency - world.TimeNow) * 1000 / world.TimerFrequency))
-                    : 0;
+                var (remainingMs, totalMs) = buff.GetDurations(world);
                 world.Send(this, P.BuffBar(buff, i, remainingMs, totalMs));
                 i++;
             }

@@ -682,6 +682,21 @@ namespace Goose
             return "BUF" + index + "," + buff.SpellEffect.BuffGraphic + "," + buff.SpellEffect.BuffGraphicFile + "," + buff.SpellEffect.Name + "," + remainingMs + "," + totalMs;
         };
 
+        public static Func<Player, Buff, long, long, string> PartyBuff = (player, buff, remainingMs, totalMs) =>
+        {
+            return "PBA" + player.LoginID + "," + buff.SpellEffect.ID + "," + buff.SpellEffect.BuffGraphic + "," + buff.SpellEffect.BuffGraphicFile + "," + remainingMs + "," + totalMs + "," + buff.SpellEffect.Name;
+        };
+
+        public static Func<Player, int, string> PartyBuffRemove = (player, effectId) =>
+        {
+            return "PBR" + player.LoginID + "," + effectId;
+        };
+
+        public static Func<Player, string> PartyBuffClear = (player) =>
+        {
+            return "PBC" + player.LoginID;
+        };
+
         public static Func<Window, string> MakeWindow = (window) =>
         {
             return "MKW" +
