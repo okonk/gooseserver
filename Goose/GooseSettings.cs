@@ -153,10 +153,10 @@ namespace Goose
         public int CombineBagSize { get; set; }
         public int NumberOfRanks { get; set; }
         public int ItemIDStartpoint { get; set; }
-        public int QuestAvailableIconSheet { get; set; } = 2276;
-        public int QuestAvailableIconGraphic { get; set; } = 332038;
-        public int QuestReadyIconSheet { get; set; } = 2276;
-        public int QuestReadyIconGraphic { get; set; } = 332038;
+        public int QuestAvailableIconSheet { get; set; } = 30000;
+        public int QuestAvailableIconGraphic { get; set; } = 1;
+        public int QuestReadyIconSheet { get; set; } = 30000;
+        public int QuestReadyIconGraphic { get; set; } = 2;
 
         // (0,0) means "no icon"; a sheet of 0 with a non-zero graphic is not a valid client reference.
         public static bool IsValidIconPair(int sheet, int graphic)

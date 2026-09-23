@@ -159,8 +159,8 @@
     "NumberOfRanks": 10,
     "ItemIDStartpoint": 5000,
 
-    "QuestAvailableIconSheet": 2276,
-    "QuestAvailableIconGraphic": 332038,
-    "QuestReadyIconSheet": 2276,
-    "QuestReadyIconGraphic": 332038
+    "QuestAvailableIconSheet": 30000,
+    "QuestAvailableIconGraphic": 1,
+    "QuestReadyIconSheet": 30000,
+    "QuestReadyIconGraphic": 2
 }

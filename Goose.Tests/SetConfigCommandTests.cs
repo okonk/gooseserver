@@ -139,8 +139,8 @@ public class SetConfigCommandTests : IDisposable
 
         Assert.Equal(0, fixtureA.Settings.QuestAvailableIconSheet);
         Assert.Equal(0, fixtureA.Settings.QuestAvailableIconGraphic);
-        Assert.Equal(2276, fixtureA.Settings.QuestReadyIconSheet);
-        Assert.Equal(332038, fixtureA.Settings.QuestReadyIconGraphic);
+        Assert.Equal(30000, fixtureA.Settings.QuestReadyIconSheet);
+        Assert.Equal(2, fixtureA.Settings.QuestReadyIconGraphic);
         Assert.Contains(gmA.Sent, m => m.Contains("[GM] Set Game Setting QuestAvailableIconGraphic to: 0"));
     }
 
@@ -151,8 +151,8 @@ public class SetConfigCommandTests : IDisposable
 
         Assert.True(fixtureA.RunCommand(gmA, "/setconfig QuestAvailableIconSheet -1"));
 
-        Assert.Equal(2276, fixtureA.Settings.QuestAvailableIconSheet);
-        Assert.Equal(332038, fixtureA.Settings.QuestAvailableIconGraphic);
+        Assert.Equal(30000, fixtureA.Settings.QuestAvailableIconSheet);
+        Assert.Equal(1, fixtureA.Settings.QuestAvailableIconGraphic);
         Assert.Contains(gmA.Sent, m => m.Contains("Couldn't set value '-1' for QuestAvailableIconSheet."));
         Assert.DoesNotContain(gmA.Sent, m => m.Contains("[GM] Set Game Setting"));
     }
@@ -164,7 +164,7 @@ public class SetConfigCommandTests : IDisposable
 
         Assert.True(fixtureA.RunCommand(gmA, "/setconfig QuestAvailableIconSheet 0"));
 
-        Assert.Equal(2276, fixtureA.Settings.QuestAvailableIconSheet);
+        Assert.Equal(30000, fixtureA.Settings.QuestAvailableIconSheet);
         Assert.Contains(gmA.Sent, m => m.Contains("Couldn't set value '0' for QuestAvailableIconSheet."));
         Assert.DoesNotContain(gmA.Sent, m => m.Contains("[GM] Set Game Setting"));
     }
@@ -180,7 +180,7 @@ public class SetConfigCommandTests : IDisposable
         Assert.True(fixtureA.RunCommand(gmA, "/setconfig QuestAvailableIconGraphic -3"));
 
         Assert.Equal(5, fixtureA.Settings.QuestAvailableIconSheet);
-        Assert.Equal(332038, fixtureA.Settings.QuestAvailableIconGraphic);
+        Assert.Equal(1, fixtureA.Settings.QuestAvailableIconGraphic);
         Assert.Contains(gmA.Sent, m => m.Contains("Couldn't set value '-3' for QuestAvailableIconGraphic."));
         Assert.DoesNotContain(gmA.Sent, m => m.Contains("[GM] Set Game Setting QuestAvailableIconGraphic"));
     }

@@ -112,10 +112,10 @@ namespace Goose.Tests
 
             GooseSettings settings = GooseSettingsLoader.Load(baseDir, dataDir);
 
-            Assert.Equal(2276, settings.QuestAvailableIconSheet);
-            Assert.Equal(332038, settings.QuestAvailableIconGraphic);
-            Assert.Equal(2276, settings.QuestReadyIconSheet);
-            Assert.Equal(332038, settings.QuestReadyIconGraphic);
+            Assert.Equal(30000, settings.QuestAvailableIconSheet);
+            Assert.Equal(1, settings.QuestAvailableIconGraphic);
+            Assert.Equal(30000, settings.QuestReadyIconSheet);
+            Assert.Equal(2, settings.QuestReadyIconGraphic);
         }
 
         [Theory]
