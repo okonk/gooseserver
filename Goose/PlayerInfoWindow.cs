@@ -11,11 +11,13 @@ namespace Goose
 
         public override string Buttons
         {
-            get => $"0,1,{(pageNumber == 0 ? 0 : 1)},{(pageNumber == 4 + (playerForInfo.Bank.NumberOfContainers * playerForInfo.NumberOfBankPages * 2) ? 0 : 1)},0";
+            get => $"0,1,{(pageNumber == 0 ? 0 : 1)},{(pageNumber == PetsPage ? 0 : 1)},0";
         }
 
         private Player playerForInfo;
         private int pageNumber = 0;
+
+        private int PetsPage => 5 + (playerForInfo.Bank.NumberOfContainers * playerForInfo.NumberOfBankPages * 2);
 
         public PlayerInfoWindow(GameWorld world, Player player, Player playerForInfo)
         {
@@ -108,6 +110,23 @@ namespace Goose
                         world.Send(player, P.WindowTextLine(this.ID, lineno++, $"{i}."));
                     else
                         world.Send(player, P.WindowTextLine(this.ID, lineno++, $"{i}. {slot.Item.Name} ({slot.Stack})"));
+                }
+            }
+            else if (pageNumber == PetsPage)
+            {
+                world.Send(player, P.WindowTextLine(this.ID, lineno++, "Pets"));
+                lineno++;
+
+                if (playerForInfo.Pets.Count == 0)
+                {
+                    world.Send(player, P.WindowTextLine(this.ID, lineno++, "(none)"));
+                }
+                else
+                {
+                    foreach (var pet in playerForInfo.Pets)
+                    {
+                        world.Send(player, P.WindowTextLine(this.ID, lineno++, $"{pet.Name} (PetID {pet.PetID}) - Level {pet.Level}, XP {(pet.Experience + pet.ExperienceSold):N0}"));
+                    }
                 }
             }
             else
