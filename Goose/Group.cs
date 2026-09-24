@@ -44,6 +44,13 @@ namespace Goose
             {
                 this.SendPartyWindow(p, world);
             }
+
+            foreach (var p in this.Players)
+            {
+                if (p == player) continue;
+                this.SendBuffSnapshotIfVisible(p, player, world);
+                this.SendBuffSnapshotIfVisible(player, p, world);
+            }
         }
 
         /**
@@ -108,6 +115,72 @@ namespace Goose
             {
                 world.Send(player, P.GroupUpdate(null, i));
                 i++;
+            }
+        }
+
+        public void SendBuffSnapshotIfVisible(Player viewer, Player target, GameWorld world)
+        {
+            if (viewer.Group != this || target.Group != this) return;
+            if (viewer.State != Player.States.Ready || target.State != Player.States.Ready) return;
+            if (viewer.Map is null || target.Map is null) return;
+            if (!Map.InRange(viewer, target)) return;
+            if (target.IsGMInvisible) return;
+
+            this.SendBuffSnapshot(viewer, target, world);
+        }
+
+        public void SendBuffSnapshot(Player viewer, Player target, GameWorld world)
+        {
+            world.Send(viewer, P.PartyBuffClear(target));
+
+            foreach (var buff in target.Buffs)
+            {
+                if (buff.ItemBuff) continue;
+
+                var (remainingMs, totalMs) = buff.GetDurations(world);
+                world.Send(viewer, P.PartyBuff(target, buff, remainingMs, totalMs));
+            }
+        }
+
+        public IEnumerable<Player> GetBuffDeltaRecipients(Player target)
+        {
+            // Map is null while the target is mid-warp (WarpTo sets it before the load completes).
+            if (target.Map is null) yield break;
+
+            foreach (var p in this.Players)
+            {
+                if (p == target || p.State != Player.States.Ready) continue;
+                if (!Map.InRange(p, target)) continue;
+                if (target.IsGMInvisible) continue;
+
+                yield return p;
+            }
+        }
+
+        public void SendBuffAdded(Player target, Buff buff, GameWorld world)
+        {
+            var (remainingMs, totalMs) = buff.GetDurations(world);
+            foreach (var p in this.GetBuffDeltaRecipients(target))
+            {
+                world.Send(p, P.PartyBuff(target, buff, remainingMs, totalMs));
+            }
+        }
+
+        public void SendBuffRemoved(Player target, int effectId, GameWorld world)
+        {
+            foreach (var p in this.GetBuffDeltaRecipients(target))
+            {
+                world.Send(p, P.PartyBuffRemove(target, effectId));
+            }
+        }
+
+        public void SendBuffReplaced(Player target, int oldEffectId, Buff newBuff, GameWorld world)
+        {
+            var (remainingMs, totalMs) = newBuff.GetDurations(world);
+            foreach (var p in this.GetBuffDeltaRecipients(target))
+            {
+                world.Send(p, P.PartyBuffRemove(target, oldEffectId));
+                world.Send(p, P.PartyBuff(target, newBuff, remainingMs, totalMs));
             }
         }
 

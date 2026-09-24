@@ -48,6 +48,7 @@ namespace Goose.Commands
                     {
                         world.Send(p, packet);
                         world.Send(p, packet2);
+                        player.Group?.SendBuffSnapshotIfVisible(p, player, world);
                     }
                 }
             }
