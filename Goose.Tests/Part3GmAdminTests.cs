@@ -342,7 +342,8 @@ namespace Goose.Tests
             {
                 Assert.True(fixture.RunCommand(gm, "/gmhax 3,4,5"));
 
-                Assert.Contains(gm.Sent, s => s.StartsWith("CHP") && s.Contains("3,4,5,"));
+                Assert.Contains(gm.Sent, s => s ==
+                    "CHP0,0,0,0,0,0,0,0,0,*,0,*,0,*,0,*,0,*,0,*,0,0,0,0,0,0,3,4,5,0,*\x1");
             }
         }
     }

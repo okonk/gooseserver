@@ -34,6 +34,8 @@ public class BodyStealerNPC : BaseNPCScript
 				pose = weapon.Item.BodyState;
 			}
 
+			bool layered = BodyClassification.IsLayered(transPlayer.CurrentBodyID);
+
 			string chp = "CHP" +
 				npc.LoginID + "," +
 				transPlayer.CurrentBodyID + "," +
@@ -41,17 +43,17 @@ public class BodyStealerNPC : BaseNPCScript
 				transPlayer.BodyG + "," + // Body Color G
 				transPlayer.BodyB + "," + // Body Color B
 				transPlayer.BodyA + "," + // Body Color A
-				(transPlayer.CurrentBodyID >= 100 ? 3 : pose) + "," +
-				(transPlayer.CurrentBodyID >= 100 ? "" : transPlayer.HairID + ",") +
-				(transPlayer.CurrentBodyID >= 100 ? "" : transPlayer.Inventory.EquippedDisplay()) + // Note: EquippedDisplay() adds it's own , on end
-				(transPlayer.CurrentBodyID >= 100 ? "" : transPlayer.HairR + ",") +
-				(transPlayer.CurrentBodyID >= 100 ? "" : transPlayer.HairG + ",") +
-				(transPlayer.CurrentBodyID >= 100 ? "" : transPlayer.HairB + ",") +
-				(transPlayer.CurrentBodyID >= 100 ? "" : transPlayer.HairA + ",") +
+				(layered ? pose : 3) + "," +
+				(layered ? transPlayer.HairID + "," : "") +
+				(layered ? transPlayer.Inventory.EquippedDisplay() : "") + // Note: EquippedDisplay() adds it's own , on end
+				(layered ? transPlayer.HairR + "," : "") +
+				(layered ? transPlayer.HairG + "," : "") +
+				(layered ? transPlayer.HairB + "," : "") +
+				(layered ? transPlayer.HairA + "," : "") +
 				"0" + "," + // Invis thing
-				(transPlayer.CurrentBodyID >= 100 ? "" : transPlayer.FaceID + ",") +
+				(layered ? transPlayer.FaceID + "," : "") +
 				transPlayer.CalculateMoveSpeed() + "," + // Move Speed
-				(transPlayer.CurrentBodyID >= 100 ? "" : transPlayer.Inventory.MountDisplay()); // Mount
+				(layered ? transPlayer.Inventory.MountDisplay() : ""); // Mount
 
 			foreach (Player p in npc.Map.GetPlayersInRange(npc))
 			{

@@ -120,6 +120,8 @@ namespace Goose
                 pose = weapon.Item.BodyState;
             }
 
+            bool layered = BodyClassification.IsLayered(player.CurrentBodyID);
+
             return "MKC" + player.LoginID + "," +
                            "1," +
                           player.Name + "," +
@@ -135,15 +137,15 @@ namespace Goose
                           player.BodyG + "," + // Body Color G
                           player.BodyB + "," + // Body Color B
                           player.BodyA + "," + // Body Color A
-                          (player.CurrentBodyID >= 100 ? 3 : pose) + "," +
-                          (player.CurrentBodyID >= 100 ? "" : player.HairID + ",") +
-                          (player.CurrentBodyID >= 100 ? "" : player.Inventory.EquippedDisplay()) + // Note: EquippedDisplay() adds it's own , on end
-                          (player.CurrentBodyID >= 100 ? "" : player.HairR + "," + player.HairG + "," + player.HairB + "," + player.HairA + ",") +
+                          (layered ? pose : 3) + "," +
+                          (layered ? player.HairID + "," : "") +
+                          (layered ? player.Inventory.EquippedDisplay() : "") + // Note: EquippedDisplay() adds it's own , on end
+                          (layered ? player.HairR + "," + player.HairG + "," + player.HairB + "," + player.HairA + "," : "") +
                           (player.IsInvisible ? "1" : "0") + "," + // Invisible
-                          (player.CurrentBodyID >= 100 ? "" : player.FaceID + ",") +
+                          (layered ? player.FaceID + "," : "") +
                           player.CalculateMoveSpeed() + "," + // Move Speed
                           (player.Access > Player.AccessStatus.Normal ? "1" : "0") + "," + // Is GM
-                          (player.CurrentBodyID >= 100 ? "" : player.Inventory.MountDisplay()); // Mount
+                          (layered ? player.Inventory.MountDisplay() : ""); // Mount
         };
 
         public static Func<Player, string> UpdateCharacter = (player) =>
@@ -157,6 +159,8 @@ namespace Goose
                 pose = weapon.Item.BodyState;
             }
 
+            bool layered = BodyClassification.IsLayered(player.CurrentBodyID);
+
             return "CHP" +
                    player.LoginID + "," +
                    player.CurrentBodyID + "," +
@@ -164,21 +168,23 @@ namespace Goose
                    player.BodyG + "," + // Body Color G
                    player.BodyB + "," + // Body Color B
                    player.BodyA + "," + // Body Color A
-                   (player.CurrentBodyID >= 100 ? 3 : pose) + "," +
-                   (player.CurrentBodyID >= 100 ? "" : player.HairID + ",") +
-                   (player.CurrentBodyID >= 100 ? "" : player.Inventory.EquippedDisplay()) + // Note: EquippedDisplay() adds it's own , on end
-                   (player.CurrentBodyID >= 100 ? "" : player.HairR + ",") +
-                   (player.CurrentBodyID >= 100 ? "" : player.HairG + ",") +
-                   (player.CurrentBodyID >= 100 ? "" : player.HairB + ",") +
-                   (player.CurrentBodyID >= 100 ? "" : player.HairA + ",") +
+                   (layered ? pose : 3) + "," +
+                   (layered ? player.HairID + "," : "") +
+                   (layered ? player.Inventory.EquippedDisplay() : "") + // Note: EquippedDisplay() adds it's own , on end
+                   (layered ? player.HairR + "," : "") +
+                   (layered ? player.HairG + "," : "") +
+                   (layered ? player.HairB + "," : "") +
+                   (layered ? player.HairA + "," : "") +
                    (player.IsInvisible ? "1" : "0") + "," + // Invisible
-                   (player.CurrentBodyID >= 100 ? "" : player.FaceID + ",") +
+                   (layered ? player.FaceID + "," : "") +
                    player.CalculateMoveSpeed() + "," + // Move Speed
-                   (player.CurrentBodyID >= 100 ? "" : player.Inventory.MountDisplay()); // Mount
+                   (layered ? player.Inventory.MountDisplay() : ""); // Mount
         };
 
         public static Func<NPC, string> UpdateNPC = (npc) =>
         {
+            bool layered = BodyClassification.IsLayered(npc.CurrentBodyID);
+
             return "CHP" +
                    npc.LoginID + "," +
                    npc.CurrentBodyID + "," +
@@ -186,21 +192,23 @@ namespace Goose
                    npc.BodyG + "," + // Body Color G
                    npc.BodyB + "," + // Body Color B
                    npc.BodyA + "," + // Body Color A
-                   (npc.CurrentBodyID >= 100 ? 3 : npc.BodyState) + "," +
-                   (npc.CurrentBodyID >= 100 ? "" : npc.HairID + ",") +
-                   (npc.CurrentBodyID >= 100 ? "" : npc.EquippedItems + ",") +
-                   (npc.CurrentBodyID >= 100 ? "" : npc.HairR + ",") +
-                   (npc.CurrentBodyID >= 100 ? "" : npc.HairG + ",") +
-                   (npc.CurrentBodyID >= 100 ? "" : npc.HairB + ",") +
-                   (npc.CurrentBodyID >= 100 ? "" : npc.HairA + ",") +
+                   (layered ? npc.BodyState : 3) + "," +
+                   (layered ? npc.HairID + "," : "") +
+                   (layered ? npc.EquippedItems + "," : "") +
+                   (layered ? npc.HairR + "," : "") +
+                   (layered ? npc.HairG + "," : "") +
+                   (layered ? npc.HairB + "," : "") +
+                   (layered ? npc.HairA + "," : "") +
                    (npc.IsInvisible ? "1" : "0") + "," + // Invisible
-                   (npc.CurrentBodyID >= 100 ? "" : npc.FaceID + ",") +
+                   (layered ? npc.FaceID + "," : "") +
                    "320," + // Move Speed
-                   (npc.CurrentBodyID >= 100 ? "" : "0,0,0,0,0"); // Mount
+                   (layered ? "0,0,0,0,0" : ""); // Mount
         };
 
         public static Func<NPC, string> MakeNPCCharacter = (npc) =>
         {
+            bool layered = BodyClassification.IsLayered(npc.CurrentBodyID);
+
             return "MKC" + npc.LoginID + "," +
                         (int)npc.NPCType + "," +
                         npc.Name + "," +
@@ -216,19 +224,21 @@ namespace Goose
                         npc.BodyG + "," + // Body Color G
                         npc.BodyB + "," + // Body Color B
                         npc.BodyA + "," + // Body Color A
-                        (npc.CurrentBodyID >= 100 ? 3 : npc.BodyState) + "," +
-                        (npc.CurrentBodyID >= 100 ? "" : npc.HairID + ",") +
-                        (npc.CurrentBodyID >= 100 ? "" : npc.EquippedItems + ",") +
-                        (npc.CurrentBodyID >= 100 ? "" : npc.HairR + "," + npc.HairG + "," + npc.HairB + "," + npc.HairA + ",") +
+                        (layered ? npc.BodyState : 3) + "," +
+                        (layered ? npc.HairID + "," : "") +
+                        (layered ? npc.EquippedItems + "," : "") +
+                        (layered ? npc.HairR + "," + npc.HairG + "," + npc.HairB + "," + npc.HairA + "," : "") +
                         (npc.IsInvisible ? "1" : "0") + "," + // Invisible
-                        (npc.CurrentBodyID >= 100 ? "" : npc.FaceID + ",") +
+                        (layered ? npc.FaceID + "," : "") +
                         "320," + // Move Speed
                         "0" + "," + // Player Name Color
-                        (npc.CurrentBodyID >= 100 ? "" : "0,0,0,0,0"); // Mount
+                        (layered ? "0,0,0,0,0" : ""); // Mount
         };
 
         public static Func<Pet, string> MakePetCharacter = (npc) =>
         {
+            bool layered = BodyClassification.IsLayered(npc.CurrentBodyID);
+
             return "MKC" + npc.LoginID + "," +
                         "13" + "," +
                         npc.Name + "," +
@@ -244,19 +254,21 @@ namespace Goose
                         npc.BodyG + "," + // Body Color G
                         npc.BodyB + "," + // Body Color B
                         npc.BodyA + "," + // Body Color A
-                        (npc.CurrentBodyID >= 100 ? 3 : npc.BodyState) + "," +
-                        (npc.CurrentBodyID >= 100 ? "" : npc.HairID + ",") +
-                        (npc.CurrentBodyID >= 100 ? "" : npc.EquippedItems + ",") +
-                        (npc.CurrentBodyID >= 100 ? "" : npc.HairR + "," + npc.HairG + "," + npc.HairB + "," + npc.HairA + ",") +
+                        (layered ? npc.BodyState : 3) + "," +
+                        (layered ? npc.HairID + "," : "") +
+                        (layered ? npc.EquippedItems + "," : "") +
+                        (layered ? npc.HairR + "," + npc.HairG + "," + npc.HairB + "," + npc.HairA + "," : "") +
                         (npc.IsInvisible ? "1" : "0") + "," + // Invisible
-                        (npc.CurrentBodyID >= 100 ? "" : npc.FaceID + ",") +
+                        (layered ? npc.FaceID + "," : "") +
                         "320," + // Move Speed
                         "0" + "," + // Player Name Color
-                        (npc.CurrentBodyID >= 100 ? "" : "0,0,0,0,0"); // Mount
+                        (layered ? "0,0,0,0,0" : ""); // Mount
         };
 
         public static Func<Pet, string> UpdatePet = (pet) =>
         {
+            bool layered = BodyClassification.IsLayered(pet.CurrentBodyID);
+
             return "CHP" +
                    pet.LoginID + "," +
                    pet.CurrentBodyID + "," +
@@ -264,17 +276,17 @@ namespace Goose
                    pet.BodyG + "," + // Body Color G
                    pet.BodyB + "," + // Body Color B
                    pet.BodyA + "," + // Body Color A
-                   (pet.CurrentBodyID >= 100 ? 3 : pet.BodyState) + "," +
-                   (pet.CurrentBodyID >= 100 ? "" : pet.HairID + ",") +
-                   (pet.CurrentBodyID >= 100 ? "" : pet.EquippedItems + ",") +
-                   (pet.CurrentBodyID >= 100 ? "" : pet.HairR + ",") +
-                   (pet.CurrentBodyID >= 100 ? "" : pet.HairG + ",") +
-                   (pet.CurrentBodyID >= 100 ? "" : pet.HairB + ",") +
-                   (pet.CurrentBodyID >= 100 ? "" : pet.HairA + ",") +
+                   (layered ? pet.BodyState : 3) + "," +
+                   (layered ? pet.HairID + "," : "") +
+                   (layered ? pet.EquippedItems + "," : "") +
+                   (layered ? pet.HairR + "," : "") +
+                   (layered ? pet.HairG + "," : "") +
+                   (layered ? pet.HairB + "," : "") +
+                   (layered ? pet.HairA + "," : "") +
                    (pet.IsInvisible ? "1" : "0") + "," + // Invisible
-                   (pet.CurrentBodyID >= 100 ? "" : pet.FaceID + ",") +
+                   (layered ? pet.FaceID + "," : "") +
                    "320," + // Move Speed
-                   (pet.CurrentBodyID >= 100 ? "" : "0,0,0,0,0"); // Mount
+                   (layered ? "0,0,0,0,0" : ""); // Mount
         };
 
         public static Func<bool, string> SeeInvisible = (canSee) => "SINVS" + (canSee ? "1" : "0");
