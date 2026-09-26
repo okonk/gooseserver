@@ -627,10 +627,10 @@ namespace Goose
 
             if (!(hpresult < 0 && target is Player) && this.SpellDamageEffects)
             {
-                if (world.Random.Next(1, 10001) <= Utils.ExactProduct(caster.MaxStats.SpellCrit, 10000)) hpresult *= 2;
+                hpresult *= Utils.CritMultiplier(caster.MaxStats.SpellCrit, world.Random);
                 hpresult = Utils.MultiplyAndTruncate(hpresult, 1 + caster.MaxStats.SpellDamage);
 
-                if (world.Random.Next(1, 10001) <= Utils.ExactProduct(caster.MaxStats.SpellCrit, 10000)) mpresult *= 2;
+                mpresult *= Utils.CritMultiplier(caster.MaxStats.SpellCrit, world.Random);
                 mpresult = Utils.MultiplyAndTruncate(mpresult, 1 + caster.MaxStats.SpellDamage);
             }
             hpresult = Utils.MultiplyAndTruncate(hpresult, world.Settings.DamageModifier);

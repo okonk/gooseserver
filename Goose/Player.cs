@@ -1780,10 +1780,10 @@ namespace Goose
             double maxac = world.Settings.MaxAC;
             double absorb = (1 - ((double)(character.MaxStats.AC * character.Class.ACMultiplier) / maxac));
 
-            if (world.Random.Next(1, 10001) <= Utils.ExactProduct(this.MaxStats.MeleeCrit, 10000)) damage *= 2;
+            damage *= Utils.CritMultiplier(this.MaxStats.MeleeCrit, world.Random);
             damage *= (double)world.Settings.DamageModifier;
             damage *= (1 + (double)this.MaxStats.MeleeDamage);
-            damage *= (1 - (double)character.MaxStats.DamageReduction);
+            damage *= 1 - Utils.EffectiveDamageReduction(character.MaxStats.DamageReduction, world.Settings.DamageReductionSoftCap);
             damage *= absorb;
             damage -= (double)(character.MaxStats.AC * character.Class.ACMultiplier / 25);
 

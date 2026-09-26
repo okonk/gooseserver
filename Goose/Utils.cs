@@ -57,6 +57,28 @@ namespace Goose
             return ToExactDecimal(first) * ToExactDecimal(second) * scale;
         }
 
+        // Each full 100% of crit adds one guaranteed extra hit; the remainder is the chance of one more.
+        // Always rolls once so the shared Random sequence matches the old single-roll behaviour.
+        internal static long CritMultiplier(double crit, Random random)
+        {
+            int roll = random.Next(1, 10001);
+            decimal basisPoints = ExactProduct(crit, 10000);
+            if (basisPoints <= 0) return 1;
+
+            long guaranteed = (long)decimal.Truncate(basisPoints / 10000);
+            decimal remainder = basisPoints - guaranteed * 10000;
+            return 1 + guaranteed + (roll <= remainder ? 1 : 0);
+        }
+
+        // Linear up to softCap, then tapers towards 100% with a matching slope so overflow still helps but never reaches immunity.
+        internal static double EffectiveDamageReduction(double damageReduction, double softCap)
+        {
+            if (damageReduction <= softCap || softCap >= 1) return damageReduction;
+
+            double headroom = 1 - softCap;
+            return 1 - headroom / (1 + (damageReduction - softCap) / headroom);
+        }
+
         public static string FormatNumber(long num)
         {
             bool negative = num < 0;
