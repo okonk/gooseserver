@@ -348,6 +348,27 @@ namespace Goose.IntegrationTests
         }
 
         [Fact]
+        public void OtherIdKind_exposes_descriptor_kind_independently_of_related_entity()
+        {
+            using var fixture = CreateFixture();
+            long ban = fixture.InsertLog(TicksAfterStart(10), 10010, 7, 1, 0, 0, 0, "");
+            long guildChat = fixture.InsertLog(TicksAfterStart(20), 7, 1, 5, 0, 0, 0, "hello");
+            long spawn = fixture.InsertLog(TicksAfterStart(30), 10006, 7, 100, 0, 0, 0, "");
+            long created = fixture.InsertLog(TicksAfterStart(40), 17, 7, 77, 0, 0, 0, "Custom Sword (12) 34|255,0,0,255");
+            long chat = fixture.InsertLog(TicksAfterStart(50), 0, 1, 0, 0, 0, 0, "hi");
+            long unknown = fixture.InsertLog(TicksAfterStart(60), 999, 1, 2, 0, 10, 20, "mystery");
+            long nonIntegerType = fixture.InsertRawLog(TicksAfterStart(70), "abc", 0L, 0L, 0L, 0L, 0L, "hello there");
+
+            Assert.Equal(LogOtherIdKind.Player, SingleRow(fixture, ban).OtherIdKind);
+            Assert.Equal(LogOtherIdKind.Guild, SingleRow(fixture, guildChat).OtherIdKind);
+            Assert.Equal(LogOtherIdKind.NpcTemplate, SingleRow(fixture, spawn).OtherIdKind);
+            Assert.Equal(LogOtherIdKind.Item, SingleRow(fixture, created).OtherIdKind);
+            Assert.Equal(LogOtherIdKind.Unused, SingleRow(fixture, chat).OtherIdKind);
+            Assert.Equal(LogOtherIdKind.Unused, SingleRow(fixture, unknown).OtherIdKind);
+            Assert.Equal(LogOtherIdKind.Unused, SingleRow(fixture, nonIntegerType).OtherIdKind);
+        }
+
+        [Fact]
         public void Row_exposes_utc_ticks_and_original_text()
         {
             using var fixture = CreateFixture();

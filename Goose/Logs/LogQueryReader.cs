@@ -20,6 +20,7 @@ namespace Goose.Logs
         public bool MapYIsInteger { get; }
         public string TypeLabel { get; }
         public string GroupLabel { get; }
+        public LogOtherIdKind OtherIdKind { get; }
         public LogRelatedEntity? Primary { get; }
         public LogRelatedEntity? Related { get; }
         public LogRelatedEntity? Map { get; }
@@ -29,7 +30,8 @@ namespace Goose.Logs
         internal LogQueryRow(long rowId, long utcTicks, long type, bool typeIsInteger,
             long playerId, bool playerIdIsInteger, long otherId, bool otherIdIsInteger,
             long mapId, bool mapIdIsInteger, long mapX, bool mapXIsInteger, long mapY, bool mapYIsInteger,
-            string typeLabel, string groupLabel, LogRelatedEntity? primary, LogRelatedEntity? related,
+            string typeLabel, string groupLabel, LogOtherIdKind otherIdKind,
+            LogRelatedEntity? primary, LogRelatedEntity? related,
             LogRelatedEntity? map, string summary, string text)
         {
             RowId = rowId;
@@ -48,6 +50,7 @@ namespace Goose.Logs
             MapYIsInteger = mapYIsInteger;
             TypeLabel = typeLabel;
             GroupLabel = groupLabel;
+            OtherIdKind = otherIdKind;
             Primary = primary;
             Related = related;
             Map = map;
@@ -196,7 +199,7 @@ namespace Goose.Logs
                 row.MapId.Value, row.MapId.IsInteger,
                 row.MapX.Value, row.MapX.IsInteger,
                 row.MapY.Value, row.MapY.IsInteger,
-                descriptor.Label, descriptor.Group.ToString(),
+                descriptor.Label, descriptor.Group.ToString(), descriptor.OtherIdKind,
                 primary, formatted.Related, map, formatted.Summary, row.Text);
         }
 
