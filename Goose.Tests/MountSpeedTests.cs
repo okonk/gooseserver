@@ -6,6 +6,7 @@ using Xunit;
 
 namespace Goose.Tests;
 
+[Collection("NLog")]
 public class MountSpeedTests
 {
     private const int BaseSpeed = 320;
@@ -28,7 +29,7 @@ public class MountSpeedTests
         public Map OtherMap { get; }
         public Item Mount { get; }
 
-        public Fixture(bool equipMount = true)
+        public Fixture(bool equipMount = true, bool seedBaseSpeed = true)
         {
             this.World = new TestWorldFixture();
             var map = this.World.AddBaseMap(1, "Test");
@@ -39,7 +40,7 @@ public class MountSpeedTests
             this.Player.Level = 1;
             this.Player.Experience = 100;
             this.Player.BaseStats.HP = 100;
-            SeedBaseMoveSpeed(this.Player, BaseSpeed);
+            if (seedBaseSpeed) SeedBaseMoveSpeed(this.Player, BaseSpeed);
 
             var effect = this.World.AddBaseSpellEffect(259, "Mount Speed II", e =>
             {
@@ -160,5 +161,29 @@ public class MountSpeedTests
         string mkc = fixture.MakeCharacterOnNextMapLoad();
 
         Assert.Contains($",{BaseSpeed},", mkc);
+    }
+
+    [Fact]
+    public void Adding_stats_to_an_empty_speed_queue_publishes_the_new_speed()
+    {
+        using var fixture = new Fixture(equipMount: false, seedBaseSpeed: false);
+        fixture.Player.Sent.Clear();
+
+        fixture.Player.AddStats(new AttributeSet { MoveSpeed = MountSpeed }, fixture.World.World);
+
+        Assert.Equal(MountSpeed, fixture.Player.CalculateMoveSpeed());
+        Assert.Contains(fixture.Player.Sent, s => s.Contains("CHP"));
+    }
+
+    [Fact]
+    public void Removing_stats_from_an_empty_speed_queue_does_not_throw_and_warns()
+    {
+        using var log = new CapturingLog();
+        using var fixture = new Fixture(equipMount: false, seedBaseSpeed: false);
+
+        fixture.Player.RemoveStats(new AttributeSet { MoveSpeed = BaseSpeed }, fixture.World.World);
+
+        Assert.Equal(0, fixture.Player.CalculateMoveSpeed());
+        Assert.Contains(log.Messages, m => m.Contains("move speed queue emptied"));
     }
 }

@@ -1658,14 +1658,16 @@ namespace Goose
 
             if (stats.MoveSpeed != 0)
             {
-                var oldSpeed = this.moveSpeed.Peek();
+                bool hadSpeed = this.moveSpeed.TryPeek(out int oldSpeed, out int _);
                 this.moveSpeed.Enqueue(stats.MoveSpeed, stats.MoveSpeed);
 
                 if (updateCharacter)
                 {
-                    var newSpeed = this.moveSpeed.Peek();
+                    this.moveSpeed.TryPeek(out int newSpeed, out int _);
 
-                    if (newSpeed < oldSpeed)
+                    // No previous entry means the client was never told a speed at all,
+                    // so any value is news rather than something to compare against.
+                    if (!hadSpeed || newSpeed < oldSpeed)
                     {
                         string updateCharacterPacket = P.UpdateCharacter(this);
                         world.Send(this, updateCharacterPacket);
@@ -1699,7 +1701,7 @@ namespace Goose
 
             if (stats.MoveSpeed != 0)
             {
-                var oldSpeed = this.moveSpeed.Peek();
+                this.moveSpeed.TryPeek(out int oldSpeed, out int _);
 
                 // Drop the entry belonging to the stats being removed, not the smallest one:
                 // the smallest is whichever effect currently wins (e.g. a mount's speed).
@@ -1707,9 +1709,15 @@ namespace Goose
                 this.moveSpeed.Clear();
                 this.moveSpeed.EnqueueRange(speeds);
 
+                if (this.moveSpeed.Count == 0)
+                {
+                    log.Warn("Player {0}: move speed queue emptied by removing {1}; clients keep their last speed until one is added",
+                        this.Name, stats.MoveSpeed);
+                }
+
                 if (updateCharacter)
                 {
-                    var newSpeed = this.moveSpeed.Peek();
+                    this.moveSpeed.TryPeek(out int newSpeed, out int _);
 
                     if (oldSpeed != newSpeed)
                     {
