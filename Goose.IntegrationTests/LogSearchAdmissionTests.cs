@@ -406,6 +406,38 @@ namespace Goose.IntegrationTests
         }
 
         [Fact]
+        public void MalformedIdentifiableWhileActive_ReceivesBusyMessage_NoMutation()
+        {
+            using var fixture = new LogSearchServerFixture();
+            var gm = fixture.AddGm("Gm", 1);
+            var viewer = fixture.OpenViewer(gm);
+            fixture.Monotonic = 0;
+
+            var block = new ManualResetEventSlim(false);
+            fixture.GameWorld.Database.Enqueue(conn => block.Wait());
+            fixture.GameWorld.EventHandler.AddEvent(gm, LogSearchServerFixture.Fresh(viewer.ID, 1));
+            fixture.GameWorld.Update();
+            Assert.Equal(LogSearchPhase.Querying, viewer.Phase);
+            Assert.Equal(1, fixture.Service.ActiveDbQueryCount);
+            Assert.Equal(1, fixture.ViewLogsAuditCount);
+
+            fixture.Monotonic += fixture.MillisecondTicks * 1000;
+            fixture.Send(gm, $"LQS{viewer.ID},1,F,1,2");
+            Assert.Equal("A log search is already running.", fixture.LrxMessage(gm, viewer.ID, 1));
+            Assert.Null(viewer.Session);
+            Assert.Equal(1, fixture.ViewLogsAuditCount);
+            Assert.Equal(1, fixture.Service.ActiveDbQueryCount);
+
+            block.Set();
+            fixture.Pump();
+            Assert.Equal(LogSearchPhase.Idle, viewer.Phase);
+
+            fixture.Send(gm, LogSearchServerFixture.Fresh(viewer.ID, 2));
+            Assert.Equal(LogSearchPhase.Querying, viewer.Phase);
+            fixture.Pump();
+        }
+
+        [Fact]
         public void UnknownCanonicalPageToken_RejectsBeforeDbCapacityAuditAndRate()
         {
             using var fixture = new LogSearchServerFixture();

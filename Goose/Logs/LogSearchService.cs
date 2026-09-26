@@ -43,26 +43,31 @@ namespace Goose.Logs
             LogViewerWindow? viewer = player.Windows.OfType<LogViewerWindow>().FirstOrDefault();
             if (viewer is null) return;
 
-            if (!LogSearchPacket.TryParse(packet, out LogSearchRequest? request))
+            bool parsed = LogSearchPacket.TryParse(packet, out LogSearchRequest? request);
+            int windowId = request?.WindowId ?? 0;
+            int requestId = request?.RequestId ?? 0;
+            if (!parsed && packet.Length <= LogSearchPacket.MaxPacketLength
+                && LogSearchPacket.TryIdentify(packet, out int malformedWindowId, out int malformedRequestId))
             {
-                if (packet.Length <= LogSearchPacket.MaxPacketLength
-                    && LogSearchPacket.TryIdentify(packet, out int malformedWindowId, out int malformedRequestId)
-                    && malformedWindowId == viewer.ID)
-                {
-                    this.SendError(player, viewer, malformedRequestId, Malformed);
-                }
-                return;
+                windowId = malformedWindowId;
+                requestId = malformedRequestId;
             }
 
-            if (request!.WindowId != viewer.ID) return;
+            if (windowId != viewer.ID) return;
 
             if (viewer.Phase is LogSearchPhase.Querying or LogSearchPhase.Delivering)
             {
-                this.SendError(player, viewer, request.RequestId, AlreadyRunning);
+                this.SendError(player, viewer, requestId, AlreadyRunning);
                 return;
             }
 
-            if (request.Action == LogSearchAction.Page)
+            if (!parsed)
+            {
+                this.SendError(player, viewer, requestId, Malformed);
+                return;
+            }
+
+            if (request!.Action == LogSearchAction.Page)
                 this.AdmitPage(player, viewer, request);
             else
                 this.AdmitFresh(player, viewer, request);
