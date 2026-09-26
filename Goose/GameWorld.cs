@@ -69,6 +69,77 @@ namespace Goose
         private readonly Dictionary<Socket, StringBuilder> preLoginBuffers = new();
         private readonly HashSet<Socket> pendingLogouts = new();
 
+        private readonly object completionGate = new();
+        private readonly Queue<Action> completionQueue = new();
+        private readonly Queue<Action> deliveryQueue = new();
+        private bool stopping;
+
+        internal Action? DeliveryPump { get; set; }
+
+        internal bool EnqueueCompletion(Action action)
+        {
+            lock (completionGate)
+            {
+                if (stopping) return false;
+                completionQueue.Enqueue(action);
+                return true;
+            }
+        }
+
+        internal bool EnqueueDelivery(Action action)
+        {
+            lock (completionGate)
+            {
+                if (stopping) return false;
+                deliveryQueue.Enqueue(action);
+                return true;
+            }
+        }
+
+        internal int PendingCompletionCount
+        {
+            get { lock (completionGate) return completionQueue.Count; }
+        }
+
+        internal int PendingDeliveryCount
+        {
+            get { lock (completionGate) return deliveryQueue.Count; }
+        }
+
+        internal void BeginStopping()
+        {
+            lock (completionGate)
+            {
+                stopping = true;
+                while (completionQueue.Count > 0) completionQueue.Dequeue();
+                while (deliveryQueue.Count > 0) deliveryQueue.Dequeue();
+            }
+        }
+
+        private void DrainCompletions()
+        {
+            List<Action> due;
+            lock (completionGate)
+            {
+                if (completionQueue.Count == 0) return;
+                due = new List<Action>(completionQueue.Count);
+                while (completionQueue.Count > 0)
+                    due.Add(completionQueue.Dequeue());
+            }
+
+            foreach (var action in due)
+            {
+                try
+                {
+                    action();
+                }
+                catch (Exception e)
+                {
+                    log.Error(e, "Game-thread completion callback failed.");
+                }
+            }
+        }
+
         internal string? PreLoginPending(Socket sock)
         {
             return preLoginBuffers.TryGetValue(sock, out StringBuilder? sb) ? sb.ToString() : null;
@@ -398,6 +469,7 @@ namespace Goose
          */
         public void Stop()
         {
+            this.BeginStopping();
             this.Running = false;
 
             log.Info("Shutting down server.");
@@ -430,6 +502,8 @@ namespace Goose
                 Thread.Sleep(100);
             }
             this.Database.Stop();
+            // A DB worker that outlives the stop timeout can still publish; clear again.
+            this.BeginStopping();
 
             log.Info("Finished shutting down.");
         }
@@ -609,6 +683,15 @@ namespace Goose
         public void Update()
         {
             this.EventHandler.Update(this);
+            this.DrainCompletions();
+            try
+            {
+                this.DeliveryPump?.Invoke();
+            }
+            catch (Exception e)
+            {
+                log.Error(e, "Delivery pump failed.");
+            }
         }
 
 
