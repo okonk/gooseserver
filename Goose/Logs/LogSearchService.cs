@@ -5,6 +5,8 @@ namespace Goose.Logs
     internal sealed class LogSearchService
     {
         public const int MaxConcurrentDbQueries = 4;
+        internal const int DeliveryBudgetBytes = 32_768;
+        internal const int SendBufferWatermark = 262_144;
 
         private static readonly NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
         private static readonly long OneSecondTicks = Stopwatch.Frequency;
@@ -22,7 +24,19 @@ namespace Goose.Logs
         private readonly Func<string> tokenSource;
         private readonly Func<DateTimeOffset> utcNow;
         private readonly Dictionary<int, long> lastFreshTicksByPlayer = new();
+        private readonly List<DeliveryState> deliveries = new();
+        private int deliveryCursor;
         private int activeDbQueries;
+
+        private sealed class DeliveryState
+        {
+            public required Player Player;
+            public required LogViewerWindow Viewer;
+            public required int RequestId;
+            public required int SessionGeneration;
+            public bool Deferred;
+            public bool Done;
+        }
 
         public LogSearchService(GameWorld world, Func<long>? monotonicNow = null,
             Func<string>? tokenSource = null, Func<DateTimeOffset>? utcNow = null)
@@ -32,9 +46,12 @@ namespace Goose.Logs
             this.tokenSource = tokenSource ?? LogPageTokenCodec.Create;
             this.utcNow = utcNow ?? (() => DateTimeOffset.UtcNow);
             world.DeliveryPump = this.PumpDeliveries;
+            world.StoppingHook = this.OnStopping;
         }
 
         public int ActiveDbQueryCount => this.activeDbQueries;
+
+        internal int PendingDeliveryCount => this.deliveries.Count;
 
         public void Admit(Player player, string packet)
         {
@@ -109,8 +126,11 @@ namespace Goose.Logs
                 }, error =>
                 {
                     if (error is not null)
+                    {
+                        log.Error(error, "Log search database error for {0}.", player.Name);
                         this.world.EnqueueCompletion(() =>
                             this.CompleteError(player, viewer, request.RequestId, Failed));
+                    }
                 });
             }
             catch (Exception e)
@@ -160,8 +180,11 @@ namespace Goose.Logs
                 }, error =>
                 {
                     if (error is not null)
+                    {
+                        log.Error(error, "Log page database error for {0}.", player.Name);
                         this.world.EnqueueCompletion(() =>
                             this.CompleteError(player, viewer, request.RequestId, Failed));
+                    }
                 });
             }
             catch (Exception e)
@@ -250,13 +273,25 @@ namespace Goose.Logs
                 return;
             }
             viewer.BeginDelivery(requestId, response!.Packets);
-            this.EnqueueDelivery(player, viewer, requestId);
+            this.AddDelivery(player, viewer, requestId);
         }
 
         private void DeliverResponse(Player player, LogViewerWindow viewer, int requestId, IReadOnlyList<string> packets)
         {
             viewer.BeginDelivery(requestId, packets);
-            this.EnqueueDelivery(player, viewer, requestId);
+            this.AddDelivery(player, viewer, requestId);
+        }
+
+        private void AddDelivery(Player player, LogViewerWindow viewer, int requestId)
+        {
+            this.deliveries.Add(new DeliveryState
+            {
+                Player = player,
+                Viewer = viewer,
+                RequestId = requestId,
+                SessionGeneration = viewer.SessionGeneration,
+                Deferred = this.world.InUpdate,
+            });
         }
 
         private void DeliverError(Player player, LogViewerWindow viewer, int requestId, string message)
@@ -299,47 +334,123 @@ namespace Goose.Logs
             return true;
         }
 
-        private void EnqueueDelivery(Player player, LogViewerWindow viewer, int requestId)
-        {
-            this.world.EnqueueDelivery(() =>
-            {
-                if (player.State != Player.States.Ready
-                    || !player.Windows.Contains(viewer)
-                    || viewer.Phase != LogSearchPhase.Delivering
-                    || viewer.ActiveRequestId != requestId)
-                {
-                    viewer.FinishDelivery();
-                    return;
-                }
-                string? packet = viewer.TakeNextDeliveryPacket();
-                if (packet is null)
-                {
-                    viewer.FinishDelivery();
-                    return;
-                }
-                this.world.Send(player, packet);
-                if (viewer.DeliveryComplete)
-                {
-                    viewer.FinishDelivery();
-                    return;
-                }
-                this.EnqueueDelivery(player, viewer, requestId);
-            });
-        }
-
         private void PumpDeliveries()
         {
-            foreach (Action action in this.world.DrainDeliveries())
+            List<DeliveryState> pass = this.deliveries.Where(s => !s.Done).ToList();
+            if (pass.Count == 0) return;
+
+            int budget = DeliveryBudgetBytes;
+            int start = this.deliveryCursor % pass.Count;
+            int lastTouched = -1;
+            for (int step = 0; step < pass.Count && budget > 0; step++)
             {
-                try
+                int i = (start + step) % pass.Count;
+                if (this.PumpState(pass[i], ref budget))
+                    lastTouched = i;
+            }
+
+            this.deliveries.RemoveAll(s => s.Done);
+            this.deliveryCursor = (lastTouched + 1) % Math.Max(1, this.deliveries.Count);
+        }
+
+        private bool PumpState(DeliveryState state, ref int budget)
+        {
+            Player player = state.Player;
+            LogViewerWindow viewer = state.Viewer;
+            if (state.Deferred)
+            {
+                state.Deferred = false;
+                return false;
+            }
+            if (!this.LifecycleOk(state))
+            {
+                this.Abandon(state);
+                return true;
+            }
+            if (player.SendBuffer is { Count: > SendBufferWatermark })
+                return true;
+            while (budget > 0)
+            {
+                string? packet = viewer.PeekNextDeliveryPacket();
+                if (packet is null)
                 {
-                    action();
+                    this.Finalize(state);
+                    return true;
                 }
-                catch (Exception e)
+                int cost = packet.Length + 1;
+                if (cost > budget) break;
+                this.world.Send(player, packet);
+                budget -= cost;
+                viewer.ConsumeDeliveryPacket();
+                if (viewer.DeliveryComplete)
                 {
-                    log.Error(e, "Log search delivery failed.");
+                    this.Finalize(state);
+                    return true;
+                }
+                if (!this.LifecycleOk(state))
+                {
+                    this.Abandon(state);
+                    return true;
                 }
             }
+            return true;
+        }
+
+        private bool LifecycleOk(DeliveryState state)
+        {
+            Player player = state.Player;
+            LogViewerWindow viewer = state.Viewer;
+            return player.State == Player.States.Ready
+                && player.HasPrivilege(AccessPrivilege.ViewLogs)
+                && this.world.PlayerHandler.GetPlayer(player.Sock) == player
+                && player.Windows.Contains(viewer)
+                && viewer.Phase == LogSearchPhase.Delivering
+                && viewer.ActiveRequestId == state.RequestId
+                && viewer.SessionGeneration == state.SessionGeneration;
+        }
+
+        private void Finalize(DeliveryState state)
+        {
+            state.Viewer.FinishDelivery();
+            state.Done = true;
+        }
+
+        private void Abandon(DeliveryState state)
+        {
+            Player player = state.Player;
+            LogViewerWindow viewer = state.Viewer;
+            bool clearSession = player.State != Player.States.Ready
+                || !player.HasPrivilege(AccessPrivilege.ViewLogs)
+                || this.world.PlayerHandler.GetPlayer(player.Sock) != player
+                || !player.Windows.Contains(viewer);
+            viewer.FinishDelivery();
+            if (clearSession)
+                viewer.InvalidateSearchState();
+            state.Done = true;
+        }
+
+        internal void InvalidatePlayer(Player player)
+        {
+            this.deliveries.RemoveAll(s => s.Player == player);
+            foreach (LogViewerWindow viewer in player.Windows.OfType<LogViewerWindow>().ToList())
+                viewer.InvalidateSearchState();
+        }
+
+        internal void OnAccessChanged(Player player)
+        {
+            if (player.HasPrivilege(AccessPrivilege.ViewLogs)) return;
+            this.InvalidatePlayer(player);
+            foreach (LogViewerWindow viewer in player.Windows.OfType<LogViewerWindow>().ToList())
+                viewer.Close(player, this.world);
+        }
+
+        private void OnStopping()
+        {
+            this.lastFreshTicksByPlayer.Clear();
+            foreach (DeliveryState state in this.deliveries)
+                state.Viewer.InvalidateSearchState();
+            this.deliveries.Clear();
+            this.deliveryCursor = 0;
         }
     }
 }

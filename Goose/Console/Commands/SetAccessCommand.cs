@@ -83,6 +83,7 @@ namespace Goose.ConsoleCommands
 
             Player.AccessStatus previous = player.Access;
             player.Access = request.Level;
+            world.LogSearches.OnAccessChanged(player);
 
             // Logged in players are covered by the periodic save. An offline one
             // would otherwise hold the change in memory until something else wrote

@@ -28,9 +28,12 @@ namespace Goose.IntegrationTests
 
         private Map? baseMap;
 
-        public LogSearchServerFixture(bool createPlayersTable = true)
+        public LogSearchServerFixture(bool createPlayersTable = true, int logoutLagTime = 0)
         {
-            this.World = new TestWorldFixture();
+            this.World = new TestWorldFixture(s =>
+            {
+                if (logoutLagTime > 0) s.LogoutLagTime = logoutLagTime;
+            });
             this.DbPath = Path.Combine(Path.GetTempPath(), "logsearch-" + Guid.NewGuid().ToString("N") + ".db");
             var db = this.GameWorld.Database;
             db.Start(this.DbPath);
@@ -63,7 +66,25 @@ namespace Goose.IntegrationTests
             return player;
         }
 
-        public LogViewerWindow OpenViewer(TestWorldFixture.CapturingPlayer player)
+        public T AddGm<T>(T player, int playerId) where T : Player, new()
+        {
+            this.baseMap ??= this.World.AddBaseMap(7, "Town");
+            player.Map = this.baseMap;
+            player.MapID = this.baseMap.ID;
+            player.MapX = 3;
+            player.MapY = 4;
+            player.State = Player.States.Ready;
+            player.Class = this.World.World.ClassHandler.GetClass(0)!;
+            player.BaseStats = new AttributeSet();
+            player.MaxStats = new AttributeSet();
+            player.Inventory = new Inventory(player, this.World.Settings);
+            player.PlayerID = playerId;
+            player.Access = Player.AccessStatus.GameMaster;
+            this.World.AddOnlinePlayer(player);
+            return player;
+        }
+
+        public LogViewerWindow OpenViewer(Player player)
         {
             Assert.True(LogViewerWindow.Open(player, this.GameWorld));
             return (LogViewerWindow)player.Windows[^1];
@@ -81,8 +102,14 @@ namespace Goose.IntegrationTests
             for (int guard = 0; guard < 10_000; guard++)
             {
                 this.GameWorld.Update();
-                if (this.GameWorld.PendingDeliveryCount == 0) break;
+                if (this.Service.PendingDeliveryCount == 0) break;
             }
+        }
+
+        public void SetSendBufferCount(Player player, int count)
+        {
+            typeof(Player).GetProperty(nameof(Player.SendBuffer))!
+                .SetValue(player, new List<byte>(new byte[count]));
         }
 
         public int ViewLogsAuditCount =>

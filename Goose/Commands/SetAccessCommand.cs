@@ -14,6 +14,7 @@ namespace Goose.Commands
                 {
                     var accessStatus = Enum.GetValues<Player.AccessStatus>().Where(y => y.ToString().Equals(access, StringComparison.OrdinalIgnoreCase)).First();
                     player.Access = accessStatus;
+                    world.LogSearches.OnAccessChanged(player);
                     ctx.Send($"Set AccessStatus for {player.Name} to {player.Access}.");
 
                     if (player.State == Player.States.NotLoggedIn)

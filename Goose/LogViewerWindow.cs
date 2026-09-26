@@ -21,13 +21,13 @@ namespace Goose
         internal IReadOnlyList<string>? DeliveryPackets { get; private set; }
         internal int DeliveryIndex { get; private set; }
 
-        internal string? TakeNextDeliveryPacket()
+        internal string? PeekNextDeliveryPacket()
         {
             if (this.DeliveryPackets is null || this.DeliveryIndex >= this.DeliveryPackets.Count) return null;
-            string packet = this.DeliveryPackets[this.DeliveryIndex];
-            this.DeliveryIndex++;
-            return packet;
+            return this.DeliveryPackets[this.DeliveryIndex];
         }
+
+        internal void ConsumeDeliveryPacket() => this.DeliveryIndex++;
 
         internal bool DeliveryComplete =>
             this.DeliveryPackets is null || this.DeliveryIndex >= this.DeliveryPackets.Count;
@@ -95,7 +95,7 @@ namespace Goose
             this.Session = session;
         }
 
-        private void InvalidateSearchState()
+        internal void InvalidateSearchState()
         {
             this.Session?.Clear();
             this.Session = null;

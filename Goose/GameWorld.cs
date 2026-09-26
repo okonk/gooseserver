@@ -77,6 +77,8 @@ namespace Goose
         private bool stopping;
 
         internal Action? DeliveryPump { get; set; }
+        internal Action? StoppingHook { get; set; }
+        internal bool InUpdate { get; private set; }
 
         internal bool EnqueueCompletion(Action action)
         {
@@ -128,6 +130,18 @@ namespace Goose
                 stopping = true;
                 while (completionQueue.Count > 0) completionQueue.Dequeue();
                 while (deliveryQueue.Count > 0) deliveryQueue.Dequeue();
+            }
+            Action? hook = this.StoppingHook;
+            if (hook is not null)
+            {
+                try
+                {
+                    hook();
+                }
+                catch (Exception e)
+                {
+                    log.Error(e, "Stopping hook failed.");
+                }
             }
         }
 
@@ -562,6 +576,11 @@ namespace Goose
             preLoginBuffers.Remove(sock);
             var endpoint = this.GameServer?.ConnectionIP(sock) ?? "unknown";
             log.Info("Connection lost: " + endpoint);
+            // The delayed logout removes the player later; invalidate log viewer
+            // state now, while the socket still resolves to the player.
+            Player? player = this.PlayerHandler.GetPlayer(sock);
+            if (player is not null)
+                this.LogSearches.InvalidatePlayer(player);
             try { this.GameServer!.Disconnect(sock); }
             catch (Exception e) { log.Error(e, "Disconnect failed for {0}", endpoint); }
             try
@@ -698,15 +717,23 @@ namespace Goose
          */
         public void Update()
         {
-            this.EventHandler.Update(this);
-            this.DrainCompletions();
+            this.InUpdate = true;
             try
             {
-                this.DeliveryPump?.Invoke();
+                this.EventHandler.Update(this);
+                this.DrainCompletions();
+                try
+                {
+                    this.DeliveryPump?.Invoke();
+                }
+                catch (Exception e)
+                {
+                    log.Error(e, "Delivery pump failed.");
+                }
             }
-            catch (Exception e)
+            finally
             {
-                log.Error(e, "Delivery pump failed.");
+                this.InUpdate = false;
             }
         }
 
