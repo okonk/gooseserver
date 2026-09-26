@@ -12,7 +12,10 @@ namespace Goose.Logs
         public string? Text { get; init; }
     }
 
-    internal sealed record LogPageCursor(long SnapshotCeiling, long? BeforeUtcTicks, long? BeforeRowId);
+    internal sealed record LogPageCursor(long SnapshotCeiling, long? BeforeUtcTicks, long? BeforeRowId)
+    {
+        public static LogPageCursor ForFirstPage(long snapshotCeiling) => new(snapshotCeiling, null, null);
+    }
 
     public sealed class LogSearchQuery
     {

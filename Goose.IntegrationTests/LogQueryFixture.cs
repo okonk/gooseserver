@@ -61,6 +61,10 @@ namespace Goose.IntegrationTests
             => Run("INSERT INTO players (player_id, player_name) VALUES (" + id + ", @name);",
                 new SQLiteParameter("@name", DbType.String) { Value = name });
 
+        public void UpdateLogText(long rowId, string text)
+            => Run("UPDATE logs SET text = @text WHERE rowid = " + rowId + ";",
+                new SQLiteParameter("@text", DbType.String) { Value = text });
+
         public void RenamePlayer(int id, string name)
             => Run("UPDATE players SET player_name = @name WHERE player_id = " + id + ";",
                 new SQLiteParameter("@name", DbType.String) { Value = name });
