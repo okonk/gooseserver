@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace Goose.Logs
 {
     public static class LogProtocolPackets
@@ -5,6 +7,8 @@ namespace Goose.Logs
         public const int MaxSegmentLength = 12_288;
         public const int MaxResponseBytes = 4_194_304;
         public const char PacketDelimiter = '\x01';
+
+        private static readonly CultureInfo Invariant = CultureInfo.InvariantCulture;
 
         public sealed class SearchResponse
         {
@@ -19,20 +23,20 @@ namespace Goose.Logs
         }
 
         public static string BuildTypeMetadata(int windowId, int knownTypeId, string group, string label)
-            => "LMT" + windowId + "," + knownTypeId + ","
-               + ProtocolTextCodec.EncodeText(group) + "," + ProtocolTextCodec.EncodeText(label);
+            => string.Format(Invariant, "LMT{0},{1},{2},{3}", windowId, knownTypeId,
+                ProtocolTextCodec.EncodeText(group), ProtocolTextCodec.EncodeText(label));
 
         public static string BuildMapMetadata(int windowId, int knownMapId, string mapName)
-            => "LMM" + windowId + "," + knownMapId + "," + ProtocolTextCodec.EncodeText(mapName);
+            => string.Format(Invariant, "LMM{0},{1},{2}", windowId, knownMapId, ProtocolTextCodec.EncodeText(mapName));
 
         public static string BuildDefaultRange(int windowId, long startUnixMs, long endUnixMs)
-            => "LMD" + windowId + "," + startUnixMs + "," + endUnixMs;
+            => string.Format(Invariant, "LMD{0},{1},{2}", windowId, startUnixMs, endUnixMs);
 
         public static string BuildSearchBegin(int windowId, int requestId)
-            => "LRB" + windowId + "," + requestId;
+            => string.Format(Invariant, "LRB{0},{1}", windowId, requestId);
 
         public static string BuildSearchError(int windowId, int requestId, string message)
-            => "LRX" + windowId + "," + requestId + "," + ProtocolTextCodec.EncodeText(message);
+            => string.Format(Invariant, "LRX{0},{1},{2}", windowId, requestId, ProtocolTextCodec.EncodeText(message));
 
         public static string BuildSearchFinish(int windowId, int requestId, bool hasMore,
             string currentPageToken, string nextPageToken)
@@ -49,8 +53,8 @@ namespace Goose.Logs
                 throw new ArgumentException("Next page token must be empty when not hasMore.", nameof(nextPageToken));
             }
 
-            return "LRF" + windowId + "," + requestId + "," + (hasMore ? "1" : "0") + ","
-                + currentPageToken + "," + nextPageToken;
+            return string.Format(Invariant, "LRF{0},{1},{2},{3},{4}", windowId, requestId,
+                hasMore ? "1" : "0", currentPageToken, nextPageToken);
         }
 
         public static IReadOnlyList<string> BuildRowChunks(int windowId, int requestId, int rowOrdinal, byte[] rowJsonUtf8)
@@ -62,8 +66,8 @@ namespace Goose.Logs
             {
                 int start = chunkIndex * MaxSegmentLength;
                 int length = Math.Min(MaxSegmentLength, base64.Length - start);
-                packets[chunkIndex] = "LRD" + windowId + "," + requestId + "," + rowOrdinal + ","
-                    + chunkIndex + "," + chunkCount + "," + base64.Substring(start, length);
+                packets[chunkIndex] = string.Format(Invariant, "LRD{0},{1},{2},{3},{4},{5}",
+                    windowId, requestId, rowOrdinal, chunkIndex, chunkCount, base64.Substring(start, length));
             }
             return packets;
         }

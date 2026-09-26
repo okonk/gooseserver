@@ -17,6 +17,12 @@ namespace Goose.Logs
 
         public static bool TrySerialize(LogQueryRow row, out byte[] utf8Json)
         {
+            if (row.UtcTicks < 0 || row.UtcTicks > DateTime.MaxValue.Ticks)
+            {
+                utf8Json = Array.Empty<byte>();
+                return false;
+            }
+
             using var stream = new MemoryStream();
             using (var writer = new Utf8JsonWriter(stream, WriterOptions))
             {

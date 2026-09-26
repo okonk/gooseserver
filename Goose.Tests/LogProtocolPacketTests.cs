@@ -1,3 +1,4 @@
+using System.Globalization;
 using Goose;
 using Goose.Logs;
 using Xunit;
@@ -48,6 +49,23 @@ namespace Goose.Tests
             Assert.Throws<ArgumentException>(() => LogProtocolPackets.BuildSearchFinish(1, 2, true, current, ""));
             Assert.Throws<ArgumentException>(() => LogProtocolPackets.BuildSearchFinish(1, 2, false, current, next));
             Assert.Throws<ArgumentException>(() => LogProtocolPackets.BuildSearchFinish(1, 2, false, "short", ""));
+        }
+
+        [Fact]
+        public void Numeric_fields_are_formatted_invariant_under_ambient_culture()
+        {
+            CultureInfo original = CultureInfo.CurrentCulture;
+            try
+            {
+                CultureInfo.CurrentCulture = new CultureInfo("ar-EG");
+                Assert.Equal("LMD2,-1000,1700000000000", LogProtocolPackets.BuildDefaultRange(2, -1000, 1_700_000_000_000));
+                Assert.Equal("LRB2,9", LogProtocolPackets.BuildSearchBegin(2, 9));
+                Assert.StartsWith("LRD3,7,2,0,", LogProtocolPackets.BuildRowChunks(3, 7, 2, new byte[10])[0]);
+            }
+            finally
+            {
+                CultureInfo.CurrentCulture = original;
+            }
         }
 
         [Fact]

@@ -160,6 +160,15 @@ namespace Goose.Tests
         }
 
         [Fact]
+        public void Rejects_out_of_range_utc_ticks_without_throwing()
+        {
+            Assert.False(LogRowJsonSerializer.TrySerialize(Row(utcTicks: -1), out byte[] negative));
+            Assert.Empty(negative);
+            Assert.False(LogRowJsonSerializer.TrySerialize(Row(utcTicks: long.MaxValue), out byte[] over));
+            Assert.Empty(over);
+        }
+
+        [Fact]
         public void Hostile_original_text_survives_wire_round_trip_byte_for_byte()
         {
             string text = "ünïcödé, comma | pipe \u0001 NUL \u0000 end " + new string('x', 100_000);
