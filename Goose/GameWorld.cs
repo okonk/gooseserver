@@ -175,6 +175,7 @@ namespace Goose
                 AddColumnIfMissing(conn, "players", "player_properties", "TEXT DEFAULT '' NOT NULL");
                 CreateTableIfMissing(conn, "quest_status",
                     "player_id INT NOT NULL, serialized_data TEXT NOT NULL, PRIMARY KEY(player_id)");
+                Goose.Logs.LogSchemaMigrator.Migrate(conn);
             });
         }
 

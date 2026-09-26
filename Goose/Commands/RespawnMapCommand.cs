@@ -19,7 +19,7 @@ namespace Goose.Commands
 
             world.LogHandler.Log(Log.Types.RespawnMap,
                 ctx.Player.PlayerID, "",
-                ctx.Player.Map.ID, ctx.Player.MapX, ctx.Player.MapY);
+                otherid: 0, mapid: ctx.Player.Map.ID, mapx: ctx.Player.MapX, mapy: ctx.Player.MapY);
         }
     }
 }

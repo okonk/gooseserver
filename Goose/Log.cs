@@ -48,6 +48,7 @@ namespace Goose
             Ban,
             Kick,
             SetPassword,
+            ViewLogs = 10013,
         }
 
         public Types Type { get; set; }
@@ -68,13 +69,14 @@ namespace Goose
             this.MapID = mapid;
             this.MapX = mapx;
             this.MapY = mapy;
-            this.Time = DateTime.Now;
+            this.Time = DateTime.UtcNow;
         }
 
         public void SaveToDatabase(GameWorld world)
         {
             string text = this.Text;
             DateTime time = this.Time;
+            if (time.Kind != DateTimeKind.Utc) return;
             int type = (int)this.Type;
             int playerId = this.PlayerID;
             int otherId = this.OtherID;
@@ -96,7 +98,7 @@ namespace Goose
                 using var command = conn.CreateCommand();
                 command.CommandText = query;
                 command.Parameters.Add(new SQLiteParameter("@logText", DbType.String) { Value = text });
-                command.Parameters.Add(new SQLiteParameter("@logDate", DbType.DateTime2) { Value = time });
+                command.Parameters.Add(new SQLiteParameter("@logDate", DbType.Int64) { Value = time.Ticks });
                 command.ExecuteNonQuery();
             });
         }

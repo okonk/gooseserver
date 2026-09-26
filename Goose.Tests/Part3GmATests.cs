@@ -412,6 +412,8 @@ namespace Goose.Tests
                 bob.Level = 5;
                 bob.Experience = 100;
                 bob.Spellbook = new Spellbook(bob, fixture.Settings);
+                gm.PlayerID = 1;
+                bob.PlayerID = 2;
                 fixture.RegisterOnlinePlayer(bob);
                 fixture.RegisterDatabasePlayer(bob);
 
@@ -420,6 +422,12 @@ namespace Goose.Tests
                 Assert.Equal("Warrior", bob.Class.ClassName);
                 Assert.Equal(150, bob.Experience);
                 Assert.Contains(gm.Sent, s => s.Contains("Changed class successfully."));
+
+                var logEntry = fixture.World.LogHandler.Pending.Single(l => l.Type == Log.Types.ClassChange);
+                Assert.Equal(bob.PlayerID, logEntry.OtherID);
+                Assert.Equal(gm.MapID, logEntry.MapID);
+                Assert.Equal(gm.MapX, logEntry.MapX);
+                Assert.Equal(gm.MapY, logEntry.MapY);
             }
         }
 

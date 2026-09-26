@@ -331,6 +331,12 @@ namespace Goose.Tests
 
                 Assert.Equal(NPC.States.Alive, npc.State);
                 Assert.Contains(gm.Sent, s => s.Contains("Respawned all NPCs."));
+
+                var logEntry = fixture.World.LogHandler.Pending.Single(l => l.Type == Log.Types.RespawnMap);
+                Assert.Equal(0, logEntry.OtherID);
+                Assert.Equal(gm.MapID, logEntry.MapID);
+                Assert.Equal(gm.MapX, logEntry.MapX);
+                Assert.Equal(gm.MapY, logEntry.MapY);
             }
         }
 
