@@ -152,7 +152,7 @@
     "ItemTitleChancePercent": 0.5,
     "ItemSurnameChancePercent": 0.5,
 
-    "BuffBarVisibleSize": 16,
+    "BuffBarVisibleSize": 20,
     "VendorSlotSize": 30,
     "InventorySize": 30,
     "PartyWindowMax": 10,

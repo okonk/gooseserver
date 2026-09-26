@@ -691,7 +691,9 @@ namespace Goose
                 return "BUF" + index;
             }
 
-            return "BUF" + index + "," + buff.SpellEffect.BuffGraphic + "," + buff.SpellEffect.BuffGraphicFile + "," + buff.SpellEffect.Name + "," + remainingMs + "," + totalMs;
+            // The client splits this row on commas, so an unsanitised name would shift the fields.
+            string name = CustomItem.SanitizeName(buff.SpellEffect.Name) ?? "";
+            return "BUF" + index + "," + buff.SpellEffect.BuffGraphic + "," + buff.SpellEffect.BuffGraphicFile + "," + name + "," + remainingMs + "," + totalMs;
         };
 
         public static Func<Player, Buff, long, long, string> PartyBuff = (player, buff, remainingMs, totalMs) =>

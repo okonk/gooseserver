@@ -2601,6 +2601,9 @@ namespace Goose
 
             foreach (var buff in this.Buffs)
             {
+                // The client's row is exactly BuffBarVisibleSize slots wide, so a slot described
+                // here but never reached by the clearing loop below strands its icon on screen.
+                if (i > world.Settings.BuffBarVisibleSize) break;
                 if (buff.ItemBuff && !this.ShowItemBuffs) continue;
 
                 var (remainingMs, totalMs) = buff.GetDurations(world);
