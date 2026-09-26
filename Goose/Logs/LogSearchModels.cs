@@ -12,7 +12,7 @@ namespace Goose.Logs
         public string? Text { get; init; }
     }
 
-    public sealed record LogPageCursor(long SnapshotCeiling, long? BeforeUtcTicks, long? BeforeRowId);
+    internal sealed record LogPageCursor(long SnapshotCeiling, long? BeforeUtcTicks, long? BeforeRowId);
 
     public sealed class LogSearchQuery
     {
@@ -22,7 +22,7 @@ namespace Goose.Logs
         public int? MapId { get; }
         public ImmutableArray<int> EventTypeIds { get; }
         public string Text { get; }
-        public LogPageCursor? Cursor { get; }
+        internal LogPageCursor? Cursor { get; }
 
         internal LogSearchQuery(
             long startUtcTicks,
@@ -42,7 +42,7 @@ namespace Goose.Logs
             Cursor = cursor;
         }
 
-        public LogSearchQuery WithCursor(LogPageCursor cursor)
+        internal LogSearchQuery WithCursor(LogPageCursor cursor)
         {
             return new LogSearchQuery(StartUtcTicks, EndUtcTicks, ParticipantId, MapId, EventTypeIds, Text, cursor);
         }

@@ -36,7 +36,7 @@ namespace Goose.Tests
                     Assert.NotEqual(typeof(string), index.ParameterType);
             }
 
-            PropertyInfo cursor = typeof(LogSearchQuery).GetProperty("Cursor")!;
+            PropertyInfo cursor = typeof(LogSearchQuery).GetProperty("Cursor", BindingFlags.NonPublic | BindingFlags.Instance)!;
             Assert.Equal(typeof(LogPageCursor), cursor.PropertyType);
 
             foreach (PropertyInfo property in typeof(LogFreshSearchInput).GetProperties())
