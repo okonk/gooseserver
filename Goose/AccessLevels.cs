@@ -44,6 +44,7 @@ namespace Goose
          * GameMaster is granted every privilege and no other level lists this one.
          */
         Debug,
+        ViewLogs,
     }
 
     public static class AccessLevels

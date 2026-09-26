@@ -51,6 +51,7 @@ namespace Goose
             Bank = 26,
             OptionList = 27,
             Custom = 28,
+            LogViewer = 29,
         }
         public WindowFrames Frame { get; set; }
 
@@ -78,6 +79,7 @@ namespace Goose
             Recipe,
             Custom,
             Generic,
+            LogViewer,
         }
         public WindowTypes Type { get; set; }
 
