@@ -25,9 +25,9 @@ Every query packet and every result delivery rechecks `ViewLogs`. Losing access,
 
 The viewer searches persisted SQLite rows only. It does not merge `LogHandler.Pending` and does not force a flush. The client states that recent entries may be delayed by up to ten minutes.
 
-Change new audit timestamps from `DateTime.Now` to `DateTime.UtcNow`. Existing rows are treated as UTC because the deployed server has operated in UTC. Query boundaries and result timestamps use Unix milliseconds on the wire. Copied details use ISO 8601 UTC, for example `2026-09-26T01:23:24Z`.
+Change new audit timestamps from `DateTime.Now` to `DateTime.UtcNow`. Persist timestamps canonically as UTC `DateTime.Ticks` in SQLite `INTEGER` values; the current `DateTime2` provider binding is not sortable or precision-safe. The startup migration treats parseable existing values as UTC because the deployed server has operated in UTC, rewrites them to ticks, and reports but preserves malformed values. Malformed-date rows are excluded from time-bounded searches rather than guessed.
 
-Date filtering uses a half-open UTC interval: `start <= log_date < end`.
+Query boundaries and result timestamps use Unix milliseconds on the wire. Copied details use ISO 8601 UTC, for example `2026-09-26T01:23:24Z`. Date filtering uses a half-open UTC interval: `start <= log_date < end`.
 
 ## Event descriptors and legacy semantics
 
@@ -35,7 +35,8 @@ Add a central descriptor for every known `Log.Types` value and a generic fallbac
 
 - display label;
 - group;
-- whether `otherid` is a player, item, guild, NPC template, map, or unused;
+- whether `otherid` is a player, item, guild, NPC template, map, or unused for participant matching;
+- the projected related entity, which may instead come from stored text or map columns;
 - semantic labels used in details;
 - event-specific summary formatting.
 
@@ -65,11 +66,12 @@ Player names are resolved at query time. Old rows therefore show the player's cu
 
 ## Historical repair and future logging
 
-Extend the idempotent startup migration to:
+Extend the atomic, idempotent startup migration to:
 
+- canonicalize parseable historical timestamps as UTC ticks before creating date indexes;
 - backfill valid historical ClassChange target IDs from the first text token into `otherid` when `otherid` is zero;
 - move historical RespawnMap map/coordinate values into the correct columns when its old shifted-field signature is present;
-- log the count of malformed rows left unchanged.
+- log the count of malformed timestamp and event rows left unchanged.
 
 Correct both current log call sites for future rows.
 
@@ -93,11 +95,13 @@ Changing a filter resets paging. Only Search sends a fresh request; editing cont
 
 Queries execute on the existing dedicated database thread. The game loop never waits for a log search.
 
-Each page fetches 51 ordered rows, returns at most 50, and uses the extra row only to determine whether more data exists. Results order by `log_date DESC, rowid DESC`. Pagination uses a cursor rather than `OFFSET`.
+Each page fetches 51 ordered rows, returns at most 50, and uses the extra row only to determine whether more data exists. Results order by `log_date DESC, rowid DESC`. Pagination uses a keyset boundary rather than `OFFSET`.
 
-The first page captures `MAX(rowid)` as a snapshot ceiling. Every page includes `rowid <= snapshotCeiling`, so rows flushed while a GM is paging cannot shift the result set. The opaque cursor carries the snapshot ceiling and the last exact timestamp/rowid boundary. A fresh Search creates a new snapshot.
+The first page captures `MAX(rowid)` as a snapshot ceiling. Every page includes `rowid <= snapshotCeiling`, so rows flushed while a GM is paging cannot shift the result set. A fresh Search creates a server-side viewer session containing the canonical validated filters, resolved participant ID, snapshot, and internal page boundaries.
 
-The client retains earlier cursors to implement Previous. There is no exact `COUNT(*)`; the UI says that it is showing up to 50 rows and whether more rows are available.
+The server issues random opaque page tokens bound to that viewer session. The first page receives its own nonempty token, so returning from page two to page one remains a Page action against the original snapshot rather than becoming a new Search. Modified, expired, cross-viewer, or cross-session tokens are rejected before querying. The client retains successful current-page tokens to implement Previous and uses the supplied next-page token for Next.
+
+There is no exact `COUNT(*)`; the UI says that it is showing up to 50 rows and whether more rows are available.
 
 Participant queries use an index-friendly union:
 
@@ -118,9 +122,11 @@ Index creation is idempotent. The first production startup may take longer while
 
 ## Concurrency
 
-Only one query may be outstanding per viewer. A GM may submit a fresh search at most once per second. At most four log searches may be queued or running globally; further requests receive a busy response. The database worker remains serial, but these limits prevent unbounded queue growth ahead of saves and normal log writes.
+Only one request may be querying or delivering per viewer. A GM may submit a fresh search at most once per second. At most four database searches may be queued or running globally; further requests receive a busy response. The database worker remains serial, but these limits prevent unbounded queue growth ahead of saves and normal log writes.
 
-Add a thread-safe game-thread completion queue to `GameWorld`, drained during `Update`. Database callbacks enqueue immutable search results or errors there. Only the game thread may inspect current player/window/access state or send packets.
+Add a thread-safe game-thread completion queue to `GameWorld`, drained during `Update`. Database callbacks enqueue immutable search results or errors there. Only the game thread may inspect current player/window/access state or send packets. Shutdown marks the world as stopping before database teardown so late callbacks are dropped rather than retaining or mutating an abandoned world.
+
+Rows are encoded into bounded chunks before response publication. The game thread sends them under a per-update byte budget and pauses a slow viewer when its socket buffer is elevated. This preserves complete ordinary log text without filling the existing one-megabyte send buffer. The global database slot is released when its completion is drained, while the viewer remains busy until its final success/error packet or lifecycle invalidation.
 
 Closing a window cannot cancel SQLite work already running. Its completion is discarded after releasing query capacity. Request IDs suppress stale responses, and window IDs prevent an old response from populating a replacement viewer.
 
@@ -136,20 +142,23 @@ Opening uses the normal `MKW` packet with frame 29, followed by metadata:
 
 Metadata is sent one record per packet to avoid oversized packets. Search remains disabled until `LMD`.
 
-Client search packet:
+Client search packets use one opcode with explicit actions:
 
-- `LQS`: window ID, request ID, UTC start/end, encoded participant, map ID, pipe-separated event type IDs, encoded text, encoded cursor
+- Fresh `LQS`: window ID, request ID, `F`, UTC start/end, encoded participant, map ID, pipe-separated event type IDs, encoded text
+- Page `LQS`: window ID, request ID, `P`, server-issued page token
+
+Only Fresh is rate-limited and audited. Page carries no filters; the server uses the session-bound canonical query.
 
 Server response packets:
 
 - `LRB`: begin response for window/request
-- `LRD`: one structured row
-- `LRF`: finish response with `hasMore` and encoded next cursor
+- `LRD`: one ordered chunk of a structured row
+- `LRF`: finish response with `hasMore`, the current-page token, and an optional next-page token
 - `LRX`: encoded search error
 
-Each row includes row ID, UTC timestamp, type, resolved primary/related names and IDs, semantic labels/entity kinds, resolved map name/ID, coordinates, readable summary, and original stored text.
+Each row is deterministic UTF-8 JSON, Base64-chunked into bounded packets. It includes row ID, UTC timestamp, raw signed numeric fields and validity flags, type, separate `otherid` semantics and projected related entity, resolved names, map/coordinates, readable summary, and original stored text. Oversized/corrupt result pages fail before `LRB`; normal pages are delivered over multiple ticks when necessary.
 
-The client stages rows after `LRB`. Only `LRF` atomically replaces the visible table, so an error or disconnect cannot display a partial result set. Copying details is local and sends no packet.
+The client stages and reassembles chunks after `LRB`. Only a complete matching `LRF` atomically replaces the visible table, so an error, malformed chunk, close, or disconnect cannot display a partial result set. Copying details is local and sends no packet.
 
 The LQS packet is registered as restricted by `ViewLogs`, in addition to checks in the search service and completion path.
 
@@ -170,7 +179,7 @@ Use a multi-column table with:
 
 Selecting a row opens details containing the full summary, ISO UTC timestamp, log row ID, numeric type, semantic entities and IDs, map/coordinates, and original stored text. A Copy details button places a stable plain-text representation on the clipboard. Selected names, types, and maps expose quick actions that fill the relevant filter without immediately searching.
 
-Previous and Next use cursor paging. Loading, busy, validation error, database error, and empty states are shown inline rather than in chat.
+Previous and Next use server-issued page tokens. Loading, busy, validation error, database error, and empty states are shown inline rather than in chat.
 
 The window closes through the existing window-button flow. Client state is discarded on close. Cross-session persistence, live tailing, automatic refresh, arbitrary sorting, saved filters, and bulk export are deferred.
 
@@ -178,7 +187,7 @@ The window closes through the existing window-button flow. Client state is disca
 
 Malformed packets are ignored or answered with a safe validation error according to whether a valid viewer/request can be identified. Invalid filters receive specific inline errors. Database exceptions are fully recorded through NLog while the client receives a generic search failure.
 
-SQL is parameterized. Event type IDs are accepted only from the descriptor registry. Cursors are decoded and range-validated before use.
+SQL is parameterized. Event type IDs are accepted only from the descriptor registry. Page tokens must belong to the current viewer search session; their shape alone grants nothing.
 
 The single ViewLogs privilege exposes all stored log content, including tells and IP addresses, as explicitly chosen. Viewer searches are themselves audited.
 
@@ -192,13 +201,15 @@ The single ViewLogs privilege exposes all stored log content, including tells an
 - Participant matching includes real counterparties and excludes equal-valued item, guild, NPC, and map IDs.
 - Exact-name, duplicate-name, deleted-player-ID, map-ID, group/type, UTC range, literal text, and combined filters.
 - 31-day and 7-day validation boundaries.
-- Stable ordering when timestamps match; 50/51 behavior; cursor Next/Previous; no duplicates or omissions.
-- Snapshot ceiling excludes rows inserted after page one.
+- Stable ordering when timestamps match; 50/51 behavior; token-based Next/Previous; no duplicates or omissions.
+- Snapshot ceiling excludes rows inserted after page one, including after returning to page one.
+- Page tokens reject mutation, expiration, cross-viewer use, and filter/session substitution.
+- UTC-tick migration preserves exact instants and chronological ordering across historical provider formats.
 - Index existence and query-plan checks for structured searches.
 - Historical repair correctness and idempotence.
 - UTC behavior under a non-UTC process timezone.
 - `/logs` and LQS privilege enforcement, access revoked before completion, window replacement, close, disconnect, malformed packets, stale request IDs, rate limits, and global capacity.
-- Database callback marshaling occurs on the game thread.
+- Database callback marshaling occurs on the game thread, late shutdown publication is dropped, and chunk delivery respects byte/buffer limits.
 - Pending in-memory logs are excluded.
 - One ViewLogs audit row per fresh Search and none for paging.
 
@@ -207,9 +218,9 @@ The single ViewLogs privilege exposes all stored log content, including tells an
 - LMT/LMM/LMD/LRB/LRD/LRF/LRX parsing and LQS formatting, including Base64 and malformed packets.
 - Metadata completion and grouped event selection.
 - UTC presets and custom validation.
-- Response staging and atomic commit.
+- Chunk reassembly, bounded staging, and atomic commit.
 - Stale window/request suppression.
-- Cursor history and paging controls.
+- Current/next token history and paging controls.
 - Table selection, details, quick-filter actions, and exact copied text.
 - Loading, busy, empty, and error states.
 - Frame-29 creation, close flow, resizing, UI scale, and layout metrics.
