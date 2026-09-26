@@ -96,6 +96,7 @@ namespace Goose
         public int GuildSavePeriod { get; set; }
         public int RankUpdatePeriod { get; set; }
         public int MaxAC { get; set; }
+        public double DamageReductionSoftCap { get; set; } = 0.5;
         public int ExperienceModifierLimit { get; set; }
         public double DropRateModifier { get; set; }
         public bool SpeedhackDetectionEnabled { get; set; }
