@@ -39,8 +39,7 @@ namespace Goose.Tests
             using var scope = new ProcessEnvironmentScope("Pacific/Honolulu", new CultureInfo("fr-FR"));
             using var connection = OpenDb(OldDdl(dateNotNull: true));
 
-            var now = DateTime.Now;
-            var wall = now.AddTicks(-now.Ticks % TimeSpan.TicksPerSecond);
+            var wall = new DateTime(2024, 5, 26, 10, 30, 45, DateTimeKind.Local);
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "INSERT INTO logs (text, log_type, playerid, log_date) VALUES ('p', 0, 1, @d)";
@@ -73,6 +72,32 @@ namespace Goose.Tests
             var expected = new DateTime(2024, 1, 15, 10, 30, 45, DateTimeKind.Utc).AddTicks(1234567).Ticks;
             for (int playerid = 1; playerid <= 3; playerid++)
                 Assert.Equal(expected, Long(connection, "SELECT log_date FROM logs WHERE playerid = " + playerid));
+            Assert.Equal(3, result.TimestampsRepaired);
+            Assert.Equal(0, result.MalformedTimestamps);
+        }
+
+        [Fact]
+        public void Compact_iso_text_becomes_exact_utc_ticks()
+        {
+            using var connection = OpenDb("CREATE TABLE logs (\n" +
+                "  text TEXT,\n" +
+                "  log_type INT NOT NULL,\n" +
+                "  playerid INT NOT NULL,\n" +
+                "  otherid INT,\n" +
+                "  mapid SMALLINT,\n" +
+                "  mapx SMALLINT,\n" +
+                "  mapy SMALLINT,\n" +
+                "  log_date TEXT NOT NULL\n)");
+            InsertLog(connection, 0, 1, "compact", 0, 0, 0, 0, "20240115103045");
+            InsertLog(connection, 0, 2, "compactT", 0, 0, 0, 0, "20240115T103045");
+            InsertLog(connection, 0, 3, "compactFraction", 0, 0, 0, 0, "20240115103045.1234567");
+
+            var result = LogSchemaMigrator.Migrate(connection);
+
+            var expected = new DateTime(2024, 1, 15, 10, 30, 45, DateTimeKind.Utc).Ticks;
+            Assert.Equal(expected, Long(connection, "SELECT log_date FROM logs WHERE playerid = 1"));
+            Assert.Equal(expected, Long(connection, "SELECT log_date FROM logs WHERE playerid = 2"));
+            Assert.Equal(expected + 1234567, Long(connection, "SELECT log_date FROM logs WHERE playerid = 3"));
             Assert.Equal(3, result.TimestampsRepaired);
             Assert.Equal(0, result.MalformedTimestamps);
         }
