@@ -213,7 +213,11 @@ namespace Goose.Logs
         {
             this.activeDbQueries--;
             if (!this.IsCurrent(player, viewer, requestId)) return;
-            if (viewer.Session != session) return;
+            if (viewer.Session != session)
+            {
+                this.DeliverError(player, viewer, requestId, Failed);
+                return;
+            }
 
             string nextToken = page.NextCursor is null ? string.Empty : session.IssueToken(page.NextCursor);
             if (!TryBuildRows(page.Rows, out List<byte[]> rowJsons, out string? failure)
