@@ -1701,7 +1701,9 @@ namespace Goose
             {
                 var oldSpeed = this.moveSpeed.Peek();
 
-                var speeds = this.moveSpeed.UnorderedItems.SkipFirstMatching(e => e.Element == oldSpeed).ToArray();
+                // Drop the entry belonging to the stats being removed, not the smallest one:
+                // the smallest is whichever effect currently wins (e.g. a mount's speed).
+                var speeds = this.moveSpeed.UnorderedItems.SkipFirstMatching(e => e.Element == stats.MoveSpeed).ToArray();
                 this.moveSpeed.Clear();
                 this.moveSpeed.EnqueueRange(speeds);
 
