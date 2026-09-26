@@ -2,12 +2,35 @@ using Goose.Logs;
 
 namespace Goose
 {
+    internal enum LogSearchPhase
+    {
+        Idle,
+        Querying,
+        Delivering,
+    }
+
     public class LogViewerWindow : Window
     {
         public const string TitleText = "GM Log Viewer";
         private const long PreviousDayUnixMs = 86_400_000;
 
         internal LogViewerSearchSession? Session { get; set; }
+        internal LogSearchPhase Phase { get; private set; } = LogSearchPhase.Idle;
+        internal int ActiveRequestId { get; private set; }
+        internal int SessionGeneration { get; private set; }
+        internal IReadOnlyList<string>? DeliveryPackets { get; private set; }
+        internal int DeliveryIndex { get; private set; }
+
+        internal string? TakeNextDeliveryPacket()
+        {
+            if (this.DeliveryPackets is null || this.DeliveryIndex >= this.DeliveryPackets.Count) return null;
+            string packet = this.DeliveryPackets[this.DeliveryIndex];
+            this.DeliveryIndex++;
+            return packet;
+        }
+
+        internal bool DeliveryComplete =>
+            this.DeliveryPackets is null || this.DeliveryIndex >= this.DeliveryPackets.Count;
 
         private LogViewerWindow()
         {
@@ -26,7 +49,7 @@ namespace Goose
 
             foreach (var old in player.Windows.OfType<LogViewerWindow>().ToList())
             {
-                old.Session?.Clear();
+                old.InvalidateSearchState();
                 old.Close(player, world);
             }
 
@@ -34,6 +57,49 @@ namespace Goose
             player.Windows.Add(window);
             window.Create(player, world);
             return true;
+        }
+
+        internal int NextSessionGeneration() => ++this.SessionGeneration;
+
+        internal void BeginQuery(int requestId)
+        {
+            this.ActiveRequestId = requestId;
+            this.Phase = LogSearchPhase.Querying;
+        }
+
+        internal void AbortQuery()
+        {
+            this.ActiveRequestId = 0;
+            this.Phase = LogSearchPhase.Idle;
+        }
+
+        internal void BeginDelivery(int requestId, IReadOnlyList<string> packets)
+        {
+            this.ActiveRequestId = requestId;
+            this.Phase = LogSearchPhase.Delivering;
+            this.DeliveryPackets = packets;
+            this.DeliveryIndex = 0;
+        }
+
+        internal void FinishDelivery()
+        {
+            this.ActiveRequestId = 0;
+            this.Phase = LogSearchPhase.Idle;
+            this.DeliveryPackets = null;
+            this.DeliveryIndex = 0;
+        }
+
+        internal void CommitSession(LogViewerSearchSession session)
+        {
+            this.Session?.Clear();
+            this.Session = session;
+        }
+
+        private void InvalidateSearchState()
+        {
+            this.Session?.Clear();
+            this.Session = null;
+            this.FinishDelivery();
         }
 
         public override void Populate(Player player, GameWorld world)
@@ -55,7 +121,7 @@ namespace Goose
             {
                 case ButtonTypes.Exit:
                 case ButtonTypes.Close:
-                    this.Session?.Clear();
+                    this.InvalidateSearchState();
                     player.Windows.Remove(this);
                     break;
             }

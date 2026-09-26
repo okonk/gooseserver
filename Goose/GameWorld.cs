@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 
 using Goose.Commands;
 using Goose.Events;
+using Goose.Logs;
 using Goose.Quests;
 using Goose.Scripting;
 using System.Data.SQLite;
@@ -45,6 +46,7 @@ namespace Goose
         public CurrencyHandler CurrencyHandler { get; set; }
         public Database Database { get; private set; }
         public GooseSettings Settings { get; }
+        internal LogSearchService LogSearches { get; set; }
 
         public Dictionary<string, int> CharactersCreatedPerIP { get; set; } = null!;
 
@@ -104,6 +106,19 @@ namespace Goose
         internal int PendingDeliveryCount
         {
             get { lock (completionGate) return deliveryQueue.Count; }
+        }
+
+        internal List<Action> DrainDeliveries()
+        {
+            List<Action> due;
+            lock (completionGate)
+            {
+                if (deliveryQueue.Count == 0) return [];
+                due = new List<Action>(deliveryQueue.Count);
+                while (deliveryQueue.Count > 0)
+                    due.Add(deliveryQueue.Dequeue());
+            }
+            return due;
         }
 
         internal void BeginStopping()
@@ -201,6 +216,7 @@ namespace Goose
             this.CurrencyHandler.Register(new GoldCurrency());
             this.CurrencyHandler.Register(new CreditsCurrency());
             this.Database = new Database();
+            this.LogSearches = new LogSearchService(this);
 
             this.ExperienceModifier = this.Settings.ExperienceModifier;
         }

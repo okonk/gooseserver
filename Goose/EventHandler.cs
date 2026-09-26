@@ -155,7 +155,8 @@ namespace Goose
                 ("VPI", Open(typeof(VendorPurchaseInventoryEvent))),
                 ("VSI", Open(typeof(VendorSellInventoryEvent))),
                 ("WTW", Open(typeof(WindowToWindowEvent))),
-                ("SID", Open(typeof(SpellInfoEvent)))
+                ("SID", Open(typeof(SpellInfoEvent))),
+                ("LQS", Restricted(typeof(LogQueryEvent), AccessPrivilege.ViewLogs))
             };
 
             foreach (var (key, def) in packets)
