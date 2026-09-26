@@ -408,6 +408,95 @@ namespace Goose.IntegrationTests
         }
 
         [Fact]
+        public void InvalidatePlayerBetweenAdmissionAndCompletion_StaleFreshCompletionCannotAttachToReusedRequestId()
+        {
+            using var fixture = new LogSearchServerFixture();
+            fixture.InsertRowsAscending(3);
+            var gm = fixture.AddGm("Gm", 1);
+            var viewer = fixture.OpenViewer(gm);
+            fixture.Monotonic = 0;
+
+            var block = new ManualResetEventSlim(false);
+            fixture.GameWorld.Database.Enqueue(conn => block.Wait());
+            fixture.GameWorld.EventHandler.AddEvent(gm, LogSearchServerFixture.Fresh(viewer.ID, 5));
+            fixture.GameWorld.Update();
+            Assert.Equal(LogSearchPhase.Querying, viewer.Phase);
+            Assert.Equal(1, fixture.Service.ActiveDbQueryCount);
+
+            fixture.Service.InvalidatePlayer(gm);
+            Assert.Null(viewer.Session);
+            Assert.Equal(LogSearchPhase.Idle, viewer.Phase);
+
+            fixture.Monotonic += fixture.MillisecondTicks * 1000;
+            fixture.GameWorld.EventHandler.AddEvent(gm, LogSearchServerFixture.Fresh(viewer.ID, 5, text: "row 2"));
+            fixture.GameWorld.Update();
+            Assert.Equal(LogSearchPhase.Querying, viewer.Phase);
+            Assert.Equal(2, fixture.Service.ActiveDbQueryCount);
+
+            block.Set();
+            fixture.GameWorld.Database.Execute(conn => { });
+            fixture.GameWorld.Update();
+            fixture.Pump();
+
+            Assert.Equal(0, fixture.Service.ActiveDbQueryCount);
+            Assert.Contains(gm.Sent, s => s.StartsWith($"LRF{viewer.ID},5"));
+            List<string> rows = fixture.LastRowJsons(gm);
+            Assert.Single(rows);
+            Assert.Contains("row 2", rows[0]);
+            Assert.DoesNotContain(rows, r => r.Contains("row 1"));
+            Assert.NotNull(viewer.Session);
+            Assert.Equal(2, viewer.Session.Generation);
+            Assert.Equal(LogSearchPhase.Idle, viewer.Phase);
+        }
+
+        [Fact]
+        public void BeginStopping_ClearsQueryingAndIdleCommittedViewers_NoSends()
+        {
+            using var fixture = new LogSearchServerFixture();
+            fixture.InsertRowsAscending(3);
+            var gm1 = fixture.AddGm("Gm1", 1);
+            var viewer1 = fixture.OpenViewer(gm1);
+            var gm2 = fixture.AddGm("Gm2", 2);
+            var viewer2 = fixture.OpenViewer(gm2);
+            fixture.Monotonic = 0;
+
+            fixture.Send(gm2, LogSearchServerFixture.Fresh(viewer2.ID, 1));
+            fixture.Pump();
+            Assert.Contains(gm2.Sent, s => s.StartsWith($"LRF{viewer2.ID},1"));
+            Assert.NotNull(viewer2.Session);
+            Assert.Equal(LogSearchPhase.Idle, viewer2.Phase);
+
+            fixture.Monotonic += fixture.MillisecondTicks * 1000;
+            var block = new ManualResetEventSlim(false);
+            fixture.GameWorld.Database.Enqueue(conn => block.Wait());
+            fixture.GameWorld.EventHandler.AddEvent(gm1, LogSearchServerFixture.Fresh(viewer1.ID, 1));
+            fixture.GameWorld.Update();
+            Assert.Equal(LogSearchPhase.Querying, viewer1.Phase);
+            Assert.Equal(1, fixture.Service.ActiveDbQueryCount);
+
+            int sent1 = gm1.Sent.Count;
+            int sent2 = gm2.Sent.Count;
+
+            fixture.GameWorld.BeginStopping();
+
+            Assert.Null(viewer1.Session);
+            Assert.Equal(LogSearchPhase.Idle, viewer1.Phase);
+            Assert.Null(viewer2.Session);
+            Assert.Equal(LogSearchPhase.Idle, viewer2.Phase);
+            Assert.Equal(0, fixture.GameWorld.PendingCompletionCount);
+            Assert.Equal(0, fixture.Service.PendingDeliveryCount);
+            Assert.Equal(sent1, gm1.Sent.Count);
+            Assert.Equal(sent2, gm2.Sent.Count);
+
+            block.Set();
+            fixture.GameWorld.Database.Execute(conn => { });
+            fixture.GameWorld.Update();
+
+            Assert.DoesNotContain(gm1.Sent, s => s.StartsWith("LR"));
+            Assert.Equal(sent2, gm2.Sent.Count);
+        }
+
+        [Fact]
         public void AdmittedFreshAuditSavedByShutdownPersistence_PAndRejectedContributeNone()
         {
             using var fixture = new LogSearchServerFixture();

@@ -107,6 +107,7 @@ namespace Goose.Logs
 
             LogFreshSearchInput input = request.Fresh!;
             viewer.BeginQuery(request.RequestId);
+            int generation = viewer.SessionGeneration;
             this.activeDbQueries++;
             try
             {
@@ -122,7 +123,7 @@ namespace Goose.Logs
                     LogSearchQuery baseQuery = validation.Query!;
                     LogSearchPage page = LogQueryEngine.Execute(connection, baseQuery);
                     this.world.EnqueueCompletion(() =>
-                        this.CompleteFresh(player, viewer, request.RequestId, baseQuery, page));
+                        this.CompleteFresh(player, viewer, request.RequestId, generation, baseQuery, page));
                 }, error =>
                 {
                     if (error is not null)
@@ -207,11 +208,12 @@ namespace Goose.Logs
             this.world.LogHandler.Pending[^1].Time = this.utcNow().UtcDateTime;
         }
 
-        internal void CompleteFresh(Player player, LogViewerWindow viewer, int requestId,
+        internal void CompleteFresh(Player player, LogViewerWindow viewer, int requestId, int generation,
             LogSearchQuery baseQuery, LogSearchPage page)
         {
             this.activeDbQueries--;
             if (!this.IsCurrent(player, viewer, requestId)) return;
+            if (viewer.SessionGeneration != generation) return;
 
             LogViewerSearchSession candidate = new(baseQuery, viewer.NextSessionGeneration(), this.tokenSource);
             candidate.StoreFirstPage(page.Rows, page.NextCursor);
@@ -449,6 +451,9 @@ namespace Goose.Logs
             this.lastFreshTicksByPlayer.Clear();
             foreach (DeliveryState state in this.deliveries)
                 state.Viewer.InvalidateSearchState();
+            foreach (Player player in this.world.PlayerHandler.Players)
+                foreach (LogViewerWindow viewer in player.Windows.OfType<LogViewerWindow>().ToList())
+                    viewer.InvalidateSearchState();
             this.deliveries.Clear();
             this.deliveryCursor = 0;
         }

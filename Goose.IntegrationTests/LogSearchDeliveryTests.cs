@@ -164,7 +164,7 @@ namespace Goose.IntegrationTests
 
             viewer.BeginQuery(10);
             fixture.Service.ReserveDbSlot();
-            fixture.Service.CompleteFresh(gm, viewer, 10, CursorlessBase(),
+            fixture.Service.CompleteFresh(gm, viewer, 10, viewer.SessionGeneration, CursorlessBase(),
                 new LogSearchPage(new[] { RowWithText(overText) }, false, null));
             fixture.GameWorld.Update();
 
@@ -178,7 +178,7 @@ namespace Goose.IntegrationTests
             var overRows = Enumerable.Range(0, 17).Select(_ => RowWithText(TextForJsonLength(250_000))).ToArray();
             viewer.BeginQuery(11);
             fixture.Service.ReserveDbSlot();
-            fixture.Service.CompleteFresh(gm, viewer, 11, CursorlessBase(),
+            fixture.Service.CompleteFresh(gm, viewer, 11, viewer.SessionGeneration, CursorlessBase(),
                 new LogSearchPage(overRows, true, new LogPageCursor(5, 9, 8)));
             fixture.GameWorld.Update();
 

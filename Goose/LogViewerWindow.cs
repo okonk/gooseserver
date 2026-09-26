@@ -100,6 +100,7 @@ namespace Goose
             this.Session?.Clear();
             this.Session = null;
             this.FinishDelivery();
+            ++this.SessionGeneration;
         }
 
         public override void Populate(Player player, GameWorld world)

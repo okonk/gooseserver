@@ -124,7 +124,7 @@ namespace Goose.IntegrationTests
 
             viewer.BeginQuery(10);
             fixture.Service.ReserveDbSlot();
-            fixture.Service.CompleteFresh(gm, viewer, 10, baseQuery,
+            fixture.Service.CompleteFresh(gm, viewer, 10, viewer.SessionGeneration, baseQuery,
                 new LogSearchPage(new[] { RowWithText(new string('x', 300_000)) }, false, null));
             fixture.GameWorld.Update();
             Assert.Equal("Result is too large to display. Narrow the search.", fixture.LastLrxMessage(gm));
@@ -134,7 +134,7 @@ namespace Goose.IntegrationTests
             viewer.BeginQuery(11);
             fixture.Service.ReserveDbSlot();
             var oversizedRows = Enumerable.Range(0, 50).Select(_ => RowWithText(new string('x', 100_000))).ToArray();
-            fixture.Service.CompleteFresh(gm, viewer, 11, baseQuery,
+            fixture.Service.CompleteFresh(gm, viewer, 11, viewer.SessionGeneration, baseQuery,
                 new LogSearchPage(oversizedRows, true, new LogPageCursor(5, 9, 8)));
             fixture.GameWorld.Update();
             Assert.Equal("Result is too large to display. Narrow the search.", fixture.LastLrxMessage(gm));

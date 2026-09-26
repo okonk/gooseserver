@@ -323,7 +323,7 @@ namespace Goose.IntegrationTests
                 viewer.BeginQuery(77);
                 fixture.Service.ReserveDbSlot();
                 fixture.Service.RecordFreshAdmission(gm, input);
-                fixture.Service.CompleteFresh(gm, viewer, 77, CursorlessBase(),
+                fixture.Service.CompleteFresh(gm, viewer, 77, viewer.SessionGeneration, CursorlessBase(),
                     new LogSearchPage(new[] { RowWithText(new string('x', 300_000)) }, false, null));
                 fixture.GameWorld.Update();
 
