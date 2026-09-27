@@ -12,7 +12,10 @@ namespace Goose
 
             foreach (Buff buff in target.Buffs.ToArray())
             {
-                Script<ISpellEffectScript>? script = buff.SpellEffect?.Script;
+                SpellEffect effect = buff.SpellEffect;
+                if (effect is null) continue;
+
+                Script<ISpellEffectScript>? script = effect.Script;
                 if (script is null) continue;
 
                 try
@@ -22,7 +25,7 @@ namespace Goose
                 catch (Exception e)
                 {
                     log.Error(e, "SpellEffect InterceptDamage {0} ({1}) target {2} ({3}) Exception",
-                        buff.SpellEffect.Name, buff.SpellEffect.ID, target.Name, target.LoginID);
+                        effect.Name, effect.ID, target.Name, target.LoginID);
                 }
             }
 
