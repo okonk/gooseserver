@@ -381,6 +381,28 @@ public class MountSpeedTests
     }
 
     [Fact]
+    public void Death_keeps_the_player_mounted()
+    {
+        using var fixture = new Fixture();
+        var map = fixture.Player.Map;
+        fixture.Player.BoundMap = map;
+        fixture.Player.BoundID = map.ID;
+        fixture.Player.BoundX = fixture.Player.MapX;
+        fixture.Player.BoundY = fixture.Player.MapY;
+        fixture.Player.MaxStats.HP = 100;
+        fixture.Player.MaxStats.Dexterity = -1; // dodge check is Random.Next(0, 10001) <= dex*100/100 (Player.cs:1992-1997); negative dex makes the 1/10001 dodge impossible
+        fixture.Player.CurrentHP = 1;
+
+        var attacker = new NPC { Name = "Slime", LoginID = 99 };
+        fixture.Player.Attacked(attacker, 100, fixture.World.World);
+
+        Assert.True(fixture.Player.Mounted);
+        Assert.True(fixture.Player.IsMounted(fixture.World.World));
+        Assert.Equal(MountSpeed, fixture.Player.CalculateMoveSpeed());
+        Assert.Contains(fixture.Player.Buffs, b => b.ItemBuff);
+    }
+
+    [Fact]
     public void USE_on_the_mount_slot_unequips_and_dismounts()
     {
         using var fixture = new Fixture();
