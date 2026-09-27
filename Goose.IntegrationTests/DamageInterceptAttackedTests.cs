@@ -96,6 +96,7 @@ public class DamageInterceptAttackedTests
 
         Assert.Equal(1000, npc.CurrentHP);
         Assert.Contains(P.BattleTextMiss(npc) + "\x01", attacker.Sent);
+        Assert.Same(attacker, npc.AggroTarget);
     }
 
     private static TestWorldFixture.CapturingPlayer CreatePlayer(
