@@ -1100,6 +1100,8 @@ namespace Goose
                     return;
                 }
 
+                damage = DamageIntercept.Apply(this, character, damage, world);
+
                 packet = "";
                 if (damage <= 0)
                 {

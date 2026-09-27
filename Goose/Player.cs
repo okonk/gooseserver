@@ -1965,6 +1965,11 @@ namespace Goose
         {
             if (this.State != States.Ready) return;
 
+            // pvp 1/3 damage
+            if (damage > 0 && character is Player) damage /= 3;
+
+            damage = DamageIntercept.Apply(this, character, damage, world);
+
             List<Player> range = this.Map.GetPlayersInRange(this);
 
             string packet;
@@ -1996,8 +2001,6 @@ namespace Goose
                     return;
                 }
 
-                // pvp 1/3 damage
-                if (character is Player) damage /= 3;
                 packet = P.BattleTextDamage(this, damage) + "\x1";
             }
             else

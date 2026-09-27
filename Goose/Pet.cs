@@ -764,6 +764,11 @@ namespace Goose
         {
             if (!this.IsAlive) return;
 
+            // pvp 1/2 damage
+            if (damage > 0 && character is Player) damage /= 2;
+
+            damage = DamageIntercept.Apply(this, character, damage, world);
+
             List<Player> range = this.Map.GetPlayersInRange(this);
 
             string packet;
@@ -793,8 +798,6 @@ namespace Goose
 
             if (damage > 0)
             {
-                // pvp 1/2 damage
-                if (character is Player) damage /= 2;
                 packet = P.BattleTextDamage(this, damage) + "\x1";
             }
             else
