@@ -376,7 +376,12 @@ namespace Goose
             this.equipped[(int)equipslot] = slot;
             this.player.AddStats(slot.Item.TotalStats, world, updateCharacter: false);
 
-            if (slot.Item.SpellEffect is not null)
+            if (equipslot == EquipSlots.Mount)
+            {
+                this.player.Mounted = true;
+                this.ApplyMountBuff(slot.Item, world);
+            }
+            else if (slot.Item.SpellEffect is not null)
             {
                 Buff buff = new Buff();
                 buff.Caster = this.player;
@@ -600,7 +605,12 @@ namespace Goose
             this.equipped[(int)equipslot] = null;
             this.player.RemoveStats(slot.Item.TotalStats, world);
 
-            if (slot.Item.SpellEffect is not null)
+            if (equipslot == EquipSlots.Mount)
+            {
+                this.player.Mounted = false;
+                this.RemoveMountBuff(slot.Item, world);
+            }
+            else if (slot.Item.SpellEffect is not null)
             {
                 Buff? remove = null;
                 foreach (var buff in this.player.Buffs)
@@ -815,6 +825,37 @@ namespace Goose
             return e;
         }
 
+        public void ApplyMountBuff(Item item, GameWorld world)
+        {
+            if (item.SpellEffect is null) return;
+
+            Buff buff = new Buff();
+            buff.Caster = this.player;
+            buff.Target = this.player;
+            buff.ItemBuff = true;
+            buff.SpellEffect = item.SpellEffect;
+
+            this.player.AddBuff(buff, world, true, updateCharacter: false);
+        }
+
+        public void RemoveMountBuff(Item item, GameWorld world, bool refreshbar = true)
+        {
+            if (item.SpellEffect is null) return;
+
+            Buff? remove = null;
+            foreach (var buff in this.player.Buffs)
+            {
+                if (buff.ItemBuff && buff.SpellEffect == item.SpellEffect)
+                {
+                    remove = buff;
+                    break;
+                }
+            }
+
+            if (remove is not null)
+                this.player.RemoveBuff(remove, world, refreshbar, updateCharacter: false);
+        }
+
         /**
          * SendEquippedSlot, sends info about equipped slot to player
          *
@@ -1023,7 +1064,8 @@ namespace Goose
                     equipSlot.Item.RefreshStats();
 
                     this.player.AddStats(equipSlot.Item.TotalStats, world);
-                    if (equipSlot.Item.SpellEffect is not null)
+                    // Login is always dismounted, so the mount's item buff is not restored here.
+                    if (i != (int)EquipSlots.Mount && equipSlot.Item.SpellEffect is not null)
                     {
                         Buff buff = new Buff();
                         buff.Caster = this.player;

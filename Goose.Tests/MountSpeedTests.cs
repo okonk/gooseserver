@@ -33,7 +33,9 @@ public class MountSpeedTests
         {
             this.World = new TestWorldFixture();
             var map = this.World.AddBaseMap(1, "Test");
+            map.CanUseItems = true;
             this.OtherMap = this.World.AddBaseMap(2, "Test2");
+            this.World.Settings.MOTD = "";
 
             this.Player = this.World.CommandPlayerOn(map, 1, 2, "Tester");
             this.Player.LoginID = 7;
@@ -77,6 +79,86 @@ public class MountSpeedTests
         }
 
         public void Dispose() => this.World.Dispose();
+    }
+
+    [Fact]
+    public void Equipping_the_mount_sets_the_mounted_state()
+    {
+        using var fixture = new Fixture(equipMount: false);
+
+        Assert.True(fixture.Player.Inventory.Equip(fixture.Mount, fixture.World.World));
+
+        Assert.True(fixture.Player.Mounted);
+        Assert.True(fixture.Player.IsMounted(fixture.World.World));
+        Assert.Equal(MountSpeed, fixture.Player.CalculateMoveSpeed());
+    }
+
+    [Fact]
+    public void IsMounted_false_when_equipped_but_state_off()
+    {
+        using var fixture = new Fixture();
+
+        fixture.Player.Mounted = false;
+
+        Assert.False(fixture.Player.IsMounted(fixture.World.World));
+    }
+
+    [Fact]
+    public void Unequipping_the_mount_clears_the_mounted_state()
+    {
+        using var fixture = new Fixture();
+
+        Assert.True(fixture.Player.Inventory.Unequip(Inventory.EquipSlots.Mount, fixture.World.World));
+
+        Assert.False(fixture.Player.Mounted);
+        Assert.False(fixture.Player.IsMounted(fixture.World.World));
+        Assert.Equal(BaseSpeed, fixture.Player.CalculateMoveSpeed());
+    }
+
+    [Fact]
+    public void Equipping_a_second_mount_switches_speed_and_stays_mounted()
+    {
+        using var fixture = new Fixture();
+
+        var effect2 = fixture.World.AddBaseSpellEffect(260, "Mount Speed III", e =>
+        {
+            e.EffectType = SpellEffect.EffectTypes.Buff;
+            e.Stats = new AttributeSet { MoveSpeed = 200 };
+        });
+        var template2 = fixture.World.AddBaseItemTemplate(652, "Horse", ItemTemplate.UseTypes.Armor, t =>
+        {
+            t.Slot = ItemTemplate.ItemSlots.Mount;
+            t.GraphicEquipped = 274;
+            t.SpellEffect = effect2;
+        });
+        var horse = new Item();
+        horse.LoadFromTemplate(template2);
+        fixture.World.World.ItemHandler.AddAndAssignId(horse, fixture.World.World);
+        Assert.True(fixture.Player.Inventory.AddItem(horse, 1, fixture.World.World));
+        Assert.True(fixture.Player.Inventory.Equip(horse, fixture.World.World));
+
+        Assert.True(fixture.Player.Mounted);
+        Assert.Equal(200, fixture.Player.CalculateMoveSpeed());
+        Assert.Contains(fixture.Player.Inventory.GetInventorySlots(),
+            s => s is not null && s.Item.TemplateID == 651);
+    }
+
+    [Fact]
+    public void Relogin_dismounts_a_mounted_player()
+    {
+        using var fixture = new Fixture();
+        Assert.True(fixture.Player.Mounted);
+        Assert.Equal(MountSpeed, fixture.Player.CalculateMoveSpeed());
+
+        fixture.Player.Spellbook = new Spellbook(fixture.Player, fixture.World.Settings);
+        fixture.Player.State = Player.States.LoadingGame;
+        fixture.Player.Sent.Clear();
+        fixture.World.World.EventHandler.AddEvent(fixture.Player, "LCNT");
+        fixture.World.World.EventHandler.Update(fixture.World.World);
+
+        Assert.False(fixture.Player.Mounted);
+        Assert.Equal(BaseSpeed, fixture.Player.CalculateMoveSpeed());
+        Assert.DoesNotContain(fixture.Player.Buffs, b => b.ItemBuff);
     }
 
     [Fact]
