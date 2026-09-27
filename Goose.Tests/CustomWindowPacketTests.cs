@@ -222,13 +222,13 @@ namespace Goose.Tests
         }
 
         [Fact]
-        public void Cwc_alpha_201_refused_and_consumes_nothing()
+        public void Cwc_alpha_256_refused_and_consumes_nothing()
         {
             var (fixture, player, _, _, _, window) = Setup();
             using (fixture)
             {
                 Assert.True(fixture.RunCommand(player, "CWS5,6"));
-                Assert.True(fixture.RunCommand(player, "CWC5,6,10,20,30,201,X"));
+                Assert.True(fixture.RunCommand(player, "CWC5,6,10,20,30,256,X"));
 
                 Assert.Contains(player.Sent, s => s.Contains("/custom: invalid a value"));
                 AssertNothingConsumed(player);
@@ -237,17 +237,17 @@ namespace Goose.Tests
         }
 
         [Fact]
-        public void Cwc_alpha_200_succeeds()
+        public void Cwc_alpha_255_succeeds()
         {
             var (fixture, player, _, _, _, _) = Setup();
             using (fixture)
             {
                 Assert.True(fixture.RunCommand(player, "CWS5,6"));
-                Assert.True(fixture.RunCommand(player, "CWC5,6,10,20,30,200,X"));
+                Assert.True(fixture.RunCommand(player, "CWC5,6,10,20,30,255,X"));
 
                 Assert.Null(player.Inventory.GetSlot(5));
                 Assert.Null(player.Inventory.GetSlot(6));
-                Assert.Equal(200, player.Inventory.GetSlot(7)!.Item.GraphicA);
+                Assert.Equal(255, player.Inventory.GetSlot(7)!.Item.GraphicA);
                 Assert.Contains(player.Sent, s => s.Contains("Created custom: X"));
             }
         }

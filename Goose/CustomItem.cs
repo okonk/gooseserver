@@ -54,12 +54,12 @@ namespace Goose
                 or ItemTemplate.ItemSlots.Gloves;
         }
 
-        public static string? ParseRGBA(int r, int g, int b, int a, int maxAlpha = 255)
+        public static string? ParseRGBA(int r, int g, int b, int a)
         {
             if (r < 0 || r > 255) return "/custom: invalid r value";
             if (g < 0 || g > 255) return "/custom: invalid g value";
             if (b < 0 || b > 255) return "/custom: invalid b value";
-            if (a < 0 || a > maxAlpha) return "/custom: invalid a value";
+            if (a < 0 || a > 255) return "/custom: invalid a value";
 
             return null;
         }

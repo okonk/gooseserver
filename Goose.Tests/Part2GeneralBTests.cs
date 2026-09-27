@@ -198,7 +198,7 @@ namespace Goose.Tests
                 fixture.Settings.HairdyeCommandCost = 5000;
                 player.Gold = 5000;
 
-                fixture.RunCommand(player, "/hairdye create 255 0 0 200 Blood Red");
+                fixture.RunCommand(player, "/hairdye create 255 0 0 255 Blood Red");
 
                 Assert.Equal(0, player.Gold);
                 Assert.Equal(0, player.HairR);
@@ -214,8 +214,8 @@ namespace Goose.Tests
                 Assert.Equal(255, potion.Item.GraphicR);
                 Assert.Equal(0, potion.Item.GraphicG);
                 Assert.Equal(0, potion.Item.GraphicB);
-                Assert.Equal(200, potion.Item.GraphicA);
-                Assert.Equal("255,0,0,200", potion.Item.ScriptParams);
+                Assert.Equal(255, potion.Item.GraphicA);
+                Assert.Equal("255,0,0,255", potion.Item.ScriptParams);
                 Assert.Contains(player.Sent, s => s.Contains("Bought 5 Blood Red for 5000 gold."));
                 Assert.Contains(player.Sent, s => s.Contains(P.StatusInfo(player)));
             }
@@ -250,9 +250,12 @@ namespace Goose.Tests
                 player.Gold = 5000;
 
                 fixture.RunCommand(player, "/hairdye create 300 0 0 0 Blood Red");
+                fixture.RunCommand(player, "/hairdye create 0 0 0 256 Blood Red");
 
                 Assert.Contains(player.Sent, s => s.Contains("/hairdye: invalid r value"));
+                Assert.Contains(player.Sent, s => s.Contains("/hairdye: invalid a value"));
                 Assert.Equal(5000, player.Gold);
+                Assert.Null(FindPotion(player, "Blood Red"));
             }
         }
 

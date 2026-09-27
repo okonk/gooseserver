@@ -117,7 +117,7 @@ namespace Goose
 
             if (!CustomItem.ValidateItems(world, player, statsSlot.Item, lookSlot.Item)) return;
 
-            string? rgbaError = CustomItem.ParseRGBA(r, g, b, a, maxAlpha: 200);
+            string? rgbaError = CustomItem.ParseRGBA(r, g, b, a);
             if (rgbaError is not null)
             {
                 world.Send(player, P.ServerMessage(rgbaError));

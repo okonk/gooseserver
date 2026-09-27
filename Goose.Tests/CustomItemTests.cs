@@ -196,23 +196,10 @@ namespace Goose.Tests
         [InlineData(0, 0, -1, 0, "/custom: invalid b value")]
         [InlineData(0, 0, 256, 0, "/custom: invalid b value")]
         [InlineData(0, 0, 0, -1, "/custom: invalid a value")]
+        [InlineData(0, 0, 0, 256, "/custom: invalid a value")]
         public void ParseRGBA_out_of_range_channels_return_error(int r, int g, int b, int a, string expected)
         {
             Assert.Equal(expected, CustomItem.ParseRGBA(r, g, b, a));
-        }
-
-        [Fact]
-        public void ParseRGBA_max_alpha_limits_alpha_channel()
-        {
-            Assert.Null(CustomItem.ParseRGBA(10, 20, 30, 200, maxAlpha: 200));
-            Assert.Equal("/custom: invalid a value", CustomItem.ParseRGBA(10, 20, 30, 201, maxAlpha: 200));
-        }
-
-        [Fact]
-        public void ParseRGBA_default_max_alpha_allows_255()
-        {
-            Assert.Null(CustomItem.ParseRGBA(10, 20, 30, 255));
-            Assert.Equal("/custom: invalid a value", CustomItem.ParseRGBA(10, 20, 30, 256));
         }
 
         [Fact]
