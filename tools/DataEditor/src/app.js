@@ -136,6 +136,10 @@ var App = (function () {
     // built before the failure still sees it.
     refErrors: [],
     retrying: false,
+    // 'records' or 'sets'. Only Items can show sets (SetView.available); elsewhere it is ignored.
+    view: 'records',
+    sets: [],
+    setKey: null,
   };
 
   function num(value) {
@@ -392,6 +396,8 @@ var App = (function () {
     state.groupToken++;
     state.group = null;
     document.getElementById('form').__group = null;
+    document.getElementById('form').__setView = null;
+    state.setKey = null;
   }
 
   // Everything derived from the OPEN sheet's rows. The token scheme guards what a reply may
@@ -411,6 +417,7 @@ var App = (function () {
     state.idSets.__self = new Set();
     state.groups = [];
     state.groupsReady = false;
+    state.sets = [];
   }
 
   /// Loads a sheet and rebuilds the record list.
@@ -435,6 +442,7 @@ var App = (function () {
     document.getElementById('new-record').textContent =
       Layout.groupParent(sheetName) ? 'New group' : 'New';
     document.getElementById('new-record').disabled = !!Layout.groupParent(sheetName);
+    updateViewToggle();
 
     var token = ++state.sheetToken;
     var current = function () { return token === state.sheetToken; };
@@ -461,6 +469,7 @@ var App = (function () {
           // then draw A's records under B's schema.
           if (!current()) return;
           if (Layout.groupParent(sheetName)) renderGroups();
+          else if (setsView()) renderSets();
           else renderList();
           var warning = warnings();
           status(state.rows.length + ' records' + (warning ? ' — ' + warning : ''), !!warning);
@@ -473,7 +482,10 @@ var App = (function () {
           // against: an entry that outlived its sheet must be dropped, not applied here.
           var reopen = state.reopenGroup;
           state.reopenGroup = null;
-          if (reopen && reopen.sheet === sheetName) openGroup(reopen.key);
+          if (reopen && reopen.sheet === sheetName) {
+            if (reopen.set) openSet(reopen.key);
+            else openGroup(reopen.key);
+          }
 
           // The finished save's message, if the reopen above did not already show it — the group
           // may be gone, or there may have been none to reopen. Last, so nothing overwrites it.
@@ -596,6 +608,186 @@ var App = (function () {
       button.addEventListener('click', function () { openGroup(group.key); });
       list.appendChild(button);
     });
+  }
+
+  function setsView() {
+    return state.view === 'sets' && SetView.available(state.schema);
+  }
+
+  function updateViewToggle() {
+    var toggle = document.getElementById('view-sets');
+    toggle.hidden = !SetView.available(state.schema);
+    toggle.textContent = setsView() ? 'Records' : 'Sets';
+    if (SetView.available(state.schema)) document.getElementById('new-record').disabled = setsView();
+  }
+
+  function toggleView() {
+    if (!SetView.available(state.schema)) return;
+    if (state.saving) { status('Still saving — one moment', true); return; }
+    guarded(function () {
+      state.view = setsView() ? 'records' : 'sets';
+      clearPreviews();
+      clearForm();
+      updateViewToggle();
+      if (setsView()) renderSets();
+      else renderList();
+    });
+  }
+
+  function renderSets() {
+    var list = document.getElementById('records');
+    list.innerHTML = '';
+
+    state.sets = SetView.build(state.schema, state.rows, state.pickerData.Classes);
+    state.sets.forEach(function (set) {
+      var button = Forms.el('button', { type: 'button', class: 'record' },
+                            set.label + ' (' + set.count + ')');
+      button.addEventListener('click', function () { openSet(set.key); });
+      list.appendChild(button);
+    });
+    status(state.sets.length + ' sets detected');
+  }
+
+  function openSet(key) {
+    if (!setsView()) return;
+    if (state.saving) { status('Still saving — one moment', true); return; }
+    guarded(function () { openSetNow(key); });
+  }
+
+  function openSetNow(key) {
+    var set = state.sets.filter(function (s) { return s.key === key; })[0];
+    if (!set) return;
+
+    var pending = null;
+    if (state.pendingStatus && state.pendingStatus.sheet === state.sheetName) {
+      pending = state.pendingStatus;
+      state.pendingStatus = null;
+    }
+
+    clearPreviews();
+    var token = ++state.groupToken;
+    state.setKey = key;
+    state.rowNumber = 0;
+    state.loaded = {};
+    state.imageCallbacks = [];
+
+    var container = document.getElementById('form');
+    container.innerHTML = '';
+    container.__setView = null;
+
+    var canvas = Forms.el('canvas',
+      { width: Preview.CANVAS_W * Preview.CHARACTER_SCALE,
+        height: Preview.CANVAS_H * Preview.CHARACTER_SCALE, class: 'appearance' });
+    document.getElementById('previews').appendChild(canvas);
+    function redraw() {
+      if (token !== state.groupToken || !container.__setView) return;
+      SetView.drawPreview(canvas, container, ctx(), Preview.CHARACTER_SCALE);
+    }
+
+    loadBundles(bundlesFor(state.schema), function () {
+      if (token !== state.groupToken) return;
+
+      SetView.render({ container: container, schema: state.schema, set: set, ctx: ctx(),
+                       onChange: redraw });
+      var save = Forms.el('button', { type: 'button', 'data-save-set': '' }, 'Save set');
+      save.addEventListener('click', saveSet);
+      container.appendChild(save);
+
+      ctx().onImagesReady(redraw);
+      redraw();
+
+      if (pending) status(pending.message, !!pending.warn);
+      else status(set.count + ' item' + (set.count === 1 ? '' : 's') + ' in ' + set.label);
+    });
+  }
+
+  function saveSet() {
+    if (state.saving) { status('Still saving — one moment', true); return; }
+
+    var container = document.getElementById('form');
+    if (!container.__setView) {
+      status('Open a set first — click one in the list.', true);
+      return;
+    }
+
+    var edited = SetView.changed(container);
+    if (!edited.length) { status('Nothing to save.'); return; }
+
+    var unverified = [];
+    edited.forEach(function (row) {
+      unverifiedRefs(row.values).forEach(function (name) {
+        if (unverified.indexOf(name) === -1) unverified.push(name);
+      });
+    });
+    if (unverified.length) {
+      status('Cannot check these items\' ids against ' + unverified.join(' and ') +
+             ' — that list failed to load, so saving now could store an id that does not ' +
+             'exist. Reloading it; try saving again in a moment.', true);
+      retryReferencedSheets(unverified);
+      return;
+    }
+
+    var pk = state.schema.columns.filter(function (c) { return c.pk; })[0];
+    var shown = SetView.FIELDS.concat([pk.name]);
+    var problems = 0;
+    var hidden = [];
+    SetView.cards(container).forEach(function (card) {
+      var row = edited.filter(function (r) { return r.rowNumber === card.__rowNumber; })[0];
+      if (!row) { Forms.showErrors(card, []); return; }
+      var result = Validation.validateRecord(state.schema.columns, row.values, state.idSets,
+                                             Number(row.loaded[pk.name]));
+      Forms.showErrors(card, result.errors);
+      problems += result.errors.length;
+      result.errors.forEach(function (e) {
+        if (shown.indexOf(e.column) === -1) hidden.push('#' + row.values[pk.name] + ' ' + e.column);
+      });
+    });
+    if (problems) {
+      status(problems + ' problem(s) — fix them before saving' +
+             (hidden.length ? ' (not shown here: ' + hidden.join(', ') +
+                              '; fix those in the Records view)' : ''), true);
+      return;
+    }
+
+    var batch = [Groups.ops(state.schema, edited, [], state.idSets)];
+    if (!batch[0].writes.length) { status('Nothing to save.'); return; }
+
+    status('Saving…');
+    state.saving = true;
+    var savedSheet = state.sheetName;
+    var savedToken = state.sheetToken;
+    var savedKey = state.setKey;
+
+    function reload() {
+      delete state.pickerData[savedSheet];
+      delete state.idSets[savedSheet];
+      if (savedToken !== state.sheetToken) return;
+      state.reopenGroup = savedKey ? { sheet: savedSheet, key: savedKey, set: true } : null;
+      openSheet(savedSheet);
+    }
+
+    google.script.run
+      .withFailureHandler(function (e) {
+        state.saving = false;
+        if (savedToken === state.sheetToken) {
+          state.pendingStatus = { sheet: savedSheet, message: e.message, warn: true };
+        }
+        reload();
+      })
+      .withSuccessHandler(function (results) {
+        state.saving = false;
+        var r = (results && results[0]) || { written: 0 };
+        if (savedToken === state.sheetToken) {
+          state.pendingStatus = {
+            sheet: savedSheet,
+            message: 'Saved ' + r.written + ' item' + (r.written === 1 ? '' : 's') +
+                     '. Run /updatesql then /reloadsql in game to publish.',
+            warn: false,
+          };
+        }
+        reload();
+      })
+      .saveBatch(batch);
   }
 
   /// Opens one group's table, asking first if the open panel holds unsaved edits. `key` is the
@@ -875,7 +1067,7 @@ var App = (function () {
     var container = document.getElementById('form');
     var count = grouped() && container.__group
       ? Groups.changeCount(container, state.schema)
-      : 0;
+      : container.__setView ? SetView.changed(container).length : 0;
     if (!count) { proceed(); return; }
     confirmDiscard(count, proceed, decline);
   }
@@ -1011,6 +1203,7 @@ var App = (function () {
     if (!state.schema) return;
     // A grouped sheet has no single-record form: "new" means "start editing a parent's rows".
     if (grouped()) { openParentPicker(); return; }
+    if (setsView()) return;
     state.rowNumber = 0;
     var values = rowToValues(null);
 
@@ -1409,6 +1602,7 @@ var App = (function () {
     // A grouped sheet has no single-record form; its panel owns its own Save. Routed rather than
     // refused so the header button and the keyboard path both land somewhere sensible.
     if (grouped()) { saveGroup(); return; }
+    if (setsView()) { saveSet(); return; }
 
     // publishCheck has state.checking; this is the same guard for the same reason, and it
     // matters more. Two clicks before the round-trip resolves issue two writeRow calls, and on
@@ -1767,6 +1961,7 @@ var App = (function () {
     document.getElementById('new-record').addEventListener('click', newRecord);
     document.getElementById('save').addEventListener('click', save);
     document.getElementById('publish-check').addEventListener('click', publishCheck);
+    document.getElementById('view-sets').addEventListener('click', toggleView);
 
     // Delegated preview refresh, registered ONCE on the form container — which outlives every
     // record, so registering it per render would stack a handler per record opened.
@@ -1778,7 +1973,7 @@ var App = (function () {
     // `input` and `change` both bubble;
     // `input` covers typing, `change` covers a <select> and a value committed without one.
     var form = document.getElementById('form');
-    function onEdit() { if (state.schema) refreshPreviews(form); }
+    function onEdit() { if (state.schema && !form.__setView) refreshPreviews(form); }
     form.addEventListener('input', onEdit);
     form.addEventListener('change', onEdit);
 
@@ -1795,6 +1990,9 @@ var App = (function () {
     editRow: editRow,
     openGroup: openGroup,
     saveGroup: saveGroup,
+    openSet: openSet,
+    saveSet: saveSet,
+    toggleView: toggleView,
     publishCheck: publishCheck,
     nameIndex: nameIndex,
     bundlesFor: bundlesFor,

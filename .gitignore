@@ -25,6 +25,10 @@ tools/DataEditor/sprites-effects.html
 # are either checked in or built locally, and it re-copies the ~4.4 MB of sprite bundles.
 tools/DataEditor/dist/
 
+# `node tools/SetBrowser/build.mjs` output. Inlines sprites-parts.html, so the same licensing
+# rule as the bundles applies.
+tools/SetBrowser/dist/
+
 # clasp's per-spreadsheet script id. The editor is container-bound, so every contributor's
 # differs and none of them is canonical.
 tools/DataEditor/.clasp.json

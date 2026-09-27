@@ -34,6 +34,10 @@ const { Preview } = await import('../src/preview.js');
 globalThis.Preview = Preview;
 const { Groups } = await import('../src/groups.js');
 globalThis.Groups = Groups;
+const { Sets } = await import('../src/sets.js');
+globalThis.Sets = Sets;
+const { SetView } = await import('../src/setview.js');
+globalThis.SetView = SetView;
 
 const { App } = await import('../src/app.js');
 
@@ -149,9 +153,9 @@ function makeServer(sheets, options) {
 function buildShell() {
   const doc = installFakeDom();
   ['sheet-picker', 'records', 'form', 'previews', 'publish-results', 'status',
-   'new-record', 'save', 'publish-check', 'modal'].forEach((id) => {
+   'view-sets', 'new-record', 'save', 'publish-check', 'modal'].forEach((id) => {
     const tag = id === 'sheet-picker' ? 'select'
-      : (['new-record', 'save', 'publish-check'].indexOf(id) !== -1 ? 'button'
+      : (['view-sets', 'new-record', 'save', 'publish-check'].indexOf(id) !== -1 ? 'button'
         : (id === 'status' ? 'span' : 'div'));
     const node = doc.createElement(tag);
     node.id = id;
@@ -183,6 +187,7 @@ function boot(sheets, options) {
     // one test would otherwise let the next one's save collect rows it never built.
     groupToken: 0, group: null, groups: [], groupsReady: false,
     reopenGroup: null, pendingStatus: null,
+    view: 'records', sets: [], setKey: null,
   });
 
   App.init();
@@ -3559,4 +3564,109 @@ test('the reload after a save never asks', () => {
 
   assert.equal(document.getElementById('modal').hidden, true);
   assert.match(document.getElementById('status').textContent, /Saved/);
+});
+
+// --- sets view -----------------------------------------------------------------------------
+
+const PIECE = (id, name, slot, graphic, extra) => ITEM(id, name, Object.assign({
+  item_usetype: 'Armor', item_slot: slot, graphic_equip: graphic, min_level: 18,
+  class_restrictions: 8, item_description: 'desc ' + id,
+}, extra || {}));
+
+const SET_SHEETS = () => ({
+  Items: [
+    PIECE(32, 'Warrior Helmet', 'Helmet', 20),
+    PIECE(33, 'Warrior Chestplate', 'Chest', 7),
+    PIECE(34, 'Warrior Leggings', 'Pants', 6),
+    ITEM(35, 'Gold'),
+  ],
+  Classes: [rowFor('Classes', { class_id: 3, class_name: 'Warrior' })],
+});
+
+function openFirstSet(h) {
+  fire(h.get('view-sets'), 'click');
+  h.settle();
+  fire(h.get('records').querySelectorAll('.record')[0], 'click');
+  h.settle();
+}
+
+test('the sets toggle is offered on Items only', () => {
+  const h = boot(SET_SHEETS());
+  assert.equal(h.get('view-sets').hidden, false);
+  App.openSheet('NPCs');
+  h.settle();
+  assert.equal(h.get('view-sets').hidden, true);
+});
+
+test('the sets view lists detected sets and opens one card per member', () => {
+  const h = boot(SET_SHEETS());
+  fire(h.get('view-sets'), 'click');
+  h.settle();
+
+  const records = [...h.get('records').querySelectorAll('.record')].map((n) => n.textContent);
+  assert.deepEqual(records, ['#32 Warrior — Warrior (3)']);
+  assert.equal(h.get('view-sets').textContent, 'Records');
+  assert.equal(h.get('new-record').disabled, true);
+
+  fire(h.get('records').querySelectorAll('.record')[0], 'click');
+  h.settle();
+  assert.deepEqual([...h.get('form').querySelectorAll('[data-set-row]')]
+    .map((c) => c.getAttribute('data-set-row')), ['2', '3', '4']);
+  assert.equal(h.get('previews').querySelectorAll('canvas').length, 1);
+});
+
+test('saving a set writes only the edited item and keeps its other cells', () => {
+  const h = boot(SET_SHEETS());
+  openFirstSet(h);
+
+  const card = h.get('form').querySelectorAll('[data-set-row]')[1];
+  const name = card.querySelectorAll('[name=item_name]')[0];
+  name.value = 'Warrior Breastplate';
+  fire(name, 'input');
+  App.save();
+  h.settle();
+
+  const call = h.run.calls.filter((c) => c.name === 'saveBatch').pop();
+  assert.ok(call, 'a set save goes through saveBatch');
+  const writes = call.args[0][0].writes;
+  assert.equal(writes.length, 1);
+  assert.equal(writes[0].row, 3);
+  const columns = schemaOf('Items').columns.map((c) => c.name);
+  assert.equal(writes[0].cells[columns.indexOf('item_name')], 'Warrior Breastplate');
+  assert.equal(writes[0].cells[columns.indexOf('item_description')], 'desc 33');
+  assert.equal(writes[0].cells[columns.indexOf('graphic_equip')], '7');
+});
+
+test('a set save with no edits posts nothing', () => {
+  const h = boot(SET_SHEETS());
+  openFirstSet(h);
+  App.save();
+  h.settle();
+  assert.equal(h.run.calls.filter((c) => c.name === 'saveBatch').length, 0);
+  assert.equal(h.status(), 'Nothing to save.');
+});
+
+test('a set save reopens the set after the reload', () => {
+  const h = boot(SET_SHEETS());
+  openFirstSet(h);
+  const name = h.get('form').querySelectorAll('[name=item_name]')[0];
+  name.value = 'Warrior Helm';
+  fire(name, 'input');
+  App.save();
+  h.settle();
+
+  assert.equal(h.get('form').querySelectorAll('[data-set-row]').length, 3);
+  assert.match(h.status(), /Saved 1 item/);
+});
+
+test('leaving a set with unsaved edits asks first', () => {
+  const h = boot(SET_SHEETS());
+  openFirstSet(h);
+  const name = h.get('form').querySelectorAll('[name=item_name]')[0];
+  name.value = 'Changed';
+  fire(name, 'input');
+
+  fire(h.get('view-sets'), 'click');
+  assert.equal(h.get('modal').hidden, false);
+  assert.equal(h.get('form').querySelectorAll('[data-set-row]').length, 3);
 });

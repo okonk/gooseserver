@@ -286,6 +286,14 @@ of `schema.js` and the sprite bundles:
 longer committed: build them with SpriteBundle first. A missing `schema.js` only warns, because it
 is checked in and its absence means something else is wrong.
 
+### Sets view on Items
+
+The **Sets** button on Items swaps the record list for equipment sets detected by `src/sets.js` (the
+same detection SetBrowser uses). A set opens as one card per item — name, slot, worn graphic, tint,
+min level and classes — with the whole set drawn worn on the base body. Save writes only the items
+you changed, as one batch; columns not on the cards keep their stored values. Membership is
+guessed from names, ids and tints and is not stored anywhere.
+
 ## Deploying to Apps Script
 
 The editor is a container-bound script, so each spreadsheet has its own script id and needs its own
@@ -332,3 +340,23 @@ written, a deploy is:
 `clasp push` uploads the sources. Turning them into a reachable web app is still a one-time manual
 step in the Apps Script editor — **Deploy → New deployment → Web app**, execute as *user accessing*,
 access *anyone with a Google account*. Later pushes update the code behind that deployment.
+
+## SetBrowser
+
+Groups the Items sheet's wearable pieces into equipment sets (by name prefix / "of the X" suffix,
+shared tint, or matching class and level on adjacent ids), previews each set on the base body using
+the data editor's own preview modules, and lets you build your own sets from the parts atlas. Custom
+sets live in the browser's localStorage; Export JSON writes detected and custom sets together.
+
+Needs `tools/DataEditor/sprites-parts.html` (see SpriteBundle). Fetches Items and Classes from each
+sheet in `SOURCES` in `build.mjs` (Illutia and Aspereta); the page has a switcher between them.
+Custom sets belong to the sheet they were made in, since class bits differ between sheets. To add a
+sheet, append its spreadsheet id and the gids of its Items and Classes tabs:
+
+    node tools/SetBrowser/build.mjs
+
+Detection lives in `tools/DataEditor/src/sets.js`, shared with the data editor's Sets view on Items;
+its tests run with the data editor's.
+
+Output is `tools/SetBrowser/dist/set-browser.html` (gitignored, it inlines the sprite bundle) and
+`dist/sets.json`.

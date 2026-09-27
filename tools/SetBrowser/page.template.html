@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Equipment Set Browser</title>
+<style>
+  :root {
+    --bg: #f4f3ef; --panel: #ffffff; --panel-2: #efede7; --ink: #1d1c1a; --muted: #6b6860;
+    --line: #dcd9d0; --accent: #2f6f5e; --accent-ink: #ffffff; --warn: #a04030;
+    --stage: #e6e2d8; --stage-dot: #d6d1c4;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #151514; --panel: #1f1e1c; --panel-2: #2a2926; --ink: #ecebe6; --muted: #a09d94;
+      --line: #36342f; --accent: #6cc0a6; --accent-ink: #0d1a16; --warn: #e0806d;
+      --stage: #2b2a27; --stage-dot: #34332f;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 system-ui, sans-serif; }
+  header { position: sticky; top: 0; z-index: 5; background: var(--panel); border-bottom: 1px solid var(--line);
+           display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 10px 16px; }
+  header h1 { font-size: 16px; margin: 0 12px 0 0; }
+  .tabs { display: flex; gap: 4px; }
+  .tabs button[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .spacer { flex: 1; }
+  button, select, input[type="text"], input[type="number"], input[type="search"] {
+    font: inherit; color: inherit; background: var(--panel-2); border: 1px solid var(--line);
+    border-radius: 6px; padding: 5px 10px;
+  }
+  button { cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  button.danger { color: var(--warn); }
+  main { padding: 16px; }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
+  .toolbar label { display: inline-flex; gap: 6px; align-items: center; color: var(--muted); }
+  .count { color: var(--muted); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 460px), 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px;
+          display: grid; grid-template-columns: auto 1fr; gap: 12px; }
+  .stage { background-color: var(--stage);
+           background-image: radial-gradient(var(--stage-dot) 1px, transparent 1px);
+           background-size: 8px 8px; border-radius: 8px; image-rendering: pixelated; display: block; }
+  .card h3 { margin: 0; font-size: 15px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 4px; margin: 4px 0 8px; }
+  .chip { font-size: 11px; padding: 1px 7px; border-radius: 999px; background: var(--panel-2);
+          border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+  .chip.mine { border-color: var(--accent); color: var(--accent); }
+  .slots { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .slots td { padding: 1px 4px 1px 0; vertical-align: top; }
+  .slots td:first-child { color: var(--muted); width: 52px; }
+  .slots { table-layout: fixed; }
+  .slots td.gid { font-variant-numeric: tabular-nums; white-space: nowrap; width: 62px; }
+  .slots td.item { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .slots td.item small { color: var(--muted); }
+  .slots .item-classes { color: var(--muted); font-size: 11px; }
+  .card > div { min-width: 0; }
+  .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; border: 1px solid var(--line);
+            vertical-align: -1px; margin-left: 4px; }
+  .note { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .actions { display: flex; gap: 6px; margin-top: 8px; }
+  .actions button { font-size: 12px; padding: 3px 8px; }
+  .builder { display: grid; grid-template-columns: minmax(300px, 380px) 1fr; gap: 16px; align-items: start; }
+  @media (max-width: 800px) { .builder { grid-template-columns: 1fr; } }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+  .panel h2 { font-size: 14px; margin: 0 0 10px; }
+  .field { display: grid; gap: 4px; margin-bottom: 10px; }
+  .field > span { color: var(--muted); font-size: 12px; }
+  .classes { display: flex; flex-wrap: wrap; gap: 4px 10px; }
+  .classes label { display: inline-flex; gap: 4px; align-items: center; }
+  .slot-row { display: grid; grid-template-columns: 64px 70px 34px 1fr 26px; gap: 6px; align-items: center;
+              padding: 4px 6px; border-radius: 6px; border: 1px solid transparent; }
+  .slot-row.active { border-color: var(--accent); background: var(--panel-2); }
+  .slot-row button.slot-name { text-align: left; padding: 3px 6px; }
+  .slot-row input[type="number"] { width: 70px; padding: 3px 6px; }
+  .slot-row input[type="color"] { width: 34px; height: 26px; padding: 0; border: 1px solid var(--line); border-radius: 4px; background: none; }
+  .slot-row input[type="range"] { width: 100%; }
+  .slot-row .clear { padding: 2px 6px; }
+  .preview-wrap { display: flex; justify-content: center; margin: 6px 0 12px; }
+  .mine-list { display: grid; gap: 4px; margin-top: 12px; max-height: 260px; overflow: auto; }
+  .mine-list button { text-align: left; }
+  .mine-list button.current { border-color: var(--accent); }
+  .thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; }
+  .thumb { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 4px;
+           display: grid; justify-items: center; gap: 2px; cursor: pointer; font-size: 11px; }
+  .thumb:hover, .thumb.selected { border-color: var(--accent); }
+  .thumb canvas { width: 96px; height: 112px; }
+  .thumb .uses { color: var(--muted); }
+  .empty { color: var(--muted); padding: 24px; text-align: center; }
+  [hidden] { display: none !important; }
+  .boot { border: 1px solid var(--warn); color: var(--warn); border-radius: 8px; padding: 12px 14px; margin-bottom: 14px; }
+  .boot code, .boot pre { font: 12px ui-monospace, monospace; }
+  .boot pre { white-space: pre-wrap; margin: 8px 0 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Equipment Set Browser</h1>
+  <div class="tabs" role="tablist">
+    <button role="tab" data-view="sets" aria-selected="true">Sets</button>
+    <button role="tab" data-view="builder" aria-selected="false">Builder</button>
+  </div>
+  <select id="game" aria-label="Game data sheet"></select>
+  <label class="count" style="display:inline-flex;gap:6px;align-items:center">Tint <select id="tint-mode"></select></label>
+  <div class="spacer"></div>
+  <span class="count" id="source"></span>
+  <button id="import">Import JSON</button>
+  <button id="export" class="primary">Export JSON</button>
+  <input type="file" id="import-file" accept="application/json,.json" hidden>
+</header>
+
+<main>
+  <div class="boot" id="boot">
+    <strong>Nothing loaded.</strong>
+    This is the unbuilt template. Run <code>node tools/SetBrowser/build.mjs</code> and open
+    <code>tools/SetBrowser/dist/set-browser.html</code>.
+    <pre id="boot-error" hidden></pre>
+  </div>
+  <section id="view-sets">
+    <div class="toolbar">
+      <input type="search" id="q" placeholder="Search set or item name, or graphic id">
+      <label>Class <select id="class-filter"></select></label>
+      <label>Source
+        <select id="source-filter">
+          <option value="all">Detected + mine</option>
+          <option value="auto">Detected only</option>
+          <option value="custom">Mine only</option>
+        </select>
+      </label>
+      <label><input type="checkbox" id="show-placeholders" checked> Graphic-only placeholder items</label>
+      <span class="count" id="set-count"></span>
+    </div>
+    <div class="grid" id="set-grid"></div>
+  </section>
+
+  <section id="view-builder" hidden>
+    <div class="builder">
+      <div class="panel">
+        <h2 id="editor-title">New set</h2>
+        <label class="field"><span>Name</span><input type="text" id="set-name" placeholder="Set name"></label>
+        <div class="field"><span>Classes (none ticked = any class)</span><div class="classes" id="set-classes"></div></div>
+        <div class="preview-wrap"><canvas class="stage" id="big-preview"></canvas></div>
+        <div id="slot-rows"></div>
+        <div class="actions">
+          <button class="primary" id="save">Save set</button>
+          <button id="new">New</button>
+          <button class="danger" id="delete">Delete</button>
+        </div>
+        <div class="note" id="save-note"></div>
+        <div class="mine-list" id="mine-list"></div>
+      </div>
+      <div class="panel">
+        <div class="toolbar">
+          <h2 style="margin:0" id="browser-title">Graphics</h2>
+          <label>Show
+            <select id="hide-filter">
+              <option value="sets">Hide graphics already in a set</option>
+              <option value="items">Hide graphics used by any item</option>
+              <option value="none">Show everything</option>
+            </select>
+          </label>
+          <input type="search" id="graphic-q" placeholder="Graphic id" style="width:110px">
+          <span class="count" id="graphic-count"></span>
+        </div>
+        <div class="thumbs" id="thumbs"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+window.addEventListener('error', function (e) {
+  var box = document.getElementById('boot');
+  var pre = document.getElementById('boot-error');
+  box.hidden = false;
+  box.firstElementChild.textContent = 'The page failed to start.';
+  pre.hidden = false;
+  pre.textContent += (e.error && e.error.stack) || e.message;
+  pre.textContent += '\n';
+});
+</script>
+<!-- SPRITES -->
+<!-- MODULES -->
+</body>
+</html>

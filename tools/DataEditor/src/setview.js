@@ -1,0 +1,240 @@
+// Items edited a detected equipment set at a time. Sets.detect decides the membership; each member
+// is a card of the columns that make up its look, and the set is drawn worn on the base body.
+var SetView = (function () {
+  var FIELDS = ['item_name', 'item_slot', 'graphic_equip', 'graphic_r', 'graphic_g', 'graphic_b',
+                'graphic_a', 'min_level', 'class_restrictions'];
+
+  var seq = 0;
+
+  function str(value) {
+    return (value === undefined || value === null) ? '' : String(value);
+  }
+
+  function num(value) {
+    var n = parseInt(value, 10);
+    return isNaN(n) ? 0 : n;
+  }
+
+  function pkOf(schema) {
+    return schema.columns.filter(function (c) { return c.pk; })[0] || null;
+  }
+
+  function available(schema) {
+    if (!schema || !pkOf(schema)) return false;
+    var names = schema.columns.map(function (c) { return c.name; });
+    return FIELDS.every(function (f) { return names.indexOf(f) !== -1; });
+  }
+
+  function valuesOf(schema, row) {
+    var values = {};
+    schema.columns.forEach(function (c, i) {
+      values[c.name] = row && row[i] !== undefined ? str(row[i]) : '';
+    });
+    return values;
+  }
+
+  // `rows` is state.rows (row i is sheet row i + 2); `classEntries` is the Classes id + name list.
+  // A "same look" duplicate is its own entry here, since its rows are separate records to edit.
+  function build(schema, rows, classEntries) {
+    if (!available(schema)) return [];
+    var pk = pkOf(schema).name;
+
+    var classNames = {};
+    (classEntries || []).forEach(function (e) {
+      if (num(e.id) > 0) classNames[num(e.id)] = str(e.name);
+    });
+
+    var records = (rows || []).map(function (row, i) {
+      return { rowNumber: i + 2, values: valuesOf(schema, row) };
+    });
+    var byId = {};
+    records.forEach(function (r) { byId[num(r.values[pk])] = r; });
+
+    var sets = Sets.detect(records.map(function (r) {
+      var v = r.values;
+      return { id: v[pk], name: v.item_name, slot: v.item_slot, graphic: v.graphic_equip,
+               r: v.graphic_r, g: v.graphic_g, b: v.graphic_b, a: v.graphic_a,
+               classes: v.class_restrictions, minLevel: v.min_level };
+    }), classNames);
+
+    function entry(key, name, classes, ids) {
+      return {
+        key: key,
+        label: '#' + ids[0] + ' ' + name + (classes.length ? ' — ' + classes.join(', ') : ''),
+        rows: ids.filter(function (id) { return byId[id]; })
+          .map(function (id) { return byId[id]; }),
+      };
+    }
+
+    var out = [];
+    sets.forEach(function (set) {
+      out.push(entry(set.id, set.name, set.classNames,
+                     set.items.map(function (i) { return i.id; })));
+      set.duplicates.forEach(function (d) {
+        out.push(entry('auto-' + d.itemIds[0], d.name + ' (same look as ' + set.name + ')',
+                       set.classNames, d.itemIds));
+      });
+    });
+    out.forEach(function (s) { s.count = s.rows.length; });
+    return out;
+  }
+
+  function subSchema(schema) {
+    return {
+      sheet: schema.sheet,
+      columns: FIELDS.map(function (name) {
+        return schema.columns.filter(function (c) { return c.name === name; })[0];
+      }),
+      composites: (schema.composites || []).filter(function (comp) {
+        return comp.columns.every(function (n) { return FIELDS.indexOf(n) !== -1; });
+      }),
+    };
+  }
+
+  function current(state, card) {
+    var values = {};
+    Object.keys(card.__loaded).forEach(function (k) { values[k] = card.__loaded[k]; });
+    var edited = Forms.collect(card, state.sub);
+    state.sub.columns.forEach(function (c) { values[c.name] = edited[c.name]; });
+    return values;
+  }
+
+  function buildCard(state, record) {
+    var schema = state.schema;
+    var sub = state.sub;
+    var values = record.values;
+    var pk = pkOf(schema).name;
+
+    var card = Forms.el('section', { class: 'set-item', 'data-set-row': String(record.rowNumber) });
+    card.__rowNumber = record.rowNumber;
+    card.__loaded = values;
+    card.appendChild(Forms.el('h3', null, '#' + values[pk]));
+
+    var callbacks = [];
+    var ctx = {};
+    Object.keys(state.ctx || {}).forEach(function (k) { ctx[k] = state.ctx[k]; });
+    ctx.idPrefix = 's' + (seq++) + '-';
+    ctx.onFormChange = function (fn) { if (typeof fn === 'function') callbacks.push(fn); };
+
+    var byName = Object.create(null);
+    sub.columns.forEach(function (c) { byName[c.name] = c; });
+    var leaders = Object.create(null);
+    var claimed = Object.create(null);
+    sub.composites.forEach(function (comp) {
+      comp.columns.forEach(function (n) { claimed[n] = comp; });
+      leaders[comp.columns[0]] = comp;
+    });
+
+    var effective = Forms.effective(values, schema.columns);
+    sub.columns.forEach(function (column) {
+      var comp = claimed[column.name];
+      if (comp && leaders[column.name] !== comp) return;
+
+      var row = Forms.el('div', { class: 'field' });
+      row.appendChild(Forms.el('label', null,
+                               comp ? Layout.labelFor(comp, column.name) : column.name));
+      row.appendChild(comp
+        ? Composites.control({ comp: comp, byName: byName, values: values, effective: effective,
+                               ctx: ctx, sheet: schema.sheet, gallery: ctx.gallery })
+        : Forms.columnControl({ column: column, ctx: ctx, sheet: schema.sheet, values: values,
+                                effective: effective }));
+      row.appendChild(Forms.el('div', { class: 'error', 'data-error-for': column.name }));
+      card.appendChild(row);
+    });
+
+    function changed() {
+      var now = Forms.effective(current(state, card), schema.columns);
+      callbacks.forEach(function (fn) { fn(now); });
+      if (state.onChange) state.onChange();
+    }
+    card.addEventListener('input', changed);
+    card.addEventListener('change', changed);
+
+    return card;
+  }
+
+  /// opts: { container, schema, set, ctx, onChange }. onChange runs after any edit in any card.
+  function render(opts) {
+    var container = opts.container;
+    container.innerHTML = '';
+
+    var state = {
+      schema: opts.schema,
+      sub: subSchema(opts.schema),
+      ctx: opts.ctx,
+      onChange: opts.onChange,
+      cards: [],
+    };
+    container.__setView = state;
+
+    var head = Forms.el('div', { class: 'group-head' });
+    head.appendChild(Forms.el('h3', null, opts.set ? opts.set.label : ''));
+    container.appendChild(head);
+
+    ((opts.set && opts.set.rows) || []).forEach(function (record) {
+      var card = buildCard(state, record);
+      state.cards.push(card);
+      container.appendChild(card);
+    });
+    return container;
+  }
+
+  /// [{ rowNumber, values, loaded }] for every card, in Groups.ops' shape. Columns without a
+  /// control on the card carry their loaded value, so a write never blanks them.
+  function collect(container) {
+    var state = container.__setView;
+    if (!state) return [];
+    return state.cards.map(function (card) {
+      return { rowNumber: card.__rowNumber, values: current(state, card), loaded: card.__loaded };
+    });
+  }
+
+  function isChanged(schema, row) {
+    return schema.columns.some(function (c) {
+      return str(row.values[c.name]) !== str(row.loaded[c.name]);
+    });
+  }
+
+  function changed(container) {
+    var state = container.__setView;
+    if (!state) return [];
+    return collect(container).filter(function (row) { return isChanged(state.schema, row); });
+  }
+
+  function cards(container) {
+    var state = container.__setView;
+    return state ? state.cards.slice() : [];
+  }
+
+  function drawPreview(canvas, container, ctx, scale) {
+    var slots = {};
+    collect(container).forEach(function (row) {
+      var v = row.values;
+      var slot = Sets.WEARABLE[str(v.item_slot).trim()];
+      if (!slot || num(v.graphic_equip) <= 0) return;
+      slots[slot] = { graphic: num(v.graphic_equip), r: num(v.graphic_r), g: num(v.graphic_g),
+                      b: num(v.graphic_b), a: num(v.graphic_a), tinted: true };
+    });
+    var armed = !!(slots.Shield || slots.Weapon);
+    return Preview.character(canvas, {
+      bodyId: Preview.BASE_BODY,
+      bodyState: armed ? 4 : 3,
+      equippedItems: Equipped.format(Equipped.SLOTS.map(function (name) {
+        return slots[name] || Equipped.empty();
+      })),
+    }, ctx, scale);
+  }
+
+  return {
+    FIELDS: FIELDS,
+    available: available,
+    build: build,
+    render: render,
+    collect: collect,
+    changed: changed,
+    cards: cards,
+    drawPreview: drawPreview,
+  };
+})();
+
+if (typeof module !== 'undefined') module.exports = { SetView: SetView };

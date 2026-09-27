@@ -71,6 +71,7 @@
      box-shadow rather than a border, because a border is laid out: 3px on the marked rows only
      would shove the first column sideways row by row and leave the table ragged. */
   .group-row.duplicate .group-cell:first-child { box-shadow: inset 3px 0 0 #e8cf7a; }
+  .set-item h3 { text-transform: none; }
   .problem { font-size: 11px; border-bottom: 1px solid #eee; padding: 2px 0; }
   #publish-results { max-height: 60vh; overflow: auto; }
   canvas.preview, canvas.appearance, canvas.effect, canvas.item-icon, canvas.worn { image-rendering: pixelated;
@@ -320,6 +321,7 @@
 
 <header>
   <select id="sheet-picker"></select>
+  <button type="button" id="view-sets" hidden>Sets</button>
   <button type="button" id="new-record">New</button>
   <button type="button" id="save">Save</button>
   <button type="button" id="publish-check">Check all sheets</button>
@@ -352,8 +354,9 @@
     preview     -> Appearance, Sprites, Equipped
     pickers     -> Forms, Sprites, Appearance, Preview, Gallery
     groups      -> Forms, Layout, Pickers, Validation
+    setview     -> Sets, Forms, Composites, Layout, Preview, Equipped
     app         -> everything
-  All thirteen src/ modules are listed. build.mjs emits one dist/<name>.html per src/*.js, so a
+  All fifteen src/ modules are listed. build.mjs emits one dist/<name>.html per src/*.js, so a
   module added there and not added here is simply never on the page.
 -->
 <?!= include('schema'); ?>
@@ -372,6 +375,8 @@
 <?!= include('composites'); ?>
 <?!= include('forms'); ?>
 <?!= include('groups'); ?>
+<?!= include('sets'); ?>
+<?!= include('setview'); ?>
 <?!= include('app'); ?>
 
 <script>App.init();</script>
