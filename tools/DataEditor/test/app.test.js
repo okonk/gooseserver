@@ -3697,3 +3697,42 @@ test('set cards carry the inventory graphic', () => {
   assert.equal(card.querySelectorAll('[name=graphic_tile]').length, 1);
   assert.equal(card.querySelectorAll('[name=graphic_file]').length, 1);
 });
+
+test('copy look takes the graphics and tint from another item and saves them', () => {
+  const sheets = SET_SHEETS();
+  sheets.Items.push(PIECE(90, 'Shiny Helm', 'Helmet', 55, {
+    graphic_tile: 1, graphic_file: 1, graphic_r: 10, graphic_g: 20, graphic_b: 30, graphic_a: 200,
+  }));
+  const h = boot(sheets);
+  openFirstSet(h);
+
+  const card = h.get('form').querySelectorAll('[data-set-row]')[0];
+  const name = card.querySelectorAll('[name=item_name]')[0];
+  name.value = 'Renamed';
+  fire(name, 'input');
+  fire(card.querySelectorAll('[data-copy-look]')[0], 'click');
+  assert.equal(h.get('modal').hidden, false);
+
+  const filter = h.get('modal').querySelectorAll('[data-filter]')[0];
+  filter.value = 'shiny';
+  fire(filter, 'input');
+  const options = h.get('modal').querySelectorAll('[data-item]');
+  assert.equal(options.length, 1);
+  fire(options[0], 'click');
+  assert.equal(h.get('modal').hidden, true);
+
+  const after = h.get('form').querySelectorAll('[data-set-row]')[0];
+  assert.equal(after.querySelectorAll('[name=graphic_equip]')[0].value, '55');
+  assert.equal(after.querySelectorAll('[name=item_name]')[0].value, 'Renamed',
+               'edits to other fields survive the copy');
+
+  App.save();
+  h.settle();
+  const writes = h.run.calls.filter((c) => c.name === 'saveBatch').pop().args[0][0].writes;
+  const columns = schemaOf('Items').columns.map((c) => c.name);
+  assert.equal(writes.length, 1);
+  assert.deepEqual(['graphic_tile', 'graphic_file', 'graphic_equip', 'graphic_r', 'graphic_g',
+                    'graphic_b', 'graphic_a', 'item_name']
+    .map((c) => writes[0].cells[columns.indexOf(c)]),
+    ['1', '1', '55', '10', '20', '30', '200', 'Renamed']);
+});

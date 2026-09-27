@@ -706,7 +706,8 @@ var App = (function () {
                        onBack: function () {
                          if (state.saving) { status('Still saving — one moment', true); return; }
                          guarded(showOverview);
-                       } });
+                       },
+                       chooseItem: openItemPicker });
       var save = Forms.el('button', { type: 'button', 'data-save-set': '' }, 'Save set');
       save.addEventListener('click', saveSet);
       container.appendChild(save);
@@ -717,6 +718,78 @@ var App = (function () {
       if (pending) status(pending.message, !!pending.warn);
       else status(set.count + ' item' + (set.count === 1 ? '' : 's') + ' in ' + set.label);
     });
+  }
+
+  var ITEM_PICKER_CAP = 200;
+
+  function openItemPicker(onPick) {
+    var pk = state.schema.columns.filter(function (c) { return c.pk; })[0];
+    var entries = state.rows.map(function (row) {
+      var values = rowToValues(row);
+      return { values: values,
+               text: str(values[pk.name]) + ' — ' + str(values.item_name) +
+                     (str(values.item_slot) ? ' (' + str(values.item_slot) + ')' : '') };
+    });
+    var opener = document.activeElement;
+    var modal = document.getElementById('modal');
+    modal.innerHTML = '';
+    modal.hidden = false;
+
+    var dialog = Forms.el('div', { class: 'parent-picker', role: 'dialog', 'aria-modal': 'true',
+                                   'aria-label': 'Copy look from item' });
+    var head = Forms.el('div', { class: 'picker-head' });
+    var filter = Forms.el('input', { type: 'text', 'data-filter': '', autocomplete: 'off',
+                                     placeholder: 'Copy look from… (id or name)',
+                                     'aria-label': 'Filter items' });
+    var close = Forms.el('button', { type: 'button', 'data-close': '' }, 'Close');
+    head.appendChild(filter);
+    head.appendChild(close);
+    dialog.appendChild(head);
+    var list = Forms.el('div', { class: 'parent-list' });
+    dialog.appendChild(list);
+
+    function dismiss() {
+      modal.removeEventListener('click', backdrop);
+      modal.innerHTML = '';
+      modal.hidden = true;
+      if (opener && typeof opener.focus === 'function') opener.focus();
+    }
+    function backdrop(event) { if (event.target === modal) dismiss(); }
+    function pick(entry) { dismiss(); onPick(entry.values); }
+
+    var shown = [];
+    function draw() {
+      list.innerHTML = '';
+      var needle = str(filter.value).toLowerCase();
+      shown = entries.filter(function (e) {
+        return !needle || e.text.toLowerCase().indexOf(needle) !== -1;
+      });
+      shown.slice(0, ITEM_PICKER_CAP).forEach(function (entry) {
+        var button = Forms.el('button', { type: 'button', 'data-item': str(entry.values[pk.name]) },
+                              entry.text);
+        button.addEventListener('click', function () { pick(entry); });
+        list.appendChild(button);
+      });
+      if (!shown.length) list.appendChild(Forms.el('p', { class: 'empty' }, 'Nothing matches.'));
+      else if (shown.length > ITEM_PICKER_CAP) {
+        list.appendChild(Forms.el('p', { class: 'empty' },
+          (shown.length - ITEM_PICKER_CAP) + ' more — keep typing to narrow it down.'));
+      }
+    }
+
+    filter.addEventListener('input', draw);
+    dialog.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape') { event.preventDefault(); dismiss(); return; }
+      if (event.key === 'Enter' && event.target === filter && shown.length) {
+        event.preventDefault();
+        pick(shown[0]);
+      }
+    });
+    close.addEventListener('click', dismiss);
+    modal.addEventListener('click', backdrop);
+    modal.appendChild(dialog);
+    draw();
+    filter.focus();
   }
 
   function saveSet() {

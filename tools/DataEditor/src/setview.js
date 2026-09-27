@@ -4,6 +4,8 @@ var SetView = (function () {
   var FIELDS = ['item_name', 'item_slot', 'graphic_equip', 'graphic_tile', 'graphic_file',
                 'graphic_r', 'graphic_g', 'graphic_b', 'graphic_a', 'min_level',
                 'class_restrictions'];
+  var LOOK_FIELDS = ['graphic_tile', 'graphic_file', 'graphic_equip', 'graphic_r', 'graphic_g',
+                     'graphic_b', 'graphic_a'];
   var OVERVIEW_SCALE = 2;
 
   var seq = 0;
@@ -102,17 +104,50 @@ var SetView = (function () {
   }
 
   function buildCard(state, record) {
-    var schema = state.schema;
-    var sub = state.sub;
-    var values = record.values;
-    var pk = pkOf(schema).name;
-
     var card = Forms.el('section', { class: 'set-item', 'data-set-row': String(record.rowNumber) });
     card.__rowNumber = record.rowNumber;
-    card.__loaded = values;
-    card.appendChild(Forms.el('h3', null, '#' + values[pk]));
+    card.__loaded = record.values;
+    card.__callbacks = [];
 
-    var callbacks = [];
+    card.addEventListener('input', function () { notify(state, card); });
+    card.addEventListener('change', function () { notify(state, card); });
+
+    fill(state, card, record.values);
+    return card;
+  }
+
+  function notify(state, card) {
+    var now = Forms.effective(current(state, card), state.schema.columns);
+    card.__callbacks.forEach(function (fn) { fn(now); });
+    if (state.onChange) state.onChange();
+  }
+
+  function copyLook(state, card, source) {
+    var values = current(state, card);
+    LOOK_FIELDS.forEach(function (f) { values[f] = str(source[f]); });
+    fill(state, card, values);
+    notify(state, card);
+  }
+
+  function fill(state, card, values) {
+    var schema = state.schema;
+    var sub = state.sub;
+    var pk = pkOf(schema).name;
+
+    card.innerHTML = '';
+    var callbacks = card.__callbacks = [];
+
+    var head = Forms.el('div', { class: 'set-item-head' });
+    head.appendChild(Forms.el('h3', null, '#' + values[pk]));
+    if (state.chooseItem) {
+      var copy = Forms.el('button', { type: 'button', 'data-copy-look': '' }, 'Copy look from…');
+      copy.addEventListener('click', function () {
+        state.chooseItem(function (source) { copyLook(state, card, source); });
+      });
+      head.appendChild(copy);
+    }
+    card.appendChild(head);
+
     var ctx = {};
     Object.keys(state.ctx || {}).forEach(function (k) { ctx[k] = state.ctx[k]; });
     ctx.idPrefix = 's' + (seq++) + '-';
@@ -143,20 +178,11 @@ var SetView = (function () {
       row.appendChild(Forms.el('div', { class: 'error', 'data-error-for': column.name }));
       card.appendChild(row);
     });
-
-    function changed() {
-      var now = Forms.effective(current(state, card), schema.columns);
-      callbacks.forEach(function (fn) { fn(now); });
-      if (state.onChange) state.onChange();
-    }
-    card.addEventListener('input', changed);
-    card.addEventListener('change', changed);
-
-    return card;
   }
 
-  /// opts: { container, schema, set, ctx, onChange, onBack }. onChange runs after any edit in any
-  /// card; onBack, if given, adds a button back to the overview.
+  /// opts: { container, schema, set, ctx, onChange, onBack, chooseItem }. onChange runs after any
+  /// edit in any card; onBack adds a button back to the overview; chooseItem(done) adds a
+  /// per-card "Copy look from…" and must call done(values) with the chosen item's record.
   function render(opts) {
     var container = opts.container;
     container.innerHTML = '';
@@ -166,6 +192,7 @@ var SetView = (function () {
       sub: subSchema(opts.schema),
       ctx: opts.ctx,
       onChange: opts.onChange,
+      chooseItem: opts.chooseItem,
       cards: [],
     };
     container.__setView = state;
@@ -303,6 +330,7 @@ var SetView = (function () {
 
   return {
     FIELDS: FIELDS,
+    LOOK_FIELDS: LOOK_FIELDS,
     available: available,
     build: build,
     render: render,

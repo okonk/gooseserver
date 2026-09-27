@@ -71,7 +71,9 @@
      box-shadow rather than a border, because a border is laid out: 3px on the marked rows only
      would shove the first column sideways row by row and leave the table ragged. */
   .group-row.duplicate .group-cell:first-child { box-shadow: inset 3px 0 0 #e8cf7a; }
-  .set-item h3 { text-transform: none; }
+  .set-item h3 { text-transform: none; margin: 0; }
+  .set-item-head { display: flex; justify-content: space-between; align-items: center;
+                   margin-bottom: 6px; }
   .set-filter { margin-bottom: 8px; }
   .set-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
   .set-grid .set-tile[hidden] { display: none; }
