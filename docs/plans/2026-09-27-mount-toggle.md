@@ -115,6 +115,9 @@ First, in the `Fixture` constructor, set `map.CanUseItems = true` after
 `AddBaseMap` — `Map.CanUseItems` defaults to `false` and `AddBaseMap` never sets it
 (Map.cs:52, TestWorldFixture.cs:61-71), while real maps default to items-enabled
 (MapHandler.cs:57). Without this, every mount-on transition in this file is refused.
+Also set `Settings.MOTD = ""` — `MOTD` is `null!` (GooseSettings.cs:75) and the
+relogin test's `LCNT` dispatch dereferences `MOTD.Length`
+(LoginContinuedEvent.cs:51).
 
 ```csharp
 [Fact]
@@ -212,6 +215,10 @@ public void Relogin_dismounts_a_mounted_player()
 
 `CommandPlayerOn` does not initialize `Spellbook`, and `LoginContinuedEvent` calls
 `SendSpellbook` (Player.cs:2105) — set it as `MapWarpNullGuardTests.cs:29` does.
+The fixture constructor also sets `Settings.MOTD = ""`: `MOTD` is `null!`
+(GooseSettings.cs:75) and `LoginContinuedEvent` dereferences `MOTD.Length`
+(LoginContinuedEvent.cs:51) — `MapWarpNullGuardTests.cs:23` works around the same
+NRE the same way.
 
 **Step 2: Run tests to verify they fail (red)**
 
@@ -250,7 +257,7 @@ public void ApplyMountBuff(Item item, GameWorld world)
     this.player.AddBuff(buff, world, true, updateCharacter: false);
 }
 
-public void RemoveMountBuff(Item item, GameWorld world)
+public void RemoveMountBuff(Item item, GameWorld world, bool refreshbar = true)
 {
     if (item.SpellEffect is null) return;
 
@@ -265,16 +272,21 @@ public void RemoveMountBuff(Item item, GameWorld world)
     }
 
     if (remove is not null)
-        this.player.RemoveBuff(remove, world, refreshbar: true, updateCharacter: false);
+        this.player.RemoveBuff(remove, world, refreshbar, updateCharacter: false);
 }
 ```
 
 Helper contracts:
 - `ApplyMountBuff(item, world)`: precond — `item` is the mount item being equipped on
   this player; the caller sets `player.Mounted`. No-op when `item.SpellEffect` is null.
-  Postcond — buff on `player.Buffs`, stats applied, no CHP sent (caller sends).
-- `RemoveMountBuff(item, world)`: no-op when no effect or no matching buff. Postcond —
-  buff removed, stats removed, no CHP sent (caller sends).
+  Postcond — buff on `player.Buffs`, stats applied, no stat-driven CHP sent (caller
+  sends the CHP; illusion/invisibility effects can still append one — see Notes).
+- `RemoveMountBuff(item, world, refreshbar = true)`: no-op when no effect or no
+  matching buff. Postcond — buff removed, stats removed, no stat-driven CHP sent
+  (caller sends the CHP); buff bar refreshed iff `refreshbar` (mirrors
+  `RemoveBuff`'s parameter style, Player.cs:2526). The relogin path passes
+  `refreshbar: false` and relies on `LoginContinuedEvent`'s own `SendBuffBar`
+  (LoginContinuedEvent.cs:67).
 
 4. `EquipCore` (:379-389): replace the generic spell-effect buff block with:
 
@@ -317,7 +329,9 @@ generic).
 7. `Goose/Events/LoginContinuedEvent.cs`, relogin path — players are loaded once at
    startup (`PlayerHandler.LoadPlayerData`, PlayerHandler.cs:188) and `LogoutEvent`
    keeps item buffs (LogoutEvent.cs:77-89), so a mounted player who reconnects would
-   otherwise stay mounted. Insert before `this.Player.SendBuffBar(world)` (:67):
+   otherwise stay mounted. Insert immediately after
+   `this.Player.State = Player.States.LoadingMap;` (:40) — before `P.StatusInfo`
+   (:63) so the login `SNF` reflects the dismounted stats, not stale mounted ones:
 
 ```csharp
 // Dismount on login: the mounted state is session-only.
@@ -326,19 +340,19 @@ if (this.Player.Mounted)
     this.Player.Mounted = false;
     ItemSlot? mountSlot = this.Player.Inventory.GetEquippedSlot(Inventory.EquipSlots.Mount);
     if (mountSlot is not null)
-        this.Player.Inventory.RemoveMountBuff(mountSlot.Item, world);
+        this.Player.Inventory.RemoveMountBuff(mountSlot.Item, world, refreshbar: false);
 }
 ```
 
-`RemoveMountBuff` uses `updateCharacter: false` and `RemoveBuff` skips range sends
-unless `State == Ready` (Player.cs:2579), so this is safe during `LoadingMap`; its
-`refreshbar: true` emits a buff bar that the following `SendBuffBar` duplicates —
-harmless.
+Safe during `LoadingMap`: `RemoveBuff` skips range sends unless `State == Ready`
+(Player.cs:2579) and `updateCharacter: false` suppresses stat-driven CHP.
+`refreshbar: false` keeps the later `SendBuffBar` (:67) the single authoritative buff
+bar send — no early or duplicate buff bar packet before the map packets.
 
 **Step 4: Run tests to verify they pass (green)**
 
 Run: `dotnet test Goose.Tests --filter "FullyQualifiedName~MountSpeedTests" --nologo -v q`
-Expected: all MountSpeedTests pass, including the 8 pre-existing facts (equipping a
+Expected: all MountSpeedTests pass, including the 9 pre-existing facts (equipping a
 mount now auto-mounts, so their `IsMounted`/speed assertions still hold).
 
 Then the full unit suite: `dotnet test Goose.Tests --nologo -v q` — Expected: all pass.
@@ -493,7 +507,7 @@ Add to `Goose.Tests/MountSpeedTests.cs`. Dispatch pattern (same as
 public void MNT_toggles_the_mounted_state_and_speed()
 {
     using var fixture = new Fixture();
-    Assert.True(fixture.Player.Mounted); // auto-mounted by the fixture's Equip
+    Assert.True(fixture.Player.Mounted);
 
     fixture.Player.Sent.Clear();
     fixture.World.EventHandler.AddEvent(fixture.Player, "MNT");
@@ -539,13 +553,13 @@ public void MNT_refuses_to_mount_on_a_no_items_map_but_allows_dismount()
     fixture.Player.Sent.Clear();
     fixture.World.EventHandler.AddEvent(fixture.Player, "MNT");
     fixture.World.EventHandler.Update(fixture.World.World);
-    Assert.False(fixture.Player.Mounted); // dismounting allowed
+    Assert.False(fixture.Player.Mounted);
     Assert.Equal(BaseSpeed, fixture.Player.CalculateMoveSpeed());
 
     fixture.Player.Sent.Clear();
     fixture.World.EventHandler.AddEvent(fixture.Player, "MNT");
     fixture.World.EventHandler.Update(fixture.World.World);
-    Assert.False(fixture.Player.Mounted); // mounting refused
+    Assert.False(fixture.Player.Mounted);
     Assert.Contains(fixture.Player.Sent, s => s == "#You can't use items in this map.");
 }
 
@@ -558,7 +572,6 @@ public void MNT_works_for_a_visual_only_mount_without_a_buff()
     {
         t.Slot = ItemTemplate.ItemSlots.Mount;
         t.GraphicEquipped = 300;
-        // no SpellEffect
     });
     var statue = new Item();
     statue.LoadFromTemplate(template);
@@ -566,7 +579,8 @@ public void MNT_works_for_a_visual_only_mount_without_a_buff()
     Assert.True(fixture.Player.Inventory.AddItem(statue, 1, fixture.World.World));
     Assert.True(fixture.Player.Inventory.Equip(statue, fixture.World.World));
 
-    Assert.True(fixture.Player.Mounted); // auto-mounted, no buff
+    Assert.True(fixture.Player.Mounted);
+    Assert.True(fixture.Player.IsMounted(fixture.World.World));
     Assert.Empty(fixture.Player.Buffs);
     Assert.Equal(BaseSpeed, fixture.Player.CalculateMoveSpeed());
     Assert.EndsWith("300,255,255,255,100,", fixture.MakeCharacter());

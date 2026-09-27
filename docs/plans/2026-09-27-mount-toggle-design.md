@@ -40,7 +40,9 @@ use, and keeps the mount out of the inventory where it can be accidentally sold.
     the mount buff and `Mounted` defaults to false; relogin — the `Player` object is
     reused (players load once at startup, `LogoutEvent` keeps item buffs), so
     `LoginContinuedEvent` (LCNT) dismounts explicitly: `Mounted = false` + remove the
-    mount buff, before the buff bar is sent.
+    mount buff, immediately after `State = LoadingMap` (before `StatusInfo` and the
+    buff bar, with the buff-bar refresh suppressed so the event's own `SendBuffBar`
+    is the single authoritative send).
   - Death/respawn, map warps, teleports → state is kept. Death needs no special
     handling: item buffs already survive death.
 
@@ -70,10 +72,11 @@ in `Inventory.Load` at login). It moves to the mount-state transitions.
   - `ApplyMountBuff(item, world)` — no-op if the item has no spell effect; otherwise
     builds the item buff (same shape as today: `Caster`/`Target` = player,
     `ItemBuff = true`) and `AddBuff(..., refreshbar: true, updateCharacter: false)`.
-  - `RemoveMountBuff(item, world)` — no-op if the item has no effect or no matching
-    buff; otherwise finds the buff by `ItemBuff && SpellEffect == item.SpellEffect`
-    (today's matching logic in `Unequip`) and
-    `RemoveBuff(..., refreshbar: true, updateCharacter: false)`.
+  - `RemoveMountBuff(item, world, refreshbar = true)` — no-op if the item has no
+    effect or no matching buff; otherwise finds the buff by
+    `ItemBuff && SpellEffect == item.SpellEffect` (today's matching logic in
+    `Unequip`) and `RemoveBuff(..., refreshbar, updateCharacter: false)`. The relogin
+    path passes `refreshbar: false`.
 - Call sites:
   - `EquipCore`: the generic spell-effect buff block becomes
     `if (equipslot == Mount) { player.Mounted = true; ApplyMountBuff(slot.Item, world); }
@@ -133,7 +136,7 @@ The server side is decoupled from the client's hotkey implementation.
 
 Existing tests that must keep passing (equipping a mount now auto-mounts):
 
-- `Goose.Tests/MountSpeedTests.cs` — all 8 facts.
+- `Goose.Tests/MountSpeedTests.cs` — all 9 facts.
 - `Goose.Tests/CharacterAppearancePacketTests.cs` — the fixture equips a mount, which
   auto-mounts, so the `MKC`/`CHP` mount-graphic expectations hold unchanged.
 
