@@ -39,6 +39,15 @@ namespace Goose.Events
 
                 this.Player.State = Player.States.LoadingMap;
 
+                // Dismount on login: the mounted state is session-only.
+                if (this.Player.Mounted)
+                {
+                    this.Player.Mounted = false;
+                    ItemSlot? mountSlot = this.Player.Inventory.GetEquippedSlot(Inventory.EquipSlots.Mount);
+                    if (mountSlot is not null)
+                        this.Player.Inventory.RemoveMountBuff(mountSlot.Item, world, refreshbar: false);
+                }
+
                 world.Send(this.Player, P.SendMapFlags(map));
                 world.Send(this.Player, P.SendCurrentMap(map));
 

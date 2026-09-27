@@ -2491,13 +2491,16 @@ namespace Goose
             }
         }
 
+        // Session-only: deliberately not persisted (login is always dismounted).
+        public bool Mounted { get; set; }
+
         public bool IsMounted(GameWorld world)
         {
             // If there is no mount slot, just return false. This is for Aspereta
             if ((int)Inventory.EquipSlots.Mount > world.Settings.EquippedSize)
                 return false;
 
-            return this.Inventory.GetEquippedSlot(Inventory.EquipSlots.Mount) is not null;
+            return this.Mounted && this.Inventory.GetEquippedSlot(Inventory.EquipSlots.Mount) is not null;
         }
 
         public void RemoveBuff(Buff buff, GameWorld world)
