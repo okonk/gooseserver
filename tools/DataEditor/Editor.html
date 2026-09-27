@@ -72,6 +72,15 @@
      would shove the first column sideways row by row and leave the table ragged. */
   .group-row.duplicate .group-cell:first-child { box-shadow: inset 3px 0 0 #e8cf7a; }
   .set-item h3 { text-transform: none; }
+  .set-filter { margin-bottom: 8px; }
+  .set-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+  .set-grid .set-tile[hidden] { display: none; }
+  .set-tile { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px;
+              border: 1px solid #eee; background: #fafafa; color: #222; cursor: pointer; }
+  .set-tile:hover { border-color: #4a76c8; }
+  .set-tile canvas.worn { max-width: 100%; height: auto; }
+  .set-name { font-size: 12px; text-align: center; }
+  .set-icons { display: flex; flex-wrap: wrap; gap: 2px; justify-content: center; }
   .problem { font-size: 11px; border-bottom: 1px solid #eee; padding: 2px 0; }
   #publish-results { max-height: 60vh; overflow: auto; }
   canvas.preview, canvas.appearance, canvas.effect, canvas.item-icon, canvas.worn { image-rendering: pixelated;
@@ -291,6 +300,7 @@
 
   @media (prefers-color-scheme: dark) {
     body { background: #1c1c1c; color: #eee; }
+    .set-tile { background: #242424; border-color: #3a3a3a; color: #eee; }
     header, section, .record, .result, .results, .cp-pop { background: #242424;
       border-color: #3a3a3a; }
     .swatch, .cp-recent-chip { border-color: #444; }

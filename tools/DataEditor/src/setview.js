@@ -1,8 +1,10 @@
 // Items edited a detected equipment set at a time. Sets.detect decides the membership; each member
 // is a card of the columns that make up its look, and the set is drawn worn on the base body.
 var SetView = (function () {
-  var FIELDS = ['item_name', 'item_slot', 'graphic_equip', 'graphic_r', 'graphic_g', 'graphic_b',
-                'graphic_a', 'min_level', 'class_restrictions'];
+  var FIELDS = ['item_name', 'item_slot', 'graphic_equip', 'graphic_tile', 'graphic_file',
+                'graphic_r', 'graphic_g', 'graphic_b', 'graphic_a', 'min_level',
+                'class_restrictions'];
+  var OVERVIEW_SCALE = 2;
 
   var seq = 0;
 
@@ -153,7 +155,8 @@ var SetView = (function () {
     return card;
   }
 
-  /// opts: { container, schema, set, ctx, onChange }. onChange runs after any edit in any card.
+  /// opts: { container, schema, set, ctx, onChange, onBack }. onChange runs after any edit in any
+  /// card; onBack, if given, adds a button back to the overview.
   function render(opts) {
     var container = opts.container;
     container.innerHTML = '';
@@ -166,6 +169,12 @@ var SetView = (function () {
       cards: [],
     };
     container.__setView = state;
+
+    if (opts.onBack) {
+      var back = Forms.el('button', { type: 'button', 'data-all-sets': '' }, '← All sets');
+      back.addEventListener('click', opts.onBack);
+      container.appendChild(back);
+    }
 
     var head = Forms.el('div', { class: 'group-head' });
     head.appendChild(Forms.el('h3', null, opts.set ? opts.set.label : ''));
@@ -206,10 +215,9 @@ var SetView = (function () {
     return state ? state.cards.slice() : [];
   }
 
-  function drawPreview(canvas, container, ctx, scale) {
+  function drawSet(canvas, records, ctx, scale) {
     var slots = {};
-    collect(container).forEach(function (row) {
-      var v = row.values;
+    records.forEach(function (v) {
       var slot = Sets.WEARABLE[str(v.item_slot).trim()];
       if (!slot || num(v.graphic_equip) <= 0) return;
       slots[slot] = { graphic: num(v.graphic_equip), r: num(v.graphic_r), g: num(v.graphic_g),
@@ -225,6 +233,74 @@ var SetView = (function () {
     }, ctx, scale);
   }
 
+  function drawPreview(canvas, container, ctx, scale) {
+    return drawSet(canvas, collect(container).map(function (row) { return row.values; }),
+                   ctx, scale);
+  }
+
+  function drawIcon(canvas, values, ctx) {
+    var rect = Sprites.icon((ctx && ctx.bundles) || {}, values.graphic_file, values.graphic_tile);
+    if (!rect) return;
+    var c = Sprites.scaled(canvas, 1, rect[2], rect[3]);
+    Sprites.draw(c, (ctx && ctx.images) ? ctx.images.icons : null, rect, 0, 0,
+                 Preview.tintOf({ r: values.graphic_r, g: values.graphic_g,
+                                  b: values.graphic_b, a: values.graphic_a }));
+  }
+
+  /// Every set as a clickable tile: the set worn on the base body, and each piece's icon.
+  /// opts: { container, sets, ctx, onOpen(key) }. Returns a redraw for when a bundle lands.
+  function overview(opts) {
+    var container = opts.container;
+    container.innerHTML = '';
+
+    var filter = Forms.el('input', { type: 'text', class: 'set-filter', 'data-set-filter': '',
+                                     autocomplete: 'off', placeholder: 'Filter sets…',
+                                     'aria-label': 'Filter sets' });
+    container.appendChild(filter);
+    var grid = Forms.el('div', { class: 'set-grid' });
+    container.appendChild(grid);
+
+    var tiles = (opts.sets || []).map(function (set) {
+      var tile = Forms.el('button', { type: 'button', class: 'set-tile', 'data-set-key': set.key });
+      var stage = Forms.el('canvas', { class: 'worn',
+                                       width: Preview.CANVAS_W * OVERVIEW_SCALE,
+                                       height: Preview.CANVAS_H * OVERVIEW_SCALE });
+      tile.appendChild(stage);
+      tile.appendChild(Forms.el('span', { class: 'set-name' }, set.label));
+      var icons = Forms.el('span', { class: 'set-icons' });
+      var iconCanvases = set.rows.map(function (row) {
+        var icon = Forms.el('canvas', { class: 'item-icon', width: 32, height: 32,
+                                        title: row.values.item_name });
+        icons.appendChild(icon);
+        return icon;
+      });
+      tile.appendChild(icons);
+      tile.addEventListener('click', function () { opts.onOpen(set.key); });
+      grid.appendChild(tile);
+      return { set: set, tile: tile, stage: stage, icons: iconCanvases };
+    });
+
+    filter.addEventListener('input', function () {
+      var needle = str(filter.value).toLowerCase();
+      tiles.forEach(function (t) {
+        var text = t.set.label + ' ' + t.set.rows.map(function (r) {
+          return r.values.item_name;
+        }).join(' ');
+        t.tile.hidden = !!needle && text.toLowerCase().indexOf(needle) === -1;
+      });
+    });
+
+    function redraw() {
+      tiles.forEach(function (t) {
+        var values = t.set.rows.map(function (r) { return r.values; });
+        drawSet(t.stage, values, opts.ctx, OVERVIEW_SCALE);
+        values.forEach(function (v, i) { drawIcon(t.icons[i], v, opts.ctx); });
+      });
+    }
+    redraw();
+    return redraw;
+  }
+
   return {
     FIELDS: FIELDS,
     available: available,
@@ -234,6 +310,7 @@ var SetView = (function () {
     changed: changed,
     cards: cards,
     drawPreview: drawPreview,
+    overview: overview,
   };
 })();
 

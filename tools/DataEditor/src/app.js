@@ -646,6 +646,20 @@ var App = (function () {
       list.appendChild(button);
     });
     status(state.sets.length + ' sets detected');
+    showOverview();
+  }
+
+  function showOverview() {
+    clearPreviews();
+    clearForm();
+    var token = state.groupToken;
+    var container = document.getElementById('form');
+    loadBundles(bundlesFor(state.schema), function () {
+      if (token !== state.groupToken || !setsView()) return;
+      var redraw = SetView.overview({ container: container, sets: state.sets, ctx: ctx(),
+                                      onOpen: openSet });
+      ctx().onImagesReady(redraw);
+    });
   }
 
   function openSet(key) {
@@ -688,7 +702,11 @@ var App = (function () {
       if (token !== state.groupToken) return;
 
       SetView.render({ container: container, schema: state.schema, set: set, ctx: ctx(),
-                       onChange: redraw });
+                       onChange: redraw,
+                       onBack: function () {
+                         if (state.saving) { status('Still saving — one moment', true); return; }
+                         guarded(showOverview);
+                       } });
       var save = Forms.el('button', { type: 'button', 'data-save-set': '' }, 'Save set');
       save.addEventListener('click', saveSet);
       container.appendChild(save);
@@ -724,6 +742,12 @@ var App = (function () {
              ' — that list failed to load, so saving now could store an id that does not ' +
              'exist. Reloading it; try saving again in a moment.', true);
       retryReferencedSheets(unverified);
+      return;
+    }
+
+    var graphics = graphicErrors(container);
+    if (graphics.length) {
+      status('Fix the graphic before saving — ' + graphics.join('; '), true);
       return;
     }
 

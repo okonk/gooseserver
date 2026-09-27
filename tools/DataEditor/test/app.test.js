@@ -3670,3 +3670,30 @@ test('leaving a set with unsaved edits asks first', () => {
   assert.equal(h.get('modal').hidden, false);
   assert.equal(h.get('form').querySelectorAll('[data-set-row]').length, 3);
 });
+
+test('the sets view shows every set as a tile that opens it', () => {
+  const h = boot(SET_SHEETS());
+  fire(h.get('view-sets'), 'click');
+  h.settle();
+
+  const tiles = h.get('form').querySelectorAll('[data-set-key]');
+  assert.equal(tiles.length, 1);
+  assert.equal(tiles[0].querySelectorAll('canvas').length, 4, 'the worn set plus one icon per item');
+
+  fire(tiles[0], 'click');
+  h.settle();
+  assert.equal(h.get('form').querySelectorAll('[data-set-row]').length, 3);
+
+  fire(h.get('form').querySelectorAll('[data-all-sets]')[0], 'click');
+  h.settle();
+  assert.equal(h.get('form').querySelectorAll('[data-set-key]').length, 1);
+  assert.equal(h.get('form').querySelectorAll('[data-set-row]').length, 0);
+});
+
+test('set cards carry the inventory graphic', () => {
+  const h = boot(SET_SHEETS());
+  openFirstSet(h);
+  const card = h.get('form').querySelectorAll('[data-set-row]')[0];
+  assert.equal(card.querySelectorAll('[name=graphic_tile]').length, 1);
+  assert.equal(card.querySelectorAll('[name=graphic_file]').length, 1);
+});
