@@ -2,8 +2,8 @@
 // modal, and with nowhere to put the one control this editor actually needs beside the colour: the
 // BLEND FACTOR.
 //
-// THE ALPHA CHANNEL HERE IS NOT OPACITY. Icon.cs:9-11 is
-//   COLOR.rgb = mix(sprite.rgb, tint.rgb, tint.a)
+// THE ALPHA CHANNEL HERE IS NOT OPACITY. TintMaterial.cs is
+//   COLOR.rgb = mix(sprite.rgb, shaded tint.rgb, tint.a)
 // so it is how far the sprite is dragged towards the tint colour, and it never touches the
 // sprite's own transparency. Everything in this file says "blend" for that reason, and the blend
 // strip is painted through Sprites.applyTint rather than through a checkerboard so the strip and

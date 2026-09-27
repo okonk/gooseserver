@@ -47,7 +47,7 @@ test('effect frames enumerate until a gap', () => {
 });
 
 test('tint blends rgb and preserves source alpha', () => {
-  // Icon.cs:9-11 — mix(t.rgb, tint.rgb, tint.a), COLOR.a = t.a.
+  // TintMaterial.cs — a lone pixel is its own mean, so this is mix(t.rgb, tint.rgb, tint.a).
   const out = Sprites.applyTint([100, 100, 100, 200], { r: 200, g: 0, b: 0, a: 128 });
   assert.equal(out[3], 200, 'alpha preserved');
   assert.equal(out[0], Math.round(100 + (200 - 100) * (128 / 255)));
@@ -203,7 +203,24 @@ test('a negative blend alpha is a no-op, not a blend away from the tint', () => 
 test('tintPixels rewrites an RGBA buffer in place', () => {
   const buf = [10, 20, 30, 40, 0, 0, 0, 0];
   Sprites.tintPixels(buf, { r: 200, g: 100, b: 50, a: 255 });
-  assert.deepEqual(buf, [200, 100, 50, 40, 200, 100, 50, 0]);
+  assert.deepEqual(buf, [200, 100, 50, 40, 182, 82, 32, 0]);
+});
+
+test('tintPixels keeps the sprite shading around the tint colour', () => {
+  const buf = [50, 50, 50, 255, 150, 150, 150, 255];
+  Sprites.tintPixels(buf, { r: 128, g: 128, b: 128, a: 255 });
+  assert.deepEqual(buf, [78, 78, 78, 255, 178, 178, 178, 255]);
+});
+
+test('shading clamps at the ends of the byte range', () => {
+  const buf = [0, 0, 0, 255, 200, 200, 200, 255];
+  Sprites.tintPixels(buf, { r: 255, g: 0, b: 128, a: 255 });
+  assert.deepEqual(buf, [155, 0, 28, 255, 255, 100, 228, 255]);
+});
+
+test('meanLuminance averages only opaque pixels', () => {
+  assert.equal(Sprites.meanLuminance([255, 255, 255, 255, 0, 0, 0, 0]), 1);
+  assert.equal(Sprites.meanLuminance([0, 0, 0, 0]), 0.5);
 });
 
 test('tintPixels with no blend alpha leaves the buffer alone', () => {

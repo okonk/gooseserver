@@ -109,13 +109,15 @@ var Sprites = (function () {
     return frames;
   }
 
-  // Icon.cs:9-11 — COLOR.rgb = mix(t.rgb, tint.rgb, tint.a), COLOR.a = t.a. tint.a is a BLEND
-  // FACTOR, not opacity: it never touches the source alpha, so a transparent pixel stays
-  // transparent and a zero factor is NoTint. Icon.cs:23 is where the /255 lives.
+  // TintMaterial.cs in the client: dyed = clamp(tint.rgb + (lum - meanLum)), then
+  // COLOR.rgb = mix(t.rgb, dyed, tint.a), COLOR.a = t.a. tint.a is a BLEND FACTOR, not opacity:
+  // it never touches the source alpha, so a transparent pixel stays transparent and a zero factor
+  // is NoTint. meanLum is the sprite's mean luminance (0-1) over its opaque pixels; when it is
+  // omitted the pixel is its own mean, which is a plain mix towards the tint colour.
   //
   // Always returns a fresh array, including on the no-tint path: aliasing the caller's pixel
   // array would make "did this tint?" observable through a later mutation.
-  function applyTint(px, tint) {
+  function applyTint(px, tint, meanLum) {
     if (!tint || !tint.a) return [px[0], px[1], px[2], px[3]];
 
     // Appearance already clamps what it emits, but applyTint is public and a hand-built tint can
@@ -124,16 +126,32 @@ var Sprites = (function () {
     // alpha, away from it); an unclamped tint channel does the same at partial alpha, where the
     // byte range alone would not catch it.
     //
-    // The OUTPUT needs no clamp: with f in [0,1], the tint channel in [0,255], and px in [0,255]
-    // (every caller feeds a Uint8ClampedArray), each result is a convex combination of two valid
-    // bytes and so is one itself. All three premises are needed — an out-of-range px would escape.
+    // The dyed colour is clamped to a byte, so with f in [0,1] each result is a convex combination
+    // of two valid bytes and needs no output clamp — provided px is in [0,255], which every caller
+    // guarantees by feeding a Uint8ClampedArray.
     var f = channel(tint.a) / 255;
+    var shade = meanLum === undefined ? 0 : luminance(px) - meanLum * 255;
     return [
-      Math.round(px[0] + (channel(tint.r) - px[0]) * f),
-      Math.round(px[1] + (channel(tint.g) - px[1]) * f),
-      Math.round(px[2] + (channel(tint.b) - px[2]) * f),
+      Math.round(px[0] + (channel(channel(tint.r) + shade) - px[0]) * f),
+      Math.round(px[1] + (channel(channel(tint.g) + shade) - px[1]) * f),
+      Math.round(px[2] + (channel(channel(tint.b) + shade) - px[2]) * f),
       px[3],
     ];
+  }
+
+  function luminance(px) {
+    return 0.299 * px[0] + 0.587 * px[1] + 0.114 * px[2];
+  }
+
+  function meanLuminance(data) {
+    var sum = 0;
+    var count = 0;
+    for (var i = 0; i < data.length; i += 4) {
+      if (data[i + 3] <= 0) continue;
+      sum += luminance([data[i], data[i + 1], data[i + 2]]);
+      count++;
+    }
+    return count ? sum / count / 255 : 0.5;
   }
 
   // Tints an RGBA byte buffer in place. Split out of draw() so that draw() is nothing but canvas
@@ -144,8 +162,9 @@ var Sprites = (function () {
     // the identity, so removing this line changes only how long a full-sprite no-op takes.
     if (!tint || !tint.a) return;
 
+    var mean = meanLuminance(data);
     for (var i = 0; i < data.length; i += 4) {
-      var out = applyTint([data[i], data[i + 1], data[i + 2], data[i + 3]], tint);
+      var out = applyTint([data[i], data[i + 1], data[i + 2], data[i + 3]], tint, mean);
       data[i] = out[0];
       data[i + 1] = out[1];
       data[i + 2] = out[2];
@@ -210,7 +229,7 @@ var Sprites = (function () {
 
   return {
     icon: icon, part: part, mount: mount, effectFrames: effectFrames,
-    applyTint: applyTint, tintPixels: tintPixels, draw: draw, scaled: scaled,
+    applyTint: applyTint, meanLuminance: meanLuminance, tintPixels: tintPixels, draw: draw, scaled: scaled,
     clipCandidates: clipCandidates,
   };
 })();
