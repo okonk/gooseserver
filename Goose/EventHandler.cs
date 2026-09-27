@@ -135,6 +135,7 @@ namespace Goose
                 ("DRP", Open(typeof(PlayerDropItemEvent))),
                 ("ATT", Open(typeof(PlayerAttackEvent))),
                 ("PONG", Open(typeof(PlayerPongEvent))),
+                ("MNT", Open(typeof(ToggleMountEvent))),
                 ("RPU", Open(typeof(RefreshPositionEvent))),
                 ("CAST", Open(typeof(PlayerCastSpellEvent))),
                 ("EMOT", Open(typeof(EmoteEvent))),

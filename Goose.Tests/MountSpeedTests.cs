@@ -287,4 +287,113 @@ public class MountSpeedTests
         Assert.Equal(0, fixture.Player.CalculateMoveSpeed());
         Assert.Contains(log.Messages, m => m.Contains("move speed queue emptied"));
     }
+
+    [Fact]
+    public void MNT_toggles_the_mounted_state_and_speed()
+    {
+        using var fixture = new Fixture();
+        Assert.True(fixture.Player.Mounted);
+
+        fixture.Player.Sent.Clear();
+        fixture.World.World.EventHandler.AddEvent(fixture.Player, "MNT");
+        fixture.World.World.EventHandler.Update(fixture.World.World);
+
+        Assert.False(fixture.Player.Mounted);
+        Assert.False(fixture.Player.IsMounted(fixture.World.World));
+        Assert.Equal(BaseSpeed, fixture.Player.CalculateMoveSpeed());
+        var chp = fixture.Player.Sent.Single(s => s.StartsWith("CHP"));
+        Assert.EndsWith("0,*", chp);
+
+        fixture.Player.Sent.Clear();
+        fixture.World.World.EventHandler.AddEvent(fixture.Player, "MNT");
+        fixture.World.World.EventHandler.Update(fixture.World.World);
+
+        Assert.True(fixture.Player.Mounted);
+        Assert.Equal(MountSpeed, fixture.Player.CalculateMoveSpeed());
+        var chp2 = fixture.Player.Sent.Single(s => s.StartsWith("CHP"));
+        Assert.EndsWith("273,255,255,255,100,", chp2);
+    }
+
+    [Fact]
+    public void MNT_without_a_mount_is_a_noop()
+    {
+        using var fixture = new Fixture(equipMount: false);
+        fixture.Player.Sent.Clear();
+
+        fixture.World.World.EventHandler.AddEvent(fixture.Player, "MNT");
+        fixture.World.World.EventHandler.Update(fixture.World.World);
+
+        Assert.False(fixture.Player.Mounted);
+        Assert.DoesNotContain(fixture.Player.Sent, s => s.StartsWith("CHP"));
+    }
+
+    [Fact]
+    public void MNT_refuses_to_mount_on_a_no_items_map_but_allows_dismount()
+    {
+        using var fixture = new Fixture();
+        Assert.True(fixture.Player.Mounted);
+
+        fixture.Player.Map.CanUseItems = false;
+
+        fixture.Player.Sent.Clear();
+        fixture.World.World.EventHandler.AddEvent(fixture.Player, "MNT");
+        fixture.World.World.EventHandler.Update(fixture.World.World);
+        Assert.False(fixture.Player.Mounted);
+        Assert.Equal(BaseSpeed, fixture.Player.CalculateMoveSpeed());
+
+        fixture.Player.Sent.Clear();
+        fixture.World.World.EventHandler.AddEvent(fixture.Player, "MNT");
+        fixture.World.World.EventHandler.Update(fixture.World.World);
+        Assert.False(fixture.Player.Mounted);
+        Assert.Contains(fixture.Player.Sent, s => s.Contains("#You can't use items in this map."));
+    }
+
+    [Fact]
+    public void MNT_works_for_a_visual_only_mount_without_a_buff()
+    {
+        using var fixture = new Fixture(equipMount: false);
+
+        var template = fixture.World.AddBaseItemTemplate(653, "Statue", ItemTemplate.UseTypes.Armor, t =>
+        {
+            t.Slot = ItemTemplate.ItemSlots.Mount;
+            t.GraphicEquipped = 300;
+        });
+        var statue = new Item();
+        statue.LoadFromTemplate(template);
+        fixture.World.World.ItemHandler.AddAndAssignId(statue, fixture.World.World);
+        Assert.True(fixture.Player.Inventory.AddItem(statue, 1, fixture.World.World));
+        Assert.True(fixture.Player.Inventory.Equip(statue, fixture.World.World));
+
+        Assert.True(fixture.Player.Mounted);
+        Assert.True(fixture.Player.IsMounted(fixture.World.World));
+        Assert.Empty(fixture.Player.Buffs);
+        Assert.Equal(BaseSpeed, fixture.Player.CalculateMoveSpeed());
+        Assert.EndsWith("300,255,255,255,100,", fixture.MakeCharacter());
+
+        fixture.Player.Sent.Clear();
+        fixture.World.World.EventHandler.AddEvent(fixture.Player, "MNT");
+        fixture.World.World.EventHandler.Update(fixture.World.World);
+
+        Assert.False(fixture.Player.Mounted);
+        Assert.False(fixture.Player.IsMounted(fixture.World.World));
+        var chp = fixture.Player.Sent.Single(s => s.StartsWith("CHP"));
+        Assert.EndsWith("0,*", chp);
+    }
+
+    [Fact]
+    public void USE_on_the_mount_slot_unequips_and_dismounts()
+    {
+        using var fixture = new Fixture();
+        Assert.True(fixture.Player.Mounted);
+
+        // Client mount slot id: InventorySize(30) + (int)EquipSlots.Mount(14) + 1 = 45
+        fixture.World.World.EventHandler.AddEvent(fixture.Player, "USE45");
+        fixture.World.World.EventHandler.Update(fixture.World.World);
+
+        Assert.False(fixture.Player.Mounted);
+        Assert.False(fixture.Player.IsMounted(fixture.World.World));
+        Assert.Equal(BaseSpeed, fixture.Player.CalculateMoveSpeed());
+        Assert.Contains(fixture.Player.Inventory.GetInventorySlots(),
+            s => s is not null && s.Item.TemplateID == 651);
+    }
 }
