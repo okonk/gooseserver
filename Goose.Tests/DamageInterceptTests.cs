@@ -60,6 +60,22 @@ public class DamageInterceptTests
         return typeof(T);
         """;
 
+    private const string RemoveSelfBody = """
+        using Goose;
+        using Goose.Scripting;
+
+        public class T : BaseSpellEffectScript
+        {
+            public override long InterceptDamage(Buff buff, ICharacter attacker, long rawDamage, long currentDamage, GameWorld world)
+            {
+                buff.Target.Buffs.Remove(buff);
+                return currentDamage;
+            }
+        }
+
+        return typeof(T);
+        """;
+
     private const string ThrowBody = """
         using Goose;
         using Goose.Scripting;
@@ -132,6 +148,17 @@ public class DamageInterceptTests
         var target = CreateTarget(fixture);
         AddBuff(target, fixture, "boom", e => e.Script = fixture.CompileSpellEffectScript(ThrowBody, "Throw.csx"));
         AddBuff(target, fixture, "double", e => e.Script = fixture.CompileSpellEffectScript(DoubleBody, "Double2.csx"));
+
+        Assert.Equal(100, DamageIntercept.Apply(target, target, 50, fixture.World));
+    }
+
+    [Fact]
+    public void Apply_ScriptRemovesOwnBuffMidInterception_LaterScriptsStillRun()
+    {
+        using var fixture = new TestWorldFixture();
+        var target = CreateTarget(fixture);
+        AddBuff(target, fixture, "removeself", e => e.Script = fixture.CompileSpellEffectScript(RemoveSelfBody, "RemoveSelf.csx"));
+        AddBuff(target, fixture, "double", e => e.Script = fixture.CompileSpellEffectScript(DoubleBody, "Double3.csx"));
 
         Assert.Equal(100, DamageIntercept.Apply(target, target, 50, fixture.World));
     }

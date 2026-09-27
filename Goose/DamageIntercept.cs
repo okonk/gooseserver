@@ -10,7 +10,7 @@ namespace Goose
         {
             long raw = damage;
 
-            foreach (Buff buff in target.Buffs)
+            foreach (Buff buff in target.Buffs.ToArray())
             {
                 Script<ISpellEffectScript>? script = buff.SpellEffect?.Script;
                 if (script is null) continue;
