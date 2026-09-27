@@ -104,6 +104,25 @@ public class MountSpeedTests
     }
 
     [Fact]
+    public void Mount_display_shown_while_mounted()
+    {
+        using var fixture = new Fixture();
+
+        Assert.EndsWith("273,255,255,255,100,", fixture.MakeCharacter());
+        Assert.EndsWith("273,255,255,255,100,", P.UpdateCharacter(fixture.Player));
+    }
+
+    [Fact]
+    public void Mount_display_hidden_when_equipped_but_dismounted()
+    {
+        using var fixture = new Fixture();
+        fixture.Player.Mounted = false;
+
+        Assert.EndsWith("0,*", fixture.MakeCharacter());
+        Assert.EndsWith("0,*", P.UpdateCharacter(fixture.Player));
+    }
+
+    [Fact]
     public void Unequipping_the_mount_clears_the_mounted_state()
     {
         using var fixture = new Fixture();

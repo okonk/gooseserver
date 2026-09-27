@@ -801,7 +801,7 @@ namespace Goose
         public string MountDisplay()
         {
             string e = "";
-            ItemSlot? item = this.GetEquippedSlot(EquipSlots.Mount);
+            ItemSlot? item = this.player.Mounted ? this.GetEquippedSlot(EquipSlots.Mount) : null;
             if (item is not null)
             {
                 if (item.Item.GraphicA == 0)
