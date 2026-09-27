@@ -45,6 +45,7 @@ public static class Program
 
             var config = BundleConfig.Load(Path.Combine(AppContext.BaseDirectory, "sheets.json"));
             var manifest = Manifest.Load(assetRoot);
+            var tags = SheetTags.Load(assetRoot).Within(config.IconSheets);
 
             var sw = Stopwatch.StartNew();
             long total = 0;
@@ -55,7 +56,7 @@ public static class Program
 
             total += Emit("icons", stage,
                 () => AtlasBuilder.Build(manifest, Bundles.Icons(manifest, config),
-                                         config.AtlasWidth));
+                                         config.AtlasWidth), tags);
 
             total += Emit("parts", stage,
                 () => AtlasBuilder.BuildFromFrames(manifest, Bundles.Parts(assetRoot, config),
@@ -90,10 +91,11 @@ public static class Program
     /// atlas and one ~1.5 MB fragment are alive at a time, even though all three are now staged
     /// before any is moved into place. Stage returns the size on disk, which the console line
     /// used to read back with FileInfo after the final write.</summary>
-    private static long Emit(string name, BundleStage stage, Func<BuiltAtlas> build)
+    private static long Emit(string name, BundleStage stage, Func<BuiltAtlas> build,
+                             SheetTags? tags = null)
     {
         using var built = build();
-        var bytes = stage.Stage(name, BundleWriter.Render(name, built.Image, built.Rects));
+        var bytes = stage.Stage(name, BundleWriter.Render(name, built.Image, built.Rects, tags));
 
         var used = built.Rects.Values.Sum(r => (long)r.W * r.H);
         var area = (long)built.Image.Width * built.Image.Height;

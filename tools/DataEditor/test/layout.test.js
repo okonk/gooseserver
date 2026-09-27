@@ -465,6 +465,15 @@ test('every bundle a gallery entry names is one the editor actually ships', () =
   });
 });
 
+test('only an item tile is scoped to item icons', () => {
+  assert.equal(Layout.iconScope('Items', 'graphic_tile'), 'items');
+  assert.equal(Layout.iconScope('Spells', 'spellbook_graphic'), null);
+  assert.equal(Layout.iconScope('Spell Effects', 'buff_graphic'), null);
+  const real = sheet('Items').composites
+    .filter((c) => c.kind === 'Graphic').map((c) => c.columns[0]);
+  assert.ok(real.includes('graphic_tile'), 'Items.graphic_tile leads a Graphic composite');
+});
+
 // ---------------------------------------------------------------- labelFor
 
 // Every composite in schema.js, whatever kind, whatever sheet.

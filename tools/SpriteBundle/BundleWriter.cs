@@ -12,7 +12,8 @@ namespace Goose.Tools.SpriteBundle;
 public static class BundleWriter
 {
     public static string Render(string name, Image<Rgba32> atlas,
-                               IReadOnlyDictionary<string, SpriteRect> rects)
+                               IReadOnlyDictionary<string, SpriteRect> rects,
+                               SheetTags? tags = null)
     {
         using var ms = new MemoryStream();
         atlas.SaveAsPng(ms);
@@ -31,6 +32,10 @@ public static class BundleWriter
         sb.Append(CultureInfo.InvariantCulture, $"  \"width\": {atlas.Width},\n");
         sb.Append(CultureInfo.InvariantCulture, $"  \"height\": {atlas.Height},\n");
         sb.Append($"  \"png\": \"data:image/png;base64,{b64}\",\n");
+        if (tags is not null)
+        {
+            sb.Append($"  \"itemSheets\": [{string.Join(",", tags.ItemSheets)}],\n");
+        }
         sb.Append("  \"rects\": {\n");
 
         // Ordinal so the output is byte-stable across machines and runs: these fragments are

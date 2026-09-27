@@ -37,6 +37,11 @@ pixel coordinates. The three key formats are minted in `tools/SpriteBundle/Bundl
 | `parts`   | `<category>:<id>:<clip>` | `Bodies:10101:idle-down` |
 | `effects` | `<id>:<frameIndex>`      | `1080:0`                 |
 
+`icons` also carries `itemSheets`: the sheets the client's `animation-manifest.json` files under
+ItemTiles, which come from the client's `tools/AssetConverter/data/item-tile-sheets.json`. The item
+tile picker offers those sheets whole. From any other sheet it offers only the graphics items
+already use.
+
 Drawing a sprite is a canvas `drawImage` with the rect as source coordinates. Tinting applies
 `mix(rgb, tint.rgb, tint.a)` with alpha preserved, matching `Scripts/UI/Icon.cs` in the client.
 

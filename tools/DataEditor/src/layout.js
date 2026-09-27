@@ -201,6 +201,10 @@ var Layout = (function () {
     'Spell Effects': { spell_animation: 'effects' },
   };
 
+  var ICON_SCOPES = {
+    Items: { graphic_tile: 'items' },
+  };
+
   // WHICH COLUMN MAKES A JOIN SHEET'S ROWS BELONG TO SOMETHING. A sheet listed here is edited as
   // one table per parent — "1 — Mouse" and all three of its drops at once — instead of as a flat
   // list of id pairs.
@@ -315,6 +319,10 @@ var Layout = (function () {
   /// own and cannot disagree about what it is.
   function galleryBundle(sheet, column) {
     return twoLevel(GALLERIES, sheet, column) || 'icons';
+  }
+
+  function iconScope(sheet, column) {
+    return twoLevel(ICON_SCOPES, sheet, column) || null;
   }
 
   /// The column a sheet's rows are grouped by, or null when the sheet is edited flat. One
@@ -445,6 +453,7 @@ var Layout = (function () {
     monsterBodyGate: monsterBodyGate,
     isMonsterBody: isMonsterBody,
     galleryBundle: galleryBundle,
+    iconScope: iconScope,
     groupParent: groupParent,
     groupKey: groupKey,
     RESTART_ONLY: deepFreeze(RESTART_ONLY),
@@ -456,6 +465,7 @@ var Layout = (function () {
     WEARABLE: deepFreeze(WEARABLE),
     MONSTER_BODY: deepFreeze(MONSTER_BODY),
     GALLERIES: deepFreeze(GALLERIES),
+    ICON_SCOPES: deepFreeze(ICON_SCOPES),
     GROUP_PARENT: deepFreeze(GROUP_PARENT),
     GROUP_KEY: deepFreeze(GROUP_KEY),
   };

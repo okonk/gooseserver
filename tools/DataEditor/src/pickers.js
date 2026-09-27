@@ -596,6 +596,8 @@ var Pickers = (function () {
           // Read at CLICK time, not at build time: a designer who has just typed a different sheet
           // number expects the browser to open on that sheet.
           filter: galleryBundle === 'icons' ? { sheet: fInput.value } : {},
+          only: opts.iconScope && ctx && typeof ctx.iconFilter === 'function'
+            ? ctx.iconFilter(opts.iconScope) : null,
           current: galleryBundle === 'icons'
             ? { sheet: fInput.value, graphic: gInput.value }
             : { id: gInput.value },

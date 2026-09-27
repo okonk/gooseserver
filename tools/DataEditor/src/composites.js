@@ -668,6 +668,7 @@ var Composites = (function () {
           // Which atlas the browser shows. Layout answers 'icons' for everything but Spell Effects'
           // spell_animation, so the control needs no fallback of its own.
           galleryBundle: Layout.galleryBundle(sheet, comp.columns[0]),
+          iconScope: Layout.iconScope(sheet, comp.columns[0]),
           gallery: opts.gallery,
         });
         break;

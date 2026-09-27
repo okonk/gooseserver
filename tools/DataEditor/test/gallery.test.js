@@ -81,7 +81,7 @@ test('a part tile shows the clip Sprites.clipCandidates would pick', () => {
 
 test('the effect index is one tile per id, at frame 0', { ...skipWithoutBundles }, () => {
   const entries = Gallery.effectEntries(real.effects);
-  assert.equal(entries.length, 389);
+  assert.equal(entries.length, 430);
   entries.forEach((e) => {
     assert.deepEqual(e.rect, real.effects.rects[e.id + ':0']);
   });
@@ -270,6 +270,48 @@ test('the sheet chooser defaults to the sheet the record already names', () => {
   });
   assert.equal(node('sheet').value, '200');
   assert.deepEqual(tiles().map((t) => t.getAttribute('data-id')), ['1']);
+});
+
+test('the show-all button flips between one sheet and every icon', () => {
+  Gallery.open({
+    bundle: 'icons', bundles: { icons: iconFixture }, opener: opener(), filter: { sheet: '200' },
+  });
+  const all = node('all');
+  assert.equal(all.textContent, 'Show all icons');
+  assert.equal(tiles().length, 1);
+
+  fire(all, 'click');
+  assert.equal(node('sheet').value, '*');
+  assert.equal(all.textContent, 'Browse by sheet');
+  assert.equal(all.getAttribute('aria-pressed'), 'true');
+  assert.equal(tiles().length, 4);
+
+  fire(all, 'click');
+  assert.equal(node('sheet').value, '200', 'returns to the sheet it came from');
+  assert.equal(tiles().length, 1);
+});
+
+test('only drops entries before the chooser counts them', () => {
+  Gallery.open({
+    bundle: 'icons', bundles: { icons: iconFixture }, opener: opener(), filter: { sheet: '*' },
+    only: (e) => e.sheet === '104',
+  });
+  assert.equal(tiles().length, 3);
+  const options = node('sheet').getElementsByTagName('option').map((o) => o.value);
+  assert.deepEqual(options, ['*', '104']);
+});
+
+test('item tiles keep to item sheets and the art items already use', () => {
+  const keep = Gallery.itemTileFilter({ itemSheets: [300] }, [
+    { graphic_file: '400', graphic_tile: '7' },
+    { graphic_file: '', graphic_tile: '' },
+  ]);
+  const ok = (sheet, graphic) => keep({ sheet: String(sheet), graphic: String(graphic) });
+
+  assert.equal(ok(300, 99), true, 'a client ItemTiles sheet is offered whole');
+  assert.equal(ok(400, 7), true, 'another sheet offers the graphic an item uses');
+  assert.equal(ok(400, 8), false, 'but not the art beside it');
+  assert.equal(ok(104, 1), false, 'a spell icon sheet no item uses is dropped');
 });
 
 test('an unknown sheet falls back to all sheets rather than showing nothing', () => {

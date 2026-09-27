@@ -360,7 +360,7 @@ var Gallery = (function () {
     if (live) live.close(true);
   }
 
-  /// Gallery.open({ bundle, bundles, images, filter, current, onPick, opener })
+  /// Gallery.open({ bundle, bundles, images, filter, only, current, onPick, opener })
   ///
   ///   bundle  — 'icons' | 'parts' | 'effects'
   ///   bundles — the GOOSE_SPRITES map, i.e. ctx.bundles. Passed rather than read as a global so a
@@ -373,6 +373,8 @@ var Gallery = (function () {
   ///   filter  — { sheet } for icons, { category, locked } for parts. `locked` means the caller
   ///             OWNS the category (an item's item_slot, an equip slot's name) and no chooser is
   ///             rendered: picking a Helms sprite for a Feet slot is never right.
+  ///   only    — optional predicate over entries; the rest are dropped before anything counts
+  ///             them, like blank icons (itemTileFilter for an item's tile).
   ///   current — the same shape onPick reports, so a caller round-trips its own cells: the matching
   ///             tile opens selected and scrolled to.
   ///   onPick  — receives the identifying parts of the key and nothing else, so the caller writes
@@ -406,6 +408,7 @@ var Gallery = (function () {
       var blank = blankSetFor(bundle, (opts.images || {})[bundleName]);
       if (blank) all = all.filter(function (e) { return !blank.has(e.key); });
     }
+    if (typeof opts.only === 'function') all = all.filter(opts.only);
     var onPick = typeof opts.onPick === 'function' ? opts.onPick : null;
     var opener = opts.opener || null;
     var wanted = opts.filter || {};
@@ -439,6 +442,8 @@ var Gallery = (function () {
     // at all. A disabled <select> that cannot change is a control that lies about being one; the
     // honest rendering of "the caller decided this" is text saying which.
     var sheetChooser = null;
+    var allButton = null;
+    var lastSheet = '';
     var categoryChooser = null;
 
     if (bundleName === 'icons') {
@@ -460,6 +465,8 @@ var Gallery = (function () {
       if (str(wanted.sheet) !== '') sheetChooser.value = str(num(wanted.sheet));
       if (sheetChooser.value === '') sheetChooser.value = '*';
       head.appendChild(sheetChooser);
+      allButton = el('button', { 'data-gal': 'all', type: 'button', class: 'gal-all' });
+      head.appendChild(allButton);
     } else if (bundleName === 'parts' && locked) {
       head.appendChild(el('span', { 'data-gal': 'locked', class: 'gal-locked' },
         wanted.category + ' only — the slot decides'));
@@ -524,6 +531,15 @@ var Gallery = (function () {
         category: locked ? wanted.category : (categoryChooser ? categoryChooser.value : undefined),
         query: search.value,
       };
+    }
+
+    function syncAllButton() {
+      if (!allButton) return;
+      var on = sheetChooser.value === '*';
+      if (!on) lastSheet = sheetChooser.value;
+      allButton.textContent = on ? 'Browse by sheet' : 'Show all icons';
+      allButton.setAttribute('aria-pressed', on ? 'true' : 'false');
+      allButton.disabled = on && !lastSheet;
     }
 
     function describe() {
@@ -744,7 +760,18 @@ var Gallery = (function () {
     dialog.addEventListener('keydown', onKey);
     scroll.addEventListener('scroll', render);
     search.addEventListener('input', function () { refilter(false); });
-    if (sheetChooser) sheetChooser.addEventListener('change', function () { refilter(false); });
+    if (sheetChooser) {
+      sheetChooser.addEventListener('change', function () {
+        syncAllButton();
+        refilter(false);
+      });
+      allButton.addEventListener('click', function () {
+        sheetChooser.value = sheetChooser.value === '*' ? lastSheet : '*';
+        syncAllButton();
+        refilter(false);
+      });
+      syncAllButton();
+    }
     if (categoryChooser) {
       categoryChooser.addEventListener('change', function () { refilter(false); });
     }
@@ -770,6 +797,22 @@ var Gallery = (function () {
     search.focus();
 
     return instance;
+  }
+
+  /// Which icons an item's inventory tile may use. The icons bundle also carries spellbook icons,
+  /// buff icons and spell animations, so an item picker offers the client's ItemTiles sheets whole
+  /// and, from any other sheet, only the graphics an existing item already uses.
+  function itemTileFilter(bundle, rows) {
+    var itemSheets = new Set(((bundle && bundle.itemSheets) || []).map(num));
+    var usedKeys = new Set();
+    (rows || []).forEach(function (row) {
+      var sheet = num(row.graphic_file);
+      if (sheet) usedKeys.add(sheet + ':' + num(row.graphic_tile));
+    });
+    return function (entry) {
+      return itemSheets.has(num(entry.sheet))
+        || usedKeys.has(num(entry.sheet) + ':' + num(entry.graphic));
+    };
   }
 
   // Where `current` sits in the filtered list, or 0. Compared on the identifying parts rather than
@@ -798,6 +841,7 @@ var Gallery = (function () {
     partCategories: partCategories,
     effectEntries: effectEntries,
     filterEntries: filterEntries,
+    itemTileFilter: itemTileFilter,
     transparentKeys: transparentKeys,
     windowFor: windowFor,
     tileStyle: tileStyle,

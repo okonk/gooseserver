@@ -123,6 +123,28 @@ public class BundleWriterTests
         Assert.Equal("od\"d", Name(html));
     }
 
+    [Fact]
+    public void Emits_sheet_tags_when_given()
+    {
+        using var img = new Image<Rgba32>(2, 2);
+
+        var html = BundleWriter.Render("icons", img, new Dictionary<string, SpriteRect>(),
+                                       new SheetTags([3, 5]));
+
+        var body = Body(html);
+        Assert.Equal([3, 5], body.GetProperty("itemSheets").EnumerateArray().Select(e => e.GetInt32()));
+    }
+
+    [Fact]
+    public void Omits_sheet_tags_by_default()
+    {
+        using var img = new Image<Rgba32>(2, 2);
+
+        var body = Body(BundleWriter.Render("parts", img, new Dictionary<string, SpriteRect>()));
+
+        Assert.False(body.TryGetProperty("itemSheets", out _));
+    }
+
     /// <summary>The assigned object literal is valid JSON, so it can be parsed rather than
     /// string-matched.</summary>
     private static JsonElement Body(string html)

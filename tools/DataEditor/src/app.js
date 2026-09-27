@@ -155,6 +155,10 @@ var App = (function () {
     return {
       bundles: state.bundles,
       images: state.images,
+      iconFilter: function (scope) {
+        if (scope !== 'items' || typeof Gallery === 'undefined') return null;
+        return Gallery.itemTileFilter(state.bundles.icons, state.rows.map(rowToValues));
+      },
       pickerData: state.pickerData,
       // So an fk label can say "could not load Items" rather than "loading Items…" forever.
       refErrors: state.refErrors,
