@@ -3736,3 +3736,48 @@ test('copy look takes the graphics and tint from another item and saves them', (
     .map((c) => writes[0].cells[columns.indexOf(c)]),
     ['1', '1', '55', '10', '20', '30', '200', 'Renamed']);
 });
+
+test('copy look only offers items in the same slot', () => {
+  const sheets = SET_SHEETS();
+  sheets.Items.push(PIECE(90, 'Shiny Helm', 'Helmet', 55));
+  sheets.Items.push(PIECE(91, 'Shiny Plate', 'Chest', 56));
+  const h = boot(sheets);
+  openFirstSet(h);
+
+  fire(h.get('form').querySelectorAll('[data-copy-look]')[0], 'click');
+  const ids = [...h.get('modal').querySelectorAll('[data-item]')].map((n) => n.getAttribute('data-item'));
+  assert.deepEqual(ids, ['32', '90']);
+});
+
+const tintOf = (card) => ['graphic_r', 'graphic_g', 'graphic_b', 'graphic_a']
+  .map((n) => card.querySelectorAll('[name=' + n + ']')[0].value);
+
+test('copy colour offers the other set items and copies only the tint', () => {
+  const sheets = SET_SHEETS();
+  sheets.Items[1] = PIECE(33, 'Warrior Chestplate', 'Chest', 7,
+                          { graphic_r: 1, graphic_g: 2, graphic_b: 3, graphic_a: 4 });
+  const h = boot(sheets);
+  openFirstSet(h);
+
+  fire(h.get('form').querySelectorAll('[data-copy-colour]')[0], 'click');
+  const options = h.get('modal').querySelectorAll('[data-item]');
+  assert.deepEqual([...options].map((n) => n.getAttribute('data-item')), ['33', '34']);
+  fire(options[0], 'click');
+
+  const card = h.get('form').querySelectorAll('[data-set-row]')[0];
+  assert.deepEqual(tintOf(card), ['1', '2', '3', '4']);
+  assert.equal(card.querySelectorAll('[name=graphic_equip]')[0].value, '20');
+});
+
+test('use colour on whole set copies one card tint onto every other card', () => {
+  const sheets = SET_SHEETS();
+  sheets.Items[1] = PIECE(33, 'Warrior Chestplate', 'Chest', 7,
+                          { graphic_r: 9, graphic_g: 8, graphic_b: 7, graphic_a: 6 });
+  const h = boot(sheets);
+  openFirstSet(h);
+
+  fire(h.get('form').querySelectorAll('[data-colour-all]')[1], 'click');
+  const cards = h.get('form').querySelectorAll('[data-set-row]');
+  [...cards].forEach((card) => assert.deepEqual(tintOf(card), ['9', '8', '7', '6']));
+  assert.equal(cards[2].querySelectorAll('[name=graphic_equip]')[0].value, '6');
+});

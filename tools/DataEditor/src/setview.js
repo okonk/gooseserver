@@ -6,6 +6,7 @@ var SetView = (function () {
                 'class_restrictions'];
   var LOOK_FIELDS = ['graphic_tile', 'graphic_file', 'graphic_equip', 'graphic_r', 'graphic_g',
                      'graphic_b', 'graphic_a'];
+  var TINT_FIELDS = ['graphic_r', 'graphic_g', 'graphic_b', 'graphic_a'];
   var OVERVIEW_SCALE = 2;
 
   var seq = 0;
@@ -122,9 +123,9 @@ var SetView = (function () {
     if (state.onChange) state.onChange();
   }
 
-  function copyLook(state, card, source) {
+  function copyFields(state, card, source, fields) {
     var values = current(state, card);
-    LOOK_FIELDS.forEach(function (f) { values[f] = str(source[f]); });
+    fields.forEach(function (f) { values[f] = str(source[f]); });
     fill(state, card, values);
     notify(state, card);
   }
@@ -139,13 +140,38 @@ var SetView = (function () {
 
     var head = Forms.el('div', { class: 'set-item-head' });
     head.appendChild(Forms.el('h3', null, '#' + values[pk]));
+    var actions = Forms.el('div', { class: 'set-item-actions' });
     if (state.chooseItem) {
-      var copy = Forms.el('button', { type: 'button', 'data-copy-look': '' }, 'Copy look from…');
-      copy.addEventListener('click', function () {
-        state.chooseItem(function (source) { copyLook(state, card, source); });
+      var look = Forms.el('button', { type: 'button', 'data-copy-look': '' }, 'Copy look from…');
+      look.addEventListener('click', function () {
+        var slot = str(current(state, card).item_slot);
+        state.chooseItem({ title: 'Copy look from a ' + (slot || 'slotless') + ' item',
+                           slot: slot },
+                         function (source) { copyFields(state, card, source, LOOK_FIELDS); });
       });
-      head.appendChild(copy);
+      actions.appendChild(look);
+
+      var colour = Forms.el('button', { type: 'button', 'data-copy-colour': '' },
+                            'Copy colour from…');
+      colour.addEventListener('click', function () {
+        state.chooseItem({
+          title: 'Copy colour from an item in this set',
+          items: state.cards.filter(function (c) { return c !== card; })
+            .map(function (c) { return current(state, c); }),
+        }, function (source) { copyFields(state, card, source, TINT_FIELDS); });
+      });
+      actions.appendChild(colour);
     }
+    var all = Forms.el('button', { type: 'button', 'data-colour-all': '' },
+                       'Use colour on whole set');
+    all.addEventListener('click', function () {
+      var source = current(state, card);
+      state.cards.forEach(function (c) {
+        if (c !== card) copyFields(state, c, source, TINT_FIELDS);
+      });
+    });
+    actions.appendChild(all);
+    head.appendChild(actions);
     card.appendChild(head);
 
     var ctx = {};
@@ -181,8 +207,9 @@ var SetView = (function () {
   }
 
   /// opts: { container, schema, set, ctx, onChange, onBack, chooseItem }. onChange runs after any
-  /// edit in any card; onBack adds a button back to the overview; chooseItem(done) adds a
-  /// per-card "Copy look from…" and must call done(values) with the chosen item's record.
+  /// edit in any card; onBack adds a button back to the overview. chooseItem({ title, slot } or
+  /// { title, items }, done) offers the Items rows with that item_slot, or exactly `items`, and
+  /// calls done(values) with the chosen record.
   function render(opts) {
     var container = opts.container;
     container.innerHTML = '';

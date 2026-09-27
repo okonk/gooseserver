@@ -722,10 +722,12 @@ var App = (function () {
 
   var ITEM_PICKER_CAP = 200;
 
-  function openItemPicker(onPick) {
+  function openItemPicker(request, onPick) {
     var pk = state.schema.columns.filter(function (c) { return c.pk; })[0];
-    var entries = state.rows.map(function (row) {
-      var values = rowToValues(row);
+    var records = request.items || state.rows.map(rowToValues).filter(function (values) {
+      return str(values.item_slot) === str(request.slot);
+    });
+    var entries = records.map(function (values) {
       return { values: values,
                text: str(values[pk.name]) + ' — ' + str(values.item_name) +
                      (str(values.item_slot) ? ' (' + str(values.item_slot) + ')' : '') };
@@ -736,10 +738,11 @@ var App = (function () {
     modal.hidden = false;
 
     var dialog = Forms.el('div', { class: 'parent-picker', role: 'dialog', 'aria-modal': 'true',
-                                   'aria-label': 'Copy look from item' });
+                                   'aria-label': request.title });
+    dialog.appendChild(Forms.el('h3', null, request.title));
     var head = Forms.el('div', { class: 'picker-head' });
     var filter = Forms.el('input', { type: 'text', 'data-filter': '', autocomplete: 'off',
-                                     placeholder: 'Copy look from… (id or name)',
+                                     placeholder: 'Filter by id or name',
                                      'aria-label': 'Filter items' });
     var close = Forms.el('button', { type: 'button', 'data-close': '' }, 'Close');
     head.appendChild(filter);
