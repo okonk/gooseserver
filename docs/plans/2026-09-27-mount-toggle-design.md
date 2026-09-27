@@ -36,7 +36,11 @@ use, and keeps the mount out of the inventory where it can be accidentally sold.
 - Transitions:
   - Equipping a mount item (first mount or replacement) → `Mounted = true`.
   - `MNT` packet → flips `Mounted` (no-op without a mount item equipped).
-  - Login → always dismounted.
+  - Login → always dismounted. Two paths: server startup — `Inventory.Load` skips
+    the mount buff and `Mounted` defaults to false; relogin — the `Player` object is
+    reused (players load once at startup, `LogoutEvent` keeps item buffs), so
+    `LoginContinuedEvent` (LCNT) dismounts explicitly: `Mounted = false` + remove the
+    mount buff, before the buff bar is sent.
   - Death/respawn, map warps, teleports → state is kept. Death needs no special
     handling: item buffs already survive death.
 
@@ -61,27 +65,30 @@ use, and keeps the mount out of the inventory where it can be accidentally sold.
 Today the item buff is applied in `EquipCore` and removed in `Unequip` (and re-applied
 in `Inventory.Load` at login). It moves to the mount-state transitions.
 
-- Two new helpers on `Inventory`:
-  - `ApplyMountBuff(world)` — no-op if no mount item equipped or the item has no spell
-    effect; otherwise builds the item buff (same shape as today: `Caster`/`Target` =
-    player, `ItemBuff = true`) and `AddBuff(..., refreshbar: true, updateCharacter: false)`.
-  - `RemoveMountBuff(world)` — no-op if no mount item/effect or no matching buff;
-    otherwise finds the buff by `ItemBuff && SpellEffect == mountItem.SpellEffect`
+- Two new helpers on `Inventory`. They take the item as a parameter because
+  `Unequip` nulls the slot array entry before the buff is removed:
+  - `ApplyMountBuff(item, world)` — no-op if the item has no spell effect; otherwise
+    builds the item buff (same shape as today: `Caster`/`Target` = player,
+    `ItemBuff = true`) and `AddBuff(..., refreshbar: true, updateCharacter: false)`.
+  - `RemoveMountBuff(item, world)` — no-op if the item has no effect or no matching
+    buff; otherwise finds the buff by `ItemBuff && SpellEffect == item.SpellEffect`
     (today's matching logic in `Unequip`) and
     `RemoveBuff(..., refreshbar: true, updateCharacter: false)`.
 - Call sites:
   - `EquipCore`: the generic spell-effect buff block becomes
-    `if (equipslot == Mount) { player.Mounted = true; ApplyMountBuff(world); }
+    `if (equipslot == Mount) { player.Mounted = true; ApplyMountBuff(slot.Item, world); }
     else if (SpellEffect != null) { …existing… }`. The mount branch sits outside the
     null-effect check so visual-only mounts still set the flag.
   - `Unequip` (reachable for the mount via the replacement path and via `USE`/`DITM`):
-    mirror image — `player.Mounted = false; RemoveMountBuff(world)` instead of the
-    generic buff removal.
+    mirror image — `player.Mounted = false; RemoveMountBuff(slot.Item, world)` instead
+    of the generic buff removal.
   - `Inventory.Load`: skips the item buff for the mount slot (login is always
     dismounted); stats handling unchanged.
-  - `ToggleMountEvent`: flip flag, call helper, send CHP to player + range (helpers use
-    `updateCharacter: false` so CHP goes out exactly once, and it is sent even for
-    visual-only mounts with no buff).
+  - `LoginContinuedEvent`: relogin dismount (see Transitions above).
+  - `ToggleMountEvent`: flip flag, call helper with the equipped mount item, send CHP
+    to player + range (helpers use `updateCharacter: false` so CHP goes out exactly
+    once for stat-only effects, and it is sent even for visual-only mounts with no
+    buff).
 - Buff bar: the speed buff shows while mounted and disappears when dismounted — same
   as today, since it is the same buff. It still cannot be killed via `KBUF`
   (`BuffCanBeRemoved` is false).
@@ -153,15 +160,17 @@ socket):
    the speed buff.
 10. Visual-only mount (no spell effect): toggle still flips the graphic and
     `IsMounted` (combat block) with no buff involved.
+11. Relogin dismounts: a mounted player who logs out and back in (same `Player`
+    object, `LCNT` path) is dismounted with the speed buff removed.
 
 ## Scope
 
-One plan, ~6 tasks:
+One plan, ~5 tasks:
 
-1. `Player.Mounted` + `IsMounted` change.
+1. `Player.Mounted` + `IsMounted` change + relogin dismount hook.
 2. `Inventory.ApplyMountBuff`/`RemoveMountBuff` + `EquipCore`/`Unequip`/`Load` mount
    branches.
 3. `ToggleMountEvent` + `MNT` registration.
 4. `MountDisplay()` gating.
-5. New toggle/edge tests (items 1–7, 10).
-6. Login-dismount + death tests (items 8–9).
+5. New toggle/edge tests (items 1–7, 10, 11) + login-dismount and death tests
+   (items 8–9).
