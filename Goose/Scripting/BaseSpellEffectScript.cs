@@ -30,5 +30,10 @@ namespace Goose.Scripting
         {
             return null;
         }
+
+        public virtual long InterceptDamage(Buff buff, ICharacter attacker, long rawDamage, long currentDamage, GameWorld world)
+        {
+            return currentDamage;
+        }
     }
 }

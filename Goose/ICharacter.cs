@@ -134,6 +134,8 @@ namespace Goose
         int BodyA { get; set; }
 
 
+        List<Buff> Buffs { get; }
+
         void AddBuff(Buff buff, GameWorld world);
         void RemoveBuff(Buff buff, GameWorld world);
         void BreakInvisibility(GameWorld world);
