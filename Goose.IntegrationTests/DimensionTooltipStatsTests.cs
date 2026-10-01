@@ -28,20 +28,21 @@ public class DimensionTooltipStatsTests
         fixture.World.ItemHandler.GetSurname(900005)!.ApplyStats(speed, fixture.World);
 
         var fields = P.ItemSlot(speed, fixture.World, 1, 1).Split('|');
-        Assert.Equal("spirit", fields[^2]);
+        Assert.Equal("spirit", fields[^3]);
         // Clone template = base + additive bake (Items.csx:135): Haste 0.02 + 0.02*1.5 = 0.05,
         // MeleeDamage (int)(10*3*0.5) = 15, HPStaticRegen 100 + 150 = 250.
         // of Speed adds 0.04 * 3 * 0.5 = 0.06 haste (AttributeSet.java:428) -> 0.11.
-        Assert.Equal("1100,0,0,150000,0,0,0,250", fields[^1]);
+        Assert.Equal("1100,0,0,150000,0,0,0,250", fields[^2]);
+        Assert.Equal("0", fields[^1]);
 
         var regen = ItemOfDimension(fixture, dim: 3);
         fixture.World.ItemHandler.GetSurname(900000)!.ApplyStats(regen, fixture.World);
 
         fields = P.ItemSlot(regen, fixture.World, 1, 1).Split('|');
-        Assert.Equal("spirit", fields[^2]);
+        Assert.Equal("spirit", fields[^3]);
         // of Vita Regen adds 0.015 * 3 * 0.5 = 0.0225 percent and (int)(1500 * 3 * 0.5) = 2250
         // flat (AttributeSet.java:430,431) on top of the clone template above.
-        Assert.Equal("500,0,0,150000,0,0,225,2500", fields[^1]);
+        Assert.Equal("500,0,0,150000,0,0,225,2500", fields[^2]);
     }
 
     private static Item ItemOfDimension(GlobalScriptFixture fixture, int dim)

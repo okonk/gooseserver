@@ -31,9 +31,9 @@ public class PacketCurrencyTests
         };
     }
 
-    /// <summary>The extra-stats payload is appended after the currency name, so the name is
-    /// the second-to-last field of an item slot packet.</summary>
-    private static string CurrencyName(string packet) => packet.Split('|')[^2];
+    /// <summary>The extra-stats payload and the minimum experience are appended after the
+    /// currency name, so the name is the third-from-last field of an item slot packet.</summary>
+    private static string CurrencyName(string packet) => packet.Split('|')[^3];
 
     [Fact]
     public void ItemSlot_NamesGoldForAnOrdinaryItem()
@@ -109,7 +109,7 @@ public class PacketCurrencyTests
 
         var fields = P.ItemSlot(item, fixture.World, 1, 1).Split('|');
 
-        Assert.Equal("123", fields[^3]);
-        Assert.Equal("gold", fields[^2]);
+        Assert.Equal("123", fields[^4]);
+        Assert.Equal("gold", fields[^3]);
     }
 }

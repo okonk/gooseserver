@@ -16,7 +16,9 @@ public class PacketExtraStatsTests
         };
     }
 
-    private static string LastField(string packet) => packet.Split('|')[^1];
+    /// <summary>The minimum experience is appended after the extra-stats list, so the list is
+    /// the third field from the end.</summary>
+    private static string ExtraStatsField(string packet) => packet.Split('|')[^2];
 
     [Fact]
     public void ItemSlot_sends_nothing_extra_for_an_ordinary_item()
@@ -26,8 +28,8 @@ public class PacketExtraStatsTests
 
         var packet = P.ItemSlot(item, fixture.World, 1, 1);
 
-        Assert.Equal("", LastField(packet));
-        Assert.EndsWith("|", packet);
+        Assert.Equal("", ExtraStatsField(packet));
+        Assert.EndsWith("|0", packet);
     }
 
     [Fact]
@@ -40,8 +42,8 @@ public class PacketExtraStatsTests
 
         var fields = P.ItemSlot(item, fixture.World, 1, 1).Split('|');
 
-        Assert.Equal("gold", fields[^2]);
-        Assert.Equal("400", fields[^1]);
+        Assert.Equal("gold", fields[^3]);
+        Assert.Equal("400", fields[^2]);
     }
 
     [Fact]
@@ -53,8 +55,8 @@ public class PacketExtraStatsTests
 
         var fields = P.VendorItemSlot(template, fixture.World, fixture.Vendor, 1, 1).Split('|');
 
-        Assert.Equal("400", fields[^1]);
-        Assert.Equal("gold", fields[^2]);
+        Assert.Equal("400", fields[^2]);
+        Assert.Equal("gold", fields[^3]);
     }
 
     [Fact]
@@ -81,7 +83,7 @@ public class PacketExtraStatsTests
 
         var packet = P.ItemSlot(item, fixture.World, 1, 1);
 
-        Assert.Equal("100,200,300,400,500,600,700,700,800,800,900,900", LastField(packet));
+        Assert.Equal("100,200,300,400,500,600,700,700,800,800,900,900", ExtraStatsField(packet));
     }
 
     [Fact]
@@ -92,13 +94,13 @@ public class PacketExtraStatsTests
         item.BaseStats.SpellDamage = 0.08;
         item.RefreshStats();
 
-        Assert.Equal("0,800", LastField(P.ItemSlot(item, fixture.World, 1, 1)));
+        Assert.Equal("0,800", ExtraStatsField(P.ItemSlot(item, fixture.World, 1, 1)));
 
         item.BaseStats.SpellDamage = 0;
         item.BaseStats.Haste = 0.04;
         item.RefreshStats();
 
-        Assert.Equal("400", LastField(P.ItemSlot(item, fixture.World, 1, 1)));
+        Assert.Equal("400", ExtraStatsField(P.ItemSlot(item, fixture.World, 1, 1)));
     }
 
     [Fact]
@@ -110,7 +112,7 @@ public class PacketExtraStatsTests
         item.StatMultiplier = 1.1;
         item.RefreshStats();
 
-        Assert.Equal("0,440", LastField(P.ItemSlot(item, fixture.World, 1, 1)));
+        Assert.Equal("0,440", ExtraStatsField(P.ItemSlot(item, fixture.World, 1, 1)));
     }
 
     [Fact]
@@ -122,6 +124,6 @@ public class PacketExtraStatsTests
         item.BaseStats.HPStaticRegen = 1500;
         item.RefreshStats();
 
-        Assert.Equal("0,0,0,0,0,0,150,1500", LastField(P.ItemSlot(item, fixture.World, 1, 1)));
+        Assert.Equal("0,0,0,0,0,0,150,1500", ExtraStatsField(P.ItemSlot(item, fixture.World, 1, 1)));
     }
 }

@@ -538,7 +538,10 @@ namespace Goose
                     // this is the item's own currency - which is the right answer anyway,
                     // since an item override wins wherever it is traded (CurrencyHandler.cs:41).
                     world.CurrencyHandler.Resolve(item.Template, null).Name + "|" +
-                    ExtraStatsPayload(item.TotalStats);
+                    ExtraStatsPayload(item.TotalStats) + "|" +
+                    // Appended at the end so clients predating it keep parsing. The gate it feeds
+                    // is Experience + ExperienceSold >= MinExperience (Player.cs:1586).
+                    item.MinExperience;
         };
 
         /// <summary>The vendor is threaded in only to name the currency: a credit dealer's
@@ -596,7 +599,8 @@ namespace Goose
                     item.GraphicB + "|" +
                     item.GraphicA + "|" +
                     world.CurrencyHandler.Resolve(item, vendor).Name + "|" +
-                    ExtraStatsPayload(item.BaseStats);
+                    ExtraStatsPayload(item.BaseStats) + "|" +
+                    item.MinExperience;
         };
 
         public static Func<Window, Item, GameWorld, int, long, string> BankSlot = (window, item, world, slotId, stack) =>
