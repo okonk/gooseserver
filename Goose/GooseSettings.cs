@@ -97,6 +97,8 @@ namespace Goose
         public int RankUpdatePeriod { get; set; }
         public int MaxAC { get; set; }
         public double DamageReductionSoftCap { get; set; } = 0.5;
+        public int DexterityPerDodgePercent { get; set; } = 20;
+        public double MaxDodgeChance { get; set; } = 0.5;
         public int ExperienceModifierLimit { get; set; }
         public double DropRateModifier { get; set; }
         public bool SpeedhackDetectionEnabled { get; set; }

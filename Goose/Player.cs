@@ -1987,10 +1987,7 @@ namespace Goose
 
             if (damage > 0)
             {
-                double dodge = this.MaxStats.Dexterity / 100.0;
-                if (dodge > 50) dodge = 50;
-
-                if (world.Random.Next(0, 10001) <= dodge * 100)
+                if (Utils.Dodges(this.MaxStats.Dexterity, world.Settings.DexterityPerDodgePercent, world.Settings.MaxDodgeChance, world.Random))
                 {
                     packet = P.BattleTextDodge(this);
                     world.Send(this, packet);
