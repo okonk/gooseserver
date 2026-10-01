@@ -109,6 +109,8 @@
     "RankUpdatePeriod": 300,
     "MaxAC": 3500,
     "DamageReductionSoftCap": 0.5,
+    "DexterityPerDodgePercent": 20,
+    "MaxDodgeChance": 0.5,
     "ExperienceModifierLimit": 0,
     "DropRateModifier": 1,
     "SpeedhackDetectionEnabled": true,

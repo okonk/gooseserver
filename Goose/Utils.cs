@@ -79,6 +79,14 @@ namespace Goose
             return 1 - headroom / (1 + (damageReduction - softCap) / headroom);
         }
 
+        internal static bool Dodges(int dexterity, int dexterityPerPercent, double maxChance, Random random)
+        {
+            if (dexterity <= 0 || dexterityPerPercent <= 0) return false;
+
+            double chance = Math.Min((double)dexterity / dexterityPerPercent / 100, maxChance);
+            return random.Next(1, 10001) <= chance * 10000;
+        }
+
         public static string FormatNumber(long num)
         {
             bool negative = num < 0;
