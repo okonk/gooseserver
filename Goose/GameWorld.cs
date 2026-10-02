@@ -244,7 +244,7 @@ namespace Goose
                 // those tables wholesale.
                 foreach (var schemaFile in new[]
                 {
-                    "players", "banks", "logs", "pets", "guilds", "wordfilter",
+                    "players", "banks", "logs", "pets", "guilds", "wordfilter", "quest_claims",
                 })
                 {
                     ExecuteSql(conn, File.ReadAllText(Paths.ResolveBase("sql/" + schemaFile + ".sql"), Encoding.UTF8));
@@ -269,13 +269,15 @@ namespace Goose
 
         /// <summary>Runs on every startup, not just on a fresh database. `players` holds live
         /// data and is never dropped, so new columns on it have to arrive this way.</summary>
-        private void MigrateDatabaseSchema()
+        internal void MigrateDatabaseSchema()
         {
             this.Database.Execute(conn =>
             {
                 AddColumnIfMissing(conn, "players", "player_properties", "TEXT DEFAULT '' NOT NULL");
                 CreateTableIfMissing(conn, "quest_status",
                     "player_id INT NOT NULL, serialized_data TEXT NOT NULL, PRIMARY KEY(player_id)");
+                CreateTableIfMissing(conn, "quest_claims",
+                    "quest_id INT PRIMARY KEY, player_id INT NOT NULL, completed_at TEXT NOT NULL");
                 Goose.Logs.LogSchemaMigrator.Migrate(conn);
             });
         }
