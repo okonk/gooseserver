@@ -100,7 +100,13 @@ namespace Goose.Quests
 
                     quest.Rewards = rewards;
                 }
+            });
+        }
 
+        public void LoadClaims(GameWorld world)
+        {
+            world.Database.Execute(conn =>
+            {
                 this.Claims.Clear();
                 using (var command = conn.CreateCommand())
                 {

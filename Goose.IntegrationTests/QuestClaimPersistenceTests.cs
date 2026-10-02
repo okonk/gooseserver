@@ -37,11 +37,25 @@ public class QuestClaimPersistenceTests : PlayerFirstSaveTestBase
         Assert.Equal(secondCompletedAt.ToString("o"), persisted);
 
         var reloaded = new QuestHandler();
-        reloaded.LoadQuests(world);
+        reloaded.LoadClaims(world);
         Assert.True(reloaded.IsClaimed(9));
         Assert.True(reloaded.TryGetClaim(9, out var claim));
         Assert.Equal(7, claim.PlayerId);
         Assert.Equal(DateTimeKind.Utc, claim.CompletedAt.Kind);
+    }
+
+    [Fact]
+    public void Loading_quests_does_not_touch_existing_claims()
+    {
+        InsertQuestRow(9, oneTime: true);
+        world.QuestHandler.LoadQuests(world);
+        world.QuestHandler.Claims[9] = new QuestClaim { QuestId = 9, PlayerId = 7, CompletedAt = DateTime.UtcNow };
+
+        world.QuestHandler.LoadQuests(world);
+
+        Assert.True(world.QuestHandler.IsClaimed(9));
+        Assert.True(world.QuestHandler.TryGetClaim(9, out var claim));
+        Assert.Equal(7, claim.PlayerId);
     }
 
     [Fact]
@@ -81,7 +95,7 @@ public class QuestClaimPersistenceTests : PlayerFirstSaveTestBase
         Assert.Equal(1, Count("SELECT COUNT(*) FROM quest_claims WHERE quest_id=9 AND player_id=7"));
 
         var reloaded = new QuestHandler();
-        reloaded.LoadQuests(world);
+        reloaded.LoadClaims(world);
         Assert.True(reloaded.IsClaimed(9));
         world.QuestHandler = reloaded;
 

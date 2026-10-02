@@ -394,7 +394,11 @@ namespace Goose
             if (!this.LoadStep("item surnames", () => this.ItemHandler.LoadSurnames(this),
                 () => this.ItemHandler.SurnameCount)) return;
 
-            if (!this.LoadStep("Quests", () => this.QuestHandler.LoadQuests(this),
+            if (!this.LoadStep("Quests", () =>
+                {
+                    this.QuestHandler.LoadQuests(this);
+                    this.QuestHandler.LoadClaims(this);
+                },
                 () => this.QuestHandler.Quests.Count)) return;
 
             if (!this.LoadStep("Maps", () => this.MapHandler.LoadMaps(this),
