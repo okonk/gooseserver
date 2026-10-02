@@ -921,6 +921,18 @@ namespace Goose
             return false;
         }
 
+        public long GetItemCount(int templateid)
+        {
+            long count = 0;
+            foreach (var slot in this.inventory)
+            {
+                if (slot is not null && slot.Item.Template.ID == templateid && !slot.Item.Custom)
+                    count += slot.Stack;
+            }
+
+            return count;
+        }
+
         /**
          * GetWeaponDamage, returns currently equipped weapons damage
          *

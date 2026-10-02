@@ -1220,7 +1220,7 @@ namespace Goose
                     changed = true;
                     if (!QuestCreditFilterEnabled)
                     {
-                        world.Send(this, P.BattleTextYellow(this, "Quest Credit: " + progress.Requirement.Quest.Name));
+                        world.Send(this, P.BattleTextYellow(this, $"Quest Credit: {progress.Requirement.Quest.Name} ({progress.Value}/{progress.Requirement.Value2})"));
                     }
                 }
             }

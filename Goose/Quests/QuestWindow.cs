@@ -273,7 +273,8 @@ namespace Goose.Quests
                         break;
                     case RequirementType.Item:
                         var item = world.ItemHandler.GetTemplate((int)requirement.Value);
-                        text += $"{(item?.Name ?? "Unknown item")} ({requirement.Value2})\\n";
+                        long itemCount = player.Inventory.GetItemCount((int)requirement.Value);
+                        text += $"{(item?.Name ?? "Unknown item")} ({itemCount}/{requirement.Value2})\\n";
                         break;
                     case RequirementType.TalkToNPC:
                         var talkNPC = world.NPCHandler.GetNPCTemplate((int)requirement.Value);
