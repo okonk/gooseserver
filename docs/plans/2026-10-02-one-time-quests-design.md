@@ -51,14 +51,18 @@ CREATE TABLE quest_claims (
   `GameWorld.MigrateDatabaseSchema()`, which runs on every startup. Mirrors the `quest_status`
   belt-and-braces pattern.
 
-`QuestHandler` gains `Dictionary<int, QuestClaim> Claims`, loaded in `LoadQuests()` within the same
-`Database.Execute` block, exposed via `IsClaimed(int questId)` / `TryGetClaim(int questId, out
-QuestClaim)`. The dictionary is the source of truth during play.
+`QuestHandler` gains `Dictionary<int, QuestClaim> Claims`, loaded at startup by `LoadClaims()`
+(claims are server state, never spreadsheet data — `/reloadsql`'s `LoadQuests()` must not touch
+them, or a completion enqueued mid-reload would be wiped from the live dictionary), exposed via
+`IsClaimed(int questId)` / `TryGetClaim(int questId, out QuestClaim)`. The dictionary is the
+source of truth during play.
 
 Write path: `QuestHandler.Claim(quest, player)` adds to the dictionary immediately (game thread —
 first writer wins with no locking) and enqueues the `INSERT` (write-through). A failed INSERT is
 logged via NLog; a crash before the queue drains at worst re-opens the quest, an accepted tradeoff
-for a rarity flag.
+for a rarity flag. A crash after the claim commits but before the winner's next player save
+permanently claims the quest while the winner's completion/rewards are lost and cannot be
+retried; accepted (keeps the immediate write-through).
 
 Name resolution: `PlayerHandler.GetPlayerName(int playerId)` scans `allNameToPlayer.Values` (all
 non-deleted players are loaded at startup) and returns the name or null. Callers substitute
