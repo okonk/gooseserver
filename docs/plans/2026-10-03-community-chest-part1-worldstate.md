@@ -50,8 +50,14 @@ public class WorldState
     internal record SavePlan(List<(string Key, string Json)> Upserts, List<string> Deletes);
     internal SavePlan PlanSave();
     internal void ApplyCommit(SavePlan plan);   // on-commit; also the test seam
+    internal void NoteCommitted(string key, string json);  // ad-hoc commit (part 2 transfers)
 }
 ```
+
+- **Locking**: one private lock object guards `baseline` and `pendingDeletes`. Every method
+  that touches either takes it: `PlanSave`, `ApplyCommit` (runs on the DB thread),
+  `NoteCommitted`, `LoadRows`, **and `Remove`** — an unlocked `HashSet` mutated on the game
+  thread against `ExceptWith` on the DB thread is a data race. `values` is game-thread-only.
 
 - **Value representation**: the dictionary holds either a `RawJson(string Json)` private
   record — the only way an unparsed database blob is represented — or a live object. A bare
@@ -76,13 +82,14 @@ public class WorldState
   baseline differs or is absent; emit deletes for pending-delete keys **not present in the
   live dictionary** (so remove-then-set in one cycle upserts — design "Delete-vs-upsert
   ordering"). The returned plan is treated as immutable once built.
-- `ApplyCommit(plan)` runs under the private lock (from the DB-thread on-commit callback, or
+- `ApplyCommit(plan)` runs under the lock (from the DB-thread on-commit callback, or
   directly in tests): `baseline[key] := json` for every upsert, `baseline.Remove(key)` for
-  every delete, `pendingDeletes.ExceptWith(plan.Deletes)`. Correctness comes from this
-  per-plan reconciliation, not from lock ordering: a mutation landing between plan and commit
-  either re-adds its key to `pendingDeletes` after the `ExceptWith`, or leaves a
-  baseline/value mismatch, and the next `PlanSave` catches it. The SQL transaction must never
-  read live state — only the plan.
+  every delete, `pendingDeletes.ExceptWith(plan.Deletes)`. Correct across interleavings only
+  when **one plan is in flight at a time** (Task 3's single-flight rule): with two plans
+  queued, a tombstone cleared by the first commit can belong to a *newer* mutation, and the
+  second commit's upsert resurrects a deleted row. `NoteCommitted(key, json)` records a
+  single-key baseline advance for ad-hoc transactions (part 2's atomic chest transfers) under
+  the same lock. The SQL transaction must never read live state — only the plan.
 
 **Step 1: Write the failing tests** (`Goose.Tests/WorldStateTests.cs`), using
 `TestWorldFixture` only if a `GameWorld` is needed at all — these tests need none:
@@ -186,19 +193,32 @@ Task 3 then only adds the event/setting around it.
 
 **Save flow (the one tricky piece — threading):**
 
-- `Save(GameWorld world)` runs on the game thread (event pump or `Stop`). Structure:
+- Fields: `volatile bool inFlight; bool trailing;` (`trailing` read/written under the lock).
+- `Save(GameWorld world)` runs on the game thread (event pump). Structure:
 
 ```csharp
 public void Save(GameWorld world)
 {
     try
     {
+        if (inFlight) { lock (gate) trailing = true; return; }   // single-flight
         var plan = PlanSave();
         if (plan.Upserts.Count == 0 && plan.Deletes.Count == 0) return;
+        inFlight = true;
         world.Database.EnqueueTransaction(
             conn => { /* DELETE plan.Deletes; UPSERT plan.Upserts — plan data only,
                         never live state */ },
-            onCommit: () => ApplyCommit(plan));
+            onCommit: () =>
+            {
+                bool trail;
+                lock (gate)
+                {
+                    ApplyCommitLocked(plan);
+                    inFlight = false;
+                    trail = trailing; trailing = false;
+                }
+                if (trail) world.EnqueueCompletion(() => Save(world));
+            });
     }
     finally
     {
@@ -207,22 +227,32 @@ public void Save(GameWorld world)
 }
 ```
 
+- **Single-flight**: at most one periodic plan in flight; a `Save` during one sets `trailing`
+  and returns, and the commit callback re-saves **after** `ApplyCommit` landed, so the
+  trailing plan is rebuilt from current state. Without it, enqueue-delete → set+enqueue-upsert
+  → delete-again resurrects the row: tombstones carry no generation, so the first commit's
+  `ExceptWith` clears the *newer* tombstone for the same key and the second commit's upsert
+  restores the DB row with no live value and no tombstone left. `EnqueueCompletion`
+  (`GameWorld.cs:83`) hops back to the game thread; it returns false while stopping, which is
+  covered by the synchronous shutdown save below.
 - The transaction action executes **only the immutable captured plan** (deletes first, then
   upserts) — it must not read the live dictionary, which the DB thread cannot touch
   (`Database.cs:16-20` single-connection/thread model; `values` is game-thread state).
-- `onCommit` executes **on the DB thread** (`Goose/Database.cs:249-253`) and only calls
-  `ApplyCommit(plan)` (Task 1), which takes the private lock also held by `PlanSave` and
-  reconciles baseline + pendingDeletes per plan. The lock gives mutual exclusion; the
-  per-plan reconciliation gives correctness across interleavings — a lock alone would not.
+- `onCommit` executes **on the DB thread** (`Goose/Database.cs:249-253`); `ApplyCommitLocked`
+  is the Task 1 `ApplyCommit` body under the lock (also held by `PlanSave` and `Remove`).
   One-line comment justified here ("runs on the DB thread; plan-only").
 - `finally` re-arm: the event pump dequeues before running `Ready` and drops the event on
   exception (`Goose/EventHandler.cs:337,355-366`), so a serialization or enqueue failure
   must not end the cadence. `AddSaveEvent` mirrors
   `GuildHandler.AddSaveEvent` (`Goose/GuildHandler.cs:113-120`) including the
   `Math.Max(1, world.Settings.WorldSavePeriod)` clamp (H6 rationale at `:116`).
-- `GameWorld.Stop` calls `WorldState.Save(this)` inside try/catch like the `LogHandler`
-  flush (`GameWorld.cs:519-527`) — the re-arm during shutdown is inert because no event pump
-  runs after `Stop` begins.
+- **`SaveSync(GameWorld world)` for shutdown**: `while (inFlight) Thread.Sleep(10);` (the
+  pump is gone by `Stop` time, so only an already-enqueued commit can still land — and its
+  trailing re-save would need the dead pump), then `PlanSave()` + the same SQL through
+  `Database.Execute` (synchronous; also fences any earlier queued work and its onCommit) +
+  `ApplyCommit(plan)` on the game thread under the lock. `GameWorld.Stop` calls `SaveSync`
+  inside try/catch like the `LogHandler` flush (`GameWorld.cs:519-527`), before the
+  pending-writes wait (`:529-533`).
 - **Startup scheduling**: the `Start` load step calls `WorldState.Load(this.Database)` and
   then `WorldState.AddSaveEvent(this)` — mirroring `GuildHandler.LoadGuilds` +
   `AddSaveEvent` (`GameWorld.cs:375-379`). Without this the first periodic save is only
@@ -242,27 +272,36 @@ public void Save(GameWorld world)
   `Save(world)`; the fixture DB is not started, so any `Enqueue` would throw
   `InvalidOperationException` (`Database.cs:220`) — the test completing *is* the assertion.
   Additionally assert `PlanSave()` was empty (capture via a pre-call).
-- `Save_RearmsWorldSaveEvent_EvenWhenSaveThrows`: settings `WorldSavePeriod` default 300 →
-  `Save(world)` → `world.EventHandler.Count` increased and `Peek()` is a `WorldSaveEvent`
-  (`EventHandler.cs:314,316`; internal access is available to Goose.Tests the same way
-  `EventHandlerTests` uses it). Adversarial half: point the world at a started-but-closed
-  failure path is awkward in unit scope — instead unit-test the `finally` by asserting the
-  re-arm happens when `PlanSave` is empty (early `return` inside `try` must still re-arm —
-  the `return` path runs `finally`), and leave the throw path to code review of the
-  `finally` block itself.
+- `Save_RearmsWorldSaveEvent`: `Save(world)` on a world whose state was seeded via
+  `LoadRows` with a value then changed (so `PlanSave` is non-empty) — but the fixture DB is
+  not started, so instead exercise the re-arm through the **empty-plan path**: `Save(world)`
+  → `world.EventHandler.Count` increased and `Peek()` is a `WorldSaveEvent`
+  (`EventHandler.cs:314,316`; internal access as `EventHandlerTests` uses it). The early
+  `return` inside `try` still runs `finally` — that IS the throw-free proof of the re-arm
+  invariant; the throw path is the same `finally`.
 - `MissingSettingDefaultsTo300`: `JsonSerializer.Deserialize<GooseSettings>("{}",
   JsonHelper.SettingsOptions).WorldSavePeriod == 300` (guards the initializer, not the
   json).
+- `Save_SingleFlight_DefersAndTrails` (adversarial for the tombstone resurrection): set a
+  value → `Save(world)` starts a plan (`inFlight` true via internal accessor) → second
+  `Save(world)` must not enqueue (the fixture DB is not started — a second
+  `EnqueueTransaction` would throw) and must set `trailing` → simulate the commit through the
+  internal `ApplyCommit(plan)` + flag clear → assert a trailing re-save was scheduled
+  (`world.PendingCompletionCount` grew, `GameWorld.cs:103`).
 - `Baseline_Update_AfterCommit` (integration, added to `WorldStatePersistenceTests`): set →
   `Save` → fence → `PlanSave()` empty. Proves `ApplyCommit` ran on commit; would fail if the
   on-commit callback were dropped, since the fixture world never pumps completions.
+- `SaveSync_PersistsWithoutPump` (integration): mutate → `SaveSync(world)` → rows correct
+  immediately (no fence needed — `Execute` is synchronous) and `PlanSave()` empty.
 
 **Commit** — `feat(persistence): periodic world state saves and startup/shutdown wiring`
 
 | Invariant | Proved by |
 |-----------|-----------|
 | Unchanged world state writes no SQL | `Save_NoChanges_EnqueuesNoDbWork`, `Save_WritesNothing_WhenUnchanged` |
-| Save cycle always re-arms, even on the early-return path | `Save_RearmsWorldSaveEvent_EvenWhenSaveThrows` |
+| Save cycle always re-arms, even on the early-return path | `Save_RearmsWorldSaveEvent` |
+| At most one periodic plan in flight; trailing re-plan after commit | `Save_SingleFlight_DefersAndTrails` |
+| Shutdown flush needs no pump | `SaveSync_PersistsWithoutPump` |
 | Existing configs get 300s, not 1s | `MissingSettingDefaultsTo300` |
 | Baseline advances only after COMMIT | `Baseline_Update_AfterCommit` |
 
