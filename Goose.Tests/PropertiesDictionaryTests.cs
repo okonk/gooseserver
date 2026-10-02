@@ -35,4 +35,43 @@ public class PropertiesDictionaryTests
         Assert.Equal(1, copy.GetProperty<int>("a"));
         Assert.False(copy.ContainsKey("b"));
     }
+
+    [Fact]
+    public void String_lists_survive_the_json_round_trip()
+    {
+        var props = new PropertiesDictionary { ["titles"] = new List<string> { "Lord", "Lady" } };
+
+        var restored = JsonHelper.Deserialize<PropertiesDictionary>(JsonHelper.Serialize(props))!;
+
+        Assert.Equal(new List<string> { "Lord", "Lady" }, restored.GetProperty<List<string>>("titles"));
+    }
+
+    [Fact]
+    public void Object_lists_convert_to_the_requested_element_type()
+    {
+        var props = new PropertiesDictionary { ["counts"] = new List<object?> { 1L, 2L } };
+
+        Assert.Equal(new List<int> { 1, 2 }, props.GetProperty<List<int>>("counts"));
+    }
+
+    [Fact]
+    public void A_string_is_not_read_as_a_list_of_characters()
+    {
+        var props = new PropertiesDictionary { ["name"] = "abyss" };
+
+        Assert.Throws<InvalidCastException>(() => props.GetProperty<List<string>>("name"));
+    }
+
+    [Fact]
+    public void The_returned_list_is_a_copy_of_the_stored_one()
+    {
+        var stored = new List<string> { "Lord" };
+        var props = new PropertiesDictionary { ["titles"] = stored };
+
+        var read = props.GetProperty<List<string>>("titles");
+        read.Add("Mutated");
+
+        Assert.Single(stored);
+        Assert.Single(props.GetProperty<List<string>>("titles"));
+    }
 }

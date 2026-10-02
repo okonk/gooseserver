@@ -1,6 +1,6 @@
 namespace Goose.Commands
 {
-    [Command("/settitle ", AccessPrivilege.SetTitle, Section = "GM", Help = "Set a player's title.")]
+    [Command("/settitle ", AccessPrivilege.SetTitle, Section = "GM", Help = "Set a player's title without unlocking it.")]
     public sealed class SetTitleCommand : BaseCommand
     {
         public void Execute(CommandContext ctx, string name, string[] title)
@@ -12,27 +12,12 @@ namespace Goose.Commands
             Player? player = world.PlayerHandler.GetPlayerFromData(name);
             if (player is not null)
             {
-                player.Title = titleText;
+                player.SetTitle(titleText, world);
                 ctx.Send("Changed title successfully.");
 
                 if (player.State != Player.States.NotLoggedIn)
                 {
                     world.Send(player, P.StatusInfo(player));
-
-                    if (player.Map is not null)
-                    {
-                        List<Player> range = player.Map.GetPlayersInRange(player);
-
-                        string packet = P.EraseCharacter(player.LoginID);
-                        string packet2 = P.MakeCharacter(player);
-
-                        foreach (var p in range)
-                        {
-                            world.Send(p, packet);
-                            world.Send(p, packet2);
-                            player.Group?.SendBuffSnapshotIfVisible(p, player, world);
-                        }
-                    }
                 }
                 else
                 {

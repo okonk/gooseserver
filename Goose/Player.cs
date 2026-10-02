@@ -482,6 +482,82 @@ namespace Goose
                 : (JsonHelper.Deserialize<PropertiesDictionary>(json) ?? new PropertiesDictionary());
         }
 
+        public const string TitlesProperty = "titles";
+        public const string SurnamesProperty = "surnames";
+
+        public List<string> UnlockedTitles()
+            => this.UnlockedCollection(TitlesProperty);
+
+        public List<string> UnlockedSurnames()
+            => this.UnlockedCollection(SurnamesProperty);
+
+        public void GrantTitle(string title, GameWorld world)
+        {
+            string trimmed = title.Trim();
+            this.Unlock(TitlesProperty, trimmed);
+            this.SetTitle(trimmed, world);
+        }
+
+        public void GrantSurname(string surname, GameWorld world)
+        {
+            string trimmed = surname.Trim();
+            this.Unlock(SurnamesProperty, trimmed);
+            this.SetSurname(trimmed, world);
+        }
+
+        public void SetTitle(string title, GameWorld world)
+        {
+            this.Title = title;
+            this.RefreshCharacterDisplay(world);
+        }
+
+        public void SetSurname(string surname, GameWorld world)
+        {
+            this.Surname = surname;
+            this.RefreshCharacterDisplay(world);
+        }
+
+        private void Unlock(string key, string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return;
+
+            List<string> current = this.Properties.GetProperty<List<string>>(key, new List<string>());
+            if (current.Any(e => string.Equals(e, value, StringComparison.OrdinalIgnoreCase)))
+                return;
+
+            // GetProperty hands back a copy for List<string> targets, but the convention
+            // is to replace stored values wholesale, never mutate them.
+            List<string> updated = new List<string>(current);
+            updated.Add(value);
+            this.Properties[key] = updated;
+        }
+
+        private List<string> UnlockedCollection(string key)
+        {
+            List<string> stored = this.Properties.GetProperty<List<string>>(key, new List<string>());
+            return stored.Where(e => !string.IsNullOrWhiteSpace(e)).ToList();
+        }
+
+        internal void RefreshCharacterDisplay(GameWorld world)
+        {
+            if (this.State == States.NotLoggedIn || this.Map is null)
+                return;
+
+            string packet = P.EraseCharacter(this.LoginID);
+            string packet2 = P.MakeCharacter(this);
+
+            world.Send(this, packet);
+            world.Send(this, packet2);
+
+            foreach (var p in this.Map.GetPlayersInRange(this))
+            {
+                world.Send(p, packet);
+                world.Send(p, packet2);
+                this.Group?.SendBuffSnapshotIfVisible(p, this, world);
+            }
+        }
+
         private object socketLock = new object();
 
 

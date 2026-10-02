@@ -1,4 +1,7 @@
+using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
+using System.Runtime.ExceptionServices;
 using System.Text.Json.Serialization;
 
 namespace Goose;
@@ -82,14 +85,35 @@ public class PropertiesDictionary : Dictionary<string, object>
             throw new InvalidCastException($"Cannot convert null to non-nullable type {typeof(T).Name}.");
         }
 
+        var targetType = Nullable.GetUnderlyingType(typeof(T)) ?? typeof(T);
+
+        // Always returns a new collection; the stored instance is never handed out.
+        if (value is not string && TryGetCollectionElementType(targetType, out var elementType) &&
+            value is System.Collections.IEnumerable source)
+        {
+            var list = (System.Collections.IList)Activator.CreateInstance(
+                typeof(List<>).MakeGenericType(elementType))!;
+            foreach (var element in source)
+            {
+                list.Add(ConvertElement(element, elementType));
+            }
+
+            if (!targetType.IsArray)
+            {
+                return (T)list;
+            }
+
+            var array = Array.CreateInstance(elementType, list.Count);
+            list.CopyTo(array, 0);
+            return (T)(object)array;
+        }
+
         if (value is T typedValue)
         {
             return typedValue;
         }
 
         // Handle numeric conversions (JSON deserializes integers as long; numeric property targets are double)
-        var targetType = Nullable.GetUnderlyingType(typeof(T)) ?? typeof(T);
-
         if (IsNumericType(targetType) && IsNumericType(value.GetType()))
         {
             try
@@ -130,6 +154,52 @@ public class PropertiesDictionary : Dictionary<string, object>
                type == typeof(int) || type == typeof(uint) ||
                type == typeof(long) || type == typeof(ulong) ||
                type == typeof(float) || type == typeof(double);
+    }
+
+    private static bool TryGetCollectionElementType(Type targetType, out Type elementType)
+    {
+        if (targetType.IsArray)
+        {
+            elementType = targetType.GetElementType()!;
+            return true;
+        }
+
+        if (targetType.IsGenericType)
+        {
+            var definition = targetType.GetGenericTypeDefinition();
+            if (definition == typeof(List<>) ||
+                definition == typeof(IList<>) ||
+                definition == typeof(ICollection<>) ||
+                definition == typeof(IReadOnlyList<>) ||
+                definition == typeof(IEnumerable<>))
+            {
+                elementType = targetType.GetGenericArguments()[0];
+                return true;
+            }
+        }
+
+        elementType = typeof(object);
+        return false;
+    }
+
+    private static readonly ConcurrentDictionary<Type, MethodInfo> ConvertElementMethods = new();
+
+    private static object? ConvertElement(object? element, Type elementType)
+    {
+        var method = ConvertElementMethods.GetOrAdd(elementType,
+            type => typeof(PropertiesDictionary)
+                .GetMethod(nameof(ConvertValue), BindingFlags.NonPublic | BindingFlags.Static)!
+                .MakeGenericMethod(type));
+
+        try
+        {
+            return method.Invoke(null, [element]);
+        }
+        catch (TargetInvocationException ex) when (ex.InnerException is not null)
+        {
+            ExceptionDispatchInfo.Capture(ex.InnerException).Throw();
+            throw;
+        }
     }
 
     /// <summary>
