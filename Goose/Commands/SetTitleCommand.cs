@@ -1,6 +1,6 @@
 namespace Goose.Commands
 {
-    [Command("/settitle ", AccessPrivilege.SetTitle, Section = "GM", Help = "Set a player's title.")]
+    [Command("/settitle ", AccessPrivilege.SetTitle, Section = "GM", Help = "Set a player's title without unlocking it.")]
     public sealed class SetTitleCommand : BaseCommand
     {
         public void Execute(CommandContext ctx, string name, string[] title)

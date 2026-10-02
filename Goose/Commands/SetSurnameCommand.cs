@@ -1,6 +1,6 @@
 namespace Goose.Commands
 {
-    [Command("/setsurname ", AccessPrivilege.SetSurname, Section = "GM", Help = "Set a player's surname.")]
+    [Command("/setsurname ", AccessPrivilege.SetSurname, Section = "GM", Help = "Set a player's surname without unlocking it.")]
     public sealed class SetSurnameCommand : BaseCommand
     {
         public void Execute(CommandContext ctx, string name, string[] surname)
