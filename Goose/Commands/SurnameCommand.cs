@@ -20,7 +20,8 @@ namespace Goose.Commands
             lines.Add("Clear");
 
             new OptionListWindow(player, world, "Surnames", lines,
-                (line, p, w) => p.SetSurname(line < unlocked.Count ? unlocked[line] : "", w), null);
+                (line, p, w) => p.SetSurname(line < unlocked.Count ? unlocked[line] : "", w), null,
+                openingLine: "Select your surname to use");
         }
     }
 }

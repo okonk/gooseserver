@@ -20,7 +20,8 @@ namespace Goose.Commands
             lines.Add("Clear");
 
             new OptionListWindow(player, world, "Titles", lines,
-                (line, p, w) => p.SetTitle(line < unlocked.Count ? unlocked[line] : "", w), null);
+                (line, p, w) => p.SetTitle(line < unlocked.Count ? unlocked[line] : "", w), null,
+                openingLine: "Select your title to use");
         }
     }
 }
