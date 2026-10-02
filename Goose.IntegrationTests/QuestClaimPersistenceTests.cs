@@ -1,5 +1,6 @@
 using System.Data;
 using System.Data.SQLite;
+using Goose;
 using Goose.Quests;
 
 namespace Goose.IntegrationTests;
@@ -43,6 +44,63 @@ public class QuestClaimPersistenceTests : PlayerFirstSaveTestBase
         Assert.Equal(DateTimeKind.Utc, claim.CompletedAt.Kind);
     }
 
+    [Fact]
+    public void A_claim_written_by_the_window_flow_survives_a_reload_and_hides_the_quest_from_a_fresh_player()
+    {
+        InsertQuestRow(9, oneTime: true);
+        world.QuestHandler.LoadQuests(world);
+        var quest = world.QuestHandler.Get(9)!;
+        quest.Requirements.Add(new QuestRequirement { Id = 98, Quest = quest, Type = RequirementType.Gold, Value = 50 });
+
+        var npc = new NPC
+        {
+            NPCTemplate = new NPCTemplate { NPCTemplateID = 5, Name = "Quest NPC" },
+            Quests = [quest],
+        };
+
+        var player = new Player(0)
+        {
+            Name = "Hero",
+            PlayerID = 7,
+            Level = 1,
+            Class = new Class { ClassID = 0, ClassName = "Test" },
+            BaseStats = new AttributeSet(),
+            MaxStats = new AttributeSet(),
+            Gold = 100,
+        };
+        player.Inventory = new Inventory(player, world.Settings);
+        player.Spellbook = new Spellbook(player, world.Settings);
+
+        player.QuestsStarted.Add(quest);
+        var window = new QuestWindow(npc, player, quest, world);
+        window.Clicked(Window.ButtonTypes.Next, npc.NPCTemplate.NPCTemplateID, 0, 0, player, world);
+
+        Assert.Contains(player.QuestsCompleted, q => q.Id == quest.Id);
+        Assert.Equal(50, player.Gold);
+        world.Database.Execute(conn => { });
+        Assert.Equal(1, Count("SELECT COUNT(*) FROM quest_claims WHERE quest_id=9 AND player_id=7"));
+
+        var reloaded = new QuestHandler();
+        reloaded.LoadQuests(world);
+        Assert.True(reloaded.IsClaimed(9));
+        world.QuestHandler = reloaded;
+
+        var fresh = new Player(0)
+        {
+            Name = "Newcomer",
+            PlayerID = 8,
+            Level = 1,
+            Class = new Class { ClassID = 0, ClassName = "Test" },
+            BaseStats = new AttributeSet(),
+            MaxStats = new AttributeSet(),
+            Gold = 100,
+        };
+        fresh.Inventory = new Inventory(fresh, world.Settings);
+        fresh.Spellbook = new Spellbook(fresh, world.Settings);
+
+        Assert.DoesNotContain(QuestWindow.GetAvailableQuests(npc, fresh, world), q => q.Id == quest.Id);
+    }
+
     private void InsertQuestRow(int id, bool oneTime)
     {
         world.Database.Execute(conn =>
@@ -67,7 +125,7 @@ public class QuestClaimPersistenceTests : PlayerFirstSaveTestBase
             cmd.Parameters.Add(new SQLiteParameter("@max_level", DbType.Int32) { Value = 99 });
             cmd.Parameters.Add(new SQLiteParameter("@repeatable", DbType.String) { Value = oneTime ? "0" : "1" });
             cmd.Parameters.Add(new SQLiteParameter("@show_progress", DbType.String) { Value = "0" });
-            cmd.Parameters.Add(new SQLiteParameter("@only_one_player_can_complete", DbType.String) { Value = "0" });
+            cmd.Parameters.Add(new SQLiteParameter("@only_one_player_can_complete", DbType.String) { Value = oneTime ? "1" : "0" });
             cmd.Parameters.Add(new SQLiteParameter("@prerequisite_quests", DbType.String) { Value = "" });
             cmd.ExecuteNonQuery();
         });
