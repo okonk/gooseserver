@@ -397,11 +397,11 @@ namespace Goose.Quests
                         rewardMessage = $"{prefix}Item: {item.Name} ({stack})";
                         break;
                     case RewardType.Title:
-                        player.Title = reward.StringValue;
+                        player.GrantTitle(reward.StringValue, world);
                         rewardMessage = $"{prefix}Title: {reward.StringValue}";
                         break;
                     case RewardType.Surname:
-                        player.Surname = reward.StringValue;
+                        player.GrantSurname(reward.StringValue, world);
                         rewardMessage = $"{prefix}Surname: {reward.StringValue}";
                         break;
                     case RewardType.Teleport:
