@@ -315,6 +315,9 @@ Fast tests in `Goose.Tests`, real-DB tests in `Goose.IntegrationTests`.
   forwarded; script throwing → fail-closed refusal; chest→chest runs both sides.
 - **Wiring (unit)**: `communityChest` property routes right-click to the chest window;
   absent property → bank window; runtime-spawned NPC → bank window.
+- **Client (part 3, `Goose2Client.Tests`)**: `GWS`/`GWC` golden parses; `GWS` tail parses
+  identically to `SIS`/`SBS` (shared reader); `SBS` regression; scene-file structure test;
+  manual smoke for bank+chest coexistence and two-player live sync.
 
 ## Deferred (consciously)
 

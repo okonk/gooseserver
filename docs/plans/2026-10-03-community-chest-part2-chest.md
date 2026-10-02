@@ -5,12 +5,11 @@ with deposit/withdraw validation — on top of the part 1 foundation (`WorldStat
 `ItemContainer.SlotChanged`/`NotifySlotChanged`, `PlayerHandler.PlayerRemoved`).
 
 **Architecture:** `ChestHandler` owns `ItemContainer`s keyed by NPC template ID and stored in
-`WorldState` under `chest:{npcTemplateId}`; `CommunityChestWindow` reuses the Bank frame and
-is the only window type whose sends flow through the handler's viewer-registry broadcast
-(fired by `SlotChanged`). At most **one Bank-frame window per player** — a protocol reality,
-not a preference: `SBS`/`CBS` carry no window ID (`Goose/Packets.cs:606-614,485-497`) and the
-client renders the Bank frame as one globally-listening widget
-(`../Goose2ClientGodot/Scripts/UI/BankWindow.cs:10-16,60-61`). Transfer rules run through
+`WorldState` under `chest:{npcTemplateId}`; `CommunityChestWindow` uses a new
+`GenericContainer` frame (30) with window-ID-addressed slot packets (`GWS`/`GWC`) and is the
+only window type whose sends flow through the handler's viewer-registry broadcast (fired by
+`SlotChanged`). The bank keeps frame 26 and `SBS`/`CBS` untouched; bank and chest windows
+coexist. The client widget for the new frame is part 3. Transfer rules run through
 `CanDeposit`/`CanWithdraw` virtuals on `ItemContainerWindow`, applied to **both directions of
 every swap**. Design: `docs/plans/2026-10-03-community-chest-design.md`; foundation:
 `docs/plans/2026-10-03-community-chest-part1-worldstate.md`.
@@ -45,7 +44,11 @@ every swap**. Design: `docs/plans/2026-10-03-community-chest-design.md`; foundat
   `:105-116`.
 - Packets: `P.BankSlot` → `"SBS" + ItemSlot(...)` payload starts at slot id —
   `Goose/Packets.cs:606-609,485-497`; `P.ClearBankSlot` → `"CBS" + slotId` — `:611-614`;
-  `P.ServerMessage` — `:38`.
+  `P.ServerMessage` — `:38`; `P.MakeWindow` carries `window.ID` and frame — `:718-726`.
+- Frames: server `Window.WindowFrames` ends at `LogViewer = 29` — `Goose/Window.cs:24-55`;
+  client `WindowFrames` mirrors it 1-29 —
+  `../Goose2ClientGodot/Scripts/WindowFrames.cs`. New value `GenericContainer = 30` on both
+  sides (client side lands in part 3).
 - Right-click dispatch — `Goose/Events/PlayerRightClickEvent.cs:53-69`
   (`Map.GetNPCsInRange`, `NPCType == Banker` at `:64`); `Map.InRange` — `Goose/Map.cs:144`.
 - Spawn properties: `NPC.Properties` — `Goose/NPC.cs:50`; `NPC.NPCTemplateID` — `:147`;
@@ -239,11 +242,23 @@ container slot, so the actor's suppressed send is fully replaced. The inventory-
 
 **Files:**
 - Create: `Goose/CommunityChestWindow.cs`
-- Modify: `Goose/Window.cs:63-83` (append `CommunityChest` to `WindowTypes` — after
-  `LogViewer` so existing values keep their numbering), `Goose/BankWindow.cs:42-51`
-  (`Open` also removes chest windows), `Goose/ChestHandler.cs` (registry +
+- Modify: `Goose/Window.cs` (append `GenericContainer = 30` to `WindowFrames` `:24-55`;
+  append `CommunityChest` to `WindowTypes` `:63-83` — after `LogViewer` so existing values
+  keep their numbering), `Goose/Packets.cs` (add `GenericWindowSlot` /
+  `ClearGenericWindowSlot` beside `BankSlot` `:606-614`), `Goose/ChestHandler.cs` (registry +
   `PlayerRemoved` subscription in `Load`)
 - Test: `Goose.Tests/CommunityChestSyncTests.cs`
+
+New packets:
+
+```csharp
+public static Func<Window, Item, GameWorld, int, long, string> GenericWindowSlot =
+    (window, item, world, slotId, stack) =>
+        "GWS" + window.ID + "|" + ItemSlot(item, world, slotId, stack);
+
+public static Func<Window, int, string> ClearGenericWindowSlot = (window, slotId) =>
+    "GWC" + window.ID + "," + slotId;
+```
 
 **Window** — mirror `BankWindow` with these deltas:
 
@@ -254,17 +269,19 @@ container slot, so the actor's suppressed send is fully replaced. The inventory-
   (container.MaxSlots - 1 + SlotsPerPage - 1) / SlotsPerPage)` — grow-only storage stays
   reachable; `ID = ++player.LastWindowID` (`Window.cs:114`; never the bank's fixed 21 —
   `WBC`/`WTW` resolve by ID first-match); register viewer in the handler registry **before**
-  `SendCreate`; `Frame = WindowFrames.Bank`; `Type = WindowTypes.CommunityChest`; `NPC = npc`.
-- **One Bank-frame window per player.** `Open(world, player, npc)` removes every window whose
-  `Type` is `Bank` **or** `CommunityChest` from `player.Windows`, then adds the new chest —
-  because `SBS`/`CBS` carry no window ID and the client's Bank frame is a single widget; two
-  server-side Bank-frame windows per player cannot both be true on one client. `BankWindow.Open`
-  gains the symmetric removal of chest windows. Consequence: chest↔chest and chest↔bank
-  `WTW` drags are unreachable; chest↔combine-bag remains reachable (different frame).
+  `SendCreate`; `Frame = WindowFrames.GenericContainer`; `Type =
+  WindowTypes.CommunityChest`; `NPC = npc`.
+- `Open(world, player, npc)` removes existing `CommunityChest` windows bound to the same NPC,
+  then adds — bank idiom (`BankWindow.cs:42-51`). Bank windows are **not** touched: different
+  frames, ID-addressed updates, so bank + chest coexist and `WTW` between them is reachable
+  and validated.
 - Range check gates `InventoryToWindow`/`WindowToInventory` (mirror `BankWindow.cs:66-103`);
   `WindowToWindow` gets the matching case.
 - `PushesViaBroadcast => true`.
-- `SendSlot(slotIndex, player, world)` identical to `BankWindow.cs:105-116`.
+- `SendSlot(slotIndex, player, world)` mirrors `BankWindow.cs:105-116` but emits
+  `P.GenericWindowSlot` / `P.ClearGenericWindowSlot` — every packet self-identifies by
+  `window.ID`, so a viewer with several container windows (bank + chest, two chests) never
+  receives a mis-routed update.
 
 **Registry + broadcast** in `ChestHandler`:
 
@@ -292,26 +309,31 @@ void Broadcast(GameWorld world, ItemContainer container, int index)
 ```
 
 The actor is included — with `PushesViaBroadcast` the broadcast is the actor's only
-window-side send. The packet's lack of a window ID is safe because the one-window rule
-guarantees each viewer's client widget belongs to this chest.
+window-side send. Every packet carries the viewer's own window ID, so coexisting container
+windows never cross-talk.
 
 **Tests** (fixture with Task 0 settings; two `CapturingPlayer`s, one chest NPC via
 `NPCHandler.SpawnNPC(..., properties: {"communityChest": true})`, both `AddOnlinePlayer`,
 both windows opened via `CommunityChestWindow.Open`):
 
 - `Withdraw_PushesOnePacketToActorAndViewer`: A drags chest slot 3 → each player's `Sent`
-  contains exactly one `SBS` packet for slot 3 (adversarial: fails on double-send without
-  suppression, zero-send without the registry).
+  contains exactly one `GWS` packet naming **their own window ID** for slot 3 (adversarial:
+  fails on double-send without suppression, zero-send without the registry).
 - `StackMerge_StillPushes`: A deposits a stackable item onto B's watched slot 3 (merge —
-  same slot reference) → B gets exactly one `SBS` for slot 3 (adversarial for the
+  same slot reference) → B gets exactly one `GWS` for slot 3 (adversarial for the
   reference-only event: fails if `NotifySlotChanged` is skipped).
 - `PageTwoViewer_GetsNothingForPageOneChange`: B on page 2 → A's slot-3 change sends B
   nothing.
 - `ViewerWindowClosed_PruneOnNextChange`: B closes via `Clicked(Exit,...)` → A's next change
   sends B nothing and the registry list shrank (internal count).
 - `Logout_PrunesViewer`: `PlayerHandler.RemovePlayer(B)` → A's next change sends B nothing.
-- `OpenBankWindow_ClosesChestWindow` / `OpenChestWindow_ClosesBankWindow` (the single
-  Bank-frame rule; also proves the replaced chest prunes via `Contains` on the next change).
+- `BankAndChestCoexist`: player opens a bank window then a chest window — both stay in
+  `player.Windows`; a chest change emits `GWS` (chest ID) and never `SBS`; a bank change
+  emits `SBS` and never `GWS` (cross-talk guard).
+- `ChestToChestDrag_WindowsAddressedByOwnId`: two chest windows (two NPC instances of one
+  template) on one player; dragging in window 1 sends `GWS` with window 1's ID for the
+  actor's other viewers of that container, and window 2 of the same player (same container)
+  receives `GWS` with window 2's ID.
 - `OverflowPagesReachable`: container of 40 slots, settings pages 1 → `MaxPages == 2` and
   page 2 shows slot 39.
 
@@ -322,7 +344,8 @@ both windows opened via `CommunityChestWindow.Open`):
 | One slot packet per viewer per change, actor included | `Withdraw_PushesOnePacketToActorAndViewer` |
 | In-place stack merges still sync | `StackMerge_StillPushes` |
 | Off-page changes are not sent | `PageTwoViewer_GetsNothingForPageOneChange` |
-| Registry cannot leak closed windows or sessions | `ViewerWindowClosed_PruneOnNextChange`, `Logout_PrunesViewer`, `OpenBankWindow_ClosesChestWindow` |
+| Registry cannot leak closed windows or sessions | `ViewerWindowClosed_PruneOnNextChange`, `Logout_PrunesViewer` |
+| Packets address the viewer's own window | `BankAndChestCoexist`, `ChestToChestDrag_WindowsAddressedByOwnId` |
 | Grow-only storage stays reachable | `OverflowPagesReachable` |
 
 ---
@@ -365,8 +388,9 @@ window's boundary, which Task 2 wires on **both** sides of every swap):
 - `Withdraw_ScriptThrows_RefusesClosed` (security-critical): throwing script → generic
   refusal, item stays in the chest.
 - `CombineToChest_RulesRun`: stackable-container drag into the chest with a bound incoming
-  item → refused (proves the `WTW` four-way wiring; chest↔chest is unreachable under the
-  one-window rule, so the combine bag stands in for the second container).
+  item → refused (proves the `WTW` four-way wiring; the combine bag is a second container
+  window with its own frame, and chest↔chest `WTW` is reachable too — either suffices,
+  combine preferred for setup simplicity).
 
 **Commit** — `feat(chests): deposit and withdrawal validation rules`
 
@@ -427,8 +451,9 @@ default), plus a registered item template via the same pattern as part 1 Task 2 
 
 - Key `chest:{npcTemplateId}`, grow-only sizing + reachable `MaxPages`, and the
   `PlayerBank.Load` dance match design §ChestHandler.
-- One Bank-frame window per player, `++LastWindowID` allocation, and the no-window-ID
-  rationale match design §CommunityChestWindow.
+- `GenericContainer` frame 30, `GWS`/`GWC` window-ID addressing, `++LastWindowID`
+  allocation, and bank/chest coexistence match design §Protocol additions /
+  §CommunityChestWindow.
 - Bidirectional validation on all three drag paths matches design §Transfer validation.
 - Merge announce via `NotifySlotChanged` matches design §ItemContainer change event.
 - Spawn-property routing, `CommunityChestPages` default 3 (initializer + json), and
