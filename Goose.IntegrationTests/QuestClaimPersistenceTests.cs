@@ -19,12 +19,28 @@ public class QuestClaimPersistenceTests : PlayerFirstSaveTestBase
         world.QuestHandler.Claim(world.QuestHandler.Get(9)!, player, world);
         world.Database.Execute(conn => { });
         Assert.Equal(1, Count("SELECT COUNT(*) FROM quest_claims WHERE quest_id=9 AND player_id=7"));
+        var firstCompletedAt = world.QuestHandler.Claims[9].CompletedAt;
+
+        Thread.Sleep(20);
+        world.QuestHandler.Claim(world.QuestHandler.Get(9)!, player, world);
+        world.Database.Execute(conn => { });
+        Assert.Equal(1, Count("SELECT COUNT(*) FROM quest_claims WHERE quest_id=9"));
+        var secondCompletedAt = world.QuestHandler.Claims[9].CompletedAt;
+
+        var persisted = world.Database.Execute<string?>(conn =>
+        {
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT completed_at FROM quest_claims WHERE quest_id=9";
+            return (string?)cmd.ExecuteScalar();
+        });
+        Assert.Equal(secondCompletedAt.ToString("o"), persisted);
 
         var reloaded = new QuestHandler();
         reloaded.LoadQuests(world);
         Assert.True(reloaded.IsClaimed(9));
         Assert.True(reloaded.TryGetClaim(9, out var claim));
         Assert.Equal(7, claim.PlayerId);
+        Assert.Equal(DateTimeKind.Utc, claim.CompletedAt.Kind);
     }
 
     private void InsertQuestRow(int id, bool oneTime)
