@@ -185,6 +185,11 @@ namespace Goose
             return null;
         }
 
+        public string? GetPlayerName(int playerId)
+        {
+            return this.allNameToPlayer.Values.FirstOrDefault(p => p.PlayerID == playerId)?.Name;
+        }
+
         public void LoadPlayerData(GameWorld world)
         {
             world.Database.Execute(conn =>
