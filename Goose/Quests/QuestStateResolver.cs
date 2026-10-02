@@ -32,8 +32,11 @@ namespace Goose.Quests
                 && player.Class.CanUse(quest.ClassRestrictions);
         }
 
-        internal static bool IsAvailable(Quest quest, Player player)
+        internal static bool IsAvailable(Quest quest, Player player, GameWorld world)
         {
+            if (quest.OnlyOnePlayerCanComplete && world.QuestHandler.IsClaimed(quest.Id))
+                return false;
+
             if (player.QuestsCompleted.Any(q => q.Id == quest.Id) && !quest.Repeatable)
                 return false;
 
@@ -63,7 +66,7 @@ namespace Goose.Quests
 
             foreach (var quest in npc.Quests)
             {
-                if (IsAvailable(quest, player))
+                if (IsAvailable(quest, player, world))
                     return QuestIconState.Available;
             }
 

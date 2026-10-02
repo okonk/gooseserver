@@ -92,7 +92,7 @@ public class QuestCompletionTests
         fixture.Player.QuestsStarted.Add(fixture.Quest);
         CompleteViaWindow(fixture);
 
-        var available = QuestWindow.GetAvailableQuests(fixture.Npc, fixture.Player);
+        var available = QuestWindow.GetAvailableQuests(fixture.Npc, fixture.Player, fixture.World.World);
 
         Assert.Contains(available, q => q.Id == fixture.Quest.Id);
     }

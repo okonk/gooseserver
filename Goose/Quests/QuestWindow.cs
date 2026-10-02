@@ -52,7 +52,7 @@ namespace Goose.Quests
             foreach (var w in player.Windows.Where(w => (w.Type == WindowTypes.Quest || w.Type == WindowTypes.OptionList) && w.NPC == npc).ToList())
                 w.Close(player, world);
 
-            var quests = GetAvailableQuests(npc, player);
+            var quests = GetAvailableQuests(npc, player, world);
             if (quests.Count == 0) return;
 
             if (quests.Count == 1)
@@ -94,13 +94,16 @@ namespace Goose.Quests
             return null;
         }
 
-        internal static List<Quest> GetAvailableQuests(NPC npc, Player player)
+        internal static List<Quest> GetAvailableQuests(NPC npc, Player player, GameWorld world)
         {
             var available = new List<Quest>();
 
             foreach (var quest in npc.Quests)
             {
                 if (player.QuestsCompleted.Any(q => q.Id == quest.Id) && !quest.Repeatable)
+                    continue;
+
+                if (quest.OnlyOnePlayerCanComplete && world.QuestHandler.IsClaimed(quest.Id) && !player.QuestsStarted.Any(q => q.Id == quest.Id))
                     continue;
 
                 if (quest.PrerequisiteQuests.Any(prereq => !player.QuestsCompleted.Any(q => q.Id == prereq)))
@@ -121,6 +124,9 @@ namespace Goose.Quests
         internal static void StartQuest(Quest quest, Player player, GameWorld world)
         {
             if (player.QuestsStarted.Any(q => q.Id == quest.Id))
+                return;
+
+            if (quest.OnlyOnePlayerCanComplete && world.QuestHandler.IsClaimed(quest.Id))
                 return;
 
             player.QuestsStarted.Add(quest);
