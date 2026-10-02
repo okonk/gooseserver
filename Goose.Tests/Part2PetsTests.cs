@@ -1,4 +1,5 @@
 using Goose;
+using Goose.Events;
 using Goose.Testing;
 using Xunit;
 
@@ -440,6 +441,65 @@ namespace Goose.Tests
                 Assert.True(fixture.RunCommand(player, "/petdelete abc"));
 
                 Assert.Contains(player.Sent, s => s.Contains("Usage: /petdelete <id>"));
+            }
+        }
+
+        [Fact]
+        public void PetMoveEvent_out_of_view_range_pet_teleports_to_owner()
+        {
+            var fixture = new TestWorldFixture();
+            var map = fixture.AddBaseMap(1, "Test", 100, 100);
+            var player = fixture.CommandPlayerOn(map, 10, 50, "Tester");
+            map.AddPlayer(player, fixture.World);
+            map.SetCharacter(player, 10, 50);
+            var bystander = fixture.CommandPlayerOn(map, 11, 50, "Bystander");
+            map.AddPlayer(bystander, fixture.World);
+            map.SetCharacter(bystander, 11, 50);
+            using (fixture)
+            {
+                var pet = MakePet(fixture, player, 5, "Rex");
+                pet.Spawn(fixture.World);
+
+                int oldX = pet.MapX;
+                int oldY = pet.MapY;
+                player.Sent.Clear();
+                bystander.Sent.Clear();
+
+                player.MoveTo(fixture.World, 90, 50);
+
+                new PetMoveEvent { Player = pet }.Ready(fixture.World);
+
+                Assert.True(Map.InRange(pet, player));
+                Assert.True(Math.Max(Math.Abs(pet.MapX - player.MapX), Math.Abs(pet.MapY - player.MapY)) <= 1);
+                Assert.Same(pet, map.GetCharacterAt(pet.MapX, pet.MapY));
+                Assert.Null(map.GetCharacterAt(oldX, oldY));
+
+                Assert.Contains(player.Sent, s => s.StartsWith("MKC" + pet.LoginID));
+                Assert.DoesNotContain(player.Sent, s => s.StartsWith("MOC" + pet.LoginID));
+                Assert.Contains(bystander.Sent, s => s.StartsWith("ERC" + pet.LoginID));
+            }
+        }
+
+        [Fact]
+        public void PetMoveEvent_in_view_range_pet_walks_without_teleport()
+        {
+            var fixture = new TestWorldFixture();
+            var map = fixture.AddBaseMap(1, "Test", 100, 100);
+            var player = fixture.CommandPlayerOn(map, 10, 50, "Tester");
+            map.AddPlayer(player, fixture.World);
+            map.SetCharacter(player, 10, 50);
+            using (fixture)
+            {
+                var pet = MakePet(fixture, player, 5, "Rex");
+                pet.Spawn(fixture.World);
+                player.Sent.Clear();
+
+                player.MoveTo(fixture.World, 14, 50);
+
+                new PetMoveEvent { Player = pet }.Ready(fixture.World);
+
+                Assert.Contains(player.Sent, s => s.StartsWith("MOC" + pet.LoginID));
+                Assert.DoesNotContain(player.Sent, s => s.StartsWith("ERC" + pet.LoginID));
             }
         }
     }

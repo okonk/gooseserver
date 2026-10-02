@@ -28,6 +28,13 @@ namespace Goose.Events
                     }
                 }
 
+                if (!Map.InRange(pet, pet.Owner))
+                {
+                    pet.TeleportToOwner(world);
+                    pet.AddMoveEvent(world);
+                    return;
+                }
+
                 if (pet.Target is not null &&
                     (pet.Target.Map != pet.Map || (pet.Target is NPC && ((NPC)pet.Target).State != Goose.NPC.States.Alive)))
                 {

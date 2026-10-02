@@ -725,6 +725,56 @@ namespace Goose
             }
         }
 
+        public void TeleportToOwner(GameWorld world)
+        {
+            List<Player> beforeRange = this.Map.GetPlayersInRange(this);
+            List<NPC> beforeNPCRange = this.Map.GetNPCsInRange(this);
+
+            // ERC + MKC instead of the MOC MoveTo would send: clients tween MOC,
+            // so a long jump would sprint the pet across the screen.
+            string erase = P.EraseCharacter(this.LoginID);
+            foreach (var player in beforeRange)
+            {
+                world.Send(player, erase);
+            }
+
+            this.Map.SetCharacter(null, this.MapX, this.MapY);
+
+            this.MapX = this.Owner.MapX;
+            this.MapY = this.Owner.MapY;
+            this.Map.PlaceCharacter(this);
+            this.Map.SetCharacter(this, this.MapX, this.MapY);
+
+            this.Facing = this.Owner.Facing;
+
+            try
+            {
+                this.Map.Script?.Object.OnPetMove(this.Map, this, world);
+            }
+            catch (Exception e)
+            {
+                log.Error(e, "Map OnPetMove {0} ({1}) owner {2} ({3}) Exception", this.Map.Name, this.Map.ID, this.Owner.Name, this.Owner.LoginID);
+            }
+
+            string mkc = P.MakePetCharacter(this);
+            List<Player> afterRange = this.Map.GetPlayersInRange(this);
+            foreach (var player in afterRange)
+            {
+                world.Send(player, mkc);
+            }
+
+            List<NPC> afterNPCRange = this.Map.GetNPCsInRange(this);
+
+            foreach (var npc in beforeNPCRange.Except<NPC>(afterNPCRange))
+            {
+                npc.RemoveAggro(this);
+            }
+            foreach (var npc in afterNPCRange.Union<NPC>(beforeNPCRange).Distinct<NPC>())
+            {
+                npc.AggroIfInRange(this, world);
+            }
+        }
+
         /**
          * FaceTo, faces to direction
          *
