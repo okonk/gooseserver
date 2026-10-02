@@ -14,6 +14,7 @@ namespace Goose.Quests
             QuestNotRightLevel,
             QuestProgress,
             QuestScriptCannotComplete,
+            QuestAlreadyClaimed,
         }
 
         private Quest quest;
@@ -195,6 +196,11 @@ namespace Goose.Quests
                 case QuestWindowState.QuestScriptCannotComplete:
                     text = this.scriptCannotCompleteMessage;
                     break;
+                case QuestWindowState.QuestAlreadyClaimed:
+                    world.QuestHandler.TryGetClaim(quest.Id, out var claim);
+                    var claimer = claim is not null ? world.PlayerHandler.GetPlayerName(claim.PlayerId) : null;
+                    text = $"{claimer ?? "Someone"} has already completed this quest.\\nIt can only be completed once.";
+                    break;
             }
 
             return text;
@@ -222,7 +228,14 @@ namespace Goose.Quests
 
                         if (this.PlayerMeetsRequirements(player, world))
                         {
-                            if (!this.PlayerHasEnoughInventorySpaceForReward(player, world))
+                            if (quest.OnlyOnePlayerCanComplete && world.QuestHandler.IsClaimed(quest.Id))
+                            {
+                                player.QuestsStarted.RemoveAll(q => q.Id == quest.Id);
+                                player.QuestProgress.RemoveAll(p => p.Requirement.Quest.Id == quest.Id);
+                                world.QuestHandler.RefreshIcons(player, world);
+                                this.state = QuestWindowState.QuestAlreadyClaimed;
+                            }
+                            else if (!this.PlayerHasEnoughInventorySpaceForReward(player, world))
                             {
                                 this.state = QuestWindowState.QuestNoInventorySpace;
                             }
@@ -359,6 +372,9 @@ namespace Goose.Quests
             {
                 player.QuestsCompleted.Add(quest);
             }
+
+            if (quest.OnlyOnePlayerCanComplete && !world.QuestHandler.IsClaimed(quest.Id))
+                world.QuestHandler.Claim(quest, player, world);
 
             // A completed repeatable quest is done until the player re-accepts it at the NPC.
             // Its progress is dropped too: kills while inactive would still credit it.
