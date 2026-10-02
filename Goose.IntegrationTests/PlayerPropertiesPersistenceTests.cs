@@ -1,3 +1,4 @@
+using Goose.Testing;
 using System.Data.SQLite;
 
 namespace Goose.IntegrationTests;
@@ -46,6 +47,28 @@ public class PlayerPropertiesPersistenceTests : IDisposable
         RunUpdate(player, conn);
 
         Assert.Equal(5, ReloadProperties(conn, 1).GetProperty<int>("dimension.max"));
+    }
+
+    [Fact]
+    public void An_unlocked_title_round_trips_through_the_real_save_path()
+    {
+        using var conn = OpenWithPlayersTable();
+        using var fixture = new TestWorldFixture();
+
+        var player = MakeMinimalPlayer(playerId: 1);
+        player.GrantTitle("Lord of the Vast", fixture.World);
+        RunInsert(player, conn);
+
+        var reloaded = ReloadProperties(conn, 1);
+        Assert.Equal(new List<string> { "Lord of the Vast" }, reloaded.GetProperty<List<string>>("titles"));
+
+        var again = MakeMinimalPlayer(playerId: 1);
+        again.LoadPropertiesFromColumn(JsonHelper.Serialize(reloaded));
+        again.GrantTitle("Duke", fixture.World);
+        RunUpdate(again, conn);
+
+        Assert.Equal(new List<string> { "Lord of the Vast", "Duke" },
+            ReloadProperties(conn, 1).GetProperty<List<string>>("titles"));
     }
 
     private static PropertiesDictionary ReloadProperties(SQLiteConnection conn, int playerId)
