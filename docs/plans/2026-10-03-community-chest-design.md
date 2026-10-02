@@ -123,9 +123,17 @@ entry and records a pending delete.
   Without this, per-key tombstones are ambiguous across generations: enqueue delete D, set +
   enqueue upsert U, delete again — D commits and clears the *newer* tombstone for the same
   key, U commits and restores the row, and the next plan sees neither value nor tombstone.
-  Re-planning after each commit makes that interleaving impossible. `GameWorld.Stop` uses a
-  synchronous variant (the `Database.Execute` path) so shutdown cannot strand a trailing
-  save whose completion would never be pumped.
+  Re-planning after each commit makes that interleaving impossible.
+- **In-flight always settles**: `inFlight` is cleared on **both** outcomes. `onCommit` never
+  runs after a rollback or a failed COMMIT (`Database.cs:252-254`), and
+  `EnqueueTransaction` currently reports failure to nobody — so it gains an optional
+  `onSettled(Exception?)` passed through to `Enqueue`'s completion, which the loop invokes
+  with `null` on success and the exception after logging on failure (`Database.cs` async
+  branch in `Loop`). A synchronous throw from the enqueue itself clears the flag in the
+  `catch`. Without this a single SQL failure wedges every later save (always "in flight")
+  and hangs shutdown's spin. `GameWorld.Stop` uses a synchronous variant (the
+  `Database.Execute` path, which also fences any in-flight work) so shutdown cannot strand a
+  trailing save whose completion would never be pumped.
 - **Locking**: one private lock guards `baseline` and `pendingDeletes` — taken by `PlanSave`
   and `ApplyCommit` (DB thread) **and by `Remove`**, which mutates `pendingDeletes` on the
   game thread; an unlocked `HashSet` mutated against `ExceptWith` is a data race. `values` is
@@ -163,13 +171,15 @@ chests. Storage key `chest:{npcTemplateId}`; prefixes are the namespace conventi
   `ItemHandler.AddItem` and `RefreshStats`. The validated container is then `Set` back under
   the key, so diff-on-save sees the live object. Container size is
   `maxPages * BankSlotsPerPage + 1` where
-  `maxPages = max(CommunityChestPages, ceil(blobLength / BankSlotsPerPage))` — shrinking the
-  setting must not silently delete overflow items on the next save, and the container always
-  covers **whole pages**, so no window can address a slot the container lacks: a partial
-  final page would let a drag swap against an out-of-range `GetSlot` that returns null and a
-  `SetSlot` that discards with a log — clearing the inventory side and destroying the item.
-  The window's `MaxPages` derives from `MaxSlots` so preserved overflow stays reachable (see
-  window section).
+  `maxPages = max(CommunityChestPages, ceil((blobLength - 1) / BankSlotsPerPage))` — the
+  `- 1` matters: containers serialize with the unused sentinel slot 0, so a healthy one-page
+  blob is 31 long; without it every restart would round up one page (31 → 61 → 91, an
+  unbounded capacity ratchet). Shrinking the setting must not silently delete overflow items
+  on the next save, and the container always covers **whole pages**, so no window can address
+  a slot the container lacks: a partial final page would let a drag swap against an
+  out-of-range `GetSlot` that returns null and a `SetSlot` that discards with a log —
+  clearing the inventory side and destroying the item. The window's `MaxPages` derives from
+  `MaxSlots` so preserved overflow stays reachable (see window section).
 - **Viewer registry**: `Dictionary<ItemContainer, List<(Player, CommunityChestWindow)>>`.
   Entries are added when a chest window is created. There is no explicit removal path:
   - logout — `PlayerHandler` gains `public event Action<Player>? PlayerRemoved;`, fired at
@@ -254,24 +264,34 @@ A chest drag moves an item between two owners — the world container and a play
 Persisting them on separate schedules is the exact dupe the `EnqueueTransaction` docs warn
 about (`Goose/Database.cs:225-236`): withdraw an item, the player save commits the inventory
 row with it, a crash lands before the periodic world save, and reload restores the item in
-**both** places (the reverse order loses it). So every accepted chest drag ends with
-`ChestHandler.CommitTransfer(world, player, container)`:
+**both** places (the reverse order loses it). So every accepted chest drag — on all three
+paths, including the static `WindowToWindow` — ends with
+`ChestHandler.CommitTransfer(world, player, container)`, reached through an `AfterTransfer`
+virtual on `ItemContainerWindow` that each drag path invokes after mutating (the static
+`WTW` has no `this`, so it calls the hook on each window that owns a chest container):
 
-1. Snapshot the chest container's JSON on the game thread.
-2. `world.Database.EnqueueTransaction(conn => { chest upsert;
-   player.Inventory.BuildSave()(conn); player.Bank.BuildSave(player)(conn); }, onCommit)` —
-   both part-builders are public game-thread snapshot APIs already used by the full player
-   save (`Goose/Inventory.cs:979`, covering inventory + equipped + combine bag, and
-   `Goose/PlayerBank.cs:107`; `Goose/Player.cs:1066-1069` composes them the same way). The
-   bank part is included unconditionally so chest↔bank drags are covered too; writing an
-   unchanged bank row is idempotent.
-3. `onCommit` applies the chest portion to `WorldState`'s baseline (under the lock), so the
+1. **Build every save part on the game thread before enqueueing**: snapshot the chest
+   container's JSON, and capture `part = player.Inventory.BuildSave()` and
+   `bankPart = player.Bank.BuildSave(player)` as already-built actions. These APIs snapshot
+   *at build time* and are documented for exactly that sequencing (`Goose/Player.cs:1045-1048`
+   "Build every part of the save on the game thread, snapshotting state as we go";
+   `Goose/Inventory.cs:972-977`, covering inventory + equipped + combine bag;
+   `Goose/PlayerBank.cs:101-107`). Calling `BuildSave()` *inside* the transaction lambda
+   would snapshot on the DB thread — two rapid transfers could then pair chest snapshot 1
+   with post-transfer-2 player state, recreating the dupe/loss window the transaction exists
+   to close.
+2. `world.Database.EnqueueTransaction(conn => { chest upsert; part(conn); bankPart(conn); },
+   onCommit: () => world.WorldState.NoteCommitted(key, json))` — the lambda only executes
+   captured actions and plan data. The bank part is included unconditionally so chest↔bank
+   drags are covered; writing an unchanged bank row is idempotent. Enqueue order is
+   game-thread order and the DB thread is single-threaded FIFO, so an atomic transfer and an
+   in-flight periodic plan commit in the order the game thread made them — the later write
+   always reflects the later state.
+3. `onCommit` advances `WorldState`'s baseline for the chest key (under the lock), so the
    periodic diff sees no delta and won't rewrite.
 
 The periodic save + shutdown flush stay as the safety net for non-drag mutations (load-time
-`Set`, future GM tooling). Enqueue order is game-thread order and the DB thread is
-single-threaded FIFO, so an atomic transfer and an in-flight periodic plan commit in the
-order the game thread made them — the later write always reflects the later state.
+`Set`, future GM tooling).
 
 ### Transfer validation
 
