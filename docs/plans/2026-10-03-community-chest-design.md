@@ -109,17 +109,27 @@ entry and records a pending delete.
   error and returns default), `Set(string key, object value)`, `Remove(string key)`,
   `Save(GameWorld world)`, `KeysWithPrefix(string prefix)`.
 - **Dirty tracking by diff-on-save**: no tenant marks anything dirty. Each save builds an
-  **immutable plan on the game thread** under a lock — upserts for every value whose
-  serialization (`RawJson` passes through its text, live objects via `JsonHelper.Serialize`)
-  differs from the baseline, deletes for pending-delete keys not present in the live
-  dictionary. The database transaction executes **only from the captured plan** (deletes
-  first, then upserts) and never reads live state. The on-commit callback (DB thread, same
-  lock) applies the plan: `baseline[key] := json` for upserts, `baseline.Remove(key)` for
-  deletes, and `pendingDeletes` minus the plan's delete keys. Any mutation landing between
-  plan and commit leaves either a pending-delete residue or a baseline/value mismatch, so
-  the next diff catches it — convergence by construction rather than by ordering, which is
-  the failure mode a bare lock cannot prevent (the recompute intent of `Guild.BuildSave`,
-  `Goose/Guild.cs:274,389`, made explicit).
+  **immutable plan on the game thread** — upserts for every value whose serialization
+  (`RawJson` passes through its text, live objects via `JsonHelper.Serialize`) differs from
+  the baseline, deletes for pending-delete keys not present in the live dictionary. The
+  database transaction executes **only from the captured plan** (deletes first, then upserts)
+  and never reads live state. The on-commit callback (DB thread) applies the plan:
+  `baseline[key] := json` for upserts, `baseline.Remove(key)` for deletes, and
+  `pendingDeletes.ExceptWith(plan.Deletes)`.
+- **Single-flight saves**: at most one periodic plan in flight. A `Save` while one is in
+  flight sets a trailing flag and returns; the commit callback (via
+  `GameWorld.EnqueueCompletion`, `GameWorld.cs:83`) clears the flag and re-saves, so the
+  trailing plan is rebuilt from *current* state *after* the earlier `ApplyCommit` landed.
+  Without this, per-key tombstones are ambiguous across generations: enqueue delete D, set +
+  enqueue upsert U, delete again — D commits and clears the *newer* tombstone for the same
+  key, U commits and restores the row, and the next plan sees neither value nor tombstone.
+  Re-planning after each commit makes that interleaving impossible. `GameWorld.Stop` uses a
+  synchronous variant (the `Database.Execute` path) so shutdown cannot strand a trailing
+  save whose completion would never be pumped.
+- **Locking**: one private lock guards `baseline` and `pendingDeletes` — taken by `PlanSave`
+  and `ApplyCommit` (DB thread) **and by `Remove`**, which mutates `pendingDeletes` on the
+  game thread; an unlocked `HashSet` mutated against `ExceptWith` is a data race. `values` is
+  game-thread-only and needs no lock.
 - **Table**: `sql/world_state.sql` with
   `CREATE TABLE IF NOT EXISTS world_state (key TEXT PRIMARY KEY, value TEXT NOT NULL)`, added
   to the `CreateDatabaseSchema` file list (`GameWorld.cs:245-251`), plus a matching
@@ -130,8 +140,9 @@ entry and records a pending delete.
   missing ints deserialize to 0), scheduled at startup like `GuildHandler.AddSaveEvent`
   (`GameWorld.cs:375-379`) and re-armed in a `finally` — the event pump dequeues before
   running and drops the event if `Ready` throws (`EventHandler.cs:337,355-366`), so a
-  transient failure must not end the cadence. Plus one flush in `GameWorld.Stop` before the
-  pending-writes wait (`GameWorld.cs:529-533`).
+  transient failure must not end the cadence. Plus one **synchronous** flush in
+  `GameWorld.Stop` (the `Database.Execute` path, which also drains any in-flight plan before
+  it) ahead of the pending-writes wait (`GameWorld.cs:529-533`).
 - **Load order**: `LoadStep("World State", ...)` after *Global Scripts* and before *Players*
   (`GameWorld.cs:453-457`) — script-registered item templates must exist before item blobs
   deserialize.
@@ -151,9 +162,14 @@ chests. Storage key `chest:{npcTemplateId}`; prefixes are the namespace conventi
   unknown templates discarded with a log, surviving items re-registered via
   `ItemHandler.AddItem` and `RefreshStats`. The validated container is then `Set` back under
   the key, so diff-on-save sees the live object. Container size is
-  `max(CommunityChestPages * BankSlotsPerPage + 1, blob length)` — shrinking the setting must
-  not silently delete overflow items on the next save; the window's `MaxPages` also grows to
-  cover the container length so preserved items stay reachable (see window section).
+  `maxPages * BankSlotsPerPage + 1` where
+  `maxPages = max(CommunityChestPages, ceil(blobLength / BankSlotsPerPage))` — shrinking the
+  setting must not silently delete overflow items on the next save, and the container always
+  covers **whole pages**, so no window can address a slot the container lacks: a partial
+  final page would let a drag swap against an out-of-range `GetSlot` that returns null and a
+  `SetSlot` that discards with a log — clearing the inventory side and destroying the item.
+  The window's `MaxPages` derives from `MaxSlots` so preserved overflow stays reachable (see
+  window section).
 - **Viewer registry**: `Dictionary<ItemContainer, List<(Player, CommunityChestWindow)>>`.
   Entries are added when a chest window is created. There is no explicit removal path:
   - logout — `PlayerHandler` gains `public event Action<Player>? PlayerRemoved;`, fired at
@@ -202,18 +218,23 @@ Sibling of `BankWindow`, subclassing `ItemContainerWindow`.
   `WindowTypes.CommunityChest` value (the client never sees `Type`). The client widget is a
   clone of `BankWindow` filtered by frame 30 and by window ID on `GWS`/`GWC` (part 3).
 - Title `"Community Chest Page {X}/{Y}"`; back/next buttons exactly like banks.
-- `SlotsPerPage` reuses `BankSlotsPerPage` (30); base `MaxPages` from new setting
-  `CommunityChestPages` (default 3), raised to `ceil((MaxSlots - 1) / SlotsPerPage)` when the
-  container is longer (grow-only load), so preserved overflow items stay reachable.
-  Container allocated `pages * slotsPerPage + 1`.
+- `SlotsPerPage` reuses `BankSlotsPerPage` (30); `MaxPages = (MaxSlots - 1 + SlotsPerPage - 1)
+  / SlotsPerPage` — derived from the container, which the loader sizes to whole pages, so
+  every page-visible index is a real container slot. `CommunityChestPages` (default 3) sets
+  the floor.
 - Bank and chest windows **coexist** — different frames, and slot updates are window-ID
   addressed, so neither can corrupt the other's client state; `WTW` between them is reachable
   and validated on both sides.
-- `Open()` closes any existing chest window bound to the same NPC before creating — bank
-  idiom. Two instances of one chest template give a player two windows on one container;
-  with ID-addressed packets they live-sync each other coherently. The client's v1 widget is
-  single-instance per frame (a second MKW retargets it, exactly like the bank widget does
-  today); multi-instantiation is deferred.
+- **One chest window per player.** `Open()` closes *every* chest window (any NPC), not just
+  one bound to the same NPC: the client's v1 widget is single-instance per frame and a second
+  `MKW` retargets it, so a second server-side chest window would be a ghost — invisible to
+  that client, unprunable by the `Contains` check, and still mutating a container nobody can
+  see. Replacing on open keeps server state and widget state identical. Multi-instance client
+  widgets are deferred; until then chest↔chest `WTW` is unreachable by construction.
+- `ValidateSlotIndex` checks the **absolute** index (`index > 0 && index + GetSlotOffset() <
+  ItemContainer.MaxSlots`), not just the page-local one — the base check would pass a page-2
+  index into a page-1 container, where `GetSlot` returns null, `SwapSlots` moves the item
+  out of the inventory, and `SetSlot` discards it with a log.
 - Window ID comes from the standard `++player.LastWindowID` allocation — never a fixed ID
   like the bank's 21 — because `WBC`/`WTW` resolve IDs against `player.Windows` first-match.
 - Range check (`Map.InRange`) gates every drag, same as `BankerInRange`.
@@ -226,6 +247,31 @@ Sibling of `BankWindow`, subclassing `ItemContainerWindow`.
   untouched. Rejected drags mutate nothing, fire no event, send no slot packets.
 - The event fires synchronously inside `SetSlot`, mid-drag-method, so the actor's window is
   by definition registered when its own change broadcasts.
+
+### Transfer persistence (atomic with the player side)
+
+A chest drag moves an item between two owners — the world container and a player container.
+Persisting them on separate schedules is the exact dupe the `EnqueueTransaction` docs warn
+about (`Goose/Database.cs:225-236`): withdraw an item, the player save commits the inventory
+row with it, a crash lands before the periodic world save, and reload restores the item in
+**both** places (the reverse order loses it). So every accepted chest drag ends with
+`ChestHandler.CommitTransfer(world, player, container)`:
+
+1. Snapshot the chest container's JSON on the game thread.
+2. `world.Database.EnqueueTransaction(conn => { chest upsert;
+   player.Inventory.BuildSave()(conn); player.Bank.BuildSave(player)(conn); }, onCommit)` —
+   both part-builders are public game-thread snapshot APIs already used by the full player
+   save (`Goose/Inventory.cs:979`, covering inventory + equipped + combine bag, and
+   `Goose/PlayerBank.cs:107`; `Goose/Player.cs:1066-1069` composes them the same way). The
+   bank part is included unconditionally so chest↔bank drags are covered too; writing an
+   unchanged bank row is idempotent.
+3. `onCommit` applies the chest portion to `WorldState`'s baseline (under the lock), so the
+   periodic diff sees no delta and won't rewrite.
+
+The periodic save + shutdown flush stay as the safety net for non-drag mutations (load-time
+`Set`, future GM tooling). Enqueue order is game-thread order and the DB thread is
+single-threaded FIFO, so an atomic transfer and an in-flight periodic plan commit in the
+order the game thread made them — the later write always reflects the later state.
 
 ### Transfer validation
 
@@ -270,6 +316,11 @@ ID-addressed) and run the full four-way checks.
   3. `item.IsBound` — should be unpossible via the deposit gate, but if one ever appears,
      letting anyone take it is the laundering bug again. Recovery of a stuck item is a
      DB/GM problem.
+  4. `item.IsBindOnPickup && !item.IsBound` — the pickup path binds after acquisition
+      (`PickupItemEvent.cs:114`); a chest withdrawal is acquisition too, and the deposit gate
+      should make an unbound BOP item unpossible in the container. If one exists anyway
+      (persisted before the gate, GM/script-generated), refusing the withdrawal is safer
+      than silently stamping `IsBound` on the swap target.
 - Refusals send a `ServerMessage` with the reason (the script's own message for `CanPickup`,
   short static strings otherwise). Silent rejection reads as lag at a shared window.
 
