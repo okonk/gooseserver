@@ -55,13 +55,16 @@ blobs — as the foundation for future persistent world data.
   (`/spawnnpc`, scripts) get an empty dictionary.
 - `BankWindow` hardcodes its window ID to 21 (`BankWindow.cs:25`) while `Window.Create`
   allocates `++player.LastWindowID` (`Window.cs:114`). `WindowToWindowEvent` resolves window
-  IDs against `player.Windows`, first match wins. Critically, the slot packets carry **no
-  window ID**: `P.BankSlot` = `"SBS" + ItemSlot(...)` where the payload starts at the slot
-  number (`Goose/Packets.cs:606-609,485-497`), and the Godot client implements the Bank frame
-  as a single widget (`../Goose2ClientGodot/Scripts/UI/BankWindow.cs:10-16` — "hidden until a
-  MakeWindow/EndWindow pair for this frame arrives") that listens globally for `SBS`/`CBS`
-  (`:60-61`). One player can therefore only meaningfully hold **one Bank-frame window at a
-  time**, bank or chest.
+  IDs against `player.Windows`, first match wins. The client→server drag packets already carry
+  window IDs (`ITW<invSlot>,<windowId>,<slot>`, `WTI`, `WTW` —
+  `../../Goose2ClientGodot/Scripts/Network/NetworkClient.cs:230-240`), but the server→client
+  slot updates do not: `P.BankSlot` = `"SBS" + ItemSlot(...)` starts at the slot number
+  (`Goose/Packets.cs:606-609,485-497`), and the client implements the Bank frame as a single
+  widget (`../Goose2ClientGodot/Scripts/UI/BankWindow.cs:10-16` — "hidden until a
+  MakeWindow/EndWindow pair for this frame arrives") listening globally for `SBS`/`CBS`
+  (`:60-61`). Two coexisting Bank-frame windows per player are therefore unrepresentable on
+  the client — which is why the chest gets its own frame and ID-bearing slot packets instead
+  of reusing the bank's (see §Protocol additions).
 - Stack splitting (`Inventory.SplitSlots`) is inventory-only — both slots are validated
   against `InventorySize` (`Events/InventorySplitEvent.cs:40-42`). No split path into a
   window, and no window→ground drag path exists; drops are inventory-originated.
@@ -160,10 +163,9 @@ chests. Storage key `chest:{npcTemplateId}`; prefixes are the namespace conventi
     `player.Windows.Contains(window)`; a closed or replaced window fails the check and the
     entry is pruned in place.
 - **Broadcast**: subscribes to the container's `SlotChanged` event (below) and pushes the
-  changed slot to every valid viewer whose page shows that container index. Slot packets
-  carry no window ID, so the push is correct precisely because the single-Bank-frame-window
-  rule (window section) guarantees each viewer's client widget belongs to this window. The
-  acting player is included — it is the only send path (see window section).
+  changed slot to every valid viewer whose page shows that container index, addressed by each
+  viewer's own window ID (`GWS`/`GWC`, §Protocol additions) so coexisting windows never
+  cross-talk. The acting player is included — it is the only send path (see window section).
 
 ### ItemContainer change event
 
@@ -178,26 +180,43 @@ broadcast cannot be forgotten by a future code path — the same "diff instead o
 philosophy as WorldState's dirty tracking. Bank and combine-bag containers never subscribe
 and pay one null-delegate check.
 
+### Protocol additions
+
+The chest uses a **new frame, `WindowFrames.GenericContainer = 30`** (server `Window.cs` and
+client `WindowFrames.cs` enums stay mirrored), so the client routes it to its own widget and
+the bank's widget, protocol, and paging quirks are untouched. The only new wire packets are
+the server→client slot updates, which carry the window ID the Bank frame's `SBS` lacks:
+
+- `GWS<windowId>|<ItemSlot payload>` — same pipe-separated `ItemSlot` payload as `SBS`
+  (`Packets.cs:485-497`), window ID prepended as field 0.
+- `GWC<windowId>,<slotId>` — clear, comma style like `CBS`.
+
+Client→server traffic reuses `ITW`/`WTI`/`WTW`/`WBC` unchanged — they already address windows
+by ID. The bank keeps `SBS`/`CBS`; migrating it onto `GWS` is deferred.
+
 ### CommunityChestWindow
 
 Sibling of `BankWindow`, subclassing `ItemContainerWindow`.
 
-- `Frame = WindowFrames.Bank` (26) so the client renders it with zero changes; new
-  server-side-only `WindowTypes.CommunityChest` value (the client never sees `Type`).
+- `Frame = WindowFrames.GenericContainer` (30); new server-side-only
+  `WindowTypes.CommunityChest` value (the client never sees `Type`). The client widget is a
+  clone of `BankWindow` filtered by frame 30 and by window ID on `GWS`/`GWC` (part 3).
 - Title `"Community Chest Page {X}/{Y}"`; back/next buttons exactly like banks.
 - `SlotsPerPage` reuses `BankSlotsPerPage` (30); base `MaxPages` from new setting
   `CommunityChestPages` (default 3), raised to `ceil((MaxSlots - 1) / SlotsPerPage)` when the
   container is longer (grow-only load), so preserved overflow items stay reachable.
   Container allocated `pages * slotsPerPage + 1`.
-- **One Bank-frame window per player.** `SBS`/`CBS` carry no window ID and the client's Bank
-  frame is a single widget, so opening a chest closes any open `BankWindow` **and** any other
-  chest window, and `BankWindow.Open` symmetrically closes chest windows (edit to
-  `BankWindow.Open`). Consequences: chest↔chest and chest↔bank `WTW` drags become impossible
-  (chest↔combine-bag remains possible — different frame), and window IDs still come from the
-  standard `++player.LastWindowID` allocation because `WBC`/`WTW` resolve windows by ID
-  against `player.Windows` first-match — the bank's fixed 21 must not be copied.
+- Bank and chest windows **coexist** — different frames, and slot updates are window-ID
+  addressed, so neither can corrupt the other's client state; `WTW` between them is reachable
+  and validated on both sides.
+- `Open()` closes any existing chest window bound to the same NPC before creating — bank
+  idiom. Two instances of one chest template give a player two windows on one container;
+  with ID-addressed packets they live-sync each other coherently. The client's v1 widget is
+  single-instance per frame (a second MKW retargets it, exactly like the bank widget does
+  today); multi-instantiation is deferred.
+- Window ID comes from the standard `++player.LastWindowID` allocation — never a fixed ID
+  like the bank's 21 — because `WBC`/`WTW` resolve IDs against `player.Windows` first-match.
 - Range check (`Map.InRange`) gates every drag, same as `BankerInRange`.
-- `Open()` closes any existing Bank-frame window (bank or chest) before creating.
 - `protected virtual bool PushesViaBroadcast => false` on `ItemContainerWindow` guards the
   window-side `this.SendSlot(...)` calls in the three drag paths (`InventoryToWindow`,
   `WindowToInventory`, static `WindowToWindow` both sides). `CommunityChestWindow` overrides
@@ -233,8 +252,8 @@ before mutating anything:
   `fromWindow.CanDeposit(toSlot)`.
 
 All container movement funnels through the three packet entry points, so the seam is
-complete coverage. (Chest↔bank and chest↔chest `WTW` are unreachable under the
-single-Bank-frame rule, but the checks stay for combine-bag drags and defense in depth.)
+complete coverage. Chest↔bank and chest↔chest `WTW` drags are reachable (different frames,
+ID-addressed) and run the full four-way checks.
 
 `CommunityChestWindow` implements:
 
@@ -299,6 +318,12 @@ Fast tests in `Goose.Tests`, real-DB tests in `Goose.IntegrationTests`.
 
 ## Deferred (consciously)
 
+- **Migrating the bank onto `GWS`/`GWC`** — the bank keeps `SBS`/`CBS` and its fixed window
+  ID 21; unifying both container windows on one protocol + one client widget is a later
+  consolidation.
+- **Multi-instance client widget** — the v1 generic-container widget is single-instance per
+  frame (a second `MKW` retargets it, exactly like the bank widget today); pooling widgets
+  per window ID is a later client refactor. Server-side state stays correct either way.
 - **Withdrawal audit logging** — `LogHandler` entries for chest in/out; declined for v1,
   cheap to add later.
 - **Random/loot chests** — non-persistent containers with vanishing loot; the window binds
@@ -308,5 +333,3 @@ Fast tests in `Goose.Tests`, real-DB tests in `Goose.IntegrationTests`.
   `chest:guild:{id}`) is the extension point.
 - **Multi-server deployments** — last-write-wins per key; single-instance assumed.
 - **Chest graphic authoring** — content task, not code.
-- **Bank window fixed ID 21** — pre-existing collision quirk between two bank windows; the
-  chest just doesn't join it.
