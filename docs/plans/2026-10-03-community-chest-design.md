@@ -26,7 +26,11 @@ blobs — as the foundation for future persistent world data.
 - All container movement enters through exactly three packet handlers — `ITW`, `WTI`, `WTW`
   (`Goose/EventHandler.cs:146-158`) — which call `ItemContainerWindow.InventoryToWindow`,
   `WindowToInventory` and the static `WindowToWindow`. Every write into a container goes
-  through `ItemContainer.SetSlot` (`Goose/ItemContainer.cs:25`).
+  through `ItemContainer.SetSlot` (`Goose/ItemContainer.cs:25`). Two consequences matter:
+  `ItemSlot.SwapSlots` **merges stacks in place** (`to.Stack += from.Stack`,
+  `Goose/ItemSlot.cs:75-79`), so the destination slot reference survives unchanged; and when
+  both sides are occupied the swap moves an item in *both* directions — every drag is
+  simultaneously a deposit and a withdrawal (`Goose/ItemSlot.cs:80-84`).
 - `GuildHandler` is the existing precedent for shared persistent state: load at startup,
   dirty flags, periodic `GuildSaveEvent` (`Goose/GuildHandler.cs:86-120`).
 - `PlayerHandler.RemovePlayer(Player)` (`Goose/PlayerHandler.cs:82-90`) is the single
@@ -51,7 +55,13 @@ blobs — as the foundation for future persistent world data.
   (`/spawnnpc`, scripts) get an empty dictionary.
 - `BankWindow` hardcodes its window ID to 21 (`BankWindow.cs:25`) while `Window.Create`
   allocates `++player.LastWindowID` (`Window.cs:114`). `WindowToWindowEvent` resolves window
-  IDs against `player.Windows`, first match wins.
+  IDs against `player.Windows`, first match wins. Critically, the slot packets carry **no
+  window ID**: `P.BankSlot` = `"SBS" + ItemSlot(...)` where the payload starts at the slot
+  number (`Goose/Packets.cs:606-609,485-497`), and the Godot client implements the Bank frame
+  as a single widget (`../Goose2ClientGodot/Scripts/UI/BankWindow.cs:10-16` — "hidden until a
+  MakeWindow/EndWindow pair for this frame arrives") that listens globally for `SBS`/`CBS`
+  (`:60-61`). One player can therefore only meaningfully hold **one Bank-frame window at a
+  time**, bank or chest.
 - Stack splitting (`Inventory.SplitSlots`) is inventory-only — both slots are validated
   against `InventorySize` (`Events/InventorySplitEvent.cs:40-42`). No split path into a
   window, and no window→ground drag path exists; drops are inventory-originated.
@@ -84,28 +94,41 @@ window, with no handler and no `WorldState` entry behind it.
 
 ### WorldState (generic persistence)
 
-In-memory `Dictionary<string, object>` keyed by opaque string. Values are raw JSON strings
-straight from the database until a tenant's first `Get<T>` materializes them into a typed
-object, which is then stored back into the dictionary. `Set<T>(key, value)` stores the live
-object; `Remove(key)` drops the entry and queues a delete.
+In-memory `Dictionary<string, object>` keyed by opaque string. Unmaterialized database rows
+are held in a distinct `RawJson` wrapper record — never as a bare `string` — so a tenant's
+live string value and a persisted JSON blob can never be confused (`Set("k", "hello")`
+serializes to `"\"hello\""`; `Get<string>` on a `RawJson` row deserializes `"\"hello\""` to
+`hello`). The first `Get<T>` on a `RawJson` entry deserializes, caches the typed object in
+place, and returns it; `Set<T>(key, value)` stores the live object; `Remove(key)` drops the
+entry and records a pending delete.
 
 - **API**: `Load(Database)`, `Get<T>(string key)` (materializes; on a corrupt blob logs an
   error and returns default), `Set(string key, object value)`, `Remove(string key)`,
-  `Save(GameWorld)`, `KeysWithPrefix(string prefix)`.
-- **Dirty tracking by diff-on-save**: no tenant marks anything dirty. Each save serializes
-  every tracked value on the game thread (strings pass through, objects via
-  `JsonHelper.Serialize`), diffs against the last-saved baseline, and `EnqueueTransaction`s
-  the changed upserts plus pending deletes. The on-commit callback sets baseline := snapshot,
-  so a mutation landing mid-write fails the next diff and is written next cycle — the
-  recompute pattern `Guild.BuildSave` uses.
+  `Save(GameWorld world)`, `KeysWithPrefix(string prefix)`.
+- **Dirty tracking by diff-on-save**: no tenant marks anything dirty. Each save builds an
+  **immutable plan on the game thread** under a lock — upserts for every value whose
+  serialization (`RawJson` passes through its text, live objects via `JsonHelper.Serialize`)
+  differs from the baseline, deletes for pending-delete keys not present in the live
+  dictionary. The database transaction executes **only from the captured plan** (deletes
+  first, then upserts) and never reads live state. The on-commit callback (DB thread, same
+  lock) applies the plan: `baseline[key] := json` for upserts, `baseline.Remove(key)` for
+  deletes, and `pendingDeletes` minus the plan's delete keys. Any mutation landing between
+  plan and commit leaves either a pending-delete residue or a baseline/value mismatch, so
+  the next diff catches it — convergence by construction rather than by ordering, which is
+  the failure mode a bare lock cannot prevent (the recompute intent of `Guild.BuildSave`,
+  `Goose/Guild.cs:274,389`, made explicit).
 - **Table**: `sql/world_state.sql` with
   `CREATE TABLE IF NOT EXISTS world_state (key TEXT PRIMARY KEY, value TEXT NOT NULL)`, added
   to the `CreateDatabaseSchema` file list (`GameWorld.cs:245-251`), plus a matching
   `CreateTableIfMissing` line in `MigrateDatabaseSchema` so existing databases get it too
   (the `quest_status` precedent, `GameWorld.cs:277-278`).
 - **Save cadence**: `WorldSaveEvent` (clone of `GuildSaveEvent`) re-armed every
-  `WorldSavePeriod` seconds (new setting, default 300), plus one flush in `GameWorld.Stop`
-  before the pending-writes wait (`GameWorld.cs:529-533`).
+  `WorldSavePeriod` seconds (new setting, default 300 as a property initializer, since
+  missing ints deserialize to 0), scheduled at startup like `GuildHandler.AddSaveEvent`
+  (`GameWorld.cs:375-379`) and re-armed in a `finally` — the event pump dequeues before
+  running and drops the event if `Ready` throws (`EventHandler.cs:337,355-366`), so a
+  transient failure must not end the cadence. Plus one flush in `GameWorld.Stop` before the
+  pending-writes wait (`GameWorld.cs:529-533`).
 - **Load order**: `LoadStep("World State", ...)` after *Global Scripts* and before *Players*
   (`GameWorld.cs:453-457`) — script-registered item templates must exist before item blobs
   deserialize.
@@ -120,12 +143,14 @@ object; `Remove(key)` drops the entry and queues a delete.
 spawned instance of one chest template shares one inventory, and two chest templates are two
 chests. Storage key `chest:{npcTemplateId}`; prefixes are the namespace convention.
 
-- **Load**: enumerate `chest:*` keys, materialize each into an `ItemContainer`, then replay
-  the `PlayerBank.Load` validation dance (`PlayerBank.cs:64-90`): null slots and unknown
-  templates discarded with a log, surviving items re-registered via `ItemHandler.AddItem` and
-  `RefreshStats`. Container size is `max(CommunityChestPages * BankSlotsPerPage + 1, blob
-  length)` — shrinking the setting must not silently delete overflow items on the next save;
-  page count is grow-only in effect.
+- **Load**: enumerate `chest:*` keys, `Get<ItemSlot[]>` each (materializing from `RawJson`),
+  then replay the `PlayerBank.Load` validation dance (`PlayerBank.cs:64-90`): null slots and
+  unknown templates discarded with a log, surviving items re-registered via
+  `ItemHandler.AddItem` and `RefreshStats`. The validated container is then `Set` back under
+  the key, so diff-on-save sees the live object. Container size is
+  `max(CommunityChestPages * BankSlotsPerPage + 1, blob length)` — shrinking the setting must
+  not silently delete overflow items on the next save; the window's `MaxPages` also grows to
+  cover the container length so preserved items stay reachable (see window section).
 - **Viewer registry**: `Dictionary<ItemContainer, List<(Player, CommunityChestWindow)>>`.
   Entries are added when a chest window is created. There is no explicit removal path:
   - logout — `PlayerHandler` gains `public event Action<Player>? PlayerRemoved;`, fired at
@@ -135,17 +160,23 @@ chests. Storage key `chest:{npcTemplateId}`; prefixes are the namespace conventi
     `player.Windows.Contains(window)`; a closed or replaced window fails the check and the
     entry is pruned in place.
 - **Broadcast**: subscribes to the container's `SlotChanged` event (below) and pushes the
-  changed slot to every valid viewer whose page shows that container index, using each
-  viewer's own window ID and `SendSlot`/`ClearBankSlot`. The acting player is included — it
-  is the only send path (see window section).
+  changed slot to every valid viewer whose page shows that container index. Slot packets
+  carry no window ID, so the push is correct precisely because the single-Bank-frame-window
+  rule (window section) guarantees each viewer's client widget belongs to this window. The
+  acting player is included — it is the only send path (see window section).
 
 ### ItemContainer change event
 
 `ItemContainer` gains `event Action<int, ItemSlot?, ItemSlot?>? SlotChanged` (index, old,
-new), fired from `SetSlot` when the reference actually changes. `SetSlot` is the only write
-path into any container, so broadcast cannot be forgotten by a future code path — the same
-"diff instead of remembering" philosophy as WorldState's dirty tracking. Bank and combine-bag
-containers never subscribe and pay one null-delegate check.
+new), fired from `SetSlot` when the reference actually changes, plus
+`NotifySlotChanged(int index)` for **in-place** mutations. `SwapSlots` merges stacks by
+mutating the destination `ItemSlot` (`ItemSlot.cs:75-79`), after which `SetSlot` re-stores
+the same reference and fires nothing — so each drag path captures the container slot's stack
+before the swap and calls `NotifySlotChanged` when the same slot object comes back with a
+different stack. `SetSlot` remains the only *replacement* write path, so reference-change
+broadcast cannot be forgotten by a future code path — the same "diff instead of remembering"
+philosophy as WorldState's dirty tracking. Bank and combine-bag containers never subscribe
+and pay one null-delegate check.
 
 ### CommunityChestWindow
 
@@ -154,16 +185,19 @@ Sibling of `BankWindow`, subclassing `ItemContainerWindow`.
 - `Frame = WindowFrames.Bank` (26) so the client renders it with zero changes; new
   server-side-only `WindowTypes.CommunityChest` value (the client never sees `Type`).
 - Title `"Community Chest Page {X}/{Y}"`; back/next buttons exactly like banks.
-- `SlotsPerPage` reuses `BankSlotsPerPage` (30); `MaxPages` from new setting
-  `CommunityChestPages` (default 3). Container allocated `pages * slotsPerPage + 1`.
-- Window ID comes from the standard `++player.LastWindowID` allocation — never a fixed ID
-  like the bank's 21 — because a player can hold a bank window and chest windows at the same
-  time and `WindowToWindowEvent` resolves IDs first-match.
+- `SlotsPerPage` reuses `BankSlotsPerPage` (30); base `MaxPages` from new setting
+  `CommunityChestPages` (default 3), raised to `ceil((MaxSlots - 1) / SlotsPerPage)` when the
+  container is longer (grow-only load), so preserved overflow items stay reachable.
+  Container allocated `pages * slotsPerPage + 1`.
+- **One Bank-frame window per player.** `SBS`/`CBS` carry no window ID and the client's Bank
+  frame is a single widget, so opening a chest closes any open `BankWindow` **and** any other
+  chest window, and `BankWindow.Open` symmetrically closes chest windows (edit to
+  `BankWindow.Open`). Consequences: chest↔chest and chest↔bank `WTW` drags become impossible
+  (chest↔combine-bag remains possible — different frame), and window IDs still come from the
+  standard `++player.LastWindowID` allocation because `WBC`/`WTW` resolve windows by ID
+  against `player.Windows` first-match — the bank's fixed 21 must not be copied.
 - Range check (`Map.InRange`) gates every drag, same as `BankerInRange`.
-- `Open()` closes any existing chest window bound to the same NPC before creating — bank
-  idiom. A player near two instances of one chest template can hold two windows bound to the
-  same container; they live-sync each other through the broadcast path. That is coherent,
-  not a bug.
+- `Open()` closes any existing Bank-frame window (bank or chest) before creating.
 - `protected virtual bool PushesViaBroadcast => false` on `ItemContainerWindow` guards the
   window-side `this.SendSlot(...)` calls in the three drag paths (`InventoryToWindow`,
   `WindowToInventory`, static `WindowToWindow` both sides). `CommunityChestWindow` overrides
@@ -176,17 +210,31 @@ Sibling of `BankWindow`, subclassing `ItemContainerWindow`.
 
 ### Transfer validation
 
-Two virtuals on `ItemContainerWindow`, checked before any swap, defaulting to `true` (bank
-and combine bag keep permissive behaviour):
+Two virtuals on `ItemContainerWindow`, defaulting to `true` (bank and combine bag keep
+permissive behaviour):
 
 ```
-CanDeposit(Player, ItemSlot?)  → bool   // inventory→window; WTW target side
-CanWithdraw(Player, ItemSlot?) → bool   // window→inventory; WTW source side
+CanDeposit(Player, ItemSlot? incoming, GameWorld)  → bool
+CanWithdraw(Player, ItemSlot? outgoing, GameWorld) → bool
 ```
 
-All container movement already funnels through the three packet entry points, so the seam is
-complete coverage: chest→bank runs `CanWithdraw`, bank→chest runs `CanDeposit`, chest→chest
-runs both before swapping.
+Every drag is a **swap**, so each side simultaneously sends its current slot out and takes
+the other side's slot in — validating only the "intended" direction would let an occupied
+target smuggle items both ways (deposit a bound item by swapping it onto a chest item; take a
+lore-restricted item out by swapping it onto a junk item). Each drag path therefore runs,
+before mutating anything:
+
+- `InventoryToWindow`: `window.CanWithdraw(containerSlot)` **and**
+  `window.CanDeposit(inventorySlot)`.
+- `WindowToInventory`: `window.CanWithdraw(containerSlot)` **and**
+  `window.CanDeposit(inventorySlot)`.
+- `WindowToWindow`: all four — `fromWindow.CanWithdraw(fromSlot)`,
+  `toWindow.CanDeposit(fromSlot)`, `toWindow.CanWithdraw(toSlot)`,
+  `fromWindow.CanDeposit(toSlot)`.
+
+All container movement funnels through the three packet entry points, so the seam is
+complete coverage. (Chest↔bank and chest↔chest `WTW` are unreachable under the
+single-Bank-frame rule, but the checks stay for combine-bag drags and defense in depth.)
 
 `CommunityChestWindow` implements:
 
