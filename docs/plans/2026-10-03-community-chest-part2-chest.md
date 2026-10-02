@@ -130,12 +130,15 @@ public class ChestHandler
   log + skip), `var slots = world.WorldState.Get<ItemSlot[]>(key)` (materializes from
   `RawJson`; null/corrupt → start empty), build the container sized
   `maxPages * BankSlotsPerPage + 1` with
-  `maxPages = Math.Max(Math.Max(1, CommunityChestPages), ceil((slots?.Length ?? 0) /
-  (double)BankSlotsPerPage))` — **grow-only and whole-page**: a longer blob keeps its items,
-  and rounding up to whole pages keeps every page-visible index a real container slot (a
-  partial page would let a drag swap against an out-of-range `GetSlot` that returns null and
-  a `SetSlot` that discards — clearing the inventory side and destroying the item) — replay
-  the `PlayerBank.Load` dance (`Goose/PlayerBank.cs:64-90`): null slot → skip; `GetTemplate`
+  `maxPages = Math.Max(Math.Max(1, CommunityChestPages),
+  ceil((Math.Max(0, (slots?.Length ?? 1) - 1)) / (double)BankSlotsPerPage))` — **grow-only
+  and whole-page**: a longer blob keeps its items, and rounding up to whole pages keeps every
+  page-visible index a real container slot (a partial page would let a drag swap against an
+  out-of-range `GetSlot` that returns null and a `SetSlot` that discards — clearing the
+  inventory side and destroying the item). The `- 1` excludes the sentinel slot 0 that
+  containers serialize: without it a healthy one-page blob (31) computes 2 pages → 61 slots
+  → 3 pages next restart — an unbounded capacity ratchet. Replay the `PlayerBank.Load`
+  dance (`Goose/PlayerBank.cs:64-90`): null slot → skip; `GetTemplate`
   miss → log + skip; else `ItemHandler.AddItem(item, world)`, re-attach `Template`,
   `RefreshStats()`, `container.SetSlot(i, slot)`. Then `Set(key, container)` (replaces the
   `RawJson`/array with the live container) and subscribe the broadcast handler.
@@ -157,8 +160,9 @@ public class ChestHandler
   destroy hole): configure `CommunityChestPages = 1`, seed a 40-slot blob → `maxPages == 2`,
   `MaxSlots == 61`, slot 39 populated, slots 40-60 null. (Task 3 derives `MaxPages` from
   `MaxSlots`, so page 2 is reachable and its 20 phantom slots are real nulls.)
-- `CommitTransfer_PersistsBothSidesInOneTransaction` (integration, in part 2 Task 5): see
-  Task 5.
+- `Load_CapacityStableAcrossRestarts` (adversarial for the ratchet): load a 31-slot blob →
+  `MaxSlots == 31`; simulate save + reload of the resulting serialization → still 31, twice.
+- `CommitTransfer_PersistsBothSidesInOneTransaction` (integration, in Task 5): see Task 5.
 
 **Commit** — `feat(chests): ChestHandler with world-state-backed containers`
 
@@ -185,7 +189,14 @@ public virtual bool CanDeposit(Player player, ItemSlot? incoming, GameWorld worl
 public virtual bool CanWithdraw(Player player, ItemSlot? outgoing, GameWorld world) => true;
 protected virtual bool PushesViaBroadcast => false;
 protected virtual int GetSlotOffset() => 0;
+public virtual void AfterTransfer(Player player, GameWorld world) { }
 ```
+
+`AfterTransfer` is invoked at the end of all three drag methods — including the static
+`WindowToWindow`, which calls it on `fromWindow` and `toWindow` — **only when the swap
+actually executed** (after the validation guards return). It is the single persistence hook;
+static methods cannot be overridden per-window, so the chest's atomic commit hangs off this
+instead of off call sites the implementer would have to remember in three places.
 
 **Every drag is a swap** — both directions must be validated before anything mutates:
 
@@ -240,7 +251,10 @@ container slot, so the actor's suppressed send is fully replaced. The inventory-
   → `CapturingPlayer.Sent` contains an `SBS` packet for the target slot
   (`Goose/Packets.cs:606-614`).
 - `RefusedDeposit_LeavesSlotsUntouched`: test-only subclass returning `false` from
-  `CanDeposit` → both slots unchanged, no window slot packet.
+  `CanDeposit` → both slots unchanged, no window slot packet, and `AfterTransfer` did not
+  run (subclass records the call).
+- `WindowToWindow_InvokesAfterTransferOnBothWindows`: static `WTW` between two recording
+  windows → both hooks fire once, in order, only after the swap.
 - `OccupiedTarget_WithdrawDirectionValidated` (adversarial for the reverse-swap hole):
   subclass refusing `CanWithdraw` → an inventory→window drag onto an **occupied** slot is
   refused even though the incoming item alone would pass `CanDeposit`.
@@ -299,16 +313,20 @@ public static Func<Window, int, string> ClearGenericWindowSlot = (window, slotId
 - Range check gates `InventoryToWindow`/`WindowToInventory` (mirror `BankWindow.cs:66-103`);
   `WindowToWindow` gets the matching case.
 - `PushesViaBroadcast => true`.
-- After every **accepted** drag (`InventoryToWindow`, `WindowToInventory`, and the chest side
-  of `WindowToWindow`), call `world.ChestHandler.CommitTransfer(world, player, container)`:
-  snapshot the container's JSON on the game thread, then one
-  `world.Database.EnqueueTransaction(conn => { chest upsert;
-  player.Inventory.BuildSave()(conn); player.Bank.BuildSave(player)(conn); },
-  onCommit: () => world.WorldState.NoteCommitted(key, json))` —
-  `Inventory.BuildSave` covers inventory + equipped + combine bag (`Goose/Inventory.cs:979`),
-  `PlayerBank.BuildSave` the bank rows (`Goose/PlayerBank.cs:107`), and `GameWorld.cs:1066`
-  composes the same parts for the full player save. Without this, a withdrawal persists the
-  item into the inventory on the player's schedule and out of the chest on the periodic
+- `AfterTransfer` override → `world.ChestHandler.CommitTransfer(world, player, ItemContainer)`.
+  `CommitTransfer` **builds everything on the game thread before enqueueing**: snapshot the
+  container's JSON, then `var inventoryPart = player.Inventory.BuildSave();` and
+  `var bankPart = player.Bank.BuildSave(player);` — these APIs snapshot *at build time*
+  (`Goose/Inventory.cs:972-977`, `Goose/PlayerBank.cs:101-107`, sequencing rule
+  `Goose/Player.cs:1045-1048`); calling them inside the transaction lambda would snapshot on
+  the DB thread, letting two rapid transfers pair chest-1's snapshot with post-transfer-2
+  player state — the dupe/loss window the transaction exists to close. Then one
+  `world.Database.EnqueueTransaction(conn => { chestUpsert(conn, key, json);
+  inventoryPart(conn); bankPart(conn); }, onCommit: () =>
+  world.WorldState.NoteCommitted(key, json))`. `Inventory.BuildSave` covers inventory +
+  equipped + combine bag; the bank part rides along unconditionally so chest↔bank drags are
+  covered (an unchanged bank row upsert is idempotent). Without this, a withdrawal persists
+  the item into the inventory on the player's schedule and out of the chest on the periodic
   schedule — two transactions, and a crash between them is the exact dupe
   `Database.cs:225-236` warns about. Enqueue order is game-thread order on a single FIFO DB
   thread, so this and an in-flight periodic plan commit in state order.
@@ -489,6 +507,11 @@ default), plus a registered item template via the same pattern as part 1 Task 2 
   does (both sides landed in the drag's single transaction; a periodic-only design would
   still show the item in the chest here). Then reload state and assert the item exists
   exactly once across chest + inventory rows.
+- `BankToChest_PersistsAtomically` (covers the static `WTW` seam): open a bank window and a
+  chest window for the same player, drag bank→chest via `WindowToWindow`, no explicit save,
+  fence → chest row holds the item and the player's `bank_items` row no longer does
+  (adversarial for the missing-WTW-hook failure mode: with the commit wired only on the two
+  instance drag paths, the chest row would still show empty until the periodic save).
 
 **Commit** — `feat(chests): right-click wiring and persistence round trip`
 
@@ -501,8 +524,10 @@ default), plus a registered item template via the same pattern as part 1 Task 2 
 - `GenericContainer` frame 30, `GWS`/`GWC` window-ID addressing, `++LastWindowID`
   allocation, one-chest-window replacement, whole-page sizing + absolute slot validation,
   and bank/chest coexistence match design §Protocol additions / §CommunityChestWindow.
-- Atomic transfer transaction matches design §Transfer persistence; the four withdrawal
-  rules and two deposit flags match §Transfer validation.
+- Atomic transfer transaction — game-thread-built parts, `AfterTransfer` seam on all three
+  drag paths including static `WTW`, bank↔chest coverage — matches design §Transfer
+  persistence; the four withdrawal rules and two deposit flags match §Transfer validation;
+  the sentinel-excluded whole-page sizing matches §ChestHandler "Load".
 - Bidirectional validation on all three drag paths matches design §Transfer validation.
 - Merge announce via `NotifySlotChanged` matches design §ItemContainer change event.
 - Spawn-property routing, `CommunityChestPages` default 3 (initializer + json), and
