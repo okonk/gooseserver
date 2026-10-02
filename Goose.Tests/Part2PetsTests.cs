@@ -372,6 +372,28 @@ namespace Goose.Tests
         }
 
         [Fact]
+        public void PetVita_does_not_lower_current_hp()
+        {
+            var (fixture, player, _) = WorldAndPlayer();
+            using (fixture)
+            {
+                fixture.Settings.PetVitaCost = 100;
+                fixture.Settings.PetVitaBuyAmount = 10;
+                fixture.Settings.IncreasePetVitaBuyCost = 10;
+                var pet = MakePet(fixture, player, 1, "Rex");
+                pet.BaseStats = new AttributeSet { HP = 100 };
+                pet.MaxStats = new AttributeSet { HP = 100 };
+                pet.CurrentHP = 100;
+                pet.Experience = 1000;
+
+                Assert.True(fixture.RunCommand(player, "/petvita 1 1"));
+
+                Assert.True(pet.MaxHP > 100);
+                Assert.Equal(100, pet.CurrentHP);
+            }
+        }
+
+        [Fact]
         public void PetVita_bad_token_sends_usage()
         {
             var (fixture, player, _) = WorldAndPlayer();

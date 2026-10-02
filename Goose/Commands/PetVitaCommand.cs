@@ -39,7 +39,7 @@ namespace Goose.Commands
 
             if (match.Class.GetLevel(match.Level)?.Experience != 0) return;
 
-            match.RemoveStats(match.BaseStats, world);
+            match.RemoveStats(match.BaseStats, world, false);
 
             double buyrate = 0;
             long expcost;
