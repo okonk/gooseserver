@@ -24,6 +24,8 @@ namespace Goose
         // Support LoginIDs 1..MaxPlayers inclusive; index 0 unused (LoginID 0 = none / full)
         private Player?[] idToPlayer;
 
+        public event Action<Player>? PlayerRemoved;
+
         public PlayerHandler(GooseSettings settings)
         {
             this.idToPlayer = new Player[settings.MaxPlayers + 1];
@@ -87,6 +89,7 @@ namespace Goose
             if (player.LoginID != 0 && player.LoginID < this.idToPlayer.Length)
                 this.idToPlayer[player.LoginID] = null;
             player.LoginID = 0;
+            this.PlayerRemoved?.Invoke(player);
         }
 
         /// <summary>
