@@ -2,6 +2,8 @@ namespace Goose
 {
     public class CommunityChestWindow : ItemContainerWindow
     {
+        private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
+
         public int SlotsPerPage { get; private set; }
 
         public int CurrentPage { get; set; }
@@ -32,6 +34,65 @@ namespace Goose
 
             world.ChestHandler.AddViewer(this.ItemContainer, player, this);
             this.SendCreate(player, world);
+        }
+
+        // Chests are shared storage, so the same acquisition gates as pickup apply to anything
+        // crossing the boundary in either direction (both sides of every swap are validated).
+        public override bool CanDeposit(Player player, ItemSlot? incoming, GameWorld world)
+        {
+            if (incoming?.Item is { IsBound: true } or { IsBindOnPickup: true })
+            {
+                world.Send(player, P.ServerMessage("That item is bound to you."));
+                return false;
+            }
+
+            return true;
+        }
+
+        public override bool CanWithdraw(Player player, ItemSlot? outgoing, GameWorld world)
+        {
+            if (outgoing is null) return true;
+
+            Item item = outgoing.Item;
+
+            if (item.IsBound)
+            {
+                world.Send(player, P.ServerMessage("That item is bound."));
+                return false;
+            }
+
+            if (item.IsLore && player.HasItem(item.Template.ID))
+            {
+                world.Send(player, P.ServerMessage("Already have LORE item " + item.Name + "."));
+                return false;
+            }
+
+            string? refusal = null;
+            try
+            {
+                refusal = item.Script?.Object.CanPickup(player, item, world);
+            }
+            catch (Exception e)
+            {
+                // Fail CLOSED: a broken gate script must refuse rather than admit.
+                log.Error(e, "Item CanPickup {0} Exception", item.TemplateID);
+                refusal = "You cannot pick that up right now.";
+            }
+            if (refusal is not null)
+            {
+                world.Send(player, P.ServerMessage(refusal));
+                return false;
+            }
+
+            // An unbound BOP item can only exist via persisted-older-state or GM/script
+            // generation; withdrawal is acquisition, so refuse rather than launder it out unbound.
+            if (item.IsBindOnPickup && !item.IsBound)
+            {
+                world.Send(player, P.ServerMessage("That item is bound to you."));
+                return false;
+            }
+
+            return true;
         }
 
         // The client's v1 widget is single-instance per frame: a second MKW retargets it, so a
