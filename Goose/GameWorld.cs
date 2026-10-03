@@ -277,7 +277,8 @@ namespace Goose
                 CreateTableIfMissing(conn, "quest_status",
                     "player_id INT NOT NULL, serialized_data TEXT NOT NULL, PRIMARY KEY(player_id)");
                 CreateTableIfMissing(conn, "quest_claims",
-                    "quest_id INT PRIMARY KEY, player_id INT NOT NULL, completed_at TEXT NOT NULL");
+                    "quest_id INT PRIMARY KEY, player_id INT NOT NULL, completed_at TEXT NOT NULL, player_ids TEXT NOT NULL DEFAULT ''");
+                AddColumnIfMissing(conn, "quest_claims", "player_ids", "TEXT NOT NULL DEFAULT ''");
                 Goose.Logs.LogSchemaMigrator.Migrate(conn);
             });
         }

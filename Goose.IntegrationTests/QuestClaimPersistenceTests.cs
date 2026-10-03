@@ -8,7 +8,7 @@ namespace Goose.IntegrationTests;
 public class QuestClaimPersistenceTests : PlayerFirstSaveTestBase
 {
     public QuestClaimPersistenceTests()
-        : base(["players", "quest_claims"], ["quests", "quest_requirements", "quest_rewards"]) { }
+        : base(["players", "quest_claims", "logs"], ["quests", "quest_requirements", "quest_rewards"]) { }
 
     [Fact]
     public void Claiming_writes_a_row_and_reload_restores_it()
@@ -42,6 +42,31 @@ public class QuestClaimPersistenceTests : PlayerFirstSaveTestBase
         Assert.True(reloaded.TryGetClaim(9, out var claim));
         Assert.Equal(7, claim.PlayerId);
         Assert.Equal(DateTimeKind.Utc, claim.CompletedAt.Kind);
+    }
+
+    [Fact]
+    public void Migration_adds_player_ids_to_an_old_schema_table()
+    {
+        world.Database.Execute(conn =>
+        {
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "DROP TABLE quest_claims";
+            cmd.ExecuteNonQuery();
+            cmd.CommandText = "CREATE TABLE quest_claims (quest_id INT PRIMARY KEY, player_id INT NOT NULL, completed_at TEXT NOT NULL)";
+            cmd.ExecuteNonQuery();
+            cmd.CommandText = "INSERT INTO quest_claims VALUES (9, 7, '2026-10-01T00:00:00.0000000Z')";
+            cmd.ExecuteNonQuery();
+        });
+
+        world.MigrateDatabaseSchema(); // idempotent — every helper is guard-first
+
+        var hasColumn = world.Database.Execute<bool>(conn =>
+            GameWorld.ColumnExists(conn, "quest_claims", "player_ids"));
+        Assert.True(hasColumn);
+
+        var reloaded = new QuestHandler();
+        reloaded.LoadClaims(world); // must not crash on the migrated row (loader doesn't read the column until Task 2)
+        Assert.True(reloaded.IsClaimed(9));
     }
 
     [Fact]
