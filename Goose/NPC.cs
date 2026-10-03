@@ -1350,7 +1350,6 @@ namespace Goose
             {
                 switch (this.Behaviour)
                 {
-                    case NPCTemplate.BehaviourTypes.TeleportAggroIfUnreachable:
                     case NPCTemplate.BehaviourTypes.TeleportAggro:
                         bool loseaggro = true;
                         this.AggroTarget!.WarpTo(world, this.Map,

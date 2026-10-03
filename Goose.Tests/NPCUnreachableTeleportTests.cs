@@ -186,7 +186,7 @@ public class NPCUnreachableTeleportTests : IDisposable
     }
 
     [Fact]
-    public void ReachableFarPlayer_TimerExpired_WarpedByTimerBranch()
+    public void ReachableFarPlayer_TimerExpired_NotWarped()
     {
         var npc = SpawnNpc(Template(NPCTemplate.BehaviourTypes.TeleportAggroIfUnreachable), 5, 5);
         var player = NewPlayer();
@@ -197,9 +197,9 @@ public class NPCUnreachableTeleportTests : IDisposable
         npc.LastAttackTime = world.TimeNow - 61L * world.TimerFrequency;
         npc.HandleAttackEvent(world);
 
-        Assert.True(NearNpc(player, npc));
-        Assert.Contains("ATT" + npc.LoginID, Buffer(player));
-        Assert.Contains("STUCKMSG", Buffer(player));
+        Assert.Equal(17, player.MapX);
+        Assert.Equal(5, player.MapY);
+        Assert.DoesNotContain("STUCKMSG", Buffer(player));
     }
 
     [Fact]
