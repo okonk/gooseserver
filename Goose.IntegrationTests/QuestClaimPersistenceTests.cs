@@ -1,5 +1,6 @@
 using System.Data;
 using System.Data.SQLite;
+using System.Text.Json;
 using Goose;
 using Goose.Quests;
 
@@ -45,6 +46,59 @@ public class QuestClaimPersistenceTests : PlayerFirstSaveTestBase
     }
 
     [Fact]
+    public void Claiming_writes_the_roster_into_player_ids()
+    {
+        InsertQuestRow(9, oneTime: true);
+        world.QuestHandler.LoadQuests(world);
+        var quest = world.QuestHandler.Get(9)!;
+        quest.Requirements.Add(new QuestRequirement { Id = 98, Quest = quest, Type = RequirementType.Gold, Value = 50 });
+
+        var rostered = new Player(0) { Name = "Helper", PlayerID = 7, Gold = 100 };
+        rostered.QuestsStarted.Add(quest);
+        world.PlayerHandler.AddPlayerToData(rostered);
+
+        var completer = new Player(0) { Name = "Hero", PlayerID = 8 };
+        world.QuestHandler.Claim(quest, completer, world);
+        world.Database.Execute(conn => { });
+
+        var raw = world.Database.Execute<string?>(conn =>
+        {
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT player_ids FROM quest_claims WHERE quest_id=9";
+            return (string?)cmd.ExecuteScalar();
+        });
+        Assert.NotNull(raw);
+        var roster = JsonSerializer.Deserialize<HashSet<int>>(raw, JsonHelper.DatabaseOptions);
+        Assert.Equal([7], roster);
+        Assert.Equal(8, world.QuestHandler.Claims[9].PlayerId);
+    }
+
+    [Fact]
+    public void Roster_survives_restart_and_unblocks_the_rostered_player()
+    {
+        InsertQuestRow(9, oneTime: true);
+        world.QuestHandler.LoadQuests(world);
+        var quest = world.QuestHandler.Get(9)!;
+        quest.Requirements.Add(new QuestRequirement { Id = 98, Quest = quest, Type = RequirementType.Gold, Value = 50 });
+
+        var rostered = new Player(0) { Name = "Helper", PlayerID = 7, Gold = 100 };
+        rostered.QuestsStarted.Add(quest);
+        world.PlayerHandler.AddPlayerToData(rostered);
+
+        var completer = new Player(0) { Name = "Hero", PlayerID = 8 };
+        world.QuestHandler.Claim(quest, completer, world);
+        world.Database.Execute(conn => { });
+
+        var reloaded = new QuestHandler();
+        reloaded.LoadClaims(world);
+        Assert.True(reloaded.TryGetClaim(9, out var claim));
+        Assert.Equal([7], claim.Roster);
+
+        Assert.False(reloaded.IsClaimedFor(quest, rostered));
+        Assert.True(reloaded.IsClaimedFor(quest, new Player(0) { Name = "Stranger", PlayerID = 81 }));
+    }
+
+    [Fact]
     public void Migration_adds_player_ids_to_an_old_schema_table()
     {
         world.Database.Execute(conn =>
@@ -65,8 +119,10 @@ public class QuestClaimPersistenceTests : PlayerFirstSaveTestBase
         Assert.True(hasColumn);
 
         var reloaded = new QuestHandler();
-        reloaded.LoadClaims(world); // must not crash on the migrated row (loader doesn't read the column until Task 2)
+        reloaded.LoadClaims(world);
         Assert.True(reloaded.IsClaimed(9));
+        Assert.True(reloaded.TryGetClaim(9, out var claim));
+        Assert.Empty(claim.Roster);
     }
 
     [Fact]
@@ -74,13 +130,20 @@ public class QuestClaimPersistenceTests : PlayerFirstSaveTestBase
     {
         InsertQuestRow(9, oneTime: true);
         world.QuestHandler.LoadQuests(world);
-        world.QuestHandler.Claims[9] = new QuestClaim { QuestId = 9, PlayerId = 7, CompletedAt = DateTime.UtcNow };
+        world.QuestHandler.Claims[9] = new QuestClaim
+        {
+            QuestId = 9,
+            PlayerId = 7,
+            CompletedAt = DateTime.UtcNow,
+            Roster = [7, 8],
+        };
 
         world.QuestHandler.LoadQuests(world);
 
         Assert.True(world.QuestHandler.IsClaimed(9));
         Assert.True(world.QuestHandler.TryGetClaim(9, out var claim));
         Assert.Equal(7, claim.PlayerId);
+        Assert.Equal([7, 8], claim.Roster);
     }
 
     [Fact]
