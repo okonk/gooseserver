@@ -34,7 +34,7 @@ namespace Goose.Quests
 
         internal static bool IsAvailable(Quest quest, Player player, GameWorld world)
         {
-            if (quest.OnlyOnePlayerCanComplete && world.QuestHandler.IsClaimed(quest.Id))
+            if (world.QuestHandler.IsClaimedFor(quest, player))
                 return false;
 
             if (player.QuestsCompleted.Any(q => q.Id == quest.Id) && !quest.Repeatable)

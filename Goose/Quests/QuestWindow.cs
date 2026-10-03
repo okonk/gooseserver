@@ -104,7 +104,7 @@ namespace Goose.Quests
                 if (player.QuestsCompleted.Any(q => q.Id == quest.Id) && !quest.Repeatable)
                     continue;
 
-                if (quest.OnlyOnePlayerCanComplete && world.QuestHandler.IsClaimed(quest.Id) && !player.QuestsStarted.Any(q => q.Id == quest.Id))
+                if (world.QuestHandler.IsClaimedFor(quest, player) && !player.QuestsStarted.Any(q => q.Id == quest.Id))
                     continue;
 
                 if (quest.PrerequisiteQuests.Any(prereq => !player.QuestsCompleted.Any(q => q.Id == prereq)))
@@ -127,7 +127,7 @@ namespace Goose.Quests
             if (player.QuestsStarted.Any(q => q.Id == quest.Id))
                 return;
 
-            if (quest.OnlyOnePlayerCanComplete && world.QuestHandler.IsClaimed(quest.Id))
+            if (world.QuestHandler.IsClaimedFor(quest, player))
                 return;
 
             player.QuestsStarted.Add(quest);
@@ -228,7 +228,7 @@ namespace Goose.Quests
 
                         if (this.PlayerMeetsRequirements(player, world))
                         {
-                            if (quest.OnlyOnePlayerCanComplete && world.QuestHandler.IsClaimed(quest.Id))
+                            if (world.QuestHandler.IsClaimedFor(quest, player))
                             {
                                 player.QuestsStarted.RemoveAll(q => q.Id == quest.Id);
                                 player.QuestProgress.RemoveAll(p => p.Requirement.Quest.Id == quest.Id);

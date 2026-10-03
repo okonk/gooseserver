@@ -72,6 +72,17 @@ public class QuestRosterTests
         return player;
     }
 
+    private static void ClaimWithRoster(TestWorldFixture world, int questId, params int[] roster)
+    {
+        world.World.QuestHandler.Claims[questId] = new QuestClaim
+        {
+            QuestId = questId,
+            PlayerId = 1,
+            CompletedAt = DateTime.UtcNow,
+            Roster = [.. roster],
+        };
+    }
+
     private static void StartDatabase(TestWorldFixture world)
     {
         world.World.Database.Start(Path.Combine(world.DataDirectory, "test.db"));
@@ -207,5 +218,83 @@ public class QuestRosterTests
 
         quest.OnlyOnePlayerCanComplete = true;
         Assert.False(world.World.QuestHandler.IsClaimedFor(quest, player));
+    }
+
+    [Fact]
+    public void Rostered_player_sees_lists_starts_and_turns_in_a_claimed_quest_normally()
+    {
+        var (world, npc, _, quest) = SetupOneTime();
+        var player = MakePlayer(world, "Rostered", 2, 100);
+        var goldRequirement = new QuestRequirement { Id = 98, Quest = quest, Type = RequirementType.Gold, Value = 50 };
+        quest.Requirements.Add(goldRequirement);
+        ClaimWithRoster(world, quest.Id, player.PlayerID);
+        player.QuestsStarted.Add(quest);
+
+        Assert.Contains(QuestWindow.GetAvailableQuests(npc, player, world.World), q => q.Id == quest.Id);
+        Assert.Equal(QuestIconState.Ready, QuestStateResolver.Resolve(npc, player, world.World));
+
+        var window = new QuestWindow(npc, player, quest, world.World);
+        window.Clicked(Window.ButtonTypes.Next, npc.NPCTemplate.NPCTemplateID, 0, 0, player, world.World);
+
+        Assert.Equal(quest.PassText, window.GetCurrentText(player, world.World));
+        Assert.Equal(50, player.Gold);
+        Assert.Contains(player.QuestsCompleted, q => q.Id == quest.Id);
+        Assert.Equal(1, world.World.QuestHandler.Claims[quest.Id].PlayerId);
+        Assert.Equal([player.PlayerID], world.World.QuestHandler.Claims[quest.Id].Roster);
+
+        world.Dispose();
+    }
+
+    [Fact]
+    public void Rostered_player_who_already_completed_is_blocked_from_re_turn_in_including_repeatable()
+    {
+        var (world, npc, _, quest) = SetupOneTime();
+        quest.Repeatable = true;
+        var player = MakePlayer(world, "Rostered", 2, 0);
+        ClaimWithRoster(world, quest.Id, player.PlayerID);
+        player.QuestsCompleted.Add(quest);
+        player.QuestsStarted.Add(quest);
+
+        var window = new QuestWindow(npc, player, quest, world.World);
+        window.Clicked(Window.ButtonTypes.Next, npc.NPCTemplate.NPCTemplateID, 0, 0, player, world.World);
+
+        var text = window.GetCurrentText(player, world.World);
+        Assert.Contains("Someone has already completed this quest", text);
+        Assert.Contains("It can only be completed once", text);
+        Assert.DoesNotContain(player.QuestsStarted, q => q.Id == quest.Id);
+        Assert.Equal(1, world.World.QuestHandler.Claims[quest.Id].PlayerId);
+
+        var (world2, npc2, _, quest2) = SetupOneTime();
+        var player2 = MakePlayer(world2, "Rostered", 2, 0);
+        ClaimWithRoster(world2, quest2.Id, player2.PlayerID);
+        player2.QuestsCompleted.Add(quest2);
+        player2.QuestsStarted.Add(quest2);
+
+        var window2 = new QuestWindow(npc2, player2, quest2, world2.World);
+        window2.Clicked(Window.ButtonTypes.Next, npc2.NPCTemplate.NPCTemplateID, 0, 0, player2, world2.World);
+
+        Assert.DoesNotContain(player2.Windows, w => w == window2);
+        Assert.Equal(1, world2.World.QuestHandler.Claims[quest2.Id].PlayerId);
+
+        world.Dispose();
+        world2.Dispose();
+    }
+
+    [Fact]
+    public void Rostered_player_can_restart_a_claimed_quest_and_a_non_rostered_one_still_cannot()
+    {
+        var (world, _, _, quest) = SetupOneTime();
+        ClaimWithRoster(world, quest.Id, 2);
+
+        var rostered = MakePlayer(world, "Rostered", 2, 0);
+        var other = MakePlayer(world, "Other", 3, 0);
+
+        QuestWindow.StartQuest(quest, rostered, world.World);
+        QuestWindow.StartQuest(quest, other, world.World);
+
+        Assert.Contains(rostered.QuestsStarted, q => q.Id == quest.Id);
+        Assert.DoesNotContain(other.QuestsStarted, q => q.Id == quest.Id);
+
+        world.Dispose();
     }
 }
