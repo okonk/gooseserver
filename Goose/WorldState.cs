@@ -96,7 +96,7 @@ namespace Goose
 
         public IEnumerable<string> KeysWithPrefix(string prefix)
         {
-            return values.Keys.Where(k => k.StartsWith(prefix)).ToList();
+            return values.Keys.Where(k => k.StartsWith(prefix, StringComparison.Ordinal)).ToList();
         }
 
         public void Save(GameWorld world)

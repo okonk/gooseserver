@@ -83,8 +83,10 @@ public class WorldStatePersistenceTests : PlayerFirstSaveTestBase
         var state = new WorldState();
         state.Load(world.Database);
 
+        var entered = new ManualResetEventSlim(false);
         var blocker = new ManualResetEventSlim(false);
-        world.Database.Enqueue(conn => blocker.Wait());
+        world.Database.Enqueue(conn => { entered.Set(); blocker.Wait(); });
+        entered.Wait();
 
         state.Set("probe:key", Slots((5, 2)));
         state.Save(world);
@@ -122,8 +124,10 @@ public class WorldStatePersistenceTests : PlayerFirstSaveTestBase
         var state = new WorldState();
         state.Load(world.Database);
 
+        var entered = new ManualResetEventSlim(false);
         var blocker = new ManualResetEventSlim(false);
-        world.Database.Enqueue(conn => blocker.Wait());
+        world.Database.Enqueue(conn => { entered.Set(); blocker.Wait(); });
+        entered.Wait();
 
         state.Set("probe:key", Slots((5, 2)));
         state.Save(world);
