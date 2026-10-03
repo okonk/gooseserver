@@ -948,7 +948,8 @@ var GOOSE_SCHEMA = {
           "enumNames": [
             "DoNothing",
             "TeleportToAggro",
-            "TeleportAggro"
+            "TeleportAggro",
+            "TeleportAggroIfUnreachable"
           ]
         },
         {
