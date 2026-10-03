@@ -45,6 +45,7 @@ namespace Goose
         public ScriptHandler ScriptHandler { get; set; }
         public CurrencyHandler CurrencyHandler { get; set; }
         public Database Database { get; private set; }
+        public WorldState WorldState { get; private set; }
         public GooseSettings Settings { get; }
         internal LogSearchService LogSearches { get; set; }
 
@@ -230,6 +231,7 @@ namespace Goose
             this.CurrencyHandler.Register(new GoldCurrency());
             this.CurrencyHandler.Register(new CreditsCurrency());
             this.Database = new Database();
+            this.WorldState = new WorldState();
             this.LogSearches = new LogSearchService(this);
 
             this.ExperienceModifier = this.Settings.ExperienceModifier;
@@ -460,6 +462,12 @@ namespace Goose
 
             if (!this.LoadStep("Global Scripts", () => LoadGlobalScripts())) return;
 
+            if (!this.LoadStep("World State", () =>
+            {
+                this.WorldState.Load(this.Database);
+                this.WorldState.AddSaveEvent(this);
+            })) return;
+
             // After global scripts: their OnLoaded can register item templates/currencies
             // that player inventories and banks reference at load time.
             if (!this.LoadStep("Players", () => this.PlayerHandler.LoadPlayerData(this),
@@ -532,6 +540,16 @@ namespace Goose
             catch (Exception e)
             {
                 log.Error(e, "Failed to save buffered logs during shutdown.");
+            }
+
+            log.Info("Saving world state.");
+            try
+            {
+                this.WorldState.SaveSync(this);
+            }
+            catch (Exception e)
+            {
+                log.Error(e, "Failed to save world state during shutdown.");
             }
 
             log.Info("Waiting for database writes.");

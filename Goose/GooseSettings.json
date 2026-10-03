@@ -106,6 +106,7 @@
     "GuildCreationCost": 500000,
     "DefaultGuildMOTD": "Welcome. To change this message type /guildmotd <message>, to give ownership to someone else type /guildowner <name>. To give/remove officer status type /guildofficer <name>",
     "GuildSavePeriod": 300,
+    "WorldSavePeriod": 300,
     "RankUpdatePeriod": 300,
     "MaxAC": 3500,
     "DamageReductionSoftCap": 0.5,

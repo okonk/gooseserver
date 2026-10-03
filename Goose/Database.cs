@@ -235,40 +235,50 @@ namespace Goose
         /// onCommit, if given, runs only after the COMMIT succeeds - never on the
         /// rollback path and never if COMMIT itself throws.
         /// </summary>
-        public void EnqueueTransaction(Action<SQLiteConnection> action, Action? onCommit = null)
+        public void EnqueueTransaction(Action<SQLiteConnection> action, Action? onCommit = null,
+                                       Action<Exception?>? onSettled = null)
         {
             if (action is null) throw new ArgumentNullException(nameof(action));
 
-            Enqueue(conn =>
-            {
-                // Driven as raw SQL rather than BeginTransaction because the commands the
-                // action creates do not set SQLiteCommand.Transaction. SQLite transactions
-                // are connection scoped, so every statement issued on this connection
-                // between BEGIN and COMMIT is included regardless.
-                RunSql(conn, "BEGIN;");
+            Enqueue(conn => RunTransaction(conn, action, onCommit), onSettled);
+        }
 
+        public void ExecuteTransaction(Action<SQLiteConnection> action)
+        {
+            if (action is null) throw new ArgumentNullException(nameof(action));
+
+            Execute(conn => RunTransaction(conn, action));
+        }
+
+        private static void RunTransaction(SQLiteConnection conn, Action<SQLiteConnection> action, Action? onCommit = null)
+        {
+            // Driven as raw SQL rather than BeginTransaction because the commands the
+            // action creates do not set SQLiteCommand.Transaction. SQLite transactions
+            // are connection scoped, so every statement issued on this connection
+            // between BEGIN and COMMIT is included regardless.
+            RunSql(conn, "BEGIN;");
+
+            try
+            {
+                action(conn);
+                RunSql(conn, "COMMIT;");
+                // H8: runs only after COMMIT succeeds, so a rolled-back transaction
+                // never lets callers mark state as persisted.
+                onCommit?.Invoke();
+            }
+            catch (Exception)
+            {
                 try
                 {
-                    action(conn);
-                    RunSql(conn, "COMMIT;");
-                    // H8: runs only after COMMIT succeeds, so a rolled-back transaction
-                    // never lets callers mark state as persisted.
-                    onCommit?.Invoke();
+                    RunSql(conn, "ROLLBACK;");
                 }
-                catch (Exception)
+                catch (Exception rollbackEx)
                 {
-                    try
-                    {
-                        RunSql(conn, "ROLLBACK;");
-                    }
-                    catch (Exception rollbackEx)
-                    {
-                        log.Error(rollbackEx, "Failed to roll back transaction");
-                    }
-
-                    throw;
+                    log.Error(rollbackEx, "Failed to roll back transaction");
                 }
-            });
+
+                throw;
+            }
         }
 
         private static void RunSql(SQLiteConnection conn, string sql)
