@@ -113,6 +113,7 @@ namespace CsvToSql
             DoNothing = 0,
             TeleportToAggro,
             TeleportAggro,
+            TeleportAggroIfUnreachable,
         }
     }
 }

@@ -28,6 +28,7 @@ namespace Goose
             DoNothing = 0,
             TeleportToAggro,
             TeleportAggro,
+            TeleportAggroIfUnreachable,
         }
         public BehaviourTypes Behaviour { get; set; }
         public long BehaviourTimeout { get; set; }
