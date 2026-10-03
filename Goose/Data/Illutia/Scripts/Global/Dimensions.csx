@@ -79,8 +79,8 @@ public partial class Dimensions : BaseGlobalScript
 
     /// <summary>Quest-giver placement, per dimension, on that dimension's start map.</summary>
     public const int WardenMapId = StartMapId;
-    public const int WardenX = 43;
-    public const int WardenY = 50;
+    public const int WardenX = 6;
+    public const int WardenY = 58;
 
     // ---- Rebirth --------------------------------------------------------
     // The spirit faucet: a repeatable quest converting banked experience into spirit and
@@ -130,14 +130,14 @@ public partial class Dimensions : BaseGlobalScript
     /// map /dimension already warps to, so a player who can reach a warden can reach the
     /// keeper without a second landmark.
     ///
-    /// Verified against Data/Illutia/Maps/Map1.map: the map is 286x194, and (44,50) carries
-    /// no blocked flag (bit 2 of the tile flags, Map.cs:471-475). It is one tile east of
-    /// WardenX/WardenY (43,50), so the two generated NPCs cannot collide. Warp tiles and
+    /// Verified against Data/Illutia/Maps/Map1.map: the map is 286x194, and (8,58) carries
+    /// no blocked flag (bit 2 of the tile flags, Map.cs:471-475). It is two tiles east of
+    /// WardenX/WardenY (6,58), so the two generated NPCs cannot collide. Warp tiles and
     /// sheet NPC spawns come from the database rather than the .map file, so
     /// CreateRebirthQuest re-checks the tile at load time instead of trusting this.</summary>
     public const int RebirthMapId = StartMapId;
-    public const int RebirthX = 44;
-    public const int RebirthY = 50;
+    public const int RebirthX = 8;
+    public const int RebirthY = 58;
 
     /// <summary>Quest ids are deterministic: QuestProgress persists keyed on
     /// requirement.Id (Player.cs:1020 / QuestWindow.cs:268), so a counter-assigned id
