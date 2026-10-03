@@ -244,7 +244,7 @@ namespace Goose
                 // those tables wholesale.
                 foreach (var schemaFile in new[]
                 {
-                    "players", "banks", "logs", "pets", "guilds", "wordfilter", "quest_claims",
+                    "players", "banks", "logs", "pets", "guilds", "wordfilter", "quest_claims", "world_state",
                 })
                 {
                     ExecuteSql(conn, File.ReadAllText(Paths.ResolveBase("sql/" + schemaFile + ".sql"), Encoding.UTF8));
@@ -279,6 +279,7 @@ namespace Goose
                 CreateTableIfMissing(conn, "quest_claims",
                     "quest_id INT PRIMARY KEY, player_id INT NOT NULL, completed_at TEXT NOT NULL, player_ids TEXT NOT NULL DEFAULT ''");
                 AddColumnIfMissing(conn, "quest_claims", "player_ids", "TEXT NOT NULL DEFAULT ''");
+                CreateTableIfMissing(conn, "world_state", "key TEXT PRIMARY KEY, value TEXT NOT NULL");
                 Goose.Logs.LogSchemaMigrator.Migrate(conn);
             });
         }

@@ -93,6 +93,31 @@ namespace Goose
             return values.Keys.Where(k => k.StartsWith(prefix)).ToList();
         }
 
+        public void Save(GameWorld world)
+        {
+            var plan = PlanSave();
+            world.Database.EnqueueTransaction(conn =>
+            {
+                // Executes only the captured plan, never live state, so a rollback retry re-runs identical SQL.
+                foreach (var key in plan.Deletes)
+                {
+                    using var cmd = conn.CreateCommand();
+                    cmd.CommandText = "DELETE FROM world_state WHERE key=@key";
+                    cmd.Parameters.AddWithValue("@key", key);
+                    cmd.ExecuteNonQuery();
+                }
+                foreach (var (key, json) in plan.Upserts)
+                {
+                    using var cmd = conn.CreateCommand();
+                    cmd.CommandText = "INSERT INTO world_state (key, value) VALUES (@key, @value) " +
+                        "ON CONFLICT(key) DO UPDATE SET value=@value";
+                    cmd.Parameters.AddWithValue("@key", key);
+                    cmd.Parameters.AddWithValue("@value", json);
+                    cmd.ExecuteNonQuery();
+                }
+            }, () => ApplyCommit(plan));
+        }
+
         internal record SavePlan(List<(string Key, string Json)> Upserts, List<string> Deletes);
 
         internal SavePlan PlanSave()
