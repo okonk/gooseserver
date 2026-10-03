@@ -1,6 +1,7 @@
 using System.Data;
 using System.Data.SQLite;
 using System.Text;
+using System.Text.Json;
 
 namespace Goose.Quests
 {
@@ -15,6 +16,14 @@ namespace Goose.Quests
         public bool IsClaimed(int questId) => Claims.ContainsKey(questId);
 
         public bool TryGetClaim(int questId, out QuestClaim claim) => Claims.TryGetValue(questId, out claim!);
+
+        public bool IsClaimedFor(Quest quest, Player player)
+        {
+            if (!quest.OnlyOnePlayerCanComplete) return false;
+            if (!Claims.TryGetValue(quest.Id, out var claim)) return false;
+            return !(claim.Roster.Contains(player.PlayerID)
+                && !player.QuestsCompleted.Any(q => q.Id == quest.Id));
+        }
 
         public void Claim(Quest quest, Player player, GameWorld world)
         {
@@ -110,16 +119,25 @@ namespace Goose.Quests
                 this.Claims.Clear();
                 using (var command = conn.CreateCommand())
                 {
-                    command.CommandText = "SELECT quest_id, player_id, completed_at FROM quest_claims";
+                    command.CommandText = "SELECT quest_id, player_id, completed_at, player_ids FROM quest_claims";
                     using (var reader = command.ExecuteReader())
                     {
                         while (reader.Read())
                         {
+                            var roster = new HashSet<int>();
+                            var raw = reader.GetString("player_ids");
+                            if (!string.IsNullOrEmpty(raw))
+                            {
+                                try { roster = JsonSerializer.Deserialize<HashSet<int>>(raw, JsonHelper.DatabaseOptions) ?? []; }
+                                catch (JsonException e) { log.Error(e, "quest_claims roster for quest {0} is corrupt; starting empty", reader.GetInt32("quest_id")); }
+                            }
+
                             this.Claims[reader.GetInt32("quest_id")] = new QuestClaim
                             {
                                 QuestId = reader.GetInt32("quest_id"),
                                 PlayerId = reader.GetInt32("player_id"),
                                 CompletedAt = DateTime.Parse(reader.GetString("completed_at"), null, System.Globalization.DateTimeStyles.RoundtripKind),
+                                Roster = roster,
                             };
                         }
                     }

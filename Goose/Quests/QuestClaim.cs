@@ -5,5 +5,6 @@ namespace Goose.Quests
         public int QuestId { get; set; }
         public int PlayerId { get; set; }
         public DateTime CompletedAt { get; set; }
+        public HashSet<int> Roster { get; set; } = [];
     }
 }
