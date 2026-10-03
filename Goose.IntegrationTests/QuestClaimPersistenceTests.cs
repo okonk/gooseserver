@@ -203,6 +203,44 @@ public class QuestClaimPersistenceTests : PlayerFirstSaveTestBase
         Assert.DoesNotContain(QuestWindow.GetAvailableQuests(npc, fresh, world), q => q.Id == quest.Id);
     }
 
+    [Fact]
+    public void A_corrupt_roster_blob_loads_empty_without_blocking_the_other_claims()
+    {
+        InsertQuestRow(9, oneTime: true);
+        InsertQuestRow(10, oneTime: true);
+
+        world.Database.Execute(conn =>
+        {
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "INSERT INTO quest_claims (quest_id, player_id, completed_at, player_ids) VALUES (@q, @p, @c, @r)";
+
+            cmd.Parameters.Clear();
+            cmd.Parameters.Add(new SQLiteParameter("@q", DbType.Int32) { Value = 9 });
+            cmd.Parameters.Add(new SQLiteParameter("@p", DbType.Int32) { Value = 7 });
+            cmd.Parameters.Add(new SQLiteParameter("@c", DbType.String) { Value = DateTime.UtcNow.ToString("o") });
+            cmd.Parameters.Add(new SQLiteParameter("@r", DbType.String) { Value = "[7]" });
+            cmd.ExecuteNonQuery();
+
+            cmd.Parameters.Clear();
+            cmd.Parameters.Add(new SQLiteParameter("@q", DbType.Int32) { Value = 10 });
+            cmd.Parameters.Add(new SQLiteParameter("@p", DbType.Int32) { Value = 8 });
+            cmd.Parameters.Add(new SQLiteParameter("@c", DbType.String) { Value = DateTime.UtcNow.ToString("o") });
+            cmd.Parameters.Add(new SQLiteParameter("@r", DbType.String) { Value = "not json" });
+            cmd.ExecuteNonQuery();
+        });
+
+        var reloaded = new QuestHandler();
+        reloaded.LoadClaims(world);
+
+        Assert.True(reloaded.IsClaimed(10));
+        Assert.True(reloaded.TryGetClaim(10, out var corrupt));
+        Assert.Empty(corrupt.Roster);
+
+        Assert.True(reloaded.IsClaimed(9));
+        Assert.True(reloaded.TryGetClaim(9, out var valid));
+        Assert.Equal([7], valid.Roster);
+    }
+
     private void InsertQuestRow(int id, bool oneTime)
     {
         world.Database.Execute(conn =>
