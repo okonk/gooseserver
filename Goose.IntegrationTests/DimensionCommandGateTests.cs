@@ -36,6 +36,8 @@ public class DimensionCommandGateTests
         Assert.True(fixture.RunCommand(player, "/dimension 5"));
 
         Assert.Equal(StartMapId + Offset * 5, player.MapID);
+        Assert.Equal(50, player.MapX);
+        Assert.Equal(50, player.MapY);
     }
 
     /// <summary>The bug. Player.WarpTo (Player.cs:1234) never calls Map.PlayerCanJoin, so

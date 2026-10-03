@@ -35,7 +35,7 @@ public static class DimensionCommands
         // PlayerCanJoin sends its own refusal, so there is nothing to say here.
         if (!target.PlayerCanJoin(ctx.Player, ctx.World)) return;
 
-        ctx.Player.WarpTo(ctx.World, target, Dimensions.WardenX, Dimensions.WardenY);
+        ctx.Player.WarpTo(ctx.World, target, Dimensions.SpawnX, Dimensions.SpawnY);
     }
 
     public static void ResetItem(CommandContext ctx, int slotId)

@@ -31,6 +31,11 @@ public partial class Dimensions : BaseGlobalScript
     /// <summary>Map /dimension n warps to.</summary>
     public const int StartMapId = 1;
 
+    /// <summary>Tile on StartMapId that /dimension n drops the player on - clear of the
+    /// Warden, who stands at (WardenX, WardenY).</summary>
+    public const int SpawnX = 50;
+    public const int SpawnY = 50;
+
     /// <summary>NPC template gating each dimension.</summary>
     public const int BossTemplateId = 162;
 
