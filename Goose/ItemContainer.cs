@@ -43,6 +43,12 @@ namespace Goose
 
         public void NotifySlotChanged(int index)
         {
+            if (index < 0 || index >= this.slots.Length)
+            {
+                log.Error("NotifySlotChanged called with out of range slot {0} (container size {1})", index, this.slots.Length);
+                return;
+            }
+
             SlotChanged?.Invoke(index, slots[index], slots[index]);
         }
 

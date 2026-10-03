@@ -64,6 +64,29 @@ public class ItemContainerSlotChangedTests
     }
 
     [Fact]
+    public void SetSlot_NullToValue_FiresWithNullOld()
+    {
+        var container = new ItemContainer(3);
+        var newSlot = MakeSlot();
+
+        int? index = null;
+        ItemSlot? firedOld = null;
+        ItemSlot? firedNew = null;
+        container.SlotChanged += (i, o, n) =>
+        {
+            index = i;
+            firedOld = o;
+            firedNew = n;
+        };
+
+        container.SetSlot(0, newSlot);
+
+        Assert.Equal(0, index);
+        Assert.Null(firedOld);
+        Assert.Same(newSlot, firedNew);
+    }
+
+    [Fact]
     public void NotifySlotChanged_FiresWithSameSlotBothSides()
     {
         var container = new ItemContainer(3);
@@ -85,5 +108,41 @@ public class ItemContainerSlotChangedTests
         Assert.Equal(2, index);
         Assert.Same(slot, firedOld);
         Assert.Same(slot, firedNew);
+    }
+
+    [Fact]
+    public void NotifySlotChanged_EmptySlot_FiresWithNullBothSides()
+    {
+        var container = new ItemContainer(3);
+
+        int? index = null;
+        ItemSlot? firedOld = null;
+        ItemSlot? firedNew = null;
+        container.SlotChanged += (i, o, n) =>
+        {
+            index = i;
+            firedOld = o;
+            firedNew = n;
+        };
+
+        container.NotifySlotChanged(1);
+
+        Assert.Equal(1, index);
+        Assert.Null(firedOld);
+        Assert.Null(firedNew);
+    }
+
+    [Fact]
+    public void NotifySlotChanged_OutOfRange_DoesNotFire()
+    {
+        var container = new ItemContainer(3);
+
+        int firedCount = 0;
+        container.SlotChanged += (i, o, n) => firedCount++;
+
+        container.NotifySlotChanged(-1);
+        container.NotifySlotChanged(3);
+
+        Assert.Equal(0, firedCount);
     }
 }
