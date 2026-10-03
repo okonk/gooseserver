@@ -3262,6 +3262,156 @@ var GOOSE_SCHEMA = {
       ],
       "composites": [],
       "indexes": []
+    },
+    {
+      "sheet": "Item Balance",
+      "table": "item_balance",
+      "columns": [
+        {
+          "name": "item_template_id",
+          "kind": "Id",
+          "sql": "INTEGER",
+          "required": true,
+          "pk": true,
+          "ref": "Items"
+        },
+        {
+          "name": "audience",
+          "kind": "Int",
+          "sql": "BIGINT",
+          "default": "0",
+          "required": false,
+          "pk": false
+        },
+        {
+          "name": "profile",
+          "kind": "Enum",
+          "sql": "SMALLINT",
+          "required": true,
+          "pk": false,
+          "enumNames": [
+            "None",
+            "Balanced",
+            "HP",
+            "MP",
+            "Tank",
+            "Dodge",
+            "Damage"
+          ]
+        },
+        {
+          "name": "profile2",
+          "kind": "Enum",
+          "sql": "SMALLINT",
+          "default": "0",
+          "required": false,
+          "pk": false,
+          "enumNames": [
+            "None",
+            "Balanced",
+            "HP",
+            "MP",
+            "Tank",
+            "Dodge",
+            "Damage"
+          ]
+        },
+        {
+          "name": "power",
+          "kind": "Enum",
+          "sql": "SMALLINT",
+          "default": "0",
+          "required": false,
+          "pk": false,
+          "enumNames": [
+            "Normal",
+            "Special",
+            "Weak",
+            "Exempt"
+          ]
+        },
+        {
+          "name": "power_pct",
+          "kind": "Int",
+          "sql": "INT",
+          "default": "0",
+          "required": false,
+          "pk": false
+        },
+        {
+          "name": "group",
+          "kind": "Text",
+          "sql": "TEXT",
+          "default": "\u0027\u0027",
+          "required": false,
+          "pk": false
+        },
+        {
+          "name": "step",
+          "kind": "Enum",
+          "sql": "SMALLINT",
+          "required": true,
+          "pk": false,
+          "enumNames": [
+            "Levelling",
+            "Punchy",
+            "HayFray",
+            "Sewers",
+            "Nagan",
+            "Savage",
+            "Nibbles",
+            "XP20M",
+            "XP100M",
+            "XP200M",
+            "XP400M"
+          ]
+        },
+        {
+          "name": "source",
+          "kind": "Enum",
+          "sql": "SMALLINT",
+          "required": true,
+          "pk": false,
+          "enumNames": [
+            "Vendor",
+            "Common",
+            "Uncommon",
+            "Rare",
+            "Crafted",
+            "RareBoss",
+            "HardCraft",
+            "Prestige",
+            "Special"
+          ]
+        },
+        {
+          "name": "lock",
+          "kind": "Bool",
+          "sql": "CHAR(1)",
+          "default": "\u00270\u0027",
+          "required": false,
+          "pk": false
+        },
+        {
+          "name": "note",
+          "kind": "Text",
+          "sql": "TEXT",
+          "default": "\u0027\u0027",
+          "required": false,
+          "pk": false
+        }
+      ],
+      "composites": [
+        {
+          "kind": "Bitmask",
+          "columns": [
+            "audience"
+          ],
+          "source": "Classes"
+        }
+      ],
+      "indexes": [],
+      "editorOnly": true
     }
   ]
 };

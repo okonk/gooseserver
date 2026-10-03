@@ -67,5 +67,12 @@ namespace CsvToSql.Core.Schema
             new TableSchema("Class Levelup Spells", "classes_levelup_spells",
                             new ClassLevelupSpellsCsvToSql()),
         };
+
+        /// <summary>Sheets the editor edits but the importer never reads: no table is created
+        /// and the converter does not require the worksheet to exist.</summary>
+        public static IReadOnlyList<TableSchema> EditorOnlyTables { get; } = new[]
+        {
+            new TableSchema("Item Balance", "item_balance", new ItemBalanceCsvToSql()),
+        };
     }
 }

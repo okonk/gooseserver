@@ -1,4 +1,5 @@
 using System.Text.Json;
+using CsvToSql.Core.Schema;
 using Goose.Tools.SchemaGen;
 
 namespace Tools.Tests;
@@ -42,6 +43,16 @@ public class SchemaJsTests
     }
 
     [Fact]
+    public void Only_editor_only_sheets_carry_the_flag()
+    {
+        var js = SchemaJs.Render(SchemaModel.Build());
+
+        Assert.Equal(SchemaRegistry.EditorOnlyTables.Count,
+                     System.Text.RegularExpressions.Regex.Matches(js, "\"editorOnly\": true").Count);
+        Assert.DoesNotContain("\"editorOnly\": false", js);
+    }
+
+    [Fact]
     public void Output_uses_lf_line_endings_on_every_platform()
     {
         // The serializer's NewLine defaults to Environment.NewLine, so without pinning it a
@@ -55,7 +66,8 @@ public class SchemaJsTests
     {
         using var doc = ParseBody(SchemaJs.Render(SchemaModel.Build()));
 
-        Assert.Equal(21, doc.RootElement.GetProperty("sheets").GetArrayLength());
+        Assert.Equal(SchemaRegistry.Tables.Count + SchemaRegistry.EditorOnlyTables.Count,
+                     doc.RootElement.GetProperty("sheets").GetArrayLength());
     }
 
     [Fact]

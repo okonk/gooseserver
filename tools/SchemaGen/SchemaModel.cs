@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using CsvToSql.Core.Schema;
 
 namespace Goose.Tools.SchemaGen;
@@ -27,33 +28,40 @@ public sealed record SchemaSheet(
     string Table,
     IReadOnlyList<SchemaColumn> Columns,
     IReadOnlyList<SchemaComposite> Composites,
-    IReadOnlyList<string> Indexes);
+    IReadOnlyList<string> Indexes,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    bool EditorOnly = false);
 
 public sealed record SchemaRoot(IReadOnlyList<SchemaSheet> Sheets);
 
 public static class SchemaModel
 {
-    /// <summary>Projects SchemaRegistry.Tables into the editor-facing shape. No schema
-    /// knowledge lives here — it is a pure mapping.</summary>
+    /// <summary>Projects SchemaRegistry.Tables and EditorOnlyTables into the editor-facing
+    /// shape. No schema knowledge lives here — it is a pure mapping.</summary>
     public static SchemaRoot Build() => new(
-        SchemaRegistry.Tables.Select(t => new SchemaSheet(
-            t.Sheet,
-            t.Table,
-            t.Columns.Select(c => new SchemaColumn(
-                c.Name,
-                c.Header,
-                c.Kind.ToString(),
-                c.Type.Sql,
-                c.Default,
-                c.IsRequired,
-                c.IsPrimaryKey,
-                c.RefSheet,
-                c.Kind == ColumnKind.Enum ? c.EnumNames : null,
-                c.Scale,
-                c.Max)).ToList(),
-            t.Composites.Select(k => new SchemaComposite(
-                k.Kind.ToString(),
-                k.Columns,
-                k.SourceSheet)).ToList(),
-            t.Indexes)).ToList());
+        SchemaRegistry.Tables.Select(t => (Table: t, EditorOnly: false))
+            .Concat(SchemaRegistry.EditorOnlyTables.Select(t => (Table: t, EditorOnly: true)))
+            .Select(e => Sheet(e.Table, e.EditorOnly)).ToList());
+
+    private static SchemaSheet Sheet(TableSchema t, bool editorOnly) => new(
+        t.Sheet,
+        t.Table,
+        t.Columns.Select(c => new SchemaColumn(
+            c.Name,
+            c.Header,
+            c.Kind.ToString(),
+            c.Type.Sql,
+            c.Default,
+            c.IsRequired,
+            c.IsPrimaryKey,
+            c.RefSheet,
+            c.Kind == ColumnKind.Enum ? c.EnumNames : null,
+            c.Scale,
+            c.Max)).ToList(),
+        t.Composites.Select(k => new SchemaComposite(
+            k.Kind.ToString(),
+            k.Columns,
+            k.SourceSheet)).ToList(),
+        t.Indexes,
+        editorOnly);
 }
