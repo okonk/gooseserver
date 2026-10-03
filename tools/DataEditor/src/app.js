@@ -140,6 +140,9 @@ var App = (function () {
     view: 'records',
     sets: [],
     setKey: null,
+    // The Balance view's joined items, and the slot to reopen after a save or a sheet reload.
+    balance: null,
+    balanceSlot: null,
   };
 
   function num(value) {
@@ -401,6 +404,7 @@ var App = (function () {
     state.group = null;
     document.getElementById('form').__group = null;
     document.getElementById('form').__setView = null;
+    document.getElementById('form').__balance = null;
     state.setKey = null;
   }
 
@@ -474,6 +478,7 @@ var App = (function () {
           if (!current()) return;
           if (Layout.groupParent(sheetName)) renderGroups();
           else if (setsView()) renderSets();
+          else if (balanceView()) renderBalance();
           else renderList();
           var warning = warnings();
           status(state.rows.length + ' records' + (warning ? ' — ' + warning : ''), !!warning);
@@ -618,24 +623,201 @@ var App = (function () {
     return state.view === 'sets' && SetView.available(state.schema);
   }
 
+  function balanceView() {
+    return state.view === 'balance' && BalanceView.available(state.schema);
+  }
+
   function updateViewToggle() {
     var toggle = document.getElementById('view-sets');
     toggle.hidden = !SetView.available(state.schema);
     toggle.textContent = setsView() ? 'Records' : 'Sets';
-    if (SetView.available(state.schema)) document.getElementById('new-record').disabled = setsView();
+    var balance = document.getElementById('view-balance');
+    balance.hidden = !BalanceView.available(state.schema);
+    balance.textContent = balanceView() ? 'Records' : 'Balance';
+    if (SetView.available(state.schema) || BalanceView.available(state.schema)) {
+      document.getElementById('new-record').disabled = setsView() || balanceView();
+    }
   }
 
-  function toggleView() {
-    if (!SetView.available(state.schema)) return;
+  function switchView(view) {
     if (state.saving) { status('Still saving — one moment', true); return; }
     guarded(function () {
-      state.view = setsView() ? 'records' : 'sets';
+      state.view = state.view === view ? 'records' : view;
       clearPreviews();
       clearForm();
       updateViewToggle();
       if (setsView()) renderSets();
+      else if (balanceView()) renderBalance();
       else renderList();
     });
+  }
+
+  function toggleView() {
+    if (!SetView.available(state.schema)) return;
+    switchView('sets');
+  }
+
+  function toggleBalance() {
+    if (!BalanceView.available(state.schema)) return;
+    switchView('balance');
+  }
+
+  // Reads Spell Effects and Item Balance alongside the Items rows already loaded, then lists the
+  // slots. Guarded by groupToken like a group: a reply for a view the user has left is dropped.
+  function renderBalance() {
+    var list = document.getElementById('records');
+    list.innerHTML = '';
+    var token = ++state.groupToken;
+    var sheetToken = state.sheetToken;
+    var current = function () {
+      return token === state.groupToken && sheetToken === state.sheetToken && balanceView();
+    };
+    var replies = {};
+    var failed = null;
+    var names = [BalanceView.EFFECT_SHEET, BalanceView.TAG_SHEET];
+    var remaining = names.length;
+    status('Loading balance tags…');
+
+    function done() {
+      if (!current()) return;
+      if (failed) {
+        status('Could not load ' + failed.sheet + ': ' + failed.message +
+               (failed.sheet === BalanceView.TAG_SHEET
+                 ? ' — the Item Balance tab has to exist in the spreadsheet first.' : ''), true);
+        return;
+      }
+      state.balance = {
+        items: BalanceView.build(state.schema, state.rows, replies[BalanceView.EFFECT_SHEET],
+                                 replies[BalanceView.TAG_SHEET]),
+        tagRows: replies[BalanceView.TAG_SHEET],
+      };
+      var slots = BalanceView.slots(state.balance.items);
+      slots.forEach(function (entry) {
+        var text = entry.slot + ' (' + entry.count + ')' +
+                   (entry.failing ? ' — ' + entry.failing + ' failing' : '') +
+                   (entry.untagged ? ' — ' + entry.untagged + ' untagged' : '');
+        var button = Forms.el('button', { type: 'button', class: 'record', 'data-slot': entry.slot }, text);
+        button.addEventListener('click', function () { openBalanceSlot(entry.slot); });
+        list.appendChild(button);
+      });
+
+      var reopen = slots.filter(function (e) { return e.slot === state.balanceSlot; })[0] || slots[0];
+      if (reopen) openBalanceSlotNow(reopen.slot);
+
+      var finished = state.pendingStatus;
+      state.pendingStatus = null;
+      if (finished && finished.sheet === state.sheetName) status(finished.message, !!finished.warn);
+      else status(state.balance.items.length + ' equippable items in ' + slots.length + ' slots');
+    }
+
+    names.forEach(function (name) {
+      google.script.run
+        .withFailureHandler(function (e) {
+          if (!failed) failed = { sheet: name, message: e && e.message ? e.message : String(e) };
+          remaining -= 1;
+          if (!remaining) done();
+        })
+        .withSuccessHandler(function (data) {
+          replies[name] = data.rows;
+          remaining -= 1;
+          if (!remaining) done();
+        })
+        .readSheet(name);
+    });
+  }
+
+  function openBalanceSlot(slot) {
+    if (!balanceView() || !state.balance) return;
+    if (state.saving) { status('Still saving — one moment', true); return; }
+    guarded(function () { openBalanceSlotNow(slot); });
+  }
+
+  function openBalanceSlotNow(slot) {
+    clearPreviews();
+    var container = document.getElementById('form');
+    container.__balance = null;
+    state.balanceSlot = slot;
+    BalanceView.render({ container: container, items: state.balance.items, slot: slot,
+                         onOpenItem: openBalanceItem });
+    var save = Forms.el('button', { type: 'button', 'data-save-balance': '' }, 'Save tags');
+    save.addEventListener('click', saveBalance);
+    container.appendChild(save);
+  }
+
+  // Leaves the Balance view for the item's record form.
+  function openBalanceItem(id) {
+    var pk = state.schema.columns.filter(function (c) { return c.pk; })[0];
+    var at = state.schema.columns.indexOf(pk);
+    var index = state.rows.findIndex(function (row) { return Number(row[at]) === Number(id); });
+    if (index === -1) return;
+    guarded(function () {
+      state.view = 'records';
+      clearForm();
+      updateViewToggle();
+      renderList();
+      editRow(index);
+    });
+  }
+
+  function saveBalance() {
+    if (state.saving) { status('Still saving — one moment', true); return; }
+    var container = document.getElementById('form');
+    if (!container.__balance) { status('Open a slot first — click one in the list.', true); return; }
+
+    var edited = BalanceView.changed(container);
+    if (!edited.length) { status('Nothing to save.'); return; }
+
+    var tagSchema = BalanceView.tagSchema();
+    var pk = tagSchema.columns.filter(function (c) { return c.pk; })[0];
+    var tagIds = new Set((state.balance.tagRows || []).map(function (row) {
+      return Number(row[tagSchema.columns.indexOf(pk)]);
+    }));
+    var idSets = { __self: tagIds, Items: new Set(state.ids) };
+    var problems = [];
+    edited.forEach(function (row) {
+      var own = row.rowNumber ? Number(row.loaded[pk.name]) : undefined;
+      Validation.validateRecord(tagSchema.columns, row.values, idSets, own).errors.forEach(function (e) {
+        problems.push('#' + row.values[pk.name] + ' ' + e.message);
+      });
+    });
+    if (problems.length) { status(problems.join('; '), true); return; }
+
+    var batch = [Groups.ops(tagSchema, edited, [], idSets)];
+    if (!batch[0].writes.length && !batch[0].appends.length) { status('Nothing to save.'); return; }
+
+    status('Saving…');
+    state.saving = true;
+    var savedSheet = state.sheetName;
+    var savedToken = state.sheetToken;
+
+    function reload() {
+      if (savedToken !== state.sheetToken || !balanceView()) return;
+      clearForm();
+      renderBalance();
+    }
+
+    google.script.run
+      .withFailureHandler(function (e) {
+        state.saving = false;
+        if (savedToken === state.sheetToken) {
+          state.pendingStatus = { sheet: savedSheet, message: e.message, warn: true };
+        }
+        reload();
+      })
+      .withSuccessHandler(function (results) {
+        state.saving = false;
+        var r = (results && results[0]) || { written: 0, appended: 0 };
+        if (savedToken === state.sheetToken) {
+          state.pendingStatus = {
+            sheet: savedSheet,
+            message: 'Saved ' + r.written + ' edited and ' + r.appended + ' new tag row' +
+                     (r.written + r.appended === 1 ? '' : 's') + '.',
+            warn: false,
+          };
+        }
+        reload();
+      })
+      .saveBatch(batch);
   }
 
   function renderSets() {
@@ -1171,7 +1353,8 @@ var App = (function () {
     var container = document.getElementById('form');
     var count = grouped() && container.__group
       ? Groups.changeCount(container, state.schema)
-      : container.__setView ? SetView.changed(container).length : 0;
+      : container.__setView ? SetView.changed(container).length
+      : container.__balance ? BalanceView.changed(container).length : 0;
     if (!count) { proceed(); return; }
     confirmDiscard(count, proceed, decline);
   }
@@ -1307,7 +1490,7 @@ var App = (function () {
     if (!state.schema) return;
     // A grouped sheet has no single-record form: "new" means "start editing a parent's rows".
     if (grouped()) { openParentPicker(); return; }
-    if (setsView()) return;
+    if (setsView() || balanceView()) return;
     state.rowNumber = 0;
     var values = rowToValues(null);
 
@@ -1707,6 +1890,7 @@ var App = (function () {
     // refused so the header button and the keyboard path both land somewhere sensible.
     if (grouped()) { saveGroup(); return; }
     if (setsView()) { saveSet(); return; }
+    if (balanceView()) { saveBalance(); return; }
 
     // publishCheck has state.checking; this is the same guard for the same reason, and it
     // matters more. Two clicks before the round-trip resolves issue two writeRow calls, and on
@@ -1905,7 +2089,8 @@ var App = (function () {
     if (state.checking) { status('Still checking all 21 sheets…'); return; }
     state.checking = true;
 
-    var sheets = GOOSE_SCHEMA.sheets.slice();
+    // Editor-only sheets are never imported, so they cannot break a publish.
+    var sheets = GOOSE_SCHEMA.sheets.filter(function (s) { return !s.editorOnly; });
     panel.innerHTML = '';
     panel.appendChild(Forms.el('p', null, 'Checking all ' + sheets.length + ' sheets…'));
 
@@ -2066,6 +2251,7 @@ var App = (function () {
     document.getElementById('save').addEventListener('click', save);
     document.getElementById('publish-check').addEventListener('click', publishCheck);
     document.getElementById('view-sets').addEventListener('click', toggleView);
+    document.getElementById('view-balance').addEventListener('click', toggleBalance);
 
     // Delegated preview refresh, registered ONCE on the form container — which outlives every
     // record, so registering it per render would stack a handler per record opened.
@@ -2077,7 +2263,7 @@ var App = (function () {
     // `input` and `change` both bubble;
     // `input` covers typing, `change` covers a <select> and a value committed without one.
     var form = document.getElementById('form');
-    function onEdit() { if (state.schema && !form.__setView) refreshPreviews(form); }
+    function onEdit() { if (state.schema && !form.__setView && !form.__balance) refreshPreviews(form); }
     form.addEventListener('input', onEdit);
     form.addEventListener('change', onEdit);
 
@@ -2097,6 +2283,9 @@ var App = (function () {
     openSet: openSet,
     saveSet: saveSet,
     toggleView: toggleView,
+    toggleBalance: toggleBalance,
+    openBalanceSlot: openBalanceSlot,
+    saveBalance: saveBalance,
     publishCheck: publishCheck,
     nameIndex: nameIndex,
     bundlesFor: bundlesFor,

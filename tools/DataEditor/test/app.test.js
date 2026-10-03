@@ -38,6 +38,10 @@ const { Sets } = await import('../src/sets.js');
 globalThis.Sets = Sets;
 const { SetView } = await import('../src/setview.js');
 globalThis.SetView = SetView;
+const { Balance } = await import('../src/balance.js');
+globalThis.Balance = Balance;
+const { BalanceView } = await import('../src/balanceview.js');
+globalThis.BalanceView = BalanceView;
 
 const { App } = await import('../src/app.js');
 
@@ -153,9 +157,9 @@ function makeServer(sheets, options) {
 function buildShell() {
   const doc = installFakeDom();
   ['sheet-picker', 'records', 'form', 'previews', 'publish-results', 'status',
-   'view-sets', 'new-record', 'save', 'publish-check', 'modal'].forEach((id) => {
+   'view-sets', 'view-balance', 'new-record', 'save', 'publish-check', 'modal'].forEach((id) => {
     const tag = id === 'sheet-picker' ? 'select'
-      : (['view-sets', 'new-record', 'save', 'publish-check'].indexOf(id) !== -1 ? 'button'
+      : (['view-sets', 'view-balance', 'new-record', 'save', 'publish-check'].indexOf(id) !== -1 ? 'button'
         : (id === 'status' ? 'span' : 'div'));
     const node = doc.createElement(tag);
     node.id = id;
@@ -187,7 +191,7 @@ function boot(sheets, options) {
     // one test would otherwise let the next one's save collect rows it never built.
     groupToken: 0, group: null, groups: [], groupsReady: false,
     reopenGroup: null, pendingStatus: null,
-    view: 'records', sets: [], setKey: null,
+    view: 'records', sets: [], setKey: null, balance: null, balanceSlot: null,
   });
 
   App.init();
@@ -265,7 +269,7 @@ test('init lists every sheet and opens the first one', () => {
 
   const options = h.get('sheet-picker').getElementsByTagName('option');
   assert.equal(options.length, GOOSE_SCHEMA.sheets.length);
-  assert.equal(options.length, 21);
+  assert.equal(options.length, 22);
   assert.equal(options[0].value, 'Items');
 
   assert.deepEqual(serverCalls(h.run, 'readSheet').map((c) => c.args), [['Items']]);
@@ -2729,8 +2733,22 @@ test('the publish check fires all 21 reads at once rather than one after the nex
   const before = serverCalls(h.run, 'readSheet').length;
 
   fire(h.get('publish-check'), 'click');
-  assert.equal(serverCalls(h.run, 'readSheet').length - before, GOOSE_SCHEMA.sheets.length);
-  assert.equal(GOOSE_SCHEMA.sheets.length, 21);
+  const imported = GOOSE_SCHEMA.sheets.filter((s) => !s.editorOnly);
+  assert.equal(serverCalls(h.run, 'readSheet').length - before, imported.length);
+  assert.equal(imported.length, 21);
+
+  h.settle();
+  assert.match(h.get('publish-results').textContent, /All sheets valid/);
+});
+
+test('the publish check never reads an editor-only sheet', () => {
+  const h = boot({ Items: [ITEM(1, 'Gold')] });
+  const editorOnly = GOOSE_SCHEMA.sheets.filter((s) => s.editorOnly).map((s) => s.sheet);
+  assert.ok(editorOnly.length > 0);
+
+  fire(h.get('publish-check'), 'click');
+  const read = serverCalls(h.run, 'readSheet').map((c) => c.args[0]);
+  editorOnly.forEach((sheet) => assert.ok(read.indexOf(sheet) === -1, sheet));
 
   h.settle();
   assert.match(h.get('publish-results').textContent, /All sheets valid/);
@@ -3780,4 +3798,139 @@ test('use colour on whole set copies one card tint onto every other card', () =>
   const cards = h.get('form').querySelectorAll('[data-set-row]');
   [...cards].forEach((card) => assert.deepEqual(tintOf(card), ['9', '8', '7', '6']));
   assert.equal(cards[2].querySelectorAll('[name=graphic_equip]')[0].value, '6');
+});
+
+// --- the balance view --------------------------------------------------------------------------
+
+const GEAR = (id, name, slot, extra) => ITEM(id, name, Object.assign({
+  item_usetype: 'Armor', item_slot: slot, min_level: 50, class_restrictions: 16,
+}, extra || {}));
+const TAG = (id, extra) => rowFor('Item Balance', Object.assign({
+  item_template_id: id, audience: 0, profile: 'MP', profile2: 'None', power: 'Normal',
+  power_pct: 0, group: '', step: 'Punchy', source: 'RareBoss', lock: 0, note: '',
+}, extra || {}));
+const BALANCE_SHEETS = () => ({
+  Items: [
+    GEAR(1, 'Old Robe', 'Chest', { player_mp: 1000 }),
+    GEAR(2, 'New Robe', 'Chest', { player_mp: 1050 }),
+    GEAR(3, 'Hat', 'Helmet', { player_mp: 200 }),
+    ITEM(4, 'Gold'),
+  ],
+  'Item Balance': [TAG(1), TAG(2, { step: 'Savage' })],
+  Classes: [rowFor('Classes', { class_id: 4, class_name: 'Magus' })],
+});
+
+function openBalance(h) {
+  fire(h.get('view-balance'), 'click');
+  h.settle();
+}
+
+test('the balance toggle is offered on Items only', () => {
+  const h = boot(BALANCE_SHEETS());
+  assert.equal(h.get('view-balance').hidden, false);
+  App.openSheet('NPCs');
+  h.settle();
+  assert.equal(h.get('view-balance').hidden, true);
+});
+
+test('the balance view reads effects and tags and lists slots with failures and untagged items', () => {
+  const h = boot(BALANCE_SHEETS());
+  openBalance(h);
+
+  const read = h.run.calls.filter((c) => c.name === 'readSheet').map((c) => c.args[0]);
+  assert.ok(read.indexOf('Spell Effects') !== -1);
+  assert.ok(read.indexOf('Item Balance') !== -1);
+  const slots = [...h.get('records').querySelectorAll('.record')].map((n) => n.textContent);
+  assert.deepEqual(slots, ['Helmet (1) — 1 untagged', 'Chest (2) — 1 failing']);
+  assert.equal(h.get('view-balance').textContent, 'Records');
+  assert.equal(h.get('new-record').disabled, true);
+
+  assert.equal(h.get('form').querySelectorAll('tr[data-item]').length, 1);
+  fire(h.get('records').querySelectorAll('.record')[1], 'click');
+  h.settle();
+  const rows = h.get('form').querySelectorAll('tr[data-item]');
+  assert.deepEqual(rows.map((r) => r.getAttribute('data-item')), ['1', '2']);
+  assert.equal(rows[1].querySelectorAll('[data-upgrade]')[0].className, 'up-fail');
+});
+
+test('saving tags writes only the edited tag row and appends an edited untagged item', () => {
+  const h = boot(BALANCE_SHEETS());
+  openBalance(h);
+
+  const hat = h.get('form').querySelectorAll('tr[data-item="3"]')[0];
+  const profile = hat.querySelectorAll('select[data-tag=profile]')[0];
+  profile.value = 'HP';
+  fire(profile, 'change');
+
+  fire(h.get('records').querySelectorAll('.record')[1], 'click');
+  assert.equal(h.get('modal').hidden, false, 'leaving a slot with unsaved tags asks first');
+  [...h.get('modal').querySelectorAll('button')].filter((b) => /Keep/.test(b.textContent))[0]
+    .dispatchEvent({ type: 'click' });
+
+  App.save();
+  h.settle();
+
+  const call = h.run.calls.filter((c) => c.name === 'saveBatch').pop();
+  assert.ok(call, 'tags are saved through saveBatch');
+  const entry = call.args[0][0];
+  const columns = schemaOf('Item Balance').columns.map((c) => c.name);
+  assert.equal(entry.sheet, 'Item Balance');
+  assert.equal(entry.writes.length, 0);
+  assert.equal(entry.appends.length, 1);
+  assert.equal(entry.appends[0].cells[columns.indexOf('item_template_id')], '3');
+  assert.equal(entry.appends[0].cells[columns.indexOf('profile')], 'HP');
+  assert.equal(entry.appends[0].cells[columns.indexOf('audience')], '16');
+});
+
+test('editing a tagged row writes it in place against its loaded snapshot', () => {
+  const h = boot(BALANCE_SHEETS());
+  openBalance(h);
+  fire(h.get('records').querySelectorAll('.record')[1], 'click');
+  h.settle();
+
+  const row = h.get('form').querySelectorAll('tr[data-item="2"]')[0];
+  const note = row.querySelectorAll('input[data-tag=note]')[0];
+  note.value = 'Savage Isle robe';
+  fire(note, 'input');
+  App.save();
+  h.settle();
+
+  const entry = h.run.calls.filter((c) => c.name === 'saveBatch').pop().args[0][0];
+  const columns = schemaOf('Item Balance').columns.map((c) => c.name);
+  assert.equal(entry.writes.length, 1);
+  assert.equal(entry.writes[0].row, 3);
+  assert.equal(entry.writes[0].cells[columns.indexOf('note')], 'Savage Isle robe');
+  assert.equal(entry.writes[0].loaded[columns.indexOf('step')], 'Savage');
+  assert.match(h.status(), /Saved 1 edited/);
+});
+
+test('a balance save with no edits posts nothing', () => {
+  const h = boot(BALANCE_SHEETS());
+  openBalance(h);
+  App.save();
+  h.settle();
+  assert.equal(h.run.calls.filter((c) => c.name === 'saveBatch').length, 0);
+  assert.equal(h.status(), 'Nothing to save.');
+});
+
+test('a missing Item Balance tab says to create it', () => {
+  const h = boot(BALANCE_SHEETS(), { failOn: 'Item Balance' });
+  openBalance(h);
+  assert.match(h.status(), /Item Balance tab has to exist/);
+  assert.equal(h.get('records').querySelectorAll('.record').length, 0);
+});
+
+test('a tag edit re-checks the slot straight away', () => {
+  const h = boot(BALANCE_SHEETS());
+  openBalance(h);
+  fire(h.get('records').querySelectorAll('.record')[1], 'click');
+  h.settle();
+
+  const row = h.get('form').querySelectorAll('tr[data-item="1"]')[0];
+  const power = row.querySelectorAll('select[data-tag=power]')[0];
+  power.value = 'Special';
+  fire(power, 'change');
+
+  const upgrade = h.get('form').querySelectorAll('tr[data-item="2"]')[0].querySelectorAll('[data-upgrade]')[0];
+  assert.notEqual(upgrade.className, 'up-fail');
 });
