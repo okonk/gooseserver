@@ -995,6 +995,24 @@ var GOOSE_SCHEMA = {
           "default": "\u0027\u0027",
           "required": false,
           "pk": false
+        },
+        {
+          "name": "aggro_message",
+          "header": "aggro message",
+          "kind": "Text",
+          "sql": "TEXT",
+          "default": "\u0027\u0027",
+          "required": false,
+          "pk": false
+        },
+        {
+          "name": "stuck_message",
+          "header": "stuck message",
+          "kind": "Text",
+          "sql": "TEXT",
+          "default": "\u0027\u0027",
+          "required": false,
+          "pk": false
         }
       ],
       "composites": [

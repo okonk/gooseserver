@@ -31,6 +31,8 @@ namespace Goose
         }
         public BehaviourTypes Behaviour { get; set; }
         public long BehaviourTimeout { get; set; }
+        public string AggroMessage { get; set; } = "";
+        public string StuckMessage { get; set; } = "";
 
         /**
          * Template ID
@@ -217,6 +219,8 @@ namespace Goose
             this.NPCType = other.NPCType;
             this.Behaviour = other.Behaviour;
             this.BehaviourTimeout = other.BehaviourTimeout;
+            this.AggroMessage = other.AggroMessage;
+            this.StuckMessage = other.StuckMessage;
             this.NPCTemplateID = other.NPCTemplateID;
             this.Name = other.Name;
             this.Title = other.Title;

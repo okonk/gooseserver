@@ -141,6 +141,8 @@ namespace Goose
 
                         npc.Behaviour = (NPCTemplate.BehaviourTypes)reader.GetInt32("stuck_behaviour");
                         npc.BehaviourTimeout = reader.GetInt64("stuck_timeout");
+                        npc.AggroMessage = reader.GetString("aggro_message");
+                        npc.StuckMessage = reader.GetString("stuck_message");
 
                         npc.CreditDealer = reader.GetString("credit_dealer") != "0";
 

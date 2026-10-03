@@ -911,6 +911,17 @@ namespace Goose
             this.AddAggro(player, value, false, world);
         }
 
+        private void SendMessageToRange(GameWorld world, string message)
+        {
+            if (string.IsNullOrEmpty(message)) return;
+
+            string packet = P.ServerMessage(message);
+            foreach (var p in this.Map.GetPlayersInRange(this))
+            {
+                world.Send(p, packet);
+            }
+        }
+
         /**
          * AddAggro, adds aggro to player
          *
@@ -931,6 +942,8 @@ namespace Goose
 
                 // Set last attack time so it doesn't teleport/whatever right away
                 this.LastAttackTime = world.TimeNow;
+
+                this.SendMessageToRange(world, this.NPCTemplate.AggroMessage);
             }
             // already got max aggro so increase it
             else if (this.AggroTarget == player)
@@ -1331,6 +1344,7 @@ namespace Goose
                             this.MapX, this.MapY, !loseaggro);
                         // reset attack time so doesn't keep teleporting if it can't attack
                         this.LastAttackTime = world.TimeNow;
+                        this.SendMessageToRange(world, this.NPCTemplate.StuckMessage);
                         break;
                     case NPCTemplate.BehaviourTypes.TeleportToAggro:
                         var originalX = this.MapX;
@@ -1351,6 +1365,7 @@ namespace Goose
 
                         // reset attack time so doesn't keep teleporting if it can't attack
                         this.LastAttackTime = world.TimeNow;
+                        this.SendMessageToRange(world, this.NPCTemplate.StuckMessage);
                         break;
                 }
             }

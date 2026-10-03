@@ -87,6 +87,9 @@ namespace CsvToSql
             Col.Text("quest_ids", def: "''").HeaderText("quest ids"),
             Col.Text("script_path", def: "'Scripts/NPC/BaseNPC.csx'").HeaderText("script_path"),
             Col.Text("script_params", def: "''").HeaderText("script params"),
+
+            Col.Text("aggro_message", def: "''").HeaderText("aggro message"),
+            Col.Text("stuck_message", def: "''").HeaderText("stuck message"),
         };
 
         public override Composite[] GetComposites() => new[]
