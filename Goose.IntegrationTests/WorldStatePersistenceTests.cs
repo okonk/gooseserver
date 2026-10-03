@@ -107,6 +107,13 @@ public class WorldStatePersistenceTests : PlayerFirstSaveTestBase
         Assert.Equal(0, Count("SELECT COUNT(*) FROM world_state WHERE key='probe:key'"));
         Assert.False(Flag(state, "inFlight"));
         Assert.False(Flag(state, "trailing"));
+
+        state.Set("probe:key", Slots((8, 4)));
+        state.Save(world);
+        world.Database.Execute(conn => { });
+
+        Assert.Equal(1, Count("SELECT COUNT(*) FROM world_state WHERE key='probe:key'"));
+        Assert.Equal(JsonHelper.Serialize(Slots((8, 4))), Value("probe:key"));
     }
 
     [Fact]

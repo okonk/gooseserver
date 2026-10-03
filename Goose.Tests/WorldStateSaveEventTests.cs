@@ -42,5 +42,24 @@ namespace Goose.Tests
             var settings = JsonSerializer.Deserialize<GooseSettings>("{}", JsonHelper.SettingsOptions)!;
             Assert.Equal(300, settings.WorldSavePeriod);
         }
+
+        [Fact]
+        public void WorldSaveEvent_ZeroWorldSavePeriod_ReschedulesInFuture()
+        {
+            using var fixture = new TestWorldFixture();
+            var world = fixture.World;
+            world.Settings.WorldSavePeriod = 0;
+
+            int beforeCount = world.EventHandler.Count;
+            long before = world.TimeNow;
+            new WorldSaveEvent { Ticks = before }.Ready(world);
+
+            Assert.Equal(beforeCount + 1, world.EventHandler.Count);
+            var rescheduled = Assert.IsType<WorldSaveEvent>(world.EventHandler.Peek());
+            Assert.True(rescheduled.Ticks > before);
+
+            world.EventHandler.Update(world);
+            Assert.Equal(beforeCount + 1, world.EventHandler.Count);
+        }
     }
 }
