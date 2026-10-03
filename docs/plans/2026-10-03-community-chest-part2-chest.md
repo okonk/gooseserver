@@ -11,7 +11,9 @@ only window type whose sends flow through the handler's viewer-registry broadcas
 `SlotChanged`). The bank keeps frame 26 and `SBS`/`CBS` untouched; bank and chest windows
 coexist. The client widget for the new frame is part 3. Transfer rules run through
 `CanDeposit`/`CanWithdraw` virtuals on `ItemContainerWindow`, applied to **both directions of
-every swap**. Design: `docs/plans/2026-10-03-community-chest-design.md`; foundation:
+every swap**. Chest state is saved by the `WorldState` timer and player containers by the
+existing player timer; drags perform no database transaction. Design:
+`docs/plans/2026-10-03-community-chest-design.md`; foundation:
 `docs/plans/2026-10-03-community-chest-part1-worldstate.md`.
 
 **Tech Stack:** .NET 10, C#, xUnit, System.Data.SQLite, NLog.
@@ -49,6 +51,8 @@ every swap**. Design: `docs/plans/2026-10-03-community-chest-design.md`; foundat
   client `WindowFrames` mirrors it 1-29 —
   `../Goose2ClientGodot/Scripts/WindowFrames.cs`. New value `GenericContainer = 30` on both
   sides (client side lands in part 3).
+- Window-button dispatch: `WBCbuttonId,windowId,npcId,0,0` resolves the player's window by
+  ID and calls `Clicked` — `Goose/Events/WindowButtonClickEvent.cs:10,27-60`.
 - Right-click dispatch — `Goose/Events/PlayerRightClickEvent.cs:53-69`
   (`Map.GetNPCsInRange`, `NPCType == Banker` at `:64`); `Map.InRange` — `Goose/Map.cs:144`.
 - Spawn properties: `NPC.Properties` — `Goose/NPC.cs:50`; `NPC.NPCTemplateID` — `:147`;
@@ -68,6 +72,9 @@ every swap**. Design: `docs/plans/2026-10-03-community-chest-design.md`; foundat
   `RunCommand` — `:135`; `CapturingPlayer.Sent` — `:82-85`; item idiom
   `new Item(); LoadFromTemplate(template)` — `Goose.Tests/CombineBagTests.cs:56-61`; NPC
   spawn idiom — `Goose.Tests/NPCSpawnPropertiesTests.cs:25`.
+- Player persistence entry point: `Player.SaveToDatabase(GameWorld)` snapshots and enqueues
+  the full player transaction — `Goose/Player.cs:1003-1098`; a fixture-created new player
+  must set `AutoCreatedNotSaved = true` before its initial save (`:1013-1033,1080-1088`).
 - Integration harness: `PlayerFirstSaveTestBase(schemaFiles, generatedTables,
   withQuestStatus)` reads `AppContext.BaseDirectory/sql/*.sql` —
   `Goose.IntegrationTests/PlayerFirstSaveTests.cs:20-41`; `quest_status` comes from
@@ -115,7 +122,6 @@ public class ChestHandler
 {
     public void Load(GameWorld world);
     public ItemContainer GetOrCreateContainer(GameWorld world, int npcTemplateId);
-    public void CommitTransfer(GameWorld world, Player player, ItemContainer container);
     internal string KeyFor(int npcTemplateId);   // "chest:" + id
 }
 ```
@@ -142,9 +148,10 @@ public class ChestHandler
   miss → log + skip; else `ItemHandler.AddItem(item, world)`, re-attach `Template`,
   `RefreshStats()`, `container.SetSlot(i, slot)`. Then `Set(key, container)` (replaces the
   `RawJson`/array with the live container) and subscribe the broadcast handler.
-- `CommitTransfer` (implemented in Task 3 with its call sites): persists this container plus
-  the player's container parts in one transaction — see Task 3's drag-path bullet. Until
-  then, a stub that only enqueues the chest upsert keeps Task 1 self-contained.
+- Chest persistence needs no mutation hook: the registered live container is serialized by
+  the normal `WorldState` timer. Player inventory and bank remain on the existing player-save
+  timer. These independent schedules intentionally retain the server's existing eventual-save
+  behavior rather than adding a transaction to every drag.
 - Subscriptions and mutation are game-thread only; `Load` runs inside a `LoadStep`.
 
 **Tests** (fixture; seed `WorldState` via its internal `LoadRows` from part 1):
@@ -162,7 +169,7 @@ public class ChestHandler
   `MaxSlots`, so page 2 is reachable and its 20 phantom slots are real nulls.)
 - `Load_CapacityStableAcrossRestarts` (adversarial for the ratchet): load a 31-slot blob →
   `MaxSlots == 31`; simulate save + reload of the resulting serialization → still 31, twice.
-- `CommitTransfer_PersistsBothSidesInOneTransaction` (integration, in Task 5): see Task 5.
+- `IndependentSaveCycles_EventuallyPersistTransfer` (integration, in Task 5): see Task 5.
 
 **Commit** — `feat(chests): ChestHandler with world-state-backed containers`
 
@@ -189,14 +196,11 @@ public virtual bool CanDeposit(Player player, ItemSlot? incoming, GameWorld worl
 public virtual bool CanWithdraw(Player player, ItemSlot? outgoing, GameWorld world) => true;
 protected virtual bool PushesViaBroadcast => false;
 protected virtual int GetSlotOffset() => 0;
-public virtual void AfterTransfer(Player player, GameWorld world) { }
 ```
 
-`AfterTransfer` is invoked at the end of all three drag methods — including the static
-`WindowToWindow`, which calls it on `fromWindow` and `toWindow` — **only when the swap
-actually executed** (after the validation guards return). It is the single persistence hook;
-static methods cannot be overridden per-window, so the chest's atomic commit hangs off this
-instead of off call sites the implementer would have to remember in three places.
+There is no transfer-persistence hook. Chest and player containers are live game-thread state
+and their existing independent save timers persist them. The only new drag seams are the
+validation methods and the broadcast send guard.
 
 **Every drag is a swap** — both directions must be validated before anything mutates:
 
@@ -239,9 +243,10 @@ container slot, so the actor's suppressed send is fully replaced. The inventory-
 - Source of truth: container slots, unchanged; the seams gate and announce.
 - Important readers: existing `BankWindow` (`Goose/BankWindow.cs:91-103`) and
   `CombineBagWindow`/`CustomWindow` drag paths — defaults must keep them byte-identical.
-- Propagation: no new state until an override opts in (nothing does until Task 3).
-- Invariants: bank/combine behavior unchanged; a refused drag mutates nothing and sends no
-  slot packets; every changed container slot produces exactly one event.
+- Propagation: validation runs before `SwapSlots`; accepted changes flow through `SetSlot`
+  and `NotifySlotChanged`, while persistence remains timer-driven.
+- Invariants: bank/combine behavior unchanged; a refused drag mutates and sends nothing; every
+  changed container slot produces exactly one event.
 - Proof: regression tests below.
 
 **Tests:**
@@ -251,10 +256,9 @@ container slot, so the actor's suppressed send is fully replaced. The inventory-
   → `CapturingPlayer.Sent` contains an `SBS` packet for the target slot
   (`Goose/Packets.cs:606-614`).
 - `RefusedDeposit_LeavesSlotsUntouched`: test-only subclass returning `false` from
-  `CanDeposit` → both slots unchanged, no window slot packet, and `AfterTransfer` did not
-  run (subclass records the call).
-- `WindowToWindow_InvokesAfterTransferOnBothWindows`: static `WTW` between two recording
-  windows → both hooks fire once, in order, only after the swap.
+  `CanDeposit` → both slots unchanged and no window slot packet.
+- `StackMerge_AnnouncesInPlaceMutationOnce`: merge onto a compatible window slot → the slot
+  reference is unchanged but `SlotChanged` fires exactly once with the final stack.
 - `OccupiedTarget_WithdrawDirectionValidated` (adversarial for the reverse-swap hole):
   subclass refusing `CanWithdraw` → an inventory→window drag onto an **occupied** slot is
   refused even though the incoming item alone would pass `CanDeposit`.
@@ -290,20 +294,32 @@ public static Func<Window, int, string> ClearGenericWindowSlot = (window, slotId
 - ctor `(GameWorld world, Player player, NPC npc)`: `SlotsPerPage =
   world.Settings.BankSlotsPerPage`; container from
   `world.ChestHandler.GetOrCreateContainer(world, npc.NPCTemplateID)`;
-  `MaxPages = (container.MaxSlots - 1 + SlotsPerPage - 1) / SlotsPerPage` — **derived from
-  the container**, which Task 1 sizes to whole pages, so every page-visible absolute index is
-  a real slot; `ID = ++player.LastWindowID` (`Window.cs:114`; never the bank's fixed 21 —
+  `CurrentPage = 1`; `MaxPages = (container.MaxSlots - 1 + SlotsPerPage - 1) / SlotsPerPage`
+  — **derived from the container**, which Task 1 sizes to whole pages, so every page-visible
+  absolute index is a real slot; `ID = ++player.LastWindowID` (`Window.cs:114`; never the
+  bank's fixed 21 —
   `WBC`/`WTW` resolve by ID first-match); register viewer in the handler registry **before**
   `SendCreate`; `Frame = WindowFrames.GenericContainer`; `Type =
   WindowTypes.CommunityChest`; `NPC = npc`.
-- **One chest window per player.** `Open(world, player, npc)` removes *every*
-  `CommunityChest` window from `player.Windows` (any NPC), not just one bound to the same
-  NPC: the client's v1 widget is single-instance per frame and a second `MKW` retargets it,
-  so a second server-side chest window would be a ghost — invisible to that client, never
-  pruned by the `Contains` check (it stays in `player.Windows`), and still mutating a
-  container nobody renders. Replacing on open keeps server and widget state identical.
+- **One chest window per player.** `Open(world, player, npc)` snapshots every existing
+  `CommunityChest` window in `player.Windows` (any NPC), then for each calls
+  `ChestHandler.RemoveViewer(player, oldWindow)` and removes it before constructing the
+  replacement (do not mutate `player.Windows` while enumerating it).
+  The client's v1 widget is single-instance per frame and a second `MKW` retargets it, so a
+  second server-side chest window would be a ghost — invisible to that client and still
+  mutating a container nobody renders. Replacing on open keeps server, viewer registry, and
+  widget state identical.
   Bank windows are **not** touched: different frames, ID-addressed updates, so bank + chest
   coexist and `WTW` between them is reachable and validated.
+- **Paging must mirror `BankWindow` completely, not delegate to `Window.Clicked`:** title is
+  `"Community Chest Page {CurrentPage}/{MaxPages}"`; buttons enable Back only above page 1
+  and Next only below `MaxPages`; `Populate` sends exactly page-local slots
+  `1..SlotsPerPage`; `GetSlotOffset()` returns `(CurrentPage - 1) * SlotsPerPage`; and the
+  `GetSlot`/`SetSlot` overrides translate page-local indices by that offset exactly as
+  `BankWindow.cs:71-89` does. `Clicked(Next)` increments only when below `MaxPages`,
+  `Clicked(Back)` decrements only when above 1, and each accepted navigation calls
+  `SendCreate(player, world)` to rerender that page (`BankWindow.cs:118-145`). Exit/Close use
+  the registry cleanup below; other buttons may delegate to `base.Clicked`.
 - `ValidateSlotIndex` override checks the **absolute** index:
   `index > 0 && index + GetSlotOffset() < ItemContainer.MaxSlots`. The base page-local check
   would pass a page-2 index into a shorter container, where `GetSlot` returns null,
@@ -312,24 +328,8 @@ public static Func<Window, int, string> ClearGenericWindowSlot = (window, slotId
   is the invariant guard.
 - Range check gates `InventoryToWindow`/`WindowToInventory` (mirror `BankWindow.cs:66-103`);
   `WindowToWindow` gets the matching case.
-- `PushesViaBroadcast => true`.
-- `AfterTransfer` override → `world.ChestHandler.CommitTransfer(world, player, ItemContainer)`.
-  `CommitTransfer` **builds everything on the game thread before enqueueing**: snapshot the
-  container's JSON, then `var inventoryPart = player.Inventory.BuildSave();` and
-  `var bankPart = player.Bank.BuildSave(player);` — these APIs snapshot *at build time*
-  (`Goose/Inventory.cs:972-977`, `Goose/PlayerBank.cs:101-107`, sequencing rule
-  `Goose/Player.cs:1045-1048`); calling them inside the transaction lambda would snapshot on
-  the DB thread, letting two rapid transfers pair chest-1's snapshot with post-transfer-2
-  player state — the dupe/loss window the transaction exists to close. Then one
-  `world.Database.EnqueueTransaction(conn => { chestUpsert(conn, key, json);
-  inventoryPart(conn); bankPart(conn); }, onCommit: () =>
-  world.WorldState.NoteCommitted(key, json))`. `Inventory.BuildSave` covers inventory +
-  equipped + combine bag; the bank part rides along unconditionally so chest↔bank drags are
-  covered (an unchanged bank row upsert is idempotent). Without this, a withdrawal persists
-  the item into the inventory on the player's schedule and out of the chest on the periodic
-  schedule — two transactions, and a crash between them is the exact dupe
-  `Database.cs:225-236` warns about. Enqueue order is game-thread order on a single FIFO DB
-  thread, so this and an in-flight periodic plan commit in state order.
+- `PushesViaBroadcast => true`. Accepted drags mutate only live containers; the world-state
+  and player save timers observe those containers independently on their normal cadence.
 - `SendSlot(slotIndex, player, world)` mirrors `BankWindow.cs:105-116` but emits
   `P.GenericWindowSlot` / `P.ClearGenericWindowSlot` — every packet self-identifies by
   `window.ID`, so a viewer with several container windows (bank + chest, two chests) never
@@ -338,11 +338,18 @@ public static Func<Window, int, string> ClearGenericWindowSlot = (window, slotId
 **Registry + broadcast** in `ChestHandler`:
 
 - `Dictionary<ItemContainer, List<(Player, CommunityChestWindow)>> viewers`.
-- `internal void AddViewer(ItemContainer, Player, CommunityChestWindow)` — called from the
-  window ctor. No removal path exists by design.
+- `internal void AddViewer(ItemContainer, Player, CommunityChestWindow)` first removes any
+  tuple for that player/window, then appends; called from the window ctor.
+- `internal void RemoveViewer(Player, CommunityChestWindow)` removes the tuple and deletes an
+  empty container list. `CommunityChestWindow.Open` calls it whenever replacing an old chest
+  window. `CommunityChestWindow.Clicked` handles Exit/Close by calling it and removing itself
+  from `player.Windows` (the base close switch has no `CommunityChest` case), handles
+  Next/Back as specified above, and delegates only otherwise-unhandled buttons to
+  `base.Clicked`.
 - `Load` subscribes `world.PlayerHandler.PlayerRemoved -= OnPlayerRemoved; += OnPlayerRemoved`
   (drops the player from every list; delete empty lists; `-=` first so a reload cannot
-  double-subscribe).
+  double-subscribe). Broadcast retains stale-entry pruning as a defensive fallback, not as
+  the normal lifecycle.
 - Broadcast attached to each container's `SlotChanged` (closure captures `world`, game thread
   only):
 
@@ -360,9 +367,13 @@ void Broadcast(GameWorld world, ItemContainer container, int index)
 }
 ```
 
-The actor is included — with `PushesViaBroadcast` the broadcast is the actor's only
-window-side send. Every packet carries the viewer's own window ID, so coexisting container
-windows never cross-talk.
+`index` is the absolute container index from `SlotChanged`; `visible` is page-local. A viewer
+receives the update only when the changed index falls inside that viewer's current page, and
+the packet uses `visible`, never the absolute index. Viewers of the same chest may be on
+different pages, so filtering is per registry entry rather than per container. The actor is
+included — with `PushesViaBroadcast` the broadcast is the actor's only window-side send.
+Every packet carries the viewer's own window ID, so coexisting container windows never
+cross-talk.
 
 **Tests** (fixture with Task 0 settings; two `CapturingPlayer`s, one chest NPC via
 `NPCHandler.SpawnNPC(..., properties: {"communityChest": true})`, both `AddOnlinePlayer`,
@@ -374,17 +385,29 @@ both windows opened via `CommunityChestWindow.Open`):
 - `StackMerge_StillPushes`: A deposits a stackable item onto B's watched slot 3 (merge —
   same slot reference) → B gets exactly one `GWS` for slot 3 (adversarial for the
   reference-only event: fails if `NotifySlotChanged` is skipped).
-- `PageTwoViewer_GetsNothingForPageOneChange`: B on page 2 → A's slot-3 change sends B
-  nothing.
-- `ViewerWindowClosed_PruneOnNextChange`: B closes via `Clicked(Exit,...)` → A's next change
-  sends B nothing and the registry list shrank (internal count).
+- `Navigation_ChangesPageAndRendersVisibleSlots`: put distinct items at absolute slots 3 and
+  `SlotsPerPage + 3`; send a real `WBC` Next packet through `fixture.RunCommand` →
+  `CurrentPage == 2`, title/buttons reflect page 2, and the new `MKW` render exposes only the
+  second item at page-local slot 3; send WBC Back → page 1 renders only the first item.
+  Boundary Next/Back packets leave the page unchanged.
+- `PageTwoViewer_GetsNothingForPageOneChange`: B navigates to page 2 through a WBC Next packet
+  → A's absolute slot-3 change sends B nothing.
+- `PageTwoChange_UpdatesOnlyPageTwoAtRelativeSlot`: A remains on page 1 and B navigates to
+  page 2 through WBC; mutate absolute slot `SlotsPerPage + 3` → A receives nothing and B
+  receives exactly
+  one `GWS` for page-local slot 3 using B's window ID (adversarial for both missing page
+  filtering and accidentally sending the absolute index).
+- `ViewerWindowClosed_RemovesImmediately`: B closes via `Clicked(Exit,...)` → registry count
+  shrinks immediately and A's later change sends B nothing.
+- `RepeatedOpen_DoesNotGrowViewerRegistry`: the same player opens the same chest 100 times
+  without a slot mutation → exactly one live registry tuple remains.
 - `Logout_PrunesViewer`: `PlayerHandler.RemovePlayer(B)` → A's next change sends B nothing.
 - `BankAndChestCoexist`: player opens a bank window then a chest window — both stay in
   `player.Windows`; a chest change emits `GWS` (chest ID) and never `SBS`; a bank change
   emits `SBS` and never `GWS` (cross-talk guard).
 - `OpenSecondChest_ReplacesFirst`: open chest A, then chest B (different NPC) → A's window is
-  gone from `player.Windows`, the registry prunes A on the next change, and only B receives
-  `GWS` (the one-chest-window rule keeping server state == widget state).
+  gone from `player.Windows` and from the registry immediately, and only B receives `GWS`
+  (the one-chest-window rule keeping server state == widget state).
 - `OutOfRangeAbsoluteSlot_Refused`: container of 31 slots (1 page) but force
   `CurrentPage = 2` on the window, then drag to page-local slot 5 → refused by the absolute
   `ValidateSlotIndex`, inventory slot unchanged, no packets (adversarial for the
@@ -398,8 +421,9 @@ both windows opened via `CommunityChestWindow.Open`):
 |-----------|-----------|
 | One slot packet per viewer per change, actor included | `Withdraw_PushesOnePacketToActorAndViewer` |
 | In-place stack merges still sync | `StackMerge_StillPushes` |
-| Off-page changes are not sent | `PageTwoViewer_GetsNothingForPageOneChange` |
-| Registry cannot leak closed windows or sessions | `ViewerWindowClosed_PruneOnNextChange`, `Logout_PrunesViewer` |
+| Next/Back render the selected page and honor boundaries | `Navigation_ChangesPageAndRendersVisibleSlots` |
+| Off-page changes are not sent; on-page updates use page-local indices | `PageTwoViewer_GetsNothingForPageOneChange`, `PageTwoChange_UpdatesOnlyPageTwoAtRelativeSlot` |
+| Registry cannot leak repeated opens, closed windows, or sessions | `RepeatedOpen_DoesNotGrowViewerRegistry`, `ViewerWindowClosed_RemovesImmediately`, `Logout_PrunesViewer` |
 | Packets address the viewer's own window | `BankAndChestCoexist`, `OpenSecondChest_ReplacesFirst` |
 | Page-visible slots always exist | `OutOfRangeAbsoluteSlot_Refused`, `Load_GrowsContainerToWholePages` |
 | Grow-only storage stays reachable | `OverflowPagesReachable` |
@@ -470,6 +494,8 @@ window's boundary, which Task 2 wires on **both** sides of every swap):
 
 **Files:**
 - Modify: `Goose/Events/PlayerRightClickEvent.cs:64-67`
+- Modify: `Goose.IntegrationTests/PlayerFirstSaveTests.cs:8` (make `dbPath` protected so a
+  restart test can open a second world on the same SQLite file)
 - Test: `Goose.Tests/CommunityChestWiringTests.cs`,
   `Goose.IntegrationTests/CommunityChestPersistenceTests.cs`
 
@@ -498,20 +524,25 @@ default), plus a registered item template via the same pattern as part 1 Task 2 
 `MakePlayer()` (`PlayerFirstSaveTests.cs:62+`):
 
 - `ChestSurvivesWorldRestart`: seed `chest:{id}` via `WorldState.Set` of a live container
-  holding a registered item → `Save` → fence → fresh `WorldState` + `ChestHandler.Load` →
-  slot holds an item with the right `TemplateID`, re-registered in
-  `ItemHandler.GetItems()` (`Goose/ItemHandler.cs:46`).
-- `Withdraw_PersistsAtomicallyWithoutExplicitSave` (the dupe-window guard): continue from the
-  reloaded state — withdraw via `WindowToInventory`, then **without calling any save**, run
-  the fence → assert the chest row no longer holds the item AND the player's `inventory` row
-  does (both sides landed in the drag's single transaction; a periodic-only design would
-  still show the item in the chest here). Then reload state and assert the item exists
-  exactly once across chest + inventory rows.
-- `BankToChest_PersistsAtomically` (covers the static `WTW` seam): open a bank window and a
-  chest window for the same player, drag bank→chest via `WindowToWindow`, no explicit save,
-  fence → chest row holds the item and the player's `bank_items` row no longer does
-  (adversarial for the missing-WTW-hook failure mode: with the commit wired only on the two
-  instance drag paths, the chest row would still show empty until the periodic save).
+  holding a registered item → `Save` → fence. Construct a second `GameWorld`, start only its
+  `Database` on the protected `dbPath`, register the same item template in its `ItemHandler`,
+  then call `WorldState.Load` and `ChestHandler.Load`; stop that database in `finally`. Its
+  chest slot holds an item with the right `TemplateID`, re-registered in the second world's
+  `ItemHandler.GetItems()` (`Goose/ItemHandler.cs:46`). Do not reuse the first world's
+  `WorldState` or handler: that would test cached live objects rather than a restart.
+- `IndependentSaveCycles_EventuallyPersistTransfer`: persist a chest containing an item;
+  create a player with `AutoCreatedNotSaved = true`, persist its empty inventory with
+  `SaveToDatabase`, and fence both setup saves before the drag. Withdraw via
+  `WindowToInventory`, and assert both rows still hold their pre-drag values (the command
+  itself writes no SQL). Run `WorldState.Save` + fence and observe the chest row update; then
+  run the existing `Player.SaveToDatabase` + fence and observe the inventory row update.
+  Reload the chest through the second-world path above, deserialize the persisted inventory
+  row, and assert the final state reflects the transfer. The deliberately observable mismatch
+  documents the accepted independent-timer behavior rather than promising crash atomicity.
+- `BankToChest_PersistsOnExistingTimers` (covers static `WTW` without a persistence hook):
+  persist a player with an item in the bank, drag bank→chest via `WindowToWindow`, then invoke
+  the world-state and player save paths separately and fence each. Reload both rows and assert
+  the final state reflects the transfer.
 
 **Commit** — `feat(chests): right-click wiring and persistence round trip`
 
@@ -524,9 +555,9 @@ default), plus a registered item template via the same pattern as part 1 Task 2 
 - `GenericContainer` frame 30, `GWS`/`GWC` window-ID addressing, `++LastWindowID`
   allocation, one-chest-window replacement, whole-page sizing + absolute slot validation,
   and bank/chest coexistence match design §Protocol additions / §CommunityChestWindow.
-- Atomic transfer transaction — game-thread-built parts, `AfterTransfer` seam on all three
-  drag paths including static `WTW`, bank↔chest coverage — matches design §Transfer
-  persistence; the four withdrawal rules and two deposit flags match §Transfer validation;
+- Chest and player data persist on their independent existing timers with no drag-time
+  transaction or transfer hook — matches design §Transfer persistence; the four withdrawal
+  rules and two deposit flags match §Transfer validation;
   the sentinel-excluded whole-page sizing matches §ChestHandler "Load".
 - Bidirectional validation on all three drag paths matches design §Transfer validation.
 - Merge announce via `NotifySlotChanged` matches design §ItemContainer change event.

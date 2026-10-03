@@ -51,13 +51,12 @@ public class WorldState
     internal record SavePlan(List<(string Key, string Json)> Upserts, List<string> Deletes);
     internal SavePlan PlanSave();
     internal void ApplyCommit(SavePlan plan);   // on-commit; also the test seam
-    internal void NoteCommitted(string key, string json);  // ad-hoc commit (part 2 transfers)
 }
 ```
 
 - **Locking**: one private lock object guards `baseline` and `pendingDeletes`. Every method
   that touches either takes it: `PlanSave`, `ApplyCommit` (runs on the DB thread),
-  `NoteCommitted`, `LoadRows`, **and `Remove`** — an unlocked `HashSet` mutated on the game
+  `LoadRows`, **and `Remove`** — an unlocked `HashSet` mutated on the game
   thread against `ExceptWith` on the DB thread is a data race. `values` is game-thread-only.
 
 - **Value representation**: the dictionary holds either a `RawJson(string Json)` private
@@ -88,9 +87,8 @@ public class WorldState
   every delete, `pendingDeletes.ExceptWith(plan.Deletes)`. Correct across interleavings only
   when **one plan is in flight at a time** (Task 3's single-flight rule): with two plans
   queued, a tombstone cleared by the first commit can belong to a *newer* mutation, and the
-  second commit's upsert resurrects a deleted row. `NoteCommitted(key, json)` records a
-  single-key baseline advance for ad-hoc transactions (part 2's atomic chest transfers) under
-  the same lock. The SQL transaction must never read live state — only the plan.
+  second commit's upsert resurrects a deleted row. The SQL transaction must never read live
+  state — only the plan.
 
 **Step 1: Write the failing tests** (`Goose.Tests/WorldStateTests.cs`), using
 `TestWorldFixture` only if a `GameWorld` is needed at all — these tests need none:
@@ -189,55 +187,91 @@ Task 3 then only adds the event/setting around it.
 
 **Files:**
 - Create: `Goose/Events/WorldSaveEvent.cs`
-- Modify: `Goose/Database.cs:238-272` (add optional `Action<Exception?>? onSettled = null` to
-  `EnqueueTransaction`, passed through as `Enqueue`'s completion — fires after the work item
-  settles either way; existing callers unaffected), `Goose/WorldState.cs` (add
+- Modify: `Goose/Database.cs:171-194,238-272` (add synchronous
+  `ExecuteTransaction(Action<SQLiteConnection>)` using the existing `Execute` worker path;
+  add optional `Action<Exception?>? onSettled = null` to `EnqueueTransaction`, passed through
+  as `Enqueue`'s completion — fires after the work item settles either way; existing callers
+  unaffected), `Goose/WorldState.cs` (add
   `Save(GameWorld)`, `SaveSync(GameWorld)`, `AddSaveEvent(GameWorld)`, baseline lock,
   in-flight flags), `Goose/GameWorld.cs` (property + ctor, `Start` LoadStep after *Global
   Scripts* `:453` and before *Players* `:457`, `Stop` flush after the logs block `:519-527`),
   `Goose/GooseSettings.cs` (add `public int WorldSavePeriod { get; set; } = 300;` next to
   `GuildSavePeriod` `:96`), `Goose/GooseSettings.json` (common block, next to
   `"GuildSavePeriod": 300` `:108`)
-- Test: `Goose.Tests/WorldStateSaveEventTests.cs`
+- Test: `Goose.Tests/WorldStateSaveEventTests.cs`,
+  `Goose.IntegrationTests/DatabaseTransactionTests.cs`,
+  `Goose.IntegrationTests/WorldStatePersistenceTests.cs`
 
 **Save flow (the one tricky piece — threading):**
 
-- Fields: `volatile bool inFlight; bool trailing;` (`trailing` read/written under the lock).
-- `Save(GameWorld world)` runs on the game thread (event pump). Structure:
+- Fields: `bool inFlight; bool trailing;` — both are read and written only under `gate`.
+  A volatile read followed by a later lock is not sufficient: settlement could clear
+  `inFlight` and consume `trailing` between those two operations, permanently stranding the
+  trailing request.
+- `Save(GameWorld world)` is the periodic wrapper; it runs on the game thread and is the only
+  path that re-arms the cadence. A completion-triggered trailing flush calls `SaveCore`
+  directly and therefore cannot create a second periodic timer chain:
 
 ```csharp
 public void Save(GameWorld world)
 {
+    try { SaveCore(world); }
+    finally { AddSaveEvent(world); }
+}
+
+private void SaveCore(GameWorld world)
+{
+    SavePlan plan;
+    lock (gate)
+    {
+        if (inFlight)
+        {
+            trailing = true;
+            return;
+        }
+
+        inFlight = true;
+        try { plan = PlanSaveLocked(); }
+        catch
+        {
+            inFlight = false;
+            throw;
+        }
+        if (plan.Upserts.Count == 0 && plan.Deletes.Count == 0)
+        {
+            inFlight = false;
+            return;
+        }
+    }
+
     try
     {
-        if (inFlight) { lock (gate) trailing = true; return; }   // single-flight
-        var plan = PlanSave();
-        if (plan.Upserts.Count == 0 && plan.Deletes.Count == 0) return;
-        inFlight = true;
-        try
-        {
-            world.Database.EnqueueTransaction(
-                conn => { /* DELETE plan.Deletes; UPSERT plan.Upserts — plan data only,
-                            never live state */ },
-                onCommit: () =>
-                {
-                    lock (gate) { ApplyCommitLocked(plan); }   // baseline only; see settle
-                },
-                onSettled: _ => SettleSave(world));              // success OR failure
-        }
-        catch { inFlight = false; throw; }                       // sync enqueue throw
+        world.Database.EnqueueTransaction(
+            conn => { /* DELETE plan.Deletes; UPSERT plan.Upserts — plan data only,
+                        never live state */ },
+            onCommit: () =>
+            {
+                lock (gate) { ApplyCommitLocked(plan); }
+            },
+            onSettled: _ => SettleSave(world));
     }
-    finally
+    catch
     {
-        AddSaveEvent(world);
+        lock (gate) { inFlight = false; }
+        throw;
     }
 }
 
-void SettleSave(GameWorld world)
+private void SettleSave(GameWorld world)
 {
-    bool trail;
-    lock (gate) { inFlight = false; trail = trailing; trailing = false; }
-    if (trail) world.EnqueueCompletion(() => Save(world));
+    bool runTrailing;
+    lock (gate)
+    {
+        inFlight = false;
+        runTrailing = trailing;
+        trailing = false;
+    }
+    if (runTrailing) world.EnqueueCompletion(() => SaveCore(world));
 }
 ```
 
@@ -248,9 +282,12 @@ void SettleSave(GameWorld world)
   wedge persistence forever after one SQL error: every later `Save` sees "in flight", and
   `SaveSync`'s spin hangs shutdown.
 
-- **Single-flight**: at most one periodic plan in flight; a `Save` during one sets `trailing`
-  and returns, and the commit callback re-saves **after** `ApplyCommit` landed, so the
-  trailing plan is rebuilt from current state. Without it, enqueue-delete → set+enqueue-upsert
+- **Single-flight**: the check/claim and the settle/handoff are atomic under `gate`; at most
+  one periodic plan is in flight. A `Save` during one sets `trailing` and returns, and the
+  settle callback re-saves **after** a successful `ApplyCommit` landed (or after a failed
+  attempt settled), so the trailing plan is rebuilt from current state. `PlanSave()` delegates
+  to `PlanSaveLocked()` so `SaveCore` can claim `inFlight` and capture its immutable plan in
+  the same critical section. Without it, enqueue-delete → set+enqueue-upsert
   → delete-again resurrects the row: tombstones carry no generation, so the first commit's
   `ExceptWith` clears the *newer* tombstone for the same key and the second commit's upsert
   restores the DB row with no live value and no tombstone left. `EnqueueCompletion`
@@ -262,17 +299,28 @@ void SettleSave(GameWorld world)
 - `onCommit` executes **on the DB thread** (`Goose/Database.cs:249-253`); `ApplyCommitLocked`
   is the Task 1 `ApplyCommit` body under the lock (also held by `PlanSave` and `Remove`).
   One-line comment justified here ("runs on the DB thread; plan-only").
-- `finally` re-arm: the event pump dequeues before running `Ready` and drops the event on
-  exception (`Goose/EventHandler.cs:337,355-366`), so a serialization or enqueue failure
-  must not end the cadence. `AddSaveEvent` mirrors
+- `finally` re-arm belongs only to the public periodic wrapper: the event pump dequeues before
+  running `Ready` and drops the event on exception (`Goose/EventHandler.cs:337,355-366`), so
+  a serialization or enqueue failure must not end the cadence. `SettleSave` invokes
+  `SaveCore`, not `Save`, because the already-consumed periodic event has already scheduled
+  its one successor; re-arming from the trailing flush would create another permanent timer
+  chain on every overlap. `AddSaveEvent` mirrors
   `GuildHandler.AddSaveEvent` (`Goose/GuildHandler.cs:113-120`) including the
   `Math.Max(1, world.Settings.WorldSavePeriod)` clamp (H6 rationale at `:116`).
-- **`SaveSync(GameWorld world)` for shutdown**: `while (inFlight) Thread.Sleep(10);` —
-  terminates because the settle fix guarantees `inFlight` clears on commit **or** failure
-  (the spin also drains the earlier work item, whose trailing completion is dead by then;
-  `SaveSync` itself captures whatever is live now). Then `PlanSave()` + the same SQL through
-  `Database.Execute` (synchronous; also fences any earlier queued work and its onCommit) +
-  `ApplyCommit(plan)` on the game thread under the lock. `GameWorld.Stop` calls `SaveSync`
+- **Synchronous transaction primitive**: add
+  `Database.ExecuteTransaction(Action<SQLiteConnection>)`, implemented through the existing
+  FIFO `Execute` path but wrapping the action with the same BEGIN/COMMIT/rollback behavior as
+  `EnqueueTransaction`. Factor the SQL transaction body so both entry points retain identical
+  atomicity; synchronous means wait-for-completion, not autocommit-each-statement.
+- **`SaveSync(GameWorld world)` for shutdown**: loop by taking `gate`, reading `inFlight`,
+  releasing `gate`, and sleeping only when it was true. Do not read the now-nonvolatile flag
+  outside the lock, and never sleep while holding the lock needed by `SettleSave`. The loop
+  terminates because settlement clears `inFlight` on commit **or** failure (it also drains the
+  earlier work item, whose trailing completion is dead by then; `SaveSync` itself captures
+  whatever is live now). Then `PlanSave()` + the same SQL through
+  `Database.ExecuteTransaction` (which also fences earlier queued work and its onCommit) +
+  `ApplyCommit(plan)` on the game thread only after COMMIT succeeds. `GameWorld.Stop` calls
+  `SaveSync`
   inside try/catch like the `LogHandler` flush (`GameWorld.cs:519-527`), before the
   pending-writes wait (`:529-533`).
 - **Startup scheduling**: the `Start` load step calls `WorldState.Load(this.Database)` and
@@ -294,27 +342,41 @@ void SettleSave(GameWorld world)
   `Save(world)`; the fixture DB is not started, so any `Enqueue` would throw
   `InvalidOperationException` (`Database.cs:220`) — the test completing *is* the assertion.
   Additionally assert `PlanSave()` was empty (capture via a pre-call).
-- `Save_RearmsWorldSaveEvent`: `Save(world)` on a world whose state was seeded via
-  `LoadRows` with a value then changed (so `PlanSave` is non-empty) — but the fixture DB is
-  not started, so instead exercise the re-arm through the **empty-plan path**: `Save(world)`
-  → `world.EventHandler.Count` increased and `Peek()` is a `WorldSaveEvent`
+- `Save_RearmsWorldSaveEvent`: seed a value through `LoadRows` and leave it unchanged, so the
+  fixture's unstarted DB is never touched; exercise the re-arm through the **empty-plan path**:
+  `Save(world)` → `world.EventHandler.Count` increased and `Peek()` is a `WorldSaveEvent`
   (`EventHandler.cs:314,316`; internal access as `EventHandlerTests` uses it). The early
   `return` inside `try` still runs `finally` — that IS the throw-free proof of the re-arm
   invariant; the throw path is the same `finally`.
 - `MissingSettingDefaultsTo300`: `JsonSerializer.Deserialize<GooseSettings>("{}",
   JsonHelper.SettingsOptions).WorldSavePeriod == 300` (guards the initializer, not the
   json).
-- `Save_SingleFlight_DefersAndTrails` (adversarial for the tombstone resurrection): set a
-  value → `Save(world)` starts a plan (`inFlight` true via internal accessor) → second
-  `Save(world)` must not enqueue (the fixture DB is not started — a second
-  `EnqueueTransaction` would throw) and must set `trailing` → simulate the commit through the
-  internal `ApplyCommit(plan)` + flag clear → assert a trailing re-save was scheduled
-  (`world.PendingCompletionCount` grew, `GameWorld.cs:103`).
+- `Save_SingleFlight_DefersAndTrails` (integration, adversarial for tombstone resurrection):
+  start the fixture DB and enqueue a test work item blocked on a `ManualResetEventSlim`; set a
+  value and call `Save(world)` so its transaction queues behind the blocker; remove the value
+  and call `Save(world)` again → assert one DB transaction is queued for this state and
+  `trailing` is true; release the blocker and fence → assert one completion is pending; pump
+  it and fence → the row is absent and both flags are false. This exercises the real worker
+  handoff rather than simulating `ApplyCommit`.
+- `TrailingFlush_DoesNotRearmPeriodicCadence`: use the same blocked-worker overlap, record the
+  event count after the two public periodic `Save` calls, settle and pump the trailing
+  completion, then assert the completion did not add another `WorldSaveEvent`. This prevents
+  each overlap from creating a new permanent timer chain.
 - `Baseline_Update_AfterCommit` (integration, added to `WorldStatePersistenceTests`): set →
   `Save` → fence → `PlanSave()` empty. Proves `ApplyCommit` ran on commit; would fail if the
   on-commit callback were dropped, since the fixture world never pumps completions.
+- `ExecuteTransaction_SecondStatementFails_RollsBackFirst` (integration): create two scratch
+  rows, run a synchronous transaction that updates the first then executes invalid SQL, assert
+  it throws and both rows retain their old values. This proves `ExecuteTransaction` is an
+  atomic primitive rather than merely a synchronous autocommit callback.
 - `SaveSync_PersistsWithoutPump` (integration): mutate → `SaveSync(world)` → rows correct
-  immediately (no fence needed — `Execute` is synchronous) and `PlanSave()` empty.
+  immediately (no fence needed — `ExecuteTransaction` is synchronous) and `PlanSave()` empty.
+- `SaveSync_SecondWorldStateWriteFails_RollsBackWholePlan` (integration, adversarial): seed a
+  delete-key and an update-key, remove the first, mutate the second, and install a trigger that
+  aborts the update-key upsert. Because plan SQL executes deletes before upserts, `SaveSync`
+  reaches the delete before the forced failure. Assert it throws and both persisted rows keep
+  their pre-save values; remove the trigger and retry successfully. This catches a shutdown
+  path that uses plain `Execute` and silently autocommits the delete.
 - `FailedTransaction_ClearsInFlight_PersistenceAndShutdownSurvive` (integration,
   adversarial for the wedge): started DB, set a value, `Save` + fence (row exists), then
   `DROP TABLE world_state`, mutate, `Save` → the transaction fails on the DB thread (logged)
@@ -328,9 +390,11 @@ void SettleSave(GameWorld world)
 |-----------|-----------|
 | Unchanged world state writes no SQL | `Save_NoChanges_EnqueuesNoDbWork`, `Save_WritesNothing_WhenUnchanged` |
 | Save cycle always re-arms, even on the early-return path | `Save_RearmsWorldSaveEvent` |
-| At most one periodic plan in flight; trailing re-plan after commit | `Save_SingleFlight_DefersAndTrails` |
+| At most one periodic plan in flight; trailing re-plan cannot be lost | `Save_SingleFlight_DefersAndTrails` |
+| A trailing flush cannot multiply periodic timer chains | `TrailingFlush_DoesNotRearmPeriodicCadence` |
 | In-flight settles on commit AND on failure | `FailedTransaction_ClearsInFlight_PersistenceAndShutdownSurvive` |
-| Shutdown flush needs no pump | `SaveSync_PersistsWithoutPump` |
+| Shutdown flush needs no pump and is atomic | `SaveSync_PersistsWithoutPump`, `SaveSync_SecondWorldStateWriteFails_RollsBackWholePlan` |
+| Synchronous transaction rolls back partial work | `ExecuteTransaction_SecondStatementFails_RollsBackFirst` |
 | Existing configs get 300s, not 1s | `MissingSettingDefaultsTo300` |
 | Baseline advances only after COMMIT | `Baseline_Update_AfterCommit` |
 
@@ -396,7 +460,8 @@ own registry.
   §WorldState "Dirty tracking"; delete-vs-upsert rule matches "Delete-vs-upsert ordering";
   `RawJson` wrapper matches the design's value-representation paragraph.
 - `WorldSavePeriod` default 300 via property initializer + json; startup `AddSaveEvent`;
-  `finally` re-arm — all match design §WorldState "Save cadence".
+  periodic-wrapper-only `finally` re-arm and locked single-flight handoff — all match design
+  §WorldState "Save cadence".
 - `SlotChanged` fires from `SetSlot` on reference change; `NotifySlotChanged` is the
   in-place-mutation channel — design §ItemContainer change event.
 - `PlayerRemoved` fires at end of `RemovePlayer` — design §Viewer registry bullet.
