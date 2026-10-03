@@ -13,7 +13,7 @@ NPC can never reach or attack the player, so it takes free damage.
 The current mitigation is the NPC's *stuck behaviour*: if it hasn't attacked for
 `stuck_timeout` seconds it teleports the aggro target to itself
 (`TeleportAggro`) or itself to the target (`TeleportToAggro`) —
-`NPC.HandleAttackEvent` (`Goose/NPC.cs:1323`). On one boss map the timeout was
+`NPC.HandleAttackEvent` (`Goose/NPC.cs:1336`). On one boss map the timeout was
 dropped to 5s to shrink the cheese window, but that teleports legitimate players
 too: an NPC with a large aggro range that is still walking across the screen
 simply hasn't arrived within 5s, so it warps a player who did nothing wrong.
@@ -53,7 +53,7 @@ the pull.
 Append `TeleportAggroIfUnreachable = 3` to:
 
 - `NPCTemplate.BehaviourTypes` (`Goose/NPCTemplate.cs:26`)
-- `CsvToSql.Core/NpcCsvToSql.BehaviourTypes` (`CsvToSql/CsvToSql.Core/NpcCsvToSql.cs:108`)
+- `CsvToSql.Core/NpcCsvToSql.BehaviourTypes` (`CsvToSql/CsvToSql.Core/NpcCsvToSql.cs:111`)
 
 Appended (not inserted) so existing DB int values don't shift. `NPCHandler`
 (`Goose/NPCHandler.cs:142`) int-casts the column; existing rows are unaffected.
@@ -77,7 +77,7 @@ Bounded 4-directional BFS from the NPC's tile:
   pass-through.
 - **Success condition:** any reached tile with Chebyshev distance ≤ `radius` from
   the target point (`radius = NPC.AttackRange`), matching the attack check at
-  `Goose/NPC.cs:1360` (`|dx| <= AttackRange && |dy| <= AttackRange`).
+  `Goose/NPC.cs:1376-1377` (`|dx| <= AttackRange && |dy| <= AttackRange`).
 - **Early exit** on success; the common "legit player in the open" case resolves
   after a few dozen tiles.
 - **Visited buffer:** a scratch stamp buffer sized to the clipped box, reused
@@ -95,7 +95,9 @@ attack-event tick, when:
 
 run `CanReachTile` with `radius = AttackRange`. If **unreachable** → warp the
 player to the NPC with the same `WarpTo(..., loseaggro: false)` call as
-`TeleportAggro`, set `LastAttackTime = TimeNow`, and return. If **reachable** →
+`TeleportAggro`, set `LastAttackTime = TimeNow`, and send `StuckMessage` via
+`SendMessageToRange` (the warp falls through to the attack check like the
+`TeleportAggro` timer branch, rather than returning). If **reachable** →
 fall through to the untouched timeout logic.
 
 The `LastAttackTime` reset doubles as a spam guard: worst case is one warp per
@@ -116,7 +118,7 @@ NPC could already be attacking (which would reset `LastAttackTime` regardless).
 
 - **First check lands on the first attack tick after aggro**, not on `AddAggro`
   itself (aggro sets `LastAttackTime` so it doesn't teleport instantly —
-  `Goose/NPC.cs:932`). Cheese window ≈ one attack-speed cycle. Revisit if too slow.
+  `Goose/NPC.cs:943`). Cheese window ≈ one attack-speed cycle. Revisit if too slow.
 - **`radius = AttackRange`, uncapped.** A large-`AttackRange` boss reads as
   "reachable" unless fully walled off. Accepted.
 - **Fast path evaluates `AggroTarget` only.** A non-top-aggro cheese player in a
