@@ -46,6 +46,38 @@ public class DatabaseTransactionTests : IDisposable
         Assert.True(committed);
     }
 
+    [Fact]
+    public void ExecuteTransaction_SecondStatementFails_RollsBackFirst()
+    {
+        db.ExecuteTransaction(conn =>
+        {
+            RunSql(conn, "INSERT INTO t (id, v) VALUES (1, 'x');");
+            RunSql(conn, "INSERT INTO t (id, v) VALUES (2, 'y');");
+        });
+
+        Assert.ThrowsAny<Exception>(() => db.ExecuteTransaction(conn =>
+        {
+            RunSql(conn, "UPDATE t SET v='z' WHERE id=1;");
+            RunSql(conn, "INSERT INTO missing_table (id) VALUES (1);");
+        }));
+
+        Assert.Equal(2, CountRows());
+        Assert.Equal("x|y", Values());
+    }
+
+    private string Values()
+    {
+        return db.Execute(conn =>
+        {
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT v FROM t ORDER BY id;";
+            using var reader = cmd.ExecuteReader();
+            var values = new List<string>();
+            while (reader.Read()) values.Add(reader.GetString(0));
+            return string.Join("|", values);
+        });
+    }
+
     private int CountRows()
     {
         return db.Execute<int>(conn =>

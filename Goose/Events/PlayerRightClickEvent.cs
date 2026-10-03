@@ -63,7 +63,10 @@ namespace Goose.Events
 
                         if (npc.NPCType == NPCTemplate.Types.Banker)
                         {
-                            BankWindow.Open(world, this.Player, npc);
+                            if (npc.Properties.GetProperty("communityChest", false))
+                                CommunityChestWindow.Open(world, this.Player, npc);
+                            else
+                                BankWindow.Open(world, this.Player, npc);
                         }
                     }
                 }

@@ -613,6 +613,13 @@ namespace Goose
             return "CBS" + slotId;
         };
 
+        public static Func<Window, Item, GameWorld, int, long, string> GenericWindowSlot =
+            (window, item, world, slotId, stack) =>
+                "GWS" + window.ID + "|" + ItemSlot(item, world, slotId, stack);
+
+        public static Func<Window, int, string> ClearGenericWindowSlot = (window, slotId) =>
+            "GWC" + window.ID + "," + slotId;
+
         public static Func<Item, GameWorld, int, long, string> InventorySlot = (item, world, slotId, stack) =>
         {
             return "SIS" + ItemSlot(item, world, slotId, stack);

@@ -5,7 +5,7 @@ namespace Goose.IntegrationTests;
 
 public abstract class PlayerFirstSaveTestBase : IDisposable
 {
-    private readonly string dbPath =
+    protected readonly string dbPath =
         Path.Combine(Path.GetTempPath(), "first-save-" + Guid.NewGuid().ToString("N") + ".db");
 
     protected readonly GooseSettings settings = new()

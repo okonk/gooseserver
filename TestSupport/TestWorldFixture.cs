@@ -21,7 +21,7 @@ public class TestWorldFixture : IDisposable
         {
             DataPath = DataDirectory, ExperienceModifier = 1,
             InventorySize = 30, EquippedSize = 20, CombineBagSize = 10, SpellbookSize = 30,
-            VendorSlotSize = 30,
+            VendorSlotSize = 30, BankSlotsPerPage = 30, CommunityChestPages = 3,
             // NPC spawns need a login-id range: GetNewID draws from (MaxPlayers, MaxNPCs]
             // (NPCHandler.cs:244). Same values NPCSpawnRegistrationTests uses.
             MaxPlayers = 200, MaxNPCs = 15000,

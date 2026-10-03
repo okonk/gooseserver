@@ -37,6 +37,7 @@ namespace Goose
         public ItemHandler ItemHandler { get; set; }
         public SpellHandler SpellHandler { get; set; }
         public GuildHandler GuildHandler { get; set; }
+        public ChestHandler ChestHandler { get; set; }
         public RankHandler RankHandler { get; set; }
         public CombinationHandler CombinationHandler { get; set; }
         public ChatFilter ChatFilter { get; set; }
@@ -45,6 +46,7 @@ namespace Goose
         public ScriptHandler ScriptHandler { get; set; }
         public CurrencyHandler CurrencyHandler { get; set; }
         public Database Database { get; private set; }
+        public WorldState WorldState { get; private set; }
         public GooseSettings Settings { get; }
         internal LogSearchService LogSearches { get; set; }
 
@@ -218,6 +220,7 @@ namespace Goose
             this.ItemHandler = new ItemHandler();
             this.SpellHandler = new SpellHandler();
             this.GuildHandler = new GuildHandler();
+            this.ChestHandler = new ChestHandler();
             this.RankHandler = new RankHandler();
             this.CombinationHandler = new CombinationHandler();
             this.ChatFilter = new ChatFilter();
@@ -230,6 +233,7 @@ namespace Goose
             this.CurrencyHandler.Register(new GoldCurrency());
             this.CurrencyHandler.Register(new CreditsCurrency());
             this.Database = new Database();
+            this.WorldState = new WorldState();
             this.LogSearches = new LogSearchService(this);
 
             this.ExperienceModifier = this.Settings.ExperienceModifier;
@@ -244,7 +248,7 @@ namespace Goose
                 // those tables wholesale.
                 foreach (var schemaFile in new[]
                 {
-                    "players", "banks", "logs", "pets", "guilds", "wordfilter", "quest_claims",
+                    "players", "banks", "logs", "pets", "guilds", "wordfilter", "quest_claims", "world_state",
                 })
                 {
                     ExecuteSql(conn, File.ReadAllText(Paths.ResolveBase("sql/" + schemaFile + ".sql"), Encoding.UTF8));
@@ -279,6 +283,7 @@ namespace Goose
                 CreateTableIfMissing(conn, "quest_claims",
                     "quest_id INT PRIMARY KEY, player_id INT NOT NULL, completed_at TEXT NOT NULL, player_ids TEXT NOT NULL DEFAULT ''");
                 AddColumnIfMissing(conn, "quest_claims", "player_ids", "TEXT NOT NULL DEFAULT ''");
+                CreateTableIfMissing(conn, "world_state", "key TEXT PRIMARY KEY, value TEXT NOT NULL");
                 Goose.Logs.LogSchemaMigrator.Migrate(conn);
             });
         }
@@ -459,6 +464,14 @@ namespace Goose
 
             if (!this.LoadStep("Global Scripts", () => LoadGlobalScripts())) return;
 
+            if (!this.LoadStep("World State", () =>
+            {
+                this.WorldState.Load(this.Database);
+                this.WorldState.AddSaveEvent(this);
+            })) return;
+
+            if (!this.LoadStep("Community Chests", () => this.ChestHandler.Load(this))) return;
+
             // After global scripts: their OnLoaded can register item templates/currencies
             // that player inventories and banks reference at load time.
             if (!this.LoadStep("Players", () => this.PlayerHandler.LoadPlayerData(this),
@@ -531,6 +544,16 @@ namespace Goose
             catch (Exception e)
             {
                 log.Error(e, "Failed to save buffered logs during shutdown.");
+            }
+
+            log.Info("Saving world state.");
+            try
+            {
+                this.WorldState.SaveSync(this);
+            }
+            catch (Exception e)
+            {
+                log.Error(e, "Failed to save world state during shutdown.");
             }
 
             log.Info("Waiting for database writes.");
