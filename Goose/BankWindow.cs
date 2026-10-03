@@ -68,9 +68,14 @@ namespace Goose
             return Map.InRange(player, this.NPC!);
         }
 
-        private int GetSlotOffset()
+        protected override int GetSlotOffset()
         {
             return (CurrentPage - 1) * SlotsPerPage;
+        }
+
+        protected override bool WindowToWindowBlocked(Player player)
+        {
+            return !BankerInRange(player);
         }
 
         public override bool ValidateSlotIndex(int index)
