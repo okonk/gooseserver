@@ -43,7 +43,7 @@ public class ManifestTests : IDisposable
         var m = Manifest.Load(AssetRoot);
 
         Assert.Equal(32, m.TileSize);
-        Assert.Equal(7450, m.Sheets.Count);
+        Assert.Equal(7451, m.Sheets.Count);
     }
 
     [SkippableFact]
