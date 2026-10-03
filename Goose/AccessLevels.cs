@@ -45,6 +45,7 @@ namespace Goose
          */
         Debug,
         ViewLogs,
+        ChangeEquipGraphic,
     }
 
     public static class AccessLevels

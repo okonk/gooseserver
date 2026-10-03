@@ -27,7 +27,7 @@ public class LogsCommandTests
         Assert.Equal(33, (int)AccessPrivilege.Shutdown);
         Assert.Equal(34, (int)AccessPrivilege.Debug);
         Assert.Equal(35, (int)AccessPrivilege.ViewLogs);
-        Assert.Equal(36, Enum.GetValues<AccessPrivilege>().Length);
+        Assert.Equal(37, Enum.GetValues<AccessPrivilege>().Length);
 
         foreach (Player.AccessStatus access in Enum.GetValues<Player.AccessStatus>())
         {
