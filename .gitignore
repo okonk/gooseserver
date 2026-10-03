@@ -48,6 +48,11 @@ __pycache__/
 # refresh tokens — never commit it.
 .gws/
 
+# Same story for gclasp: it refreshes ~/.clasprc.json in place, so pushes run with
+# HOME pointed at this directory and the rc file inside it. Holds live OAuth tokens —
+# never commit it.
+.gclasp-home/
+
 # local scratch data dumps
 .scratch/
 
