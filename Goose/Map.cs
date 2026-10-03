@@ -438,6 +438,79 @@ namespace Goose
             return true;
         }
 
+        public bool IsTileStaticBlocked(int x, int y)
+        {
+            if (x < 1 || x > this.Width || y < 1 || y > this.Height) return true;
+            ITile? tile = this.tiles[y * this.Width + x];
+            return tile is BlockedTile or WarpTile;
+        }
+
+        private int[]? reachStamp;
+        private int[]? reachQueue;
+        private long reachStampCounter;
+
+        // Runs on the game thread only; scratch buffers are not thread-safe.
+        public bool CanReachTile(int fromX, int fromY, int targetX, int targetY, int radius)
+        {
+            if (fromX < 1 || fromX > this.Width || fromY < 1 || fromY > this.Height) return false;
+
+            // Clipped to the aggro-hold box so "reachable" means reachable while the NPC can still hold aggro.
+            int minX = Math.Max(1, fromX - (RANGE_X - 1));
+            int maxX = Math.Min(this.Width, fromX + (RANGE_X - 1));
+            int minY = Math.Max(1, fromY - (RANGE_Y - 1));
+            int maxY = Math.Min(this.Height, fromY + (RANGE_Y - 1));
+
+            int boxWidth = maxX - minX + 1;
+            int boxHeight = maxY - minY + 1;
+            int boxSize = boxWidth * boxHeight;
+
+            if (this.reachStamp is null || this.reachStamp.Length < boxSize)
+            {
+                this.reachStamp = new int[boxSize];
+                this.reachQueue = new int[boxSize];
+            }
+
+            int stamp = (int)++this.reachStampCounter;
+            int head = 0;
+            int tail = 0;
+
+            int idx = (fromX - minX) + (fromY - minY) * boxWidth;
+            this.reachStamp![idx] = stamp;
+            this.reachQueue![tail++] = idx;
+
+            while (head < tail)
+            {
+                idx = this.reachQueue[head++];
+                int x = minX + idx % boxWidth;
+                int y = minY + idx / boxWidth;
+
+                if (Math.Max(Math.Abs(x - targetX), Math.Abs(y - targetY)) <= radius) return true;
+
+                if (x > minX && this.reachStamp[idx - 1] != stamp && !this.IsTileStaticBlocked(x - 1, y))
+                {
+                    this.reachStamp[idx - 1] = stamp;
+                    this.reachQueue[tail++] = idx - 1;
+                }
+                if (x < maxX && this.reachStamp[idx + 1] != stamp && !this.IsTileStaticBlocked(x + 1, y))
+                {
+                    this.reachStamp[idx + 1] = stamp;
+                    this.reachQueue[tail++] = idx + 1;
+                }
+                if (y > minY && this.reachStamp[idx - boxWidth] != stamp && !this.IsTileStaticBlocked(x, y - 1))
+                {
+                    this.reachStamp[idx - boxWidth] = stamp;
+                    this.reachQueue[tail++] = idx - boxWidth;
+                }
+                if (y < maxY && this.reachStamp[idx + boxWidth] != stamp && !this.IsTileStaticBlocked(x, y + 1))
+                {
+                    this.reachStamp[idx + boxWidth] = stamp;
+                    this.reachQueue[tail++] = idx + boxWidth;
+                }
+            }
+
+            return false;
+        }
+
         public static Action<BinaryReader, Map, GameWorld> IllutiaMapLoader = (mapReader, map, world) =>
         {
             var version = mapReader.ReadInt16();
