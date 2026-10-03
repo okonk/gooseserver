@@ -1,3 +1,5 @@
+using System.Reflection;
+
 namespace Goose.Tests;
 
 public class MapReachabilityTests
@@ -82,5 +84,14 @@ public class MapReachabilityTests
         m.SetCharacter(new Player(0), 10, 10);
 
         Assert.True(m.CanReachTile(5, 5, 11, 10, radius: 1));
+    }
+
+    [Fact]
+    public void CanReachTile_StampWraparound_ReturnsTrue()
+    {
+        var m = NewMap();
+        typeof(Map).GetField("reachStampCounter", BindingFlags.NonPublic | BindingFlags.Instance)
+            .SetValue(m, 4294967295L); // next stamp is 2^32, which truncates to 0 under int storage
+        Assert.True(m.CanReachTile(5, 5, 15, 15, radius: 1));
     }
 }

@@ -445,7 +445,7 @@ namespace Goose
             return tile is BlockedTile or WarpTile;
         }
 
-        private int[]? reachStamp;
+        private long[]? reachStamp;
         private int[]? reachQueue;
         private long reachStampCounter;
 
@@ -466,11 +466,11 @@ namespace Goose
 
             if (this.reachStamp is null || this.reachStamp.Length < boxSize)
             {
-                this.reachStamp = new int[boxSize];
+                this.reachStamp = new long[boxSize];
                 this.reachQueue = new int[boxSize];
             }
 
-            int stamp = (int)++this.reachStampCounter;
+            long stamp = ++this.reachStampCounter;
             int head = 0;
             int tail = 0;
 
