@@ -37,6 +37,7 @@ namespace Goose
         public ItemHandler ItemHandler { get; set; }
         public SpellHandler SpellHandler { get; set; }
         public GuildHandler GuildHandler { get; set; }
+        public ChestHandler ChestHandler { get; set; }
         public RankHandler RankHandler { get; set; }
         public CombinationHandler CombinationHandler { get; set; }
         public ChatFilter ChatFilter { get; set; }
@@ -219,6 +220,7 @@ namespace Goose
             this.ItemHandler = new ItemHandler();
             this.SpellHandler = new SpellHandler();
             this.GuildHandler = new GuildHandler();
+            this.ChestHandler = new ChestHandler();
             this.RankHandler = new RankHandler();
             this.CombinationHandler = new CombinationHandler();
             this.ChatFilter = new ChatFilter();
@@ -467,6 +469,8 @@ namespace Goose
                 this.WorldState.Load(this.Database);
                 this.WorldState.AddSaveEvent(this);
             })) return;
+
+            if (!this.LoadStep("Community Chests", () => this.ChestHandler.Load(this))) return;
 
             // After global scripts: their OnLoaded can register item templates/currencies
             // that player inventories and banks reference at load time.
