@@ -52,6 +52,7 @@ namespace Goose
             OptionList = 27,
             Custom = 28,
             LogViewer = 29,
+            GenericContainer = 30,
         }
         public WindowFrames Frame { get; set; }
 
@@ -80,6 +81,7 @@ namespace Goose
             Custom,
             Generic,
             LogViewer,
+            CommunityChest,
         }
         public WindowTypes Type { get; set; }
 

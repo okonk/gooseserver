@@ -6,8 +6,15 @@ namespace Goose
 
         private readonly Dictionary<int, ItemContainer> containers = new();
 
+        private readonly Dictionary<ItemContainer, List<(Player Player, CommunityChestWindow Window)>> viewers = new();
+
+        internal IReadOnlyDictionary<ItemContainer, List<(Player Player, CommunityChestWindow Window)>> Viewers => viewers;
+
         public void Load(GameWorld world)
         {
+            world.PlayerHandler.PlayerRemoved -= OnPlayerRemoved;
+            world.PlayerHandler.PlayerRemoved += OnPlayerRemoved;
+
             foreach (string key in world.WorldState.KeysWithPrefix("chest:"))
             {
                 if (!int.TryParse(key.Substring("chest:".Length), out int npcTemplateId))
@@ -58,7 +65,7 @@ namespace Goose
 
                 world.WorldState.Set(key, container);
                 containers[npcTemplateId] = container;
-                container.SlotChanged += (slot, oldSlot, newSlot) => { };
+                Subscribe(container, world);
             }
         }
 
@@ -70,9 +77,55 @@ namespace Goose
             container = new ItemContainer(Math.Max(1, world.Settings.CommunityChestPages) * world.Settings.BankSlotsPerPage + 1);
             world.WorldState.Set(KeyFor(npcTemplateId), container);
             containers[npcTemplateId] = container;
-            container.SlotChanged += (slot, oldSlot, newSlot) => { };
+            Subscribe(container, world);
 
             return container;
+        }
+
+        private void Subscribe(ItemContainer container, GameWorld world)
+        {
+            container.SlotChanged += (index, oldSlot, newSlot) => Broadcast(world, container, index);
+        }
+
+        internal void AddViewer(ItemContainer container, Player player, CommunityChestWindow window)
+        {
+            if (!viewers.TryGetValue(container, out var list))
+                viewers[container] = list = new List<(Player Player, CommunityChestWindow Window)>();
+
+            list.RemoveAll(v => v.Player == player && v.Window == window);
+            list.Add((player, window));
+        }
+
+        internal void RemoveViewer(Player player, CommunityChestWindow window)
+        {
+            if (!viewers.TryGetValue(window.ItemContainer, out var list)) return;
+
+            list.RemoveAll(v => v.Player == player && v.Window == window);
+            if (list.Count == 0) viewers.Remove(window.ItemContainer);
+        }
+
+        private void OnPlayerRemoved(Player player)
+        {
+            foreach (var key in viewers.Keys.ToList())
+            {
+                var list = viewers[key];
+                list.RemoveAll(v => v.Player == player);
+                if (list.Count == 0) viewers.Remove(key);
+            }
+        }
+
+        // Game thread only. index is the absolute container index; each viewer is filtered
+        // to its own page and receives the page-local index, never the absolute one.
+        private void Broadcast(GameWorld world, ItemContainer container, int index)
+        {
+            if (!viewers.TryGetValue(container, out var list)) return;
+            list.RemoveAll(v => !v.Player.Windows.Contains(v.Window));
+            foreach (var (player, window) in list)
+            {
+                int visible = index - (window.CurrentPage - 1) * window.SlotsPerPage;
+                if (visible >= 1 && visible <= window.SlotsPerPage)
+                    window.SendSlot(visible, player, world);
+            }
         }
 
         internal string KeyFor(int npcTemplateId) => "chest:" + npcTemplateId;
