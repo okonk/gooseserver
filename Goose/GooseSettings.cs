@@ -27,6 +27,7 @@ namespace Goose
         public int StartingBodyState { get; set; }
         public int StartingBankPages { get; set; }
         public int BankSlotsPerPage { get; set; }
+        public int CommunityChestPages { get; set; } = 3;
 
 
         public bool AutoCharacterCreation { get; set; }
