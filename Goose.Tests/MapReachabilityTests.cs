@@ -62,6 +62,19 @@ public class MapReachabilityTests
     }
 
     [Fact]
+    public void CanReachTile_AggroBoxBoundary_ReturnsFalseBeyondBox()
+    {
+        var m = new Map { ID = 1, Name = "Test", Width = 60, Height = 40 };
+        m.characters = new ICharacter[(m.Width + 1) * (m.Height + 1)];
+        m.tiles = new ITile[(m.Width + 1) * (m.Height + 1)];
+
+        Assert.True(m.CanReachTile(30, 20, 53, 20, radius: 0));
+        Assert.False(m.CanReachTile(30, 20, 54, 20, radius: 0));
+        Assert.True(m.CanReachTile(30, 20, 30, 35, radius: 0));
+        Assert.False(m.CanReachTile(30, 20, 30, 36, radius: 0));
+    }
+
+    [Fact]
     public void CanReachTile_CharactersArePassThrough_ReturnsTrue()
     {
         var m = NewMap();
