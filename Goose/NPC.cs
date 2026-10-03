@@ -1332,12 +1332,25 @@ namespace Goose
 
             }
 
+            if (!rooted && this.Behaviour == NPCTemplate.BehaviourTypes.TeleportAggroIfUnreachable &&
+                this.AggroTarget is not null && this.AggroTarget.Map == this.Map &&
+                Math.Max(Math.Abs(this.MapX - this.AggroTarget.MapX),
+                         Math.Abs(this.MapY - this.AggroTarget.MapY)) > Math.Max(4, this.AttackRange + 1) &&
+                !this.Map.CanReachTile(this.MapX, this.MapY,
+                    this.AggroTarget.MapX, this.AggroTarget.MapY, this.AttackRange))
+            {
+                this.AggroTarget.WarpTo(world, this.Map, this.MapX, this.MapY, false);
+                this.LastAttackTime = world.TimeNow;
+                this.SendMessageToRange(world, this.NPCTemplate.StuckMessage);
+            }
+
             // Can't tele when rooted
             if (!rooted && this.LastAttackTime + this.BehaviourTimeout * world.TimerFrequency <
                 world.TimeNow)
             {
                 switch (this.Behaviour)
                 {
+                    case NPCTemplate.BehaviourTypes.TeleportAggroIfUnreachable:
                     case NPCTemplate.BehaviourTypes.TeleportAggro:
                         bool loseaggro = true;
                         this.AggroTarget!.WarpTo(world, this.Map,
