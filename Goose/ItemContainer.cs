@@ -9,6 +9,8 @@ namespace Goose
 
         private ItemSlot?[] slots;
 
+        public event Action<int, ItemSlot?, ItemSlot?>? SlotChanged;
+
         public int MaxSlots { get => slots.Length; }
 
         public ItemContainer(int size)
@@ -30,7 +32,18 @@ namespace Goose
                 return;
             }
 
+            ItemSlot? existing = this.slots[slot];
             this.slots[slot] = itemSlot;
+
+            if (!ReferenceEquals(existing, itemSlot))
+            {
+                SlotChanged?.Invoke(slot, existing, itemSlot);
+            }
+        }
+
+        public void NotifySlotChanged(int index)
+        {
+            SlotChanged?.Invoke(index, slots[index], slots[index]);
         }
 
         public ItemSlot? GetSlot(int slot)
