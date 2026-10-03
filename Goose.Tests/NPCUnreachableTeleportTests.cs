@@ -11,9 +11,11 @@ public class NPCUnreachableTeleportTests : IDisposable
     private readonly string dataDirectory;
     private readonly GameWorld world;
     private readonly Map map;
+    private readonly Map map2;
     private readonly List<Socket> sockets = new();
 
     private const int MapId = 1;
+    private const int MapId2 = 2;
     private const int ClassId = 1;
 
     public NPCUnreachableTeleportTests()
@@ -33,6 +35,12 @@ public class NPCUnreachableTeleportTests : IDisposable
         m.tiles = new ITile[(m.Width + 1) * (m.Height + 1)];
         world.MapHandler.Maps[MapId] = m;
         map = m;
+
+        var m2 = new Map { ID = MapId2, Name = "Test2", Width = 20, Height = 20, CanCast = true };
+        m2.characters = new ICharacter[(m2.Width + 1) * (m2.Height + 1)];
+        m2.tiles = new ITile[(m2.Width + 1) * (m2.Height + 1)];
+        world.MapHandler.Maps[MapId2] = m2;
+        map2 = m2;
 
         RegisterClass(ClassId, "Test", level: 50);
     }
@@ -83,13 +91,18 @@ public class NPCUnreachableTeleportTests : IDisposable
 
     private void PlacePlayer(Player p, int x, int y)
     {
-        p.Map = map;
-        p.MapID = MapId;
+        PlacePlayer(p, map, MapId, x, y);
+    }
+
+    private void PlacePlayer(Player p, Map target, int targetId, int x, int y)
+    {
+        p.Map = target;
+        p.MapID = targetId;
         p.MapX = x;
         p.MapY = y;
-        map.AddPlayer(p, world);
-        map.PlaceCharacter(p);
-        map.SetCharacter(p, x, y);
+        target.AddPlayer(p, world);
+        target.PlaceCharacter(p);
+        target.SetCharacter(p, x, y);
     }
 
     private void SealPocket(int x, int y)
@@ -152,6 +165,7 @@ public class NPCUnreachableTeleportTests : IDisposable
         npc.HandleAttackEvent(world);
 
         Assert.True(NearNpc(player, npc));
+        Assert.Contains("ATT" + npc.LoginID, Buffer(player));
         Assert.Contains("STUCKMSG", Buffer(player));
     }
 
@@ -184,6 +198,7 @@ public class NPCUnreachableTeleportTests : IDisposable
         npc.HandleAttackEvent(world);
 
         Assert.True(NearNpc(player, npc));
+        Assert.Contains("ATT" + npc.LoginID, Buffer(player));
         Assert.Contains("STUCKMSG", Buffer(player));
     }
 
@@ -217,6 +232,24 @@ public class NPCUnreachableTeleportTests : IDisposable
         npc.AddAggro(player, 10, world);
         npc.HandleAttackEvent(world);
 
+        Assert.Equal(17, player.MapX);
+        Assert.Equal(17, player.MapY);
+        Assert.DoesNotContain("STUCKMSG", Buffer(player));
+    }
+
+    [Fact]
+    public void AggroTargetOnOtherMap_NotWarped()
+    {
+        SealPocket(17, 17);
+        var npc = SpawnNpc(Template(NPCTemplate.BehaviourTypes.TeleportAggroIfUnreachable), 5, 5);
+        var player = NewPlayer();
+        PlacePlayer(player, map2, MapId2, 17, 17);
+
+        player.SendBuffer.Clear();
+        npc.AddAggro(player, 10, world);
+        npc.HandleAttackEvent(world);
+
+        Assert.Equal(MapId2, player.MapID);
         Assert.Equal(17, player.MapX);
         Assert.Equal(17, player.MapY);
         Assert.DoesNotContain("STUCKMSG", Buffer(player));
