@@ -98,7 +98,10 @@ test('sheets the live loaders do reach are not flagged', () => {
 });
 
 test('every schema sheet is classified, and RESTART_ONLY names real sheets', () => {
-  const names = SCHEMA.sheets.map((s) => s.sheet);
+  // Editor-only sheets are never loaded by the server, so they are neither restart nor reload.
+  const names = SCHEMA.sheets.filter((s) => !s.editorOnly).map((s) => s.sheet);
+  SCHEMA.sheets.filter((s) => s.editorOnly)
+    .forEach((s) => assert.equal(Layout.needsRestart(s.sheet), false, s.sheet));
   Layout.RESTART_ONLY.forEach((s) => assert.ok(names.includes(s), `not a real sheet: ${s}`));
   assert.equal(new Set(Layout.RESTART_ONLY).size, Layout.RESTART_ONLY.length);
   // The full partition of the 21 sheets, so neither a missing nor a spurious entry can hide.

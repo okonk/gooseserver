@@ -43,6 +43,38 @@ namespace Goose.Tests.Schema
         }
 
         [Fact]
+        public void Editor_only_tables_share_no_sheet_or_table_with_imported_tables()
+        {
+            var sheets = SchemaRegistry.Tables.Select(t => t.Sheet).ToHashSet();
+            var tables = SchemaRegistry.Tables.Select(t => t.Table).ToHashSet();
+
+            Assert.NotEmpty(SchemaRegistry.EditorOnlyTables);
+            foreach (var t in SchemaRegistry.EditorOnlyTables)
+            {
+                Assert.DoesNotContain(t.Sheet, sheets);
+                Assert.DoesNotContain(t.Table, tables);
+            }
+        }
+
+        [Fact]
+        public void Editor_only_references_and_composites_resolve()
+        {
+            var sheets = SchemaRegistry.Tables.Select(t => t.Sheet).ToHashSet();
+
+            foreach (var t in SchemaRegistry.EditorOnlyTables)
+            {
+                var names = t.Columns.Select(c => c.Name).ToHashSet();
+                foreach (var c in t.Columns.Where(c => c.RefSheet != null))
+                    Assert.Contains(c.RefSheet, sheets);
+                foreach (var composite in t.Composites)
+                {
+                    Assert.All(composite.Columns, name => Assert.Contains(name, names));
+                    if (composite.SourceSheet != null) Assert.Contains(composite.SourceSheet, sheets);
+                }
+            }
+        }
+
+        [Fact]
         public void Every_table_is_fully_populated()
         {
             foreach (var t in SchemaRegistry.Tables)

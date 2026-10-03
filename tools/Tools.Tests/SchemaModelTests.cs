@@ -10,7 +10,30 @@ public class SchemaModelTests
     {
         var model = SchemaModel.Build();
 
-        Assert.Equal(21, model.Sheets.Count);
+        Assert.Equal(SchemaRegistry.Tables.Count + SchemaRegistry.EditorOnlyTables.Count,
+                     model.Sheets.Count);
+    }
+
+    [Fact]
+    public void Marks_only_editor_only_sheets()
+    {
+        var model = SchemaModel.Build();
+        var editorOnly = SchemaRegistry.EditorOnlyTables.Select(t => t.Sheet).ToHashSet();
+
+        foreach (var sheet in model.Sheets)
+            Assert.Equal(editorOnly.Contains(sheet.Sheet), sheet.EditorOnly);
+    }
+
+    [Fact]
+    public void Item_balance_exposes_its_enums_and_audience_bitmask()
+    {
+        var balance = SchemaModel.Build().Sheets.Single(s => s.Sheet == "Item Balance");
+
+        Assert.Equal("Items", balance.Columns.Single(c => c.Name == "item_template_id").Ref);
+        Assert.Contains("Dodge", balance.Columns.Single(c => c.Name == "profile").EnumNames!);
+        Assert.Contains("Exempt", balance.Columns.Single(c => c.Name == "power").EnumNames!);
+        Assert.Contains("XP400M", balance.Columns.Single(c => c.Name == "step").EnumNames!);
+        Assert.Contains(balance.Composites, k => k.Kind == "Bitmask" && k.Columns.Single() == "audience");
     }
 
     [Fact]
@@ -104,8 +127,9 @@ public class SchemaModelTests
         // (see Column's doc comment), so neither list may be reordered.
         var model = SchemaModel.Build();
 
-        Assert.Equal(SchemaRegistry.Tables.Select(t => t.Sheet), model.Sheets.Select(s => s.Sheet));
-        foreach (var table in SchemaRegistry.Tables)
+        Assert.Equal(SchemaRegistry.Tables.Concat(SchemaRegistry.EditorOnlyTables).Select(t => t.Sheet),
+                     model.Sheets.Select(s => s.Sheet));
+        foreach (var table in SchemaRegistry.Tables.Concat(SchemaRegistry.EditorOnlyTables))
         {
             Assert.Equal(
                 table.Columns.Select(c => c.Name),

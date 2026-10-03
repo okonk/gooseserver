@@ -302,6 +302,24 @@
   .gal-tile[aria-selected="true"] { border-color: #4a76c8; box-shadow: 0 0 0 1px #4a76c8; }
   .gal-count { font-size: 11px; color: #555; }
 
+  /* Balance view: one wide table per slot; scrolls sideways inside the form column. */
+  .balance-filters { display: flex; gap: 12px; align-items: center; margin-bottom: 6px; }
+  table.balance { border-collapse: collapse; font-size: 12px; white-space: nowrap; display: block;
+    overflow-x: auto; max-width: 100%; }
+  table.balance th, table.balance td { padding: 2px 4px; border-bottom: 1px solid #eee; text-align: left; }
+  table.balance td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  table.balance td.effect { max-width: 140px; overflow: hidden; text-overflow: ellipsis; }
+  table.balance button.link { border: 0; background: none; padding: 0; color: inherit;
+    text-decoration: underline; cursor: pointer; font: inherit; }
+  table.balance .audience label { margin-right: 2px; }
+  table.balance tr.untagged td { font-style: italic; opacity: 0.75; }
+  table.balance tr.group-0 td:first-child { box-shadow: inset 4px 0 0 #6a8fd8; }
+  table.balance tr.group-1 td:first-child { box-shadow: inset 4px 0 0 #d8a26a; }
+  table.balance tr.group-2 td:first-child { box-shadow: inset 4px 0 0 #7cc08a; }
+  table.balance tr.group-3 td:first-child { box-shadow: inset 4px 0 0 #c07cb8; }
+  .up-fail { background: #fde2df; color: #8a1c10; }
+  .up-close { background: #fdf3d0; color: #6b5300; }
+  .up-ok { color: #1d6b32; }
   @media (prefers-color-scheme: dark) {
     body { background: #1c1c1c; color: #eee; }
     .set-tile { background: #242424; border-color: #3a3a3a; color: #eee; }
@@ -330,12 +348,17 @@
     canvas.preview, canvas.appearance, canvas.effect, canvas.item-icon, canvas.worn { border-color: #3a3a3a;
       background: repeating-conic-gradient(#2a2a2a 0% 25%, #202020 0% 50%) 50% / 12px 12px; }
     .unsupported { border-color: #ff8f80; }
+    table.balance th, table.balance td { border-bottom-color: #333; }
+    .up-fail { background: #4a1f1a; color: #ffb3a8; }
+    .up-close { background: #3a3218; color: #f3e6b8; }
+    .up-ok { color: #6ede8a; }
   }
 </style>
 
 <header>
   <select id="sheet-picker"></select>
   <button type="button" id="view-sets" hidden>Sets</button>
+  <button type="button" id="view-balance" hidden>Balance</button>
   <button type="button" id="new-record">New</button>
   <button type="button" id="save">Save</button>
   <button type="button" id="publish-check">Check all sheets</button>
@@ -369,8 +392,9 @@
     pickers     -> Forms, Sprites, Appearance, Preview, Gallery
     groups      -> Forms, Layout, Pickers, Validation
     setview     -> Sets, Forms, Composites, Layout, Preview, Equipped
+    balanceview -> Balance, Forms
     app         -> everything
-  All fifteen src/ modules are listed. build.mjs emits one dist/<name>.html per src/*.js, so a
+  All seventeen src/ modules are listed. build.mjs emits one dist/<name>.html per src/*.js, so a
   module added there and not added here is simply never on the page.
 -->
 <?!= include('schema'); ?>
@@ -378,6 +402,7 @@
 <?!= include('sprites-parts'); ?>
 <?!= include('sprites-effects'); ?>
 <?!= include('validation'); ?>
+<?!= include('balance'); ?>
 <?!= include('equipped'); ?>
 <?!= include('appearance'); ?>
 <?!= include('sprites'); ?>
@@ -391,6 +416,7 @@
 <?!= include('groups'); ?>
 <?!= include('sets'); ?>
 <?!= include('setview'); ?>
+<?!= include('balanceview'); ?>
 <?!= include('app'); ?>
 
 <script>App.init();</script>
