@@ -27,23 +27,42 @@ namespace Goose.Quests
 
         public void Claim(Quest quest, Player player, GameWorld world)
         {
-            Claims[quest.Id] = new QuestClaim
+            var claim = new QuestClaim
             {
                 QuestId = quest.Id,
                 PlayerId = player.PlayerID,
                 CompletedAt = DateTime.UtcNow,
             };
 
+            var roster = new List<Player>();
+            foreach (var p in world.PlayerHandler.GetAllPlayerData())
+            {
+                if (p == player) continue;
+                if (!QuestStateResolver.IsActive(quest, p)) continue;
+                if (p.QuestsCompleted.Any(q => q.Id == quest.Id)) continue;
+                if (!QuestStateResolver.MeetsRequirements(quest, p, world)) continue;
+                roster.Add(p);
+            }
+            claim.Roster = [.. roster.Select(p => p.PlayerID)];
+            Claims[quest.Id] = claim;
+
+            var npcName = QuestWindow.FindGrantingNpc(world, quest.Id) ?? "the quest giver";
+            foreach (var p in roster)
+            {
+                if (p.State == Player.States.Ready)
+                    world.Send(p, P.ServerMessage($"You helped complete {quest.Name}. You can still turn it in at {npcName}."));
+            }
+
             // OR REPLACE: a crash between claim and flush re-opens the quest, and re-claiming must not
             // hit the primary key. Runs on the game thread only; the dictionary is the source of truth.
-            var claim = Claims[quest.Id];
             world.Database.Enqueue(conn =>
             {
                 using var command = conn.CreateCommand();
-                command.CommandText = "INSERT OR REPLACE INTO quest_claims (quest_id, player_id, completed_at) VALUES (@quest_id, @player_id, @completed_at)";
+                command.CommandText = "INSERT OR REPLACE INTO quest_claims (quest_id, player_id, completed_at, player_ids) VALUES (@quest_id, @player_id, @completed_at, @player_ids)";
                 command.Parameters.Add(new SQLiteParameter("@quest_id", DbType.Int32) { Value = claim.QuestId });
                 command.Parameters.Add(new SQLiteParameter("@player_id", DbType.Int32) { Value = claim.PlayerId });
                 command.Parameters.Add(new SQLiteParameter("@completed_at", DbType.String) { Value = claim.CompletedAt.ToString("o") });
+                command.Parameters.Add(new SQLiteParameter("@player_ids", DbType.String) { Value = JsonSerializer.Serialize(claim.Roster, JsonHelper.DatabaseOptions) });
                 command.ExecuteNonQuery();
             }, e => { if (e is not null) log.Error(e, "Failed to persist quest claim {0}", quest.Id); });
         }
