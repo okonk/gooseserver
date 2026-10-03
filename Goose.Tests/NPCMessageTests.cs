@@ -119,6 +119,8 @@ public class NPCMessageTests : IDisposable
 
     private static string Buffer(Player p) => Encoding.ASCII.GetString(p.SendBuffer.ToArray());
 
+    private static string Chat(NPC npc, string message) => $"^{npc.LoginID},{npc.Name}: {message}";
+
     private static void MakeStuck(NPC npc, GameWorld world)
     {
         npc.LastAttackTime = world.TimeNow - 10 * world.TimerFrequency;
@@ -138,8 +140,8 @@ public class NPCMessageTests : IDisposable
         npc.AggroIfInRange(target, world);
 
         Assert.Same(target, npc.AggroTarget);
-        Assert.Contains("$7Grrr!", Buffer(bystander));
-        Assert.Contains("$7Grrr!", Buffer(target));
+        Assert.Contains(Chat(npc, "Grrr!"), Buffer(bystander));
+        Assert.Contains(Chat(npc, "Grrr!"), Buffer(target));
     }
 
     [Fact]
@@ -152,7 +154,7 @@ public class NPCMessageTests : IDisposable
 
         npc.AddAggro(attacker, 10, world);
 
-        Assert.Contains("$7Who struck me?!", Buffer(attacker));
+        Assert.Contains(Chat(npc, "Who struck me?!"), Buffer(attacker));
     }
 
     [Fact]
@@ -171,8 +173,8 @@ public class NPCMessageTests : IDisposable
         npc.AddAggro(target, 5, world);
         npc.AddAggro(newcomer, 3, world);
 
-        Assert.DoesNotContain("$7Grrr!", Buffer(target));
-        Assert.DoesNotContain("$7Grrr!", Buffer(newcomer));
+        Assert.DoesNotContain(Chat(npc, "Grrr!"), Buffer(target));
+        Assert.DoesNotContain(Chat(npc, "Grrr!"), Buffer(newcomer));
     }
 
     [Fact]
@@ -188,7 +190,7 @@ public class NPCMessageTests : IDisposable
         npc.AggroIfInRange(target, world);
 
         Assert.Same(target, npc.AggroTarget);
-        Assert.DoesNotContain("$7", Buffer(bystander));
+        Assert.DoesNotContain($",{npc.Name}:", Buffer(bystander));
     }
 
     [Fact]
@@ -208,8 +210,8 @@ public class NPCMessageTests : IDisposable
         npc.HandleAttackEvent(world);
 
         Assert.True(Math.Abs(target.MapX - npc.MapX) <= 1 && Math.Abs(target.MapY - npc.MapY) <= 1);
-        Assert.Contains("$7Come here!", Buffer(target));
-        Assert.Contains("$7Come here!", Buffer(bystander));
+        Assert.Contains(Chat(npc, "Come here!"), Buffer(target));
+        Assert.Contains(Chat(npc, "Come here!"), Buffer(bystander));
     }
 
     [Fact]
@@ -229,8 +231,8 @@ public class NPCMessageTests : IDisposable
         npc.HandleAttackEvent(world);
 
         Assert.True(Map.InRange(npc, target));
-        Assert.Contains("$7I see you!", Buffer(target));
-        Assert.Contains("$7I see you!", Buffer(bystander));
+        Assert.Contains(Chat(npc, "I see you!"), Buffer(target));
+        Assert.Contains(Chat(npc, "I see you!"), Buffer(bystander));
     }
 
     [Fact]
@@ -246,7 +248,7 @@ public class NPCMessageTests : IDisposable
 
         npc.HandleAttackEvent(world);
 
-        Assert.DoesNotContain("$7Should not appear", Buffer(target));
+        Assert.DoesNotContain(Chat(npc, "Should not appear"), Buffer(target));
     }
 
     [Fact]
@@ -262,6 +264,6 @@ public class NPCMessageTests : IDisposable
         npc.HandleAttackEvent(world);
 
         Assert.Equal((5, 10), (target.MapX, target.MapY));
-        Assert.DoesNotContain("$7Not yet!", Buffer(target));
+        Assert.DoesNotContain(Chat(npc, "Not yet!"), Buffer(target));
     }
 }

@@ -915,7 +915,7 @@ namespace Goose
         {
             if (string.IsNullOrEmpty(message)) return;
 
-            string packet = P.ServerMessage(message);
+            string packet = P.Chat(this.LoginID, this.Name, message);
             foreach (var p in this.Map.GetPlayersInRange(this))
             {
                 world.Send(p, packet);
