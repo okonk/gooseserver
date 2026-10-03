@@ -13,6 +13,14 @@ public class WorldStateTests
     }
 
     [Fact]
+    public void KeysWithPrefix_ReturnsOnlyMatchingKeys()
+    {
+        var state = Loaded(("chest:a", "1"), ("chest:b", "2"), ("other", "3"));
+
+        Assert.Equal(new[] { "chest:a", "chest:b" }, state.KeysWithPrefix("chest:").OrderBy(k => k));
+    }
+
+    [Fact]
     public void Get_MaterializesRawJsonOnce()
     {
         var json = JsonHelper.Serialize(Slots((5, 2), (7, 1)));
@@ -32,8 +40,12 @@ public class WorldStateTests
     public void Get_CorruptJson_LogsAndReturnsDefault()
     {
         var state = Loaded(("k", "{ not json"));
+        using var log = new CapturingLog();
+        log.Target.Layout = "${level}: ${message}";
 
         Assert.Null(state.Get<ItemSlot[]>("k"));
+        Assert.Contains(log.Messages, m => m.StartsWith("Error") && m.Contains("k"));
+        Assert.Empty(state.PlanSave().Upserts);
     }
 
     [Fact]
