@@ -374,7 +374,10 @@ namespace Goose.Quests
             }
 
             if (quest.OnlyOnePlayerCanComplete && !world.QuestHandler.IsClaimed(quest.Id))
+            {
                 world.QuestHandler.Claim(quest, player, world);
+                world.SendToAll(P.ServerMessage($"[World First] {quest.Name} has been completed by {player.Name}!"));
+            }
 
             // A completed repeatable quest is done until the player re-accepts it at the NPC.
             // Its progress is dropped too: kills while inactive would still credit it.

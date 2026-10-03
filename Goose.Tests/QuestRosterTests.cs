@@ -281,6 +281,39 @@ public class QuestRosterTests
     }
 
     [Fact]
+    public void First_completion_broadcasts_world_first_to_online_players_and_a_rostered_turn_in_never_does()
+    {
+        var (world, npc, _, quest) = SetupOneTime();
+        StartDatabase(world);
+
+        var observer = MakePlayer(world, "Observer", 99, 0);
+        observer.State = Player.States.Ready;
+        world.AddOnlinePlayer(observer);
+
+        var alice = MakePlayer(world, "Alice", 1, 0);
+        world.RegisterDatabasePlayer(alice);
+        alice.QuestsStarted.Add(quest);
+        var firstWindow = new QuestWindow(npc, alice, quest, world.World);
+        firstWindow.Clicked(Window.ButtonTypes.Next, npc.NPCTemplate.NPCTemplateID, 0, 0, alice, world.World);
+
+        Assert.Contains(alice.QuestsCompleted, q => q.Id == quest.Id);
+        Assert.Contains(observer.Sent, s => s.Contains("[World First] One Time has been completed by Alice!"));
+
+        var bob = MakePlayer(world, "Bob", 2, 0);
+        world.RegisterDatabasePlayer(bob);
+        world.World.QuestHandler.Claims[quest.Id].Roster = [bob.PlayerID];
+        bob.QuestsStarted.Add(quest);
+        var secondWindow = new QuestWindow(npc, bob, quest, world.World);
+        secondWindow.Clicked(Window.ButtonTypes.Next, npc.NPCTemplate.NPCTemplateID, 0, 0, bob, world.World);
+
+        Assert.Contains(bob.QuestsCompleted, q => q.Id == quest.Id);
+        Assert.Single(observer.Sent, s => s.Contains("[World First]"));
+
+        world.World.Database.Stop();
+        world.Dispose();
+    }
+
+    [Fact]
     public void Rostered_player_can_restart_a_claimed_quest_and_a_non_rostered_one_still_cannot()
     {
         var (world, _, _, quest) = SetupOneTime();
