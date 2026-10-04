@@ -135,15 +135,14 @@ namespace Goose.Tests
         }
 
         [Fact]
-        public void Cws_look_equals_stats_sends_message()
+        public void Cws_look_equals_stats_sends_cwg()
         {
             var (fixture, player, _, _, _, _) = Setup();
             using (fixture)
             {
                 Assert.True(fixture.RunCommand(player, "CWS5,5"));
 
-                Assert.Contains(player.Sent, s => s.Contains("Items to be customised"));
-                Assert.False(SentCWG(player));
+                Assert.Contains(player.Sent, s => s.StartsWith("CWG777,6"));
             }
         }
 
@@ -304,15 +303,80 @@ namespace Goose.Tests
         }
 
         [Fact]
-        public void Cwc_look_equals_stats_refused_and_consumes_nothing()
+        public void Cwc_look_equals_stats_creates_and_consumes_one()
+        {
+            var (fixture, player, _, _, _, window) = Setup();
+            using (fixture)
+            {
+                Assert.True(fixture.RunCommand(player, "CWS5,5"));
+                Assert.True(fixture.RunCommand(player, "CWC5,5,10,20,30,40,X"));
+
+                Assert.Null(player.Inventory.GetSlot(5));
+                Assert.Equal(900, player.Inventory.GetSlot(6)!.Item.TemplateID);
+
+                var result = player.Inventory.GetSlot(7)!;
+                Assert.Equal("X", result.Item.Name);
+                Assert.Equal(901, result.Item.TemplateID);
+                Assert.Equal(777, result.Item.GraphicEquipped);
+                Assert.Equal(6, result.Item.BodyState);
+                Assert.Equal(10, result.Item.GraphicR);
+                Assert.Equal("Custom created by Tester", result.Item.Description);
+
+                Assert.Contains(player.Sent, s => s.Contains("Created custom: X"));
+                Assert.Contains(player.Sent, s => s.StartsWith("CLW" + window!.ID));
+                Assert.Null(CustomWindow.FindOpen(player));
+            }
+        }
+
+        [Fact]
+        public void Cwc_look_equals_stats_stacked_consumes_one_from_stack()
+        {
+            var (fixture, player, _, _, _, _) = Setup(look: t => t.StackSize = 10);
+            using (fixture)
+            {
+                var lookItem = player.Inventory.GetSlot(5)!.Item;
+                player.Inventory.SetSlot(5, new ItemSlot { Item = lookItem, Stack = 2 });
+
+                Assert.True(fixture.RunCommand(player, "CWS5,5"));
+                Assert.True(fixture.RunCommand(player, "CWC5,5,10,20,30,40,X"));
+
+                Assert.Equal(901, player.Inventory.GetSlot(5)!.Item.TemplateID);
+                Assert.Equal(1, player.Inventory.GetSlot(5)!.Stack);
+                Assert.Equal("X", player.Inventory.GetSlot(7)!.Item.Name);
+                Assert.Contains(player.Sent, s => s.Contains("Created custom: X"));
+            }
+        }
+
+        [Fact]
+        public void Cwc_look_equals_stats_without_prior_cws_refused_and_consumes_nothing()
         {
             var (fixture, player, _, _, _, window) = Setup();
             using (fixture)
             {
                 Assert.True(fixture.RunCommand(player, "CWC5,5,10,20,30,40,X"));
 
-                Assert.Contains(player.Sent, s => s.Contains("Items missing for customisation"));
+                Assert.Contains(player.Sent, s => s.Contains("Items changed in the custom window"));
                 AssertNothingConsumed(player);
+                Assert.Same(window, CustomWindow.FindOpen(player));
+            }
+        }
+
+        [Fact]
+        public void Cwc_look_equals_stats_item_replaced_refused_and_consumes_nothing()
+        {
+            var (fixture, player, _, _, _, window) = Setup();
+            using (fixture)
+            {
+                Assert.True(fixture.RunCommand(player, "CWS5,5"));
+
+                var replacement = LoadItem(fixture.AddBaseItemTemplate(902, "Mystic Sword", ItemTemplate.UseTypes.Weapon));
+                player.Inventory.SetSlot(5, new ItemSlot { Item = replacement });
+
+                Assert.True(fixture.RunCommand(player, "CWC5,5,10,20,30,40,X"));
+
+                Assert.Contains(player.Sent, s => s.Contains("Items changed in the custom window"));
+                Assert.Equal(902, player.Inventory.GetSlot(5)!.Item.TemplateID);
+                Assert.Equal(823, player.Inventory.GetSlot(7)!.Item.TemplateID);
                 Assert.Same(window, CustomWindow.FindOpen(player));
             }
         }

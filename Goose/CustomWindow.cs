@@ -59,9 +59,7 @@ namespace Goose
                 return;
             }
 
-            if ((lookSlotId != 0 && lookSlotId == statsSlotId)
-                || lookSlotId == window.TicketSlotId
-                || statsSlotId == window.TicketSlotId)
+            if (lookSlotId == window.TicketSlotId || statsSlotId == window.TicketSlotId)
             {
                 world.Send(player, P.ServerMessage("Items to be customised must be equipment and must be visible items."));
                 return;
@@ -99,7 +97,6 @@ namespace Goose
             ItemSlot? lookSlot = lookSlotId != 0 ? player.Inventory.GetSlot(lookSlotId) : null;
             ItemSlot? statsSlot = statsSlotId != 0 ? player.Inventory.GetSlot(statsSlotId) : null;
             if (lookSlot is null || statsSlot is null
-                || (lookSlotId != 0 && lookSlotId == statsSlotId)
                 || lookSlotId == window.TicketSlotId
                 || statsSlotId == window.TicketSlotId)
             {
@@ -139,9 +136,12 @@ namespace Goose
                 return;
             }
 
+            // A shared slot serves both roles and is consumed once.
+            bool sameItem = lookSlotId == statsSlotId;
+
             // Stacked items are decremented, not freed: only stack-1 consumes free a slot.
             int freedByConsumes = (lookSlot.Stack == 1 ? 1 : 0)
-                + (statsSlot.Stack == 1 ? 1 : 0)
+                + (!sameItem && statsSlot.Stack == 1 ? 1 : 0)
                 + (ticketSlot.Stack == 1 ? 1 : 0);
             if (player.Inventory.GetNumberOfFreeSlots() + freedByConsumes < 1)
             {
@@ -175,7 +175,7 @@ namespace Goose
                 }
 
                 changed = true;
-                if (player.Inventory.RemoveItem(statsSlot.Item, 1, world) is null
+                if ((!sameItem && player.Inventory.RemoveItem(statsSlot.Item, 1, world) is null)
                     || player.Inventory.RemoveItem(ticketSlot.Item, 1, world) is null)
                 {
                     log.Error("Custom create for player {0}: item vanished during consumption", player.Name);

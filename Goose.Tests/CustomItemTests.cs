@@ -44,6 +44,20 @@ namespace Goose.Tests
         }
 
         [Fact]
+        public void ValidateItems_same_item_for_both_roles_passes()
+        {
+            var (fixture, player) = WorldAndPlayer();
+            using (fixture)
+            {
+                var (_, _, look) = Templates(fixture);
+                var item = LoadItem(look);
+
+                Assert.True(CustomItem.ValidateItems(fixture.World, player, item, item));
+                Assert.Empty(player.Sent);
+            }
+        }
+
+        [Fact]
         public void ValidateItems_different_equipment_types_fails()
         {
             var (fixture, player) = WorldAndPlayer();
