@@ -4,10 +4,11 @@ namespace Goose
     {
         private readonly List<string> lines;
         private readonly List<(int Sheet, int Graphic, int R, int G, int B, int A)>? lineGraphics;
+        private readonly List<ItemTemplate?>? lineItems;
         private readonly Action<int, Player, GameWorld> onLineClicked;
         private int page;
 
-        public OptionListWindow(Player player, GameWorld world, string title, List<string> lines, Action<int, Player, GameWorld> onLineClicked, NPC? npc = null, int startPage = 0, List<(int Sheet, int Graphic, int R, int G, int B, int A)>? lineGraphics = null, string? openingLine = null)
+        public OptionListWindow(Player player, GameWorld world, string title, List<string> lines, Action<int, Player, GameWorld> onLineClicked, NPC? npc = null, int startPage = 0, List<(int Sheet, int Graphic, int R, int G, int B, int A)>? lineGraphics = null, string? openingLine = null, List<ItemTemplate?>? lineItems = null)
         {
             this.ID = ++player.LastWindowID;
             this.Title = title;
@@ -16,6 +17,7 @@ namespace Goose
             this.NPC = npc;
             this.lines = lines;
             this.lineGraphics = lineGraphics;
+            this.lineItems = lineItems;
             this.onLineClicked = onLineClicked;
             this.OpeningLine = openingLine;
             this.page = Math.Min(Math.Max(startPage, 0), Math.Max(this.PageCount - 1, 0));
@@ -42,12 +44,21 @@ namespace Goose
             foreach (var line in this.lines.Skip(firstIndex).Take(LineClickCount))
             {
                 int absolute = firstIndex + lineNo - 1;
-                int sheet = 0, graphic = 0, r = 0, g = 0, b = 0, a = 0;
-                if (this.lineGraphics is not null && absolute < this.lineGraphics.Count)
+                if (this.lineItems is not null && absolute < this.lineItems.Count
+                    && this.lineItems[absolute] is { } item)
                 {
-                    (sheet, graphic, r, g, b, a) = this.lineGraphics[absolute];
+                    world.Send(player, P.WindowLineItem(this.ID, lineNo, item, world));
                 }
-                world.Send(player, P.WindowLine(this.ID, lineNo++, line, sheet, graphic, r, g, b, a));
+                else
+                {
+                    int sheet = 0, graphic = 0, r = 0, g = 0, b = 0, a = 0;
+                    if (this.lineGraphics is not null && absolute < this.lineGraphics.Count)
+                    {
+                        (sheet, graphic, r, g, b, a) = this.lineGraphics[absolute];
+                    }
+                    world.Send(player, P.WindowLine(this.ID, lineNo, line, sheet, graphic, r, g, b, a));
+                }
+                lineNo++;
             }
         }
 

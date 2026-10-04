@@ -156,6 +156,15 @@ Window text line (server -> client):
 
     * WNFwindowid,linesequence,text|stack|item|sheet|graphic|*
 
+Window line item (server -> client):
+
+    * WLIwindowid,linesequence|<item slot payload, as in SVS>
+
+Replaces the WNF for an option-list line: the client renders the line from
+the item's name and graphic (leading icon, tinted by the payload's rgba) and
+shows the item's stats as a tooltip on mouseover. A line is sent as either a
+WNF or a WLI, never both.
+
 Window button click (client -> server):
 
     * WBCbuttonid,windowid,npcid,id2,id3

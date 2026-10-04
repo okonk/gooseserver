@@ -73,8 +73,10 @@ public class RecipesCommandTests
         Assert.Single(player.Windows);
         var list = Assert.IsType<OptionListWindow>(player.Windows[0]);
         Assert.Null(list.NPC);
-        Assert.Equal(["WNF1001,1,Cloth|0|0|0|0|*"],
-            player.Sent.Where(s => s.StartsWith("WNF")).ToArray());
+        Assert.Empty(player.Sent.Where(s => s.StartsWith("WNF")));
+        var wli = Assert.Single(player.Sent, s => s.StartsWith("WLI"));
+        Assert.StartsWith("WLI1001,1|1|", wli);
+        Assert.Contains("|Cloth|", wli);
     }
 
     [Fact]
@@ -93,12 +95,13 @@ public class RecipesCommandTests
 
         new RecipesCommand().Execute(ctx);
 
-        Assert.Equal(["WNF1001,1,Cloth|0|0|5|7|200|50|50|255"],
-            player.Sent.Where(s => s.StartsWith("WNF")).ToArray());
+        var wli = Assert.Single(player.Sent, s => s.StartsWith("WLI"));
+        Assert.StartsWith("WLI1001,1|1|7|5|", wli);
+        Assert.Contains("|200|50|50|255|", wli);
     }
 
     [Fact]
-    public void Execute_MultipleResultItems_AreJoinedOnOneLine()
+    public void Execute_MultipleResultItems_LineShowsFirstResult()
     {
         var (world, player, ctx) = Setup();
         MakeCombination(world, 1, "Bundle",
@@ -106,8 +109,41 @@ public class RecipesCommandTests
 
         new RecipesCommand().Execute(ctx);
 
-        Assert.Equal(["WNF1001,1,Cloth, Rope|0|0|0|0|*"],
-            player.Sent.Where(s => s.StartsWith("WNF")).ToArray());
+        var wli = Assert.Single(player.Sent, s => s.StartsWith("WLI"));
+        Assert.Contains("|Cloth|", wli);
+        Assert.DoesNotContain("|Rope|", wli);
+    }
+
+    [Fact]
+    public void Execute_SendsResultItemStatsOnEachLine()
+    {
+        var (world, player, ctx) = Setup();
+        MakeCombination(world, 1, "Cloth",
+            [(1, "Thread", 1)], [(10, "Cloth")]);
+
+        new RecipesCommand().Execute(ctx);
+
+        var wli = Assert.Single(player.Sent, s => s.StartsWith("WLI"));
+        Assert.Contains("|Cloth|", wli);
+    }
+
+    [Fact]
+    public void NextPage_ResendsItemStatsForCurrentPage()
+    {
+        var (world, player, ctx) = Setup();
+        for (var i = 1; i <= Window.LineClickCount + 4; i++)
+            MakeCombination(world, i, $"Recipe {i}",
+                [(1, "Thread", 1)], [(10 + i, $"Recipe {i}")]);
+
+        new RecipesCommand().Execute(ctx);
+        player.Sent.Clear();
+
+        player.Windows[0].Clicked(Window.ButtonTypes.Next, 0, 0, 0, player, ctx.World);
+
+        var wlis = player.Sent.Where(s => s.StartsWith("WLI")).ToArray();
+        Assert.Equal(4, wlis.Length);
+        Assert.Contains(wlis, s => s.Contains($"|Recipe {Window.LineClickCount + 1}|"));
+        Assert.DoesNotContain(wlis, s => s.Contains("|Recipe 1|"));
     }
 
     [Fact]
@@ -153,7 +189,7 @@ public class RecipesCommandTests
         Assert.Single(player.Windows);
         var list = Assert.IsType<OptionListWindow>(player.Windows[0]);
         Assert.Equal(1, list.Page);
-        var lines = player.Sent.Where(s => s.StartsWith("WNF")).ToArray();
+        var lines = player.Sent.Where(s => s.StartsWith("WLI")).ToArray();
         Assert.Equal(4, lines.Length);
         Assert.Contains(lines, s => s.Contains($"Recipe {Window.LineClickCount + 1}"));
         Assert.Contains(lines, s => s.Contains($"Recipe {Window.LineClickCount + 4}"));
@@ -168,12 +204,12 @@ public class RecipesCommandTests
                 [(1, "Thread", 1)], [(10 + i, $"Recipe {i}")]);
 
         new RecipesCommand().Execute(ctx);
-        var lines = player.Sent.Where(s => s.StartsWith("WNF")).ToArray();
+        var lines = player.Sent.Where(s => s.StartsWith("WLI")).ToArray();
         Assert.Equal(Window.LineClickCount, lines.Length);
 
         player.Sent.Clear();
         player.Windows[0].Clicked(Window.ButtonTypes.Next, 0, 0, 0, player, ctx.World);
-        lines = player.Sent.Where(s => s.StartsWith("WNF")).ToArray();
+        lines = player.Sent.Where(s => s.StartsWith("WLI")).ToArray();
         Assert.Equal(4, lines.Length);
 
         player.Windows[0].LineClicked(1, 0, player, ctx.World);

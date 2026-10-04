@@ -26,18 +26,8 @@ namespace Goose.Commands
                 .Select(c => string.Join(", ", c.ResultItems.Select(i => i.Name)))
                 .ToList();
 
-            var lineGraphics = combinations
-                .Select(c =>
-                {
-                    var result = c.ResultItems.FirstOrDefault();
-                    return (
-                        Sheet: result?.GraphicFile ?? 0,
-                        Graphic: result?.GraphicTile ?? 0,
-                        R: result?.GraphicR ?? 0,
-                        G: result?.GraphicG ?? 0,
-                        B: result?.GraphicB ?? 0,
-                        A: result?.GraphicA ?? 0);
-                })
+            var lineItems = combinations
+                .Select(c => (ItemTemplate?)c.ResultItems.FirstOrDefault())
                 .ToList();
 
             OptionListWindow? list = null;
@@ -46,7 +36,7 @@ namespace Goose.Commands
             {
                 list = new OptionListWindow(p, w, "Recipes", lines,
                     (line, pp, ww) => new RecipeWindow(combinations[line], pp, ww,
-                        (bp, bw) => OpenList(bp, bw, list!.Page)), null, page, lineGraphics);
+                        (bp, bw) => OpenList(bp, bw, list!.Page)), null, page, null, null, lineItems);
             }
 
             OpenList(player, world, 0);

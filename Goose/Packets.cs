@@ -482,6 +482,15 @@ namespace Goose
             return $"WNL{windowId},{text}";
         };
 
+        // Replaces the WNF for an option-list line: carries the item's full stats (payload as
+        // in VendorItemSlot, no vendor in scope); the client renders the line from the item's
+        // name and graphic and shows the item tooltip on hover.
+        public static Func<int, int, ItemTemplate, GameWorld, string> WindowLineItem =
+            (windowId, lineNo, item, world) =>
+            {
+                return "WLI" + windowId + "," + lineNo + "|" + VendorItemSlot(item, world, null, lineNo, 1);
+            };
+
         public static Func<Item, GameWorld, int, long, string> ItemSlot = (item, world, slotId, stack) =>
         {
             var spellEffect = item.SpellEffect;
@@ -546,7 +555,7 @@ namespace Goose
 
         /// <summary>The vendor is threaded in only to name the currency: a credit dealer's
         /// stock carries no item-level currency, so the label has to come from the NPC.</summary>
-        public static Func<ItemTemplate, GameWorld, NPC, int, long, string> VendorItemSlot = (item, world, vendor, slotId, stack) =>
+        public static Func<ItemTemplate, GameWorld, NPC?, int, long, string> VendorItemSlot = (item, world, vendor, slotId, stack) =>
         {
             var spellEffect = item.SpellEffect;
             int spellEffectChance = (int)item.SpellEffectChance;
