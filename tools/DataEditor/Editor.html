@@ -311,7 +311,11 @@
   table.balance td.effect { max-width: 140px; overflow: hidden; text-overflow: ellipsis; }
   table.balance button.link { border: 0; background: none; padding: 0; color: inherit;
     text-decoration: underline; cursor: pointer; font: inherit; }
-  table.balance .audience label { margin-right: 2px; }
+  .balance-filters input, .balance-filters select, table.balance input, table.balance select { width: auto; }
+  .balance-filters label { display: inline-flex; align-items: center; gap: 4px; }
+  table.balance input[type="checkbox"] { margin: 0; }
+  table.balance .audience { display: inline-flex; gap: 6px; }
+  table.balance .audience label { display: inline-flex; align-items: center; gap: 2px; }
   table.balance tr.untagged td { font-style: italic; opacity: 0.75; }
   table.balance tr.group-0 td:first-child { box-shadow: inset 4px 0 0 #6a8fd8; }
   table.balance tr.group-1 td:first-child { box-shadow: inset 4px 0 0 #d8a26a; }
