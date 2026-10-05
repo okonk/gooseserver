@@ -13,8 +13,32 @@ public class GMAddHP : BaseSpellEffectScript
         }
 
         long amount = thisEffect.Stats.HP;
-        if (amount == 0) return false;
+        if (amount <= 0) return false;
 
+        const string temporaryEffectName = "GMAddHP temporary HP";
+        var temporaryEffect = npc.Buffs
+            .Select(buff => buff.SpellEffect)
+            .FirstOrDefault(effect => effect.ID == thisEffect.ID && effect.Name == temporaryEffectName);
+        if (temporaryEffect is null)
+        {
+            temporaryEffect = new SpellEffect
+            {
+                ID = thisEffect.ID,
+                Name = temporaryEffectName,
+                Duration = 0,
+                BuffCanBeRemoved = false,
+                Stats = new AttributeSet(),
+            };
+            npc.Buffs.Add(new Buff
+            {
+                Caster = caster,
+                Target = npc,
+                SpellEffect = temporaryEffect,
+                TimeCast = world.TimeNow,
+            });
+        }
+
+        temporaryEffect.Stats.HP += amount;
         npc.MaxStats.HP += amount;
         npc.CurrentHP += amount;
 
