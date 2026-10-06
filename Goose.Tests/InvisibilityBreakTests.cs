@@ -105,6 +105,42 @@ public class InvisibilityBreakTests : IDisposable
         FaceID = 70,
     }, shouldRespawn: false)!;
 
+    private Pet NewPet(Player owner)
+    {
+        var klass = new Class { ClassID = ClassId, ClassName = "Test", ACMultiplier = 1.0 };
+        klass.AddLevel(new ClassLevel { Level = 1, ClassID = ClassId, BaseStats = new AttributeSet() });
+
+        var pet = new Pet
+        {
+            LoginID = 1001,
+            Name = "Pet",
+            Owner = owner,
+            Level = 1,
+            WeaponDamage = 2,
+            Class = klass,
+            BaseStats = new AttributeSet { HP = 100 },
+            MaxStats = new AttributeSet { HP = 100 },
+            HairA = 255,
+            FaceID = 70,
+            State = Player.States.Ready,
+            AttackRange = 1,
+        };
+        pet.CurrentHP = 100;
+        pet.Inventory = new Inventory(pet, world.Settings);
+        return pet;
+    }
+
+    private void PlacePet(Pet pet, int x, int y)
+    {
+        pet.Map = map;
+        pet.MapID = MapId;
+        pet.MapX = x;
+        pet.MapY = y;
+        map.AddPlayer(pet, world);
+        map.PlaceCharacter(pet);
+        map.SetCharacter(pet, x, y);
+    }
+
     private static Buff NewBuff(ICharacter owner, SpellEffect.EffectTypes effectType)
     {
         return new Buff
@@ -209,6 +245,35 @@ public class InvisibilityBreakTests : IDisposable
 
         string buf = Buffer(p);
         Assert.Contains("CHP", buf);
+        Assert.Contains(",255,0,70,", buf);
+        Assert.DoesNotContain(",255,1,70,", buf);
+    }
+
+    [Fact]
+    public void InvisiblePet_AttackingNpc_BreaksInvisibility()
+    {
+        var bystander = NewPlayer();
+        PlacePlayer(bystander, 3, 5);
+
+        var owner = NewPlayer();
+        PlacePlayer(owner, 4, 4);
+        owner.LastActive = world.TimeNow + 1000L * world.TimerFrequency;
+
+        var npc = SpawnNpc();
+        var pet = NewPet(owner);
+        PlacePet(pet, 4, 5);
+        pet.Target = npc;
+
+        pet.AddBuff(NewBuff(pet, SpellEffect.EffectTypes.Invisible), world);
+        Assert.True(pet.IsInvisible);
+
+        bystander.SendBuffer.Clear();
+        new PetAttackEvent { Player = pet }.Ready(world);
+
+        Assert.False(pet.IsInvisible);
+        Assert.DoesNotContain(pet.Buffs, buf => buf.SpellEffect.EffectType == SpellEffect.EffectTypes.Invisible);
+
+        string buf = Buffer(bystander);
         Assert.Contains(",255,0,70,", buf);
         Assert.DoesNotContain(",255,1,70,", buf);
     }
