@@ -109,7 +109,7 @@ namespace Goose
 
         /// <summary>Overrides the vendor's currency for this item. Null means "use whatever
         /// the vendor deals in". Runtime-only - there is no items column for it, so sheet
-        /// data never sets it; scripts do (Scripts/Global/Dimensions.csx).</summary>
+        /// data never sets it.</summary>
         public string? CurrencyId { get; set; }
 
         public Script<IItemScript>? Script { get; set; }

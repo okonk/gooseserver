@@ -81,8 +81,8 @@ public class VendorSellCurrencyTests
         Assert.NotNull(fixture.Player.Inventory.GetSlot(1));
     }
 
-    /// <summary>The new behaviour, and the decision from the design: an item override wins,
-    /// so a dimension item sells for spirit even at a credit dealer that buys nothing else.</summary>
+    /// <summary>An item override wins, so a spirit-marked item sells for spirit even at a
+    /// credit dealer that buys nothing else.</summary>
     [Fact]
     public void ItemOverride_PaysTheOverrideCurrencyEvenAtACreditDealer()
     {

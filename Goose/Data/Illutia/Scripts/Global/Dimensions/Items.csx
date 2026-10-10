@@ -110,16 +110,9 @@ public partial class Dimensions
             GraphicB = Math.Max(basic.GraphicB - 30 * dim, 0),
             GraphicA = Math.Min(basic.GraphicA + 30 * dim, 200),
 
-            // Item.java:445. This is the spirit price. CurrencyId stamps the clones as
-            // spirit-priced (below), and CurrencyHandler.Resolve makes that override win
-            // at every vendor, so this value is never read as gold. Credit-only items
-            // (value 0, credits_value > 0) have no gold to scale - without the fallback
-            // the spirit stamp would price them at 0 and make them free.
-            Value = (long)((basic.Value > 0 ? basic.Value : basic.Credits) * Math.Pow(3, dim)),
-
-            // Dimension items are priced in spirit wherever they are traded. The currency
-            // is registered just above in OnLoaded, so stamping can validate against it.
-            CurrencyId = SpiritCurrencyId,
+            // Item.java:445
+            Value = (long)(basic.Value * Math.Pow(3, dim)),
+            Credits = checked((int)(basic.Credits * Math.Pow(3, dim))),
 
             // Item.java:225-260 - dimension gear is freely tradeable.
             IsLore = false,
@@ -191,9 +184,9 @@ public partial class Dimensions
     /// constructor shares VendorItems with the base template (NPCTemplate.cs:254), so
     /// mutating either would rewrite dimension 0's shops. Same rule as RepointDrops.
     ///
-    /// No vendor-side CurrencyId is set. The clones carry CurrencyId = "spirit" on the
-    /// item, and Resolve puts the item override above the vendor (CurrencyHandler.cs:41),
-    /// so repointed gear sells for spirit while unrepointed consumables stay gold.</summary>
+    /// No vendor-side CurrencyId is set: clones keep whatever currency override the base
+    /// item carries, and Resolve falls back to the vendor's own currency otherwise
+    /// (CurrencyHandler.cs:41).</summary>
     private void RepointVendorStock(GameWorld world)
     {
         for (int dim = 1; dim <= DimensionCount; dim++)

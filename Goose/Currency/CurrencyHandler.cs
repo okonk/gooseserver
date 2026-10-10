@@ -33,9 +33,8 @@ namespace Goose
         /// <summary>The currency a transaction settles in: the item's override if it has
         /// one, else the vendor's, else gold.
         ///
-        /// An item override wins over the vendor deliberately - a dimension item is worth
-        /// spirit wherever it is traded, including at a credit dealer, which today buys
-        /// nothing at all.</summary>
+        /// An item override wins over the vendor deliberately, so a currency-marked item
+        /// settles in its own currency even at a dealer that trades in another.</summary>
         public ICurrency Resolve(ItemTemplate? template, NPC? vendor)
         {
             string? id = template?.CurrencyId;

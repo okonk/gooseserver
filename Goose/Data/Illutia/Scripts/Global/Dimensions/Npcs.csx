@@ -77,11 +77,8 @@ public partial class Dimensions
         // Snapshot first: AddTemplate mutates the dictionary GetTemplates() enumerates.
         // Only base templates (id < Offset) are cloned - a generated id (warden, or an
         // already-cloned template) must not be treated as base sheet data and cloned again.
-        // Credit dealers stay out: their currency is the base world's donation credit, and
-        // their stock would only reprice as spirit clones. CloneSpawns needs no change -
-        // its clone-template lookup returns null and the spawn is skipped.
         var baseTemplates = world.NPCHandler.GetTemplates()
-            .Where(t => t.NPCTemplateID < Offset && !t.CreditDealer).ToList();
+            .Where(t => t.NPCTemplateID < Offset).ToList();
 
         for (int dim = 1; dim <= DimensionCount; dim++)
         {

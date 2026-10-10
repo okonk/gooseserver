@@ -26,8 +26,7 @@ public static class DimensionConstants
     /// <summary>PlayerProperties key holding the player's unlocked maximum dimension.</summary>
     public const string MaxDimensionProperty = "dimension.max";
 
-    /// <summary>Registry id for the spirit currency. Dimension items are priced in it;
-    /// their Value is already the spirit price (x3^dim, see CloneItemTemplates).</summary>
+    /// <summary>Registry id for the spirit currency.</summary>
     public const string SpiritCurrencyId = "spirit";
 
     /// <summary>Where rebirth leaves the player. Rebirth.csx reads these; Dimensions.csx
