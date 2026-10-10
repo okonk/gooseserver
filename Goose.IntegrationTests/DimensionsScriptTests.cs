@@ -175,12 +175,8 @@ public class DimensionsScriptTests
         Assert.Equal(3704, dim3.BaseStats.HP);
     }
 
-    /// <summary>Credit dealers do not get a dimension clone: their currency is the base
-    /// world's donation credit and their stock would only reprice as spirit clones.
-    /// The spawn pass is covered implicitly - CloneSpawns looks the clone template up
-    /// and skips the spawn when it is null.</summary>
     [Fact]
-    public void Credit_dealers_are_not_cloned_into_dimensions()
+    public void Credit_dealers_are_cloned_into_dimensions_and_keep_their_currency()
     {
         using var fixture = Run(f =>
         {
@@ -198,9 +194,12 @@ public class DimensionsScriptTests
 
         for (int dim = 1; dim <= 6; dim++)
         {
-            Assert.Null(fixture.World.NPCHandler.GetNPCTemplate(162 + 100000 * dim));
-            Assert.DoesNotContain(fixture.World.MapHandler.GetMap(1 + 100000 * dim)!.NPCs,
-                                  n => n.NPCTemplateID == 162 + 100000 * dim);
+            var clone = fixture.World.NPCHandler.GetNPCTemplate(162 + 100000 * dim);
+            Assert.NotNull(clone);
+            Assert.True(clone!.CreditDealer);
+            Assert.Equal(Currency.Credits, clone.CurrencyId);
+            Assert.Contains(fixture.World.MapHandler.GetMap(1 + 100000 * dim)!.NPCs,
+                            n => n.NPCTemplateID == 162 + 100000 * dim);
         }
 
         // The base dealer and its spawn are untouched.

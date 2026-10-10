@@ -10,8 +10,9 @@ public class DimensionVendorStockTests
 {
     private const int Offset = 100000;   // must match DimensionConstants.Offset
 
-    private const int SwordId = 50;      // cloned: gear, priced in spirit
+    private const int SwordId = 50;      // cloned: ordinary gold gear
     private const int PotionId = 51;     // cloned: a consumable, still gold at the till
+    private const int SpiritSwordId = 53;   // explicitly spirit-marked, keeps spirit everywhere
     private const int MerchantId = 60;
     private const int CreditSwordId = 52;   // credit-only gear: value 0, credits 500
     private const int CreditDealerId = 61;
@@ -28,6 +29,11 @@ public class DimensionVendorStockTests
         {
             t.Value = 10;
             t.StackSize = 20;
+        });
+        fixture.AddBaseItemTemplate(SpiritSwordId, "Spirit Sword", ItemTemplate.UseTypes.Weapon, t =>
+        {
+            t.Value = 40;
+            t.CurrencyId = "spirit";
         });
 
         var merchant = new NPCTemplate
@@ -51,6 +57,11 @@ public class DimensionVendorStockTests
         {
             Slot = 2, ItemTemplate = fixture.World.ItemHandler.GetTemplate(PotionId)!,
             Stack = 5, CanSeeStats = false,
+        };
+        merchant.VendorItems[3] = new NPCVendorSlot
+        {
+            Slot = 3, ItemTemplate = fixture.World.ItemHandler.GetTemplate(SpiritSwordId)!,
+            Stack = 1, CanSeeStats = true,
         };
         fixture.World.NPCHandler.AddTemplate(merchant);
         fixture.World.NPCHandler.SpawnNPC(fixture.World, 1, 20, 20, merchant, shouldRespawn: false);
@@ -77,6 +88,7 @@ public class DimensionVendorStockTests
         // Armor/Weapon/Scroll-with-spell only), so its slot keeps the base template and
         // stays gold-priced.
         Assert.Equal(PotionId, stock[2].ItemTemplate.ID);
+        Assert.Equal(SpiritSwordId + Offset * dim, stock[3].ItemTemplate.ID);
     }
 
     /// <summary>A slot whose template the clone pass skips must keep the base template
@@ -130,11 +142,9 @@ public class DimensionVendorStockTests
         Assert.False(stock[2].CanSeeStats);
     }
 
-    /// <summary>The bug this fixture reproduces: a weapon whose only price is credits_value
-    /// got a dimension clone whose gold value (0) was scaled to 0 and stamped spirit - free
-    /// in every dimension shop. Credit dealers themselves no longer clone into dimensions,
-    /// so the credit sword is also stocked by a regular merchant: RepointVendorStock
-    /// repoints that vendor's clone, which is the path that must not be free.</summary>
+    /// <summary>A credit dealer stocking credit-only gear. A credit item placed on an
+    /// ordinary gold merchant is not intended dimension behaviour, so the fixture keeps the
+    /// valid pairing only; the clone assertions still cover the credit sword itself.</summary>
     private static GlobalScriptFixture LoadedCreditDealer()
     {
         var fixture = new GlobalScriptFixture();
@@ -145,24 +155,6 @@ public class DimensionVendorStockTests
             t.Value = 0;
             t.Credits = 500;
         });
-
-        var merchant = new NPCTemplate
-        {
-            NPCTemplateID = MerchantId, Name = "Merchant", Level = 1, ClassID = 3,
-            NPCType = NPCTemplate.Types.Vendor,
-            CanBeKilled = false, CanMove = false,
-            AttackSpeed = 1.0, MoveSpeed = 1.0,
-            AlliesString = "", Allies = new List<NPCTemplate>(), Drops = new List<NPCDropInfo>(),
-            BaseStats = new AttributeSet { HP = 100 },
-        };
-        merchant.VendorItems = new NPCVendorSlot[fixture.Settings.VendorSlotSize + 1];
-        merchant.VendorItems[1] = new NPCVendorSlot
-        {
-            Slot = 1, ItemTemplate = fixture.World.ItemHandler.GetTemplate(CreditSwordId)!,
-            Stack = 1, CanSeeStats = true,
-        };
-        fixture.World.NPCHandler.AddTemplate(merchant);
-        fixture.World.NPCHandler.SpawnNPC(fixture.World, 1, 22, 20, merchant, shouldRespawn: false);
 
         var dealer = new NPCTemplate
         {
@@ -190,40 +182,35 @@ public class DimensionVendorStockTests
     [Theory]
     [InlineData(1)]
     [InlineData(6)]
-    public void Credit_only_gear_prices_from_its_credits_value_in_dimensions(int dim)
+    public void Credit_only_gear_clone_keeps_zero_value_and_scales_credits_without_a_currency_override(int dim)
     {
         using var fixture = LoadedCreditDealer();
 
         var clone = fixture.World.ItemHandler.GetTemplate(CreditSwordId + Offset * dim)!;
-        var expected = 500L * (long)Math.Pow(3, dim);
 
-        Assert.Equal("spirit", clone.CurrencyId);
-        Assert.Equal(expected, clone.Value);
-
-        // The clone's own stamp prices it, whatever the vendor deals in - here the regular
-        // merchant's clone, since credit dealers no longer come to the dimensions.
-        var vendor = fixture.World.MapHandler.GetMap(1 + Offset * dim)!.NPCs
-            .Single(n => n.NPCTemplateID == MerchantId + Offset * dim);
-        var currency = fixture.World.CurrencyHandler.Resolve(clone, vendor);
-        Assert.Equal("spirit", currency.Id);
-        Assert.Equal(expected, currency.GetBuyPrice(clone, 1));
+        Assert.Null(clone.CurrencyId);
+        Assert.Equal(0L, clone.Value);
+        Assert.Equal((int)(500L * (long)Math.Pow(3, dim)), clone.Credits);
     }
 
     [Fact]
-    public void Buying_credit_only_gear_from_a_dimension_vendor_costs_spirit()
+    public void Buying_credit_only_gear_from_a_dimension_credit_dealer_costs_scaled_credits()
     {
         using var fixture = LoadedCreditDealer();
         int dim = 3;
         var map = fixture.World.MapHandler.GetMap(1 + Offset * dim)!;
-        var vendor = map.NPCs.Single(n => n.NPCTemplateID == MerchantId + Offset * dim);
+        var vendor = map.NPCs.Single(n => n.NPCTemplateID == CreditDealerId + Offset * dim);
+
+        Assert.Equal(CreditSwordId + Offset * dim, vendor.VendorItems![1].ItemTemplate.ID);
 
         var player = fixture.CommandPlayerOn(map, 26, 20);
         player.Properties["dimension.max"] = 6;
-        fixture.World.CurrencyHandler.Get("spirit")!.Add(player, 1_000_000, fixture.World);
+        player.Credits = 1_000_000;
         player.Windows.Add(new Window { Type = Window.WindowTypes.Vendor, NPC = vendor });
         player.Sent.Clear();
 
-        var spiritBefore = fixture.World.CurrencyHandler.Get("spirit")!.GetBalance(player);
+        var creditsBefore = player.Credits;
+        var goldBefore = player.Gold;
 
         new VendorPurchaseInventoryEvent
         {
@@ -231,25 +218,27 @@ public class DimensionVendorStockTests
             Data = "VPI" + vendor.LoginID + ",1",
         }.Ready(fixture.World);
 
-        var price = fixture.World.ItemHandler.GetTemplate(CreditSwordId + Offset * dim)!.Value;
+        var price = 500L * (long)Math.Pow(3, dim);
 
-        Assert.True(price > 0);
-        Assert.Equal(spiritBefore - price, fixture.World.CurrencyHandler.Get("spirit")!.GetBalance(player));
+        Assert.Equal(creditsBefore - price, player.Credits);
+        Assert.Equal(goldBefore, player.Gold);
         Assert.Equal(CreditSwordId + Offset * dim, player.Inventory.GetSlot(1)!.Item.TemplateID);
     }
 
     /// <summary>Resolution puts the item override above the vendor
-    /// (CurrencyHandler.cs:41-52), so repointed gear prices in spirit with no vendor change,
-    /// and an unrepointed consumable in the same window still prices in gold.</summary>
+    /// (CurrencyHandler.cs:41-52), so an explicitly spirit-marked clone keeps spirit at an
+    /// ordinary dimension vendor, while the same vendor's ordinary gear prices in gold.</summary>
     [Fact]
-    public void Repointed_stock_resolves_to_spirit_and_base_stock_stays_gold()
+    public void An_explicit_item_currency_wins_over_the_vendor_currency_in_dimensions()
     {
         using var fixture = Loaded();
         var handler = fixture.World.CurrencyHandler;
         var vendor = fixture.World.MapHandler.GetMap(1 + Offset * 3)!.NPCs
             .Single(n => n.NPCTemplateID == MerchantId + Offset * 3);
 
-        Assert.Equal("spirit", handler.Resolve(StockOf(fixture, 3)[1].ItemTemplate, vendor).Id);
+        Assert.Equal("spirit", handler.Resolve(StockOf(fixture, 3)[3].ItemTemplate, vendor).Id);
+        Assert.Equal(Currency.Gold,
+            handler.Resolve(StockOf(fixture, 3)[1].ItemTemplate, vendor).Id);
         // The potion slot was never repointed (no clone exists), so it still prices gold
         // at the very same vendor.
         Assert.Equal(Currency.Gold,
@@ -258,12 +247,30 @@ public class DimensionVendorStockTests
             handler.Resolve(fixture.World.ItemHandler.GetTemplate(SwordId), vendor).Id);
     }
 
-    /// <summary>Resolve agreeing is not the same as the till charging. This buys from the
-    /// spawned dimension-3 merchant through the real VendorPurchaseInventoryEvent and
-    /// asserts the spirit wallet moved, the gold wallet did not, and the dimension clone
-    /// landed in the inventory.</summary>
     [Fact]
-    public void An_actual_purchase_from_a_spawned_dimension_vendor_charges_spirit()
+    public void Base_vendor_purchase_charges_the_base_gold_price_and_delivers_the_base_template()
+    {
+        using var fixture = Loaded();
+        var map = fixture.World.MapHandler.GetMap(1)!;
+        var vendor = map.NPCs.Single(n => n.NPCTemplateID == MerchantId);
+
+        var player = fixture.CommandPlayerOn(map, 21, 20);
+        player.Gold = 10_000;
+        player.Windows.Add(new Window { Type = Window.WindowTypes.Vendor, NPC = vendor });
+        player.Sent.Clear();
+
+        new VendorPurchaseInventoryEvent
+        {
+            Player = player,
+            Data = "VPI" + vendor.LoginID + ",1",
+        }.Ready(fixture.World);
+
+        Assert.Equal(10_000L - 100L, player.Gold);
+        Assert.Equal(SwordId, player.Inventory.GetSlot(1)!.Item.TemplateID);
+    }
+
+    [Fact]
+    public void An_actual_purchase_from_a_spawned_dimension_vendor_charges_scaled_gold()
     {
         using var fixture = Loaded();
         var map = fixture.World.MapHandler.GetMap(1 + Offset * 3)!;
@@ -274,11 +281,12 @@ public class DimensionVendorStockTests
         // (CanPickup in DimensionItem.csx), and a purchase is a pickup.
         player.Properties["dimension.max"] = 6;
         player.Gold = 5_000_000;
-        fixture.World.CurrencyHandler.Get("spirit")!.Add(player, 100_000, fixture.World);
+        var spirit = fixture.World.CurrencyHandler.Get("spirit")!;
+        spirit.Add(player, 100_000, fixture.World);
         player.Windows.Add(new Window { Type = Window.WindowTypes.Vendor, NPC = vendor });
         player.Sent.Clear();
 
-        var spiritBefore = fixture.World.CurrencyHandler.Get("spirit")!.GetBalance(player);
+        var spiritBefore = spirit.GetBalance(player);
         var goldBefore = player.Gold;
 
         // VendorFixture.Purchase's packet shape (VendorPurchaseCurrencyTests.cs:11-19).
@@ -290,10 +298,59 @@ public class DimensionVendorStockTests
 
         var clonePrice = fixture.World.ItemHandler.GetTemplate(SwordId + Offset * 3)!.Value;
 
-        Assert.Equal(spiritBefore - clonePrice,
-                     fixture.World.CurrencyHandler.Get("spirit")!.GetBalance(player));
-        Assert.Equal(goldBefore, player.Gold);
+        Assert.Equal(goldBefore - clonePrice, player.Gold);
+        Assert.Equal(spiritBefore, spirit.GetBalance(player));
         Assert.Equal(SwordId + Offset * 3, player.Inventory.GetSlot(1)!.Item.TemplateID);
-        Assert.Contains(player.Sent, m => m.Contains("spirit"));
+        Assert.Contains(player.Sent, m => m.Contains("gold"));
+    }
+
+    [Fact]
+    public void Selling_a_dimension_item_to_a_base_vendor_and_a_dimension_vendor_pays_the_same_gold()
+    {
+        using var fixture = Loaded();
+        int dim = 3;
+        var clone = fixture.World.ItemHandler.GetTemplate(SwordId + Offset * dim)!;
+        var expected = clone.Value / 2;
+        var spirit = fixture.World.CurrencyHandler.Get("spirit")!;
+
+        var baseMap = fixture.World.MapHandler.GetMap(1)!;
+        var baseVendor = baseMap.NPCs.Single(n => n.NPCTemplateID == MerchantId);
+        var baseSeller = fixture.CommandPlayerOn(baseMap, 21, 20);
+        var baseItem = new Item();
+        baseItem.LoadFromTemplate(clone);
+        baseSeller.Inventory.SetSlot(1, new ItemSlot { Item = baseItem, Stack = 1 });
+        baseSeller.Windows.Add(new Window { Type = Window.WindowTypes.Vendor, NPC = baseVendor });
+        baseSeller.Sent.Clear();
+
+        var goldBefore = baseSeller.Gold;
+        new VendorSellInventoryEvent
+        {
+            Player = baseSeller,
+            Data = "VSI" + baseVendor.LoginID + ",1,1",
+        }.Ready(fixture.World);
+
+        Assert.Equal(goldBefore + expected, baseSeller.Gold);
+        Assert.Equal(0, spirit.GetBalance(baseSeller));
+        Assert.Null(baseSeller.Inventory.GetSlot(1));
+
+        var dimMap = fixture.World.MapHandler.GetMap(1 + Offset * dim)!;
+        var dimVendor = dimMap.NPCs.Single(n => n.NPCTemplateID == MerchantId + Offset * dim);
+        var dimSeller = fixture.CommandPlayerOn(dimMap, 21, 20);
+        var dimItem = new Item();
+        dimItem.LoadFromTemplate(clone);
+        dimSeller.Inventory.SetSlot(1, new ItemSlot { Item = dimItem, Stack = 1 });
+        dimSeller.Windows.Add(new Window { Type = Window.WindowTypes.Vendor, NPC = dimVendor });
+        dimSeller.Sent.Clear();
+
+        var goldBeforeDim = dimSeller.Gold;
+        new VendorSellInventoryEvent
+        {
+            Player = dimSeller,
+            Data = "VSI" + dimVendor.LoginID + ",1,1",
+        }.Ready(fixture.World);
+
+        Assert.Equal(goldBeforeDim + expected, dimSeller.Gold);
+        Assert.Equal(0, spirit.GetBalance(dimSeller));
+        Assert.Null(dimSeller.Inventory.GetSlot(1));
     }
 }
