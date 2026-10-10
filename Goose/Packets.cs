@@ -492,7 +492,7 @@ namespace Goose
         public static Func<int, int, ItemTemplate, GameWorld, string> WindowLineItem =
             (windowId, lineNo, item, world) =>
             {
-                return "WLI" + windowId + "," + lineNo + "|" + VendorItemSlot(item, world, null, lineNo, 1);
+                return "WLI" + windowId + "," + lineNo + "|" + VendorItemSlot!(item, world, null, lineNo, 1);
             };
 
         public static Func<Item, GameWorld, int, long, string> ItemSlot = (item, world, slotId, stack) =>
