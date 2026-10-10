@@ -3,9 +3,10 @@ namespace Goose
     public class CustomWindow : Window
     {
         private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
-        // Ticket's inventory slot id, not the ItemSlot: the slot object can be
-        // replaced by item operations while the window is open.
-        public int TicketSlotId { get; }
+        // The ticket that opened the window, tracked by reference rather than by
+        // TemplateID: any item template may carry the ticket script. Only this
+        // instance is validated at create time and consumed as payment.
+        public Item TicketItem { get; }
 
         // Last confirmed slot assignment from HandleSlot; Create refuses requests
         // that don't match it so a stale or tampered CWC can't consume items.
@@ -15,9 +16,9 @@ namespace Goose
         public Item? LookItem { get; private set; }
         public Item? StatsItem { get; private set; }
 
-        public CustomWindow(Player player, GameWorld world, int ticketSlotId)
+        public CustomWindow(Player player, GameWorld world, Item ticketItem)
         {
-            this.TicketSlotId = ticketSlotId;
+            this.TicketItem = ticketItem;
 
             this.ID = ++player.LastWindowID;
             this.Title = "Custom";
@@ -45,6 +46,22 @@ namespace Goose
             return player.Windows.OfType<CustomWindow>().FirstOrDefault();
         }
 
+        private static ItemSlot? FindTicketSlot(GameWorld world, Player player, Item ticketItem, out int slotId)
+        {
+            for (int i = 1; i <= world.Settings.InventorySize; i++)
+            {
+                ItemSlot? slot = player.Inventory.GetSlot(i);
+                if (slot is not null && ReferenceEquals(slot.Item, ticketItem))
+                {
+                    slotId = i;
+                    return slot;
+                }
+            }
+
+            slotId = 0;
+            return null;
+        }
+
         public static void HandleSlot(GameWorld world, Player player, int lookSlotId, int statsSlotId)
         {
             CustomWindow? window = FindOpen(player);
@@ -59,7 +76,7 @@ namespace Goose
                 return;
             }
 
-            if (lookSlotId == window.TicketSlotId || statsSlotId == window.TicketSlotId)
+            if (ReferenceEquals(lookItem, window.TicketItem) || ReferenceEquals(statsItem, window.TicketItem))
             {
                 world.Send(player, P.ServerMessage("Items to be customised must be equipment and must be visible items."));
                 return;
@@ -87,8 +104,10 @@ namespace Goose
             CustomWindow? window = FindOpen(player);
             if (window is null) return;
 
-            ItemSlot? ticketSlot = player.Inventory.GetSlot(window.TicketSlotId);
-            if (ticketSlot is null || ticketSlot.Item.TemplateID != world.Settings.CustomTicketId)
+            // Re-resolved by identity: the ticket may have been moved to another slot
+            // since the window opened, and a same-template replacement must not pay.
+            ItemSlot? ticketSlot = FindTicketSlot(world, player, window.TicketItem, out int ticketSlotId);
+            if (ticketSlot is null)
             {
                 world.Send(player, P.ServerMessage("You need a custom ticket to customise an item."));
                 return;
@@ -97,8 +116,8 @@ namespace Goose
             ItemSlot? lookSlot = lookSlotId != 0 ? player.Inventory.GetSlot(lookSlotId) : null;
             ItemSlot? statsSlot = statsSlotId != 0 ? player.Inventory.GetSlot(statsSlotId) : null;
             if (lookSlot is null || statsSlot is null
-                || lookSlotId == window.TicketSlotId
-                || statsSlotId == window.TicketSlotId)
+                || lookSlotId == ticketSlotId
+                || statsSlotId == ticketSlotId)
             {
                 world.Send(player, P.ServerMessage("Items missing for customisation"));
                 return;
@@ -151,7 +170,7 @@ namespace Goose
 
             // Target is computed before consuming: AddItem's CanStack path could merge the
             // custom item into a remaining stack of the same template.
-            int target = ticketSlot.Stack == 1 ? window.TicketSlotId : player.Inventory.GetNextFreeSlot();
+            int target = ticketSlot.Stack == 1 ? ticketSlotId : player.Inventory.GetNextFreeSlot();
             if (target == -1 && lookSlot.Stack == 1) target = lookSlotId;
             if (target == -1 && statsSlot.Stack == 1) target = statsSlotId;
 

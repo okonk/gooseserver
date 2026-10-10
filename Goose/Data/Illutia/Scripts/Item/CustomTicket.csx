@@ -14,19 +14,7 @@ public class CustomTicket : BaseItemScript
 			return false;
 		}
 
-		int ticketSlotId = 0;
-		for (int i = 1; i <= world.Settings.InventorySize; i++)
-		{
-			if (player.Inventory.GetSlot(i)?.Item == item)
-			{
-				ticketSlotId = i;
-				break;
-			}
-		}
-
-		if (ticketSlotId == 0) return false;
-
-		new CustomWindow(player, world, ticketSlotId);
+		new CustomWindow(player, world, item);
 
 		// false = do not consume: the ticket is only consumed on a successful create (CWC flow).
 		return false;

@@ -14,7 +14,8 @@ namespace Goose.Tests
             Action<ItemTemplate>? look = null,
             bool openWindow = true,
             int ticketSlot = 7, int statsSlot = 6, int lookSlot = 5,
-            int lookGraphicEquipped = 777, int lookBodyState = 6)
+            int lookGraphicEquipped = 777, int lookBodyState = 6,
+            int ticketTemplateId = 823)
         {
             var fixture = new TestWorldFixture(s =>
             {
@@ -23,7 +24,7 @@ namespace Goose.Tests
             });
             var map = fixture.AddBaseMap(1, "Test");
             var player = fixture.CommandPlayerOn(map, 5, 5, "Tester");
-            var ticketTemplate = fixture.AddBaseItemTemplate(823, "Custom Ticket", ItemTemplate.UseTypes.Armor, ticket);
+            var ticketTemplate = fixture.AddBaseItemTemplate(ticketTemplateId, "Custom Ticket", ItemTemplate.UseTypes.Armor, ticket);
             var statsTemplate = fixture.AddBaseItemTemplate(900, "Steel Sword", ItemTemplate.UseTypes.Weapon, stats);
             var lookTemplate = fixture.AddBaseItemTemplate(901, "Shadow Sword", ItemTemplate.UseTypes.Weapon, t =>
             {
@@ -32,11 +33,12 @@ namespace Goose.Tests
                 look?.Invoke(t);
             });
 
-            player.Inventory.SetSlot(ticketSlot, new ItemSlot { Item = LoadItem(ticketTemplate) });
+            var ticketItem = LoadItem(ticketTemplate);
+            player.Inventory.SetSlot(ticketSlot, new ItemSlot { Item = ticketItem });
             player.Inventory.SetSlot(lookSlot, new ItemSlot { Item = LoadItem(lookTemplate) });
             player.Inventory.SetSlot(statsSlot, new ItemSlot { Item = LoadItem(statsTemplate) });
 
-            CustomWindow? window = openWindow ? new CustomWindow(player, fixture.World, ticketSlot) : null;
+            CustomWindow? window = openWindow ? new CustomWindow(player, fixture.World, ticketItem) : null;
             return (fixture, player, ticketTemplate, statsTemplate, lookTemplate, window);
         }
 
@@ -217,6 +219,87 @@ namespace Goose.Tests
                 Assert.NotNull(logEntry);
                 Assert.Equal("My Sword (900) 901|10,20,30,40", logEntry!.Text);
                 Assert.Equal(result.Item.ItemID, logEntry.OtherID);
+            }
+        }
+
+        [Fact]
+        public void Cwc_ticket_template_other_than_settings_id_creates()
+        {
+            var (fixture, player, _, _, _, _) = Setup(ticketTemplateId: 704);
+            using (fixture)
+            {
+                Assert.True(fixture.RunCommand(player, "CWS5,6"));
+                Assert.True(fixture.RunCommand(player, "CWC5,6,10,20,30,40,Clone Custom"));
+
+                Assert.Null(player.Inventory.GetSlot(5));
+                Assert.Null(player.Inventory.GetSlot(6));
+
+                var result = player.Inventory.GetSlot(7)!;
+                Assert.Equal("Clone Custom", result.Item.Name);
+                Assert.Equal(900, result.Item.TemplateID);
+
+                Assert.Contains(player.Sent, s => s.Contains("Created custom: Clone Custom"));
+                Assert.Null(CustomWindow.FindOpen(player));
+            }
+        }
+
+        [Fact]
+        public void Cwc_ticket_instance_replaced_in_its_slot_refused_and_consumes_nothing()
+        {
+            var (fixture, player, _, _, _, window) = Setup();
+            using (fixture)
+            {
+                Assert.True(fixture.RunCommand(player, "CWS5,6"));
+
+                var replacement = LoadItem(fixture.World.ItemHandler.GetTemplate(823)!);
+                player.Inventory.SetSlot(7, new ItemSlot { Item = replacement });
+
+                Assert.True(fixture.RunCommand(player, "CWC5,6,10,20,30,40,X"));
+
+                Assert.Contains(player.Sent, s => s.Contains("You need a custom ticket"));
+                AssertNothingConsumed(player);
+                Assert.Same(replacement, player.Inventory.GetSlot(7)!.Item);
+                Assert.Same(window, CustomWindow.FindOpen(player));
+            }
+        }
+
+        [Fact]
+        public void Cwc_ticket_moved_to_another_slot_creates_there()
+        {
+            var (fixture, player, _, _, _, _) = Setup();
+            using (fixture)
+            {
+                Assert.True(fixture.RunCommand(player, "CWS5,6"));
+
+                var ticketItem = player.Inventory.GetSlot(7)!.Item;
+                player.Inventory.SetSlot(7, null);
+                player.Inventory.SetSlot(9, new ItemSlot { Item = ticketItem });
+
+                Assert.True(fixture.RunCommand(player, "CWC5,6,10,20,30,40,X"));
+
+                Assert.Null(player.Inventory.GetSlot(5));
+                Assert.Null(player.Inventory.GetSlot(6));
+                Assert.Null(player.Inventory.GetSlot(7));
+                Assert.Equal("X", player.Inventory.GetSlot(9)!.Item.Name);
+                Assert.Equal(900, player.Inventory.GetSlot(9)!.Item.TemplateID);
+                Assert.Null(CustomWindow.FindOpen(player));
+            }
+        }
+
+        [Fact]
+        public void Cws_ticket_moved_to_another_slot_sends_message()
+        {
+            var (fixture, player, _, _, _, _) = Setup();
+            using (fixture)
+            {
+                var ticketItem = player.Inventory.GetSlot(7)!.Item;
+                player.Inventory.SetSlot(7, null);
+                player.Inventory.SetSlot(9, new ItemSlot { Item = ticketItem });
+
+                Assert.True(fixture.RunCommand(player, "CWS9,0"));
+
+                Assert.Contains(player.Sent, s => s.Contains("Items to be customised"));
+                Assert.False(SentCWG(player));
             }
         }
 
