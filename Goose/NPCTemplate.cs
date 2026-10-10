@@ -163,6 +163,7 @@ namespace Goose
          * Stationary
          */
         public bool CanMove { get; set; }
+        public bool HideName { get; set; }
         /**
          * Items part of MKC String
          */
@@ -250,6 +251,7 @@ namespace Goose
             this.AttackSpeed = other.AttackSpeed;
             this.MoveSpeed = other.MoveSpeed;
             this.CanMove = other.CanMove;
+            this.HideName = other.HideName;
             this.EquippedItems = other.EquippedItems;
             this.WeaponDamage = other.WeaponDamage;
             this.AlliesString = other.AlliesString;

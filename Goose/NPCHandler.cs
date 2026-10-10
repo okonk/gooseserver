@@ -96,6 +96,7 @@ namespace Goose
                         npc.AttackSpeed = reader.GetDouble("attack_speed");
                         npc.MoveSpeed = reader.GetDouble("move_speed");
                         npc.CanMove = reader.GetString("stationary") != "1";
+                        npc.HideName = reader.GetString("hide_name") == "1";
                         npc.CanBeStunned = reader.GetString("stunnable") != "0";
                         npc.SeeInvisible = "1".Equals(reader.GetString("see_invisible"));
                         npc.CanBeRooted = reader.GetString("rootable") != "0";
