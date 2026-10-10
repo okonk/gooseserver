@@ -86,6 +86,8 @@ stock inherits the vendor's dimension. Dimension equipment gets:
 - **Faucets**: `/rebirth` converts total experience into SP at 1 SP per 100M XP
   and resets the character to a level-1 commoner; selling SP-valued items to
   vendors pays `SPValue / 2` (dimension loot is ×3^dim); `/givesp` transfers.
+  Abyss's code supports SP-valued items, but the checked-in SQL has no SP-value
+  column and no SP-valued rows, so that faucet never fires on this data.
 - **Sinks**: `/resetitem` rerolls, SP-priced vendor stock, SP→gold and SP→XP
   conversion commands, cosmetic customization commands.
 - The loop: dimensions give huge XP → rebirth converts XP to SP → SP rerolls
@@ -121,14 +123,19 @@ points added to the server.
 4. **`ItemHandler.AddTemplate`** — allow scripts to register generated item
    templates. Optionally `AddTitle`/`AddSurname` for script-registered item
    modifiers (alternative: plain `item_modifiers` DB rows).
-5. **Vendor overrides** — reassignable static delegates (same pattern as the
-   `Packets.cs` packet builders), consulted at the top of the two vendor
-   events; return true = handled, false = normal gold flow:
-   - `VendorPurchaseInventoryEvent.PurchaseOverride(npc, player, slot, world)`
-   - `VendorSellInventoryEvent.SellOverride(npc, player, slot, world)`
-
-   Static delegates (not NPC-script virtuals) so the handler covers *every*
-   vendor, which the dimension-0 sell block requires.
+5. **Generic currency system** — an `ICurrency` interface plus a
+   `CurrencyHandler` registry, consulted at the top of the two vendor events,
+   which settle the transaction in the resolved currency instead of hard-coded
+   gold:
+   - Built-ins: `GoldCurrency` (buys at `Value`, sells at `Value / 2`) and
+     `CreditsCurrency` (buys at `ItemTemplate.Credits`, refuses all sales).
+   - `NPC.CurrencyId` set from the `credit_dealer` flag at template load
+     (`NPCHandler.cs:153`).
+   - `ItemTemplate.CurrencyId`, an optional per-item override — a goose
+     extension; abyss picks the currency from the item's SP value instead.
+   - Resolution order (`CurrencyHandler.Resolve`): item `CurrencyId` → vendor
+     `CurrencyId` → gold.
+   - Scripts register their own currencies; `Dimensions` registers spirit.
 
 Settings-only change: `BaseSPPercentRegen` / `BaseSPStaticRegen` set to 0 in
 `GooseSettings.json` (SP becomes a currency, see below).
@@ -206,8 +213,11 @@ naturally.
 
 Clone each `ItemTemplate` to `base + 100000·dim`: name prefix, recolor,
 deterministic dimension stat scaling, `SpellEffectID`/`LearnSpellID` pointed
-at the offset spell clones, `Value` set to the **spirit price** (×3^dim).
-`Item` serializes `TemplateID`, so dimension items persist untouched.
+at the offset spell clones, `Value` and `Credits` each scaled ×3^dim,
+independently. The `ItemTemplate` copy constructor carries the base item's
+explicit `CurrencyId` over untouched — the dimension scales prices, it never
+chooses or changes the currency. `Item` serializes `TemplateID`, so dimension
+items persist untouched.
 
 - **Titles**: the always-on Powerful…Godly prefix is baked into the cloned
   template name (deterministic, like abyss). Goose's existing random title
@@ -225,18 +235,27 @@ at the offset spell clones, `Value` set to the **spirit price** (×3^dim).
 
 #### Spirit economy (script + settings)
 
-SP is repurposed as the spirit currency, displayed for free in the client's
-SP bar:
+SP is repurposed as the spirit currency — a script-registered `ICurrency`
+displayed for free in the client's SP bar. It settles the dimension commands
+and rebirth; ordinary vendor transactions never touch it:
 
 - Wallet = `BaseStats.SP`, which already persists as `players.player_sp`.
   Earning/spending adjusts `BaseStats.SP` and tops `CurrentSP` up to `MaxSP`
   (current == max always; regen zeroed via settings).
-- **Faucet**: the rebirth quest grants spirit (goose has a suitable quest to
-  build on); selling dimension loot to dimension vendors pays `Value / 2`.
-- **Vendors**: the two vendor override delegates route dimension-template
-  transactions through spirit instead of gold, and block selling dimension
-  items at dimension-0 vendors entirely. Normal items fall through to the
-  usual gold flow.
+- **Faucet**: the rebirth quest converts banked experience into spirit at
+  `ExpPerSpirit` (1 per 100M XP).
+- **Sinks**: `/resetitem` (`3^dim` spirit), `/buygold` (1 spirit → 1,000,000
+  gold), `/buyexperience` (1 spirit → 25,000,000 XP), `/givesp` (transfer).
+- **Vendor currency**: vendor transactions settle through the generic
+  currency resolution (item `CurrencyId` → vendor `CurrencyId` → gold).
+  Dimension cloning changes no currency: item clones inherit the base item's
+  `CurrencyId` (usually none), and credit dealers are cloned like every other
+  NPC, so they keep `CurrencyId = credits` and continue charging their
+  independently scaled `Credits`. Under the checked-in loader/scripts,
+  ordinary dimension items therefore price in gold (or the vendor's own
+  currency), and an explicitly currency-marked item keeps its mark at any
+  vendor. There is no dimension-zero sale block: selling a dimension item to
+  a base vendor pays the same scaled `Value / 2` as to a dimension vendor.
 
 Data prerequisites to verify: no illutia spell rows have nonzero SP costs
 (casting deducts SP unconditionally at `Player.cs:1917`), and no class grants
@@ -251,5 +270,6 @@ per-level SP (`classes.sql player_sp`) — either would leak the wallet.
 - Goose's own 0.5% surname roll can stack a second suffix on dimension drops;
   either accept it or skip the dimension roll when `SurnameId` is set.
 - The item and vendor slot packets carry a trailing currency name, then the
-  extra-stats payload (`Packets.cs:512,570`), so tooltips read "Value: 4,500
-  spirit" rather than guessing gold; clients stopping at `GraphicA` ignore both.
+  extra-stats payload (`Packets.cs:553,614`), resolved per item (its own
+  `CurrencyId`, else the vendor's, else gold), so tooltips read "Value: 4,500
+  gold" for ordinary dimension gear; clients stopping at `GraphicA` ignore both.
