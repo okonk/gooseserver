@@ -226,7 +226,7 @@ public class DimensionVendorStockTests
     }
 
     /// <summary>Resolution puts the item override above the vendor
-    /// (CurrencyHandler.cs:41-52), so an explicitly spirit-marked clone keeps spirit at an
+    /// (CurrencyHandler.cs:38-50), so an explicitly spirit-marked clone keeps spirit at an
     /// ordinary dimension vendor, while the same vendor's ordinary gear prices in gold.</summary>
     [Fact]
     public void An_explicit_item_currency_wins_over_the_vendor_currency_in_dimensions()

@@ -1,7 +1,8 @@
 using System;
 using Goose;
 
-/// <summary>Spirit, the dimension currency. The wallet is BaseStats.SP, which already
+/// <summary>Spirit, the currency the dimension commands and rebirth settle in. The wallet
+/// is BaseStats.SP, which already
 /// persists as players.player_sp, so no schema change is needed.
 ///
 /// MaxStats.SP is separate accounting from BaseStats.SP: MaxSP reads MaxStats

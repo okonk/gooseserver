@@ -103,8 +103,8 @@ public class CurrencyHandlerTests
         Assert.Equal(Currency.Credits, resolved.Id);
     }
 
-    /// <summary>The decision from the design: a dimension item is worth spirit wherever it
-    /// is traded, including at a credit dealer.</summary>
+    /// <summary>An item's currency override beats the vendor's currency, even a credit
+    /// dealer's.</summary>
     [Fact]
     public void Resolve_ItemOverrideBeatsTheVendorCurrency()
     {

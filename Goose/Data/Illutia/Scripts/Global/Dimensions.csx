@@ -158,8 +158,7 @@ public partial class Dimensions : BaseGlobalScript
     public const int TitleIdBase = DimensionConstants.TitleIdBase;
 
     /// <summary>Single definition in DimensionConstants.csx. Registry id for the spirit
-    /// currency. Dimension items are priced in it; their Value is already the spirit
-    /// price (x3^dim, see CloneItemTemplates).</summary>
+    /// currency.</summary>
     public const string SpiritCurrencyId = DimensionConstants.SpiritCurrencyId;
 
     /// <summary>Reroll cost is ResetItemCostBase^dim: 3/9/27/81/243/729 spirit
@@ -206,9 +205,7 @@ public partial class Dimensions : BaseGlobalScript
         // before the item clones exist so the per-dimension item script (Task 6) can roll them.
         RegisterModifiers(world);
 
-        // Dimension items are priced in spirit, so the currency must exist before
-        // CloneItemTemplates stamps it onto the clones. The guard turns a registration
-        // failure into a load-time error rather than a till-time one.
+        // The guard turns a registration failure into a load-time error rather than a till-time one.
         world.CurrencyHandler.Register(new SpiritCurrency());
         if (world.CurrencyHandler.Get(SpiritCurrencyId) == null)
             throw new Exception($"Currency '{SpiritCurrencyId}' failed to register.");
