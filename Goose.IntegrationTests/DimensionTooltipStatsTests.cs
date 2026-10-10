@@ -48,7 +48,7 @@ public class DimensionTooltipStatsTests
     [Fact]
     public void Vendor_stock_tooltip_labels_ordinary_dimension_gear_as_gold()
     {
-        var fixture = new GlobalScriptFixture();
+        using var fixture = new GlobalScriptFixture();
         fixture.AddBaseMap(1, "Town", width: 100, height: 100);
         fixture.AddBaseItemTemplate(50, "Sword", ItemTemplate.UseTypes.Weapon, t =>
         {

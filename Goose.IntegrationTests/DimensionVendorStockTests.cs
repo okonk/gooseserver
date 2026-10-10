@@ -277,8 +277,6 @@ public class DimensionVendorStockTests
         var vendor = map.NPCs.Single(n => n.NPCTemplateID == MerchantId + Offset * 3);
 
         var player = fixture.CommandPlayerOn(map, 21, 20);
-        // DimensionItem.CanPickup refuses an item above the player's unlocked dimension
-        // (CanPickup in DimensionItem.csx), and a purchase is a pickup.
         player.Properties["dimension.max"] = 6;
         player.Gold = 5_000_000;
         var spirit = fixture.World.CurrencyHandler.Get("spirit")!;
@@ -297,6 +295,7 @@ public class DimensionVendorStockTests
         }.Ready(fixture.World);
 
         var clonePrice = fixture.World.ItemHandler.GetTemplate(SwordId + Offset * 3)!.Value;
+        Assert.Equal(2700L, clonePrice);
 
         Assert.Equal(goldBefore - clonePrice, player.Gold);
         Assert.Equal(spiritBefore, spirit.GetBalance(player));
