@@ -282,6 +282,7 @@ namespace Goose
          * Stationary
          */
         public bool CanMove { get; set; }
+        public bool HideName { get; set; }
         /**
          * Items part of MKC String
          */
@@ -633,6 +634,7 @@ namespace Goose
             // drop it, and it stacks with real SeeInvisible buffs.
             if (template.SeeInvisible) this.SeeInvisibleBuffCount++;
             this.CanMove = this.Properties.GetProperty("canMove", template.CanMove);
+            this.HideName = this.Properties.GetProperty("hideName", template.HideName);
             this.ClassID = template.ClassID;
             this.EquippedItems = template.EquippedItems;
             this.Experience = template.Experience;

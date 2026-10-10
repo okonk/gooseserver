@@ -8,14 +8,14 @@ public class NPCSpawnPropertiesLoadTests
 {
     private const int MapId = 1;
 
-    private static TestWorldFixture WorldWithSpawnRow(string? propertiesCell)
+    private static TestWorldFixture WorldWithSpawnRow(string? propertiesCell, bool templateHideName = false)
     {
         var fixture = new TestWorldFixture();
         fixture.AddBaseMap(MapId, "Town");
         fixture.World.NPCHandler.AddTemplate(new NPCTemplate
         {
             NPCTemplateID = 1, Name = "Test NPC", Level = 50, ClassID = 0,
-            BaseStats = new AttributeSet(), CanMove = false,
+            BaseStats = new AttributeSet(), CanMove = false, HideName = templateHideName,
         });
 
         fixture.World.Database.Start(Path.Combine(fixture.DataDirectory, "test.db"));
@@ -40,6 +40,22 @@ public class NPCSpawnPropertiesLoadTests
 
     private static NPC OnlyNpc(TestWorldFixture fixture) =>
         Assert.Single(fixture.World.MapHandler.GetMap(MapId)!.NPCs);
+
+    [Fact]
+    public void SpawnHideNameProperty_OverridesTemplate()
+    {
+        using var fixture = WorldWithSpawnRow("{\"hideName\":true}", templateHideName: false);
+        fixture.World.NPCHandler.LoadNPCs(fixture.World);
+        Assert.True(OnlyNpc(fixture).HideName);
+    }
+
+    [Fact]
+    public void SpawnWithoutHideNameProperty_InheritsTemplate()
+    {
+        using var fixture = WorldWithSpawnRow("", templateHideName: true);
+        fixture.World.NPCHandler.LoadNPCs(fixture.World);
+        Assert.True(OnlyNpc(fixture).HideName);
+    }
 
     [Fact]
     public void A_spawn_row_cell_reaches_the_loaded_npc()
