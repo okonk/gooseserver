@@ -3,11 +3,14 @@ BEGIN;
 -- A1) Legit completers (killed King Terror via Kingslayer=80): make sure the
 --     unlock quest 900000 is marked completed.
 UPDATE quest_status
-SET serialized_data = json_patch(serialized_data,
-    json_object('Completed',
-        json_insert(json_extract(serialized_data, '$.Completed'), '$[#]', 900000)))
+SET serialized_data = json_patch(serialized_data, json_object(
+    'Completed', CASE WHEN EXISTS (SELECT 1 FROM json_each(json_extract(serialized_data,'$.Completed')) WHERE value = 900000)
+                      THEN json_extract(serialized_data,'$.Completed')
+                      ELSE json_insert(json_extract(serialized_data,'$.Completed'), '$[#]', 900000) END,
+    'Progress',  (SELECT json_group_array(value) FROM json_each(json_extract(serialized_data,'$.Progress')) WHERE json_extract(value,'$.id') <> 900000)))
 WHERE EXISTS (SELECT 1 FROM json_each(json_extract(serialized_data,'$.Completed')) WHERE value = 80)
-  AND NOT EXISTS (SELECT 1 FROM json_each(json_extract(serialized_data,'$.Completed')) WHERE value = 900000);
+  AND (NOT EXISTS (SELECT 1 FROM json_each(json_extract(serialized_data,'$.Completed')) WHERE value = 900000)
+       OR EXISTS (SELECT 1 FROM json_each(json_extract(serialized_data,'$.Progress')) WHERE json_extract(value,'$.id') = 900000));
 
 -- A2) Grant them the unlock: raise dimension.max to 1 (never lowers it).
 UPDATE players

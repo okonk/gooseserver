@@ -11,6 +11,8 @@ namespace Goose.Quests
 
         public Dictionary<int, Quest> Quests { get; set; }
 
+        private HashSet<int> databaseQuestIds = [];
+
         public Dictionary<int, QuestClaim> Claims { get; } = [];
 
         public bool IsClaimed(int questId) => Claims.ContainsKey(questId);
@@ -133,6 +135,14 @@ namespace Goose.Quests
 
                     quest.Rewards = rewards;
                 }
+
+                var currentDatabaseQuestIds = loaded.Select(quest => quest.Id).ToHashSet();
+                var removedDatabaseQuestIds = databaseQuestIds.Except(currentDatabaseQuestIds).ToHashSet();
+                foreach (var questId in removedDatabaseQuestIds)
+                    Quests.Remove(questId);
+                foreach (var template in world.NPCHandler.GetTemplates())
+                    template.Quests.RemoveAll(quest => removedDatabaseQuestIds.Contains(quest.Id));
+                databaseQuestIds = currentDatabaseQuestIds;
             });
         }
 
@@ -184,6 +194,7 @@ namespace Goose.Quests
         /// <summary>Registers a script-generated quest. Overwrites any existing entry with the same id.</summary>
         public void AddQuest(Quest quest)
         {
+            databaseQuestIds.Remove(quest.Id);
             this.Quests[quest.Id] = quest;
         }
 

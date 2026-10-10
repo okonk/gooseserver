@@ -152,7 +152,9 @@ namespace Goose
                         // uniform: item override, then vendor, then gold.
                         npc.CurrencyId = npc.CreditDealer ? Currency.Credits : null;
 
-                        npc.Quests = ResolveQuests(npc.NPCTemplateID, reader.GetString("quest_ids"), world.QuestHandler);
+                        var quests = ResolveQuests(npc.NPCTemplateID, reader.GetString("quest_ids"), world.QuestHandler);
+                        npc.Quests.Clear();
+                        npc.Quests.AddRange(quests);
 
                         string scriptPath = reader.GetString("script_path");
                         if (!string.IsNullOrEmpty(scriptPath))
