@@ -96,7 +96,7 @@ namespace Goose
          * MKCid,character type,name,title,surname,guild,x,y,facing,hp percent,body,
          * body pose,hair id,chest id,chest r,g,b,a,helm id,helm r,g,b,a,
          * pants id,pants r,g,b,a,shoes id,shoes r,g,b,a,
-         * shield id,shield r,g,b,a,weapon id,weapon r,g,b,a,hair_r,hair_g,hair_b,hair_a,invis,head
+         * shield id,shield r,g,b,a,weapon id,weapon r,g,b,a,hair_r,hair_g,hair_b,hair_a,invis,hide_name,head
          *
          * character type = 1 for player, 2 for regular npc, some others for banker and vendors will find later
          * hair id = 20ish for the normal hairs
@@ -104,6 +104,7 @@ namespace Goose
          * body pose/state = 1 for normal, 3 for staff, 4 for sword
          * body = values 100-166 are illusions, 1 is male, 11 is female. 2/12 are naga. 3 is skeleton
          * invis = 1 while the character currently has an Invisible buff (IsInvisible)
+         * hide_name = 1 for NPCs with the hide_name flag set (HideName), always 0 for players/pets
          *
          * For item r,g,b,a of 0,0,0,0 you can use * instead
          *
@@ -142,6 +143,7 @@ namespace Goose
                           (layered ? player.Inventory.EquippedDisplay() : "") + // Note: EquippedDisplay() adds it's own , on end
                           (layered ? player.HairR + "," + player.HairG + "," + player.HairB + "," + player.HairA + "," : "") +
                           (player.IsInvisible ? "1" : "0") + "," + // Invisible
+                          "0" + "," + // HideName (players/pets never hidden)
                           (layered ? player.FaceID + "," : "") +
                           player.CalculateMoveSpeed() + "," + // Move Speed
                           (player.Access > Player.AccessStatus.Normal ? "1" : "0") + "," + // Is GM
@@ -229,6 +231,7 @@ namespace Goose
                         (layered ? npc.EquippedItems + "," : "") +
                         (layered ? npc.HairR + "," + npc.HairG + "," + npc.HairB + "," + npc.HairA + "," : "") +
                         (npc.IsInvisible ? "1" : "0") + "," + // Invisible
+                        (npc.HideName ? "1" : "0") + "," + // HideName
                         (layered ? npc.FaceID + "," : "") +
                         "320," + // Move Speed
                         "0" + "," + // Player Name Color
@@ -259,6 +262,7 @@ namespace Goose
                         (layered ? npc.EquippedItems + "," : "") +
                         (layered ? npc.HairR + "," + npc.HairG + "," + npc.HairB + "," + npc.HairA + "," : "") +
                         (npc.IsInvisible ? "1" : "0") + "," + // Invisible
+                        "0" + "," + // HideName (players/pets never hidden)
                         (layered ? npc.FaceID + "," : "") +
                         "320," + // Move Speed
                         "0" + "," + // Player Name Color

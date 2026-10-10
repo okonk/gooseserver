@@ -62,7 +62,7 @@ namespace Goose.Tests
 
             Assert.StartsWith("MKC", packet);
             Assert.Contains(InvisField, packet);
-            Assert.Contains(",255,0,70,", packet);
+            Assert.Contains(",255,0,0,70,", packet);
         }
 
         [Fact]

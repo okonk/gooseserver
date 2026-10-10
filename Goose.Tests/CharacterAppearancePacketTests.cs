@@ -77,7 +77,7 @@ namespace Goose.Tests
             {
                 Assert.Equal(
                     "MKC7,1,Hax,T,S,,1,2,2,50,10001,10,20,30,40,4,11," +
-                    LayeredEquipped + LayeredHairColor + "1,70,0,1," + LayeredMount,
+                    LayeredEquipped + LayeredHairColor + "1,0,70,0,1," + LayeredMount,
                     P.MakeCharacter(player));
             }
         }
@@ -88,7 +88,7 @@ namespace Goose.Tests
             var (world, player) = NewPlayer(10100);
             using (world)
             {
-                Assert.Equal("MKC7,1,Hax,T,S,,1,2,2,50,10100,10,20,30,40,3,1,0,1,", P.MakeCharacter(player));
+                Assert.Equal("MKC7,1,Hax,T,S,,1,2,2,50,10100,10,20,30,40,3,1,0,0,1,", P.MakeCharacter(player));
             }
         }
 
@@ -153,7 +153,7 @@ namespace Goose.Tests
             var npc = NewNPC(10001);
 
             Assert.Equal(
-                "MKC5,2,Slime,T,S,,3,4,3,50,10001,10,20,30,40,5,11,7,1,2,3,4,5,6,7,8,1,71,320,0,0,0,0,0,0",
+                "MKC5,2,Slime,T,S,,3,4,3,50,10001,10,20,30,40,5,11,7,1,2,3,4,5,6,7,8,1,0,71,320,0,0,0,0,0,0",
                 P.MakeNPCCharacter(npc));
         }
 
@@ -162,7 +162,7 @@ namespace Goose.Tests
         {
             var npc = NewNPC(10100);
 
-            Assert.Equal("MKC5,2,Slime,T,S,,3,4,3,50,10100,10,20,30,40,3,1,320,0,", P.MakeNPCCharacter(npc));
+            Assert.Equal("MKC5,2,Slime,T,S,,3,4,3,50,10100,10,20,30,40,3,1,0,320,0,", P.MakeNPCCharacter(npc));
         }
 
         [Fact]
@@ -220,7 +220,7 @@ namespace Goose.Tests
             var pet = NewPet(10001);
 
             Assert.Equal(
-                "MKC9,13,Pet,T,S,,5,6,4,50,10001,10,20,30,40,6,12,9,*,5,6,7,8,1,72,320,0,0,0,0,0,0",
+                "MKC9,13,Pet,T,S,,5,6,4,50,10001,10,20,30,40,6,12,9,*,5,6,7,8,1,0,72,320,0,0,0,0,0,0",
                 P.MakePetCharacter(pet));
         }
 
@@ -229,7 +229,7 @@ namespace Goose.Tests
         {
             var pet = NewPet(10100);
 
-            Assert.Equal("MKC9,13,Pet,T,S,,5,6,4,50,10100,10,20,30,40,3,1,320,0,", P.MakePetCharacter(pet));
+            Assert.Equal("MKC9,13,Pet,T,S,,5,6,4,50,10100,10,20,30,40,3,1,0,320,0,", P.MakePetCharacter(pet));
         }
 
         [Fact]
