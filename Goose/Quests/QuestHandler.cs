@@ -76,6 +76,7 @@ namespace Goose.Quests
         {
             world.Database.Execute(conn =>
             {
+                var loaded = new List<Quest>();
                 using (var command = conn.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM quests";
@@ -85,11 +86,15 @@ namespace Goose.Quests
                         {
                             var quest = Quest.FromReader(reader, this.Quests);
                             this.Quests[quest.Id] = quest;
+                            loaded.Add(quest);
                         }
                     }
                 }
 
-                foreach (var quest in this.Quests.Values)
+                // Only the quests just read from the sheet. Script-created quests live in
+                // the same dictionary with no rows in these tables; re-attaching empty
+                // lists to them on /reloadsql would strip their requirements and rewards.
+                foreach (var quest in loaded)
                 {
                     var requirements = new List<QuestRequirement>();
 
@@ -109,7 +114,7 @@ namespace Goose.Quests
                     quest.Requirements = requirements;
                 }
 
-                foreach (var quest in this.Quests.Values)
+                foreach (var quest in loaded)
                 {
                     var rewards = new List<QuestReward>();
 
