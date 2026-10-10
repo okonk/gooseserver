@@ -90,6 +90,7 @@ namespace CsvToSql
 
             Col.Text("aggro_message", def: "''").HeaderText("aggro message"),
             Col.Text("stuck_message", def: "''").HeaderText("stuck message"),
+            Col.Bool("hide_name", def: false).HeaderText("hide name (0)"),
         };
 
         public override Composite[] GetComposites() => new[]

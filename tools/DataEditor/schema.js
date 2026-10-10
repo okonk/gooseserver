@@ -1014,6 +1014,15 @@ var GOOSE_SCHEMA = {
           "default": "\u0027\u0027",
           "required": false,
           "pk": false
+        },
+        {
+          "name": "hide_name",
+          "header": "hide name (0)",
+          "kind": "Bool",
+          "sql": "CHAR(1)",
+          "default": "\u00270\u0027",
+          "required": false,
+          "pk": false
         }
       ],
       "composites": [
