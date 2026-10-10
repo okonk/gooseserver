@@ -185,6 +185,45 @@ then uncomment the `./server-scripts:/app/Data/Illutia/Scripts` volume in
 `docker-compose.yml` and `docker compose up -d`. Note this replaces the image's
 scripts wholesale (including `CrystalCritterSpawner.csx`).
 
+## 11. Running a staging server alongside production
+
+Use a separate checkout so staging can track a different branch without touching
+what production builds:
+
+```sh
+git clone git@github.com:okonk/gooseserver.git ~/gooseserver-staging
+cd ~/gooseserver-staging
+cat > .env <<'ENV'
+COMPOSE_PROJECT_NAME=gooseserver-staging
+GOOSE_TAG=staging
+GOOSE_CONTAINER=goose-staging
+GOOSE_PORT=2007
+ENV
+docker compose up -d --build
+```
+
+The `.env` must exist before the first `docker compose` command. Without it the
+checkout uses production's project name, image tag and container, and
+`docker compose up` would replace the production container.
+
+Staging gets its own volume (`gooseserver-staging_goose-data`) and imports a
+fresh database from the sheet on first start. Inside the container it still
+listens on 2006; only the host port differs. Connect the client to port 2007.
+
+To seed staging with a copy of production data instead, do this before the
+first staging start:
+
+```sh
+docker compose -p gooseserver stop
+docker volume create gooseserver-staging_goose-data
+docker run --rm -v gooseserver_goose-data:/from -v gooseserver-staging_goose-data:/to \
+  alpine cp -a /from/. /to/
+docker compose -p gooseserver start
+```
+
+Docker-published ports usually bypass `ufw`. To keep staging private, set
+`GOOSE_PORT=127.0.0.1:2007` and reach it over an SSH tunnel.
+
 ## Troubleshooting
 
 * **Import fails on first start** — the container needs outbound HTTPS to

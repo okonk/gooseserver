@@ -27,3 +27,5 @@ crashlog.txt
 # Docs / planning
 docs
 todo.txt
+
+.env
