@@ -54,7 +54,7 @@ public class GrandGloopBoss : BaseNPCScript
 
         state.NextStrike = world.TimeNow + (long)(StrikeCooldown * world.TimerFrequency);
 
-        var packet = P.Cast(npc) + "\x1" + P.SpellPlayer(target.LoginID, StrikeAnimation, 0);
+        var packet = P.SpellPlayer(target.LoginID, StrikeAnimation, 0);
         foreach (var p in npc.Map.GetPlayersInRange(npc))
             world.Send(p, packet);
 
