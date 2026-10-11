@@ -15,8 +15,8 @@ namespace CsvToSql
         /// <summary>Editor-facing composite annotations. Does not affect column order.</summary>
         public virtual Composite[] GetComposites() => null;
 
-        /// <summary>Renders one INSERT per non-empty worksheet row. An empty cell is omitted
-        /// from its statement entirely, so the column's declared default applies.
+        /// <summary>Renders one INSERT per worksheet row that carries schema data. An empty
+        /// cell is omitted from its statement entirely, so the column's declared default applies.
         ///
         /// Takes the descriptors rather than re-reading them, so the INSERTs and the DDL are
         /// provably built from the same list rather than from two lists that merely agree.</summary>
@@ -38,6 +38,10 @@ namespace CsvToSql
                     columns.Add(descriptors[i].Name);
                     values.Add(DescriptorTransform.Apply(descriptors[i], value));
                 }
+
+                // Rows can be non-empty from display-only VLOOKUP helper columns past the
+                // schema width; a row with no schema data emits no INSERT.
+                if (columns.Count == 0) continue;
 
                 sqlBuilder.AppendFormat("INSERT INTO {0} (", tableName);
                 sqlBuilder.Append(string.Join(", ", columns));
