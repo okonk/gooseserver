@@ -8,14 +8,18 @@ public class Frostblood : BaseSpellEffectScript
     public override bool Cast(SpellEffect thisEffect, ICharacter caster, ICharacter target, GameWorld world)
     {
         double lifesteal = 1.0;
-        double maxHpPerHit = 0.01;
+        double maxHpPerHit = 0.02;
+        int snareEffectId = 316;
         foreach (var param in (thisEffect.ScriptParams ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries))
         {
             var kv = param.Split('=', 2);
             if (kv.Length != 2 || !double.TryParse(kv[1], NumberStyles.Float, CultureInfo.InvariantCulture, out double value)) continue;
             if (kv[0] == "ls") lifesteal = value;
             else if (kv[0] == "hp") maxHpPerHit = value;
+            else if (kv[0] == "snare") snareEffectId = (int)value;
         }
+
+        var snare = world.SpellHandler.GetSpellEffect(snareEffectId);
 
         (int x, int y)[] tiles =
         [
@@ -49,6 +53,8 @@ public class Frostblood : BaseSpellEffectScript
             long dealt = Math.Max(0, hpBefore - occupant.CurrentHP);
             totalDamage += dealt;
             if (dealt > 0) targetsHit++;
+            if (dealt > 0 && occupant.CurrentHP > 0)
+                snare?.CastSpell(caster, occupant, world);
         }
 
         if (caster is Player player && targetsHit > 0)
