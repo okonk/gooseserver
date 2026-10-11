@@ -72,14 +72,16 @@ public class GrandGloopBoss : BaseNPCScript
         state.NextMark = world.TimeNow + (long)(MarkCooldown * world.TimerFrequency);
 
         var map = npc.Map;
-        int x = target.MapX;
-        int y = target.MapY;
+        var tiles = new[] { (0, 0), (-1, -1), (1, -1), (-1, 1), (1, 1) }
+            .Select(d => (X: target.MapX + d.Item1, Y: target.MapY + d.Item2))
+            .Where(t => t.X >= 1 && t.X <= map.Width && t.Y >= 1 && t.Y <= map.Height)
+            .ToList();
 
         world.Send(target, P.ServerMessage($"{npc.Name} fixes its gaze on you. Move!"));
 
         void ShowMark()
         {
-            var mark = P.SpellTile(x, y, MarkAnimation, 0);
+            var mark = string.Join("\x1", tiles.Select(t => P.SpellTile(t.X, t.Y, MarkAnimation, 0)));
             foreach (var p in map.GetPlayersInRange(npc))
                 world.Send(p, mark);
         }
@@ -97,16 +99,20 @@ public class GrandGloopBoss : BaseNPCScript
             state.MarkPending = false;
 
             if (npc.State != NPC.States.Alive || npc.Map != map) return;
-            if (target.State != Player.States.Ready || target.Map != map) return;
-            if (target.MapX != x || target.MapY != y) return;
 
             var frozen = world.SpellHandler.GetSpellEffect(FrozenEffect);
-            if (frozen == null || !frozen.Cast(npc, target, world)) return;
+            if (frozen == null) return;
 
-            var packet = P.SpellPlayer(target.LoginID, frozen.Animation, frozen.AnimationFile);
-            world.Send(target, packet);
-            foreach (var p in map.GetPlayersInRange(target))
-                world.Send(p, packet);
+            foreach (var (x, y) in tiles)
+            {
+                if (map.GetCharacterAt(x, y) is not Player victim || victim.State != Player.States.Ready) continue;
+                if (!frozen.Cast(npc, victim, world)) continue;
+
+                var packet = P.SpellPlayer(victim.LoginID, frozen.Animation, frozen.AnimationFile);
+                world.Send(victim, packet);
+                foreach (var p in map.GetPlayersInRange(victim))
+                    world.Send(p, packet);
+            }
         }, TimeSpan.FromSeconds(MarkDelay), world);
     }
 

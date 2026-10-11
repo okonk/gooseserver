@@ -1384,7 +1384,8 @@ namespace Goose
                 }
             }
 
-            Player aggro = this.AggroTarget!;
+            // A script's OnAttackEvent can kill the target before calling in here, clearing aggro.
+            if (this.AggroTarget is not Player aggro) return;
             // Try to attack main aggro first
             if (this.Map == aggro.Map &&
                 Math.Abs(this.MapX - aggro.MapX) <= this.AttackRange &&
@@ -1478,8 +1479,12 @@ namespace Goose
             {
                 character.Attacked(this, (long)damage, world);
 
-                character.OnMeleeHit(this, world);
-                this.OnMeleeAttack(character, world);
+                // A killing blow warps the player to their bind point, leaving Map null mid-load.
+                if (character.Map == this.Map)
+                {
+                    character.OnMeleeHit(this, world);
+                    this.OnMeleeAttack(character, world);
+                }
             }
             else
             {
