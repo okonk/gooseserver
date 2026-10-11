@@ -14,6 +14,7 @@ public class DimensionCommandGateTests
         var fixture = new GlobalScriptFixture();
         fixture.AddBaseMap(StartMapId, "Town", width: 100, height: 100);
         fixture.CompileShipped().Object.OnLoaded(fixture.World);
+        fixture.World.WorldState.Set("dimensions.open", true);
 
         var player = fixture.CommandPlayerOn(fixture.World.MapHandler.GetMap(StartMapId)!, 5, 5);
         player.Properties["dimension.max"] = 6;

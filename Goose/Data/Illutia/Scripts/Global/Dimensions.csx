@@ -20,6 +20,8 @@ public partial class Dimensions : BaseGlobalScript
     // ---- Configuration -------------------------------------------------
     public const bool Enabled = true;
 
+    public const string OpenStateKey = "dimensions.open";
+
     /// <summary>Dimensions above 0. Abyss shipped 6.</summary>
     public const int DimensionCount = 6;
 

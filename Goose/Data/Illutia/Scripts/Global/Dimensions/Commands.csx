@@ -12,6 +12,13 @@ public static class DimensionCommands
             return;
         }
 
+        if (dim != 0 && !ctx.World.WorldState.Get<bool>(Dimensions.OpenStateKey) &&
+            !ctx.Player.HasPrivilege(AccessPrivilege.IgnoreMapRequirements))
+        {
+            ctx.Send("The dimensions are closed for now.");
+            return;
+        }
+
         int max = DimensionHelpers.MaxDimensionOf(ctx.Player);
         if (dim > max)
         {

@@ -1,8 +1,8 @@
 BEGIN;
 
 -- A1) Legit completers: killed King Terror via Kingslayer=80, or confirmed
---     legit by hand (String and Nerd killed the boss without the Kingslayer
---     quest). Make sure the unlock quest 900000 is marked completed.
+--     legit by hand (String, Nerd, Nyquill and Tolas killed the boss without
+--     the Kingslayer quest). Make sure the unlock quest 900000 is marked completed.
 UPDATE quest_status
 SET serialized_data = json_patch(serialized_data, json_object(
     'Completed', CASE WHEN EXISTS (SELECT 1 FROM json_each(json_extract(serialized_data,'$.Completed')) WHERE value = 900000)
@@ -10,7 +10,7 @@ SET serialized_data = json_patch(serialized_data, json_object(
                       ELSE json_insert(json_extract(serialized_data,'$.Completed'), '$[#]', 900000) END,
     'Progress',  (SELECT json_group_array(value) FROM json_each(json_extract(serialized_data,'$.Progress')) WHERE json_extract(value,'$.id') <> 900000)))
 WHERE (EXISTS (SELECT 1 FROM json_each(json_extract(serialized_data,'$.Completed')) WHERE value = 80)
-   OR (SELECT player_name FROM players WHERE players.player_id = quest_status.player_id) IN ('String','Nerd'))
+   OR (SELECT player_name FROM players WHERE players.player_id = quest_status.player_id) IN ('String','Nerd','Nyquill','Tolas'))
   AND (NOT EXISTS (SELECT 1 FROM json_each(json_extract(serialized_data,'$.Completed')) WHERE value = 900000)
        OR EXISTS (SELECT 1 FROM json_each(json_extract(serialized_data,'$.Progress')) WHERE json_extract(value,'$.id') = 900000));
 
@@ -22,7 +22,7 @@ SET player_properties = json_patch(
 WHERE (player_id IN (
         SELECT player_id FROM quest_status
         WHERE EXISTS (SELECT 1 FROM json_each(json_extract(serialized_data,'$.Completed')) WHERE value = 80))
-   OR player_name IN ('String','Nerd'))
+   OR player_name IN ('String','Nerd','Nyquill','Tolas'))
   AND COALESCE(CAST(json_extract(
         CASE WHEN COALESCE(player_properties,'') = '' THEN '{}' ELSE player_properties END,
         '$."dimension.max"') AS INTEGER), 0) < 1;
@@ -43,7 +43,7 @@ SET serialized_data = json_patch(serialized_data, json_object(
                       ELSE json_insert(json_extract(serialized_data,'$.Progress'), '$[#]', json_object('id',900000,'rid',900000,'p',0)) END))
 WHERE EXISTS (SELECT 1 FROM json_each(json_extract(serialized_data,'$.Completed')) WHERE value = 900000)
   AND NOT EXISTS (SELECT 1 FROM json_each(json_extract(serialized_data,'$.Completed')) WHERE value = 80)
-  AND (SELECT player_name FROM players WHERE players.player_id = quest_status.player_id) NOT IN ('String','Nerd')
+  AND (SELECT player_name FROM players WHERE players.player_id = quest_status.player_id) NOT IN ('String','Nerd','Nyquill','Tolas')
   AND COALESCE(CAST(json_extract(
         CASE WHEN COALESCE((SELECT player_properties FROM players WHERE players.player_id = quest_status.player_id),'') = ''
              THEN '{}' ELSE (SELECT player_properties FROM players WHERE players.player_id = quest_status.player_id) END,
