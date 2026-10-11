@@ -39,6 +39,15 @@ namespace Goose.Quests
             player.Windows.Add(this);
             player.TalkedTo(npc, world);
 
+            // At a TalkToNPC destination the description is the sender's text, so go straight to the turn-in.
+            if (this.state == QuestWindowState.QuestDescription &&
+                quest.Requirements.Any(r => r.Type == RequirementType.TalkToNPC && r.Value == npc.NPCTemplate.NPCTemplateID) &&
+                (quest.Repeatable || !player.QuestsCompleted.Any(q => q.Id == quest.Id)) &&
+                this.PlayerMeetsRequirements(player, world))
+            {
+                this.ResolveTurnIn(player, world);
+            }
+
             this.SendCreate(player, world);
         }
 
@@ -226,41 +235,7 @@ namespace Goose.Quests
                             return;
                         }
 
-                        if (this.PlayerMeetsRequirements(player, world))
-                        {
-                            if (world.QuestHandler.IsClaimedFor(quest, player))
-                            {
-                                player.QuestsStarted.RemoveAll(q => q.Id == quest.Id);
-                                player.QuestProgress.RemoveAll(p => p.Requirement.Quest.Id == quest.Id);
-                                world.QuestHandler.RefreshIcons(player, world);
-                                this.state = QuestWindowState.QuestAlreadyClaimed;
-                            }
-                            else if (!this.PlayerHasEnoughInventorySpaceForReward(player, world))
-                            {
-                                this.state = QuestWindowState.QuestNoInventorySpace;
-                            }
-                            else if (!this.PlayerHasEnoughSpellbookSpaceForReward(player))
-                            {
-                                this.state = QuestWindowState.QuestNoSpellbookSpace;
-                            }
-                            else if (this.GetScriptCannotCompleteMessage(player, world) is string cannotComplete)
-                            {
-                                this.scriptCannotCompleteMessage = cannotComplete;
-                                this.state = QuestWindowState.QuestScriptCannotComplete;
-                            }
-                            else
-                            {
-                                this.state = QuestWindowState.QuestPass;
-                                this.CompleteQuest(this.NPC!, player, world);
-                            }
-                        }
-                        else
-                        {
-                            this.state = QuestWindowState.QuestFail;
-
-                            if (this.quest.ShowProgress)
-                                this.Buttons = "0,1,0,1,0";
-                        }
+                        this.ResolveTurnIn(player, world);
                     }
                     else if (this.state == QuestWindowState.QuestFail && this.quest.ShowProgress)
                     {
@@ -273,6 +248,47 @@ namespace Goose.Quests
                 default:
                     player.Windows.Remove(this);
                     break;
+            }
+        }
+
+        private void ResolveTurnIn(Player player, GameWorld world)
+        {
+            this.Buttons = "0,1,0,0,0";
+
+            if (this.PlayerMeetsRequirements(player, world))
+            {
+                if (world.QuestHandler.IsClaimedFor(quest, player))
+                {
+                    player.QuestsStarted.RemoveAll(q => q.Id == quest.Id);
+                    player.QuestProgress.RemoveAll(p => p.Requirement.Quest.Id == quest.Id);
+                    world.QuestHandler.RefreshIcons(player, world);
+                    this.state = QuestWindowState.QuestAlreadyClaimed;
+                }
+                else if (!this.PlayerHasEnoughInventorySpaceForReward(player, world))
+                {
+                    this.state = QuestWindowState.QuestNoInventorySpace;
+                }
+                else if (!this.PlayerHasEnoughSpellbookSpaceForReward(player))
+                {
+                    this.state = QuestWindowState.QuestNoSpellbookSpace;
+                }
+                else if (this.GetScriptCannotCompleteMessage(player, world) is string cannotComplete)
+                {
+                    this.scriptCannotCompleteMessage = cannotComplete;
+                    this.state = QuestWindowState.QuestScriptCannotComplete;
+                }
+                else
+                {
+                    this.state = QuestWindowState.QuestPass;
+                    this.CompleteQuest(this.NPC!, player, world);
+                }
+            }
+            else
+            {
+                this.state = QuestWindowState.QuestFail;
+
+                if (this.quest.ShowProgress)
+                    this.Buttons = "0,1,0,1,0";
             }
         }
 
