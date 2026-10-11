@@ -7,8 +7,8 @@ public class Frostblood : BaseSpellEffectScript
 {
     public override bool Cast(SpellEffect thisEffect, ICharacter caster, ICharacter target, GameWorld world)
     {
-        double lifesteal = 0.45;
-        double maxHpPerHit = 0.008;
+        double lifesteal = 1.0;
+        double maxHpPerHit = 0.01;
         foreach (var param in (thisEffect.ScriptParams ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries))
         {
             var kv = param.Split('=', 2);
