@@ -93,6 +93,10 @@ namespace Goose
         /// AddRequiredItem to populate.</summary>
         public IReadOnlyList<int> RequiredItems { get => this.requiredItems; }
 
+        /// <summary>Lowest item-family dimension accepted for RequiredItems; 0 keeps the exact-template gate.
+        /// Runtime metadata set by dimension map generation, never persisted.</summary>
+        public int RequiredItemMinimumDimension { get; set; }
+
         public void AddRequiredItem(int itemTemplateId)
         {
             this.requiredItems.Add(itemTemplateId);
@@ -131,6 +135,7 @@ namespace Goose
                 CanUseItems = this.CanUseItems,
                 CanSpawnPets = this.CanSpawnPets,
                 Muted = this.Muted,
+                RequiredItemMinimumDimension = this.RequiredItemMinimumDimension,
                 Script = this.Script,
                 ScriptParams = this.ScriptParams,
                 tiles = (ITile?[])this.tiles.Clone(),
@@ -742,7 +747,10 @@ namespace Goose
 
             foreach (int id in this.requiredItems)
             {
-                if (!player.HasItem(id))
+                bool hasKey = this.RequiredItemMinimumDimension == 0
+                    ? player.HasItem(id)
+                    : player.Inventory.HasItemFamily(id, this.RequiredItemMinimumDimension);
+                if (!hasKey)
                 {
                     world.Send(player, $"$7You need '{world.ItemHandler.GetTemplate(id)?.Name ?? "<unknown item>"}' to enter this map.");
                     return false;

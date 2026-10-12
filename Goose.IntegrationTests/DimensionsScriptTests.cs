@@ -350,6 +350,7 @@ public class DimensionsScriptTests
         using var fixture = Run(f =>
         {
             var vault = f.AddBaseMap(1, "Vault", width: 100, height: 100);
+            f.AddBaseItemTemplate(1234, "Vault Key", ItemTemplate.UseTypes.NoUse);
             vault.AddRequiredItem(1234);
             vault.Muted = true;
         });
@@ -357,7 +358,26 @@ public class DimensionsScriptTests
         var dim2 = fixture.World.MapHandler.GetMap(1 + 100000 * 2)!;
 
         Assert.Equal(new[] { 1234 }, dim2.RequiredItems);
+        Assert.Equal(2, dim2.RequiredItemMinimumDimension);
         Assert.True(dim2.Muted);
+    }
+
+    /// <summary>A dimension clone keeps its authored requirement id, so only a dimension variant of the
+    /// key can satisfy it; a requirement with no dimension clone would strand every dimension copy, so the load aborts.</summary>
+    [Fact]
+    public void A_required_item_without_dimension_clones_aborts_loading_before_any_map_clone_is_published()
+    {
+        var fixture = new GlobalScriptFixture();
+        var vault = fixture.AddBaseMap(1, "Vault", width: 100, height: 100);
+        fixture.AddBaseItemTemplate(1234, "Vault Token", ItemTemplate.UseTypes.OneTime);
+        vault.AddRequiredItem(1234);
+
+        var ex = Assert.Throws<Exception>(() => fixture.CompileShipped().Object.OnLoaded(fixture.World));
+        using var _ = fixture;
+
+        Assert.Contains("1234", ex.Message);
+        Assert.Null(fixture.World.MapHandler.GetMap(1 + 100000));
+        Assert.Null(fixture.World.ItemHandler.GetTemplate(1234 + 100000));
     }
 
     [Fact]

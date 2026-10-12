@@ -39,6 +39,22 @@ public partial class Dimensions
         }
     }
 
+    /// <summary>Every base map's required items must have dimension clones, or every dimension copy
+    /// would be unenterable. Same ShouldClone predicate as item generation, so the gate and clone set cannot drift.</summary>
+    private void PreflightMapRequiredItems(GameWorld world)
+    {
+        foreach (var basic in world.MapHandler.Maps.Values.Where(m => m.ID < Offset).ToList())
+        {
+            foreach (int requiredId in basic.RequiredItems)
+            {
+                var template = world.ItemHandler.GetTemplate(requiredId);
+                if (template is null || !ShouldClone(template))
+                    throw new Exception($"Dimension map '{basic.Name}' requires item {requiredId}, which has no "
+                                        + "dimension clone. Every dimension copy of this map would be unenterable.");
+            }
+        }
+    }
+
     /// <summary>Map.java:251-260. Dimensions 1-4 scale; 5 and 6 take a flat floor that
     /// ignores the base value.</summary>
     private long MinExperienceFor(long baseMin, int dim)
@@ -51,6 +67,8 @@ public partial class Dimensions
 
     private void CloneMaps(GameWorld world)
     {
+        PreflightMapRequiredItems(world);
+
         var baseMaps = world.MapHandler.Maps.Values.ToList();
         var mapScript = world.ScriptHandler.GetScript<IMapScript>("Scripts/Global/Dimensions/DimensionMap.csx");
 
@@ -80,6 +98,10 @@ public partial class Dimensions
                 // params it was written against. DimensionMap takes its dimension from the
                 // map id, which already encodes it.
                 clone.ScriptParams = basic.ScriptParams;
+
+                // The clone keeps the base requirement ids, so its gate matches the item family, not the
+                // exact base template. Set before publication: a visible half-initialized clone would reject every dimension key.
+                clone.RequiredItemMinimumDimension = dim;
 
                 world.MapHandler.Maps[clone.ID] = clone;
 

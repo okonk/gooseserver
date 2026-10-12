@@ -238,6 +238,121 @@ public class DimensionMapScriptTests
         Assert.Equal(1, player.MapID);   // relocated to the dimension-0 map (MapID, not Map - WarpTo nulls Map)
     }
 
+    // ---- Map key (required item) gate ---------------------------------------------
+
+    private const int Offset = 100000;
+    private const int KeyId = 5001;
+
+    private static (GlobalScriptFixture Fixture, Map Base, Map Clone) KeyGated(int dim = 3)
+    {
+        var fixture = new GlobalScriptFixture();
+        var baseMap = fixture.AddBaseMap(1, "Vault", width: 100, height: 100);
+        fixture.AddBaseItemTemplate(KeyId, "Vault Key", ItemTemplate.UseTypes.NoUse);
+        baseMap.AddRequiredItem(KeyId);
+
+        fixture.CompileShipped().Object.OnLoaded(fixture.World);
+
+        return (fixture, baseMap, fixture.World.MapHandler.GetMap(1 + Offset * dim)!);
+    }
+
+    private static GlobalScriptFixture.CapturingPlayer KeyPlayer(GlobalScriptFixture fixture, Map map, ItemTemplate? key)
+    {
+        var player = fixture.CommandPlayerOn(map, 5, 5);
+        player.Bank = new PlayerBank();
+        player.Properties["dimension.max"] = 6;
+        if (key is not null)
+            player.Inventory.AddItem(new Item { Template = key }, 1, fixture.World);
+        return player;
+    }
+
+    [Fact]
+    public void A_dimension_map_key_gate_accepts_the_same_or_higher_dimension_key()
+    {
+        var (fixture, _, clone) = KeyGated(dim: 3);
+        using var _ = fixture;
+
+        var withDim3 = KeyPlayer(fixture, clone, fixture.World.ItemHandler.GetTemplateVariant(KeyId, 3)!);
+        Assert.True(clone.PlayerCanJoin(withDim3, fixture.World));
+
+        var withDim4 = KeyPlayer(fixture, clone, fixture.World.ItemHandler.GetTemplateVariant(KeyId, 4)!);
+        Assert.True(clone.PlayerCanJoin(withDim4, fixture.World));
+    }
+
+    [Fact]
+    public void A_dimension_map_key_gate_rejects_base_and_lower_dimension_keys()
+    {
+        var (fixture, _, clone) = KeyGated(dim: 3);
+        using var _ = fixture;
+
+        var withBase = KeyPlayer(fixture, clone, fixture.World.ItemHandler.GetTemplate(KeyId)!);
+        Assert.False(clone.PlayerCanJoin(withBase, fixture.World));
+
+        var withDim2 = KeyPlayer(fixture, clone, fixture.World.ItemHandler.GetTemplateVariant(KeyId, 2)!);
+        Assert.False(clone.PlayerCanJoin(withDim2, fixture.World));
+    }
+
+    [Fact]
+    public void A_dimension_map_key_in_an_equipped_slot_or_the_combine_bag_opens_the_map()
+    {
+        var (fixture, _, clone) = KeyGated(dim: 3);
+        using var _ = fixture;
+        var key = fixture.World.ItemHandler.GetTemplateVariant(KeyId, 3)!;
+
+        var equipped = KeyPlayer(fixture, clone, null);
+        equipped.Inventory.GetEquippedSlots()[1] = new ItemSlot { Item = new Item { Template = key }, Stack = 1 };
+        Assert.True(clone.PlayerCanJoin(equipped, fixture.World));
+
+        var combined = KeyPlayer(fixture, clone, null);
+        combined.Inventory.GetCombineBagContainer().SetSlot(1, new ItemSlot { Item = new Item { Template = key }, Stack = 1 });
+        Assert.True(clone.PlayerCanJoin(combined, fixture.World));
+    }
+
+    [Fact]
+    public void A_key_refusal_names_the_required_item()
+    {
+        var (fixture, _, clone) = KeyGated(dim: 3);
+        using var _ = fixture;
+
+        var player = KeyPlayer(fixture, clone, fixture.World.ItemHandler.GetTemplateVariant(KeyId, 2)!);
+        Assert.False(clone.PlayerCanJoin(player, fixture.World));
+        Assert.Contains(player.Sent, m => m.Contains("'Vault Key'"));
+    }
+
+    [Fact]
+    public void The_base_map_still_requires_the_exact_base_key()
+    {
+        var (fixture, baseMap, _) = KeyGated(dim: 3);
+        using var _ = fixture;
+
+        var withDimKey = KeyPlayer(fixture, baseMap, fixture.World.ItemHandler.GetTemplateVariant(KeyId, 3)!);
+        Assert.False(baseMap.PlayerCanJoin(withDimKey, fixture.World));
+
+        var withBaseKey = KeyPlayer(fixture, baseMap, fixture.World.ItemHandler.GetTemplate(KeyId)!);
+        Assert.True(baseMap.PlayerCanJoin(withBaseKey, fixture.World));
+    }
+
+    [Fact]
+    public void A_refusal_from_the_delegated_base_script_wins_before_the_key_and_experience_gates()
+    {
+        var fixture = new GlobalScriptFixture();
+        var baseMap = fixture.AddBaseMap(1, "Vault", width: 100, height: 100);
+        baseMap.Script = ScriptStub.For<IMapScript>(new RecordingMapScript { Refusal = "Vault is closed." });
+        fixture.AddBaseItemTemplate(KeyId, "Vault Key", ItemTemplate.UseTypes.NoUse);
+        baseMap.AddRequiredItem(KeyId);
+
+        fixture.CompileShipped().Object.OnLoaded(fixture.World);
+        using var _ = fixture;
+
+        var clone = fixture.World.MapHandler.GetMap(1 + Offset * 3)!;
+        clone.MinExperience = 1_000_000;   // the keyless player below also fails this
+
+        var player = KeyPlayer(fixture, clone, null);
+        Assert.False(clone.PlayerCanJoin(player, fixture.World));
+        Assert.Contains(player.Sent, m => m.Contains("Vault is closed."));
+        Assert.DoesNotContain(player.Sent, m => m.Contains("Vault Key"));
+        Assert.DoesNotContain(player.Sent, m => m.Contains("experience to enter"));
+    }
+
     private sealed class RecordingMapScript : BaseMapScript
     {
         public int EnteredCalls;
