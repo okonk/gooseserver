@@ -181,6 +181,13 @@ Global scripts load after maps/NPCs, and `MapHandler.Maps`, `Map.tiles`, and
 3. Re-spawn the base map's NPC spawns onto each clone with
    `shouldRespawn: true` (respawning is self-sustaining on the NPC), pointing
    drop tables at dimension item templates.
+4. Map entry keys: a dimension-N map keeps the base map's required-item ids
+   but gates them by item family — it accepts the same family from dimension
+   N or higher (checked across the inventory, equipped slots, and the
+   combine bag) and rejects base/lower-dimensional copies; base maps keep
+   their exact authored behavior. A load-time preflight aborts dimension
+   loading if a base map requires an item that cannot be cloned (same
+   `ShouldClone` predicate as item generation, so the two cannot drift).
 
 #### Access (script)
 
@@ -211,13 +218,30 @@ naturally.
 
 #### Items (script)
 
-Clone each `ItemTemplate` to `base + 100000·dim`: name prefix, recolor,
-deterministic dimension stat scaling, `SpellEffectID`/`LearnSpellID` pointed
-at the offset spell clones, `Value` and `Credits` each scaled ×3^dim,
-independently. The `ItemTemplate` copy constructor carries the base item's
-explicit `CurrencyId` over untouched — the dimension scales prices, it never
-chooses or changes the currency. `Item` serializes `TemplateID`, so dimension
-items persist untouched.
+Clone the progression item set to `base + 100000·dim` for dimensions 1–6:
+Armor, Weapon, learning Scrolls (`Scroll` with a `LearnSpellID`), and every
+`NoUse` template (99 in the current sheet data, 53 with a positive gold
+value). `OneTime`, money, and non-learning scrolls are NOT cloned; drops and
+vendor stock that would point at a missing clone keep the base template.
+Each clone gets: name prefix, recolor, deterministic dimension stat scaling
+(equipment only), and `Value` and `Credits` each scaled ×3^dim, independently.
+Tomes'
+`LearnSpellID` points at the dimension's spell clone when one was generated
+(otherwise the base spell id is kept and the clone stays a plain `Scroll`);
+`SpellEffectID`/`SpellEffect` are inherited from the base untouched, so
+on-hit effects remain the dimension-0 effect. `NoUse`
+clones scale their gold/credit prices this way with no other change. The
+`ItemTemplate` copy constructor carries the base item's explicit `CurrencyId`
+over untouched — the dimension scales prices, it never chooses or changes the
+currency (a dimension item is never forced into spirit). `Item` serializes
+`TemplateID`, so dimension items persist untouched.
+
+- **Minimum-experience gate**: equipment clones (Armor/Weapon only) carry an
+  equipment-only gate — dimension 5 requires exactly 100,000,000,000 total
+  experience, dimension 6 exactly 500,000,000,000 (formula
+  `500,000,000,000 × (dimension − 5)` for 6+); dimensions 1–4 keep the
+  authored minimum. `NoUse`/tome clones get no gate. The check is total
+  experience only; donation credits do not bypass it.
 
 - **Titles**: the always-on Powerful…Godly prefix is baked into the cloned
   template name (deterministic, like abyss). Goose's existing random title
@@ -232,6 +256,25 @@ items persist untouched.
   stats from the template + surname script.
 - Rarity (Legendary/Stunted) rolled by the script at item creation via
   `StatMultiplier`.
+
+#### Quest item requirements (script)
+
+Quest item requirements are matched by item family: any dimension variant
+satisfies an authored base-ID requirement, and duplicate requirement rows are
+summed per family so they cannot each pass against the same stack. Quest
+consumption removes base/lower-dimension variants first (ascending dimension,
+then slot order); requirements marked kept remain after completion, and quest
+rewards remain the authored base items.
+
+#### Crafting (script)
+
+Combine recipes match by base template IDs: the bag is aggregated per base ID
+before any dimension search, so one craft uses one complete common dimension
+(ascending search, dimension 0 first) and non-dimensional ingredients cannot
+mix with dimension-N ingredients. The result is created in the selected
+dimension when a variant of it was generated, else the authored dimension-0
+result. Failures are atomic — a missing ingredient in every dimension, or a
+result that cannot load, aborts the craft with nothing consumed or published.
 
 #### Spirit economy (script + settings)
 
@@ -273,3 +316,8 @@ per-level SP (`classes.sql player_sp`) — either would leak the wallet.
   extra-stats payload (`Packets.cs:553,614`), resolved per item (its own
   `CurrencyId`, else the vendor's, else gold), so tooltips read "Value: 4,500
   gold" for ordinary dimension gear; clients stopping at `GraphicA` ignore both.
+- Generated dimension registries are reconstructed only at full server
+  startup. `/reloadscripts` and `/reloadsql` do not safely rebuild live
+  generated variants — replacing registered template objects would strand
+  already-loaded `Item.Template` references — so dimension item/script/SQL
+  data changes require a full server restart.
