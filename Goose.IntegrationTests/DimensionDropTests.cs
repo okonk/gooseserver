@@ -11,6 +11,7 @@ public class DimensionDropTests
 
         var sword = fixture.AddBaseItemTemplate(50, "Sword", ItemTemplate.UseTypes.Weapon);
         var potion = fixture.AddBaseItemTemplate(60, "Potion", ItemTemplate.UseTypes.OneTime);
+        var token = fixture.AddBaseItemTemplate(62, "Token", ItemTemplate.UseTypes.NoUse, t => t.Value = 100);
 
         var npc = new NPCTemplate { NPCTemplateID = 162, Name = "Shadow Dog", Level = 40 };
         npc.BaseStats = new AttributeSet { HP = 3704 };
@@ -18,6 +19,7 @@ public class DimensionDropTests
         {
             new NPCDropInfo { ItemTemplate = sword, DropRate = 0.1, Stack = 1 },
             new NPCDropInfo { ItemTemplate = potion, DropRate = 0.5, Stack = 3 },
+            new NPCDropInfo { ItemTemplate = token, DropRate = 0.2, Stack = 2 },
         };
         fixture.World.NPCHandler.AddTemplate(npc);
 
@@ -47,6 +49,18 @@ public class DimensionDropTests
     }
 
     [Fact]
+    public void Dimension_npcs_drop_same_dimension_no_use_items()
+    {
+        using var fixture = Run();
+        var drops = fixture.World.NPCHandler.GetNPCTemplate(162 + 100000 * 4)!.Drops!;
+
+        var token = drops.Single(d => d.ItemTemplate.Name.EndsWith("Token"));
+        Assert.Equal(62 + 100000 * 4, token.ItemTemplate.ID);
+        Assert.Equal(0.2, token.DropRate);
+        Assert.Equal(2, token.Stack);
+    }
+
+    [Fact]
     public void The_base_drop_table_is_left_alone()
     {
         using var fixture = Run();
@@ -56,6 +70,7 @@ public class DimensionDropTests
         // so repointing must allocate new ones or every dimension rewrites dimension 0.
         Assert.Equal(50, drops.Single(d => d.ItemTemplate.Name == "Sword").ItemTemplate.ID);
         Assert.Equal(60, drops.Single(d => d.ItemTemplate.Name == "Potion").ItemTemplate.ID);
+        Assert.Equal(62, drops.Single(d => d.ItemTemplate.Name == "Token").ItemTemplate.ID);
     }
 
     [Fact]

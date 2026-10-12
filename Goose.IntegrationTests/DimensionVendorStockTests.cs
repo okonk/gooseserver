@@ -16,6 +16,8 @@ public class DimensionVendorStockTests
     private const int MerchantId = 60;
     private const int CreditSwordId = 52;   // credit-only gear: value 0, credits 500
     private const int CreditDealerId = 61;
+    private const int TokenId = 54;         // NoUse, ordinary gold
+    private const int SpiritTokenId = 55;   // NoUse, explicitly spirit-marked
 
     /// <summary>A base map with a vendor NPC standing on it, stocking a weapon, a
     /// consumable, and one item that has no clone. OnLoaded then clones the world.</summary>
@@ -33,6 +35,12 @@ public class DimensionVendorStockTests
         fixture.AddBaseItemTemplate(SpiritSwordId, "Spirit Sword", ItemTemplate.UseTypes.Weapon, t =>
         {
             t.Value = 40;
+            t.CurrencyId = "spirit";
+        });
+        fixture.AddBaseItemTemplate(TokenId, "Token", ItemTemplate.UseTypes.NoUse, t => t.Value = 20);
+        fixture.AddBaseItemTemplate(SpiritTokenId, "Spirit Token", ItemTemplate.UseTypes.NoUse, t =>
+        {
+            t.Value = 30;
             t.CurrencyId = "spirit";
         });
 
@@ -63,6 +71,16 @@ public class DimensionVendorStockTests
             Slot = 3, ItemTemplate = fixture.World.ItemHandler.GetTemplate(SpiritSwordId)!,
             Stack = 1, CanSeeStats = true,
         };
+        merchant.VendorItems[4] = new NPCVendorSlot
+        {
+            Slot = 4, ItemTemplate = fixture.World.ItemHandler.GetTemplate(TokenId)!,
+            Stack = 1, CanSeeStats = false,
+        };
+        merchant.VendorItems[5] = new NPCVendorSlot
+        {
+            Slot = 5, ItemTemplate = fixture.World.ItemHandler.GetTemplate(SpiritTokenId)!,
+            Stack = 1, CanSeeStats = true,
+        };
         fixture.World.NPCHandler.AddTemplate(merchant);
         fixture.World.NPCHandler.SpawnNPC(fixture.World, 1, 20, 20, merchant, shouldRespawn: false);
 
@@ -85,10 +103,27 @@ public class DimensionVendorStockTests
 
         Assert.Equal(SwordId + Offset * dim, stock[1].ItemTemplate.ID);
         // The OneTime potion is not clone-eligible (ShouldClone (Items.csx) —
-        // Armor/Weapon/Scroll-with-spell only), so its slot keeps the base template and
-        // stays gold-priced.
+        // Armor/Weapon/Scroll-with-spell/NoUse only), so its slot keeps the base template
+        // and stays gold-priced.
         Assert.Equal(PotionId, stock[2].ItemTemplate.ID);
         Assert.Equal(SpiritSwordId + Offset * dim, stock[3].ItemTemplate.ID);
+        Assert.Equal(TokenId + Offset * dim, stock[4].ItemTemplate.ID);
+        Assert.Equal(SpiritTokenId + Offset * dim, stock[5].ItemTemplate.ID);
+    }
+
+    [Fact]
+    public void No_use_stock_resolves_to_gold_unless_the_item_currency_says_otherwise()
+    {
+        using var fixture = Loaded();
+        var handler = fixture.World.CurrencyHandler;
+        var vendor = fixture.World.MapHandler.GetMap(1 + Offset * 3)!.NPCs
+            .Single(n => n.NPCTemplateID == MerchantId + Offset * 3);
+
+        var stock = StockOf(fixture, 3);
+
+        Assert.Equal("spirit", fixture.World.ItemHandler.GetTemplate(SpiritTokenId + Offset * 3)!.CurrencyId);
+        Assert.Equal(Currency.Gold, handler.Resolve(stock[4].ItemTemplate, vendor).Id);
+        Assert.Equal("spirit", handler.Resolve(stock[5].ItemTemplate, vendor).Id);
     }
 
     /// <summary>A slot whose template the clone pass skips must keep the base template

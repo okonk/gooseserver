@@ -52,18 +52,130 @@ public class DimensionItemTemplateTests
     }
 
     [Fact]
-    public void Does_not_clone_consumables_money_or_no_use_items()
+    public void Does_not_clone_consumables_or_money_items()
     {
         using var fixture = Run(f =>
         {
             f.AddBaseItemTemplate(60, "Potion", ItemTemplate.UseTypes.OneTime);
             f.AddBaseItemTemplate(61, "Gold", ItemTemplate.UseTypes.Money);
-            f.AddBaseItemTemplate(62, "Quest Token", ItemTemplate.UseTypes.NoUse);
         });
 
         Assert.Null(fixture.World.ItemHandler.GetTemplate(100060));
         Assert.Null(fixture.World.ItemHandler.GetTemplate(100061));
-        Assert.Null(fixture.World.ItemHandler.GetTemplate(100062));
+    }
+
+    [Fact]
+    public void NoUse_templates_get_all_six_dimension_variants_with_scaled_value()
+    {
+        using var fixture = Run(f => f.AddBaseItemTemplate(62, "Token", ItemTemplate.UseTypes.NoUse,
+            t => t.Value = 100));
+
+        for (int dim = 1; dim <= 6; dim++)
+        {
+            var clone = fixture.World.ItemHandler.GetTemplate(62 + 100000 * dim);
+            Assert.NotNull(clone);
+            Assert.Equal(62, clone!.VariantOfTemplateID);
+            Assert.Equal(dim, clone.Dimension);
+        }
+
+        var dim3 = fixture.World.ItemHandler.GetTemplate(62 + 100000 * 3)!;
+        Assert.Equal(100 * 27, dim3.Value);
+        Assert.Same(dim3, fixture.World.ItemHandler.GetTemplateVariant(62, 3));
+    }
+
+    [Fact]
+    public void NoUse_templates_with_zero_value_still_clone()
+    {
+        using var fixture = Run(f => f.AddBaseItemTemplate(63, "Key", ItemTemplate.UseTypes.NoUse));
+
+        for (int dim = 1; dim <= 6; dim++)
+            Assert.NotNull(fixture.World.ItemHandler.GetTemplate(63 + 100000 * dim));
+    }
+
+    [Fact]
+    public void NoUse_clones_keep_base_stats_and_roll_no_modifiers()
+    {
+        using var fixture = Run(f => f.AddBaseItemTemplate(62, "Token", ItemTemplate.UseTypes.NoUse,
+            t => { t.Value = 100; t.BaseStats = new AttributeSet { AC = 7, HP = 42, Strength = 3 }; }));
+
+        var basic = fixture.World.ItemHandler.GetTemplate(62)!;
+        var dim5 = fixture.World.ItemHandler.GetTemplate(62 + 100000 * 5)!;
+
+        Assert.Equal(basic.BaseStats.AC, dim5.BaseStats.AC);
+        Assert.Equal(basic.BaseStats.HP, dim5.BaseStats.HP);
+        Assert.Equal(basic.BaseStats.Strength, dim5.BaseStats.Strength);
+        Assert.Equal(0, dim5.MinExperience);
+
+        for (int i = 0; i < 200; i++)
+        {
+            var item = new Item();
+            item.LoadFromTemplate(dim5);
+            fixture.World.ItemHandler.RollTitleAndSurname(item, fixture.World);
+
+            Assert.Equal("Almighty Token", item.Name);
+            Assert.False(item.HasProperty(ItemProperty.SurnameId));
+            Assert.False(item.HasProperty(ItemProperty.TitleId));
+        }
+    }
+
+    [Fact]
+    public void Equipment_keeps_its_authored_min_experience_through_dimension_four()
+    {
+        using var fixture = Run(f => f.AddBaseItemTemplate(50, "Sword", ItemTemplate.UseTypes.Weapon,
+            t => t.MinExperience = 1234));
+
+        for (int dim = 1; dim <= 4; dim++)
+            Assert.Equal(1234, fixture.World.ItemHandler.GetTemplate(50 + 100000 * dim)!.MinExperience);
+    }
+
+    [Fact]
+    public void Dimension_five_and_six_equipment_gates_at_the_abyss_experience_thresholds()
+    {
+        using var fixture = Run(f => f.AddBaseItemTemplate(50, "Sword", ItemTemplate.UseTypes.Weapon,
+            t => t.MinExperience = 1234));
+
+        var dim5 = fixture.World.ItemHandler.GetTemplate(50 + 100000 * 5)!;
+        var dim6 = fixture.World.ItemHandler.GetTemplate(50 + 100000 * 6)!;
+        Assert.Equal(100_000_000_000, dim5.MinExperience);
+        Assert.Equal(500_000_000_000, dim6.MinExperience);
+
+        var player = fixture.CommandPlayerOn(fixture.World.MapHandler.GetMap(1)!, 10, 10);
+
+        var item5 = new Item();
+        item5.LoadFromTemplate(dim5);
+        player.Experience = 100_000_000_000 - 1;
+        Assert.False(player.CanUse(item5, fixture.World));
+        player.Experience = 100_000_000_000 - 999;
+        player.ExperienceSold = 999;
+        Assert.True(player.CanUse(item5, fixture.World));
+        player.Experience = 100_000_000_000;
+        player.ExperienceSold = 0;
+        Assert.True(player.CanUse(item5, fixture.World));
+
+        var item6 = new Item();
+        item6.LoadFromTemplate(dim6);
+        player.Experience = 500_000_000_000 - 1;
+        Assert.False(player.CanUse(item6, fixture.World));
+        player.Experience = 500_000_000_000;
+        Assert.True(player.CanUse(item6, fixture.World));
+    }
+
+    [Fact]
+    public void Credit_priced_equipment_is_still_gated_on_experience()
+    {
+        using var fixture = Run(f => f.AddBaseItemTemplate(52, "Credit Sword", ItemTemplate.UseTypes.Weapon,
+            t => { t.Value = 0; t.Credits = 500; }));
+
+        var dim5 = fixture.World.ItemHandler.GetTemplate(52 + 100000 * 5)!;
+        Assert.Equal(100_000_000_000, dim5.MinExperience);
+
+        var player = fixture.CommandPlayerOn(fixture.World.MapHandler.GetMap(1)!, 10, 10);
+        player.Experience = 100_000_000_000 - 1;
+        player.Credits = 1_000_000;
+
+        var item = new Item();
+        item.LoadFromTemplate(dim5);
+        Assert.False(player.CanUse(item, fixture.World));
     }
 
     [Theory]
@@ -112,6 +224,23 @@ public class DimensionItemTemplateTests
 
         var exception = Assert.Throws<Exception>(() => script.Object.OnLoaded(fixture.World));
         Assert.Contains("100050", exception.Message);
+    }
+
+    [Fact]
+    public void A_collision_at_a_later_dimension_publishes_no_earlier_clones()
+    {
+        using var fixture = new GlobalScriptFixture();
+        fixture.AddBaseMap(1, "Town", width: 100, height: 100);
+        fixture.AddBaseItemTemplate(50, "Sword", ItemTemplate.UseTypes.Weapon);
+        fixture.AddBaseItemTemplate(300050, "Impostor", ItemTemplate.UseTypes.Weapon);
+
+        var script = fixture.CompileShipped();
+
+        var exception = Assert.Throws<Exception>(() => script.Object.OnLoaded(fixture.World));
+        Assert.Contains("300050", exception.Message);
+
+        Assert.Null(fixture.World.ItemHandler.GetTemplate(100050));
+        Assert.Null(fixture.World.ItemHandler.GetTemplate(200050));
     }
 
     [Fact]
@@ -188,5 +317,6 @@ public class DimensionItemTemplateTests
         // The rest of the clone still applies - this is a stat guard, not a clone opt-out.
         Assert.Equal("Godly Tome of Firestorm", dim6.Name);
         Assert.Equal(91 + 100000 * 6, dim6.LearnSpellID);
+        Assert.Equal(0, dim6.MinExperience);
     }
 }

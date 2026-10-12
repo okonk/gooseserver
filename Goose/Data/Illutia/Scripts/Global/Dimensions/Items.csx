@@ -54,12 +54,13 @@ public partial class Dimensions
         });
     }
 
-    /// <summary>Equipment and spell tomes get a copy per dimension. Consumables never scale
-    /// in abyss (Item.java:404); money and NoUse items have nothing to scale.</summary>
+    /// <summary>Equipment, spell tomes and NoUse items get a copy per dimension.
+    /// Consumables never scale in abyss (Item.java:404); money has no value to scale.</summary>
     private bool ShouldClone(ItemTemplate t)
     {
         return t.UseType == ItemTemplate.UseTypes.Armor
             || t.UseType == ItemTemplate.UseTypes.Weapon
+            || t.UseType == ItemTemplate.UseTypes.NoUse
             || (t.UseType == ItemTemplate.UseTypes.Scroll && t.LearnSpellID > 0);
     }
 
@@ -75,21 +76,38 @@ public partial class Dimensions
         // item, so a single stateless instance serves all of them.
         var itemScript = world.ScriptHandler.GetScript<IItemScript>("Scripts/Global/Dimensions/DimensionItem.csx");
 
+        // Preflight every target id before the first AddTemplate: it overwrites silently,
+        // and publishing only after every clone is built keeps a failure from leaving a
+        // half-registered set behind.
         for (int dim = 1; dim <= DimensionCount; dim++)
         {
             foreach (var basic in baseTemplates)
             {
                 int id = basic.ID + Offset * dim;
-
-                // AddTemplate overwrites silently, so a collision would quietly replace a
-                // real item and change what every stored Item with that id resolves to.
                 if (world.ItemHandler.GetTemplate(id) != null)
                     throw new Exception($"Dimension item template id {id} (base {basic.ID}, dim {dim}) "
                                         + "already exists. Offset is too small for this data set.");
-
-                world.ItemHandler.AddTemplate(ScaleItemTemplate(world, basic, dim, itemScript));
             }
         }
+
+        var clones = new List<ItemTemplate>(baseTemplates.Count * DimensionCount);
+        for (int dim = 1; dim <= DimensionCount; dim++)
+        {
+            foreach (var basic in baseTemplates)
+                clones.Add(ScaleItemTemplate(world, basic, dim, itemScript));
+        }
+
+        // Mirrors AddTemplate's own guard (ItemHandler.cs:210) so a bad clone fails the
+        // load loudly instead of being silently skipped.
+        foreach (var clone in clones)
+        {
+            if (clone is null || clone.BaseStats is null || string.IsNullOrWhiteSpace(clone.Name))
+                throw new Exception($"Dimension item template id {clone?.ID} (dim {clone?.Dimension}) "
+                                      + "failed validation.");
+        }
+
+        foreach (var clone in clones)
+            world.ItemHandler.AddTemplate(clone);
     }
 
     private ItemTemplate ScaleItemTemplate(GameWorld world, ItemTemplate basic, int dim, Script<IItemScript> itemScript)
@@ -97,6 +115,8 @@ public partial class Dimensions
         var clone = new ItemTemplate(basic)
         {
             ID = basic.ID + Offset * dim,
+            VariantOfTemplateID = basic.ID,
+            Dimension = dim,
             Name = DimensionPrefixes[dim] + basic.Name,
             Description = "Abyss (" + dim + ") " + basic.Description,
 
@@ -118,6 +138,8 @@ public partial class Dimensions
             IsLore = false,
             IsBindOnPickup = false,
             IsBindOnEquip = false,
+
+            MinExperience = EquipmentMinExperience(basic, dim),
         };
 
         // Equipment only. AttributeSet.java:380-382 returns an empty set for anything that
@@ -144,8 +166,19 @@ public partial class Dimensions
         return clone;
     }
 
+    /// <summary>Abyss's endgame gate: dim 5 requires Dim5MinExperience, dim 6+ requires
+    /// Dim6MinExperience * (dim - 5). Non-equipment and dims 1-4 keep the authored minimum.</summary>
+    private static long EquipmentMinExperience(ItemTemplate basic, int dim)
+    {
+        if (dim < 5) return basic.MinExperience;
+        if (basic.UseType != ItemTemplate.UseTypes.Armor && basic.UseType != ItemTemplate.UseTypes.Weapon)
+            return basic.MinExperience;
+
+        return dim == 5 ? Dim5MinExperience : Dim6MinExperience * (dim - 5);
+    }
+
     /// <summary>Points each dimension NPC's drops at that dimension's item templates.
-    /// Items with no clone - gold, consumables, quest tokens - keep the base template.
+    /// Items with no clone - gold and consumables - keep the base template.
     ///
     /// Every entry is a NEW NPCDropInfo: NPCTemplate's copy constructor copies the list but
     /// shares its elements (NPCTemplate.cs:251), so mutating one in place would retarget the
