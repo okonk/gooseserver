@@ -1245,9 +1245,9 @@ namespace Goose
                 {
                     var newSlot = new ItemSlot { Item = item, Stack = slotcount };
                     newcombine.SetSlot(i, newSlot);
-                    // A result item may only be written to a slot the new bag leaves empty. This
-                    // slot holds the leftover, so it is not one: treating it as free overwrote
-                    // and destroyed the leftover whenever the bag had no room elsewhere.
+                    // This slot holds the leftover, so it is not free: treating it as free
+                    // overwrote and destroyed the leftover whenever the bag had no room
+                    // elsewhere. A result may still stack onto the leftover.
                     freeslots.Remove(i);
                 }
                 else
@@ -1256,13 +1256,11 @@ namespace Goose
                 }
 			}
 
-            if (freeslots.Count < match.ResultItems.Count)
-            {
-                world.Send(this.player, P.ServerMessage("Not enough free slots to create " + match.Name + "."));
-                return;
-            }
-
-            int index;
+            // A result that stacks goes onto a stack the bag already holds, so repeating a
+            // recipe fills one slot instead of claiming a new one per craft. Everything is
+            // staged before anything is registered or consumed, so a batch that does not fit
+            // leaves the bag exactly as it was.
+            List<(Item Item, bool OwnSlot)> results = [];
             foreach (var template in match.ResultItems)
             {
                 if (template.IsLore && this.player.HasItem(template.ID))
@@ -1278,17 +1276,40 @@ namespace Goose
                     continue;
                 }
                 world.ItemHandler.RollTitleAndSurname(item, world);
-                world.ItemHandler.AddAndAssignId(item, world);
 
-                if (item.IsBindOnPickup) item.IsBound = true;
+                ItemSlot? stack = FindCombineStack(newcombine, item);
+                if (stack is not null)
+                {
+                    stack.Stack++;
+                    results.Add((item, false));
+                }
+                else if (freeslots.Count > 0)
+                {
+                    int index = freeslots[0];
+                    freeslots.RemoveAt(0);
 
-                index = freeslots[0];
-                freeslots.RemoveAt(0);
+                    newcombine.SetSlot(index, new ItemSlot { Item = item, Stack = 1 });
+                    results.Add((item, true));
+                }
+                else
+                {
+                    world.Send(this.player, P.ServerMessage("Not enough free slots to create " + match.Name + "."));
+                    return;
+                }
+            }
 
-                var newSlot = new ItemSlot { Item = item, Stack = 1 };
-                newcombine.SetSlot(index, newSlot);
+            foreach (var (result, ownSlot) in results)
+            {
+                // Only a result that keeps a slot of its own becomes a registered item; one
+                // absorbed into a stack is that stack's item, like a merged pickup or the
+                // /hairdye purchase, so it gets no ItemID, OnCreateEvent or bind stamp.
+                if (ownSlot)
+                {
+                    world.ItemHandler.AddAndAssignId(result, world);
+                    if (result.IsBindOnPickup) result.IsBound = true;
+                }
 
-                world.Send(this.player, P.ServerMessage("Successfully created " + item.Name + "."));
+                world.Send(this.player, P.ServerMessage("Successfully created " + result.Name + "."));
             }
 
             for (int i = 1; i < this.combineContainer.MaxSlots; i++)
@@ -1297,6 +1318,23 @@ namespace Goose
             }
 
             combineBagWindow.Refresh(player, world);
+        }
+
+        /// <summary>Bag slot holding the same item with room for one more, or null when the
+        /// item does not stack or nothing in the bag can take it.</summary>
+        private static ItemSlot? FindCombineStack(ItemContainer container, Item item)
+        {
+            var incoming = new ItemSlot { Item = item, Stack = 1 };
+
+            for (int i = 1; i < container.MaxSlots; i++)
+            {
+                ItemSlot? slot = container.GetSlot(i);
+                if (slot is null) continue;
+
+                if (slot.CanStack(incoming)) return slot;
+            }
+
+            return null;
         }
     }
 }

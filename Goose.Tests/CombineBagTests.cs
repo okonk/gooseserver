@@ -12,6 +12,10 @@ public class CombineBagTests
     private const int LeatherPadding = 455;
     private const int Cloth = 449;
     private const int CatEars = 453;
+    private const int Elixir = 456;
+    private const int ElixirStackSize = 5;
+    private const int Shard = 457;
+    private const int ShardStackSize = 3;
 
     private static (TestWorldFixture fixture, TestWorldFixture.CapturingPlayer player) WorldWithClothAndCatEars()
     {
@@ -46,6 +50,37 @@ public class CombineBagTests
         fixture.AddBaseItemTemplate(CatEars, "Cat Ears", ItemTemplate.UseTypes.Armor);
     }
 
+    private static (TestWorldFixture fixture, TestWorldFixture.CapturingPlayer player) WorldWithStackableResult()
+    {
+        var fixture = new TestWorldFixture();
+        fixture.AddBaseItemTemplate(Needle, "Needle", ItemTemplate.UseTypes.NoUse);
+        fixture.AddBaseItemTemplate(CatHair, "Cats Hair", ItemTemplate.UseTypes.NoUse);
+        fixture.AddBaseItemTemplate(Elixir, "Elixir", ItemTemplate.UseTypes.OneTime,
+                                    t => t.StackSize = ElixirStackSize);
+        fixture.AddBaseItemTemplate(Shard, "Shard", ItemTemplate.UseTypes.NoUse,
+                                    t => t.StackSize = ShardStackSize);
+
+        fixture.World.Database.Start(Path.Combine(fixture.DataDirectory, "test.db"));
+        fixture.World.Database.Execute(conn =>
+        {
+            Run(conn, SchemaDdl.ForAll("combinations", "combination_item_required",
+                                       "combination_item_results"));
+
+            InsertRecipe(conn, 20, "Elixir", [Needle], [Elixir]);
+            // Two required items, so it wins GetMatch's most-specific tiebreak over Elixir
+            // in the bags that hold a cat hair; five results exercise merge-then-spill.
+            InsertRecipe(conn, 21, "Shards", [Needle, CatHair],
+                         [Shard, Shard, Shard, Shard, Shard]);
+        });
+        fixture.World.CombinationHandler.LoadCombinations(fixture.World);
+
+        var map = fixture.AddBaseMap(1, "Test");
+        var player = fixture.CommandPlayerOn(map, 5, 5, "Tester");
+        player.Level = 50;
+
+        return (fixture, player);
+    }
+
     private static void PutInBag(TestWorldFixture fixture, Player player, params int[] templateIds)
     {
         var bag = player.Inventory.GetCombineBagContainer();
@@ -59,6 +94,9 @@ public class CombineBagTests
         item.LoadFromTemplate(fixture.World.ItemHandler.GetTemplate(templateId)!);
         return item;
     }
+
+    private static ItemSlot StackOf(TestWorldFixture fixture, int templateId, long amount) =>
+        new ItemSlot { Item = LoadItem(fixture, templateId), Stack = amount };
 
     private static void Combine(TestWorldFixture fixture, Player player)
     {
@@ -170,6 +208,99 @@ public class CombineBagTests
 
             Assert.Equal("Needle", NameInBag(player, 1));
             Assert.Contains(player.Sent, s => s.Contains("Couldn't combine items."));
+        }
+    }
+
+    [Fact]
+    public void Result_stacks_onto_a_stack_already_in_the_bag()
+    {
+        var (fixture, player) = WorldWithStackableResult();
+        using (fixture)
+        {
+            var bag = player.Inventory.GetCombineBagContainer();
+            bag.SetSlot(1, StackOf(fixture, Elixir, 3));
+            bag.SetSlot(2, new ItemSlot { Item = LoadItem(fixture, Needle) });
+
+            Combine(fixture, player);
+
+            Assert.Equal(4, bag.GetSlot(1)!.Stack);
+            Assert.Null(NameInBag(player, 2));
+        }
+    }
+
+    [Fact]
+    public void Crafts_fill_a_stack_and_spill_into_a_free_slot_once_it_is_full()
+    {
+        var (fixture, player) = WorldWithStackableResult();
+        using (fixture)
+        {
+            var bag = player.Inventory.GetCombineBagContainer();
+            bag.SetSlot(1, StackOf(fixture, Elixir, 3));
+
+            bag.SetSlot(2, new ItemSlot { Item = LoadItem(fixture, Needle) });
+            Combine(fixture, player);
+            bag.SetSlot(2, new ItemSlot { Item = LoadItem(fixture, Needle) });
+            Combine(fixture, player);
+
+            Assert.Equal(ElixirStackSize, bag.GetSlot(1)!.Stack);
+            Assert.Null(NameInBag(player, 2));
+
+            bag.SetSlot(2, new ItemSlot { Item = LoadItem(fixture, Needle) });
+            Combine(fixture, player);
+
+            Assert.Equal(ElixirStackSize, bag.GetSlot(1)!.Stack);
+            Assert.Equal("Elixir", NameInBag(player, 2));
+            Assert.Equal(1, bag.GetSlot(2)!.Stack);
+        }
+    }
+
+    [Fact]
+    public void Combine_refuses_when_the_result_has_no_room_and_no_free_slot()
+    {
+        var (fixture, player) = WorldWithStackableResult();
+        using (fixture)
+        {
+            var bag = player.Inventory.GetCombineBagContainer();
+            bag.SetSlot(1, StackOf(fixture, Needle, 2));
+            for (int i = 2; i <= 10; i++)
+                bag.SetSlot(i, StackOf(fixture, Elixir, ElixirStackSize));
+
+            Combine(fixture, player);
+
+            Assert.Contains(player.Sent, s => s.Contains("Not enough free slots to create Elixir."));
+            Assert.DoesNotContain(player.Sent, s => s.Contains("Successfully created"));
+            Assert.Equal("Needle", NameInBag(player, 1));
+            Assert.Equal(2, bag.GetSlot(1)!.Stack);
+            Assert.Equal(ElixirStackSize, bag.GetSlot(2)!.Stack);
+        }
+    }
+
+    [Fact]
+    public void A_batch_that_stages_some_results_and_then_runs_out_of_room_places_none_of_them()
+    {
+        var (fixture, player) = WorldWithStackableResult();
+        using (fixture)
+        {
+            var bag = player.Inventory.GetCombineBagContainer();
+            bag.SetSlot(1, StackOf(fixture, Shard, ShardStackSize - 1));
+            bag.SetSlot(2, StackOf(fixture, Needle, 2));
+            bag.SetSlot(3, new ItemSlot { Item = LoadItem(fixture, CatHair) });
+            for (int i = 4; i <= 10; i++)
+                bag.SetSlot(i, StackOf(fixture, Elixir, ElixirStackSize));
+
+            int registered = fixture.World.ItemHandler.GetItems().Count();
+
+            Combine(fixture, player);
+
+            Assert.Contains(player.Sent, s => s.Contains("Not enough free slots to create Shards."));
+            Assert.DoesNotContain(player.Sent, s => s.Contains("Successfully created"));
+            Assert.Equal("Shard", NameInBag(player, 1));
+            Assert.Equal(ShardStackSize - 1, bag.GetSlot(1)!.Stack);
+            Assert.Equal("Needle", NameInBag(player, 2));
+            Assert.Equal(2, bag.GetSlot(2)!.Stack);
+            Assert.Equal("Cats Hair", NameInBag(player, 3));
+            Assert.Equal(ElixirStackSize, bag.GetSlot(4)!.Stack);
+            Assert.Equal(registered, fixture.World.ItemHandler.GetItems().Count());
         }
     }
 }
