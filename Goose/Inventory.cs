@@ -933,6 +933,91 @@ namespace Goose
             return count;
         }
 
+        public bool HasItemFamily(int baseTemplateId, int minimumDimension)
+        {
+            foreach (var slot in this.inventory)
+            {
+                if (slot is not null && MatchesFamily(slot, baseTemplateId, minimumDimension)) return true;
+            }
+            foreach (var slot in this.equipped)
+            {
+                if (slot is not null && MatchesFamily(slot, baseTemplateId, minimumDimension)) return true;
+            }
+            foreach (var slot in this.combineContainer)
+            {
+                if (slot is not null && MatchesFamily(slot, baseTemplateId, minimumDimension)) return true;
+            }
+
+            return false;
+        }
+
+        public long GetInventoryItemFamilyCount(int baseTemplateId)
+        {
+            long count = 0;
+            foreach (var slot in this.inventory)
+            {
+                if (slot is not null && !slot.Item.Custom && slot.Item.Template.BaseTemplateID == baseTemplateId)
+                    count += slot.Stack;
+            }
+
+            return count;
+        }
+
+        // Fails closed with no mutation when the family is short; does not refresh quest icons
+        // because the quest completion workflow owns the single final refresh.
+        public bool TryRemoveInventoryItemFamily(int baseTemplateId, long numberOf, GameWorld world)
+        {
+            if (numberOf <= 0) return true;
+
+            var candidates = new List<(ItemSlot Slot, int Index)>();
+            for (int i = 1; i <= this.settings.InventorySize; i++)
+            {
+                var slot = this.inventory[i];
+                if (slot is null || slot.Item.Custom) continue;
+                if (slot.Item.Template.BaseTemplateID != baseTemplateId) continue;
+                candidates.Add((slot, i));
+            }
+
+            candidates.Sort((a, b) =>
+            {
+                int byDimension = a.Slot.Item.Template.Dimension.CompareTo(b.Slot.Item.Template.Dimension);
+                return byDimension != 0 ? byDimension : a.Index.CompareTo(b.Index);
+            });
+
+            long total = 0;
+            foreach (var (slot, _) in candidates)
+                total += slot.Stack;
+
+            if (total < numberOf) return false;
+
+            long remaining = numberOf;
+            foreach (var (slot, index) in candidates)
+            {
+                if (remaining == 0) break;
+
+                if (slot.Stack <= remaining)
+                {
+                    this.inventory[index] = null;
+                    remaining -= slot.Stack;
+                }
+                else
+                {
+                    slot.Stack -= remaining;
+                    remaining = 0;
+                }
+
+                this.SendSlot(index, world);
+            }
+
+            return true;
+        }
+
+        private static bool MatchesFamily(ItemSlot slot, int baseTemplateId, int minimumDimension)
+        {
+            return slot.Item.Template.BaseTemplateID == baseTemplateId
+                && slot.Item.Template.Dimension >= minimumDimension;
+        }
+
         /**
          * GetWeaponDamage, returns currently equipped weapons damage
          *

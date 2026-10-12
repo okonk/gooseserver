@@ -299,6 +299,21 @@ namespace Goose.Quests
         {
             string text = "Requirements\\n\\n";
 
+            // Item rows render as one line per family with the summed requirement, so duplicate
+            // rows cannot double-report progress; unresolved authored templates keep their own
+            // fail-closed Unknown item line instead of merging into a valid family.
+            var itemFamilies = new Dictionary<int, (string Name, long Required)>();
+            foreach (var requirement in quest.Requirements.Where(r => r.Type == RequirementType.Item))
+            {
+                var template = world.ItemHandler.GetTemplate((int)requirement.Value);
+                if (template is null) continue;
+
+                var existing = itemFamilies.TryGetValue(template.BaseTemplateID, out var entry) ? entry : (Name: template.Name, Required: 0L);
+                itemFamilies[template.BaseTemplateID] = (existing.Name, existing.Required + requirement.Value2);
+            }
+
+            var renderedFamilies = new HashSet<int>();
+
             foreach (var requirement in quest.Requirements.OrderBy(r => r.Type))
             {
                 switch (requirement.Type)
@@ -308,8 +323,16 @@ namespace Goose.Quests
                         break;
                     case RequirementType.Item:
                         var item = world.ItemHandler.GetTemplate((int)requirement.Value);
-                        long itemCount = player.Inventory.GetItemCount((int)requirement.Value);
-                        text += $"{(item?.Name ?? "Unknown item")} ({itemCount}/{requirement.Value2})\\n";
+                        if (item is null)
+                        {
+                            text += $"Unknown item (0/{requirement.Value2})\\n";
+                            break;
+                        }
+
+                        if (!renderedFamilies.Add(item.BaseTemplateID)) continue;
+                        var family = itemFamilies[item.BaseTemplateID];
+                        long familyCount = player.Inventory.GetInventoryItemFamilyCount(item.BaseTemplateID);
+                        text += $"{family.Name} ({familyCount}/{family.Required})\\n";
                         break;
                     case RequirementType.TalkToNPC:
                         var talkNPC = world.NPCHandler.GetNPCTemplate((int)requirement.Value);
@@ -384,6 +407,16 @@ namespace Goose.Quests
 
         public void CompleteQuest(NPC npc, Player player, GameWorld world)
         {
+            // Every family is preflighted against its full kept + consumed requirement before any
+            // mutation: a short family aborts completion with quest, rewards, and inventory
+            // untouched, and a pass guarantees kept rows still remain after the removal.
+            var totals = GetItemFamilyTotalQuantities(quest, world);
+            foreach (var (family, quantity) in totals)
+            {
+                if (player.Inventory.GetInventoryItemFamilyCount(family) < quantity)
+                    return;
+            }
+
             if (!player.QuestsCompleted.Any(q => q.Id == quest.Id))
             {
                 player.QuestsCompleted.Add(quest);
@@ -562,6 +595,40 @@ namespace Goose.Quests
             player.AddStats(player.BaseStats, world);
         }
 
+        private static Dictionary<int, long> GetItemFamilyTotalQuantities(Quest quest, GameWorld world)
+        {
+            var quantities = new Dictionary<int, long>();
+            foreach (var requirement in quest.Requirements)
+            {
+                if (requirement.Type != RequirementType.Item) continue;
+
+                var template = world.ItemHandler.GetTemplate((int)requirement.Value);
+                if (template is null) continue;
+
+                quantities.TryGetValue(template.BaseTemplateID, out long total);
+                quantities[template.BaseTemplateID] = total + requirement.Value2;
+            }
+
+            return quantities;
+        }
+
+        private static Dictionary<int, long> GetRemovableItemFamilyQuantities(Quest quest, GameWorld world)
+        {
+            var quantities = new Dictionary<int, long>();
+            foreach (var requirement in quest.Requirements)
+            {
+                if (requirement.Type != RequirementType.Item || requirement.KeepRequirement) continue;
+
+                var template = world.ItemHandler.GetTemplate((int)requirement.Value);
+                if (template is null) continue;
+
+                quantities.TryGetValue(template.BaseTemplateID, out long total);
+                quantities[template.BaseTemplateID] = total + requirement.Value2;
+            }
+
+            return quantities;
+        }
+
         /// <summary>
         /// Removes required items/gold/etc from player, if the requirement specifies
         /// </summary>
@@ -569,6 +636,8 @@ namespace Goose.Quests
         /// <param name="world"></param>
         private void TakeRequirements(Player player, GameWorld world)
         {
+            var removable = GetRemovableItemFamilyQuantities(quest, world);
+
             foreach (var requirement in quest.Requirements)
             {
                 if (!requirement.KeepRequirement)
@@ -577,9 +646,6 @@ namespace Goose.Quests
                     {
                         case RequirementType.Gold:
                             player.RemoveGold(requirement.Value, world);
-                            break;
-                        case RequirementType.Item:
-                            player.Inventory.RemoveItem((int)requirement.Value, requirement.Value2, world);
                             break;
                         case RequirementType.TalkToNPC:
                         case RequirementType.Kill:
@@ -604,6 +670,11 @@ namespace Goose.Quests
                             break;
                     }
                 }
+            }
+
+            foreach (var (family, quantity) in removable)
+            {
+                player.Inventory.TryRemoveInventoryItemFamily(family, quantity, world);
             }
         }
     }

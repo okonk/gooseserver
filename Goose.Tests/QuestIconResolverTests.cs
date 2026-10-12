@@ -408,4 +408,92 @@ return typeof(T);
 
         Assert.Contains(hero.Sent, s => s.StartsWith($"CHI{npc.LoginID},{world.Settings.QuestReadyIconSheet},424242"));
     }
+
+    private static ItemTemplate RegisterHerb(TestWorldFixture world, int id, string name, int? variantOf = null, int dimension = 0)
+    {
+        var template = new ItemTemplate
+        {
+            ID = id, Name = name, Description = name,
+            UseType = ItemTemplate.UseTypes.NoUse,
+            StackSize = 10,
+            BaseStats = new AttributeSet(),
+            ScriptParams = "",
+            VariantOfTemplateID = variantOf,
+            Dimension = dimension,
+        };
+        world.World.ItemHandler.AddTemplate(template);
+        return template;
+    }
+
+    private static ItemSlot GiveHerb(Player player, TestWorldFixture world, ItemTemplate template, int stack, bool custom = false)
+    {
+        var item = new Item();
+        item.LoadFromTemplate(template);
+        if (custom) item.Description = "Custom created by GM";
+        world.World.ItemHandler.AddAndAssignId(item, world.World);
+        Assert.True(player.Inventory.AddItem(item, stack, world.World));
+        return new ItemSlot { Item = item, Stack = stack };
+    }
+
+    [Fact]
+    public void ItemRequirement_DimensionVariantSatisfiesAuthoredBaseId()
+    {
+        var (world, npc, player) = Setup(MakeQuest(1, Req(1, RequirementType.Item, 100, 3)));
+        RegisterHerb(world, 100, "Herb");
+        RegisterHerb(world, 1002, "Herb II", variantOf: 100, dimension: 2);
+        GiveHerb(player, world, world.World.ItemHandler.GetTemplate(1002)!, 3);
+        player.QuestsStarted.Add(npc.Quests[0]);
+
+        Assert.Equal(QuestIconState.Ready, QuestStateResolver.Resolve(npc, player, world.World));
+    }
+
+    [Fact]
+    public void DuplicateItemRows_SumQuantitiesPerFamily()
+    {
+        var (world, npc, player) = Setup(MakeQuest(1,
+            Req(1, RequirementType.Item, 100, 5),
+            Req(2, RequirementType.Item, 1002, 5)));
+        RegisterHerb(world, 100, "Herb");
+        RegisterHerb(world, 1002, "Herb II", variantOf: 100, dimension: 2);
+        GiveHerb(player, world, world.World.ItemHandler.GetTemplate(100)!, 8);
+        player.QuestsStarted.Add(npc.Quests[0]);
+
+        Assert.Equal(QuestIconState.None, QuestStateResolver.Resolve(npc, player, world.World));
+
+        GiveHerb(player, world, world.World.ItemHandler.GetTemplate(100)!, 2);
+        Assert.Equal(QuestIconState.Ready, QuestStateResolver.Resolve(npc, player, world.World));
+    }
+
+    [Fact]
+    public void ItemRequirement_MissingTemplate_FailsClosed()
+    {
+        var (world, npc, player) = Setup(MakeQuest(1, Req(1, RequirementType.Item, 999, 3)));
+        player.QuestsStarted.Add(npc.Quests[0]);
+
+        Assert.Equal(QuestIconState.None, QuestStateResolver.Resolve(npc, player, world.World));
+    }
+
+    [Fact]
+    public void ItemRequirement_CustomItemsDoNotSatisfy()
+    {
+        var (world, npc, player) = Setup(MakeQuest(1, Req(1, RequirementType.Item, 100, 3)));
+        RegisterHerb(world, 100, "Herb");
+        GiveHerb(player, world, world.World.ItemHandler.GetTemplate(100)!, 3, custom: true);
+        player.QuestsStarted.Add(npc.Quests[0]);
+
+        Assert.Equal(QuestIconState.None, QuestStateResolver.Resolve(npc, player, world.World));
+    }
+
+    [Fact]
+    public void ItemRequirement_EquippedItemsDoNotSatisfy()
+    {
+        var (world, npc, player) = Setup(MakeQuest(1, Req(1, RequirementType.Item, 100, 3)));
+        RegisterHerb(world, 100, "Herb");
+        var slot = GiveHerb(player, world, world.World.ItemHandler.GetTemplate(100)!, 3);
+        player.Inventory.GetInventorySlots()[1] = null;
+        player.Inventory.GetEquippedSlots()[1] = slot;
+        player.QuestsStarted.Add(npc.Quests[0]);
+
+        Assert.Equal(QuestIconState.None, QuestStateResolver.Resolve(npc, player, world.World));
+    }
 }

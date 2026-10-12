@@ -47,8 +47,29 @@ namespace Goose.Quests
 
         internal static bool MeetsRequirements(Quest quest, Player player, GameWorld world)
         {
+            // Item rows are grouped by family: variants of the authored base ID all count toward
+            // the one summed total, so duplicate rows cannot each pass against the same stack.
+            var itemFamilies = new Dictionary<int, long>();
             foreach (var requirement in quest.Requirements)
             {
+                if (requirement.Type != RequirementType.Item) continue;
+
+                var template = world.ItemHandler.GetTemplate((int)requirement.Value);
+                if (template is null) return false;
+
+                itemFamilies.TryGetValue(template.BaseTemplateID, out long total);
+                itemFamilies[template.BaseTemplateID] = total + requirement.Value2;
+            }
+
+            foreach (var (family, total) in itemFamilies)
+            {
+                if (player.Inventory.GetInventoryItemFamilyCount(family) < total)
+                    return false;
+            }
+
+            foreach (var requirement in quest.Requirements)
+            {
+                if (requirement.Type == RequirementType.Item) continue;
                 if (!MeetsRequirement(requirement, player, world))
                     return false;
             }
@@ -79,8 +100,6 @@ namespace Goose.Quests
             {
                 case RequirementType.Gold:
                     return player.Gold >= requirement.Value;
-                case RequirementType.Item:
-                    return player.Inventory.HasItem((int)requirement.Value, requirement.Value2);
                 case RequirementType.TalkToNPC:
                 case RequirementType.Kill:
                     return player.QuestProgress.Any(p => p.Requirement.Id == requirement.Id && p.Value >= p.Requirement.Value2);

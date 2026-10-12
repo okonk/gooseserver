@@ -234,6 +234,56 @@ public class ClassRewardScriptTests
         Assert.Contains(player.Sent, s => s.Contains("[Quest Reward]: Item: Sword (2)"));
     }
 
+    [Fact]
+    public void A_dimension_variant_satisfies_the_requirement_and_the_class_still_gets_its_base_reward()
+    {
+        using var fixture = new QuestScriptFixture();
+        var script = ShippedScript.Value;
+        RegisterItem(fixture.World, 10, "Sword");
+        var variant = new ItemTemplate
+        {
+            ID = 1001, Name = "Sword I", Description = "Sword I",
+            UseType = ItemTemplate.UseTypes.NoUse,
+            StackSize = 1,
+            BaseStats = new AttributeSet(),
+            ScriptParams = "",
+            VariantOfTemplateID = 10,
+            Dimension = 1,
+        };
+        fixture.World.ItemHandler.AddTemplate(variant);
+
+        var npc = new NPC { NPCTemplate = new NPCTemplate { NPCTemplateID = 5, Name = "Quest NPC" } };
+        var player = PlayerOfClass(fixture, 1);
+        player.Spellbook = new Spellbook(player, fixture.Settings);
+        var quest = new Quest
+        {
+            Id = 77, Name = "Class Reward", Description = "desc", FailText = "fail", PassText = "pass",
+            MinLevel = 0, MinExperience = 0, Repeatable = false, ShowProgress = true,
+        };
+        quest.Requirements.Add(new QuestRequirement
+        {
+            Id = 1, Quest = quest, Type = RequirementType.Item, Value = 10, Value2 = 1,
+        });
+        quest.Rewards.Add(new QuestReward
+        {
+            Id = 100, Type = RewardType.Script, Script = ScriptStub.For(script),
+            ScriptParams = """{"1": 10}""",
+        });
+
+        var variantItem = new Item();
+        variantItem.LoadFromTemplate(variant);
+        fixture.World.ItemHandler.AddAndAssignId(variantItem, fixture.World);
+        Assert.True(player.Inventory.AddItem(variantItem, 1, fixture.World));
+
+        var window = new QuestWindow(npc, player, quest, fixture.World);
+        window.Clicked(Window.ButtonTypes.Next, npc.NPCTemplate.NPCTemplateID, 0, 0, player, fixture.World);
+
+        Assert.Contains(player.QuestsCompleted, q => q.Id == quest.Id);
+        var remaining = Assert.Single(Items(player));
+        Assert.Equal(10, remaining.Item.TemplateID);
+        Assert.Equal(1, remaining.Stack);
+    }
+
     private static string IllutiaDataDirectory()
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
