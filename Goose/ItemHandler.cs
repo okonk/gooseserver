@@ -193,6 +193,20 @@ namespace Goose
             return null;
         }
 
+        public ItemTemplate? GetTemplateVariant(int baseTemplateId, int dimension)
+        {
+            if (dimension == 0)
+                return this.GetTemplate(baseTemplateId);
+
+            foreach (var template in this.templates.Values)
+            {
+                if (template.BaseTemplateID == baseTemplateId && template.Dimension == dimension)
+                    return template;
+            }
+
+            return null;
+        }
+
         internal static bool Validate(ItemTemplate template)
         {
             return template is not null && template.BaseStats is not null && !string.IsNullOrWhiteSpace(template.Name);

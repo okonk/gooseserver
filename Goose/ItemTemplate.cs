@@ -56,6 +56,10 @@ namespace Goose
         }
 
         public int ID { get; set; }
+        // Runtime-only family metadata for generated dimension clones; reconstructed at startup, never persisted.
+        public int? VariantOfTemplateID { get; set; }
+        public int Dimension { get; set; }
+        public int BaseTemplateID => this.VariantOfTemplateID ?? this.ID;
         public string Name { get; set; } = null!;
         public string Description { get; set; } = null!;
         public UseTypes UseType { get; set; }
@@ -124,6 +128,8 @@ namespace Goose
         public ItemTemplate(ItemTemplate other)
         {
             this.ID = other.ID;
+            this.VariantOfTemplateID = other.VariantOfTemplateID;
+            this.Dimension = other.Dimension;
             this.Name = other.Name;
             this.Description = other.Description;
             this.UseType = other.UseType;

@@ -80,6 +80,59 @@ public class ItemHandlerRegistrationTests
     }
 
     [Fact]
+    public void Authored_template_is_a_dimension_zero_family_root()
+    {
+        var template = Sample();
+
+        Assert.Null(template.VariantOfTemplateID);
+        Assert.Equal(0, template.Dimension);
+        Assert.Equal(template.ID, template.BaseTemplateID);
+    }
+
+    [Fact]
+    public void GetTemplateVariant_resolves_generated_variant_by_family_and_dimension()
+    {
+        var world = new GameWorld(new GooseSettings());
+        var variant = Sample();
+        variant.ID = 300050;
+        variant.VariantOfTemplateID = 50;
+        variant.Dimension = 3;
+        world.ItemHandler.AddTemplate(variant);
+
+        Assert.Same(variant, world.ItemHandler.GetTemplateVariant(50, 3));
+    }
+
+    [Fact]
+    public void Copy_constructor_preserves_variant_metadata()
+    {
+        var variant = Sample();
+        variant.ID = 300050;
+        variant.VariantOfTemplateID = 50;
+        variant.Dimension = 3;
+        var copy = new ItemTemplate(variant);
+
+        Assert.Equal(50, copy.VariantOfTemplateID);
+        Assert.Equal(3, copy.Dimension);
+        Assert.Equal(50, copy.BaseTemplateID);
+    }
+
+    [Fact]
+    public void GetTemplateVariant_missing_dimension_returns_null_and_exact_lookup_unchanged()
+    {
+        var world = new GameWorld(new GooseSettings());
+        var variant = Sample();
+        variant.ID = 300050;
+        variant.VariantOfTemplateID = 50;
+        variant.Dimension = 3;
+        world.ItemHandler.AddTemplate(variant);
+
+        Assert.Null(world.ItemHandler.GetTemplateVariant(50, 4));
+        Assert.Null(world.ItemHandler.GetTemplateVariant(999, 3));
+        Assert.Null(world.ItemHandler.GetTemplateVariant(999, 0));
+        Assert.Same(variant, world.ItemHandler.GetTemplate(300050));
+    }
+
+    [Fact]
     public void AddTitle_and_AddSurname_register_into_separate_dictionaries()
     {
         var world = new GameWorld(new GooseSettings());
