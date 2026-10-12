@@ -1240,23 +1240,20 @@ namespace Goose
          */
         public void Combine(Window combineBagWindow, GameWorld world)
         {
-            // Count the actual quantity of each ingredient, not the number of slots it
-            // occupies. The consumption loop below works in stack quantities, so matching
-            // on slot counts let a single slot satisfy a requirement for several items.
-            Dictionary<int, long> combineHash = [];
-            foreach (var slot in this.combineContainer)
-            {
-                if (slot is null) continue;
-                if (slot.Stack <= 0) continue;
-
-                combineHash.TryGetValue(slot.Item.TemplateID, out long have);
-                combineHash[slot.Item.TemplateID] = have + slot.Stack;
-            }
-
-            Combination? match = world.CombinationHandler.GetMatch(combineHash);
+            // Recipe specificity is chosen on the aggregate base-ID hash before any
+            // dimension search, matching Abyss: one craft consumes one complete dimension.
+            Combination? match = world.CombinationHandler.GetMatch(BuildAggregateCombineHash());
             if (match is null)
             {
                 world.Send(this.player, P.ServerMessage("Couldn't combine items."));
+                return;
+            }
+
+            int dimension = FindCompleteCombineDimension(match);
+            if (dimension < 0)
+            {
+                world.Send(this.player, P.ServerMessage("Not enough items in the same dimension to create " +
+                    match.Name + "."));
                 return;
             }
 
@@ -1301,7 +1298,6 @@ namespace Goose
                 reqhash[req.Key] = req.Value;
             }
             Item item;
-            long count;
             long slotcount;
             for (int i = 1; i < this.combineContainer.MaxSlots; i++)
             {
@@ -1313,17 +1309,20 @@ namespace Goose
                 }
                 item = slot.Item;
                 slotcount = slot.Stack;
-                // if this item is in the combination and it still requires more
-                if (reqhash.ContainsKey(item.TemplateID)) count = reqhash[item.TemplateID];
-                else count = 0;
-                if (count > 0)
+                // Only slots of the selected dimension feed the recipe; other dimensions
+                // and surplus pass through untouched. Requirements are base IDs, so a
+                // variant slot supplies its base ingredient.
+                if (item.Template.Dimension == dimension &&
+                    reqhash.TryGetValue(item.Template.BaseTemplateID, out int required) &&
+                    required > 0)
                 {
                     // Lower the outstanding requirement by what this slot supplies. This
                     // can go negative, which just means the requirement is now satisfied;
-                    // GetMatch has already guaranteed the bag holds enough in total.
-                    reqhash[item.TemplateID] = (int)(count - slotcount);
+                    // FindCompleteCombineDimension has already guaranteed the dimension
+                    // holds enough in total.
+                    reqhash[item.Template.BaseTemplateID] = required - (int)slotcount;
                     // lower the amount in the stack/slot by how many we actually needed
-                    slotcount -= count;
+                    slotcount -= required;
                 }
                 // if we still have some left over, add it back to combine bag
                 if (slotcount > 0)
@@ -1348,17 +1347,22 @@ namespace Goose
             List<(Item Item, bool OwnSlot)> results = [];
             foreach (var template in match.ResultItems)
             {
-                if (template.IsLore && this.player.HasItem(template.ID))
+                // The result inherits the selected dimension when a variant of it was
+                // generated; otherwise the authored dimension-0 template is used.
+                var resultTemplate = world.ItemHandler.GetTemplateVariant(template.BaseTemplateID, dimension) ?? template;
+                if (resultTemplate.IsLore && this.player.HasItem(resultTemplate.ID))
                 {
-                    world.Send(this.player, P.ServerMessage("Already have LORE item " + template.Name + "."));
+                    world.Send(this.player, P.ServerMessage("Already have LORE item " + resultTemplate.Name + "."));
                     return;
                 }
 
                 item = new Item();
-                if (!item.LoadFromTemplate(template))
+                if (!item.LoadFromTemplate(resultTemplate))
                 {
-                    log.Error("combine result item {0} failed to load; skipped", template.ID);
-                    continue;
+                    // Aborting, not skipping: a partial result set would leave the craft
+                    // half-published, and everything below is still only staged.
+                    log.Error("combine result item {0} failed to load; combine aborted", resultTemplate.ID);
+                    return;
                 }
                 world.ItemHandler.RollTitleAndSurname(item, world);
 
@@ -1420,6 +1424,69 @@ namespace Goose
             }
 
             return null;
+        }
+
+        private Dictionary<int, long> BuildAggregateCombineHash()
+        {
+            // Count the actual quantity of each ingredient, not the number of slots it
+            // occupies: the consumption loop works in stack quantities, so matching on
+            // slot counts let a single slot satisfy a requirement for several items.
+            Dictionary<int, long> hash = [];
+            foreach (var slot in this.combineContainer)
+            {
+                if (slot is null || slot.Stack <= 0) continue;
+
+                int baseId = slot.Item.Template.BaseTemplateID;
+                hash[baseId] = hash.GetValueOrDefault(baseId) + slot.Stack;
+            }
+
+            return hash;
+        }
+
+        private Dictionary<int, long> BuildDimensionCombineHash(int dimension)
+        {
+            Dictionary<int, long> hash = [];
+            foreach (var slot in this.combineContainer)
+            {
+                if (slot is null || slot.Stack <= 0) continue;
+                if (slot.Item.Template.Dimension != dimension) continue;
+
+                int baseId = slot.Item.Template.BaseTemplateID;
+                hash[baseId] = hash.GetValueOrDefault(baseId) + slot.Stack;
+            }
+
+            return hash;
+        }
+
+        private int FindCompleteCombineDimension(Combination match)
+        {
+            List<int> dimensions = [];
+            foreach (var slot in this.combineContainer)
+            {
+                if (slot is null) continue;
+
+                int dimension = slot.Item.Template.Dimension;
+                if (!dimensions.Contains(dimension)) dimensions.Add(dimension);
+            }
+            if (!dimensions.Contains(0)) dimensions.Add(0);
+            dimensions.Sort();
+
+            foreach (int dimension in dimensions)
+            {
+                Dictionary<int, long> hash = BuildDimensionCombineHash(dimension);
+                bool complete = true;
+                foreach (KeyValuePair<int, int> req in match.RequiredHash)
+                {
+                    if (hash.GetValueOrDefault(req.Key) < req.Value)
+                    {
+                        complete = false;
+                        break;
+                    }
+                }
+                if (complete) return dimension;
+            }
+
+            return -1;
         }
     }
 }

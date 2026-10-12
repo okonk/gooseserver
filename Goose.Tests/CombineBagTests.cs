@@ -16,6 +16,10 @@ public class CombineBagTests
     private const int ElixirStackSize = 5;
     private const int Shard = 457;
     private const int ShardStackSize = 3;
+    private const int BrokenResult = 999;
+    private const int DimensionOffset = 100000;
+
+    private static int VariantId(int baseId, int dimension) => baseId + DimensionOffset * dimension;
 
     private static (TestWorldFixture fixture, TestWorldFixture.CapturingPlayer player) WorldWithClothAndCatEars()
     {
@@ -71,6 +75,47 @@ public class CombineBagTests
             // in the bags that hold a cat hair; five results exercise merge-then-spill.
             InsertRecipe(conn, 21, "Shards", [Needle, CatHair],
                          [Shard, Shard, Shard, Shard, Shard]);
+        });
+        fixture.World.CombinationHandler.LoadCombinations(fixture.World);
+
+        var map = fixture.AddBaseMap(1, "Test");
+        var player = fixture.CommandPlayerOn(map, 5, 5, "Tester");
+        player.Level = 50;
+
+        return (fixture, player);
+    }
+
+    private static ItemTemplate AddVariant(TestWorldFixture fixture, int baseId, int dimension, string name,
+                                           ItemTemplate.UseTypes useType = ItemTemplate.UseTypes.NoUse)
+    {
+        var template = new ItemTemplate
+        {
+            ID = VariantId(baseId, dimension), Name = name, Description = "A " + name,
+            UseType = useType, Slot = ItemTemplate.ItemSlots.OneHanded,
+            BaseStats = new AttributeSet(),
+            GraphicR = 255, GraphicG = 255, GraphicB = 255, GraphicA = 100,
+            StackSize = 1, ScriptParams = "",
+            VariantOfTemplateID = baseId, Dimension = dimension,
+        };
+        fixture.World.ItemHandler.AddTemplate(template);
+        return template;
+    }
+
+    private static (TestWorldFixture fixture, TestWorldFixture.CapturingPlayer player) WorldWithOneTimeRecipe()
+    {
+        var fixture = new TestWorldFixture();
+        fixture.AddBaseItemTemplate(Needle, "Needle", ItemTemplate.UseTypes.NoUse);
+        fixture.AddBaseItemTemplate(Elixir, "Elixir", ItemTemplate.UseTypes.OneTime,
+                                    t => t.StackSize = ElixirStackSize);
+        fixture.AddBaseItemTemplate(Cloth, "Cloth", ItemTemplate.UseTypes.NoUse);
+
+        fixture.World.Database.Start(Path.Combine(fixture.DataDirectory, "test.db"));
+        fixture.World.Database.Execute(conn =>
+        {
+            Run(conn, SchemaDdl.ForAll("combinations", "combination_item_required",
+                                       "combination_item_results"));
+
+            InsertRecipe(conn, 30, "Tonic", [Elixir, Needle], [Cloth]);
         });
         fixture.World.CombinationHandler.LoadCombinations(fixture.World);
 
@@ -272,6 +317,187 @@ public class CombineBagTests
             Assert.Equal("Needle", NameInBag(player, 1));
             Assert.Equal(2, bag.GetSlot(1)!.Stack);
             Assert.Equal(ElixirStackSize, bag.GetSlot(2)!.Stack);
+        }
+    }
+
+    [Fact]
+    public void Complete_dimension_2_ingredients_craft_the_dimension_2_result_variant()
+    {
+        var (fixture, player) = WorldWithClothAndCatEars();
+        using (fixture)
+        {
+            AddVariant(fixture, Needle, 2, "Needle II");
+            AddVariant(fixture, BlackThread, 2, "Thread II");
+            AddVariant(fixture, Cloth, 2, "Cloth II");
+            PutInBag(fixture, player, VariantId(Needle, 2), VariantId(BlackThread, 2));
+
+            Combine(fixture, player);
+
+            var slot = player.Inventory.GetCombineBagContainer().GetSlot(1)!;
+            Assert.Equal("Cloth II", slot.Item.Name);
+            Assert.Equal(VariantId(Cloth, 2), slot.Item.TemplateID);
+            Assert.Null(NameInBag(player, 2));
+        }
+    }
+
+    [Fact]
+    public void Mixed_dimension_ingredients_do_not_collectively_satisfy_one_recipe()
+    {
+        var (fixture, player) = WorldWithClothAndCatEars();
+        using (fixture)
+        {
+            AddVariant(fixture, Needle, 1, "Needle I");
+            AddVariant(fixture, BlackThread, 2, "Thread II");
+            PutInBag(fixture, player, VariantId(Needle, 1), VariantId(BlackThread, 2));
+
+            Combine(fixture, player);
+
+            Assert.Equal("Needle I", NameInBag(player, 1));
+            Assert.Equal("Thread II", NameInBag(player, 2));
+            Assert.Contains(player.Sent, s => s.Contains("Not enough items in the same dimension to create Cloth."));
+            Assert.DoesNotContain(player.Sent, s => s.Contains("Successfully created"));
+        }
+    }
+
+    [Fact]
+    public void Dimension_1_craft_preserves_unrelated_dimension_2_surplus()
+    {
+        var (fixture, player) = WorldWithClothAndCatEars();
+        using (fixture)
+        {
+            AddVariant(fixture, Needle, 1, "Needle I");
+            AddVariant(fixture, BlackThread, 1, "Thread I");
+            AddVariant(fixture, Cloth, 1, "Cloth I");
+            AddVariant(fixture, CatHair, 2, "Cats Hair II");
+            PutInBag(fixture, player, VariantId(Needle, 1), VariantId(BlackThread, 1), VariantId(CatHair, 2));
+
+            Combine(fixture, player);
+
+            Assert.Equal("Cloth I", NameInBag(player, 1));
+            Assert.Null(NameInBag(player, 2));
+            Assert.Equal("Cats Hair II", NameInBag(player, 3));
+        }
+    }
+
+    [Fact]
+    public void Non_dimensional_ingredient_cannot_join_a_dimension_1_recipe()
+    {
+        var (fixture, player) = WorldWithOneTimeRecipe();
+        using (fixture)
+        {
+            AddVariant(fixture, Needle, 1, "Needle I");
+            PutInBag(fixture, player, Elixir, VariantId(Needle, 1));
+
+            Combine(fixture, player);
+
+            Assert.Equal("Elixir", NameInBag(player, 1));
+            Assert.Equal("Needle I", NameInBag(player, 2));
+            Assert.Contains(player.Sent, s => s.Contains("Not enough items in the same dimension to create Tonic."));
+            Assert.DoesNotContain(player.Sent, s => s.Contains("Successfully created"));
+        }
+    }
+
+    [Fact]
+    public void Missing_result_variant_falls_back_to_the_authored_dimension_0_result()
+    {
+        var (fixture, player) = WorldWithClothAndCatEars();
+        using (fixture)
+        {
+            AddVariant(fixture, Needle, 1, "Needle I");
+            AddVariant(fixture, BlackThread, 1, "Thread I");
+            PutInBag(fixture, player, VariantId(Needle, 1), VariantId(BlackThread, 1));
+
+            Combine(fixture, player);
+
+            var slot = player.Inventory.GetCombineBagContainer().GetSlot(1)!;
+            Assert.Equal("Cloth", slot.Item.Name);
+            Assert.Equal(Cloth, slot.Item.TemplateID);
+        }
+    }
+
+    [Fact]
+    public void More_specific_recipe_at_a_higher_dimension_beats_a_complete_dimension_0_recipe()
+    {
+        var (fixture, player) = WorldWithClothAndCatEars();
+        using (fixture)
+        {
+            AddVariant(fixture, Needle, 1, "Needle I");
+            AddVariant(fixture, BlackThread, 1, "Thread I");
+            AddVariant(fixture, CatHair, 1, "Cats Hair I");
+            AddVariant(fixture, LeatherPadding, 1, "Padding I");
+            AddVariant(fixture, CatEars, 1, "Cat Ears I");
+            PutInBag(fixture, player,
+                     Needle, BlackThread,
+                     VariantId(Needle, 1), VariantId(BlackThread, 1),
+                     VariantId(CatHair, 1), VariantId(LeatherPadding, 1));
+
+            Combine(fixture, player);
+
+            var slot = player.Inventory.GetCombineBagContainer().GetSlot(3)!;
+            Assert.Equal("Cat Ears I", slot.Item.Name);
+            Assert.Equal(VariantId(CatEars, 1), slot.Item.TemplateID);
+            Assert.Equal("Needle", NameInBag(player, 1));
+            Assert.Equal("Spool of Black Thread", NameInBag(player, 2));
+            Assert.Null(NameInBag(player, 4));
+            Assert.Null(NameInBag(player, 5));
+            Assert.Null(NameInBag(player, 6));
+        }
+    }
+
+    [Fact]
+    public void No_fallback_to_smaller_recipe_when_the_selected_recipe_has_no_complete_dimension()
+    {
+        var (fixture, player) = WorldWithClothAndCatEars();
+        using (fixture)
+        {
+            AddVariant(fixture, LeatherPadding, 1, "Padding I");
+            PutInBag(fixture, player,
+                     Needle, BlackThread, CatHair,
+                     VariantId(LeatherPadding, 1));
+
+            Combine(fixture, player);
+
+            Assert.Equal("Needle", NameInBag(player, 1));
+            Assert.Equal("Spool of Black Thread", NameInBag(player, 2));
+            Assert.Equal("Cats Hair", NameInBag(player, 3));
+            Assert.Equal("Padding I", NameInBag(player, 4));
+            Assert.Contains(player.Sent, s => s.Contains("Not enough items in the same dimension to create Cat Ears."));
+            Assert.DoesNotContain(player.Sent, s => s.Contains("Successfully created"));
+        }
+    }
+
+    [Fact]
+    public void Unloadable_result_aborts_without_consuming_ingredients_or_publishing_results()
+    {
+        var (fixture, player) = WorldWithClothAndCatEars();
+        using (fixture)
+        {
+            var broken = new ItemTemplate
+            {
+                ID = BrokenResult, Name = "Broken", Description = "Broken",
+                UseType = ItemTemplate.UseTypes.NoUse, BaseStats = null!,
+            };
+            var templates = (Dictionary<int, ItemTemplate>)typeof(ItemHandler)
+                .GetField("templates", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
+                .GetValue(fixture.World.ItemHandler)!;
+            templates[broken.ID] = broken;
+
+            fixture.World.Database.Execute(conn =>
+            {
+                InsertRecipe(conn, 40, "Broken Craft", [Needle, BlackThread, CatHair], [Cloth, BrokenResult]);
+            });
+            fixture.World.CombinationHandler.LoadCombinations(fixture.World);
+
+            PutInBag(fixture, player, Needle, BlackThread, CatHair);
+            int registered = fixture.World.ItemHandler.GetItems().Count();
+
+            Combine(fixture, player);
+
+            Assert.DoesNotContain(player.Sent, s => s.Contains("Successfully created"));
+            Assert.Equal("Needle", NameInBag(player, 1));
+            Assert.Equal("Spool of Black Thread", NameInBag(player, 2));
+            Assert.Equal("Cats Hair", NameInBag(player, 3));
+            Assert.Equal(registered, fixture.World.ItemHandler.GetItems().Count());
         }
     }
 
