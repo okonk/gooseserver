@@ -339,6 +339,7 @@ namespace Goose
                 "%chp" => "Max HP",
                 "%cmp" => "Max MP",
                 "%csp" => "Max SP",
+                "%cmeleedmg" => "Melee Damage",
                 "%thp" => "Target's Max HP",
                 "%tmp" => "Target's Max MP",
                 _ => null,
@@ -622,8 +623,8 @@ namespace Goose
             ICharacter target,
             GameWorld world)
         {
-            long hpresult = this.ParseFormula(hpFormula, caster, target);
-            long mpresult = this.ParseFormula(mpFormula, caster, target);
+            long hpresult = this.ParseFormula(hpFormula, caster, target, world);
+            long mpresult = this.ParseFormula(mpFormula, caster, target, world);
 
             if (!(hpresult < 0 && target is Player) && this.SpellDamageEffects)
             {
@@ -1339,7 +1340,7 @@ namespace Goose
          * result
          *
          */
-        public long ParseFormula(string formula, ICharacter caster, ICharacter target)
+        public long ParseFormula(string formula, ICharacter caster, ICharacter target, GameWorld world)
         {
             List<Object> result = [];
             Stack<char> operators = new Stack<char>();
@@ -1359,6 +1360,13 @@ namespace Goose
             symbolToValue.Add("%chp", caster.MaxHP);
             symbolToValue.Add("%cmp", caster.MaxMP);
             symbolToValue.Add("%csp", Math.Max(1, caster.MaxSP));
+            // Computed only when the formula uses the token: the melee formula rolls world.Random
+            // (crit, weapon variance) and must not disturb the shared sequence otherwise.
+            // Non-player casters have their own attack formula (NPC.Attack), so the token is 0 for them.
+            decimal meleedmg = 0;
+            if (formula.Contains("%cmeleedmg") && caster is Player player)
+                meleedmg = player.CalculateMeleeDamage(target, world);
+            symbolToValue.Add("%cmeleedmg", meleedmg);
 
             symbolToValue.Add("%tchp", target.CurrentHP);
             symbolToValue.Add("%tcmp", target.CurrentMP);

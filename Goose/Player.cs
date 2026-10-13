@@ -1845,6 +1845,18 @@ namespace Goose
                 return;
             }
 
+            long damage = this.CalculateMeleeDamage(character, world);
+
+            character.Attacked(this, damage, world);
+            if (damage > 0)
+            {
+                character.OnMeleeHit(this, world);
+            }
+        }
+
+        // Single source of truth for melee damage: shared by Attack and the %cmeleedmg spell token.
+        public long CalculateMeleeDamage(ICharacter character, GameWorld world)
+        {
             double damage = 0;
             if (this.WeaponDamage == 1)
             {
@@ -1865,11 +1877,7 @@ namespace Goose
             damage *= absorb;
             damage -= (double)(character.MaxStats.AC * character.Class.ACMultiplier / 25);
 
-            character.Attacked(this, (long)damage, world);
-            if (damage > 0)
-            {
-                character.OnMeleeHit(this, world);
-            }
+            return (long)damage;
         }
 
         /**

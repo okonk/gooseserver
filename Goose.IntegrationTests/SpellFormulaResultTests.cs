@@ -51,8 +51,69 @@ public class SpellFormulaResultTests
         var formulaEffect = new SpellEffect();
 
         Assert.Equal(113, scalingEffect.CalculateFormulaResults("100", "0", caster, target, fixture.World).HP);
-        Assert.Equal(2, formulaEffect.ParseFormula("0.15/0.1", caster, target));
-        Assert.Equal(1, formulaEffect.ParseFormula("1.4999999999999998", caster, target));
+        Assert.Equal(2, formulaEffect.ParseFormula("0.15/0.1", caster, target, fixture.World));
+        Assert.Equal(1, formulaEffect.ParseFormula("1.4999999999999998", caster, target, fixture.World));
+    }
+
+    [Fact]
+    public void ParseFormula_meleedmg_token_uses_melee_formula()
+    {
+        using var fixture = new TestWorldFixture(settings =>
+        {
+            settings.DamageModifier = 1.0;
+            settings.MaxAC = 100;
+        });
+        var map = fixture.AddBaseMap(1, "Test");
+        var caster = fixture.CommandPlayerOn(map, 5, 5);
+        caster.Level = 20;
+        caster.MaxStats.Strength = 10;
+        var target = CreateNpc(map);
+        target.Level = 20;
+        var effect = new SpellEffect();
+
+        Assert.Equal(-11, effect.ParseFormula("-%cmeleedmg", caster, target, fixture.World));
+    }
+
+    [Fact]
+    public void ParseFormula_meleedmg_token_includes_crit_and_melee_damage_bonus()
+    {
+        using var fixture = new TestWorldFixture(settings =>
+        {
+            settings.DamageModifier = 1.0;
+            settings.MaxAC = 100;
+        });
+        var map = fixture.AddBaseMap(1, "Test");
+        var caster = fixture.CommandPlayerOn(map, 5, 5);
+        caster.Level = 20;
+        caster.MaxStats.Strength = 10;
+        caster.MaxStats.MeleeCrit = 1.0;
+        caster.MaxStats.MeleeDamage = 0.5;
+        var target = CreateNpc(map);
+        target.Level = 20;
+        var effect = new SpellEffect();
+
+        Assert.Equal(-33, effect.ParseFormula("-%cmeleedmg", caster, target, fixture.World));
+    }
+
+    [Fact]
+    public void Attack_deals_the_calculated_melee_damage()
+    {
+        using var fixture = new TestWorldFixture(settings =>
+        {
+            settings.DamageModifier = 1.0;
+            settings.MaxAC = 100;
+        });
+        var map = fixture.AddBaseMap(1, "Test");
+        var caster = fixture.CommandPlayerOn(map, 5, 5);
+        caster.Level = 20;
+        caster.MaxStats.Strength = 10;
+        var target = CreateNpc(map);
+        target.Level = 20;
+        target.CurrentHP = 100;
+
+        caster.Attack(target, fixture.World);
+
+        Assert.Equal(89, target.CurrentHP);
     }
 
     [Fact]
@@ -93,7 +154,11 @@ public class SpellFormulaResultTests
             Name = "NPC",
             BaseStats = new AttributeSet(),
             MaxStats = new AttributeSet { HP = 100, MP = 100 },
-            CanBeKilled = true
+            CanBeKilled = true,
+            NPCTemplate = new NPCTemplate(),
+            Buffs = [],
+            AggroTargetToValue = [],
+            Class = new Class { ClassID = 0, ClassName = "Default", ACMultiplier = 1.0 }
         };
     }
 }
