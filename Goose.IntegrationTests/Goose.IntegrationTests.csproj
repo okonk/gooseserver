@@ -20,6 +20,8 @@
           Link="DimensionScripts/Dimensions.csx" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Goose/Data/Illutia/Scripts/Global/ReloadMapNpcs.csx"
           Link="DimensionScripts/ReloadMapNpcs.csx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Goose/Data/Illutia/Scripts/Map/CrystalCavern.csx"
+          Link="DimensionScripts/CrystalCavern.csx" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Goose/Data/Illutia/Scripts/Global/Dimensions/Npcs.csx"
           Link="DimensionScripts/Npcs.csx" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Goose/Data/Illutia/Scripts/Global/Dimensions/Maps.csx"

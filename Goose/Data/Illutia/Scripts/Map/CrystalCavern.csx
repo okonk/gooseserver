@@ -1,4 +1,5 @@
 using Goose;
+using Goose.Events;
 using Goose.Scripting;
 using System;
 using System.Collections.Generic;
@@ -11,6 +12,7 @@ public class CrystalCavern : BaseMapScript
     private const int BlockerTemplate = 239;
     private const int RavenousEffect = 314;
     private const long RecheckMs = 5000;
+    private const double BlockerHomeRetrySeconds = 2;
 
     private static readonly int[] ChompExcluded = [242, 248];
 
@@ -42,6 +44,9 @@ public class CrystalCavern : BaseMapScript
 
     public override void OnNPCSpawnEvent(Map map, NPC npc, GameWorld world)
     {
+        if (npc.NPCTemplateID == BlockerTemplate)
+            ReturnBlockerHome(map, npc, npc.LoginID, world);
+
         if (ChompExcluded.Contains(npc.NPCTemplateID)) return;
 
         var ravenous = world.SpellHandler.GetSpellEffect(RavenousEffect);
@@ -65,7 +70,7 @@ public class CrystalCavern : BaseMapScript
 
         var blockers = map.NPCs
             .Where(n => n.NPCTemplateID == BlockerTemplate && n.State == NPC.States.Alive &&
-                        tiles.Contains((n.MapX, n.MapY)))
+                        tiles.Contains((n.SpawnX, n.SpawnY)))
             .ToList();
 
         if (blockers.Count == 0)
@@ -95,6 +100,22 @@ public class CrystalCavern : BaseMapScript
         }
 
         world.SendToMap(map, P.ServerMessage("The blockers have been cleared!"));
+    }
+
+    // OnNPCSpawnEvent fires before Spawn places the NPC, and the login id changes on
+    // every respawn, so it marks which life this retry chain belongs to.
+    private static void ReturnBlockerHome(Map map, NPC npc, int loginId, GameWorld world)
+    {
+        ScriptTimerEvent.Create(() =>
+        {
+            if (npc.LoginID != loginId || npc.State != NPC.States.Alive || npc.Map != map) return;
+            if (npc.MapX == npc.SpawnX && npc.MapY == npc.SpawnY) return;
+
+            if (map.IsTileBlocked(npc, npc.SpawnX, npc.SpawnY))
+                ReturnBlockerHome(map, npc, loginId, world);
+            else
+                npc.MoveTo(world, npc.SpawnX, npc.SpawnY);
+        }, TimeSpan.FromSeconds(BlockerHomeRetrySeconds), world);
     }
 
     private void ApplyCold(Player player, GameWorld world)
