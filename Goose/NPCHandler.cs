@@ -188,6 +188,7 @@ namespace Goose
                             NPCDropInfo drop = new NPCDropInfo();
                             drop.DropRate = reader.GetDouble("droprate");
                             drop.Stack = reader.GetInt32("stack");
+                            drop.MaxStack = reader.GetInt32("max_stack");
                             drop.ItemTemplate = world.ItemHandler.GetTemplate(reader.GetInt32("item_template_id"))!;
 
                             if (drop.ItemTemplate is not null) template.Drops.Add(drop);

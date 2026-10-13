@@ -122,7 +122,7 @@ commands.
 | Items | item_templates | 46 | item_template_id |
 | NPCs | npc_templates | 59 | npc_id |
 | NPC Spawns | npc_spawns | 5 | — (composite) |
-| NPC Drops | npc_drops | 4 | — (composite) |
+| NPC Drops | npc_drops | 5 | — (composite) |
 | NPC Vendor Items | npc_vendor_items | 5 | — (composite) |
 | Quests | quests | 14 | id |
 | Quest Reqs | quest_requirements | 8 | id |
@@ -220,7 +220,9 @@ retiring a template means rewriting the alliance list on every NPC that named it
   must be the **JSON boolean** `true`/`false` — `1`/`0` is how the sheet's Bool columns are
   written, and it is valid JSON here but throws at load, which stops the server from starting.
   `canMove` overrides the NPC template's `stationary`/movement setting for that one spawn.
-- **NPC Drops** — `A npc id` · `B item id` · `C stack size` · `D droprate`, all required.
+- **NPC Drops** — `A npc id` · `B item id` · `C stack size` · `D max stack size` (0) · `E droprate`.
+  `A`, `B`, `C` and `E` required. When `D` is greater than `C`, a drop that triggers lands a
+  random amount in `[C, D]` (inclusive) instead of exactly `C`.
 - **NPC Vendor Items** — `A npc id` · `B item id` · `C stack` (1) · `D stats visible` (1) ·
   `E slot number` (required, 0-based). The NPC needs `type = Vendor` to show stock.
 

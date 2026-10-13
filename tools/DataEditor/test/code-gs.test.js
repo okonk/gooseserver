@@ -623,7 +623,7 @@ test('writeRow writes only schema columns when named helper columns follow them'
 
 // --- saveBatch: planning and refusal ---------------------------------------------------------
 
-const DROPS_HEADER = ['npc_template_id', 'item_template_id', 'stack', 'droprate'];
+const DROPS_HEADER = ['npc_template_id', 'item_template_id', 'stack', 'max_stack', 'droprate'];
 
 function batchGs(itemRows, dropRows, settings) {
   return loadCodeGs({
@@ -633,18 +633,18 @@ function batchGs(itemRows, dropRows, settings) {
 }
 
 test('saveBatch refuses a sheet listed twice', () => {
-  const gs = batchGs([ROW], [[1, 4471, 1, 0.25]]);
+  const gs = batchGs([ROW], [[1, 4471, 1, 0, 0.25]]);
   assert.throws(
     () => gs.saveBatch([{ sheet: 'Items', writes: [] }, { sheet: 'Items', appends: [] }]),
     /appears twice/);
 });
 
 test('saveBatch refuses a cells array that is not the header width', () => {
-  const gs = batchGs([ROW], [[1, 4471, 1, 0.25]]);
+  const gs = batchGs([ROW], [[1, 4471, 1, 0, 0.25]]);
   assert.throws(
     () => gs.saveBatch([{ sheet: 'NPC Drops', idColumnIndex: -1,
                           appends: [{ cells: ['1', '4471', '1'] }] }]),
-    /3 values for a header 4 columns wide/);
+    /3 values for a header 5 columns wide/);
 });
 
 test('saveBatch writes only schema columns when named helper columns follow them', () => {
@@ -688,18 +688,18 @@ test('saveBatch refuses an invalid schema width', () => {
 });
 
 test('saveBatch refuses a row number in two operations', () => {
-  const gs = batchGs([ROW], [[1, 4471, 1, 0.25], [1, 12, 1, 0.5]]);
+  const gs = batchGs([ROW], [[1, 4471, 1, 0, 0.25], [1, 12, 1, 0, 0.5]]);
   assert.throws(
     () => gs.saveBatch([{
       sheet: 'NPC Drops', idColumnIndex: -1,
-      writes: [{ row: 2, cells: ['1', '4471', '2', '0.25'], loaded: ['1', '4471', '1', '0.25'] }],
-      deletes: [{ row: 2, loaded: ['1', '4471', '1', '0.25'] }],
+      writes: [{ row: 2, cells: ['1', '4471', '2', '0', '0.25'], loaded: ['1', '4471', '1', '0', '0.25'] }],
+      deletes: [{ row: 2, loaded: ['1', '4471', '1', '0', '0.25'] }],
     }]),
     /row 2 appears in more than one operation/);
 });
 
 test('saveBatch refuses the header row as a write or delete target', () => {
-  const gs = batchGs([ROW], [[1, 4471, 1, 0.25]]);
+  const gs = batchGs([ROW], [[1, 4471, 1, 0, 0.25]]);
   assert.throws(
     () => gs.saveBatch([{ sheet: 'NPC Drops', idColumnIndex: -1,
                           deletes: [{ row: 1, loaded: DROPS_HEADER.map(String) }] }]),
@@ -707,56 +707,56 @@ test('saveBatch refuses the header row as a write or delete target', () => {
 });
 
 test('saveBatch refuses a row past the end of the sheet', () => {
-  const gs = batchGs([ROW], [[1, 4471, 1, 0.25]]);
+  const gs = batchGs([ROW], [[1, 4471, 1, 0, 0.25]]);
   assert.throws(
     () => gs.saveBatch([{ sheet: 'NPC Drops', idColumnIndex: -1,
-                          deletes: [{ row: 99, loaded: ['1', '4471', '1', '0.25'] }] }]),
+                          deletes: [{ row: 99, loaded: ['1', '4471', '1', '0', '0.25'] }] }]),
     /past the end of the sheet/);
 });
 
 test('saveBatch refuses a delete whose row no longer matches what the client loaded', () => {
   // Stricter than a write on purpose: a write may skip cells the user did not edit, but there
   // is no such thing as deleting only the cells you were looking at.
-  const gs = batchGs([ROW], [[1, 4471, 1, 0.25]]);
+  const gs = batchGs([ROW], [[1, 4471, 1, 0, 0.25]]);
   assert.throws(
     () => gs.saveBatch([{ sheet: 'NPC Drops', idColumnIndex: -1,
-                          deletes: [{ row: 2, loaded: ['1', '4471', '1', '0.99'] }] }]),
+                          deletes: [{ row: 2, loaded: ['1', '4471', '1', '0', '0.99'] }] }]),
     /changed in the sheet/);
 });
 
 test('saveBatch refuses a write whose cell another editor changed', () => {
-  const gs = batchGs([ROW], [[1, 4471, 1, 0.25]]);
+  const gs = batchGs([ROW], [[1, 4471, 1, 0, 0.25]]);
   assert.throws(
     () => gs.saveBatch([{
       sheet: 'NPC Drops', idColumnIndex: -1,
-      writes: [{ row: 2, cells: ['1', '4471', '1', '0.50'],
-                 loaded: ['1', '4471', '1', '0.10'] }],   // sheet holds 0.25, neither value
+      writes: [{ row: 2, cells: ['1', '4471', '1', '0', '0.50'],
+                 loaded: ['1', '4471', '1', '0', '0.10'] }],   // sheet holds 0.25, neither value
     }]),
     /droprate/);
 });
 
 test('a conflict in one sheet refuses the whole batch, including the other sheet', () => {
   // The reason a parent and its children post as ONE call rather than two.
-  const gs = batchGs([ROW], [[1, 4471, 1, 0.25]]);
+  const gs = batchGs([ROW], [[1, 4471, 1, 0, 0.25]]);
   assert.throws(() => gs.saveBatch([
     { sheet: 'Items', idColumnIndex: 0,
       writes: [{ row: 2, cells: ['7', 'Steel Sword', '0.1235', '1500', '1', '185.25'],
                  loaded: ['7', 'Iron Sword', '0.1235', '1500', '1', '185.25'] }] },
     { sheet: 'NPC Drops', idColumnIndex: -1,
-      deletes: [{ row: 2, loaded: ['1', '4471', '1', '0.99'] }] },
+      deletes: [{ row: 2, loaded: ['1', '4471', '1', '0', '0.99'] }] },
   ]), /changed in the sheet/);
   assert.deepEqual(gs.sheets.Items.writes, []);
   assert.deepEqual(gs.sheets['NPC Drops'].deletes, []);
 });
 
 test('saveBatch reports every problem in the batch, not just the first', () => {
-  const gs = batchGs([ROW], [[1, 4471, 1, 0.25], [1, 12, 1, 0.5]]);
+  const gs = batchGs([ROW], [[1, 4471, 1, 0, 0.25], [1, 12, 1, 0, 0.5]]);
   let message = '';
   try {
     gs.saveBatch([{
       sheet: 'NPC Drops', idColumnIndex: -1,
-      deletes: [{ row: 2, loaded: ['1', '4471', '1', '0.99'] },
-                { row: 3, loaded: ['1', '12', '1', '0.99'] }],
+      deletes: [{ row: 2, loaded: ['1', '4471', '1', '0', '0.99'] },
+                { row: 3, loaded: ['1', '12', '1', '0', '0.99'] }],
     }]);
   } catch (e) { message = e.message; }
   assert.match(message, /row 2/);
@@ -797,10 +797,10 @@ test('saveBatch leaves a duplicate id it did not create alone', () => {
 });
 
 test('saveBatch refuses row 0 — the append sentinel has no meaning in a batch', () => {
-  const gs = batchGs([ROW], [[1, 4471, 1, 0.25]]);
+  const gs = batchGs([ROW], [[1, 4471, 1, 0, 0.25]]);
   assert.throws(
     () => gs.saveBatch([{ sheet: 'NPC Drops', idColumnIndex: -1,
-                          deletes: [{ row: 0, loaded: ['', '', '', ''] }] }]),
+                          deletes: [{ row: 0, loaded: ['', '', '', '', ''] }] }]),
     /invalid row 0/);
   assert.deepEqual(gs.sheets['NPC Drops'].deletes, []);
 });
@@ -828,9 +828,9 @@ test('saveBatch refuses two appends claiming the same id', () => {
 });
 
 test('saveBatch takes the lock and releases it on the throwing path', () => {
-  const gs = batchGs([ROW], [[1, 4471, 1, 0.25]]);
+  const gs = batchGs([ROW], [[1, 4471, 1, 0, 0.25]]);
   assert.throws(() => gs.saveBatch([{ sheet: 'NPC Drops', idColumnIndex: -1,
-                                      deletes: [{ row: 2, loaded: ['x', 'x', 'x', 'x'] }] }]),
+                                      deletes: [{ row: 2, loaded: ['x', 'x', 'x', 'x', 'x'] }] }]),
                 /changed in the sheet/);
   assert.deepEqual(gs.locks(), { acquired: 1, released: 1, held: false });
 });
@@ -838,20 +838,20 @@ test('saveBatch takes the lock and releases it on the throwing path', () => {
 // --- saveBatch: applying ---------------------------------------------------------------------
 
 test('saveBatch applies writes, appends and deletes in one call', () => {
-  const gs = batchGs([ROW], [[1, 4471, 1, 0.25], [1, 12, 1, 0.5], [1, 99, 1, 0.1]]);
+  const gs = batchGs([ROW], [[1, 4471, 1, 0, 0.25], [1, 12, 1, 0, 0.5], [1, 99, 1, 0, 0.1]]);
   const result = gs.saveBatch([{
     sheet: 'NPC Drops', idColumnIndex: -1,
-    writes: [{ row: 2, cells: ['1', '4471', '3', '0.25'], loaded: ['1', '4471', '1', '0.25'] }],
-    appends: [{ cells: ['1', '5000', '1', '0.05'] }],
-    deletes: [{ row: 3, loaded: ['1', '12', '1', '0.5'] }],
+    writes: [{ row: 2, cells: ['1', '4471', '3', '0', '0.25'], loaded: ['1', '4471', '1', '0', '0.25'] }],
+    appends: [{ cells: ['1', '5000', '1', '0', '0.05'] }],
+    deletes: [{ row: 3, loaded: ['1', '12', '1', '0', '0.5'] }],
   }]);
 
   assert.deepEqual(result, [{ sheet: 'NPC Drops', written: 1, appended: 1, deleted: 1 }]);
   assert.deepEqual(gs.sheets['NPC Drops'].raw(), [
     DROPS_HEADER,
-    [1, 4471, '3', 0.25],       // stack edited; the untouched cells keep their stored types
-    [1, 99, 1, 0.1],            // shifted up by the delete
-    ['1', '5000', '1', '0.05'],
+    [1, 4471, '3', 0, 0.25],       // stack edited; the untouched cells keep their stored types
+    [1, 99, 1, 0, 0.1],            // shifted up by the delete
+    ['1', '5000', '1', '0', '0.05'],
   ]);
 });
 
@@ -871,53 +871,53 @@ test('saveBatch writes only the cells that changed', () => {
 test('saveBatch deletes bottom-up so earlier rows keep their numbers', () => {
   // Top-down would delete row 2, shift everything up, and then delete whatever had moved into
   // row 4 — a different record. The final grid is the assertion; the call ORDER is the proof.
-  const gs = batchGs([ROW], [[1, 10, 1, 0.1], [1, 20, 1, 0.2], [1, 30, 1, 0.3], [1, 40, 1, 0.4]]);
+  const gs = batchGs([ROW], [[1, 10, 1, 0, 0.1], [1, 20, 1, 0, 0.2], [1, 30, 1, 0, 0.3], [1, 40, 1, 0, 0.4]]);
   gs.saveBatch([{
     sheet: 'NPC Drops', idColumnIndex: -1,
-    deletes: [{ row: 2, loaded: ['1', '10', '1', '0.1'] },
-              { row: 4, loaded: ['1', '30', '1', '0.3'] }],
+    deletes: [{ row: 2, loaded: ['1', '10', '1', '0', '0.1'] },
+              { row: 4, loaded: ['1', '30', '1', '0', '0.3'] }],
   }]);
-  assert.deepEqual(gs.sheets['NPC Drops'].raw(), [DROPS_HEADER, [1, 20, 1, 0.2], [1, 40, 1, 0.4]]);
+  assert.deepEqual(gs.sheets['NPC Drops'].raw(), [DROPS_HEADER, [1, 20, 1, 0, 0.2], [1, 40, 1, 0, 0.4]]);
   assert.deepEqual(gs.sheets['NPC Drops'].deletes, [{ row: 4, count: 1 }, { row: 2, count: 1 }]);
 });
 
 test('saveBatch coalesces contiguous deletes into one call', () => {
-  const gs = batchGs([ROW], [[1, 10, 1, 0.1], [1, 20, 1, 0.2], [1, 30, 1, 0.3], [1, 40, 1, 0.4]]);
+  const gs = batchGs([ROW], [[1, 10, 1, 0, 0.1], [1, 20, 1, 0, 0.2], [1, 30, 1, 0, 0.3], [1, 40, 1, 0, 0.4]]);
   gs.saveBatch([{
     sheet: 'NPC Drops', idColumnIndex: -1,
-    deletes: [{ row: 3, loaded: ['1', '20', '1', '0.2'] },
-              { row: 2, loaded: ['1', '10', '1', '0.1'] },
-              { row: 4, loaded: ['1', '30', '1', '0.3'] }],
+    deletes: [{ row: 3, loaded: ['1', '20', '1', '0', '0.2'] },
+              { row: 2, loaded: ['1', '10', '1', '0', '0.1'] },
+              { row: 4, loaded: ['1', '30', '1', '0', '0.3'] }],
   }]);
   assert.deepEqual(gs.sheets['NPC Drops'].deletes, [{ row: 2, count: 3 }]);
-  assert.deepEqual(gs.sheets['NPC Drops'].raw(), [DROPS_HEADER, [1, 40, 1, 0.4]]);
+  assert.deepEqual(gs.sheets['NPC Drops'].raw(), [DROPS_HEADER, [1, 40, 1, 0, 0.4]]);
 });
 
 test('saveBatch writes a row below a delete before the delete shifts it', () => {
   // Within one sheet the writes-then-deletes order is load-bearing: every row number in the plan
   // was resolved against the sheet as read, and deleting row 2 moves row 4 up to row 3. Writing
   // first means row 4 is still row 4 when the write lands.
-  const gs = batchGs([ROW], [[1, 10, 1, 0.1], [1, 20, 1, 0.2], [1, 30, 1, 0.3]]);
+  const gs = batchGs([ROW], [[1, 10, 1, 0, 0.1], [1, 20, 1, 0, 0.2], [1, 30, 1, 0, 0.3]]);
   gs.saveBatch([{
     sheet: 'NPC Drops', idColumnIndex: -1,
-    writes: [{ row: 4, cells: ['1', '30', '9', '0.3'], loaded: ['1', '30', '1', '0.3'] }],
-    deletes: [{ row: 2, loaded: ['1', '10', '1', '0.1'] }],
+    writes: [{ row: 4, cells: ['1', '30', '9', '0', '0.3'], loaded: ['1', '30', '1', '0', '0.3'] }],
+    deletes: [{ row: 2, loaded: ['1', '10', '1', '0', '0.1'] }],
   }]);
   assert.deepEqual(gs.sheets['NPC Drops'].raw(), [
-    DROPS_HEADER, [1, 20, 1, 0.2], [1, 30, '9', 0.3],
+    DROPS_HEADER, [1, 20, 1, 0, 0.2], [1, 30, '9', 0, 0.3],
   ]);
 });
 
 test('saveBatch appends below the data even when the sheet is trimmed to it', () => {
   // Exercises the grid growth. A sheet with no spare rows must be grown before getRange, which
   // throws past the grid (fake-sheets.js:118).
-  const gs = loadCodeGs({ 'NPC Drops': [DROPS_HEADER, [1, 10, 1, 0.1]] },
+  const gs = loadCodeGs({ 'NPC Drops': [DROPS_HEADER, [1, 10, 1, 0, 0.1]] },
                         { 'NPC Drops': { maxRows: 2 } });
   gs.saveBatch([{ sheet: 'NPC Drops', idColumnIndex: -1,
-                  appends: [{ cells: ['1', '20', '1', '0.2'] },
-                            { cells: ['1', '30', '1', '0.3'] }] }]);
+                  appends: [{ cells: ['1', '20', '1', '0', '0.2'] },
+                            { cells: ['1', '30', '1', '0', '0.3'] }] }]);
   assert.deepEqual(gs.sheets['NPC Drops'].raw(), [
-    DROPS_HEADER, [1, 10, 1, 0.1], ['1', '20', '1', '0.2'], ['1', '30', '1', '0.3'],
+    DROPS_HEADER, [1, 10, 1, 0, 0.1], ['1', '20', '1', '0', '0.2'], ['1', '30', '1', '0', '0.3'],
   ]);
 });
 
@@ -925,14 +925,14 @@ test('an append lands below a row the same batch blanked, not on top of it', () 
   // The append base is the lastRow as READ, not as it stands after the writes: blanking every
   // cell of the last data row lowers getLastRow(), and an append based on that would land on the
   // just-blanked row and silently consume it.
-  const gs = batchGs([], [[1, 10, 1, 0.1], [1, 20, 1, 0.2]]);
+  const gs = batchGs([], [[1, 10, 1, 0, 0.1], [1, 20, 1, 0, 0.2]]);
   gs.saveBatch([{
     sheet: 'NPC Drops', idColumnIndex: -1,
-    writes: [{ row: 3, cells: ['', '', '', ''], loaded: ['1', '20', '1', '0.2'] }],
-    appends: [{ cells: ['1', '30', '1', '0.3'] }],
+    writes: [{ row: 3, cells: ['', '', '', '', ''], loaded: ['1', '20', '1', '0', '0.2'] }],
+    appends: [{ cells: ['1', '30', '1', '0', '0.3'] }],
   }]);
   assert.deepEqual(gs.sheets['NPC Drops'].raw(), [
-    DROPS_HEADER, [1, 10, 1, 0.1], ['', '', '', ''], ['1', '30', '1', '0.3'],
+    DROPS_HEADER, [1, 10, 1, 0, 0.1], ['', '', '', '', ''], ['1', '30', '1', '0', '0.3'],
   ]);
 });
 
@@ -969,35 +969,35 @@ test('saveBatch pins the text format on appended Text cells before writing them'
 
 test('saveBatch applies sheets in the order given', () => {
   // Parent first, so a failure part-way leaves an incomplete parent rather than orphan children.
-  const gs = batchGs([ROW], [[1, 10, 1, 0.1]]);
+  const gs = batchGs([ROW], [[1, 10, 1, 0, 0.1]]);
   gs.saveBatch([
     { sheet: 'Items', idColumnIndex: 0,
       writes: [{ row: 2, cells: ['7', 'Renamed', '0.1235', '1500', '1', '185.25'],
                  loaded: ['7', 'Iron Sword', '0.1235', '1500', '1', '185.25'] }] },
-    { sheet: 'NPC Drops', idColumnIndex: -1, appends: [{ cells: ['1', '20', '1', '0.2'] }] },
+    { sheet: 'NPC Drops', idColumnIndex: -1, appends: [{ cells: ['1', '20', '1', '0', '0.2'] }] },
   ]);
   assert.equal(gs.sheets.Items.raw()[1][1], 'Renamed');
   assert.equal(gs.sheets['NPC Drops'].raw().length, 3);
 });
 
 test('saveBatch flushes once at the end', () => {
-  const gs = batchGs([ROW], [[1, 10, 1, 0.1]]);
+  const gs = batchGs([ROW], [[1, 10, 1, 0, 0.1]]);
   gs.saveBatch([{ sheet: 'NPC Drops', idColumnIndex: -1,
-                  appends: [{ cells: ['1', '20', '1', '0.2'] }] }]);
+                  appends: [{ cells: ['1', '20', '1', '0', '0.2'] }] }]);
   assert.equal(gs.flushes(), 1);
 });
 
 test('saveBatch releases the lock on the happy path', () => {
-  const gs = batchGs([ROW], [[1, 10, 1, 0.1]]);
+  const gs = batchGs([ROW], [[1, 10, 1, 0, 0.1]]);
   gs.saveBatch([{ sheet: 'NPC Drops', idColumnIndex: -1,
-                  appends: [{ cells: ['1', '20', '1', '0.2'] }] }]);
+                  appends: [{ cells: ['1', '20', '1', '0', '0.2'] }] }]);
   assert.deepEqual(gs.locks(), { acquired: 1, released: 1, held: false });
 });
 
 test('a batch that empties a group deletes every one of its rows', () => {
-  const gs = batchGs([], [[1, 10, 1, 0.1], [1, 20, 1, 0.2]]);
+  const gs = batchGs([], [[1, 10, 1, 0, 0.1], [1, 20, 1, 0, 0.2]]);
   gs.saveBatch([{ sheet: 'NPC Drops', idColumnIndex: -1,
-                  deletes: [{ row: 2, loaded: ['1', '10', '1', '0.1'] },
-                            { row: 3, loaded: ['1', '20', '1', '0.2'] }] }]);
+                  deletes: [{ row: 2, loaded: ['1', '10', '1', '0', '0.1'] },
+                            { row: 3, loaded: ['1', '20', '1', '0', '0.2'] }] }]);
   assert.deepEqual(gs.sheets['NPC Drops'].raw(), [DROPS_HEADER]);
 });

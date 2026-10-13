@@ -1529,7 +1529,9 @@ namespace Goose
 
                         world.ItemHandler.AddAndAssignId(drop.Item, world);
                     }
-                    drop.Stack = dropinfo.Stack;
+                    drop.Stack = dropinfo.MaxStack > dropinfo.Stack
+                        ? world.Random.Next(dropinfo.Stack, dropinfo.MaxStack + 1)
+                        : dropinfo.Stack;
 
                     ItemTile tile = new ItemTile();
                     tile.ItemSlot = drop;

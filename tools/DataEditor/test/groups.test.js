@@ -411,7 +411,7 @@ test('an existing row with no loaded snapshot is written, never appended', () =>
   assert.deepEqual(ops.appends, []);
   assert.equal(ops.writes.length, 1);
   assert.equal(ops.writes[0].row, 2);
-  assert.deepEqual(ops.writes[0].loaded, ['', '', '', '']);
+  assert.deepEqual(ops.writes[0].loaded, ['', '', '', '', '']);
 });
 
 // ------------------------------------------------------------------ validate

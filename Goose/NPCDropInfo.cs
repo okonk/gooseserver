@@ -6,6 +6,7 @@ namespace Goose
     {
         public double DropRate { get; set; }
         public int Stack { get; set; }
+        public int MaxStack { get; set; }
         public ItemTemplate ItemTemplate { get; set; } = null!;
     }
 }

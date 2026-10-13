@@ -1139,6 +1139,14 @@ var GOOSE_SCHEMA = {
           "pk": false
         },
         {
+          "name": "max_stack",
+          "kind": "Int",
+          "sql": "INT",
+          "default": "0",
+          "required": false,
+          "pk": false
+        },
+        {
           "name": "droprate",
           "kind": "Double",
           "sql": "REAL",
