@@ -14,20 +14,36 @@ namespace Goose.Commands
             {
                 try
                 {
-                    world.ScriptHandler.ReloadScripts();
+                    var commit = world.ScriptHandler.PrepareReload();
+                    var globals = world.CompileNewGlobalScripts();
 
-                     // TODO: This is bad, it executes the global script OnLoaded on the wrong thread
-                    world.LoadGlobalScripts();
+                    world.EnqueueCompletion(() =>
+                    {
+                        try
+                        {
+                            commit();
+                            world.RunGlobalScripts(globals);
 
-                    world.Send(player, "$7Reloaded scripts.");
-                    log.Info("Reloaded scripts");
+                            world.Send(player, "$7Reloaded scripts.");
+                            log.Info("Reloaded scripts");
+                        }
+                        catch (Exception e)
+                        {
+                            Fail(world, player, e);
+                        }
+                    });
                 }
                 catch (Exception e)
                 {
-                    log.Error(e, "Failed reloading scripts");
-                    world.Send(player, "$7" + e.Message);
+                    world.EnqueueCompletion(() => Fail(world, player, e));
                 }
             });
+        }
+
+        private static void Fail(GameWorld world, Player player, Exception e)
+        {
+            log.Error(e, "Failed reloading scripts");
+            world.Send(player, "$7" + e.Message);
         }
     }
 }

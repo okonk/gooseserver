@@ -870,11 +870,27 @@ namespace Goose
 
         public void LoadGlobalScripts()
         {
+            RunGlobalScripts(CompileNewGlobalScripts());
+        }
+
+        public List<Script<IGlobalScript>> CompileNewGlobalScripts()
+        {
+            var compiled = new List<Script<IGlobalScript>>();
             foreach (var scriptPath in Directory.EnumerateFiles(this.Settings.DataPathAbsolute + "/Scripts/Global", "*.csx"))
             {
                 if (this.ScriptHandler.HasScript(scriptPath)) continue;
 
-                var script = this.ScriptHandler.GetScript<IGlobalScript>(scriptPath.Substring(this.Settings.DataPathAbsolute.Length + 1));
+                compiled.Add(this.ScriptHandler.CompileUnregistered<IGlobalScript>(scriptPath.Substring(this.Settings.DataPathAbsolute.Length + 1)));
+            }
+            return compiled;
+        }
+
+        public void RunGlobalScripts(IEnumerable<Script<IGlobalScript>> scripts)
+        {
+            foreach (var script in scripts)
+            {
+                if (!this.ScriptHandler.TryAdd(script)) continue;
+
                 script.Object.OnLoaded(this);
             }
         }

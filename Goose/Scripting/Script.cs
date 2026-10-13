@@ -20,6 +20,17 @@ namespace Goose.Scripting
 
         public void LoadScript()
         {
+            this.Object = Compile();
+        }
+
+        public Action CompileForSwap()
+        {
+            var compiled = Compile();
+            return () => this.Object = compiled;
+        }
+
+        private T Compile()
+        {
             if (!File.Exists(this.FilePath))
                 throw new FileNotFoundException("Couldn't find script " + this.FilePath);
 
@@ -41,7 +52,7 @@ namespace Goose.Scripting
             var result = script.RunAsync().Result.ReturnValue;
             var scriptType = (Type)result;
 
-            this.Object = (T)Activator.CreateInstance(scriptType)!;
+            return (T)Activator.CreateInstance(scriptType)!;
         }
     }
 }
