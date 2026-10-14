@@ -28,7 +28,7 @@ namespace Goose
                 // Grow-only and whole-page sizing keeps every page-visible index a real container slot;
                 // the -1 excludes sentinel slot 0, which would otherwise ratchet capacity up a page every restart.
                 int maxPages = Math.Max(
-                    Math.Max(1, world.Settings.CommunityChestPages),
+                    this.PagesFor(world, npcTemplateId),
                     (int)Math.Ceiling(Math.Max(0, (slots?.Length ?? 1) - 1) / (double)world.Settings.BankSlotsPerPage));
                 var container = new ItemContainer(maxPages * world.Settings.BankSlotsPerPage + 1);
 
@@ -74,12 +74,27 @@ namespace Goose
             if (containers.TryGetValue(npcTemplateId, out ItemContainer? container))
                 return container;
 
-            container = new ItemContainer(Math.Max(1, world.Settings.CommunityChestPages) * world.Settings.BankSlotsPerPage + 1);
+            container = new ItemContainer(this.PagesFor(world, npcTemplateId) * world.Settings.BankSlotsPerPage + 1);
             world.WorldState.Set(KeyFor(npcTemplateId), container);
             containers[npcTemplateId] = container;
             Subscribe(container, world);
 
             return container;
+        }
+
+        private int PagesFor(GameWorld world, int npcTemplateId) =>
+            Math.Max(1, world.Settings.CommunityChestPages) + world.CommunityGoals.GetFlag("chest_pages:" + npcTemplateId);
+
+        public void ApplyBonusPages(GameWorld world, int npcTemplateId)
+        {
+            if (!containers.TryGetValue(npcTemplateId, out var container)) return;
+            if (!container.GrowToPages(this.PagesFor(world, npcTemplateId), world.Settings.BankSlotsPerPage)) return;
+            if (!this.viewers.TryGetValue(container, out var list)) return;
+            foreach (var (player, window) in list)
+            {
+                window.MaxPages = (container.MaxSlots - 1 + window.SlotsPerPage - 1) / window.SlotsPerPage;
+                window.SendCreate(player, world);
+            }
         }
 
         private void Subscribe(ItemContainer container, GameWorld world)

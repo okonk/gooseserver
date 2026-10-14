@@ -147,6 +147,22 @@ namespace Goose.CommunityGoals
             return this.flags.TryGetValue(name, out var flag) ? flag.Value : 0;
         }
 
+        public void SetFlag(string name, int value, int? sourceGoalId)
+        {
+            if (!this.flags.TryGetValue(name, out var flag))
+                this.flags[name] = flag = new WorldFlag { Name = name };
+            flag.Value = value;
+            flag.SourceGoalId = sourceGoalId;
+            flag.SetAt = this.UtcNow();
+            this.dirtyFlags.Add(name);
+        }
+
+        public int AddToFlag(string name, int delta, int? sourceGoalId)
+        {
+            this.SetFlag(name, this.GetFlag(name) + delta, sourceGoalId);
+            return this.GetFlag(name);
+        }
+
         public void Tick(GameWorld world)
         {
             try

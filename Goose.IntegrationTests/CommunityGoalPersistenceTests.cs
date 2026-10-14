@@ -72,6 +72,36 @@ public class CommunityGoalPersistenceTests : PlayerFirstSaveTestBase
     }
 
     [Fact]
+    public void Flags_SetAndAdd_RoundTripThroughNewWorld()
+    {
+        world.CommunityGoals.Load(world);
+
+        world.CommunityGoals.SetFlag("chest_pages:77", 2, 5);
+        world.CommunityGoals.AddToFlag("chest_pages:77", 1, null);
+        world.CommunityGoals.AddToFlag("goal1.round1.completed", 1, 1);
+
+        world.CommunityGoals.SaveSync(world);
+
+        Assert.Equal(2, Count("SELECT COUNT(*) FROM world_flags"));
+        Assert.Equal(3, Count("SELECT value FROM world_flags WHERE name='chest_pages:77'"));
+        Assert.Equal(1, Count("SELECT value FROM world_flags WHERE name='goal1.round1.completed'"));
+        Assert.Equal(1, Count("SELECT source_goal_id FROM world_flags WHERE name='goal1.round1.completed'"));
+
+        var world2 = NewWorld();
+        try
+        {
+            world2.CommunityGoals.Load(world2);
+            Assert.Equal(3, world2.CommunityGoals.GetFlag("chest_pages:77"));
+            Assert.Equal(1, world2.CommunityGoals.GetFlag("goal1.round1.completed"));
+            Assert.Equal(0, world2.CommunityGoals.GetFlag("missing"));
+        }
+        finally
+        {
+            world2.Database.Stop();
+        }
+    }
+
+    [Fact]
     public void UnchangedState_ProducesEmptyPlanAndNoSql()
     {
         InsertGoal(1, """{ "requirements": [ { "key": "gold", "type": "Gold", "target": 100 } ] }""");
