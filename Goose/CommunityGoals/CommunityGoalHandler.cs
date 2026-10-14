@@ -1,6 +1,7 @@
 using System.Data.SQLite;
 using System.Globalization;
 using System.Text.Json.Nodes;
+using Goose.Events;
 using Goose.Scripting;
 
 namespace Goose.CommunityGoals
@@ -19,9 +20,12 @@ namespace Goose.CommunityGoals
         private Dictionary<string, WorldFlag> flags = new();
         private readonly HashSet<(int GoalId, int Run)> dirtyRuns = new();
         private readonly HashSet<(int GoalId, int Run, int PlayerId)> dirtyContributions = new();
+        private readonly HashSet<(int GoalId, int Run, int PlayerId)> pendingContributionDeletes = new();
+        private readonly HashSet<int> missingPrerequisiteGoalIds = new();
 
         public IReadOnlyDictionary<int, CommunityGoal> Goals => this.goals;
         internal IReadOnlyDictionary<int, List<(CommunityGoal, GoalRequirement)>> KillIndex => this.killIndex;
+        internal IReadOnlyCollection<(int GoalId, int Run, int PlayerId)> PendingContributionDeletes => this.pendingContributionDeletes;
         internal Func<DateTime> UtcNow { get; set; } = () => DateTime.UtcNow;
         public event Action<CommunityGoal, CommunityGoalRun, GameWorld>? RunCompleted;
 
@@ -32,6 +36,7 @@ namespace Goose.CommunityGoals
             var (runRows, contributionRows, flagRows) = world.Database.Execute(conn =>
                 (ReadRuns(conn), ReadContributions(conn), ReadFlags(conn)));
             this.LoadStateRows(runRows, contributionRows, flagRows);
+            this.AddTickEvent(world);
         }
 
         public void LoadDefinitions(GameWorld world)
@@ -131,6 +136,99 @@ namespace Goose.CommunityGoals
         public int GetFlag(string name)
         {
             return this.flags.TryGetValue(name, out var flag) ? flag.Value : 0;
+        }
+
+        public void Tick(GameWorld world)
+        {
+            try
+            {
+                var now = this.UtcNow();
+                foreach (var goal in this.goals.Values)
+                    this.CheckCompletion(goal, world);
+                foreach (var goal in this.goals.Values)
+                    this.StartPendingRuns(goal, now);
+                foreach (var goal in this.goals.Values)
+                    this.ExpireContributions(goal, now);
+            }
+            finally
+            {
+                this.AddTickEvent(world);
+            }
+        }
+
+        internal void AddTickEvent(GameWorld world)
+        {
+            var ev = new CommunityGoalTickEvent();
+            ev.Ticks += (long)(60 * world.TimerFrequency);
+            world.EventHandler.AddEvent(ev);
+        }
+
+        private void StartPendingRuns(CommunityGoal goal, DateTime now)
+        {
+            var definition = goal.Definition;
+            if (definition is null) return;
+            var current = this.CurrentRun(goal.Id);
+            if (current is null)
+            {
+                if (this.PrerequisitesMet(goal))
+                    this.StartRun(goal, now);
+                return;
+            }
+            if (current.Status == RunStatus.Active || definition.Repeat is null) return;
+            if (definition.Repeat.Every is TimeSpan span)
+            {
+                if (current.StartedAt + span <= now)
+                    this.StartRun(goal, now);
+            }
+            else
+            {
+                this.StartRun(goal, now);
+            }
+        }
+
+        private bool PrerequisitesMet(CommunityGoal goal)
+        {
+            foreach (var prereqId in goal.PrerequisiteGoals)
+            {
+                if (!this.goals.ContainsKey(prereqId))
+                {
+                    if (this.missingPrerequisiteGoalIds.Add(goal.Id))
+                        log.Warn("Community goal {goalId} has missing prerequisite goal {prereqId}, not started", goal.Id, prereqId);
+                    return false;
+                }
+                if (!this.runs.TryGetValue((prereqId, 1), out var prereqRun) || prereqRun.Status != RunStatus.Completed)
+                    return false;
+            }
+            return true;
+        }
+
+        private void StartRun(CommunityGoal goal, DateTime now)
+        {
+            var run = new CommunityGoalRun
+            {
+                GoalId = goal.Id,
+                Run = (this.CurrentRun(goal.Id)?.Run ?? 0) + 1,
+                StartedAt = now,
+            };
+            this.runs[(run.GoalId, run.Run)] = run;
+            this.dirtyRuns.Add((run.GoalId, run.Run));
+        }
+
+        private void ExpireContributions(CommunityGoal goal, DateTime now)
+        {
+            var definition = goal.Definition;
+            if (definition is null || definition.EffectiveClaimWindow is not TimeSpan window)
+                return;
+            foreach (var run in this.runs.Values)
+            {
+                if (run.GoalId != goal.Id || run.CompletedAt is not DateTime completedAt)
+                    continue;
+                if (completedAt + window > now || run.Contributions.Count == 0)
+                    continue;
+                foreach (var playerId in run.Contributions.Keys)
+                    this.pendingContributionDeletes.Add((goal.Id, run.Run, playerId));
+                run.Contributions.Clear();
+            }
         }
 
         public ContributeResult Contribute(CommunityGoal goal, Player? player, string key, long amount, GameWorld world)
@@ -244,6 +342,8 @@ namespace Goose.CommunityGoals
                 log.Error(e, "Community goal {goalId} OnCompleted Exception", goal.Id);
             }
             this.RunCompleted?.Invoke(goal, run, world);
+            if (definition.Repeat is { Every: null })
+                this.StartRun(goal, now);
         }
 
         internal bool IsRunDirty(int goalId, int run) => this.dirtyRuns.Contains((goalId, run));
