@@ -248,6 +248,12 @@ namespace Goose.CommunityGoals
                     errors.Add($"bracket {i} measure references unknown requirement key '{bracket.Measure}'");
             }
 
+            foreach (var bracket in def.Brackets)
+                foreach (var reward in bracket.Rewards)
+                    errors.AddRange(CommunityRewardRegistry.Validate(reward, false));
+            foreach (var reward in def.CommunityRewards)
+                errors.AddRange(CommunityRewardRegistry.Validate(reward, true));
+
             if (def.Ranking == RankingKind.Lottery)
             {
                 if (def.EntryCost is null)

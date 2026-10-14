@@ -1,5 +1,6 @@
 using System.Data.SQLite;
 using System.Globalization;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using Goose.Events;
 using Goose.Scripting;
@@ -86,6 +87,7 @@ namespace Goose.CommunityGoals
                     var errors = CommunityGoalDefinitionParser.Validate(definition, row.Script is not null);
                     if (errors.Count > 0)
                         throw new CommunityGoalDefinitionException(string.Join("; ", errors));
+                    ResolveRewardScripts(definition, world);
                     row.Definition = definition;
                     row.ResolvedScript = script;
                     newGoals[row.Id] = row;
@@ -112,6 +114,7 @@ namespace Goose.CommunityGoals
                     var errors = CommunityGoalDefinitionParser.Validate(definition, goal.Script is not null);
                     if (errors.Count > 0)
                         throw new CommunityGoalDefinitionException(string.Join("; ", errors));
+                    ResolveRewardScripts(definition, world);
                     goal.Definition = definition;
                     goal.ResolvedScript = script;
                 }
@@ -632,6 +635,27 @@ namespace Goose.CommunityGoals
         private ICommunityGoalScript GetScript(CommunityGoal goal)
         {
             return goal.ResolvedScript ?? this.baseScript;
+        }
+
+        // A missing or broken reward script skips the whole goal, same rule as goal scripts.
+        private static void ResolveRewardScripts(CommunityGoalDefinition definition, GameWorld world)
+        {
+            foreach (var bracket in definition.Brackets)
+                foreach (var reward in bracket.Rewards)
+                    ResolveRewardScript(reward, world);
+            foreach (var reward in definition.CommunityRewards)
+                ResolveRewardScript(reward, world);
+        }
+
+        private static void ResolveRewardScript(RewardSpec reward, GameWorld world)
+        {
+            if (reward.Type != "Script") return;
+            var path = reward.Params["script"] is JsonValue value && value.GetValueKind() == JsonValueKind.String
+                ? value.GetValue<string>()!
+                : "";
+            if (path.Length == 0)
+                throw new CommunityGoalDefinitionException("reward of type Script is missing 'script'");
+            world.ScriptHandler.GetScript<ICommunityRewardScript>(path);
         }
 
         private void LogOrphan(int goalId)

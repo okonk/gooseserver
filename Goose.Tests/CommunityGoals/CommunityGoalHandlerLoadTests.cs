@@ -117,6 +117,41 @@ return typeof(G);
         }
 
         [Fact]
+        public void LoadDefinitionRows_RewardScriptMissing_SkipsGoalSiblingsLoad()
+        {
+            using var log = new CapturingLog();
+            handler.LoadDefinitionRows(new[]
+            {
+                Goal(1, """
+                    { "requirements": [ { "key": "gold", "type": "Gold", "target": 100 } ],
+                      "brackets": [ { "rank": 1, "rewards": [ { "type": "Script", "script": "Scripts/CommunityGoal/Missing.csx" } ] } ] }
+                    """),
+                Goal(2, KillProps(8)),
+            }, world);
+
+            Assert.Equal(2, Assert.Single(handler.Goals).Key);
+            Assert.Contains(log.Messages, m => m.Contains("Failed to load community goal 1"));
+        }
+
+        [Fact]
+        public void LoadDefinitionRows_RewardScriptCompiles_Loads()
+        {
+            Directory.CreateDirectory(Path.Combine(fixture.DataDirectory, "Scripts", "CommunityGoal"));
+            File.WriteAllText(Path.Combine(fixture.DataDirectory, "Scripts", "CommunityGoal", "R.csx"),
+                "public class R : BaseCommunityRewardScript { }\nreturn typeof(R);\n");
+
+            handler.LoadDefinitionRows(new[]
+            {
+                Goal(1, """
+                    { "requirements": [ { "key": "gold", "type": "Gold", "target": 100 } ],
+                      "brackets": [ { "rank": 1, "rewards": [ { "type": "Script", "script": "Scripts/CommunityGoal/R.csx" } ] } ] }
+                    """),
+            }, world);
+
+            Assert.Equal(1, Assert.Single(handler.Goals).Key);
+        }
+
+        [Fact]
         public void LoadDefinitions_DatabaseFailure_LeavesPreviousStateUntouched()
         {
             handler.LoadDefinitionRows(new[] { Goal(1, KillProps(7)) }, world);

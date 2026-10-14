@@ -193,7 +193,7 @@ public class CommunityGoalDefinitionParserTests
             { "requirements": [ { "key": "gold", "type": "Gold" } ],
               "duration": "1d",
               "brackets": [ { "rank": 1, "rewards": [ { "type": "Gold", "value": 100 } ] } ],
-              "communityRewards": [ { "type": "Gold", "value": 10 } ] }
+              "communityRewards": [ { "type": "WorldFlag", "name": "gold" } ] }
             """);
         Assert.Empty(Validate(def, false));
     }

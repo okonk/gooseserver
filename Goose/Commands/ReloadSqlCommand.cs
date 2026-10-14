@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Goose.Scripting;
 
 namespace Goose.Commands
@@ -63,6 +65,7 @@ namespace Goose.Commands
                 Npcs = ScriptPaths(conn, "npc_templates"),
                 Quests = ScriptPaths(conn, "quest_requirements").Concat(ScriptPaths(conn, "quest_rewards")).Distinct().ToList(),
                 CommunityGoals = ScriptPaths(conn, "community_goals"),
+                CommunityGoalRewards = CommunityGoalRewardScriptPaths(conn),
             });
 
             foreach (var path in paths.SpellEffects) world.ScriptHandler.GetScript<ISpellEffectScript>(path);
@@ -70,6 +73,7 @@ namespace Goose.Commands
             foreach (var path in paths.Npcs) world.ScriptHandler.GetScript<INPCScript>(path);
             foreach (var path in paths.Quests) world.ScriptHandler.GetScript<IQuestScript>(path);
             foreach (var path in paths.CommunityGoals) world.ScriptHandler.GetScript<ICommunityGoalScript>(path);
+            foreach (var path in paths.CommunityGoalRewards) world.ScriptHandler.GetScript<ICommunityRewardScript>(path);
         }
 
         private static List<string> ScriptPaths(System.Data.SQLite.SQLiteConnection conn, string table)
@@ -81,6 +85,51 @@ namespace Goose.Commands
             var paths = new List<string>();
             while (reader.Read()) paths.Add(reader.GetString(0));
             return paths;
+        }
+
+        private static List<string> CommunityGoalRewardScriptPaths(System.Data.SQLite.SQLiteConnection conn)
+        {
+            using var command = conn.CreateCommand();
+            command.CommandText = "SELECT properties FROM community_goals WHERE properties IS NOT NULL AND properties <> ''";
+            using var reader = command.ExecuteReader();
+
+            var paths = new HashSet<string>(StringComparer.Ordinal);
+            while (reader.Read())
+                CollectRewardScriptPaths(reader.GetString(0), paths);
+            return paths.ToList();
+        }
+
+        // properties is author-written JSON that can be invalid; a bad row must not fail the reload.
+        private static void CollectRewardScriptPaths(string json, HashSet<string> paths)
+        {
+            JsonNode? root;
+            try
+            {
+                root = JsonNode.Parse(json);
+            }
+            catch (JsonException)
+            {
+                return;
+            }
+            if (root is not JsonObject def) return;
+            if (def["brackets"] is JsonArray brackets)
+                foreach (var bracket in brackets)
+                    if (bracket is JsonObject bracketObj && bracketObj["rewards"] is JsonArray rewards)
+                        CollectFromRewards(rewards, paths);
+            if (def["communityRewards"] is JsonArray communityRewards)
+                CollectFromRewards(communityRewards, paths);
+        }
+
+        private static void CollectFromRewards(JsonArray rewards, HashSet<string> paths)
+        {
+            foreach (var reward in rewards)
+            {
+                if (reward is not JsonObject rewardObj) continue;
+                if (rewardObj["type"] is not JsonValue type || type.GetValueKind() != JsonValueKind.String || type.GetValue<string>() != "Script")
+                    continue;
+                if (rewardObj["script"] is JsonValue script && script.GetValueKind() == JsonValueKind.String)
+                    paths.Add(script.GetValue<string>()!);
+            }
         }
 
         private static void Fail(GameWorld world, Player player, Exception e)
