@@ -244,6 +244,9 @@ namespace Goose.CommunityGoals
                     errors.Add($"bracket {i} has neither 'rank' nor 'minScore'");
                 if (bracket.Rank is not null && bracket.MinScore is not null)
                     errors.Add($"bracket {i} has both 'rank' and 'minScore'");
+                // rank 0 would match every player absent from the frozen places (IndexOf == -1).
+                if (bracket.Rank is int rank && rank < 1)
+                    errors.Add($"bracket {i} 'rank' must be >= 1");
                 if (bracket.Measure is not null && !keys.Contains(bracket.Measure))
                     errors.Add($"bracket {i} measure references unknown requirement key '{bracket.Measure}'");
             }

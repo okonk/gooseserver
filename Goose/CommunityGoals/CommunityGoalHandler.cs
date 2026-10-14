@@ -34,6 +34,7 @@ namespace Goose.CommunityGoals
 
         public void Load(GameWorld world)
         {
+            this.RunCompleted += this.GiveCommunityRewards;
             this.LoadDefinitions(world);
 
             var (runRows, contributionRows, flagRows) = world.Database.Execute(conn =>
@@ -664,6 +665,28 @@ namespace Goose.CommunityGoals
         private ICommunityGoalScript GetScript(CommunityGoal goal)
         {
             return goal.ResolvedScript ?? this.baseScript;
+        }
+
+        public int? BracketIndex(CommunityGoal goal, CommunityGoalRun run, Player player)
+        {
+            // The claim flow (the only caller) has no world; the base GetBracket ignores it.
+            var bracket = this.GetScript(goal).GetBracket(goal, run, player, null!);
+            var brackets = goal.Definition?.Brackets;
+            if (bracket is null || brackets is null) return null;
+            for (var i = 0; i < brackets.Count; i++)
+                if (ReferenceEquals(brackets[i], bracket)) return i;
+            return null;
+        }
+
+        private void GiveCommunityRewards(CommunityGoal goal, CommunityGoalRun run, GameWorld world)
+        {
+            if (goal.Definition is null) return;
+            CommunityRewardRegistry.Give(goal.Definition.CommunityRewards, new CommunityRewardContext
+            {
+                Goal = goal,
+                Run = run,
+                World = world,
+            });
         }
 
         // A missing or broken reward script skips the whole goal, same rule as goal scripts.

@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.Json.Nodes;
 using Goose.CommunityGoals;
 
 namespace Goose.Scripting
@@ -58,6 +59,28 @@ namespace Goose.Scripting
 
         public virtual GoalBracket? GetBracket(CommunityGoal goal, CommunityGoalRun run, Player player, GameWorld world)
         {
+            var definition = goal.Definition;
+            if (definition is null || !run.Contributions.TryGetValue(player.PlayerID, out var contribution))
+                return null;
+            List<int>? places = null;
+            if (run.Results is JsonObject results && results["places"] is JsonArray placesArray)
+                places = placesArray.Select(node => node!.GetValue<int>()).ToList();
+            foreach (var bracket in definition.Brackets)
+            {
+                if (bracket.Rank is int rank)
+                {
+                    if (places is not null && places.IndexOf(player.PlayerID) == rank - 1)
+                        return bracket;
+                }
+                else if (bracket.MinScore is double minScore)
+                {
+                    var value = bracket.Measure is null
+                        ? Ranking.Score(definition, contribution)
+                        : contribution.Amounts.GetValueOrDefault(bracket.Measure, 0);
+                    if (value >= minScore)
+                        return bracket;
+                }
+            }
             return null;
         }
     }

@@ -361,6 +361,18 @@ public class CommunityGoalDefinitionParserTests
         Assert.Contains("rank", error);
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void Validate_rejects_bracket_rank_below_one(int rank)
+    {
+        var errors = Validate(
+            "{ \"requirements\": [ { \"key\": \"gold\", \"type\": \"Gold\" } ]," +
+            $" \"brackets\": [ {{ \"rank\": {rank}, \"rewards\": [] }} ], \"duration\": \"1d\" }}");
+        var error = Assert.Single(errors);
+        Assert.Contains("rank", error);
+    }
+
     [Fact]
     public void Validate_rejects_lottery_without_entry_cost()
     {
