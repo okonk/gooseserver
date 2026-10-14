@@ -359,6 +359,41 @@ namespace Goose.CommunityGoals
             return new ContributeResult(amount, null);
         }
 
+        public void OnNpcKilled(NPC npc, IReadOnlyList<Player> credited, GameWorld world)
+        {
+            if (!this.killIndex.TryGetValue(npc.NPCTemplateID, out var entries)) return;
+            foreach (var (goal, requirement) in entries)
+            {
+                var run = this.CurrentRun(goal.Id);
+                if (run is null || run.Status != RunStatus.Active) continue;
+                // Credit players before the total: the total increment can complete the run,
+                // which freezes Results from the contributions recorded so far.
+                this.Contribute(run, credited, requirement.Key, 1);
+                this.Contribute(goal, null, requirement.Key, 1, world);
+            }
+        }
+
+        // Per-player kill credit: records each credited player's amount only; the run's total
+        // is incremented separately (and may complete the run, freezing Results).
+        internal ContributeResult Contribute(CommunityGoalRun run, IReadOnlyList<Player> players, string key, long amount)
+        {
+            if (amount <= 0)
+                return new ContributeResult(0, "That's no longer needed.");
+            foreach (var player in players)
+            {
+                if (!run.Contributions.TryGetValue(player.PlayerID, out var contribution))
+                {
+                    contribution = new Contribution { PlayerId = player.PlayerID };
+                    run.Contributions[player.PlayerID] = contribution;
+                }
+                contribution.Amounts[key] = contribution.Amounts.GetValueOrDefault(key) + amount;
+                contribution.LastAt = this.UtcNow();
+                this.dirtyContributions.Add((run.GoalId, run.Run, player.PlayerID));
+            }
+            this.dirtyRuns.Add((run.GoalId, run.Run));
+            return new ContributeResult(amount, null);
+        }
+
         public long Remaining(CommunityGoal goal, string key)
         {
             var run = this.CurrentRun(goal.Id);
