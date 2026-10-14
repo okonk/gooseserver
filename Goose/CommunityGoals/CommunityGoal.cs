@@ -10,7 +10,7 @@ namespace Goose.CommunityGoals
         public int NpcTemplateId { get; init; }
         public List<int> PrerequisiteGoals { get; } = [];
         public string ScriptPath { get; init; } = "";
-        public string PropertiesJson { get; init; } = "";
+        public string PropertiesJson { get; set; } = "";
         public Script<ICommunityGoalScript>? Script { get; set; }
         public CommunityGoalDefinition? Definition { get; set; }
     }

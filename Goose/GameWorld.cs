@@ -3,6 +3,7 @@ using System.Net.Sockets;
 using System.Runtime.InteropServices;
 
 using Goose.Commands;
+using Goose.CommunityGoals;
 using Goose.Events;
 using Goose.Logs;
 using Goose.Quests;
@@ -38,6 +39,7 @@ namespace Goose
         public SpellHandler SpellHandler { get; set; }
         public GuildHandler GuildHandler { get; set; }
         public ChestHandler ChestHandler { get; set; }
+        public CommunityGoalHandler CommunityGoals { get; private set; }
         public RankHandler RankHandler { get; set; }
         public CombinationHandler CombinationHandler { get; set; }
         public ChatFilter ChatFilter { get; set; }
@@ -221,6 +223,7 @@ namespace Goose
             this.SpellHandler = new SpellHandler();
             this.GuildHandler = new GuildHandler();
             this.ChestHandler = new ChestHandler();
+            this.CommunityGoals = new CommunityGoalHandler();
             this.RankHandler = new RankHandler();
             this.CombinationHandler = new CombinationHandler();
             this.ChatFilter = new ChatFilter();
@@ -476,6 +479,8 @@ namespace Goose
                 this.WorldState.Load(this.Database);
                 this.WorldState.AddSaveEvent(this);
             })) return;
+
+            if (!this.LoadStep("Community Goals", () => this.CommunityGoals.Load(this))) return;
 
             if (!this.LoadStep("Community Chests", () => this.ChestHandler.Load(this))) return;
 
