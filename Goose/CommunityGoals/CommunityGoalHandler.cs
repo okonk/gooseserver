@@ -678,6 +678,87 @@ namespace Goose.CommunityGoals
             return null;
         }
 
+        public IReadOnlyList<PendingPrize> PendingPrizes(Player player, int npcTemplateId)
+        {
+            var prizes = new List<PendingPrize>();
+            foreach (var goal in this.GoalsForNpc(npcTemplateId))
+            {
+                foreach (var run in this.runs.Values)
+                {
+                    if (run.GoalId != goal.Id || run.Status != RunStatus.Completed)
+                        continue;
+                    if (!run.Contributions.TryGetValue(player.PlayerID, out var contribution))
+                        continue;
+                    if (contribution.ClaimedBracket is not null || this.IsClaimExpired(goal, run))
+                        continue;
+                    if (this.BracketIndex(goal, run, player) is not int bracketIndex)
+                        continue;
+                    prizes.Add(new PendingPrize(goal, run, bracketIndex));
+                }
+            }
+            return prizes;
+        }
+
+        public ClaimResult Claim(CommunityGoal goal, CommunityGoalRun run, Player player, NPC npc, GameWorld world)
+        {
+            if (run is null || run.GoalId != goal.Id || run.Status != RunStatus.Completed)
+                return ClaimResult.Refuse("This goal hasn't finished yet.");
+            if (!run.Contributions.TryGetValue(player.PlayerID, out var contribution)
+                || this.BracketIndex(goal, run, player) is not int bracketIndex)
+                return ClaimResult.Refuse("You have nothing to claim.");
+            if (contribution.ClaimedBracket is not null)
+                return ClaimResult.Refuse("You've already claimed this reward.");
+            if (!this.goals.ContainsKey(goal.Id) || this.IsClaimExpired(goal, run))
+                return ClaimResult.Refuse("This reward has expired.");
+            var bracket = goal.Definition!.Brackets[bracketIndex];
+            var ctx = new CommunityRewardContext
+            {
+                Goal = goal,
+                Run = run,
+                Player = player,
+                Npc = npc,
+                Bracket = bracket,
+                World = world,
+            };
+            string? refusal;
+            try
+            {
+                refusal = CommunityRewardRegistry.CanGive(bracket.Rewards, ctx);
+            }
+            catch (Exception e)
+            {
+                // Fail closed: a throwing gate script refuses rather than admits (mirrors CanContribute).
+                log.Error(e, "Community goal {goalId} CanGive Exception", goal.Id);
+                return ClaimResult.Refuse("You cannot claim this reward right now.");
+            }
+            if (refusal is not null)
+                return ClaimResult.Refuse(refusal);
+            var required = CommunityRewardRegistry.RequiredSlots(bracket.Rewards, ctx);
+            if (player.Inventory.GetNumberOfFreeSlots() < required)
+                return ClaimResult.Refuse($"You need {required} free inventory slots to claim this.");
+            try
+            {
+                CommunityRewardRegistry.Give(bracket.Rewards, ctx);
+            }
+            catch (Exception e)
+            {
+                // No rollback of a partial grant; the claim fields are deliberately left unset.
+                log.Error(e, "Community goal {goalId} Give Exception", goal.Id);
+                return ClaimResult.Refuse("You cannot claim this reward right now.");
+            }
+            contribution.ClaimedBracket = bracketIndex;
+            contribution.ClaimedAt = this.UtcNow();
+            this.dirtyContributions.Add((goal.Id, run.Run, player.PlayerID));
+            return ClaimResult.Ok();
+        }
+
+        private bool IsClaimExpired(CommunityGoal goal, CommunityGoalRun run)
+        {
+            return goal.Definition?.EffectiveClaimWindow is TimeSpan window
+                && run.CompletedAt is DateTime completedAt
+                && completedAt + window < this.UtcNow();
+        }
+
         private void GiveCommunityRewards(CommunityGoal goal, CommunityGoalRun run, GameWorld world)
         {
             if (goal.Definition is null) return;
