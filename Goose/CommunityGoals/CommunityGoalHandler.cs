@@ -58,10 +58,10 @@ namespace Goose.CommunityGoals
                         Name = reader.GetString(1),
                         Description = reader.IsDBNull(2) ? "" : reader.GetString(2),
                         NpcTemplateId = reader.GetInt32(3),
+                        PrerequisiteGoalsRaw = reader.IsDBNull(4) ? "" : reader.GetString(4),
                         ScriptPath = reader.IsDBNull(5) ? "" : reader.GetString(5),
                         PropertiesJson = reader.IsDBNull(6) ? "" : reader.GetString(6),
                     };
-                    goal.PrerequisiteGoals.AddRange(ParsePrerequisites(reader.IsDBNull(4) ? "" : reader.GetString(4)));
                     result.Add(goal);
                 }
                 return result;
@@ -76,14 +76,18 @@ namespace Goose.CommunityGoals
             {
                 try
                 {
+                    if (row.PrerequisiteGoalsRaw is not null)
+                        row.PrerequisiteGoals.AddRange(ParsePrerequisites(row.PrerequisiteGoalsRaw));
                     row.Script = string.IsNullOrEmpty(row.ScriptPath)
                         ? null
                         : world.ScriptHandler.GetScript<ICommunityGoalScript>(row.ScriptPath);
-                    var definition = this.GetScript(row).Define(row, world);
+                    var script = row.Script?.Object ?? this.baseScript;
+                    var definition = script.Define(row, world);
                     var errors = CommunityGoalDefinitionParser.Validate(definition, row.Script is not null);
                     if (errors.Count > 0)
                         throw new CommunityGoalDefinitionException(string.Join("; ", errors));
                     row.Definition = definition;
+                    row.ResolvedScript = script;
                     newGoals[row.Id] = row;
                 }
                 catch (Exception e)
@@ -103,11 +107,13 @@ namespace Goose.CommunityGoals
             {
                 try
                 {
-                    var definition = this.GetScript(goal).Define(goal, world);
+                    var script = goal.Script?.Object ?? this.baseScript;
+                    var definition = script.Define(goal, world);
                     var errors = CommunityGoalDefinitionParser.Validate(definition, goal.Script is not null);
                     if (errors.Count > 0)
                         throw new CommunityGoalDefinitionException(string.Join("; ", errors));
                     goal.Definition = definition;
+                    goal.ResolvedScript = script;
                 }
                 catch (Exception e)
                 {
@@ -147,9 +153,9 @@ namespace Goose.CommunityGoals
             {
                 var now = this.UtcNow();
                 foreach (var goal in this.goals.Values)
-                    this.CheckCompletion(goal, world);
+                    this.CheckCompletion(goal, this.CurrentRun(goal.Id), world, now);
                 foreach (var goal in this.goals.Values)
-                    this.StartPendingRuns(goal, now);
+                    this.StartPendingRuns(goal, world, now);
                 foreach (var goal in this.goals.Values)
                     this.ExpireContributions(goal, now);
             }
@@ -166,14 +172,20 @@ namespace Goose.CommunityGoals
             world.EventHandler.AddEvent(ev);
         }
 
-        private void StartPendingRuns(CommunityGoal goal, DateTime now)
+        private void StartPendingRuns(CommunityGoal goal, GameWorld world, DateTime now)
         {
             var definition = goal.Definition;
             if (definition is null) return;
             var current = this.CurrentRun(goal.Id);
             if (current is null)
             {
-                if (this.PrerequisitesMet(goal))
+                if (!this.PrerequisitesMet(goal))
+                    return;
+                // A goal whose absolute closesAt has already passed never runs Active; record a
+                // terminal run so dependent goals can still see run 1 as Completed/Failed.
+                if (definition.ClosesAt is DateTime closesAt && closesAt <= now)
+                    this.StartTerminalRun(goal, world, now);
+                else
                     this.StartRun(goal, now);
                 return;
             }
@@ -207,6 +219,11 @@ namespace Goose.CommunityGoals
 
         private void StartRun(CommunityGoal goal, DateTime now)
         {
+            // A run whose absolute closesAt has already passed would be Active but already
+            // expired; never start it. Duration-only goals are unaffected (their duration is
+            // relative to their own StartedAt).
+            if (goal.Definition?.ClosesAt is DateTime closesAt && closesAt <= now)
+                return;
             var run = new CommunityGoalRun
             {
                 GoalId = goal.Id,
@@ -215,6 +232,42 @@ namespace Goose.CommunityGoals
             };
             this.runs[(run.GoalId, run.Run)] = run;
             this.dirtyRuns.Add((run.GoalId, run.Run));
+        }
+
+        private void StartTerminalRun(CommunityGoal goal, GameWorld world, DateTime now)
+        {
+            var run = new CommunityGoalRun
+            {
+                GoalId = goal.Id,
+                Run = 1,
+                StartedAt = now,
+            };
+            this.runs[(run.GoalId, run.Run)] = run;
+            this.dirtyRuns.Add((run.GoalId, run.Run));
+            this.CheckCompletion(goal, run, world, now);
+        }
+
+        private void RaiseRunCompleted(CommunityGoal goal, CommunityGoalRun run, GameWorld world)
+        {
+            try
+            {
+                this.GetScript(goal).OnCompleted(goal, run, world);
+            }
+            catch (Exception e)
+            {
+                log.Error(e, "Community goal {goalId} OnCompleted Exception", goal.Id);
+            }
+            foreach (var subscriber in this.RunCompleted?.GetInvocationList() ?? Array.Empty<Delegate>())
+            {
+                try
+                {
+                    ((Action<CommunityGoal, CommunityGoalRun, GameWorld>)subscriber)(goal, run, world);
+                }
+                catch (Exception e)
+                {
+                    log.Error(e, "Community goal {goalId} run {run} RunCompleted subscriber Exception", goal.Id, run.Run);
+                }
+            }
         }
 
         private void ExpireContributions(CommunityGoal goal, DateTime now)
@@ -282,7 +335,7 @@ namespace Goose.CommunityGoals
             {
                 log.Error(e, "Community goal {goalId} OnContributed Exception", goal.Id);
             }
-            this.CheckCompletion(goal, world);
+            this.CheckCompletion(goal, run, world, this.UtcNow());
             return new ContributeResult(amount, null);
         }
 
@@ -299,13 +352,14 @@ namespace Goose.CommunityGoals
             return 0;
         }
 
-        public void CheckCompletion(CommunityGoal goal, GameWorld world)
+        public void CheckCompletion(CommunityGoal goal, GameWorld world) =>
+            this.CheckCompletion(goal, this.CurrentRun(goal.Id), world, this.UtcNow());
+
+        private void CheckCompletion(CommunityGoal goal, CommunityGoalRun? run, GameWorld world, DateTime now)
         {
-            var run = this.CurrentRun(goal.Id);
             if (run is null || run.Status != RunStatus.Active || goal.Definition is null)
                 return;
             var definition = goal.Definition;
-            var now = this.UtcNow();
             var targetsMet = definition.HasTargets && definition.Requirements
                 .Where(r => r.Target.HasValue)
                 .All(r => run.Totals.GetValueOrDefault(r.Key) >= r.Target!.Value);
@@ -336,15 +390,7 @@ namespace Goose.CommunityGoals
             run.Status = RunStatus.Completed;
             run.CompletedAt = now;
             this.dirtyRuns.Add((goal.Id, run.Run));
-            try
-            {
-                this.GetScript(goal).OnCompleted(goal, run, world);
-            }
-            catch (Exception e)
-            {
-                log.Error(e, "Community goal {goalId} OnCompleted Exception", goal.Id);
-            }
-            this.RunCompleted?.Invoke(goal, run, world);
+            this.RaiseRunCompleted(goal, run, world);
             if (definition.Repeat is { Every: null })
                 this.StartRun(goal, now);
         }
@@ -569,7 +615,7 @@ namespace Goose.CommunityGoals
 
         private ICommunityGoalScript GetScript(CommunityGoal goal)
         {
-            return goal.Script?.Object ?? this.baseScript;
+            return goal.ResolvedScript ?? this.baseScript;
         }
 
         private void LogOrphan(int goalId)

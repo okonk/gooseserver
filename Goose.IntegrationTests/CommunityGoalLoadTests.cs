@@ -136,6 +136,53 @@ public class CommunityGoalLoadTests : IDisposable
         Assert.Equal(new[] { 1 }, npcGoals);
     }
 
+    [Fact]
+    public void Load_MalformedPrerequisites_SkipsGoalSiblingsLoad()
+    {
+        var db = world.Database;
+        db.Execute(conn =>
+        {
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "INSERT INTO community_goals (id, name, description, npc_template_id, prerequisite_goals, script_path, properties) VALUES (@id, @name, @desc, @npc, @prereqs, @script, @props)";
+            cmd.Parameters.AddWithValue("@id", 1);
+            cmd.Parameters.AddWithValue("@name", "Good One");
+            cmd.Parameters.AddWithValue("@desc", "");
+            cmd.Parameters.AddWithValue("@npc", 0);
+            cmd.Parameters.AddWithValue("@prereqs", "");
+            cmd.Parameters.AddWithValue("@script", "");
+            cmd.Parameters.AddWithValue("@props",
+                """{ "requirements": [ { "key": "kills", "type": "Kill", "npc": 7, "target": 100 } ] }""");
+            cmd.ExecuteNonQuery();
+            cmd.Parameters.Clear();
+            cmd.Parameters.AddWithValue("@id", 2);
+            cmd.Parameters.AddWithValue("@name", "Bad Prereqs");
+            cmd.Parameters.AddWithValue("@desc", "");
+            cmd.Parameters.AddWithValue("@npc", 0);
+            cmd.Parameters.AddWithValue("@prereqs", "1,two");
+            cmd.Parameters.AddWithValue("@script", "");
+            cmd.Parameters.AddWithValue("@props",
+                """{ "requirements": [ { "key": "logs", "type": "Item", "item": 120, "target": 5000 } ] }""");
+            cmd.ExecuteNonQuery();
+            cmd.Parameters.Clear();
+            cmd.Parameters.AddWithValue("@id", 3);
+            cmd.Parameters.AddWithValue("@name", "Good Two");
+            cmd.Parameters.AddWithValue("@desc", "");
+            cmd.Parameters.AddWithValue("@npc", 0);
+            cmd.Parameters.AddWithValue("@prereqs", "1");
+            cmd.Parameters.AddWithValue("@script", "");
+            cmd.Parameters.AddWithValue("@props",
+                """{ "requirements": [ { "key": "gold", "type": "Gold", "target": 1000 } ] }""");
+            cmd.ExecuteNonQuery();
+        });
+
+        world.CommunityGoals.Load(world);
+
+        var goals = world.CommunityGoals.Goals;
+        Assert.Equal(new[] { 1, 3 }, goals.Keys.OrderBy(k => k).ToArray());
+        Assert.Equal(7, goals[1].Definition!.Requirements[0].NpcTemplateId);
+        Assert.Equal(new[] { 1 }, goals[3].PrerequisiteGoals);
+    }
+
     private static void RunSql(SQLiteConnection conn, string sql)
     {
         using var cmd = conn.CreateCommand();

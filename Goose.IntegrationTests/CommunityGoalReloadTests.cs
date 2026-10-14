@@ -147,6 +147,48 @@ public class CommunityGoalReloadTests : IDisposable
         Assert.Contains(player.Sent, s => s.Contains("Reloaded scripts."));
     }
 
+    [Fact]
+    public void ReloadScripts_BrokenDefine_KeepsOldDefinitionAndOldScript()
+    {
+        InsertGoal(1, "Scripts/CommunityGoal/Goal.csx", "");
+        fixture.CompileCommunityGoalScript("""
+            public class Goal : BaseCommunityGoalScript
+            {
+                public override CommunityGoalDefinition Define(CommunityGoal goal, GameWorld world)
+                    => new() { Requirements = new[] { Requirement.Kill("kills", 7, 100) } };
+                public override string? CanContribute(CommunityGoal goal, CommunityGoalRun run, Player player, string key, long amount, GameWorld world)
+                    => "S1 refusal";
+            }
+
+            return typeof(Goal);
+            """, "Goal.csx");
+        fixture.World.CommunityGoals.Load(fixture.World);
+
+        Assert.Equal(100, fixture.World.CommunityGoals.Goals[1].Definition!.Requirements[0].Target);
+
+        File.WriteAllText(Path.Combine(fixture.DataDirectory, "Scripts", "CommunityGoal", "Goal.csx"), """
+            public class Goal : BaseCommunityGoalScript
+            {
+                public override CommunityGoalDefinition Define(CommunityGoal goal, GameWorld world)
+                    => throw new Exception("boom");
+                public override string? CanContribute(CommunityGoal goal, CommunityGoalRun run, Player player, string key, long amount, GameWorld world)
+                    => "S2 refusal";
+            }
+
+            return typeof(Goal);
+            """);
+
+        ReloadScripts();
+        fixture.World.Update();
+
+        Assert.Equal(100, fixture.World.CommunityGoals.Goals[1].Definition!.Requirements[0].Target);
+
+        fixture.World.CommunityGoals.Tick(fixture.World);
+        var goal = fixture.World.CommunityGoals.Goals[1];
+        var result = fixture.World.CommunityGoals.Contribute(goal, player, "kills", 1, fixture.World);
+        Assert.Equal("S1 refusal", result.Refusal);
+    }
+
     private static void RunSql(SQLiteConnection conn, string sql)
     {
         using var cmd = conn.CreateCommand();

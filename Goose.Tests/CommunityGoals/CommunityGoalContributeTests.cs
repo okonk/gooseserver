@@ -201,6 +201,24 @@ return typeof(G);
         }
 
         [Fact]
+        public void Contribute_ThrowingRunCompletedSubscriber_LaterSubscribersStillRun()
+        {
+            var goal = LoadGoal(GoldProps(100));
+            var run = LoadRun();
+            var ran = new List<int>();
+            handler.RunCompleted += (g, r, w) => throw new InvalidOperationException("boom");
+            handler.RunCompleted += (g, r, w) => ran.Add(1);
+
+            using var log = new CapturingLog();
+            var result = handler.Contribute(goal, Player(), "gold", 100, world);
+
+            Assert.Equal(100, result.Accepted);
+            Assert.Equal(RunStatus.Completed, run.Status);
+            Assert.Equal(new[] { 1 }, ran);
+            Assert.Contains(log.Messages, m => m.Contains("RunCompleted subscriber Exception"));
+        }
+
+        [Fact]
         public void Contribute_TimeoutWithUnmetTargets_FailsWithoutEvent()
         {
             var goal = LoadGoal(GoldProps(1000, """ "duration": "1h" """));

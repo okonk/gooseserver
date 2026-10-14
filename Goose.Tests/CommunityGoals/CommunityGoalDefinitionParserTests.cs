@@ -401,6 +401,72 @@ public class CommunityGoalDefinitionParserTests
     }
 
     [Fact]
+    public void Validate_rejects_duplicate_requirement_key_in_custom_definition()
+    {
+        var def = new CommunityGoalDefinition
+        {
+            Requirements =
+            [
+                Requirement.Gold("gold", 1000),
+                Requirement.Gold("gold", 2000)
+            ]
+        };
+
+        var errors = Validate(def);
+
+        Assert.Equal("duplicate requirement key 'gold'", Assert.Single(errors));
+    }
+
+    [Fact]
+    public void Validate_accepts_unique_requirement_keys_in_custom_definition()
+    {
+        var def = new CommunityGoalDefinition
+        {
+            Requirements =
+            [
+                Requirement.Item("logs", 120, 5000),
+                Requirement.Gold("gold", 1000)
+            ]
+        };
+
+        Assert.Empty(Validate(def));
+    }
+
+    [Fact]
+    public void Validate_rejects_undefined_requirement_kind_in_custom_definition()
+    {
+        var def = new CommunityGoalDefinition
+        {
+            Requirements =
+            [
+                new GoalRequirement { Key = "gold", Kind = (RequirementKind)999, Target = 1000 }
+            ]
+        };
+
+        var errors = Validate(def);
+
+        Assert.Contains("unknown requirement kind '999'", errors);
+    }
+
+    [Fact]
+    public void Validate_accepts_all_valid_requirement_kinds_in_custom_definition()
+    {
+        var def = new CommunityGoalDefinition
+        {
+            Requirements =
+            [
+                Requirement.Item("logs", 120, 5000),
+                Requirement.Gold("gold", 1000),
+                Requirement.Experience("xp", 900000),
+                Requirement.Kill("orcs", 44),
+                Requirement.Custom("boss_damage", "Boss damage")
+            ]
+        };
+
+        Assert.Empty(Validate(def));
+    }
+
+    [Fact]
     public void Factories_build_definitions()
     {
         var rewards = new[] { new RewardSpec { Type = "Gold", Params = new() } };

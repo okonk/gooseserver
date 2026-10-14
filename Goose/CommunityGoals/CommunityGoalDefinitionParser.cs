@@ -220,9 +220,14 @@ namespace Goose.CommunityGoals
         {
             var errors = new List<string>();
             var keys = def.Requirements.Select(r => r.Key).ToHashSet(StringComparer.Ordinal);
+            var seenKeys = new HashSet<string>(StringComparer.Ordinal);
 
             foreach (var req in def.Requirements)
             {
+                if (!Enum.IsDefined(typeof(RequirementKind), req.Kind))
+                    errors.Add($"unknown requirement kind '{req.Kind}'");
+                if (!seenKeys.Add(req.Key))
+                    errors.Add($"duplicate requirement key '{req.Key}'");
                 if (req.Kind == RequirementKind.Item && req.ItemTemplateId is null)
                     errors.Add($"requirement '{req.Key}' of type Item is missing 'item'");
                 if (req.Kind == RequirementKind.Kill && req.NpcTemplateId is null)

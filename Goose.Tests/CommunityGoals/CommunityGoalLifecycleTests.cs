@@ -85,6 +85,150 @@ namespace Goose.Tests
         }
 
         [Fact]
+        public void Tick_PrerequisiteMetButClosesAtPast_StartsFailedTerminalRun()
+        {
+            var goal1 = new CommunityGoal { Id = 1, Name = "Goal 1", PropertiesJson = GoldProps(1000) };
+            var goal2 = new CommunityGoal { Id = 2, Name = "Goal 2", PropertiesJson = GoldProps(2000, """ "closesAt": "2025-05-01T00:00:00Z" """) };
+            goal2.PrerequisiteGoals.Add(1);
+            handler.LoadDefinitionRows(new[] { goal1, goal2 }, world);
+            var run1 = LoadRun(1, 1, started, status: RunStatus.Completed, completedAt: now);
+
+            handler.Tick(world);
+
+            Assert.Equal(RunStatus.Completed, run1.Status);
+            var run2 = handler.CurrentRun(2);
+            Assert.NotNull(run2);
+            Assert.Equal(1, run2!.Run);
+            Assert.Equal(RunStatus.Failed, run2.Status);
+            Assert.Equal(now, run2.CompletedAt);
+        }
+
+        [Fact]
+        public void Tick_FutureClosesAt_StartsRun()
+        {
+            LoadGoal(1, GoldProps(1000, """ "closesAt": "2025-07-01T00:00:00Z" """));
+
+            handler.Tick(world);
+
+            var run = handler.CurrentRun(1);
+            Assert.NotNull(run);
+            Assert.Equal(RunStatus.Active, run!.Status);
+            Assert.Equal(now, run.StartedAt);
+        }
+
+        [Fact]
+        public void Tick_NoRunTargetlessClosesAtPast_StartsCompletedTerminalRun()
+        {
+            var goal = LoadGoal(1, GoldProps(null, """ "closesAt": "2025-05-01T00:00:00Z" """));
+            var events = new List<(CommunityGoal Goal, CommunityGoalRun Run)>();
+            handler.RunCompleted += (g, r, w) => events.Add((g, r));
+
+            handler.Tick(world);
+
+            var run = handler.CurrentRun(1);
+            Assert.NotNull(run);
+            Assert.Equal(1, run!.Run);
+            Assert.Equal(RunStatus.Completed, run.Status);
+            Assert.Equal(now, run.StartedAt);
+            Assert.Equal(now, run.CompletedAt);
+            Assert.True(handler.IsRunDirty(1, 1));
+            Assert.Same(goal, events[0].Goal);
+            Assert.Same(run, events[0].Run);
+            Assert.Equal(1, events.Count);
+        }
+
+        [Fact]
+        public void Tick_NoRunTargetedClosesAtPast_StartsFailedTerminalRun()
+        {
+            LoadGoal(1, GoldProps(1000, """ "closesAt": "2025-05-01T00:00:00Z" """));
+            var events = new List<(CommunityGoal Goal, CommunityGoalRun Run)>();
+            handler.RunCompleted += (g, r, w) => events.Add((g, r));
+
+            handler.Tick(world);
+
+            var run = handler.CurrentRun(1);
+            Assert.NotNull(run);
+            Assert.Equal(1, run!.Run);
+            Assert.Equal(RunStatus.Failed, run.Status);
+            Assert.Equal(now, run.CompletedAt);
+            Assert.True(handler.IsRunDirty(1, 1));
+            Assert.Empty(events);
+        }
+
+        [Fact]
+        public void Tick_NoRunTargetedClosesAtPast_ScriptIsComplete_StartsCompletedTerminalRun()
+        {
+            fixture.CompileCommunityGoalScript(@"
+public class G : BaseCommunityGoalScript
+{
+    public override CommunityGoalDefinition Define(CommunityGoal goal, GameWorld world)
+        => new()
+        {
+            Requirements = new[] { Requirement.Gold(""gold"", 1000) },
+            ClosesAt = new DateTime(2025, 5, 1, 0, 0, 0, DateTimeKind.Utc)
+        };
+    public override bool IsComplete(CommunityGoal goal, CommunityGoalRun run, GameWorld world) => true;
+}
+return typeof(G);
+");
+            var goal = new CommunityGoal
+            {
+                Id = 1,
+                Name = "Goal 1",
+                ScriptPath = "Scripts/CommunityGoal/G.csx",
+                PropertiesJson = "{}",
+            };
+            handler.LoadDefinitionRows(new[] { goal }, world);
+            var events = new List<(CommunityGoal Goal, CommunityGoalRun Run)>();
+            handler.RunCompleted += (g, r, w) => events.Add((g, r));
+
+            handler.Tick(world);
+
+            var run = handler.CurrentRun(1);
+            Assert.NotNull(run);
+            Assert.Equal(1, run!.Run);
+            Assert.Equal(RunStatus.Completed, run.Status);
+            Assert.Equal(now, run.CompletedAt);
+            Assert.Same(goal, events[0].Goal);
+            Assert.Same(run, events[0].Run);
+            Assert.Equal(1, events.Count);
+        }
+
+        [Fact]
+        public void Tick_DependentGoal_StartsAfterTerminalCompletedPrereq()
+        {
+            var goal1 = new CommunityGoal { Id = 1, Name = "Goal 1", PropertiesJson = GoldProps(null, """ "closesAt": "2025-05-01T00:00:00Z" """) };
+            var goal2 = new CommunityGoal { Id = 2, Name = "Goal 2", PropertiesJson = GoldProps(2000) };
+            goal2.PrerequisiteGoals.Add(1);
+            handler.LoadDefinitionRows(new[] { goal1, goal2 }, world);
+
+            handler.Tick(world);
+            handler.Tick(world);
+
+            var prereqRun = handler.CurrentRun(1);
+            Assert.NotNull(prereqRun);
+            Assert.Equal(RunStatus.Completed, prereqRun!.Status);
+            var run2 = handler.CurrentRun(2);
+            Assert.NotNull(run2);
+            Assert.Equal(1, run2!.Run);
+            Assert.Equal(RunStatus.Active, run2.Status);
+        }
+
+        [Fact]
+        public void Tick_RepeatingClosesAtPast_DoesNotStartNewRun()
+        {
+            LoadGoal(1, GoldProps(100, """ "closesAt": "2025-05-01T00:00:00Z", "repeat": "onClose" """));
+            LoadRun(1, 1, started, status: RunStatus.Completed, completedAt: started.AddHours(1));
+
+            handler.Tick(world);
+
+            var run = handler.CurrentRun(1);
+            Assert.NotNull(run);
+            Assert.Equal(1, run!.Run);
+            Assert.Equal(RunStatus.Completed, run.Status);
+        }
+
+        [Fact]
         public void Tick_PrerequisiteRun1NotCompleted_DoesNotStartUntilItCompletes()
         {
             var goal1 = new CommunityGoal { Id = 1, Name = "Goal 1", PropertiesJson = GoldProps(1000) };

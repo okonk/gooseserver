@@ -101,6 +101,22 @@ return typeof(G);
         }
 
         [Fact]
+        public void LoadDefinitionRows_MalformedPrerequisites_SkipsGoalSiblingsLoad()
+        {
+            using var log = new CapturingLog();
+            handler.LoadDefinitionRows(new[]
+            {
+                new CommunityGoal { Id = 1, Name = "Goal 1", PropertiesJson = KillProps(7), PrerequisiteGoalsRaw = "1,two" },
+                Goal(2, KillProps(8)),
+            }, world);
+
+            Assert.Equal(2, Assert.Single(handler.Goals).Key);
+            Assert.True(handler.KillIndex.ContainsKey(8));
+            Assert.False(handler.KillIndex.ContainsKey(7));
+            Assert.Contains(log.Messages, m => m.Contains("Failed to load community goal 1"));
+        }
+
+        [Fact]
         public void LoadDefinitions_DatabaseFailure_LeavesPreviousStateUntouched()
         {
             handler.LoadDefinitionRows(new[] { Goal(1, KillProps(7)) }, world);
