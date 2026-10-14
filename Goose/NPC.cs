@@ -1681,6 +1681,7 @@ namespace Goose
             existingBuff.TimeCast = world.TimeNow;
             existingBuff.SpellEffect = newBuff.SpellEffect;
             existingBuff.Caster = newBuff.Caster;
+            existingBuff.CasterMPAtCast = newBuff.CasterMPAtCast;
 
             if (newBuff.SpellEffect.Animation != 0)
             {

@@ -773,6 +773,7 @@ namespace Goose
             buff.ItemBuff = false;
             buff.SpellEffect = this;
             buff.TimeCast = world.TimeNow;
+            buff.CasterMPAtCast = caster.CurrentMP;
 
             target.AddBuff(buff, world);
 

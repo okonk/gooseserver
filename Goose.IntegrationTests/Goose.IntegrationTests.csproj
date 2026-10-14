@@ -58,6 +58,8 @@
           Link="SpellScripts/Backstab.csx" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Goose/Data/Illutia/Scripts/Spell/ShardOfInvincibility.csx"
           Link="SpellScripts/ShardOfInvincibility.csx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Goose/Data/Illutia/Scripts/Spell/TickSnare.csx"
+          Link="SpellScripts/TickSnare.csx" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Goose/Data/Illutia/Scripts/Item/CustomTicket.csx"
           Link="ItemScripts/CustomTicket.csx" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Goose/Data/Illutia/Scripts/Item/HairDyePotion.csx"

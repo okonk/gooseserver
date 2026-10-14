@@ -12,6 +12,7 @@ namespace Goose
         public ICharacter Target { get; set; } = null!;
         public SpellEffect SpellEffect { get; set; } = null!;
         public long TimeCast { get; set; }
+        public long CasterMPAtCast { get; set; }
         public bool ItemBuff { get; set; }
         public Event? BuffExpireEvent { get; set; }
 
