@@ -13,11 +13,9 @@ public class BankPageItem : BaseItemScript
 
         player.NumberOfBankPages += pages;
 
-        int containerSize = player.NumberOfBankPages * world.Settings.BankSlotsPerPage + 1;
         foreach (var container in player.Bank.Containers.Values)
         {
-            if (container.MaxSlots < containerSize)
-                container.Resize(containerSize);
+            container.GrowToPages(player.NumberOfBankPages, world.Settings.BankSlotsPerPage);
         }
 
         foreach (var window in player.Windows)
