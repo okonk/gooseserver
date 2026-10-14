@@ -333,7 +333,7 @@ namespace Goose.Tests
             handler.Load(world);
 
             Assert.Equal(1, handler.Goals.Count);
-            Assert.Equal(before + 1, world.EventHandler.Count);
+            Assert.Equal(before + 2, world.EventHandler.Count);
             Assert.IsType<CommunityGoalTickEvent>(world.EventHandler.Peek());
         }
     }

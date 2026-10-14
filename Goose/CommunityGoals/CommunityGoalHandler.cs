@@ -21,6 +21,8 @@ namespace Goose.CommunityGoals
         private readonly HashSet<(int GoalId, int Run)> dirtyRuns = new();
         private readonly HashSet<(int GoalId, int Run, int PlayerId)> dirtyContributions = new();
         private readonly HashSet<(int GoalId, int Run, int PlayerId)> pendingContributionDeletes = new();
+        private readonly HashSet<string> dirtyFlags = new();
+        private readonly List<SavePlan> inFlightPlans = new();
         private readonly HashSet<int> missingPrerequisiteGoalIds = new();
 
         public IReadOnlyDictionary<int, CommunityGoal> Goals => this.goals;
@@ -37,6 +39,7 @@ namespace Goose.CommunityGoals
                 (ReadRuns(conn), ReadContributions(conn), ReadFlags(conn)));
             this.LoadStateRows(runRows, contributionRows, flagRows);
             this.AddTickEvent(world);
+            this.AddSaveEvent(world);
         }
 
         public void LoadDefinitions(GameWorld world)
@@ -348,6 +351,188 @@ namespace Goose.CommunityGoals
 
         internal bool IsRunDirty(int goalId, int run) => this.dirtyRuns.Contains((goalId, run));
         internal bool IsContributionDirty(int goalId, int run, int playerId) => this.dirtyContributions.Contains((goalId, run, playerId));
+        internal void MarkFlagDirty(string name) => this.dirtyFlags.Add(name);
+
+        public void Save(GameWorld world)
+        {
+            try
+            {
+                var plan = PlanSave();
+                if (plan.IsEmpty) return;
+                world.Database.EnqueueTransaction(
+                    conn => ExecutePlan(conn, plan),
+                    onSettled: ex =>
+                    {
+                        world.EnqueueCompletion(() =>
+                        {
+                            this.inFlightPlans.Remove(plan);
+                            if (ex is not null)
+                                ReDirty(plan);
+                        });
+                    });
+                this.inFlightPlans.Add(plan);
+            }
+            finally
+            {
+                this.AddSaveEvent(world);
+            }
+        }
+
+        public void SaveSync(GameWorld world)
+        {
+            // A failed in-flight save's re-dirty may have been dropped by a shutdown in
+            // progress, so re-dirty in-flight plans explicitly or SaveSync would no-op
+            // and lose their data.
+            if (this.inFlightPlans.Count > 0)
+            {
+                foreach (var inFlight in this.inFlightPlans)
+                    ReDirty(inFlight);
+                this.inFlightPlans.Clear();
+            }
+            var plan = PlanSave();
+            if (plan.IsEmpty) return;
+            world.Database.ExecuteTransaction(conn => ExecutePlan(conn, plan));
+        }
+
+        internal void AddSaveEvent(GameWorld world)
+        {
+            var ev = new CommunityGoalSaveEvent();
+            ev.Ticks += (long)(Math.Max(1, world.Settings.WorldSavePeriod) * world.TimerFrequency);
+            world.EventHandler.AddEvent(ev);
+        }
+
+        internal SavePlan PlanSave()
+        {
+            var runs = new List<RunRow>();
+            foreach (var key in this.dirtyRuns)
+            {
+                if (!this.runs.TryGetValue(key, out var run)) continue;
+                runs.Add(new RunRow(
+                    run.GoalId, run.Run, run.Status,
+                    run.StartedAt.ToString("o", CultureInfo.InvariantCulture),
+                    run.CompletedAt?.ToString("o", CultureInfo.InvariantCulture),
+                    JsonHelper.Serialize(run.Totals),
+                    run.Results is null ? null : JsonHelper.Serialize(run.Results)));
+            }
+
+            var contributions = new List<ContributionRow>();
+            foreach (var (goalId, run, playerId) in this.dirtyContributions)
+            {
+                if (!this.runs.TryGetValue((goalId, run), out var runObj)
+                    || !runObj.Contributions.TryGetValue(playerId, out var contribution))
+                    continue;
+                contributions.Add(new ContributionRow(
+                    goalId, run, playerId,
+                    JsonHelper.Serialize(contribution.Amounts),
+                    contribution.LastAt.ToString("o", CultureInfo.InvariantCulture),
+                    contribution.ClaimedBracket,
+                    contribution.ClaimedAt?.ToString("o", CultureInfo.InvariantCulture)));
+            }
+
+            var flags = new List<FlagRow>();
+            foreach (var name in this.dirtyFlags)
+            {
+                if (!this.flags.TryGetValue(name, out var flag)) continue;
+                flags.Add(new FlagRow(
+                    flag.Name, flag.Value,
+                    flag.SetAt.ToString("o", CultureInfo.InvariantCulture),
+                    flag.SourceGoalId));
+            }
+
+            var deletes = this.pendingContributionDeletes.ToList();
+
+            this.dirtyRuns.Clear();
+            this.dirtyContributions.Clear();
+            this.pendingContributionDeletes.Clear();
+            this.dirtyFlags.Clear();
+
+            return new SavePlan(runs, contributions, flags, deletes);
+        }
+
+        private void ReDirty(SavePlan plan)
+        {
+            foreach (var row in plan.Runs)
+                this.dirtyRuns.Add((row.GoalId, row.Run));
+            foreach (var row in plan.Contributions)
+                this.dirtyContributions.Add((row.GoalId, row.Run, row.PlayerId));
+            foreach (var (goalId, run, playerId) in plan.Deletes)
+                this.pendingContributionDeletes.Add((goalId, run, playerId));
+            foreach (var row in plan.Flags)
+                this.dirtyFlags.Add(row.Name);
+        }
+
+        private static void ExecutePlan(SQLiteConnection conn, SavePlan plan)
+        {
+            // Runs on the DB thread; executes only the captured plan, never live state.
+            foreach (var (goalId, run, playerId) in plan.Deletes)
+            {
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = "DELETE FROM community_goal_contributions WHERE goal_id=@g AND run=@r AND player_id=@p";
+                cmd.Parameters.AddWithValue("@g", goalId);
+                cmd.Parameters.AddWithValue("@r", run);
+                cmd.Parameters.AddWithValue("@p", playerId);
+                cmd.ExecuteNonQuery();
+            }
+            foreach (var row in plan.Runs)
+            {
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = "INSERT INTO community_goal_runs (goal_id, run, status, started_at, completed_at, totals, results) " +
+                    "VALUES (@g, @r, @status, @start, @end, @totals, @results) " +
+                    "ON CONFLICT(goal_id, run) DO UPDATE SET status=@status, started_at=@start, completed_at=@end, totals=@totals, results=@results";
+                cmd.Parameters.AddWithValue("@g", row.GoalId);
+                cmd.Parameters.AddWithValue("@r", row.Run);
+                cmd.Parameters.AddWithValue("@status", row.Status.ToString());
+                cmd.Parameters.AddWithValue("@start", row.StartedAt);
+                cmd.Parameters.AddWithValue("@end", (object?)row.CompletedAt ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@totals", row.TotalsJson);
+                cmd.Parameters.AddWithValue("@results", (object?)row.ResultsJson ?? DBNull.Value);
+                cmd.ExecuteNonQuery();
+            }
+            foreach (var row in plan.Contributions)
+            {
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = "INSERT INTO community_goal_contributions (goal_id, run, player_id, amounts, last_at, claimed_bracket, claimed_at) " +
+                    "VALUES (@g, @r, @p, @amounts, @last, @bracket, @claimed) " +
+                    "ON CONFLICT(goal_id, run, player_id) DO UPDATE SET amounts=@amounts, last_at=@last, claimed_bracket=@bracket, claimed_at=@claimed";
+                cmd.Parameters.AddWithValue("@g", row.GoalId);
+                cmd.Parameters.AddWithValue("@r", row.Run);
+                cmd.Parameters.AddWithValue("@p", row.PlayerId);
+                cmd.Parameters.AddWithValue("@amounts", row.AmountsJson);
+                cmd.Parameters.AddWithValue("@last", row.LastAt);
+                cmd.Parameters.AddWithValue("@bracket", (object?)row.ClaimedBracket ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@claimed", (object?)row.ClaimedAt ?? DBNull.Value);
+                cmd.ExecuteNonQuery();
+            }
+            foreach (var row in plan.Flags)
+            {
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = "INSERT INTO world_flags (name, value, set_at, source_goal_id) " +
+                    "VALUES (@name, @value, @set, @goal) " +
+                    "ON CONFLICT(name) DO UPDATE SET value=@value, set_at=@set, source_goal_id=@goal";
+                cmd.Parameters.AddWithValue("@name", row.Name);
+                cmd.Parameters.AddWithValue("@value", row.Value);
+                cmd.Parameters.AddWithValue("@set", row.SetAt);
+                cmd.Parameters.AddWithValue("@goal", (object?)row.SourceGoalId ?? DBNull.Value);
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        internal sealed record SavePlan(
+            List<RunRow> Runs,
+            List<ContributionRow> Contributions,
+            List<FlagRow> Flags,
+            List<(int GoalId, int Run, int PlayerId)> Deletes)
+        {
+            public bool IsEmpty => Runs.Count == 0 && Contributions.Count == 0 && Flags.Count == 0 && Deletes.Count == 0;
+        }
+
+        internal sealed record RunRow(int GoalId, int Run, RunStatus Status, string StartedAt,
+                                      string? CompletedAt, string TotalsJson, string? ResultsJson);
+
+        internal sealed record ContributionRow(int GoalId, int Run, int PlayerId, string AmountsJson,
+                                               string LastAt, int? ClaimedBracket, string? ClaimedAt);
+
+        internal sealed record FlagRow(string Name, int Value, string SetAt, int? SourceGoalId);
 
         internal void LoadStateRows(IEnumerable<CommunityGoalRun> runs,
                                    IEnumerable<(int GoalId, int Run, Contribution C)> contributions,

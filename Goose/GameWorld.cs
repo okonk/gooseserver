@@ -568,6 +568,16 @@ namespace Goose
                 log.Error(e, "Failed to save world state during shutdown.");
             }
 
+            log.Info("Saving community goals.");
+            try
+            {
+                this.CommunityGoals.SaveSync(this);
+            }
+            catch (Exception e)
+            {
+                log.Error(e, "Failed to save community goals during shutdown.");
+            }
+
             log.Info("Waiting for database writes.");
             while (this.Database.PendingCount > 0)
             {
