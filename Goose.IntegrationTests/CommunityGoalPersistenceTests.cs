@@ -57,7 +57,13 @@ public class CommunityGoalPersistenceTests : PlayerFirstSaveTestBase
             Assert.Equal(started, run.StartedAt);
             Assert.Equal(started, run.CompletedAt);
             Assert.Equal(200, run.Totals["gold"]);
-            Assert.Null(run.Results);
+            Assert.NotNull(run.Results);
+            Assert.Empty(run.Results!["places"]!.AsArray());
+            var top = run.Results["top"]!.AsArray();
+            var entry = Assert.Single(top);
+            Assert.Equal(1, entry!["player"]!.GetValue<int>());
+            Assert.Equal(200, entry["score"]!.GetValue<double>());
+            Assert.Equal(200, run.Results["totals"]!["gold"]!.GetValue<long>());
             var contribution = Assert.Single(run.Contributions).Value;
             Assert.Equal(1, contribution.PlayerId);
             Assert.Equal(200, contribution.Amounts["gold"]);

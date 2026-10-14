@@ -408,10 +408,39 @@ namespace Goose.CommunityGoals
             }
             run.Status = RunStatus.Completed;
             run.CompletedAt = now;
+            run.Results = BuildResults(definition, run, world.Random);
             this.dirtyRuns.Add((goal.Id, run.Run));
             this.RaiseRunCompleted(goal, run, world);
             if (definition.Repeat is { Every: null })
                 this.StartRun(goal, now);
+        }
+
+        private static JsonObject BuildResults(CommunityGoalDefinition definition, CommunityGoalRun run, Random random)
+        {
+            var places = Ranking.Freeze(definition, run, random);
+            var top = new JsonArray();
+            foreach (var contribution in run.Contributions.Values
+                         .Where(c => Ranking.Score(definition, c) > 0)
+                         .OrderByDescending(c => Ranking.Score(definition, c))
+                         .ThenBy(c => c.LastAt)
+                         .ThenBy(c => c.PlayerId)
+                         .Take(10))
+            {
+                top.Add(new JsonObject
+                {
+                    ["player"] = contribution.PlayerId,
+                    ["score"] = Ranking.Score(definition, contribution),
+                });
+            }
+            var totals = new JsonObject();
+            foreach (var (key, value) in run.Totals)
+                totals[key] = value;
+            return new JsonObject
+            {
+                ["places"] = new JsonArray(places.Select(id => (JsonNode)id).ToArray()),
+                ["top"] = top,
+                ["totals"] = totals,
+            };
         }
 
         internal bool IsRunDirty(int goalId, int run) => this.dirtyRuns.Contains((goalId, run));
