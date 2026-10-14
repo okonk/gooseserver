@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
@@ -11,6 +12,7 @@ namespace Goose.CommunityGoals
             JsonNode? node;
             try
             {
+                RejectDuplicateProperties(json);
                 node = JsonNode.Parse(json);
             }
             catch (JsonException e)
@@ -187,6 +189,31 @@ namespace Goose.CommunityGoals
                 Brackets = brackets,
                 CommunityRewards = communityRewards
             };
+        }
+
+        // JsonNode.Parse keeps duplicate property names and only throws a raw ArgumentException
+        // when the object is first enumerated, which would escape the goal-load catch in Task 5.
+        private static void RejectDuplicateProperties(string json)
+        {
+            var reader = new Utf8JsonReader(Encoding.UTF8.GetBytes(json));
+            var scopes = new Stack<HashSet<string>>();
+            while (reader.Read())
+            {
+                switch (reader.TokenType)
+                {
+                    case JsonTokenType.StartObject:
+                        scopes.Push(new HashSet<string>(StringComparer.Ordinal));
+                        break;
+                    case JsonTokenType.PropertyName:
+                        var name = reader.GetString()!;
+                        if (!scopes.Peek().Add(name))
+                            throw new CommunityGoalDefinitionException($"duplicate property '{name}' in JSON object");
+                        break;
+                    case JsonTokenType.EndObject:
+                        scopes.Pop();
+                        break;
+                }
+            }
         }
 
         public static IReadOnlyList<string> Validate(CommunityGoalDefinition def, bool customScript)

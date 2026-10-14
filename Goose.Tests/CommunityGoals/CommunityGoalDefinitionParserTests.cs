@@ -166,6 +166,39 @@ public class CommunityGoalDefinitionParserTests
     }
 
     [Fact]
+    public void Duplicate_property_in_nested_object_throws()
+    {
+        var ex = Assert.Throws<CommunityGoalDefinitionException>(() =>
+            CommunityGoalDefinitionParser.Parse("""
+                { "requirements": [ { "key": "gold", "type": "Gold" } ],
+                  "score": { "gold": 1, "gold": 2 } }
+                """));
+        Assert.Contains("duplicate property 'gold'", ex.Message);
+    }
+
+    [Fact]
+    public void Duplicate_root_property_throws()
+    {
+        var ex = Assert.Throws<CommunityGoalDefinitionException>(() =>
+            CommunityGoalDefinitionParser.Parse("""
+                { "requirements": [], "requirements": [] }
+                """));
+        Assert.Contains("duplicate property 'requirements'", ex.Message);
+    }
+
+    [Fact]
+    public void Same_property_name_in_different_objects_is_valid()
+    {
+        var def = CommunityGoalDefinitionParser.Parse("""
+            { "requirements": [ { "key": "gold", "type": "Gold" } ],
+              "duration": "1d",
+              "brackets": [ { "rank": 1, "rewards": [ { "type": "Gold", "value": 100 } ] } ],
+              "communityRewards": [ { "type": "Gold", "value": 10 } ] }
+            """);
+        Assert.Empty(Validate(def, false));
+    }
+
+    [Fact]
     public void Malformed_json_throws()
     {
         var ex = Assert.Throws<CommunityGoalDefinitionException>(() => CommunityGoalDefinitionParser.Parse("not json"));
