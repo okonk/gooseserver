@@ -249,6 +249,7 @@ namespace Goose
                 foreach (var schemaFile in new[]
                 {
                     "players", "banks", "logs", "pets", "guilds", "wordfilter", "quest_claims", "world_state",
+                    "community_goals_state",
                 })
                 {
                     ExecuteSql(conn, File.ReadAllText(Paths.ResolveBase("sql/" + schemaFile + ".sql"), Encoding.UTF8));
@@ -284,6 +285,12 @@ namespace Goose
                     "quest_id INT PRIMARY KEY, player_id INT NOT NULL, completed_at TEXT NOT NULL, player_ids TEXT NOT NULL DEFAULT ''");
                 AddColumnIfMissing(conn, "quest_claims", "player_ids", "TEXT NOT NULL DEFAULT ''");
                 CreateTableIfMissing(conn, "world_state", "key TEXT PRIMARY KEY, value TEXT NOT NULL");
+                CreateTableIfMissing(conn, "community_goal_runs",
+                    "goal_id INT NOT NULL, run INT NOT NULL, status TEXT NOT NULL, started_at TEXT NOT NULL, completed_at TEXT NULL, totals TEXT NOT NULL DEFAULT '{}', results TEXT NULL, PRIMARY KEY (goal_id, run)");
+                CreateTableIfMissing(conn, "community_goal_contributions",
+                    "goal_id INT NOT NULL, run INT NOT NULL, player_id INT NOT NULL, amounts TEXT NOT NULL DEFAULT '{}', last_at TEXT NOT NULL, claimed_bracket INT NULL, claimed_at TEXT NULL, PRIMARY KEY (goal_id, run, player_id)");
+                CreateTableIfMissing(conn, "world_flags",
+                    "name TEXT PRIMARY KEY, value INT NOT NULL, set_at TEXT NOT NULL, source_goal_id INT NULL");
                 Goose.Logs.LogSchemaMigrator.Migrate(conn);
             });
         }
