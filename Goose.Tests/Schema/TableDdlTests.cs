@@ -71,7 +71,7 @@ public class TableDdlTests
     public void Empty_index_list_emits_no_index()
     {
         // SchemaRegistry normalises null to an empty array, so this is the branch
-        // 19 of the 21 tables actually take.
+        // 20 of the 22 tables actually take.
         var ddl = TableDdl.Emit("t", new[] { Col.Int("stack") }, indexes: []);
 
         Assert.DoesNotContain("CREATE INDEX", ddl);

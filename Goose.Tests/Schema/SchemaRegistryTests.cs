@@ -5,7 +5,8 @@ namespace Goose.Tests.Schema
     public class SchemaRegistryTests
     {
         /// <summary>The 21 sheet -> table pairs the pre-registry
-        /// CsvToSqlConverter.BuildConverterMapping() carried, captured as literals so the
+        /// CsvToSqlConverter.BuildConverterMapping() carried, plus the new Community Goals
+        /// pair, captured as literals so the
         /// registry is pinned against what actually worked rather than against the plan.
         /// Kept deliberately past the migration: it is the only remaining record of which
         /// worksheet feeds which table, and nothing else pins it — the equivalence test sees
@@ -24,6 +25,7 @@ namespace Goose.Tests.Schema
             "Quests -> quests",
             "Quest Reqs -> quest_requirements",
             "Quest Rewards -> quest_rewards",
+            "Community Goals -> community_goals",
             "Maps -> maps",
             "Map Required Items -> map_required_items",
             "Combinations -> combinations",
@@ -37,9 +39,9 @@ namespace Goose.Tests.Schema
         };
 
         [Fact]
-        public void Has_twenty_one_tables()
+        public void Has_twenty_two_tables()
         {
-            Assert.Equal(21, SchemaRegistry.Tables.Count);
+            Assert.Equal(22, SchemaRegistry.Tables.Count);
         }
 
         [Fact]

@@ -52,6 +52,8 @@ namespace CsvToSql.Core.Schema
             new TableSchema("Quests", "quests", new QuestsCsvToSql()),
             new TableSchema("Quest Reqs", "quest_requirements", new QuestRequirementsCsvToSql()),
             new TableSchema("Quest Rewards", "quest_rewards", new QuestRewardsCsvToSql()),
+            new TableSchema("Community Goals", "community_goals", new CommunityGoalsCsvToSql(),
+                            optional: true),
             new TableSchema("Spells", "spells", new SpellsCsvToSql()),
             new TableSchema("Spell Effects", "spell_effects", new SpellEffectsCsvToSql()),
             new TableSchema("Warptiles", "warptiles", new WarpTilesCsvToSql()),
