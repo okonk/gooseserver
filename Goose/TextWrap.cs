@@ -6,6 +6,7 @@ namespace Goose
         // separator in addition to real newlines.
         public static List<string> Lines(string text, int width = 50)
         {
+            width = Math.Max(1, width);
             var paragraphs = text.Replace("\r\n", "\n").Replace("\\n", "\n").Split('\n');
             var lines = new List<string>();
             foreach (var paragraph in paragraphs)

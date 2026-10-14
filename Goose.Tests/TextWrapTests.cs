@@ -101,6 +101,14 @@ namespace Goose.Tests
         }
 
         [Fact]
+        public void NonPositiveWidth_IsClampedToOne()
+        {
+            Assert.Equal(TextWrap.Lines("hello", width: 1), TextWrap.Lines("hello", width: 0));
+            Assert.Equal(["h", "e", "l", "l", "o"], TextWrap.Lines("hello", width: 0));
+            Assert.Equal(["h", "e", "l", "l", "o"], TextWrap.Lines("hello", width: -5));
+        }
+
+        [Fact]
         public void CustomWidth_IsRespected()
         {
             Assert.Equal(
