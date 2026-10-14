@@ -35,6 +35,7 @@ namespace Goose.Commands
                         world.ItemHandler.LoadTemplates(world);
                         world.ItemHandler.RefreshItemStats(world);
                         world.QuestHandler.LoadQuests(world);
+                        world.CommunityGoals.LoadDefinitions(world);
                         //world.MapHandler.LoadMaps(world);
                         //world.ClassHandler.LoadClasses(world);
                         world.NPCHandler.LoadNPCTemplates(world);
@@ -61,12 +62,14 @@ namespace Goose.Commands
                 Items = ScriptPaths(conn, "item_templates"),
                 Npcs = ScriptPaths(conn, "npc_templates"),
                 Quests = ScriptPaths(conn, "quest_requirements").Concat(ScriptPaths(conn, "quest_rewards")).Distinct().ToList(),
+                CommunityGoals = ScriptPaths(conn, "community_goals"),
             });
 
             foreach (var path in paths.SpellEffects) world.ScriptHandler.GetScript<ISpellEffectScript>(path);
             foreach (var path in paths.Items) world.ScriptHandler.GetScript<IItemScript>(path);
             foreach (var path in paths.Npcs) world.ScriptHandler.GetScript<INPCScript>(path);
             foreach (var path in paths.Quests) world.ScriptHandler.GetScript<IQuestScript>(path);
+            foreach (var path in paths.CommunityGoals) world.ScriptHandler.GetScript<ICommunityGoalScript>(path);
         }
 
         private static List<string> ScriptPaths(System.Data.SQLite.SQLiteConnection conn, string table)

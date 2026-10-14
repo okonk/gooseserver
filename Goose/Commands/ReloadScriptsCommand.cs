@@ -23,6 +23,7 @@ namespace Goose.Commands
                         {
                             commit();
                             world.RunGlobalScripts(globals);
+                            world.CommunityGoals.Redefine(world);
 
                             world.Send(player, "$7Reloaded scripts.");
                             log.Info("Reloaded scripts");
