@@ -222,6 +222,16 @@ namespace Goose.Tests.CommunityGoals
         }
 
         [Fact]
+        public void Validate_chest_pages_zero_or_negative_pages_is_rejected()
+        {
+            Assert.Contains(CommunityRewardRegistry.Validate(Spec("ChestPages", new JsonObject { ["npc"] = 900, ["pages"] = 0 }), true),
+                e => e.Contains("pages"));
+            Assert.Contains(CommunityRewardRegistry.Validate(Spec("ChestPages", new JsonObject { ["npc"] = 900, ["pages"] = -2 }), true),
+                e => e.Contains("pages"));
+            Assert.Empty(CommunityRewardRegistry.Validate(Spec("ChestPages", new JsonObject { ["npc"] = 900, ["pages"] = 1 }), true));
+        }
+
+        [Fact]
         public void Give_gold_grants_gold_with_the_quest_reward_message()
         {
             CommunityRewardRegistry.Give([Spec("Gold", new JsonObject { ["value"] = 500 })], Ctx());

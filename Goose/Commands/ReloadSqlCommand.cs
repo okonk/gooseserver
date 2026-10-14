@@ -100,24 +100,25 @@ namespace Goose.Commands
         }
 
         // properties is author-written JSON that can be invalid; a bad row must not fail the reload.
+        // Duplicate properties parse fine but throw a raw ArgumentException when the object is
+        // first enumerated, so the whole walk is guarded, not just the parse.
         private static void CollectRewardScriptPaths(string json, HashSet<string> paths)
         {
-            JsonNode? root;
             try
             {
-                root = JsonNode.Parse(json);
+                var root = JsonNode.Parse(json);
+                if (root is not JsonObject def) return;
+                if (def["brackets"] is JsonArray brackets)
+                    foreach (var bracket in brackets)
+                        if (bracket is JsonObject bracketObj && bracketObj["rewards"] is JsonArray rewards)
+                            CollectFromRewards(rewards, paths);
+                if (def["communityRewards"] is JsonArray communityRewards)
+                    CollectFromRewards(communityRewards, paths);
             }
-            catch (JsonException)
+            catch (Exception e) when (e is JsonException or ArgumentException)
             {
-                return;
+                log.Warn(e, "Skipping malformed community_goals properties row");
             }
-            if (root is not JsonObject def) return;
-            if (def["brackets"] is JsonArray brackets)
-                foreach (var bracket in brackets)
-                    if (bracket is JsonObject bracketObj && bracketObj["rewards"] is JsonArray rewards)
-                        CollectFromRewards(rewards, paths);
-            if (def["communityRewards"] is JsonArray communityRewards)
-                CollectFromRewards(communityRewards, paths);
         }
 
         private static void CollectFromRewards(JsonArray rewards, HashSet<string> paths)

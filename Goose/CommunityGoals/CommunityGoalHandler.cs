@@ -691,9 +691,19 @@ namespace Goose.CommunityGoals
                         continue;
                     if (contribution.ClaimedBracket is not null || this.IsClaimExpired(goal, run))
                         continue;
-                    if (this.BracketIndex(goal, run, player) is not int bracketIndex)
+                    int? bracketIndex;
+                    try
+                    {
+                        bracketIndex = this.BracketIndex(goal, run, player);
+                    }
+                    catch (Exception e)
+                    {
+                        log.Error(e, "Community goal {goalId} GetBracket Exception", goal.Id);
                         continue;
-                    prizes.Add(new PendingPrize(goal, run, bracketIndex));
+                    }
+                    if (bracketIndex is not int index)
+                        continue;
+                    prizes.Add(new PendingPrize(goal, run, index));
                 }
             }
             return prizes;
@@ -703,9 +713,20 @@ namespace Goose.CommunityGoals
         {
             if (run is null || run.GoalId != goal.Id || run.Status != RunStatus.Completed)
                 return ClaimResult.Refuse("This goal hasn't finished yet.");
-            if (!run.Contributions.TryGetValue(player.PlayerID, out var contribution)
-                || this.BracketIndex(goal, run, player) is not int bracketIndex)
+            if (!run.Contributions.TryGetValue(player.PlayerID, out var contribution))
                 return ClaimResult.Refuse("You have nothing to claim.");
+            int bracketIndex;
+            try
+            {
+                if (this.BracketIndex(goal, run, player) is not int index)
+                    return ClaimResult.Refuse("You have nothing to claim.");
+                bracketIndex = index;
+            }
+            catch (Exception e)
+            {
+                log.Error(e, "Community goal {goalId} GetBracket Exception", goal.Id);
+                return ClaimResult.Refuse("You cannot claim this reward right now.");
+            }
             if (contribution.ClaimedBracket is not null)
                 return ClaimResult.Refuse("You've already claimed this reward.");
             if (!this.goals.ContainsKey(goal.Id) || this.IsClaimExpired(goal, run))
@@ -733,22 +754,32 @@ namespace Goose.CommunityGoals
             }
             if (refusal is not null)
                 return ClaimResult.Refuse(refusal);
-            var required = CommunityRewardRegistry.RequiredSlots(bracket.Rewards, ctx);
+            int required;
+            try
+            {
+                required = CommunityRewardRegistry.RequiredSlots(bracket.Rewards, ctx);
+            }
+            catch (Exception e)
+            {
+                log.Error(e, "Community goal {goalId} RequiredSlots Exception", goal.Id);
+                return ClaimResult.Refuse("You cannot claim this reward right now.");
+            }
             if (player.Inventory.GetNumberOfFreeSlots() < required)
                 return ClaimResult.Refuse($"You need {required} free inventory slots to claim this.");
+            contribution.ClaimedBracket = bracketIndex;
+            contribution.ClaimedAt = this.UtcNow();
+            this.dirtyContributions.Add((goal.Id, run.Run, player.PlayerID));
             try
             {
                 CommunityRewardRegistry.Give(bracket.Rewards, ctx);
             }
             catch (Exception e)
             {
-                // No rollback of a partial grant; the claim fields are deliberately left unset.
+                // The claim is recorded before Give so a throwing reward cannot be re-claimed
+                // and re-grant a partial bracket.
                 log.Error(e, "Community goal {goalId} Give Exception", goal.Id);
                 return ClaimResult.Refuse("You cannot claim this reward right now.");
             }
-            contribution.ClaimedBracket = bracketIndex;
-            contribution.ClaimedAt = this.UtcNow();
-            this.dirtyContributions.Add((goal.Id, run.Run, player.PlayerID));
             return ClaimResult.Ok();
         }
 

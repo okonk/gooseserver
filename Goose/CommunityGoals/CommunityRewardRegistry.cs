@@ -30,6 +30,8 @@ namespace Goose.CommunityGoals
                     case "ChestPages":
                         if (!IsInt(spec.Params, "npc")) errors.Add("reward 'ChestPages' is missing an integer 'npc'");
                         if (!IsInt(spec.Params, "pages")) errors.Add("reward 'ChestPages' is missing an integer 'pages'");
+                        else if (spec.Params["pages"] is JsonValue pages && AsLong(pages) < 1)
+                            errors.Add("reward 'ChestPages' requires 'pages' >= 1");
                         break;
                     case "WorldFlag":
                         if (!IsNonEmptyString(spec.Params, "name")) errors.Add("reward 'WorldFlag' is missing a string 'name'");

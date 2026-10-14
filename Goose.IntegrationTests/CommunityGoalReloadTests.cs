@@ -104,6 +104,28 @@ public class CommunityGoalReloadTests : IDisposable
     }
 
     [Fact]
+    public void ReloadSql_MalformedGoalRowIsSkippedWithoutAborting()
+    {
+        // Duplicate JSON properties throw a raw ArgumentException (not JsonException) when the
+        // parsed object is first enumerated.
+        InsertGoal(1, "", """{ "name": "a", "name": "b", "brackets": [ { "minScore": 0, "rewards": [ { "type": "Script", "script": "Scripts/CommunityGoal/Missing.csx" } ] } ] }""");
+        InsertGoal(2, "", """{ "requirements": [ { "key": "gold", "type": "Gold", "target": 100 } ], "brackets": [ { "minScore": 0, "rewards": [ { "type": "Script", "script": "Scripts/CommunityGoal/Good.csx" } ] } ] }""");
+        Directory.CreateDirectory(Path.Combine(fixture.DataDirectory, "Scripts", "CommunityGoal"));
+        File.WriteAllText(Path.Combine(fixture.DataDirectory, "Scripts", "CommunityGoal", "Good.csx"), @"
+public class R : BaseCommunityRewardScript
+{
+}
+return typeof(R);");
+
+        ReloadSql();
+        fixture.World.Update();
+
+        Assert.Contains(player.Sent, s => s.Contains("Reloaded sql data."));
+        Assert.False(fixture.World.CommunityGoals.Goals.ContainsKey(1));
+        Assert.NotNull(fixture.World.CommunityGoals.Goals[2].Definition);
+    }
+
+    [Fact]
     public void ReloadScripts_ChangesDefineOutput()
     {
         InsertGoal(1, "Scripts/CommunityGoal/Goal.csx", "");

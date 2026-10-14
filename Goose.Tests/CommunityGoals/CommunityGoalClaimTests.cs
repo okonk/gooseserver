@@ -493,12 +493,39 @@ return typeof(R);");
         }
 
         [Fact]
-        public void Claim_ScriptGiveThrows_RefusesWithoutClaimFields()
+        public void Claim_ScriptGiveThrows_FailClosedNoRetry()
         {
             CompileRewardScript(@"
 public class R : BaseCommunityRewardScript
 {
     public override void Give(CommunityRewardContext ctx) => throw new InvalidOperationException(""boom"");
+}
+return typeof(R);");
+            var goal = LoadGoal(ScriptProps());
+            var run = LoadRun(RunStatus.Completed, started, (player.PlayerID, 50));
+            var contribution = run.Contributions[player.PlayerID];
+            using var log = new CapturingLog();
+
+            var result = handler.Claim(goal, run, player, npc, world);
+            var retry = handler.Claim(goal, run, player, npc, world);
+
+            Assert.False(result.Success);
+            Assert.Equal("You cannot claim this reward right now.", result.Refusal);
+            Assert.Equal(0, contribution.ClaimedBracket);
+            Assert.Equal(now, contribution.ClaimedAt);
+            Assert.True(handler.IsContributionDirty(1, 1, player.PlayerID));
+            Assert.False(retry.Success);
+            Assert.Equal("You've already claimed this reward.", retry.Refusal);
+            Assert.Contains(log.Messages, m => m.Contains("Give Exception"));
+        }
+
+        [Fact]
+        public void Claim_ScriptRequiredSlotsThrows_RefusesFailClosed()
+        {
+            CompileRewardScript(@"
+public class R : BaseCommunityRewardScript
+{
+    public override int GetRequiredInventorySpace(CommunityRewardContext ctx) => throw new InvalidOperationException(""boom"");
 }
 return typeof(R);");
             var goal = LoadGoal(ScriptProps());
@@ -513,7 +540,68 @@ return typeof(R);");
             Assert.Null(contribution.ClaimedBracket);
             Assert.Null(contribution.ClaimedAt);
             Assert.False(handler.IsContributionDirty(1, 1, player.PlayerID));
-            Assert.Contains(log.Messages, m => m.Contains("Give Exception"));
+            Assert.Contains(log.Messages, m => m.Contains("RequiredSlots Exception"));
+        }
+
+        [Fact]
+        public void Claim_GetBracketThrows_RefusesFailClosed()
+        {
+            fixture.CompileCommunityGoalScript(@"
+public class G : BaseCommunityGoalScript
+{
+    public override GoalBracket? GetBracket(CommunityGoal goal, CommunityGoalRun run, Player player, GameWorld world)
+        => throw new InvalidOperationException(""boom"");
+}
+return typeof(G);");
+            var goal = new CommunityGoal
+            {
+                Id = 1,
+                Name = "Goal 1",
+                NpcTemplateId = 7,
+                ScriptPath = "Scripts/CommunityGoal/G.csx",
+                PropertiesJson = PersonalProps(),
+            };
+            handler.LoadDefinitionRows(new[] { goal }, world);
+            var run = LoadRun(RunStatus.Completed, started, (player.PlayerID, 50));
+            var contribution = run.Contributions[player.PlayerID];
+            using var log = new CapturingLog();
+
+            var result = handler.Claim(goal, run, player, npc, world);
+
+            Assert.False(result.Success);
+            Assert.Equal("You cannot claim this reward right now.", result.Refusal);
+            Assert.Null(contribution.ClaimedBracket);
+            Assert.Null(contribution.ClaimedAt);
+            Assert.False(handler.IsContributionDirty(1, 1, player.PlayerID));
+            Assert.Contains(log.Messages, m => m.Contains("GetBracket Exception"));
+        }
+
+        [Fact]
+        public void PendingPrizes_GetBracketThrows_SkipsPrize()
+        {
+            fixture.CompileCommunityGoalScript(@"
+public class G : BaseCommunityGoalScript
+{
+    public override GoalBracket? GetBracket(CommunityGoal goal, CommunityGoalRun run, Player player, GameWorld world)
+        => throw new InvalidOperationException(""boom"");
+}
+return typeof(G);");
+            var goal = new CommunityGoal
+            {
+                Id = 1,
+                Name = "Goal 1",
+                NpcTemplateId = 7,
+                ScriptPath = "Scripts/CommunityGoal/G.csx",
+                PropertiesJson = PersonalProps(),
+            };
+            handler.LoadDefinitionRows(new[] { goal }, world);
+            var run = LoadRun(RunStatus.Completed, started, (player.PlayerID, 50));
+            using var log = new CapturingLog();
+
+            var prizes = handler.PendingPrizes(player, 7);
+
+            Assert.Empty(prizes);
+            Assert.Contains(log.Messages, m => m.Contains("GetBracket Exception"));
         }
 
         [Fact]
