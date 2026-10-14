@@ -21,8 +21,10 @@ namespace CsvToSql.Core.Schema
         /// <summary>Columns to declare a single-column secondary index on.</summary>
         public IReadOnlyList<string> Indexes { get; }
 
+        public bool Optional { get; }
+
         public TableSchema(string sheet, string table, CsvToSqlBase converter,
-                           IReadOnlyList<string> indexes = null)
+                           IReadOnlyList<string> indexes = null, bool optional = false)
         {
             Sheet = sheet;
             Table = table;
@@ -30,6 +32,7 @@ namespace CsvToSql.Core.Schema
             Columns = converter.GetColumnDescriptors();
             Composites = converter.GetComposites() ?? [];
             Indexes = indexes ?? [];
+            Optional = optional;
         }
     }
 
