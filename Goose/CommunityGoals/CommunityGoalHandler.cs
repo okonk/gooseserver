@@ -702,6 +702,19 @@ namespace Goose.CommunityGoals
             return goal.ResolvedScript ?? this.baseScript;
         }
 
+        internal string GetSummaryText(CommunityGoal goal, CommunityGoalRun run, GameWorld world)
+        {
+            try
+            {
+                return this.GetScript(goal).GetSummaryText(goal, run, world);
+            }
+            catch (Exception e)
+            {
+                log.Error(e, "Community goal {goalId} GetSummaryText Exception", goal.Id);
+                return this.baseScript.GetSummaryText(goal, run, world);
+            }
+        }
+
         public int? BracketIndex(CommunityGoal goal, CommunityGoalRun run, Player player)
         {
             // The claim flow (the only caller) has no world; the base GetBracket ignores it.

@@ -84,6 +84,7 @@ namespace Goose
             LogViewer,
             CommunityChest,
             Amount,
+            CommunityGoal,
         }
         public WindowTypes Type { get; set; }
 

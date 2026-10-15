@@ -1,3 +1,4 @@
+using Goose.CommunityGoals;
 using Goose.Quests;
 using System.Text;
 
@@ -48,7 +49,14 @@ namespace Goose.Events
                 List<NPC> range = this.Player.Map.GetNPCsInRange(this.Player);
                 foreach (var npc in range)
                 {
-                    if (npc.MapX == x && npc.MapY == y && npc.Quests.Any())
+                    if (npc.MapX != x || npc.MapY != y)
+                        continue;
+                    if (world.CommunityGoals.GoalsForNpc(npc.NPCTemplateID).Any())
+                    {
+                        CommunityGoalWindow.Handle(npc, this.Player, world);
+                        return;
+                    }
+                    if (npc.Quests.Any())
                     {
                         QuestWindow.Handle(npc, this.Player, world);
                         return;
