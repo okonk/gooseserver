@@ -177,14 +177,15 @@ schema and the authority for column names, kinds, required flags and enum member
 Header labels carry the column's default in parentheses (`facing (3)`, `keep requirement? (0)`,
 `type (Monster)`), and `gsheets schema` prints those same defaults from the generated schema.
 Enum members can carry non-consecutive values — `NPCTemplate.Types` is `Monster = 2`,
-`Vendor = 10`, `Banker = 11`, `Quest = 12` — so always write the member *name* and let the
-importer resolve it. Never guess the underlying number.
+`Vendor = 10`, `Banker = 11`, `Quest = 12`, `Ambient = 14` — so always write the member *name*
+and let the importer resolve it. Never guess the underlying number. `Ambient` NPCs are scenery
+the server treats like any other non-combat NPC: the client refuses to target them.
 
 ## Column reference
 
 ### NPCs — `npc_templates`
 
-`A id` (pk) · `B type` Enum[Monster|Vendor|Banker|Quest] · `C name` · `D title` · `E surname` ·
+`A id` (pk) · `B type` Enum[Monster|Vendor|Banker|Quest|Ambient] · `C name` · `D title` · `E surname` ·
 `F respawn time` · `G facing` (3) · `H lvl` (1) · `I exp` · `J aggro range` · `K attack range` ·
 `L attack speed` (2) · `M move speed` (2) · `N stationary` · `O stunnable` · `P rootable` ·
 `Q slowable` · `R invincible` · `S see invisible` · `T hp` · `U mp` · `V sp` · `W class id` ·

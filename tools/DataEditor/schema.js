@@ -467,7 +467,8 @@ var GOOSE_SCHEMA = {
             "Monster",
             "Vendor",
             "Banker",
-            "Quest"
+            "Quest",
+            "Ambient"
           ]
         },
         {

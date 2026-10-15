@@ -106,7 +106,8 @@ namespace CsvToSql
             Monster = 2,
             Vendor = 10,
             Banker = 11,
-            Quest = 12
+            Quest = 12,
+            Ambient = 14
         }
 
         public enum BehaviourTypes
