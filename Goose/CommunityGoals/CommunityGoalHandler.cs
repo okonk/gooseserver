@@ -149,6 +149,12 @@ namespace Goose.CommunityGoals
                     yield return goal;
         }
 
+        public int Level(CommunityGoalRun run) =>
+            this.runs.Values.Count(r => r.GoalId == run.GoalId && r.Run < run.Run && r.Status == RunStatus.Completed);
+
+        public long? TargetFor(GoalRequirement requirement, CommunityGoalRun run) =>
+            requirement.TargetAt(this.Level(run));
+
         public int GetFlag(string name)
         {
             return this.flags.TryGetValue(name, out var flag) ? flag.Value : 0;
@@ -246,6 +252,9 @@ namespace Goose.CommunityGoals
             // expired; never start it. Duration-only goals are unaffected (their duration is
             // relative to their own StartedAt).
             if (goal.Definition?.ClosesAt is DateTime closesAt && closesAt <= now)
+                return;
+            if (goal.Definition?.MaxCompletions is int max
+                && this.runs.Values.Count(r => r.GoalId == goal.Id && r.Status == RunStatus.Completed) >= max)
                 return;
             var run = new CommunityGoalRun
             {
@@ -421,7 +430,7 @@ namespace Goose.CommunityGoals
             foreach (var requirement in goal.Definition.Requirements)
             {
                 if (requirement.Key != key) continue;
-                return requirement.Target is null ? long.MaxValue : requirement.Target.Value - run.Totals.GetValueOrDefault(key);
+                return this.TargetFor(requirement, run) is long target ? target - run.Totals.GetValueOrDefault(key) : long.MaxValue;
             }
             return 0;
         }
@@ -434,9 +443,10 @@ namespace Goose.CommunityGoals
             if (run is null || run.Status != RunStatus.Active || goal.Definition is null)
                 return;
             var definition = goal.Definition;
+            var level = this.Level(run);
             var targetsMet = definition.HasTargets && definition.Requirements
-                .Where(r => r.Target.HasValue)
-                .All(r => run.Totals.GetValueOrDefault(r.Key) >= r.Target!.Value);
+                .Where(r => r.HasTarget)
+                .All(r => run.Totals.GetValueOrDefault(r.Key) >= r.TargetAt(level)!.Value);
             var timedOut = (definition.ClosesAt is DateTime closesAt && closesAt <= now)
                 || (definition.Duration is TimeSpan duration && run.StartedAt + duration <= now);
             var scriptDone = false;

@@ -355,6 +355,7 @@ namespace Goose.CommunityGoals
         {
             var total = run.Totals.GetValueOrDefault(requirement.Key);
             var my = mine?.Amounts.GetValueOrDefault(requirement.Key) ?? 0;
+            var target = world.CommunityGoals.TargetFor(requirement, run);
             (int Sheet, int Graphic, int R, int G, int B, int A) graphic = (0, 0, 0, 0, 0, 0);
             switch (requirement.Kind)
             {
@@ -362,23 +363,23 @@ namespace Goose.CommunityGoals
                     var template = requirement.ItemTemplateId is int itemId ? world.ItemHandler.GetTemplate(itemId) : null;
                     if (template is { } t)
                         graphic = (t.GraphicFile, t.GraphicTile, t.GraphicR, t.GraphicG, t.GraphicB, t.GraphicA);
-                    return (ProgressLine(template?.Name ?? "Unknown item", total, requirement.Target, my), graphic);
+                    return (ProgressLine(template?.Name ?? "Unknown item", total, target, my), graphic);
                 case RequirementKind.Gold:
                     var gold = world.ItemHandler.GetTemplate(world.Settings.GoldItemID);
                     if (gold is { } g)
                         graphic = (g.GraphicFile, g.GraphicTile, g.GraphicR, g.GraphicG, g.GraphicB, g.GraphicA);
-                    return (ProgressLine(gold?.Name ?? "Gold", total, requirement.Target, my), graphic);
+                    return (ProgressLine(gold?.Name ?? "Gold", total, target, my), graphic);
                 case RequirementKind.Experience:
                     graphic = (world.Settings.ExperienceIconSheet, world.Settings.ExperienceIconId, 0, 0, 0, 0);
-                    return (ProgressLine("Experience", total, requirement.Target, my), graphic);
+                    return (ProgressLine("Experience", total, target, my), graphic);
                 case RequirementKind.Kill:
                     var npcName = requirement.NpcTemplateId is int npcId
                         ? world.NPCHandler.GetNPCTemplate(npcId)?.Name ?? "Unknown NPC"
                         : "Unknown NPC";
-                    return (ProgressLine(npcName, total, requirement.Target, my), graphic);
+                    return (ProgressLine(npcName, total, target, my), graphic);
                 default:
                     var label = requirement.Label ?? requirement.Key;
-                    return (requirement.Target is long target ? $"{label} {total:N0} / {target:N0}" : $"{label} {total:N0}", graphic);
+                    return (target is long goal ? $"{label} {total:N0} / {goal:N0}" : $"{label} {total:N0}", graphic);
             }
         }
 

@@ -41,11 +41,11 @@ namespace Goose.Scripting
                 long total = 0;
                 foreach (var requirement in definition.Requirements)
                 {
-                    if (!requirement.Target.HasValue)
+                    if (world.CommunityGoals.TargetFor(requirement, run) is not long target)
                         continue;
                     run.Totals.TryGetValue(requirement.Key, out var contributed);
-                    achieved += Math.Min(contributed, requirement.Target.Value);
-                    total += requirement.Target.Value;
+                    achieved += Math.Min(contributed, target);
+                    total += target;
                 }
                 int percent = total > 0 ? (int)Math.Round(achieved * 100.0 / total) : 0;
                 return percent + "%";

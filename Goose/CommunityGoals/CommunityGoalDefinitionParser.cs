@@ -35,6 +35,8 @@ namespace Goose.CommunityGoals
                     if (!req.TryGetPropertyValue("key", out var keyNode) || keyNode is not JsonValue keyVal || keyVal.GetValueKind() != JsonValueKind.String)
                         throw new CommunityGoalDefinitionException("requirement is missing a string 'key'");
                     var key = keyVal.GetValue<string>()!;
+                    if (req.ContainsKey("target") && req.ContainsKey("targets"))
+                        throw new CommunityGoalDefinitionException($"requirement '{key}' has both 'target' and 'targets'");
                     if (!seenKeys.Add(key))
                         throw new CommunityGoalDefinitionException($"duplicate requirement key '{key}'");
                     if (!req.TryGetPropertyValue("type", out var typeNode) || typeNode is not JsonValue typeVal || typeVal.GetValueKind() != JsonValueKind.String)
@@ -54,6 +56,10 @@ namespace Goose.CommunityGoals
                         Key = key,
                         Kind = kind,
                         Target = GetLong(req, "target"),
+                        Targets = GetLongList(req, "targets"),
+                        Growth = req.TryGetPropertyValue("growth", out var growthNode) && growthNode is not null
+                            ? GetDouble(growthNode, $"requirement '{key}' 'growth'")
+                            : null,
                         ItemTemplateId = GetInt(req, "item"),
                         NpcTemplateId = GetInt(req, "npc"),
                         Label = GetString(req, "label")
@@ -94,6 +100,15 @@ namespace Goose.CommunityGoals
                 entryCost = new Dictionary<string, long>(StringComparer.Ordinal);
                 foreach (var (key, value) in entryCostObj)
                     entryCost[key] = AsLong(value, $"entryCost entry '{key}'");
+            }
+
+            int? maxCompletions = null;
+            if (root.TryGetPropertyValue("maxCompletions", out var maxCompletionsNode) && maxCompletionsNode is not null)
+            {
+                var value = AsLong(maxCompletionsNode, "'maxCompletions'");
+                if (value is < int.MinValue or > int.MaxValue)
+                    throw new CommunityGoalDefinitionException("'maxCompletions' must be an integer");
+                maxCompletions = (int)value;
             }
 
             var duration = GetDuration(root, "duration");
@@ -187,7 +202,8 @@ namespace Goose.CommunityGoals
                 Repeat = repeat,
                 ClaimWindow = claimWindow,
                 Brackets = brackets,
-                CommunityRewards = communityRewards
+                CommunityRewards = communityRewards,
+                MaxCompletions = maxCompletions
             };
         }
 
@@ -232,6 +248,15 @@ namespace Goose.CommunityGoals
                     errors.Add($"requirement '{req.Key}' of type Item is missing 'item'");
                 if (req.Kind == RequirementKind.Kill && req.NpcTemplateId is null)
                     errors.Add($"requirement '{req.Key}' of type Kill is missing 'npc'");
+                if (req.Targets is { Count: 0 })
+                    errors.Add($"requirement '{req.Key}' 'targets' must not be empty");
+                if (req.Growth is double growth)
+                {
+                    if (!(growth > 1))
+                        errors.Add($"requirement '{req.Key}' 'growth' must be > 1");
+                    if (!req.HasTarget)
+                        errors.Add($"requirement '{req.Key}' has 'growth' but no 'target' or 'targets'");
+                }
             }
 
             foreach (var key in def.ScoreWeights.Keys.Where(k => !keys.Contains(k)))
@@ -271,6 +296,14 @@ namespace Goose.CommunityGoals
                 }
             }
 
+            if (def.MaxCompletions is int maxCompletions)
+            {
+                if (maxCompletions < 1)
+                    errors.Add("'maxCompletions' must be >= 1");
+                if (!def.Repeats)
+                    errors.Add("'maxCompletions' requires 'repeat'");
+            }
+
             if (!def.HasTargets && def.Duration is null && def.ClosesAt is null && !customScript)
                 errors.Add("no termination: the goal has no targets and no duration or closesAt");
 
@@ -282,6 +315,15 @@ namespace Goose.CommunityGoals
             if (!obj.TryGetPropertyValue(field, out var node) || node is null)
                 return null;
             return AsLong(node, $"'{field}'");
+        }
+
+        private static IReadOnlyList<long>? GetLongList(JsonObject obj, string field)
+        {
+            if (!obj.TryGetPropertyValue(field, out var node) || node is null)
+                return null;
+            if (node is not JsonArray array)
+                throw new CommunityGoalDefinitionException($"'{field}' must be an array of integers");
+            return array.Select(item => AsLong(item, $"'{field}' entry")).ToList();
         }
 
         private static int? GetInt(JsonObject obj, string field)

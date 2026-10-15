@@ -28,7 +28,13 @@ namespace Goose.CommunityGoals
 
         public override void Populate(Player player, GameWorld world)
         {
-            var lines = new List<string>(TextWrap.Lines(this.goal.Description));
+            var lines = new List<string>();
+            if (this.goal.Definition is { Repeats: true } definition)
+            {
+                var upgrade = world.CommunityGoals.Level(this.run) + 1;
+                lines.Add(definition.MaxCompletions is int max ? $"Upgrade {upgrade} of {max}" : $"Upgrade {upgrade}");
+            }
+            lines.AddRange(TextWrap.Lines(this.goal.Description));
             lines.Add("");
             foreach (var statusLine in this.StatusLines(world))
                 lines.AddRange(TextWrap.Lines(statusLine));

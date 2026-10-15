@@ -257,6 +257,56 @@ namespace Goose.Tests.CommunityGoals
                 player.Sent.Where(s => s.StartsWith($"WNF{contribute.ID},")).ToArray());
         }
 
+        private void LoadScaledRuns()
+        {
+            runs.Add(new CommunityGoalRun { GoalId = 1, Run = 1, StartedAt = started, Status = RunStatus.Completed, CompletedAt = started });
+            var active = new CommunityGoalRun { GoalId = 1, Run = 2, StartedAt = started };
+            active.Totals["gold"] = 30;
+            runs.Add(active);
+            handler.LoadStateRows(runs, Array.Empty<(int, int, Contribution)>(), Array.Empty<WorldFlag>());
+        }
+
+        [Theory]
+        [InlineData(""", "maxCompletions": 5""", "Upgrade 2 of 5")]
+        [InlineData("", "Upgrade 2")]
+        public void Description_RepeatingGoal_ShowsUpgradeLine(string extra, string expected)
+        {
+            LoadGoal("""{ "requirements": [ { "key": "gold", "type": "Gold", "target": 100, "growth": 2 } ], "repeat": "onClose" """ + extra + " }");
+            LoadScaledRuns();
+
+            fixture.RunCommand(player, "LC5,5");
+
+            var window = Assert.Single(player.Windows);
+            Assert.Equal(new[] { expected, "Desc", "", "Progress: 15%" }, TextLines(window.ID).ToArray());
+        }
+
+        [Fact]
+        public void Description_OneRunGoal_HasNoUpgradeLine()
+        {
+            LoadGoal(ClaimProps);
+            LoadRun(1, RunStatus.Active, null);
+
+            fixture.RunCommand(player, "LC5,5");
+
+            var window = Assert.Single(player.Windows);
+            Assert.Equal("Desc", TextLines(window.ID)[0]);
+        }
+
+        [Fact]
+        public void Contribute_LaterRun_ShowsScaledTarget()
+        {
+            LoadGoal("""{ "requirements": [ { "key": "gold", "type": "Gold", "target": 100, "growth": 2 } ], "repeat": "onClose" }""");
+            RegisterItem(700, "Gold", sheet: 1, tile: 2);
+            LoadScaledRuns();
+
+            fixture.RunCommand(player, "LC5,5");
+            var description = Assert.Single(player.Windows);
+            fixture.RunCommand(player, $"WBC4,{description.ID},0,0,0");
+
+            var contribute = Assert.Single(player.Windows);
+            Assert.Contains($"WNF{contribute.ID},1,Gold 30 / 200 (you: 0)|0|0|1|2|255|215|0|255\x1", player.Sent);
+        }
+
         [Fact]
         public void Hub_ListsOnlyFinishedRunsCompletedWithinFourteenDays()
         {

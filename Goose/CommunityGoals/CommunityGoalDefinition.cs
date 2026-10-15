@@ -35,8 +35,9 @@ namespace Goose.CommunityGoals
         public TimeSpan? ClaimWindow { get; init; }
         public IReadOnlyList<GoalBracket> Brackets { get; init; } = [];
         public IReadOnlyList<RewardSpec> CommunityRewards { get; init; } = [];
+        public int? MaxCompletions { get; init; }
 
-        public bool HasTargets => Requirements.Any(r => r.Target.HasValue);
+        public bool HasTargets => Requirements.Any(r => r.HasTarget);
         public bool Repeats => Repeat is not null;
         public TimeSpan? EffectiveClaimWindow => Repeats ? ClaimWindow ?? TimeSpan.FromDays(30) : null;
     }

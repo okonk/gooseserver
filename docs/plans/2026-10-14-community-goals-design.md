@@ -112,8 +112,9 @@ world_flags (name TEXT PRIMARY KEY, value INT, set_at TEXT, source_goal_id INT)
 
 - Run status: `Active`, `Completed`, `Failed`. Current run = highest `run` for the goal.
 - History is the run rows; expiry deletes contribution rows only, `results` keeps the summary.
-- Chest bonus pages are the world flag `chest_pages:{npcTemplateId}` (value = pages);
-  `ChestHandler` adds it to `CommunityChestPages`. Plain flags use value 1.
+- A chest's page count is the world state key `chest_pages:{npcTemplateId}` (value = total
+  pages); when it is unset `ChestHandler` uses `CommunityChestPages`. The `ChestPages` reward
+  adds to it. Plain flags use value 1.
 - `CommunityGoalHandler` loads definitions + live state at startup (after Global Scripts,
   before Players), is the source of truth during play, and is **game-thread only**.
 - Persistence: mutations mark rows dirty; a periodic save on the `WorldSavePeriod` cadence
@@ -162,6 +163,25 @@ Single entry point `CommunityGoalHandler.Contribute(goal, player?, key, amount)`
   After the window **everything** unclaimed expires (prizes included); contribution rows are
   deleted, the run row/summary stays.
 - A `Failed` one-run goal blocks its prerequisite chain permanently (known limitation; SQL fix).
+
+### Scaling targets
+
+Repeating goals can get harder each time they are completed. The level of a run is the number
+of earlier runs of the goal that `Completed` (failed runs don't count), and each requirement's
+target is worked out from it by `GoalRequirement.TargetAt(level)`:
+
+| properties | target at level n |
+|---|---|
+| `target` | the same every time |
+| `target` + `growth` | `target × growth^n` |
+| `targets: [...]` | `targets[n]`, then the last value repeats |
+| `targets: [...]` + `growth` | `targets[n]`, then multiplies from the last value |
+
+Values round down and clamp to `long.MaxValue`. `target` with `targets` is a parse error;
+an empty list, `growth <= 1`, or `growth` without a target are validation errors.
+`maxCompletions` (requires `repeat`) stops new runs once that many runs have completed.
+`CommunityGoalHandler.TargetFor(requirement, run)` is the only way callers read a target. The
+description page of a repeating goal starts with "Upgrade n of max" (or "Upgrade n").
 
 ### Ranking and brackets
 
