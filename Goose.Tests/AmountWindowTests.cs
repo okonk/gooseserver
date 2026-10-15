@@ -145,8 +145,12 @@ public class AmountWindowTests
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 new AmountWindow(player, fixture.World, "Donate", "How many?",
                     (1, 2, 255, 128, 0, 200), 0, 100, 101, (_, _, _) => { }));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                new AmountWindow(player, fixture.World, "Donate", "How many?",
+                    (1, 2, 255, 128, 0, 200), 1, 100, 0, (_, _, _) => { }));
 
             Assert.Empty(player.Windows);
+            Assert.Equal(1000, player.LastWindowID);
         }
     }
 

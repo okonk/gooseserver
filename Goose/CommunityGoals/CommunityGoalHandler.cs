@@ -11,7 +11,7 @@ namespace Goose.CommunityGoals
 
     public class CommunityGoalHandler
     {
-        public const int TopN = 10;
+        internal const int TopN = 10;
 
         private static readonly NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
 
