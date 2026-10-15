@@ -5,6 +5,7 @@ using Xunit;
 
 namespace Goose.Tests
 {
+    [Collection("NLog")]
     public class CommunityGoalLifecycleTests : IDisposable
     {
         private readonly TestWorldFixture fixture;

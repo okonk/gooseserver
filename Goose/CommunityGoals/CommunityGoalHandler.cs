@@ -315,17 +315,7 @@ namespace Goose.CommunityGoals
             var script = this.GetScript(goal);
             if (player is not null)
             {
-                string? refusal = null;
-                try
-                {
-                    refusal = script.CanContribute(goal, run, player, key, amount, world);
-                }
-                catch (Exception e)
-                {
-                    // Fail closed: a throwing gate script refuses rather than admits (mirrors PickupItemEvent).
-                    log.Error(e, "Community goal {goalId} CanContribute Exception", goal.Id);
-                    refusal = "You cannot contribute to this goal right now.";
-                }
+                var refusal = this.CanContribute(goal, run, player, key, amount, world);
                 if (refusal is not null)
                     return new ContributeResult(0, refusal);
             }
@@ -357,6 +347,21 @@ namespace Goose.CommunityGoals
             }
             this.CheckCompletion(goal, run, world, this.UtcNow());
             return new ContributeResult(amount, null);
+        }
+
+        internal string? CanContribute(CommunityGoal goal, CommunityGoalRun run, Player player, string key, long amount, GameWorld world)
+        {
+            var script = this.GetScript(goal);
+            try
+            {
+                return script.CanContribute(goal, run, player, key, amount, world);
+            }
+            catch (Exception e)
+            {
+                // Fail closed: a throwing gate script refuses rather than admits (mirrors PickupItemEvent).
+                log.Error(e, "Community goal {goalId} CanContribute Exception", goal.Id);
+                return "You cannot contribute to this goal right now.";
+            }
         }
 
         public void OnNpcKilled(NPC npc, IReadOnlyList<Player> credited, GameWorld world)
