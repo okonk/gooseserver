@@ -301,6 +301,55 @@ return typeof(G);
         }
 
         [Fact]
+        public void DonateItem_StatefulGateRefusesOnSecondCall_TakeEqualsCredit()
+        {
+            fixture.CompileCommunityGoalScript(@"
+public class G : BaseCommunityGoalScript
+{
+    private int gateCalls;
+    public override CommunityGoalDefinition Define(CommunityGoal goal, GameWorld world)
+        => new() { Requirements = new[] { Requirement.Item(""logs"", 900, 1000) } };
+    public override string? CanContribute(CommunityGoal goal, CommunityGoalRun run, Player player, string key, long amount, GameWorld world)
+        => this.gateCalls++ == 0 ? null : ""Second gate refused"";
+}
+return typeof(G);
+");
+            RegisterItem(900, "Log", sheet: 3, tile: 4, stackSize: 1000);
+            LoadGoal("{}", scriptPath: "Scripts/CommunityGoal/G.csx");
+            var run = LoadRun(1, RunStatus.Active, null);
+            GiveItems(900, 237);
+
+            var contribute = OpenContributeWindow();
+            var amount = OpenAmountWindow(contribute);
+            fixture.RunCommand(player, $"AMT{amount.ID},237");
+
+            Assert.Equal(0, player.Inventory.GetInventoryItemFamilyCount(900));
+            Assert.Equal(237, run.Totals["logs"]);
+            Assert.Equal(237, run.Contributions[player.PlayerID].Amounts["logs"]);
+            Assert.DoesNotContain("$7Second gate refused\x1", player.Sent);
+        }
+
+        [Fact]
+        public void DonateItem_DonationCompletesGoal_ReopensHubInsteadOfStaleContributeWindow()
+        {
+            LoadGoal(ItemProps);
+            RegisterItem(900, "Log", sheet: 3, tile: 4, stackSize: 1000);
+            var run = LoadRun(1, RunStatus.Active, null);
+            run.Totals["logs"] = 900;
+            GiveItems(900, 100);
+
+            var contribute = OpenContributeWindow();
+            var amount = OpenAmountWindow(contribute);
+            fixture.RunCommand(player, $"AMT{amount.ID},100");
+
+            Assert.Equal(1000, run.Totals["logs"]);
+            Assert.Equal(RunStatus.Completed, run.Status);
+            var reopened = Assert.IsType<OptionListWindow>(Assert.Single(player.Windows));
+            Assert.Contains(player.Sent, s => s.StartsWith($"WNF{reopened.ID},1,Claim: Goal 1 (Run 1)"));
+            Assert.Contains(player.Sent, s => s.StartsWith($"WNF{reopened.ID},2,Goal 1 - Completed"));
+        }
+
+        [Fact]
         public void DonateLottery_TicketPurchase_TakesGoldCreditsEntries()
         {
             LoadGoal(LotteryProps);

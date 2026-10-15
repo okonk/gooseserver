@@ -242,7 +242,8 @@ goal routes to `CommunityGoalWindow.Handle` and skips the quest flow.
 **Amount window** (new `WindowFrames.Amount`, generic and reusable):
 
 - Server: `AmountWindow(player, world, title, prompt, icon, min, max, default, Action<long, Player, GameWorld> onConfirm)`.
-- Packets: `MKW` then `AMI<windowId>|<sheet>|<graphic>|r|g|b|a|<prompt>|<min>|<max>|<default>`;
+- Packets: `MKW` then `AMI<windowId>|<sheet>|<graphic>|r|g|b|a|<min>|<max>|<default>|<prompt>`
+  (prompt is last so it may itself contain `|`; the client splits with a field limit);
   client confirm `AMT<windowId>,<amount>`; cancel via existing `WBC`.
 - Client widget: icon, prompt, numeric input, Max, Donate, Cancel.
 - Icons: item template graphic; gold → `GoldItemID` template graphic; XP → new settings

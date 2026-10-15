@@ -265,6 +265,9 @@ namespace Goose.CommunityGoals
                 {
                     foreach (var key in def.EntryCost.Keys.Where(k => !keys.Contains(k)))
                         errors.Add($"entryCost references unknown requirement key '{key}'");
+                    foreach (var (key, value) in def.EntryCost)
+                        if (value <= 0)
+                            errors.Add($"entryCost '{key}' must be > 0");
                 }
             }
 

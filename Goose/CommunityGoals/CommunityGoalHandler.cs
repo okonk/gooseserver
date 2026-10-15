@@ -313,13 +313,24 @@ namespace Goose.CommunityGoals
             var run = this.CurrentRun(goal.Id);
             if (run is null || run.Status != RunStatus.Active || goal.Definition is null)
                 return new ContributeResult(0, "This goal has ended.");
-            var script = this.GetScript(goal);
             if (player is not null)
             {
                 var refusal = this.CanContribute(goal, run, player, key, amount, world);
                 if (refusal is not null)
                     return new ContributeResult(0, refusal);
             }
+            return this.ContributeValidated(goal, player, key, amount, world);
+        }
+
+        // Gate-less core of Contribute: a stateful CanContribute gate can pass pre-take and
+        // refuse post-take, so callers that already gated before taking resources must not
+        // re-run the gate here or the take would go uncredited.
+        internal ContributeResult ContributeValidated(CommunityGoal goal, Player? player, string key, long amount, GameWorld world)
+        {
+            var run = this.CurrentRun(goal.Id);
+            if (run is null || run.Status != RunStatus.Active || goal.Definition is null)
+                return new ContributeResult(0, "This goal has ended.");
+            var script = this.GetScript(goal);
             var remaining = this.Remaining(goal, key);
             if (remaining < long.MaxValue)
                 amount = Math.Min(amount, remaining);

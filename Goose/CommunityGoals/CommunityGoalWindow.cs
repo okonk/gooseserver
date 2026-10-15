@@ -199,11 +199,16 @@ namespace Goose.CommunityGoals
                 world.Send(player, P.ServerMessage("You cannot donate to this goal right now."));
                 return;
             }
-            var result = world.CommunityGoals.Contribute(goal, player, requirement.Key, accepted, world);
+            var result = world.CommunityGoals.ContributeValidated(goal, player, requirement.Key, accepted, world);
             if (result.Accepted != accepted)
                 log.Error("Community goal {goalId} run {run} credited {credited} of {taken} donated by {player}",
                     goal.Id, run.Run, result.Accepted, accepted, player.Name);
-            OpenContribute(goal, run, npc, player, world, onBack);
+            // The credit can complete the run (or start a repeat run); reopening the
+            // contribute window then would show a finished run as donatable.
+            if (run.Status == RunStatus.Active && world.CommunityGoals.CurrentRun(goal.Id) == run)
+                OpenContribute(goal, run, npc, player, world, onBack);
+            else
+                Handle(npc, player, world);
         }
 
         private static long Have(Player player, GoalRequirement requirement, GameWorld world)

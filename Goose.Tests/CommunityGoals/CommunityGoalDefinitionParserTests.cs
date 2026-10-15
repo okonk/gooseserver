@@ -395,6 +395,18 @@ public class CommunityGoalDefinitionParserTests
         Assert.Contains("'nope'", error);
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-5)]
+    public void Validate_rejects_non_positive_entry_cost(int cost)
+    {
+        var errors = Validate(
+            "{ \"requirements\": [ { \"key\": \"gold\", \"type\": \"Gold\" } ]," +
+            $" \"ranking\": \"lottery\", \"entryCost\": {{ \"gold\": {cost} }}, \"duration\": \"7d\" }}");
+        var error = Assert.Single(errors);
+        Assert.Contains("entryCost", error);
+    }
+
     [Fact]
     public void Validate_rejects_targetless_goal_with_no_termination()
     {
