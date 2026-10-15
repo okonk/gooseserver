@@ -111,9 +111,7 @@ namespace Goose.CommunityGoals
                     case "ChestPages":
                         if (spec.Params["npc"] is not JsonValue npcValue || spec.Params["pages"] is not JsonValue pagesValue)
                             throw new CommunityGoalDefinitionException("reward 'ChestPages' is missing 'npc' or 'pages'");
-                        var npc = (int)AsLong(npcValue);
-                        ctx.World.CommunityGoals.AddToFlag("chest_pages:" + npc, (int)AsLong(pagesValue), ctx.Goal.Id);
-                        ctx.World.ChestHandler.ApplyBonusPages(ctx.World, npc);
+                        ctx.World.ChestHandler.AddPages(ctx.World, (int)AsLong(npcValue), (int)AsLong(pagesValue));
                         break;
                     case "WorldFlag":
                         if (spec.Params["name"] is not JsonValue nameValue || nameValue.GetValueKind() != JsonValueKind.String)

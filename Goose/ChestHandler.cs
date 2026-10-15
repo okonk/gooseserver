@@ -28,7 +28,7 @@ namespace Goose
                 // Grow-only and whole-page sizing keeps every page-visible index a real container slot;
                 // the -1 excludes sentinel slot 0, which would otherwise ratchet capacity up a page every restart.
                 int maxPages = Math.Max(
-                    this.PagesFor(world, npcTemplateId),
+                    this.GetPages(world, npcTemplateId),
                     (int)Math.Ceiling(Math.Max(0, (slots?.Length ?? 1) - 1) / (double)world.Settings.BankSlotsPerPage));
                 var container = new ItemContainer(maxPages * world.Settings.BankSlotsPerPage + 1);
 
@@ -74,7 +74,7 @@ namespace Goose
             if (containers.TryGetValue(npcTemplateId, out ItemContainer? container))
                 return container;
 
-            container = new ItemContainer(this.PagesFor(world, npcTemplateId) * world.Settings.BankSlotsPerPage + 1);
+            container = new ItemContainer(this.GetPages(world, npcTemplateId) * world.Settings.BankSlotsPerPage + 1);
             world.WorldState.Set(KeyFor(npcTemplateId), container);
             containers[npcTemplateId] = container;
             Subscribe(container, world);
@@ -82,13 +82,19 @@ namespace Goose
             return container;
         }
 
-        private int PagesFor(GameWorld world, int npcTemplateId) =>
-            Math.Max(1, world.Settings.CommunityChestPages) + world.CommunityGoals.GetFlag("chest_pages:" + npcTemplateId);
+        public int GetPages(GameWorld world, int npcTemplateId) =>
+            Math.Max(1, world.WorldState.Get<int?>(PagesKeyFor(npcTemplateId)) ?? world.Settings.CommunityChestPages);
 
-        public void ApplyBonusPages(GameWorld world, int npcTemplateId)
+        public void AddPages(GameWorld world, int npcTemplateId, int pages)
+        {
+            world.WorldState.Set(PagesKeyFor(npcTemplateId), this.GetPages(world, npcTemplateId) + pages);
+            this.ApplyPages(world, npcTemplateId);
+        }
+
+        public void ApplyPages(GameWorld world, int npcTemplateId)
         {
             if (!containers.TryGetValue(npcTemplateId, out var container)) return;
-            if (!container.GrowToPages(this.PagesFor(world, npcTemplateId), world.Settings.BankSlotsPerPage)) return;
+            if (!container.GrowToPages(this.GetPages(world, npcTemplateId), world.Settings.BankSlotsPerPage)) return;
             if (!this.viewers.TryGetValue(container, out var list)) return;
             foreach (var (player, window) in list)
             {
@@ -144,5 +150,7 @@ namespace Goose
         }
 
         internal string KeyFor(int npcTemplateId) => "chest:" + npcTemplateId;
+
+        internal static string PagesKeyFor(int npcTemplateId) => "chest_pages:" + npcTemplateId;
     }
 }

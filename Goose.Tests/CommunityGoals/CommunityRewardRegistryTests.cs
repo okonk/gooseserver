@@ -266,11 +266,12 @@ namespace Goose.Tests.CommunityGoals
         }
 
         [Fact]
-        public void Give_chest_pages_adds_to_the_chest_flag()
+        public void Give_chest_pages_adds_to_the_default_page_count()
         {
             CommunityRewardRegistry.Give([Spec("ChestPages", new JsonObject { ["npc"] = 900, ["pages"] = 2 })], Ctx());
 
-            Assert.Equal(2, world.CommunityGoals.GetFlag("chest_pages:900"));
+            Assert.Equal(world.Settings.CommunityChestPages + 2, world.ChestHandler.GetPages(world, 900));
+            Assert.Equal(world.Settings.CommunityChestPages + 2, world.WorldState.Get<int?>("chest_pages:900"));
         }
 
         [Fact]
@@ -279,7 +280,17 @@ namespace Goose.Tests.CommunityGoals
             CommunityRewardRegistry.Give([Spec("ChestPages", new JsonObject { ["npc"] = 900, ["pages"] = 1 })], Ctx());
             CommunityRewardRegistry.Give([Spec("ChestPages", new JsonObject { ["npc"] = 900, ["pages"] = 2 })], Ctx());
 
-            Assert.Equal(3, world.CommunityGoals.GetFlag("chest_pages:900"));
+            Assert.Equal(world.Settings.CommunityChestPages + 3, world.ChestHandler.GetPages(world, 900));
+        }
+
+        [Fact]
+        public void Give_chest_pages_adds_to_the_page_count_in_world_state()
+        {
+            world.WorldState.Set("chest_pages:900", 7);
+
+            CommunityRewardRegistry.Give([Spec("ChestPages", new JsonObject { ["npc"] = 900, ["pages"] = 1 })], Ctx());
+
+            Assert.Equal(8, world.ChestHandler.GetPages(world, 900));
         }
 
         [Fact]

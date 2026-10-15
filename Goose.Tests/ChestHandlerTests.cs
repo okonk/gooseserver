@@ -1,5 +1,4 @@
 using Goose;
-using Goose.CommunityGoals;
 using Goose.Testing;
 using Xunit;
 
@@ -26,20 +25,9 @@ public class ChestHandlerTests
         });
     }
 
-    private static void SeedPagesFlag(TestWorldFixture fixture, int npcTemplateId, int pages)
+    private static void SeedPages(TestWorldFixture fixture, int npcTemplateId, int pages)
     {
-        fixture.World.CommunityGoals.LoadStateRows(
-            Array.Empty<CommunityGoalRun>(),
-            Array.Empty<(int, int, Contribution)>(),
-            new[]
-            {
-                new WorldFlag
-                {
-                    Name = "chest_pages:" + npcTemplateId,
-                    Value = pages,
-                    SetAt = new DateTime(2025, 6, 1, 12, 0, 0, DateTimeKind.Utc),
-                },
-            });
+        fixture.World.WorldState.Set(ChestHandler.PagesKeyFor(npcTemplateId), pages);
     }
 
     private static NPC SpawnChest(TestWorldFixture fixture, int templateId)
@@ -124,12 +112,12 @@ public class ChestHandlerTests
     }
 
     [Fact]
-    public void Load_FlagLoadedBeforeChests_SizesContainerWithBonusPages()
+    public void Load_PagesInWorldState_SizesContainer()
     {
         using var fixture = new TestWorldFixture(s => s.CommunityChestPages = 1);
         fixture.AddBaseItemTemplate(Template, "Chest Sword", ItemTemplate.UseTypes.NoUse);
-        SeedPagesFlag(fixture, Chest, 1);
         Seed(fixture, Blob(31, (1, 9006, Template)));
+        SeedPages(fixture, Chest, 2);
 
         fixture.World.ChestHandler.Load(fixture.World);
 
@@ -139,10 +127,10 @@ public class ChestHandlerTests
     }
 
     [Fact]
-    public void GetOrCreateContainer_ChestCreatedAfterFlag_HasBonusPages()
+    public void GetOrCreateContainer_UsesWorldStatePages()
     {
         using var fixture = new TestWorldFixture(s => s.CommunityChestPages = 1);
-        SeedPagesFlag(fixture, Chest, 2);
+        SeedPages(fixture, Chest, 3);
 
         var container = fixture.World.ChestHandler.GetOrCreateContainer(fixture.World, Chest);
 
@@ -150,7 +138,7 @@ public class ChestHandlerTests
     }
 
     [Fact]
-    public void ApplyBonusPages_GrowsSameContainerAndRendersViewers()
+    public void AddPages_GrowsSameContainerAndRendersViewers()
     {
         using var fixture = new TestWorldFixture(s => s.CommunityChestPages = 1);
         var map = fixture.AddBaseMap(1, "Town");
@@ -166,10 +154,9 @@ public class ChestHandlerTests
         Assert.Equal(31, container.MaxSlots);
         Assert.Equal(1, aWin.MaxPages);
 
-        fixture.World.CommunityGoals.SetFlag("chest_pages:" + Chest, 1, null);
         a.Sent.Clear();
         b.Sent.Clear();
-        fixture.World.ChestHandler.ApplyBonusPages(fixture.World, Chest);
+        fixture.World.ChestHandler.AddPages(fixture.World, Chest, 1);
 
         Assert.Same(container, fixture.World.ChestHandler.GetOrCreateContainer(fixture.World, Chest));
         Assert.Equal(61, container.MaxSlots);
@@ -180,38 +167,34 @@ public class ChestHandlerTests
     }
 
     [Fact]
-    public void ApplyBonusPages_NoContainerYet_NoOp()
+    public void AddPages_NoContainerYet_AppliesOnCreate()
     {
         using var fixture = new TestWorldFixture(s => s.CommunityChestPages = 1);
-        SeedPagesFlag(fixture, Chest, 1);
 
-        fixture.World.ChestHandler.ApplyBonusPages(fixture.World, Chest);
+        fixture.World.ChestHandler.AddPages(fixture.World, Chest, 1);
 
         var container = fixture.World.ChestHandler.GetOrCreateContainer(fixture.World, Chest);
         Assert.Equal(61, container.MaxSlots);
     }
 
     [Fact]
-    public void ApplyBonusPages_WhenFlagDropped_DoesNotShrinkOrResend()
+    public void ApplyPages_WhenPagesRemoved_DoesNotShrinkOrResend()
     {
         using var fixture = new TestWorldFixture(s => s.CommunityChestPages = 1);
         var map = fixture.AddBaseMap(1, "Town");
         var chest = SpawnChest(fixture, Chest);
         var a = OnlinePlayer(fixture, map, "A");
 
-        SeedPagesFlag(fixture, Chest, 1);
+        SeedPages(fixture, Chest, 2);
         CommunityChestWindow.Open(fixture.World, a, chest);
         var win = (CommunityChestWindow)a.Windows[0];
         var container = fixture.World.ChestHandler.GetOrCreateContainer(fixture.World, Chest);
         Assert.Equal(61, container.MaxSlots);
         Assert.Equal(2, win.MaxPages);
 
-        fixture.World.CommunityGoals.LoadStateRows(
-            Array.Empty<CommunityGoalRun>(),
-            Array.Empty<(int, int, Contribution)>(),
-            Array.Empty<WorldFlag>());
+        fixture.World.WorldState.Remove(ChestHandler.PagesKeyFor(Chest));
         a.Sent.Clear();
-        fixture.World.ChestHandler.ApplyBonusPages(fixture.World, Chest);
+        fixture.World.ChestHandler.ApplyPages(fixture.World, Chest);
 
         Assert.Equal(61, container.MaxSlots);
         Assert.Equal(2, win.MaxPages);

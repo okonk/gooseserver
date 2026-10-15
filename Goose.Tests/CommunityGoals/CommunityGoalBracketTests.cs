@@ -148,7 +148,7 @@ namespace Goose.Tests
 
             Assert.Equal(20, result.Accepted);
             Assert.Equal(RunStatus.Completed, run.Status);
-            Assert.Equal(1, handler.GetFlag("chest_pages:900"));
+            Assert.Equal(world.Settings.CommunityChestPages + 1, world.ChestHandler.GetPages(world, 900));
             Assert.Equal(1, handler.GetFlag("bridge_repaired"));
         }
 
@@ -168,7 +168,7 @@ namespace Goose.Tests
             handler.Tick(world);
 
             Assert.Equal(RunStatus.Failed, run.Status);
-            Assert.Equal(0, handler.GetFlag("chest_pages:900"));
+            Assert.Equal(world.Settings.CommunityChestPages, world.ChestHandler.GetPages(world, 900));
             Assert.Equal(0, handler.GetFlag("bridge_repaired"));
         }
     }
