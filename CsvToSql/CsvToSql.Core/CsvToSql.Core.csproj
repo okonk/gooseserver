@@ -8,4 +8,8 @@
     <PackageReference Include="ClosedXML" Version="0.105.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Goose.IntegrationTests" />
+  </ItemGroup>
+
 </Project>

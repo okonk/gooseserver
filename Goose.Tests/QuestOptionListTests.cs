@@ -232,6 +232,59 @@ public class QuestOptionListTests
     }
 
     [Fact]
+    public void Back_Page0_WithoutHook_IsDisabled()
+    {
+        var (world, _, player) = Setup(MakeQuest(1, "Quest One"));
+        var lines = Enumerable.Range(1, 9).Select(i => $"Line {i}").ToList();
+        var list = new OptionListWindow(player, world.World, "Title", lines, (l, p, w) => { });
+
+        Assert.Equal("0,1,0,1,0", list.Buttons);
+
+        player.Sent.Clear();
+        list.Clicked(Window.ButtonTypes.Back, 0, 0, 0, player, world.World);
+
+        Assert.Empty(player.Sent);
+        Assert.Single(player.Windows);
+    }
+
+    [Fact]
+    public void Back_Page0_WithHook_ClosesAndInvokesHookOnce()
+    {
+        var (world, _, player) = Setup(MakeQuest(1, "Quest One"));
+        var lines = new List<string> { "Only line" };
+        int hookCalls = 0;
+        var list = new OptionListWindow(player, world.World, "Title", lines, (l, p, w) => { }, onBack: (p, w) => hookCalls++);
+
+        Assert.Equal("0,1,1,0,0", list.Buttons);
+
+        list.Clicked(Window.ButtonTypes.Back, 0, 0, 0, player, world.World);
+
+        Assert.Equal(1, hookCalls);
+        Assert.Empty(player.Windows);
+        Assert.Contains(player.Sent, s => s.StartsWith("CLW"));
+    }
+
+    [Fact]
+    public void Back_Page1_WithHook_PagesWithoutInvokingHook()
+    {
+        var (world, _, player) = Setup(MakeQuest(1, "Quest One"));
+        var lines = Enumerable.Range(1, 9).Select(i => $"Line {i}").ToList();
+        int hookCalls = 0;
+        var list = new OptionListWindow(player, world.World, "Title", lines, (l, p, w) => { }, onBack: (p, w) => hookCalls++);
+
+        list.Clicked(Window.ButtonTypes.Next, 0, 0, 0, player, world.World);
+        Assert.Equal(1, list.Page);
+        player.Sent.Clear();
+        list.Clicked(Window.ButtonTypes.Back, 0, 0, 0, player, world.World);
+
+        Assert.Equal(0, hookCalls);
+        Assert.Equal(0, list.Page);
+        Assert.Equal("0,1,1,1,0", list.Buttons);
+        Assert.Single(player.Windows);
+        Assert.Contains(player.Sent, s => s.StartsWith("WNF"));
+    }
+
+    [Fact]
     public void Paging_AtBounds_IsIgnored()
     {
         var quests = Enumerable.Range(1, 11).Select(i => MakeQuest(i, $"Quest {i}")).ToArray();

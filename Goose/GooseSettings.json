@@ -91,6 +91,8 @@
     "StartingSurname": "",
     "RegenSpeed": 2,
     "GoldItemID": 1,
+    "ExperienceIconSheet": 0,
+    "ExperienceIconId": 0,
     "StaminaToHP": 25,
     "IntelligenceToMP": 25,
     "DamageModifier": 1,

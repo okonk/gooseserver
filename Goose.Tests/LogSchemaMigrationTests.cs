@@ -6,7 +6,7 @@ using Xunit;
 
 namespace Goose.Tests
 {
-    [Collection("ProcessEnvironment")]
+    [Collection("NLog")]
     public class LogSchemaMigrationTests
     {
         private static readonly string[] AllIndexes =

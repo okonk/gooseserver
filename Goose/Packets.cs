@@ -755,5 +755,12 @@ namespace Goose
         {
             return "CLW" + windowId;
         };
+
+        // Prompt is the last field so it may contain '|'; the client splits with a field limit.
+        public static Func<int, (int Sheet, int Graphic, int R, int G, int B, int A), long, long, long, string, string> AmountInfo =
+            (windowId, icon, min, max, def, prompt) =>
+            {
+                return $"AMI{windowId}|{icon.Sheet}|{icon.Graphic}|{icon.R}|{icon.G}|{icon.B}|{icon.A}|{min}|{max}|{def}|{prompt}";
+            };
     }
 }

@@ -6,9 +6,10 @@ namespace Goose
         private readonly List<(int Sheet, int Graphic, int R, int G, int B, int A)>? lineGraphics;
         private readonly List<ItemTemplate?>? lineItems;
         private readonly Action<int, Player, GameWorld> onLineClicked;
+        private readonly Action<Player, GameWorld>? onBack;
         private int page;
 
-        public OptionListWindow(Player player, GameWorld world, string title, List<string> lines, Action<int, Player, GameWorld> onLineClicked, NPC? npc = null, int startPage = 0, List<(int Sheet, int Graphic, int R, int G, int B, int A)>? lineGraphics = null, string? openingLine = null, List<ItemTemplate?>? lineItems = null)
+        public OptionListWindow(Player player, GameWorld world, string title, List<string> lines, Action<int, Player, GameWorld> onLineClicked, NPC? npc = null, int startPage = 0, List<(int Sheet, int Graphic, int R, int G, int B, int A)>? lineGraphics = null, string? openingLine = null, List<ItemTemplate?>? lineItems = null, Action<Player, GameWorld>? onBack = null)
         {
             this.ID = ++player.LastWindowID;
             this.Title = title;
@@ -19,6 +20,7 @@ namespace Goose
             this.lineGraphics = lineGraphics;
             this.lineItems = lineItems;
             this.onLineClicked = onLineClicked;
+            this.onBack = onBack;
             this.OpeningLine = openingLine;
             this.page = Math.Min(Math.Max(startPage, 0), Math.Max(this.PageCount - 1, 0));
             this.Buttons = this.GetPagingButtons();
@@ -34,7 +36,7 @@ namespace Goose
         private string GetPagingButtons()
         {
             // combine,close,back,next,ok
-            return $"0,1,{(this.page > 0 ? 1 : 0)},{(this.page < this.PageCount - 1 ? 1 : 0)},0";
+            return $"0,1,{(this.page > 0 || this.onBack is not null ? 1 : 0)},{(this.page < this.PageCount - 1 ? 1 : 0)},0";
         }
 
         public override void Populate(Player player, GameWorld world)
@@ -76,6 +78,11 @@ namespace Goose
                         this.page--;
                         this.Buttons = this.GetPagingButtons();
                         this.SendCreate(player, world);
+                    }
+                    else if (this.onBack is { } back)
+                    {
+                        this.Close(player, world);
+                        back(player, world);
                     }
                     break;
                 case ButtonTypes.Next:

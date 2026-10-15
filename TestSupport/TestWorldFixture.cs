@@ -58,6 +58,14 @@ public class TestWorldFixture : IDisposable
         return World.ScriptHandler.GetScript<IQuestScript>(relativePath);
     }
 
+    public Script<ICommunityGoalScript> CompileCommunityGoalScript(string body, string fileName = "G.csx")
+    {
+        Directory.CreateDirectory(Path.Combine(DataDirectory, "Scripts", "CommunityGoal"));
+        var relativePath = "Scripts/CommunityGoal/" + fileName;
+        File.WriteAllText(Path.Combine(DataDirectory, relativePath), body);
+        return World.ScriptHandler.GetScript<ICommunityGoalScript>(relativePath);
+    }
+
     public Map AddBaseMap(int id, string name, int width = 10, int height = 10)
     {
         var map = new Map

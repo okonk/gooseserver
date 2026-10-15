@@ -779,6 +779,14 @@ class_restrictions=0|combination_id=69|combination_name=MP Regeneration Potion|m
 class_restrictions=0|combination_id=70|combination_name=Haste Potion|max_experience=0|max_level=50|min_experience=0|min_level=1
 class_restrictions=0|combination_id=71|combination_name=Spell Damage Potion|max_experience=0|max_level=50|min_experience=0|min_level=1
 class_restrictions=0|combination_id=72|combination_name=Spell Critical Potion|max_experience=0|max_level=50|min_experience=0|min_level=1
+TABLE: community_goals
+  COL: description TEXT DEFAULT '' NOT NULL
+  COL: id INTEGER PRIMARY KEY
+  COL: name TEXT NOT NULL
+  COL: npc_template_id INT NOT NULL
+  COL: prerequisite_goals TEXT DEFAULT '' NOT NULL
+  COL: properties TEXT DEFAULT '' NOT NULL
+  COL: script_path TEXT DEFAULT '' NOT NULL
 TABLE: item_surnames
   COL: chance REAL NOT NULL
   COL: id INTEGER PRIMARY KEY

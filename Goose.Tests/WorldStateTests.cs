@@ -1,5 +1,6 @@
 namespace Goose.Tests;
 
+[Collection("NLog")]
 public class WorldStateTests
 {
     private static ItemSlot[] Slots(params (int Tid, long Stack)[] slots) =>

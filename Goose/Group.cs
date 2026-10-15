@@ -229,7 +229,7 @@ namespace Goose
          * GainExperience, distributes experience to the group
          *
          */
-        public void GainExperience(NPC npc, GameWorld world)
+        public List<Player> GainExperience(NPC npc, GameWorld world)
         {
             long exp = npc.Experience;
             double groupexp = exp * Math.Pow(0.91, this.Players.Count-1);
@@ -240,6 +240,7 @@ namespace Goose
                 if (player.Level > highest) highest = player.Level;
             }
 
+            List<Player> credited = [];
             foreach (var player in this.Players)
             {
                 // no exp too far away
@@ -257,14 +258,17 @@ namespace Goose
                 else if (npc.Level + 9 < player.Level)
                 {
                     player.Killed(npc, world);
+                    credited.Add(player);
                     player.AddExperience((long)groupexp / 10, world, Player.ExperienceMessage.TooHigh);
                 }
                 else
                 {
                     player.Killed(npc, world);
+                    credited.Add(player);
                     player.AddExperience((long)groupexp, world, Player.ExperienceMessage.Normal);
                 }
             }
+            return credited;
         }
     }
 }

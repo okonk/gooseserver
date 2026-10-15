@@ -1508,6 +1508,68 @@ var GOOSE_SCHEMA = {
       "indexes": []
     },
     {
+      "sheet": "Community Goals",
+      "table": "community_goals",
+      "columns": [
+        {
+          "name": "id",
+          "kind": "Id",
+          "sql": "INTEGER",
+          "required": true,
+          "pk": true
+        },
+        {
+          "name": "name",
+          "kind": "Text",
+          "sql": "TEXT",
+          "required": true,
+          "pk": false
+        },
+        {
+          "name": "description",
+          "kind": "Text",
+          "sql": "TEXT",
+          "default": "\u0027\u0027",
+          "required": false,
+          "pk": false
+        },
+        {
+          "name": "npc_template_id",
+          "kind": "Id",
+          "sql": "INT",
+          "required": true,
+          "pk": false,
+          "ref": "NPCs"
+        },
+        {
+          "name": "prerequisite_goals",
+          "kind": "Text",
+          "sql": "TEXT",
+          "default": "\u0027\u0027",
+          "required": false,
+          "pk": false
+        },
+        {
+          "name": "script_path",
+          "kind": "Text",
+          "sql": "TEXT",
+          "default": "\u0027\u0027",
+          "required": false,
+          "pk": false
+        },
+        {
+          "name": "properties",
+          "kind": "Text",
+          "sql": "TEXT",
+          "default": "\u0027\u0027",
+          "required": false,
+          "pk": false
+        }
+      ],
+      "composites": [],
+      "indexes": []
+    },
+    {
       "sheet": "Spells",
       "table": "spells",
       "columns": [

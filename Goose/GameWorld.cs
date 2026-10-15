@@ -3,6 +3,7 @@ using System.Net.Sockets;
 using System.Runtime.InteropServices;
 
 using Goose.Commands;
+using Goose.CommunityGoals;
 using Goose.Events;
 using Goose.Logs;
 using Goose.Quests;
@@ -38,6 +39,7 @@ namespace Goose
         public SpellHandler SpellHandler { get; set; }
         public GuildHandler GuildHandler { get; set; }
         public ChestHandler ChestHandler { get; set; }
+        public CommunityGoalHandler CommunityGoals { get; private set; }
         public RankHandler RankHandler { get; set; }
         public CombinationHandler CombinationHandler { get; set; }
         public ChatFilter ChatFilter { get; set; }
@@ -221,6 +223,7 @@ namespace Goose
             this.SpellHandler = new SpellHandler();
             this.GuildHandler = new GuildHandler();
             this.ChestHandler = new ChestHandler();
+            this.CommunityGoals = new CommunityGoalHandler();
             this.RankHandler = new RankHandler();
             this.CombinationHandler = new CombinationHandler();
             this.ChatFilter = new ChatFilter();
@@ -249,6 +252,7 @@ namespace Goose
                 foreach (var schemaFile in new[]
                 {
                     "players", "banks", "logs", "pets", "guilds", "wordfilter", "quest_claims", "world_state",
+                    "community_goals_state",
                 })
                 {
                     ExecuteSql(conn, File.ReadAllText(Paths.ResolveBase("sql/" + schemaFile + ".sql"), Encoding.UTF8));
@@ -284,6 +288,12 @@ namespace Goose
                     "quest_id INT PRIMARY KEY, player_id INT NOT NULL, completed_at TEXT NOT NULL, player_ids TEXT NOT NULL DEFAULT ''");
                 AddColumnIfMissing(conn, "quest_claims", "player_ids", "TEXT NOT NULL DEFAULT ''");
                 CreateTableIfMissing(conn, "world_state", "key TEXT PRIMARY KEY, value TEXT NOT NULL");
+                CreateTableIfMissing(conn, "community_goal_runs",
+                    "goal_id INT NOT NULL, run INT NOT NULL, status TEXT NOT NULL, started_at TEXT NOT NULL, completed_at TEXT NULL, totals TEXT NOT NULL DEFAULT '{}', results TEXT NULL, PRIMARY KEY (goal_id, run)");
+                CreateTableIfMissing(conn, "community_goal_contributions",
+                    "goal_id INT NOT NULL, run INT NOT NULL, player_id INT NOT NULL, amounts TEXT NOT NULL DEFAULT '{}', last_at TEXT NOT NULL, claimed_bracket INT NULL, claimed_at TEXT NULL, PRIMARY KEY (goal_id, run, player_id)");
+                CreateTableIfMissing(conn, "world_flags",
+                    "name TEXT PRIMARY KEY, value INT NOT NULL, set_at TEXT NOT NULL, source_goal_id INT NULL");
                 Goose.Logs.LogSchemaMigrator.Migrate(conn);
             });
         }
@@ -470,6 +480,8 @@ namespace Goose
                 this.WorldState.AddSaveEvent(this);
             })) return;
 
+            if (!this.LoadStep("Community Goals", () => this.CommunityGoals.Load(this))) return;
+
             if (!this.LoadStep("Community Chests", () => this.ChestHandler.Load(this))) return;
 
             // After global scripts: their OnLoaded can register item templates/currencies
@@ -554,6 +566,16 @@ namespace Goose
             catch (Exception e)
             {
                 log.Error(e, "Failed to save world state during shutdown.");
+            }
+
+            log.Info("Saving community goals.");
+            try
+            {
+                this.CommunityGoals.SaveSync(this);
+            }
+            catch (Exception e)
+            {
+                log.Error(e, "Failed to save community goals during shutdown.");
             }
 
             log.Info("Waiting for database writes.");

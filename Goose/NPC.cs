@@ -1208,7 +1208,8 @@ namespace Goose
                     {
                         if (highest is Group)
                         {
-                            ((Group)highest).GainExperience(this, world);
+                            var credited = ((Group)highest).GainExperience(this, world);
+                            world.CommunityGoals.OnNpcKilled(this, credited, world);
                         }
                         else
                         {
@@ -1221,17 +1222,21 @@ namespace Goose
                                 expMessage = Player.ExperienceMessage.TooHigh;
                             }
 
-                            if (highest is Pet)
+                            Player credited;
+                            if (highest is Pet pet)
                             {
-                                ((Pet)highest).Owner.Killed(this, world);
-                                ((Pet)highest).Owner.AddExperience(experience, world, expMessage);
+                                pet.Owner.Killed(this, world);
+                                pet.Owner.AddExperience(experience, world, expMessage);
                                 ((Player)highest).AddExperience(experience, world, expMessage);
+                                credited = pet.Owner;
                             }
                             else
                             {
                                 ((Player)highest).Killed(this, world);
                                 ((Player)highest).AddExperience(experience, world, expMessage);
+                                credited = (Player)highest;
                             }
+                            world.CommunityGoals.OnNpcKilled(this, [credited], world);
                         }
                     }
                     else

@@ -78,6 +78,8 @@ namespace Goose
         public string StartingSurname { get; set; } = null!;
         public double RegenSpeed { get; set; }
         public int GoldItemID { get; set; }
+        public int ExperienceIconSheet { get; set; }
+        public int ExperienceIconId { get; set; }
         public int StaminaToHP { get; set; }
         public int IntelligenceToMP { get; set; }
         public double DamageModifier { get; set; }

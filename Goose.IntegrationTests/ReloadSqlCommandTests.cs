@@ -10,7 +10,7 @@ public class ReloadSqlCommandTests : PlayerFirstSaveTestBase
 
     public ReloadSqlCommandTests()
         : base([], ["spell_effects", "spells", "item_templates", "quests", "quest_requirements", "quest_rewards",
-                    "npc_templates", "npc_drops", "npc_vendor_items"]) { }
+                    "npc_templates", "npc_drops", "npc_vendor_items", "community_goals"]) { }
 
     private void Sql(string sql) => world.Database.Execute(conn =>
     {

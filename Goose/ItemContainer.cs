@@ -24,6 +24,14 @@ namespace Goose
             Array.Resize(ref this.slots, size);
         }
 
+        public bool GrowToPages(int pages, int slotsPerPage)
+        {
+            int size = pages * slotsPerPage + 1;
+            if (size <= this.slots.Length) return false;
+            Resize(size);
+            return true;
+        }
+
         public void SetSlot(int slot, ItemSlot? itemSlot)
         {
             if (slot < 0 || slot >= this.slots.Length)
