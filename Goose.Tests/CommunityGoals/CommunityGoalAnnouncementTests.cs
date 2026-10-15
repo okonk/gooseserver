@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using Goose.CommunityGoals;
 using Goose.Testing;
 using Xunit;
@@ -91,6 +92,43 @@ namespace Goose.Tests
 
             Assert.Equal(RunStatus.Completed, handler.CurrentRun(1)!.Status);
             Assert.Equal(1, AnnouncementCount(alice, expected));
+        }
+
+        [Fact]
+        public void LotteryCompletion_AnnouncesUnknownWhenWinnerNameUnresolvable()
+        {
+            LoadWorld("""{ "requirements": [ { "key": "gold", "type": "Gold", "label": "gold" } ], "ranking": "lottery", "entryCost": { "gold": 10 }, "brackets": [ { "rank": 1 } ], "duration": "1h" }""");
+            var alice = AddOnlinePlayer("Alice");
+            var expected = P.ServerMessage("[Community] Goal 1 has been completed! Winner: Unknown");
+
+            handler.Tick(world);
+            handler.Contribute(handler.Goals[1], new Player { PlayerID = 5 }, "gold", 10, world);
+            now = started.AddHours(2);
+            handler.Tick(world);
+
+            Assert.Equal(RunStatus.Completed, handler.CurrentRun(1)!.Status);
+            Assert.Equal(1, AnnouncementCount(alice, expected));
+        }
+
+        [Fact]
+        public void LotteryCompletion_MalformedFirstPlace_AnnouncesUnknownWithoutThrowing()
+        {
+            LoadWorld("""{ "requirements": [ { "key": "gold", "type": "Gold", "label": "gold" } ], "ranking": "lottery", "entryCost": { "gold": 10 }, "brackets": [ { "rank": 1 } ], "duration": "1h" }""");
+            var alice = AddOnlinePlayer("Alice");
+
+            handler.Tick(world);
+            handler.Contribute(handler.Goals[1], new Player { PlayerID = 5 }, "gold", 10, world);
+            now = started.AddHours(2);
+            handler.Tick(world);
+
+            var run = handler.CurrentRun(1)!;
+            Assert.Equal(RunStatus.Completed, run.Status);
+            ((JsonArray)run.Results!["places"]!)[0] = JsonValue.Create("abc");
+            alice.Sent.Clear();
+
+            handler.AnnounceCompletion(handler.Goals[1], run, world);
+
+            Assert.Equal(1, AnnouncementCount(alice, P.ServerMessage("[Community] Goal 1 has been completed! Winner: Unknown")));
         }
 
         [Fact]

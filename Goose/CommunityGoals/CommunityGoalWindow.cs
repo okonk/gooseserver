@@ -6,6 +6,8 @@ namespace Goose.CommunityGoals
     {
         private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
 
+        private static readonly TimeSpan FinishedListingWindow = TimeSpan.FromDays(14);
+
         public static void Handle(NPC npc, Player player, GameWorld world)
         {
             var handler = world.CommunityGoals;
@@ -27,9 +29,9 @@ namespace Goose.CommunityGoals
                     continue;
                 }
                 if (run is not { Status: not RunStatus.Active, CompletedAt: DateTime completedAt }) continue;
-                var window = goal.Definition?.EffectiveClaimWindow is TimeSpan claimWindow && claimWindow > TimeSpan.FromDays(14)
+                var window = goal.Definition?.EffectiveClaimWindow is TimeSpan claimWindow && claimWindow > FinishedListingWindow
                     ? claimWindow
-                    : TimeSpan.FromDays(14);
+                    : FinishedListingWindow;
                 if (completedAt + window > now)
                     finished.Add((goal, run));
             }
@@ -292,7 +294,7 @@ namespace Goose.CommunityGoals
                              .OrderByDescending(c => Ranking.Score(definition, c))
                              .ThenBy(c => c.LastAt)
                              .ThenBy(c => c.PlayerId)
-                             .Take(10))
+                             .Take(CommunityGoalHandler.TopN))
                     entries.Add((contribution.PlayerId, Ranking.Score(definition, contribution)));
             }
             else if (run.Results is JsonObject results && results["top"] is JsonArray top)

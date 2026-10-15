@@ -5,7 +5,7 @@ using Xunit;
 
 namespace Goose.Tests
 {
-    [Collection("ProcessEnvironment")]
+    [Collection("NLog")]
     public class LogUtcTests
     {
         [Fact]

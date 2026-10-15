@@ -134,6 +134,23 @@ public class AmountWindowTests
     }
 
     [Fact]
+    public void Constructor_default_value_outside_range_throws()
+    {
+        var fixture = new TestWorldFixture();
+        using (fixture)
+        {
+            var map = fixture.AddBaseMap(1, "Test");
+            var player = fixture.CommandPlayerOn(map, 5, 5, "Tester");
+
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                new AmountWindow(player, fixture.World, "Donate", "How many?",
+                    (1, 2, 255, 128, 0, 200), 0, 100, 101, (_, _, _) => { }));
+
+            Assert.Empty(player.Windows);
+        }
+    }
+
+    [Fact]
     public void Submit_player_not_ready_never_invokes_callback()
     {
         var (fixture, player, window, confirmed) = Setup();

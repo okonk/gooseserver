@@ -1,11 +1,7 @@
 using System.Globalization;
-using Xunit;
 
 namespace Goose.Tests
 {
-    [CollectionDefinition("ProcessEnvironment", DisableParallelization = true)]
-    public class ProcessEnvironmentCollection { }
-
     internal sealed class ProcessEnvironmentScope : IDisposable
     {
         private readonly string? previousTz;

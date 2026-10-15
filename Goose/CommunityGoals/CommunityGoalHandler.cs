@@ -11,6 +11,8 @@ namespace Goose.CommunityGoals
 
     public class CommunityGoalHandler
     {
+        public const int TopN = 10;
+
         private static readonly NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
 
         private readonly BaseCommunityGoalScript baseScript = new();
@@ -477,7 +479,7 @@ namespace Goose.CommunityGoals
                          .OrderByDescending(c => Ranking.Score(definition, c))
                          .ThenBy(c => c.LastAt)
                          .ThenBy(c => c.PlayerId)
-                         .Take(10))
+                         .Take(TopN))
             {
                 top.Add(new JsonObject
                 {
@@ -855,7 +857,7 @@ namespace Goose.CommunityGoals
                 && completedAt + window < this.UtcNow();
         }
 
-        private void AnnounceCompletion(CommunityGoal goal, CommunityGoalRun run, GameWorld world)
+        internal void AnnounceCompletion(CommunityGoal goal, CommunityGoalRun run, GameWorld world)
         {
             if (run.Status != RunStatus.Completed) return;
             var message = $"[Community] {goal.Name} has been completed!";
@@ -863,7 +865,9 @@ namespace Goose.CommunityGoals
             {
                 var places = run.Results?["places"] as JsonArray;
                 if (places is { Count: > 0 } && places[0] is JsonValue first)
-                    message += " Winner: " + (world.PlayerHandler.GetPlayerName(first.GetValue<int>()) ?? "Unknown");
+                    message += " Winner: " + (first.GetValueKind() == JsonValueKind.Number
+                        ? world.PlayerHandler.GetPlayerName(first.GetValue<int>()) ?? "Unknown"
+                        : "Unknown");
                 else if (places is null || places.Count == 0)
                     message += " No winners.";
             }

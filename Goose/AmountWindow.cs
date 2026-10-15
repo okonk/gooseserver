@@ -17,6 +17,8 @@ namespace Goose
         {
             if (min > max)
                 throw new ArgumentOutOfRangeException(nameof(min), min, "min must be <= max");
+            if (defaultValue < min || defaultValue > max)
+                throw new ArgumentOutOfRangeException(nameof(defaultValue), defaultValue, "defaultValue must be within [min, max]");
 
             this.ID = ++player.LastWindowID;
             this.Title = title;
