@@ -35,6 +35,7 @@ namespace Goose.CommunityGoals
         public void Load(GameWorld world)
         {
             this.RunCompleted += this.GiveCommunityRewards;
+            this.RunCompleted += this.AnnounceCompletion;
             this.LoadDefinitions(world);
 
             var (runRows, contributionRows, flagRows) = world.Database.Execute(conn =>
@@ -841,6 +842,21 @@ namespace Goose.CommunityGoals
             return goal.Definition?.EffectiveClaimWindow is TimeSpan window
                 && run.CompletedAt is DateTime completedAt
                 && completedAt + window < this.UtcNow();
+        }
+
+        private void AnnounceCompletion(CommunityGoal goal, CommunityGoalRun run, GameWorld world)
+        {
+            if (run.Status != RunStatus.Completed) return;
+            var message = $"[Community] {goal.Name} has been completed!";
+            if (goal.Definition?.Brackets.Any(b => b.Rank.HasValue) ?? false)
+            {
+                var places = run.Results?["places"] as JsonArray;
+                if (places is { Count: > 0 } && places[0] is JsonValue first)
+                    message += " Winner: " + (world.PlayerHandler.GetPlayerName(first.GetValue<int>()) ?? "Unknown");
+                else if (places is null || places.Count == 0)
+                    message += " No winners.";
+            }
+            world.SendToAll(P.ServerMessage(message));
         }
 
         private void GiveCommunityRewards(CommunityGoal goal, CommunityGoalRun run, GameWorld world)
