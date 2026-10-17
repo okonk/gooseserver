@@ -675,6 +675,29 @@ namespace Goose
             }
         }
 
+        // Runtime tile writes must go through SetTile to invalidate this cache; game thread only.
+        // Deliberately outside the CloneAs field block: derived state, clones build their own.
+        private List<WarpTileEntry>? warpTiles;
+
+        public IReadOnlyList<WarpTileEntry> GetWarpTiles()
+        {
+            if (this.warpTiles is not null) return this.warpTiles;
+
+            var list = new List<WarpTileEntry>();
+            for (int y = 1; y <= this.Height; y++)
+            {
+                for (int x = 1; x <= this.Width; x++)
+                {
+                    if (this.tiles[y * this.Width + x] is WarpTile warp)
+                    {
+                        list.Add(new WarpTileEntry(x, y, warp));
+                    }
+                }
+            }
+            this.warpTiles = list;
+            return list;
+        }
+
         /**
          * GetTile, returns the tile at x, y
          *
@@ -693,6 +716,7 @@ namespace Goose
             if (x < 1 || x >= this.Width + 1 || y < 1 || y >= this.Height + 1) return;
 
             this.tiles[y * this.Width + x] = tile;
+            this.warpTiles = null;
         }
 
         /**
