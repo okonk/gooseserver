@@ -606,6 +606,8 @@ namespace Goose
          */
         public void LoadData(GameWorld world)
         {
+            this.warpTiles = null;
+
             try
             {
                 this.Script?.Object.OnLoad(this, world);
@@ -675,6 +677,8 @@ namespace Goose
             {
                 log.Error(e, "Map OnFinishedLoad {0} ({1}) Exception", this.Name, this.ID);
             }
+
+            this.warpTiles = null;
         }
 
         // All runtime writes to tiles (SetTile, AddItem, RemoveItem) invalidate this cache; game thread only.

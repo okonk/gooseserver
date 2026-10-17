@@ -1,4 +1,5 @@
 using Goose;
+using Goose.Testing;
 
 namespace Goose.Tests;
 
@@ -116,6 +117,63 @@ public class MapWarpTilesTests
 
         Assert.Equal(new[] { (1, 1), (3, 1) }, tiles.Select(t => (t.X, t.Y)));
         Assert.All(tiles, t => Assert.Same(warp, t.Tile));
+    }
+
+    [Fact]
+    public void LoadData_DropsWarpCachePopulatedBeforeLoad()
+    {
+        using var fixture = new TestWorldFixture(s => s.ServerType = "Illutia");
+        fixture.AddBaseMap(2, "Dest");
+        var map = fixture.AddBaseMap(1, "Src");
+
+        Directory.CreateDirectory(Path.Combine(fixture.DataDirectory, "Maps"));
+        using (var writer = new BinaryWriter(File.OpenWrite(Path.Combine(fixture.DataDirectory, "Maps", map.FileName))))
+        {
+            writer.Write((short)1);
+            writer.Write((short)1);
+            writer.Write(2);
+            writer.Write(2);
+            for (int y = 1; y <= 2; y++)
+            {
+                for (int x = 1; x <= 2; x++)
+                {
+                    writer.Write(0);
+                    for (int k = 0; k < 5; k++)
+                    {
+                        writer.Write(0);
+                        writer.Write((short)0);
+                    }
+                }
+            }
+        }
+
+        fixture.World.Database.Start(Path.Combine(fixture.DataDirectory, "test.db"));
+        fixture.World.Database.Execute(conn =>
+        {
+            using (var schema = conn.CreateCommand())
+            {
+                schema.CommandText =
+                    "CREATE TABLE warptiles (map_id INTEGER, warp_id INTEGER, map_x INTEGER, map_y INTEGER, warp_x INTEGER, warp_y INTEGER); " +
+                    "CREATE TABLE map_required_items (map_id INTEGER, item_template_id INTEGER);";
+                schema.ExecuteNonQuery();
+            }
+
+            using var insert = conn.CreateCommand();
+            insert.CommandText =
+                "INSERT INTO warptiles (map_id, warp_id, map_x, map_y, warp_x, warp_y) VALUES (1, 2, 2, 2, 1, 1)";
+            insert.ExecuteNonQuery();
+        });
+
+        var stale = new WarpTile();
+        map.SetTile(1, 1, stale);
+        map.GetWarpTiles();
+
+        map.LoadData(fixture.World);
+
+        var entry = Assert.Single(map.GetWarpTiles());
+        Assert.Equal(2, entry.X);
+        Assert.Equal(2, entry.Y);
+        Assert.NotSame(stale, entry.Tile);
     }
 
     [Fact]
