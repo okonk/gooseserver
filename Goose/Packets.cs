@@ -456,6 +456,9 @@ namespace Goose
                         (map.CanCast ? "1" : "0");
         };
 
+        // Wire format: MWP<x>,<y> — 1-based; position only, later fields may be appended (client: MapWarpPacket)
+        public static Func<int, int, string> MapWarp = (x, y) => { return "MWP" + x + "," + y; };
+
         public static Func<Class, string> ClassUpdate = (@class) =>
         {
             return "CUP" + @class.ClassID + "," + @class.ClassName;
