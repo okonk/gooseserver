@@ -1285,6 +1285,22 @@ namespace Goose
             this.UpdatePossibleQuestProgress(RequirementType.TalkToNPC, npc.NPCTemplate.NPCTemplateID, world);
         }
 
+        internal void PickedUpItem(Item item, GameWorld world)
+        {
+            if (this.QuestCreditFilterEnabled || item.Custom) return;
+
+            int family = item.Template.BaseTemplateID;
+            foreach (var quest in this.QuestsStarted.ToList().DistinctBy(q => q.Id))
+            {
+                if (!QuestStateResolver.IsActive(quest, this)) continue;
+
+                var totals = QuestWindow.GetItemFamilyTotalQuantities(quest, world);
+                if (!totals.TryGetValue(family, out long required)) continue;
+
+                world.Send(this, P.Notice(NoticeType.Quest, $"Quest Credit: {quest.Name} ({this.Inventory.GetInventoryItemFamilyCount(family)}/{required})"));
+            }
+        }
+
         private void UpdatePossibleQuestProgress(RequirementType requirementType, long requirementValue, GameWorld world)
         {
             bool changed = false;

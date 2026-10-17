@@ -435,7 +435,7 @@ namespace Goose.Quests
                 QuestRewardGranter.Give(reward, npc, player, world);
         }
 
-        private static Dictionary<int, long> GetItemFamilyTotalQuantities(Quest quest, GameWorld world)
+        internal static Dictionary<int, long> GetItemFamilyTotalQuantities(Quest quest, GameWorld world)
         {
             var quantities = new Dictionary<int, long>();
             foreach (var requirement in quest.Requirements)
