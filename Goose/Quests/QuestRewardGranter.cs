@@ -141,7 +141,7 @@ namespace Goose.Quests
             }
 
             if (rewardMessage is not null)
-                world.Send(player, P.ServerMessage(rewardMessage));
+                world.Send(player, P.Notice(NoticeType.Quest, rewardMessage));
         }
 
         public static int RequiredInventorySlots(IEnumerable<QuestReward> rewards, Player player, GameWorld world)

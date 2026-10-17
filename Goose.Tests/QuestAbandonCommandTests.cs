@@ -97,7 +97,7 @@ public class QuestAbandonCommandTests
         Assert.Contains(player.QuestsStarted, q => q.Id == 1);
         Assert.Empty(player.QuestProgress);
         Assert.Empty(player.Windows);
-        Assert.Contains(player.Sent, s => s.Contains("Abandoned quest: Quest Two"));
+        Assert.Contains(player.Sent, s => s.StartsWith("NTF1,Abandoned quest: Quest Two"));
     }
 
     [Fact]

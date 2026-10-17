@@ -38,7 +38,7 @@ public class QuestRewardGranterTests
         QuestRewardGranter.Give(new QuestReward { Id = 1, Type = RewardType.Gold, LongValue = 500 }, fixture.Npc, fixture.Player, fixture.World.World);
 
         Assert.Equal(500, fixture.Player.Gold);
-        Assert.Contains(fixture.Player.Sent, s => s.Contains("[Quest Reward]: 500 gold"));
+        Assert.Contains(fixture.Player.Sent, s => s.StartsWith("NTF1,[Quest Reward]: 500 gold"));
     }
 
     [Fact]
