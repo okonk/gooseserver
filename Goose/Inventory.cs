@@ -1398,7 +1398,7 @@ namespace Goose
                     if (result.IsBindOnPickup) result.IsBound = true;
                 }
 
-                world.Send(this.player, P.ServerMessage("Successfully created " + result.Name + "."));
+                world.Send(this.player, P.Notice(NoticeType.Info, "Successfully created " + result.Name + "."));
             }
 
             for (int i = 1; i < this.combineContainer.MaxSlots; i++)

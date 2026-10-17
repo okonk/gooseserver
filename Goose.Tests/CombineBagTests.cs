@@ -179,6 +179,7 @@ public class CombineBagTests
 
             Assert.Equal("Cloth", NameInBag(player, 1));
             Assert.Null(NameInBag(player, 2));
+            Assert.Contains(player.Sent, s => s.StartsWith(P.Notice(NoticeType.Info, "Successfully created Cloth.")));
         }
     }
 

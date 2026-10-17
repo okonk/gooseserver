@@ -2447,7 +2447,7 @@ namespace Goose
                 packetBuilder.Append("\x1").Append(P.Attack(this));
 
             if (buff.SpellEffect.OnEffectText != "")
-                world.Send(this, P.ServerMessage(buff.SpellEffect.OnEffectText));
+                world.Send(this, P.Notice(NoticeType.BuffOn, buff.SpellEffect.OnEffectText));
 
             world.Send(this, P.StatusInfo(this));
 
@@ -2484,8 +2484,8 @@ namespace Goose
 
             world.Send(this, P.WeaponSpeed(this));
 
-            if (existingBuff.SpellEffect.OffEffectText != "") world.Send(this, P.ServerMessage(existingBuff.SpellEffect.OffEffectText));
-            if (newBuff.SpellEffect.OnEffectText != "") world.Send(this, P.ServerMessage(newBuff.SpellEffect.OnEffectText));
+            if (existingBuff.SpellEffect.OffEffectText != "") world.Send(this, P.Notice(NoticeType.BuffOff, existingBuff.SpellEffect.OffEffectText));
+            if (newBuff.SpellEffect.OnEffectText != "") world.Send(this, P.Notice(NoticeType.BuffOn, newBuff.SpellEffect.OnEffectText));
 
             int oldEffectId = existingBuff.SpellEffect.ID;
 
@@ -2667,7 +2667,7 @@ namespace Goose
             {
                 var range = this.Map.GetPlayersInRange(this);
 
-                if (buff.SpellEffect.OffEffectText != "") world.Send(this, P.ServerMessage(buff.SpellEffect.OffEffectText));
+                if (buff.SpellEffect.OffEffectText != "") world.Send(this, P.Notice(NoticeType.BuffOff, buff.SpellEffect.OffEffectText));
                 world.Send(this, P.StatusInfo(this));
 
                 sendCharacterUpdate |= this.FireInvisTransitions(world, wasInvisible, wasCanSee);
