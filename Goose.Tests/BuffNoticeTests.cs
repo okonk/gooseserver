@@ -71,6 +71,28 @@ public class BuffNoticeTests
     }
 
     [Fact]
+    public void AddBuff_NonStackingOver_SendsInfoNotice()
+    {
+        var (fixture, player, buff) = WorldWithBuffedPlayer();
+        using (fixture)
+        {
+            player.AddBuff(buff, fixture.World);
+            player.Sent.Clear();
+
+            var other = fixture.AddBaseSpellEffect(2, "other", e => { e.Duration = 120; });
+            other.BuffDoesntStackOver.Add(buff.SpellEffect);
+            var newBuff = new Buff { Caster = player, Target = player, SpellEffect = other };
+
+            player.AddBuff(newBuff, fixture.World);
+
+            Assert.Contains(player.Sent, s => s.StartsWith(P.Notice(NoticeType.Info, "The buff had no effect.")));
+            Assert.DoesNotContain(player.Sent, s => s.StartsWith("$7The buff had no effect."));
+            Assert.Single(player.Buffs);
+            Assert.Same(buff, player.Buffs[0]);
+        }
+    }
+
+    [Fact]
     public void AddBuff_EmptyOnEffectText_SendsNoNotice()
     {
         var (fixture, player, _) = WorldWithBuffedPlayer();

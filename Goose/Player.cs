@@ -2366,7 +2366,7 @@ namespace Goose
             {
                 if (buff.SpellEffect.BuffDoesntStackOver.Contains(b.SpellEffect))
                 {
-                    world.Send(this, P.ServerMessage("The buff had no effect."));
+                    world.Send(this, P.Notice(NoticeType.Info, "The buff had no effect."));
                     return;
                 }
 
