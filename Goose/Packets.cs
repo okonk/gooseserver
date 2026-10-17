@@ -39,6 +39,7 @@ namespace Goose
         public static Func<string, string> GroupMessage = (message) => { return "$3" + message; };
         public static Func<string, string> GuildMessage = (message) => { return "$2" + message; };
         public static Func<string, string> TellMessage = (message) => { return "$6" + message; };
+        public static Func<NoticeType, string, string> Notice = (type, message) => { return "NTF" + (int)type + "," + message; };
 
         // The 0 in here is for AFK, but I don't see the use of it
         public static Func<Player, string, string> Tell = (player, message) => { return $"&{player.Name},0,{message}"; };
