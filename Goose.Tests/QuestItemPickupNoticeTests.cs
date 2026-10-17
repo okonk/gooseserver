@@ -12,11 +12,13 @@ public class QuestItemPickupNoticeTests
     private const int VariantId = 1001;
     private const int UnrelatedId = 200;
 
-    private sealed class Harness
+    private sealed class Harness : IDisposable
     {
         public TestWorldFixture World = null!;
         public TestWorldFixture.CapturingPlayer Player = null!;
         public Map Map = null!;
+
+        public void Dispose() => this.World.Dispose();
     }
 
     private static Harness Setup(Action<GooseSettings>? configure = null)
@@ -110,7 +112,7 @@ public class QuestItemPickupNoticeTests
     [Fact]
     public void Pickup_ActiveQuest_SendsCreditWithNewCount()
     {
-        var setup = Setup();
+        using var setup = Setup();
         Give(setup, BaseId, 2);
         setup.Player.QuestsStarted.Add(HerbQuest(1, "Herb Quest", (BaseId, 5)));
 
@@ -124,7 +126,7 @@ public class QuestItemPickupNoticeTests
     [Fact]
     public void Pickup_VariantItem_CountsTowardFamily()
     {
-        var setup = Setup();
+        using var setup = Setup();
         setup.Player.QuestsStarted.Add(HerbQuest(1, "Herb Quest", (BaseId, 5)));
 
         Pickup(setup, VariantId, 2);
@@ -137,7 +139,7 @@ public class QuestItemPickupNoticeTests
     [Fact]
     public void Pickup_OverRequirement_ShowsOverCount()
     {
-        var setup = Setup();
+        using var setup = Setup();
         Give(setup, BaseId, 5);
         setup.Player.QuestsStarted.Add(HerbQuest(1, "Herb Quest", (BaseId, 5)));
 
@@ -151,7 +153,7 @@ public class QuestItemPickupNoticeTests
     [Fact]
     public void Pickup_DuplicateRequirementRows_SumIntoOneLine()
     {
-        var setup = Setup();
+        using var setup = Setup();
         setup.Player.QuestsStarted.Add(HerbQuest(1, "Herb Quest", (BaseId, 2), (BaseId, 3)));
 
         Pickup(setup, BaseId, 1);
@@ -164,7 +166,7 @@ public class QuestItemPickupNoticeTests
     [Fact]
     public void Pickup_QuestNotStarted_SendsNothing()
     {
-        var setup = Setup();
+        using var setup = Setup();
         HerbQuest(1, "Herb Quest", (BaseId, 5));
 
         Pickup(setup, BaseId, 1);
@@ -175,7 +177,7 @@ public class QuestItemPickupNoticeTests
     [Fact]
     public void Pickup_CompletedNonRepeatableQuest_SendsNothing()
     {
-        var setup = Setup();
+        using var setup = Setup();
         var quest = HerbQuest(1, "Herb Quest", (BaseId, 5));
         setup.Player.QuestsStarted.Add(quest);
         setup.Player.QuestsCompleted.Add(quest);
@@ -188,7 +190,7 @@ public class QuestItemPickupNoticeTests
     [Fact]
     public void Pickup_CreditFilterEnabled_SendsNothingButStillPicksUp()
     {
-        var setup = Setup();
+        using var setup = Setup();
         setup.Player.ToggleSettings |= Player.ToggleSetting.QuestCredit;
         setup.Player.QuestsStarted.Add(HerbQuest(1, "Herb Quest", (BaseId, 5)));
 
@@ -201,7 +203,7 @@ public class QuestItemPickupNoticeTests
     [Fact]
     public void Pickup_UnrelatedItem_SendsNothing()
     {
-        var setup = Setup();
+        using var setup = Setup();
         setup.Player.QuestsStarted.Add(HerbQuest(1, "Herb Quest", (BaseId, 5)));
 
         Pickup(setup, UnrelatedId, 1);
@@ -212,7 +214,7 @@ public class QuestItemPickupNoticeTests
     [Fact]
     public void Pickup_TwoQuestsShareFamily_SendsOneLineEach()
     {
-        var setup = Setup();
+        using var setup = Setup();
         setup.Player.QuestsStarted.Add(HerbQuest(1, "Herb Quest A", (BaseId, 5)));
         setup.Player.QuestsStarted.Add(HerbQuest(2, "Herb Quest B", (BaseId, 5)));
 
@@ -227,7 +229,7 @@ public class QuestItemPickupNoticeTests
     [Fact]
     public void Pickup_InventoryFull_SendsNothing()
     {
-        var setup = Setup(w => w.InventorySize = 1);
+        using var setup = Setup(w => w.InventorySize = 1);
         Give(setup, UnrelatedId, 1);
         setup.Player.QuestsStarted.Add(HerbQuest(1, "Herb Quest", (BaseId, 5)));
 
