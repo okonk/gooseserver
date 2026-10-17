@@ -74,6 +74,36 @@ public class MapWarpTilesTests
         Assert.Empty(m.GetWarpTiles());
     }
 
+    private static ItemTile MakeItemTile(int x, int y, GameWorld world)
+    {
+        var template = new ItemTemplate
+        {
+            ID = 42, Name = "Sword", Description = "A sword",
+            BaseStats = new AttributeSet { HP = 5 },
+        };
+        world.ItemHandler.AddTemplate(template);
+        var item = new Item();
+        item.LoadFromTemplate(template);
+        return new ItemTile
+        {
+            X = x, Y = y,
+            ItemSlot = new ItemSlot { Item = item, Stack = 1 },
+        };
+    }
+
+    [Fact]
+    public void GetWarpTiles_DropsWarpOverwrittenByAddItem()
+    {
+        var m = NewMap();
+        m.SetTile(5, 5, new WarpTile());
+        Assert.Single(m.GetWarpTiles());
+
+        var world = new GameWorld(new GooseSettings());
+        m.AddItem(MakeItemTile(5, 5, world), world);
+
+        Assert.Empty(m.GetWarpTiles());
+    }
+
     [Fact]
     public void GetWarpTiles_SharedInstanceReportsEachPosition()
     {

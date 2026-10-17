@@ -247,6 +247,7 @@ namespace Goose
         {
             this.items.Add(item);
             this.tiles[item.Y * this.Width + item.X] = item;
+            this.warpTiles = null;
 
             item.DroppedTime = world.TimeNow;
 
@@ -264,6 +265,7 @@ namespace Goose
         {
             this.items.Remove(item);
             this.tiles[item.Y * this.Width + item.X] = null;
+            this.warpTiles = null;
 
             world.SendToMap(this, P.EraseObject(item));
         }
@@ -675,7 +677,7 @@ namespace Goose
             }
         }
 
-        // Runtime tile writes must go through SetTile to invalidate this cache; game thread only.
+        // All runtime writes to tiles (SetTile, AddItem, RemoveItem) invalidate this cache; game thread only.
         // Deliberately outside the CloneAs field block: derived state, clones build their own.
         private List<WarpTileEntry>? warpTiles;
 
