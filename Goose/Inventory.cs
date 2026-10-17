@@ -71,31 +71,35 @@ namespace Goose
         /**
          * AddItem, adds an item to inventory
          *
-         * Adds to first free slot or stack that it can fit into.
+         * Adds to the first stack it can fit into, otherwise the first free slot.
          * If it can't do any of these returns false.
          *
          */
         public bool AddItem(Item item, long stack, GameWorld world)
         {
+            ItemSlot slot = new ItemSlot();
+            slot.Item = item;
+            slot.Stack = stack;
+
             for (int i = 1; i <= this.settings.InventorySize; i++)
             {
-                ItemSlot slot = new ItemSlot();
-                slot.Item = item;
-                slot.Stack = stack;
+                if (this.inventory[i] is not null && this.inventory[i]!.CanStack(slot))
+                {
+                    this.inventory[i]!.Stack += slot.Stack;
+                    this.SendSlot(i, world);
 
+                    this.RefreshQuestIcons(world);
+                    return true;
+                }
+            }
+
+            for (int i = 1; i <= this.settings.InventorySize; i++)
+            {
                 if (this.inventory[i] is null)
                 {
                     this.inventory[i] = slot;
 
                     this.SendSlot(i, world);
-                    this.RefreshQuestIcons(world);
-                    return true;
-                }
-                else if (this.inventory[i]!.CanStack(slot))
-                {
-                    this.inventory[i]!.Stack += slot.Stack;
-                    this.SendSlot(i, world);
-
                     this.RefreshQuestIcons(world);
                     return true;
                 }
