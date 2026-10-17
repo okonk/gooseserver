@@ -96,7 +96,7 @@ public class WanderingChestScriptTests
     }
 
     [Fact]
-    public void Waits_between_one_and_two_hours_after_being_killed()
+    public void Waits_between_one_and_a_half_and_two_and_a_half_hours_after_being_killed()
     {
         using var fixture = new TestWorldFixture();
         var map = fixture.AddBaseMap(14, "Chiisaiyama");
@@ -110,10 +110,10 @@ public class WanderingChestScriptTests
         Assert.Empty(Chests(map));
 
         Update(fixture, script, Minutes(fixture, 1));
-        Update(fixture, script, Minutes(fixture, 60));
+        Update(fixture, script, Minutes(fixture, 90));
         Assert.Empty(Chests(map));
 
-        Update(fixture, script, Minutes(fixture, 122));
+        Update(fixture, script, Minutes(fixture, 152));
         Assert.Single(Chests(map));
     }
 

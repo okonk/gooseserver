@@ -12,8 +12,8 @@ public class WanderingChest : BaseGlobalScript
 
     private const int ChestTemplateId = 261;
 
-    private static readonly TimeSpan MinSpawnDelay = TimeSpan.FromMinutes(60);
-    private static readonly TimeSpan MaxSpawnDelay = TimeSpan.FromMinutes(120);
+    private static readonly TimeSpan MinSpawnDelay = TimeSpan.FromMinutes(90);
+    private static readonly TimeSpan MaxSpawnDelay = TimeSpan.FromMinutes(150);
     private static readonly TimeSpan WanderAfter = TimeSpan.FromMinutes(20);
     // WanderingChestNPC.csx stamps npc.ScriptStore with the time it was last hit.
     private static readonly TimeSpan FightGrace = TimeSpan.FromMinutes(2);
