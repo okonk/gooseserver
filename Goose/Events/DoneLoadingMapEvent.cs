@@ -11,6 +11,7 @@ namespace Goose.Events
      * Server responds:
      * - SMNMapname - Send Map Name, I'm unsure why it sends it twice or if it's even needed
      * - DSM - Done Sending Map
+     * - MWPx,y - Minimap warp position (one per warp tile on the map)
      * - MKC - See Player.MKCString() for full syntax.
      * This is sent to all players in the range of the player. Including the player himself.
      * - SUCId - Set Your Character (I think) - Tells the client which character is the player
@@ -41,6 +42,8 @@ namespace Goose.Events
 
                 this.Player.State = Player.States.Ready;
                 world.Send(this.Player, P.DoneSendingMap());
+                foreach (var warp in map.GetWarpTiles())
+                    world.Send(this.Player, P.MapWarp(warp.X, warp.Y));
                 world.Send(this.Player, P.MakeCharacter(this.Player));
                 world.Send(this.Player, P.SeeInvisible(this.Player.CanSeeInvisible));
                 world.Send(this.Player, P.SetYourCharacter(this.Player.LoginID));
