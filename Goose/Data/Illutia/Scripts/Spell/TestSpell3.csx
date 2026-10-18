@@ -6,7 +6,7 @@ using System.Linq;
 
 public class TestSpell3 : BaseSpellEffectScript
 {
-	public override bool Cast(SpellEffect thisEffect, ICharacter caster, ICharacter target, GameWorld world)
+	public override bool Cast(SpellEffect thisEffect, ICharacter caster, ICharacter target, GameWorld world, SpellCast? cast)
 	{
         ((Player)target).AdditionalExperienceModifier = 100;
 		// target.HairID = (target.HairID + 1) % 47;

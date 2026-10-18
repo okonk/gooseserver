@@ -4,7 +4,9 @@ namespace Goose.Scripting
 {
     public interface ISpellEffectScript
     {
-        bool Cast(SpellEffect thisEffect, ICharacter caster, ICharacter target, GameWorld world);
+        bool Cast(SpellEffect thisEffect, ICharacter caster, ICharacter target, GameWorld world, SpellCast? cast = null);
+
+        void OnCastCompleted(SpellEffect thisEffect, SpellCast cast, GameWorld world);
 
         void OnBuffAdded(Buff buff, GameWorld world);
 

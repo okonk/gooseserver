@@ -6,7 +6,7 @@ using System.Linq;
 
 public class PlaceSpawnHelper : BaseSpellEffectScript
 {
-	public override bool Cast(SpellEffect thisEffect, ICharacter caster, ICharacter target, GameWorld world)
+	public override bool Cast(SpellEffect thisEffect, ICharacter caster, ICharacter target, GameWorld world, SpellCast? cast)
 	{
 		using (var writer = new StreamWriter(@"spawns-" + caster.MapID + ".csv"))
 		{

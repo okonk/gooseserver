@@ -5,7 +5,7 @@ using Goose.Scripting;
 
 public class IceArmor : BaseSpellEffectScript
 {
-    public override bool Cast(SpellEffect thisEffect, ICharacter caster, ICharacter target, GameWorld world)
+    public override bool Cast(SpellEffect thisEffect, ICharacter caster, ICharacter target, GameWorld world, SpellCast? cast)
     {
         int snareEffectId = 306;
         double maxHpPerHit = 0.01;

@@ -6,9 +6,14 @@ namespace Goose.Scripting
     {
         public BaseSpellEffectScript() { }
 
-        public virtual bool Cast(SpellEffect thisEffect, ICharacter caster, ICharacter target, GameWorld world)
+        public virtual bool Cast(SpellEffect thisEffect, ICharacter caster, ICharacter target, GameWorld world, SpellCast? cast = null)
         {
             return true;
+        }
+
+        public virtual void OnCastCompleted(SpellEffect thisEffect, SpellCast cast, GameWorld world)
+        {
+
         }
 
         public virtual void OnBuffAdded(Buff buff, GameWorld world)

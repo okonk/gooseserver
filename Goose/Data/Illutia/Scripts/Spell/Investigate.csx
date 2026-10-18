@@ -120,7 +120,7 @@ public class InvestigateWindow : Window
 
 public class InvestigateSpell : BaseSpellEffectScript
 {
-    public override bool Cast(SpellEffect thisEffect, ICharacter caster, ICharacter target, GameWorld world)
+    public override bool Cast(SpellEffect thisEffect, ICharacter caster, ICharacter target, GameWorld world, SpellCast? cast)
     {
         if (caster is not Player player) return false;
         if (target is not NPC npc)

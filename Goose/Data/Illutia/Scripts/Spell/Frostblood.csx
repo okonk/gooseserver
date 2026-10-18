@@ -5,7 +5,7 @@ using Goose.Scripting;
 
 public class Frostblood : BaseSpellEffectScript
 {
-    public override bool Cast(SpellEffect thisEffect, ICharacter caster, ICharacter target, GameWorld world)
+    public override bool Cast(SpellEffect thisEffect, ICharacter caster, ICharacter target, GameWorld world, SpellCast? cast)
     {
         double lifesteal = 1.0;
         double maxHpPerHit = 0.02;

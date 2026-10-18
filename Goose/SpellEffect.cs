@@ -372,7 +372,7 @@ namespace Goose
             return $"{mult * 100:F0}% of {stat}";
         }
 
-        private string GetFormulaDescription(string formula, string stat, string prefix)
+        public string GetFormulaDescription(string formula, string stat, string prefix)
         {
             if (long.TryParse(formula, out long val))
             {
@@ -570,13 +570,21 @@ namespace Goose
          */
         public bool CastFormulaSpell(ICharacter caster, ICharacter target, GameWorld world)
         {
+            return this.CastFormulaSpell(caster, target, world, out _, out _);
+        }
+
+        public bool CastFormulaSpell(ICharacter caster, ICharacter target, GameWorld world, out long hpChange, out long hpCritMultiplier)
+        {
+            hpChange = 0;
+            hpCritMultiplier = 1;
             if (!this.CanCastSpell(caster, target)) return false;
 
             var range = target.Map.GetPlayersInRange(target);
             var packets = new List<string>();
 
             var (hpresult, mpresult) = this.CalculateFormulaResults(
-                this.HPFormula, this.MPFormula, caster, target, world);
+                this.HPFormula, this.MPFormula, caster, target, world, out hpCritMultiplier);
+            hpChange = hpresult;
             target.CurrentMP += mpresult;
             if (hpresult != 0)
             {
@@ -623,12 +631,25 @@ namespace Goose
             ICharacter target,
             GameWorld world)
         {
+            return this.CalculateFormulaResults(hpFormula, mpFormula, caster, target, world, out _);
+        }
+
+        public (long HP, long MP) CalculateFormulaResults(
+            string hpFormula,
+            string mpFormula,
+            ICharacter caster,
+            ICharacter target,
+            GameWorld world,
+            out long hpCritMultiplier)
+        {
+            hpCritMultiplier = 1;
             long hpresult = this.ParseFormula(hpFormula, caster, target, world);
             long mpresult = this.ParseFormula(mpFormula, caster, target, world);
 
             if (!(hpresult < 0 && target is Player) && this.SpellDamageEffects)
             {
-                hpresult *= Utils.CritMultiplier(caster.MaxStats.SpellCrit, world.Random);
+                hpCritMultiplier = Utils.CritMultiplier(caster.MaxStats.SpellCrit, world.Random);
+                hpresult *= hpCritMultiplier;
                 hpresult = Utils.MultiplyAndTruncate(hpresult, 1 + caster.MaxStats.SpellDamage);
 
                 mpresult *= Utils.CritMultiplier(caster.MaxStats.SpellCrit, world.Random);
@@ -1018,12 +1039,12 @@ namespace Goose
          * CastSpell, dispatches to the correct cast method for this effect type.
          *
          */
-        public bool CastSpell(ICharacter caster, ICharacter target, GameWorld world)
+        public bool CastSpell(ICharacter caster, ICharacter target, GameWorld world, SpellCast? cast = null)
         {
             return this.EffectType switch
             {
                 // Script effects delegate entirely to the script.
-                EffectTypes.Script => CastScriptSpell(caster, target, world),
+                EffectTypes.Script => CastScriptSpell(caster, target, world, cast),
 
                 // Formula-based damage/heal.
                 EffectTypes.Formula or EffectTypes.Viral => this.CastFormulaSpell(caster, target, world),
@@ -1066,7 +1087,7 @@ namespace Goose
         /// <summary>
         /// Cast a script-backed spell, logging any exceptions from the script.
         /// </summary>
-        private bool CastScriptSpell(ICharacter caster, ICharacter target, GameWorld world)
+        private bool CastScriptSpell(ICharacter caster, ICharacter target, GameWorld world, SpellCast? cast)
         {
             if (this.Script is null)
             {
@@ -1076,7 +1097,7 @@ namespace Goose
 
             try
             {
-                return this.Script.Object.Cast(this, caster, target, world);
+                return this.Script.Object.Cast(this, caster, target, world, cast);
             }
             catch (Exception e)
             {
@@ -1085,11 +1106,25 @@ namespace Goose
             }
         }
 
+        public void CastCompleted(SpellCast cast, GameWorld world)
+        {
+            if (this.Script is null) return;
+
+            try
+            {
+                this.Script.Object.OnCastCompleted(this, cast, world);
+            }
+            catch (Exception e)
+            {
+                log.Error(e, "Cast Completed {0} (c: {1}) Exception", this.Name, cast.Caster.Name);
+            }
+        }
+
         /**
          * Cast, figures out how to cast the spell, centered on target
          *
          */
-        public bool Cast(ICharacter caster, ICharacter target, GameWorld world)
+        public bool Cast(ICharacter caster, ICharacter target, GameWorld world, SpellCast? cast = null)
         {
             if (!this.WorksInPVP && target.Map.CanPVP) return false;
 
@@ -1097,7 +1132,7 @@ namespace Goose
 
             if (this.TargetType == TargetTypes.Target)
             {
-                return this.CastSpell(caster, target, world);
+                return this.CastSpell(caster, target, world, cast);
             }
             else
             {
@@ -1131,7 +1166,7 @@ namespace Goose
 
                         if ((hit = map.GetCharacterAt(x, y)) is not null)
                         {
-                            this.CastSpell(caster, hit, world);
+                            this.CastSpell(caster, hit, world, cast);
 
                             if (this.OnlyHitsOneNPC && hit is NPC) hitone = true;
                         }
@@ -1151,7 +1186,7 @@ namespace Goose
                         {
                             if ((hit = map.GetCharacterAt(x, y)) is not null)
                             {
-                                this.CastSpell(caster, hit, world);
+                                this.CastSpell(caster, hit, world, cast);
 
                                 if (this.OnlyHitsOneNPC && hit is NPC) hitone = true;
                             }
@@ -1176,7 +1211,7 @@ namespace Goose
                             {
                                 if ((hit = map.GetCharacterAt(x, y)) is not null)
                                 {
-                                    this.CastSpell(caster, hit, world);
+                                    this.CastSpell(caster, hit, world, cast);
 
                                     if (this.OnlyHitsOneNPC && hit is NPC) hitone = true;
                                 }
@@ -1200,7 +1235,7 @@ namespace Goose
                             {
                                 if ((hit = map.GetCharacterAt(x, y)) is not null)
                                 {
-                                    this.CastSpell(caster, hit, world);
+                                    this.CastSpell(caster, hit, world, cast);
 
                                     if (this.OnlyHitsOneNPC && hit is NPC) hitone = true;
                                 }
@@ -1260,7 +1295,7 @@ namespace Goose
                     {
                         if ((hit = map.GetCharacterAt(p.x, p.y)) is not null)
                         {
-                            this.CastSpell(caster, hit, world);
+                            this.CastSpell(caster, hit, world, cast);
 
                             if (this.OnlyHitsOneNPC && hit is NPC) hitone = true;
                         }
@@ -1301,7 +1336,7 @@ namespace Goose
 
                             if ((hit = map.GetCharacterAt(x, y)) is not null)
                             {
-                                this.CastSpell(caster, hit, world);
+                                this.CastSpell(caster, hit, world, cast);
 
                                 if (this.OnlyHitsOneNPC && hit is NPC) hitone = true;
                             }

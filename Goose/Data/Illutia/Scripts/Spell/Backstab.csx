@@ -4,7 +4,7 @@ using Goose.Scripting;
 
 public class Backstab : BaseSpellEffectScript
 {
-    public override bool Cast(SpellEffect thisEffect, ICharacter caster, ICharacter target, GameWorld world)
+    public override bool Cast(SpellEffect thisEffect, ICharacter caster, ICharacter target, GameWorld world, SpellCast? cast)
     {
         var (x, y) = caster.Facing switch
         {

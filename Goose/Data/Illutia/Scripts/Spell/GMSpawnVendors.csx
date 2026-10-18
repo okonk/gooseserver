@@ -6,7 +6,7 @@ using Goose.Scripting;
 
 public class GMSpawnVendors : BaseSpellEffectScript
 {
-	public override bool Cast(SpellEffect thisEffect, ICharacter caster, ICharacter target, GameWorld world)
+	public override bool Cast(SpellEffect thisEffect, ICharacter caster, ICharacter target, GameWorld world, SpellCast? cast)
 	{
 		if (caster is not Player player || player.Map is null) return false;
 

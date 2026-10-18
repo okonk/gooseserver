@@ -4,7 +4,7 @@ using Goose.Scripting;
 
 public class SpawnNPC : BaseSpellEffectScript
 {
-	public override bool Cast(SpellEffect thisEffect, ICharacter caster, ICharacter target, GameWorld world)
+	public override bool Cast(SpellEffect thisEffect, ICharacter caster, ICharacter target, GameWorld world, SpellCast? cast)
 	{
 		int casterId = (caster as Player)?.PlayerID ?? 0;
 

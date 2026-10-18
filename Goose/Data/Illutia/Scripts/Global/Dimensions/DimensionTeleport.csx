@@ -22,7 +22,7 @@ public class DimensionTeleport : BaseSpellEffectScript
     }
 
     public override bool Cast(SpellEffect thisEffect, ICharacter caster, ICharacter target,
-                              GameWorld world)
+                              GameWorld world, SpellCast? cast)
     {
         // CastSpell guards Teleport with "target is Player" (SpellEffect.cs:939);
         // CastScriptSpell (:975) has no such guard, so it has to be repeated here.

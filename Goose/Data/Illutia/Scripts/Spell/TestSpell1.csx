@@ -4,7 +4,7 @@ using Goose.Scripting;
 
 public class TestSpell1 : BaseSpellEffectScript
 {
-	public override bool Cast(SpellEffect thisEffect, ICharacter caster, ICharacter target, GameWorld world)
+	public override bool Cast(SpellEffect thisEffect, ICharacter caster, ICharacter target, GameWorld world, SpellCast? cast)
 	{
 		NPCTemplate template = world.NPCHandler.GetNPCTemplate(331);
 		if (template == null) return false;

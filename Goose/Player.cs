@@ -2257,6 +2257,8 @@ namespace Goose
                     this.CurrentMP >= spell.MPStaticCost)
                     //this.CurrentSP >= spell.SPStaticCost) // for testing sp spells don't check the cost..
                 {
+                    var cast = new SpellCast(spell, this);
+
                     if (spell.Target == Spell.SpellTargets.Group)
                     {
                         if (this.Group is not null)
@@ -2267,30 +2269,34 @@ namespace Goose
                                     Math.Abs(p.MapX - this.MapX) < Map.RANGE_X &&
                                     Math.Abs(p.MapY - this.MapY) < Map.RANGE_Y)
                                 {
-                                    spell.SpellEffect.Cast(this, p, world);
+                                    spell.SpellEffect.Cast(this, p, world, cast);
                                 }
                             }
                         }
 
-                        spell.SpellEffect.Cast(this, this, world);
+                        spell.SpellEffect.Cast(this, this, world, cast);
 
                     }
                     else
                     {
-                        spell.SpellEffect.Cast(this, target, world);
+                        spell.SpellEffect.Cast(this, target, world, cast);
                     }
 
                     this.CurrentHP -= spell.HPStaticCost;
                     this.CurrentMP -= spell.MPStaticCost;
                     this.CurrentSP -= spell.SPStaticCost;
 
-                    this.CurrentHP -= Utils.MultiplyAndTruncate(this.CurrentHP, spell.HPPercentCost / 100.0);
-                    this.CurrentMP -= Utils.MultiplyAndTruncate(this.CurrentMP, spell.MPPercentCost / 100.0);
+                    cast.HPPercentCostPaid = Utils.MultiplyAndTruncate(this.CurrentHP, spell.HPPercentCost / 100.0);
+                    cast.MPPercentCostPaid = Utils.MultiplyAndTruncate(this.CurrentMP, spell.MPPercentCost / 100.0);
+                    this.CurrentHP -= cast.HPPercentCostPaid;
+                    this.CurrentMP -= cast.MPPercentCostPaid;
                     this.CurrentSP -= Utils.MultiplyAndTruncate(this.CurrentSP, spell.SPPercentCost / 100.0);
 
                     if (this.CurrentHP <= 0) this.CurrentHP = 1;
                     if (this.CurrentMP < 0) this.CurrentMP = 0;
                     if (this.CurrentSP < 0) this.CurrentSP = 0;
+
+                    spell.SpellEffect.CastCompleted(cast, world);
 
                     this.Spellbook.SetSlotLastCast(spellslot, now);
 
