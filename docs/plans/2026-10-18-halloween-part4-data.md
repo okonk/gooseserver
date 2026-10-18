@@ -339,6 +339,30 @@ Tier 3's 15% Groundskeeper rate is applied by the Groundskeeper script (Part 3),
 
 Validation from Task 1 covers every tile. Expected count ≈ 280; the generator prints per-room counts.
 
+**Where the friendly NPCs and the Weeper stand** (map: `2026-10-18-halloween-npc-locations.jpg`):
+
+![NPC locations](2026-10-18-halloween-npc-locations.jpg)
+
+| NPC | Map | Tile | Spot | Look copied from |
+|---|---|---|---|---|
+| Trick-or-Treater | Minita (1) | 53, 58 | South edge of the central green, by the red trees | body 130 |
+| Baker Mott | Minita (1) | 13, 47 | Doorstep of the first house in the north-west row | Potion Guy (100) |
+| Widow Hale | Minita (1) | 23, 47 | Doorstep of the second house in that row | Cloth Armor Guy (106) |
+| Old Tom | Minita (1) | 24, 80 | Doorstep of the south-west house | Silk Armor Guy (108) |
+| Mrs Pell | Minita (1) | 38, 80 | Doorstep of the south-middle house | Tailoring Supplies (148) |
+| Grandpa Wick | Minita (1) | 61, 51 | Doorstep of the east house on the central green | Aryn the Rogue Trainer (184) |
+| The Doorman | Pumpkin Grove (38) | 38, 36 | In front of the house's door (the removed warp) | helm 35, face 5 |
+| Pumpkin Farmer | Pumpkin Grove (38) | 44, 37 | Beside the east wing, among the pumpkins | Farmer Pete (186) |
+| The Countess | House (55) | 42, 51 | Foyer, centre of the red carpet | body 154 |
+| The Count | House (55) | 44, 51 | Foyer, beside her | body 155 |
+| The Collector | House (55) | 36, 48 | Foyer, under the portraits, west of the carpet | chest 34, helm 114 |
+| The Butler | House (55) | 46, 48 | Foyer, under the portraits, east of the carpet (candy goal) | chest 34 dyed black |
+| The Medium | House (55) | 19, 59 | Kitchen, beside the basement stairs | body 220, pale blue |
+| The Weeper | House (55) | 38, 36 | Statue Gallery, his patrol start | body 231 |
+
+The neighbours stand one tile below their house's door, on the path. Map 55 is the id the house map
+gets if the sheet's next map id is still 55 when the batch is built.
+
 ---
 
 ## Task 8: Quests, requirements, rewards
