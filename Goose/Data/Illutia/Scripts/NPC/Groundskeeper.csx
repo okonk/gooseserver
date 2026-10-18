@@ -32,10 +32,18 @@ public class Groundskeeper : BaseNPCScript
         timer = ScriptTimerEvent.Create(() =>
         {
             if (npc.State != NPC.States.Alive) return;
-            var current = npc.Script?.Object;
-            if (current is not null)
-                current.GetType().GetMethod("EmptyCheck")!.Invoke(current, new object?[] { npc, world.TimeNow, world });
-            timer.Reschedule(TimeSpan.FromSeconds(5), world);
+            try
+            {
+                var current = npc.Script?.Object;
+                if (current is not null)
+                    current.GetType().GetMethod("EmptyCheck")!.Invoke(current, new object?[] { npc, world.TimeNow, world });
+            }
+            finally
+            {
+                // ScriptTimerEvent.Ready swallows exceptions, so reschedule in a finally
+                // or one bad tick kills the empty-despawn chain permanently.
+                timer.Reschedule(TimeSpan.FromSeconds(5), world);
+            }
         }, TimeSpan.FromSeconds(5), world);
     }
 
