@@ -1,3 +1,4 @@
+using System.Reflection;
 using Goose.Testing;
 
 namespace Goose.Tests;
@@ -97,6 +98,29 @@ public class NpcDespawnTests
         fixture.World.NPCHandler.Release(a);
 
         Assert.True(fixture.World.NPCHandler.IsRegistered(b.LoginID));
+        Assert.Equal(countBefore - 1, fixture.World.NPCHandler.NPCCount);
+    }
+
+    [Fact]
+    public void Releasing_a_released_npc_after_its_id_was_reused_keeps_the_new_owner()
+    {
+        using var fixture = new TestWorldFixture();
+        var map = fixture.AddBaseMap(1, "Test");
+        var a = fixture.SpawnNpc(map, 5, 5, fixture.AddNpcTemplate(1, "A"));
+        var b = fixture.SpawnNpc(map, 7, 7, fixture.AddNpcTemplate(2, "B"));
+
+        int countBefore = fixture.World.NPCHandler.NPCCount;
+        a.Despawn(fixture.World);
+
+        var idToNPC = (Dictionary<int, NPC>)typeof(NPCHandler)
+            .GetField("idToNPC", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .GetValue(fixture.World.NPCHandler)!;
+        idToNPC[a.LoginID] = b;
+
+        fixture.World.NPCHandler.Release(a);
+
+        Assert.True(fixture.World.NPCHandler.IsRegistered(b.LoginID));
+        Assert.Same(b, idToNPC[a.LoginID]);
         Assert.Equal(countBefore - 1, fixture.World.NPCHandler.NPCCount);
     }
 
