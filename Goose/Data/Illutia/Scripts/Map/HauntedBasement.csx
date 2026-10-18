@@ -21,9 +21,16 @@ public class HauntedBasement : BaseMapScript
 
     public override void OnPlayerEntered(Map map, Player player, GameWorld world)
     {
+        var cfg = HalloweenConfig.Get(world);
+        if (map.ID != cfg.Maps.Basement) return;
         if (!Halloween.Active(world))
         {
             Halloween.EvictPlayer(world, player);
+            return;
+        }
+        if (!Halloween.Tier(world, 2))
+        {
+            EvictToHouse(world, player, cfg);
             return;
         }
         Halloween.CheckCostume(world, player, world.TimeNow);
@@ -38,6 +45,7 @@ public class HauntedBasement : BaseMapScript
     public override string? CanPlayerDropItem(Map map, Player player, Item item, long stack, GameWorld world)
     {
         var cfg = HalloweenConfig.Get(world);
+        if (map.ID != cfg.Maps.Basement) return null;
         if (item.TemplateID != cfg.Items.RitualCandle) return null;
         if (!IsPoint(cfg, player.MapX, player.MapY)) return null;
         return CandleAt(map, cfg, player.MapX, player.MapY) ? "A candle already burns here." : null;
@@ -46,6 +54,7 @@ public class HauntedBasement : BaseMapScript
     public override void OnPlayerDroppedItem(Map map, Player player, ItemTile tile, GameWorld world)
     {
         var cfg = HalloweenConfig.Get(world);
+        if (map.ID != cfg.Maps.Basement) return;
         if (tile.ItemSlot.Item.TemplateID != cfg.Items.RitualCandle) return;
         if (!IsPoint(cfg, tile.X, tile.Y)) return;
         FeedMap(world, map, "A candle flickers to life. " + LitPoints(map, world) + " of " + cfg.Pentagram.Points.Length + ".");
@@ -54,6 +63,7 @@ public class HauntedBasement : BaseMapScript
     public override string? CanPlayerPickupItem(Map map, Player player, ItemTile tile, GameWorld world)
     {
         var cfg = HalloweenConfig.Get(world);
+        if (map.ID != cfg.Maps.Basement) return null;
         if (tile.ItemSlot.Item.TemplateID != cfg.Items.RitualCandle) return null;
         return IsPoint(cfg, tile.X, tile.Y) ? "The candle is fixed to the floor." : null;
     }
@@ -108,6 +118,13 @@ public class HauntedBasement : BaseMapScript
             FeedMap(world, map, "Nothing answers.");
             return;
         }
+        int groundskeeperId = cfg.Npcs.Groundskeeper;
+        if (groundskeeperId == 0) return;
+        var template = world.NPCHandler.GetNPCTemplate(groundskeeperId);
+        if (template is null || cfg.Pentagram.Centre is not { Length: >= 2 }) return;
+        var keeper = world.NPCHandler.SpawnNPC(world, map.ID, cfg.Pentagram.Centre[0], cfg.Pentagram.Centre[1],
+            template, shouldRespawn: false);
+        if (keeper is null) return;
 
         foreach (var point in cfg.Pentagram.Points)
         {
@@ -117,12 +134,18 @@ public class HauntedBasement : BaseMapScript
                 map.RemoveItem(tile, world);
         }
         FeedMap(world, map, "The clock strikes midnight. The candles gutter out.");
-        var template = world.NPCHandler.GetNPCTemplate(cfg.Npcs.Groundskeeper);
-        if (template is not null && cfg.Pentagram.Centre is { Length: >= 2 })
-            world.NPCHandler.SpawnNPC(world, map.ID, cfg.Pentagram.Centre[0], cfg.Pentagram.Centre[1], template, shouldRespawn: false);
         foreach (var npc in map.NPCs.ToList())
             if (npc.State == NPC.States.Alive && npc.Properties.TryGetProperty<int>("ambush", out _))
                 npc.Despawn(world);
+    }
+
+    private static void EvictToHouse(GameWorld world, Player player, HalloweenConfig cfg)
+    {
+        if (player.IsGM) return;
+        if (cfg.Maps.FoyerSpawn.Length < 2) return;
+        if (!world.MapHandler.Maps.TryGetValue(cfg.Maps.House, out var house) || house is null) return;
+        player.WarpTo(world, house, cfg.Maps.FoyerSpawn[0], cfg.Maps.FoyerSpawn[1]);
+        Halloween.Feed(world, player, "The basement door won't budge.");
     }
 
     private static bool IsPoint(HalloweenConfig cfg, int x, int y)

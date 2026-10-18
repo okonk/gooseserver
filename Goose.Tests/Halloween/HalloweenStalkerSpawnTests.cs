@@ -206,6 +206,25 @@ public class HalloweenStalkerSpawnTests
         Assert.Equal(0, player.ScriptState["hw.stalkerNpc"]);
     }
 
+    [Fact]
+    public void Hunt_spawn_clears_the_cancelled_flag_but_chase_does_not()
+    {
+        var (kit, halloween, map, player) = Setup();
+        player.Facing = Direction.Up;
+        player.ScriptState["hw.huntCancelled"] = 1;
+
+        Assert.True(Spawn(halloween, kit.World, player, "chase", Now));
+        Assert.Equal(1, player.ScriptState["hw.huntCancelled"]);
+        Assert.Single(map.NPCs);
+
+        Assert.True(Despawn(halloween, kit.World, player));
+        Assert.True(Spawn(halloween, kit.World, player, "hunt", Now + 1));
+        Assert.Equal(0, player.ScriptState["hw.huntCancelled"]);
+        var hunt = Assert.Single(map.NPCs);
+        Assert.True(hunt.Properties.TryGetProperty<string>("stalkerMode", out string mode));
+        Assert.Equal("hunt", mode);
+    }
+
     private static (HalloweenTestKit Kit, Type Halloween, Map Map, TestWorldFixture.CapturingPlayer Player) Setup(
         int x = 12, int y = 12, Action<JsonObject>? config = null)
     {

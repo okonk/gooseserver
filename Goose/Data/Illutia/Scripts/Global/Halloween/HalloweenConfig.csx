@@ -183,17 +183,26 @@ public sealed class HalloweenConfig
 
     private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
     private static HalloweenConfig? cached;
-    private static DateTime cachedMtime;
+    private static string cachedKey = "";
     private static string lastErrorKey = "";
+    private static string failedKey = "";
 
     public static HalloweenConfig Get(GameWorld world)
     {
         string path = world.Settings.DataPathAbsolute + "/Scripts/Global/Halloween/halloween.json";
+        string key;
         try
         {
-            DateTime mtime = File.GetLastWriteTimeUtc(path);
-            if (cached is not null && cachedMtime == mtime)
-                return cached;
+            key = "mtime:" + File.GetLastWriteTimeUtc(path).ToString("O");
+        }
+        catch
+        {
+            key = "missing:" + path;
+        }
+        if (failedKey == key) return Disabled;
+        if (cached is not null && cachedKey == key) return cached;
+        try
+        {
             var options = new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true,
@@ -202,12 +211,42 @@ public sealed class HalloweenConfig
                 Converters = { new HalloweenPackConverter() },
             };
             var config = JsonSerializer.Deserialize<HalloweenConfig>(File.ReadAllText(path), options) ?? new HalloweenConfig();
+            Require(config.Maps, "maps");
+            Require(config.Items, "items");
+            Require(config.Npcs, "npcs");
+            Require(config.Candy, "candy");
+            Require(config.Rooms, "rooms");
+            Require(config.Ambush, "ambush");
+            Require(config.Stalker, "stalker");
+            Require(config.Pentagram, "pentagram");
+            Require(config.Invasion, "invasion");
+            Require(config.Ambush.Tables, "ambush.tables");
+            Require(config.Ambush.Packs, "ambush.packs");
+            Require(config.Ambush.Candy, "ambush.candy");
+            Require(config.Ambush.FakeScares, "ambush.fakeScares");
+            Require(config.Items.Masks, "items.masks");
+            Require(config.Pentagram.Points, "pentagram.points");
+            Require(config.Invasion.Towns, "invasion.towns");
+            Require(config.Invasion.Templates, "invasion.templates");
+            foreach (var (table, weights) in config.Ambush.Tables)
+                Require(weights, "ambush.tables." + table);
+            foreach (var (table, scares) in config.Ambush.FakeScares)
+                if (scares is null)
+                    throw new JsonException("Halloween ambush.fakeScares entry " + table + " must not be null");
+            foreach (var (name, point) in new Dictionary<string, int[]>
+            {
+                ["groveExit"] = config.Maps.GroveExit,
+                ["foyerSpawn"] = config.Maps.FoyerSpawn,
+                ["basementArrival"] = config.Maps.BasementArrival,
+            })
+                if (point is null || point.Length < 2)
+                    throw new JsonException("Halloween maps." + name + " must be a [x, y] array");
             foreach (var room in config.Rooms)
                 if (room.Rect is null || room.Rect.Length != 4)
                     throw new JsonException("Halloween room " + room.Name + " rect must have exactly 4 elements");
-            foreach (var pack in config.Ambush.Packs)
-                if (pack.Value is null)
-                    throw new JsonException("Halloween pack " + pack.Key + " must not be null");
+            foreach (var (packKey, pack) in config.Ambush.Packs)
+                if (pack is null)
+                    throw new JsonException("Halloween pack " + packKey + " must not be null");
             if (config.Candy.BaseAmount is null || config.Candy.BaseAmount.Length != 2 ||
                 config.Candy.BaseAmount[0] > config.Candy.BaseAmount[1])
                 throw new JsonException("Halloween candy baseAmount must be [min, max] with min <= max");
@@ -215,31 +254,34 @@ public sealed class HalloweenConfig
                 if (range is null || range.Length != 2 || range[0] > range[1])
                     throw new JsonException("Halloween candy byTemplate entry " + templateId +
                         " must be [min, max] with min <= max");
+            foreach (var (candyKey, range) in config.Ambush.Candy)
+                if (range is null || range.Length != 2 || range[0] > range[1])
+                    throw new JsonException("Halloween ambush.candy entry " + candyKey +
+                        " must be [min, max] with min <= max");
             foreach (var town in config.Invasion.Towns)
                 if (town.Rect is null || town.Rect.Length != 4 || town.Rect[2] <= 0 || town.Rect[3] <= 0)
                     throw new JsonException("Halloween invasion town " + town.Map +
                         " rect must have exactly 4 elements with positive width and height");
             cached = config;
-            cachedMtime = mtime;
+            cachedKey = key;
+            failedKey = "";
             return config;
         }
         catch (Exception e)
         {
-            string key;
-            try
-            {
-                key = "mtime:" + File.GetLastWriteTimeUtc(path).ToString("O");
-            }
-            catch
-            {
-                key = "missing:" + path;
-            }
             if (key != lastErrorKey)
             {
                 lastErrorKey = key;
                 log.Error(e, "Halloween config {0} unusable; event disabled", path);
             }
+            failedKey = key;
+            cached = null;
             return Disabled;
         }
+    }
+
+    private static void Require<T>(T? value, string name) where T : class
+    {
+        if (value is null) throw new JsonException("Halloween " + name + " must not be null");
     }
 }

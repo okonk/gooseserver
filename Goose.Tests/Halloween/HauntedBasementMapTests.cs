@@ -45,6 +45,61 @@ public class HauntedBasementMapTests
     }
 
     [Fact]
+    public void Entering_the_clone_while_inactive_is_not_evicted()
+    {
+        var (kit, map, player, _) = Setup(mapId: 100039, active: false);
+        kit.Fixture.AddBaseMap(38, "Grove", 48, 48);
+
+        map.AddPlayer(player, kit.World);
+
+        Assert.Equal(100039, player.MapID);
+        Assert.DoesNotContain(player.Sent, s => s.Contains("The party is over"));
+    }
+
+    [Fact]
+    public void Candles_in_the_clone_are_unrestricted()
+    {
+        var (kit, map, player, script) = Setup(mapId: 100039);
+        var points = Points(kit);
+        var tile = PlaceCandle(kit, map, points[0]);
+        player.MapX = points[0][0];
+        player.MapY = points[0][1];
+
+        Assert.Null(HalloweenTestKit.Call(script.Object, "CanPlayerDropItem", map, player, NewCandle(kit), 1L, kit.World));
+        Assert.Null(HalloweenTestKit.Call(script.Object, "CanPlayerPickupItem", map, player, tile, kit.World));
+
+        script.Object.OnPlayerDroppedItem(map, player, tile, kit.World);
+        Assert.DoesNotContain(player.Sent, s => s.Contains("A candle flickers to life."));
+    }
+
+    [Fact]
+    public void Entering_with_tier2_off_warps_non_gms_back_to_the_house()
+    {
+        var (kit, map, player, _) = Setup();
+        kit.World.CommunityGoals.SetFlag("halloween.tier2", 0, null);
+        var house = kit.Fixture.AddBaseMap(48, "House", 64, 64);
+
+        map.AddPlayer(player, kit.World);
+        FinishWarp(kit, player, house);
+
+        Assert.Equal(48, player.MapID);
+        Assert.Equal((43, 53), (player.MapX, player.MapY));
+        Assert.Contains(player.Sent, s => s.Contains("The basement door won't budge."));
+
+        var gm = kit.Fixture.CommandPlayerOn(map, 20, 21, "GM");
+        gm.Access = Player.AccessStatus.GameMaster;
+        map.AddPlayer(gm, kit.World);
+        Assert.Equal(39, gm.MapID);
+        Assert.DoesNotContain(gm.Sent, s => s.Contains("won't budge"));
+
+        kit.World.CommunityGoals.SetFlag("halloween.tier2", 1, null);
+        var allowed = kit.Fixture.CommandPlayerOn(map, 22, 22, "B");
+        map.AddPlayer(allowed, kit.World);
+        Assert.Equal(39, allowed.MapID);
+        Assert.DoesNotContain(allowed.Sent, s => s.Contains("won't budge"));
+    }
+
+    [Fact]
     public void Candle_on_point_is_counted_and_cannot_be_picked_up()
     {
         var (kit, map, player, script) = Setup();
@@ -124,6 +179,42 @@ public class HauntedBasementMapTests
         Assert.False(keeper.ShouldRespawn);
         Assert.Equal(NPC.States.Dead, mob.State);
         Assert.Equal(NPC.States.Alive, ghost.State);
+    }
+
+    [Fact]
+    public void Midnight_with_zero_groundskeeper_keeps_the_candles()
+    {
+        var (kit, map, player, script) = Setup();
+        kit.SetConfig(cfg => cfg["npcs"]!["groundskeeper"] = 0);
+        var points = Points(kit);
+        foreach (var point in points)
+            PlaceCandle(kit, map, point);
+        map.AddPlayer(player, kit.World);
+
+        HalloweenTestKit.Call(script.Object, "ClockTick", kit.World, map, new DateTime(2024, 10, 31, 0, 0, 0));
+
+        Assert.Equal(5, (int)HalloweenTestKit.Call(script.Object, "LitPoints", map, kit.World)!);
+        Assert.DoesNotContain(player.Sent, s => s.Contains("midnight"));
+        Assert.DoesNotContain(player.Sent, s => s.Contains("Nothing answers."));
+        Assert.Empty(map.NPCs);
+    }
+
+    [Fact]
+    public void Midnight_with_unresolvable_groundskeeper_keeps_the_candles()
+    {
+        var (kit, map, player, script) = Setup();
+        kit.SetConfig(cfg => cfg["npcs"]!["groundskeeper"] = 99999);
+        var points = Points(kit);
+        foreach (var point in points)
+            PlaceCandle(kit, map, point);
+        map.AddPlayer(player, kit.World);
+
+        HalloweenTestKit.Call(script.Object, "ClockTick", kit.World, map, new DateTime(2024, 10, 31, 0, 0, 0));
+
+        Assert.Equal(5, (int)HalloweenTestKit.Call(script.Object, "LitPoints", map, kit.World)!);
+        Assert.DoesNotContain(player.Sent, s => s.Contains("midnight"));
+        Assert.DoesNotContain(player.Sent, s => s.Contains("Nothing answers."));
+        Assert.Empty(map.NPCs);
     }
 
     [Fact]
@@ -263,6 +354,14 @@ public class HauntedBasementMapTests
         };
         map.AddItem(tile, kit.World);
         return tile;
+    }
+
+    private static void FinishWarp(HalloweenTestKit kit, Player player, Map map)
+    {
+        var ev = new DoneLoadingMapEvent { Player = player, Ticks = kit.World.TimeNow };
+        kit.World.EventHandler.AddEvent(ev);
+        kit.World.EventHandler.Update(kit.World);
+        Assert.Equal(map, player.Map);
     }
 
     private static List<ScriptTimerEvent> PendingScriptTimers(GameWorld world)

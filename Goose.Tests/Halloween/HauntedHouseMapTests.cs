@@ -54,6 +54,18 @@ public class HauntedHouseMapTests
     }
 
     [Fact]
+    public void Entering_the_clone_while_inactive_is_not_evicted()
+    {
+        var (kit, map, player, _) = Setup(mapId: 100048, active: false);
+        kit.Fixture.AddBaseMap(38, "Grove", 48, 48);
+
+        map.AddPlayer(player, kit.World);
+
+        Assert.Equal(100048, player.MapID);
+        Assert.DoesNotContain(player.Sent, s => s.Contains("The party is over"));
+    }
+
+    [Fact]
     public void Entering_while_inactive_evicts_to_grove_but_not_gms()
     {
         var (kit, map, player, _) = Setup(active: false);

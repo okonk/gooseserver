@@ -39,6 +39,7 @@ public static class Halloween
             });
         if (npc is null) return false;
         SetState(target, "hw.stalkerNpc", npc.LoginID);
+        if (mode is "hunt") SetState(target, "hw.huntCancelled", 0);
         Feed(world, target, "A chainsaw revs behind you!");
         return true;
     }

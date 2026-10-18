@@ -17,6 +17,8 @@ public class HauntedHouse : BaseMapScript
 
     public override void OnPlayerEntered(Map map, Player player, GameWorld world)
     {
+        var cfg = HalloweenConfig.Get(world);
+        if (map.ID != cfg.Maps.House) return;
         if (!Halloween.Active(world))
         {
             Halloween.EvictPlayer(world, player);
