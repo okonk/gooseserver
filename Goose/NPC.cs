@@ -496,10 +496,14 @@ namespace Goose
             }
 
 
-            int ox = this.MapX;
-            int oy = this.MapY;
-            int x = ox;
-            int y = oy;
+            this.StepTo(direction, world);
+            this.AddMoveEvent(world);
+        }
+
+        public bool StepTo(Direction direction, GameWorld world)
+        {
+            int x = this.MapX;
+            int y = this.MapY;
 
             (x, y) = direction switch
             {
@@ -514,13 +518,23 @@ namespace Goose
             {
                 this.MoveTo(world, x, y);
                 this.Facing = direction;
-            }
-            else
-            {
-                this.FaceTo(direction, world);
+                return true;
             }
 
-            this.AddMoveEvent(world);
+            this.FaceTo(direction, world);
+            return false;
+        }
+
+        public Direction? PathStepTo(int x, int y, GameWorld world, Func<int, int, bool>? isBlocked = null)
+        {
+            List<(int X, int Y)>? path = this.Map.FindPath(this.MapX, this.MapY, x, y, isBlocked);
+            if (path is null || path.Count == 0) return null;
+
+            var (sx, sy) = path[0];
+            return sx > this.MapX ? Direction.Right :
+                   sx < this.MapX ? Direction.Left :
+                   sy > this.MapY ? Direction.Down :
+                   Direction.Up;
         }
 
         /**
