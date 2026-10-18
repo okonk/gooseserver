@@ -85,6 +85,7 @@ public class HauntedBasement : BaseMapScript
 
     public void ClockTick(GameWorld world, Map map, DateTime local)
     {
+        if (!Halloween.Active(world)) return;
         var cfg = HalloweenConfig.Get(world);
 
         if (local.Minute == 45)
@@ -100,7 +101,9 @@ public class HauntedBasement : BaseMapScript
 
         if (local.Minute != 0) return;
         if (GroundskeeperAlive(map, cfg)) return;
-        if (LitPoints(map, world) < cfg.Pentagram.Points.Length)
+        int pointCount = cfg.Pentagram.Points.Length;
+        if (pointCount == 0) return;
+        if (LitPoints(map, world) < pointCount)
         {
             FeedMap(world, map, "Nothing answers.");
             return;

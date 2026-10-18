@@ -110,6 +110,7 @@ public class HauntedBasementMapTests
         var bones = kit.World.NPCHandler.GetNPCTemplate(kit.RestlessBonesId)!;
         var mob = kit.Fixture.SpawnNpc(map, 30, 20, bones,
             properties: new PropertiesDictionary { ["ambush"] = 1 });
+        var ghost = kit.Fixture.SpawnNpc(map, 32, 20, kit.World.NPCHandler.GetNPCTemplate(kit.WailingGhostId)!);
         map.AddPlayer(player, kit.World);
 
         HalloweenTestKit.Call(script.Object, "ClockTick", kit.World, map, new DateTime(2024, 10, 31, 0, 0, 0));
@@ -122,6 +123,39 @@ public class HauntedBasementMapTests
         Assert.Equal((67, 13), (keeper.MapX, keeper.MapY));
         Assert.False(keeper.ShouldRespawn);
         Assert.Equal(NPC.States.Dead, mob.State);
+        Assert.Equal(NPC.States.Alive, ghost.State);
+    }
+
+    [Fact]
+    public void Clock_does_nothing_while_inactive()
+    {
+        var (kit, map, player, script) = Setup();
+        var points = Points(kit);
+        foreach (var point in points)
+            PlaceCandle(kit, map, point);
+        map.AddPlayer(player, kit.World);
+        kit.World.CommunityGoals.SetFlag("halloween.active", 0, null);
+
+        HalloweenTestKit.Call(script.Object, "ClockTick", kit.World, map, new DateTime(2024, 10, 31, 0, 0, 0));
+
+        Assert.Equal(5, (int)HalloweenTestKit.Call(script.Object, "LitPoints", map, kit.World)!);
+        Assert.DoesNotContain(player.Sent, s => s.Contains("midnight"));
+        Assert.DoesNotContain(player.Sent, s => s.Contains("Nothing answers."));
+        Assert.DoesNotContain(map.NPCs, n => n.NPCTemplateID == kit.GroundskeeperId);
+    }
+
+    [Fact]
+    public void Empty_pentagram_config_never_summons()
+    {
+        var (kit, map, player, script) = Setup();
+        kit.SetConfig(cfg => cfg["pentagram"]!["points"] = new JsonArray());
+        map.AddPlayer(player, kit.World);
+
+        HalloweenTestKit.Call(script.Object, "ClockTick", kit.World, map, new DateTime(2024, 10, 31, 0, 0, 0));
+
+        Assert.DoesNotContain(player.Sent, s => s.Contains("midnight"));
+        Assert.DoesNotContain(player.Sent, s => s.Contains("Nothing answers."));
+        Assert.Empty(map.NPCs);
     }
 
     [Fact]
