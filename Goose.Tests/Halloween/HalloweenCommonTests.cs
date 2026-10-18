@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Text.Json.Nodes;
 using Goose;
 using Goose.Testing;
@@ -146,6 +147,29 @@ public class HalloweenCommonTests
     }
 
     [Fact]
+    public void Malformed_candy_range_disables_and_logs()
+    {
+        using var kit = new HalloweenTestKit();
+        using var log = new CapturingLog();
+
+        kit.SetConfig(cfg => cfg["candy"]!["byTemplate"]!["91003"] = new JsonArray(3));
+        Assert.Equal(0, ConfigValue(kit, "Maps", "House"));
+        Assert.Equal(1, log.Messages.Count(m => m.Contains("halloween.json")));
+
+        kit.SetConfig(cfg => cfg["candy"]!["byTemplate"]!["91003"] = new JsonArray(4, 2));
+        Assert.Equal(0, ConfigValue(kit, "Maps", "House"));
+        Assert.Equal(2, log.Messages.Count(m => m.Contains("halloween.json")));
+
+        kit.SetConfig(cfg =>
+        {
+            cfg["candy"]!["byTemplate"]!["91003"] = new JsonArray(1, 3);
+            cfg["candy"]!["baseAmount"] = new JsonArray(1);
+        });
+        Assert.Equal(0, ConfigValue(kit, "Maps", "House"));
+        Assert.Equal(3, log.Messages.Count(m => m.Contains("halloween.json")));
+    }
+
+    [Fact]
     public void Null_pack_value_disables_and_logs()
     {
         using var kit = new HalloweenTestKit();
@@ -156,6 +180,197 @@ public class HalloweenCommonTests
         Assert.Equal(0, ConfigValue(kit, "Maps", "House"));
         Assert.Equal(1, log.Messages.Count(m => m.Contains("halloween.json")));
     }
+
+    [Fact]
+    public void Malformed_ambush_candy_range_disables_and_logs()
+    {
+        using var kit = new HalloweenTestKit();
+        using var log = new CapturingLog();
+
+        kit.SetConfig(cfg => cfg["ambush"]!["candy"]!["ghost"] = new JsonArray(3));
+        Assert.Equal(0, ConfigValue(kit, "Maps", "House"));
+        Assert.Equal(1, log.Messages.Count(m => m.Contains("halloween.json")));
+
+        kit.SetConfig(cfg =>
+        {
+            cfg["ambush"]!["candy"]!["ghost"] = new JsonArray(3, 5);
+            cfg["ambush"]!["candy"]!["phantom"] = new JsonArray(5, 1);
+        });
+        Assert.Equal(0, ConfigValue(kit, "Maps", "House"));
+        Assert.Equal(2, log.Messages.Count(m => m.Contains("halloween.json")));
+
+        kit.SetConfig(cfg =>
+        {
+            cfg["ambush"]!["candy"]!["phantom"] = new JsonArray(15, 25);
+            cfg["ambush"]!["candy"]!["bones"] = null;
+        });
+        Assert.Equal(0, ConfigValue(kit, "Maps", "House"));
+        Assert.Equal(3, log.Messages.Count(m => m.Contains("halloween.json")));
+    }
+
+    [Fact]
+    public void Malformed_groundskeeper_phases_disables_and_logs()
+    {
+        using var kit = new HalloweenTestKit();
+        using var log = new CapturingLog();
+
+        kit.SetConfig(cfg => cfg["groundskeeper"]!["phases"] = new JsonArray(0.5, 0.75, 0.25, 0.1));
+        Assert.Equal(0, ConfigValue(kit, "Maps", "House"));
+        Assert.Equal(1, log.Messages.Count(m => m.Contains("halloween.json")));
+
+        kit.SetConfig(cfg => cfg["groundskeeper"]!["phases"] = new JsonArray(0.75, 0.5, 0.25));
+        Assert.Equal(0, ConfigValue(kit, "Maps", "House"));
+        Assert.Equal(2, log.Messages.Count(m => m.Contains("halloween.json")));
+    }
+
+    [Fact]
+    public void Malformed_bloody_damage_multiplier_disables_and_logs()
+    {
+        using var kit = new HalloweenTestKit();
+        using var log = new CapturingLog();
+
+        kit.SetConfig(cfg => cfg["groundskeeper"]!["bloodyDamageMultiplier"] = 1.5);
+        Assert.Equal(0, ConfigValue(kit, "Maps", "House"));
+        Assert.Equal(1, log.Messages.Count(m => m.Contains("halloween.json")));
+
+        kit.SetConfig(cfg => cfg["groundskeeper"]!["bloodyDamageMultiplier"] = 0);
+        Assert.Equal(0, ConfigValue(kit, "Maps", "House"));
+        Assert.Equal(2, log.Messages.Count(m => m.Contains("halloween.json")));
+    }
+
+    [Fact]
+    public void Negative_curve_floor_disables_and_logs()
+    {
+        using var kit = new HalloweenTestKit();
+        using var log = new CapturingLog();
+
+        kit.SetConfig(cfg => cfg["groundskeeper"]!["curve"]!["floor"] = -1);
+        Assert.Equal(0, ConfigValue(kit, "Maps", "House"));
+        Assert.Equal(1, log.Messages.Count(m => m.Contains("halloween.json")));
+    }
+
+    [Fact]
+    public void Null_section_disables_and_logs()
+    {
+        using var kit = new HalloweenTestKit();
+        using var log = new CapturingLog();
+
+        kit.SetConfig(cfg => cfg["maps"] = null);
+        Assert.Equal(0, ConfigValue(kit, "Maps", "House"));
+        Assert.Equal(1, log.Messages.Count(m => m.Contains("halloween.json")));
+
+        kit.SetConfig(cfg =>
+        {
+            cfg["maps"] = ValidMaps();
+            cfg["ambush"]!["fakeScares"]!["house"] = null;
+        });
+        Assert.Equal(0, ConfigValue(kit, "Maps", "House"));
+        Assert.Equal(2, log.Messages.Count(m => m.Contains("halloween.json")));
+
+        kit.SetConfig(cfg =>
+        {
+            cfg["ambush"]!["fakeScares"]!["house"] = new JsonArray("Something drips in the dark.");
+            cfg["items"]!["masks"] = null;
+        });
+        Assert.Equal(0, ConfigValue(kit, "Maps", "House"));
+        Assert.Equal(3, log.Messages.Count(m => m.Contains("halloween.json")));
+
+        kit.SetConfig(cfg =>
+        {
+            cfg["items"]!["masks"] = new JsonArray(90003, 90004);
+            cfg["pentagram"]!["points"] = null;
+        });
+        Assert.Equal(0, ConfigValue(kit, "Maps", "House"));
+        Assert.Equal(4, log.Messages.Count(m => m.Contains("halloween.json")));
+
+        kit.SetConfig(cfg =>
+        {
+            cfg["pentagram"]!["points"] = new JsonArray(new JsonArray(67, 4));
+            cfg["invasion"]!["templates"] = null;
+        });
+        Assert.Equal(0, ConfigValue(kit, "Maps", "House"));
+        Assert.Equal(5, log.Messages.Count(m => m.Contains("halloween.json")));
+
+        kit.SetConfig(cfg =>
+        {
+            cfg["invasion"]!["templates"] = new JsonArray();
+            cfg["candy"]!["byTemplate"] = null;
+        });
+        Assert.Equal(0, ConfigValue(kit, "Maps", "House"));
+        Assert.Equal(6, log.Messages.Count(m => m.Contains("halloween.json")));
+    }
+
+    [Fact]
+    public void Null_grove_exit_disables_and_logs()
+    {
+        using var kit = new HalloweenTestKit();
+        using var log = new CapturingLog();
+
+        kit.SetConfig(cfg => cfg["maps"]!["groveExit"] = null);
+        Assert.Equal(0, ConfigValue(kit, "Maps", "House"));
+        Assert.Equal(1, log.Messages.Count(m => m.Contains("halloween.json")));
+
+        kit.SetConfig(cfg =>
+        {
+            cfg["maps"]!["groveExit"] = new JsonArray(38, 37);
+            cfg["maps"]!["foyerSpawn"] = new JsonArray(1, 2, 3);
+        });
+        Assert.Equal(0, ConfigValue(kit, "Maps", "House"));
+        Assert.Equal(2, log.Messages.Count(m => m.Contains("halloween.json")));
+    }
+
+    [Fact]
+    public void Missing_file_uses_the_missing_key_and_a_recreated_file_is_picked_up()
+    {
+        using var kit = new HalloweenTestKit();
+        string valid = File.ReadAllText(kit.ConfigPath);
+        File.Delete(kit.ConfigPath);
+        using var log = new CapturingLog();
+
+        Assert.Equal(0, ConfigValue(kit, "Maps", "House"));
+        Assert.Equal(0, ConfigValue(kit, "Maps", "House"));
+        Assert.Equal(1, log.Messages.Count(m => m.Contains("halloween.json")));
+        Assert.Equal("missing:" + kit.ConfigPath, FailedKey(kit));
+
+        File.WriteAllText(kit.ConfigPath, valid);
+        Assert.Equal(48, ConfigValue(kit, "Maps", "House"));
+        Assert.Equal("", FailedKey(kit));
+    }
+
+    [Fact]
+    public void Failed_load_is_cached_until_the_mtime_changes()
+    {
+        using var kit = new HalloweenTestKit();
+        string valid = File.ReadAllText(kit.ConfigPath);
+        File.WriteAllText(kit.ConfigPath, "{ not json");
+        var mtime = File.GetLastWriteTimeUtc(kit.ConfigPath);
+
+        Assert.Equal(0, ConfigValue(kit, "Maps", "House"));
+        Assert.Equal(0, ConfigValue(kit, "Maps", "House"));
+
+        File.WriteAllText(kit.ConfigPath, valid);
+        File.SetLastWriteTimeUtc(kit.ConfigPath, mtime);
+        Assert.Equal(0, ConfigValue(kit, "Maps", "House"));
+
+        File.SetLastWriteTimeUtc(kit.ConfigPath, mtime.AddSeconds(1));
+        Assert.Equal(48, ConfigValue(kit, "Maps", "House"));
+    }
+
+    private static string FailedKey(HalloweenTestKit kit)
+    {
+        var config = (object)HalloweenTestKit.Call(kit.Host, "Config", kit.World)!;
+        return (string)config.GetType().GetField("failedKey", BindingFlags.Static | BindingFlags.NonPublic)!.GetValue(null)!;
+    }
+
+    private static JsonObject ValidMaps() => new()
+    {
+        ["house"] = 48,
+        ["basement"] = 39,
+        ["grove"] = 38,
+        ["groveExit"] = new JsonArray(38, 37),
+        ["foyerSpawn"] = new JsonArray(43, 53),
+        ["basementArrival"] = new JsonArray(0, 0),
+    };
 
     private static int ConfigValue(HalloweenTestKit kit, string section, string name)
     {

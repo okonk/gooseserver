@@ -145,19 +145,87 @@ public sealed class HalloweenStalker
     public int CostumeGraceSeconds { get; set; }
 }
 
+public sealed class HalloweenStalkerChase
+{
+    public int ChaseSeconds { get; set; }
+    public int StartDelaySeconds { get; set; }
+    public double SpeedOffset { get; set; }
+    public int WarnRadius { get; set; }
+    public int WarnSeconds { get; set; }
+}
+
 public sealed class HalloweenPentagram
 {
     public int[][] Points { get; set; } = [];
     public int[] Centre { get; set; } = [];
 }
 
+public sealed class HalloweenTown
+{
+    public int Map { get; set; }
+    public int[] Rect { get; set; } = [];
+}
+
 public sealed class HalloweenInvasion
 {
-    public int[] Towns { get; set; } = [];
+    public List<HalloweenTown> Towns { get; set; } = [];
     public int[] Templates { get; set; } = [];
     public int Count { get; set; }
     public int EveryMinutes { get; set; }
     public int LifetimeMinutes { get; set; }
+}
+
+public sealed class HalloweenEffects
+{
+    public int WeeperCap { get; set; }
+    public int GroundskeeperCurve { get; set; }
+    public int GhostSnareOnHit { get; set; }
+}
+
+public sealed class HalloweenWeeper
+{
+    public int CapPerHit { get; set; }
+    public double BleedPercentPerStack { get; set; }
+    public int BleedMaxStacks { get; set; }
+    public int BleedSeconds { get; set; }
+    public int BleedTickSeconds { get; set; }
+    public int[] Start { get; set; } = [];
+    public double HitPercent { get; set; }
+    public int StragglerRadius { get; set; }
+    public double StragglerMultiplier { get; set; }
+    public int LungeSeconds { get; set; }
+    public int LungeRadius { get; set; }
+    public int LeashRadius { get; set; }
+    public int LeashSeconds { get; set; }
+    public int LeashMaxDistance { get; set; }
+    public int ResetSeconds { get; set; }
+    public int FootstepRadius { get; set; }
+    public int FootstepSeconds { get; set; }
+    public Dictionary<string, int[][]> Loops { get; set; } = new();
+}
+
+public sealed class HalloweenCurve
+{
+    public int Floor { get; set; }
+    public int Band { get; set; }
+    public double Exponent { get; set; }
+}
+
+public sealed class HalloweenGroundskeeper
+{
+    public double BloodyDamageMultiplier { get; set; }
+    public HalloweenCurve Curve { get; set; } = new();
+    public long HpPerPlayer { get; set; }
+    public double[] Phases { get; set; } = [];
+    public double HitPercent { get; set; }
+    public double BigHitPercent { get; set; }
+    public int BigHitEvery { get; set; }
+    public double BigHitWarnSeconds { get; set; }
+    public double EnrageAttackSpeed { get; set; }
+    public int LightsOutSeconds { get; set; }
+    public int LightsOutAlpha { get; set; }
+    public Dictionary<string, int[]> Adds { get; set; } = new();
+    public int EmptyDespawnSeconds { get; set; }
 }
 
 public sealed class HalloweenConfig
@@ -172,22 +240,35 @@ public sealed class HalloweenConfig
     public List<HalloweenRoom> Rooms { get; set; } = new();
     public HalloweenAmbushConfig Ambush { get; set; } = new();
     public HalloweenStalker Stalker { get; set; } = new();
+    public HalloweenStalkerChase StalkerChase { get; set; } = new();
     public HalloweenPentagram Pentagram { get; set; } = new();
     public HalloweenInvasion Invasion { get; set; } = new();
+    public HalloweenEffects Effects { get; set; } = new();
+    public HalloweenWeeper Weeper { get; set; } = new();
+    public HalloweenGroundskeeper Groundskeeper { get; set; } = new();
 
     private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
     private static HalloweenConfig? cached;
-    private static DateTime cachedMtime;
+    private static string cachedKey = "";
     private static string lastErrorKey = "";
+    private static string failedKey = "";
 
     public static HalloweenConfig Get(GameWorld world)
     {
         string path = world.Settings.DataPathAbsolute + "/Scripts/Global/Halloween/halloween.json";
+        string key;
+        if (File.Exists(path))
+        {
+            key = "mtime:" + File.GetLastWriteTimeUtc(path).ToString("O");
+        }
+        else
+        {
+            key = "missing:" + path;
+        }
+        if (failedKey == key) return Disabled;
+        if (cached is not null && cachedKey == key) return cached;
         try
         {
-            DateTime mtime = File.GetLastWriteTimeUtc(path);
-            if (cached is not null && cachedMtime == mtime)
-                return cached;
             var options = new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true,
@@ -196,33 +277,144 @@ public sealed class HalloweenConfig
                 Converters = { new HalloweenPackConverter() },
             };
             var config = JsonSerializer.Deserialize<HalloweenConfig>(File.ReadAllText(path), options) ?? new HalloweenConfig();
+            Require(config.Maps, "maps");
+            Require(config.Items, "items");
+            Require(config.Npcs, "npcs");
+            Require(config.Candy, "candy");
+            Require(config.Rooms, "rooms");
+            Require(config.Ambush, "ambush");
+            Require(config.Stalker, "stalker");
+            Require(config.StalkerChase, "stalkerChase");
+            Require(config.Pentagram, "pentagram");
+            Require(config.Invasion, "invasion");
+            Require(config.Effects, "effects");
+            Require(config.Weeper, "weeper");
+            Require(config.Groundskeeper, "groundskeeper");
+            Require(config.Groundskeeper.Curve, "groundskeeper.curve");
+            Require(config.Ambush.Tables, "ambush.tables");
+            Require(config.Ambush.Packs, "ambush.packs");
+            Require(config.Ambush.Candy, "ambush.candy");
+            Require(config.Ambush.FakeScares, "ambush.fakeScares");
+            Require(config.Items.Masks, "items.masks");
+            Require(config.Pentagram.Points, "pentagram.points");
+            Require(config.Invasion.Towns, "invasion.towns");
+            Require(config.Invasion.Templates, "invasion.templates");
+            Require(config.Candy.ByTemplate, "candy.byTemplate");
+            foreach (var (table, weights) in config.Ambush.Tables)
+                Require(weights, "ambush.tables." + table);
+            foreach (var (table, scares) in config.Ambush.FakeScares)
+                if (scares is null)
+                    throw new JsonException("Halloween ambush.fakeScares entry " + table + " must not be null");
+            foreach (var (name, point) in new Dictionary<string, int[]>
+            {
+                ["groveExit"] = config.Maps.GroveExit,
+                ["foyerSpawn"] = config.Maps.FoyerSpawn,
+                ["basementArrival"] = config.Maps.BasementArrival,
+            })
+                if (point is null || point.Length != 2)
+                    throw new JsonException("Halloween maps." + name + " must be a [x, y] array");
             foreach (var room in config.Rooms)
                 if (room.Rect is null || room.Rect.Length != 4)
                     throw new JsonException("Halloween room " + room.Name + " rect must have exactly 4 elements");
-            foreach (var pack in config.Ambush.Packs)
-                if (pack.Value is null)
-                    throw new JsonException("Halloween pack " + pack.Key + " must not be null");
+            foreach (var (packKey, pack) in config.Ambush.Packs)
+                if (pack is null)
+                    throw new JsonException("Halloween pack " + packKey + " must not be null");
+            if (config.Candy.BaseAmount is null || config.Candy.BaseAmount.Length != 2 ||
+                config.Candy.BaseAmount[0] > config.Candy.BaseAmount[1])
+                throw new JsonException("Halloween candy baseAmount must be [min, max] with min <= max");
+            foreach (var (templateId, range) in config.Candy.ByTemplate)
+                if (range is null || range.Length != 2 || range[0] > range[1])
+                    throw new JsonException("Halloween candy byTemplate entry " + templateId +
+                        " must be [min, max] with min <= max");
+            foreach (var (candyKey, range) in config.Ambush.Candy)
+                if (range is null || range.Length != 2 || range[0] > range[1])
+                    throw new JsonException("Halloween ambush.candy entry " + candyKey +
+                        " must be [min, max] with min <= max");
+            foreach (var town in config.Invasion.Towns)
+                if (town.Rect is null || town.Rect.Length != 4 || town.Rect[2] <= 0 || town.Rect[3] <= 0)
+                    throw new JsonException("Halloween invasion town " + town.Map +
+                        " rect must have exactly 4 elements with positive width and height");
+            if (config.Weeper.CapPerHit <= 0)
+                throw new JsonException("Halloween weeper.capPerHit must be > 0");
+            if (config.Weeper.BleedMaxStacks <= 0 || config.Weeper.BleedSeconds <= 0 ||
+                config.Weeper.BleedPercentPerStack <= 0)
+                throw new JsonException("Halloween weeper bleedMaxStacks, bleedSeconds and bleedPercentPerStack must be > 0");
+            if (config.Weeper.Start is null || config.Weeper.Start.Length != 2)
+                throw new JsonException("Halloween weeper.start must be a [x, y] array");
+            if (config.Weeper.Loops.Count == 0)
+                throw new JsonException("Halloween weeper.loops must not be empty");
+            foreach (var (loop, points) in config.Weeper.Loops)
+            {
+                if (points is null || points.Length == 0)
+                    throw new JsonException("Halloween weeper loop " + loop + " must not be empty");
+                foreach (var point in points)
+                    if (point is null || point.Length != 2)
+                        throw new JsonException("Halloween weeper loop " + loop + " waypoints must be [x, y] arrays");
+            }
+            if (config.Weeper.HitPercent <= 0)
+                throw new JsonException("Halloween weeper.hitPercent must be > 0");
+            if (config.Weeper.StragglerMultiplier < 1)
+                throw new JsonException("Halloween weeper.stragglerMultiplier must be >= 1");
+            if (config.Weeper.StragglerRadius <= 0 || config.Weeper.LungeSeconds <= 0 || config.Weeper.LungeRadius <= 0 ||
+                config.Weeper.LeashRadius <= 0 || config.Weeper.LeashSeconds <= 0 || config.Weeper.LeashMaxDistance <= 0 ||
+                config.Weeper.ResetSeconds <= 0 || config.Weeper.FootstepRadius <= 0 || config.Weeper.FootstepSeconds <= 0 ||
+                config.Weeper.BleedTickSeconds <= 0)
+                throw new JsonException("Halloween weeper stragglerRadius, lungeSeconds, lungeRadius, leashRadius, leashSeconds, " +
+                    "leashMaxDistance, resetSeconds, footstepRadius, footstepSeconds and bleedTickSeconds must be > 0");
+            if (config.Groundskeeper.Curve.Band <= 0 || config.Groundskeeper.Curve.Exponent <= 0)
+                throw new JsonException("Halloween groundskeeper.curve band and exponent must be > 0");
+            if (config.Groundskeeper.Curve.Floor < 0)
+                throw new JsonException("Halloween groundskeeper.curve.floor must be >= 0");
+            if (config.Groundskeeper.HpPerPlayer <= 0)
+                throw new JsonException("Halloween groundskeeper.hpPerPlayer must be > 0");
+            if (config.Groundskeeper.BloodyDamageMultiplier <= 0 || config.Groundskeeper.BloodyDamageMultiplier > 1)
+                throw new JsonException("Halloween groundskeeper.bloodyDamageMultiplier must be in (0, 1]");
+            if (config.Groundskeeper.Phases is null || config.Groundskeeper.Phases.Length != 4)
+                throw new JsonException("Halloween groundskeeper.phases must have exactly 4 values");
+            foreach (var phase in config.Groundskeeper.Phases)
+                if (phase <= 0 || phase > 1)
+                    throw new JsonException("Halloween groundskeeper.phases values must be in (0, 1]");
+            for (int i = 1; i < config.Groundskeeper.Phases.Length; i++)
+                if (config.Groundskeeper.Phases[i - 1] <= config.Groundskeeper.Phases[i])
+                    throw new JsonException("Halloween groundskeeper.phases must be strictly descending");
+            if (config.Groundskeeper.HitPercent <= 0 || config.Groundskeeper.BigHitPercent <= 0)
+                throw new JsonException("Halloween groundskeeper.hitPercent and bigHitPercent must be > 0");
+            if (config.Groundskeeper.BigHitEvery <= 1)
+                throw new JsonException("Halloween groundskeeper.bigHitEvery must be > 1");
+            if (config.Groundskeeper.BigHitWarnSeconds <= 0 || config.Groundskeeper.EnrageAttackSpeed <= 0 ||
+                config.Groundskeeper.LightsOutSeconds <= 0 || config.Groundskeeper.LightsOutAlpha <= 0 ||
+                config.Groundskeeper.EmptyDespawnSeconds <= 0)
+                throw new JsonException("Halloween groundskeeper bigHitWarnSeconds, enrageAttackSpeed, lightsOutSeconds, " +
+                    "lightsOutAlpha and emptyDespawnSeconds must be > 0");
+            foreach (var (kind, entry) in config.Groundskeeper.Adds)
+                if (entry is null || entry.Length != 2 || entry[1] < 0)
+                    throw new JsonException("Halloween groundskeeper.adds entry " + kind +
+                        " must be [templateId, count] with count >= 0");
+            if (config.StalkerChase.ChaseSeconds <= 0 || config.StalkerChase.StartDelaySeconds <= 0 ||
+                config.StalkerChase.SpeedOffset <= 0 || config.StalkerChase.WarnRadius <= 0 ||
+                config.StalkerChase.WarnSeconds <= 0)
+                throw new JsonException("Halloween stalkerChase chaseSeconds, startDelaySeconds, speedOffset, warnRadius " +
+                    "and warnSeconds must be > 0");
             cached = config;
-            cachedMtime = mtime;
+            cachedKey = key;
+            failedKey = "";
             return config;
         }
         catch (Exception e)
         {
-            string key;
-            try
-            {
-                key = "mtime:" + File.GetLastWriteTimeUtc(path).ToString("O");
-            }
-            catch
-            {
-                key = "missing:" + path;
-            }
             if (key != lastErrorKey)
             {
                 lastErrorKey = key;
                 log.Error(e, "Halloween config {0} unusable; event disabled", path);
             }
+            failedKey = key;
+            cached = null;
             return Disabled;
         }
+    }
+
+    private static void Require<T>(T? value, string name) where T : class
+    {
+        if (value is null) throw new JsonException("Halloween " + name + " must not be null");
     }
 }

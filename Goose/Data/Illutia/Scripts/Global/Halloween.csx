@@ -1,8 +1,10 @@
 #load "Halloween/HalloweenConfig.csx"
 #load "Halloween/HalloweenCommon.csx"
 #load "Halloween/HalloweenAmbush.csx"
+#load "Halloween/HalloweenBoss.csx"
 using System;
 using System.IO;
+using System.Linq;
 using Goose;
 using Goose.Commands;
 using Goose.Scripting;
@@ -47,7 +49,49 @@ public class HalloweenController : BaseGlobalScript
     {
         lastTickAt = now;
         Evict(world, now);
+        Chainsaw(world, now, rng);
     }
+
+    public void Chainsaw(GameWorld world, long now, Random rng)
+    {
+        if (nextChainsawAt == 0)
+        {
+            nextChainsawAt = RollNextChainsaw(world, now, rng);
+            return;
+        }
+        if (now < nextChainsawAt) return;
+        nextChainsawAt = RollNextChainsaw(world, now, rng);
+        if (!Halloween.Active(world)) return;
+        var cfg = HalloweenConfig.Get(world);
+        if (!world.MapHandler.Maps.TryGetValue(cfg.Maps.House, out var house) || house is null) return;
+        if (world.MapHandler.Maps.TryGetValue(cfg.Maps.Basement, out var basement) && basement is not null &&
+            GroundskeeperAlive(basement, cfg)) return;
+        if (house.Players.Count(p => p.State == Player.States.Ready) < cfg.Stalker.ChainsawMinPlayers) return;
+        world.SendToMap(house, P.Notice(NoticeType.Info, "[Event] A chainsaw revs somewhere in the house…"));
+        ScriptTimerEvent.Create(() =>
+        {
+            var delayCfg = HalloweenConfig.Get(world);
+            if (!Halloween.Active(world)) return;
+            if (!world.MapHandler.Maps.TryGetValue(delayCfg.Maps.House, out var m) || m is null) return;
+            var candidates = m.Players
+                .Where(p => p.State == Player.States.Ready && !p.IsGM &&
+                            Halloween.IsInCostume(p, delayCfg) && Halloween.Weight(delayCfg, p.MapX, p.MapY) > 0)
+                .ToList();
+            if (candidates.Count == 0) return;
+            Halloween.SpawnStalker(world, candidates[world.Random.Next(candidates.Count)], "chase", world.TimeNow);
+        }, TimeSpan.FromSeconds(cfg.Stalker.ChainsawDelaySeconds), world);
+    }
+
+    private long RollNextChainsaw(GameWorld world, long now, Random rng)
+    {
+        var cfg = HalloweenConfig.Get(world);
+        int min = cfg.Stalker.ChainsawMinMinutes;
+        int max = Math.Max(min, cfg.Stalker.ChainsawMaxMinutes);
+        return now + Halloween.Ticks(world, rng.Next(min, max + 1) * 60.0);
+    }
+
+    private static bool GroundskeeperAlive(Map map, HalloweenConfig cfg) =>
+        map.NPCs.Any(n => n.NPCTemplateID == cfg.Npcs.Groundskeeper && n.State == NPC.States.Alive);
 
     public long LastTickAt() => lastTickAt;
 
@@ -55,17 +99,11 @@ public class HalloweenController : BaseGlobalScript
     {
         if (Halloween.Active(world)) return;
         var cfg = HalloweenConfig.Get(world);
-        if (cfg.Maps.GroveExit.Length < 2) return;
-        if (!world.MapHandler.Maps.TryGetValue(cfg.Maps.Grove, out var grove) || grove is null) return;
         foreach (var mapId in new[] { cfg.Maps.House, cfg.Maps.Basement })
         {
             if (!world.MapHandler.Maps.TryGetValue(mapId, out var map) || map is null) continue;
             foreach (var player in map.Players.ToList())
-            {
-                if (player.IsGM) continue;
-                player.WarpTo(world, grove, cfg.Maps.GroveExit[0], cfg.Maps.GroveExit[1]);
-                Halloween.Feed(world, player, "The party is over. The door closes behind you.");
-            }
+                Halloween.EvictPlayer(world, player);
         }
     }
 
@@ -109,11 +147,10 @@ public class HalloweenController : BaseGlobalScript
                     ctx.Send("Usage: /halloween ambush <fake|ghosts|phantom|bones|bloody|stalker>");
                     return;
                 }
-                HalloweenAmbush.Trigger(world, ctx.Player, rest[0].ToLowerInvariant(), world.TimeNow, world.Random, true);
+                HalloweenAmbush.Trigger(world, ctx.Player.Map, ctx.Player, rest[0].ToLowerInvariant(), world.TimeNow, world.Random);
                 break;
             case "stalker":
-                bool chase = rest.Length > 0 && rest[0].Equals("chase", StringComparison.OrdinalIgnoreCase);
-                if (Halloween.SpawnStalker(world, ctx.Player, chase) is null)
+                if (!Halloween.SpawnStalker(world, ctx.Player, "chase", world.TimeNow))
                     ctx.Send("The stalker could not be spawned.");
                 break;
             case "weeper":
@@ -142,7 +179,7 @@ public class HalloweenController : BaseGlobalScript
             int stalkers = 0;
             foreach (var npc in map.NPCs)
                 if (npc.NPCTemplateID == cfg.Npcs.Stalker && npc.State == NPC.States.Alive) stalkers++;
-            ctx.Send($"{name} ({mapId}): {HalloweenAmbush.LiveAmbushMobs(world, mapId)} ambush, {HalloweenAmbush.LivePhantoms(world, mapId)} phantom, {stalkers} stalker");
+            ctx.Send($"{name} ({mapId}): {HalloweenAmbush.LiveAmbushMobs(map)} ambush, {HalloweenAmbush.LivePhantoms(map)} phantom, {stalkers} stalker");
         }
         long now = world.TimeNow;
         if (nextChainsawAt > now)
