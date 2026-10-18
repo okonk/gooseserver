@@ -131,12 +131,15 @@ namespace Goose.Tests
             Event second = ambience.PendingRoll!;
             Assert.NotSame(first, second);
 
-            int before = world.EventHandler.Count;
+            // Re-enqueue to actually fire it: the second schedule removed it, and
+            // PriorityQueue keys are fixed at enqueue time
             first.Ticks = world.TimeNow;
+            world.EventHandler.AddEvent(first);
+            int before = world.EventHandler.Count;
             world.EventHandler.Update(world);
 
             Assert.DoesNotContain(player.Sent, s => s.StartsWith("AMB"));
-            Assert.Equal(before, world.EventHandler.Count);
+            Assert.Equal(before - 1, world.EventHandler.Count);
             Assert.Same(second, ambience.PendingRoll);
         }
     }
