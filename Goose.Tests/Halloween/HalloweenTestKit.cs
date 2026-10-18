@@ -171,7 +171,18 @@ public sealed class HalloweenTestKit : IDisposable
                                                     new[] { 50, 40 }, new[] { 50, 36 } },
                             } },
             groundskeeper = new { bloodyDamageMultiplier = 0.25,
-                                   curve = new { floor = 10000, band = 70000, exponent = 0.4 } },
+                                   curve = new { floor = 10000, band = 70000, exponent = 0.4 },
+                                   hpPerPlayer = 8000000, phases = new[] { 0.75, 0.5, 0.25, 0.10 },
+                                   hitPercent = 0.10, bigHitPercent = 0.20, bigHitEvery = 4,
+                                   bigHitWarnSeconds = 1.5, enrageAttackSpeed = 1.5,
+                                   lightsOutSeconds = 6, lightsOutAlpha = 950,
+                                   adds = new Dictionary<string, int[]>
+                                   {
+                                       ["placeSettings"] = new[] { 0, 8 },
+                                       ["ghosts"] = new[] { 0, 6 },
+                                       ["bloody"] = new[] { 0, 2 },
+                                   },
+                                   emptyDespawnSeconds = 60 },
         };
     }
 

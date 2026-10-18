@@ -41,5 +41,12 @@
                  "service":  [[30,40],[22,40],[22,45],[4,45],[4,35],[22,35],[22,46],[19,47],[19,53],[4,53],[4,58],[15,58],[15,60],[22,58],[22,53],[19,52],[19,47],[22,46],[22,40],[30,40]],
                  "party":    [[50,36],[50,39],[58,39],[58,34],[98,34],[98,58],[74,58],[74,69],[56,69],[56,86],[82,86],[82,69],[74,69],[74,58],[58,58],[58,40],[50,40],[50,36]]
                } },
-  "groundskeeper": { "bloodyDamageMultiplier": 0.25, "curve": { "floor": 10000, "band": 70000, "exponent": 0.4 } }
+  "groundskeeper": {
+    "bloodyDamageMultiplier": 0.25, "curve": { "floor": 10000, "band": 70000, "exponent": 0.4 },
+    "hpPerPlayer": 8000000, "phases": [0.75, 0.5, 0.25, 0.10],
+    "hitPercent": 0.10, "bigHitPercent": 0.20, "bigHitEvery": 4, "bigHitWarnSeconds": 1.5,
+    "enrageAttackSpeed": 1.5, "lightsOutSeconds": 6, "lightsOutAlpha": 950,
+    "adds": { "placeSettings": [0, 8], "ghosts": [0, 6], "bloody": [0, 2] },
+    "emptyDespawnSeconds": 60
+  }
 }

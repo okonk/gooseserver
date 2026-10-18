@@ -214,6 +214,17 @@ public sealed class HalloweenGroundskeeper
 {
     public double BloodyDamageMultiplier { get; set; }
     public HalloweenCurve Curve { get; set; } = new();
+    public long HpPerPlayer { get; set; }
+    public double[] Phases { get; set; } = [];
+    public double HitPercent { get; set; }
+    public double BigHitPercent { get; set; }
+    public int BigHitEvery { get; set; }
+    public double BigHitWarnSeconds { get; set; }
+    public double EnrageAttackSpeed { get; set; }
+    public int LightsOutSeconds { get; set; }
+    public int LightsOutAlpha { get; set; }
+    public Dictionary<string, int[]> Adds { get; set; } = new();
+    public int EmptyDespawnSeconds { get; set; }
 }
 
 public sealed class HalloweenConfig
@@ -350,6 +361,26 @@ public sealed class HalloweenConfig
                     "leashMaxDistance, resetSeconds, footstepRadius and footstepSeconds must be > 0");
             if (config.Groundskeeper.Curve.Band <= 0 || config.Groundskeeper.Curve.Exponent <= 0)
                 throw new JsonException("Halloween groundskeeper.curve band and exponent must be > 0");
+            if (config.Groundskeeper.HpPerPlayer <= 0)
+                throw new JsonException("Halloween groundskeeper.hpPerPlayer must be > 0");
+            if (config.Groundskeeper.Phases is null || config.Groundskeeper.Phases.Length == 0)
+                throw new JsonException("Halloween groundskeeper.phases must not be empty");
+            foreach (var phase in config.Groundskeeper.Phases)
+                if (phase <= 0 || phase > 1)
+                    throw new JsonException("Halloween groundskeeper.phases values must be in (0, 1]");
+            if (config.Groundskeeper.HitPercent <= 0 || config.Groundskeeper.BigHitPercent <= 0)
+                throw new JsonException("Halloween groundskeeper.hitPercent and bigHitPercent must be > 0");
+            if (config.Groundskeeper.BigHitEvery <= 1)
+                throw new JsonException("Halloween groundskeeper.bigHitEvery must be > 1");
+            if (config.Groundskeeper.BigHitWarnSeconds <= 0 || config.Groundskeeper.EnrageAttackSpeed <= 0 ||
+                config.Groundskeeper.LightsOutSeconds <= 0 || config.Groundskeeper.LightsOutAlpha <= 0 ||
+                config.Groundskeeper.EmptyDespawnSeconds <= 0)
+                throw new JsonException("Halloween groundskeeper bigHitWarnSeconds, enrageAttackSpeed, lightsOutSeconds, " +
+                    "lightsOutAlpha and emptyDespawnSeconds must be > 0");
+            foreach (var (kind, entry) in config.Groundskeeper.Adds)
+                if (entry is null || entry.Length != 2 || entry[1] < 0)
+                    throw new JsonException("Halloween groundskeeper.adds entry " + kind +
+                        " must be [templateId, count] with count >= 0");
             if (config.StalkerChase.ChaseSeconds <= 0 || config.StalkerChase.StartDelaySeconds <= 0 ||
                 config.StalkerChase.SpeedOffset <= 0 || config.StalkerChase.WarnRadius <= 0 ||
                 config.StalkerChase.WarnSeconds <= 0)
