@@ -16,7 +16,7 @@ public static class Halloween
     }
 
     // Placeholder until the stalker implementation lands; the controller compiles against this.
-    public static NPC? SpawnStalker(GameWorld world, Player caller, bool chase) => null;
+    public static bool SpawnStalker(GameWorld world, Player target, string mode, long now) => false;
 
     public static bool IsHouse(Map map, HalloweenConfig cfg) => map.ID == cfg.Maps.House;
     public static bool IsBasement(Map map, HalloweenConfig cfg) => map.ID == cfg.Maps.Basement;

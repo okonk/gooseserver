@@ -109,11 +109,10 @@ public class HalloweenController : BaseGlobalScript
                     ctx.Send("Usage: /halloween ambush <fake|ghosts|phantom|bones|bloody|stalker>");
                     return;
                 }
-                HalloweenAmbush.Trigger(world, ctx.Player, rest[0].ToLowerInvariant(), world.TimeNow, world.Random, true);
+                HalloweenAmbush.Trigger(world, ctx.Player.Map, ctx.Player, rest[0].ToLowerInvariant(), world.TimeNow, world.Random);
                 break;
             case "stalker":
-                bool chase = rest.Length > 0 && rest[0].Equals("chase", StringComparison.OrdinalIgnoreCase);
-                if (Halloween.SpawnStalker(world, ctx.Player, chase) is null)
+                if (!Halloween.SpawnStalker(world, ctx.Player, "chase", world.TimeNow))
                     ctx.Send("The stalker could not be spawned.");
                 break;
             case "weeper":
@@ -142,7 +141,7 @@ public class HalloweenController : BaseGlobalScript
             int stalkers = 0;
             foreach (var npc in map.NPCs)
                 if (npc.NPCTemplateID == cfg.Npcs.Stalker && npc.State == NPC.States.Alive) stalkers++;
-            ctx.Send($"{name} ({mapId}): {HalloweenAmbush.LiveAmbushMobs(world, mapId)} ambush, {HalloweenAmbush.LivePhantoms(world, mapId)} phantom, {stalkers} stalker");
+            ctx.Send($"{name} ({mapId}): {HalloweenAmbush.LiveAmbushMobs(map)} ambush, {HalloweenAmbush.LivePhantoms(map)} phantom, {stalkers} stalker");
         }
         long now = world.TimeNow;
         if (nextChainsawAt > now)
