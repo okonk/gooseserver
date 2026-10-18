@@ -125,6 +125,16 @@ public static class Halloween
 
     public static long Ticks(GameWorld world, double seconds) => (long)(world.TimerFrequency * seconds);
 
+    public static void EvictPlayer(GameWorld world, Player player)
+    {
+        if (player.IsGM) return;
+        var cfg = HalloweenConfig.Get(world);
+        if (cfg.Maps.GroveExit.Length < 2) return;
+        if (!world.MapHandler.Maps.TryGetValue(cfg.Maps.Grove, out var grove) || grove is null) return;
+        player.WarpTo(world, grove, cfg.Maps.GroveExit[0], cfg.Maps.GroveExit[1]);
+        Feed(world, player, "The party is over. The door closes behind you.");
+    }
+
     public static void CheckCostume(GameWorld world, Player player, long now)
     {
         if (!Active(world) || player.IsGM) return;

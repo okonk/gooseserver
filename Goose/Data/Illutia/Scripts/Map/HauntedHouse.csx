@@ -19,12 +19,7 @@ public class HauntedHouse : BaseMapScript
     {
         if (!Halloween.Active(world))
         {
-            if (player.IsGM) return;
-            var cfg = HalloweenConfig.Get(world);
-            if (cfg.Maps.GroveExit.Length < 2) return;
-            if (!world.MapHandler.Maps.TryGetValue(cfg.Maps.Grove, out var grove) || grove is null) return;
-            player.WarpTo(world, grove, cfg.Maps.GroveExit[0], cfg.Maps.GroveExit[1]);
-            Halloween.Feed(world, player, "The party is over. The door closes behind you.");
+            Halloween.EvictPlayer(world, player);
             return;
         }
         Halloween.CheckCostume(world, player, world.TimeNow);

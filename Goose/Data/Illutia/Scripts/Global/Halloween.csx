@@ -55,17 +55,11 @@ public class HalloweenController : BaseGlobalScript
     {
         if (Halloween.Active(world)) return;
         var cfg = HalloweenConfig.Get(world);
-        if (cfg.Maps.GroveExit.Length < 2) return;
-        if (!world.MapHandler.Maps.TryGetValue(cfg.Maps.Grove, out var grove) || grove is null) return;
         foreach (var mapId in new[] { cfg.Maps.House, cfg.Maps.Basement })
         {
             if (!world.MapHandler.Maps.TryGetValue(mapId, out var map) || map is null) continue;
             foreach (var player in map.Players.ToList())
-            {
-                if (player.IsGM) continue;
-                player.WarpTo(world, grove, cfg.Maps.GroveExit[0], cfg.Maps.GroveExit[1]);
-                Halloween.Feed(world, player, "The party is over. The door closes behind you.");
-            }
+                Halloween.EvictPlayer(world, player);
         }
     }
 
