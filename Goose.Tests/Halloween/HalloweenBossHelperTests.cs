@@ -105,6 +105,26 @@ public class HalloweenBossHelperTests
     }
 
     [Fact]
+    public void Bleed_tick_that_kills_target_drops_entry()
+    {
+        var ctx = Setup();
+        ctx.Target.MaxStats.HP = 10_000;
+        ctx.Target.CurrentHP = 50;
+        ctx.World.Settings.MaxDodgeChance = 0;
+        var other = ctx.Kit.Fixture.AddBaseMap(99, "Elsewhere", 20, 20);
+        ctx.Target.BoundMap = other;
+        ctx.Target.BoundX = 5;
+        ctx.Target.BoundY = 5;
+
+        ctx.Call("AddBleed", ctx.Npc, ctx.Target, Now, ctx.World);
+        ctx.Call("TickBleeds", ctx.Npc, Now + 100, ctx.World);
+
+        Assert.Equal(Player.States.LoadingMap, ctx.Target.State);
+        Assert.Equal(5_000, ctx.Target.CurrentHP);
+        Assert.Empty(BleedEntries(ctx));
+    }
+
+    [Fact]
     public void Compass_names_eight_directions()
     {
         var ctx = Setup();
