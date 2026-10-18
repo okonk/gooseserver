@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 
 namespace Goose
@@ -60,7 +61,7 @@ namespace Goose
 
             if (dto.CycleDuration is double cycleDuration)
             {
-                if (double.IsFinite(cycleDuration) && cycleDuration >= 1)
+                if (double.IsFinite(cycleDuration) && cycleDuration >= 1 && cycleDuration <= long.MaxValue / Stopwatch.Frequency)
                     cycle = cycleDuration;
                 else
                     (problems ??= new()).Add($"invalid cycleDuration {cycleDuration}");

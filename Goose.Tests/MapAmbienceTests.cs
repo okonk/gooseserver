@@ -29,6 +29,15 @@ namespace Goose.Tests
         }
 
         [Fact]
+        public void NewAmbience_UndefinedNumericWeatherConfig_DoesNotThrow()
+        {
+            WeatherDistribution dist = WeatherDistribution.Parse("{\"1\":1}", out _);
+            MapAmbience ambience = new(LightingConfig.None, dist, new Random(1), 0);
+
+            Assert.Equal(WeatherType.Clear, ambience.CurrentWeather);
+        }
+
+        [Fact]
         public void NewAmbience_StartsAtNineAm()
         {
             long now = Stopwatch.GetTimestamp();

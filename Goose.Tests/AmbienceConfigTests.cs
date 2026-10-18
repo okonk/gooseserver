@@ -83,6 +83,14 @@ namespace Goose.Tests
         }
 
         [Fact]
+        public void Lighting_HugeCycleDuration_KeepsPresetWithWarning()
+        {
+            LightingConfig config = LightingConfig.Parse("{\"preset\":\"outside\",\"cycleDuration\":1e30}", out string? warning);
+            Assert.NotNull(warning);
+            Assert.Equal(1440, config.CycleDurationSeconds);
+        }
+
+        [Fact]
         public void Lighting_UnknownPreset_FallsBackToNoneWithWarning()
         {
             LightingConfig config = LightingConfig.Parse("{\"preset\":\"dusky\"}", out string? warning);
@@ -134,6 +142,24 @@ namespace Goose.Tests
             Assert.Equal(2, dist.Count);
             Assert.Equal(0.7f, dist[WeatherType.Clear]);
             Assert.Equal(0.3f, dist[WeatherType.Rain]);
+        }
+
+        [Fact]
+        public void Weather_UndefinedNumericKeySkippedWithWarning()
+        {
+            WeatherDistribution dist = WeatherDistribution.Parse("{\"5\":1,\"Clear\":1}", out string? warning);
+            Assert.NotNull(warning);
+            Assert.Equal(1, dist.Count);
+            Assert.Equal(1f, dist[WeatherType.Clear]);
+        }
+
+        [Fact]
+        public void Weather_DefinedNumericKeySkippedWithWarning()
+        {
+            WeatherDistribution dist = WeatherDistribution.Parse("{\"1\":1,\"Snow\":1}", out string? warning);
+            Assert.NotNull(warning);
+            Assert.Equal(1, dist.Count);
+            Assert.Equal(1f, dist[WeatherType.Snow]);
         }
 
         [Fact]

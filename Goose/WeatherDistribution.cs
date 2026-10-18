@@ -27,7 +27,9 @@ namespace Goose
             List<string>? problems = null;
             foreach ((string name, float? weight) in weights)
             {
-                if (!Enum.TryParse<WeatherType>(name, true, out WeatherType type))
+                string trimmedName = name.Trim();
+                bool numeric = trimmedName.Length > 0 && trimmedName.All(char.IsDigit);
+                if (numeric || !Enum.TryParse<WeatherType>(name, true, out WeatherType type) || !Enum.IsDefined(type))
                 {
                     (problems ??= new()).Add($"unknown weather type '{name}'");
                     continue;
