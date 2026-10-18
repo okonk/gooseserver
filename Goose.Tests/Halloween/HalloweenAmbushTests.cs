@@ -150,6 +150,19 @@ public class HalloweenAmbushTests
     }
 
     [Fact]
+    public void Basement_rolls_basement_table_even_inside_house_room_rect()
+    {
+        var (kit, ambush, map, player) = Setup(mapId: 39, x: 31, y: 31);
+
+        Assert.True(OnStep(ambush, kit.World, map, player, Now,
+            new HalloweenTestKit.FixedRandom([0.0, 0.0], [20, 0, 0, 0])));
+
+        Assert.Equal(3, map.NPCs.Count);
+        Assert.All(map.NPCs, n => Assert.Equal(kit.RestlessBonesId, n.NPCTemplateID));
+        Assert.Contains(player.Sent, s => s.Contains("Bones rise from the piles!"));
+    }
+
+    [Fact]
     public void Basement_never_rolls_while_groundskeeper_alive()
     {
         var (kit, ambush, map, player) = Setup(mapId: 39, x: 5, y: 5);

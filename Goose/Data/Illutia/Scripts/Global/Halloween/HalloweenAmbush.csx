@@ -22,7 +22,8 @@ public static class HalloweenAmbush
         if (now < Halloween.GetState(player, "hw.ambushReadyAt")) return false;
         if (rng.NextDouble() >= cfg.Ambush.BaseChance * weight) return false;
 
-        Trigger(world, map, player, PickOutcome(cfg, Halloween.Table(cfg, player.MapX, player.MapY), rng), now, rng);
+        string table = basement ? "basement" : Halloween.Table(cfg, player.MapX, player.MapY);
+        Trigger(world, map, player, PickOutcome(cfg, table, rng), now, rng);
         return true;
     }
 
@@ -233,24 +234,24 @@ public static class HalloweenAmbush
         };
         var tiles = new List<(int, int)>();
         for (int d = 2; d <= 4; d++)
-            AddIfFree(map, player, room, player.MapX + dx * d, player.MapY + dy * d, tiles);
+            AddIfFree(map, room, player.MapX + dx * d, player.MapY + dy * d, tiles);
         if (tiles.Count > 0) return tiles;
         for (int ox = -3; ox <= 3; ox++)
             for (int oy = -3; oy <= 3; oy++)
             {
                 int dist = Math.Max(Math.Abs(ox), Math.Abs(oy));
                 if (dist is < 1 or > 3) continue;
-                AddIfFree(map, player, room, player.MapX + ox, player.MapY + oy, tiles);
+                AddIfFree(map, room, player.MapX + ox, player.MapY + oy, tiles);
             }
         return tiles;
     }
 
-    private static void AddIfFree(Map map, Player player, HalloweenRoom? room, int x, int y, List<(int, int)> tiles)
+    private static void AddIfFree(Map map, HalloweenRoom? room, int x, int y, List<(int, int)> tiles)
     {
         if (room is not null &&
             (x < room.Rect[0] || x >= room.Rect[0] + room.Rect[2] ||
              y < room.Rect[1] || y >= room.Rect[1] + room.Rect[3])) return;
-        if (!map.IsTileBlocked(player, x, y)) tiles.Add((x, y));
+        if (!map.IsTileBlocked(null, x, y)) tiles.Add((x, y));
     }
 
     private static void GroupCooldown(GameWorld world, Map map, Player player, long now, bool basement)
