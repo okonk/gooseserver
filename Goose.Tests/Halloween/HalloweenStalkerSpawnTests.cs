@@ -165,6 +165,27 @@ public class HalloweenStalkerSpawnTests
         Assert.False(Spawn(halloween, kit.World, third, "hunt", Now + 3));
     }
 
+    [Fact]
+    public void Stalker_refusal_and_despawn_span_house_and_basement()
+    {
+        var (kit, halloween, house, player) = Setup();
+        player.Facing = Direction.Up;
+        Assert.True(Spawn(halloween, kit.World, player, "chase", Now));
+        var stalker = Assert.Single(house.NPCs);
+
+        var basement = kit.Fixture.AddBaseMap(39, "Basement", 48, 48);
+        player.WarpTo(kit.World, basement, 5, 5);
+
+        Assert.False(Spawn(halloween, kit.World, player, "chase", Now + 1));
+        Assert.Single(house.NPCs);
+        Assert.Equal(stalker.LoginID, player.ScriptState["hw.stalkerNpc"]);
+
+        Assert.True(Despawn(halloween, kit.World, player));
+        Assert.Empty(house.NPCs);
+        Assert.Equal(NPC.States.Dead, stalker.State);
+        Assert.Equal(0, player.ScriptState["hw.stalkerNpc"]);
+    }
+
     private static (HalloweenTestKit Kit, Type Halloween, Map Map, TestWorldFixture.CapturingPlayer Player) Setup(
         int x = 12, int y = 12, Action<JsonObject>? config = null)
     {
@@ -220,6 +241,9 @@ public class HalloweenStalkerSpawnTests
 
     private static bool Spawn(Type halloween, GameWorld world, Player player, string mode, long now)
         => (bool)halloween.GetMethod("SpawnStalker")!.Invoke(null, new object?[] { world, player, mode, now })!;
+
+    private static bool Despawn(Type halloween, GameWorld world, Player player)
+        => (bool)halloween.GetMethod("DespawnStalkerFor")!.Invoke(null, new object?[] { world, player })!;
 
     private static int LiveStalkers(Type halloween, GameWorld world)
         => (int)halloween.GetMethod("LiveStalkers")!.Invoke(null, new object?[] { world })!;

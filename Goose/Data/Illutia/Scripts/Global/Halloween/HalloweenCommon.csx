@@ -21,7 +21,7 @@ public static class Halloween
         var cfg = HalloweenConfig.Get(world);
         if (cfg.Npcs.Stalker == 0) return false;
         if (target.Map is null || (!IsHouse(target.Map, cfg) && !IsBasement(target.Map, cfg))) return false;
-        if (LiveStalkerFor(target, cfg) is not null) return false;
+        if (LiveStalkerFor(world, target, cfg) is not null) return false;
         if (IsBasement(target.Map, cfg) && GroundskeeperAlive(target.Map, cfg)) return false;
         if (mode is "chase" && (now < GetState(target, "hw.stalkerGraceUntil") ||
             LiveStalkers(world, cfg) >= cfg.Stalker.MaxLive)) return false;
@@ -48,11 +48,16 @@ public static class Halloween
         long npcId = GetState(player, "hw.stalkerNpc");
         if (npcId == 0) return false;
         SetState(player, "hw.stalkerNpc", 0);
-        if (player.Map is null) return false;
-        var npc = player.Map.NPCs.FirstOrDefault(n => n.LoginID == npcId);
-        if (npc is null || npc.State != NPC.States.Alive) return false;
-        npc.Despawn(world);
-        return true;
+        var cfg = HalloweenConfig.Get(world);
+        foreach (var mapId in new[] { cfg.Maps.House, cfg.Maps.Basement })
+        {
+            if (!world.MapHandler.Maps.TryGetValue(mapId, out var map) || map is null) continue;
+            var npc = map.NPCs.FirstOrDefault(n => n.LoginID == npcId);
+            if (npc is null || npc.State != NPC.States.Alive) continue;
+            npc.Despawn(world);
+            return true;
+        }
+        return false;
     }
 
     public static int LiveStalkers(GameWorld world)
@@ -75,12 +80,17 @@ public static class Halloween
     private static bool IsLiveStalker(NPC npc) =>
         npc.State == NPC.States.Alive && npc.Properties.TryGetProperty<int>("stalkerTarget", out _);
 
-    private static NPC? LiveStalkerFor(Player target, HalloweenConfig cfg)
+    private static NPC? LiveStalkerFor(GameWorld world, Player target, HalloweenConfig cfg)
     {
-        if (target.Map is null) return null;
-        return target.Map.NPCs.FirstOrDefault(n =>
-            n.State == NPC.States.Alive &&
-            n.Properties.TryGetProperty<int>("stalkerTarget", out var id) && id == target.PlayerID);
+        foreach (var mapId in new[] { cfg.Maps.House, cfg.Maps.Basement })
+        {
+            if (!world.MapHandler.Maps.TryGetValue(mapId, out var map) || map is null) continue;
+            var npc = map.NPCs.FirstOrDefault(n =>
+                n.State == NPC.States.Alive &&
+                n.Properties.TryGetProperty<int>("stalkerTarget", out var id) && id == target.PlayerID);
+            if (npc is not null) return npc;
+        }
+        return null;
     }
 
     private static bool GroundskeeperAlive(Map map, HalloweenConfig cfg) =>
