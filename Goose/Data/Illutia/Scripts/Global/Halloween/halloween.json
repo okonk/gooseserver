@@ -27,6 +27,8 @@
   "stalker": { "graceSeconds": 300, "maxLive": 3, "spawnBehind": 4,
                "chainsawMinMinutes": 20, "chainsawMaxMinutes": 40, "chainsawMinPlayers": 3,
                "chainsawDelaySeconds": 5, "costumeGraceSeconds": 10 },
+  "stalkerChase": { "chaseSeconds": 25, "startDelaySeconds": 1, "speedOffset": 0.02,
+                    "warnRadius": 3, "warnSeconds": 5 },
   "pentagram": { "points": [[67, 4], [58, 10], [76, 10], [62, 21], [72, 21]], "centre": [67, 13] },
   "invasion": { "towns": [], "templates": [], "count": 20, "everyMinutes": 30, "lifetimeMinutes": 15 },
   "effects": { "weeperCap": 0, "groundskeeperCurve": 0, "ghostSnareOnHit": 0 },

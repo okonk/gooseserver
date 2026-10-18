@@ -142,6 +142,8 @@ public sealed class HalloweenTestKit : IDisposable
             stalker = new { graceSeconds = 300, maxLive = 3, spawnBehind = 4,
                              chainsawMinMinutes = 20, chainsawMaxMinutes = 40, chainsawMinPlayers = 3,
                              chainsawDelaySeconds = 5, costumeGraceSeconds = 10 },
+            stalkerChase = new { chaseSeconds = 25, startDelaySeconds = 1, speedOffset = 0.02,
+                                  warnRadius = 3, warnSeconds = 5 },
             pentagram = new { points = new[] { new[] { 67, 4 }, new[] { 58, 10 }, new[] { 76, 10 },
                                                new[] { 62, 21 }, new[] { 72, 21 } },
                               centre = new[] { 67, 13 } },

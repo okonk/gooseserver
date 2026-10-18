@@ -145,6 +145,15 @@ public sealed class HalloweenStalker
     public int CostumeGraceSeconds { get; set; }
 }
 
+public sealed class HalloweenStalkerChase
+{
+    public int ChaseSeconds { get; set; }
+    public int StartDelaySeconds { get; set; }
+    public double SpeedOffset { get; set; }
+    public int WarnRadius { get; set; }
+    public int WarnSeconds { get; set; }
+}
+
 public sealed class HalloweenPentagram
 {
     public int[][] Points { get; set; } = [];
@@ -219,6 +228,7 @@ public sealed class HalloweenConfig
     public List<HalloweenRoom> Rooms { get; set; } = new();
     public HalloweenAmbushConfig Ambush { get; set; } = new();
     public HalloweenStalker Stalker { get; set; } = new();
+    public HalloweenStalkerChase StalkerChase { get; set; } = new();
     public HalloweenPentagram Pentagram { get; set; } = new();
     public HalloweenInvasion Invasion { get; set; } = new();
     public HalloweenEffects Effects { get; set; } = new();
@@ -262,6 +272,7 @@ public sealed class HalloweenConfig
             Require(config.Rooms, "rooms");
             Require(config.Ambush, "ambush");
             Require(config.Stalker, "stalker");
+            Require(config.StalkerChase, "stalkerChase");
             Require(config.Pentagram, "pentagram");
             Require(config.Invasion, "invasion");
             Require(config.Effects, "effects");
@@ -339,6 +350,11 @@ public sealed class HalloweenConfig
                     "leashMaxDistance, resetSeconds, footstepRadius and footstepSeconds must be > 0");
             if (config.Groundskeeper.Curve.Band <= 0 || config.Groundskeeper.Curve.Exponent <= 0)
                 throw new JsonException("Halloween groundskeeper.curve band and exponent must be > 0");
+            if (config.StalkerChase.ChaseSeconds <= 0 || config.StalkerChase.StartDelaySeconds < 0 ||
+                config.StalkerChase.SpeedOffset <= 0 || config.StalkerChase.WarnRadius <= 0 ||
+                config.StalkerChase.WarnSeconds <= 0)
+                throw new JsonException("Halloween stalkerChase chaseSeconds, speedOffset, warnRadius and warnSeconds " +
+                    "must be > 0 and startDelaySeconds must be >= 0");
             cached = config;
             cachedKey = key;
             failedKey = "";
