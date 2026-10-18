@@ -10,10 +10,10 @@ namespace Goose
             if (string.IsNullOrWhiteSpace(raw))
                 return new WeatherDistribution();
 
-            Dictionary<string, float>? weights;
+            Dictionary<string, float?>? weights;
             try
             {
-                weights = JsonSerializer.Deserialize<Dictionary<string, float>>(raw);
+                weights = JsonSerializer.Deserialize<Dictionary<string, float?>>(raw);
             }
             catch (JsonException)
             {
@@ -25,16 +25,21 @@ namespace Goose
 
             var distribution = new WeatherDistribution();
             List<string>? problems = null;
-            foreach ((string name, float weight) in weights)
+            foreach ((string name, float? weight) in weights)
             {
                 if (!Enum.TryParse<WeatherType>(name, true, out WeatherType type))
                 {
                     (problems ??= new()).Add($"unknown weather type '{name}'");
                     continue;
                 }
-                if (!float.IsFinite(weight) || weight <= 0)
+                if (weight is null)
+                {
+                    (problems ??= new()).Add($"missing weight for '{name}'");
                     continue;
-                distribution[type] = weight;
+                }
+                if (!float.IsFinite(weight.Value) || weight.Value <= 0)
+                    continue;
+                distribution[type] = weight.Value;
             }
 
             warning = problems is null ? null : string.Join(", ", problems);

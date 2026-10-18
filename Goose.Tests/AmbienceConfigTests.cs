@@ -146,6 +146,15 @@ namespace Goose.Tests
         }
 
         [Fact]
+        public void Weather_NullWeightSkipped_KeepsOtherEntries()
+        {
+            WeatherDistribution dist = WeatherDistribution.Parse("{\"snow\":0.1,\"fog\":null}", out string? warning);
+            Assert.NotNull(warning);
+            Assert.Equal(1, dist.Count);
+            Assert.Equal(0.1f, dist[WeatherType.Snow]);
+        }
+
+        [Fact]
         public void Weather_InvalidJson_EmptyWithWarning()
         {
             WeatherDistribution dist = WeatherDistribution.Parse("{clear:", out string? warning);
