@@ -141,7 +141,7 @@ namespace Goose
                           player.BodyB + "," + // Body Color B
                           player.BodyA + "," + // Body Color A
                           (layered ? pose : 3) + "," +
-                          (layered ? player.HairID + "," : "") +
+                          (layered ? player.Inventory.DisplayedHairID + "," : "") +
                           (layered ? player.Inventory.EquippedDisplay() : "") + // Note: EquippedDisplay() adds it's own , on end
                           (layered ? player.HairR + "," + player.HairG + "," + player.HairB + "," + player.HairA + "," : "") +
                           (player.IsInvisible ? "1" : "0") + "," + // Invisible
@@ -173,7 +173,7 @@ namespace Goose
                    player.BodyB + "," + // Body Color B
                    player.BodyA + "," + // Body Color A
                    (layered ? pose : 3) + "," +
-                   (layered ? player.HairID + "," : "") +
+                   (layered ? player.Inventory.DisplayedHairID + "," : "") +
                    (layered ? player.Inventory.EquippedDisplay() : "") + // Note: EquippedDisplay() adds it's own , on end
                    (layered ? player.HairR + "," : "") +
                    (layered ? player.HairG + "," : "") +

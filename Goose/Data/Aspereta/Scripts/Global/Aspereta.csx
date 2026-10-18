@@ -324,7 +324,7 @@ public class AsperetaMode : BaseGlobalScript
                            (int)(((float)player.CurrentHP / player.MaxStats.HP) * 100) + "," + // HP %
                            player.CurrentBodyID + "," +
                            (player.CurrentBodyID >= 100 ? 1 : pose) + "," +
-                           (player.CurrentBodyID >= 100 ? 0 : player.HairID) + "," +
+                           (player.CurrentBodyID >= 100 ? 0 : player.Inventory.DisplayedHairID) + "," +
                            player.Inventory.EquippedDisplay() + // Note: EquippedDisplay() adds it's own , on end
                            player.HairR + "," +
                            player.HairG + "," +
@@ -349,7 +349,7 @@ public class AsperetaMode : BaseGlobalScript
                     player.LoginID + "," +
                     player.CurrentBodyID + "," +
                     (player.CurrentBodyID >= 100 ? 1 : pose) + "," +
-                    (player.CurrentBodyID >= 100 ? 0 : player.HairID) + "," +
+                    (player.CurrentBodyID >= 100 ? 0 : player.Inventory.DisplayedHairID) + "," +
                     player.Inventory.EquippedDisplay() + // Note: EquippedDisplay() adds it's own , on end
                     player.HairR + "," +
                     player.HairG + "," +

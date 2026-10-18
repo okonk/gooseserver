@@ -759,6 +759,11 @@ namespace Goose
             return null;
         }
 
+        public bool HidesOtherSlots =>
+            this.equipped.Any(slot => slot is not null && slot.Item.Template.HidesOtherSlots);
+
+        public int DisplayedHairID => this.HidesOtherSlots ? 0 : this.player.HairID;
+
         /**
          * EquippedDisplay, returns equipped items display for use in MKC and CHP
          *
@@ -770,11 +775,12 @@ namespace Goose
             string e = "";
             EquipSlots[] slots = new EquipSlots[]{EquipSlots.Chest, EquipSlots.Head,
                 EquipSlots.Legs, EquipSlots.Feet, EquipSlots.Shield, EquipSlots.Weapon};
+            bool hideOthers = this.HidesOtherSlots;
             ItemSlot? item;
             foreach (var eq in slots)
             {
                 item = this.GetEquippedSlot(eq);
-                if (item is not null)
+                if (item is not null && (!hideOthers || item.Item.Template.HidesOtherSlots))
                 {
                     if (item.Item.GraphicA == 0)
                     {
