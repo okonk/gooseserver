@@ -382,7 +382,7 @@ namespace Goose
             }
 
             this.equipped[(int)equipslot] = slot;
-            this.pendingEquipEvents.Add((item, true));
+            this.pendingEquipEvents.Add((slot.Item, true));
             this.player.AddStats(slot.Item.TotalStats, world, updateCharacter: false);
 
             if (equipslot == EquipSlots.Mount)

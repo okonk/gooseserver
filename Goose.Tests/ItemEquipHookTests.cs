@@ -178,6 +178,29 @@ public class ItemEquipHookTests
     }
 
     [Fact]
+    public void Failed_equip_still_flushes_the_unequips_that_happened()
+    {
+        var (world, player) = NewPlayer();
+        using (world)
+        {
+            var shield = Give(world, player, ShieldId, ItemTemplate.UseTypes.Armor,
+                ItemTemplate.ItemSlots.Shield, RecordingBody, "Shield" + ShieldId);
+            Assert.True(player.Inventory.Equip(shield, world.World));
+
+            var template = world.AddBaseItemTemplate(TwoHanderId, "Item " + TwoHanderId,
+                ItemTemplate.UseTypes.Weapon, t => t.Slot = ItemTemplate.ItemSlots.TwoHanded);
+            var twoHander = new Item();
+            twoHander.LoadFromTemplate(template);
+            world.World.ItemHandler.AddAndAssignId(twoHander, world.World);
+            player.Sent.Clear();
+
+            Assert.False(player.Inventory.Equip(twoHander, world.World));
+
+            Assert.Equal(new[] { "UNEQUIP:" + ShieldId + ":HELM=0" }, HookMessages(player));
+        }
+    }
+
+    [Fact]
     public void Throwing_item_script_does_not_block_equip()
     {
         var (world, player) = NewPlayer();
