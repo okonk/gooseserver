@@ -854,8 +854,9 @@ def config_patch(ids, maps):
         "goal": {"tiers": TIERS},
         "effects": {"weeperCap": ids("effect", "weeperCap"), "groundskeeperCurve": ids("effect", "gkCurve"),
                     "ghostSnareOnHit": ids("effect", "ghostSnareOnHit")},
-        "groundskeeper": {"adds": {"placeSettings": [npc("setting"), 8], "ghosts": [npc("wailing"), 6],
-                                   "bloody": [npc("bloodyAdd"), 2]}},
+        "groundskeeper": {"adds": {"placeSettings": [[npc("setting"), 8]],
+                                   "ghosts": [[npc("wailing"), 4], [npc("flickering"), 2]],
+                                   "bloody": [[npc("bloodyAdd"), 2]]}},
     }
 
 

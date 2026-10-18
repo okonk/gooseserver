@@ -658,16 +658,26 @@
     "lightsOutAlpha": 950,
     "adds": {
       "placeSettings": [
-        268,
-        8
+        [
+          268,
+          8
+        ]
       ],
       "ghosts": [
-        270,
-        6
+        [
+          270,
+          4
+        ],
+        [
+          271,
+          2
+        ]
       ],
       "bloody": [
-        274,
-        2
+        [
+          274,
+          2
+        ]
       ]
     },
     "emptyDespawnSeconds": 60

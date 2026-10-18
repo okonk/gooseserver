@@ -96,13 +96,45 @@ public class GroundskeeperScriptTests : IDisposable
     }
 
     [Fact]
+    public void One_kind_can_mix_add_templates()
+    {
+        kit.SetConfig(cfg => cfg["groundskeeper"]!["adds"] = new JsonObject
+        {
+            ["ghosts"] = new JsonArray(new JsonArray(kit.WailingGhostId, 2), new JsonArray(kit.FlickeringGhostId, 1)),
+        });
+        var npc = Spawn(30, 30);
+        npc.CurrentHP = (long)(0.40 * npc.MaxHP);
+
+        Call("AttackStep", npc, Now, kit.World);
+
+        var ghosts = AddsOn(map, "ghosts");
+        Assert.Equal(2, ghosts.Count(g => g.NPCTemplateID == kit.WailingGhostId));
+        Assert.Equal(1, ghosts.Count(g => g.NPCTemplateID == kit.FlickeringGhostId));
+    }
+
+    [Fact]
+    public void Old_single_pair_adds_shape_is_rejected()
+    {
+        var npc = Spawn(30, 30);
+        kit.SetConfig(cfg => cfg["groundskeeper"]!["adds"] = new JsonObject
+        {
+            ["ghosts"] = new JsonArray(kit.WailingGhostId, 2),
+        });
+        npc.CurrentHP = (long)(0.40 * npc.MaxHP);
+
+        Call("AttackStep", npc, Now, kit.World);
+
+        Assert.Empty(AddsOn(map, "ghosts"));
+    }
+
+    [Fact]
     public void Ghost_adds_get_snare_buff()
     {
         kit.Fixture.AddBaseSpellEffect(778, "Ghost Snare");
         kit.SetConfig(cfg =>
         {
             cfg["effects"]!["ghostSnareOnHit"] = 778;
-            cfg["groundskeeper"]!["adds"] = new JsonObject { ["ghosts"] = new JsonArray(kit.FlickeringGhostId, 2) };
+            cfg["groundskeeper"]!["adds"] = new JsonObject { ["ghosts"] = new JsonArray(new JsonArray(kit.FlickeringGhostId, 2)) };
         });
         var npc = Spawn(30, 30);
         npc.CurrentHP = (long)(0.40 * npc.MaxHP);
@@ -122,7 +154,7 @@ public class GroundskeeperScriptTests : IDisposable
         kit.SetConfig(cfg =>
         {
             cfg["effects"]!["groundskeeperCurve"] = CurveEffect;
-            cfg["groundskeeper"]!["adds"] = new JsonObject { ["bloody"] = new JsonArray(kit.BloodyGhostId, 1) };
+            cfg["groundskeeper"]!["adds"] = new JsonObject { ["bloody"] = new JsonArray(new JsonArray(kit.BloodyGhostId, 1)) };
         });
         kit.Fixture.AddBaseSpellEffect(CurveEffect, "Groundskeeper Curve", e => e.Script = curve);
         var attacker = kit.Fixture.CommandPlayerOn(map, 1, 1);
@@ -250,7 +282,7 @@ public class GroundskeeperScriptTests : IDisposable
         {
             var adds = new JsonObject();
             foreach (var (kind, id, count) in kinds)
-                adds[kind] = new JsonArray(id, count);
+                adds[kind] = new JsonArray(new JsonArray(id, count));
             cfg["groundskeeper"]!["adds"] = adds;
         });
     }
