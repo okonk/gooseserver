@@ -46,6 +46,8 @@ namespace Goose
         Debug,
         ViewLogs,
         ChangeEquipGraphic,
+        SetMapTime,
+        SetMapWeather,
     }
 
     public static class AccessLevels
