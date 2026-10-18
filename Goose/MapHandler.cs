@@ -73,6 +73,8 @@ namespace Goose
                         log.Warn("Map {0} ({1}) weather: {2}", map.ID, map.Name, weatherWarning);
                     }
 
+                    map.Ambience = new MapAmbience(map.Lighting, map.Weather, world.Random, world.TimeNow);
+
                     string scriptPath = reader.GetString("script_path");
                     if (!string.IsNullOrEmpty(scriptPath))
                     {

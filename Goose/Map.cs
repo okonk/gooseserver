@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text;
 using Goose.Scripting;
 
@@ -65,6 +66,7 @@ namespace Goose
         public ITile?[] tiles = null!;
         public LightingConfig Lighting { get; set; } = LightingConfig.None;
         public WeatherDistribution Weather { get; set; } = new();
+        public MapAmbience Ambience { get; internal set; } = new(LightingConfig.None, new WeatherDistribution(), Random.Shared, Stopwatch.GetTimestamp());
         List<Player> players;
         List<int> requiredItems;
         List<NPC> npcs;
@@ -140,6 +142,7 @@ namespace Goose
                 RequiredItemMinimumDimension = this.RequiredItemMinimumDimension,
                 Lighting = this.Lighting,
                 Weather = this.Weather,
+                Ambience = this.Ambience.CloneForNewMap(Stopwatch.GetTimestamp()),
                 Script = this.Script,
                 ScriptParams = this.ScriptParams,
                 tiles = (ITile?[])this.tiles.Clone(),

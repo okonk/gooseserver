@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 
 namespace Goose
@@ -458,6 +459,17 @@ namespace Goose
 
         // Wire format: MWP<x>,<y> — 1-based; position only, later fields may be appended (client: MapWarpPacket)
         public static Func<int, int, string> MapWarp = (x, y) => { return "MWP" + x + "," + y; };
+
+        // Wire format: AMB<startAlpha‰>,<endAlpha‰>,<tint>,<fill>,<elapsedMs>,<durationMs>,<weather> — alphas are thousandths, colors 0xRRGGBBAA as decimal (client: MapAmbiencePacket)
+        public static Func<int, int, uint, uint, long, long, WeatherType, string> MapAmbience = (startAlpha, endAlpha, tint, fill, elapsedMs, durationMs, weather) =>
+            "AMB" + string.Join(',',
+                startAlpha.ToString(CultureInfo.InvariantCulture),
+                endAlpha.ToString(CultureInfo.InvariantCulture),
+                tint.ToString(CultureInfo.InvariantCulture),
+                fill.ToString(CultureInfo.InvariantCulture),
+                elapsedMs.ToString(CultureInfo.InvariantCulture),
+                durationMs.ToString(CultureInfo.InvariantCulture),
+                ((int)weather).ToString(CultureInfo.InvariantCulture));
 
         public static Func<Class, string> ClassUpdate = (@class) =>
         {
