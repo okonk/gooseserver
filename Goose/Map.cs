@@ -63,6 +63,8 @@ namespace Goose
         // will silently diverge from the maps they were copied from.
         public ICharacter?[] characters = null!;
         public ITile?[] tiles = null!;
+        public LightingConfig Lighting { get; set; } = LightingConfig.None;
+        public WeatherDistribution Weather { get; set; } = new();
         List<Player> players;
         List<int> requiredItems;
         List<NPC> npcs;
@@ -136,6 +138,8 @@ namespace Goose
                 CanSpawnPets = this.CanSpawnPets,
                 Muted = this.Muted,
                 RequiredItemMinimumDimension = this.RequiredItemMinimumDimension,
+                Lighting = this.Lighting,
+                Weather = this.Weather,
                 Script = this.Script,
                 ScriptParams = this.ScriptParams,
                 tiles = (ITile?[])this.tiles.Clone(),

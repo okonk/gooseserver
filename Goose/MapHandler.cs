@@ -13,6 +13,8 @@ namespace Goose
      */
     public class MapHandler
     {
+        private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
+
         Dictionary<int, Map> maps;
 
         /**
@@ -58,6 +60,18 @@ namespace Goose
                     map.CanCast = reader.GetString("spells_enabled") != "0";
                     map.CanBind = reader.GetString("bind_enabled") != "0";
                     map.CanSpawnPets = reader.GetString("pets_enabled") != "0";
+
+                    map.Lighting = LightingConfig.Parse(reader.GetString("lighting"), out string? lightingWarning);
+                    if (lightingWarning is not null)
+                    {
+                        log.Warn("Map {0} ({1}) lighting: {2}", map.ID, map.Name, lightingWarning);
+                    }
+
+                    map.Weather = WeatherDistribution.Parse(reader.GetString("weather"), out string? weatherWarning);
+                    if (weatherWarning is not null)
+                    {
+                        log.Warn("Map {0} ({1}) weather: {2}", map.ID, map.Name, weatherWarning);
+                    }
 
                     string scriptPath = reader.GetString("script_path");
                     if (!string.IsNullOrEmpty(scriptPath))

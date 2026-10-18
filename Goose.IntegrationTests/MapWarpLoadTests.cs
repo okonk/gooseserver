@@ -14,6 +14,7 @@ public class MapWarpLoadTests : PlayerFirstSaveTestBase
         Directory.CreateDirectory(Path.Combine(dataPath, "Maps"));
         WriteIllutiaMap(Path.Combine(dataPath, "Maps", "Map1.map"), 5, 5);
         WriteIllutiaMap(Path.Combine(dataPath, "Maps", "Map2.map"), 5, 5);
+        WriteIllutiaMap(Path.Combine(dataPath, "Maps", "Map3.map"), 5, 5);
 
         world.Database.Execute(conn =>
         {
@@ -25,7 +26,30 @@ public class MapWarpLoadTests : PlayerFirstSaveTestBase
             cmd.CommandText =
                 "INSERT INTO warptiles (map_id, map_x, map_y, warp_id, warp_x, warp_y) VALUES (1, 3, 3, 999, 1, 1), (1, 4, 4, 2, 1, 1)";
             cmd.ExecuteNonQuery();
+
+            cmd.CommandText =
+                "INSERT INTO maps (map_id, map_filename, map_name, weather, lighting) " +
+                "VALUES (3, 'Map3.map', '1', '{\"Rain\":1,\"Snow\":1}', '{\"preset\":\"cave\"}')";
+            cmd.ExecuteNonQuery();
         });
+    }
+
+    [Fact]
+    public void LoadMaps_ReadsWeatherAndLightingColumns()
+    {
+        world.MapHandler.LoadMaps(world);
+
+        Map map3 = world.MapHandler.GetMap(3)!;
+        Assert.Equal(2, map3.Weather.Count);
+        Assert.Equal(1f, map3.Weather[WeatherType.Rain]);
+        Assert.Equal(1f, map3.Weather[WeatherType.Snow]);
+        Assert.Equal(new LightingConfig(0.70, 0.70, 0x090909FFu, 0x001429FFu, 1440), map3.Lighting);
+
+        Map map1 = world.MapHandler.GetMap(1)!;
+        Assert.Equal(LightingConfig.None, map1.Lighting);
+        Assert.Empty(map1.Weather);
+
+        Directory.Delete(dataPath, recursive: true);
     }
 
     [Fact]
