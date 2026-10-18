@@ -2641,6 +2641,24 @@ var GOOSE_SCHEMA = {
           "pk": false
         },
         {
+          "name": "weather",
+          "header": "weather",
+          "kind": "Text",
+          "sql": "TEXT",
+          "default": "\u0027\u0027",
+          "required": false,
+          "pk": false
+        },
+        {
+          "name": "lighting",
+          "header": "lighting",
+          "kind": "Text",
+          "sql": "TEXT",
+          "default": "\u0027\u0027",
+          "required": false,
+          "pk": false
+        },
+        {
           "name": "script_path",
           "header": "script path",
           "kind": "Text",

@@ -21,6 +21,8 @@ namespace CsvToSql
             Col.Bool("bind_enabled", def: false).HeaderText("bind_enabled (0)"),
             Col.Bool("items_enabled", def: true).HeaderText("items_enabled (1)"),
             Col.Bool("pets_enabled", def: true).HeaderText("pets_enabled (1)"),
+            Col.Text("weather", def: "''").HeaderText("weather"),
+            Col.Text("lighting", def: "''").HeaderText("lighting"),
             Col.Text("script_path", def: "''").HeaderText("script path"),
             Col.Text("script_params", def: "''").HeaderText("script params"),
         };
