@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using Goose;
 using Goose.Testing;
 
@@ -119,11 +120,49 @@ public class HalloweenCommonTests
     private static bool B(HalloweenTestKit kit, string method, params object?[] args)
         => (bool)HalloweenTestKit.Call(kit.Host, method, args)!;
 
+    [Fact]
+    public void Pack_values_parse_from_number_and_range_shapes()
+    {
+        using var kit = new HalloweenTestKit();
+
+        var packs = PackDictionary(kit);
+        Assert.Equal((2, 2), PackRange(packs["wailing"]!));
+        Assert.Equal((3, 4), PackRange(packs["bones"]!));
+    }
+
+    [Fact]
+    public void Malformed_pack_shape_disables_and_logs()
+    {
+        using var kit = new HalloweenTestKit();
+        using var log = new CapturingLog();
+
+        kit.SetConfig(cfg => cfg["ambush"]!["packs"]!["wailing"] = new JsonArray(3));
+        Assert.Equal(0, ConfigValue(kit, "Maps", "House"));
+        Assert.Equal(1, log.Messages.Count(m => m.Contains("halloween.json")));
+
+        kit.SetConfig(cfg => cfg["ambush"]!["packs"]!["wailing"] = new JsonArray(4, 3));
+        Assert.Equal(0, ConfigValue(kit, "Maps", "House"));
+        Assert.Equal(2, log.Messages.Count(m => m.Contains("halloween.json")));
+    }
+
     private static int ConfigValue(HalloweenTestKit kit, string section, string name)
     {
         var config = (object)HalloweenTestKit.Call(kit.Host, "Config", kit.World)!;
         var group = (object)config.GetType().GetProperty(section)!.GetValue(config)!;
         return (int)group.GetType().GetProperty(name)!.GetValue(group)!;
+    }
+
+    private static System.Collections.IDictionary PackDictionary(HalloweenTestKit kit)
+    {
+        var config = (object)HalloweenTestKit.Call(kit.Host, "Config", kit.World)!;
+        var ambush = (object)config.GetType().GetProperty("Ambush")!.GetValue(config)!;
+        return (System.Collections.IDictionary)ambush.GetType().GetProperty("Packs")!.GetValue(ambush)!;
+    }
+
+    private static (int, int) PackRange(object pack)
+    {
+        var type = pack.GetType();
+        return ((int)type.GetProperty("Min")!.GetValue(pack)!, (int)type.GetProperty("Max")!.GetValue(pack)!);
     }
 
     private static void Equip(HalloweenTestKit kit, Player player, int templateId)

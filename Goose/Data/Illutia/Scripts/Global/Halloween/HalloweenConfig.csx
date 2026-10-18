@@ -77,16 +77,22 @@ public sealed class HalloweenPackConverter : JsonConverter<HalloweenPack>
             int n = reader.GetInt32();
             return new HalloweenPack { Min = n, Max = n };
         }
-        var pack = new HalloweenPack();
-        int i = 0;
+        if (reader.TokenType != JsonTokenType.StartArray)
+            throw new JsonException("Halloween pack must be a number or a [min, max] array");
+        int min = 0, max = 0, count = 0;
         while (reader.Read())
         {
             if (reader.TokenType == JsonTokenType.EndArray) break;
-            if (i == 0) pack.Min = reader.GetInt32();
-            if (i == 1) pack.Max = reader.GetInt32();
-            i++;
+            if (reader.TokenType != JsonTokenType.Number)
+                throw new JsonException("Halloween pack entry must be a number");
+            if (count == 0) min = reader.GetInt32();
+            else if (count == 1) max = reader.GetInt32();
+            else throw new JsonException("Halloween pack must have exactly two entries");
+            count++;
         }
-        return pack;
+        if (count != 2 || min > max)
+            throw new JsonException("Halloween pack must be [min, max] with min <= max");
+        return new HalloweenPack { Min = min, Max = max };
     }
 
     public override void Write(Utf8JsonWriter writer, HalloweenPack value, JsonSerializerOptions options)
@@ -189,6 +195,9 @@ public sealed class HalloweenConfig
                 Converters = { new HalloweenPackConverter() },
             };
             var config = JsonSerializer.Deserialize<HalloweenConfig>(File.ReadAllText(path), options) ?? new HalloweenConfig();
+            foreach (var room in config.Rooms)
+                if (room.Rect.Length != 4)
+                    throw new JsonException("Halloween room " + room.Name + " rect must have exactly 4 elements");
             cached = config;
             cachedMtime = mtime;
             return config;
