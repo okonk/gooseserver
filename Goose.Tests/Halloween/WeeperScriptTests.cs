@@ -274,6 +274,33 @@ public class WeeperScriptTests : IDisposable
         Assert.Equal(10, StateInt(npc, "LeftRouteAtY"));
     }
 
+    [Fact]
+    public void Leash_window_restarts_when_aggro_is_cleared_without_leash()
+    {
+        var npc = Spawn(10, 10);
+        var a = PlayerOn(40, 10, "A");
+        npc.AddAggro(a, 100, kit.World);
+
+        Call("MoveStep", npc, Now, kit.World);
+        Assert.Equal(Now, StateLong(npc, "LeashStartedAt"));
+
+        npc.RemoveAggro(a);
+        map.RemovePlayer(a, kit.World);
+        Call("MoveStep", npc, Now + kit.World.TimerFrequency, kit.World);
+        Assert.Equal(0, StateLong(npc, "LeashStartedAt"));
+
+        var b = PlayerOn(40, 12, "B");
+        npc.AddAggro(b, 100, kit.World);
+        Call("MoveStep", npc, Now + kit.World.TimerFrequency * 5, kit.World);
+        Assert.Equal(Now + kit.World.TimerFrequency * 5, StateLong(npc, "LeashStartedAt"));
+
+        Call("MoveStep", npc, Now + kit.World.TimerFrequency * 10, kit.World);
+        Assert.Equal(b, npc.AggroTarget);
+
+        Call("MoveStep", npc, Now + kit.World.TimerFrequency * 15, kit.World);
+        Assert.Null(npc.AggroTarget);
+    }
+
     private NPC Spawn(int x, int y) => kit.Fixture.SpawnNpc(map, x, y, template);
 
     private TestWorldFixture.CapturingPlayer PlayerOn(int x, int y, string name)

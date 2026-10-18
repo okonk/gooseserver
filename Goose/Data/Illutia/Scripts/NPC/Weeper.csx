@@ -31,15 +31,24 @@ public class Weeper : BaseNPCScript
         npc.Properties["weeperWaypoint"] = 0;
         if (world.MapHandler.Maps.TryGetValue(cfg.Maps.House, out var house) && house is not null)
             world.SendToMap(house, P.Notice(NoticeType.Info, "[Event] A low weeping echoes through the house…"));
+        // A /reloadscripts swap replaces Script.Object with a freshly compiled type, so the
+        // timer closure must not call this compilation by typed reference; re-resolve and
+        // invoke Tick reflectively.
         ScriptTimerEvent timer = null!;
         timer = ScriptTimerEvent.Create(() =>
         {
             if (npc.State != NPC.States.Alive) return;
-            long now = world.TimeNow;
-            HalloweenBoss.TickBleeds(npc, now, world);
-            FootstepsCheck(npc, now, world);
+            var current = npc.Script?.Object;
+            if (current is not null)
+                current.GetType().GetMethod("Tick")!.Invoke(current, new object?[] { npc, world.TimeNow, world });
             timer.Reschedule(TimeSpan.FromSeconds(2), world);
         }, TimeSpan.FromSeconds(2), world);
+    }
+
+    public void Tick(NPC npc, long now, GameWorld world)
+    {
+        HalloweenBoss.TickBleeds(npc, now, world);
+        FootstepsCheck(npc, now, world);
     }
 
     public override void OnMoveEvent(NPC npc, GameWorld world)
@@ -66,8 +75,9 @@ public class Weeper : BaseNPCScript
         LeashCheck(npc, state, cfg, now, world);
         if (npc.AggroTarget is null)
         {
-            // Clear the route-exit sentinel whenever out of combat so the next chase
-            // records its own exit point instead of measuring from a stale one.
+            // The engine can clear aggro without the leash path (target death, leaving the
+            // view box), so the next chase must start a fresh leash window and exit point.
+            state.LeashStartedAt = 0;
             state.LeftRouteAtX = 0;
             state.LeftRouteAtY = 0;
             ResetCheck(npc, state, cfg, now, world);
