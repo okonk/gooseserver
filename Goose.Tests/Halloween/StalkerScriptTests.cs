@@ -30,7 +30,7 @@ public class StalkerScriptTests : IDisposable
             t.CanBeKilled = false;
             t.AttackSpeed = 0;
             t.AggroRange = 0;
-            t.MoveSpeed = 1;
+            t.MoveSpeed = 5;
             t.BaseStats.HP = 10_000;
         });
         blockerTemplate = kit.Fixture.AddNpcTemplate(92003, "Blocker", t =>
@@ -268,6 +268,28 @@ public class StalkerScriptTests : IDisposable
         Assert.Equal(2, target.Sent.Count(s => s.Contains("He's right behind you…")));
     }
 
+    [Fact]
+    public void OnMoveEvent_reschedules_unless_the_chase_ended()
+    {
+        var target = PlayerOn(30, 30, "T");
+        var npc = Spawn(10, 10, target, "chase");
+        npc.Properties["spawnedAt"] = kit.World.TimeNow;
+        npc.MoveEvent = null;
+
+        OnMoveEvent(npc);
+
+        Assert.Equal(NPC.States.Alive, npc.State);
+        Assert.NotNull(npc.MoveEvent);
+        Assert.True(npc.MoveEvent.Ticks > kit.World.TimeNow);
+
+        house.RemovePlayer(target, kit.World);
+        npc.MoveEvent = null;
+        OnMoveEvent(npc);
+
+        Assert.Equal(NPC.States.Dead, npc.State);
+        Assert.Null(npc.MoveEvent);
+    }
+
     private void Corridor()
     {
         for (int y = 1; y <= house.Height; y++)
@@ -300,6 +322,9 @@ public class StalkerScriptTests : IDisposable
 
     private bool Step(NPC npc, long now)
         => (bool)stalker.GetType().GetMethod("MoveStep")!.Invoke(stalker, new object?[] { npc, now, kit.World })!;
+
+    private void OnMoveEvent(NPC npc)
+        => stalker.GetType().GetMethod("OnMoveEvent")!.Invoke(stalker, new object?[] { npc, kit.World });
 
     private void CompleteWarp(Player player)
     {
