@@ -216,9 +216,9 @@ public sealed class HalloweenConfig
                     throw new JsonException("Halloween candy byTemplate entry " + templateId +
                         " must be [min, max] with min <= max");
             foreach (var town in config.Invasion.Towns)
-                if (town.Rect is null || town.Rect.Length != 4)
+                if (town.Rect is null || town.Rect.Length != 4 || town.Rect[2] <= 0 || town.Rect[3] <= 0)
                     throw new JsonException("Halloween invasion town " + town.Map +
-                        " rect must have exactly 4 elements");
+                        " rect must have exactly 4 elements with positive width and height");
             cached = config;
             cachedMtime = mtime;
             return config;

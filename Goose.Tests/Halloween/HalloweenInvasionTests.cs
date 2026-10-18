@@ -94,6 +94,25 @@ public class HalloweenInvasionTests
         Assert.Equal(1, listener.Sent.Count(s => s.Contains("The party has spilled into Grove!")));
     }
 
+    [Fact]
+    public void Non_positive_town_rect_dimension_disables_config()
+    {
+        var kit = new HalloweenTestKit();
+        kit.SetConfig(cfg =>
+        {
+            cfg["invasion"]!["towns"] = new JsonArray(new JsonObject
+            {
+                ["map"] = TownMapId,
+                ["rect"] = new JsonArray(1, 1, -10, 10),
+            });
+        });
+        using var log = new CapturingLog();
+
+        Assert.Equal(0, InvasionValue(kit, "Count"));
+        Assert.Equal(0, InvasionValue(kit, "Count"));
+        Assert.Equal(1, log.Messages.Count(m => m.Contains("halloween.json")));
+    }
+
     private static (HalloweenTestKit Kit, Script<IGlobalScript> Script, Map Map, TestWorldFixture.CapturingPlayer Listener) Setup()
     {
         var kit = new HalloweenTestKit();
@@ -126,4 +145,11 @@ public class HalloweenInvasionTests
     }
 
     private static Random Rng(int[] ints) => new HalloweenTestKit.FixedRandom([], ints);
+
+    private static int InvasionValue(HalloweenTestKit kit, string name)
+    {
+        var config = (object)HalloweenTestKit.Call(kit.Host, "Config", kit.World)!;
+        var group = (object)config.GetType().GetProperty("Invasion")!.GetValue(config)!;
+        return (int)group.GetType().GetProperty(name)!.GetValue(group)!;
+    }
 }
