@@ -149,6 +149,7 @@
     "IdleTimeout": 600,
     "PlayerCountExperienceModifierInterval": 1000,
     "PlayerCountExperienceModifier": 1,
+    "PlayerCountExperienceModifierEnabled": false,
     "StartingMoveSpeed": 320,
     "StartingBodyR": 0,
     "StartingBodyG": 0,

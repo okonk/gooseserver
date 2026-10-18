@@ -447,10 +447,7 @@ namespace Goose
             clearCreatedHistory.Ticks += this.TimerFrequency * 24 * 60 * 60;
             this.EventHandler.AddEvent(clearCreatedHistory);
 
-            Event updateExperienceModifier = new PlayerCountExperienceModifierUpdateEvent();
-            // H6: clamp to >= 1, a 0/negative IdleTimeout re-enqueues at now and spins EventHandler.Update
-            updateExperienceModifier.Ticks += this.TimerFrequency * Math.Max(1, this.Settings.IdleTimeout);
-            this.EventHandler.AddEvent(updateExperienceModifier);
+            this.SchedulePlayerCountExperienceModifier();
 
             // Add gold item
             ItemTemplate? goldTemplate = this.ItemHandler.GetTemplate(this.Settings.GoldItemID);
@@ -494,6 +491,16 @@ namespace Goose
             log.Info("Finished loading game. Ready to join.");
 
             this.Running = true;
+        }
+
+        internal void SchedulePlayerCountExperienceModifier()
+        {
+            if (!this.Settings.PlayerCountExperienceModifierEnabled) return;
+
+            Event updateExperienceModifier = new PlayerCountExperienceModifierUpdateEvent();
+            // H6: clamp to >= 1, a 0/negative IdleTimeout re-enqueues at now and spins EventHandler.Update
+            updateExperienceModifier.Ticks += this.TimerFrequency * Math.Max(1, this.Settings.IdleTimeout);
+            this.EventHandler.AddEvent(updateExperienceModifier);
         }
 
         /// <summary>
