@@ -60,7 +60,7 @@ public class Stalker : BaseNPCScript
                 _ => (npc.MapX + 1, npc.MapY),
             };
             var occupant = npc.Map.GetCharacterAt(nx, ny);
-            if (occupant is Player p && p != target)
+            if (occupant is Player p and not Pet && p != target)
                 BodyBlock(p, world);
             else
                 npc.StepTo(dir.Value, world);

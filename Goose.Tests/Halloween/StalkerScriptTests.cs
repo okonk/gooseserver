@@ -290,6 +290,37 @@ public class StalkerScriptTests : IDisposable
         Assert.Null(npc.MoveEvent);
     }
 
+    [Fact]
+    public void Pet_on_next_tile_is_not_body_blocked()
+    {
+        Corridor();
+        var target = PlayerOn(10, 10, "T");
+        var npc = Spawn(10, 30, target, "chase");
+        var pet = new Pet
+        {
+            Name = "Pet",
+            Map = house, MapID = house.ID, MapX = 10, MapY = 20,
+            State = Player.States.Ready,
+            BaseStats = new AttributeSet(),
+            MaxStats = new AttributeSet(),
+            Class = kit.World.ClassHandler.GetClass(0)!,
+        };
+        house.AddPlayer(pet, kit.World);
+        house.SetCharacter(pet, 10, 20);
+
+        int guard = 0;
+        while (npc.MapY > 21 && guard++ < 50)
+            Step(npc, Now + guard);
+        Assert.Equal((10, 21), (npc.MapX, npc.MapY));
+
+        Step(npc, Now + guard);
+
+        Assert.Equal((10, 21), (npc.MapX, npc.MapY));
+        Assert.Equal(Direction.Up, npc.Facing);
+        Assert.Equal(house, pet.Map);
+        Assert.Equal((10, 20), (pet.MapX, pet.MapY));
+    }
+
     private void Corridor()
     {
         for (int y = 1; y <= house.Height; y++)

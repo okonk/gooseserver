@@ -350,11 +350,11 @@ public sealed class HalloweenConfig
                     "leashMaxDistance, resetSeconds, footstepRadius and footstepSeconds must be > 0");
             if (config.Groundskeeper.Curve.Band <= 0 || config.Groundskeeper.Curve.Exponent <= 0)
                 throw new JsonException("Halloween groundskeeper.curve band and exponent must be > 0");
-            if (config.StalkerChase.ChaseSeconds <= 0 || config.StalkerChase.StartDelaySeconds < 0 ||
+            if (config.StalkerChase.ChaseSeconds <= 0 || config.StalkerChase.StartDelaySeconds <= 0 ||
                 config.StalkerChase.SpeedOffset <= 0 || config.StalkerChase.WarnRadius <= 0 ||
                 config.StalkerChase.WarnSeconds <= 0)
-                throw new JsonException("Halloween stalkerChase chaseSeconds, speedOffset, warnRadius and warnSeconds " +
-                    "must be > 0 and startDelaySeconds must be >= 0");
+                throw new JsonException("Halloween stalkerChase chaseSeconds, startDelaySeconds, speedOffset, warnRadius " +
+                    "and warnSeconds must be > 0");
             cached = config;
             cachedKey = key;
             failedKey = "";
