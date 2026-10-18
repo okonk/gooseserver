@@ -55,16 +55,16 @@ public class HalloweenCandyTests
         var map = kit.Fixture.AddBaseMap(30, "Town", 40, 40);
         kit.World.CommunityGoals.SetFlag("halloween.active", 1, null);
         var npc = kit.Fixture.SpawnNpc(map, 5, 5,
-            kit.Fixture.AddNpcTemplate(92003, "Weeper", t => t.Level = 10), shouldRespawn: false);
-        kit.SetConfig(cfg => cfg["candy"]!["byTemplate"]!["92003"] = new JsonArray(1, 3));
+            kit.Fixture.AddNpcTemplate(92003, "Weeper"), shouldRespawn: true);
+        kit.SetConfig(cfg => cfg["candy"]!["byTemplate"]!["92003"] = new JsonArray(3, 3));
         var player = kit.Fixture.CommandPlayerOn(map, 1, 1);
 
         var candy = kit.Compile<IGlobalScript>("Global", "HalloweenCandy.csx");
         HalloweenTestKit.Call(candy.Object, "AwardKill", npc, new List<Player> { player }, kit.World,
-            kit.World.TimeNow, new HalloweenTestKit.FixedRandom([0.5]));
+            kit.World.TimeNow, new HalloweenTestKit.FixedRandom([0.0]));
 
-        Assert.True(player.Inventory.HasItem(kit.CandyId, 2));
-        Assert.Contains(player.Sent, s => s.Contains("+2 Candy"));
+        Assert.True(player.Inventory.HasItem(kit.CandyId, 3));
+        Assert.Contains(player.Sent, s => s.Contains("+3 Candy"));
     }
 
     [Fact]

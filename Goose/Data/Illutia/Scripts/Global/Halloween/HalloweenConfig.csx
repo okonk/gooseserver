@@ -202,6 +202,13 @@ public sealed class HalloweenConfig
             foreach (var pack in config.Ambush.Packs)
                 if (pack.Value is null)
                     throw new JsonException("Halloween pack " + pack.Key + " must not be null");
+            if (config.Candy.BaseAmount is null || config.Candy.BaseAmount.Length != 2 ||
+                config.Candy.BaseAmount[0] > config.Candy.BaseAmount[1])
+                throw new JsonException("Halloween candy baseAmount must be [min, max] with min <= max");
+            foreach (var (templateId, range) in config.Candy.ByTemplate)
+                if (range is null || range.Length != 2 || range[0] > range[1])
+                    throw new JsonException("Halloween candy byTemplate entry " + templateId +
+                        " must be [min, max] with min <= max");
             cached = config;
             cachedMtime = mtime;
             return config;
