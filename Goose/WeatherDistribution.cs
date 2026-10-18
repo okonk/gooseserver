@@ -27,13 +27,13 @@ namespace Goose
             List<string>? problems = null;
             foreach ((string name, float? weight) in weights)
             {
-                string trimmedName = name.Trim();
-                bool numeric = trimmedName.Length > 0 && trimmedName.All(char.IsDigit);
-                if (numeric || !Enum.TryParse<WeatherType>(name, true, out WeatherType type) || !Enum.IsDefined(type))
+                int index = Array.FindIndex(Enum.GetNames<WeatherType>(), n => string.Equals(n, name.Trim(), StringComparison.OrdinalIgnoreCase));
+                if (index < 0)
                 {
                     (problems ??= new()).Add($"unknown weather type '{name}'");
                     continue;
                 }
+                WeatherType type = (WeatherType)Enum.GetValues<WeatherType>()[index];
                 if (weight is null)
                 {
                     (problems ??= new()).Add($"missing weight for '{name}'");

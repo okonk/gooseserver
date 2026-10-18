@@ -31,9 +31,11 @@ namespace Goose.Tests
         [Fact]
         public void NewAmbience_UndefinedNumericWeatherConfig_DoesNotThrow()
         {
-            WeatherDistribution dist = WeatherDistribution.Parse("{\"1\":1}", out _);
+            WeatherDistribution dist = WeatherDistribution.Parse("{\"5\":1}", out string? warning);
             MapAmbience ambience = new(LightingConfig.None, dist, new Random(1), 0);
 
+            Assert.NotNull(warning);
+            Assert.Empty(dist);
             Assert.Equal(WeatherType.Clear, ambience.CurrentWeather);
         }
 
