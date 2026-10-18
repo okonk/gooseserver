@@ -328,7 +328,8 @@ Tier 3's 15% Groundskeeper rate is applied by the Groundskeeper script (Part 3),
   `{"canMove": true}`: Ballroom 48 guests (the five non-Devil types, as even as 48 allows) and
   10 Devils; Devils elsewhere: Library 5, Kids' Bedroom 3, Master Bedroom 3, Statue Gallery 2,
   Garden 4; 14 Ghoul Cooks in the Kitchen. Roaming tiles: the generator picks free tiles inside
-  the room rect with a fixed seed (`random.Random(31)`), ≥ 2 tiles apart, outside the pond
+  the room rect that are reachable on foot from the Foyer (flood fill), with a fixed seed
+  (`random.Random(31)`), ≥ 2 tiles apart, outside the pond
   (x 62-75, y 70-81) and off the stairs (x 14-17, y 61-65).
 - **Weeper:** one at (38,36).
 - **Friendly:** Countess (H,42,51), Count (H,44,51), Collector (H,36,48), Medium (H,19,59),
@@ -430,8 +431,8 @@ The generator substitutes the ids as JSON numbers. Check the result with
   your left.", "A shape darts past on your right.", "Breath on the back of your neck."
 - `invasion`: towns `[{"map": 1, "rect": [35,30,71,62]}]`, templates = the six stationary guest ids
   + wailing + flickering.
-- Weeper `loops` thinned to the room-level points now that A* is in (one or two per room, validated
-  reachable with a BFS on the map in the generator).
+- Weeper `loops` stay as validated for greedy movement; thin them on the test server once A* is
+  watched in play.
 
 **Steps:**
 1. `python3 tools/halloween-data/build.py` → review `out/batch.json`, `out/manual.md`, the
