@@ -65,7 +65,13 @@ public class Weeper : BaseNPCScript
         var state = State(npc);
         LeashCheck(npc, state, cfg, now, world);
         if (npc.AggroTarget is null)
+        {
+            // Clear the route-exit sentinel whenever out of combat so the next chase
+            // records its own exit point instead of measuring from a stale one.
+            state.LeftRouteAtX = 0;
+            state.LeftRouteAtY = 0;
             ResetCheck(npc, state, cfg, now, world);
+        }
         if (npc.AggroTarget is Player target)
             Chase(npc, state, target, world);
         else

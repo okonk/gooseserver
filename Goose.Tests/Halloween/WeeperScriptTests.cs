@@ -213,16 +213,19 @@ public class WeeperScriptTests : IDisposable
         int[][] big = [[10, 10], [30, 10], [30, 30], [10, 30], [10, 10]];
         Loops(("a", big));
         var npc = Spawn(10, 10);
+        Call("MoveStep", npc, Now, kit.World);
+        Assert.Equal(1, LoopIndex(npc));
+
         var target = PlayerOn(50, 10, "T");
         npc.AddAggro(target, 100, kit.World);
 
         Call("MoveStep", npc, Now, kit.World);
-        npc.MoveTo(kit.World, 28, 18);
+        npc.MoveTo(kit.World, 15, 28);
         Call("MoveStep", npc, Now + kit.World.TimerFrequency * 10, kit.World);
 
         Assert.Null(npc.AggroTarget);
-        Assert.Equal(1, LoopIndex(npc));
-        Assert.Equal(9, Math.Abs(npc.MapX - 30) + Math.Abs(npc.MapY - 10));
+        Assert.Equal(3, LoopIndex(npc));
+        Assert.Equal(6, Math.Abs(npc.MapX - 10) + Math.Abs(npc.MapY - 30));
     }
 
     [Fact]
@@ -244,6 +247,31 @@ public class WeeperScriptTests : IDisposable
 
         Call("FootstepsCheck", npc, Now + kit.World.TimerFrequency * 7, kit.World);
         Assert.Single(idle.Sent, s => s.Contains("dragging its feet"));
+    }
+
+    [Fact]
+    public void Route_exit_point_is_re_recorded_when_combat_ends_without_leash()
+    {
+        var npc = Spawn(10, 10);
+        var a = PlayerOn(11, 10, "A");
+        npc.AddAggro(a, 100, kit.World);
+
+        Call("MoveStep", npc, Now, kit.World);
+        Assert.Equal(10, StateInt(npc, "LeftRouteAtX"));
+
+        npc.RemoveAggro(a);
+        map.RemovePlayer(a, kit.World);
+        Call("MoveStep", npc, Now + kit.World.TimerFrequency, kit.World);
+        npc.MoveTo(kit.World, 51, 10);
+
+        var b = PlayerOn(52, 10, "B");
+        npc.AddAggro(b, 100, kit.World);
+
+        Call("MoveStep", npc, Now + kit.World.TimerFrequency * 2, kit.World);
+
+        Assert.Equal(b, npc.AggroTarget);
+        Assert.Equal(51, StateInt(npc, "LeftRouteAtX"));
+        Assert.Equal(10, StateInt(npc, "LeftRouteAtY"));
     }
 
     private NPC Spawn(int x, int y) => kit.Fixture.SpawnNpc(map, x, y, template);
@@ -283,6 +311,9 @@ public class WeeperScriptTests : IDisposable
 
     private long StateLong(NPC npc, string field)
         => (long)npc.ScriptStore!.GetType().GetProperty(field)!.GetValue(npc.ScriptStore)!;
+
+    private int StateInt(NPC npc, string field)
+        => (int)npc.ScriptStore!.GetType().GetProperty(field)!.GetValue(npc.ScriptStore)!;
 
     private void SetState(NPC npc, string field, long value)
         => npc.ScriptStore!.GetType().GetProperty(field)!.SetValue(npc.ScriptStore, value);
