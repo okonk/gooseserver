@@ -191,11 +191,11 @@ public sealed class HalloweenConfig
     {
         string path = world.Settings.DataPathAbsolute + "/Scripts/Global/Halloween/halloween.json";
         string key;
-        try
+        if (File.Exists(path))
         {
             key = "mtime:" + File.GetLastWriteTimeUtc(path).ToString("O");
         }
-        catch
+        else
         {
             key = "missing:" + path;
         }
@@ -228,6 +228,7 @@ public sealed class HalloweenConfig
             Require(config.Pentagram.Points, "pentagram.points");
             Require(config.Invasion.Towns, "invasion.towns");
             Require(config.Invasion.Templates, "invasion.templates");
+            Require(config.Candy.ByTemplate, "candy.byTemplate");
             foreach (var (table, weights) in config.Ambush.Tables)
                 Require(weights, "ambush.tables." + table);
             foreach (var (table, scares) in config.Ambush.FakeScares)
@@ -239,7 +240,7 @@ public sealed class HalloweenConfig
                 ["foyerSpawn"] = config.Maps.FoyerSpawn,
                 ["basementArrival"] = config.Maps.BasementArrival,
             })
-                if (point is null || point.Length < 2)
+                if (point is null || point.Length != 2)
                     throw new JsonException("Halloween maps." + name + " must be a [x, y] array");
             foreach (var room in config.Rooms)
                 if (room.Rect is null || room.Rect.Length != 4)
