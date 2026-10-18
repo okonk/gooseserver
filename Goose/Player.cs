@@ -474,6 +474,10 @@ namespace Goose
         /// <summary>Arbitrary per-player storage for scripts. Persisted as JSON in players.player_properties.</summary>
         public PropertiesDictionary Properties { get; set; } = new PropertiesDictionary();
 
+        // Transient per-player script state: in-memory only (never persisted), long values so a
+        // reloaded script reads what the previous compilation wrote (script statics don't survive).
+        public Dictionary<string, long> ScriptState { get; } = new();
+
         /// <summary>Split out from LoadFromReader so it can be tested without a reader.</summary>
         internal void LoadPropertiesFromColumn(string json)
         {
