@@ -175,7 +175,7 @@ def mask(name, effect, equip, desc, extra=None):
 
 
 ITEMS = [
-    ("candy", {"item_usetype": "NoUse", "item_name": "Candy", "stack_size": 10000, "bindonpickup": 1,
+    ("candy", {"item_usetype": "NoUse", "item_name": "Candy", "stack_size": 9999, "bindonpickup": 1,
                **icon(2281, 332500), "item_description": "Sweet, sticky and strangely warm."}),
     ("costume", {**armor("Helmet", "Cloth", 2000, 2000, 150), "min_level": 1, **stats(10), **bound(),
                  "item_name": "Party Costume", "spell_effect_id": 70, "graphic_equip": 11,
