@@ -109,14 +109,14 @@ public class HalloweenBossHelperTests
     {
         var ctx = Setup();
 
-        Assert.Equal("north", (string)ctx.Call("Compass", 10, 10, 10, 12)!);
+        Assert.Equal("south", (string)ctx.Call("Compass", 10, 10, 10, 12)!);
         Assert.Equal("east", (string)ctx.Call("Compass", 10, 10, 12, 10)!);
-        Assert.Equal("south", (string)ctx.Call("Compass", 10, 10, 10, 8)!);
+        Assert.Equal("north", (string)ctx.Call("Compass", 10, 10, 10, 8)!);
         Assert.Equal("west", (string)ctx.Call("Compass", 10, 10, 8, 10)!);
-        Assert.Equal("north-east", (string)ctx.Call("Compass", 10, 10, 13, 11)!);
-        Assert.Equal("north-west", (string)ctx.Call("Compass", 10, 10, 7, 12)!);
-        Assert.Equal("south-east", (string)ctx.Call("Compass", 10, 10, 12, 9)!);
-        Assert.Equal("south-west", (string)ctx.Call("Compass", 10, 10, 9, 7)!);
+        Assert.Equal("south-east", (string)ctx.Call("Compass", 10, 10, 13, 11)!);
+        Assert.Equal("south-west", (string)ctx.Call("Compass", 10, 10, 7, 12)!);
+        Assert.Equal("north-east", (string)ctx.Call("Compass", 10, 10, 12, 9)!);
+        Assert.Equal("north-west", (string)ctx.Call("Compass", 10, 10, 9, 7)!);
         Assert.Equal("north", (string)ctx.Call("Compass", 10, 10, 10, 10)!);
     }
 

@@ -86,8 +86,8 @@ public static class HalloweenBoss
     {
         int dx = toX - fromX;
         int dy = toY - fromY;
-        // +y is north on Illutia maps (see Halloween.SpawnTile's Up => (0, 1)).
-        string? northSouth = dy > 0 ? "north" : dy < 0 ? "south" : null;
+        // Up/north is decreasing y (see Direction.Up in MoveEvent.cs).
+        string? northSouth = dy < 0 ? "north" : dy > 0 ? "south" : null;
         string? eastWest = dx > 0 ? "east" : dx < 0 ? "west" : null;
         if (northSouth is null) return eastWest ?? "north";
         if (eastWest is null) return northSouth;
