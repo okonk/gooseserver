@@ -1,5 +1,4 @@
 #load "../Global/Halloween/HalloweenConfig.csx"
-#load "../Global/Halloween/HalloweenCommon.csx"
 using System;
 using Goose;
 using Goose.Scripting;

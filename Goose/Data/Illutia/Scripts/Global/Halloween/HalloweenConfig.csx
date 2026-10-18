@@ -295,6 +295,10 @@ public sealed class HalloweenConfig
                 if (town.Rect is null || town.Rect.Length != 4 || town.Rect[2] <= 0 || town.Rect[3] <= 0)
                     throw new JsonException("Halloween invasion town " + town.Map +
                         " rect must have exactly 4 elements with positive width and height");
+            if (config.Weeper.CapPerHit <= 0)
+                throw new JsonException("Halloween weeper.capPerHit must be > 0");
+            if (config.Groundskeeper.Curve.Band <= 0 || config.Groundskeeper.Curve.Exponent <= 0)
+                throw new JsonException("Halloween groundskeeper.curve band and exponent must be > 0");
             cached = config;
             cachedKey = key;
             failedKey = "";
