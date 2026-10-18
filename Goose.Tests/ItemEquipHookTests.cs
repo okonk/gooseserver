@@ -1,3 +1,4 @@
+using System.Reflection;
 using Goose.Testing;
 using static Goose.Inventory;
 
@@ -30,6 +31,23 @@ public class ItemEquipHookTests
             public override void OnUnequipEvent(Player player, Item item, GameWorld world)
             {
                 world.Send(player, P.ServerMessage("UNEQUIP:" + item.TemplateID + ":HELM=" + HelmOf(player)));
+            }
+        }
+
+        return typeof(T);
+        """;
+
+    private const string StackRecordingBody = """
+        using Goose;
+        using Goose.Scripting;
+
+        public class T : BaseItemScript
+        {
+            public static Item? LastEquipped;
+
+            public override void OnEquipEvent(Player player, Item item, GameWorld world)
+            {
+                LastEquipped = item;
             }
         }
 
@@ -197,6 +215,36 @@ public class ItemEquipHookTests
             Assert.False(player.Inventory.Equip(twoHander, world.World));
 
             Assert.Equal(new[] { "UNEQUIP:" + ShieldId + ":HELM=0" }, HookMessages(player));
+        }
+    }
+
+    [Fact]
+    public void Equipping_from_a_stack_passes_the_clone_that_entered_the_slot()
+    {
+        var (world, player) = NewPlayer();
+        using (world)
+        {
+            var template = world.AddBaseItemTemplate(OldHelm, "Item " + OldHelm,
+                ItemTemplate.UseTypes.Armor, t =>
+                {
+                    t.Slot = ItemTemplate.ItemSlots.Helmet;
+                    t.StackSize = 2;
+                    t.Script = world.CompileItemScript(StackRecordingBody, "StackHelm" + OldHelm);
+                });
+            var item = new Item();
+            item.LoadFromTemplate(template);
+            world.World.ItemHandler.AddAndAssignId(item, world.World);
+            Assert.True(player.Inventory.AddItem(item, 2, world.World));
+
+            Assert.True(player.Inventory.Equip(item, world.World));
+
+            var lastEquipped = (Item?)template.Script!.Object.GetType()
+                .GetField("LastEquipped", BindingFlags.Public | BindingFlags.Static)!.
+                GetValue(null);
+
+            Assert.Same(player.Inventory.GetEquippedSlot(EquipSlots.Head)!.Item, lastEquipped);
+            Assert.NotSame(item, lastEquipped);
+            Assert.Same(item, player.Inventory.GetSlot(1)!.Item);
         }
     }
 
