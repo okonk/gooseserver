@@ -850,13 +850,12 @@ def config_patch(ids, maps):
         "candy": {"byTemplate": candy_by_template},
         "rooms": [{"name": n, "rect": r, "weight": w, "table": t} for n, r, w, t in ROOMS],
         "ambush": {"fakeScares": FAKE_SCARES},
-        "invasion": {"towns": [MINITA], "templates": [npc(k) for k in GUESTS[:5] + ["wailing", "flickering"]]},
+        "invasion": {"towns": [{"map": MINITA, "rect": [35, 30, 71, 62]}], "templates": [npc(k) for k in GUESTS[:5] + ["wailing", "flickering"]]},
         "goal": {"tiers": TIERS},
         "effects": {"weeperCap": ids("effect", "weeperCap"), "groundskeeperCurve": ids("effect", "gkCurve"),
                     "ghostSnareOnHit": ids("effect", "ghostSnareOnHit")},
-        "groundskeeper": {"adds": {"placeSettings": [[npc("setting"), 8]],
-                                   "ghosts": [[npc("wailing"), 4], [npc("flickering"), 2]],
-                                   "bloody": [[npc("bloodyAdd"), 2]]}},
+        "groundskeeper": {"adds": {"placeSettings": [npc("setting"), 8], "ghosts": [npc("wailing"), 6],
+                                   "bloody": [npc("bloodyAdd"), 2]}},
     }
 
 
