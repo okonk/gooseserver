@@ -539,7 +539,7 @@ namespace Goose
             if (this.IsTileStaticBlocked(toX, toY)) return null;
             if (fromX == toX && fromY == toY) return new List<(int, int)>();
 
-            int stride = this.Width;
+            int stride = this.Width + 1;
             if (this.pathStamp is null || this.pathStamp.Length < (this.Width + 1) * (this.Height + 1))
             {
                 int size = (this.Width + 1) * (this.Height + 1);

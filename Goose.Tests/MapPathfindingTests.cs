@@ -64,11 +64,24 @@ public class MapPathfindingTests
         var path = m.FindPath(5, 5, 15, 5);
 
         Assert.NotNull(path);
+        Assert.Equal(30, path.Count);
         Assert.Contains((10, 15), path);
         foreach (var (X, Y) in path)
         {
             Assert.False(m.IsTileStaticBlocked(X, Y));
         }
+    }
+
+    [Fact]
+    public void Start_tile_is_never_tested_for_passability()
+    {
+        var m = NewMap();
+        m.SetTile(5, 5, new BlockedTile());
+
+        var path = m.FindPath(5, 5, 15, 5);
+
+        Assert.NotNull(path);
+        Assert.Equal(10, path.Count);
     }
 
     [Fact]
@@ -132,6 +145,17 @@ public class MapPathfindingTests
         var m = NewMap();
 
         Assert.Null(m.FindPath(1, 1, 20, 20, maxExpanded: 5));
+    }
+
+    [Fact]
+    public void Expansion_limit_allows_search_that_fits()
+    {
+        var m = NewMap();
+
+        var path = m.FindPath(1, 1, 20, 20, maxExpanded: 40);
+
+        Assert.NotNull(path);
+        Assert.Equal(38, path.Count);
     }
 
     [Fact]
