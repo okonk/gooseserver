@@ -188,6 +188,7 @@ public sealed class HalloweenWeeper
     public double BleedPercentPerStack { get; set; }
     public int BleedMaxStacks { get; set; }
     public int BleedSeconds { get; set; }
+    public int BleedTickSeconds { get; set; }
     public int[] Start { get; set; } = [];
     public double HitPercent { get; set; }
     public int StragglerRadius { get; set; }
@@ -356,18 +357,26 @@ public sealed class HalloweenConfig
                 throw new JsonException("Halloween weeper.stragglerMultiplier must be >= 1");
             if (config.Weeper.StragglerRadius <= 0 || config.Weeper.LungeSeconds <= 0 || config.Weeper.LungeRadius <= 0 ||
                 config.Weeper.LeashRadius <= 0 || config.Weeper.LeashSeconds <= 0 || config.Weeper.LeashMaxDistance <= 0 ||
-                config.Weeper.ResetSeconds <= 0 || config.Weeper.FootstepRadius <= 0 || config.Weeper.FootstepSeconds <= 0)
+                config.Weeper.ResetSeconds <= 0 || config.Weeper.FootstepRadius <= 0 || config.Weeper.FootstepSeconds <= 0 ||
+                config.Weeper.BleedTickSeconds <= 0)
                 throw new JsonException("Halloween weeper stragglerRadius, lungeSeconds, lungeRadius, leashRadius, leashSeconds, " +
-                    "leashMaxDistance, resetSeconds, footstepRadius and footstepSeconds must be > 0");
+                    "leashMaxDistance, resetSeconds, footstepRadius, footstepSeconds and bleedTickSeconds must be > 0");
             if (config.Groundskeeper.Curve.Band <= 0 || config.Groundskeeper.Curve.Exponent <= 0)
                 throw new JsonException("Halloween groundskeeper.curve band and exponent must be > 0");
+            if (config.Groundskeeper.Curve.Floor < 0)
+                throw new JsonException("Halloween groundskeeper.curve.floor must be >= 0");
             if (config.Groundskeeper.HpPerPlayer <= 0)
                 throw new JsonException("Halloween groundskeeper.hpPerPlayer must be > 0");
-            if (config.Groundskeeper.Phases is null || config.Groundskeeper.Phases.Length == 0)
-                throw new JsonException("Halloween groundskeeper.phases must not be empty");
+            if (config.Groundskeeper.BloodyDamageMultiplier <= 0 || config.Groundskeeper.BloodyDamageMultiplier > 1)
+                throw new JsonException("Halloween groundskeeper.bloodyDamageMultiplier must be in (0, 1]");
+            if (config.Groundskeeper.Phases is null || config.Groundskeeper.Phases.Length != 4)
+                throw new JsonException("Halloween groundskeeper.phases must have exactly 4 values");
             foreach (var phase in config.Groundskeeper.Phases)
                 if (phase <= 0 || phase > 1)
                     throw new JsonException("Halloween groundskeeper.phases values must be in (0, 1]");
+            for (int i = 1; i < config.Groundskeeper.Phases.Length; i++)
+                if (config.Groundskeeper.Phases[i - 1] <= config.Groundskeeper.Phases[i])
+                    throw new JsonException("Halloween groundskeeper.phases must be strictly descending");
             if (config.Groundskeeper.HitPercent <= 0 || config.Groundskeeper.BigHitPercent <= 0)
                 throw new JsonException("Halloween groundskeeper.hitPercent and bigHitPercent must be > 0");
             if (config.Groundskeeper.BigHitEvery <= 1)

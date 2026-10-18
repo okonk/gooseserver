@@ -209,6 +209,47 @@ public class HalloweenCommonTests
     }
 
     [Fact]
+    public void Malformed_groundskeeper_phases_disables_and_logs()
+    {
+        using var kit = new HalloweenTestKit();
+        using var log = new CapturingLog();
+
+        kit.SetConfig(cfg => cfg["groundskeeper"]!["phases"] = new JsonArray(0.5, 0.75, 0.25, 0.1));
+        Assert.Equal(0, ConfigValue(kit, "Maps", "House"));
+        Assert.Equal(1, log.Messages.Count(m => m.Contains("halloween.json")));
+
+        kit.SetConfig(cfg => cfg["groundskeeper"]!["phases"] = new JsonArray(0.75, 0.5, 0.25));
+        Assert.Equal(0, ConfigValue(kit, "Maps", "House"));
+        Assert.Equal(2, log.Messages.Count(m => m.Contains("halloween.json")));
+    }
+
+    [Fact]
+    public void Malformed_bloody_damage_multiplier_disables_and_logs()
+    {
+        using var kit = new HalloweenTestKit();
+        using var log = new CapturingLog();
+
+        kit.SetConfig(cfg => cfg["groundskeeper"]!["bloodyDamageMultiplier"] = 1.5);
+        Assert.Equal(0, ConfigValue(kit, "Maps", "House"));
+        Assert.Equal(1, log.Messages.Count(m => m.Contains("halloween.json")));
+
+        kit.SetConfig(cfg => cfg["groundskeeper"]!["bloodyDamageMultiplier"] = 0);
+        Assert.Equal(0, ConfigValue(kit, "Maps", "House"));
+        Assert.Equal(2, log.Messages.Count(m => m.Contains("halloween.json")));
+    }
+
+    [Fact]
+    public void Negative_curve_floor_disables_and_logs()
+    {
+        using var kit = new HalloweenTestKit();
+        using var log = new CapturingLog();
+
+        kit.SetConfig(cfg => cfg["groundskeeper"]!["curve"]!["floor"] = -1);
+        Assert.Equal(0, ConfigValue(kit, "Maps", "House"));
+        Assert.Equal(1, log.Messages.Count(m => m.Contains("halloween.json")));
+    }
+
+    [Fact]
     public void Null_section_disables_and_logs()
     {
         using var kit = new HalloweenTestKit();
