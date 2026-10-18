@@ -171,6 +171,14 @@ public static class Halloween
         return room is null ? "house" : room.Table;
     }
 
+    public static void AddPermanentBuff(NPC npc, int effectId, GameWorld world)
+    {
+        if (effectId == 0) return;
+        var effect = world.SpellHandler.GetSpellEffect(effectId);
+        if (effect is null) return;
+        npc.AddBuff(new Buff { Caster = npc, Target = npc, SpellEffect = effect }, world);
+    }
+
     public static long GetState(Player player, string key) =>
         player.ScriptState.TryGetValue(key, out var value) ? value : 0;
 

@@ -146,6 +146,10 @@ public sealed class HalloweenTestKit : IDisposable
                                                new[] { 62, 21 }, new[] { 72, 21 } },
                               centre = new[] { 67, 13 } },
             invasion = new { towns = new int[0], templates = new int[0], count = 20, everyMinutes = 30, lifetimeMinutes = 15 },
+            effects = new { weeperCap = 0, groundskeeperCurve = 0, ghostSnareOnHit = 0 },
+            weeper = new { capPerHit = 100000 },
+            groundskeeper = new { bloodyDamageMultiplier = 0.25,
+                                   curve = new { floor = 10000, band = 70000, exponent = 0.4 } },
         };
     }
 

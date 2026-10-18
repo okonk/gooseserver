@@ -166,6 +166,31 @@ public sealed class HalloweenInvasion
     public int LifetimeMinutes { get; set; }
 }
 
+public sealed class HalloweenEffects
+{
+    public int WeeperCap { get; set; }
+    public int GroundskeeperCurve { get; set; }
+    public int GhostSnareOnHit { get; set; }
+}
+
+public sealed class HalloweenWeeper
+{
+    public int CapPerHit { get; set; }
+}
+
+public sealed class HalloweenCurve
+{
+    public int Floor { get; set; }
+    public int Band { get; set; }
+    public double Exponent { get; set; }
+}
+
+public sealed class HalloweenGroundskeeper
+{
+    public double BloodyDamageMultiplier { get; set; }
+    public HalloweenCurve Curve { get; set; } = new();
+}
+
 public sealed class HalloweenConfig
 {
     public static HalloweenConfig Disabled { get; } = new();
@@ -180,6 +205,9 @@ public sealed class HalloweenConfig
     public HalloweenStalker Stalker { get; set; } = new();
     public HalloweenPentagram Pentagram { get; set; } = new();
     public HalloweenInvasion Invasion { get; set; } = new();
+    public HalloweenEffects Effects { get; set; } = new();
+    public HalloweenWeeper Weeper { get; set; } = new();
+    public HalloweenGroundskeeper Groundskeeper { get; set; } = new();
 
     private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
     private static HalloweenConfig? cached;
@@ -220,6 +248,10 @@ public sealed class HalloweenConfig
             Require(config.Stalker, "stalker");
             Require(config.Pentagram, "pentagram");
             Require(config.Invasion, "invasion");
+            Require(config.Effects, "effects");
+            Require(config.Weeper, "weeper");
+            Require(config.Groundskeeper, "groundskeeper");
+            Require(config.Groundskeeper.Curve, "groundskeeper.curve");
             Require(config.Ambush.Tables, "ambush.tables");
             Require(config.Ambush.Packs, "ambush.packs");
             Require(config.Ambush.Candy, "ambush.candy");
