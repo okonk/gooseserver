@@ -15,11 +15,106 @@ public static class Halloween
         world.ExperienceModifier = world.Settings.ExperienceModifier + HalloweenConfig.Get(world).XpBonus;
     }
 
-    // Placeholder until the stalker implementation lands; the controller compiles against this.
-    public static bool SpawnStalker(GameWorld world, Player target, string mode, long now) => false;
+    public static bool SpawnStalker(GameWorld world, Player target, string mode, long now)
+    {
+        if (mode is not ("chase" or "hunt")) return false;
+        var cfg = HalloweenConfig.Get(world);
+        if (cfg.Npcs.Stalker == 0) return false;
+        if (target.Map is null || (!IsHouse(target.Map, cfg) && !IsBasement(target.Map, cfg))) return false;
+        if (LiveStalkerFor(target, cfg) is not null) return false;
+        if (IsBasement(target.Map, cfg) && GroundskeeperAlive(target.Map, cfg)) return false;
+        if (mode is "chase" && (now < GetState(target, "hw.stalkerGraceUntil") ||
+            LiveStalkers(world, cfg) >= cfg.Stalker.MaxLive)) return false;
+        var template = world.NPCHandler.GetNPCTemplate(cfg.Npcs.Stalker);
+        if (template is null) return false;
+        var tile = SpawnTile(target.Map, target, cfg);
+        if (tile is null) return false;
+        var npc = world.NPCHandler.SpawnNPC(world, target.MapID, tile.Value.X, tile.Value.Y, template,
+            shouldRespawn: false,
+            new PropertiesDictionary
+            {
+                ["stalkerTarget"] = target.PlayerID,
+                ["stalkerMode"] = mode,
+                ["spawnedAt"] = now,
+            });
+        if (npc is null) return false;
+        SetState(target, "hw.stalkerNpc", npc.LoginID);
+        Feed(world, target, "A chainsaw revs behind you!");
+        return true;
+    }
 
-    // Placeholder until the stalker implementation lands.
-    public static bool DespawnStalkerFor(GameWorld world, Player player) => false;
+    public static bool DespawnStalkerFor(GameWorld world, Player player)
+    {
+        long npcId = GetState(player, "hw.stalkerNpc");
+        if (npcId == 0) return false;
+        SetState(player, "hw.stalkerNpc", 0);
+        if (player.Map is null) return false;
+        var npc = player.Map.NPCs.FirstOrDefault(n => n.LoginID == npcId);
+        if (npc is null || npc.State != NPC.States.Alive) return false;
+        npc.Despawn(world);
+        return true;
+    }
+
+    public static int LiveStalkers(GameWorld world)
+    {
+        var cfg = HalloweenConfig.Get(world);
+        return LiveStalkers(world, cfg);
+    }
+
+    private static int LiveStalkers(GameWorld world, HalloweenConfig cfg)
+    {
+        int count = 0;
+        foreach (var mapId in new[] { cfg.Maps.House, cfg.Maps.Basement })
+        {
+            if (!world.MapHandler.Maps.TryGetValue(mapId, out var map) || map is null) continue;
+            count += map.NPCs.Count(IsLiveStalker);
+        }
+        return count;
+    }
+
+    private static bool IsLiveStalker(NPC npc) =>
+        npc.State == NPC.States.Alive && npc.Properties.TryGetProperty<int>("stalkerTarget", out _);
+
+    private static NPC? LiveStalkerFor(Player target, HalloweenConfig cfg)
+    {
+        if (target.Map is null) return null;
+        return target.Map.NPCs.FirstOrDefault(n =>
+            n.State == NPC.States.Alive &&
+            n.Properties.TryGetProperty<int>("stalkerTarget", out var id) && id == target.PlayerID);
+    }
+
+    private static bool GroundskeeperAlive(Map map, HalloweenConfig cfg) =>
+        map.NPCs.Any(n => n.NPCTemplateID == cfg.Npcs.Groundskeeper && n.State == NPC.States.Alive);
+
+    private static (int X, int Y)? SpawnTile(Map map, Player target, HalloweenConfig cfg)
+    {
+        var (dx, dy) = target.Facing switch
+        {
+            Direction.Up => (0, 1),
+            Direction.Down => (0, -1),
+            Direction.Right => (-1, 0),
+            Direction.Left => (1, 0),
+            _ => (0, 1),
+        };
+        var targetRoom = RoomAt(cfg, target.MapX, target.MapY);
+        for (int d = cfg.Stalker.SpawnBehind; d >= 1; d--)
+        {
+            int x = target.MapX + dx * d;
+            int y = target.MapY + dy * d;
+            if (!map.IsTileBlocked(null, x, y) && RoomAt(cfg, x, y) == targetRoom)
+                return (x, y);
+        }
+        for (int dist = 2; dist <= 4; dist++)
+            for (int ox = -dist; ox <= dist; ox++)
+                for (int oy = -dist; oy <= dist; oy++)
+                {
+                    if (Math.Max(Math.Abs(ox), Math.Abs(oy)) != dist) continue;
+                    int x = target.MapX + ox;
+                    int y = target.MapY + oy;
+                    if (!map.IsTileBlocked(null, x, y)) return (x, y);
+                }
+        return null;
+    }
 
     public static bool IsHouse(Map map, HalloweenConfig cfg) => map.ID == cfg.Maps.House;
     public static bool IsBasement(Map map, HalloweenConfig cfg) => map.ID == cfg.Maps.Basement;

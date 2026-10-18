@@ -74,7 +74,7 @@ public class HauntedHouseMapTests
     [Fact]
     public void Removing_costume_warns_then_spawns_hunt_stalker_after_grace()
     {
-        var (kit, map, player, script) = Setup(recordStalker: true);
+        var (kit, map, player, script) = Setup();
         Equip(kit, player, kit.PartyCostumeId);
         map.AddPlayer(player, kit.World);
         Assert.DoesNotContain(player.Sent, s => s.Contains("You feel exposed"));
@@ -89,14 +89,21 @@ public class HauntedHouseMapTests
         Assert.Single(timers);
 
         timers[0].Ready(kit.World);
-        Assert.Equal(1, player.ScriptState.GetValueOrDefault("hw.testStalker"));
         Assert.Equal(0, player.ScriptState["hw.costumeDeadline"]);
+        var hunt = Assert.Single(map.NPCs);
+        Assert.Equal(kit.StalkerId, hunt.NPCTemplateID);
+        Assert.True(hunt.Properties.TryGetProperty<string>("stalkerMode", out string mode));
+        Assert.Equal("hunt", mode);
+        Assert.True(hunt.Properties.TryGetProperty<int>("stalkerTarget", out int targetId));
+        Assert.Equal(player.PlayerID, targetId);
+        Assert.Equal(hunt.LoginID, player.ScriptState["hw.stalkerNpc"]);
+        Assert.Contains(player.Sent, s => s.Contains("A chainsaw revs behind you!"));
     }
 
     [Fact]
     public void Putting_costume_back_on_within_grace_cancels_the_hunt()
     {
-        var (kit, map, player, script) = Setup(recordStalker: true);
+        var (kit, map, player, script) = Setup();
         map.AddPlayer(player, kit.World);
         Assert.Contains(player.Sent, s => s.Contains("You feel exposed"));
         Assert.True(player.ScriptState["hw.costumeDeadline"] > 0);
@@ -109,7 +116,8 @@ public class HauntedHouseMapTests
         Assert.Single(timers);
         timers[0].Ready(kit.World);
 
-        Assert.Equal(0, player.ScriptState.GetValueOrDefault("hw.testStalker"));
+        Assert.Empty(map.NPCs);
+        Assert.Equal(0, player.ScriptState.GetValueOrDefault("hw.stalkerNpc"));
         Assert.Equal(0, player.ScriptState["hw.costumeDeadline"]);
         Assert.Equal(1, player.Sent.Count(s => s.Contains("You feel exposed")));
     }
@@ -185,26 +193,15 @@ public class HauntedHouseMapTests
     }
 
     private static (HalloweenTestKit Kit, Map Map, TestWorldFixture.CapturingPlayer Player, Script<IMapScript> Script) Setup(
-        int mapId = 48, bool active = true, bool recordStalker = false)
+        int mapId = 48, bool active = true)
     {
         var kit = new HalloweenTestKit();
-        if (recordStalker) PatchStalkerStub(kit);
         var script = kit.Compile<IMapScript>("Map", "HauntedHouse.csx");
         var map = kit.Fixture.AddBaseMap(mapId, "House", 48, 48);
         map.Script = script;
         if (active) kit.World.CommunityGoals.SetFlag("halloween.active", 1, null);
         var player = kit.Fixture.CommandPlayerOn(map, 20, 20, "A");
         return (kit, map, player, script);
-    }
-
-    private static void PatchStalkerStub(HalloweenTestKit kit)
-    {
-        string path = Path.Combine(kit.Fixture.DataDirectory, "Scripts", "Global", "Halloween", "HalloweenCommon.csx");
-        string src = File.ReadAllText(path);
-        const string stub = "public static bool SpawnStalker(GameWorld world, Player target, string mode, long now) => false;";
-        if (!src.Contains(stub)) throw new InvalidOperationException("SpawnStalker stub not found");
-        File.WriteAllText(path, src.Replace(stub,
-            "public static bool SpawnStalker(GameWorld world, Player target, string mode, long now) { SetState(target, \"hw.testStalker\", mode == \"hunt\" ? 1 : 2); return true; }"));
     }
 
     private static void CheckCostume(Script<IMapScript> script, GameWorld world, Player player, long now)

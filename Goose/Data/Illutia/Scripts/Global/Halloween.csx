@@ -3,6 +3,7 @@
 #load "Halloween/HalloweenAmbush.csx"
 using System;
 using System.IO;
+using System.Linq;
 using Goose;
 using Goose.Commands;
 using Goose.Scripting;
@@ -47,7 +48,49 @@ public class HalloweenController : BaseGlobalScript
     {
         lastTickAt = now;
         Evict(world, now);
+        Chainsaw(world, now, rng);
     }
+
+    public void Chainsaw(GameWorld world, long now, Random rng)
+    {
+        if (nextChainsawAt == 0)
+        {
+            nextChainsawAt = RollNextChainsaw(world, now, rng);
+            return;
+        }
+        if (now < nextChainsawAt) return;
+        nextChainsawAt = RollNextChainsaw(world, now, rng);
+        if (!Halloween.Active(world)) return;
+        var cfg = HalloweenConfig.Get(world);
+        if (!world.MapHandler.Maps.TryGetValue(cfg.Maps.House, out var house) || house is null) return;
+        if (world.MapHandler.Maps.TryGetValue(cfg.Maps.Basement, out var basement) && basement is not null &&
+            GroundskeeperAlive(basement, cfg)) return;
+        if (house.Players.Count(p => p.State == Player.States.Ready) < cfg.Stalker.ChainsawMinPlayers) return;
+        world.SendToMap(house, P.Notice(NoticeType.Info, "[Event] A chainsaw revs somewhere in the house…"));
+        ScriptTimerEvent.Create(() =>
+        {
+            var delayCfg = HalloweenConfig.Get(world);
+            if (!Halloween.Active(world)) return;
+            if (!world.MapHandler.Maps.TryGetValue(delayCfg.Maps.House, out var m) || m is null) return;
+            var candidates = m.Players
+                .Where(p => p.State == Player.States.Ready && !p.IsGM &&
+                            Halloween.IsInCostume(p, delayCfg) && Halloween.Weight(delayCfg, p.MapX, p.MapY) > 0)
+                .ToList();
+            if (candidates.Count == 0) return;
+            Halloween.SpawnStalker(world, candidates[world.Random.Next(candidates.Count)], "chase", world.TimeNow);
+        }, TimeSpan.FromSeconds(cfg.Stalker.ChainsawDelaySeconds), world);
+    }
+
+    private long RollNextChainsaw(GameWorld world, long now, Random rng)
+    {
+        var cfg = HalloweenConfig.Get(world);
+        int min = cfg.Stalker.ChainsawMinMinutes;
+        int max = Math.Max(min, cfg.Stalker.ChainsawMaxMinutes);
+        return now + Halloween.Ticks(world, rng.Next(min, max + 1) * 60.0);
+    }
+
+    private static bool GroundskeeperAlive(Map map, HalloweenConfig cfg) =>
+        map.NPCs.Any(n => n.NPCTemplateID == cfg.Npcs.Groundskeeper && n.State == NPC.States.Alive);
 
     public long LastTickAt() => lastTickAt;
 
