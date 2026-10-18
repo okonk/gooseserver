@@ -18,6 +18,9 @@ public static class Halloween
     // Placeholder until the stalker implementation lands; the controller compiles against this.
     public static bool SpawnStalker(GameWorld world, Player target, string mode, long now) => false;
 
+    // Placeholder until the stalker implementation lands.
+    public static bool DespawnStalkerFor(GameWorld world, Player player) => false;
+
     public static bool IsHouse(Map map, HalloweenConfig cfg) => map.ID == cfg.Maps.House;
     public static bool IsBasement(Map map, HalloweenConfig cfg) => map.ID == cfg.Maps.Basement;
     public static bool IsEventMap(Map map, HalloweenConfig cfg) =>
@@ -121,4 +124,46 @@ public static class Halloween
         world.Send(player, P.Notice(NoticeType.Info, "[Event] " + text));
 
     public static long Ticks(GameWorld world, double seconds) => (long)(world.TimerFrequency * seconds);
+
+    public static void CheckCostume(GameWorld world, Player player, long now)
+    {
+        if (!Active(world) || player.IsGM) return;
+        var cfg = HalloweenConfig.Get(world);
+        if (player.Map is null || (!IsHouse(player.Map, cfg) && !IsBasement(player.Map, cfg))) return;
+
+        if (IsInCostume(player, cfg))
+        {
+            SetState(player, "hw.costumeDeadline", 0);
+            CancelHunt(world, player);
+            return;
+        }
+
+        long deadline = GetState(player, "hw.costumeDeadline");
+        if (deadline != 0) return;
+
+        Feed(world, player, "You feel exposed. Put your costume back on.");
+        deadline = now + Ticks(world, cfg.Stalker.CostumeGraceSeconds);
+        SetState(player, "hw.costumeDeadline", deadline);
+
+        ScriptTimerEvent.Create(() =>
+        {
+            if (GetState(player, "hw.costumeDeadline") != deadline) return;
+            var graceCfg = HalloweenConfig.Get(world);
+            if (player.Map is null || (!IsHouse(player.Map, graceCfg) && !IsBasement(player.Map, graceCfg))) return;
+            if (IsInCostume(player, graceCfg)) return;
+            SetState(player, "hw.costumeDeadline", 0);
+            SpawnStalker(world, player, "hunt", world.TimeNow);
+        }, TimeSpan.FromSeconds(cfg.Stalker.CostumeGraceSeconds), world);
+    }
+
+    private static void CancelHunt(GameWorld world, Player player)
+    {
+        long npcId = GetState(player, "hw.stalkerNpc");
+        if (npcId == 0 || player.Map is null) return;
+        var npc = player.Map.NPCs.FirstOrDefault(n => n.LoginID == npcId);
+        if (npc is null || npc.State != NPC.States.Alive) return;
+        if (!npc.Properties.TryGetProperty<string>("stalkerMode", out var mode) || mode is not "hunt") return;
+        SetState(player, "hw.huntCancelled", 1);
+        DespawnStalkerFor(world, player);
+    }
 }
