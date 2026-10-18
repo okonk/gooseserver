@@ -12,6 +12,11 @@ namespace Goose.Scripting
         /// <summary>Return a refusal message to block entry, or null to allow.
         /// Consulted by Map.PlayerCanJoin, which gates warps and teleport spells alike.</summary>
         string? CanPlayerJoin(Map map, Player player, GameWorld world);
+        /// <summary>Return a refusal message to block the drop, or null to allow.</summary>
+        string? CanPlayerDropItem(Map map, Player player, Item item, long stack, GameWorld world);
+        void OnPlayerDroppedItem(Map map, Player player, ItemTile tile, GameWorld world);
+        /// <summary>Return a refusal message to block the pickup, or null to allow.</summary>
+        string? CanPlayerPickupItem(Map map, Player player, ItemTile tile, GameWorld world);
         void OnPlayerLeft(Map map, Player player, GameWorld world);
         void OnPlayerMove(Map map, Player player, GameWorld world);
         void OnPlayerChatEvent(Map map, Player player, string message, GameWorld world);

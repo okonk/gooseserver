@@ -76,6 +76,22 @@ namespace Goose.Events
                     return;
                 }
 
+                string? mapRefusal = null;
+                try
+                {
+                    mapRefusal = this.Player.Map.Script?.Object.CanPlayerPickupItem(this.Player.Map, this.Player, tile, world);
+                }
+                catch (Exception e)
+                {
+                    log.Error(e, "Map CanPlayerPickupItem {0} Exception", this.Player.Map.Name);
+                    mapRefusal = "You cannot pick that up right now.";
+                }
+                if (mapRefusal is not null)
+                {
+                    world.Send(this.Player, P.ServerMessage(mapRefusal));
+                    return;
+                }
+
                 // picked up gold
                 if (tile.ItemSlot.Item.ItemID ==
                     world.Settings.ItemIDStartpoint + world.Settings.GoldItemID)

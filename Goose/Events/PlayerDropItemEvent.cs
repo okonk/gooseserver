@@ -10,6 +10,8 @@ namespace Goose.Events
      */
     class PlayerDropItemEvent : Event
     {
+        private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
+
         public override void Ready(GameWorld world)
         {
             if (this.Player.State == Player.States.Ready)
@@ -39,6 +41,24 @@ namespace Goose.Events
                 // Can't drop bound item unless gm
                 if (slot.Item.IsBound && !this.Player.HasPrivilege(AccessPrivilege.DropBoundItem)) return;
 
+                string? refusal = null;
+                try
+                {
+                    refusal = this.Player.Map.Script?.Object.CanPlayerDropItem(this.Player.Map, this.Player, slot.Item, stack, world);
+                }
+                catch (Exception e)
+                {
+                    // Fail CLOSED, mirroring the CanPlayerJoin and item CanPickup gates: a
+                    // broken gate script must refuse the drop rather than admit it.
+                    log.Error(e, "Map CanPlayerDropItem {0} Exception", this.Player.Map.Name);
+                    refusal = "You cannot drop that here.";
+                }
+                if (refusal is not null)
+                {
+                    world.Send(this.Player, P.ServerMessage(refusal));
+                    return;
+                }
+
                 ItemSlot? drop = this.Player.Inventory.RemoveItem(slot.Item, stack, world);
                 if (drop is null) return;
 
@@ -51,15 +71,27 @@ namespace Goose.Events
 
                 // tile can stack
                 ItemTile? maptile = (ItemTile?)this.Player.Map.GetTile(tile.X, tile.Y);
+                ItemTile finalTile;
                 if (maptile is not null && maptile is ItemTile)
                 {
                     maptile.ItemSlot.Stack += drop.Stack;
 
                     world.SendToMap(this.Player.Map, P.MakeObject(maptile));
+                    finalTile = maptile;
                 }
                 else
                 {
                     this.Player.Map.AddItem(tile, world);
+                    finalTile = tile;
+                }
+
+                try
+                {
+                    this.Player.Map.Script?.Object.OnPlayerDroppedItem(this.Player.Map, this.Player, finalTile, world);
+                }
+                catch (Exception e)
+                {
+                    log.Error(e, "Map OnPlayerDroppedItem {0} Exception", this.Player.Map.Name);
                 }
 
                 world.LogHandler.Log(Log.Types.PlayerDropItem,
