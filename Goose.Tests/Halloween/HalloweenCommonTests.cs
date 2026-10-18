@@ -145,6 +145,18 @@ public class HalloweenCommonTests
         Assert.Equal(2, log.Messages.Count(m => m.Contains("halloween.json")));
     }
 
+    [Fact]
+    public void Null_pack_value_disables_and_logs()
+    {
+        using var kit = new HalloweenTestKit();
+        using var log = new CapturingLog();
+
+        kit.SetConfig(cfg => cfg["ambush"]!["packs"]!["wailing"] = null);
+
+        Assert.Equal(0, ConfigValue(kit, "Maps", "House"));
+        Assert.Equal(1, log.Messages.Count(m => m.Contains("halloween.json")));
+    }
+
     private static int ConfigValue(HalloweenTestKit kit, string section, string name)
     {
         var config = (object)HalloweenTestKit.Call(kit.Host, "Config", kit.World)!;

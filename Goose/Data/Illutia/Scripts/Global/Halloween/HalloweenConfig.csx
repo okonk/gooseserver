@@ -196,8 +196,11 @@ public sealed class HalloweenConfig
             };
             var config = JsonSerializer.Deserialize<HalloweenConfig>(File.ReadAllText(path), options) ?? new HalloweenConfig();
             foreach (var room in config.Rooms)
-                if (room.Rect.Length != 4)
+                if (room.Rect is null || room.Rect.Length != 4)
                     throw new JsonException("Halloween room " + room.Name + " rect must have exactly 4 elements");
+            foreach (var pack in config.Ambush.Packs)
+                if (pack.Value is null)
+                    throw new JsonException("Halloween pack " + pack.Key + " must not be null");
             cached = config;
             cachedMtime = mtime;
             return config;
