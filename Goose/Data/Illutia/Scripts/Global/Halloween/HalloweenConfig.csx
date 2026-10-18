@@ -179,6 +179,19 @@ public sealed class HalloweenWeeper
     public double BleedPercentPerStack { get; set; }
     public int BleedMaxStacks { get; set; }
     public int BleedSeconds { get; set; }
+    public int[] Start { get; set; } = [];
+    public double HitPercent { get; set; }
+    public int StragglerRadius { get; set; }
+    public double StragglerMultiplier { get; set; }
+    public int LungeSeconds { get; set; }
+    public int LungeRadius { get; set; }
+    public int LeashRadius { get; set; }
+    public int LeashSeconds { get; set; }
+    public int LeashMaxDistance { get; set; }
+    public int ResetSeconds { get; set; }
+    public int FootstepRadius { get; set; }
+    public int FootstepSeconds { get; set; }
+    public Dictionary<string, int[][]> Loops { get; set; } = new();
 }
 
 public sealed class HalloweenCurve
@@ -303,6 +316,27 @@ public sealed class HalloweenConfig
             if (config.Weeper.BleedMaxStacks <= 0 || config.Weeper.BleedSeconds <= 0 ||
                 config.Weeper.BleedPercentPerStack <= 0)
                 throw new JsonException("Halloween weeper bleedMaxStacks, bleedSeconds and bleedPercentPerStack must be > 0");
+            if (config.Weeper.Start is null || config.Weeper.Start.Length != 2)
+                throw new JsonException("Halloween weeper.start must be a [x, y] array");
+            if (config.Weeper.Loops.Count == 0)
+                throw new JsonException("Halloween weeper.loops must not be empty");
+            foreach (var (loop, points) in config.Weeper.Loops)
+            {
+                if (points is null || points.Length == 0)
+                    throw new JsonException("Halloween weeper loop " + loop + " must not be empty");
+                foreach (var point in points)
+                    if (point is null || point.Length != 2)
+                        throw new JsonException("Halloween weeper loop " + loop + " waypoints must be [x, y] arrays");
+            }
+            if (config.Weeper.HitPercent <= 0)
+                throw new JsonException("Halloween weeper.hitPercent must be > 0");
+            if (config.Weeper.StragglerMultiplier < 1)
+                throw new JsonException("Halloween weeper.stragglerMultiplier must be >= 1");
+            if (config.Weeper.StragglerRadius <= 0 || config.Weeper.LungeSeconds <= 0 || config.Weeper.LungeRadius <= 0 ||
+                config.Weeper.LeashRadius <= 0 || config.Weeper.LeashSeconds <= 0 || config.Weeper.LeashMaxDistance <= 0 ||
+                config.Weeper.ResetSeconds <= 0 || config.Weeper.FootstepRadius <= 0 || config.Weeper.FootstepSeconds <= 0)
+                throw new JsonException("Halloween weeper stragglerRadius, lungeSeconds, lungeRadius, leashRadius, leashSeconds, " +
+                    "leashMaxDistance, resetSeconds, footstepRadius and footstepSeconds must be > 0");
             if (config.Groundskeeper.Curve.Band <= 0 || config.Groundskeeper.Curve.Exponent <= 0)
                 throw new JsonException("Halloween groundskeeper.curve band and exponent must be > 0");
             cached = config;
