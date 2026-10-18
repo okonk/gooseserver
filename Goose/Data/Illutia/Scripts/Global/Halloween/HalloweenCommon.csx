@@ -62,6 +62,61 @@ public static class Halloween
 
     public static void SetState(Player player, string key, long value) => player.ScriptState[key] = value;
 
+    public static void GiveCandy(GameWorld world, Player player, int amount)
+    {
+        var cfg = HalloweenConfig.Get(world);
+        var template = world.ItemHandler.GetTemplate(cfg.Items.Candy);
+        if (template is null || amount <= 0) return;
+
+        var candy = new Item();
+        if (!candy.LoadFromTemplate(template)) return;
+
+        bool stackable = false;
+        foreach (var slot in player.Inventory.GetInventorySlots())
+        {
+            if (slot is not null && slot.CanStack(new ItemSlot { Item = candy, Stack = amount }, amount))
+            {
+                stackable = true;
+                break;
+            }
+        }
+
+        if (stackable)
+        {
+            // The stack path discards this unregistered item, so repeated grants never
+            // grow ItemHandler.items (ItemHandler.cs:279).
+            player.Inventory.AddItem(candy, amount, world);
+        }
+        else
+        {
+            world.ItemHandler.AddAndAssignId(candy, world);
+            if (!player.Inventory.AddItem(candy, amount, world))
+            {
+                var tile = new ItemTile
+                {
+                    ItemSlot = new ItemSlot { Item = candy, Stack = amount },
+                    X = player.MapX,
+                    Y = player.MapY,
+                    Owner = player,
+                };
+                player.Map.PlaceItem(tile);
+
+                var maptile = player.Map.GetTile(tile.X, tile.Y) as ItemTile;
+                if (maptile is not null)
+                {
+                    maptile.ItemSlot.Stack += tile.ItemSlot.Stack;
+                    world.SendToMap(player.Map, P.MakeObject(maptile));
+                }
+                else
+                {
+                    player.Map.AddItem(tile, world);
+                }
+            }
+        }
+
+        Feed(world, player, "+" + amount + " Candy");
+    }
+
     public static void Feed(GameWorld world, Player player, string text) =>
         world.Send(player, P.Notice(NoticeType.Info, "[Event] " + text));
 
