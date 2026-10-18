@@ -138,6 +138,12 @@ public class Groundskeeper : BaseNPCScript
             state.LastPlayerSeenAt = now;
             return;
         }
+        if (state.LastPlayerSeenAt == 0)
+        {
+            // A /reloadscripts swap rebuilds State, so 0 means uninitialized; start a fresh window.
+            state.LastPlayerSeenAt = now;
+            return;
+        }
         if (now - state.LastPlayerSeenAt < Halloween.Ticks(world, cfg.Groundskeeper.EmptyDespawnSeconds)) return;
         world.SendToMap(npc.Map, P.Notice(NoticeType.Info, "The Groundskeeper returns to the dark."));
         DespawnAdds(npc, world);

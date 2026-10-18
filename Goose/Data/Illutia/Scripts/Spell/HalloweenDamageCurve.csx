@@ -12,9 +12,9 @@ public class HalloweenDamageCurve : BaseSpellEffectScript
         var cfg = HalloweenConfig.Get(world);
         if (cfg.Effects.GroundskeeperCurve == 0) return currentDamage;
         var curve = cfg.Groundskeeper.Curve;
-        if (currentDamage <= curve.Floor) return currentDamage;
-        double scaled = curve.Floor + curve.Band * Math.Pow((currentDamage - curve.Floor) / (double)curve.Band, curve.Exponent);
-        long result = (long)Math.Round(scaled);
+        long result = currentDamage <= curve.Floor
+            ? currentDamage
+            : (long)Math.Round(curve.Floor + curve.Band * Math.Pow((currentDamage - curve.Floor) / (double)curve.Band, curve.Exponent));
         if (BloodyGhostAlive(buff))
             result = (long)Math.Round(result * cfg.Groundskeeper.BloodyDamageMultiplier);
         return result;

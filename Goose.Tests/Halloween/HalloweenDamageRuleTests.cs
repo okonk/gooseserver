@@ -108,6 +108,23 @@ public class HalloweenDamageRuleTests
     }
 
     [Fact]
+    public void Bloody_ghosts_alive_reduce_below_floor_damage()
+    {
+        using var kit = new HalloweenTestKit();
+        var map = kit.Fixture.AddBaseMap(30, "Town", 40, 40);
+        kit.World.CommunityGoals.SetFlag("halloween.active", 1, null);
+        kit.SetConfig(cfg => cfg["effects"]!["groundskeeperCurve"] = CurveEffect);
+        var curve = kit.Compile<ISpellEffectScript>("Spell", "HalloweenDamageCurve.csx");
+        var (boss, player) = SpawnBoss(kit, map, CurveEffect, curve);
+
+        var add = kit.Fixture.SpawnNpc(map, 6, 6,
+            kit.Fixture.AddNpcTemplate(93003, "Bloody Add"));
+        add.Properties["gkAdd"] = "bloody";
+
+        AssertDamage(kit, boss, player, 5_000, 1_250);
+    }
+
+    [Fact]
     public void Disabled_config_passes_damage_through()
     {
         using var kit = new HalloweenTestKit();

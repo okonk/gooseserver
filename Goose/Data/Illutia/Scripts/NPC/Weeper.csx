@@ -32,17 +32,23 @@ public class Weeper : BaseNPCScript
         if (world.MapHandler.Maps.TryGetValue(cfg.Maps.House, out var house) && house is not null)
             world.SendToMap(house, P.Notice(NoticeType.Info, "[Event] A low weeping echoes through the house…"));
         // A /reloadscripts swap replaces Script.Object with a freshly compiled type, so the
-        // timer closure must not call this compilation by typed reference; re-resolve and
-        // invoke Tick reflectively.
+        // timer closure re-resolves and invokes Tick reflectively, rescheduling in a finally.
+        var tickPeriod = TimeSpan.FromSeconds(cfg.Weeper.BleedTickSeconds);
         ScriptTimerEvent timer = null!;
         timer = ScriptTimerEvent.Create(() =>
         {
             if (npc.State != NPC.States.Alive) return;
-            var current = npc.Script?.Object;
-            if (current is not null)
-                current.GetType().GetMethod("Tick")!.Invoke(current, new object?[] { npc, world.TimeNow, world });
-            timer.Reschedule(TimeSpan.FromSeconds(2), world);
-        }, TimeSpan.FromSeconds(2), world);
+            try
+            {
+                var current = npc.Script?.Object;
+                if (current is not null)
+                    current.GetType().GetMethod("Tick")!.Invoke(current, new object?[] { npc, world.TimeNow, world });
+            }
+            finally
+            {
+                timer.Reschedule(tickPeriod, world);
+            }
+        }, tickPeriod, world);
     }
 
     public void Tick(NPC npc, long now, GameWorld world)
