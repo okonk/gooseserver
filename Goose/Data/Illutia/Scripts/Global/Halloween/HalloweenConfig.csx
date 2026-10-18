@@ -151,9 +151,15 @@ public sealed class HalloweenPentagram
     public int[] Centre { get; set; } = [];
 }
 
+public sealed class HalloweenTown
+{
+    public int Map { get; set; }
+    public int[] Rect { get; set; } = [];
+}
+
 public sealed class HalloweenInvasion
 {
-    public int[] Towns { get; set; } = [];
+    public List<HalloweenTown> Towns { get; set; } = [];
     public int[] Templates { get; set; } = [];
     public int Count { get; set; }
     public int EveryMinutes { get; set; }
@@ -209,6 +215,10 @@ public sealed class HalloweenConfig
                 if (range is null || range.Length != 2 || range[0] > range[1])
                     throw new JsonException("Halloween candy byTemplate entry " + templateId +
                         " must be [min, max] with min <= max");
+            foreach (var town in config.Invasion.Towns)
+                if (town.Rect is null || town.Rect.Length != 4)
+                    throw new JsonException("Halloween invasion town " + town.Map +
+                        " rect must have exactly 4 elements");
             cached = config;
             cachedMtime = mtime;
             return config;
