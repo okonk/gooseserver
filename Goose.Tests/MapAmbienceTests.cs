@@ -142,6 +142,28 @@ namespace Goose.Tests
         }
 
         [Fact]
+        public void TryRollWeather_MultipleCandidates_WalksWeights()
+        {
+            long now = Stopwatch.GetTimestamp();
+            var weather = new WeatherDistribution { { WeatherType.Rain, 0.2f }, { WeatherType.Fog, 0.3f }, { WeatherType.Storm, 0.5f } };
+
+            MapAmbience midWalk = new MapAmbience(LightingConfig.None, weather, new FakeRandom(0.0, 0.0, 0.49), now);
+            midWalk.SetWeather(WeatherType.Clear);
+            Assert.True(midWalk.TryRollWeather());
+            Assert.Equal(WeatherType.Fog, midWalk.CurrentWeather);
+
+            MapAmbience lastCandidate = new MapAmbience(LightingConfig.None, weather, new FakeRandom(0.0, 0.0, 0.99), now);
+            lastCandidate.SetWeather(WeatherType.Clear);
+            Assert.True(lastCandidate.TryRollWeather());
+            Assert.Equal(WeatherType.Storm, lastCandidate.CurrentWeather);
+
+            MapAmbience boundary = new MapAmbience(LightingConfig.None, weather, new FakeRandom(0.0, 0.0, 0.2), now);
+            boundary.SetWeather(WeatherType.Clear);
+            Assert.True(boundary.TryRollWeather());
+            Assert.Equal(WeatherType.Fog, boundary.CurrentWeather);
+        }
+
+        [Fact]
         public void BuildPacket_Format()
         {
             long now = Stopwatch.GetTimestamp();

@@ -75,6 +75,14 @@ namespace Goose.Tests
         }
 
         [Fact]
+        public void Lighting_SubSecondCycleDuration_KeepsPresetWithWarning()
+        {
+            LightingConfig config = LightingConfig.Parse("{\"preset\":\"outside\",\"cycleDuration\":0.5}", out string? warning);
+            Assert.NotNull(warning);
+            Assert.Equal(1440, config.CycleDurationSeconds);
+        }
+
+        [Fact]
         public void Lighting_UnknownPreset_FallsBackToNoneWithWarning()
         {
             LightingConfig config = LightingConfig.Parse("{\"preset\":\"dusky\"}", out string? warning);

@@ -60,7 +60,7 @@ namespace Goose
 
             if (dto.CycleDuration is double cycleDuration)
             {
-                if (double.IsFinite(cycleDuration) && cycleDuration > 0)
+                if (double.IsFinite(cycleDuration) && cycleDuration >= 1)
                     cycle = cycleDuration;
                 else
                     (problems ??= new()).Add($"invalid cycleDuration {cycleDuration}");
