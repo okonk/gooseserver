@@ -200,15 +200,7 @@ public class WanderingChest : BaseGlobalScript
 
     private static void Despawn(NPC npc, GameWorld world)
     {
-        string packet = P.EraseCharacter(npc.LoginID);
-        foreach (var player in npc.Map.GetPlayersInRange(npc))
-            world.Send(player, packet);
-
-        npc.Map.SetCharacter(null, npc.MapX, npc.MapY);
-        npc.State = NPC.States.Dead;
-        npc.MoveEvent = null;
-        npc.CurrentHP = 0;
-        npc.Map.RemoveNPC(npc);
+        npc.Despawn(world);
     }
 
     private static long RandomSpawnDelay(GameWorld world)

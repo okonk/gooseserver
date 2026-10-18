@@ -740,6 +740,36 @@ namespace Goose
             this.AddMoveEvent(world);
         }
 
+        public void Despawn(GameWorld world)
+        {
+            if (this.State != States.Alive) return;
+
+            string packet = P.EraseCharacter(this.LoginID);
+            foreach (var player in this.Map.GetPlayersInRange(this))
+            {
+                world.Send(player, packet);
+            }
+
+            this.Map.SetCharacter(null, this.MapX, this.MapY);
+            this.State = States.Dead;
+            this.MoveEvent = null;
+            this.CurrentHP = 0;
+            this.ShouldRespawn = false;
+
+            List<Buff> removebuff = [];
+            foreach (var b in this.Buffs)
+            {
+                removebuff.Add(b);
+            }
+            foreach (var b in removebuff)
+            {
+                this.RemoveBuff(b, world);
+            }
+
+            this.Map.RemoveNPC(this);
+            world.NPCHandler.Release(this);
+        }
+
         /**
          * AddMoveEvent, adds move event to event handler
          *
@@ -1171,6 +1201,7 @@ namespace Goose
                     else
                     {
                         this.Map.RemoveNPC(this);
+                        world.NPCHandler.Release(this);
                     }
 
                     Dictionary<Object, long> damages = [];

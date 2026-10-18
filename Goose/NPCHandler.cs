@@ -366,6 +366,17 @@ namespace Goose
             this.npcs.Add(npc);
         }
 
+        public void Release(NPC npc)
+        {
+            this.npcs.Remove(npc);
+            // idToNPC may already map this id to a different NPC that drew the
+            // released id; only remove the entry while it still points at npc.
+            if (this.idToNPC.TryGetValue(npc.LoginID, out var owner) && ReferenceEquals(owner, npc))
+                this.idToNPC.Remove(npc.LoginID);
+        }
+
+        internal bool IsRegistered(int loginId) => this.idToNPC.ContainsKey(loginId);
+
         /// <summary>The supported way to create an NPC at runtime: loads it from the template and
         /// registers it. Returns null if the map does not exist, in which case nothing is
         /// registered. Every caller - LoadNPCs included - should go through this rather than
