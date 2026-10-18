@@ -174,7 +174,7 @@ public class HalloweenStalkerSpawnTests
         var stalker = Assert.Single(house.NPCs);
 
         var basement = kit.Fixture.AddBaseMap(39, "Basement", 48, 48);
-        player.WarpTo(kit.World, basement, 5, 5);
+        CompleteWarp(kit, player, basement, 5, 5);
 
         Assert.False(Spawn(halloween, kit.World, player, "chase", Now + 1));
         Assert.Single(house.NPCs);
@@ -183,6 +183,26 @@ public class HalloweenStalkerSpawnTests
         Assert.True(Despawn(halloween, kit.World, player));
         Assert.Empty(house.NPCs);
         Assert.Equal(NPC.States.Dead, stalker.State);
+        Assert.Equal(0, player.ScriptState["hw.stalkerNpc"]);
+    }
+
+    [Fact]
+    public void Costume_requip_cancels_hunt_stalker_on_the_other_map()
+    {
+        var (kit, halloween, house, player) = Setup();
+        var hunt = kit.Fixture.SpawnNpc(house, 14, 14, kit.World.NPCHandler.GetNPCTemplate(kit.StalkerId)!,
+            properties: new PropertiesDictionary { ["stalkerMode"] = "hunt" });
+        player.ScriptState["hw.stalkerNpc"] = hunt.LoginID;
+        Equip(kit, player, kit.PartyCostumeId);
+
+        var basement = kit.Fixture.AddBaseMap(39, "Basement", 48, 48);
+        CompleteWarp(kit, player, basement, 5, 5);
+
+        CheckCostume(halloween, kit.World, player, Now);
+
+        Assert.Equal(1, player.ScriptState["hw.huntCancelled"]);
+        Assert.Empty(house.NPCs);
+        Assert.Equal(NPC.States.Dead, hunt.State);
         Assert.Equal(0, player.ScriptState["hw.stalkerNpc"]);
     }
 
@@ -244,6 +264,18 @@ public class HalloweenStalkerSpawnTests
 
     private static bool Despawn(Type halloween, GameWorld world, Player player)
         => (bool)halloween.GetMethod("DespawnStalkerFor")!.Invoke(null, new object?[] { world, player })!;
+
+    private static void CheckCostume(Type halloween, GameWorld world, Player player, long now)
+        => halloween.GetMethod("CheckCostume")!.Invoke(null, new object?[] { world, player, now });
+
+    private static void CompleteWarp(HalloweenTestKit kit, Player player, Map map, int x, int y)
+    {
+        player.WarpTo(kit.World, map, x, y);
+        var ev = new DoneLoadingMapEvent { Player = player, Ticks = kit.World.TimeNow };
+        kit.World.EventHandler.AddEvent(ev);
+        kit.World.EventHandler.Update(kit.World);
+        Assert.Equal(map, player.Map);
+    }
 
     private static int LiveStalkers(Type halloween, GameWorld world)
         => (int)halloween.GetMethod("LiveStalkers")!.Invoke(null, new object?[] { world })!;

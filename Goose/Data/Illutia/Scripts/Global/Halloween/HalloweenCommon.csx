@@ -48,16 +48,10 @@ public static class Halloween
         long npcId = GetState(player, "hw.stalkerNpc");
         if (npcId == 0) return false;
         SetState(player, "hw.stalkerNpc", 0);
-        var cfg = HalloweenConfig.Get(world);
-        foreach (var mapId in new[] { cfg.Maps.House, cfg.Maps.Basement })
-        {
-            if (!world.MapHandler.Maps.TryGetValue(mapId, out var map) || map is null) continue;
-            var npc = map.NPCs.FirstOrDefault(n => n.LoginID == npcId);
-            if (npc is null || npc.State != NPC.States.Alive) continue;
-            npc.Despawn(world);
-            return true;
-        }
-        return false;
+        var npc = NpcById(world, HalloweenConfig.Get(world), npcId);
+        if (npc is null || npc.State != NPC.States.Alive) return false;
+        npc.Despawn(world);
+        return true;
     }
 
     public static int LiveStalkers(GameWorld world)
@@ -79,6 +73,17 @@ public static class Halloween
 
     private static bool IsLiveStalker(NPC npc) =>
         npc.State == NPC.States.Alive && npc.Properties.TryGetProperty<int>("stalkerTarget", out _);
+
+    private static NPC? NpcById(GameWorld world, HalloweenConfig cfg, long loginId)
+    {
+        foreach (var mapId in new[] { cfg.Maps.House, cfg.Maps.Basement })
+        {
+            if (!world.MapHandler.Maps.TryGetValue(mapId, out var map) || map is null) continue;
+            var npc = map.NPCs.FirstOrDefault(n => n.LoginID == loginId);
+            if (npc is not null) return npc;
+        }
+        return null;
+    }
 
     private static NPC? LiveStalkerFor(GameWorld world, Player target, HalloweenConfig cfg)
     {
@@ -274,8 +279,8 @@ public static class Halloween
     private static void CancelHunt(GameWorld world, Player player)
     {
         long npcId = GetState(player, "hw.stalkerNpc");
-        if (npcId == 0 || player.Map is null) return;
-        var npc = player.Map.NPCs.FirstOrDefault(n => n.LoginID == npcId);
+        if (npcId == 0) return;
+        var npc = NpcById(world, HalloweenConfig.Get(world), npcId);
         if (npc is null || npc.State != NPC.States.Alive) return;
         if (!npc.Properties.TryGetProperty<string>("stalkerMode", out var mode) || mode is not "hunt") return;
         SetState(player, "hw.huntCancelled", 1);
