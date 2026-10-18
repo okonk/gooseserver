@@ -114,6 +114,9 @@ namespace Goose
         // Set by a suppressed RefreshQuestIcons (which only fires after a real mutation),
         // so a failed compound operation that still mutated state publishes one refresh.
         private bool questIconRefreshDirty;
+        // Deferred until the public Equip/Unequip returns, so hooks see the final loadout:
+        // a swap unequips the old item before the new one is on.
+        private List<(Item Item, bool Equipped)> pendingEquipEvents = new();
 
         private void RefreshQuestIcons(GameWorld world)
         {
@@ -346,6 +349,7 @@ namespace Goose
             // publish the final state exactly once whenever anything changed.
             if (result || this.questIconRefreshDirty)
                 this.RefreshQuestIcons(world);
+            this.FlushEquipEvents(world);
             return result;
         }
 
@@ -362,7 +366,7 @@ namespace Goose
             // Unequip whatever is currently in the target slot, if anything.
             if (this.GetEquippedSlot(equipslot) is not null)
             {
-                if (!this.Unequip(equipslot, world)) return false;
+                if (!this.UnequipCore(equipslot, world)) return false;
             }
 
             // At this point we have unequipped everything necessary to equip the item, so go and do it
@@ -378,6 +382,7 @@ namespace Goose
             }
 
             this.equipped[(int)equipslot] = slot;
+            this.pendingEquipEvents.Add((item, true));
             this.player.AddStats(slot.Item.TotalStats, world, updateCharacter: false);
 
             if (equipslot == EquipSlots.Mount)
@@ -429,7 +434,7 @@ namespace Goose
             {
                 if (this.GetEquippedSlot(EquipSlots.Shield) is not null)
                 {
-                    if (!this.Unequip(EquipSlots.Shield, world))
+                    if (!this.UnequipCore(EquipSlots.Shield, world))
                         return false;
                 }
             }
@@ -439,7 +444,7 @@ namespace Goose
                 ItemSlot? weapon = this.GetEquippedSlot(EquipSlots.Weapon);
                 if (weapon is not null && weapon.Item.Slot == ItemTemplate.ItemSlots.TwoHanded)
                 {
-                    if (!this.Unequip(EquipSlots.Weapon, world))
+                    if (!this.UnequipCore(EquipSlots.Weapon, world))
                         return false;
                 }
             }
@@ -598,6 +603,13 @@ namespace Goose
          */
         public bool Unequip(EquipSlots equipslot, GameWorld world)
         {
+            bool result = this.UnequipCore(equipslot, world);
+            this.FlushEquipEvents(world);
+            return result;
+        }
+
+        private bool UnequipCore(EquipSlots equipslot, GameWorld world)
+        {
             ItemSlot? slot = this.GetEquippedSlot(equipslot);
             // maybe log something bad, i don't think this should happen
             if (slot is null) return true;
@@ -607,6 +619,7 @@ namespace Goose
             if (!added) return false;
 
             this.equipped[(int)equipslot] = null;
+            this.pendingEquipEvents.Add((slot.Item, false));
             this.player.RemoveStats(slot.Item.TotalStats, world);
 
             if (equipslot == EquipSlots.Mount)
@@ -650,6 +663,31 @@ namespace Goose
 
             this.RefreshQuestIcons(world);
             return true;
+        }
+
+        private void FlushEquipEvents(GameWorld world)
+        {
+            if (this.pendingEquipEvents.Count == 0) return;
+
+            var pending = this.pendingEquipEvents;
+            this.pendingEquipEvents = new();
+
+            foreach (var (item, equipped) in pending)
+            {
+                try
+                {
+                    if (equipped)
+                        item.Script?.Object.OnEquipEvent(this.player, item, world);
+                    else
+                        item.Script?.Object.OnUnequipEvent(this.player, item, world);
+                }
+                catch (Exception e)
+                {
+                    log.Error(e, "Item {0} {1} ({2}) player {3} ({4}) Exception",
+                        equipped ? "OnEquipEvent" : "OnUnequipEvent",
+                        item.Name, item.TemplateID, this.player.Name, this.player.LoginID);
+                }
+            }
         }
 
         /**

@@ -18,5 +18,9 @@ namespace Goose.Scripting
         /// whatever rolling this item needs. Consulted by ItemHandler.RollTitleAndSurname
         /// before its use-type filter.</summary>
         bool OnRollModifiersEvent(Item item, GameWorld world);
+
+        void OnEquipEvent(Player player, Item item, GameWorld world);
+
+        void OnUnequipEvent(Player player, Item item, GameWorld world);
     }
 }
