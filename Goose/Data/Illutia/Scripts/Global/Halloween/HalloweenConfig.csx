@@ -176,6 +176,9 @@ public sealed class HalloweenEffects
 public sealed class HalloweenWeeper
 {
     public int CapPerHit { get; set; }
+    public double BleedPercentPerStack { get; set; }
+    public int BleedMaxStacks { get; set; }
+    public int BleedSeconds { get; set; }
 }
 
 public sealed class HalloweenCurve
@@ -297,6 +300,9 @@ public sealed class HalloweenConfig
                         " rect must have exactly 4 elements with positive width and height");
             if (config.Weeper.CapPerHit <= 0)
                 throw new JsonException("Halloween weeper.capPerHit must be > 0");
+            if (config.Weeper.BleedMaxStacks <= 0 || config.Weeper.BleedSeconds <= 0 ||
+                config.Weeper.BleedPercentPerStack <= 0)
+                throw new JsonException("Halloween weeper bleedMaxStacks, bleedSeconds and bleedPercentPerStack must be > 0");
             if (config.Groundskeeper.Curve.Band <= 0 || config.Groundskeeper.Curve.Exponent <= 0)
                 throw new JsonException("Halloween groundskeeper.curve band and exponent must be > 0");
             cached = config;

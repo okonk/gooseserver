@@ -1,6 +1,7 @@
 #load "Halloween/HalloweenConfig.csx"
 #load "Halloween/HalloweenCommon.csx"
 #load "Halloween/HalloweenAmbush.csx"
+#load "Halloween/HalloweenBoss.csx"
 using System;
 using System.IO;
 using System.Linq;

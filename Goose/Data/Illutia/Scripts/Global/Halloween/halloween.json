@@ -30,6 +30,6 @@
   "pentagram": { "points": [[67, 4], [58, 10], [76, 10], [62, 21], [72, 21]], "centre": [67, 13] },
   "invasion": { "towns": [], "templates": [], "count": 20, "everyMinutes": 30, "lifetimeMinutes": 15 },
   "effects": { "weeperCap": 0, "groundskeeperCurve": 0, "ghostSnareOnHit": 0 },
-  "weeper": { "capPerHit": 100000 },
+  "weeper": { "capPerHit": 100000, "bleedPercentPerStack": 0.01, "bleedMaxStacks": 5, "bleedSeconds": 10 },
   "groundskeeper": { "bloodyDamageMultiplier": 0.25, "curve": { "floor": 10000, "band": 70000, "exponent": 0.4 } }
 }
