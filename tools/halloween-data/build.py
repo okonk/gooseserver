@@ -299,11 +299,6 @@ NPCS = [
     ("farmer", {**FRIENDLY, "npc_name": "Pumpkin Farmer", "copy_look": 186}),
     ("butler", {**FRIENDLY, "npc_name": "The Butler", "body_id": 1, "face_id": 1, "hair_id": 2,
                 "equipped_items": eq(chest=(34, 20, 20, 20, 200))}),
-    ("neighbour1", {**FRIENDLY, "npc_name": "Baker Mott", "copy_look": 100}),
-    ("neighbour2", {**FRIENDLY, "npc_name": "Widow Hale", "copy_look": 106}),
-    ("neighbour3", {**FRIENDLY, "npc_name": "Old Tom", "copy_look": 108}),
-    ("neighbour4", {**FRIENDLY, "npc_name": "Mrs Pell", "copy_look": 148}),
-    ("neighbour5", {**FRIENDLY, "npc_name": "Grandpa Wick", "copy_look": 184}),
 ]
 GUESTS = ["penguin", "frog", "bunny", "purple", "ghostGuest", "devil"]
 
@@ -315,6 +310,14 @@ GROVE_UPDATES = {
     167: {"npc_name": "Jack O'Malice", "npc_level": 50, "npc_hp": 700000, "weapon_damage": 12000, "experience": 5000},
 }
 PUMPKINS, CHIEFS, KING, JACK = 166, 168, 169, 167
+
+TOWNSFOLK = [
+    (150, "Wendell the Scribe", "Scriber"),
+    (105, "Brask the Weaponsmith", "Weapon Guy"),
+    (226, None, "Slim Pickins"),
+    (100, "Agnes the Apothecary", "Potion Guy"),
+    (181, "Pip the Pet Trainer", "Pet Trainer"),
+]
 
 DROPS = (
     [(g, m, 1, 0, 1) for g in GUESTS for m in ("goblin", "zombie", "mummy")]
@@ -352,8 +355,6 @@ FRIENDLY_SPAWNS = [
     ("countess", "house", 42, 51), ("count", "house", 44, 51), ("collector", "house", 36, 48),
     ("medium", "house", 19, 59), ("butler", "house", 46, 48), ("weeper", "house", 38, 36),
     ("doorman", GROVE, 38, 36), ("farmer", GROVE, 97, 21), ("kid", MINITA, 53, 58),
-    ("neighbour1", MINITA, 14, 47), ("neighbour2", MINITA, 24, 47), ("neighbour3", MINITA, 24, 80),
-    ("neighbour4", MINITA, 38, 80), ("neighbour5", MINITA, 62, 52),
 ]
 
 WEARING = "Scripts/Quest/HalloweenWearing.csx"
@@ -381,13 +382,14 @@ QUESTS = [
          failed="""Five thousand gold. That's the price of a good costume.""",
          reqs=[("Gold", 5000, None)], rewards=[("Item", "@item:costume", 1)]),
     dict(key="q2", giver="kid", name="Trick or Treat!", min_level=1, prereq=["q1"],
-         desc="""Now we go trick-or-treating! Knock on five doors in Minita: Baker Mott, Widow Hale, Old Tom,
-         Mrs Pell and Grandpa Wick.
+         desc="""Now we go trick-or-treating! The shopkeepers in Minita always have something sweet under
+         the counter. Visit Wendell the Scribe, Brask the Weaponsmith, Slim Pickins, Agnes the
+         Apothecary and Pip the Pet Trainer.
 
          And you HAVE to wear your costume, or it doesn't count.""",
          passed="""Look at all that! You're a natural. Here, have some of mine too.""",
-         failed="""Five doors, and your costume on. Those are the rules.""",
-         reqs=[("TalkToNPC", f"@npc:neighbour{i}", 1) for i in range(1, 6)] + [("Script", WEARING)],
+         failed="""Five shopkeepers, and your costume on. Those are the rules.""",
+         reqs=[("TalkToNPC", npc_id, 1) for npc_id, _, _ in TOWNSFOLK] + [("Script", WEARING)],
          rewards=[("Experience", 10000), ("Gold", 2000), candy(25), ("Item", "@item:pie", 3)]),
     dict(key="q3", giver="kid", name="The House on the Hill", min_level=1, prereq=["q2"],
          desc="""The party's at the big house past the Pumpkin Grove. The Doorman only lets in people in
@@ -546,7 +548,6 @@ GIVER_ORDER = {
     "kid": ["q1", "q2", "q3"], "doorman": ["q4", "q3"],
     "countess": ["q5", "q6", "q7", "q8", "q9", "q10", "q11"], "count": ["q12", "q13"],
     "collector": ["q14", "q15", "q16", "q17"], "medium": ["q18", "q19", "q20"], "farmer": ["q21", "q22"],
-    **{f"neighbour{i}": ["q2"] for i in range(1, 6)},
 }
 
 FAKE_SCARES = {
@@ -635,6 +636,18 @@ def build(next_ids, npc_rows, warp_rows):
         original = npcs_by_id[npc_id]
         revert.append({"op": "update", "sheet": "NPCs", "id": npc_id,
                        "set": {k: blank_as_default(original.get(k, "")) for k in changes}})
+
+    for npc_id, new_name, old_name in TOWNSFOLK:
+        current = npcs_by_id[npc_id]
+        if current["npc_name"] not in (old_name, new_name or old_name):
+            fail(f"NPC {npc_id} is {current['npc_name']!r}, expected {old_name!r}")
+        if str(current.get("quest_ids", "")).strip():
+            fail(f"NPC {npc_id} already has quests {current['quest_ids']!r}")
+        changes = {"quest_ids": str(ids("quest", "q2"))}
+        if new_name:
+            changes["npc_name"] = new_name
+        ops.append({"op": "update", "sheet": "NPCs", "id": npc_id, "set": changes})
+        revert.append({"op": "update", "sheet": "NPCs", "id": npc_id, "set": {"quest_ids": ""}})
 
     for npc, item, stack, max_stack, rate in DROPS:
         row = {"npc_template_id": ref(npc if isinstance(npc, int) else f"@npc:{npc}", ids),

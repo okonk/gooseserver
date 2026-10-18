@@ -41,11 +41,13 @@ scripts, so apply the batch after the scripts are merged).
 3. **A goal host never shows quests.** `PlayerLeftClickEvent.cs:54-62` opens the goal window and
    returns before quests, so the candy goal needs its own host NPC (the Butler, Task 5), not the
    Countess.
-4. **"Talk to 5 townsfolk" needs quest NPCs.** `TalkedTo` only runs from `QuestWindow`
-   (`QuestWindow.cs:40`), so each destination must be a Quest NPC listing quest 2 (precedent: quest
-   88 is listed on both giver 250 and destination 251). Existing townsfolk are vendors or have quest
-   lists where an earlier `return` (class, level, prerequisite) would hide quest 2. Task 5 adds five
-   new Minita neighbours that list only quest 2.
+4. **"Talk to 5 townsfolk" needs the destinations to list quest 2.** `TalkedTo` only runs from
+   `QuestWindow` (`QuestWindow.cs:40`), so each destination lists the quest (precedent: quest 88 is
+   listed on both giver 250 and destination 251). The destinations are five Minita shopkeepers with
+   no quests of their own, so nothing earlier in their lists can end the loop before quest 2. A
+   vendor with quests keeps its shop: right-click opens it (`PlayerRightClickEvent.cs:58`) and
+   left-click opens quests (`PlayerLeftClickEvent.cs:59`). Four are renamed for good; their
+   `quest_ids` go back to blank after the event.
 5. **Warp deletions are manual.** `Warptiles` has no primary key and `gsheets.py` has no delete.
    `manual.md` lists the exact rows.
 6. **The old upper floor (left half of map 39) becomes unreachable** once the Grove door and the
@@ -90,7 +92,7 @@ scripts, so apply the batch after the scripts are merged).
 Map tiles verified on the shipped maps (`halloween-event` at 21d77ad):
 - House (`Map10048`): stairs down x 14-17, y 61-65, blocked at y 66; every NPC stand tile below is free.
 - Basement (`Map10039`): old arrival (93-95, 99) and exit (93-95, 100) free; pentagram as in Part 2.
-- Minita (`Map10001`): (14,47), (24,47), (24,80), (38,80), (62,52), (53,58) free.
+- Minita (`Map10001`): (53,58) free.
 - Grove (`Map10038`): (97,21) free, inside the Boondocks entrance.
 
 ---
@@ -281,11 +283,16 @@ are no roaming copies and every guest kill counts for quests 5 and 12.
 | collector | The Collector | human, chest 34, helm 114, hair 23 | — | Quest, quests 14 15 16 17 |
 | farmer | Pumpkin Farmer | copy Farmer Pete 186 (chest 12, hair 31, face 1) | — | Quest, quests 21 22 |
 | butler | The Butler | human, chest 34 tint 20,20,20,200, face 1, hair 2 | — | Quest, no quests (goal host, D4) |
-| neighbour1-5 | Minita Neighbour (titles: Baker, Widow Hale, Old Tom, the Twins, Mrs Pell) | copy existing townsfolk looks | — | Quest, quest 2 only |
 
 Quest/friendly NPCs copy Farmer Pete's combat columns (`invincible` 1, `stationary` 1, level 50).
 Wailing and Flickering get `script params` none; their snare comes from `ghostSnareOnHit` only when
 the Groundskeeper adds them (Part 3).
+
+**Shopkeeper updates (Trick or Treat! stops; `quest_ids` = quest 2; the generator refuses if one
+already has quests or has an unexpected name; `revert.json` blanks `quest_ids` and keeps the names):**
+- 150 Scriber → "Wendell the Scribe"; 105 Weapon Guy → "Brask the Weaponsmith"; 226 Slim Pickins
+  (name kept); 100 Potion Guy → "Agnes the Apothecary"; 181 Pet Trainer → "Pip the Pet Trainer".
+  Each also stands in the Shops map (36); talking to him there counts too.
 
 **Updates (event values; originals into `revert.json`):**
 - 166 Pumpkin: level 50, hp 3200, weapon dmg 1200, exp 1250.
@@ -335,7 +342,7 @@ Tier 3's 15% Groundskeeper rate is applied by the Groundskeeper script (Part 3),
 - **Weeper:** one at (38,36).
 - **Friendly:** Countess (H,42,51), Count (H,44,51), Collector (H,36,48), Medium (H,19,59),
   Butler (H,46,48), Doorman (38,38,36), Farmer (38,97,21), Trick-or-Treater (1,53,58),
-  neighbours (1,14,47), (1,24,47), (1,24,80), (1,38,80), (1,62,52).
+  no new Minita NPCs besides the kid (the shopkeepers already stand there).
 - Basement: none (ambush only).
 
 Validation from Task 1 covers every tile. Expected count ≈ 280; the generator prints per-room counts.
@@ -347,11 +354,11 @@ Validation from Task 1 covers every tile. Expected count ≈ 280; the generator 
 | NPC | Map | Tile | Spot | Look copied from |
 |---|---|---|---|---|
 | Trick-or-Treater | Minita (1) | 53, 58 | South edge of the central green, by the red trees | body 130 |
-| Baker Mott | Minita (1) | 14, 47 | Doorstep of the first house in the north-west row | Potion Guy (100) |
-| Widow Hale | Minita (1) | 24, 47 | Doorstep of the second house in that row | Cloth Armor Guy (106) |
-| Old Tom | Minita (1) | 24, 80 | Doorstep of the south-west house | Silk Armor Guy (108) |
-| Mrs Pell | Minita (1) | 38, 80 | Doorstep of the south-middle house | Tailoring Supplies (148) |
-| Grandpa Wick | Minita (1) | 62, 52 | Doorstep of the east house on the central green | Aryn the Rogue Trainer (184) |
+| Wendell the Scribe (was Scriber, 150) | Minita (1) | 24, 13 | In his shop, north of town | existing |
+| Brask the Weaponsmith (was Weapon Guy, 105) | Minita (1) | 24, 36 | In his shop on the west side | existing |
+| Slim Pickins (226) | Minita (1) | 44, 43 | On the central green | existing |
+| Agnes the Apothecary (was Potion Guy, 100) | Minita (1) | 20, 72 | In her shop in the south-west | existing |
+| Pip the Pet Trainer (was Pet Trainer, 181) | Minita (1) | 58, 74 | In the south-east | existing |
 | The Doorman | Pumpkin Grove (38) | 38, 36 | In front of the house's door (the removed warp) | helm 35, face 5 |
 | Pumpkin Farmer | Pumpkin Grove (38) | 97, 21 | Just inside the entrance from Boondocks (arrivals land at x 99, y 23-27), so his quest is the first thing players see | Farmer Pete (186) |
 | The Countess | House (55) | 42, 51 | Foyer, centre of the red carpet | body 154 |
@@ -361,7 +368,7 @@ Validation from Task 1 covers every tile. Expected count ≈ 280; the generator 
 | The Medium | House (55) | 19, 59 | Kitchen, beside the basement stairs | body 220, pale blue |
 | The Weeper | House (55) | 38, 36 | Statue Gallery, his patrol start | body 231 |
 
-The neighbours stand one tile below their house's door, on the path. Map 55 is the id the house map
+The shopkeepers keep their existing spawns. Map 55 is the id the house map
 gets if the sheet's next map id is still 55 when the batch is built.
 
 ---
@@ -377,7 +384,7 @@ params `{"items":[@item:costume, @item:goblin, @item:zombie, @item:mummy, @item:
 | # | min lvl | repeat | prereq | requirements | rewards |
 |---|---|---|---|---|---|
 | 1 Dress Up | 1 | | | Gold 5000 | Item costume |
-| 2 Trick or Treat! | 1 | | 1 | TalkToNPC neighbour1-5 ×1; Script wearing | XP 10000, Gold 2000, Item candy 25, Item pie 3 |
+| 2 Trick or Treat! | 1 | | 1 | TalkToNPC 150, 105, 226, 100, 181 ×1; Script wearing | XP 10000, Gold 2000, Item candy 25, Item pie 3 |
 | 3 The House on the Hill | 1 | | 2 | TalkToNPC doorman ×1 | XP 1000 |
 | 4 Trick or Treat? | 40 (D2) | yes | | Script wearing | Script `Scripts/Quest/HalloweenDoorman.csx` |
 | 5 Uninvited Guests | 50 | | | Kill ×10 each of 6 guests | XP 120k, Gold 25k, candy 50 |
@@ -402,7 +409,7 @@ params `{"items":[@item:costume, @item:goblin, @item:zombie, @item:mummy, @item:
 Candy rewards are `Item` rewards of the candy template (they go into the bag like dropped candy).
 **Giver `quest ids` order** (prerequisite-free first, chains in order):
 kid `1 2 3`, doorman `4 3`, countess `5 6 7 8 9 10 11`, count `12 13`, collector `14 15 16 17`,
-medium `18 19 20`, farmer `21 22`, each neighbour `2`.
+medium `18 19 20`, farmer `21 22`, each of the five shopkeepers `2`.
 Quest 4 has no prerequisite (the wearing check is the gate), so it comes before quest 3 on the
 Doorman: quest 3 is listed there only as its TalkToNPC destination, and its unmet prerequisite would
 otherwise end the list before quest 4. Quest 11's prerequisites block nothing because it is last.
