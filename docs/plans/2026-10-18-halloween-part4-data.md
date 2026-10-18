@@ -90,7 +90,8 @@ scripts, so apply the batch after the scripts are merged).
 Map tiles verified on the shipped maps (`halloween-event` at 21d77ad):
 - House (`Map10048`): stairs down x 14-17, y 61-65, blocked at y 66; every NPC stand tile below is free.
 - Basement (`Map10039`): old arrival (93-95, 99) and exit (93-95, 100) free; pentagram as in Part 2.
-- Minita (`Map10001`): (13,47), (23,47), (24,80), (38,80), (61,51), (53,58) free.
+- Minita (`Map10001`): (14,47), (24,47), (24,80), (38,80), (62,52), (53,58) free.
+- Grove (`Map10038`): (97,21) free, inside the Boondocks entrance.
 
 ---
 
@@ -333,8 +334,8 @@ Tier 3's 15% Groundskeeper rate is applied by the Groundskeeper script (Part 3),
   (x 62-75, y 70-81) and off the stairs (x 14-17, y 61-65).
 - **Weeper:** one at (38,36).
 - **Friendly:** Countess (H,42,51), Count (H,44,51), Collector (H,36,48), Medium (H,19,59),
-  Butler (H,46,48), Doorman (38,38,36), Farmer (38,44,37), Trick-or-Treater (1,53,58),
-  neighbours (1,13,47), (1,23,47), (1,24,80), (1,38,80), (1,61,51).
+  Butler (H,46,48), Doorman (38,38,36), Farmer (38,97,21), Trick-or-Treater (1,53,58),
+  neighbours (1,14,47), (1,24,47), (1,24,80), (1,38,80), (1,62,52).
 - Basement: none (ambush only).
 
 Validation from Task 1 covers every tile. Expected count ≈ 280; the generator prints per-room counts.
@@ -346,13 +347,13 @@ Validation from Task 1 covers every tile. Expected count ≈ 280; the generator 
 | NPC | Map | Tile | Spot | Look copied from |
 |---|---|---|---|---|
 | Trick-or-Treater | Minita (1) | 53, 58 | South edge of the central green, by the red trees | body 130 |
-| Baker Mott | Minita (1) | 13, 47 | Doorstep of the first house in the north-west row | Potion Guy (100) |
-| Widow Hale | Minita (1) | 23, 47 | Doorstep of the second house in that row | Cloth Armor Guy (106) |
+| Baker Mott | Minita (1) | 14, 47 | Doorstep of the first house in the north-west row | Potion Guy (100) |
+| Widow Hale | Minita (1) | 24, 47 | Doorstep of the second house in that row | Cloth Armor Guy (106) |
 | Old Tom | Minita (1) | 24, 80 | Doorstep of the south-west house | Silk Armor Guy (108) |
 | Mrs Pell | Minita (1) | 38, 80 | Doorstep of the south-middle house | Tailoring Supplies (148) |
-| Grandpa Wick | Minita (1) | 61, 51 | Doorstep of the east house on the central green | Aryn the Rogue Trainer (184) |
+| Grandpa Wick | Minita (1) | 62, 52 | Doorstep of the east house on the central green | Aryn the Rogue Trainer (184) |
 | The Doorman | Pumpkin Grove (38) | 38, 36 | In front of the house's door (the removed warp) | helm 35, face 5 |
-| Pumpkin Farmer | Pumpkin Grove (38) | 44, 37 | Beside the east wing, among the pumpkins | Farmer Pete (186) |
+| Pumpkin Farmer | Pumpkin Grove (38) | 97, 21 | Just inside the entrance from Boondocks (arrivals land at x 99, y 23-27), so his quest is the first thing players see | Farmer Pete (186) |
 | The Countess | House (55) | 42, 51 | Foyer, centre of the red carpet | body 154 |
 | The Count | House (55) | 44, 51 | Foyer, beside her | body 155 |
 | The Collector | House (55) | 36, 48 | Foyer, under the portraits, west of the carpet | chest 34, helm 114 |

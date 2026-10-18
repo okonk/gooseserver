@@ -351,9 +351,9 @@ NO_ROAM = [((14, 61), (17, 65)), ((62, 70), (75, 81))]
 FRIENDLY_SPAWNS = [
     ("countess", "house", 42, 51), ("count", "house", 44, 51), ("collector", "house", 36, 48),
     ("medium", "house", 19, 59), ("butler", "house", 46, 48), ("weeper", "house", 38, 36),
-    ("doorman", GROVE, 38, 36), ("farmer", GROVE, 44, 37), ("kid", MINITA, 53, 58),
-    ("neighbour1", MINITA, 13, 47), ("neighbour2", MINITA, 23, 47), ("neighbour3", MINITA, 24, 80),
-    ("neighbour4", MINITA, 38, 80), ("neighbour5", MINITA, 61, 51),
+    ("doorman", GROVE, 38, 36), ("farmer", GROVE, 97, 21), ("kid", MINITA, 53, 58),
+    ("neighbour1", MINITA, 14, 47), ("neighbour2", MINITA, 24, 47), ("neighbour3", MINITA, 24, 80),
+    ("neighbour4", MINITA, 38, 80), ("neighbour5", MINITA, 62, 52),
 ]
 
 WEARING = "Scripts/Quest/HalloweenWearing.csx"
