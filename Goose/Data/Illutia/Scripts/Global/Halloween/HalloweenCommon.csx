@@ -9,6 +9,15 @@ public static class Halloween
     public static void SetActive(GameWorld world, bool on) => world.CommunityGoals.SetFlag("halloween.active", on ? 1 : 0, null);
     public static void SetTier(GameWorld world, int n, bool on) => world.CommunityGoals.SetFlag("halloween.tier" + n, on ? 1 : 0, null);
 
+    // Set from the settings base, not the current value, so granting twice cannot stack.
+    public static void ApplyXpBonus(GameWorld world)
+    {
+        world.ExperienceModifier = world.Settings.ExperienceModifier + HalloweenConfig.Get(world).XpBonus;
+    }
+
+    // Placeholder until the stalker implementation lands; the controller compiles against this.
+    public static NPC? SpawnStalker(GameWorld world, Player caller, bool chase) => null;
+
     public static bool IsHouse(Map map, HalloweenConfig cfg) => map.ID == cfg.Maps.House;
     public static bool IsBasement(Map map, HalloweenConfig cfg) => map.ID == cfg.Maps.Basement;
     public static bool IsEventMap(Map map, HalloweenConfig cfg) =>

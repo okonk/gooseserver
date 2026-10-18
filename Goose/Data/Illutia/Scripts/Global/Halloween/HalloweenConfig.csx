@@ -27,6 +27,7 @@ public sealed class HalloweenNpcs
 {
     public int Stalker { get; set; }
     public int Groundskeeper { get; set; }
+    public int Weeper { get; set; }
     public int WailingGhost { get; set; }
     public int FlickeringGhost { get; set; }
     public int PinkPhantom { get; set; }
@@ -111,7 +112,7 @@ public sealed class HalloweenPackConverter : JsonConverter<HalloweenPack>
     }
 }
 
-public sealed class HalloweenAmbush
+public sealed class HalloweenAmbushConfig
 {
     public double BaseChance { get; set; }
     public double BasementWeight { get; set; }
@@ -169,7 +170,7 @@ public sealed class HalloweenConfig
     public HalloweenNpcs Npcs { get; set; } = new();
     public HalloweenCandy Candy { get; set; } = new();
     public List<HalloweenRoom> Rooms { get; set; } = new();
-    public HalloweenAmbush Ambush { get; set; } = new();
+    public HalloweenAmbushConfig Ambush { get; set; } = new();
     public HalloweenStalker Stalker { get; set; } = new();
     public HalloweenPentagram Pentagram { get; set; } = new();
     public HalloweenInvasion Invasion { get; set; } = new();
