@@ -160,7 +160,11 @@ public class HalloweenCommonTests
         Assert.Equal(0, ConfigValue(kit, "Maps", "House"));
         Assert.Equal(2, log.Messages.Count(m => m.Contains("halloween.json")));
 
-        kit.SetConfig(cfg => cfg["candy"]!["baseAmount"] = new JsonArray(1));
+        kit.SetConfig(cfg =>
+        {
+            cfg["candy"]!["byTemplate"]!["91003"] = new JsonArray(1, 3);
+            cfg["candy"]!["baseAmount"] = new JsonArray(1);
+        });
         Assert.Equal(0, ConfigValue(kit, "Maps", "House"));
         Assert.Equal(3, log.Messages.Count(m => m.Contains("halloween.json")));
     }
