@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Goose.Events;
 
 namespace Goose
 {
@@ -97,6 +98,25 @@ namespace Goose
         public void Broadcast(Map map, GameWorld world)
         {
             world.SendToMap(map, this.BuildPacket(world.TimeNow));
+        }
+
+        public void ScheduleWeatherRoll(Map map, GameWorld world)
+        {
+            if (this.PendingRoll is not null)
+            {
+                world.EventHandler.RemoveEvent(this.PendingRoll);
+                this.PendingRoll = null;
+            }
+
+            if (this.weather.Count == 0) return;
+
+            WeatherRollEvent ev = new()
+            {
+                Ticks = world.TimeNow + world.TimerFrequency * WeatherRollSeconds,
+                Data = map,
+            };
+            world.EventHandler.AddEvent(ev);
+            this.PendingRoll = ev;
         }
 
         public MapAmbience CloneForNewMap(long nowTicks)

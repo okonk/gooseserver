@@ -95,6 +95,8 @@ namespace Goose
                 ev.Ticks += world.TimerFrequency * Math.Max(1, world.Settings.ItemGroundSweepTime);
                 ev.Data = map;
                 world.EventHandler.AddEvent(ev);
+
+                map.Ambience.ScheduleWeatherRoll(map, world);
             }
         }
 

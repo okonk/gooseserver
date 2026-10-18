@@ -111,6 +111,8 @@ public partial class Dimensions
                 sweep.Ticks += world.TimerFrequency * world.Settings.ItemGroundSweepTime;
                 sweep.Data = clone;
                 world.EventHandler.AddEvent(sweep);
+
+                clone.Ambience.ScheduleWeatherRoll(clone, world);
             }
         }
     }
