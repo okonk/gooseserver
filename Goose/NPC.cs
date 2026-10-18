@@ -1254,7 +1254,7 @@ namespace Goose
                         if (highest is Group)
                         {
                             var credited = ((Group)highest).GainExperience(this, world);
-                            world.CommunityGoals.OnNpcKilled(this, credited, world);
+                            this.NotifyKilled(character, credited, world);
                         }
                         else
                         {
@@ -1281,7 +1281,7 @@ namespace Goose
                                 ((Player)highest).AddExperience(experience, world, expMessage);
                                 credited = (Player)highest;
                             }
-                            world.CommunityGoals.OnNpcKilled(this, [credited], world);
+                            this.NotifyKilled(character, [credited], world);
                         }
                     }
                     else
@@ -1319,6 +1319,23 @@ namespace Goose
                 foreach (var p in range)
                 {
                     world.Send(p, packet);
+                }
+            }
+        }
+
+        private void NotifyKilled(ICharacter killer, IReadOnlyList<Player> credited, GameWorld world)
+        {
+            world.CommunityGoals.OnNpcKilled(this, credited, world);
+
+            foreach (var script in world.ScriptHandler.GetGlobalScripts())
+            {
+                try
+                {
+                    script.Object.OnNPCKilled(this, killer, credited, world);
+                }
+                catch (Exception e)
+                {
+                    log.Error(e, "Global OnNPCKilled {0} npc {1} ({2}) Exception", script.FilePath, this.Name, this.NPCTemplateID);
                 }
             }
         }

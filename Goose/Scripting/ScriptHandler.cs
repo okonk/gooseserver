@@ -82,5 +82,13 @@ namespace Goose.Scripting
                 return this.scripts.ContainsKey(filePath);
             }
         }
+
+        public List<Script<IGlobalScript>> GetGlobalScripts()
+        {
+            lock (this.gate)
+            {
+                return this.scripts.Values.OfType<Script<IGlobalScript>>().ToList();
+            }
+        }
     }
 }
