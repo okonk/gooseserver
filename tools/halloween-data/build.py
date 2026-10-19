@@ -855,7 +855,7 @@ def config_patch(ids, maps):
         "candy": {"byTemplate": candy_by_template},
         "rooms": [{"name": n, "rect": xywh(r), "weight": w, "table": t} for n, r, w, t in ROOMS],
         "ambush": {"fakeScares": FAKE_SCARES},
-        "invasion": {"towns": [{"map": MINITA, "rect": xywh([35, 30, 71, 62])}], "templates": [npc(k) for k in GUESTS[:5] + ["wailing", "flickering"]]},
+        "invasion": {"towns": [{"map": MINITA, "rect": xywh([33, 28, 73, 64])}], "templates": [npc(k) for k in GUESTS[:5] + ["wailing", "flickering"]]},
         "goal": {"tiers": TIERS},
         "effects": {"weeperCap": ids("effect", "weeperCap"), "groundskeeperCurve": ids("effect", "gkCurve"),
                     "ghostSnareOnHit": ids("effect", "ghostSnareOnHit")},
