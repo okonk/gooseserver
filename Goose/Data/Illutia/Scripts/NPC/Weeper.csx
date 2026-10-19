@@ -178,7 +178,10 @@ public class Weeper : BaseNPCScript
         int index = npc.Properties.TryGetProperty<int>("weeperWaypoint", out var i) ? i : 0;
         if (index < 0 || index >= waypoints.Count) index = 0;
         var (wx, wy) = waypoints[index];
-        if (npc.MapX == wx && npc.MapY == wy)
+        bool atWaypoint = npc.MapX == wx && npc.MapY == wy;
+        bool besideTakenWaypoint = Math.Max(Math.Abs(npc.MapX - wx), Math.Abs(npc.MapY - wy)) <= 1 &&
+            npc.Map.GetCharacterAt(wx, wy) is not null;
+        if (atWaypoint || besideTakenWaypoint)
         {
             NextWaypoint(npc, cfg, world, name, index, waypoints.Count);
             return;

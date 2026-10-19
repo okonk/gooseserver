@@ -190,18 +190,39 @@ public class WeeperScriptTests : IDisposable
     }
 
     [Fact]
-    public void Patrol_skips_a_waypoint_something_is_standing_on()
+    public void Patrol_counts_a_taken_waypoint_as_reached_once_beside_it()
     {
         int[][] loop = [[10, 5], [10, 8], [14, 8]];
         Loops(("a", loop));
         var npc = Spawn(10, 5);
         Spawn(10, 8);
 
+        Call("MoveStep", npc, Now, kit.World);
+        Call("MoveStep", npc, Now, kit.World);
+        Call("MoveStep", npc, Now, kit.World);
+        Assert.Equal((10, 7), (npc.MapX, npc.MapY));
+        Assert.Equal(1, LoopIndex(npc));
+
+        Call("MoveStep", npc, Now, kit.World);
+        Assert.Equal(2, LoopIndex(npc));
+        Assert.Equal((10, 7), (npc.MapX, npc.MapY));
+    }
+
+    [Fact]
+    public void Patrol_skips_a_waypoint_it_cannot_get_near()
+    {
+        int[][] loop = [[10, 5], [10, 15], [14, 5]];
+        Loops(("a", loop));
+        for (int x = 1; x <= map.Width; x++)
+            if (x != 5) map.SetTile(x, 10, new BlockedTile());
+        var npc = Spawn(10, 5);
+        Spawn(5, 10);
+
         for (int i = 0; i < 20 && LoopIndex(npc) < 2; i++)
             Call("MoveStep", npc, Now, kit.World);
 
         Assert.Equal(2, LoopIndex(npc));
-        Assert.Equal((10, 7), (npc.MapX, npc.MapY));
+        Assert.True(npc.MapY < 10);
     }
 
     [Fact]
