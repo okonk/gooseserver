@@ -7,6 +7,8 @@ namespace Goose.IntegrationTests.Fixtures;
 
 public sealed class GlobalScriptFixture : TestWorldFixture
 {
+    public const int ShopsMapId = 36;
+
     /// <summary>Every dimension script, by the relative path the server resolves it at.
     /// Copied to output by Goose.IntegrationTests.csproj. Add to BOTH lists together - a
     /// script missing here fails inside OnLoaded, not at compile time.</summary>
@@ -79,6 +81,8 @@ public sealed class GlobalScriptFixture : TestWorldFixture
     /// rather than a paraphrase of it.</summary>
     public Script<IGlobalScript> CompileShipped(string fileName = "Dimensions.csx")
     {
+        if (World.MapHandler.GetMap(ShopsMapId) is null)
+            AddBaseMap(ShopsMapId, "Shops", width: 100, height: 100);
         InstallShippedScripts();
         return Shipped<IGlobalScript>("Scripts/Global/" + fileName);
     }

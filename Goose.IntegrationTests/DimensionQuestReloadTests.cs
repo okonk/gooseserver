@@ -67,7 +67,7 @@ public class DimensionQuestReloadTests : IDisposable
         using var fixture = LoadedWorld();
         ReloadSql(fixture);
 
-        var town = fixture.World.MapHandler.GetMap(1)!;
+        var town = fixture.World.MapHandler.GetMap(GlobalScriptFixture.ShopsMapId)!;
         var warden = town.NPCs.First(n => n.NPCTemplate.NPCTemplateID == 800000);
         var player = fixture.CommandPlayerOn(town, 50, 50);
         player.Class = fixture.World.ClassHandler.GetClass(0)!;
@@ -87,7 +87,7 @@ public class DimensionQuestReloadTests : IDisposable
         using var fixture = LoadedWorld();
         ReloadSql(fixture);
 
-        var town = fixture.World.MapHandler.GetMap(1)!;
+        var town = fixture.World.MapHandler.GetMap(GlobalScriptFixture.ShopsMapId)!;
         var warden = town.NPCs.First(n => n.NPCTemplate.NPCTemplateID == 800000);
         var bossNpc = new NPC { NPCTemplate = fixture.World.NPCHandler.GetNPCTemplate(162)! };
 

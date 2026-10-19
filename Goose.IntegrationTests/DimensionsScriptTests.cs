@@ -560,7 +560,7 @@ public class DimensionsScriptTests
     }
 
     [Fact]
-    public void Wardens_are_spawned_on_the_start_map_of_every_dimension_that_has_a_quest()
+    public void Wardens_are_spawned_on_the_shops_map_of_every_dimension_that_has_a_quest()
     {
         using var fixture = Run(SeedBoss);
 
@@ -568,11 +568,11 @@ public class DimensionsScriptTests
         // 6 is the top, so it has no quest and no warden.
         for (int dim = 0; dim < 6; dim++)
         {
-            var map = fixture.World.MapHandler.GetMap(1 + 100000 * dim)!;
+            var map = fixture.World.MapHandler.GetMap(GlobalScriptFixture.ShopsMapId + 100000 * dim)!;
             Assert.Contains(map.NPCs, n => n.NPCTemplate.NPCTemplateID == 800000 + 100000 * dim);
         }
 
-        Assert.DoesNotContain(fixture.World.MapHandler.GetMap(1 + 100000 * 6)!.NPCs,
+        Assert.DoesNotContain(fixture.World.MapHandler.GetMap(GlobalScriptFixture.ShopsMapId + 100000 * 6)!.NPCs,
                               n => n.NPCTemplate.NPCType == NPCTemplate.Types.Quest);
     }
 

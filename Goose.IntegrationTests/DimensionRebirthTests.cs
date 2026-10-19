@@ -12,17 +12,18 @@ public class DimensionRebirthTests
 {
     private const int RebirthTemplateId = 810000;
     private const int RebirthQuestId = 910000;
-    private const int RebirthX = 21;
-    private const int RebirthY = 13;
+    private const int RebirthX = 98;
+    private const int RebirthY = 94;
 
     /// <summary>DimensionsScriptTests' world seeding (`DimensionsScriptTests.cs:20-25`),
     /// factored out because every test here needs it: a base map wide enough for the
-    /// warden at (20,13) and the keeper at (21,13), and the boss template the unlock chain
+    /// warden and keeper on the Shops map, and the boss template the unlock chain
     /// requires.</summary>
     private static GlobalScriptFixture Seeded()
     {
         var fixture = new GlobalScriptFixture();
         fixture.AddBaseMap(1, "Town", width: 100, height: 100);
+        fixture.AddBaseMap(GlobalScriptFixture.ShopsMapId, "Shops", width: 100, height: 100);
 
         var boss = new NPCTemplate { NPCTemplateID = 162, Name = "Shadow Dog", Level = 40 };
         boss.BaseStats = new AttributeSet { HP = 3704 };
@@ -105,15 +106,15 @@ public class DimensionRebirthTests
         var script = fixture.CompileShipped();
         script.Object.OnLoaded(fixture.World);
 
-        var map = fixture.World.MapHandler.GetMap(1)!;
+        var map = fixture.World.MapHandler.GetMap(GlobalScriptFixture.ShopsMapId)!;
         var keeper = Assert.Single(map.NPCs, n => n.NPCTemplateID == RebirthTemplateId);
 
         Assert.Same(keeper, map.GetCharacterAt(RebirthX, RebirthY));
         Assert.Equal(RebirthX, keeper.MapX);
         Assert.Equal(RebirthY, keeper.MapY);
-        // Load-bearing: the warden already stands on (20,13), so the keeper must not be
+        // Load-bearing: the warden already stands on (95,95), so the keeper must not be
         // configured onto an occupied tile.
-        Assert.NotEqual(keeper, map.GetCharacterAt(20, 13));
+        Assert.NotEqual(keeper, map.GetCharacterAt(95, 95));
     }
 
     /// <summary>The preflight, not the symptom. An occupied or blocked destination must
@@ -122,7 +123,7 @@ public class DimensionRebirthTests
     public void Refuses_to_load_when_the_keepers_tile_is_blocked()
     {
         using var fixture = Seeded();
-        var map = fixture.World.MapHandler.GetMap(1)!;
+        var map = fixture.World.MapHandler.GetMap(GlobalScriptFixture.ShopsMapId)!;
         map.tiles[RebirthY * map.Width + RebirthX] = new BlockedTile();
 
         var script = fixture.CompileShipped();
@@ -161,7 +162,7 @@ public class DimensionRebirthTests
 
         Assert.Null(fixture.World.NPCHandler.GetNPCTemplate(RebirthTemplateId));
         Assert.Null(fixture.World.QuestHandler.Get(RebirthQuestId));
-        Assert.Empty(fixture.World.MapHandler.GetMap(1)!.NPCs);
+        Assert.Empty(fixture.World.MapHandler.GetMap(GlobalScriptFixture.ShopsMapId)!.NPCs);
     }
 
     [Fact]

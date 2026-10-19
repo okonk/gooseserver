@@ -33,8 +33,7 @@ public partial class Dimensions : BaseGlobalScript
     /// <summary>Map /dimension n warps to.</summary>
     public const int StartMapId = 1;
 
-    /// <summary>Tile on StartMapId that /dimension n drops the player on - clear of the
-    /// Warden, who stands at (WardenX, WardenY).</summary>
+    /// <summary>Tile on StartMapId that /dimension n drops the player on.</summary>
     public const int SpawnX = 50;
     public const int SpawnY = 50;
 
@@ -84,10 +83,10 @@ public partial class Dimensions : BaseGlobalScript
     /// <summary>MKC-string fragment, exactly as npc_templates.equipped_items</summary>
     public const string WardenEquippedItems = "12,*,0,*,0,*,0,*,0,*,0,*";
 
-    /// <summary>Quest-giver placement, per dimension, on that dimension's start map.</summary>
-    public const int WardenMapId = StartMapId;
-    public const int WardenX = 20;
-    public const int WardenY = 13;
+    /// <summary>Quest-giver placement, per dimension, on that dimension's clone of the Shops map.</summary>
+    public const int WardenMapId = 36;
+    public const int WardenX = 95;
+    public const int WardenY = 95;
 
     // ---- Rebirth --------------------------------------------------------
     // The spirit faucet: a repeatable quest converting banked experience into spirit and
@@ -133,18 +132,16 @@ public partial class Dimensions : BaseGlobalScript
     public const int RebirthHairA = 200;
     public const string RebirthEquippedItems = "34,*,0,*,0,*,0,*,0,*,0,*";
 
-    /// <summary>Dimension 0 only, beside the dimension-0 warden. Map 1 is StartMapId, the
-    /// map /dimension already warps to, so a player who can reach a warden can reach the
-    /// keeper without a second landmark.
+    /// <summary>Dimension 0 only, near the dimension-0 warden on the Shops map (36), so a
+    /// player who can reach a warden can reach the keeper without a second landmark.
     ///
-    /// Verified against Data/Illutia/Maps/Map1.map: the map is 286x194, and (21,13) carries
-    /// no blocked flag (bit 2 of the tile flags, Map.cs:471-475). It is one tile east of
-    /// WardenX/WardenY (20,13), so the two generated NPCs cannot collide. Warp tiles and
-    /// sheet NPC spawns come from the database rather than the .map file, so
-    /// CreateRebirthQuest re-checks the tile at load time instead of trusting this.</summary>
-    public const int RebirthMapId = StartMapId;
-    public const int RebirthX = 21;
-    public const int RebirthY = 13;
+    /// Verified against Data/Illutia/Maps/Map10036.map: (98,94) carries no blocked flag
+    /// (value 2 in the tile flags), and the warden stands at (95,95), so the two generated NPCs
+    /// cannot collide. Warp tiles and sheet NPC spawns come from the database rather than the
+    /// .map file, so CreateRebirthQuest re-checks the tile at load time instead of trusting this.</summary>
+    public const int RebirthMapId = 36;
+    public const int RebirthX = 98;
+    public const int RebirthY = 94;
 
     /// <summary>Quest ids are deterministic: QuestProgress persists keyed on
     /// requirement.Id (Player.cs:1020 / QuestWindow.cs:268), so a counter-assigned id
