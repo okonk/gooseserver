@@ -17,3 +17,8 @@ can't make, and the after-event steps), `revert.json` (Grove pumpkins back to no
 Ids come from the sheet's `nextid` at build time, so rebuild right before applying and apply the
 batch you just built. Apply after the Parts 2-3 scripts are merged: `/reloadsql` compiles every
 script a row references.
+
+`tuning-batch.json` is the post-playtest tuning (guest aggro, Weeper attack speed, Groundskeeper
+walk speed, no pets in the house or basement, costume drop tiles, the Collector's Spare Faces
+turn-in and the Countess's clock). After the event, apply `tuning-revert.json` alongside
+`out/revert.json`.

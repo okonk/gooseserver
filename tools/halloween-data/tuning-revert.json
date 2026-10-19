@@ -1,0 +1,106 @@
+[
+  {
+    "op": "update",
+    "sheet": "NPCs",
+    "id": 262,
+    "set": {
+      "aggro_range": 3
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "NPCs",
+    "id": 263,
+    "set": {
+      "aggro_range": 3
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "NPCs",
+    "id": 264,
+    "set": {
+      "aggro_range": 3
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "NPCs",
+    "id": 265,
+    "set": {
+      "aggro_range": 3
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "NPCs",
+    "id": 266,
+    "set": {
+      "aggro_range": 3
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "NPCs",
+    "id": 267,
+    "set": {
+      "aggro_range": 3
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "NPCs",
+    "id": 276,
+    "set": {
+      "attack_speed": 2
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "NPCs",
+    "id": 278,
+    "set": {
+      "move_speed": 1
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "Maps",
+    "id": 55,
+    "set": {
+      "pets_enabled": 1
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "Maps",
+    "id": 39,
+    "set": {
+      "pets_enabled": 1
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "Items",
+    "id": 746,
+    "set": {
+      "script_params": "[{\"graphic\":11,\"r\":0,\"g\":0,\"b\":0,\"a\":0},{\"graphic\":17,\"r\":0,\"g\":0,\"b\":0,\"a\":0},{\"graphic\":19,\"r\":0,\"g\":0,\"b\":0,\"a\":0},{\"graphic\":26,\"r\":0,\"g\":0,\"b\":0,\"a\":0},{\"graphic\":90,\"r\":0,\"g\":0,\"b\":0,\"a\":0},{\"graphic\":143,\"r\":0,\"g\":0,\"b\":0,\"a\":0}]"
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "NPCs",
+    "id": 279,
+    "set": {
+      "quest_ids": "94 95 96 97 98 99 100"
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "NPCs",
+    "id": 284,
+    "set": {
+      "quest_ids": "103 104 105 106"
+    }
+  }
+]
