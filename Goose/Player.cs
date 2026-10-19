@@ -1971,7 +1971,7 @@ namespace Goose
                         break;
 
                     case ExperienceMessage.TooFarAway:
-                        world.Send(this, P.ServerMessage("You were too far away to gain experience."));
+                        world.Send(this, P.Notice(NoticeType.Info, "You were too far away to gain experience."));
                         break;
 
                     // case ExperienceMessage.TooHigh:
