@@ -18,7 +18,7 @@ CONFIG = ROOT / "Goose/Data/Illutia/Scripts/Global/Halloween/halloween.json"
 
 GROVE, BASEMENT, MINITA = 38, 39, 1
 EVENT_END = "2026-11-08T00:00:00"
-TIERS = [6000, 20000, 45000]
+TIERS = [50000, 200000, 500000]
 
 SHEETS = {
     "effect": "Spell Effects", "spell": "Spells", "item": "Items", "npc": "NPCs",
@@ -859,8 +859,8 @@ def config_patch(ids, maps):
         "goal": {"tiers": TIERS},
         "effects": {"weeperCap": ids("effect", "weeperCap"), "groundskeeperCurve": ids("effect", "gkCurve"),
                     "ghostSnareOnHit": ids("effect", "ghostSnareOnHit")},
-        "groundskeeper": {"adds": {"placeSettings": [[npc("setting"), 12]],
-                                   "ghosts": [[npc("wailing"), 6], [npc("flickering"), 3]],
+        "groundskeeper": {"adds": {"placeSettings": [[npc("setting"), 16]],
+                                   "ghosts": [[npc("wailing"), 8], [npc("flickering"), 4]],
                                    "bloody": [[npc("bloodyAdd"), 4]]}},
     }
 
