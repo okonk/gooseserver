@@ -190,6 +190,44 @@ public class GroundskeeperScriptTests : IDisposable
     }
 
     [Fact]
+    public void Final_stage_blacks_out_the_lights_on_a_timer_without_spawning()
+    {
+        kit.SetConfig(cfg =>
+        {
+            cfg["groundskeeper"]!["finalLightsOutSeconds"] = 10;
+            cfg["groundskeeper"]!["finalLightsOutEverySeconds"] = new JsonArray(20, 20);
+        });
+        var player = PlayerOn(30, 30, "A");
+        var npc = Spawn(31, 30);
+        npc.CurrentHP = (long)(0.20 * npc.MaxHP);
+        npc.Properties["gkPhase"] = 3;
+        int npcs = map.NPCs.Count;
+
+        Call("AttackStep", npc, Now, kit.World);
+        Call("AttackStep", npc, Now + kit.World.TimerFrequency * 29, kit.World);
+        Assert.DoesNotContain(player.Sent, s => s.StartsWith("AMB950,950,"));
+
+        Call("AttackStep", npc, Now + kit.World.TimerFrequency * 30, kit.World);
+        Assert.Contains(player.Sent, s => s.StartsWith("AMB950,950,"));
+        Assert.Equal(npcs, map.NPCs.Count);
+    }
+
+    [Fact]
+    public void No_timed_blackouts_before_the_final_stage()
+    {
+        kit.SetConfig(cfg => cfg["groundskeeper"]!["finalLightsOutEverySeconds"] = new JsonArray(0, 0));
+        var player = PlayerOn(30, 30, "A");
+        var npc = Spawn(31, 30);
+        npc.CurrentHP = (long)(0.40 * npc.MaxHP);
+        npc.Properties["gkPhase"] = 2;
+
+        Call("AttackStep", npc, Now, kit.World);
+        Call("AttackStep", npc, Now + kit.World.TimerFrequency * 60, kit.World);
+
+        Assert.DoesNotContain(player.Sent, s => s.StartsWith("AMB950,950,"));
+    }
+
+    [Fact]
     public void Lights_out_sends_dark_packet_then_restores()
     {
         var player = PlayerOn(30, 30, "A");

@@ -285,7 +285,7 @@ NPCS = [
                    attack_speed=2, stunnable=0, slowable=0, script_path="Scripts/NPC/Weeper.csx")),
     ("stalker", mob("The Groundskeeper", 1, 1, 0.34, 0, **GK_LOOK, invincible=1, aggro_range=0, attack_speed=0,
                     stunnable=0, slowable=0, script_path="Scripts/NPC/Stalker.csx")),
-    ("gk", mob("The Groundskeeper", 4000000, 1, 1.0, 7500, **GK_LOOK, aggro_range=12, attack_speed=2.5,
+    ("gk", mob("The Groundskeeper", 5000000, 1, 1.0, 7500, **GK_LOOK, aggro_range=12, attack_speed=2.5,
                stunnable=0, slowable=0, script_path="Scripts/NPC/Groundskeeper.csx")),
     ("countess", {**FRIENDLY, "npc_name": "The Countess", "body_id": 154}),
     ("count", {**FRIENDLY, "npc_name": "The Count", "body_id": 155}),

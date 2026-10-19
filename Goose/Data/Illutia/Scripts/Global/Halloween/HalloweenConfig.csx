@@ -230,6 +230,8 @@ public sealed class HalloweenGroundskeeper
     public double EnrageAttackSpeed { get; set; }
     public int LightsOutSeconds { get; set; }
     public int LightsOutAlpha { get; set; }
+    public int FinalLightsOutSeconds { get; set; }
+    public int[] FinalLightsOutEverySeconds { get; set; } = [];
     public Dictionary<string, int[][]> Adds { get; set; } = new();
     public int EmptyDespawnSeconds { get; set; }
     public double JumpSeconds { get; set; }
@@ -402,6 +404,11 @@ public sealed class HalloweenConfig
                     "lightsOutAlpha and emptyDespawnSeconds must be > 0");
             if (config.Groundskeeper.JumpSeconds < 0)
                 throw new JsonException("Halloween groundskeeper.jumpSeconds must be >= 0");
+            if (config.Groundskeeper.FinalLightsOutSeconds < 0)
+                throw new JsonException("Halloween groundskeeper.finalLightsOutSeconds must be >= 0");
+            if (config.Groundskeeper.FinalLightsOutEverySeconds is not ([] or [>= 0, >= 0]) ||
+                config.Groundskeeper.FinalLightsOutEverySeconds is [var min, var max] && min > max)
+                throw new JsonException("Halloween groundskeeper.finalLightsOutEverySeconds must be [min, max] seconds");
             foreach (var (kind, entries) in config.Groundskeeper.Adds)
                 if (entries is null || entries.Any(e => e is null || e.Length != 2 || e[1] < 0))
                     throw new JsonException("Halloween groundskeeper.adds entry " + kind +

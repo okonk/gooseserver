@@ -13,6 +13,7 @@ public class GroundskeeperState
     public bool BigHitPending { get; set; }
     public long LastPlayerSeenAt { get; set; }
     public long NextJumpAt { get; set; }
+    public long NextDarkAt { get; set; }
 }
 
 public class Groundskeeper : BaseNPCScript
@@ -86,9 +87,10 @@ public class Groundskeeper : BaseNPCScript
     public void AttackStep(NPC npc, long now, GameWorld world)
     {
         CheckPhases(npc, world);
-        if (npc.Buffs.Any(b => b.SpellEffect.EffectType == SpellEffect.EffectTypes.Stun)) return;
         var cfg = HalloweenConfig.Get(world);
         var state = State(npc);
+        FinalDarkCheck(npc, state, cfg, now, world);
+        if (npc.Buffs.Any(b => b.SpellEffect.EffectType == SpellEffect.EffectTypes.Stun)) return;
         if (cfg.Groundskeeper.JumpSeconds > 0 && now >= state.NextJumpAt)
         {
             state.NextJumpAt = now + Halloween.Ticks(world, cfg.Groundskeeper.JumpSeconds);
@@ -170,7 +172,21 @@ public class Groundskeeper : BaseNPCScript
         npc.Despawn(world);
     }
 
-    public void LightsOut(NPC npc, GameWorld world)
+    private void FinalDarkCheck(NPC npc, GroundskeeperState state, HalloweenConfig cfg, long now, GameWorld world)
+    {
+        if (cfg.Groundskeeper.FinalLightsOutEverySeconds is not [var min, var max]) return;
+        int phase = npc.Properties.TryGetProperty<int>("gkPhase", out var p) ? p : 0;
+        if (phase < 3) return;
+        int seconds = FinalLightsOutSeconds(cfg);
+        if (state.NextDarkAt != 0 && now < state.NextDarkAt) return;
+        if (state.NextDarkAt != 0) LightsOut(npc, world, seconds);
+        state.NextDarkAt = now + Halloween.Ticks(world, seconds + Random.Shared.Next(min, max + 1));
+    }
+
+    private static int FinalLightsOutSeconds(HalloweenConfig cfg) =>
+        cfg.Groundskeeper.FinalLightsOutSeconds > 0 ? cfg.Groundskeeper.FinalLightsOutSeconds : cfg.Groundskeeper.LightsOutSeconds;
+
+    public void LightsOut(NPC npc, GameWorld world, int seconds)
     {
         var cfg = HalloweenConfig.Get(world);
         var map = npc.Map;
@@ -180,7 +196,7 @@ public class Groundskeeper : BaseNPCScript
         // Engine-only action (MapAmbience is engine code), so no script re-resolution is
         // needed in this closure.
         ScriptTimerEvent.Create(() => map.Ambience.Broadcast(map, world),
-            TimeSpan.FromSeconds(cfg.Groundskeeper.LightsOutSeconds), world);
+            TimeSpan.FromSeconds(seconds), world);
     }
 
     private void RunPhase(NPC npc, int phase, double fraction, GameWorld world)
@@ -190,19 +206,19 @@ public class Groundskeeper : BaseNPCScript
         {
             case 0:
                 Rescale(npc, fraction, world);
-                LightsOut(npc, world);
+                LightsOut(npc, world, cfg.Groundskeeper.LightsOutSeconds);
                 Vanish(npc, world);
                 SpawnAdds(npc, "placeSettings", world);
                 break;
             case 1:
                 Rescale(npc, fraction, world);
-                LightsOut(npc, world);
+                LightsOut(npc, world, cfg.Groundskeeper.LightsOutSeconds);
                 Vanish(npc, world);
                 SpawnAdds(npc, "ghosts", world);
                 break;
             case 2:
                 Rescale(npc, fraction, world);
-                LightsOut(npc, world);
+                LightsOut(npc, world, FinalLightsOutSeconds(cfg));
                 Vanish(npc, world);
                 SpawnAdds(npc, "bloody", world);
                 break;
