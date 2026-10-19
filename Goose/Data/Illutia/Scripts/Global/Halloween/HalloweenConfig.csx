@@ -125,6 +125,7 @@ public sealed class HalloweenAmbushConfig
     public int GroupCooldownRadius { get; set; }
     public int PackRadius { get; set; }
     public int PackMax { get; set; }
+    public int? PackPerPlayer { get; set; }
     public int? BasementPackMax { get; set; }
     public int DespawnSeconds { get; set; }
     public int MaxLivePerMap { get; set; }

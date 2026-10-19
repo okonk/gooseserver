@@ -84,7 +84,7 @@ public static class HalloweenAmbush
 
         int size = outcome is "phantom"
             ? 1
-            : PackSize(cfg, packName, rng) + NearbyReady(map, player, cfg.Ambush.PackRadius);
+            : PackSize(cfg, packName, rng) + NearbyReady(map, player, cfg.Ambush.PackRadius) * (cfg.Ambush.PackPerPlayer ?? 1);
         int packMax = basement ? cfg.Ambush.BasementPackMax ?? cfg.Ambush.PackMax : cfg.Ambush.PackMax;
         int maxLive = basement ? cfg.Ambush.BasementMaxLive ?? cfg.Ambush.MaxLivePerMap : cfg.Ambush.MaxLivePerMap;
         size = Math.Min(size, packMax);

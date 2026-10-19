@@ -193,6 +193,22 @@ public class HalloweenAmbushTests
     }
 
     [Fact]
+    public void Pack_adds_pack_per_player_for_each_nearby_player()
+    {
+        var (kit, ambush, map, player) = Setup();
+        kit.SetConfig(cfg =>
+        {
+            cfg["ambush"]!["packPerPlayer"] = 2;
+            cfg["ambush"]!["packMax"] = 10;
+        });
+        Nearby(kit, map, [(12, 13), (13, 12)]);
+
+        Trigger(ambush, kit.World, map, player, "ghosts", Now, new HalloweenTestKit.FixedRandom([0.0]));
+
+        Assert.Equal(6, map.NPCs.Count);
+    }
+
+    [Fact]
     public void Basement_never_rolls_while_groundskeeper_alive()
     {
         var (kit, ambush, map, player) = Setup(mapId: 39, x: 5, y: 5);
