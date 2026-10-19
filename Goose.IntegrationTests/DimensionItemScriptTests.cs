@@ -224,10 +224,34 @@ public class DimensionItemScriptTests
         Assert.Equal("inner-params", item.ScriptParams);
     }
 
+    [Fact]
+    public void Forwards_equip_and_unequip_to_the_base_templates_script()
+    {
+        using var fixture = new GlobalScriptFixture();
+        fixture.AddBaseMap(1, "Town", width: 100, height: 100);
+
+        var inner = new RecordingScript();
+        fixture.AddBaseItemTemplate(52, "Mask", ItemTemplate.UseTypes.Weapon,
+            t => t.Script = ScriptStub.For<IItemScript>(inner));
+        fixture.CompileShipped().Object.OnLoaded(fixture.World);
+
+        var item = ItemOf(fixture, 100052);
+        var player = new Player(0);
+        item.Script!.Object.OnEquipEvent(player, item, fixture.World);
+        item.Script!.Object.OnUnequipEvent(player, item, fixture.World);
+
+        Assert.Equal(1, inner.EquipCalls);
+        Assert.Equal(1, inner.UnequipCalls);
+    }
+
     private sealed class RecordingScript : BaseItemScript
     {
         public int MeleeCalls;
+        public int EquipCalls;
+        public int UnequipCalls;
         public override void OnMeleeEvent(Player player, Item item, GameWorld world) => this.MeleeCalls++;
+        public override void OnEquipEvent(Player player, Item item, GameWorld world) => this.EquipCalls++;
+        public override void OnUnequipEvent(Player player, Item item, GameWorld world) => this.UnequipCalls++;
     }
 
     private static int CountSpells(GlobalScriptFixture fixture, Player player, int spellId)

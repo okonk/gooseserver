@@ -141,6 +141,7 @@ namespace Goose
         public int IdleTimeout { get; set; }
         public int PlayerCountExperienceModifierInterval { get; set; }
         public double PlayerCountExperienceModifier { get; set; }
+        public bool PlayerCountExperienceModifierEnabled { get; set; } = true;
         public int StartingMoveSpeed { get; set; }
         public int StartingBodyR { get; set; }
         public int StartingBodyG { get; set; }

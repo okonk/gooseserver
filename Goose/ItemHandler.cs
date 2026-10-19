@@ -123,6 +123,7 @@ namespace Goose
                     template.LearnSpellID = reader.GetInt32("learn_spell_id");
 
                     template.Credits = reader.GetInt32("credits_value");
+                    template.Properties = ParseTemplateProperties(reader.GetString("properties"), template.ID);
 
                     string scriptPath = reader.GetString("script_path");
                     if (!string.IsNullOrEmpty(scriptPath))
@@ -135,6 +136,21 @@ namespace Goose
                     this.templates[template.ID] = template;
                 }
             });
+        }
+
+        internal static PropertiesDictionary ParseTemplateProperties(string json, int templateId)
+        {
+            if (string.IsNullOrWhiteSpace(json)) return new PropertiesDictionary();
+
+            try
+            {
+                return JsonHelper.Deserialize<PropertiesDictionary>(json) ?? new PropertiesDictionary();
+            }
+            catch (Exception e)
+            {
+                log.Error(e, "item_templates: item template {0} has unreadable properties: {1}", templateId, json);
+                return new PropertiesDictionary();
+            }
         }
 
         public int LoadTitles(GameWorld world)

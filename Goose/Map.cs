@@ -463,6 +463,11 @@ namespace Goose
         private int[]? reachQueue;
         private long reachStampCounter;
 
+        private long[]? pathStamp;
+        private int[]? pathCameFrom;
+        private int[]? pathGScore;
+        private long pathStampCounter;
+
         // Runs on the game thread only; scratch buffers are not thread-safe.
         public bool CanReachTile(int fromX, int fromY, int targetX, int targetY, int radius)
         {
@@ -523,6 +528,94 @@ namespace Goose
             }
 
             return false;
+        }
+
+        // Runs on the game thread only; scratch buffers are not thread-safe.
+        public List<(int X, int Y)>? FindPath(int fromX, int fromY, int toX, int toY,
+            Func<int, int, bool>? isBlocked = null, int maxExpanded = 20000)
+        {
+            if (fromX < 1 || fromX > this.Width || fromY < 1 || fromY > this.Height) return null;
+            if (toX < 1 || toX > this.Width || toY < 1 || toY > this.Height) return null;
+            if (this.IsTileStaticBlocked(toX, toY)) return null;
+            if (fromX == toX && fromY == toY) return new List<(int, int)>();
+
+            int stride = this.Width + 1;
+            if (this.pathStamp is null || this.pathStamp.Length < (this.Width + 1) * (this.Height + 1))
+            {
+                int size = (this.Width + 1) * (this.Height + 1);
+                this.pathStamp = new long[size];
+                this.pathCameFrom = new int[size];
+                this.pathGScore = new int[size];
+            }
+
+            long stamp = ++this.pathStampCounter;
+            int fromIdx = fromY * stride + fromX;
+            int toIdx = toY * stride + toX;
+
+            var open = new PriorityQueue<int, (int f, int h, int seq)>();
+            int seq = 0;
+            int h0 = Math.Abs(fromX - toX) + Math.Abs(fromY - toY);
+            this.pathStamp[fromIdx] = stamp;
+            this.pathGScore[fromIdx] = 0;
+            open.Enqueue(fromIdx, (h0, h0, seq++));
+
+            void Visit(int nIdx, int parentIdx, int ng)
+            {
+                if (this.pathStamp[nIdx] == stamp)
+                {
+                    if (ng >= this.pathGScore[nIdx]) return;
+                }
+                else
+                {
+                    int bx = nIdx % stride;
+                    int by = nIdx / stride;
+                    if (this.IsTileStaticBlocked(bx, by)) return;
+                    if (nIdx != toIdx && isBlocked?.Invoke(bx, by) == true) return;
+                    this.pathStamp[nIdx] = stamp;
+                }
+
+                int nx = nIdx % stride;
+                int ny = nIdx / stride;
+                int nh = Math.Abs(nx - toX) + Math.Abs(ny - toY);
+                this.pathGScore[nIdx] = ng;
+                this.pathCameFrom[nIdx] = parentIdx;
+                open.Enqueue(nIdx, (ng + nh, nh, seq++));
+            }
+
+            int expanded = 0;
+            while (open.Count > 0)
+            {
+                if (expanded >= maxExpanded) return null;
+
+                if (!open.TryDequeue(out int idx, out (int f, int h, int s) priority)) break;
+                if (priority.f != this.pathGScore[idx] + priority.h) continue;
+
+                int x = idx % stride;
+                int y = idx / stride;
+
+                if (idx == toIdx)
+                {
+                    var path = new List<(int X, int Y)>();
+                    int cur = idx;
+                    while (cur != fromIdx)
+                    {
+                        path.Add((cur % stride, cur / stride));
+                        cur = this.pathCameFrom[cur];
+                    }
+                    path.Reverse();
+                    return path;
+                }
+
+                expanded++;
+                int g = this.pathGScore[idx] + 1;
+
+                if (x > 1) Visit(idx - 1, idx, g);
+                if (x < this.Width) Visit(idx + 1, idx, g);
+                if (y > 1) Visit(idx - stride, idx, g);
+                if (y < this.Height) Visit(idx + stride, idx, g);
+            }
+
+            return null;
         }
 
         public static Action<BinaryReader, Map, GameWorld> IllutiaMapLoader = (mapReader, map, world) =>

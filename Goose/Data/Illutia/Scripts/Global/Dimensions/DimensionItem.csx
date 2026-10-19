@@ -73,6 +73,16 @@ public class DimensionItem : BaseItemScript
     {
         DimensionHelpers.BaseItemScript(item, world)?.OnMeleeEvent(player, item, world);
     }
+
+    public override void OnEquipEvent(Player player, Item item, GameWorld world)
+    {
+        DimensionHelpers.BaseItemScript(item, world)?.OnEquipEvent(player, item, world);
+    }
+
+    public override void OnUnequipEvent(Player player, Item item, GameWorld world)
+    {
+        DimensionHelpers.BaseItemScript(item, world)?.OnUnequipEvent(player, item, world);
+    }
 }
 
 return typeof(DimensionItem);

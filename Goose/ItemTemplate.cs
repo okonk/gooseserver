@@ -116,6 +116,10 @@ namespace Goose
         /// data never sets it.</summary>
         public string? CurrencyId { get; set; }
 
+        public PropertiesDictionary Properties { get; set; } = new PropertiesDictionary();
+
+        public bool HidesOtherSlots => this.Properties.TryGetValue("hideOtherSlots", out var value) && value is true;
+
         public Script<IItemScript>? Script { get; set; }
 
         public string ScriptParams { get; set; } = null!;
@@ -163,6 +167,7 @@ namespace Goose
             this.LearnSpellID = other.LearnSpellID;
             this.Credits = other.Credits;
             this.CurrencyId = other.CurrencyId;
+            this.Properties = other.Properties.Clone();
             this.Script = other.Script;
             this.ScriptParams = other.ScriptParams;
         }

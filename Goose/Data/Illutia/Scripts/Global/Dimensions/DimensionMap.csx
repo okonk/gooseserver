@@ -139,6 +139,21 @@ public class DimensionMap : BaseMapScript
         DimensionHelpers.BaseMapScript(map, world)?.OnPlayerChatEvent(map, player, message, world);
     }
 
+    public override string CanPlayerDropItem(Map map, Player player, Item item, long stack, GameWorld world)
+    {
+        return DimensionHelpers.BaseMapScript(map, world)?.CanPlayerDropItem(map, player, item, stack, world);
+    }
+
+    public override void OnPlayerDroppedItem(Map map, Player player, ItemTile tile, GameWorld world)
+    {
+        DimensionHelpers.BaseMapScript(map, world)?.OnPlayerDroppedItem(map, player, tile, world);
+    }
+
+    public override string CanPlayerPickupItem(Map map, Player player, ItemTile tile, GameWorld world)
+    {
+        return DimensionHelpers.BaseMapScript(map, world)?.CanPlayerPickupItem(map, player, tile, world);
+    }
+
     public override void OnNPCKilledEvent(Map map, NPC npc, ICharacter killer, GameWorld world)
     {
         DimensionHelpers.BaseMapScript(map, world)?.OnNPCKilledEvent(map, npc, killer, world);

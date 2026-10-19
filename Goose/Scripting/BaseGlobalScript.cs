@@ -10,5 +10,10 @@ namespace Goose.Scripting
         {
 
         }
+
+        public virtual void OnNPCKilled(NPC npc, ICharacter killer, IReadOnlyList<Player> credited, GameWorld world)
+        {
+
+        }
     }
 }

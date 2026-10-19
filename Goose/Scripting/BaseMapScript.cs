@@ -78,6 +78,21 @@ namespace Goose.Scripting
             return null;
         }
 
+        public virtual string? CanPlayerDropItem(Map map, Player player, Item item, long stack, GameWorld world)
+        {
+            return null;
+        }
+
+        public virtual void OnPlayerDroppedItem(Map map, Player player, ItemTile tile, GameWorld world)
+        {
+
+        }
+
+        public virtual string? CanPlayerPickupItem(Map map, Player player, ItemTile tile, GameWorld world)
+        {
+            return null;
+        }
+
         public virtual void OnPlayerLeft(Map map, Player player, GameWorld world)
         {
 

@@ -87,6 +87,36 @@ public class TestWorldFixture : IDisposable
         return effect;
     }
 
+    public NPCTemplate AddNpcTemplate(int id, string name, Action<NPCTemplate>? configure = null)
+    {
+        var template = new NPCTemplate
+        {
+            NPCTemplateID = id,
+            Name = name,
+            Level = 50,
+            ClassID = 3,
+            BaseStats = new AttributeSet { HP = 1000 },
+            CanBeKilled = true,
+            AggroRange = 15,
+            AttackRange = 1,
+            AttackSpeed = 1,
+            MoveSpeed = 0,
+            Drops = [],
+            Allies = [],
+        };
+        configure?.Invoke(template);
+        World.NPCHandler.AddTemplate(template);
+        return template;
+    }
+
+    public NPC SpawnNpc(Map map, int x, int y, NPCTemplate template, bool shouldRespawn = false,
+        PropertiesDictionary? properties = null)
+    {
+        var npc = World.NPCHandler.SpawnNPC(World, map.ID, x, y, template, shouldRespawn, properties);
+        Assert.NotNull(npc);
+        return npc!;
+    }
+
     public Player PlayerOn(Map map, int x, int y)
     {
         return new Player(0)

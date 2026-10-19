@@ -64,6 +64,7 @@ namespace CsvToSql
             Col.Id("learn_spell_id", SqlType.Int, def: 0).Ref("Spells"),
 
             Col.Int("credits_value", SqlType.Int, def: 0),
+            Col.Text("properties", SqlType.Text, "''"),
             Col.Text("script_path", def: "''"),
             Col.Text("script_params", def: "''"),
         };

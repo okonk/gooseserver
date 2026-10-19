@@ -496,10 +496,14 @@ namespace Goose
             }
 
 
-            int ox = this.MapX;
-            int oy = this.MapY;
-            int x = ox;
-            int y = oy;
+            this.StepTo(direction, world);
+            this.AddMoveEvent(world);
+        }
+
+        public bool StepTo(Direction direction, GameWorld world)
+        {
+            int x = this.MapX;
+            int y = this.MapY;
 
             (x, y) = direction switch
             {
@@ -514,13 +518,23 @@ namespace Goose
             {
                 this.MoveTo(world, x, y);
                 this.Facing = direction;
-            }
-            else
-            {
-                this.FaceTo(direction, world);
+                return true;
             }
 
-            this.AddMoveEvent(world);
+            this.FaceTo(direction, world);
+            return false;
+        }
+
+        public Direction? PathStepTo(int x, int y, GameWorld world, Func<int, int, bool>? isBlocked = null)
+        {
+            List<(int X, int Y)>? path = this.Map.FindPath(this.MapX, this.MapY, x, y, isBlocked);
+            if (path is null || path.Count == 0) return null;
+
+            var (sx, sy) = path[0];
+            return sx > this.MapX ? Direction.Right :
+                   sx < this.MapX ? Direction.Left :
+                   sy > this.MapY ? Direction.Down :
+                   Direction.Up;
         }
 
         /**
@@ -738,6 +752,36 @@ namespace Goose
             }
 
             this.AddMoveEvent(world);
+        }
+
+        public void Despawn(GameWorld world)
+        {
+            if (this.State != States.Alive) return;
+
+            string packet = P.EraseCharacter(this.LoginID);
+            foreach (var player in this.Map.GetPlayersInRange(this))
+            {
+                world.Send(player, packet);
+            }
+
+            this.Map.SetCharacter(null, this.MapX, this.MapY);
+            this.State = States.Dead;
+            this.MoveEvent = null;
+            this.CurrentHP = 0;
+            this.ShouldRespawn = false;
+
+            List<Buff> removebuff = [];
+            foreach (var b in this.Buffs)
+            {
+                removebuff.Add(b);
+            }
+            foreach (var b in removebuff)
+            {
+                this.RemoveBuff(b, world);
+            }
+
+            this.Map.RemoveNPC(this);
+            world.NPCHandler.Release(this);
         }
 
         /**
@@ -1171,6 +1215,7 @@ namespace Goose
                     else
                     {
                         this.Map.RemoveNPC(this);
+                        world.NPCHandler.Release(this);
                     }
 
                     Dictionary<Object, long> damages = [];
@@ -1209,7 +1254,7 @@ namespace Goose
                         if (highest is Group)
                         {
                             var credited = ((Group)highest).GainExperience(this, world);
-                            world.CommunityGoals.OnNpcKilled(this, credited, world);
+                            this.NotifyKilled(character, credited, world);
                         }
                         else
                         {
@@ -1236,7 +1281,7 @@ namespace Goose
                                 ((Player)highest).AddExperience(experience, world, expMessage);
                                 credited = (Player)highest;
                             }
-                            world.CommunityGoals.OnNpcKilled(this, [credited], world);
+                            this.NotifyKilled(character, [credited], world);
                         }
                     }
                     else
@@ -1274,6 +1319,23 @@ namespace Goose
                 foreach (var p in range)
                 {
                     world.Send(p, packet);
+                }
+            }
+        }
+
+        private void NotifyKilled(ICharacter killer, IReadOnlyList<Player> credited, GameWorld world)
+        {
+            world.CommunityGoals.OnNpcKilled(this, credited, world);
+
+            foreach (var script in world.ScriptHandler.GetGlobalScripts())
+            {
+                try
+                {
+                    script.Object.OnNPCKilled(this, killer, credited, world);
+                }
+                catch (Exception e)
+                {
+                    log.Error(e, "Global OnNPCKilled {0} npc {1} ({2}) Exception", script.FilePath, this.Name, this.NPCTemplateID);
                 }
             }
         }

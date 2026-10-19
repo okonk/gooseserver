@@ -400,6 +400,14 @@ var GOOSE_SCHEMA = {
           "pk": false
         },
         {
+          "name": "properties",
+          "kind": "Text",
+          "sql": "TEXT",
+          "default": "\u0027\u0027",
+          "required": false,
+          "pk": false
+        },
+        {
           "name": "script_path",
           "kind": "Text",
           "sql": "TEXT",
