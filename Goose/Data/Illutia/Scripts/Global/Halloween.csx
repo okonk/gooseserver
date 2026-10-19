@@ -22,7 +22,7 @@ public class HalloweenController : BaseGlobalScript
     public override void OnLoaded(GameWorld world)
     {
         world.Commands.Register("/halloween ", AccessPrivilege.SpawnNPC, "Halloween",
-            "Halloween event: on, off, tier <1-3> <0|1>, status, resetcd, ambush <kind>, stalker, weeper, groundskeeper",
+            "Halloween event: on, off, tier <1-3> <0|1>, status, resetcd, ambush <kind>, stalker, weeper, groundskeeper, ritual",
             new Action<CommandContext, string, string[]>(Command));
 
         ScriptTimerEvent? timer = null;
@@ -159,8 +159,11 @@ public class HalloweenController : BaseGlobalScript
             case "groundskeeper":
                 SpawnBoss(ctx, cfg.Npcs.Groundskeeper);
                 break;
+            case "ritual":
+                Ritual(ctx, cfg);
+                break;
             default:
-                ctx.Send("Usage: /halloween on|off|tier <1-3> <0|1>|status|resetcd|ambush <kind>|stalker|weeper|groundskeeper");
+                ctx.Send("Usage: /halloween on|off|tier <1-3> <0|1>|status|resetcd|ambush <kind>|stalker|weeper|groundskeeper|ritual");
                 break;
         }
     }
@@ -186,6 +189,27 @@ public class HalloweenController : BaseGlobalScript
             ctx.Send("Next chainsaw: in " + (nextChainsawAt - now) / world.TimerFrequency + "s");
         else
             ctx.Send("Next chainsaw: not scheduled");
+    }
+
+    private void Ritual(CommandContext ctx, HalloweenConfig cfg)
+    {
+        var world = ctx.World;
+        if (!Halloween.Active(world))
+        {
+            ctx.Send("Halloween event is off.");
+            return;
+        }
+        if (!world.MapHandler.Maps.TryGetValue(cfg.Maps.Basement, out var basement) || basement?.Script?.Object is not { } script)
+        {
+            ctx.Send("The basement is not loaded.");
+            return;
+        }
+        var now = DateTime.Now;
+        var hour = new DateTime(now.Year, now.Month, now.Day, now.Hour, 0, 0, now.Kind);
+        var type = script.GetType();
+        int lit = (int)type.GetMethod("LitPoints")!.Invoke(script, new object?[] { basement, world })!;
+        type.GetMethod("ClockTick")!.Invoke(script, new object?[] { world, basement, hour });
+        ctx.Send($"Ritual checked: {lit} of {cfg.Pentagram.Points.Length} candles lit.");
     }
 
     private static string TierState(GameWorld world, int tier) => Halloween.Tier(world, tier) ? "on" : "off";

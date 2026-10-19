@@ -149,6 +149,43 @@ public class HalloweenControllerTests
     }
 
     [Fact]
+    public void Ritual_command_runs_the_hourly_candle_check()
+    {
+        using var kit = new HalloweenTestKit();
+        var basement = kit.Fixture.AddBaseMap(39, "Basement", 80, 24);
+        basement.Script = kit.Compile<IMapScript>("Map", "HauntedBasement.csx");
+        var gm = kit.Fixture.CommandPlayerOn(basement, 20, 20, "GM");
+        gm.Access = Player.AccessStatus.GameMaster;
+        basement.AddPlayer(gm, kit.World);
+        var controller = kit.Compile<IGlobalScript>("Global", "Halloween.csx");
+        controller.Object.OnLoaded(kit.World);
+
+        Assert.True(kit.Fixture.RunCommand(gm, "/halloween ritual"));
+        Assert.Contains(gm.Sent, s => s.Contains("Halloween event is off."));
+
+        kit.World.CommunityGoals.SetFlag("halloween.active", 1, null);
+        Assert.True(kit.Fixture.RunCommand(gm, "/halloween ritual"));
+        Assert.Contains(gm.Sent, s => s.Contains("Ritual checked: 0 of 5 candles lit."));
+        Assert.Contains(gm.Sent, s => s.Contains("Nothing answers."));
+        Assert.DoesNotContain(basement.NPCs, n => n.NPCTemplateID == kit.GroundskeeperId);
+
+        var points = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(kit.ConfigPath))!["pentagram"]!["points"]!.AsArray()
+            .Select(p => p!.AsArray().Select(v => v!.GetValue<int>()).ToArray());
+        foreach (var point in points)
+        {
+            var candle = new Item();
+            candle.LoadFromTemplate(kit.World.ItemHandler.GetTemplate(kit.RitualCandleId)!);
+            kit.World.ItemHandler.AddAndAssignId(candle, kit.World);
+            basement.AddItem(new ItemTile { ItemSlot = new ItemSlot { Item = candle, Stack = 1 }, X = point[0], Y = point[1] }, kit.World);
+        }
+
+        Assert.True(kit.Fixture.RunCommand(gm, "/halloween ritual"));
+        Assert.Contains(gm.Sent, s => s.Contains("Ritual checked: 5 of 5 candles lit."));
+        Assert.Contains(gm.Sent, s => s.Contains("The clock strikes midnight. The candles gutter out."));
+        Assert.Single(basement.NPCs, n => n.NPCTemplateID == kit.GroundskeeperId);
+    }
+
+    [Fact]
     public void Tick_calls_current_script_object_after_swap()
     {
         using var kit = new HalloweenTestKit();
