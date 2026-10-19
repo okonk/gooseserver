@@ -165,7 +165,17 @@ public class Weeper : BaseNPCScript
             state.LeftRouteAtX = npc.MapX;
             state.LeftRouteAtY = npc.MapY;
         }
-        if (Math.Abs(npc.MapX - target.MapX) <= 1 && Math.Abs(npc.MapY - target.MapY) <= 1) return;
+        int dx = Math.Abs(npc.MapX - target.MapX);
+        int dy = Math.Abs(npc.MapY - target.MapY);
+        if (dx + dy <= 1) return;
+        if (dx == 1 && dy == 1)
+        {
+            foreach (var beside in new[] { (target.MapX, npc.MapY), (npc.MapX, target.MapY) })
+                if (npc.CanMoveTo(beside.Item1, beside.Item2) &&
+                    npc.StepTo(DirectionTo((npc.MapX, npc.MapY), beside), world))
+                    return;
+            return;
+        }
         var dir = npc.PathStepTo(target.MapX, target.MapY, world,
             (x, y) => npc.Map.GetCharacterAt(x, y) is not null && npc.Map.GetCharacterAt(x, y) != target);
         dir ??= Approach(npc, target);

@@ -190,6 +190,32 @@ public class WeeperScriptTests : IDisposable
     }
 
     [Fact]
+    public void Chase_steps_from_a_diagonal_to_right_beside_the_player()
+    {
+        var npc = Spawn(10, 10);
+        var player = kit.Fixture.CommandPlayerOn(map, 11, 11, "Victim");
+        npc.AddAggro(player, 1, kit.World);
+
+        Call("MoveStep", npc, Now, kit.World);
+
+        Assert.Equal(1, Math.Abs(npc.MapX - 11) + Math.Abs(npc.MapY - 11));
+    }
+
+    [Fact]
+    public void Chase_stays_diagonal_when_both_beside_tiles_are_taken()
+    {
+        var npc = Spawn(10, 10);
+        var player = kit.Fixture.CommandPlayerOn(map, 11, 11, "Victim");
+        map.SetTile(11, 10, new BlockedTile());
+        map.SetTile(10, 11, new BlockedTile());
+        npc.AddAggro(player, 1, kit.World);
+
+        Call("MoveStep", npc, Now, kit.World);
+
+        Assert.Equal((10, 10), (npc.MapX, npc.MapY));
+    }
+
+    [Fact]
     public void Chase_closes_in_when_the_player_is_walled_off()
     {
         var npc = Spawn(10, 5);
