@@ -663,7 +663,7 @@ def build(next_ids, npc_rows, warp_rows):
             row["properties"] = json.dumps(props)
         ops.append(create("NPC Spawns", row))
 
-    ops.append(create("Maps", {"map_id": maps["house"], "map_name": "Haunted House", "map_filename": "Map10048.map",
+    ops.append(create("Maps", {"map_id": maps["house"], "map_name": "Haunted Mansion", "map_filename": "Map10048.map",
                                "min_level": 40, "script_path": "Scripts/Map/HauntedHouse.csx"}))
     ops.append({"op": "update", "sheet": "Maps", "id": BASEMENT,
                 "set": {"map_name": "Haunted Basement", "script_path": "Scripts/Map/HauntedBasement.csx"}})
