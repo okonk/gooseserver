@@ -12,6 +12,7 @@ public class GroundskeeperState
     public int SwingCount { get; set; }
     public bool BigHitPending { get; set; }
     public long LastPlayerSeenAt { get; set; }
+    public long NextJumpAt { get; set; }
 }
 
 public class Groundskeeper : BaseNPCScript
@@ -21,6 +22,7 @@ public class Groundskeeper : BaseNPCScript
         var cfg = HalloweenConfig.Get(world);
         var state = State(npc);
         state.LastPlayerSeenAt = world.TimeNow;
+        state.NextJumpAt = world.TimeNow + Halloween.Ticks(world, cfg.Groundskeeper.JumpSeconds);
         npc.Properties["gkPhase"] = 0;
         Halloween.AddPermanentBuff(npc, cfg.Effects.GroundskeeperCurve, world);
         Rescale(npc, 1.0, world);
@@ -73,10 +75,15 @@ public class Groundskeeper : BaseNPCScript
     {
         CheckPhases(npc, world);
         if (npc.Buffs.Any(b => b.SpellEffect.EffectType == SpellEffect.EffectTypes.Stun)) return;
-        if (npc.AggroTarget is not Player target || npc.Map != target.Map) return;
-        if (Math.Abs(npc.MapX - target.MapX) > npc.AttackRange || Math.Abs(npc.MapY - target.MapY) > npc.AttackRange) return;
         var cfg = HalloweenConfig.Get(world);
         var state = State(npc);
+        if (cfg.Groundskeeper.JumpSeconds > 0 && now >= state.NextJumpAt)
+        {
+            state.NextJumpAt = now + Halloween.Ticks(world, cfg.Groundskeeper.JumpSeconds);
+            Vanish(npc, world);
+        }
+        if (npc.AggroTarget is not Player target || npc.Map != target.Map) return;
+        if (Math.Abs(npc.MapX - target.MapX) > npc.AttackRange || Math.Abs(npc.MapY - target.MapY) > npc.AttackRange) return;
         state.SwingCount++;
         if (state.SwingCount % cfg.Groundskeeper.BigHitEvery == 0 && !state.BigHitPending)
         {

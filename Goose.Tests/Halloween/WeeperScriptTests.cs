@@ -153,6 +153,57 @@ public class WeeperScriptTests : IDisposable
         Assert.Equal(Now + kit.World.TimerFrequency * 15, StateLong(npc, "NextLungeAt"));
     }
 
+    [Theory]
+    [InlineData(Direction.Up, 15, 11)]
+    [InlineData(Direction.Down, 15, 9)]
+    [InlineData(Direction.Left, 16, 10)]
+    [InlineData(Direction.Right, 14, 10)]
+    public void Lunge_lands_directly_behind_the_player(Direction facing, int x, int y)
+    {
+        SetWorldRandom(kit.World, new HalloweenTestKit.FixedRandom([0.0]));
+        var npc = Spawn(10, 10);
+        var a = PlayerOn(11, 10, "A");
+        var b = PlayerOn(15, 10, "B");
+        b.Facing = facing;
+        npc.AddAggro(a, 100, kit.World);
+
+        Call("AttackStep", npc, Now, kit.World);
+
+        Assert.Equal((x, y), (npc.MapX, npc.MapY));
+    }
+
+    [Fact]
+    public void Lunge_falls_back_to_the_side_when_behind_is_blocked()
+    {
+        SetWorldRandom(kit.World, new HalloweenTestKit.FixedRandom([0.0]));
+        map.SetTile(15, 11, new BlockedTile());
+        var npc = Spawn(10, 10);
+        var a = PlayerOn(11, 10, "A");
+        var b = PlayerOn(15, 10, "B");
+        b.Facing = Direction.Up;
+        npc.AddAggro(a, 100, kit.World);
+
+        Call("AttackStep", npc, Now, kit.World);
+
+        Assert.Equal(1, Math.Abs(npc.MapX - b.MapX));
+        Assert.Equal(b.MapY, npc.MapY);
+    }
+
+    [Fact]
+    public void Patrol_skips_a_waypoint_something_is_standing_on()
+    {
+        int[][] loop = [[10, 5], [10, 8], [14, 8]];
+        Loops(("a", loop));
+        var npc = Spawn(10, 5);
+        Spawn(10, 8);
+
+        for (int i = 0; i < 20 && LoopIndex(npc) < 2; i++)
+            Call("MoveStep", npc, Now, kit.World);
+
+        Assert.Equal(2, LoopIndex(npc));
+        Assert.Equal((10, 7), (npc.MapX, npc.MapY));
+    }
+
     [Fact]
     public void Leash_drops_aggro_after_10s_with_nobody_near()
     {

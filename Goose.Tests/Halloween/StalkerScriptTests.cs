@@ -84,6 +84,37 @@ public class StalkerScriptTests : IDisposable
     }
 
     [Fact]
+    public void Mounted_target_cannot_drag_him_below_the_minimum_delay()
+    {
+        kit.SetConfig(cfg => cfg["stalkerChase"]!["minDelaySeconds"] = 0.3);
+        var target = PlayerOn(30, 30, "T");
+        SeedMoveSpeed(target, 200);
+        var npc = Spawn(10, 10, target, "chase");
+
+        Step(npc, Now);
+        Assert.Equal(0.32, npc.MoveSpeed, 10);
+
+        var walker = PlayerOn(40, 30, "W");
+        SeedMoveSpeed(walker, 320);
+        var other = Spawn(10, 40, walker, "chase");
+
+        Step(other, Now);
+        Assert.Equal(0.34, other.MoveSpeed, 10);
+    }
+
+    [Fact]
+    public void Catching_swings_the_chainsaw_at_the_target()
+    {
+        var target = PlayerOn(30, 30, "T");
+        var npc = Spawn(29, 30, target, "chase");
+
+        Assert.True(Step(npc, Now));
+
+        Assert.Contains(target.Sent, s => s.TrimEnd('\x1') == "ATT" + npc.LoginID);
+        Assert.Equal(Direction.Right, npc.Facing);
+    }
+
+    [Fact]
     public void Players_do_not_block_his_path_npcs_do()
     {
         Corridor();

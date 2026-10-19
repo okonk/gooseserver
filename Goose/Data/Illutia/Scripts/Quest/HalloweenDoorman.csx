@@ -12,10 +12,10 @@ public class HalloweenDoorman : BaseQuestScript
     public override void GiveReward(QuestReward reward, NPC npc, Player player, GameWorld world)
     {
         var cfg = HalloweenConfig.Get(world);
-        if (cfg.Maps.FoyerSpawn.Length < 2) return;
+        if (cfg.Maps.Entrance.Length < 2) return;
         if (!world.MapHandler.Maps.TryGetValue(cfg.Maps.House, out var house) || house is null) return;
 
-        player.WarpTo(world, house, cfg.Maps.FoyerSpawn[0], cfg.Maps.FoyerSpawn[1]);
+        player.WarpTo(world, house, cfg.Maps.Entrance[0], cfg.Maps.Entrance[1]);
         Halloween.Feed(world, player, "The door locks behind you.");
     }
 }

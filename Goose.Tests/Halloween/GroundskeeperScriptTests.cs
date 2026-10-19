@@ -55,6 +55,23 @@ public class GroundskeeperScriptTests : IDisposable
     }
 
     [Fact]
+    public void Jumps_behind_a_player_every_jump_interval()
+    {
+        kit.SetConfig(cfg => cfg["groundskeeper"]!["jumpSeconds"] = 12);
+        var npc = Spawn(30, 30);
+        var player = PlayerOn(10, 10, "A");
+        player.Facing = Direction.Down;
+        long start = kit.World.TimeNow;
+
+        Call("AttackStep", npc, start + kit.World.TimerFrequency * 11, kit.World);
+        Assert.Equal((30, 30), (npc.MapX, npc.MapY));
+
+        Call("AttackStep", npc, start + kit.World.TimerFrequency * 12, kit.World);
+        Assert.Equal((10, 9), (npc.MapX, npc.MapY));
+        Assert.Equal(player, npc.AggroTarget);
+    }
+
+    [Fact]
     public void Crossing_75_runs_phase_once_with_rescale_and_adds()
     {
         Adds(("placeSettings", kit.WailingGhostId, 3));

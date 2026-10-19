@@ -45,8 +45,8 @@ public class Stalker : BaseNPCScript
         if (Math.Abs(npc.MapX - target.MapX) <= 1 && Math.Abs(npc.MapY - target.MapY) <= 1)
             return Caught(npc, target, mode, now, world);
 
-        double speed = target.CalculateMoveSpeed() / 1000.0 +
-            (mode is "chase" ? cfg.StalkerChase.SpeedOffset : -cfg.StalkerChase.SpeedOffset);
+        double pace = Math.Max(target.CalculateMoveSpeed() / 1000.0, cfg.StalkerChase.MinDelaySeconds);
+        double speed = pace + (mode is "chase" ? cfg.StalkerChase.SpeedOffset : -cfg.StalkerChase.SpeedOffset);
         npc.MoveSpeed = Math.Max(0.05, speed);
 
         var dir = npc.PathStepTo(target.MapX, target.MapY, world, (x, y) => npc.Map.GetCharacterAt(x, y) is NPC);
@@ -78,6 +78,7 @@ public class Stalker : BaseNPCScript
     private bool Caught(NPC npc, Player target, string mode, long now, GameWorld world)
     {
         var cfg = HalloweenConfig.Get(world);
+        Swing(npc, target, world);
         if (mode is "chase")
         {
             if (cfg.Maps.FoyerSpawn.Length >= 2 &&
@@ -97,6 +98,19 @@ public class Stalker : BaseNPCScript
             }
         }
         return EndChase(npc, target, mode, false, now, world);
+    }
+
+    private static void Swing(NPC npc, Player target, GameWorld world)
+    {
+        int dx = target.MapX - npc.MapX;
+        int dy = target.MapY - npc.MapY;
+        var facing = Math.Abs(dx) >= Math.Abs(dy)
+            ? (dx > 0 ? Direction.Right : Direction.Left)
+            : (dy > 0 ? Direction.Down : Direction.Up);
+        npc.FaceTo(facing, world);
+        string packet = P.Attack(npc);
+        foreach (var player in npc.Map.GetPlayersInRange(npc))
+            world.Send(player, packet);
     }
 
     private void BodyBlock(Player p, GameWorld world)

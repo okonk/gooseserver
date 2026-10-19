@@ -20,6 +20,8 @@ public class WeeperState : BossState
 
 public class Weeper : BaseNPCScript
 {
+    private const int StuckStepsBeforeSkip = 5;
+
     public override void OnSpawnEvent(NPC npc, GameWorld world)
     {
         var cfg = HalloweenConfig.Get(world);
@@ -178,20 +180,34 @@ public class Weeper : BaseNPCScript
         var (wx, wy) = waypoints[index];
         if (npc.MapX == wx && npc.MapY == wy)
         {
-            if (index >= waypoints.Count - 1)
-            {
-                npc.Properties["weeperLastLoop"] = name;
-                npc.Properties["weeperLoop"] = PickLoop(cfg, world, name);
-                npc.Properties["weeperWaypoint"] = 0;
-            }
-            else
-            {
-                npc.Properties["weeperWaypoint"] = index + 1;
-            }
+            NextWaypoint(npc, cfg, world, name, index, waypoints.Count);
             return;
         }
         var dir = npc.PathStepTo(wx, wy, world, (x, y) => npc.Map.GetCharacterAt(x, y) is not null);
-        if (dir is not null) npc.StepTo(dir.Value, world);
+        if (dir is not null && npc.StepTo(dir.Value, world))
+        {
+            npc.Properties["weeperStuck"] = 0;
+            return;
+        }
+        int stuck = (npc.Properties.TryGetProperty<int>("weeperStuck", out var s) ? s : 0) + 1;
+        npc.Properties["weeperStuck"] = stuck;
+        if (stuck >= StuckStepsBeforeSkip)
+            NextWaypoint(npc, cfg, world, name, index, waypoints.Count);
+    }
+
+    private static void NextWaypoint(NPC npc, HalloweenConfig cfg, GameWorld world, string loop, int index, int count)
+    {
+        npc.Properties["weeperStuck"] = 0;
+        if (index >= count - 1)
+        {
+            npc.Properties["weeperLastLoop"] = loop;
+            npc.Properties["weeperLoop"] = PickLoop(cfg, world, loop);
+            npc.Properties["weeperWaypoint"] = 0;
+        }
+        else
+        {
+            npc.Properties["weeperWaypoint"] = index + 1;
+        }
     }
 
     private static bool Lunge(NPC npc, WeeperState state, HalloweenConfig cfg, long now, GameWorld world)
@@ -200,7 +216,7 @@ public class Weeper : BaseNPCScript
             .Where(p => p != npc.AggroTarget).ToList();
         if (candidates.Count == 0) return false;
         var target = candidates[world.Random.Next(candidates.Count)];
-        (int X, int Y)? tile = FreeAdjacentTile(npc, target);
+        (int X, int Y)? tile = TileBehind(npc, target);
         if (tile is null) return false;
         npc.MoveTo(world, tile.Value.X, tile.Value.Y);
         npc.AddAggro(target, npc.AggroValue.Damage + npc.AggroValue.Taunt + 1, wastaunt: true, world);
@@ -209,17 +225,23 @@ public class Weeper : BaseNPCScript
         return true;
     }
 
-    private static (int X, int Y)? FreeAdjacentTile(NPC npc, Player target)
+    private static (int X, int Y)? TileBehind(NPC npc, Player target)
     {
-        var map = npc.Map;
-        for (int dy = -1; dy <= 1; dy++)
-            for (int dx = -1; dx <= 1; dx++)
-            {
-                if (dx == 0 && dy == 0) continue;
-                int x = target.MapX + dx;
-                int y = target.MapY + dy;
-                if (!map.IsTileBlocked(null, x, y)) return (x, y);
-            }
+        var behind = target.Facing switch
+        {
+            Direction.Up => (0, 1),
+            Direction.Down => (0, -1),
+            Direction.Right => (-1, 0),
+            _ => (1, 0),
+        };
+        var sides = behind.Item1 == 0 ? new[] { (1, 0), (-1, 0) } : new[] { (0, 1), (0, -1) };
+        var front = (-behind.Item1, -behind.Item2);
+        foreach (var (dx, dy) in new[] { behind, sides[0], sides[1], front })
+        {
+            int x = target.MapX + dx;
+            int y = target.MapY + dy;
+            if (!npc.Map.IsTileBlocked(null, x, y)) return (x, y);
+        }
         return null;
     }
 

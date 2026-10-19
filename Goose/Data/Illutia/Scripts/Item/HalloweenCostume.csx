@@ -27,6 +27,8 @@ public class HalloweenCostume : BaseItemScript
         item.GraphicG = look.G;
         item.GraphicB = look.B;
         item.GraphicA = look.A;
+        if (look.Tile is int tile) item.GraphicTile = tile;
+        if (look.File is int file) item.GraphicFile = file;
     }
 
     public override void OnEquipEvent(Player player, Item item, GameWorld world)
@@ -42,6 +44,8 @@ public class HalloweenCostume : BaseItemScript
         public int G { get; set; }
         public int B { get; set; }
         public int A { get; set; }
+        public int? Tile { get; set; }
+        public int? File { get; set; }
     }
 
     private static List<Look>? ParseLooks(string scriptParams)
@@ -103,6 +107,14 @@ public class HalloweenCostume : BaseItemScript
                     if (!TryInRange(property.Value, 0, 255, out value)) return null;
                     look.A = value;
                     break;
+                case "tile":
+                    if (!TryInRange(property.Value, 0, int.MaxValue, out value)) return null;
+                    look.Tile = value;
+                    continue;
+                case "file":
+                    if (!TryInRange(property.Value, 0, int.MaxValue, out value)) return null;
+                    look.File = value;
+                    continue;
                 default:
                     return null;
             }

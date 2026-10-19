@@ -13,6 +13,7 @@ public sealed class HalloweenMaps
     public int[] GroveExit { get; set; } = [];
     public int[] FoyerSpawn { get; set; } = [];
     public int[] BasementArrival { get; set; } = [];
+    public int[] Entrance { get; set; } = [];
 }
 
 public sealed class HalloweenItems
@@ -150,6 +151,7 @@ public sealed class HalloweenStalkerChase
     public int ChaseSeconds { get; set; }
     public int StartDelaySeconds { get; set; }
     public double SpeedOffset { get; set; }
+    public double MinDelaySeconds { get; set; }
     public int WarnRadius { get; set; }
     public int WarnSeconds { get; set; }
 }
@@ -226,6 +228,7 @@ public sealed class HalloweenGroundskeeper
     public int LightsOutAlpha { get; set; }
     public Dictionary<string, int[][]> Adds { get; set; } = new();
     public int EmptyDespawnSeconds { get; set; }
+    public double JumpSeconds { get; set; }
 }
 
 public sealed class HalloweenGoal
@@ -316,6 +319,7 @@ public sealed class HalloweenConfig
                 ["groveExit"] = config.Maps.GroveExit,
                 ["foyerSpawn"] = config.Maps.FoyerSpawn,
                 ["basementArrival"] = config.Maps.BasementArrival,
+                ["entrance"] = config.Maps.Entrance,
             })
                 if (point is null || point.Length != 2)
                     throw new JsonException("Halloween maps." + name + " must be a [x, y] array");
@@ -392,6 +396,8 @@ public sealed class HalloweenConfig
                 config.Groundskeeper.EmptyDespawnSeconds <= 0)
                 throw new JsonException("Halloween groundskeeper bigHitWarnSeconds, enrageAttackSpeed, lightsOutSeconds, " +
                     "lightsOutAlpha and emptyDespawnSeconds must be > 0");
+            if (config.Groundskeeper.JumpSeconds < 0)
+                throw new JsonException("Halloween groundskeeper.jumpSeconds must be >= 0");
             foreach (var (kind, entries) in config.Groundskeeper.Adds)
                 if (entries is null || entries.Any(e => e is null || e.Length != 2 || e[1] < 0))
                     throw new JsonException("Halloween groundskeeper.adds entry " + kind +
@@ -404,6 +410,8 @@ public sealed class HalloweenConfig
                 config.StalkerChase.WarnSeconds <= 0)
                 throw new JsonException("Halloween stalkerChase chaseSeconds, startDelaySeconds, speedOffset, warnRadius " +
                     "and warnSeconds must be > 0");
+            if (config.StalkerChase.MinDelaySeconds < 0)
+                throw new JsonException("Halloween stalkerChase.minDelaySeconds must be >= 0");
             cached = config;
             cachedKey = key;
             failedKey = "";

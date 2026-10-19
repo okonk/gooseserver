@@ -80,6 +80,28 @@ public class HalloweenItemQuestScriptTests
     }
 
     [Fact]
+    public void Costume_look_can_set_its_own_drop_tile()
+    {
+        using var kit = new HalloweenTestKit();
+        var template = kit.World.ItemHandler.GetTemplate(kit.PartyCostumeId)!;
+        template.GraphicTile = 11;
+        template.GraphicFile = 22;
+        template.ScriptParams =
+            """[{"graphic": 19, "r": 0, "g": 0, "b": 0, "a": 0, "tile": 2281, "file": 332509}, {"graphic": 20, "r": 0, "g": 0, "b": 0, "a": 0}]""";
+        template.Script = kit.Compile<IItemScript>("Item", "HalloweenCostume.csx");
+        SetWorldRandom(kit.World, new HalloweenTestKit.FixedRandom([], [0, 1]));
+
+        var tiled = CreateItem(kit, kit.PartyCostumeId);
+        Assert.Equal((2281, 332509), (tiled.GraphicTile, tiled.GraphicFile));
+
+        var plain = CreateItem(kit, kit.PartyCostumeId);
+        Assert.Equal((11, 22), (plain.GraphicTile, plain.GraphicFile));
+
+        var roundTripped = JsonSerializer.Deserialize<Item>(JsonSerializer.Serialize(tiled))!;
+        Assert.Equal((2281, 332509), (roundTripped.GraphicTile, roundTripped.GraphicFile));
+    }
+
+    [Fact]
     public void Invalid_look_params_keep_template_look()
     {
         using var kit = new HalloweenTestKit();
@@ -98,6 +120,7 @@ public class HalloweenItemQuestScriptTests
                      """[{"graphic": 1}]""",
                      """[{"graphic": 1, "r": 2, "g": 3, "b": 4, "a": 5, "x": 6}]""",
                      """[{"graphic": 1, "r": 300, "g": 3, "b": 4, "a": 5}]""",
+                     """[{"graphic": 1, "r": 2, "g": 3, "b": 4, "a": 5, "tile": -1}]""",
                  })
         {
             template.ScriptParams = bad;
@@ -135,12 +158,12 @@ public class HalloweenItemQuestScriptTests
     }
 
     [Fact]
-    public void Doorman_reward_warps_to_foyer()
+    public void Doorman_reward_warps_to_entrance()
     {
         using var kit = new HalloweenTestKit();
         var script = kit.Compile<IQuestScript>("Quest", "HalloweenDoorman.csx").Object;
         var reward = new QuestReward { Id = 1, Type = RewardType.Script, ScriptParams = "" };
-        var house = kit.Fixture.AddBaseMap(48, "House", 64, 64);
+        var house = kit.Fixture.AddBaseMap(48, "House", 80, 80);
         var grove = kit.Fixture.AddBaseMap(38, "Grove", 48, 48);
         var player = kit.Fixture.CommandPlayerOn(grove, 5, 5, "A");
         player.PlayerID = 505;
@@ -154,7 +177,7 @@ public class HalloweenItemQuestScriptTests
         CompleteWarp(kit, player);
 
         Assert.Equal(house, player.Map);
-        Assert.Equal((43, 53), (player.MapX, player.MapY));
+        Assert.Equal((32, 64), (player.MapX, player.MapY));
         Assert.Contains(player.Sent, s => s.Contains("The door locks behind you."));
     }
 
@@ -175,6 +198,79 @@ public class HalloweenItemQuestScriptTests
     private static void AttachCostume(HalloweenTestKit kit, int templateId)
         => kit.World.ItemHandler.GetTemplate(templateId)!.Script =
             kit.Compile<IItemScript>("Item", "HalloweenCostume.csx");
+
+    [Fact]
+    public void Turn_in_accepts_any_listed_item_and_takes_only_what_it_needs()
+    {
+        using var kit = new HalloweenTestKit();
+        var script = kit.Compile<IQuestScript>("Quest", "HalloweenTurnIn.csx").Object;
+        var requirement = new QuestRequirement
+        {
+            Id = 1,
+            Type = RequirementType.Script,
+            ScriptParams = $$"""{"items": [{{kit.MaskIds[0]}}, {{kit.MaskIds[1]}}], "count": 2, "label": "Any mask"}""",
+        };
+        var house = kit.Fixture.AddBaseMap(48, "House", 48, 48);
+        var player = kit.Fixture.CommandPlayerOn(house, 5, 5, "A");
+
+        Assert.True(player.Inventory.AddItem(CreateItem(kit, kit.MaskIds[1]), 1, kit.World));
+        Assert.False(script.IsMet(requirement, player, kit.World));
+        Assert.Equal("Any mask (1/2)", script.GetProgressText(requirement, player, kit.World));
+
+        Assert.True(player.Inventory.AddItem(CreateItem(kit, kit.MaskIds[0]), 1, kit.World));
+        Assert.True(player.Inventory.AddItem(CreateItem(kit, kit.MaskIds[1]), 1, kit.World));
+        Assert.True(player.Inventory.AddItem(CreateItem(kit, kit.MaskIds[2]), 1, kit.World));
+        Assert.True(script.IsMet(requirement, player, kit.World));
+        Assert.Equal("Any mask (2/2)", script.GetProgressText(requirement, player, kit.World));
+
+        script.OnTakeRequirement(requirement, player, kit.World);
+
+        Assert.Equal(0, player.Inventory.GetItemCount(kit.MaskIds[0]));
+        Assert.Equal(1, player.Inventory.GetItemCount(kit.MaskIds[1]));
+        Assert.Equal(1, player.Inventory.GetItemCount(kit.MaskIds[2]));
+    }
+
+    [Fact]
+    public void Turn_in_with_bad_params_is_never_met()
+    {
+        using var kit = new HalloweenTestKit();
+        var script = kit.Compile<IQuestScript>("Quest", "HalloweenTurnIn.csx").Object;
+        var house = kit.Fixture.AddBaseMap(48, "House", 48, 48);
+        var player = kit.Fixture.CommandPlayerOn(house, 5, 5, "A");
+        Assert.True(player.Inventory.AddItem(CreateItem(kit, kit.MaskIds[0]), 1, kit.World));
+
+        foreach (var bad in new[] { "", "not json", """{"items": []}""", $$"""{"items": [{{kit.MaskIds[0]}}], "count": 0}""" })
+        {
+            var requirement = new QuestRequirement { Id = 1, Type = RequirementType.Script, ScriptParams = bad };
+            Assert.False(script.IsMet(requirement, player, kit.World));
+        }
+    }
+
+    [Theory]
+    [InlineData(22, 42, "The grandfather clock reads 10:42 PM.\\nIt strikes the hour in 18 minutes.")]
+    [InlineData(9, 59, "The grandfather clock reads 9:59 AM.\\nIt strikes the hour in 1 minute.")]
+    [InlineData(0, 0, "The grandfather clock reads 12:00 AM.\\nIt is striking the hour right now!")]
+    public void Clock_reads_the_time_and_minutes_to_the_hour(int hour, int minute, string expected)
+    {
+        using var kit = new HalloweenTestKit();
+        var script = kit.Compile<IQuestScript>("Quest", "HalloweenClock.csx").Object;
+        var reading = (string)script.GetType().GetMethod("Reading")!
+            .Invoke(script, [new DateTime(2026, 10, 31, hour, minute, 0)])!;
+
+        Assert.Equal(expected, reading);
+    }
+
+    [Fact]
+    public void Clock_never_completes()
+    {
+        using var kit = new HalloweenTestKit();
+        var script = kit.Compile<IQuestScript>("Quest", "HalloweenClock.csx").Object;
+        var house = kit.Fixture.AddBaseMap(48, "House", 48, 48);
+        var player = kit.Fixture.CommandPlayerOn(house, 5, 5, "A");
+
+        Assert.StartsWith("The grandfather clock reads ",
+            script.CanComplete(new QuestReward { Id = 1, Type = RewardType.Script }, player, kit.World));
+    }
 
     private static Item CreateItem(HalloweenTestKit kit, int templateId)
     {

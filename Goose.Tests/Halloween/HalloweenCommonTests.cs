@@ -370,6 +370,7 @@ public class HalloweenCommonTests
         ["groveExit"] = new JsonArray(38, 37),
         ["foyerSpawn"] = new JsonArray(43, 53),
         ["basementArrival"] = new JsonArray(0, 0),
+        ["entrance"] = new JsonArray(32, 64),
     };
 
     private static int ConfigValue(HalloweenTestKit kit, string section, string name)
