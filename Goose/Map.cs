@@ -540,7 +540,8 @@ namespace Goose
             if (fromX == toX && fromY == toY) return new List<(int, int)>();
 
             int stride = this.Width + 1;
-            if (this.pathStamp is null || this.pathStamp.Length < (this.Width + 1) * (this.Height + 1))
+            if (this.pathStamp is null || this.pathCameFrom is null || this.pathGScore is null
+                || this.pathStamp.Length < (this.Width + 1) * (this.Height + 1))
             {
                 int size = (this.Width + 1) * (this.Height + 1);
                 this.pathStamp = new long[size];
