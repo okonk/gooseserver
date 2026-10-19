@@ -125,8 +125,10 @@ public sealed class HalloweenAmbushConfig
     public int GroupCooldownRadius { get; set; }
     public int PackRadius { get; set; }
     public int PackMax { get; set; }
+    public int? BasementPackMax { get; set; }
     public int DespawnSeconds { get; set; }
     public int MaxLivePerMap { get; set; }
+    public int? BasementMaxLive { get; set; }
     public int MaxPhantomsHouse { get; set; }
     public int MaxPhantomsBasement { get; set; }
     public Dictionary<string, HalloweenAmbushTable> Tables { get; set; } = new();

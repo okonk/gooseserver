@@ -175,6 +175,24 @@ public class HalloweenAmbushTests
     }
 
     [Fact]
+    public void Basement_uses_its_own_pack_max_and_live_cap()
+    {
+        var (kit, ambush, map, player) = Setup(mapId: 39, x: 5, y: 5);
+        kit.SetConfig(cfg =>
+        {
+            cfg["ambush"]!["packs"]!["bones"] = new JsonArray(6, 6);
+            cfg["ambush"]!["basementPackMax"] = 7;
+            cfg["ambush"]!["basementMaxLive"] = 8;
+        });
+
+        Trigger(ambush, kit.World, map, player, "bones", Now, new HalloweenTestKit.FixedRandom([0.0]));
+        Assert.Equal(6, map.NPCs.Count);
+
+        Trigger(ambush, kit.World, map, player, "bones", Now, new HalloweenTestKit.FixedRandom([0.0]));
+        Assert.Equal(8, map.NPCs.Count);
+    }
+
+    [Fact]
     public void Basement_never_rolls_while_groundskeeper_alive()
     {
         var (kit, ambush, map, player) = Setup(mapId: 39, x: 5, y: 5);

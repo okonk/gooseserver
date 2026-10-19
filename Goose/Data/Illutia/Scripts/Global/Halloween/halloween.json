@@ -217,7 +217,7 @@
   ],
   "ambush": {
     "baseChance": 0.012,
-    "basementWeight": 8.5,
+    "basementWeight": 12,
     "defaultWeight": 1.0,
     "cooldownSeconds": 30,
     "basementCooldownSeconds": 4,
@@ -226,8 +226,10 @@
     "groupCooldownRadius": 8,
     "packRadius": 6,
     "packMax": 5,
+    "basementPackMax": 7,
     "despawnSeconds": 90,
     "maxLivePerMap": 15,
+    "basementMaxLive": 25,
     "maxPhantomsHouse": 2,
     "maxPhantomsBasement": 2,
     "tables": {
@@ -244,7 +246,7 @@
         "stalker": 3
       },
       "basement": {
-        "fake": 20,
+        "fake": 15,
         "bones": 45,
         "bloody": 25,
         "phantom": 3,
@@ -255,12 +257,12 @@
       "wailing": 2,
       "flickering": 3,
       "bones": [
-        3,
-        4
+        4,
+        6
       ],
       "bloody": [
-        1,
-        2
+        2,
+        3
       ]
     },
     "candy": {
