@@ -330,7 +330,7 @@ DROPS = (
 )
 
 ROOMS = [
-    ("Foyer", [27, 42, 51, 62], 0, "house"),
+    ("Foyer", [27, 42, 51, 66], 0, "house"),
     ("Library", [2, 2, 35, 26], 2, "house"),
     ("Statue Gallery", [27, 27, 51, 41], 2, "house"),
     ("Kids' Bedroom", [37, 2, 66, 21], 1, "house"),
@@ -832,6 +832,11 @@ def manual_steps(maps, warp_rows):
     return "\n".join(lines) + "\n"
 
 
+def xywh(rect):
+    x1, y1, x2, y2 = rect
+    return [x1, y1, x2 - x1 + 1, y2 - y1 + 1]
+
+
 def config_patch(ids, maps):
     def npc(key):
         return ids("npc", key)
@@ -840,7 +845,7 @@ def config_patch(ids, maps):
     candy_by_template.update({str(p): [1, 3] for p in (PUMPKINS, CHIEFS, KING, JACK)})
     candy_by_template.update({str(npc("weeper")): [15, 25], str(npc("phantom")): [15, 25], str(npc("gk")): [50, 80]})
     return {
-        "maps": {"house": maps["house"], "basement": BASEMENT, "grove": GROVE, "basementArrival": [94, 98]},
+        "maps": {"house": maps["house"], "basement": BASEMENT, "grove": GROVE, "basementArrival": [94, 98], "entrance": [32, 64]},
         "items": {"candy": ids("item", "candy"), "partyCostume": ids("item", "costume"),
                   "masks": [ids("item", k) for k in ("goblin", "zombie", "mummy", "clown", "witch")],
                   "ritualCandle": ids("item", "candle")},
@@ -848,15 +853,15 @@ def config_patch(ids, maps):
                  "wailingGhost": npc("wailing"), "flickeringGhost": npc("flickering"),
                  "pinkPhantom": npc("phantom"), "bloodyGhost": npc("bloody"), "restlessBones": npc("bones")},
         "candy": {"byTemplate": candy_by_template},
-        "rooms": [{"name": n, "rect": r, "weight": w, "table": t} for n, r, w, t in ROOMS],
+        "rooms": [{"name": n, "rect": xywh(r), "weight": w, "table": t} for n, r, w, t in ROOMS],
         "ambush": {"fakeScares": FAKE_SCARES},
-        "invasion": {"towns": [{"map": MINITA, "rect": [35, 30, 71, 62]}], "templates": [npc(k) for k in GUESTS[:5] + ["wailing", "flickering"]]},
+        "invasion": {"towns": [{"map": MINITA, "rect": xywh([35, 30, 71, 62])}], "templates": [npc(k) for k in GUESTS[:5] + ["wailing", "flickering"]]},
         "goal": {"tiers": TIERS},
         "effects": {"weeperCap": ids("effect", "weeperCap"), "groundskeeperCurve": ids("effect", "gkCurve"),
                     "ghostSnareOnHit": ids("effect", "ghostSnareOnHit")},
-        "groundskeeper": {"adds": {"placeSettings": [[npc("setting"), 8]],
-                                   "ghosts": [[npc("wailing"), 4], [npc("flickering"), 2]],
-                                   "bloody": [[npc("bloodyAdd"), 2]]}},
+        "groundskeeper": {"adds": {"placeSettings": [[npc("setting"), 12]],
+                                   "ghosts": [[npc("wailing"), 6], [npc("flickering"), 3]],
+                                   "bloody": [[npc("bloodyAdd"), 4]]}},
     }
 
 
