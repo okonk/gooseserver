@@ -21,6 +21,7 @@ public class WeeperState : BossState
 public class Weeper : BaseNPCScript
 {
     private const int StuckStepsBeforeSkip = 5;
+    private const int ApproachSearchLimit = 600;
 
     public override void OnSpawnEvent(NPC npc, GameWorld world)
     {
@@ -167,8 +168,71 @@ public class Weeper : BaseNPCScript
         if (Math.Abs(npc.MapX - target.MapX) <= 1 && Math.Abs(npc.MapY - target.MapY) <= 1) return;
         var dir = npc.PathStepTo(target.MapX, target.MapY, world,
             (x, y) => npc.Map.GetCharacterAt(x, y) is not null && npc.Map.GetCharacterAt(x, y) != target);
+        dir ??= Approach(npc, target);
         if (dir is not null) npc.StepTo(dir.Value, world);
     }
+
+    private static Direction? Approach(NPC npc, Player target)
+    {
+        var map = npc.Map;
+        var start = (npc.MapX, npc.MapY);
+        var cameFrom = new Dictionary<(int X, int Y), (int X, int Y)> { [start] = start };
+        var queue = new Queue<(int X, int Y)>();
+        queue.Enqueue(start);
+        var best = start;
+        int bestDistance = Distance(start, target);
+        while (queue.Count > 0 && cameFrom.Count < ApproachSearchLimit)
+        {
+            var tile = queue.Dequeue();
+            foreach (var next in Neighbours(tile))
+            {
+                if (cameFrom.ContainsKey(next) || map.IsTileBlocked(npc, next.X, next.Y)) continue;
+                cameFrom[next] = tile;
+                queue.Enqueue(next);
+                int distance = Distance(next, target);
+                if (distance < bestDistance)
+                {
+                    best = next;
+                    bestDistance = distance;
+                }
+            }
+        }
+
+        if (best == start)
+        {
+            var around = Neighbours(start)
+                .Where(t => !map.IsTileBlocked(npc, t.X, t.Y) && Distance(t, target) <= bestDistance + 1)
+                .ToList();
+            if (around.Count == 0) return null;
+            best = around[Random.Shared.Next(around.Count)];
+        }
+        else
+        {
+            while (cameFrom[best] != start) best = cameFrom[best];
+        }
+        return DirectionTo(start, best);
+    }
+
+    private static int Distance((int X, int Y) tile, Player target)
+    {
+        int dx = Math.Abs(tile.X - target.MapX);
+        int dy = Math.Abs(tile.Y - target.MapY);
+        return Math.Max(dx, dy) * 1000 + dx + dy;
+    }
+
+    private static IEnumerable<(int X, int Y)> Neighbours((int X, int Y) tile)
+    {
+        yield return (tile.X, tile.Y - 1);
+        yield return (tile.X + 1, tile.Y);
+        yield return (tile.X, tile.Y + 1);
+        yield return (tile.X - 1, tile.Y);
+    }
+
+    private static Direction DirectionTo((int X, int Y) from, (int X, int Y) to) =>
+        to.X > from.X ? Direction.Right :
+        to.X < from.X ? Direction.Left :
+        to.Y > from.Y ? Direction.Down :
+        Direction.Up;
 
     private static void Patrol(NPC npc, HalloweenConfig cfg, GameWorld world)
     {

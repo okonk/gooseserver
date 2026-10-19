@@ -190,6 +190,34 @@ public class WeeperScriptTests : IDisposable
     }
 
     [Fact]
+    public void Chase_closes_in_when_the_player_is_walled_off()
+    {
+        var npc = Spawn(10, 5);
+        var player = kit.Fixture.CommandPlayerOn(map, 10, 20, "Victim");
+        for (int x = 1; x <= map.Width; x++) map.SetTile(x, 15, new BlockedTile());
+        npc.AddAggro(player, 1, kit.World);
+
+        for (int i = 0; i < 20; i++) Call("MoveStep", npc, Now, kit.World);
+
+        Assert.Equal(14, npc.MapY);
+        Assert.InRange(npc.MapX, 9, 11);
+    }
+
+    [Fact]
+    public void Chase_shuffles_around_when_already_as_close_as_it_can_get()
+    {
+        var npc = Spawn(10, 14);
+        var player = kit.Fixture.CommandPlayerOn(map, 10, 20, "Victim");
+        for (int x = 1; x <= map.Width; x++) map.SetTile(x, 15, new BlockedTile());
+        npc.AddAggro(player, 1, kit.World);
+
+        Call("MoveStep", npc, Now, kit.World);
+
+        Assert.Equal(14, npc.MapY);
+        Assert.InRange(npc.MapX, 9, 11);
+    }
+
+    [Fact]
     public void Patrol_counts_a_taken_waypoint_as_reached_once_beside_it()
     {
         int[][] loop = [[10, 5], [10, 8], [14, 8]];
