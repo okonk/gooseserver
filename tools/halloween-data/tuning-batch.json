@@ -52,7 +52,8 @@
     "sheet": "NPCs",
     "id": 278,
     "set": {
-      "move_speed": 0.45
+      "move_speed": 0.45,
+      "npc_hp": 4000000
     }
   },
   {
@@ -159,7 +160,8 @@
     "id": 276,
     "set": {
       "attack_speed": 1.2,
-      "move_speed": 0.5
+      "move_speed": 0.5,
+      "npc_hp": 9000000
     }
   },
   {

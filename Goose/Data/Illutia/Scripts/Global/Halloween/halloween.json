@@ -650,7 +650,7 @@
       "band": 70000,
       "exponent": 0.4
     },
-    "hpPerPlayer": 8000000,
+    "hpPerPlayer": 4000000,
     "phases": [
       0.75,
       0.5,

@@ -64,12 +64,24 @@ public class Groundskeeper : BaseNPCScript
     public void Rescale(NPC npc, double fraction, GameWorld world)
     {
         var cfg = HalloweenConfig.Get(world);
-        int players = Math.Max(1, HalloweenBoss.PlayersNear(npc, Map.RANGE_X).Count);
+        int players = Math.Max(Math.Max(1, PlayersNear(npc)), PeakPlayers(npc));
+        npc.Properties["gkPeakPlayers"] = players;
         npc.TemporaryMaxHP = cfg.Groundskeeper.HpPerPlayer * players;
         npc.CurrentHP = (long)(fraction * npc.MaxHP);
         foreach (var p in npc.Map.GetPlayersInRange(npc))
             world.Send(p, P.VitalsPercentage(npc));
     }
+
+    public void GrowCheck(NPC npc, GameWorld world)
+    {
+        if (PlayersNear(npc) <= PeakPlayers(npc)) return;
+        Rescale(npc, (double)npc.CurrentHP / npc.MaxHP, world);
+    }
+
+    private static int PlayersNear(NPC npc) => HalloweenBoss.PlayersNear(npc, Map.RANGE_X).Count;
+
+    private static int PeakPlayers(NPC npc) =>
+        npc.Properties.TryGetProperty<int>("gkPeakPlayers", out var peak) ? peak : 0;
 
     public void AttackStep(NPC npc, long now, GameWorld world)
     {
@@ -143,6 +155,7 @@ public class Groundskeeper : BaseNPCScript
         if (present)
         {
             state.LastPlayerSeenAt = now;
+            GrowCheck(npc, world);
             return;
         }
         if (state.LastPlayerSeenAt == 0)

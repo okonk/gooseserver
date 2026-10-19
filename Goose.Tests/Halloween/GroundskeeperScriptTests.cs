@@ -247,6 +247,37 @@ public class GroundskeeperScriptTests : IDisposable
     }
 
     [Fact]
+    public void Hp_grows_at_the_same_percent_when_players_arrive_mid_fight()
+    {
+        PlayerOn(31, 30, "A");
+        var npc = Spawn(30, 30);
+        npc.CurrentHP = npc.MaxHP / 2;
+
+        PlayerOn(32, 30, "B");
+        PlayerOn(33, 30, "C");
+        Call("EmptyCheck", npc, Now, kit.World);
+
+        Assert.Equal(24_000_000, npc.MaxHP);
+        Assert.Equal(12_000_000, npc.CurrentHP);
+    }
+
+    [Fact]
+    public void Hp_does_not_shrink_when_players_step_away_before_a_phase()
+    {
+        PlayerOn(31, 30, "A");
+        var b = PlayerOn(32, 30, "B");
+        var npc = Spawn(30, 30);
+        Assert.Equal(16_000_000, npc.MaxHP);
+
+        map.RemovePlayer(b, kit.World);
+        npc.CurrentHP = (long)(0.74 * npc.MaxHP);
+        Call("CheckPhases", npc, kit.World);
+
+        Assert.Equal(16_000_000, npc.MaxHP);
+        Assert.Equal((long)(0.74 * 16_000_000), npc.CurrentHP);
+    }
+
+    [Fact]
     public void Despawns_with_adds_when_basement_empty_for_60s()
     {
         var gm = PlayerOn(30, 30, "GM");
