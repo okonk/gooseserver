@@ -217,7 +217,7 @@
   ],
   "ambush": {
     "baseChance": 0.012,
-    "basementWeight": 12,
+    "basementWeight": 10,
     "defaultWeight": 1.0,
     "cooldownSeconds": 30,
     "basementCooldownSeconds": 4,
