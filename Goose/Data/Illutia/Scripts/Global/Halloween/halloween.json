@@ -217,11 +217,12 @@
   ],
   "ambush": {
     "baseChance": 0.012,
-    "basementWeight": 2.5,
+    "basementWeight": 8.5,
     "defaultWeight": 1.0,
     "cooldownSeconds": 30,
-    "basementCooldownSeconds": 22,
+    "basementCooldownSeconds": 4,
     "fakeCooldownSeconds": 10,
+    "basementFakeCooldownSeconds": 2,
     "groupCooldownRadius": 8,
     "packRadius": 6,
     "packMax": 5,
@@ -246,7 +247,7 @@
         "fake": 20,
         "bones": 45,
         "bloody": 25,
-        "phantom": 8,
+        "phantom": 3,
         "stalker": 2
       }
     },

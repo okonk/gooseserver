@@ -201,8 +201,10 @@ public static class HalloweenAmbush
             }
             Halloween.Feed(world, player, line);
         }
-        Halloween.SetState(player, "hw.ambushReadyAt",
-            now + Halloween.Ticks(world, cfg.Ambush.FakeCooldownSeconds));
+        int cooldown = basement
+            ? cfg.Ambush.BasementFakeCooldownSeconds ?? cfg.Ambush.FakeCooldownSeconds
+            : cfg.Ambush.FakeCooldownSeconds;
+        Halloween.SetState(player, "hw.ambushReadyAt", now + Halloween.Ticks(world, cooldown));
     }
 
     // hw.hintDir stores the direction a directional scare line names, relative to the

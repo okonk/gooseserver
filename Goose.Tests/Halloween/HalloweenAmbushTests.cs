@@ -163,6 +163,18 @@ public class HalloweenAmbushTests
     }
 
     [Fact]
+    public void Basement_fake_scare_uses_basement_fake_cooldown()
+    {
+        var (kit, ambush, map, player) = Setup(mapId: 39, x: 5, y: 5);
+        kit.SetConfig(cfg => cfg["ambush"]!["basementFakeCooldownSeconds"] = 2);
+
+        Trigger(ambush, kit.World, map, player, "fake", Now,
+            new HalloweenTestKit.FixedRandom([1.0], [0]));
+
+        Assert.Equal(Now + kit.World.TimerFrequency * 2, player.ScriptState["hw.ambushReadyAt"]);
+    }
+
+    [Fact]
     public void Basement_never_rolls_while_groundskeeper_alive()
     {
         var (kit, ambush, map, player) = Setup(mapId: 39, x: 5, y: 5);

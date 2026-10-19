@@ -121,6 +121,7 @@ public sealed class HalloweenAmbushConfig
     public int CooldownSeconds { get; set; }
     public int BasementCooldownSeconds { get; set; }
     public int FakeCooldownSeconds { get; set; }
+    public int? BasementFakeCooldownSeconds { get; set; }
     public int GroupCooldownRadius { get; set; }
     public int PackRadius { get; set; }
     public int PackMax { get; set; }
