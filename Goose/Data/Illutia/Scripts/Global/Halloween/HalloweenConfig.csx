@@ -224,8 +224,13 @@ public sealed class HalloweenGroundskeeper
     public double EnrageAttackSpeed { get; set; }
     public int LightsOutSeconds { get; set; }
     public int LightsOutAlpha { get; set; }
-    public Dictionary<string, int[]> Adds { get; set; } = new();
+    public Dictionary<string, int[][]> Adds { get; set; } = new();
     public int EmptyDespawnSeconds { get; set; }
+}
+
+public sealed class HalloweenGoal
+{
+    public long[] Tiers { get; set; } = [];
 }
 
 public sealed class HalloweenConfig
@@ -246,6 +251,7 @@ public sealed class HalloweenConfig
     public HalloweenEffects Effects { get; set; } = new();
     public HalloweenWeeper Weeper { get; set; } = new();
     public HalloweenGroundskeeper Groundskeeper { get; set; } = new();
+    public HalloweenGoal Goal { get; set; } = new();
 
     private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
     private static HalloweenConfig? cached;
@@ -386,10 +392,13 @@ public sealed class HalloweenConfig
                 config.Groundskeeper.EmptyDespawnSeconds <= 0)
                 throw new JsonException("Halloween groundskeeper bigHitWarnSeconds, enrageAttackSpeed, lightsOutSeconds, " +
                     "lightsOutAlpha and emptyDespawnSeconds must be > 0");
-            foreach (var (kind, entry) in config.Groundskeeper.Adds)
-                if (entry is null || entry.Length != 2 || entry[1] < 0)
+            foreach (var (kind, entries) in config.Groundskeeper.Adds)
+                if (entries is null || entries.Any(e => e is null || e.Length != 2 || e[1] < 0))
                     throw new JsonException("Halloween groundskeeper.adds entry " + kind +
-                        " must be [templateId, count] with count >= 0");
+                        " must be a list of [templateId, count] with count >= 0");
+            for (int i = 0; i < config.Goal.Tiers.Length; i++)
+                if (config.Goal.Tiers[i] <= 0 || (i > 0 && config.Goal.Tiers[i] <= config.Goal.Tiers[i - 1]))
+                    throw new JsonException("Halloween goal.tiers must be positive and strictly ascending");
             if (config.StalkerChase.ChaseSeconds <= 0 || config.StalkerChase.StartDelaySeconds <= 0 ||
                 config.StalkerChase.SpeedOffset <= 0 || config.StalkerChase.WarnRadius <= 0 ||
                 config.StalkerChase.WarnSeconds <= 0)

@@ -177,11 +177,11 @@ public sealed class HalloweenTestKit : IDisposable
                                    hitPercent = 0.10, bigHitPercent = 0.20, bigHitEvery = 4,
                                    bigHitWarnSeconds = 1.5, enrageAttackSpeed = 1.5,
                                    lightsOutSeconds = 6, lightsOutAlpha = 950,
-                                   adds = new Dictionary<string, int[]>
+                                   adds = new Dictionary<string, int[][]>
                                    {
-                                       ["placeSettings"] = new[] { 0, 8 },
-                                       ["ghosts"] = new[] { 0, 6 },
-                                       ["bloody"] = new[] { 0, 2 },
+                                       ["placeSettings"] = [[0, 8]],
+                                       ["ghosts"] = [[0, 4], [0, 2]],
+                                       ["bloody"] = [[0, 2]],
                                    },
                                    emptyDespawnSeconds = 60 },
         };

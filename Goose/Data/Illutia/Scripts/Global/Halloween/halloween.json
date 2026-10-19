@@ -1,53 +1,692 @@
 {
-  "maps": { "house": 0, "basement": 0, "grove": 0,
-            "groveExit": [38, 37], "foyerSpawn": [43, 53], "basementArrival": [0, 0] },
-  "xpBonus": 0.5,
-  "items": { "candy": 0, "partyCostume": 0, "masks": [0, 0, 0, 0, 0], "ritualCandle": 0 },
-  "npcs": { "stalker": 0, "groundskeeper": 0, "weeper": 0, "wailingGhost": 0, "flickeringGhost": 0,
-            "pinkPhantom": 0, "bloodyGhost": 0, "restlessBones": 0 },
-  "candy": { "levelOnly": 50, "baseChance": 0.25, "baseAmount": [1, 1],
-             "byTemplate": { "0": [1, 3] }, "stalkerSurvived": 10 },
-  "rooms": [ { "name": "Foyer", "rect": [0, 0, 0, 0], "weight": 0, "table": "house" } ],
-  "ambush": {
-    "baseChance": 0.006, "basementWeight": 2.5, "defaultWeight": 1.0,
-    "cooldownSeconds": 40, "basementCooldownSeconds": 30, "fakeCooldownSeconds": 15,
-    "groupCooldownRadius": 8, "packRadius": 6, "packMax": 5,
-    "despawnSeconds": 90, "maxLivePerMap": 15, "maxPhantomsHouse": 1, "maxPhantomsBasement": 2,
-    "tables": {
-      "house":    { "fake": 50, "ghosts": 45, "phantom": 3,  "stalker": 2 },
-      "master":   { "fake": 40, "ghosts": 35, "phantom": 22, "stalker": 3 },
-      "basement": { "fake": 20, "bones": 45, "bloody": 25, "phantom": 8, "stalker": 2 }
-    },
-    "packs": { "wailing": 2, "flickering": 3, "bones": [3, 4], "bloody": [1, 2] },
-    "candy": { "ghost": [3, 5], "bones": [3, 5], "bloody": [3, 5], "phantom": [15, 25] },
-    "fakeScares": { "house": ["The portrait's eyes follow you…", "A door slams upstairs."],
-                    "basement": ["Something drips in the dark."],
-                    "directional": ["Footsteps behind you."] }
+  "maps": {
+    "house": 55,
+    "basement": 39,
+    "grove": 38,
+    "groveExit": [
+      38,
+      37
+    ],
+    "foyerSpawn": [
+      43,
+      53
+    ],
+    "basementArrival": [
+      94,
+      98
+    ]
   },
-  "stalker": { "graceSeconds": 300, "maxLive": 3, "spawnBehind": 4,
-               "chainsawMinMinutes": 20, "chainsawMaxMinutes": 40, "chainsawMinPlayers": 3,
-               "chainsawDelaySeconds": 5, "costumeGraceSeconds": 10 },
-  "stalkerChase": { "chaseSeconds": 25, "startDelaySeconds": 1, "speedOffset": 0.02,
-                    "warnRadius": 3, "warnSeconds": 5 },
-  "pentagram": { "points": [[67, 4], [58, 10], [76, 10], [62, 21], [72, 21]], "centre": [67, 13] },
-  "invasion": { "towns": [], "templates": [], "count": 20, "everyMinutes": 30, "lifetimeMinutes": 15 },
-  "effects": { "weeperCap": 0, "groundskeeperCurve": 0, "ghostSnareOnHit": 0 },
-  "weeper": { "capPerHit": 100000, "bleedPercentPerStack": 0.01, "bleedMaxStacks": 5, "bleedSeconds": 10,
-               "bleedTickSeconds": 2,
-               "start": [38, 36], "hitPercent": 0.08, "stragglerRadius": 5, "stragglerMultiplier": 2,
-               "lungeSeconds": 15, "lungeRadius": 6, "leashRadius": 12, "leashSeconds": 10,
-               "leashMaxDistance": 40, "resetSeconds": 30, "footstepRadius": 10, "footstepSeconds": 8,
-               "loops": {
-                 "upstairs": [[33,36],[33,24],[10,24],[10,11],[30,11],[30,20],[52,20],[52,12],[64,12],[64,20],[80,20],[80,12],[92,12],[92,20],[33,20],[33,36]],
-                 "service":  [[30,40],[22,40],[22,45],[4,45],[4,35],[22,35],[22,46],[19,47],[19,53],[4,53],[4,58],[15,58],[15,60],[22,58],[22,53],[19,52],[19,47],[22,46],[22,40],[30,40]],
-                 "party":    [[50,36],[50,39],[58,39],[58,34],[98,34],[98,58],[74,58],[74,69],[56,69],[56,86],[82,86],[82,69],[74,69],[74,58],[58,58],[58,40],[50,40],[50,36]]
-               } },
+  "xpBonus": 0.5,
+  "items": {
+    "candy": 745,
+    "partyCostume": 746,
+    "masks": [
+      747,
+      748,
+      749,
+      750,
+      751
+    ],
+    "ritualCandle": 764
+  },
+  "npcs": {
+    "stalker": 277,
+    "groundskeeper": 278,
+    "weeper": 276,
+    "wailingGhost": 270,
+    "flickeringGhost": 271,
+    "pinkPhantom": 272,
+    "bloodyGhost": 273,
+    "restlessBones": 275
+  },
+  "candy": {
+    "levelOnly": 50,
+    "baseChance": 0.25,
+    "baseAmount": [
+      1,
+      1
+    ],
+    "byTemplate": {
+      "262": [
+        1,
+        3
+      ],
+      "263": [
+        1,
+        3
+      ],
+      "264": [
+        1,
+        3
+      ],
+      "265": [
+        1,
+        3
+      ],
+      "266": [
+        1,
+        3
+      ],
+      "267": [
+        1,
+        3
+      ],
+      "268": [
+        1,
+        3
+      ],
+      "269": [
+        1,
+        3
+      ],
+      "166": [
+        1,
+        3
+      ],
+      "168": [
+        1,
+        3
+      ],
+      "169": [
+        1,
+        3
+      ],
+      "167": [
+        1,
+        3
+      ],
+      "276": [
+        15,
+        25
+      ],
+      "272": [
+        15,
+        25
+      ],
+      "278": [
+        50,
+        80
+      ]
+    },
+    "stalkerSurvived": 10
+  },
+  "rooms": [
+    {
+      "name": "Foyer",
+      "rect": [
+        27,
+        42,
+        51,
+        62
+      ],
+      "weight": 0,
+      "table": "house"
+    },
+    {
+      "name": "Library",
+      "rect": [
+        2,
+        2,
+        35,
+        26
+      ],
+      "weight": 2,
+      "table": "house"
+    },
+    {
+      "name": "Statue Gallery",
+      "rect": [
+        27,
+        27,
+        51,
+        41
+      ],
+      "weight": 2,
+      "table": "house"
+    },
+    {
+      "name": "Kids' Bedroom",
+      "rect": [
+        37,
+        2,
+        66,
+        21
+      ],
+      "weight": 1,
+      "table": "house"
+    },
+    {
+      "name": "Master Bedroom",
+      "rect": [
+        68,
+        2,
+        94,
+        21
+      ],
+      "weight": 1,
+      "table": "master"
+    },
+    {
+      "name": "Dining Room",
+      "rect": [
+        2,
+        29,
+        25,
+        47
+      ],
+      "weight": 1,
+      "table": "house"
+    },
+    {
+      "name": "Kitchen",
+      "rect": [
+        2,
+        48,
+        25,
+        65
+      ],
+      "weight": 0.5,
+      "table": "house"
+    },
+    {
+      "name": "Ballroom",
+      "rect": [
+        52,
+        28,
+        100,
+        61
+      ],
+      "weight": 0.5,
+      "table": "house"
+    },
+    {
+      "name": "Garden",
+      "rect": [
+        54,
+        62,
+        83,
+        90
+      ],
+      "weight": 0.5,
+      "table": "house"
+    }
+  ],
+  "ambush": {
+    "baseChance": 0.006,
+    "basementWeight": 2.5,
+    "defaultWeight": 1.0,
+    "cooldownSeconds": 40,
+    "basementCooldownSeconds": 30,
+    "fakeCooldownSeconds": 15,
+    "groupCooldownRadius": 8,
+    "packRadius": 6,
+    "packMax": 5,
+    "despawnSeconds": 90,
+    "maxLivePerMap": 15,
+    "maxPhantomsHouse": 1,
+    "maxPhantomsBasement": 2,
+    "tables": {
+      "house": {
+        "fake": 50,
+        "ghosts": 45,
+        "phantom": 3,
+        "stalker": 2
+      },
+      "master": {
+        "fake": 40,
+        "ghosts": 35,
+        "phantom": 22,
+        "stalker": 3
+      },
+      "basement": {
+        "fake": 20,
+        "bones": 45,
+        "bloody": 25,
+        "phantom": 8,
+        "stalker": 2
+      }
+    },
+    "packs": {
+      "wailing": 2,
+      "flickering": 3,
+      "bones": [
+        3,
+        4
+      ],
+      "bloody": [
+        1,
+        2
+      ]
+    },
+    "candy": {
+      "ghost": [
+        3,
+        5
+      ],
+      "bones": [
+        3,
+        5
+      ],
+      "bloody": [
+        3,
+        5
+      ],
+      "phantom": [
+        15,
+        25
+      ]
+    },
+    "fakeScares": {
+      "house": [
+        "The statue was facing the other way a moment ago.",
+        "A music box starts, then stops.",
+        "Someone laughs in the next room.",
+        "The candles all lean towards you.",
+        "Wet footprints lead under the door.",
+        "The portrait's eyes follow you…",
+        "A door slams upstairs.",
+        "A cold hand brushes your neck.",
+        "The clock chimes thirteen.",
+        "Glass shatters somewhere below.",
+        "A child whispers your name.",
+        "The rug ripples as if something moved under it.",
+        "A chair scrapes back from the table.",
+        "Every light dims for a heartbeat.",
+        "Someone hums along to the music, off-key."
+      ],
+      "basement": [
+        "Something drips in the dark.",
+        "Chains rattle behind the wall.",
+        "The bones shift.",
+        "A chainsaw coughs once, far away.",
+        "Your torch gutters.",
+        "Scratching from inside the walls.",
+        "The air smells of wet earth.",
+        "A shovel scrapes stone.",
+        "Something heavy is dragged across the floor.",
+        "You hear breathing that isn't yours."
+      ],
+      "directional": [
+        "Footsteps behind you.",
+        "Something moves to your left.",
+        "A shape darts past on your right.",
+        "Breath on the back of your neck."
+      ]
+    }
+  },
+  "stalker": {
+    "graceSeconds": 300,
+    "maxLive": 3,
+    "spawnBehind": 4,
+    "chainsawMinMinutes": 20,
+    "chainsawMaxMinutes": 40,
+    "chainsawMinPlayers": 3,
+    "chainsawDelaySeconds": 5,
+    "costumeGraceSeconds": 10
+  },
+  "stalkerChase": {
+    "chaseSeconds": 25,
+    "startDelaySeconds": 1,
+    "speedOffset": 0.02,
+    "warnRadius": 3,
+    "warnSeconds": 5
+  },
+  "pentagram": {
+    "points": [
+      [
+        67,
+        4
+      ],
+      [
+        58,
+        10
+      ],
+      [
+        76,
+        10
+      ],
+      [
+        62,
+        21
+      ],
+      [
+        72,
+        21
+      ]
+    ],
+    "centre": [
+      67,
+      13
+    ]
+  },
+  "invasion": {
+    "towns": [
+      {
+        "map": 1,
+        "rect": [
+          35,
+          30,
+          71,
+          62
+        ]
+      }
+    ],
+    "templates": [
+      262,
+      263,
+      264,
+      265,
+      266,
+      270,
+      271
+    ],
+    "count": 20,
+    "everyMinutes": 30,
+    "lifetimeMinutes": 15
+  },
+  "effects": {
+    "weeperCap": 329,
+    "groundskeeperCurve": 330,
+    "ghostSnareOnHit": 332
+  },
+  "weeper": {
+    "capPerHit": 100000,
+    "bleedPercentPerStack": 0.01,
+    "bleedMaxStacks": 5,
+    "bleedSeconds": 10,
+    "bleedTickSeconds": 2,
+    "start": [
+      38,
+      36
+    ],
+    "hitPercent": 0.08,
+    "stragglerRadius": 5,
+    "stragglerMultiplier": 2,
+    "lungeSeconds": 15,
+    "lungeRadius": 6,
+    "leashRadius": 12,
+    "leashSeconds": 10,
+    "leashMaxDistance": 40,
+    "resetSeconds": 30,
+    "footstepRadius": 10,
+    "footstepSeconds": 8,
+    "loops": {
+      "upstairs": [
+        [
+          33,
+          36
+        ],
+        [
+          33,
+          24
+        ],
+        [
+          10,
+          24
+        ],
+        [
+          10,
+          11
+        ],
+        [
+          30,
+          11
+        ],
+        [
+          30,
+          20
+        ],
+        [
+          52,
+          20
+        ],
+        [
+          52,
+          12
+        ],
+        [
+          64,
+          12
+        ],
+        [
+          64,
+          20
+        ],
+        [
+          80,
+          20
+        ],
+        [
+          80,
+          12
+        ],
+        [
+          92,
+          12
+        ],
+        [
+          92,
+          20
+        ],
+        [
+          33,
+          20
+        ],
+        [
+          33,
+          36
+        ]
+      ],
+      "service": [
+        [
+          30,
+          40
+        ],
+        [
+          22,
+          40
+        ],
+        [
+          22,
+          45
+        ],
+        [
+          4,
+          45
+        ],
+        [
+          4,
+          35
+        ],
+        [
+          22,
+          35
+        ],
+        [
+          22,
+          46
+        ],
+        [
+          19,
+          47
+        ],
+        [
+          19,
+          53
+        ],
+        [
+          4,
+          53
+        ],
+        [
+          4,
+          58
+        ],
+        [
+          15,
+          58
+        ],
+        [
+          15,
+          60
+        ],
+        [
+          22,
+          58
+        ],
+        [
+          22,
+          53
+        ],
+        [
+          19,
+          52
+        ],
+        [
+          19,
+          47
+        ],
+        [
+          22,
+          46
+        ],
+        [
+          22,
+          40
+        ],
+        [
+          30,
+          40
+        ]
+      ],
+      "party": [
+        [
+          50,
+          36
+        ],
+        [
+          50,
+          39
+        ],
+        [
+          58,
+          39
+        ],
+        [
+          58,
+          34
+        ],
+        [
+          98,
+          34
+        ],
+        [
+          98,
+          58
+        ],
+        [
+          74,
+          58
+        ],
+        [
+          74,
+          69
+        ],
+        [
+          56,
+          69
+        ],
+        [
+          56,
+          86
+        ],
+        [
+          82,
+          86
+        ],
+        [
+          82,
+          69
+        ],
+        [
+          74,
+          69
+        ],
+        [
+          74,
+          58
+        ],
+        [
+          58,
+          58
+        ],
+        [
+          58,
+          40
+        ],
+        [
+          50,
+          40
+        ],
+        [
+          50,
+          36
+        ]
+      ]
+    }
+  },
   "groundskeeper": {
-    "bloodyDamageMultiplier": 0.25, "curve": { "floor": 10000, "band": 70000, "exponent": 0.4 },
-    "hpPerPlayer": 8000000, "phases": [0.75, 0.5, 0.25, 0.10],
-    "hitPercent": 0.10, "bigHitPercent": 0.20, "bigHitEvery": 4, "bigHitWarnSeconds": 1.5,
-    "enrageAttackSpeed": 1.5, "lightsOutSeconds": 6, "lightsOutAlpha": 950,
-    "adds": { "placeSettings": [0, 8], "ghosts": [0, 6], "bloody": [0, 2] },
+    "bloodyDamageMultiplier": 0.25,
+    "curve": {
+      "floor": 10000,
+      "band": 70000,
+      "exponent": 0.4
+    },
+    "hpPerPlayer": 8000000,
+    "phases": [
+      0.75,
+      0.5,
+      0.25,
+      0.1
+    ],
+    "hitPercent": 0.1,
+    "bigHitPercent": 0.2,
+    "bigHitEvery": 4,
+    "bigHitWarnSeconds": 1.5,
+    "enrageAttackSpeed": 1.5,
+    "lightsOutSeconds": 6,
+    "lightsOutAlpha": 950,
+    "adds": {
+      "placeSettings": [
+        [
+          268,
+          8
+        ]
+      ],
+      "ghosts": [
+        [
+          270,
+          4
+        ],
+        [
+          271,
+          2
+        ]
+      ],
+      "bloody": [
+        [
+          274,
+          2
+        ]
+      ]
+    },
     "emptyDespawnSeconds": 60
+  },
+  "goal": {
+    "tiers": [
+      6000,
+      20000,
+      45000
+    ]
   }
 }

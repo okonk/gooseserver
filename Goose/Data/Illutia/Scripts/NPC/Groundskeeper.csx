@@ -209,23 +209,24 @@ public class Groundskeeper : BaseNPCScript
     private void SpawnAdds(NPC npc, string kind, GameWorld world)
     {
         var cfg = HalloweenConfig.Get(world);
-        if (!cfg.Groundskeeper.Adds.TryGetValue(kind, out var entry) || entry is not { Length: 2 }) return;
-        int templateId = entry[0];
-        int count = entry[1];
-        if (templateId == 0) return;
-        var template = world.NPCHandler.GetNPCTemplate(templateId);
-        if (template is null) return;
+        if (!cfg.Groundskeeper.Adds.TryGetValue(kind, out var entries) || entries is null) return;
         var map = npc.Map;
-        for (int i = 0; i < count; i++)
+        foreach (var entry in entries)
         {
-            var tile = FreeTileNear(map, world, npc.MapX, npc.MapY, 6);
-            if (tile is null) return;
-            var add = world.NPCHandler.SpawnNPC(world, map.ID, tile.Value.X, tile.Value.Y, template,
-                shouldRespawn: false, new PropertiesDictionary { ["gkAdd"] = kind });
-            if (add is null) continue;
-            if (kind is "ghosts")
-                Halloween.AddPermanentBuff(add, cfg.Effects.GhostSnareOnHit, world);
-            AggroAdd(add, world);
+            if (entry is not { Length: 2 } || entry[0] == 0) continue;
+            var template = world.NPCHandler.GetNPCTemplate(entry[0]);
+            if (template is null) continue;
+            for (int i = 0; i < entry[1]; i++)
+            {
+                var tile = FreeTileNear(map, world, npc.MapX, npc.MapY, 6);
+                if (tile is null) return;
+                var add = world.NPCHandler.SpawnNPC(world, map.ID, tile.Value.X, tile.Value.Y, template,
+                    shouldRespawn: false, new PropertiesDictionary { ["gkAdd"] = kind });
+                if (add is null) continue;
+                if (kind is "ghosts")
+                    Halloween.AddPermanentBuff(add, cfg.Effects.GhostSnareOnHit, world);
+                AggroAdd(add, world);
+            }
         }
     }
 
