@@ -199,6 +199,23 @@ public class Groundskeeper : BaseNPCScript
             TimeSpan.FromSeconds(seconds), world);
     }
 
+    private static void EnrageAura(NPC npc, HalloweenConfig cfg, GameWorld world)
+    {
+        var effect = world.SpellHandler.GetSpellEffect(cfg.Effects.GroundskeeperEnrage);
+        if (effect is null || effect.Animation == 0 || cfg.Groundskeeper.EnrageAuraSeconds <= 0) return;
+        string packet = P.SpellPlayer(npc.LoginID, effect.Animation, effect.AnimationFile);
+        var interval = TimeSpan.FromSeconds(cfg.Groundskeeper.EnrageAuraSeconds);
+        // Engine-only action, so the closure is reload-safe without re-resolving the script.
+        ScriptTimerEvent timer = null!;
+        timer = ScriptTimerEvent.Create(() =>
+        {
+            if (npc.State != NPC.States.Alive) return;
+            foreach (var p in npc.Map.GetPlayersInRange(npc))
+                world.Send(p, packet);
+            timer.Reschedule(interval, world);
+        }, TimeSpan.Zero, world);
+    }
+
     private void RunPhase(NPC npc, int phase, double fraction, GameWorld world)
     {
         var cfg = HalloweenConfig.Get(world);
@@ -224,6 +241,7 @@ public class Groundskeeper : BaseNPCScript
                 break;
             case 3:
                 npc.AttackSpeed = cfg.Groundskeeper.EnrageAttackSpeed;
+                EnrageAura(npc, cfg, world);
                 break;
         }
     }

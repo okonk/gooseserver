@@ -185,6 +185,7 @@ public sealed class HalloweenEffects
 {
     public int WeeperCap { get; set; }
     public int GroundskeeperCurve { get; set; }
+    public int GroundskeeperEnrage { get; set; }
     public int GhostSnareOnHit { get; set; }
 }
 
@@ -231,6 +232,7 @@ public sealed class HalloweenGroundskeeper
     public int LightsOutSeconds { get; set; }
     public int LightsOutAlpha { get; set; }
     public int FinalLightsOutSeconds { get; set; }
+    public double EnrageAuraSeconds { get; set; }
     public int[] FinalLightsOutEverySeconds { get; set; } = [];
     public Dictionary<string, int[][]> Adds { get; set; } = new();
     public int EmptyDespawnSeconds { get; set; }

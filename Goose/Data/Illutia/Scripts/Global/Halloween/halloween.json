@@ -395,6 +395,7 @@
   "effects": {
     "weeperCap": 329,
     "groundskeeperCurve": 330,
+    "groundskeeperEnrage": 122,
     "ghostSnareOnHit": 332
   },
   "weeper": {
@@ -665,6 +666,7 @@
     "lightsOutSeconds": 6,
     "lightsOutAlpha": 950,
     "finalLightsOutSeconds": 10,
+    "enrageAuraSeconds": 2,
     "finalLightsOutEverySeconds": [
       15,
       30

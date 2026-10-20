@@ -285,6 +285,33 @@ public class GroundskeeperScriptTests : IDisposable
     }
 
     [Fact]
+    public void Enrage_replays_the_berserker_animation_every_interval_while_alive()
+    {
+        kit.Fixture.AddBaseSpellEffect(778, "Berserker 3", e => { e.Animation = 815024; e.AnimationFile = 0; });
+        kit.SetConfig(cfg =>
+        {
+            cfg["effects"]!["groundskeeperEnrage"] = 778;
+            cfg["groundskeeper"]!["enrageAuraSeconds"] = 2;
+        });
+        var player = PlayerOn(30, 30, "A");
+        var npc = Spawn(31, 30);
+        npc.CurrentHP = (long)(0.05 * npc.MaxHP);
+        npc.Properties["gkPhase"] = 3;
+        string aura = P.SpellPlayer(npc.LoginID, 815024, 0);
+        PendingScriptTimers(kit.World);
+
+        Call("AttackStep", npc, Now, kit.World);
+        var timer = Assert.Single(PendingScriptTimers(kit.World));
+        timer.Ready(kit.World);
+        timer.Ready(kit.World);
+        Assert.Equal(2, player.Sent.Count(s => s.TrimEnd('\x1') == aura));
+
+        npc.Despawn(kit.World);
+        timer.Ready(kit.World);
+        Assert.Equal(2, player.Sent.Count(s => s.TrimEnd('\x1') == aura));
+    }
+
+    [Fact]
     public void Hp_grows_at_the_same_percent_when_players_arrive_mid_fight()
     {
         PlayerOn(31, 30, "A");
