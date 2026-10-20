@@ -176,50 +176,51 @@ def mask(name, effect, equip, desc, extra=None):
 
 ITEMS = [
     ("candy", {"item_usetype": "NoUse", "item_name": "Candy", "stack_size": 9999, "bindonpickup": 1,
-               **icon(2281, 332500), "item_description": "Sweet, sticky and strangely warm."}),
+               **icon(2281, 332515), "item_description": "Sweet, sticky and strangely warm."}),
     ("costume", {**armor("Helmet", "Cloth", 2000, 2000, 150), "min_level": 1, **stats(10), **bound(),
                  "item_name": "Party Costume", "spell_effect_id": 70, "graphic_equip": 11,
                  **icon(2281, 332509), "properties": json.dumps({"hideOtherSlots": True}),
                  "script_path": COSTUME_SCRIPT, "script_params": json.dumps(COSTUME_LOOKS, separators=(",", ":")),
                  "item_description": "Nobody will recognise you. Probably."}),
-    ("goblin", mask("Goblin Mask", 70, 72, "Warty, green and a little too warm inside.")),
-    ("zombie", mask("Zombie Mask", 81, 115, "It smells exactly like it looks.")),
-    ("mummy", mask("Mummy Mask", 80, 159, "Old linen that never quite stops unravelling.")),
-    ("clown", mask("Mad Clown Mask", 76, 112, "The smile is painted on. Mostly.", bound())),
-    ("witch", mask("Witch Mask", "@effect:witch", 114, "The Collector's own. Handle with care.", bound())),
+    ("goblin", mask("Goblin Mask", 70, 72, "Warty, green and a little too warm inside.", icon(2282, 51340))),
+    ("zombie", mask("Zombie Mask", 81, 115, "It smells exactly like it looks.", icon(3081, 270162))),
+    ("mummy", mask("Mummy Mask", 80, 159, "Old linen that never quite stops unravelling.", icon(4849, 294502))),
+    ("clown", mask("Mad Clown Mask", 76, 112, "The smile is painted on. Mostly.", {**bound(), **icon(3081, 270158)})),
+    ("witch", mask("Witch Mask", "@effect:witch", 114, "The Collector's own. Handle with care.",
+                    {**bound(), **icon(3081, 270160)})),
     ("sword", {"item_usetype": "Weapon", "item_slot": "OneHanded", "item_type": "OneHandedSword", "min_level": 50,
                "weapon_damage": 175, "player_hp": 1500, "player_mp": 1500, **stats(15), **bound(),
                "item_name": "Pumpkin Sword", "spell_effect_id": "@effect:sword", "graphic_equip": 33,
                "body_state": 4, **icon(2281, 332511), "item_description": "The Countess's own blade, still sticky."}),
     ("boots", {**armor("Shoes", "Leather", 1750, 1750, 125), **stats(15), **bound(), "item_name": "Rootstompers",
-               "spell_effect_id": "@effect:boots", "graphic_equip": 13, **icon(2278, 332213),
+               "spell_effect_id": "@effect:boots", "graphic_equip": 13, **icon(2282, 51336),
                "item_description": "Roots still twitch in the soles."}),
     ("shield", {**armor("Shield", "Plate", 1500, 1500, 175), **stats(10), **bound(),
                 "item_name": "Jack-o'-Lantern Shield", "spell_effect_id": 70, "graphic_equip": 63,
-                **icon(2281, 332502), "item_description": "The candle inside never goes out."}),
+                **icon(2281, 332506), "item_description": "The candle inside never goes out."}),
     ("chaps", {**armor("Pants", "Leather", 2000, 2000, 150), **stats(15), **bound(), "item_name": "Chainsaw Chaps",
                "spell_effect_id": "@effect:grit", "graphic_equip": 31, "graphic_r": 200, "graphic_g": 70,
-               "graphic_b": 60, "graphic_a": 140, **icon(2278, 332204),
+               "graphic_b": 60, "graphic_a": 140, **icon(4984, 297562),
                "item_description": "Stained. You don't want to know with what."}),
     ("hockey", {**armor("Helmet", "Plate", 2000, 1000, 150), "stat_str": 25, "stat_sta": 25, **bound(),
                 "item_name": "Hockey Mask", "spell_effect_id": "@effect:grit", "graphic_equip": 37,
-                **icon(2278, 332240), "item_description": "Cracked down the middle. Still warm."}),
+                **icon(2278, 332250), "item_description": "Cracked down the middle. Still warm."}),
     ("chainsaw", {"item_usetype": "Weapon", "item_slot": "TwoHanded", "item_type": "TwoHandedSword", "min_level": 25,
                   "weapon_damage": 180, "player_hp": 500, "player_mp": 100, "stat_ac": 50, **stats(20),
                   "item_name": "Bloody Chainsaw", "spell_effect_id": "@effect:chainsaw", "graphic_equip": 256,
-                  "body_state": 6, **icon(20397, 820015), "item_description": "It still starts first time."}),
+                  "body_state": 6, **icon(4235, 284179), "item_description": "It still starts first time."}),
     ("staff", {"item_usetype": "Weapon", "item_slot": "OneHanded", "item_type": "OneHandedBlunt", "min_level": 25,
                "weapon_damage": 100, "player_hp": 100, "player_mp": 500, **stats(20), "item_name": "Pumpkin Staff",
-               "spell_effect_id": "@effect:staff", "graphic_equip": 35, "body_state": 5, **icon(2281, 332508),
+               "spell_effect_id": "@effect:staff", "graphic_equip": 35, "body_state": 5, **icon(2281, 332502),
                "item_description": "Carved from a vine that grew through a grave."}),
     ("robe", {**armor("Chest", "Cloth", 3000, 3000, 200), **stats(15), **bound(), "item_name": "Collector's Robe",
-              "graphic_equip": 34, **icon(2278, 332201), "item_description": "Every pocket holds a mask."}),
+              "graphic_equip": 34, **icon(2282, 51324), "item_description": "Every pocket holds a mask."}),
     ("helmTop", {**armor("Helmet", "Plate", 2500, 2500, 175), **stats(20), **bound(), "item_name": "Pumpkin Helm",
-                 "spell_effect_id": "@effect:helmTop", "graphic_equip": 28, **icon(2281, 332506),
+                 "spell_effect_id": "@effect:helmTop", "graphic_equip": 28, **icon(2281, 332501),
                  "item_description": "Worn by the sweetest tooth in the land."}),
     ("helmDyed", {**armor("Helmet", "Plate", 1500, 1500, 150), **stats(10), **bound(), "item_name": "Pumpkin Helm",
                   "spell_effect_id": 71, "graphic_equip": 28, "graphic_r": 120, "graphic_g": 60, "graphic_b": 160,
-                  "graphic_a": 160, **icon(2281, 332506), "item_description": "For everyone who filled the bowl."}),
+                  "graphic_a": 160, **icon(2281, 332501), "item_description": "For everyone who filled the bowl."}),
     ("pie", {"item_usetype": "OneTime", "item_name": "Pumpkin Pie", "stack_size": 100, "item_value": 200,
              "spell_effect_id": "@effect:pie", **icon(2272, 331646),
              "item_description": "Heals 25% of your health over 10 seconds."}),
@@ -227,6 +228,7 @@ ITEMS = [
               "spell_effect_id": "@effect:brew", **icon(2272, 331609),
               "item_description": "Restores 25% of your mana over 10 seconds."}),
     ("candle", {"item_usetype": "NoUse", "item_name": "Ritual Candle", "stack_size": 20, **icon(20408, 821125),
+                "graphic_r": 5, "graphic_g": 5, "graphic_b": 5, "graphic_a": 181,
                 "item_description": "Black wax, half-melted. It burns brightest where the floor is marked."}),
     ("ecto", {"item_usetype": "NoUse", "item_name": "Ectoplasm", "stack_size": 100, **icon(2271, 331509),
               "graphic_r": 86, "graphic_g": 179, "graphic_b": 11, "graphic_a": 200,
@@ -238,7 +240,7 @@ ITEMS = [
               "item_description": "Still wet with his tears."}),
     ("shroud", {"item_usetype": "NoUse", "item_name": "Phantom Shroud", **icon(20399, 820224),
                 "item_description": "Pink, weightless and very cold."}),
-    ("heart", {"item_usetype": "NoUse", "item_name": "Harvest Heart", **icon(2281, 332507),
+    ("heart", {"item_usetype": "NoUse", "item_name": "Harvest Heart", **icon(2281, 332503),
                "item_description": "It beats once a minute."}),
 ]
 for _key, _item in ITEMS:
@@ -255,29 +257,30 @@ def mob(name, hp, hit, move, xp, **extra):
 
 
 def guest(name, face, helm, hp, hit, xp, stationary=True):
-    return mob(name, hp, hit, 1.0, xp, body_id=1, face_id=face, hair_id=0, equipped_items=eq(head=helm),
+    return mob(name, hp, hit, 1.0, xp, respawn_time=60, body_id=1, face_id=face, hair_id=0, equipped_items=eq(head=helm),
                **({"stationary": 1} if stationary else {}))
 
 
 FRIENDLY = {"npc_type": "Quest", "npc_level": 50, "class_id": 3, "respawn_time": 30, "stationary": 1,
             "invincible": 1, "weapon_damage": 70000, "hp_percent_regen": 0.2}
 GK_LOOK = {"body_id": 1, "body_state": 6, "face_id": 1, "hair_id": 0,
-           "equipped_items": eq(chest=(34, 80, 70, 60, 200), head=37, legs=(31, 200, 70, 60, 140), weapon=256)}
+           "equipped_items": eq(chest=7, head=37, legs=(31, 200, 70, 60, 140), feet=(8, 0, 0, 0, 255), weapon=256)}
 LOOK_COLUMNS = ["body_state", "body_id", "body_r", "body_g", "body_b", "body_a", "face_id", "hair_id",
                 "hair_r", "hair_g", "hair_b", "hair_a", "equipped_items"]
 
 NPCS = [
     ("penguin", guest("Penguin Guest", 1, 11, 17000, 1400, 2400)),
-    ("frog", guest("Frog Guest", 16, 17, 17000, 1400, 2400)),
+    ("frog", guest("Frog Guest", 1, 17, 17000, 1400, 2400)),
     ("bunny", guest("Bunny Guest", 5, 90, 17000, 1400, 2400)),
     ("purple", guest("Purple Ghost Guest", 2, 143, 17000, 1400, 2400)),
     ("ghostGuest", guest("Ghost Guest", 4, 19, 47000, 2300, 3000)),
-    ("devil", guest("Devil Guest", 13, 26, 79000, 3500, 4400, stationary=False)),
-    ("setting", mob("Possessed Place Setting", 10000, 1200, 0.8, 1700, body_id=307, stationary=1)),
-    ("cook", mob("Ghoul Cook", 47000, 2800, 1.5, 3000, body_id=169)),
+    ("devil", guest("Devil Guest", 3, 26, 79000, 3500, 4400, stationary=False)),
+    ("setting", mob("Possessed Place Setting", 10000, 1200, 0.8, 1700, body_id=307, stationary=1,
+                    respawn_time=45, aggro_range=4)),
+    ("cook", mob("Ghoul Cook", 47000, 2800, 1.5, 3000, body_id=169, respawn_time=45)),
     ("wailing", mob("Wailing Ghost", 47000, 3000, 1.0, 3000, body_id=220)),
-    ("flickering", mob("Flickering Ghost", 10000, 1800, 0.8, 1700, body_id=306)),
-    ("phantom", mob("Pink Phantom", 150000, 10000, 1.0, 6000, body_id=308)),
+    ("flickering", mob("Flickering Ghost", 30000, 4000, 0.8, 1700, body_id=306)),
+    ("phantom", mob("Pink Phantom", 200000, 10000, 1.0, 6000, body_id=308)),
     ("bloody", mob("Bloody Ghost", 79000, 10000, 1.0, 4400, body_id=305)),
     ("bloodyAdd", mob("Bloody Ghost", 79000, 10000, 1.0, 4400, body_id=305)),
     ("bones", mob("Restless Bones", 47000, 2300, 1.0, 3000, body_id=10106)),
@@ -297,8 +300,8 @@ NPCS = [
     ("collector", {**FRIENDLY, "npc_name": "The Collector", "body_id": 1, "face_id": 1, "hair_id": 23,
                    "equipped_items": eq(chest=34, head=114)}),
     ("farmer", {**FRIENDLY, "npc_name": "Pumpkin Farmer", "copy_look": 186}),
-    ("butler", {**FRIENDLY, "npc_name": "The Butler", "body_id": 1, "face_id": 1, "hair_id": 2,
-                "equipped_items": eq(chest=(34, 20, 20, 20, 200))}),
+    ("butler", {**FRIENDLY, "npc_name": "The Butler", "body_id": 1, "face_id": 1, "hair_id": 1,
+                "equipped_items": eq(chest=(34, 20, 20, 20, 200), head=176)}),
 ]
 GUESTS = ["penguin", "frog", "bunny", "purple", "ghostGuest", "devil"]
 
@@ -628,6 +631,8 @@ def build(next_ids, npc_rows, warp_rows):
             row.update({c: source[c] for c in LOOK_COLUMNS if source.get(c) not in ("", None)})
         if key in quest_ids:
             row["quest_ids"] = quest_ids[key]
+        if key in GUESTS:
+            row["npc_alliance"] = " ".join(str(ids("npc", g)) for g in GUESTS)
         ops.append(create("NPCs", {"npc_id": ids("npc", key), **{k: resolve(v, ids) for k, v in row.items()}}))
 
     revert = []

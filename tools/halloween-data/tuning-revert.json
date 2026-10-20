@@ -2,54 +2,6 @@
   {
     "op": "update",
     "sheet": "NPCs",
-    "id": 262,
-    "set": {
-      "aggro_range": 3
-    }
-  },
-  {
-    "op": "update",
-    "sheet": "NPCs",
-    "id": 263,
-    "set": {
-      "aggro_range": 3
-    }
-  },
-  {
-    "op": "update",
-    "sheet": "NPCs",
-    "id": 264,
-    "set": {
-      "aggro_range": 3
-    }
-  },
-  {
-    "op": "update",
-    "sheet": "NPCs",
-    "id": 265,
-    "set": {
-      "aggro_range": 3
-    }
-  },
-  {
-    "op": "update",
-    "sheet": "NPCs",
-    "id": 266,
-    "set": {
-      "aggro_range": 3
-    }
-  },
-  {
-    "op": "update",
-    "sheet": "NPCs",
-    "id": 267,
-    "set": {
-      "aggro_range": 3
-    }
-  },
-  {
-    "op": "update",
-    "sheet": "NPCs",
     "id": 278,
     "set": {
       "move_speed": 1,
