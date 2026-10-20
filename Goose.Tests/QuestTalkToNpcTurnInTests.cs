@@ -68,4 +68,19 @@ public class QuestTalkToNpcTurnInTests
         Assert.Equal("desc", window.GetCurrentText(player, world.World));
         Assert.DoesNotContain(player.QuestsCompleted, q => q.Id == quest.Id);
     }
+
+    [Fact]
+    public void Clicking_a_quest_npc_with_nothing_left_to_offer_still_counts_as_talking_to_them()
+    {
+        using var world = new TestWorldFixture();
+        var (player, quest) = Setup(world);
+        var done = new Quest { Id = 89, Name = "Already done" };
+        var destination = Npc(DestinationTemplateId);
+        destination.Quests = [done];
+        player.QuestsCompleted.Add(done);
+
+        QuestWindow.Handle(destination, player, world.World);
+
+        Assert.Equal(1, player.QuestProgress.Single(p => p.Requirement.Quest.Id == quest.Id).Value);
+    }
 }

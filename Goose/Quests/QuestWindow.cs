@@ -63,7 +63,11 @@ namespace Goose.Quests
                 w.Close(player, world);
 
             var quests = GetAvailableQuests(npc, player, world);
-            if (quests.Count == 0) return;
+            if (quests.Count == 0)
+            {
+                player.TalkedTo(npc, world);
+                return;
+            }
 
             if (quests.Count == 1)
             {

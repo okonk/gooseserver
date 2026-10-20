@@ -153,7 +153,302 @@
     "sheet": "NPCs",
     "id": 282,
     "set": {
-      "quest_ids": "90 91 92 114"
+      "quest_ids": "90 91 120 92 114"
+    }
+  },
+  {
+    "op": "create",
+    "sheet": "Quests",
+    "set": {
+      "id": 115,
+      "name": "Trick or Treat at Wendell",
+      "description": "Trick or treat? A young scholar of mischief! I\\nkeep a little something for visitors. Just don't\\ndrip on the parchment.",
+      "pass_text": "Here, sugar for the mind. Now off you go, before\\nyou smudge something.",
+      "fail_text": "No costume? Then you're just a customer. Come back\\ndressed for the occasion.",
+      "min_level": 1,
+      "repeatable": 0,
+      "show_progress": 1,
+      "prerequisite_quests": "91"
+    }
+  },
+  {
+    "op": "create",
+    "sheet": "Quest Reqs",
+    "set": {
+      "id": 145,
+      "quest_id": 115,
+      "requirement_type": "Script",
+      "requirement_value": 0,
+      "script_path": "Scripts/Quest/HalloweenWearing.csx",
+      "script_params": "{\"items\": [746, 747, 748, 749, 750, 751]}"
+    }
+  },
+  {
+    "op": "create",
+    "sheet": "Quest Rewards",
+    "set": {
+      "id": 236,
+      "quest_id": 115,
+      "reward_type": "Item",
+      "long_value": 745,
+      "long_value2": 5
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "NPCs",
+    "id": 150,
+    "set": {
+      "quest_ids": "115"
+    }
+  },
+  {
+    "op": "create",
+    "sheet": "Quests",
+    "set": {
+      "id": 116,
+      "name": "Trick or Treat at Brask",
+      "description": "Trick or treat, eh? Sharp costume. Not as sharp as\\nmy blades, mind you.",
+      "pass_text": "Take it before I change my mind. And keep your\\nfingers away from the anvil.",
+      "fail_text": "Where's your costume? No costume, no candy. Smithy\\nrules.",
+      "min_level": 1,
+      "repeatable": 0,
+      "show_progress": 1,
+      "prerequisite_quests": "91"
+    }
+  },
+  {
+    "op": "create",
+    "sheet": "Quest Reqs",
+    "set": {
+      "id": 146,
+      "quest_id": 116,
+      "requirement_type": "Script",
+      "requirement_value": 0,
+      "script_path": "Scripts/Quest/HalloweenWearing.csx",
+      "script_params": "{\"items\": [746, 747, 748, 749, 750, 751]}"
+    }
+  },
+  {
+    "op": "create",
+    "sheet": "Quest Rewards",
+    "set": {
+      "id": 237,
+      "quest_id": 116,
+      "reward_type": "Item",
+      "long_value": 745,
+      "long_value2": 5
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "NPCs",
+    "id": 105,
+    "set": {
+      "quest_ids": "116"
+    }
+  },
+  {
+    "op": "create",
+    "sheet": "Quests",
+    "set": {
+      "id": 117,
+      "name": "Trick or Treat at Slim Pickins",
+      "description": "Slim pickings this year, friend... Just kidding!\\nI've got a stash right under the counter.",
+      "pass_text": "Don't tell the others where you got it. Bad for\\nbusiness.",
+      "fail_text": "Can't give candy to just anyone. Put your costume\\non first.",
+      "min_level": 1,
+      "repeatable": 0,
+      "show_progress": 1,
+      "prerequisite_quests": "91"
+    }
+  },
+  {
+    "op": "create",
+    "sheet": "Quest Reqs",
+    "set": {
+      "id": 147,
+      "quest_id": 117,
+      "requirement_type": "Script",
+      "requirement_value": 0,
+      "script_path": "Scripts/Quest/HalloweenWearing.csx",
+      "script_params": "{\"items\": [746, 747, 748, 749, 750, 751]}"
+    }
+  },
+  {
+    "op": "create",
+    "sheet": "Quest Rewards",
+    "set": {
+      "id": 238,
+      "quest_id": 117,
+      "reward_type": "Item",
+      "long_value": 745,
+      "long_value2": 5
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "NPCs",
+    "id": 226,
+    "set": {
+      "quest_ids": "117"
+    }
+  },
+  {
+    "op": "create",
+    "sheet": "Quests",
+    "set": {
+      "id": 118,
+      "name": "Trick or Treat at Agnes",
+      "description": "Trick or treat? Careful, dearie. Half the sweets\\non these shelves are potions.",
+      "pass_text": "This one is candy. I'm almost sure of it.",
+      "fail_text": "Costume first, dearie. Then we'll see about\\nsweets.",
+      "min_level": 1,
+      "repeatable": 0,
+      "show_progress": 1,
+      "prerequisite_quests": "91"
+    }
+  },
+  {
+    "op": "create",
+    "sheet": "Quest Reqs",
+    "set": {
+      "id": 148,
+      "quest_id": 118,
+      "requirement_type": "Script",
+      "requirement_value": 0,
+      "script_path": "Scripts/Quest/HalloweenWearing.csx",
+      "script_params": "{\"items\": [746, 747, 748, 749, 750, 751]}"
+    }
+  },
+  {
+    "op": "create",
+    "sheet": "Quest Rewards",
+    "set": {
+      "id": 239,
+      "quest_id": 118,
+      "reward_type": "Item",
+      "long_value": 745,
+      "long_value2": 5
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "NPCs",
+    "id": 100,
+    "set": {
+      "quest_ids": "118"
+    }
+  },
+  {
+    "op": "create",
+    "sheet": "Quests",
+    "set": {
+      "id": 119,
+      "name": "Trick or Treat at Pip",
+      "description": "Trick or treat! The pets love costumes. Well, most\\nof them do.",
+      "pass_text": "Here's a treat for you. The other treats are for\\nthe dogs!",
+      "fail_text": "The pets won't believe you're trick-or-treating\\nwithout a costume!",
+      "min_level": 1,
+      "repeatable": 0,
+      "show_progress": 1,
+      "prerequisite_quests": "91"
+    }
+  },
+  {
+    "op": "create",
+    "sheet": "Quest Reqs",
+    "set": {
+      "id": 149,
+      "quest_id": 119,
+      "requirement_type": "Script",
+      "requirement_value": 0,
+      "script_path": "Scripts/Quest/HalloweenWearing.csx",
+      "script_params": "{\"items\": [746, 747, 748, 749, 750, 751]}"
+    }
+  },
+  {
+    "op": "create",
+    "sheet": "Quest Rewards",
+    "set": {
+      "id": 240,
+      "quest_id": 119,
+      "reward_type": "Item",
+      "long_value": 745,
+      "long_value2": 5
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "NPCs",
+    "id": 181,
+    "set": {
+      "quest_ids": "119"
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "Quests",
+    "id": 91,
+    "set": {
+      "description": "Now we go trick-or-treating! The shopkeepers in\\nMinita always have something sweet under the\\ncounter. Visit Wendell the Scribe, Brask the\\nWeaponsmith, Slim Pickins, Agnes the Apothecary\\nand Pip the Pet Trainer.\\n\\nAnd you HAVE to wear your costume, or it doesn't\\ncount.",
+      "pass_text": "Go on then! Come back and show me your haul once\\nyou've been to all five.",
+      "fail_text": "Costume on first! Nobody gives candy to someone in\\ntheir normal clothes."
+    }
+  },
+  {
+    "op": "create",
+    "sheet": "Quests",
+    "set": {
+      "id": 120,
+      "name": "Show Me Your Haul",
+      "description": "You went to all five? Let me see, let me see!",
+      "pass_text": "Look at all that! You're a natural. Here, have\\nsome of mine too.",
+      "fail_text": "Visit all five shopkeepers first!",
+      "min_level": 1,
+      "repeatable": 0,
+      "show_progress": 1,
+      "prerequisite_quests": "115 116 117 118 119"
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "Quest Rewards",
+    "id": 174,
+    "set": {
+      "quest_id": 120
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "Quest Rewards",
+    "id": 175,
+    "set": {
+      "quest_id": 120
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "Quest Rewards",
+    "id": 176,
+    "set": {
+      "quest_id": 120
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "Quest Rewards",
+    "id": 177,
+    "set": {
+      "quest_id": 120
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "Quests",
+    "id": 92,
+    "set": {
+      "prerequisite_quests": "120"
     }
   }
 ]

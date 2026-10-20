@@ -73,5 +73,55 @@
     "set": {
       "quest_ids": "90 91 92"
     }
+  },
+  {
+    "op": "update",
+    "sheet": "Quests",
+    "id": 91,
+    "set": {
+      "description": "Now we go trick-or-treating! The shopkeepers in\\nMinita always have something sweet under the\\ncounter. Visit Wendell the Scribe, Brask the\\nWeaponsmith, Slim Pickins, Agnes the Apothecary\\nand Pip the Pet Trainer.\\n\\nAnd you HAVE to wear your costume, or it doesn't\\ncount.",
+      "fail_text": "Five shopkeepers, and your costume on. Those are\\nthe rules.",
+      "pass_text": "Look at all that! You're a natural. Here, have\\nsome of mine too."
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "Quest Rewards",
+    "id": 174,
+    "set": {
+      "quest_id": 91
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "Quest Rewards",
+    "id": 175,
+    "set": {
+      "quest_id": 91
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "Quest Rewards",
+    "id": 176,
+    "set": {
+      "quest_id": 91
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "Quest Rewards",
+    "id": 177,
+    "set": {
+      "quest_id": 91
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "Quests",
+    "id": 92,
+    "set": {
+      "prerequisite_quests": "91"
+    }
   }
 ]
