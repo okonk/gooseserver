@@ -204,6 +204,52 @@ public class HauntedHouseMapTests
         Assert.Contains(player.Sent, s => s.Contains("Ghosts pour out of the walls!"));
     }
 
+    [Theory]
+    [InlineData(22, 42, "The grandfather clock reads 10:42 PM. It strikes the hour in 18 minutes.")]
+    [InlineData(9, 59, "The grandfather clock reads 9:59 AM. It strikes the hour in 1 minute.")]
+    [InlineData(0, 0, "The grandfather clock reads 12:00 AM. It is striking the hour right now!")]
+    public void Clock_reads_the_time_and_minutes_to_the_hour(int hour, int minute, string expected)
+    {
+        var (kit, _, _, script) = Setup();
+        var type = script.Object.GetType().Assembly.GetTypes().First(t => t.Name == "Halloween");
+
+        var reading = (string)type.GetMethod("ClockReading")!.Invoke(null, [new DateTime(2026, 10, 31, hour, minute, 0)])!;
+
+        Assert.Equal(expected, reading);
+        kit.Dispose();
+    }
+
+    [Fact]
+    public void Facing_up_at_the_clock_tile_tells_the_time_on_a_turn_or_a_step()
+    {
+        var (kit, map, player, script) = Setup();
+        player.MapX = 43;
+        player.MapY = 47;
+        player.Facing = Direction.Up;
+
+        script.Object.OnPlayerTurn(map, player, kit.World);
+        script.Object.OnPlayerMove(map, player, kit.World);
+
+        Assert.Equal(2, player.Sent.Count(s => s.Contains("The grandfather clock reads ")));
+        kit.Dispose();
+    }
+
+    [Theory]
+    [InlineData(43, 47, Direction.Down)]
+    [InlineData(44, 47, Direction.Up)]
+    public void Clock_stays_quiet_off_the_tile_or_facing_away(int x, int y, Direction facing)
+    {
+        var (kit, map, player, script) = Setup();
+        player.MapX = x;
+        player.MapY = y;
+        player.Facing = facing;
+
+        script.Object.OnPlayerTurn(map, player, kit.World);
+
+        Assert.DoesNotContain(player.Sent, s => s.Contains("The grandfather clock reads "));
+        kit.Dispose();
+    }
+
     private static (HalloweenTestKit Kit, Map Map, TestWorldFixture.CapturingPlayer Player, Script<IMapScript> Script) Setup(
         int mapId = 48, bool active = true)
     {

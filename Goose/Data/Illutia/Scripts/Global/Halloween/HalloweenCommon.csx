@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Linq;
 using Goose;
 
@@ -237,6 +238,22 @@ public static class Halloween
         }
 
         Feed(world, player, "+" + amount + " Candy");
+    }
+
+    public static void CheckClock(GameWorld world, Map map, Player player)
+    {
+        var cfg = HalloweenConfig.Get(world);
+        if (map.ID != cfg.Maps.House || cfg.Maps.Clock.Length < 2) return;
+        if (player.MapX != cfg.Maps.Clock[0] || player.MapY != cfg.Maps.Clock[1] || player.Facing != Direction.Up) return;
+        world.Send(player, P.Notice(NoticeType.Info, ClockReading(DateTime.Now)));
+    }
+
+    public static string ClockReading(DateTime now)
+    {
+        string reading = "The grandfather clock reads " + now.ToString("h:mm tt", CultureInfo.InvariantCulture) + ". ";
+        if (now.Minute == 0) return reading + "It is striking the hour right now!";
+        int minutes = 60 - now.Minute;
+        return reading + $"It strikes the hour in {minutes} minute{(minutes == 1 ? "" : "s")}.";
     }
 
     public static void Feed(GameWorld world, Player player, string text) =>

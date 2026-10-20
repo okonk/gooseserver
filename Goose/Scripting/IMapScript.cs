@@ -19,6 +19,7 @@ namespace Goose.Scripting
         string? CanPlayerPickupItem(Map map, Player player, ItemTile tile, GameWorld world);
         void OnPlayerLeft(Map map, Player player, GameWorld world);
         void OnPlayerMove(Map map, Player player, GameWorld world);
+        void OnPlayerTurn(Map map, Player player, GameWorld world);
         void OnPlayerChatEvent(Map map, Player player, string message, GameWorld world);
         void OnNPCKilledEvent(Map map, NPC npc, ICharacter killer, GameWorld world);
         void OnNPCSpawnEvent(Map map, NPC npc, GameWorld world);

@@ -20,5 +20,5 @@ script a row references.
 
 `tuning-batch.json` is the post-playtest tuning (guest aggro, Weeper attack speed, Groundskeeper
 walk speed, no pets in the house or basement, costume drop tiles, the Collector's Spare Faces
-turn-in and the Countess's clock). After the event, apply `tuning-revert.json` alongside
+turn-in). After the event, apply `tuning-revert.json` alongside
 `out/revert.json`.

@@ -270,32 +270,6 @@ public class HalloweenItemQuestScriptTests
         }
     }
 
-    [Theory]
-    [InlineData(22, 42, "The grandfather clock reads 10:42 PM.\\nIt strikes the hour in 18 minutes.")]
-    [InlineData(9, 59, "The grandfather clock reads 9:59 AM.\\nIt strikes the hour in 1 minute.")]
-    [InlineData(0, 0, "The grandfather clock reads 12:00 AM.\\nIt is striking the hour right now!")]
-    public void Clock_reads_the_time_and_minutes_to_the_hour(int hour, int minute, string expected)
-    {
-        using var kit = new HalloweenTestKit();
-        var script = kit.Compile<IQuestScript>("Quest", "HalloweenClock.csx").Object;
-        var reading = (string)script.GetType().GetMethod("Reading")!
-            .Invoke(script, [new DateTime(2026, 10, 31, hour, minute, 0)])!;
-
-        Assert.Equal(expected, reading);
-    }
-
-    [Fact]
-    public void Clock_never_completes()
-    {
-        using var kit = new HalloweenTestKit();
-        var script = kit.Compile<IQuestScript>("Quest", "HalloweenClock.csx").Object;
-        var house = kit.Fixture.AddBaseMap(48, "House", 48, 48);
-        var player = kit.Fixture.CommandPlayerOn(house, 5, 5, "A");
-
-        Assert.StartsWith("The grandfather clock reads ",
-            script.CanComplete(new QuestReward { Id = 1, Type = RewardType.Script }, player, kit.World));
-    }
-
     private static Item CreateItem(HalloweenTestKit kit, int templateId)
     {
         var item = new Item();

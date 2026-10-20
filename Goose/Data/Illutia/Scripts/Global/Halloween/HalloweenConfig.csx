@@ -14,6 +14,7 @@ public sealed class HalloweenMaps
     public int[] FoyerSpawn { get; set; } = [];
     public int[] BasementArrival { get; set; } = [];
     public int[] Entrance { get; set; } = [];
+    public int[] Clock { get; set; } = [];
 }
 
 public sealed class HalloweenItems
@@ -330,6 +331,7 @@ public sealed class HalloweenConfig
                 ["foyerSpawn"] = config.Maps.FoyerSpawn,
                 ["basementArrival"] = config.Maps.BasementArrival,
                 ["entrance"] = config.Maps.Entrance,
+                ["clock"] = config.Maps.Clock,
             })
                 if (point is null || point.Length != 2)
                     throw new JsonException("Halloween maps." + name + " must be a [x, y] array");

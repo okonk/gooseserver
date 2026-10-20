@@ -103,6 +103,11 @@ namespace Goose.Scripting
 
         }
 
+        public virtual void OnPlayerTurn(Map map, Player player, GameWorld world)
+        {
+
+        }
+
         public virtual void OnPlayerChatEvent(Map map, Player player, string message, GameWorld world)
         {
 

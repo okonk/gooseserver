@@ -1284,6 +1284,18 @@ namespace Goose
             this.UpdatePossibleQuestProgress(RequirementType.Kill, npc.NPCTemplate.NPCTemplateID, world);
         }
 
+        internal void Turned(GameWorld world)
+        {
+            try
+            {
+                this.Map.Script?.Object.OnPlayerTurn(this.Map, this, world);
+            }
+            catch (Exception e)
+            {
+                log.Error(e, "Map OnPlayerTurn {0} ({1}) player {2} ({3}) Exception", this.Map.Name, this.Map.ID, this.Name, this.LoginID);
+            }
+        }
+
         internal void TalkedTo(NPC npc, GameWorld world)
         {
             this.UpdatePossibleQuestProgress(RequirementType.TalkToNPC, npc.NPCTemplate.NPCTemplateID, world);

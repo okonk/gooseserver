@@ -71,34 +71,6 @@
     }
   },
   {
-    "op": "create",
-    "sheet": "Quests",
-    "set": {
-      "id": 113,
-      "name": "The Grandfather Clock",
-      "description": "That clock has kept this house's hours for three\\nhundred years, and it has never once been wrong.\\n\\nShall I tell you the time?",
-      "repeatable": 1
-    }
-  },
-  {
-    "op": "create",
-    "sheet": "Quest Rewards",
-    "set": {
-      "id": 234,
-      "quest_id": 113,
-      "reward_type": "Script",
-      "script_path": "Scripts/Quest/HalloweenClock.csx"
-    }
-  },
-  {
-    "op": "update",
-    "sheet": "NPCs",
-    "id": 279,
-    "set": {
-      "quest_ids": "94 95 96 97 98 99 100 113"
-    }
-  },
-  {
     "op": "update",
     "sheet": "NPCs",
     "id": 284,

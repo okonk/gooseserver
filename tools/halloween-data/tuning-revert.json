@@ -35,14 +35,6 @@
   {
     "op": "update",
     "sheet": "NPCs",
-    "id": 279,
-    "set": {
-      "quest_ids": "94 95 96 97 98 99 100"
-    }
-  },
-  {
-    "op": "update",
-    "sheet": "NPCs",
     "id": 284,
     "set": {
       "quest_ids": "103 104 105 106"

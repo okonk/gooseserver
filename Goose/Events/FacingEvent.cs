@@ -55,6 +55,7 @@ namespace Goose.Events
                     {
                         world.Send(player, packet);
                     }
+                    this.Player.Turned(world);
                 }
             }
         }
