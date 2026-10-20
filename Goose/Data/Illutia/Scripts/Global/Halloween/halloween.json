@@ -665,7 +665,7 @@
     "bigHitEvery": 4,
     "bigHitWarnSeconds": 1.5,
     "enrageAttackSpeed": 1.5,
-    "lightsOutSeconds": 6,
+    "lightsOutSeconds": 10,
     "lightsOutAlpha": 950,
     "finalLightsOutSeconds": 10,
     "enrageAuraSeconds": 2,
