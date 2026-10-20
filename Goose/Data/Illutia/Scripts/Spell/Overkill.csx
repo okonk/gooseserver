@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using Goose;
 using Goose.Scripting;
 
@@ -26,7 +27,7 @@ public class Overkill : BaseSpellEffectScript
     {
         if (cast.TotalDamage <= 0 || cast.UsefulDamage >= cast.TotalDamage) return;
 
-        double wasted = (double)(cast.TotalDamage - cast.UsefulDamage) / cast.TotalDamage;
+        double wasted = Math.Min((double)(cast.TotalDamage - cast.UsefulDamage) / cast.TotalDamage, RefundCap(thisEffect));
         cast.Caster.CurrentHP += (long)(cast.HPPercentCostPaid * wasted);
         cast.Caster.CurrentMP += (long)(cast.MPPercentCostPaid * wasted);
     }
@@ -39,7 +40,22 @@ public class Overkill : BaseSpellEffectScript
             yield return thisEffect.GetFormulaDescription(thisEffect.MPFormula, "MP", "");
         if (thisEffect.TauntAggro > 0)
             yield return $"Taunt for {thisEffect.TauntAggro:N0}";
-        yield return "Overkill refunds unused HP/MP cost";
+        double refundCap = RefundCap(thisEffect);
+        yield return refundCap < 1
+            ? $"Overkill refunds unused HP/MP cost (up to {refundCap:P0})"
+            : "Overkill refunds unused HP/MP cost";
+    }
+
+    private static double RefundCap(SpellEffect thisEffect)
+    {
+        foreach (var param in (thisEffect.ScriptParams ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var kv = param.Split('=', 2);
+            if (kv.Length == 2 && kv[0] == "cap" &&
+                double.TryParse(kv[1], NumberStyles.Float, CultureInfo.InvariantCulture, out double value))
+                return Math.Clamp(value, 0, 1);
+        }
+        return 1;
     }
 }
 
