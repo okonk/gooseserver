@@ -123,5 +123,37 @@
     "set": {
       "description": "The house keeps a bowl by the door, and it is never full. Every piece of candy you bring the Butler counts towards the whole server's haul: more Experience at 50,000, the basement opens at 200,000, and at 500,000 the party spills into town. The biggest givers win a Pumpkin Helm."
     }
+  },
+  {
+    "op": "create",
+    "sheet": "Quests",
+    "set": {
+      "id": 114,
+      "name": "Back to the House",
+      "description": "Did the house spit you out again? I know a\\nshortcut through the pumpkins. Come on, I'll take\\nyou right to the front door!",
+      "pass_text": "Here we are! Say hi to the Doorman for me.",
+      "fail_text": "The house is dark tonight. Nobody's going.",
+      "min_level": 40,
+      "repeatable": 1,
+      "prerequisite_quests": "93"
+    }
+  },
+  {
+    "op": "create",
+    "sheet": "Quest Rewards",
+    "set": {
+      "id": 235,
+      "quest_id": 114,
+      "reward_type": "Script",
+      "script_path": "Scripts/Quest/HalloweenToTheDoor.csx"
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "NPCs",
+    "id": 282,
+    "set": {
+      "quest_ids": "90 91 92 114"
+    }
   }
 ]

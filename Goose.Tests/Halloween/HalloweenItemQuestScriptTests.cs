@@ -195,6 +195,30 @@ public class HalloweenItemQuestScriptTests
         Assert.Equal("The door is locked tonight.", script.CanComplete(reward, player, kit.World));
     }
 
+    [Fact]
+    public void To_the_door_warps_from_town_to_outside_the_house()
+    {
+        using var kit = new HalloweenTestKit();
+        var script = kit.Compile<IQuestScript>("Quest", "HalloweenToTheDoor.csx").Object;
+        var reward = new QuestReward { Id = 1, Type = RewardType.Script, ScriptParams = "" };
+        var town = kit.Fixture.AddBaseMap(1, "Minita", 80, 80);
+        var grove = kit.Fixture.AddBaseMap(38, "Grove", 48, 48);
+        var player = kit.Fixture.CommandPlayerOn(town, 53, 59, "A");
+        player.PlayerID = 505;
+        town.AddPlayer(player, kit.World);
+
+        Assert.Equal("The house is dark tonight. Nobody's going.", script.CanComplete(reward, player, kit.World));
+
+        kit.World.CommunityGoals.SetFlag("halloween.active", 1, null);
+        Assert.Null(script.CanComplete(reward, player, kit.World));
+
+        script.GiveReward(reward, null!, player, kit.World);
+        CompleteWarp(kit, player);
+
+        Assert.Equal(grove, player.Map);
+        Assert.Equal((38, 37), (player.MapX, player.MapY));
+    }
+
     private static void AttachCostume(HalloweenTestKit kit, int templateId)
         => kit.World.ItemHandler.GetTemplate(templateId)!.Script =
             kit.Compile<IItemScript>("Item", "HalloweenCostume.csx");
