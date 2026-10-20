@@ -14,6 +14,7 @@ public class GroundskeeperState
     public long LastPlayerSeenAt { get; set; }
     public long NextJumpAt { get; set; }
     public long NextDarkAt { get; set; }
+    public long HiddenUntil { get; set; }
 }
 
 public class Groundskeeper : BaseNPCScript
@@ -89,6 +90,11 @@ public class Groundskeeper : BaseNPCScript
         CheckPhases(npc, world);
         var cfg = HalloweenConfig.Get(world);
         var state = State(npc);
+        if (npc.Hidden)
+        {
+            if (now >= state.HiddenUntil) Emerge(npc, world);
+            return;
+        }
         FinalDarkCheck(npc, state, cfg, now, world);
         if (npc.Buffs.Any(b => b.SpellEffect.EffectType == SpellEffect.EffectTypes.Stun)) return;
         if (cfg.Groundskeeper.JumpSeconds > 0 && now >= state.NextJumpAt)
@@ -125,7 +131,7 @@ public class Groundskeeper : BaseNPCScript
         var cfg = HalloweenConfig.Get(world);
         var state = State(npc);
         state.BigHitPending = false;
-        if (npc.State != NPC.States.Alive) return;
+        if (npc.State != NPC.States.Alive || npc.Hidden) return;
         var targets = npc.Map.Players.OfType<Player>()
             .Where(p => p.State == Player.States.Ready && !p.IsGM &&
                 Math.Max(Math.Abs(p.MapX - npc.MapX), Math.Abs(p.MapY - npc.MapY)) <= npc.AttackRange)
@@ -224,19 +230,19 @@ public class Groundskeeper : BaseNPCScript
             case 0:
                 Rescale(npc, fraction, world);
                 LightsOut(npc, world, cfg.Groundskeeper.LightsOutSeconds);
-                Vanish(npc, world);
+                HideInTheDark(npc, cfg.Groundskeeper.LightsOutSeconds, world);
                 SpawnAdds(npc, "placeSettings", world);
                 break;
             case 1:
                 Rescale(npc, fraction, world);
                 LightsOut(npc, world, cfg.Groundskeeper.LightsOutSeconds);
-                Vanish(npc, world);
+                HideInTheDark(npc, cfg.Groundskeeper.LightsOutSeconds, world);
                 SpawnAdds(npc, "ghosts", world);
                 break;
             case 2:
                 Rescale(npc, fraction, world);
                 LightsOut(npc, world, FinalLightsOutSeconds(cfg));
-                Vanish(npc, world);
+                HideInTheDark(npc, FinalLightsOutSeconds(cfg), world);
                 SpawnAdds(npc, "bloody", world);
                 break;
             case 3:
@@ -248,17 +254,51 @@ public class Groundskeeper : BaseNPCScript
 
     private void Vanish(NPC npc, GameWorld world)
     {
-        var map = npc.Map;
-        var players = map.Players.OfType<Player>()
-            .Where(p => p.State == Player.States.Ready && !p.IsGM).ToList();
-        if (players.Count == 0) return;
-        var target = players[world.Random.Next(players.Count)];
-        (int X, int Y)? tile = TileBehind(map, target);
-        tile ??= FreeAdjacentTile(map, target);
+        var target = RandomPlayer(npc, world);
+        if (target is null) return;
+        var tile = BehindOrBeside(npc.Map, target);
         if (tile is null) return;
         npc.MoveTo(world, tile.Value.X, tile.Value.Y);
         npc.AddAggro(target, npc.AggroValue.Damage + npc.AggroValue.Taunt + 1, wastaunt: true, world);
     }
+
+    private void HideInTheDark(NPC npc, int seconds, GameWorld world)
+    {
+        npc.Hide(world);
+        if (!npc.Hidden) return;
+        State(npc).HiddenUntil = world.TimeNow + Halloween.Ticks(world, seconds);
+        world.SendToMap(npc.Map, P.Notice(NoticeType.Info, "The Groundskeeper vanishes into the dark…"));
+        // Same reload-safe pattern as the other timers: re-resolve and invoke Emerge reflectively.
+        ScriptTimerEvent.Create(() =>
+        {
+            var current = npc.Script?.Object;
+            if (current is not null)
+                current.GetType().GetMethod("Emerge")!.Invoke(current, new object?[] { npc, world });
+        }, TimeSpan.FromSeconds(seconds), world);
+    }
+
+    public void Emerge(NPC npc, GameWorld world)
+    {
+        if (!npc.Hidden || npc.State != NPC.States.Alive) return;
+        var target = RandomPlayer(npc, world);
+        var tile = target is null ? null : BehindOrBeside(npc.Map, target);
+        var (x, y) = tile ?? (npc.MapX, npc.MapY);
+        npc.Reveal(world, x, y);
+        if (target is null) return;
+        npc.AddAggro(target, npc.AggroValue.Damage + npc.AggroValue.Taunt + 1, wastaunt: true, world);
+        world.SendToMap(npc.Map, P.Notice(NoticeType.Info,
+            "The Groundskeeper bursts out of the dark behind " + target.Name + "!"));
+    }
+
+    private static Player? RandomPlayer(NPC npc, GameWorld world)
+    {
+        var players = npc.Map.Players.OfType<Player>()
+            .Where(p => p.State == Player.States.Ready && !p.IsGM).ToList();
+        return players.Count == 0 ? null : players[world.Random.Next(players.Count)];
+    }
+
+    private static (int X, int Y)? BehindOrBeside(Map map, Player target) =>
+        TileBehind(map, target) ?? FreeAdjacentTile(map, target);
 
     private void SpawnAdds(NPC npc, string kind, GameWorld world)
     {

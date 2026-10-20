@@ -164,6 +164,47 @@ public class GroundskeeperScriptTests : IDisposable
     }
 
     [Fact]
+    public void Threshold_hides_him_in_the_dark_then_he_bursts_out_behind_a_player()
+    {
+        var player = PlayerOn(20, 20, "A");
+        player.Facing = Direction.Down;
+        var npc = Spawn(30, 30);
+        npc.CurrentHP = (long)(0.74 * npc.MaxHP);
+
+        Call("AttackStep", npc, Now, kit.World);
+
+        Assert.True(npc.Hidden);
+        Assert.Null(map.GetCharacterAt(30, 30));
+        Assert.Contains(player.Sent, s => s.Contains("The Groundskeeper vanishes into the dark…"));
+        long hp = npc.CurrentHP;
+        npc.Attacked(player, 50_000, kit.World);
+        Assert.Equal(hp, npc.CurrentHP);
+
+        Call("Emerge", npc, kit.World);
+
+        Assert.False(npc.Hidden);
+        Assert.Equal((20, 19), (npc.MapX, npc.MapY));
+        Assert.Equal(player, npc.AggroTarget);
+        Assert.Contains(player.Sent, s => s.Contains("The Groundskeeper bursts out of the dark behind A!"));
+    }
+
+    [Fact]
+    public void Attack_step_brings_him_back_once_the_dark_is_over()
+    {
+        PlayerOn(20, 20, "A");
+        var npc = Spawn(30, 30);
+        npc.CurrentHP = (long)(0.74 * npc.MaxHP);
+        Call("AttackStep", npc, Now, kit.World);
+        Assert.True(npc.Hidden);
+        npc.ScriptStore!.GetType().GetProperty("HiddenUntil")!.SetValue(npc.ScriptStore, Now + kit.World.TimerFrequency * 6);
+
+        Call("AttackStep", npc, Now + kit.World.TimerFrequency * 5, kit.World);
+        Assert.True(npc.Hidden);
+        Call("AttackStep", npc, Now + kit.World.TimerFrequency * 6, kit.World);
+        Assert.False(npc.Hidden);
+    }
+
+    [Fact]
     public void Bloody_adds_tagged_and_reduce_damage_while_alive()
     {
         const int CurveEffect = 779;
@@ -183,6 +224,7 @@ public class GroundskeeperScriptTests : IDisposable
         Call("AttackStep", npc, Now, kit.World);
 
         var bloody = Assert.Single(AddsOn(map, "bloody"));
+        Call("Emerge", npc, kit.World);
         Assert.Equal(20_000, Hit(npc, attacker, 80_000));
 
         bloody.Despawn(kit.World);

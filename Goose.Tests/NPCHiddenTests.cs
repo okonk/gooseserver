@@ -36,4 +36,23 @@ public class NPCHiddenTests
         Assert.Equal(player, map.GetCharacterAt(5, 5));
         Assert.False(npc.Hidden);
     }
+
+    [Fact]
+    public void Hidden_npc_does_not_move_or_attack()
+    {
+        using var fixture = new TestWorldFixture();
+        var map = fixture.AddBaseMap(1, "Town", 30, 30);
+        var npc = fixture.SpawnNpc(map, 5, 5, fixture.AddNpcTemplate(9001, "Boss", t => { t.MoveSpeed = 1; t.AggroRange = 10; }));
+        var player = fixture.CommandPlayerOn(map, 5, 8, "A");
+        map.AddPlayer(player, fixture.World);
+        npc.AddAggro(player, 1, fixture.World);
+        long hp = player.CurrentHP;
+        npc.Hide(fixture.World);
+
+        npc.HandleMoveEvent(fixture.World);
+        npc.HandleAttackEvent(fixture.World);
+
+        Assert.Equal((5, 5), (npc.MapX, npc.MapY));
+        Assert.Equal(hp, player.CurrentHP);
+    }
 }

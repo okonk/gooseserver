@@ -402,6 +402,12 @@ namespace Goose
 
         public void HandleMoveEvent(GameWorld world)
         {
+            if (this.Hidden)
+            {
+                this.AddMoveEvent(world);
+                return;
+            }
+
             foreach (var b in this.Buffs)
             {
                 // can't move when stunned or rooted
@@ -1426,6 +1432,12 @@ namespace Goose
 
         public void HandleAttackEvent(GameWorld world)
         {
+            if (this.Hidden)
+            {
+                this.AddAttackEvent(world);
+                return;
+            }
+
             bool rooted = false;
 
             foreach (var b in this.Buffs)
