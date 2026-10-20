@@ -14,6 +14,12 @@ namespace Goose.Events
         {
             if (this.NPC is not null)
             {
+                if (this.NPC.State == NPC.States.Alive && this.NPC.Hidden)
+                {
+                    this.NPC.RegenEventExists = false;
+                    this.NPC.AddRegenEvent(world);
+                    return;
+                }
                 if (this.NPC.State == NPC.States.Alive)
                 {
                     if (this.NPC.AggroTarget is not null)

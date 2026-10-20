@@ -16,6 +16,7 @@ public class WeeperState : BossState
     public long LeashStartedAt { get; set; }
     public int LeftRouteAtX { get; set; }
     public int LeftRouteAtY { get; set; }
+    public long HiddenUntil { get; set; }
 }
 
 public class Weeper : BaseNPCScript
@@ -56,6 +57,7 @@ public class Weeper : BaseNPCScript
 
     public void Tick(NPC npc, long now, GameWorld world)
     {
+        if (npc.Hidden && now >= State(npc).HiddenUntil) Emerge(npc, world);
         HalloweenBoss.TickBleeds(npc, now, world);
         FootstepsCheck(npc, now, world);
     }
@@ -79,6 +81,7 @@ public class Weeper : BaseNPCScript
 
     public void MoveStep(NPC npc, long now, GameWorld world)
     {
+        if (npc.Hidden) return;
         var cfg = HalloweenConfig.Get(world);
         var state = State(npc);
         LeashCheck(npc, state, cfg, now, world);
@@ -100,10 +103,14 @@ public class Weeper : BaseNPCScript
     public void AttackStep(NPC npc, long now, GameWorld world)
     {
         if (npc.Buffs.Any(b => b.SpellEffect.EffectType == SpellEffect.EffectTypes.Stun)) return;
-        if (npc.AggroTarget is null) return;
+        if (npc.AggroTarget is null || npc.Hidden) return;
         var cfg = HalloweenConfig.Get(world);
         var state = State(npc);
-        if (now >= state.NextLungeAt && Lunge(npc, state, cfg, now, world)) return;
+        if (now >= state.NextLungeAt)
+        {
+            if (world.Random.NextDouble() < cfg.Weeper.HideChance && Hide(npc, state, cfg, now, world)) return;
+            if (Lunge(npc, state, cfg, now, world)) return;
+        }
         Swing(npc, state, cfg, now, world);
     }
 
@@ -300,6 +307,44 @@ public class Weeper : BaseNPCScript
         Halloween.Feed(world, target, "The Weeper lunges at " + target.Name + "!");
         state.NextLungeAt = now + Halloween.Ticks(world, cfg.Weeper.LungeSeconds);
         return true;
+    }
+
+    private static bool Hide(NPC npc, WeeperState state, HalloweenConfig cfg, long now, GameWorld world)
+    {
+        if (cfg.Weeper.HideSeconds <= 0) return false;
+        var watchers = HalloweenBoss.PlayersNear(npc, cfg.Weeper.LeashRadius);
+        if (watchers.Count == 0) return false;
+        npc.Hide(world);
+        foreach (var p in watchers)
+            Halloween.Feed(world, p, "The Weeper hides in the shadows…");
+        state.HiddenUntil = now + Halloween.Ticks(world, cfg.Weeper.HideSeconds);
+        state.NextLungeAt = state.HiddenUntil + Halloween.Ticks(world, cfg.Weeper.LungeSeconds);
+        // Same reload-safe pattern as the tick timer: re-resolve and invoke Emerge reflectively.
+        ScriptTimerEvent.Create(() =>
+        {
+            var current = npc.Script?.Object;
+            if (current is not null)
+                current.GetType().GetMethod("Emerge")!.Invoke(current, new object?[] { npc, world });
+        }, TimeSpan.FromSeconds(cfg.Weeper.HideSeconds), world);
+        return true;
+    }
+
+    public void Emerge(NPC npc, GameWorld world)
+    {
+        if (!npc.Hidden || npc.State != NPC.States.Alive) return;
+        var cfg = HalloweenConfig.Get(world);
+        var near = HalloweenBoss.PlayersNear(npc, cfg.Weeper.LeashRadius);
+        var others = near.Where(p => p != npc.AggroTarget).ToList();
+        var pool = others.Count > 0 ? others : near;
+        var target = pool.Count > 0 ? pool[world.Random.Next(pool.Count)] : null;
+        var tile = target is null ? null : TileBehind(npc, target);
+        var (x, y) = tile ?? (npc.MapX, npc.MapY);
+        if (target is not null) npc.Facing = DirectionTo((x, y), (target.MapX, target.MapY));
+        npc.Reveal(world, x, y);
+        if (target is null) return;
+        npc.AddAggro(target, npc.AggroValue.Damage + npc.AggroValue.Taunt + 1, wastaunt: true, world);
+        foreach (var p in near)
+            Halloween.Feed(world, p, "The Weeper steps out of the shadows behind " + target.Name + "!");
     }
 
     private static (int X, int Y)? TileBehind(NPC npc, Player target)

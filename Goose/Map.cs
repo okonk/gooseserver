@@ -184,7 +184,8 @@ namespace Goose
                                where Math.Abs(p.MapX - character.MapX) < RANGE_X &&
                                      Math.Abs(p.MapY - character.MapY) < RANGE_Y &&
                                      p != character &&
-                                     p.State == NPC.States.Alive
+                                     p.State == NPC.States.Alive &&
+                                     !p.Hidden
                                select p).ToList<NPC>();
             return range;
         }

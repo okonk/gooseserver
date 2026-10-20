@@ -202,6 +202,8 @@ public sealed class HalloweenWeeper
     public double StragglerMultiplier { get; set; }
     public int LungeSeconds { get; set; }
     public int LungeRadius { get; set; }
+    public double HideChance { get; set; }
+    public double HideSeconds { get; set; }
     public int LeashRadius { get; set; }
     public int LeashSeconds { get; set; }
     public int LeashMaxDistance { get; set; }

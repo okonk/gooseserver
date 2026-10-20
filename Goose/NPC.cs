@@ -22,6 +22,12 @@ namespace Goose
         }
         public States State { get; set; }
 
+        /**
+         * Hidden, GM-invisible style: clients were sent ERC, the NPC is off its tile and out of
+         * every range lookup, and it takes no damage and does not regen until Reveal.
+         */
+        public bool Hidden { get; private set; }
+
         public class Aggro
         {
             public long Taunt;
@@ -723,6 +729,7 @@ namespace Goose
 
             this.Map.PlaceCharacter(this);
             this.State = States.Alive;
+            this.Hidden = false;
             // move to this square so this
             this.Map.SetCharacter(this, this.MapX, this.MapY);
 
@@ -754,6 +761,43 @@ namespace Goose
             this.AddMoveEvent(world);
         }
 
+        public void Hide(GameWorld world)
+        {
+            if (this.Hidden || this.State != States.Alive) return;
+
+            string packet = P.EraseCharacter(this.LoginID);
+            foreach (var player in this.Map.GetPlayersInRange(this))
+                world.Send(player, packet);
+            this.LeaveTile();
+            this.Hidden = true;
+        }
+
+        public void Reveal(GameWorld world, int x, int y)
+        {
+            if (!this.Hidden || this.State != States.Alive) return;
+
+            this.MapX = x;
+            this.MapY = y;
+            this.Map.PlaceCharacter(this);
+            this.Map.SetCharacter(this, this.MapX, this.MapY);
+            this.Hidden = false;
+
+            string packet = P.MakeNPCCharacter(this);
+            foreach (var player in this.Map.GetPlayersInRange(this))
+            {
+                world.Send(player, packet);
+                world.QuestHandler.SendIcon(player, this, world);
+            }
+        }
+
+        private void LeaveTile()
+        {
+            // A hidden NPC is already off its tile, and a player may be standing there now.
+            if (this.Map.GetCharacterAt(this.MapX, this.MapY) == this)
+                this.Map.SetCharacter(null, this.MapX, this.MapY);
+            this.Hidden = false;
+        }
+
         public void Despawn(GameWorld world)
         {
             if (this.State != States.Alive) return;
@@ -764,7 +808,7 @@ namespace Goose
                 world.Send(player, packet);
             }
 
-            this.Map.SetCharacter(null, this.MapX, this.MapY);
+            this.LeaveTile();
             this.State = States.Dead;
             this.MoveEvent = null;
             this.CurrentHP = 0;
@@ -1131,7 +1175,7 @@ namespace Goose
          */
         public void Attacked(ICharacter character, long damage, GameWorld world)
         {
-            if (this.State == States.Dead) return;
+            if (this.State == States.Dead || this.Hidden) return;
 
             try
             {
@@ -1202,7 +1246,7 @@ namespace Goose
                     }
 
                     // move off this square so null
-                    this.Map.SetCharacter(null, this.MapX, this.MapY);
+                    this.LeaveTile();
                     this.State = States.Dead;
                     this.MoveEvent = null;
                     this.CurrentHP = 0;

@@ -413,6 +413,8 @@
     "stragglerMultiplier": 2,
     "lungeSeconds": 15,
     "lungeRadius": 6,
+    "hideChance": 0.35,
+    "hideSeconds": 5,
     "leashRadius": 12,
     "leashSeconds": 10,
     "leashMaxDistance": 40,

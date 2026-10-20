@@ -153,6 +153,68 @@ public class WeeperScriptTests : IDisposable
         Assert.Equal(Now + kit.World.TimerFrequency * 15, StateLong(npc, "NextLungeAt"));
     }
 
+    [Fact]
+    public void Hiding_erases_him_from_clients_and_frees_his_tile()
+    {
+        kit.SetConfig(cfg => { cfg["weeper"]!["hideChance"] = 1.0; cfg["weeper"]!["hideSeconds"] = 5; });
+        SetWorldRandom(kit.World, new HalloweenTestKit.FixedRandom([0.0]));
+        var npc = Spawn(10, 10);
+        var a = PlayerOn(11, 10, "A");
+        npc.AddAggro(a, 100, kit.World);
+        long hp = npc.CurrentHP;
+
+        Call("AttackStep", npc, Now, kit.World);
+
+        Assert.True(npc.Hidden);
+        Assert.Contains(a.Sent, s => s.TrimEnd('\x1') == P.EraseCharacter(npc.LoginID));
+        Assert.Contains(a.Sent, s => s.Contains("The Weeper hides in the shadows…"));
+        Assert.Null(map.GetCharacterAt(10, 10));
+        Assert.DoesNotContain(npc, map.GetNPCsInRange(a));
+
+        npc.Attacked(a, 50_000, kit.World);
+        Call("MoveStep", npc, Now, kit.World);
+        Assert.Equal(hp, npc.CurrentHP);
+        Assert.Equal((10, 10), (npc.MapX, npc.MapY));
+    }
+
+    [Fact]
+    public void Emerging_appears_behind_someone_else_and_targets_them()
+    {
+        kit.SetConfig(cfg => { cfg["weeper"]!["hideChance"] = 1.0; cfg["weeper"]!["hideSeconds"] = 5; });
+        SetWorldRandom(kit.World, new HalloweenTestKit.FixedRandom([0.0]));
+        var npc = Spawn(10, 10);
+        var a = PlayerOn(11, 10, "A");
+        var b = PlayerOn(15, 12, "B");
+        b.Facing = Direction.Down;
+        npc.AddAggro(a, 100, kit.World);
+        Call("AttackStep", npc, Now, kit.World);
+
+        Call("Emerge", npc, kit.World);
+
+        Assert.False(npc.Hidden);
+        Assert.Equal((15, 11), (npc.MapX, npc.MapY));
+        Assert.Equal(npc, map.GetCharacterAt(15, 11));
+        Assert.Equal(b, npc.AggroTarget);
+        Assert.Contains(b.Sent, s => s.TrimEnd('\x1') == P.MakeNPCCharacter(npc));
+        Assert.Contains(a.Sent, s => s.Contains("The Weeper steps out of the shadows behind B!"));
+    }
+
+    [Fact]
+    public void Tick_brings_him_back_if_the_emerge_timer_was_lost()
+    {
+        kit.SetConfig(cfg => { cfg["weeper"]!["hideChance"] = 1.0; cfg["weeper"]!["hideSeconds"] = 5; });
+        SetWorldRandom(kit.World, new HalloweenTestKit.FixedRandom([0.0]));
+        var npc = Spawn(10, 10);
+        var a = PlayerOn(11, 10, "A");
+        npc.AddAggro(a, 100, kit.World);
+        Call("AttackStep", npc, Now, kit.World);
+
+        Call("Tick", npc, Now + kit.World.TimerFrequency * 4, kit.World);
+        Assert.True(npc.Hidden);
+        Call("Tick", npc, Now + kit.World.TimerFrequency * 5, kit.World);
+        Assert.False(npc.Hidden);
+    }
+
     [Theory]
     [InlineData(Direction.Up, 15, 11)]
     [InlineData(Direction.Down, 15, 9)]
