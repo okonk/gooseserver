@@ -462,7 +462,7 @@ QUESTS = [
          passed="""You did it. Take the sword. It was never really mine.""",
          failed="""The Groundskeeper still keeps the grounds.""",
          reqs=[kill("@npc:gk", 1)], rewards=[("Item", "@item:sword", 1), ("Experience", 200000), ("Gold", 50000)]),
-    dict(key="q12", giver="count", name="Party Crashers", repeatable=True,
+    dict(key="q12", giver="count", name="Party Crashers", repeatable=True, prereq=["q5"],
          desc="""My wife wants them gone. I want them gone more quietly.
 
          Five of each kind of guest, if you'd be so kind. Again tomorrow, no doubt.""",
@@ -470,7 +470,7 @@ QUESTS = [
          failed="""Five of each kind of guest, please.""",
          reqs=[kill(f"@npc:{g}", 5) for g in GUESTS],
          rewards=[("Experience", 30000), ("Gold", 8000), ("Item", "@item:brew", 3), candy(10)]),
-    dict(key="q13", giver="count", name="Fresh Pies", repeatable=True,
+    dict(key="q13", giver="count", name="Fresh Pies", repeatable=True, prereq=["q6"],
          desc="""The cooks have turned. They still bake, mind you. Dreadful manners, wonderful pies.
 
          Twenty of them, and I'll share the spoils.""",

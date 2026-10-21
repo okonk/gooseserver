@@ -221,5 +221,21 @@
     "set": {
       "prerequisite_quests": "103 104 105"
     }
+  },
+  {
+    "op": "update",
+    "sheet": "Quests",
+    "id": 101,
+    "set": {
+      "prerequisite_quests": ""
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "Quests",
+    "id": 102,
+    "set": {
+      "prerequisite_quests": ""
+    }
   }
 ]

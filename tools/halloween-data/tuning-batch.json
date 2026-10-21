@@ -545,5 +545,21 @@
     "set": {
       "prerequisite_quests": "105"
     }
+  },
+  {
+    "op": "update",
+    "sheet": "Quests",
+    "id": 101,
+    "set": {
+      "prerequisite_quests": "94"
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "Quests",
+    "id": 102,
+    "set": {
+      "prerequisite_quests": "95"
+    }
   }
 ]
