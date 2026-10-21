@@ -123,5 +123,79 @@
     "set": {
       "pass_text": "Ooh, it suits you! Every time you put it on it\\nlooks a bit different. That's the magic."
     }
+  },
+  {
+    "op": "update",
+    "sheet": "Quests",
+    "id": 94,
+    "set": {
+      "description": "So many guests, and I invited none of them. They\\nwon't leave, and they're eating everything.\\n\\nThin them out for me. Ten of each kind: Penguins,\\nFrogs, Bunnies, Purple Ghosts, Ghosts and Devils.",
+      "fail_text": "There are still far too many guests. Ten of each,\\nplease."
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "Quests",
+    "id": 95,
+    "set": {
+      "description": "The dinner service has got ideas above its\\nstation. Forks with opinions. Plates that bite.\\n\\nBreak twenty of the Possessed Place Settings in\\nthe Dining Room.",
+      "fail_text": "Twenty of the Place Settings, please. Mind the\\nknives."
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "Quest Reqs",
+    "id": 112,
+    "set": {
+      "requirement_value2": 10
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "Quest Reqs",
+    "id": 113,
+    "set": {
+      "requirement_value2": 10
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "Quest Reqs",
+    "id": 114,
+    "set": {
+      "requirement_value2": 10
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "Quest Reqs",
+    "id": 115,
+    "set": {
+      "requirement_value2": 10
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "Quest Reqs",
+    "id": 116,
+    "set": {
+      "requirement_value2": 10
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "Quest Reqs",
+    "id": 117,
+    "set": {
+      "requirement_value2": 10
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "Quest Reqs",
+    "id": 118,
+    "set": {
+      "requirement_value2": 20
+    }
   }
 ]

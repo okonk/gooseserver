@@ -413,20 +413,20 @@ QUESTS = [
          desc="""So many guests, and I invited none of them. They won't leave, and they're eating
          everything.
 
-         Thin them out for me. Ten of each kind: Penguins, Frogs, Bunnies, Purple Ghosts, Ghosts and
+         Thin them out for me. Thirty of each kind: Penguins, Frogs, Bunnies, Purple Ghosts, Ghosts and
          Devils.""",
          passed="""Much quieter. You may stay as long as you like, darling.""",
-         failed="""There are still far too many guests. Ten of each, please.""",
-         reqs=[kill(f"@npc:{g}", 10) for g in GUESTS],
+         failed="""There are still far too many guests. Thirty of each, please.""",
+         reqs=[kill(f"@npc:{g}", 30) for g in GUESTS],
          rewards=[("Experience", 120000), ("Gold", 25000), candy(50)]),
     dict(key="q6", giver="countess", name="Table Manners",
          desc="""The dinner service has got ideas above its station. Forks with opinions. Plates that
          bite.
 
-         Break twenty of the Possessed Place Settings in the Dining Room.""",
+         Break thirty of the Possessed Place Settings in the Dining Room.""",
          passed="""We'll eat off the floor tonight. Better than being eaten by the plates.""",
-         failed="""Twenty of the Place Settings, please. Mind the knives.""",
-         reqs=[kill("@npc:setting", 20)], rewards=[("Experience", 60000), ("Gold", 15000), candy(20)]),
+         failed="""Thirty of the Place Settings, please. Mind the knives.""",
+         reqs=[kill("@npc:setting", 30)], rewards=[("Experience", 60000), ("Gold", 15000), candy(20)]),
     dict(key="q7", giver="countess", name="Spirits in the Walls",
          desc="""The walls ooze at night. It's ghosts, of course. They leave Ectoplasm everywhere.
 
