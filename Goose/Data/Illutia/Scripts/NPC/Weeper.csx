@@ -17,6 +17,7 @@ public class WeeperState : BossState
     public int LeftRouteAtX { get; set; }
     public int LeftRouteAtY { get; set; }
     public long HiddenUntil { get; set; }
+    public HashSet<int> InEarshot { get; } = [];
 }
 
 public class Weeper : BaseNPCScript
@@ -60,6 +61,7 @@ public class Weeper : BaseNPCScript
         if (npc.Hidden && now >= State(npc).HiddenUntil) Emerge(npc, world);
         HalloweenBoss.TickBleeds(npc, now, world);
         FootstepsCheck(npc, now, world);
+        EarshotCheck(npc, world);
     }
 
     public override void OnMoveEvent(NPC npc, GameWorld world)
@@ -126,6 +128,18 @@ public class Weeper : BaseNPCScript
             world.Send(p, P.Notice(NoticeType.Info, "[Event] Something is dragging its feet... to the " +
                 HalloweenBoss.Compass(p.MapX, p.MapY, npc.MapX, npc.MapY) + "."));
         }
+    }
+
+    public void EarshotCheck(NPC npc, GameWorld world)
+    {
+        if (npc.Hidden) return;
+        var cfg = HalloweenConfig.Get(world);
+        var state = State(npc);
+        var near = HalloweenBoss.PlayersNear(npc, cfg.Weeper.HearRadius);
+        foreach (var p in near)
+            if (state.InEarshot.Add(p.PlayerID) && !npc.AggroTargetToValue.ContainsKey(p))
+                Halloween.Feed(world, p, "Somewhere nearby, someone is weeping...");
+        state.InEarshot.IntersectWith(near.Select(p => p.PlayerID));
     }
 
     private static void LeashCheck(NPC npc, WeeperState state, HalloweenConfig cfg, long now, GameWorld world)

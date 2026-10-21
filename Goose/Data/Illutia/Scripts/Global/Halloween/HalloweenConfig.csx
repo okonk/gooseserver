@@ -221,6 +221,7 @@ public sealed class HalloweenWeeper
     public int ResetSeconds { get; set; }
     public int FootstepRadius { get; set; }
     public int FootstepSeconds { get; set; }
+    public int HearRadius { get; set; }
     public Dictionary<string, int[][]> Loops { get; set; } = new();
 }
 

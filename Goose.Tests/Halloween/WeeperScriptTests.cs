@@ -438,6 +438,31 @@ public class WeeperScriptTests : IDisposable
     }
 
     [Fact]
+    public void Weeping_is_heard_on_entering_earshot_and_again_after_leaving()
+    {
+        var npc = Spawn(10, 10);
+        var listener = PlayerOn(10, 22, "L");
+        var fighter = PlayerOn(11, 10, "F");
+        var far = PlayerOn(40, 10, "Far");
+        npc.AddAggro(fighter, 100, kit.World);
+        const string weeping = "Somewhere nearby, someone is weeping...";
+
+        Call("EarshotCheck", npc, kit.World);
+        Call("EarshotCheck", npc, kit.World);
+
+        Assert.Single(listener.Sent, s => s.Contains(weeping));
+        Assert.DoesNotContain(fighter.Sent, s => s.Contains(weeping));
+        Assert.DoesNotContain(far.Sent, s => s.Contains(weeping));
+
+        map.RemovePlayer(listener, kit.World);
+        Call("EarshotCheck", npc, kit.World);
+        map.AddPlayer(listener, kit.World);
+        Call("EarshotCheck", npc, kit.World);
+
+        Assert.Equal(2, listener.Sent.Count(s => s.Contains(weeping)));
+    }
+
+    [Fact]
     public void Route_exit_point_is_re_recorded_when_combat_ends_without_leash()
     {
         var npc = Spawn(10, 10);

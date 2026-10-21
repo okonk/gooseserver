@@ -422,6 +422,7 @@
     "resetSeconds": 30,
     "footstepRadius": 10,
     "footstepSeconds": 8,
+    "hearRadius": 15,
     "loops": {
       "upstairs": [
         [

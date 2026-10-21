@@ -154,7 +154,7 @@ public sealed class HalloweenTestKit : IDisposable
                             bleedTickSeconds = 2,
                             start = new[] { 38, 36 }, hitPercent = 0.08, stragglerRadius = 5, stragglerMultiplier = 2,
                             lungeSeconds = 15, lungeRadius = 6, leashRadius = 12, leashSeconds = 10,
-                            leashMaxDistance = 40, resetSeconds = 30, footstepRadius = 10, footstepSeconds = 8,
+                            leashMaxDistance = 40, resetSeconds = 30, footstepRadius = 10, footstepSeconds = 8, hearRadius = 15,
                             loops = new Dictionary<string, int[][]>
                             {
                                 ["upstairs"] = new[] { new[] { 33, 36 }, new[] { 33, 24 }, new[] { 10, 24 }, new[] { 10, 11 },
