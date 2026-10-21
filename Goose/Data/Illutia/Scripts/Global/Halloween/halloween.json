@@ -18,10 +18,6 @@
     "entrance": [
       32,
       64
-    ],
-    "clock": [
-      43,
-      47
     ]
   },
   "xpBonus": 1.0,
@@ -710,5 +706,68 @@
       200000,
       500000
     ]
-  }
+  },
+  "tileEvents": [
+    {
+      "tile": [
+        43,
+        47
+      ],
+      "clock": true
+    },
+    {
+      "tile": [
+        36,
+        46
+      ],
+      "text": "Portrait of Xain the Greatest Magus, Slayer of Aunty Punchy"
+    },
+    {
+      "tile": [
+        38,
+        46
+      ],
+      "text": "Shivers Scream",
+      "buff": 334
+    },
+    {
+      "tile": [
+        40,
+        46
+      ],
+      "text": "Portrait of Swagared Spyke"
+    },
+    {
+      "tile": [
+        42,
+        46
+      ],
+      "text": "Doom stares at you"
+    },
+    {
+      "tile": [
+        44,
+        46
+      ],
+      "text": "REX the Destroyer, holder of the Neamchothrom"
+    },
+    {
+      "tile": [
+        46,
+        46
+      ],
+      "text": "pie casts Arcane Blast on you",
+      "animation": 134,
+      "warpOutSeconds": 1
+    },
+    {
+      "tile": [
+        48,
+        46
+      ],
+      "text": "cRoC casts Restore Health on you",
+      "animation": 139,
+      "healFull": true
+    }
+  ]
 }

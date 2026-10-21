@@ -29,12 +29,12 @@ public class HauntedHouse : BaseMapScript
 
     public override void OnPlayerMove(Map map, Player player, GameWorld world)
     {
-        Halloween.CheckClock(world, map, player);
+        Halloween.CheckTileEvents(world, map, player);
         HalloweenAmbush.OnStep(world, map, player, world.TimeNow, world.Random);
     }
 
     public override void OnPlayerTurn(Map map, Player player, GameWorld world)
-        => Halloween.CheckClock(world, map, player);
+        => Halloween.CheckTileEvents(world, map, player);
 
     public override void OnPlayerLeft(Map map, Player player, GameWorld world)
         => Halloween.SetState(player, "hw.costumeDeadline", 0);

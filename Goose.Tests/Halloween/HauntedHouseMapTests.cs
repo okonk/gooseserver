@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using System.Reflection;
 using Goose;
 using Goose.Events;
@@ -223,6 +224,7 @@ public class HauntedHouseMapTests
     public void Facing_up_at_the_clock_tile_tells_the_time_on_a_turn_or_a_step()
     {
         var (kit, map, player, script) = Setup();
+        TileEvents(kit, new JsonObject { ["tile"] = new JsonArray(43, 47), ["clock"] = true });
         player.MapX = 43;
         player.MapY = 47;
         player.Facing = Direction.Up;
@@ -240,6 +242,7 @@ public class HauntedHouseMapTests
     public void Clock_stays_quiet_off_the_tile_or_facing_away(int x, int y, Direction facing)
     {
         var (kit, map, player, script) = Setup();
+        TileEvents(kit, new JsonObject { ["tile"] = new JsonArray(43, 47), ["clock"] = true });
         player.MapX = x;
         player.MapY = y;
         player.Facing = facing;
@@ -248,6 +251,78 @@ public class HauntedHouseMapTests
 
         Assert.DoesNotContain(player.Sent, s => s.Contains("The grandfather clock reads "));
         kit.Dispose();
+    }
+
+    [Fact]
+    public void Portrait_sends_its_text_and_can_put_an_illusion_on_you()
+    {
+        var (kit, map, player, script) = Setup();
+        kit.Fixture.AddBaseSpellEffect(777, "Illusion: Monkey", e =>
+        {
+            e.EffectType = SpellEffect.EffectTypes.Buff;
+            e.BodyID = 115;
+            e.Duration = 300;
+        });
+        TileEvents(kit, new JsonObject { ["tile"] = new JsonArray(38, 46), ["text"] = "Shivers Scream", ["buff"] = 777 });
+        Stand(player, 38, 46);
+
+        script.Object.OnPlayerTurn(map, player, kit.World);
+
+        Assert.Contains(player.Sent, s => s.TrimEnd('\x1') == P.Notice(NoticeType.Info, "Shivers Scream"));
+        Assert.Equal(115, player.CurrentBodyID);
+    }
+
+    [Fact]
+    public void Healing_portrait_plays_the_animation_and_restores_full_hp_with_battletext()
+    {
+        var (kit, map, player, script) = Setup();
+        kit.Fixture.AddBaseSpellEffect(778, "Restore Health", e => e.Animation = 815028);
+        TileEvents(kit, new JsonObject
+        {
+            ["tile"] = new JsonArray(48, 46), ["text"] = "cRoC casts Restore Health on you",
+            ["animation"] = 778, ["healFull"] = true,
+        });
+        Stand(player, 48, 46);
+        player.CurrentHP = player.MaxHP - 1234;
+
+        script.Object.OnPlayerTurn(map, player, kit.World);
+
+        Assert.Equal(player.MaxHP, player.CurrentHP);
+        Assert.Contains(player.Sent, s => s.Contains(P.SpellPlayer(player.LoginID, 815028, 0)));
+        Assert.Contains(player.Sent, s => s.Contains(P.BattleTextHeal(player, -1234)));
+    }
+
+    [Fact]
+    public void Blasting_portrait_sends_you_outside_after_the_delay()
+    {
+        var (kit, map, player, script) = Setup();
+        var grove = kit.Fixture.AddBaseMap(38, "Grove", 48, 48);
+        TileEvents(kit, new JsonObject
+        {
+            ["tile"] = new JsonArray(46, 46), ["text"] = "pie casts Arcane Blast on you", ["warpOutSeconds"] = 1,
+        });
+        Stand(player, 46, 46);
+        map.AddPlayer(player, kit.World);
+
+        script.Object.OnPlayerTurn(map, player, kit.World);
+        Assert.Equal(map, player.Map);
+        foreach (var timer in PendingScriptTimers(kit.World)) timer.Ready(kit.World);
+        var ev = new DoneLoadingMapEvent { Player = player, Ticks = kit.World.TimeNow };
+        kit.World.EventHandler.AddEvent(ev);
+        kit.World.EventHandler.Update(kit.World);
+
+        Assert.Equal(grove, player.Map);
+        Assert.Equal((38, 37), (player.MapX, player.MapY));
+    }
+
+    private static void TileEvents(HalloweenTestKit kit, params JsonObject[] events)
+        => kit.SetConfig(cfg => cfg["tileEvents"] = new JsonArray(events));
+
+    private static void Stand(Player player, int x, int y)
+    {
+        player.MapX = x;
+        player.MapY = y;
+        player.Facing = Direction.Up;
     }
 
     private static (HalloweenTestKit Kit, Map Map, TestWorldFixture.CapturingPlayer Player, Script<IMapScript> Script) Setup(

@@ -14,7 +14,17 @@ public sealed class HalloweenMaps
     public int[] FoyerSpawn { get; set; } = [];
     public int[] BasementArrival { get; set; } = [];
     public int[] Entrance { get; set; } = [];
-    public int[] Clock { get; set; } = [];
+}
+
+public sealed class HalloweenTileEvent
+{
+    public int[] Tile { get; set; } = [];
+    public string Text { get; set; } = "";
+    public bool Clock { get; set; }
+    public int Buff { get; set; }
+    public int Animation { get; set; }
+    public bool HealFull { get; set; }
+    public double WarpOutSeconds { get; set; }
 }
 
 public sealed class HalloweenItems
@@ -252,6 +262,7 @@ public sealed class HalloweenConfig
     public static HalloweenConfig Disabled { get; } = new();
 
     public HalloweenMaps Maps { get; set; } = new();
+    public List<HalloweenTileEvent> TileEvents { get; set; } = [];
     public double XpBonus { get; set; }
     public HalloweenItems Items { get; set; } = new();
     public HalloweenNpcs Npcs { get; set; } = new();
@@ -331,10 +342,12 @@ public sealed class HalloweenConfig
                 ["foyerSpawn"] = config.Maps.FoyerSpawn,
                 ["basementArrival"] = config.Maps.BasementArrival,
                 ["entrance"] = config.Maps.Entrance,
-                ["clock"] = config.Maps.Clock,
             })
                 if (point is null || point.Length != 2)
                     throw new JsonException("Halloween maps." + name + " must be a [x, y] array");
+            foreach (var tileEvent in config.TileEvents)
+                if (tileEvent is null || tileEvent.Tile is null || tileEvent.Tile.Length != 2)
+                    throw new JsonException("Halloween tileEvents entries need a [x, y] tile");
             foreach (var room in config.Rooms)
                 if (room.Rect is null || room.Rect.Length != 4)
                     throw new JsonException("Halloween room " + room.Name + " rect must have exactly 4 elements");

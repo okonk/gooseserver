@@ -422,5 +422,21 @@
     "set": {
       "prerequisite_quests": "120"
     }
+  },
+  {
+    "op": "create",
+    "sheet": "Spell Effects",
+    "set": {
+      "spell_effect_id": 334,
+      "spell_effect_name": "Illusion: Monkey",
+      "spell_animation": 815014,
+      "spell_effected": "SelfPlayer",
+      "effect_type": "Buff",
+      "effect_duration": 300,
+      "body_id": 115,
+      "works_not_in_pvp": 1,
+      "buff_graphic": 810007,
+      "buff_graphic_file": 20107
+    }
   }
 ]

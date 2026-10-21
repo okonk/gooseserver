@@ -2,6 +2,7 @@ using System;
 using System.Globalization;
 using System.Linq;
 using Goose;
+using Goose.Events;
 
 public static class Halloween
 {
@@ -240,12 +241,50 @@ public static class Halloween
         Feed(world, player, "+" + amount + " Candy");
     }
 
-    public static void CheckClock(GameWorld world, Map map, Player player)
+    public static void CheckTileEvents(GameWorld world, Map map, Player player)
     {
         var cfg = HalloweenConfig.Get(world);
-        if (map.ID != cfg.Maps.House || cfg.Maps.Clock.Length < 2) return;
-        if (player.MapX != cfg.Maps.Clock[0] || player.MapY != cfg.Maps.Clock[1] || player.Facing != Direction.Up) return;
-        world.Send(player, P.Notice(NoticeType.Info, ClockReading(DateTime.Now)));
+        if (map.ID != cfg.Maps.House || player.Facing != Direction.Up) return;
+        var tileEvent = cfg.TileEvents.FirstOrDefault(e => e.Tile[0] == player.MapX && e.Tile[1] == player.MapY);
+        if (tileEvent is null) return;
+
+        string text = tileEvent.Clock ? ClockReading(DateTime.Now) : tileEvent.Text;
+        if (text.Length > 0) world.Send(player, P.Notice(NoticeType.Info, text));
+
+        if (tileEvent.Animation != 0 && world.SpellHandler.GetSpellEffect(tileEvent.Animation) is { Animation: not 0 } shown)
+        {
+            string packet = P.SpellPlayer(player.LoginID, shown.Animation, shown.AnimationFile);
+            world.Send(player, packet);
+            foreach (var p in map.GetPlayersInRange(player))
+                world.Send(p, packet);
+        }
+
+        if (tileEvent.Buff != 0 && world.SpellHandler.GetSpellEffect(tileEvent.Buff) is { } effect)
+            player.AddBuff(new Buff
+            {
+                Caster = player, Target = player, SpellEffect = effect,
+                TimeCast = world.TimeNow, CasterMPAtCast = player.CurrentMP,
+            }, world);
+
+        if (tileEvent.HealFull && player.CurrentHP < player.MaxHP)
+        {
+            long healed = player.MaxHP - player.CurrentHP;
+            player.CurrentHP = player.MaxHP;
+            string packet = P.BattleTextHeal(player, -healed) + "\x1" + P.VitalsPercentage(player);
+            world.Send(player, packet);
+            foreach (var p in map.GetPlayersInRange(player))
+                world.Send(p, packet);
+            world.Send(player, P.StatusInfo(player));
+        }
+
+        if (tileEvent.WarpOutSeconds > 0)
+            ScriptTimerEvent.Create(() =>
+            {
+                if (player.State != Player.States.Ready || player.Map != map) return;
+                if (cfg.Maps.GroveExit.Length < 2) return;
+                if (!world.MapHandler.Maps.TryGetValue(cfg.Maps.Grove, out var grove) || grove is null) return;
+                player.WarpTo(world, grove, cfg.Maps.GroveExit[0], cfg.Maps.GroveExit[1]);
+            }, TimeSpan.FromSeconds(tileEvent.WarpOutSeconds), world);
     }
 
     public static string ClockReading(DateTime now)
