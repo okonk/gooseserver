@@ -381,7 +381,7 @@ QUESTS = [
          desc="""Everybody's going to the party at the house on the hill! But you can't go like THAT.
 
          I've got a costume that'll fit. Five thousand gold and it's yours. No refunds.""",
-         passed="""Ooh, it suits you! Every time you put it on it looks a bit different. That's the magic.""",
+         passed="""Ooh, it suits you! No two costumes ever come out the same. That's the magic.""",
          failed="""Five thousand gold. That's the price of a good costume.""",
          reqs=[("Gold", 5000, None)], rewards=[("Item", "@item:costume", 1)]),
     dict(key="q2", giver="kid", name="Trick or Treat!", min_level=1, prereq=["q1"],

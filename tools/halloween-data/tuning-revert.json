@@ -115,5 +115,13 @@
     "set": {
       "prerequisite_quests": "91"
     }
+  },
+  {
+    "op": "update",
+    "sheet": "Quests",
+    "id": 90,
+    "set": {
+      "pass_text": "Ooh, it suits you! Every time you put it on it\\nlooks a bit different. That's the magic."
+    }
   }
 ]

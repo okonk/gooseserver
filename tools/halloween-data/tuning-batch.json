@@ -438,5 +438,13 @@
       "buff_graphic": 810007,
       "buff_graphic_file": 20107
     }
+  },
+  {
+    "op": "update",
+    "sheet": "Quests",
+    "id": 90,
+    "set": {
+      "pass_text": "Ooh, it suits you! No two costumes ever come out\\nthe same. That's the magic."
+    }
   }
 ]
