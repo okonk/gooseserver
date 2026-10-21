@@ -197,5 +197,29 @@
     "set": {
       "requirement_value2": 20
     }
+  },
+  {
+    "op": "update",
+    "sheet": "Quests",
+    "id": 104,
+    "set": {
+      "prerequisite_quests": ""
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "Quests",
+    "id": 105,
+    "set": {
+      "prerequisite_quests": ""
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "Quests",
+    "id": 106,
+    "set": {
+      "prerequisite_quests": "103 104 105"
+    }
   }
 ]

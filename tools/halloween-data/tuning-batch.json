@@ -38,12 +38,13 @@
     "set": {
       "id": 112,
       "name": "Spare Faces",
-      "description": "The guests shed masks like sweet wrappers, and I\\ncan never have too many faces.\\n\\nBring me any mask you don't need. I pay in candy.",
+      "description": "The guests shed masks like sweet wrappers, and I\\ncan never have too many faces.\\n\\nBring me any mask the guests drop. I pay in candy.",
       "pass_text": "Another face for the wall. Your candy, as promised.",
-      "fail_text": "Any mask will do. The guests drop them all the time.",
+      "fail_text": "A Goblin, Mummy or Zombie Mask. The guests drop\\nthem all the time.",
       "min_level": 50,
       "repeatable": 1,
-      "show_progress": 1
+      "show_progress": 1,
+      "prerequisite_quests": "105"
     }
   },
   {
@@ -56,7 +57,7 @@
       "requirement_value": 1,
       "keep_requirement": 0,
       "script_path": "Scripts/Quest/HalloweenTurnIn.csx",
-      "script_params": "{\"items\": [747, 748, 749, 750, 751], \"count\": 1, \"label\": \"Any mask\"}"
+      "script_params": "{\"items\": [747, 748, 749], \"count\": 1, \"label\": \"Goblin, Mummy or Zombie Mask\"}"
     }
   },
   {
@@ -519,6 +520,30 @@
     "id": 118,
     "set": {
       "requirement_value2": 30
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "Quests",
+    "id": 104,
+    "set": {
+      "prerequisite_quests": "103"
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "Quests",
+    "id": 105,
+    "set": {
+      "prerequisite_quests": "104"
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "Quests",
+    "id": 106,
+    "set": {
+      "prerequisite_quests": "105"
     }
   }
 ]
