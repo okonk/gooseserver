@@ -569,5 +569,21 @@
     "set": {
       "long_value2": 2
     }
+  },
+  {
+    "op": "update",
+    "sheet": "Spell Effects",
+    "id": 326,
+    "set": {
+      "hp_percent_regen": 0.1
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "Spell Effects",
+    "id": 327,
+    "set": {
+      "mp_percent_regen": 0.1
+    }
   }
 ]
