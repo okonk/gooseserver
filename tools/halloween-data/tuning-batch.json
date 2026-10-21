@@ -319,7 +319,7 @@
       "id": 119,
       "name": "Trick or Treat at Pip",
       "description": "Trick or treat! The pets love costumes. Well, most\\nof them do.",
-      "pass_text": "Here's a treat for you. The other treats are for\\nthe dogs!",
+      "pass_text": "Here's a treat for you. The other treats are for\\nthe animals!",
       "fail_text": "The pets won't believe you're trick-or-treating\\nwithout a costume!",
       "min_level": 1,
       "repeatable": 0,
