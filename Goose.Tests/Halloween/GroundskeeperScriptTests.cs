@@ -175,7 +175,7 @@ public class GroundskeeperScriptTests : IDisposable
 
         Assert.True(npc.Hidden);
         Assert.Null(map.GetCharacterAt(30, 30));
-        Assert.Contains(player.Sent, s => s.Contains("The Groundskeeper vanishes into the dark…"));
+        Assert.Contains(player.Sent, s => s.Contains("The Groundskeeper vanishes into the dark..."));
         long hp = npc.CurrentHP;
         npc.Attacked(player, 50_000, kit.World);
         Assert.Equal(hp, npc.CurrentHP);

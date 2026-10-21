@@ -135,7 +135,7 @@ public sealed class HalloweenTestKit : IDisposable
                 },
                 fakeScares = new Dictionary<string, string[]>
                 {
-                    ["house"] = ["The portrait's eyes follow you…", "A door slams upstairs."],
+                    ["house"] = ["The portrait's eyes follow you...", "A door slams upstairs."],
                     ["basement"] = ["Something drips in the dark."],
                     ["directional"] = ["Footsteps behind you."],
                 },

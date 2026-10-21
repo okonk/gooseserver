@@ -291,7 +291,7 @@ public class HauntedBasementMapTests
         map.AddPlayer(player, kit.World);
 
         HalloweenTestKit.Call(script.Object, "ClockTick", kit.World, map, new DateTime(2024, 10, 31, 13, 45, 0));
-        Assert.Contains(player.Sent, s => s.Contains("Somewhere in the house, a clock begins to tick louder…"));
+        Assert.Contains(player.Sent, s => s.Contains("Somewhere in the house, a clock begins to tick louder..."));
 
         HalloweenTestKit.Call(script.Object, "ClockTick", kit.World, map, new DateTime(2024, 10, 31, 13, 46, 0));
         Assert.Single(player.Sent, s => s.Contains("tick louder"));

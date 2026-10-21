@@ -267,7 +267,7 @@ public class Groundskeeper : BaseNPCScript
         npc.Hide(world);
         if (!npc.Hidden) return;
         State(npc).HiddenUntil = world.TimeNow + Halloween.Ticks(world, seconds);
-        world.SendToMap(npc.Map, P.Notice(NoticeType.Info, "The Groundskeeper vanishes into the dark…"));
+        world.SendToMap(npc.Map, P.Notice(NoticeType.Info, "The Groundskeeper vanishes into the dark..."));
         // Same reload-safe pattern as the other timers: re-resolve and invoke Emerge reflectively.
         ScriptTimerEvent.Create(() =>
         {

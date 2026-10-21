@@ -104,7 +104,7 @@ public class HauntedBasement : BaseMapScript
             if (warned != local.Hour)
             {
                 StoreWarnedHour(map, local.Hour);
-                FeedMap(world, map, "Somewhere in the house, a clock begins to tick louder…");
+                FeedMap(world, map, "Somewhere in the house, a clock begins to tick louder...");
             }
             return;
         }

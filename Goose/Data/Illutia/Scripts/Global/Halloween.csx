@@ -67,7 +67,7 @@ public class HalloweenController : BaseGlobalScript
         if (world.MapHandler.Maps.TryGetValue(cfg.Maps.Basement, out var basement) && basement is not null &&
             GroundskeeperAlive(basement, cfg)) return;
         if (house.Players.Count(p => p.State == Player.States.Ready) < cfg.Stalker.ChainsawMinPlayers) return;
-        world.SendToMap(house, P.Notice(NoticeType.Info, "[Event] A chainsaw revs somewhere in the house…"));
+        world.SendToMap(house, P.Notice(NoticeType.Info, "[Event] A chainsaw revs somewhere in the house..."));
         ScriptTimerEvent.Create(() =>
         {
             var delayCfg = HalloweenConfig.Get(world);

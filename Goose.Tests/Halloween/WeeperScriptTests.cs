@@ -49,7 +49,7 @@ public class WeeperScriptTests : IDisposable
 
         Assert.Equal(1, npc.Buffs.Count);
         Assert.Equal(777, npc.Buffs[0].SpellEffect.ID);
-        Assert.Contains(player.Sent, s => s.Contains("A low weeping echoes through the house…"));
+        Assert.Contains(player.Sent, s => s.Contains("A low weeping echoes through the house..."));
         Assert.True(npc.Properties.TryGetProperty<string>("weeperLoop", out _));
         Assert.Equal(0, LoopIndex(npc));
     }
@@ -167,7 +167,7 @@ public class WeeperScriptTests : IDisposable
 
         Assert.True(npc.Hidden);
         Assert.Contains(a.Sent, s => s.TrimEnd('\x1') == P.EraseCharacter(npc.LoginID));
-        Assert.Contains(a.Sent, s => s.Contains("The Weeper hides in the shadows."));
+        Assert.Contains(a.Sent, s => s.Contains("The Weeper hides in the shadows..."));
         Assert.Null(map.GetCharacterAt(10, 10));
         Assert.DoesNotContain(npc, map.GetNPCsInRange(a));
 
@@ -428,7 +428,7 @@ public class WeeperScriptTests : IDisposable
 
         Call("FootstepsCheck", npc, Now, kit.World);
 
-        Assert.Contains(idle.Sent, s => s.Contains("Something is dragging its feet… to the south."));
+        Assert.Contains(idle.Sent, s => s.Contains("Something is dragging its feet... to the south."));
         Assert.DoesNotContain(fighter.Sent, s => s.Contains("dragging its feet"));
         Assert.DoesNotContain(far.Sent, s => s.Contains("dragging its feet"));
         Assert.Equal(Now + kit.World.TimerFrequency * 8, StateLong(npc, "NextFootstepsAt"));

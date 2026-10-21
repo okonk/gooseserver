@@ -70,7 +70,7 @@ public class HalloweenAmbushTests
         Assert.Equal(Now + kit.World.TimerFrequency * 15, player.ScriptState["hw.ambushReadyAt"]);
         Assert.Equal(0, near.ScriptState.GetValueOrDefault("hw.ambushReadyAt"));
         Assert.Empty(map.NPCs);
-        Assert.Contains(player.Sent, s => s.Contains("The portrait's eyes follow you…"));
+        Assert.Contains(player.Sent, s => s.Contains("The portrait's eyes follow you..."));
     }
 
     [Fact]
@@ -126,7 +126,7 @@ public class HalloweenAmbushTests
         Assert.Equal(3, map.NPCs.Count);
         Assert.Equal(second + kit.World.TimerFrequency * 15, player.ScriptState["hw.ambushReadyAt"]);
         Assert.Equal(Now + kit.World.TimerFrequency * 40, near.ScriptState["hw.ambushReadyAt"]);
-        Assert.Contains(player.Sent, s => s.Contains("The portrait's eyes follow you…"));
+        Assert.Contains(player.Sent, s => s.Contains("The portrait's eyes follow you..."));
     }
 
     [Fact]

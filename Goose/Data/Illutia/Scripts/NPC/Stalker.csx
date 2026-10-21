@@ -69,7 +69,7 @@ public class Stalker : BaseNPCScript
         if (Math.Max(Math.Abs(npc.MapX - target.MapX), Math.Abs(npc.MapY - target.MapY)) <= cfg.StalkerChase.WarnRadius &&
             now >= Halloween.GetState(target, "hw.stalkerWarnAt"))
         {
-            Halloween.Feed(world, target, "He's right behind you…");
+            Halloween.Feed(world, target, "He's right behind you...");
             Halloween.SetState(target, "hw.stalkerWarnAt", now + Halloween.Ticks(world, cfg.StalkerChase.WarnSeconds));
         }
         return false;

@@ -557,7 +557,7 @@ FAKE_SCARES = {
     "house": [
         "The statue was facing the other way a moment ago.", "A music box starts, then stops.",
         "Someone laughs in the next room.", "The candles all lean towards you.",
-        "Wet footprints lead under the door.", "The portrait's eyes follow you…", "A door slams upstairs.",
+        "Wet footprints lead under the door.", "The portrait's eyes follow you...", "A door slams upstairs.",
         "A cold hand brushes your neck.", "The clock chimes thirteen.", "Glass shatters somewhere below.",
         "A child whispers your name.", "The rug ripples as if something moved under it.",
         "A chair scrapes back from the table.", "Every light dims for a heartbeat.",

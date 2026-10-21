@@ -72,7 +72,7 @@ public static class HalloweenAmbush
                 templateId = cfg.Npcs.PinkPhantom;
                 packName = "";
                 candyKey = "phantom";
-                feed = "A pink glow fills the room…";
+                feed = "A pink glow fills the room...";
                 break;
             default:
                 templateId = rng.NextDouble() < 2.0 / 3.0 ? cfg.Npcs.WailingGhost : cfg.Npcs.FlickeringGhost;

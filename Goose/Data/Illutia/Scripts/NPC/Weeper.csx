@@ -34,7 +34,7 @@ public class Weeper : BaseNPCScript
         npc.Properties["weeperLoop"] = PickLoop(cfg, world, last);
         npc.Properties["weeperWaypoint"] = 0;
         if (world.MapHandler.Maps.TryGetValue(cfg.Maps.House, out var house) && house is not null)
-            world.SendToMap(house, P.Notice(NoticeType.Info, "[Event] A low weeping echoes through the house…"));
+            world.SendToMap(house, P.Notice(NoticeType.Info, "[Event] A low weeping echoes through the house..."));
         // A /reloadscripts swap replaces Script.Object with a freshly compiled type, so the
         // timer closure re-resolves and invokes Tick reflectively, rescheduling in a finally.
         var tickPeriod = TimeSpan.FromSeconds(cfg.Weeper.BleedTickSeconds);
@@ -123,7 +123,7 @@ public class Weeper : BaseNPCScript
         foreach (var p in HalloweenBoss.PlayersNear(npc, cfg.Weeper.FootstepRadius))
         {
             if (npc.AggroTargetToValue.ContainsKey(p)) continue;
-            world.Send(p, P.Notice(NoticeType.Info, "[Event] Something is dragging its feet… to the " +
+            world.Send(p, P.Notice(NoticeType.Info, "[Event] Something is dragging its feet... to the " +
                 HalloweenBoss.Compass(p.MapX, p.MapY, npc.MapX, npc.MapY) + "."));
         }
     }
@@ -316,7 +316,7 @@ public class Weeper : BaseNPCScript
         if (watchers.Count == 0) return false;
         npc.Hide(world);
         foreach (var p in watchers)
-            Halloween.Feed(world, p, "The Weeper hides in the shadows.");
+            Halloween.Feed(world, p, "The Weeper hides in the shadows...");
         state.HiddenUntil = now + Halloween.Ticks(world, cfg.Weeper.HideSeconds);
         state.NextLungeAt = state.HiddenUntil + Halloween.Ticks(world, cfg.Weeper.LungeSeconds);
         // Same reload-safe pattern as the tick timer: re-resolve and invoke Emerge reflectively.

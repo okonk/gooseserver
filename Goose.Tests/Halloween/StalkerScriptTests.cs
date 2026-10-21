@@ -289,14 +289,14 @@ public class StalkerScriptTests : IDisposable
 
         Step(npc, Now);
 
-        Assert.Single(target.Sent, s => s.Contains("He's right behind you…"));
+        Assert.Single(target.Sent, s => s.Contains("He's right behind you..."));
         Assert.Equal(Now + kit.World.TimerFrequency * 5, target.ScriptState["hw.stalkerWarnAt"]);
 
         Step(npc, Now + kit.World.TimerFrequency * 4);
-        Assert.Single(target.Sent, s => s.Contains("He's right behind you…"));
+        Assert.Single(target.Sent, s => s.Contains("He's right behind you..."));
 
         Step(npc, Now + kit.World.TimerFrequency * 8);
-        Assert.Equal(2, target.Sent.Count(s => s.Contains("He's right behind you…")));
+        Assert.Equal(2, target.Sent.Count(s => s.Contains("He's right behind you...")));
     }
 
     [Fact]
