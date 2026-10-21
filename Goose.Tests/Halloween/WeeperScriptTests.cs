@@ -167,7 +167,7 @@ public class WeeperScriptTests : IDisposable
 
         Assert.True(npc.Hidden);
         Assert.Contains(a.Sent, s => s.TrimEnd('\x1') == P.EraseCharacter(npc.LoginID));
-        Assert.Contains(a.Sent, s => s.Contains("The Weeper hides in the shadows…"));
+        Assert.Contains(a.Sent, s => s.Contains("The Weeper hides in the shadows."));
         Assert.Null(map.GetCharacterAt(10, 10));
         Assert.DoesNotContain(npc, map.GetNPCsInRange(a));
 

@@ -316,7 +316,7 @@ public class Weeper : BaseNPCScript
         if (watchers.Count == 0) return false;
         npc.Hide(world);
         foreach (var p in watchers)
-            Halloween.Feed(world, p, "The Weeper hides in the shadows…");
+            Halloween.Feed(world, p, "The Weeper hides in the shadows.");
         state.HiddenUntil = now + Halloween.Ticks(world, cfg.Weeper.HideSeconds);
         state.NextLungeAt = state.HiddenUntil + Halloween.Ticks(world, cfg.Weeper.LungeSeconds);
         // Same reload-safe pattern as the tick timer: re-resolve and invoke Emerge reflectively.
