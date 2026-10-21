@@ -52,6 +52,21 @@ public class HalloweenControllerTests
     }
 
     [Fact]
+    public void Startup_applies_both_bonuses_when_tier3_flag_is_set()
+    {
+        using var kit = new HalloweenTestKit();
+        kit.World.CommunityGoals.SetFlag("halloween.active", 1, null);
+        kit.World.CommunityGoals.SetFlag("halloween.tier1", 1, null);
+        kit.World.CommunityGoals.SetFlag("halloween.tier3", 1, null);
+
+        var controller = kit.Compile<IGlobalScript>("Global", "Halloween.csx");
+        controller.Object.OnLoaded(kit.World);
+        FirePendingScriptTimers(kit.World);
+
+        Assert.Equal(2.0, kit.World.ExperienceModifier);
+    }
+
+    [Fact]
     public void Startup_leaves_base_without_tier1()
     {
         using var kit = new HalloweenTestKit();

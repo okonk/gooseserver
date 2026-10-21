@@ -264,6 +264,7 @@ public sealed class HalloweenConfig
     public HalloweenMaps Maps { get; set; } = new();
     public List<HalloweenTileEvent> TileEvents { get; set; } = [];
     public double XpBonus { get; set; }
+    public double Tier3XpBonus { get; set; }
     public HalloweenItems Items { get; set; } = new();
     public HalloweenNpcs Npcs { get; set; } = new();
     public HalloweenCandy Candy { get; set; } = new();

@@ -12,9 +12,11 @@ public static class Halloween
     public static void SetTier(GameWorld world, int n, bool on) => world.CommunityGoals.SetFlag("halloween.tier" + n, on ? 1 : 0, null);
 
     // Set from the settings base, not the current value, so granting twice cannot stack.
-    public static void ApplyXpBonus(GameWorld world)
+    public static void ApplyXpBonus(GameWorld world, bool tier1 = false)
     {
-        world.ExperienceModifier = world.Settings.ExperienceModifier + HalloweenConfig.Get(world).XpBonus;
+        var cfg = HalloweenConfig.Get(world);
+        world.ExperienceModifier = world.Settings.ExperienceModifier +
+            (tier1 || Tier(world, 1) ? cfg.XpBonus : 0) + (Tier(world, 3) ? cfg.Tier3XpBonus : 0);
     }
 
     public static bool SpawnStalker(GameWorld world, Player target, string mode, long now)

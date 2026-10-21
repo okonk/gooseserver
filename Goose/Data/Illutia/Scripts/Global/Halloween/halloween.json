@@ -20,7 +20,8 @@
       64
     ]
   },
-  "xpBonus": 1.0,
+  "xpBonus": 0.5,
+  "tier3XpBonus": 0.5,
   "items": {
     "candy": 745,
     "partyCostume": 746,

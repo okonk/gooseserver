@@ -50,6 +50,20 @@ public class HalloweenCandyGoalTests
     }
 
     [Fact]
+    public void Crossing_third_threshold_stacks_the_second_xp_bonus()
+    {
+        using var kit = Kit(out var listener);
+        var script = kit.Compile<ICommunityGoalScript>("CommunityGoal", "HalloweenCandyGoal.csx").Object;
+
+        Contribute(script, kit, 6000);
+        Contribute(script, kit, 45000);
+
+        Assert.True(Tier(kit, 3));
+        Assert.Equal(2.0, kit.World.ExperienceModifier);
+        Assert.Contains(listener.Sent, s => s.Contains("into town") && s.Contains("another +50%"));
+    }
+
+    [Fact]
     public void Already_set_tier_is_not_reannounced()
     {
         using var kit = Kit(out var listener);

@@ -98,6 +98,7 @@ public sealed class HalloweenTestKit : IDisposable
             maps = new { house = 48, basement = 39, grove = 38,
                          groveExit = new[] { 38, 37 }, foyerSpawn = new[] { 43, 53 }, basementArrival = new[] { 0, 0 }, entrance = new[] { 32, 64 } },
             xpBonus = 0.5,
+            tier3XpBonus = 0.5,
             items = new { candy = CandyId, partyCostume = PartyCostumeId, masks = MaskIds, ritualCandle = RitualCandleId },
             npcs = new { stalker = StalkerId, groundskeeper = GroundskeeperId, weeper = 0, wailingGhost = WailingGhostId,
                          flickeringGhost = FlickeringGhostId, pinkPhantom = PinkPhantomId, bloodyGhost = BloodyGhostId,

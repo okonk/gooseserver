@@ -23,7 +23,7 @@ public class HalloweenCandyGoal : BaseCommunityGoalScript
             int tier = i + 1;
             if (total < tiers[i] || Halloween.Tier(world, tier)) continue;
             Halloween.SetTier(world, tier, true);
-            if (tier == 1) Halloween.ApplyXpBonus(world);
+            if (tier is 1 or 3) Halloween.ApplyXpBonus(world);
             world.SendToAll(P.ServerMessage("[Event] " + Format(tiers[i]) + " candy collected! " + Unlock(tier, cfg)));
         }
     }
@@ -42,7 +42,7 @@ public class HalloweenCandyGoal : BaseCommunityGoalScript
     {
         1 => "The spirits grant +" + (int)Math.Round(cfg.XpBonus * 100) + "% experience for the rest of the event!",
         2 => "The basement door creaks open...",
-        _ => "The party spills into town!",
+        _ => "The party spills into town! The spirits grant another +" + (int)Math.Round(cfg.Tier3XpBonus * 100) + "% experience!",
     };
 
     private static string Format(long value) => value.ToString("N0", CultureInfo.InvariantCulture);

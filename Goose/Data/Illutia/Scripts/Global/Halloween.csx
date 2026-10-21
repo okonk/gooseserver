@@ -40,7 +40,7 @@ public class HalloweenController : BaseGlobalScript
 
         ScriptTimerEvent.Create(() =>
         {
-            if (Halloween.Active(world) && Halloween.Tier(world, 1))
+            if (Halloween.Active(world) && (Halloween.Tier(world, 1) || Halloween.Tier(world, 3)))
                 Halloween.ApplyXpBonus(world);
         }, StartupDelay, world);
     }
@@ -130,6 +130,7 @@ public class HalloweenController : BaseGlobalScript
                     return;
                 }
                 Halloween.SetTier(world, tier, on == 1);
+                if (tier is 1 or 3) Halloween.ApplyXpBonus(world);
                 ctx.Send($"Tier {tier} is {(on == 1 ? "on" : "off")}.");
                 break;
             case "status":
