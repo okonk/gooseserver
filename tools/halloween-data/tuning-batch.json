@@ -462,8 +462,8 @@
     "sheet": "Quests",
     "id": 95,
     "set": {
-      "description": "The dinner service has got ideas above its\\nstation. Forks with opinions. Plates that bite.\\n\\nBreak thirty of the Possessed Place Settings in\\nthe Dining Room.",
-      "fail_text": "Thirty of the Place Settings, please. Mind the\\nknives."
+      "description": "The dinner service has got ideas above its\\nstation. Forks with opinions. Plates that bite.\\n\\nBreak fifty of the Possessed Place Settings in the\\nDining Room.",
+      "fail_text": "Fifty of the Place Settings, please. Mind the\\nknives."
     }
   },
   {
@@ -519,7 +519,7 @@
     "sheet": "Quest Reqs",
     "id": 118,
     "set": {
-      "requirement_value2": 30
+      "requirement_value2": 50
     }
   },
   {

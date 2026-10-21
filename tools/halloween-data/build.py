@@ -423,10 +423,10 @@ QUESTS = [
          desc="""The dinner service has got ideas above its station. Forks with opinions. Plates that
          bite.
 
-         Break thirty of the Possessed Place Settings in the Dining Room.""",
+         Break fifty of the Possessed Place Settings in the Dining Room.""",
          passed="""We'll eat off the floor tonight. Better than being eaten by the plates.""",
-         failed="""Thirty of the Place Settings, please. Mind the knives.""",
-         reqs=[kill("@npc:setting", 30)], rewards=[("Experience", 60000), ("Gold", 15000), candy(20)]),
+         failed="""Fifty of the Place Settings, please. Mind the knives.""",
+         reqs=[kill("@npc:setting", 50)], rewards=[("Experience", 60000), ("Gold", 15000), candy(20)]),
     dict(key="q7", giver="countess", name="Spirits in the Walls",
          desc="""The walls ooze at night. It's ghosts, of course. They leave Ectoplasm everywhere.
 
