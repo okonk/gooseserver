@@ -469,7 +469,7 @@ QUESTS = [
          passed="""Splendid. Have a drink on me.""",
          failed="""Five of each kind of guest, please.""",
          reqs=[kill(f"@npc:{g}", 5) for g in GUESTS],
-         rewards=[("Experience", 30000), ("Gold", 8000), ("Item", "@item:brew", 3), candy(10)]),
+         rewards=[("Experience", 30000), ("Item", "@item:brew", 2), candy(10)]),
     dict(key="q13", giver="count", name="Fresh Pies", repeatable=True, prereq=["q6"],
          desc="""The cooks have turned. They still bake, mind you. Dreadful manners, wonderful pies.
 
@@ -477,7 +477,7 @@ QUESTS = [
          passed="""Still warm. Take a couple.""",
          failed="""Twenty Ghoul Cooks, in the Kitchen.""",
          reqs=[kill("@npc:cook", 20)],
-         rewards=[("Experience", 20000), ("Gold", 5000), ("Item", "@item:pie", 2), candy(15)]),
+         rewards=[("Experience", 20000), ("Item", "@item:pie", 2), candy(15)]),
     dict(key="q14", giver="collector", name="Masquerade: Goblin",
          desc="""I collect faces. Other people's, ideally.
 

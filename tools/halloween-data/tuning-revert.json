@@ -237,5 +237,13 @@
     "set": {
       "prerequisite_quests": ""
     }
+  },
+  {
+    "op": "update",
+    "sheet": "Quest Rewards",
+    "id": 203,
+    "set": {
+      "long_value2": 3
+    }
   }
 ]
