@@ -335,7 +335,7 @@
   "stalkerChase": {
     "chaseSeconds": 25,
     "startDelaySeconds": 1,
-    "speedOffset": 0.04,
+    "speedOffset": 0.06,
     "warnRadius": 3,
     "warnSeconds": 5,
     "minDelaySeconds": 0.2
