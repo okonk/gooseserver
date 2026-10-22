@@ -59,6 +59,43 @@ public class HalloweenInvasionTests
     }
 
     [Fact]
+    public void Invaders_wander_and_head_for_a_home_near_the_center()
+    {
+        var (kit, script, map, _) = Setup();
+        kit.SetConfig(cfg =>
+        {
+            cfg["invasion"]!["towns"]![0]!["center"] = new JsonArray(20, 20);
+            cfg["invasion"]!["towns"]![0]!["homeRadius"] = 2;
+        });
+        On(kit);
+
+        HalloweenTestKit.Call(script.Object, "Tick", kit.World, Now, Rng(WaveRng));
+
+        Assert.Equal(5, map.NPCs.Count);
+        Assert.All(map.NPCs, n =>
+        {
+            Assert.True(n.CanMove);
+            Assert.Equal((18, 18), (n.SpawnX, n.SpawnY));
+            Assert.InRange(n.MapX, Rect[0], Rect[0] + Rect[2] - 1);
+        });
+    }
+
+    [Fact]
+    public void Invaders_without_a_center_wander_around_where_they_spawned()
+    {
+        var (kit, script, map, _) = Setup();
+        On(kit);
+
+        HalloweenTestKit.Call(script.Object, "Tick", kit.World, Now, Rng(WaveRng));
+
+        Assert.All(map.NPCs, n =>
+        {
+            Assert.True(n.CanMove);
+            Assert.Equal((n.MapX, n.MapY), (n.SpawnX, n.SpawnY));
+        });
+    }
+
+    [Fact]
     public void Next_wave_despawns_survivors()
     {
         var (kit, script, map, listener) = Setup();

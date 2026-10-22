@@ -256,9 +256,12 @@ def mob(name, hp, hit, move, xp, **extra):
     return {**MOB, "npc_name": name, "npc_hp": hp, "weapon_damage": hit, "move_speed": move, "experience": xp, **extra}
 
 
+GUEST_SCRIPT = "Scripts/NPC/HalloweenGuest.csx"
+
+
 def guest(name, face, helm, hp, hit, xp, stationary=True):
     return mob(name, hp, hit, 1.0, xp, respawn_time=60, body_id=1, face_id=face, hair_id=0, equipped_items=eq(head=helm),
-               **({"stationary": 1} if stationary else {}))
+               script_path=GUEST_SCRIPT, **({"stationary": 1} if stationary else {}))
 
 
 FRIENDLY = {"npc_type": "Quest", "npc_level": 50, "class_id": 3, "respawn_time": 30, "stationary": 1,
@@ -278,8 +281,8 @@ NPCS = [
     ("setting", mob("Possessed Place Setting", 10000, 1200, 0.8, 1700, body_id=307, stationary=1,
                     respawn_time=45, aggro_range=4)),
     ("cook", mob("Ghoul Cook", 47000, 2800, 1.5, 3000, body_id=169, respawn_time=45)),
-    ("wailing", mob("Wailing Ghost", 47000, 3000, 1.0, 3000, body_id=220)),
-    ("flickering", mob("Flickering Ghost", 30000, 4000, 0.8, 1700, body_id=306)),
+    ("wailing", mob("Wailing Ghost", 47000, 3000, 1.0, 3000, body_id=220, script_path=GUEST_SCRIPT)),
+    ("flickering", mob("Flickering Ghost", 30000, 4000, 0.8, 1700, body_id=306, script_path=GUEST_SCRIPT)),
     ("phantom", mob("Pink Phantom", 200000, 10000, 1.0, 6000, body_id=308)),
     ("bloody", mob("Bloody Ghost", 79000, 10000, 1.0, 4400, body_id=305)),
     ("bloodyAdd", mob("Bloody Ghost", 79000, 10000, 1.0, 4400, body_id=305)),
@@ -860,7 +863,8 @@ def config_patch(ids, maps):
         "candy": {"byTemplate": candy_by_template},
         "rooms": [{"name": n, "rect": xywh(r), "weight": w, "table": t} for n, r, w, t in ROOMS],
         "ambush": {"fakeScares": FAKE_SCARES},
-        "invasion": {"towns": [{"map": MINITA, "rect": xywh([33, 28, 73, 64])}], "templates": [npc(k) for k in GUESTS[:5] + ["wailing", "flickering"]]},
+        "invasion": {"towns": [{"map": MINITA, "rect": xywh([33, 28, 73, 64]), "center": [51, 46], "homeRadius": 4}],
+                     "templates": [npc(k) for k in GUESTS + ["wailing", "flickering"]]},
         "goal": {"tiers": TIERS},
         "effects": {"weeperCap": ids("effect", "weeperCap"), "groundskeeperCurve": ids("effect", "gkCurve"),
                     "ghostSnareOnHit": ids("effect", "ghostSnareOnHit")},

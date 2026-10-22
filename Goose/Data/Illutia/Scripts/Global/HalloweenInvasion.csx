@@ -72,13 +72,19 @@ public class HalloweenInvasionController : BaseGlobalScript
             if (template is null) continue;
             var tile = FreeTile(map, town.Rect, rng);
             if (tile is null) continue;
-            world.NPCHandler.SpawnNPC(world, map.ID, tile.Value.X, tile.Value.Y, template,
+            var npc = world.NPCHandler.SpawnNPC(world, map.ID, tile.Value.X, tile.Value.Y, template,
                 shouldRespawn: false,
                 new PropertiesDictionary
                 {
                     ["invasion"] = 1,
                     ["spawnedAt"] = now,
+                    ["canMove"] = true,
                 });
+            if (npc is not null && Home(map, town, tile.Value, rng) is { } home)
+            {
+                npc.SpawnX = home.X;
+                npc.SpawnY = home.Y;
+            }
         }
 
         world.SendToAll(P.ServerMessage("[Event] The party has spilled into " + map.Name + "!"));
@@ -91,6 +97,18 @@ public class HalloweenInvasionController : BaseGlobalScript
             int x = rect[0] + rng.Next(rect[2]);
             int y = rect[1] + rng.Next(rect[3]);
             if (!map.IsTileBlocked(null, x, y)) return (x, y);
+        }
+        return null;
+    }
+
+    private static (int X, int Y)? Home(Map map, HalloweenTown town, (int X, int Y) from, Random rng)
+    {
+        if (town.Center is not { Length: 2 } center) return null;
+        for (int i = 0; i < SpawnAttempts; i++)
+        {
+            int x = center[0] + rng.Next(-town.HomeRadius, town.HomeRadius + 1);
+            int y = center[1] + rng.Next(-town.HomeRadius, town.HomeRadius + 1);
+            if (map.FindPath(from.X, from.Y, x, y) is not null) return (x, y);
         }
         return null;
     }

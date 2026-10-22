@@ -181,6 +181,8 @@ public sealed class HalloweenTown
 {
     public int Map { get; set; }
     public int[] Rect { get; set; } = [];
+    public int[] Center { get; set; } = [];
+    public int HomeRadius { get; set; }
 }
 
 public sealed class HalloweenInvasion
@@ -371,6 +373,10 @@ public sealed class HalloweenConfig
                 if (town.Rect is null || town.Rect.Length != 4 || town.Rect[2] <= 0 || town.Rect[3] <= 0)
                     throw new JsonException("Halloween invasion town " + town.Map +
                         " rect must have exactly 4 elements with positive width and height");
+            foreach (var town in config.Invasion.Towns)
+                if (town.Center is null || town.Center.Length is not (0 or 2) || town.HomeRadius < 0)
+                    throw new JsonException("Halloween invasion town " + town.Map +
+                        " center must be [] or [x, y] and homeRadius must be >= 0");
             if (config.Weeper.CapPerHit <= 0)
                 throw new JsonException("Halloween weeper.capPerHit must be > 0");
             if (config.Weeper.BleedMaxStacks <= 0 || config.Weeper.BleedSeconds <= 0 ||

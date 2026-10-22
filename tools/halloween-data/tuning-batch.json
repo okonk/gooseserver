@@ -585,5 +585,69 @@
     "set": {
       "mp_percent_regen": 0.1
     }
+  },
+  {
+    "op": "update",
+    "sheet": "NPCs",
+    "id": 262,
+    "set": {
+      "script_path": "Scripts/NPC/HalloweenGuest.csx"
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "NPCs",
+    "id": 263,
+    "set": {
+      "script_path": "Scripts/NPC/HalloweenGuest.csx"
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "NPCs",
+    "id": 264,
+    "set": {
+      "script_path": "Scripts/NPC/HalloweenGuest.csx"
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "NPCs",
+    "id": 265,
+    "set": {
+      "script_path": "Scripts/NPC/HalloweenGuest.csx"
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "NPCs",
+    "id": 266,
+    "set": {
+      "script_path": "Scripts/NPC/HalloweenGuest.csx"
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "NPCs",
+    "id": 267,
+    "set": {
+      "script_path": "Scripts/NPC/HalloweenGuest.csx"
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "NPCs",
+    "id": 270,
+    "set": {
+      "script_path": "Scripts/NPC/HalloweenGuest.csx"
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "NPCs",
+    "id": 271,
+    "set": {
+      "script_path": "Scripts/NPC/HalloweenGuest.csx"
+    }
   }
 ]
