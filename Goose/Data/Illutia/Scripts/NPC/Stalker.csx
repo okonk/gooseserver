@@ -46,8 +46,7 @@ public class Stalker : BaseNPCScript
             return Caught(npc, target, mode, now, world);
 
         double pace = Math.Max(target.CalculateMoveSpeed() / 1000.0, cfg.StalkerChase.MinDelaySeconds);
-        double speed = pace + (mode is "chase" ? cfg.StalkerChase.SpeedOffset : -cfg.StalkerChase.SpeedOffset);
-        npc.MoveSpeed = Math.Max(0.05, speed);
+        npc.MoveSpeed = Math.Max(0.05, pace + cfg.StalkerChase.SpeedOffset);
 
         var dir = npc.PathStepTo(target.MapX, target.MapY, world, (x, y) => npc.Map.GetCharacterAt(x, y) is NPC);
         if (dir is not null)

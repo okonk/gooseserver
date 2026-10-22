@@ -80,7 +80,7 @@ public class StalkerScriptTests : IDisposable
         var hunt = Spawn(10, 40, rider, "hunt");
 
         Step(hunt, Now);
-        Assert.Equal(0.18, hunt.MoveSpeed, 10);
+        Assert.Equal(0.22, hunt.MoveSpeed, 10);
     }
 
     [Fact]
