@@ -429,6 +429,8 @@
     "footstepRadius": 10,
     "footstepSeconds": 8,
     "hearRadius": 15,
+    "detourSteps": 8,
+    "slipThroughSeconds": 2,
     "loops": {
       "upstairs": [
         [

@@ -292,6 +292,40 @@ public class WeeperScriptTests : IDisposable
     }
 
     [Fact]
+    public void Chase_steps_around_a_blocker_when_the_detour_is_short()
+    {
+        var npc = Spawn(10, 10);
+        Spawn(10, 11);
+        var player = kit.Fixture.CommandPlayerOn(map, 10, 15, "Victim");
+        npc.AddAggro(player, 1, kit.World);
+
+        Call("MoveStep", npc, Now, kit.World);
+
+        Assert.NotEqual((10, 10), (npc.MapX, npc.MapY));
+    }
+
+    [Fact]
+    public void Chase_waits_at_a_plugged_hallway_then_slips_through()
+    {
+        for (int x = 1; x <= map.Width; x++)
+            if (x is not (10 or 50)) map.SetTile(x, 15, new BlockedTile());
+        var npc = Spawn(10, 10);
+        Spawn(10, 15);
+        var player = PlayerOn(10, 20, "Victim");
+        npc.AddAggro(player, 1, kit.World);
+
+        for (int i = 0; i < 10; i++) Call("MoveStep", npc, Now, kit.World);
+        Assert.Equal((10, 14), (npc.MapX, npc.MapY));
+
+        Call("MoveStep", npc, Now + kit.World.TimerFrequency, kit.World);
+        Assert.Equal((10, 14), (npc.MapX, npc.MapY));
+
+        Call("MoveStep", npc, Now + kit.World.TimerFrequency * 2, kit.World);
+        Assert.Equal((10, 16), (npc.MapX, npc.MapY));
+        Assert.Contains(player.Sent, s => s.Contains("The Weeper slips through the crowd..."));
+    }
+
+    [Fact]
     public void Chase_shuffles_around_when_already_as_close_as_it_can_get()
     {
         var npc = Spawn(10, 14);

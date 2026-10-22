@@ -17,6 +17,7 @@ public class WeeperState : BossState
     public int LeftRouteAtX { get; set; }
     public int LeftRouteAtY { get; set; }
     public long HiddenUntil { get; set; }
+    public long BlockedSince { get; set; }
     public HashSet<int> InEarshot { get; } = [];
 }
 
@@ -94,10 +95,11 @@ public class Weeper : BaseNPCScript
             state.LeashStartedAt = 0;
             state.LeftRouteAtX = 0;
             state.LeftRouteAtY = 0;
+            state.BlockedSince = 0;
             ResetCheck(npc, state, cfg, now, world);
         }
         if (npc.AggroTarget is Player target)
-            Chase(npc, state, target, world);
+            Chase(npc, state, cfg, target, now, world);
         else
             Patrol(npc, cfg, world);
     }
@@ -179,7 +181,7 @@ public class Weeper : BaseNPCScript
             world.Send(p, P.VitalsPercentage(npc));
     }
 
-    private static void Chase(NPC npc, WeeperState state, Player target, GameWorld world)
+    private static void Chase(NPC npc, WeeperState state, HalloweenConfig cfg, Player target, long now, GameWorld world)
     {
         if (state.LeftRouteAtX == 0 && state.LeftRouteAtY == 0)
         {
@@ -197,10 +199,48 @@ public class Weeper : BaseNPCScript
                     return;
             return;
         }
-        var dir = npc.PathStepTo(target.MapX, target.MapY, world,
-            (x, y) => npc.Map.GetCharacterAt(x, y) is not null && npc.Map.GetCharacterAt(x, y) != target);
-        dir ??= Approach(npc, target);
-        if (dir is not null) npc.StepTo(dir.Value, world);
+        var map = npc.Map;
+        var direct = map.FindPath(npc.MapX, npc.MapY, target.MapX, target.MapY);
+        var around = map.FindPath(npc.MapX, npc.MapY, target.MapX, target.MapY,
+            (x, y) => map.GetCharacterAt(x, y) is not null && map.GetCharacterAt(x, y) != target);
+        if (around is { Count: > 0 } && (direct is null || around.Count <= direct.Count + cfg.Weeper.DetourSteps))
+        {
+            state.BlockedSince = 0;
+            npc.StepTo(DirectionTo((npc.MapX, npc.MapY), around[0]), world);
+            return;
+        }
+        if (direct is not { Count: > 0 })
+        {
+            state.BlockedSince = 0;
+            if (Approach(npc, target) is Direction dir) npc.StepTo(dir, world);
+            return;
+        }
+        if (npc.CanMoveTo(direct[0].X, direct[0].Y))
+        {
+            state.BlockedSince = 0;
+            npc.StepTo(DirectionTo((npc.MapX, npc.MapY), direct[0]), world);
+            return;
+        }
+        if (state.BlockedSince == 0)
+        {
+            state.BlockedSince = now;
+            return;
+        }
+        if (now - state.BlockedSince < Halloween.Ticks(world, cfg.Weeper.SlipThroughSeconds)) return;
+        state.BlockedSince = 0;
+        SlipThrough(npc, cfg, direct, world);
+    }
+
+    private static void SlipThrough(NPC npc, HalloweenConfig cfg, List<(int X, int Y)> path, GameWorld world)
+    {
+        foreach (var tile in path.Skip(1).Take(path.Count - 2))
+        {
+            if (npc.Map.IsTileBlocked(npc, tile.X, tile.Y)) continue;
+            npc.MoveTo(world, tile.X, tile.Y);
+            foreach (var p in HalloweenBoss.PlayersNear(npc, cfg.Weeper.LeashRadius))
+                Halloween.Feed(world, p, "The Weeper slips through the crowd...");
+            return;
+        }
     }
 
     private static Direction? Approach(NPC npc, Player target)
