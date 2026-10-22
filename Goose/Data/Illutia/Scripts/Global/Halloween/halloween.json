@@ -335,10 +335,10 @@
   "stalkerChase": {
     "chaseSeconds": 25,
     "startDelaySeconds": 1,
-    "speedOffset": 0.03,
+    "speedOffset": 0.04,
     "warnRadius": 3,
     "warnSeconds": 5,
-    "minDelaySeconds": 0.3
+    "minDelaySeconds": 0.2
   },
   "pentagram": {
     "points": [
