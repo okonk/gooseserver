@@ -17,7 +17,7 @@ SCRIPTS_DIR = ROOT / "Goose/Data/Illutia"
 CONFIG = ROOT / "Goose/Data/Illutia/Scripts/Global/Halloween/halloween.json"
 
 GROVE, BASEMENT, MINITA = 38, 39, 1
-EVENT_END = "2026-11-08T00:00:00"
+EVENT_END = "2026-11-09T00:00:00-05:00"
 TIERS = [50000, 200000, 500000]
 
 SHEETS = {

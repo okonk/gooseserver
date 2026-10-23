@@ -333,5 +333,13 @@
     "set": {
       "description": "The house keeps a bowl by the door, and it is never full. Every piece of candy you bring the Butler counts towards the whole server's haul: more Experience at 50,000, the basement opens at 200,000, and at 500,000 the party spills into town. The biggest givers win a Pumpkin Helm."
     }
+  },
+  {
+    "op": "update",
+    "sheet": "Community Goals",
+    "id": 2,
+    "set": {
+      "properties": "{\"requirements\":[{\"key\":\"candy\",\"type\":\"Item\",\"item\":745,\"label\":\"Candy\"}],\"closesAt\":\"2026-11-08T00:00:00\",\"brackets\":[{\"rank\":1,\"rewards\":[{\"type\":\"Item\",\"value\":760,\"value2\":1},{\"type\":\"Title\",\"value\":\"Candy Baron\"}]},{\"rank\":2,\"rewards\":[{\"type\":\"Item\",\"value\":760,\"value2\":1},{\"type\":\"Title\",\"value\":\"Sugar Fiend\"}]},{\"rank\":3,\"rewards\":[{\"type\":\"Item\",\"value\":760,\"value2\":1},{\"type\":\"Title\",\"value\":\"Sweet Tooth\"}]},{\"minScore\":100,\"rewards\":[{\"type\":\"Item\",\"value\":761,\"value2\":1},{\"type\":\"Title\",\"value\":\"Trick or Treater\"}]}]}"
+    }
   }
 ]
