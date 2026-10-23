@@ -649,5 +649,13 @@
     "set": {
       "script_path": "Scripts/NPC/HalloweenGuest.csx"
     }
+  },
+  {
+    "op": "update",
+    "sheet": "Community Goals",
+    "id": 2,
+    "set": {
+      "description": "The house keeps a bowl by the door, and it is never full. Every piece of candy you bring the Butler counts towards the whole server's haul: +50% Experience at 50,000, the basement opens at 200,000, and at 500,000 the party spills into town and Experience rises another 50%. Give 100 or more for a Pumpkin Helm and the Trick or Treater title. The top three givers win a stronger Pumpkin Helm and a title of their own."
+    }
   }
 ]

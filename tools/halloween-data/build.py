@@ -699,9 +699,11 @@ def build(next_ids, npc_rows, warp_rows):
     ops.append(create("Community Goals", {
         "id": ids("goal", "candy"), "name": "The Candy Count", "npc_template_id": ids("npc", "butler"),
         "description": "The house keeps a bowl by the door, and it is never full. Every piece of candy you "
-                       "bring the Butler counts towards the whole server's haul: more Experience at "
+                       "bring the Butler counts towards the whole server's haul: +50% Experience at "
                        f"{TIERS[0]:,}, the basement opens at {TIERS[1]:,}, and at {TIERS[2]:,} the party "
-                       "spills into town. The biggest givers win a Pumpkin Helm.",
+                       "spills into town and Experience rises another 50%. Give 100 or more for a Pumpkin "
+                       "Helm and the Trick or Treater title. The top three givers win a stronger Pumpkin "
+                       "Helm and a title of their own.",
         "script_path": "Scripts/CommunityGoal/HalloweenCandyGoal.csx",
         "properties": json.dumps(goal_properties(ids), separators=(",", ":")),
     }))
