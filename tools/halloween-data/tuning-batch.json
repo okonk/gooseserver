@@ -787,5 +787,51 @@
     "set": {
       "stack_size": 999
     }
+  },
+  {
+    "op": "create",
+    "sheet": "Quests",
+    "set": {
+      "id": 122,
+      "name": "Something to Wear",
+      "description": "That pink thing upstairs leaves its Shroud behind\\nwhen you put it down. My wife has been asking for\\nsomething new to wear.\\n\\nBring me a Phantom Shroud and I'll give you ten\\ncandy for it.",
+      "pass_text": "Perfect. She'll never guess where it came from.",
+      "fail_text": "A Phantom Shroud, please. The pink spirit in the\\nMaster Bedroom carries them.",
+      "min_level": 50,
+      "repeatable": 1,
+      "show_progress": 1,
+      "prerequisite_quests": "97"
+    }
+  },
+  {
+    "op": "create",
+    "sheet": "Quest Reqs",
+    "set": {
+      "id": 151,
+      "quest_id": 122,
+      "requirement_type": "Item",
+      "requirement_value": 768,
+      "requirement_value2": 1,
+      "keep_requirement": 0
+    }
+  },
+  {
+    "op": "create",
+    "sheet": "Quest Rewards",
+    "set": {
+      "id": 242,
+      "quest_id": 122,
+      "reward_type": "Item",
+      "long_value": 745,
+      "long_value2": 10
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "NPCs",
+    "id": 280,
+    "set": {
+      "quest_ids": "101 102 121 122"
+    }
   }
 ]

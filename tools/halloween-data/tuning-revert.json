@@ -365,5 +365,13 @@
     "set": {
       "stack_size": 100
     }
+  },
+  {
+    "op": "update",
+    "sheet": "NPCs",
+    "id": 280,
+    "set": {
+      "quest_ids": "101 102 121"
+    }
   }
 ]
