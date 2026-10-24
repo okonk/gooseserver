@@ -349,5 +349,21 @@
     "set": {
       "quest_ids": "101 102"
     }
+  },
+  {
+    "op": "update",
+    "sheet": "Items",
+    "id": 762,
+    "set": {
+      "stack_size": 100
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "Items",
+    "id": 763,
+    "set": {
+      "stack_size": 100
+    }
   }
 ]
