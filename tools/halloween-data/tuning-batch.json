@@ -725,5 +725,51 @@
       "stack": 1,
       "droprate": 0.8
     }
+  },
+  {
+    "op": "create",
+    "sheet": "Quests",
+    "set": {
+      "id": 121,
+      "name": "Spirited Punch",
+      "description": "My wife puts Ectoplasm in the punch. I've grown\\nrather fond of it, though I'd never tell her.\\n\\nBring me twenty pieces and I'll pay you in candy.\\nFifty of them.",
+      "pass_text": "Splendid. Not a word to the Countess.",
+      "fail_text": "Twenty Ectoplasm, please. The ghosts leave it\\nbehind.",
+      "min_level": 50,
+      "repeatable": 1,
+      "show_progress": 1,
+      "prerequisite_quests": "96"
+    }
+  },
+  {
+    "op": "create",
+    "sheet": "Quest Reqs",
+    "set": {
+      "id": 150,
+      "quest_id": 121,
+      "requirement_type": "Item",
+      "requirement_value": 765,
+      "requirement_value2": 20,
+      "keep_requirement": 0
+    }
+  },
+  {
+    "op": "create",
+    "sheet": "Quest Rewards",
+    "set": {
+      "id": 241,
+      "quest_id": 121,
+      "reward_type": "Item",
+      "long_value": 745,
+      "long_value2": 50
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "NPCs",
+    "id": 280,
+    "set": {
+      "quest_ids": "101 102 121"
+    }
   }
 ]
