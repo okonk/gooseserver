@@ -665,5 +665,65 @@
     "set": {
       "properties": "{\"requirements\":[{\"key\":\"candy\",\"type\":\"Item\",\"item\":745,\"label\":\"Candy\"}],\"closesAt\":\"2026-11-09T00:00:00-05:00\",\"brackets\":[{\"rank\":1,\"rewards\":[{\"type\":\"Item\",\"value\":760,\"value2\":1},{\"type\":\"Title\",\"value\":\"Candy Baron\"}]},{\"rank\":2,\"rewards\":[{\"type\":\"Item\",\"value\":760,\"value2\":1},{\"type\":\"Title\",\"value\":\"Sugar Fiend\"}]},{\"rank\":3,\"rewards\":[{\"type\":\"Item\",\"value\":760,\"value2\":1},{\"type\":\"Title\",\"value\":\"Sweet Tooth\"}]},{\"minScore\":100,\"rewards\":[{\"type\":\"Item\",\"value\":761,\"value2\":1},{\"type\":\"Title\",\"value\":\"Trick or Treater\"}]}]}"
     }
+  },
+  {
+    "op": "create",
+    "sheet": "NPC Drops",
+    "set": {
+      "npc_template_id": 262,
+      "item_template_id": 762,
+      "stack": 1,
+      "droprate": 0.8
+    }
+  },
+  {
+    "op": "create",
+    "sheet": "NPC Drops",
+    "set": {
+      "npc_template_id": 263,
+      "item_template_id": 762,
+      "stack": 1,
+      "droprate": 0.8
+    }
+  },
+  {
+    "op": "create",
+    "sheet": "NPC Drops",
+    "set": {
+      "npc_template_id": 264,
+      "item_template_id": 762,
+      "stack": 1,
+      "droprate": 0.8
+    }
+  },
+  {
+    "op": "create",
+    "sheet": "NPC Drops",
+    "set": {
+      "npc_template_id": 265,
+      "item_template_id": 762,
+      "stack": 1,
+      "droprate": 0.8
+    }
+  },
+  {
+    "op": "create",
+    "sheet": "NPC Drops",
+    "set": {
+      "npc_template_id": 266,
+      "item_template_id": 762,
+      "stack": 1,
+      "droprate": 0.8
+    }
+  },
+  {
+    "op": "create",
+    "sheet": "NPC Drops",
+    "set": {
+      "npc_template_id": 267,
+      "item_template_id": 762,
+      "stack": 1,
+      "droprate": 0.8
+    }
   }
 ]

@@ -327,7 +327,7 @@ TOWNSFOLK = [
 
 DROPS = (
     [(g, m, 1, 0, 1) for g in GUESTS for m in ("goblin", "zombie", "mummy")]
-    + [(g, "brew", 1, 0, 1) for g in GUESTS]
+    + [(g, item, 1, 0, 0.8) for g in GUESTS for item in ("brew", "pie")]
     + [("cook", "pie", 1, 0, 2), ("wailing", "ecto", 1, 0, 25), ("flickering", "ecto", 1, 0, 25),
        ("phantom", "candle", 1, 0, 50), ("phantom", "shroud", 1, 0, 50),
        ("weeper", "claw", 1, 0, 100), ("weeper", "candle", 1, 2, 100)]
