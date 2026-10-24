@@ -15,17 +15,17 @@ namespace Goose.Commands
 
             if (name == ctx.Player)
             {
-                world.Send(ctx.Player, P.GroupMessage("You can't group with yourself."));
+                world.Send(ctx.Player, P.Notice(NoticeType.Info, "You can't group with yourself."));
                 return;
             }
             if (name.Group is not null)
             {
-                world.Send(ctx.Player, P.GroupMessage("Player is already in a group."));
+                world.Send(ctx.Player, P.Notice(NoticeType.Info, "Player is already in a group."));
                 return;
             }
             if (!name.GroupInvitesEnabled)
             {
-                world.Send(ctx.Player, P.GroupMessage("Player is not accepting group invitations."));
+                world.Send(ctx.Player, P.Notice(NoticeType.Info, "Player is not accepting group invitations."));
                 return;
             }
 

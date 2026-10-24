@@ -414,7 +414,7 @@ namespace Goose.Tests.CommunityGoals
             var contribute = Assert.Single(player.Windows);
             fixture.RunCommand(player, $"WBC20,{contribute.ID},0,0,0");
 
-            Assert.Contains("$7Slay Slay to contribute.\x1", player.Sent);
+            Assert.Contains("NTF0,Slay Slay to contribute.\x1", player.Sent);
             Assert.Empty(player.Windows);
         }
 
@@ -458,7 +458,7 @@ namespace Goose.Tests.CommunityGoals
         }
 
         [Fact]
-        public void PrizeClaim_RefusalSendsServerMessageAndClosesHub()
+        public void PrizeClaim_RefusalSendsNoticeAndClosesHub()
         {
             LoadGoal(ItemRewardProps);
             RegisterItem(900, "Sword", sheet: 3, tile: 9);
@@ -470,7 +470,7 @@ namespace Goose.Tests.CommunityGoals
             Assert.Equal(new[] { "Claim: Goal 1 (Run 1)", "Goal 1 - Completed" }, TextLines(hub.ID).ToArray());
             fixture.RunCommand(player, $"WBC20,{hub.ID},0,0,0");
 
-            Assert.Contains("$7You need 1 free inventory slots to claim this.\x1", player.Sent);
+            Assert.Contains("NTF0,You need 1 free inventory slots to claim this.\x1", player.Sent);
             Assert.Empty(player.Windows);
         }
     }

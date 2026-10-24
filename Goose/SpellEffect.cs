@@ -688,7 +688,7 @@ namespace Goose
             if (this.Animation != 0) packet += "\x1" + P.SpellPlayer(target.LoginID, this.Animation, this.AnimationFile);
             if (this.DoCastAnimation) packet += "\x1" + P.Cast(caster);
 
-            world.Send((Player)target, P.ServerMessage("Your soul has been bound to this spot."));
+            world.Send((Player)target, P.Notice(NoticeType.Info, "Your soul has been bound to this spot."));
             world.Send((Player)target, packet);
             foreach (var player in range)
             {
@@ -740,7 +740,7 @@ namespace Goose
 
             if (this.Animation != 0) packet += "\x1" + P.SpellPlayer(target.LoginID, this.Animation, this.AnimationFile);
             if (this.DoCastAnimation) packet += "\x1" + P.Cast(caster);
-            if (this.OnEffectText != "") world.Send((Player)target, P.ServerMessage(this.OnEffectText));
+            if (this.OnEffectText != "") world.Send((Player)target, P.Notice(NoticeType.Info, this.OnEffectText));
 
             world.Send((Player)target, P.StatusInfo((Player)target));
             world.Send((Player)target, packet);
@@ -916,7 +916,7 @@ namespace Goose
 
             if (player.Pets.Count == world.Settings.PetCountLimit)
             {
-                world.Send(player, P.ServerMessage("You have reached the maximum amount of pets. Use /petdelete <id> to release one."));
+                world.Send(player, P.Notice(NoticeType.Info, "You have reached the maximum amount of pets. Use /petdelete <id> to release one."));
                 return false;
             }
 
@@ -929,13 +929,13 @@ namespace Goose
             {
                 Pet newpet = Pet.FromCharacter((NPC)target, world.Settings);
                 player.AddPet(newpet);
-                world.Send(player, P.ServerMessage("Successfully tamed " + target.Name + "."));
+                world.Send(player, P.Notice(NoticeType.Info, "Successfully tamed " + target.Name + "."));
                 newpet.SaveToDatabase(world);
                 return true;
             }
             else
             {
-                world.Send(player, P.ServerMessage($"Failed to tame {target.Name}. ({target.MaxHP} hp, {successrate * 100:F2}% chance)"));
+                world.Send(player, P.Notice(NoticeType.Info, $"Failed to tame {target.Name}. ({target.MaxHP} hp, {successrate * 100:F2}% chance)"));
                 return false;
             }
         }

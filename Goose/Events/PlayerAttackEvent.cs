@@ -31,7 +31,7 @@ namespace Goose.Events
                 {
                     if (window.Type == Window.WindowTypes.Vendor)
                     {
-                        world.Send(this.Player, P.ServerMessage("You can't attack while with a vendor."));
+                        world.Send(this.Player, P.Notice(NoticeType.Info, "You can't attack while with a vendor."));
                         return;
                     }
                 }

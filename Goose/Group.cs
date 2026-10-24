@@ -28,14 +28,14 @@ namespace Goose
         {
             if (this.Players.Contains(player)) return;
 
-            string packet = P.GroupMessage(player.Name + " has joined your group. (" + adder.Name + ")");
+            string packet = P.Notice(NoticeType.Info, player.Name + " has joined your group. (" + adder.Name + ")");
             foreach (var p in this.Players)
             {
                 if (p.State != Player.States.Ready) continue;
 
                 world.Send(p, packet);
             }
-            world.Send(player, P.GroupMessage("You have joined a group."));
+            world.Send(player, P.Notice(NoticeType.Info, "You have joined a group."));
 
             player.Group = this;
             this.Players.Add(player);
@@ -68,8 +68,8 @@ namespace Goose
             this.SendPartyWindow(player, world);
 
             string packet;
-            if (kicked) { packet = P.GroupMessage(player.Name + " was kicked from your group. (" + kicker.Name + ")"); }
-            else { packet = P.GroupMessage(player.Name + " has left your group."); }
+            if (kicked) { packet = P.Notice(NoticeType.Info, player.Name + " was kicked from your group. (" + kicker.Name + ")"); }
+            else { packet = P.Notice(NoticeType.Info, player.Name + " has left your group."); }
 
             foreach (var p in this.Players)
             {
@@ -79,13 +79,13 @@ namespace Goose
                 this.SendPartyWindow(p, world);
             }
 
-            if (kicked) { world.Send(player, P.GroupMessage(kicker.Name + " kicked you from the group.")); }
-            else { world.Send(player, P.GroupMessage("You have left the group.")); }
+            if (kicked) { world.Send(player, P.Notice(NoticeType.Info, kicker.Name + " kicked you from the group.")); }
+            else { world.Send(player, P.Notice(NoticeType.Info, "You have left the group.")); }
 
             if (this.Players.Count == 1)
             {
                 this.Players[0].Group = null;
-                world.Send(this.Players[0], P.GroupMessage("Your group has been disbanded."));
+                world.Send(this.Players[0], P.Notice(NoticeType.Info, "Your group has been disbanded."));
             }
         }
 
@@ -218,7 +218,7 @@ namespace Goose
          */
         public void ItemPickup(Player player, ItemSlot itemslot, GameWorld world)
         {
-            string packet = P.GroupMessage(player.Name + " picked up " + itemslot.Item.Name + " (" + itemslot.Stack + ").");
+            string packet = P.Notice(NoticeType.Info, player.Name + " picked up " + itemslot.Item.Name + " (" + itemslot.Stack + ").");
             foreach (var p in this.Players)
             {
                 world.Send(p, packet);

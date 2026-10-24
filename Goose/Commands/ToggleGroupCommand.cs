@@ -11,11 +11,11 @@ namespace Goose.Commands
 
             if (ctx.Player.GroupInvitesEnabled)
             {
-                world.Send(ctx.Player, P.GroupMessage("Group invitations are now enabled."));
+                world.Send(ctx.Player, P.Notice(NoticeType.Info, "Group invitations are now enabled."));
             }
             else
             {
-                world.Send(ctx.Player, P.GroupMessage("Group invitations have been disabled."));
+                world.Send(ctx.Player, P.Notice(NoticeType.Info, "Group invitations have been disabled."));
             }
         }
     }

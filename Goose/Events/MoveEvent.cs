@@ -46,7 +46,7 @@ namespace Goose.Events
                 {
                     if (window.Type == Window.WindowTypes.Vendor)
                     {
-                        world.Send(this.Player, P.ServerMessage("You can't move while with a vendor."));
+                        world.Send(this.Player, P.Notice(NoticeType.Info, "You can't move while with a vendor."));
                         world.Send(this.Player, P.SetYourPosition(this.Player));
                         return;
                     }

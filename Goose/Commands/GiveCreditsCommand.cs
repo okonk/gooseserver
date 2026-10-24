@@ -27,7 +27,7 @@ namespace Goose.Commands
 
             if (player.State == Player.States.Ready)
             {
-                world.Send(player, P.ServerMessage(ctx.Player.Name + " gave you " + credits + " donation credits."));
+                world.Send(player, P.Notice(NoticeType.Info, ctx.Player.Name + " gave you " + credits + " donation credits."));
             }
             else
             {

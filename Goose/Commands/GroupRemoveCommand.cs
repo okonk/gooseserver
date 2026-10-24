@@ -11,7 +11,7 @@ namespace Goose.Commands
             {
                 if (ctx.Player.Group is null)
                 {
-                    world.Send(ctx.Player, P.GroupMessage("You are not in a group."));
+                    world.Send(ctx.Player, P.Notice(NoticeType.Info, "You are not in a group."));
                     return;
                 }
 
@@ -22,7 +22,7 @@ namespace Goose.Commands
 
             if (name.Group is null)
             {
-                world.Send(ctx.Player, P.GroupMessage("Player is not in a group."));
+                world.Send(ctx.Player, P.Notice(NoticeType.Info, "Player is not in a group."));
                 return;
             }
 
@@ -33,7 +33,7 @@ namespace Goose.Commands
             }
             else
             {
-                world.Send(ctx.Player, P.GroupMessage("Player isn't in your group."));
+                world.Send(ctx.Player, P.Notice(NoticeType.Info, "Player isn't in your group."));
             }
         }
     }

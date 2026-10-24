@@ -345,7 +345,7 @@ public class MountSpeedTests
         fixture.World.World.EventHandler.AddEvent(fixture.Player, "MNT");
         fixture.World.World.EventHandler.Update(fixture.World.World);
         Assert.False(fixture.Player.Mounted);
-        Assert.Contains(fixture.Player.Sent, s => s.Contains("#You can't use items in this map."));
+        Assert.Contains(fixture.Player.Sent, s => s.Contains("NTF0,You can't use items in this map."));
     }
 
     [Fact]

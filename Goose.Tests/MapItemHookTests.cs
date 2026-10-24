@@ -107,7 +107,7 @@ public class MapItemHookTests
 
         Drop(h, item);
 
-        Assert.Contains(h.Player.Sent, m => m.Contains("$7No dropping here."));
+        Assert.Contains(h.Player.Sent, m => m.Contains("NTF0,No dropping here."));
         Assert.Same(item, h.Player.Inventory.GetSlot(slot)!.Item);
         Assert.Null(FindTile(h, item));
         Assert.Equal(1, h.Script.DropGateCalls);
@@ -169,7 +169,7 @@ public class MapItemHookTests
 
         Drop(h, item);
 
-        Assert.Contains(h.Player.Sent, m => m.Contains("$7You cannot drop that here."));
+        Assert.Contains(h.Player.Sent, m => m.Contains("NTF0,You cannot drop that here."));
         Assert.Same(item, h.Player.Inventory.GetSlot(slot)!.Item);
         Assert.Null(FindTile(h, item));
         Assert.Equal(0, h.Script.DroppedCalls);
@@ -191,7 +191,7 @@ public class MapItemHookTests
 
         Pickup(h);
 
-        Assert.Contains(h.Player.Sent, m => m.Contains("$7Not now."));
+        Assert.Contains(h.Player.Sent, m => m.Contains("NTF0,Not now."));
         Assert.Same(tile, h.Map.GetTile(5, 5));
         Assert.DoesNotContain(h.Player.Inventory.GetInventorySlots(), s => s is not null);
         Assert.Equal(1, h.Script.PickupGateCalls);

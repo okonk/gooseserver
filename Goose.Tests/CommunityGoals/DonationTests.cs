@@ -212,7 +212,7 @@ namespace Goose.Tests.CommunityGoals
             run.CompletedAt = now;
             fixture.RunCommand(player, $"AMT{amount.ID},237");
 
-            Assert.Contains("$7This goal has ended.\x1", player.Sent);
+            Assert.Contains("NTF0,This goal has ended.\x1", player.Sent);
             Assert.Equal(237, player.Inventory.GetInventoryItemFamilyCount(900));
             Assert.Empty(run.Totals);
             Assert.Empty(run.Contributions);
@@ -231,7 +231,7 @@ namespace Goose.Tests.CommunityGoals
             player.MapX = 60;
             fixture.RunCommand(player, $"AMT{amount.ID},237");
 
-            Assert.Contains("$7You are too far away.\x1", player.Sent);
+            Assert.Contains("NTF0,You are too far away.\x1", player.Sent);
             Assert.Equal(237, player.Inventory.GetInventoryItemFamilyCount(900));
             Assert.Empty(run.Totals);
             Assert.Empty(run.Contributions);
@@ -293,7 +293,7 @@ return typeof(G);
             var amount = OpenAmountWindow(contribute);
             fixture.RunCommand(player, $"AMT{amount.ID},237");
 
-            Assert.Contains("$7Eligibility closed\x1", player.Sent);
+            Assert.Contains("NTF0,Eligibility closed\x1", player.Sent);
             Assert.Equal(237, player.Inventory.GetInventoryItemFamilyCount(900));
             Assert.Empty(run.Totals);
             Assert.Empty(run.Contributions);
@@ -326,7 +326,7 @@ return typeof(G);
             Assert.Equal(0, player.Inventory.GetInventoryItemFamilyCount(900));
             Assert.Equal(237, run.Totals["logs"]);
             Assert.Equal(237, run.Contributions[player.PlayerID].Amounts["logs"]);
-            Assert.DoesNotContain("$7Second gate refused\x1", player.Sent);
+            Assert.DoesNotContain("NTF0,Second gate refused\x1", player.Sent);
         }
 
         [Fact]

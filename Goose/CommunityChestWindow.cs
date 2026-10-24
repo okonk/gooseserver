@@ -42,7 +42,7 @@ namespace Goose
         {
             if (incoming?.Item is { IsBound: true } or { IsBindOnPickup: true })
             {
-                world.Send(player, P.ServerMessage("That item is bound to you."));
+                world.Send(player, P.Notice(NoticeType.Info, "That item is bound to you."));
                 return false;
             }
 
@@ -57,13 +57,13 @@ namespace Goose
 
             if (item.IsBound)
             {
-                world.Send(player, P.ServerMessage("That item is bound."));
+                world.Send(player, P.Notice(NoticeType.Info, "That item is bound."));
                 return false;
             }
 
             if (item.IsLore && player.HasItem(item.Template.ID))
             {
-                world.Send(player, P.ServerMessage("Already have LORE item " + item.Name + "."));
+                world.Send(player, P.Notice(NoticeType.Info, "Already have LORE item " + item.Name + "."));
                 return false;
             }
 
@@ -80,7 +80,7 @@ namespace Goose
             }
             if (refusal is not null)
             {
-                world.Send(player, P.ServerMessage(refusal));
+                world.Send(player, P.Notice(NoticeType.Info, refusal));
                 return false;
             }
 
@@ -88,7 +88,7 @@ namespace Goose
             // generation; withdrawal is acquisition, so refuse rather than launder it out unbound.
             if (item.IsBindOnPickup && !item.IsBound)
             {
-                world.Send(player, P.ServerMessage("That item is bound to you."));
+                world.Send(player, P.Notice(NoticeType.Info, "That item is bound to you."));
                 return false;
             }
 

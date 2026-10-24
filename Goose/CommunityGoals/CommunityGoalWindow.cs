@@ -60,7 +60,7 @@ namespace Goose.CommunityGoals
                         if (result.Success)
                             Handle(npc, p, w);
                         else
-                            w.Send(p, P.ServerMessage(result.Refusal!));
+                            w.Send(p, P.Notice(NoticeType.Info, result.Refusal!));
                         return;
                     }
                     var (goal, run) = index < prizes.Count + active.Count
@@ -108,7 +108,7 @@ namespace Goose.CommunityGoals
                         if (requirement.Kind == RequirementKind.Kill && requirement.NpcTemplateId is int targetNpcId)
                         {
                             var targetName = w.NPCHandler.GetNPCTemplate(targetNpcId)?.Name ?? "Unknown NPC";
-                            w.Send(p, P.ServerMessage($"Slay {targetName} to contribute."));
+                            w.Send(p, P.Notice(NoticeType.Info, $"Slay {targetName} to contribute."));
                         }
                         else if (requirement.Kind is RequirementKind.Item or RequirementKind.Gold or RequirementKind.Experience)
                         {
@@ -151,7 +151,7 @@ namespace Goose.CommunityGoals
             }
             if (max < 1)
             {
-                world.Send(player, P.ServerMessage("You cannot donate to this goal right now."));
+                world.Send(player, P.Notice(NoticeType.Info, "You cannot donate to this goal right now."));
                 return;
             }
             new AmountWindow(player, world, goal.Name, prompt, RequirementIcon(requirement, world),
@@ -164,19 +164,19 @@ namespace Goose.CommunityGoals
         {
             if (!Map.InRange(player, npc))
             {
-                world.Send(player, P.ServerMessage("You are too far away."));
+                world.Send(player, P.Notice(NoticeType.Info, "You are too far away."));
                 return;
             }
             var run = world.CommunityGoals.CurrentRun(goal.Id);
             if (run is null || run.Status != RunStatus.Active || goal.Definition is null)
             {
-                world.Send(player, P.ServerMessage("This goal has ended."));
+                world.Send(player, P.Notice(NoticeType.Info, "This goal has ended."));
                 return;
             }
             var amount = units * (cost ?? 1);
             if (Have(player, requirement, world) < amount)
             {
-                world.Send(player, P.ServerMessage("You cannot donate to this goal right now."));
+                world.Send(player, P.Notice(NoticeType.Info, "You cannot donate to this goal right now."));
                 return;
             }
             var accepted = Math.Min(amount, world.CommunityGoals.Remaining(goal, requirement.Key));
@@ -184,21 +184,21 @@ namespace Goose.CommunityGoals
                 accepted -= accepted % ticket;
             if (accepted <= 0)
             {
-                world.Send(player, P.ServerMessage("That's no longer needed."));
+                world.Send(player, P.Notice(NoticeType.Info, "That's no longer needed."));
                 return;
             }
             // Gate before take: a CanContribute refusal must not burn the player's resources.
             var refusal = world.CommunityGoals.CanContribute(goal, run, player, requirement.Key, accepted, world);
             if (refusal is not null)
             {
-                world.Send(player, P.ServerMessage(refusal));
+                world.Send(player, P.Notice(NoticeType.Info, refusal));
                 return;
             }
             // Take before credit: a failed take must never be credited, and a credit is
             // never issued for more than was taken.
             if (!Take(player, requirement, accepted, world))
             {
-                world.Send(player, P.ServerMessage("You cannot donate to this goal right now."));
+                world.Send(player, P.Notice(NoticeType.Info, "You cannot donate to this goal right now."));
                 return;
             }
             var result = world.CommunityGoals.ContributeValidated(goal, player, requirement.Key, accepted, world);

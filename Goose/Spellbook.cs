@@ -261,7 +261,7 @@ namespace Goose
 
                     this.SendSlot(i, world);
 
-                    world.Send(this.player, P.ServerMessage("You have learned " + spell.Name + "."));
+                    world.Send(this.player, P.Notice(NoticeType.Info, "You have learned " + spell.Name + "."));
                     return true;
                 }
             }
@@ -279,7 +279,7 @@ namespace Goose
 
             if (this.spells[slot] is not null)
             {
-                world.Send(this.player, P.ServerMessage("You have forgotten " + this.spells[slot]!.Name + "."));
+                world.Send(this.player, P.Notice(NoticeType.Info, "You have forgotten " + this.spells[slot]!.Name + "."));
 
                 this.spells[slot] = null;
                 this.lastcast[slot] = long.MinValue >> 1;

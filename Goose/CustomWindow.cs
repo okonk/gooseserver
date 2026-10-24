@@ -72,13 +72,13 @@ namespace Goose
 
             if ((lookSlotId != 0 && lookItem is null) || (statsSlotId != 0 && statsItem is null))
             {
-                world.Send(player, P.ServerMessage("Items missing for customisation"));
+                world.Send(player, P.Notice(NoticeType.Info, "Items missing for customisation"));
                 return;
             }
 
             if (ReferenceEquals(lookItem, window.TicketItem) || ReferenceEquals(statsItem, window.TicketItem))
             {
-                world.Send(player, P.ServerMessage("Items to be customised must be equipment and must be visible items."));
+                world.Send(player, P.Notice(NoticeType.Info, "Items to be customised must be equipment and must be visible items."));
                 return;
             }
 
@@ -109,7 +109,7 @@ namespace Goose
             ItemSlot? ticketSlot = FindTicketSlot(world, player, window.TicketItem, out int ticketSlotId);
             if (ticketSlot is null)
             {
-                world.Send(player, P.ServerMessage("You need a custom ticket to customise an item."));
+                world.Send(player, P.Notice(NoticeType.Info, "You need a custom ticket to customise an item."));
                 return;
             }
 
@@ -119,7 +119,7 @@ namespace Goose
                 || lookSlotId == ticketSlotId
                 || statsSlotId == ticketSlotId)
             {
-                world.Send(player, P.ServerMessage("Items missing for customisation"));
+                world.Send(player, P.Notice(NoticeType.Info, "Items missing for customisation"));
                 return;
             }
 
@@ -127,7 +127,7 @@ namespace Goose
                 || !ReferenceEquals(lookSlot.Item, window.LookItem)
                 || !ReferenceEquals(statsSlot.Item, window.StatsItem))
             {
-                world.Send(player, P.ServerMessage("Items changed in the custom window. Place them again."));
+                world.Send(player, P.Notice(NoticeType.Info, "Items changed in the custom window. Place them again."));
                 return;
             }
 
@@ -136,14 +136,14 @@ namespace Goose
             string? rgbaError = CustomItem.ParseRGBA(r, g, b, a);
             if (rgbaError is not null)
             {
-                world.Send(player, P.ServerMessage(rgbaError));
+                world.Send(player, P.Notice(NoticeType.Info, rgbaError));
                 return;
             }
 
             string? name = CustomItem.SanitizeName(rawName);
             if (name is null)
             {
-                world.Send(player, P.ServerMessage("Custom name cannot be empty."));
+                world.Send(player, P.Notice(NoticeType.Info, "Custom name cannot be empty."));
                 return;
             }
 
@@ -151,7 +151,7 @@ namespace Goose
             if (item is null)
             {
                 log.Error("Custom create for player {0}: stats template {1} is invalid", player.Name, statsSlot.Item.TemplateID);
-                world.Send(player, P.ServerMessage("Items to be customised must be equipment and must be visible items."));
+                world.Send(player, P.Notice(NoticeType.Info, "Items to be customised must be equipment and must be visible items."));
                 return;
             }
 
@@ -164,7 +164,7 @@ namespace Goose
                 + (ticketSlot.Stack == 1 ? 1 : 0);
             if (player.Inventory.GetNumberOfFreeSlots() + freedByConsumes < 1)
             {
-                world.Send(player, P.ServerMessage("Not enough inventory space for the custom."));
+                world.Send(player, P.Notice(NoticeType.Info, "Not enough inventory space for the custom."));
                 return;
             }
 
@@ -178,7 +178,7 @@ namespace Goose
             // consumed before a later RemoveItem fails; guard up front so nothing is lost.
             if (lookSlot.Stack < 1 || statsSlot.Stack < 1 || ticketSlot.Stack < 1)
             {
-                world.Send(player, P.ServerMessage("Items missing for customisation"));
+                world.Send(player, P.Notice(NoticeType.Info, "Items missing for customisation"));
                 return;
             }
 
@@ -189,7 +189,7 @@ namespace Goose
                 if (player.Inventory.RemoveItem(lookSlot.Item, 1, world) is null)
                 {
                     log.Error("Custom create for player {0}: item vanished during consumption", player.Name);
-                    world.Send(player, P.ServerMessage("Items missing for customisation"));
+                    world.Send(player, P.Notice(NoticeType.Info, "Items missing for customisation"));
                     return;
                 }
 
@@ -198,7 +198,7 @@ namespace Goose
                     || player.Inventory.RemoveItem(ticketSlot.Item, 1, world) is null)
                 {
                     log.Error("Custom create for player {0}: item vanished during consumption", player.Name);
-                    world.Send(player, P.ServerMessage("Items missing for customisation"));
+                    world.Send(player, P.Notice(NoticeType.Info, "Items missing for customisation"));
                     return;
                 }
 
@@ -219,7 +219,7 @@ namespace Goose
             world.LogHandler.Log(Log.Types.CreatedCustom, player,
                 $"{item.Name} ({item.TemplateID}) {lookSlot.Item.TemplateID}|{r},{g},{b},{a}", item.ItemID);
 
-            world.Send(player, P.ServerMessage("Created custom: " + item.Name));
+            world.Send(player, P.Notice(NoticeType.Info, "Created custom: " + item.Name));
             window.Close(player, world);
         }
     }

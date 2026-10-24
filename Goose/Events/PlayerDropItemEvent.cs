@@ -55,7 +55,7 @@ namespace Goose.Events
                 }
                 if (refusal is not null)
                 {
-                    world.Send(this.Player, P.ServerMessage(refusal));
+                    world.Send(this.Player, P.Notice(NoticeType.Info, refusal));
                     return;
                 }
 

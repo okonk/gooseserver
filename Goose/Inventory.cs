@@ -310,7 +310,7 @@ namespace Goose
 
             if (!this.player.Map.CanUseItems)
             {
-                world.Send(this.player, P.HashMessage("You can't use items in this map."));
+                world.Send(this.player, P.Notice(NoticeType.Info, "You can't use items in this map."));
                 return;
             }
 
@@ -474,7 +474,7 @@ namespace Goose
             {
                 if (window.Type == Window.WindowTypes.Vendor)
                 {
-                    world.Send(this.player, P.ServerMessage("You can't use items while with a vendor."));
+                    world.Send(this.player, P.Notice(NoticeType.Info, "You can't use items while with a vendor."));
                     return;
                 }
             }
@@ -1293,46 +1293,46 @@ namespace Goose
             Combination? match = world.CombinationHandler.GetMatch(BuildAggregateCombineHash());
             if (match is null)
             {
-                world.Send(this.player, P.ServerMessage("Couldn't combine items."));
+                world.Send(this.player, P.Notice(NoticeType.Info, "Couldn't combine items."));
                 return;
             }
 
             int dimension = FindCompleteCombineDimension(match);
             if (dimension < 0)
             {
-                world.Send(this.player, P.ServerMessage("Not enough items in the same dimension to create " +
+                world.Send(this.player, P.Notice(NoticeType.Info, "Not enough items in the same dimension to create " +
                     match.Name + "."));
                 return;
             }
 
             if (match.MinLevel > this.player.Level)
             {
-                world.Send(this.player, P.ServerMessage("You need to be level " + match.MinLevel + " to create " +
+                world.Send(this.player, P.Notice(NoticeType.Info, "You need to be level " + match.MinLevel + " to create " +
                     match.Name + "."));
                 return;
             }
             else if (match.MaxLevel > 0 && match.MaxLevel < this.player.Level)
             {
-                world.Send(this.player, P.ServerMessage("You need to be less than level " + match.MaxLevel + " to create " +
+                world.Send(this.player, P.Notice(NoticeType.Info, "You need to be less than level " + match.MaxLevel + " to create " +
                     match.Name + "."));
                 return;
             }
             else if (match.MinExperience > this.player.Experience + this.player.ExperienceSold)
             {
-                world.Send(this.player, P.ServerMessage("You need " + match.MinExperience + " experience to create " +
+                world.Send(this.player, P.Notice(NoticeType.Info, "You need " + match.MinExperience + " experience to create " +
                     match.Name + "."));
                 return;
             }
             else if (match.MaxExperience > 0 &&
                 match.MaxExperience < this.player.Experience + this.player.ExperienceSold)
             {
-                world.Send(this.player, P.ServerMessage("You need less than " + match.MaxExperience +
+                world.Send(this.player, P.Notice(NoticeType.Info, "You need less than " + match.MaxExperience +
                     " experience to create " + match.Name + "."));
                 return;
             }
             else if (!this.player.Class.CanUse(match.ClassRestrictions))
             {
-                world.Send(this.player, P.ServerMessage("You are the wrong class to create " + match.Name + "."));
+                world.Send(this.player, P.Notice(NoticeType.Info, "You are the wrong class to create " + match.Name + "."));
                 return;
             }
 
@@ -1400,7 +1400,7 @@ namespace Goose
                 var resultTemplate = world.ItemHandler.GetTemplateVariant(template.BaseTemplateID, dimension) ?? template;
                 if (resultTemplate.IsLore && this.player.HasItem(resultTemplate.ID))
                 {
-                    world.Send(this.player, P.ServerMessage("Already have LORE item " + resultTemplate.Name + "."));
+                    world.Send(this.player, P.Notice(NoticeType.Info, "Already have LORE item " + resultTemplate.Name + "."));
                     return;
                 }
 
@@ -1430,7 +1430,7 @@ namespace Goose
                 }
                 else
                 {
-                    world.Send(this.player, P.ServerMessage("Not enough free slots to create " + match.Name + "."));
+                    world.Send(this.player, P.Notice(NoticeType.Info, "Not enough free slots to create " + match.Name + "."));
                     return;
                 }
             }

@@ -52,7 +52,7 @@ namespace Goose.Quests
             foreach (var p in roster)
             {
                 if (p.State == Player.States.Ready)
-                    world.Send(p, P.ServerMessage($"You helped complete {quest.Name}. You can still turn it in at {npcName}."));
+                    world.Send(p, P.Notice(NoticeType.Quest, $"You helped complete {quest.Name}. You can still turn it in at {npcName}."));
             }
 
             // OR REPLACE: a crash between claim and flush re-opens the quest, and re-claiming must not

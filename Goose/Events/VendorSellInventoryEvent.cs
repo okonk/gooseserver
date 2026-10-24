@@ -75,7 +75,7 @@ namespace Goose.Events
                 // Refused before the item leaves the bag.
                 if (price < 0)
                 {
-                    world.Send(this.Player, P.ServerMessage("I have no interest in purchasing " + slot.Item.Name + "."));
+                    world.Send(this.Player, P.Notice(NoticeType.Info, "I have no interest in purchasing " + slot.Item.Name + "."));
                     return;
                 }
 
@@ -83,7 +83,7 @@ namespace Goose.Events
 
                 currency.Add(this.Player, price, world);
 
-                world.Send(this.Player, P.ServerMessage("Sold " + sellslot!.Item.Name +
+                world.Send(this.Player, P.Notice(NoticeType.Info, "Sold " + sellslot!.Item.Name +
                     (sellslot.Stack > 1 ? " (" + sellslot.Stack + ")" : "") +
                     " for " + price + " " + currency.Name + "."));
 

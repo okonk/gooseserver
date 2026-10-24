@@ -79,7 +79,7 @@ public class CommunityChestValidationTests
     }
 
     private static bool MessageSent(TestWorldFixture.CapturingPlayer player, string text) =>
-        player.Sent.Any(p => p.StartsWith(P.ServerMessage(text)));
+        player.Sent.Any(p => p.StartsWith(P.Notice(NoticeType.Info, text)));
 
     [Fact]
     public void DepositBound_Refused()

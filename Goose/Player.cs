@@ -1683,30 +1683,30 @@ namespace Goose
 
             if (item.MinLevel != 0 && this.Level < item.MinLevel)
             {
-                world.Send(this, P.ServerMessage("You are too low level to use " + item.Name + "."));
+                world.Send(this, P.Notice(NoticeType.Info, "You are too low level to use " + item.Name + "."));
                 return false;
             }
             if (item.MaxLevel != 0 && this.Level > item.MaxLevel)
             {
-                world.Send(this, P.ServerMessage("You are too high level to use " + item.Name + "."));
+                world.Send(this, P.Notice(NoticeType.Info, "You are too high level to use " + item.Name + "."));
                 return false;
             }
             if ((item.MinExperience != 0) &&
                 (this.Experience + this.ExperienceSold < item.MinExperience))
             {
-                world.Send(this, P.ServerMessage($"You are too low experienced to use {item.Name}. {item.MinExperience} experience required."));
+                world.Send(this, P.Notice(NoticeType.Info, $"You are too low experienced to use {item.Name}. {item.MinExperience} experience required."));
                 return false;
             }
             if ((item.MaxExperience != 0) &&
                 (this.Experience + this.ExperienceSold > item.MaxExperience))
             {
-                world.Send(this, P.ServerMessage($"You are too high experienced to use {item.Name}. {item.MaxExperience} experience maximum."));
+                world.Send(this, P.Notice(NoticeType.Info, $"You are too high experienced to use {item.Name}. {item.MaxExperience} experience maximum."));
                 return false;
             }
 
             if (!this.Class.CanUse(item.ClassRestrictions))
             {
-                world.Send(this, P.ServerMessage("You are the wrong class to use " + item.Name + "."));
+                world.Send(this, P.Notice(NoticeType.Info, "You are the wrong class to use " + item.Name + "."));
                 return false;
             }
 
@@ -1952,7 +1952,7 @@ namespace Goose
                 this.Experience + this.ExperienceSold > world.Settings.ExperienceCap)
             {
                 if ((this.ToggleSettings & ToggleSetting.Experience) != 0) return;
-                world.Send(this, P.ServerMessage("You have reached the experience cap. Gained 0 experience points."));
+                world.Send(this, P.Notice(NoticeType.Info, "You have reached the experience cap. Gained 0 experience points."));
                 return;
             }
 
@@ -1992,7 +1992,7 @@ namespace Goose
                     //     break;
 
                     case ExperienceMessage.TooLow:
-                        world.Send(this, P.ServerMessage("Group members too high to gain any experience."));
+                        world.Send(this, P.Notice(NoticeType.Info, "Group members too high to gain any experience."));
                         break;
 
                     case ExperienceMessage.None:
@@ -2051,8 +2051,8 @@ namespace Goose
             this.CurrentHP = this.MaxHP;
             this.CurrentMP = this.MaxMP;
             world.Send(this, P.VitalsPercentage(this));
-            if (levels == 1) world.Send(this, P.ServerMessage("You have gained a level."));
-            else world.Send(this, P.ServerMessage("You have gained " + levels + " levels."));
+            if (levels == 1) world.Send(this, P.Notice(NoticeType.Info, "You have gained a level."));
+            else world.Send(this, P.Notice(NoticeType.Info, "You have gained " + levels + " levels."));
 
             string packet = P.BattleTextYellow(this, "Level Up!");
             world.Send(this, packet);
@@ -2245,14 +2245,14 @@ namespace Goose
             {
                 if (window.Type == Window.WindowTypes.Vendor)
                 {
-                    world.Send(this, P.ServerMessage("You can't cast spells while with a vendor."));
+                    world.Send(this, P.Notice(NoticeType.Info, "You can't cast spells while with a vendor."));
                     return;
                 }
             }
 
             if (!this.Class.CanUse(spell.ClassRestrictions) && !this.HasPrivilege(AccessPrivilege.IgnoreItemRequirements))
             {
-                world.Send(this, P.ServerMessage("You are the wrong class to use this spell."));
+                world.Send(this, P.Notice(NoticeType.Info, "You are the wrong class to use this spell."));
                 return;
             }
 

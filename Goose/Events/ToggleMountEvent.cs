@@ -13,7 +13,7 @@ namespace Goose.Events
 
             if (!this.Player.Mounted && !this.Player.Map.CanUseItems)
             {
-                world.Send(this.Player, P.HashMessage("You can't use items in this map."));
+                world.Send(this.Player, P.Notice(NoticeType.Info, "You can't use items in this map."));
                 return;
             }
 

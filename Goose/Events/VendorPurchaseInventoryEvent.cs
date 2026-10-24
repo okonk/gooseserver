@@ -71,7 +71,7 @@ namespace Goose.Events
 
                 if (slot.ItemTemplate.IsLore && this.Player.HasItem(slot.ItemTemplate.ID))
                 {
-                    world.Send(this.Player, P.ServerMessage("Can't purchase " + slot.ItemTemplate.Name +
+                    world.Send(this.Player, P.Notice(NoticeType.Info, "Can't purchase " + slot.ItemTemplate.Name +
                         " as it is LORE and you already have this item."));
                     return;
                 }
@@ -81,7 +81,7 @@ namespace Goose.Events
 
                 if (cost < 0 || currency.GetBalance(this.Player) < cost)
                 {
-                    world.Send(this.Player, P.ServerMessage("Can't purchase " + slot.ItemTemplate.Name +
+                    world.Send(this.Player, P.Notice(NoticeType.Info, "Can't purchase " + slot.ItemTemplate.Name +
                         (slot.Stack > 1 ? " (" + slot.Stack + ")" : "") +
                         " as you don't have enough " + currency.Name + "."));
                     return;
@@ -103,7 +103,7 @@ namespace Goose.Events
                     // Charged only after the item lands, so a full inventory costs nothing.
                     currency.Remove(this.Player, cost, world);
 
-                    world.Send(this.Player, P.ServerMessage("Purchased " + item.Name +
+                    world.Send(this.Player, P.Notice(NoticeType.Info, "Purchased " + item.Name +
                         (slot.Stack > 1 ? " (" + slot.Stack + ")" : "") +
                         " for " + cost + " " + currency.Name + "."));
 
@@ -120,7 +120,7 @@ namespace Goose.Events
                 }
                 else
                 {
-                    world.Send(this.Player, P.ServerMessage("Can't purchase " + slot.ItemTemplate.Name +
+                    world.Send(this.Player, P.Notice(NoticeType.Info, "Can't purchase " + slot.ItemTemplate.Name +
                         " as your inventory is full."));
                     return;
                 }

@@ -88,7 +88,7 @@ namespace Goose.Events
                 }
                 if (mapRefusal is not null)
                 {
-                    world.Send(this.Player, P.ServerMessage(mapRefusal));
+                    world.Send(this.Player, P.Notice(NoticeType.Info, mapRefusal));
                     return;
                 }
 
@@ -120,7 +120,7 @@ namespace Goose.Events
                     }
                     if (refusal is not null)
                     {
-                        world.Send(this.Player, P.ServerMessage(refusal));
+                        world.Send(this.Player, P.Notice(NoticeType.Info, refusal));
                         return;
                     }
 

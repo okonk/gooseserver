@@ -17,7 +17,7 @@ namespace Goose.Commands
             if (player.State != Player.States.NotLoggedIn)
             {
                 player.AddGold(gold, world);
-                world.Send(player, P.ServerMessage(ctx.Player.Name + " gave you " + gold + " gold."));
+                world.Send(player, P.Notice(NoticeType.Info, ctx.Player.Name + " gave you " + gold + " gold."));
             }
             else
             {
