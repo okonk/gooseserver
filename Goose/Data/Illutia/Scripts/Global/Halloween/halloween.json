@@ -406,7 +406,7 @@
     "ghostSnareOnHit": 332
   },
   "weeper": {
-    "capPerHit": 300000,
+    "capPerHit": 400000,
     "bleedPercentPerStack": 0.01,
     "bleedMaxStacks": 5,
     "bleedSeconds": 10,
