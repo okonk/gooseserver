@@ -80,12 +80,14 @@ namespace Goose
             ItemSlot slot = new ItemSlot();
             slot.Item = item;
             slot.Stack = stack;
+            if (item.IsBindOnPickup) item.IsBound = true;
 
             for (int i = 1; i <= this.settings.InventorySize; i++)
             {
                 if (this.inventory[i] is not null && this.inventory[i]!.CanStack(slot))
                 {
                     this.inventory[i]!.Stack += slot.Stack;
+                    if (item.IsBindOnPickup) this.inventory[i]!.Item.IsBound = true;
                     this.SendSlot(i, world);
 
                     this.RefreshQuestIcons(world);
