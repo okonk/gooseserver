@@ -163,7 +163,7 @@ public class HalloweenCandyTests
     }
 
     [Fact]
-    public void Full_bag_drops_candy_at_feet()
+    public void Full_bag_gives_no_candy_and_warns()
     {
         using var kit = new HalloweenTestKit();
         var map = kit.Fixture.AddBaseMap(30, "Town", 40, 40);
@@ -181,11 +181,10 @@ public class HalloweenCandyTests
         int before = kit.World.ItemHandler.GetItems().Count();
         HalloweenTestKit.Call(candy.Object, "GiveCandy", kit.World, player, 3);
 
-        Assert.Equal(before + 1, kit.World.ItemHandler.GetItems().Count());
-        var tile = Assert.IsType<ItemTile>(map.GetTile(1, 1));
-        Assert.Equal(kit.CandyId, tile.ItemSlot.Item.TemplateID);
-        Assert.Equal(3, tile.ItemSlot.Stack);
-        Assert.Same(player, tile.Owner);
-        Assert.Contains(player.Sent, s => s.Contains("+3 Candy"));
+        Assert.Equal(before, kit.World.ItemHandler.GetItems().Count());
+        Assert.IsNotType<ItemTile>(map.GetTile(1, 1));
+        Assert.False(player.Inventory.HasItem(kit.CandyId, 1));
+        Assert.Contains(player.Sent, s => s.Contains("Your inventory is full! You missed out on 3 Candy."));
+        Assert.DoesNotContain(player.Sent, s => s.Contains("+3 Candy"));
     }
 }

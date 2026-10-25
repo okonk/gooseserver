@@ -213,31 +213,15 @@ public static class Halloween
             // grow ItemHandler.items (ItemHandler.cs:279).
             player.Inventory.AddItem(candy, amount, world);
         }
-        else
+        else if (player.Inventory.GetInventorySlots().Skip(1).Any(slot => slot is null))
         {
             world.ItemHandler.AddAndAssignId(candy, world);
-            if (!player.Inventory.AddItem(candy, amount, world))
-            {
-                var tile = new ItemTile
-                {
-                    ItemSlot = new ItemSlot { Item = candy, Stack = amount },
-                    X = player.MapX,
-                    Y = player.MapY,
-                    Owner = player,
-                };
-                player.Map.PlaceItem(tile);
-
-                var maptile = player.Map.GetTile(tile.X, tile.Y) as ItemTile;
-                if (maptile is not null)
-                {
-                    maptile.ItemSlot.Stack += tile.ItemSlot.Stack;
-                    world.SendToMap(player.Map, P.MakeObject(maptile));
-                }
-                else
-                {
-                    player.Map.AddItem(tile, world);
-                }
-            }
+            player.Inventory.AddItem(candy, amount, world);
+        }
+        else
+        {
+            Feed(world, player, "Your inventory is full! You missed out on " + amount + " Candy.");
+            return;
         }
 
         Feed(world, player, "+" + amount + " Candy");
