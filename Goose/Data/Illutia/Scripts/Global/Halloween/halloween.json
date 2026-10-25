@@ -710,7 +710,8 @@
       ]
     },
     "emptyDespawnSeconds": 300,
-    "jumpSeconds": 12
+    "jumpSeconds": 12,
+    "tier3DropMultiplier": 1.5
   },
   "goal": {
     "tiers": [

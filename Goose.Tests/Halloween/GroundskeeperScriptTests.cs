@@ -427,6 +427,30 @@ public class GroundskeeperScriptTests : IDisposable
         Assert.Contains(killer.Sent, s => s.Contains("[Event] The Groundskeeper has fallen!"));
     }
 
+    [Theory]
+    [InlineData(true, 15.0)]
+    [InlineData(false, 10.0)]
+    public void Tier3_boosts_drop_rates_for_the_kill_then_restores_them(bool tier3, double boosted)
+    {
+        kit.SetConfig(cfg => cfg["groundskeeper"]!["tier3DropMultiplier"] = 1.5);
+        kit.World.CommunityGoals.SetFlag("halloween.tier3", tier3 ? 1 : 0, null);
+        var drop = new NPCDropInfo
+        {
+            DropRate = 10, Stack = 1, ItemTemplate = kit.World.ItemHandler.GetTemplate(kit.RitualCandleId)!,
+        };
+        template.Drops = [drop];
+        var killer = PlayerOn(20, 20, "A");
+        var npc = Spawn(30, 30);
+        PendingScriptTimers(kit.World);
+
+        ((INPCScript)keeper).OnKilledEvent(npc, killer, kit.World);
+
+        Assert.Equal(boosted, drop.DropRate, 10);
+        foreach (var timer in PendingScriptTimers(kit.World))
+            timer.Ready(kit.World);
+        Assert.Equal(10.0, drop.DropRate, 10);
+    }
+
     private NPC Spawn(int x, int y) => kit.Fixture.SpawnNpc(map, x, y, template);
 
     private NPCTemplate AddTemplate() => kit.Fixture.AddNpcTemplate(92003, "Ghost Add");

@@ -61,6 +61,24 @@ public class Groundskeeper : BaseNPCScript
     {
         DespawnAdds(npc, world);
         Announce(world, "[Event] The Groundskeeper has fallen!");
+        BoostDrops(npc, world);
+    }
+
+    // The engine rolls drops straight after OnKilledEvent (NPC.cs), so the boosted rates
+    // cover this kill only and are restored on the next event tick.
+    private static void BoostDrops(NPC npc, GameWorld world)
+    {
+        var cfg = HalloweenConfig.Get(world);
+        if (!Halloween.Tier(world, 3) || cfg.Groundskeeper.Tier3DropMultiplier <= 0 ||
+            npc.NPCTemplate.Drops is not { Count: > 0 } drops) return;
+        var original = drops.Select(d => (Drop: d, Rate: d.DropRate)).ToList();
+        foreach (var drop in drops)
+            drop.DropRate *= cfg.Groundskeeper.Tier3DropMultiplier;
+        ScriptTimerEvent.Create(() =>
+        {
+            foreach (var (drop, rate) in original)
+                drop.DropRate = rate;
+        }, TimeSpan.Zero, world);
     }
 
     public void Rescale(NPC npc, double fraction, GameWorld world)

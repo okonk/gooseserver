@@ -256,6 +256,7 @@ public sealed class HalloweenGroundskeeper
     public Dictionary<string, int[][]> Adds { get; set; } = new();
     public int EmptyDespawnSeconds { get; set; }
     public double JumpSeconds { get; set; }
+    public double Tier3DropMultiplier { get; set; }
 }
 
 public sealed class HalloweenGoal
