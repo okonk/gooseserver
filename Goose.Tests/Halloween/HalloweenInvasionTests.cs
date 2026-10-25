@@ -116,6 +116,27 @@ public class HalloweenInvasionTests
     }
 
     [Fact]
+    public void Next_wave_comes_after_a_random_gap_between_min_and_max()
+    {
+        var (kit, script, map, listener) = Setup();
+        kit.SetConfig(cfg =>
+        {
+            cfg["invasion"]!["everyMinMinutes"] = 120;
+            cfg["invasion"]!["everyMaxMinutes"] = 240;
+        });
+        On(kit);
+
+        HalloweenTestKit.Call(script.Object, "Tick", kit.World, Now, new HalloweenTestKit.FixedRandom([0.5], WaveRng));
+
+        long minute = kit.World.TimerFrequency * 60;
+        HalloweenTestKit.Call(script.Object, "Tick", kit.World, Now + 179 * minute, Rng(WaveRng));
+        Assert.Equal(1, listener.Sent.Count(s => s.Contains("The party has spilled into Grove!")));
+
+        HalloweenTestKit.Call(script.Object, "Tick", kit.World, Now + 180 * minute, Rng(WaveRng));
+        Assert.Equal(2, listener.Sent.Count(s => s.Contains("The party has spilled into Grove!")));
+    }
+
+    [Fact]
     public void Survivors_despawn_after_lifetime()
     {
         var (kit, script, map, listener) = Setup();
@@ -167,7 +188,8 @@ public class HalloweenInvasionTests
                 }),
                 ["templates"] = new JsonArray(kit.WailingGhostId),
                 ["count"] = 5,
-                ["everyMinutes"] = 30,
+                ["everyMinMinutes"] = 30,
+                ["everyMaxMinutes"] = 30,
                 ["lifetimeMinutes"] = 15,
             };
         });

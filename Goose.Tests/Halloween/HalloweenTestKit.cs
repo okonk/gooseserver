@@ -148,7 +148,7 @@ public sealed class HalloweenTestKit : IDisposable
             pentagram = new { points = new[] { new[] { 67, 4 }, new[] { 58, 10 }, new[] { 76, 10 },
                                                new[] { 62, 21 }, new[] { 72, 21 } },
                               centre = new[] { 67, 13 } },
-            invasion = new { towns = new int[0], templates = new int[0], count = 20, everyMinutes = 30, lifetimeMinutes = 15 },
+            invasion = new { towns = new int[0], templates = new int[0], count = 20, everyMinMinutes = 30, everyMaxMinutes = 30, lifetimeMinutes = 15 },
             effects = new { weeperCap = 0, groundskeeperCurve = 0, ghostSnareOnHit = 0 },
             weeper = new { capPerHit = 100000, bleedPercentPerStack = 0.01, bleedMaxStacks = 5, bleedSeconds = 10,
                             bleedTickSeconds = 2,

@@ -37,8 +37,10 @@ public class HalloweenInvasionController : BaseGlobalScript
         var cfg = HalloweenConfig.Get(world);
         if (!Halloween.Active(world) || !Halloween.Tier(world, 3)) return;
         if (nextAt != 0 && now < nextAt) return;
-        nextAt = now + Halloween.Ticks(world, cfg.Invasion.EveryMinutes * 60.0);
         SpawnWave(world, now, rng);
+        int min = cfg.Invasion.EveryMinMinutes;
+        int max = Math.Max(min, cfg.Invasion.EveryMaxMinutes);
+        nextAt = now + Halloween.Ticks(world, rng.Next(min, max + 1) * 60.0);
     }
 
     public void DespawnExpired(GameWorld world, long now)

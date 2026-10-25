@@ -190,7 +190,8 @@ public sealed class HalloweenInvasion
     public List<HalloweenTown> Towns { get; set; } = [];
     public int[] Templates { get; set; } = [];
     public int Count { get; set; }
-    public int EveryMinutes { get; set; }
+    public int EveryMinMinutes { get; set; }
+    public int EveryMaxMinutes { get; set; }
     public int LifetimeMinutes { get; set; }
 }
 

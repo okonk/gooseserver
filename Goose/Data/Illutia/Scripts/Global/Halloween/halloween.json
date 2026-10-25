@@ -397,7 +397,8 @@
       271
     ],
     "count": 20,
-    "everyMinutes": 45,
+    "everyMinMinutes": 120,
+    "everyMaxMinutes": 240,
     "lifetimeMinutes": 15
   },
   "effects": {
