@@ -108,10 +108,20 @@ public class StalkerScriptTests : IDisposable
         var target = PlayerOn(30, 30, "T");
         var npc = Spawn(29, 30, target, "chase");
 
-        Assert.True(Step(npc, Now));
+        Assert.False(Step(npc, Now));
 
         Assert.Contains(target.Sent, s => s.TrimEnd('\x1') == "ATT" + npc.LoginID);
         Assert.Equal(Direction.Right, npc.Facing);
+        Assert.Equal(0.5, npc.MoveSpeed);
+        Assert.Equal(NPC.States.Alive, npc.State);
+        Assert.Equal((30, 30), (target.MapX, target.MapY));
+        Assert.DoesNotContain(target.Sent, s => s.Contains("You wake up in the foyer"));
+
+        target.MapX = 40;
+        Assert.True(Step(npc, Now + 1));
+
+        Assert.Equal((43, 53), (target.MapX, target.MapY));
+        Assert.Equal(NPC.States.Dead, npc.State);
     }
 
     [Fact]
@@ -171,6 +181,7 @@ public class StalkerScriptTests : IDisposable
         var npc = Spawn(29, 30, target, "chase");
         target.ScriptState["hw.stalkerNpc"] = npc.LoginID;
 
+        Assert.False(Step(npc, Now));
         Assert.True(Step(npc, Now));
 
         Assert.Equal(house, target.Map);
@@ -189,6 +200,7 @@ public class StalkerScriptTests : IDisposable
         var npc = Spawn(31, 30, target, "hunt");
         target.ScriptState["hw.stalkerNpc"] = npc.LoginID;
 
+        Assert.False(Step(npc, Now));
         Assert.True(Step(npc, Now));
 
         CompleteWarp(target);

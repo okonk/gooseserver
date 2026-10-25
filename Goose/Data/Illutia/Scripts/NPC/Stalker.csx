@@ -7,6 +7,8 @@ using Goose.Scripting;
 
 public class Stalker : BaseNPCScript
 {
+    private const double SwingSeconds = 0.5;
+
     public override void OnSpawnEvent(NPC npc, GameWorld world)
     {
         npc.MoveSpeed = HalloweenConfig.Get(world).StalkerChase.StartDelaySeconds;
@@ -27,6 +29,8 @@ public class Stalker : BaseNPCScript
             return EndChase(npc, null, null, false, now, world);
         var target = npc.Map.Players.OfType<Player>().FirstOrDefault(p => p.PlayerID == targetId && p.State == Player.States.Ready);
         if (target is null) return EndChase(npc, null, null, false, now, world);
+        if (npc.Properties.TryGetProperty<bool>("stalkerSwung", out var swung) && swung)
+            return Caught(npc, target, mode, now, world);
 
         if (mode is "chase")
         {
@@ -43,7 +47,12 @@ public class Stalker : BaseNPCScript
             return EndChase(npc, target, mode, false, now, world);
 
         if (Math.Abs(npc.MapX - target.MapX) <= 1 && Math.Abs(npc.MapY - target.MapY) <= 1)
-            return Caught(npc, target, mode, now, world);
+        {
+            Swing(npc, target, world);
+            npc.Properties["stalkerSwung"] = true;
+            npc.MoveSpeed = SwingSeconds;
+            return false;
+        }
 
         double pace = Math.Max(target.CalculateMoveSpeed() / 1000.0, cfg.StalkerChase.MinDelaySeconds);
         npc.MoveSpeed = Math.Max(0.05, pace + cfg.StalkerChase.SpeedOffset);
@@ -77,7 +86,6 @@ public class Stalker : BaseNPCScript
     private bool Caught(NPC npc, Player target, string mode, long now, GameWorld world)
     {
         var cfg = HalloweenConfig.Get(world);
-        Swing(npc, target, world);
         if (mode is "chase")
         {
             if (cfg.Maps.FoyerSpawn.Length >= 2 &&
