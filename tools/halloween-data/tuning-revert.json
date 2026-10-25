@@ -373,5 +373,61 @@
     "set": {
       "quest_ids": "101 102 121"
     }
+  },
+  {
+    "op": "update",
+    "sheet": "Quest Reqs",
+    "id": 109,
+    "set": {
+      "script_params": "{\"items\": [746, 747, 748, 749, 750, 751]}"
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "Quest Reqs",
+    "id": 111,
+    "set": {
+      "script_params": "{\"items\": [746, 747, 748, 749, 750, 751]}"
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "Quest Reqs",
+    "id": 145,
+    "set": {
+      "script_params": "{\"items\": [746, 747, 748, 749, 750, 751]}"
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "Quest Reqs",
+    "id": 146,
+    "set": {
+      "script_params": "{\"items\": [746, 747, 748, 749, 750, 751]}"
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "Quest Reqs",
+    "id": 147,
+    "set": {
+      "script_params": "{\"items\": [746, 747, 748, 749, 750, 751]}"
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "Quest Reqs",
+    "id": 148,
+    "set": {
+      "script_params": "{\"items\": [746, 747, 748, 749, 750, 751]}"
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "Quest Reqs",
+    "id": 149,
+    "set": {
+      "script_params": "{\"items\": [746, 747, 748, 749, 750, 751]}"
+    }
   }
 ]

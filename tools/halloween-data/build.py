@@ -724,7 +724,7 @@ def create(sheet, row):
 def requirement(req, ids):
     kind = req[0]
     if kind == "Script":
-        items = [ids("item", k) for k in ("costume", "goblin", "zombie", "mummy", "clown", "witch")]
+        items = [ids("item", k) for k in ("costume", "goblin", "zombie", "mummy", "clown", "witch", "hockey")]
         return {"requirement_type": "Script", "requirement_value": 0, "script_path": req[1],
                 "script_params": json.dumps({"items": items})}
     if kind == "Gold":
@@ -857,7 +857,7 @@ def config_patch(ids, maps):
     return {
         "maps": {"house": maps["house"], "basement": BASEMENT, "grove": GROVE, "basementArrival": [94, 98], "entrance": [32, 64]},
         "items": {"candy": ids("item", "candy"), "partyCostume": ids("item", "costume"),
-                  "masks": [ids("item", k) for k in ("goblin", "zombie", "mummy", "clown", "witch")],
+                  "masks": [ids("item", k) for k in ("goblin", "zombie", "mummy", "clown", "witch", "hockey")],
                   "ritualCandle": ids("item", "candle")},
         "npcs": {"stalker": npc("stalker"), "groundskeeper": npc("gk"), "weeper": npc("weeper"),
                  "wailingGhost": npc("wailing"), "flickeringGhost": npc("flickering"),
