@@ -708,7 +708,7 @@
         ]
       ]
     },
-    "emptyDespawnSeconds": 60,
+    "emptyDespawnSeconds": 300,
     "jumpSeconds": 12
   },
   "goal": {
