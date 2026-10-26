@@ -82,7 +82,7 @@ namespace Goose.Commands
             ctx.Send(message + ".");
         }
 
-        private static EquipSlots? ParseSlot(string name)
+        internal static EquipSlots? ParseSlot(string name)
         {
             foreach (var slot in Enum.GetValues<EquipSlots>())
             {
@@ -93,7 +93,7 @@ namespace Goose.Commands
             return null;
         }
 
-        private static string SlotNames =>
+        internal static string SlotNames =>
             string.Join(", ", Enum.GetValues<EquipSlots>().Select(s => s.ToString().ToLowerInvariant()));
 
         private static string? ValidateArgs(int id, int? r, int? g, int? b, int? a,

@@ -337,6 +337,47 @@ namespace Goose
             item.RefreshStats();
         }
 
+        public void SetModifier(Item item, ItemProperty kind, ItemModifier? modifier, GameWorld world)
+        {
+            ItemModifier? title = kind == ItemProperty.TitleId ? modifier : CurrentModifier(item, ItemProperty.TitleId);
+            ItemModifier? surname = kind == ItemProperty.SurnameId ? modifier : CurrentModifier(item, ItemProperty.SurnameId);
+
+            // Strips by name rather than resetting to the template name so a custom item's name survives.
+            if (CurrentModifier(item, ItemProperty.TitleId) is { } oldTitle && item.Name.StartsWith(oldTitle.Name + " "))
+                item.Name = item.Name[(oldTitle.Name.Length + 1)..];
+            if (CurrentModifier(item, ItemProperty.SurnameId) is { } oldSurname && item.Name.EndsWith(" " + oldSurname.Name))
+                item.Name = item.Name[..^(oldSurname.Name.Length + 1)];
+
+            item.BaseStats = new AttributeSet();
+            item.WeaponDamage = 0;
+            item.StatMultiplier = 1;
+            item.ItemProperties.Remove(ItemProperty.TitleId);
+            item.ItemProperties.Remove(ItemProperty.SurnameId);
+
+            if (surname is not null)
+            {
+                item.Name = $"{item.Name} {surname.Name}";
+                item.ItemProperties[ItemProperty.SurnameId] = surname.Id;
+                surname.ApplyStats(item, world);
+            }
+
+            if (title is not null)
+            {
+                item.Name = $"{title.Name} {item.Name}";
+                item.ItemProperties[ItemProperty.TitleId] = title.Id;
+                title.ApplyStats(item, world);
+            }
+
+            item.RefreshStats();
+        }
+
+        private ItemModifier? CurrentModifier(Item item, ItemProperty kind)
+        {
+            if (!item.HasProperty(kind)) return null;
+            int id = item.GetProperty<int>(kind);
+            return kind == ItemProperty.TitleId ? GetTitle(id) : GetSurname(id);
+        }
+
         public void RollTitleAndSurname(Item item, GameWorld world, bool rollNative = true)
         {
             // Above the use-type filter deliberately: a script-owned item (dimension tomes)

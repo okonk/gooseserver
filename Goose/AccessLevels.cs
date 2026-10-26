@@ -48,6 +48,7 @@ namespace Goose
         ChangeEquipGraphic,
         SetMapTime,
         SetMapWeather,
+        ChangeEquipModifier,
     }
 
     public static class AccessLevels
