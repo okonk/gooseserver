@@ -1408,7 +1408,7 @@ namespace Goose
                 this.LastRespawnTimeSeconds = respawnTime;
             }
 
-            int variance = Math.Min((int)(respawnTime * 0.15), 1800);
+            int variance = Math.Min((int)(respawnTime * 0.15), 900);
             respawnTime = world.Random.Next(respawnTime - variance, respawnTime + variance + 1);
 
             NPCSpawnEvent ev = new NPCSpawnEvent();
