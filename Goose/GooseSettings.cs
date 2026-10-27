@@ -98,6 +98,7 @@ namespace Goose
         public string DefaultGuildMOTD { get; set; } = null!;
         public int GuildSavePeriod { get; set; }
         public int WorldSavePeriod { get; set; } = 300;
+        public int LogSavePeriod { get; set; } = 600;
         public int RankUpdatePeriod { get; set; }
         public int MaxAC { get; set; }
         public double DamageReductionSoftCap { get; set; } = 0.5;

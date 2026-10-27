@@ -448,6 +448,7 @@ namespace Goose
             this.EventHandler.AddEvent(clearCreatedHistory);
 
             this.SchedulePlayerCountExperienceModifier();
+            this.ScheduleLogSave();
 
             // Add gold item
             ItemTemplate? goldTemplate = this.ItemHandler.GetTemplate(this.Settings.GoldItemID);
@@ -491,6 +492,14 @@ namespace Goose
             log.Info("Finished loading game. Ready to join.");
 
             this.Running = true;
+        }
+
+        internal void ScheduleLogSave()
+        {
+            Event ev = new LogSaveEvent();
+            // H6: clamp to >= 1, a 0/negative period re-enqueues at now and spins EventHandler.Update
+            ev.Ticks += this.TimerFrequency * Math.Max(1, this.Settings.LogSavePeriod);
+            this.EventHandler.AddEvent(ev);
         }
 
         internal void SchedulePlayerCountExperienceModifier()
@@ -552,8 +561,8 @@ namespace Goose
                 }
             }
 
-            // LogHandler buffers in memory and is otherwise only flushed on a 10 minute
-            // cadence, so without this every shutdown discarded up to that much of the
+            // LogHandler buffers in memory and is otherwise only flushed every LogSavePeriod
+            // seconds, so without this every shutdown discarded up to that much of the
             // audit trail - including the logs used to investigate dupes.
             log.Info("Saving logs.");
             try

@@ -47,8 +47,6 @@ namespace Goose.Events
             // H6: clamp to >= 1, a 0/negative IdleTimeout re-enqueues at now and spins EventHandler.Update
             this.Ticks += world.TimerFrequency * Math.Max(1, world.Settings.IdleTimeout);
             world.EventHandler.AddEvent(this);
-
-            world.LogHandler.Save(world);
         }
     }
 }
