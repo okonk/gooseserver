@@ -13,7 +13,7 @@ drag/swap code and sends its size in `MKW`'s two trailing ints.
 **Tech Stack:** C# / .NET 10, System.Data.SQLite, System.Text.Json, xUnit, Roslyn `.csx` scripts.
 
 **Design:** `docs/plans/2026-10-29-backpack-design.md`. This is Part 1 of 2; Part 2 is the
-Godot client (`2026-10-29-backpack-part2-client.md`).
+Godot client: `Goose2ClientGodot/docs/plans/2026-10-29-backpack-part2-client.md` (branch `backpack`).
 
 **Conventions:** Follow `AGENTS.md`: no new comments or doc strings unless the "why" is
 non-obvious (invariants, wire format). Commit messages follow the repo style
