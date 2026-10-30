@@ -54,6 +54,7 @@ namespace Goose
             LogViewer = 29,
             GenericContainer = 30,
             Amount = 31,
+            GridContainer = 32,
         }
         public WindowFrames Frame { get; set; }
 
@@ -85,8 +86,12 @@ namespace Goose
             CommunityChest,
             Amount,
             CommunityGoal,
+            Backpack,
         }
         public WindowTypes Type { get; set; }
+
+        public virtual int FrameParam1 => 0;
+        public virtual int FrameParam2 => 0;
 
         public virtual string Title { get; set; } = null!;
 

@@ -282,6 +282,7 @@ namespace Goose
             this.Database.Execute(conn =>
             {
                 AddColumnIfMissing(conn, "players", "player_properties", "TEXT DEFAULT '' NOT NULL");
+                AddColumnIfMissing(conn, "players", "backpack", "TEXT DEFAULT '' NOT NULL");
                 CreateTableIfMissing(conn, "quest_status",
                     "player_id INT NOT NULL, serialized_data TEXT NOT NULL, PRIMARY KEY(player_id)");
                 CreateTableIfMissing(conn, "quest_claims",

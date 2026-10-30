@@ -143,6 +143,7 @@ namespace Goose
                 ("DSPL", Open(typeof(DestroySpellEvent))),
                 ("SWAP", Open(typeof(SpellbookSwapEvent))),
                 ("OCB", Open(typeof(OpenCombineBagEvent))),
+                ("OBP", Open(typeof(ToggleBackpackEvent))),
                 ("ITW", Open(typeof(InventoryToWindowEvent))),
                 ("WTI", Open(typeof(WindowToInventoryEvent))),
                 ("KBUF", Open(typeof(KillBuffEvent))),

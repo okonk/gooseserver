@@ -12,6 +12,8 @@ namespace Goose
     {
         TitleId,
         SurnameId,
+        BackpackSlots,
+        BackpackColumns,
     }
 
     /**
@@ -223,6 +225,31 @@ namespace Goose
             copy.ItemProperties = new Dictionary<ItemProperty, object>(this.ItemProperties);
 
             return copy;
+        }
+
+        [JsonIgnore]
+        public int BackpackSlots => this.HasProperty(ItemProperty.BackpackSlots)
+            ? this.GetProperty<int>(ItemProperty.BackpackSlots)
+            : this.Template.Properties.GetProperty("backpackSlots", 0);
+        [JsonIgnore]
+        public int BackpackColumns => this.HasProperty(ItemProperty.BackpackColumns)
+            ? this.GetProperty<int>(ItemProperty.BackpackColumns)
+            : this.Template.Properties.GetProperty("backpackColumns", 5);
+
+        public void SetBackpackSize(int slots, int columns)
+        {
+            this.ItemProperties[ItemProperty.BackpackSlots] = slots;
+            this.ItemProperties[ItemProperty.BackpackColumns] = columns;
+            this.RefreshBackpackDescription();
+        }
+
+        // Space separator, not newline: the description travels inside the item slot packet.
+        public void RefreshBackpackDescription()
+        {
+            var baseDescription = this.Template.Description;
+            this.Description = string.IsNullOrEmpty(baseDescription)
+                ? $"Holds {this.BackpackSlots} items."
+                : $"{baseDescription} Holds {this.BackpackSlots} items.";
         }
 
         public T GetProperty<T>(ItemProperty prop)

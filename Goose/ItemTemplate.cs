@@ -37,6 +37,7 @@ namespace Goose
             Pants,
             Shoes,
             Mount,
+            Backpack,
             Misc = 20,
         }
         public enum ItemTypes
