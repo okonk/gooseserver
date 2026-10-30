@@ -175,6 +175,24 @@ public class BackpackUpgradeScriptTests
     }
 
     [Fact]
+    public void Upgrade_to_501_slots_is_misconfigured()
+    {
+        using var fixture = new QuestScriptFixture();
+        var script = ShippedScript.Value;
+        var player = PlayerWithBackpack(fixture, 10);
+        var backpack = player.Inventory.EquippedBackpack!;
+        var reward = Reward("""{"from": 10, "to": 501}""");
+
+        Assert.Equal(Misconfigured, script.CanComplete(reward, player, fixture.World));
+
+        script.GiveReward(reward, null!, player, fixture.World);
+
+        Assert.Equal(10, backpack.BackpackSlots);
+        Assert.Equal(11, player.Inventory.GetBackpackContainer().MaxSlots);
+        Assert.DoesNotContain(player.Sent, s => s.Contains("[Quest Reward]"));
+    }
+
+    [Fact]
     public void Upgrade_resends_MKW_for_an_open_backpack_window()
     {
         using var fixture = new VendorFixture();

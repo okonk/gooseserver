@@ -97,7 +97,7 @@ public class BackpackUpgradeScript : BaseQuestScript
                 }
             }
 
-            if (!hasFrom || !hasTo || to <= from) return null;
+            if (!hasFrom || !hasTo || to <= from || to > Inventory.MaxBackpackSlots) return null;
 
             return new Params { From = from, To = to, Columns = columns };
         }

@@ -76,13 +76,15 @@ namespace Goose
 
         internal void PreserveBackpackJsonForTest(string json) => this.preservedBackpackJson = json;
 
+        public const int MaxBackpackSlots = 500;
+
         public bool UpgradeBackpack(int slots, int columns, GameWorld world)
         {
             Item? item = this.EquippedBackpack;
             if (item is null) return false;
             // Hard cap: the client renders a fixed-column grid, so far beyond this a
             // GM-authored row would only attempt an absurd allocation.
-            if (slots > 500) return false;
+            if (slots > MaxBackpackSlots) return false;
             if (slots + 1 < this.backpackContainer.MaxSlots) return false;
 
             item.SetBackpackSize(slots, columns);
@@ -671,6 +673,7 @@ namespace Goose
 
         private bool UnequipCore(EquipSlots equipslot, GameWorld world)
         {
+            if (equipslot == EquipSlots.Backpack && !this.HasBackpackSlot) return true;
             ItemSlot? slot = this.GetEquippedSlot(equipslot);
             // maybe log something bad, i don't think this should happen
             if (slot is null) return true;

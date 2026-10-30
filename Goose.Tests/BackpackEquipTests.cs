@@ -231,4 +231,14 @@ public class BackpackEquipTests
         Assert.Null(fixture.Player.Inventory.GetEquippedSlot(Inventory.EquipSlots.Backpack));
         Assert.Contains(fixture.Player.Inventory.GetInventorySlots(), s => ReferenceEquals(s?.Item, backpack));
     }
+
+    [Fact]
+    public void Unequip_backpack_is_a_successful_noop_when_there_is_no_backpack_slot()
+    {
+        using var fixture = new VendorFixture();
+        fixture.Settings.EquippedSize = 14;
+        fixture.Player.Inventory = new Inventory(fixture.Player, fixture.Settings);
+
+        Assert.True(fixture.Player.Inventory.Unequip(Inventory.EquipSlots.Backpack, fixture.World));
+    }
 }
