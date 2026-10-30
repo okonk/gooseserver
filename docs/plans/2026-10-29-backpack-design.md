@@ -38,9 +38,10 @@ NPC quests with a scripted reward that grows the equipped backpack in place.
   in `ItemTemplate.Properties` (JSON `properties` column, same mechanism as `hideOtherSlots`),
   so no schema or editor change for templates.
 - `Inventory.backpackContainer`: `ItemContainer(slots + 1)`, 1-based like the others.
-- `players.backpack TEXT DEFAULT '' NOT NULL`, added via `GameWorld.AddColumnIfMissing`, read
-  in player load, written in `Player.BuildUpdateQuery` / insert, so it's saved atomically with the
-  rest of the player.
+- `players.backpack TEXT DEFAULT '' NOT NULL`, in the fresh-schema DDL (`Goose/sql/players.sql`)
+  and added automatically on every startup via `GameWorld.AddColumnIfMissing` (no manual SQL).
+  Read in player load, written by `Inventory.BuildSave` as `UPDATE players SET backpack` in the
+  same save transaction, so it's saved atomically with the rest of the player.
 - All unequip paths go through `Inventory.UnequipCore`; it refuses with "Empty your backpack
   first." when the backpack slot is being vacated and the container holds items. An open
   backpack window closes when the backpack is unequipped.
@@ -52,8 +53,10 @@ NPC quests with a scripted reward that grows the equipped backpack in place.
 - **Saved contents, saved backpack slot empty:** log every item at Error (template id, name,
   stack, item JSON) and clear the contents.
 - **Saved contents, backpack discarded on load (missing template / null item):** keep the
-  column contents untouched (not loaded into a usable container, not cleared) until a valid
-  backpack is equipped. Protects against a template deletion or renumbering wiping everyone's
+  column contents untouched (not loaded into a usable container, not cleared). While the
+  contents are preserved, equipping a backpack is refused (notice "Your backpack's contents
+  need GM attention before you can equip a backpack.") until a GM fixes the data and the
+  player relogs. Protects against a template deletion or renumbering wiping everyone's
   backpack.
 - **More saved items than the equipped backpack's size:** log and discard the excess (same as
   bank's "excess discarded").
@@ -65,7 +68,10 @@ NPC quests with a scripted reward that grows the equipped backpack in place.
   `WindowTypes.Backpack` (meaning).
 - `BackpackWindow : ItemContainerWindow`. Base `CanDeposit`/`CanWithdraw`: all contents are
   already the player's and can't change hands.
-- `MKW`'s two trailing ints (currently always `0,0`) carry `slots,columns`.
+- `MKW`'s two trailing ints are the generic `Window.FrameParam1`/`FrameParam2` (default `0,0`
+  for other windows); the backpack sets `FrameParam1 = MaxSlots - 1` (the slot count, since the
+  container is `slots + 1`) and `FrameParam2 = columns`, so a 10-slot/5-column backpack ends in
+  `,10,5`.
 - Slot packets reuse `P.GenericWindowSlot` / `P.ClearGenericWindowSlot`.
 - New client→server packet `OBP` toggles: if a backpack window is open, close it
   (`Window.Close`), else open; with no backpack equipped, notice
