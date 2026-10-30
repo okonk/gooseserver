@@ -36,6 +36,8 @@ namespace Goose
         ItemSlot?[] equipped;
         ItemSlot?[] inventory;
         ItemContainer combineContainer;
+        ItemContainer backpackContainer = new(1);
+        string? preservedBackpackJson;
         /**
          * The player this inventory belongs to
          */
@@ -58,6 +60,19 @@ namespace Goose
         {
             return this.combineContainer;
         }
+
+        public bool HasBackpackSlot => (int)EquipSlots.Backpack <= settings.EquippedSize;
+
+        public ItemContainer GetBackpackContainer()
+        {
+            return this.backpackContainer;
+        }
+
+        public Item? EquippedBackpack => HasBackpackSlot ? this.GetEquippedSlot(EquipSlots.Backpack)?.Item : null;
+
+        public bool BackpackHasItems => this.backpackContainer.Any(slot => slot is not null);
+
+        public bool BackpackContentsPreserved => this.preservedBackpackJson is not null;
 
         public ItemSlot?[] GetEquippedSlots()
         {
@@ -1121,6 +1136,7 @@ namespace Goose
             string inventoryJson = JsonHelper.Serialize(inventory);
             string equippedJson = JsonHelper.Serialize(equipped);
             string combineJson = JsonHelper.Serialize(combineContainer);
+            string backpackJson = this.preservedBackpackJson ?? JsonHelper.Serialize(backpackContainer);
 
             return conn =>
             {
@@ -1151,6 +1167,12 @@ namespace Goose
                 saveCombineBagCommand.Parameters.Add(new SQLiteParameter("@player_id", DbType.Int32) { Value = playerId });
                 saveCombineBagCommand.Parameters.Add(new SQLiteParameter("@serialized_data", DbType.String) { Value = combineJson });
                 saveCombineBagCommand.ExecuteNonQuery();
+
+                using var saveBackpackCommand = conn.CreateCommand();
+                saveBackpackCommand.CommandText = "UPDATE players SET backpack=@backpack WHERE player_id=@player_id";
+                saveBackpackCommand.Parameters.Add(new SQLiteParameter("@backpack", DbType.String) { Value = backpackJson });
+                saveBackpackCommand.Parameters.Add(new SQLiteParameter("@player_id", DbType.Int32) { Value = playerId });
+                saveBackpackCommand.ExecuteNonQuery();
             };
         }
 
@@ -1190,6 +1212,7 @@ namespace Goose
                 }
 
                 this.equipped = this.LoadSlots(conn, playerId, "equipped", this.settings.EquippedSize + 1);
+                bool backpackDiscarded = false;
                 for (int i = 0; i < this.equipped.Length; i++)
                 {
                     ItemSlot? equipSlot = this.equipped[i];
@@ -1199,6 +1222,7 @@ namespace Goose
                     {
                         log.Error("player {0}: slot with null item discarded", playerId);
                         this.equipped[i] = null;
+                        if (i == (int)EquipSlots.Backpack) backpackDiscarded = true;
                         continue;
                     }
 
@@ -1207,6 +1231,7 @@ namespace Goose
                     {
                         log.Error("player {0}: item template {1} not found; slot discarded", playerId, equipSlot.Item.TemplateID);
                         this.equipped[i] = null;
+                        if (i == (int)EquipSlots.Backpack) backpackDiscarded = true;
                         continue;
                     }
 
@@ -1228,32 +1253,98 @@ namespace Goose
                     }
                 }
 
+                string? backpackRaw = null;
+                using (var backpackQuery = conn.CreateCommand())
+                {
+                    backpackQuery.CommandText = "SELECT backpack FROM players WHERE player_id=" + playerId;
+                    backpackRaw = Convert.ToString(backpackQuery.ExecuteScalar());
+                }
+
+                ItemSlot?[]? backpackSlots = null;
+                if (!string.IsNullOrEmpty(backpackRaw))
+                {
+                    try
+                    {
+                        backpackSlots = JsonHelper.Deserialize<ItemSlot?[]>(backpackRaw);
+                    }
+                    catch (JsonException e)
+                    {
+                        log.Error("player {0}: backpack blob is corrupt; starting empty", playerId, e);
+                    }
+                }
+                bool backpackHasItems = backpackSlots is not null && backpackSlots.Any(slot => slot is not null);
+
+                if (!this.HasBackpackSlot)
+                {
+                    if (backpackHasItems)
+                        log.Error("player {0}: backpack contents without a backpack slot; contents ignored: {1}", playerId, backpackRaw);
+                }
+                else if (backpackDiscarded && backpackHasItems)
+                {
+                    this.preservedBackpackJson = backpackRaw;
+                    log.Error("player {0}: backpack contents preserved, backpack item could not be loaded", playerId);
+                }
+                else
+                {
+                    ItemSlot? backpackSlot = this.GetEquippedSlot(EquipSlots.Backpack);
+                    if (backpackSlot is not null)
+                    {
+                        if (backpackSlot.Item.Template.Slot != ItemTemplate.ItemSlots.Backpack)
+                            log.Warn("player {0}: item template {1} in the backpack slot is not a backpack", playerId, backpackSlot.Item.TemplateID);
+                        backpackSlot.Item.RefreshBackpackDescription();
+                        this.backpackContainer = new ItemContainer(backpackSlot.Item.BackpackSlots + 1);
+                        for (int i = 0; backpackSlots is not null && i < backpackSlots.Length && i < this.backpackContainer.MaxSlots; i++)
+                        {
+                            ItemSlot? slot = backpackSlots[i];
+                            if (slot is null) continue;
+                            if (this.TryResolveLoadedSlot(slot, playerId, world))
+                                this.backpackContainer.SetSlot(i, slot);
+                        }
+                        if (backpackSlots is not null && backpackSlots.Length > this.backpackContainer.MaxSlots)
+                            log.Warn("player {0}: backpack blob has {1} slots, container holds {2}; excess discarded", playerId, backpackSlots.Length, this.backpackContainer.MaxSlots);
+                    }
+                    else if (backpackHasItems)
+                    {
+                        foreach (var slot in backpackSlots!)
+                        {
+                            if (slot is null) continue;
+                            log.Error("player {0}: backpack item without an equipped backpack discarded (template {1}, name {2}, stack {3}): {4}",
+                                playerId, slot.Item?.TemplateID ?? 0, slot.Item?.Name, slot.Stack, JsonHelper.Serialize(slot));
+                        }
+                    }
+                }
+
                 var combineSlots = this.LoadSlots(conn, playerId, "combinebag", this.settings.CombineBagSize + 1);
                 for (int i = 0; i < combineSlots.Length; i++)
                 {
                     var combineSlot = combineSlots[i];
                     if (combineSlot is null) continue;
 
-                    if (combineSlot.Item is null)
-                    {
-                        log.Error("player {0}: slot with null item discarded", playerId);
-                        continue;
-                    }
-
-                    ItemTemplate? template = world.ItemHandler.GetTemplate(combineSlot.Item.TemplateID);
-                    if (template is null)
-                    {
-                        log.Error("player {0}: item template {1} not found; slot discarded", playerId, combineSlot.Item.TemplateID);
-                        continue;
-                    }
-
-                    world.ItemHandler.AddItem(combineSlot.Item, world);
-                    combineSlot.Item.Template = template;
-                    combineSlot.Item.RefreshStats();
-
-                    this.combineContainer.SetSlot(i, combineSlot);
+                    if (this.TryResolveLoadedSlot(combineSlot, playerId, world))
+                        this.combineContainer.SetSlot(i, combineSlot);
                 }
             });
+        }
+
+        private bool TryResolveLoadedSlot(ItemSlot slot, int playerId, GameWorld world)
+        {
+            if (slot.Item is null)
+            {
+                log.Error("player {0}: slot with null item discarded", playerId);
+                return false;
+            }
+
+            ItemTemplate? template = world.ItemHandler.GetTemplate(slot.Item.TemplateID);
+            if (template is null)
+            {
+                log.Error("player {0}: item template {1} not found; slot discarded", playerId, slot.Item.TemplateID);
+                return false;
+            }
+
+            world.ItemHandler.AddItem(slot.Item, world);
+            slot.Item.Template = template;
+            slot.Item.RefreshStats();
+            return true;
         }
 
         private ItemSlot?[] LoadSlots(SQLiteConnection conn, int playerId, string table, int size)
