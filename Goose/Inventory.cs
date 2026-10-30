@@ -370,6 +370,8 @@ namespace Goose
             if (result || this.questIconRefreshDirty)
                 this.RefreshQuestIcons(world);
             this.FlushEquipEvents(world);
+            if (result && item.Slot == ItemTemplate.ItemSlots.Backpack)
+                BackpackWindow.Open(world, this.player);
             return result;
         }
 
@@ -672,6 +674,7 @@ namespace Goose
 
             if (equipslot == EquipSlots.Backpack)
             {
+                BackpackWindow.CloseFor(this.player, world);
                 this.backpackContainer = new ItemContainer(1);
             }
 
