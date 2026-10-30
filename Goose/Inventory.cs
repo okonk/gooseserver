@@ -74,6 +74,8 @@ namespace Goose
 
         public bool BackpackContentsPreserved => this.preservedBackpackJson is not null;
 
+        internal void PreserveBackpackJsonForTest(string json) => this.preservedBackpackJson = json;
+
         public ItemSlot?[] GetEquippedSlots()
         {
             return this.equipped;
@@ -376,6 +378,16 @@ namespace Goose
             EquipSlots equipslot = this.ItemSlotToEquipSlot(item.Slot);
             if (equipslot == 0) return false;
 
+            if (equipslot == EquipSlots.Backpack)
+            {
+                if (!this.HasBackpackSlot) return false;
+                if (this.BackpackContentsPreserved)
+                {
+                    world.Send(this.player, P.Notice(NoticeType.Info, "Your backpack's contents need GM attention before you can equip a backpack."));
+                    return false;
+                }
+            }
+
             // Unequip any conflicting cross-slot items (2H weapon ↔ shield) before
             // touching the target slot. This logic was duplicated in the null/else
             // branches below; it runs once here regardless.
@@ -401,6 +413,18 @@ namespace Goose
 
             this.equipped[(int)equipslot] = slot;
             this.pendingEquipEvents.Add((slot.Item, true));
+
+            if (equipslot == EquipSlots.Backpack)
+            {
+                slot.Item.RefreshBackpackDescription();
+                if (slot.Item.BackpackSlots == 0)
+                {
+                    log.Warn("player {0} ({1}): equipped backpack {2} ({3}) has 0 slots",
+                        this.player.Name, this.player.LoginID, slot.Item.Name, slot.Item.TemplateID);
+                }
+                this.backpackContainer = new ItemContainer(slot.Item.BackpackSlots + 1);
+            }
+
             this.player.AddStats(slot.Item.TotalStats, world, updateCharacter: false);
 
             if (equipslot == EquipSlots.Mount)
@@ -632,6 +656,12 @@ namespace Goose
             // maybe log something bad, i don't think this should happen
             if (slot is null) return true;
 
+            if (equipslot == EquipSlots.Backpack && this.BackpackHasItems)
+            {
+                world.Send(this.player, P.Notice(NoticeType.Info, "Empty your backpack first."));
+                return false;
+            }
+
             bool added = false;
             this.SuppressQuestIconRefresh(world, () => added = this.AddItem(slot.Item, slot.Stack, world));
             if (!added) return false;
@@ -639,6 +669,11 @@ namespace Goose
             this.equipped[(int)equipslot] = null;
             this.pendingEquipEvents.Add((slot.Item, false));
             this.player.RemoveStats(slot.Item.TotalStats, world);
+
+            if (equipslot == EquipSlots.Backpack)
+            {
+                this.backpackContainer = new ItemContainer(1);
+            }
 
             if (equipslot == EquipSlots.Mount)
             {
@@ -960,6 +995,10 @@ namespace Goose
                 if (slot is not null && slot.Item.Template.ID == templateid) return true;
             }
             foreach (var slot in this.combineContainer)
+            {
+                if (slot is not null && slot.Item.Template.ID == templateid) return true;
+            }
+            foreach (var slot in this.backpackContainer)
             {
                 if (slot is not null && slot.Item.Template.ID == templateid) return true;
             }
