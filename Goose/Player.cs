@@ -1284,6 +1284,20 @@ namespace Goose
             this.UpdatePossibleQuestProgress(RequirementType.Kill, npc.NPCTemplate.NPCTemplateID, world);
         }
 
+        internal void Turn(GameWorld world, Direction facing)
+        {
+            if (this.Facing == facing) return;
+
+            this.Facing = facing;
+            string packet = P.ChangeHeading(this);
+            world.Send(this, packet);
+            foreach (var player in this.Map.GetPlayersInRange(this))
+            {
+                world.Send(player, packet);
+            }
+            this.Turned(world);
+        }
+
         internal void Turned(GameWorld world)
         {
             try

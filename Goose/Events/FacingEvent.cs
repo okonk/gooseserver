@@ -31,6 +31,8 @@ namespace Goose.Events
                     {
                         // stunned battletext
                         world.Send(this.Player, P.BattleTextStunned(this.Player));
+                        // The client turns locally before sending, so undo its prediction
+                        world.Send(this.Player, P.ChangeHeading(this.Player));
                         return;
                     }
                 }
@@ -46,16 +48,7 @@ namespace Goose.Events
                 if (this.Player.Facing != facing)
                 {
                     this.Player.UpdateIdleStatus(world);
-
-                    this.Player.Facing = facing;
-                    string packet = P.ChangeHeading(this.Player);
-                    world.Send(this.Player, packet);
-                    List<Player> range = this.Player.Map.GetPlayersInRange(this.Player);
-                    foreach (var player in range)
-                    {
-                        world.Send(player, packet);
-                    }
-                    this.Player.Turned(world);
+                    this.Player.Turn(world, facing);
                 }
             }
         }

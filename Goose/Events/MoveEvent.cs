@@ -21,6 +21,14 @@ namespace Goose.Events
             {
                 this.Player.UpdateIdleStatus(world);
 
+                if (((string)this.Data).Length == 1) return; // log bad move event
+
+                int rawDirection = Convert.ToInt32(((string)this.Data)[1].ToString());
+
+                if (rawDirection <= 0 || rawDirection >= 5) return; // log bad move event
+
+                Direction direction = (Direction)rawDirection;
+
                 foreach (var b in this.Player.Buffs)
                 {
                     // can't move when stunned or rooted
@@ -28,14 +36,16 @@ namespace Goose.Events
                     {
                         // stunned battletext
                         world.Send(this.Player, P.BattleTextStunned(this.Player));
-                        // Fix the clients position
+                        // Fix the clients position and its predicted facing
                         world.Send(this.Player, P.SetYourPosition(this.Player));
+                        world.Send(this.Player, P.ChangeHeading(this.Player));
                         return;
                     }
                     else if (b.SpellEffect.EffectType == SpellEffect.EffectTypes.Root)
                     {
                         // rooted battletext
                         world.Send(this.Player, P.BattleTextRooted(this.Player));
+                        this.Player.Turn(world, direction);
                         // Fix the clients position
                         world.Send(this.Player, P.SetYourPosition(this.Player));
                         return;
@@ -47,18 +57,11 @@ namespace Goose.Events
                     if (window.Type == Window.WindowTypes.Vendor)
                     {
                         world.Send(this.Player, P.Notice(NoticeType.Info, "You can't move while with a vendor."));
+                        this.Player.Turn(world, direction);
                         world.Send(this.Player, P.SetYourPosition(this.Player));
                         return;
                     }
                 }
-
-                if (((string)this.Data).Length == 1) return; // log bad move event
-
-                int rawDirection = Convert.ToInt32(((string)this.Data)[1].ToString());
-
-                if (rawDirection <= 0 || rawDirection >= 5) return; // log bad move event
-
-                Direction direction = (Direction)rawDirection;
 
                 /* Speedhack detection */
                 if (world.Settings.SpeedhackDetectionEnabled)
