@@ -76,6 +76,23 @@ namespace Goose
 
         internal void PreserveBackpackJsonForTest(string json) => this.preservedBackpackJson = json;
 
+        public bool UpgradeBackpack(int slots, int columns, GameWorld world)
+        {
+            Item? item = this.EquippedBackpack;
+            if (item is null) return false;
+            // Hard cap: the client renders a fixed-column grid, so far beyond this a
+            // GM-authored row would only attempt an absurd allocation.
+            if (slots > 500) return false;
+            if (slots + 1 < this.backpackContainer.MaxSlots) return false;
+
+            item.SetBackpackSize(slots, columns);
+            this.backpackContainer.Resize(slots + 1);
+            this.SendEquippedSlot(EquipSlots.Backpack, world);
+            foreach (var window in this.player.Windows.OfType<BackpackWindow>().ToList())
+                window.Resize(this.player, world);
+            return true;
+        }
+
         public ItemSlot?[] GetEquippedSlots()
         {
             return this.equipped;

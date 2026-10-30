@@ -19,7 +19,7 @@ public class ClassRewardScriptTests
         // compiles the file in its constructor (Script.cs:26), so the loaded object outlives it.
         using var scratch = new QuestScriptFixture();
         return scratch.Compile(
-            File.ReadAllText(Path.Combine(IllutiaDataDirectory(), "Scripts", "Quest", "ClassReward.csx")),
+            File.ReadAllText(Path.Combine(IllutiaData.DataDirectory(), "Scripts", "Quest", "ClassReward.csx")),
             "ClassReward.csx").Object;
     }
 
@@ -282,26 +282,5 @@ public class ClassRewardScriptTests
         var remaining = Assert.Single(Items(player));
         Assert.Equal(10, remaining.Item.TemplateID);
         Assert.Equal(1, remaining.Stack);
-    }
-
-    private static string IllutiaDataDirectory()
-    {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir != null)
-        {
-            foreach (var candidate in new[]
-            {
-                Path.Combine(dir.FullName, "Data", "Illutia"),
-                Path.Combine(dir.FullName, "Goose", "Data", "Illutia"),
-            })
-            {
-                if (Directory.Exists(candidate)) return candidate;
-            }
-
-            dir = dir.Parent;
-        }
-
-        throw new InvalidOperationException(
-            "Could not locate Data/Illutia from " + AppContext.BaseDirectory);
     }
 }
