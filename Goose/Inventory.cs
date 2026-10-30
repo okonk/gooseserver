@@ -29,7 +29,8 @@ namespace Goose
             Necklace,
             Ring1,
             Ring2,
-            Mount
+            Mount,
+            Backpack
         }
 
         ItemSlot?[] equipped;
@@ -764,6 +765,9 @@ namespace Goose
 
                 case ItemTemplate.ItemSlots.Mount:
                     return EquipSlots.Mount;
+
+                case ItemTemplate.ItemSlots.Backpack:
+                    return EquipSlots.Backpack;
 
                 default:
                     return 0;

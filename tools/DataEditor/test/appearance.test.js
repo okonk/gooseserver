@@ -363,17 +363,17 @@ test('the shield and the two weapon slots are distinguishable despite sharing a 
   assert.ok(Appearance.sortOrder('Weapon') > Appearance.sortOrder('Shield'));
 });
 
-test('the seven slots the client never draws answer null rather than a guess', () => {
-  ['Ring', 'Necklace', 'Pauldrons', 'Cloak', 'Belt', 'Gloves', 'Misc'].forEach((slot) => {
+test('the eight slots the client never draws answer null rather than a guess', () => {
+  ['Ring', 'Necklace', 'Pauldrons', 'Cloak', 'Belt', 'Gloves', 'Misc', 'Backpack'].forEach((slot) => {
     assert.equal(Appearance.slotFor(slot), null, slot);
   });
 });
 
-test('the table covers exactly the item_slot enum, all fifteen members', () => {
+test('the table covers exactly the item_slot enum, all sixteen members', () => {
   // Pinned against the schema so a renamed or added enum member cannot slip through as "not
   // drawn" — which is the failure mode that looks like working software.
   const enumNames = ['Helmet', 'Shield', 'OneHanded', 'TwoHanded', 'Ring', 'Necklace',
-    'Pauldrons', 'Cloak', 'Belt', 'Gloves', 'Chest', 'Pants', 'Shoes', 'Mount', 'Misc'];
+    'Pauldrons', 'Cloak', 'Belt', 'Gloves', 'Chest', 'Pants', 'Shoes', 'Mount', 'Backpack', 'Misc'];
   const drawn = enumNames.filter((n) => Appearance.slotFor(n));
   assert.equal(drawn.length, 8, 'eight item slots, six character slots');
   assert.deepEqual(Object.keys(Appearance.EQUIP_SLOT).filter((k) => !enumNames.includes(k)), [],

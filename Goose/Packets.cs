@@ -759,7 +759,8 @@ namespace Goose
                     window.Title + "," +
                     window.Buttons + "," +
                     (window.NPC?.LoginID ?? 0) + "," +
-                    "0,0";
+                    window.FrameParam1 + "," +
+                    window.FrameParam2;
         };
 
         public static Func<Window, string> EndWindow = (window) =>

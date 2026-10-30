@@ -12,6 +12,8 @@ namespace Goose
     {
         TitleId,
         SurnameId,
+        BackpackSlots,
+        BackpackColumns,
     }
 
     /**

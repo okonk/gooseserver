@@ -219,6 +219,7 @@ var GOOSE_SCHEMA = {
             "Pants",
             "Shoes",
             "Mount",
+            "Backpack",
             "Misc"
           ]
         },
@@ -2923,6 +2924,7 @@ var GOOSE_SCHEMA = {
             "Pants",
             "Shoes",
             "Mount",
+            "Backpack",
             "Misc"
           ]
         },
@@ -3046,6 +3048,7 @@ var GOOSE_SCHEMA = {
             "Pants",
             "Shoes",
             "Mount",
+            "Backpack",
             "Misc"
           ]
         },

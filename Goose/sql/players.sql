@@ -52,7 +52,8 @@ CREATE TABLE players (
   bank_pages INT DEFAULT 3 NOT NULL,
   unban_date DATETIME2 DEFAULT NULL,
   macrocheck_failures INT DEFAULT 0 NOT NULL,
-  player_properties TEXT DEFAULT '' NOT NULL
+  player_properties TEXT DEFAULT '' NOT NULL,
+  backpack TEXT DEFAULT '' NOT NULL
 );
 
 CREATE TABLE inventory (
