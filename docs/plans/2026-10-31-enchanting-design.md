@@ -50,8 +50,8 @@ code handles this, covered by a save/load round-trip test.
 
 ## Stats
 
-Enchant stats are **derived, not stored**. `Item.RefreshStats()` (`Goose/Item.cs:248`) adds
-them *after* the title multiplier:
+Enchant stats are **derived, not stored**. `Item.RefreshStats(GooseSettings)` (`Goose/Item.cs:275`,
+now taking settings) adds them *after* the title multiplier:
 
 ```
 total = (template + BaseStats) * StatMultiplier
@@ -88,7 +88,8 @@ rewrite:
 **Opening.** An NPC whose spawn row carries `{"enchantTable": true}`, read in
 `PlayerRightClickEvent` (same pattern as `communityChest`). Opens `EnchantWindow` (new
 `WindowTypes`/`WindowFrames` value mirrored in the client). Re-opening replaces the existing
-window; walking out of range closes it as the chest does.
+window. Out of range, the table refuses slot changes and attempts (community chest
+precedent) rather than auto-closing.
 
 **Layout.**
 
@@ -113,13 +114,13 @@ never leave the inventory, so disconnects cannot strand them.
 | Packet | Direction | Format |
 |---|---|---|
 | `EWS` | C→S | `EWS<itemSlot>,<essenceSlot>,<protectionSlot>` (0 = empty) |
-| `EWP` | S→C | `EWP<level>,<max>,<earth>,<water>,<fire>,<air>,<spirit>,<element>,<failPercent>,<protected>,<message>` plus per-level values so the client renders breakdown text |
+| `EWP` | S→C | `EWP<windowId>,<itemSlot>,<essenceSlot>,<protectionSlot>,<canEnchant>` then `\|<line>` per display line. Echoes the slots the server accepted (rejected = 0); lines are server-rendered so the client holds no stat tables |
 | `EWC` | C→S | `EWC<itemSlot>,<essenceSlot>,<protectionSlot>` — confirm |
 
 Exact field order is fixed in the Part 1 plan and mirrored by Part 2.
 
-`EWS` validates placement, stores slot ids + item references, replies `EWP` (or a message-only
-`EWP` for invalid placement, e.g. "This item can't be enchanted further"). Protection on a
+`EWS` validates placement, stores slot ids + item references, replies `EWP` (a rejected slot is
+echoed as 0 with the reason as a line, e.g. "This item can't be enchanted further"). Protection on a
 safe level (+1..+5) is ignored and previewed as "not needed".
 
 `EWC` re-resolves each slot and refuses ("Items changed, place them again.") if any slot id
