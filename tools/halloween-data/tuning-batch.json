@@ -946,5 +946,13 @@
     "set": {
       "quest_ids": "103 104 105 106 112 123"
     }
+  },
+  {
+    "op": "update",
+    "sheet": "Quests",
+    "id": 123,
+    "set": {
+      "description": "Tired of that face already? I understand. I tire\\nof mine daily.\\n\\nBring me your Party Costume and a thousand candy\\nand you can reach into my box. Sight unseen, mind.\\nYou might pull out the very same one. No refunds."
+    }
   }
 ]
