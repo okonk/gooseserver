@@ -41,7 +41,7 @@ namespace Goose
                 reason = "This item cannot be enchanted.";
                 return false;
             }
-            if (Level(item) >= s.MaxLevel)
+            if (Level(item) >= Max(item, s))
             {
                 reason = "This item has reached its maximum enchant level.";
                 return false;

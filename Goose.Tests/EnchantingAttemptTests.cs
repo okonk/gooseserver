@@ -89,9 +89,12 @@ public class EnchantingAttemptTests
     public void CanEnchant_refuses_items_at_a_lowered_max()
     {
         using var fixture = new TestWorldFixture();
-        var (item, settings) = Arrange(fixture, maxLevel: 7, failPercent: [0, 0, 0, 0, 0, 10, 20]);
+        var (item, settings) = Arrange(fixture);
         item.ItemProperties[ItemProperty.EnchantEarth] = 7;
+        item.ItemProperties[ItemProperty.EnchantMaxLoss] = 3;
 
+        Assert.Equal(10, settings.MaxLevel);
+        Assert.Equal(7, Enchanting.Max(item, settings));
         Assert.False(Enchanting.CanEnchant(item, settings, out _));
     }
 
@@ -207,16 +210,20 @@ public class EnchantingAttemptTests
     }
 
     [Fact]
-    public void Resolve_protected_failure_at_seven_with_max_eight_still_allows_reaching_eight()
+    public void Resolve_protected_failure_at_seven_with_max_nine_still_allows_reaching_eight()
     {
         using var fixture = new TestWorldFixture();
-        var (item, settings) = Arrange(fixture, maxLevel: 8, failPercent: [0, 0, 0, 0, 0, 10, 20, 30]);
+        var (item, settings) = Arrange(fixture);
         item.ItemProperties[ItemProperty.EnchantEarth] = 7;
+        item.ItemProperties[ItemProperty.EnchantMaxLoss] = 1;
         Enchanting.ApplySuffix(item);
+        Assert.Equal(9, Enchanting.Max(item, settings));
 
         var outcome = Enchanting.Resolve(item, EnchantElement.Earth, true, settings, new SequenceRandom(5));
         Assert.Equal(EnchantOutcome.ProtectedFailure, outcome);
-        Assert.Equal(7, Enchanting.Max(item, settings));
+        Assert.Equal(8, Enchanting.Max(item, settings));
+        Assert.Equal(7, Enchanting.Count(item, EnchantElement.Earth));
+        Assert.Equal("Sword +7", item.Name);
 
         Assert.True(Enchanting.CanEnchant(item, settings, out _));
         outcome = Enchanting.Resolve(item, EnchantElement.Earth, true, settings, new SequenceRandom(50));
