@@ -192,6 +192,24 @@ public class EnchantWindowConfirmTests
     }
 
     [Fact]
+    public void Ewc_success_publishes_quest_icon_refresh()
+    {
+        var (fixture, map, player, npc, sword, essence, protection) = Setup();
+        using (fixture)
+        {
+            var window = OpenWindow(fixture, player, npc);
+            PlaceItem(player, sword, 1);
+            PlaceItem(player, essence, 2);
+            Assert.True(fixture.RunCommand(player, "EWS1,2,0"));
+            player.Sent.Clear();
+
+            Assert.True(fixture.RunCommand(player, "EWC1,2,0"));
+
+            Assert.Contains(player.Sent, s => s.StartsWith("CHI" + npc.LoginID + ","));
+        }
+    }
+
+    [Fact]
     public void Ewc_refused_when_item_moved_after_ews()
     {
         var (fixture, map, player, npc, sword, essence, protection) = Setup();

@@ -142,7 +142,8 @@ namespace Goose
                 || window.ItemSlotId == 0 || window.EssenceSlotId == 0
                 || !ReferenceEquals(player.Inventory.GetSlot(itemSlotId)?.Item, window.TargetItem)
                 || !ReferenceEquals(player.Inventory.GetSlot(essenceSlotId)?.Item, window.EssenceItem)
-                || !ReferenceEquals(player.Inventory.GetSlot(protectionSlotId)?.Item, window.ProtectionItem))
+                || (protectionSlotId != 0
+                    && !ReferenceEquals(player.Inventory.GetSlot(protectionSlotId)?.Item, window.ProtectionItem)))
             {
                 world.Send(player, P.Notice(NoticeType.Info, "Items changed, place them again."));
                 return;
@@ -161,6 +162,7 @@ namespace Goose
 
             int levelBefore = Enchanting.Level(target);
             bool protect = protection is not null && Enchanting.FailPercent(target, settings) > 0;
+            bool consumed = false;
 
             player.Inventory.SuppressQuestIconRefresh(world, () =>
             {
@@ -171,6 +173,8 @@ namespace Goose
                     world.Send(player, P.Notice(NoticeType.Info, "Items changed, place them again."));
                     return;
                 }
+
+                consumed = true;
 
                 EnchantOutcome outcome = Enchanting.Resolve(target, element, protect, settings, world.Random);
                 int levelAfter = Enchanting.Level(target);
@@ -202,6 +206,7 @@ namespace Goose
                         break;
                 }
             });
+            if (consumed) world.QuestHandler.RefreshIcons(player, world);
 
             HandleSlot(world, player, window.ItemSlotId, window.EssenceSlotId, window.ProtectionSlotId);
         }
