@@ -191,7 +191,7 @@ namespace Goose
                         world.LogHandler.Log(Log.Types.Enchant, player, logText, target.ItemID);
                         break;
                     case EnchantOutcome.ProtectedFailure:
-                        player.Inventory.RemoveItem(protection, 1, world);
+                        player.Inventory.RemoveItem(protection!, 1, world);
                         target.RefreshStats(world.Settings);
                         player.Inventory.SendSlot(itemSlotId, world);
                         world.Send(player, P.Notice(NoticeType.Info, "The enchantment fizzled. Your protection held, but the item can now only reach +" + Enchanting.Max(target, settings) + "."));
