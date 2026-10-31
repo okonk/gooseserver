@@ -173,5 +173,24 @@
     "QuestAvailableIconSheet": 30000,
     "QuestAvailableIconGraphic": 1,
     "QuestReadyIconSheet": 30000,
-    "QuestReadyIconGraphic": 2
+    "QuestReadyIconGraphic": 2,
+
+    // Enchanting: MaxLevel is the highest enchant level; FailPercent[level-1] is the
+    // failure chance (in percent) for that level, so FailPercent must have MaxLevel entries.
+    // The *Percent fields are percentages applied to the corresponding base stat or effect
+    // per enchant level (e.g. EarthSpellDamagePercent 1 = +1% spell damage per level).
+    // EssenceTemplates maps an item template id to the element its essence grants; leave
+    // empty to leave the feature dormant. ProtectionTemplateId is the template id of the
+    // protection item (0 = none).
+    "Enchanting": {
+        "MaxLevel": 10,
+        "FailPercent": [0, 0, 0, 0, 0, 10, 20, 30, 40, 50],
+        "EarthSpellDamagePercent": 1,
+        "WaterSpellCritPercent": 1,
+        "FireDamageReductionPercent": 0.5,
+        "AirMPPercentRegenPercent": 0.04,
+        "SpiritHPPercentRegenPercent": 0.04,
+        "EssenceTemplates": {},
+        "ProtectionTemplateId": 0
+    }
 }

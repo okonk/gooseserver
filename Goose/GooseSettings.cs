@@ -167,6 +167,7 @@ namespace Goose
         public int QuestAvailableIconGraphic { get; set; } = 1;
         public int QuestReadyIconSheet { get; set; } = 30000;
         public int QuestReadyIconGraphic { get; set; } = 2;
+        public EnchantSettings Enchanting { get; set; } = new();
 
         // (0,0) means "no icon"; a sheet of 0 with a non-zero graphic is not a valid client reference.
         public static bool IsValidIconPair(int sheet, int graphic)

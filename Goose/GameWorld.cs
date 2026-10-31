@@ -406,6 +406,8 @@ namespace Goose
             if (!this.LoadStep("Item Templates", () => this.ItemHandler.LoadTemplates(this),
                 () => this.ItemHandler.TemplateCount)) return;
 
+            this.Settings.Enchanting.Validate(this.ItemHandler);
+
             if (!this.LoadStep("item titles", () => this.ItemHandler.LoadTitles(this),
                 () => this.ItemHandler.TitleCount)) return;
             if (!this.LoadStep("item surnames", () => this.ItemHandler.LoadSurnames(this),
