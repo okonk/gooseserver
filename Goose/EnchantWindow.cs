@@ -4,6 +4,8 @@ namespace Goose
 {
     public class EnchantWindow : Window
     {
+        private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
+
         // Last confirmed slot assignment from HandleSlot; Task 7's Confirm re-resolves
         // by reference and refuses requests that don't match it.
         public int ItemSlotId { get; private set; }
@@ -118,6 +120,90 @@ namespace Goose
             window.EssenceItem = essence;
             window.ProtectionItem = protection;
             window.SendPreview(world, player, itemReason);
+        }
+
+        public static void Confirm(GameWorld world, Player player, int itemSlotId, int essenceSlotId, int protectionSlotId)
+        {
+            EnchantWindow? window = FindOpen(player);
+            if (window is null) return;
+
+            if (!Map.InRange(player, window.NPC!))
+            {
+                world.Send(player, P.Notice(NoticeType.Info, "You are too far from the enchanting table."));
+                return;
+            }
+
+            EnchantSettings settings = world.Settings.Enchanting;
+
+            // Confirm must match the last sent preview (EWP canEnchant 1) exactly, item
+            // references included: a mismatch means the inventory moved underneath us.
+            if (window.ItemSlotId != itemSlotId || window.EssenceSlotId != essenceSlotId
+                || window.ProtectionSlotId != protectionSlotId
+                || window.ItemSlotId == 0 || window.EssenceSlotId == 0
+                || !ReferenceEquals(player.Inventory.GetSlot(itemSlotId)?.Item, window.TargetItem)
+                || !ReferenceEquals(player.Inventory.GetSlot(essenceSlotId)?.Item, window.EssenceItem)
+                || !ReferenceEquals(player.Inventory.GetSlot(protectionSlotId)?.Item, window.ProtectionItem))
+            {
+                world.Send(player, P.Notice(NoticeType.Info, "Items changed, place them again."));
+                return;
+            }
+
+            Item target = window.TargetItem!;
+            Item essence = window.EssenceItem!;
+            Item? protection = window.ProtectionItem;
+            EnchantElement element = settings.EssenceTemplates[essence.TemplateID];
+
+            if (!Enchanting.CanEnchant(target, settings, out string reason))
+            {
+                world.Send(player, P.Notice(NoticeType.Info, reason));
+                return;
+            }
+
+            int levelBefore = Enchanting.Level(target);
+            bool protect = protection is not null && Enchanting.FailPercent(target, settings) > 0;
+
+            player.Inventory.SuppressQuestIconRefresh(world, () =>
+            {
+                if (player.Inventory.RemoveItem(essence, 1, world) is null)
+                {
+                    log.Error("Enchant confirm: essence {0} (template {1}) could not be removed for player {2} ({3}); nothing consumed",
+                        essence.Name, essence.TemplateID, player.Name, player.LoginID);
+                    world.Send(player, P.Notice(NoticeType.Info, "Items changed, place them again."));
+                    return;
+                }
+
+                EnchantOutcome outcome = Enchanting.Resolve(target, element, protect, settings, world.Random);
+                int levelAfter = Enchanting.Level(target);
+                string logText = "Enchant: template " + target.TemplateID + " element " + element
+                    + " level " + levelBefore + " -> " + levelAfter
+                    + " max " + Enchanting.Max(target, settings)
+                    + " protected " + (protect ? 1 : 0)
+                    + " outcome " + outcome;
+
+                switch (outcome)
+                {
+                    case EnchantOutcome.Success:
+                        target.RefreshStats(world.Settings);
+                        player.Inventory.SendSlot(itemSlotId, world);
+                        world.Send(player, P.Notice(NoticeType.Info, "Your " + target.Name + " glows (+" + levelAfter + ")."));
+                        world.LogHandler.Log(Log.Types.Enchant, player, logText, target.ItemID);
+                        break;
+                    case EnchantOutcome.ProtectedFailure:
+                        player.Inventory.RemoveItem(protection, 1, world);
+                        target.RefreshStats(world.Settings);
+                        player.Inventory.SendSlot(itemSlotId, world);
+                        world.Send(player, P.Notice(NoticeType.Info, "The enchantment fizzled. Your protection held, but the item can now only reach +" + Enchanting.Max(target, settings) + "."));
+                        world.LogHandler.Log(Log.Types.Enchant, player, logText, target.ItemID);
+                        break;
+                    case EnchantOutcome.Destroyed:
+                        world.LogHandler.Log(Log.Types.Enchant, player, logText + " item " + JsonHelper.Serialize(target), target.ItemID);
+                        player.Inventory.RemoveItem(target, 1, world);
+                        world.Send(player, P.Notice(NoticeType.Info, "The enchantment failed and your " + target.Name + " shattered."));
+                        break;
+                }
+            });
+
+            HandleSlot(world, player, window.ItemSlotId, window.EssenceSlotId, window.ProtectionSlotId);
         }
 
         private void SendPreview(GameWorld world, Player player, string? itemReason)

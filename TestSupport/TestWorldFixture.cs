@@ -11,7 +11,11 @@ public class TestWorldFixture : IDisposable
     public GooseSettings Settings { get; }
     public GameWorld World { get; }
 
-    public TestWorldFixture(Action<GooseSettings>? configure = null)
+    public TestWorldFixture(Action<GooseSettings>? configure = null) : this(configure, null)
+    {
+    }
+
+    public TestWorldFixture(Action<GooseSettings>? configure, Random? random)
     {
         DataDirectory = Path.Combine(Path.GetTempPath(), "test-world-" + Guid.NewGuid().ToString("N"));
         foreach (var dir in new[] { "Global", "Global/Dimensions" })
@@ -27,7 +31,7 @@ public class TestWorldFixture : IDisposable
             MaxPlayers = 200, MaxNPCs = 15000,
         };
         configure?.Invoke(Settings);
-        World = new GameWorld(Settings);
+        World = random is null ? new GameWorld(Settings) : new GameWorld(Settings, null, random);
 
         SeedClass(0, "Default", 50);
         SeedClass(1, "Commoner", 5);
