@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 
 namespace Goose
@@ -253,9 +254,9 @@ namespace Goose
             world.Send(player, line);
             line = P.WindowTextLine(this.ID, i++, "Bound: " + player.BoundMap.Name + " (" + player.BoundX + "," + player.BoundY + ")");
             world.Send(player, line);
-            line = P.WindowTextLine(this.ID, i++, "HP Regeneration: " + Math.Round(player.MaxStats.HPPercentRegen * 100, 0) + "%" + $" +{player.MaxStats.HPStaticRegen:N0}");
+            line = P.WindowTextLine(this.ID, i++, "HP Regeneration: " + Math.Round(player.MaxStats.HPPercentRegen * 100, 2).ToString("0.##", CultureInfo.InvariantCulture) + "%" + $" +{player.MaxStats.HPStaticRegen:N0}");
             world.Send(player, line);
-            line = P.WindowTextLine(this.ID, i++, "MP Regeneration: " + Math.Round(player.MaxStats.MPPercentRegen * 100, 0) + "%" + $" +{player.MaxStats.MPStaticRegen:N0}");
+            line = P.WindowTextLine(this.ID, i++, "MP Regeneration: " + Math.Round(player.MaxStats.MPPercentRegen * 100, 2).ToString("0.##", CultureInfo.InvariantCulture) + "%" + $" +{player.MaxStats.MPStaticRegen:N0}");
             world.Send(player, line);
             line = P.WindowTextLine(this.ID, i++, "Spell Damage Increase: " + Math.Round(player.MaxStats.SpellDamage * 100, 0) + "%");
             world.Send(player, line);
