@@ -1436,8 +1436,8 @@ namespace Goose
             var normalized = new ItemSlot?[size];
             for (int i = 0; i < Math.Min(data.Length, size); i++)
                 normalized[i] = data[i];
-            if (data.Length != size)
-                log.Warn("player {0}: {1} blob has {2} slots, expected {3}", playerId, table, data.Length, size);
+            if (data.Length > size)
+                log.Warn("player {0}: {1} blob has {2} slots, expected {3}; excess discarded", playerId, table, data.Length, size);
             return normalized;
         }
 
