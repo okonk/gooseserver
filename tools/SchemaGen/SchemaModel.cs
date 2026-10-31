@@ -15,6 +15,7 @@ public sealed record SchemaColumn(
     bool Pk,
     string? Ref,
     IReadOnlyList<string>? EnumNames,
+    IReadOnlyList<int>? EnumValues,
     int? Scale,
     double? Max);
 
@@ -56,6 +57,7 @@ public static class SchemaModel
             c.IsPrimaryKey,
             c.RefSheet,
             c.Kind == ColumnKind.Enum ? c.EnumNames : null,
+            c.Kind == ColumnKind.Enum ? c.EnumValues : null,
             c.Scale,
             c.Max)).ToList(),
         t.Composites.Select(k => new SchemaComposite(

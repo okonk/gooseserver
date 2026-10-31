@@ -4,6 +4,8 @@ import { installFakeDom, fire } from './fake-dom.js';
 
 installFakeDom();
 
+const { Validation } = await import('../src/validation.js');
+globalThis.Validation = Validation;
 const { Forms } = await import('../src/forms.js');
 globalThis.Forms = Forms;
 const { Sprites } = await import('../src/sprites.js');

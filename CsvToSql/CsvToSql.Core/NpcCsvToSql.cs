@@ -12,7 +12,7 @@ namespace CsvToSql
             Col.Text("npc_title", def: "''").HeaderText("title"),
             Col.Text("npc_surname", def: "''").HeaderText("surname"),
             Col.Int("respawn_time", SqlType.Int, def: 0).HeaderText("respawn time"),
-            Col.Int("npc_facing", SqlType.SmallInt, def: 3).HeaderText("facing (3)"),
+            Col.Enum<Directions>("npc_facing", SqlType.SmallInt, def: 3).HeaderText("facing (3)"),
             Col.Int("npc_level", SqlType.SmallInt, def: 1).HeaderText("lvl (1)"),
             Col.Int("experience", SqlType.BigInt, def: 0).HeaderText("exp (0)"),
             Col.Int("aggro_range", SqlType.SmallInt, def: 0).HeaderText("aggro range (0)"),
@@ -108,6 +108,14 @@ namespace CsvToSql
             Banker = 11,
             Quest = 12,
             Ambient = 14
+        }
+
+        public enum Directions
+        {
+            Up = 1,
+            Right = 2,
+            Down = 3,
+            Left = 4
         }
 
         public enum BehaviourTypes

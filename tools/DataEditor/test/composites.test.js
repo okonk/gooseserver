@@ -6,6 +6,8 @@ installFakeDom();
 
 const { Layout } = await import('../src/layout.js');
 globalThis.Layout = Layout;
+const { Validation } = await import('../src/validation.js');
+globalThis.Validation = Validation;
 const { Forms } = await import('../src/forms.js');
 globalThis.Forms = Forms;
 const { Sprites } = await import('../src/sprites.js');

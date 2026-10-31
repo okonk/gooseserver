@@ -28,6 +28,13 @@ test('enum accepts a declared member and rejects others', () => {
   assert.match(bad.message, /Weapon/);
 });
 
+test('enum accepts a member by number when enumValues are known', () => {
+  const c = col({ kind: 'Enum', enumNames: ['Up', 'Down'], enumValues: [1, 3] });
+  assert.equal(Validation.validateCell(c, '3').ok, true);
+  assert.equal(Validation.validateCell(c, '2').ok, false);
+  assert.equal(Validation.validateCell(col({ kind: 'Enum', enumNames: ['Up'] }), '0').ok, false);
+});
+
 test('integer range follows the SQL width', () => {
   assert.equal(Validation.validateCell(col({ sql: 'SMALLINT' }), '32767').ok, true);
   assert.equal(Validation.validateCell(col({ sql: 'SMALLINT' }), '32768').ok, false);

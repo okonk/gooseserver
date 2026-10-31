@@ -38,6 +38,8 @@ globalThis.Composites = {
   },
 };
 
+const { Validation } = await import('../src/validation.js');
+globalThis.Validation = Validation;
 const { Forms } = await import('../src/forms.js');
 
 const schemaPath = fileURLToPath(new URL('../schema.js', import.meta.url));
@@ -224,6 +226,21 @@ test('Enum renders a select with a blank option when optional', () => {
   const options = control.getElementsByTagName('option').map((o) => o.value);
   assert.deepEqual(options, ['', ...c.enumNames]);
   assert.equal(control.value, c.enumNames[1]);
+});
+
+test('a numeric enum cell selects its member by value', () => {
+  const c = column('NPCs', 'npc_facing');
+  const control = Forms.scalarControl(c, '3');
+  assert.equal(control.value, 'Down');
+  assert.equal(control.getElementsByTagName('option').length, 1 + c.enumNames.length);
+});
+
+test('an optional Enum labels its blank option with the default member', () => {
+  const control = Forms.scalarControl(column('NPCs', 'npc_facing'), '');
+  const blank = control.getElementsByTagName('option')[0];
+  assert.equal(blank.value, '');
+  assert.equal(blank.textContent, 'Down (default)');
+  assert.equal(control.value, '');
 });
 
 test('a required Enum has no blank option', () => {

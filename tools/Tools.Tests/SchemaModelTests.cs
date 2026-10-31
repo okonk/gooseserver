@@ -60,6 +60,16 @@ public class SchemaModelTests
     }
 
     [Fact]
+    public void Enum_columns_expose_member_values_in_name_order()
+    {
+        var npcs = SchemaModel.Build().Sheets.Single(s => s.Sheet == "NPCs");
+        var type = npcs.Columns.Single(c => c.Name == "npc_type");
+
+        Assert.Equal(type.EnumNames!.Count, type.EnumValues!.Count);
+        Assert.Equal(14, type.EnumValues[type.EnumNames.ToList().IndexOf("Ambient")]);
+    }
+
+    [Fact]
     public void Non_enum_columns_omit_the_member_names()
     {
         // Null rather than empty: Task 2 omits null properties, so a non-enum column must not

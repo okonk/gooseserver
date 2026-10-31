@@ -21,7 +21,7 @@ var Layout = (function () {
       { title: 'Flags', columns: ['lore', 'bindonpickup', 'bindonequip', 'event'] },
       { title: 'Value', columns: ['item_value', 'credits_value'] },
       { title: 'Effects', columns: ['spell_effect_id', 'spell_effect_chance', 'learn_spell_id'] },
-      { title: 'Scripting', columns: ['script_path', 'script_params'] },
+      { title: 'Scripting', columns: ['properties', 'script_path', 'script_params'] },
     ],
     Spells: [
       { title: 'Identity', columns: ['spell_id', 'spell_name', 'spell_description'] },
@@ -42,7 +42,7 @@ var Layout = (function () {
           'stat_sta', 'stat_dex', 'stat_int', 'res_fire', 'res_water', 'res_spirit', 'res_air',
           'res_earth', 'weapon_damage', 'armor_pierce', 'attack_range', 'attack_speed'] },
       { title: 'Behaviour', columns: ['npc_facing', 'aggro_range', 'aggro_message', 'move_speed',
-          'stationary', 'stunnable', 'rootable', 'slowable', 'invincible', 'see_invisible',
+          'stationary', 'stunnable', 'rootable', 'slowable', 'invincible', 'see_invisible', 'hide_name',
           'stuck_behaviour', 'stuck_timeout', 'stuck_message', 'respawn_time'] },
       { title: 'Regen', columns: ['hp_percent_regen', 'hp_static_regen', 'mp_percent_regen',
           'mp_static_regen'] },

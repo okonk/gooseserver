@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace CsvToSql.Core.Schema
 {
@@ -34,6 +35,8 @@ namespace CsvToSql.Core.Schema
         public Type EnumType { get; private set; }
         public IReadOnlyList<string> EnumNames =>
             EnumType == null ? [] : System.Enum.GetNames(EnumType);
+        public IReadOnlyList<int> EnumValues =>
+            EnumType == null ? [] : EnumNames.Select(n => Convert.ToInt32(System.Enum.Parse(EnumType, n))).ToList();
 
         internal Column(string name, ColumnKind kind, SqlType type, string def = null,
             int? scale = null, double? max = null)

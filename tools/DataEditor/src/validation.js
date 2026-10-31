@@ -29,6 +29,15 @@ var Validation = (function () {
     return { scale: column.scale, max: column.max };
   }
 
+  // A cell may hold the member's number instead of its name; the importer's Enum.Parse takes both.
+  function enumNameOf(column, value) {
+    var names = column.enumNames || [];
+    if (names.indexOf(value) !== -1) return value;
+    if (!/^-?\d+$/.test(value)) return null;
+    var i = (column.enumValues || []).indexOf(Number(value));
+    return i === -1 ? null : names[i];
+  }
+
   function validateCell(column, raw, idSets) {
     var value = (raw === null || raw === undefined) ? '' : String(raw).trim();
 
@@ -41,7 +50,7 @@ var Validation = (function () {
 
     if (column.kind === 'Enum') {
       var names = column.enumNames || [];
-      if (names.indexOf(value) === -1) {
+      if (enumNameOf(column, value) === null) {
         return {
           ok: false, write: true,
           message: '"' + value + '" is not a valid ' + column.name +
@@ -195,6 +204,7 @@ var Validation = (function () {
 
   return {
     validateCell: validateCell,
+    enumNameOf: enumNameOf,
     validateId: validateId,
     nextId: nextId,
     validateRecord: validateRecord,

@@ -269,7 +269,7 @@ test('init lists every sheet and opens the first one', () => {
 
   const options = h.get('sheet-picker').getElementsByTagName('option');
   assert.equal(options.length, GOOSE_SCHEMA.sheets.length);
-  assert.equal(options.length, 22);
+  assert.equal(options.length, 23);
   assert.equal(options[0].value, 'Items');
 
   assert.deepEqual(serverCalls(h.run, 'readSheet').map((c) => c.args), [['Items']]);
@@ -2725,9 +2725,9 @@ test('the restart warning names all twelve sheets, whatever the result', () => {
   });
 });
 
-test('the publish check fires all 21 reads at once rather than one after the next', () => {
+test('the publish check fires all 22 reads at once rather than one after the next', () => {
   // Phase two needs every sheet before it can validate anything, so ordering the reads buys nothing
-  // and costs 21 serialised round trips — most of the wall clock of the run. The assertion is made
+  // and costs 22 serialised round trips — most of the wall clock of the run. The assertion is made
   // BEFORE anything is flushed: sequentially there would be exactly one call in flight.
   const h = boot({ Items: [ITEM(1, 'Gold')] });
   const before = serverCalls(h.run, 'readSheet').length;
@@ -2735,7 +2735,7 @@ test('the publish check fires all 21 reads at once rather than one after the nex
   fire(h.get('publish-check'), 'click');
   const imported = GOOSE_SCHEMA.sheets.filter((s) => !s.editorOnly);
   assert.equal(serverCalls(h.run, 'readSheet').length - before, imported.length);
-  assert.equal(imported.length, 21);
+  assert.equal(imported.length, 22);
 
   h.settle();
   assert.match(h.get('publish-results').textContent, /All sheets valid/);

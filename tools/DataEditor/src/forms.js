@@ -168,10 +168,14 @@ var Forms = (function () {
 
     if (column.kind === 'Enum') {
       var select = el('select', { name: column.name, id: prefix + column.name });
-      if (!column.required) select.appendChild(el('option', { value: '' }, ''));
+      if (!column.required) {
+        var fallback = Validation.enumNameOf(column, defaultOf(column));
+        select.appendChild(el('option', { value: '' }, fallback ? fallback + ' (default)' : ''));
+      }
       (column.enumNames || []).forEach(function (n) {
         select.appendChild(el('option', { value: n }, n));
       });
+      value = Validation.enumNameOf(column, value) || value;
       preserveUnknownValue(select, value);
       select.value = value;
       return select;

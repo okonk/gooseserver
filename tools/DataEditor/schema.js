@@ -28,6 +28,17 @@ var GOOSE_SCHEMA = {
             "Letter",
             "Money",
             "Recipe"
+          ],
+          "enumValues": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
           ]
         },
         {
@@ -221,6 +232,24 @@ var GOOSE_SCHEMA = {
             "Mount",
             "Backpack",
             "Misc"
+          ],
+          "enumValues": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            20
           ]
         },
         {
@@ -243,6 +272,20 @@ var GOOSE_SCHEMA = {
             "OneHandedPierce",
             "TwoHandedPierce",
             "Fist"
+          ],
+          "enumValues": [
+            0,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20
           ]
         },
         {
@@ -478,6 +521,13 @@ var GOOSE_SCHEMA = {
             "Banker",
             "Quest",
             "Ambient"
+          ],
+          "enumValues": [
+            2,
+            10,
+            11,
+            12,
+            14
           ]
         },
         {
@@ -518,11 +568,23 @@ var GOOSE_SCHEMA = {
         {
           "name": "npc_facing",
           "header": "facing (3)",
-          "kind": "Int",
+          "kind": "Enum",
           "sql": "SMALLINT",
           "default": "3",
           "required": false,
-          "pk": false
+          "pk": false,
+          "enumNames": [
+            "Up",
+            "Right",
+            "Down",
+            "Left"
+          ],
+          "enumValues": [
+            1,
+            2,
+            3,
+            4
+          ]
         },
         {
           "name": "npc_level",
@@ -960,6 +1022,12 @@ var GOOSE_SCHEMA = {
             "TeleportToAggro",
             "TeleportAggro",
             "TeleportAggroIfUnreachable"
+          ],
+          "enumValues": [
+            0,
+            1,
+            2,
+            3
           ]
         },
         {
@@ -1378,6 +1446,16 @@ var GOOSE_SCHEMA = {
             "ExperienceSold",
             "NothingEquipped",
             "Script"
+          ],
+          "enumValues": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
           ]
         },
         {
@@ -1471,6 +1549,30 @@ var GOOSE_SCHEMA = {
             "SpellBuff",
             "LearnSpell",
             "Script"
+          ],
+          "enumValues": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21
           ]
         },
         {
@@ -1615,6 +1717,11 @@ var GOOSE_SCHEMA = {
             "Target",
             "Self",
             "Group"
+          ],
+          "enumValues": [
+            0,
+            1,
+            2
           ]
         },
         {
@@ -1773,6 +1880,10 @@ var GOOSE_SCHEMA = {
           "enumNames": [
             "Character",
             "Tile"
+          ],
+          "enumValues": [
+            0,
+            1
           ]
         },
         {
@@ -1790,6 +1901,15 @@ var GOOSE_SCHEMA = {
             "Random",
             "Area",
             "TriangleFront"
+          ],
+          "enumValues": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
           ]
         },
         {
@@ -1814,6 +1934,15 @@ var GOOSE_SCHEMA = {
             "SelfPlayer",
             "NPCPlayer",
             "SelfNPCPlayer"
+          ],
+          "enumValues": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
           ]
         },
         {
@@ -1861,6 +1990,30 @@ var GOOSE_SCHEMA = {
             "PetFollow",
             "PetNeutral",
             "Script"
+          ],
+          "enumValues": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21
           ]
         },
         {
@@ -1909,6 +2062,14 @@ var GOOSE_SCHEMA = {
             "Spirit",
             "Air",
             "Earth"
+          ],
+          "enumValues": [
+            1,
+            2,
+            4,
+            8,
+            16,
+            32
           ]
         },
         {
@@ -2900,6 +3061,17 @@ var GOOSE_SCHEMA = {
             "Letter",
             "Money",
             "Recipe"
+          ],
+          "enumValues": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
           ]
         },
         {
@@ -2926,6 +3098,24 @@ var GOOSE_SCHEMA = {
             "Mount",
             "Backpack",
             "Misc"
+          ],
+          "enumValues": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            20
           ]
         },
         {
@@ -3024,6 +3214,17 @@ var GOOSE_SCHEMA = {
             "Letter",
             "Money",
             "Recipe"
+          ],
+          "enumValues": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
           ]
         },
         {
@@ -3050,6 +3251,24 @@ var GOOSE_SCHEMA = {
             "Mount",
             "Backpack",
             "Misc"
+          ],
+          "enumValues": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            20
           ]
         },
         {
@@ -3425,6 +3644,15 @@ var GOOSE_SCHEMA = {
             "Tank",
             "Dodge",
             "Damage"
+          ],
+          "enumValues": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
           ]
         },
         {
@@ -3442,6 +3670,15 @@ var GOOSE_SCHEMA = {
             "Tank",
             "Dodge",
             "Damage"
+          ],
+          "enumValues": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
           ]
         },
         {
@@ -3456,6 +3693,12 @@ var GOOSE_SCHEMA = {
             "Special",
             "Weak",
             "Exempt"
+          ],
+          "enumValues": [
+            0,
+            1,
+            2,
+            3
           ]
         },
         {
@@ -3492,6 +3735,19 @@ var GOOSE_SCHEMA = {
             "XP100M",
             "XP200M",
             "XP400M"
+          ],
+          "enumValues": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10
           ]
         },
         {
@@ -3510,6 +3766,17 @@ var GOOSE_SCHEMA = {
             "HardCraft",
             "Prestige",
             "Special"
+          ],
+          "enumValues": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
           ]
         },
         {

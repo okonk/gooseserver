@@ -104,7 +104,7 @@ test('every schema sheet is classified, and RESTART_ONLY names real sheets', () 
     .forEach((s) => assert.equal(Layout.needsRestart(s.sheet), false, s.sheet));
   Layout.RESTART_ONLY.forEach((s) => assert.ok(names.includes(s), `not a real sheet: ${s}`));
   assert.equal(new Set(Layout.RESTART_ONLY).size, Layout.RESTART_ONLY.length);
-  // The full partition of the 21 sheets, so neither a missing nor a spurious entry can hide.
+  // The full partition of the 22 sheets, so neither a missing nor a spurious entry can hide.
   assert.deepEqual([...Layout.RESTART_ONLY].sort(), [
     'Class Info', 'Class Levelup Spells', 'Classes', 'Combination Item Required',
     'Combination Item Result', 'Combinations', 'Map Required Items', 'Maps', 'NPC Spawns',
@@ -113,8 +113,8 @@ test('every schema sheet is classified, and RESTART_ONLY names real sheets', () 
   // Spread: arrays built inside the vm context have that context's Array.prototype, which strict
   // deepEqual rejects against a host-realm literal.
   assert.deepEqual([...names.filter((s) => !Layout.needsRestart(s))].sort(), [
-    'Items', 'NPC Drops', 'NPC Vendor Items', 'NPCs', 'Quest Reqs', 'Quest Rewards', 'Quests',
-    'Spell Effects', 'Spells',
+    'Community Goals', 'Items', 'NPC Drops', 'NPC Vendor Items', 'NPCs', 'Quest Reqs',
+    'Quest Rewards', 'Quests', 'Spell Effects', 'Spells',
   ]);
 });
 
