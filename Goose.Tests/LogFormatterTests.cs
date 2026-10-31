@@ -111,6 +111,16 @@ namespace Goose.Tests
         }
 
         [Fact]
+        public void Enchant_projects_item_related_from_otherid_without_invented_name()
+        {
+            var e = LogFormatter.Project(Row(25, 1, 77,
+                "Enchant: template 12 element Earth level 7 -> 8 max 10 protected 1 outcome Success"));
+
+            Assert.Equal("Alice enchanted an item (template 12) Earth +7 -> +8", e.Summary);
+            AssertRelated("Item", LogEntityKind.Item, 77, null, true, e);
+        }
+
+        [Fact]
         public void RespawnMap_projects_map_related_from_mapid_not_otherid()
         {
             var e = LogFormatter.Project(Row(10005, 7, 999, "", mapId: 3));
@@ -364,6 +374,15 @@ namespace Goose.Tests
         }
 
         [Theory]
+        [InlineData(25, 1, 77, "Enchant: template 12 element Earth level 7 -> 8 max 10 protected 1 outcome Success", 0, "Alice enchanted an item (template 12) Earth +7 -> +8")]
+        [InlineData(25, 1, 77, "Enchant: template 12 element Earth level 7 -> 7 max 9 protected 1 outcome ProtectedFailure", 0, "Alice failed (protected), max now 9")]
+        [InlineData(25, 1, 77, "Enchant: template 12 element Fire level 3 -> 3 max 10 protected 0 outcome Destroyed item {\"ID\":77}", 0, "Alice destroyed an item (template 12) at +3")]
+        public void Enchant_summaries(long type, long player, long other, string text, long map, string expected)
+        {
+            Assert.Equal(expected, LogFormatter.Project(Row(type, player, other, text, map)).Summary);
+        }
+
+        [Theory]
         [InlineData(10001, 7, 0, "Iron Sword 77 3", 0, "GM gave Iron Sword ×3")]
         [InlineData(10002, 7, 2, "2 3 2.5", 0, "GM changed Bob's class to 3 (rate 2.5)")]
         [InlineData(10003, 7, 2, "5000 to 2", 0, "GM gave Bob 5000 experience")]
@@ -436,6 +455,12 @@ namespace Goose.Tests
         [InlineData(24, "", "ResetItem")]
         [InlineData(24, "junk", "ResetItem: junk")]
         [InlineData(24, "ResetItem: template 12", "ResetItem: ResetItem: template 12")]
+        [InlineData(25, "", "Enchant")]
+        [InlineData(25, "junk", "Enchant: junk")]
+        [InlineData(25, "Enchant: template 12", "Enchant: Enchant: template 12")]
+        [InlineData(25, "Enchant: template 12 element Earth level 7 -> 8 max 10 protected 1 outcome Unknown", "Enchant: Enchant: template 12 element Earth level 7 -> 8 max 10 protected 1 outcome Unknown")]
+        [InlineData(25, "Enchant: template 12 element Earth level 7 -> 8 max 10 protected 1 outcome Success item {}", "Enchant: Enchant: template 12 element Earth level 7 -> 8 max 10 protected 1 outcome Success item {}")]
+        [InlineData(25, "Enchant: template 12 element Fire level 3 -> 3 max 10 protected 0 outcome Destroyed", "Enchant: Enchant: template 12 element Fire level 3 -> 3 max 10 protected 0 outcome Destroyed")]
         public void Malformed_text_falls_back_to_labeled_text(long type, string text, string expected)
         {
             var e = LogFormatter.Project(Row(type, 1, 0, text));

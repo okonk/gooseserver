@@ -91,6 +91,7 @@ namespace Goose.Logs
             22 => SpiritPurchase(c, "BuyExperience: ", "exp", "experience"),
             23 => GiveSpirit(c),
             24 => ResetItem(c),
+            25 => Enchant(c),
             10001 => GetItemSummary(c),
             10002 => ClassChange(c),
             10003 => GiveAmount(c, "experience"),
@@ -130,6 +131,7 @@ namespace Goose.Logs
                 18 or 19 => EntityRelated(c.OtherId, "Merchant", LogEntityKind.NpcTemplate, c.NpcTemplateNames),
                 23 => PlayerRelated(c, SpiritDirection(c)),
                 24 => ItemFromOtherId(c, null),
+                25 => ItemFromOtherId(c, null),
                 10001 => GetItemRelated(c),
                 10002 or 10003 or 10004 or 10007 or 10010 or 10011 or 10012 => PlayerRelated(c, "Target"),
                 10005 => MapRelated(c),
@@ -298,6 +300,34 @@ namespace Goose.Logs
             }
 
             return $"{Player(c)} reset an item (template {t[0]}, dimension {t[2]}) for {t[4]} {t[5]}";
+        }
+
+        private static string Enchant(LogFormatContext c)
+        {
+            const string prefix = "Enchant: template ";
+            if (!c.Text.StartsWith(prefix, StringComparison.Ordinal)) return Fallback(c);
+            var t = c.Text[prefix.Length..].Split(' ');
+            if (t.Length < 13 || t[1] != "element" || t[3] != "level" || t[5] != "->" ||
+                t[7] != "max" || t[9] != "protected" || t[11] != "outcome" ||
+                !TryLong(t[0], out long tid) || !TryLong(t[4], out long oldLevel) ||
+                !TryLong(t[6], out long newLevel) || !TryLong(t[8], out long max) ||
+                (t[10] != "0" && t[10] != "1") ||
+                t[12] is not ("Success" or "ProtectedFailure" or "Destroyed"))
+            {
+                return Fallback(c);
+            }
+
+            if (t[12] == "Destroyed")
+            {
+                if (t.Length < 14 || t[13] != "item") return Fallback(c);
+                return $"{Player(c)} destroyed an item (template {tid}) at +{oldLevel}";
+            }
+
+            if (t.Length != 13) return Fallback(c);
+
+            return t[12] == "ProtectedFailure"
+                ? $"{Player(c)} failed (protected), max now {max}"
+                : $"{Player(c)} enchanted an item (template {tid}) {t[2]} +{oldLevel} -> +{newLevel}";
         }
 
         private static string GetItemSummary(LogFormatContext c)

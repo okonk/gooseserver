@@ -34,6 +34,7 @@ namespace Goose
             BuyExperience,
             GiveSpirit,
             ResetItem,
+            Enchant,
 
             // GM-related logs
             GetItem = 10001,

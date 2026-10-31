@@ -31,6 +31,7 @@ namespace Goose.Logs
             new(22, "BuyExperience", LogEventGroup.ItemsEconomy, LogOtherIdKind.Unused),
             new(23, "GiveSpirit", LogEventGroup.ItemsEconomy, LogOtherIdKind.Player),
             new(24, "ResetItem", LogEventGroup.ItemsEconomy, LogOtherIdKind.Item),
+            new(25, "Enchant", LogEventGroup.ItemsEconomy, LogOtherIdKind.Item),
             new(10001, "GetItem", LogEventGroup.GmActions, LogOtherIdKind.Unused),
             new(10002, "ClassChange", LogEventGroup.GmActions, LogOtherIdKind.Player),
             new(10003, "GiveExperience", LogEventGroup.GmActions, LogOtherIdKind.Player),
