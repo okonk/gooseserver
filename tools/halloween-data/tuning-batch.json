@@ -889,5 +889,62 @@
     "set": {
       "script_params": "{\"items\": [746, 747, 748, 749, 750, 751, 756]}"
     }
+  },
+  {
+    "op": "create",
+    "sheet": "Quests",
+    "set": {
+      "id": 123,
+      "name": "Costume Swap",
+      "description": "Tired of that face already? I understand. I tire\\nof mine daily.\\n\\nBring me your Party Costume and a thousand candy\\nand I'll find you another. No promises it's better.",
+      "pass_text": "There. A whole new you. Same old you underneath.",
+      "fail_text": "Your Party Costume, taken off and in your bag, and\\na thousand candy.",
+      "min_level": 50,
+      "repeatable": 1,
+      "show_progress": 1
+    }
+  },
+  {
+    "op": "create",
+    "sheet": "Quest Reqs",
+    "set": {
+      "id": 152,
+      "quest_id": 123,
+      "requirement_type": "Item",
+      "requirement_value": 746,
+      "requirement_value2": 1,
+      "keep_requirement": 0
+    }
+  },
+  {
+    "op": "create",
+    "sheet": "Quest Reqs",
+    "set": {
+      "id": 153,
+      "quest_id": 123,
+      "requirement_type": "Item",
+      "requirement_value": 745,
+      "requirement_value2": 1000,
+      "keep_requirement": 0
+    }
+  },
+  {
+    "op": "create",
+    "sheet": "Quest Rewards",
+    "set": {
+      "id": 243,
+      "quest_id": 123,
+      "reward_type": "Item",
+      "long_value": 746,
+      "long_value2": 1
+    }
+  },
+  {
+    "op": "update",
+    "sheet": "NPCs",
+    "id": 284,
+    "set": {
+      "quest_ids": "103 104 105 106 112 123"
+    }
   }
 ]
