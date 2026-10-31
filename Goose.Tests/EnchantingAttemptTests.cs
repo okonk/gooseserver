@@ -111,6 +111,19 @@ public class EnchantingAttemptTests
         Assert.Equal(0, Enchanting.FailPercent(item, settings));
     }
 
+    [Fact]
+    public void FailPercent_is_zero_at_the_protection_reduced_max()
+    {
+        using var fixture = new TestWorldFixture();
+        var (item, settings) = Arrange(fixture);
+        item.ItemProperties[ItemProperty.EnchantEarth] = 9;
+        item.ItemProperties[ItemProperty.EnchantMaxLoss] = 1;
+
+        Assert.Equal(10, settings.MaxLevel);
+        Assert.Equal(9, Enchanting.Max(item, settings));
+        Assert.Equal(0, Enchanting.FailPercent(item, settings));
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(1)]

@@ -26,7 +26,7 @@ namespace Goose
         public static int FailPercent(Item item, EnchantSettings s)
         {
             int level = Level(item);
-            return level >= s.MaxLevel ? 0 : s.FailPercent[level];
+            return level >= Max(item, s) ? 0 : s.FailPercent[level];
         }
 
         public static bool CanEnchant(Item item, EnchantSettings s, out string reason)
