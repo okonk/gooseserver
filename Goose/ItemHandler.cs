@@ -325,7 +325,10 @@ namespace Goose
         ///
         /// Deliberately not built on Item.LoadFromTemplate, which accumulates rather than
         /// assigns (TotalStats += template.BaseStats, Item.cs:159) and would double-count
-        /// the template's stats on a second call.</summary>
+        /// the template's stats on a second call.
+        ///
+        /// Enchant keys (EnchantEarth..EnchantMaxLoss) are deliberately preserved: enchanting
+        /// is independent of the title/surname reroll, and the +N suffix is re-applied from them.</summary>
         public void ResetModifiers(Item item, GooseSettings settings)
         {
             item.Name = item.Template.Name;
@@ -334,6 +337,7 @@ namespace Goose
             item.StatMultiplier = 1;
             item.ItemProperties.Remove(ItemProperty.TitleId);
             item.ItemProperties.Remove(ItemProperty.SurnameId);
+            Enchanting.ApplySuffix(item);
             item.RefreshStats(settings);
         }
 
@@ -343,6 +347,8 @@ namespace Goose
             ItemModifier? surname = kind == ItemProperty.SurnameId ? modifier : CurrentModifier(item, ItemProperty.SurnameId);
 
             // Strips by name rather than resetting to the template name so a custom item's name survives.
+            // The +N enchant suffix is stripped first: the surname EndsWith below would fail on "... of the Bear +7".
+            item.Name = Enchanting.StripSuffix(item);
             if (CurrentModifier(item, ItemProperty.TitleId) is { } oldTitle && item.Name.StartsWith(oldTitle.Name + " "))
                 item.Name = item.Name[(oldTitle.Name.Length + 1)..];
             if (CurrentModifier(item, ItemProperty.SurnameId) is { } oldSurname && item.Name.EndsWith(" " + oldSurname.Name))
@@ -368,6 +374,7 @@ namespace Goose
                 title.ApplyStats(item, world);
             }
 
+            Enchanting.ApplySuffix(item);
             item.RefreshStats(world.Settings);
         }
 

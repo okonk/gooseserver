@@ -21,6 +21,21 @@ namespace Goose
             return settings.MaxLevel - item.GetProperty<int>(ItemProperty.EnchantMaxLoss);
         }
 
+        public static string StripSuffix(Item item)
+        {
+            string suffix = $" +{Level(item)}";
+            if (Level(item) > 0 && item.Name.EndsWith(suffix))
+                return item.Name[..^suffix.Length];
+            return item.Name;
+        }
+
+        public static void ApplySuffix(Item item)
+        {
+            item.Name = StripSuffix(item);
+            if (Level(item) > 0)
+                item.Name += $" +{Level(item)}";
+        }
+
         public static AttributeSet Stats(Item item, EnchantSettings settings)
         {
             var stats = new AttributeSet();

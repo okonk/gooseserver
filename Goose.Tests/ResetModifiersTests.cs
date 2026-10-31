@@ -77,4 +77,39 @@ public class ResetModifiersTests
         Assert.Equal(10, item.TotalStats.Strength);   // the template's, counted once
         Assert.Equal(7, item.TotalWeaponDamage);      // ditto
     }
+
+    [Fact]
+    public void ResetModifiers_keeps_enchants_and_suffix()
+    {
+        using var fixture = new TestWorldFixture();
+        var item = ItemWithModifiers(fixture);
+        item.Name = "Legendary Sword of Speed +3";
+        item.BaseStats.Strength = 50;
+        item.WeaponDamage = 40;
+        item.StatMultiplier = 1.25;
+        item.ItemProperties[ItemProperty.TitleId] = 900100;
+        item.ItemProperties[ItemProperty.SurnameId] = 900005;
+        item.ItemProperties[ItemProperty.EnchantEarth] = 3;
+
+        fixture.World.ItemHandler.ResetModifiers(item, fixture.World.Settings);
+
+        Assert.Equal("Sword +3", item.Name);
+        Assert.Equal(3, item.ItemProperties[ItemProperty.EnchantEarth]);
+        Assert.Equal(fixture.Settings.Enchanting.EarthSpellDamagePercent * 3 / 100, item.TotalStats.SpellDamage, 10);
+        Assert.Equal(10, item.TotalStats.Strength);
+    }
+
+    [Fact]
+    public void ResetModifiers_twice_does_not_duplicate_suffix()
+    {
+        using var fixture = new TestWorldFixture();
+        var item = ItemWithModifiers(fixture);
+        item.Name = "Sword +3";
+        item.ItemProperties[ItemProperty.EnchantEarth] = 3;
+
+        fixture.World.ItemHandler.ResetModifiers(item, fixture.World.Settings);
+        fixture.World.ItemHandler.ResetModifiers(item, fixture.World.Settings);
+
+        Assert.Equal("Sword +3", item.Name);
+    }
 }

@@ -93,11 +93,8 @@ namespace Goose
             item.IsBound = statsItem.IsBound;
             item.ScriptParams = statsItem.ScriptParams;
 
-            if (statsItem.ItemProperties.TryGetValue(ItemProperty.TitleId, out object? titleId))
-                item.ItemProperties[ItemProperty.TitleId] = titleId;
-
-            if (statsItem.ItemProperties.TryGetValue(ItemProperty.SurnameId, out object? surnameId))
-                item.ItemProperties[ItemProperty.SurnameId] = surnameId;
+            item.ItemProperties = new Dictionary<ItemProperty, object>(statsItem.ItemProperties);
+            Enchanting.ApplySuffix(item);
 
             return item;
         }

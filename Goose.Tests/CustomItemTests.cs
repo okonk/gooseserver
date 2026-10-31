@@ -316,6 +316,31 @@ namespace Goose.Tests
         }
 
         [Fact]
+        public void BuildCustomItem_copies_all_properties_and_appends_suffix()
+        {
+            var (fixture, _) = WorldAndPlayer();
+            using (fixture)
+            {
+                var statsTemplate = fixture.AddBaseItemTemplate(900, "Steel Sword", ItemTemplate.UseTypes.Weapon);
+                var lookTemplate = fixture.AddBaseItemTemplate(901, "Shadow Sword", ItemTemplate.UseTypes.Weapon);
+
+                var statsItem = LoadItem(statsTemplate);
+                statsItem.ItemProperties[ItemProperty.TitleId] = 111;
+                statsItem.ItemProperties[ItemProperty.SurnameId] = 222;
+                statsItem.ItemProperties[ItemProperty.EnchantEarth] = 2;
+                statsItem.TotalStats = new AttributeSet { SpellDamage = 0.02 };
+
+                Item item = CustomItem.BuildCustomItem(statsItem, LoadItem(lookTemplate), 0, 0, 0, 255, "My Blade", "Tester")!;
+
+                Assert.Equal("My Blade +2", item.Name);
+                Assert.Equal(111, item.ItemProperties[ItemProperty.TitleId]);
+                Assert.Equal(222, item.ItemProperties[ItemProperty.SurnameId]);
+                Assert.Equal(2, item.ItemProperties[ItemProperty.EnchantEarth]);
+                Assert.Equal(0.02, item.TotalStats.SpellDamage, 10);
+            }
+        }
+
+        [Fact]
         public void BuildCustomItem_stat_clones_are_independent_of_source()
         {
             var (fixture, _) = WorldAndPlayer();
