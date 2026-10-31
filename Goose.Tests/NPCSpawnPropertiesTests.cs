@@ -14,6 +14,7 @@ public class NPCSpawnPropertiesTests
         ClassID = 0,
         BaseStats = new AttributeSet(),
         CanMove = canMove,
+        Facing = Direction.Up,
     };
 
     private static NPC Spawn(TestWorldFixture fixture, bool templateCanMove,
@@ -85,5 +86,51 @@ public class NPCSpawnPropertiesTests
         Assert.Throws<InvalidCastException>(() =>
             Spawn(fixture, templateCanMove: false,
                   new PropertiesDictionary { ["canMove"] = 1L }));
+    }
+
+    [Fact]
+    public void facing_overrides_the_template_facing()
+    {
+        using var fixture = new TestWorldFixture();
+
+        var npc = Spawn(fixture, templateCanMove: false,
+                        new PropertiesDictionary { ["facing"] = 4L });
+
+        Assert.Equal(Direction.Left, npc.Facing);
+    }
+
+    [Fact]
+    public void Without_facing_the_template_facing_is_used()
+    {
+        using var fixture = new TestWorldFixture();
+
+        var npc = Spawn(fixture, templateCanMove: false, new PropertiesDictionary());
+
+        Assert.Equal(Direction.Up, npc.Facing);
+    }
+
+    [Fact]
+    public void An_out_of_range_facing_falls_back_to_the_template()
+    {
+        using var fixture = new TestWorldFixture();
+
+        var npc = Spawn(fixture, templateCanMove: false,
+                        new PropertiesDictionary { ["facing"] = 9L });
+
+        Assert.Equal(Direction.Up, npc.Facing);
+    }
+
+    [Fact]
+    public void facing_is_restored_on_respawn()
+    {
+        using var fixture = new TestWorldFixture();
+        var npc = Spawn(fixture, templateCanMove: false,
+                        new PropertiesDictionary { ["facing"] = 2L });
+
+        npc.Facing = Direction.Down;
+        npc.State = NPC.States.Dead;
+        npc.Spawn(fixture.World);
+
+        Assert.Equal(Direction.Right, npc.Facing);
     }
 }

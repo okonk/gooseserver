@@ -289,6 +289,12 @@ namespace Goose
          */
         public bool CanMove { get; set; }
         public bool HideName { get; set; }
+
+        private Direction SpawnFacing(NPCTemplate template)
+        {
+            var facing = this.Properties.GetProperty("facing", template.Facing);
+            return Enum.IsDefined(facing) ? facing : template.Facing;
+        }
         /**
          * Items part of MKC String
          */
@@ -665,7 +671,7 @@ namespace Goose
             this.EquippedItems = template.EquippedItems;
             this.Experience = template.Experience;
             this.FaceID = template.FaceID;
-            this.Facing = template.Facing;
+            this.Facing = this.SpawnFacing(template);
             this.HairA = template.HairA;
             this.HairB = template.HairB;
             this.HairG = template.HairG;
@@ -745,7 +751,7 @@ namespace Goose
 
             this.CurrentBodyID = this.BodyID;
 
-            this.Facing = this.NPCTemplate.Facing;
+            this.Facing = this.SpawnFacing(this.NPCTemplate);
 
             this.MoveEvent = null;
 
