@@ -109,6 +109,24 @@ namespace Goose.Tests
         }
 
         [Fact]
+        public void Validate_undefined_essence_element_throws()
+        {
+            var s = new EnchantSettings { EssenceTemplates = { [1] = (EnchantElement)99 } };
+            Assert.Throws<FatalStartupException>(() => s.Validate(ItemHandlerWithTemplates(1)));
+        }
+
+        [Fact]
+        public void Validate_undefined_essence_element_deserialized_from_integer_throws()
+        {
+            var json = """{"Enchanting":{"EssenceTemplates":{"5":99}}}""";
+            var settings = JsonSerializer.Deserialize<GooseSettings>(json, JsonHelper.SettingsOptions);
+
+            Assert.NotNull(settings);
+            Assert.Equal((EnchantElement)99, settings.Enchanting!.EssenceTemplates[5]);
+            Assert.Throws<FatalStartupException>(() => settings.Enchanting.Validate(ItemHandlerWithTemplates(5)));
+        }
+
+        [Fact]
         public void Deserialize_essence_templates_uses_enum_names()
         {
             var json = """{"Enchanting":{"EssenceTemplates":{"5":"Fire"}}}""";

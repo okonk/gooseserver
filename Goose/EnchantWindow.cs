@@ -6,8 +6,6 @@ namespace Goose
     {
         private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
 
-        // Last confirmed slot assignment from HandleSlot; Task 7's Confirm re-resolves
-        // by reference and refuses requests that don't match it.
         public int ItemSlotId { get; private set; }
         public int EssenceSlotId { get; private set; }
         public int ProtectionSlotId { get; private set; }

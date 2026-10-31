@@ -32,11 +32,15 @@ namespace Goose
             }
             if (this.EssenceTemplates is null)
                 throw new FatalStartupException("Enchanting EssenceTemplates must not be null");
-            foreach (var (templateId, _) in this.EssenceTemplates)
+            foreach (var (templateId, element) in this.EssenceTemplates)
             {
                 if (items.GetTemplate(templateId) is null)
                     throw new FatalStartupException(
                         "Enchanting essence template " + templateId + " not found");
+                if (!Enum.IsDefined(typeof(EnchantElement), element))
+                    throw new FatalStartupException(
+                        "Enchanting essence template " + templateId
+                        + " has undefined element value " + (int)element);
             }
             if (this.ProtectionTemplateId != 0 && items.GetTemplate(this.ProtectionTemplateId) is null)
                 throw new FatalStartupException(
