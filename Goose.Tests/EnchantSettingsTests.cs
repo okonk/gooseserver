@@ -95,6 +95,20 @@ namespace Goose.Tests
         }
 
         [Fact]
+        public void Validate_null_fail_percent_throws()
+        {
+            var s = new EnchantSettings { FailPercent = null! };
+            Assert.Throws<FatalStartupException>(() => s.Validate(ItemHandlerWithTemplates()));
+        }
+
+        [Fact]
+        public void Validate_null_essence_templates_throws()
+        {
+            var s = new EnchantSettings { EssenceTemplates = null! };
+            Assert.Throws<FatalStartupException>(() => s.Validate(ItemHandlerWithTemplates()));
+        }
+
+        [Fact]
         public void Deserialize_essence_templates_uses_enum_names()
         {
             var json = """{"Enchanting":{"EssenceTemplates":{"5":"Fire"}}}""";

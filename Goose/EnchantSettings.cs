@@ -30,6 +30,8 @@ namespace Goose
                     throw new FatalStartupException(
                         "Enchanting FailPercent[" + i + "] must be between 0 and 100");
             }
+            if (this.EssenceTemplates is null)
+                throw new FatalStartupException("Enchanting EssenceTemplates must not be null");
             foreach (var (templateId, _) in this.EssenceTemplates)
             {
                 if (items.GetTemplate(templateId) is null)
