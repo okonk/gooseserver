@@ -184,7 +184,7 @@
     // protection item (0 = none).
     "Enchanting": {
         "MaxLevel": 10,
-        "FailPercent": [0, 0, 0, 0, 0, 10, 20, 30, 40, 50],
+        "FailPercent": [0, 0, 0, 0, 0, 30, 40, 50, 60, 70],
         "EarthSpellDamagePercent": 1,
         "WaterSpellCritPercent": 1,
         "FireDamageReductionPercent": 0.5,

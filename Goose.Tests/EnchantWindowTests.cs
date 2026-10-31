@@ -258,7 +258,7 @@ public class EnchantWindowTests
                 "|Iron Sword +5 (max 10)" +
                 "|Earth 5: +5% spell damage" +
                 "|Next: Earth +1% spell damage" +
-                "|Failure chance: 10%" +
+                "|Failure chance: 30%" +
                 "|Protected: yes"));
         }
     }

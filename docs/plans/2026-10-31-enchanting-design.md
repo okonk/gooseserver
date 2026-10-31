@@ -17,7 +17,7 @@ without touching enchanting code.
   (e.g. 6 Earth + 4 Fire). The item's level is the sum of its element counts.
 - Each attempt consumes **1 essence** of the chosen element. No gold cost.
 - Levels +1..+5 cannot fail. Levels +6..+10 have a failure chance, default
-  `10/20/30/40/50%` for the target level.
+  `30/40/50/60/70%` for the target level.
 - **Failure without protection:** the item is destroyed.
 - **Failure with protection:** the item keeps its level, its **max level drops by 1**, and the
   protection item is consumed. Protection is consumed only when it saves the item.
@@ -159,7 +159,7 @@ so a GM can rebuild it from the log viewer.
 ## Settings
 
 - `EnchantMaxLevel` — 10.
-- `EnchantFailPercent` — `[0,0,0,0,0,10,20,30,40,50]`.
+- `EnchantFailPercent` — `[0,0,0,0,0,30,40,50,60,70]`.
 - `EnchantPerLevel` — per-element stat values (table above).
 - `EnchantEssenceTemplates`, `EnchantProtectionTemplateId`.
 

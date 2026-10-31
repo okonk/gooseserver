@@ -8,7 +8,7 @@ namespace Goose
     public class EnchantSettings
     {
         public int MaxLevel { get; set; } = 10;
-        public int[] FailPercent { get; set; } = [0, 0, 0, 0, 0, 10, 20, 30, 40, 50];
+        public int[] FailPercent { get; set; } = [0, 0, 0, 0, 0, 30, 40, 50, 60, 70];
         public double EarthSpellDamagePercent { get; set; } = 1;
         public double WaterSpellCritPercent { get; set; } = 1;
         public double FireDamageReductionPercent { get; set; } = 0.5;

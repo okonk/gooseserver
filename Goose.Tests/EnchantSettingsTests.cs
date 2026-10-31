@@ -24,7 +24,7 @@ namespace Goose.Tests
         {
             var s = new EnchantSettings();
             Assert.Equal(10, s.MaxLevel);
-            Assert.Equal([0, 0, 0, 0, 0, 10, 20, 30, 40, 50], s.FailPercent);
+            Assert.Equal([0, 0, 0, 0, 0, 30, 40, 50, 60, 70], s.FailPercent);
             Assert.Equal(1, s.EarthSpellDamagePercent);
             Assert.Equal(1, s.WaterSpellCritPercent);
             Assert.Equal(0.5, s.FireDamageReductionPercent);
