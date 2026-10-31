@@ -61,6 +61,12 @@ namespace Goose.Events
                             return;
                         }
 
+                        if (npc.Properties.GetProperty("enchantTable", false))
+                        {
+                            EnchantWindow.Open(world, this.Player, npc);
+                            return;
+                        }
+
                         if (npc.NPCType == NPCTemplate.Types.Banker)
                         {
                             if (npc.Properties.GetProperty("communityChest", false))

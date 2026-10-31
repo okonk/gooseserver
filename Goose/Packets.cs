@@ -773,6 +773,15 @@ namespace Goose
             return "CLW" + windowId;
         };
 
+        public static Func<int, int, int, int, int, List<string>, string> EnchantPreview =
+            (windowId, itemSlot, essenceSlot, protectionSlot, canEnchant, lines) =>
+            {
+                var sb = new StringBuilder("EWP" + windowId + "," + itemSlot + "," + essenceSlot + "," + protectionSlot + "," + canEnchant);
+                foreach (string line in lines)
+                    sb.Append('|').Append(line);
+                return sb.ToString();
+            };
+
         // Prompt is the last field so it may contain '|'; the client splits with a field limit.
         public static Func<int, (int Sheet, int Graphic, int R, int G, int B, int A), long, long, long, string, string> AmountInfo =
             (windowId, icon, min, max, def, prompt) =>

@@ -56,6 +56,7 @@ namespace Goose
             GenericContainer = 30,
             Amount = 31,
             GridContainer = 32,
+            Enchant = 33,
         }
         public WindowFrames Frame { get; set; }
 
@@ -88,6 +89,7 @@ namespace Goose
             Amount,
             CommunityGoal,
             Backpack,
+            Enchant,
         }
         public WindowTypes Type { get; set; }
 

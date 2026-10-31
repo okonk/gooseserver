@@ -154,6 +154,7 @@ namespace Goose
                 ("WBC", Open(typeof(WindowButtonClickEvent))),
                 ("CWS", Open(typeof(CustomWindowSlotEvent))),
                 ("CWC", Open(typeof(CustomWindowCreateEvent))),
+                ("EWS", Open(typeof(EnchantWindowSlotEvent))),
                 ("AMT", Open(typeof(AmountWindowSubmitEvent))),
                 ("VPI", Open(typeof(VendorPurchaseInventoryEvent))),
                 ("VSI", Open(typeof(VendorSellInventoryEvent))),
