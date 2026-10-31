@@ -1270,7 +1270,7 @@ namespace Goose
 
                     world.ItemHandler.AddItem(invSlot.Item, world);
                     invSlot.Item.Template = template;
-                    invSlot.Item.RefreshStats();
+                    invSlot.Item.RefreshStats(world.Settings);
                 }
 
                 this.equipped = this.LoadSlots(conn, playerId, "equipped", this.settings.EquippedSize + 1);
@@ -1299,7 +1299,7 @@ namespace Goose
 
                     world.ItemHandler.AddItem(equipSlot.Item, world);
                     equipSlot.Item.Template = template;
-                    equipSlot.Item.RefreshStats();
+                    equipSlot.Item.RefreshStats(world.Settings);
 
                     this.player.AddStats(equipSlot.Item.TotalStats, world);
                     // Login is always dismounted, so the mount's item buff is not restored here.
@@ -1405,7 +1405,7 @@ namespace Goose
 
             world.ItemHandler.AddItem(slot.Item, world);
             slot.Item.Template = template;
-            slot.Item.RefreshStats();
+            slot.Item.RefreshStats(world.Settings);
             return true;
         }
 

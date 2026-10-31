@@ -53,7 +53,7 @@ public class ItemModifierScript : BaseItemModifierScript
                 value = world.Random.Next((int)operation.min, (int)operation.max + 1);
 
             this.AddStats(item, operation, value);
-            item.RefreshStats();
+            item.RefreshStats(world.Settings);
         }
     }
 

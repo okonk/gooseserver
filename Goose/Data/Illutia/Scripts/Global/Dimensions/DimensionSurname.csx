@@ -48,7 +48,7 @@ public class DimensionSurname : BaseItemModifierScript
                 break;
         }
 
-        item.RefreshStats();
+        item.RefreshStats(world.Settings);
     }
 }
 

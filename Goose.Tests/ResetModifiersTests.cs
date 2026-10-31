@@ -41,7 +41,7 @@ public class ResetModifiersTests
         item.ItemProperties[ItemProperty.TitleId] = 900100;
         item.ItemProperties[ItemProperty.SurnameId] = 900005;
 
-        fixture.World.ItemHandler.ResetModifiers(item);
+        fixture.World.ItemHandler.ResetModifiers(item, fixture.World.Settings);
 
         Assert.Equal(item.Template.Name, item.Name);
         Assert.Equal(0, item.BaseStats.Strength);
@@ -67,10 +67,10 @@ public class ResetModifiersTests
         item.WeaponDamage = 40;
         item.StatMultiplier = 1.25;
 
-        fixture.World.ItemHandler.ResetModifiers(item);
+        fixture.World.ItemHandler.ResetModifiers(item, fixture.World.Settings);
         var statsAfterOnce = item.TotalStats.Strength;
         var damageAfterOnce = item.TotalWeaponDamage;
-        fixture.World.ItemHandler.ResetModifiers(item);
+        fixture.World.ItemHandler.ResetModifiers(item, fixture.World.Settings);
 
         Assert.Equal(statsAfterOnce, item.TotalStats.Strength);
         Assert.Equal(damageAfterOnce, item.TotalWeaponDamage);

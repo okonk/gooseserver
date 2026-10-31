@@ -38,7 +38,7 @@ public class PacketExtraStatsTests
         using var fixture = new VendorFixture();
         var item = fixture.Carry(Template());
         item.BaseStats.Haste = 0.04;
-        item.RefreshStats();
+        item.RefreshStats(fixture.Settings);
 
         var fields = P.ItemSlot(item, fixture.World, 1, 1).Split('|');
 
@@ -79,7 +79,7 @@ public class PacketExtraStatsTests
             SPPercentRegen = 0.09,
             SPStaticRegen = 900,
         };
-        item.RefreshStats();
+        item.RefreshStats(fixture.Settings);
 
         var packet = P.ItemSlot(item, fixture.World, 1, 1);
 
@@ -92,13 +92,13 @@ public class PacketExtraStatsTests
         using var fixture = new VendorFixture();
         var item = fixture.Carry(Template());
         item.BaseStats.SpellDamage = 0.08;
-        item.RefreshStats();
+        item.RefreshStats(fixture.Settings);
 
         Assert.Equal("0,800", ExtraStatsField(P.ItemSlot(item, fixture.World, 1, 1)));
 
         item.BaseStats.SpellDamage = 0;
         item.BaseStats.Haste = 0.04;
-        item.RefreshStats();
+        item.RefreshStats(fixture.Settings);
 
         Assert.Equal("400", ExtraStatsField(P.ItemSlot(item, fixture.World, 1, 1)));
     }
@@ -110,7 +110,7 @@ public class PacketExtraStatsTests
         var item = fixture.Carry(Template());
         item.BaseStats.SpellDamage = 0.04;
         item.StatMultiplier = 1.1;
-        item.RefreshStats();
+        item.RefreshStats(fixture.Settings);
 
         Assert.Equal("0,440", ExtraStatsField(P.ItemSlot(item, fixture.World, 1, 1)));
     }
@@ -122,7 +122,7 @@ public class PacketExtraStatsTests
         var item = fixture.Carry(Template());
         item.BaseStats.HPPercentRegen = 0.015;
         item.BaseStats.HPStaticRegen = 1500;
-        item.RefreshStats();
+        item.RefreshStats(fixture.Settings);
 
         Assert.Equal("0,0,0,0,0,0,150,1500", ExtraStatsField(P.ItemSlot(item, fixture.World, 1, 1)));
     }

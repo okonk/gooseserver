@@ -54,7 +54,7 @@ namespace Goose
 
                         world.ItemHandler.AddItem(containerSlot.Item, world);
                         containerSlot.Item.Template = template;
-                        containerSlot.Item.RefreshStats();
+                        containerSlot.Item.RefreshStats(world.Settings);
 
                         container.SetSlot(i, containerSlot);
                     }

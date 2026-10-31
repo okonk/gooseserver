@@ -310,7 +310,7 @@ namespace Goose
         {
             foreach (var item in GetItems())
             {
-                item.RefreshStats();
+                item.RefreshStats(world.Settings);
             }
         }
 
@@ -326,7 +326,7 @@ namespace Goose
         /// Deliberately not built on Item.LoadFromTemplate, which accumulates rather than
         /// assigns (TotalStats += template.BaseStats, Item.cs:159) and would double-count
         /// the template's stats on a second call.</summary>
-        public void ResetModifiers(Item item)
+        public void ResetModifiers(Item item, GooseSettings settings)
         {
             item.Name = item.Template.Name;
             item.BaseStats = new AttributeSet();
@@ -334,7 +334,7 @@ namespace Goose
             item.StatMultiplier = 1;
             item.ItemProperties.Remove(ItemProperty.TitleId);
             item.ItemProperties.Remove(ItemProperty.SurnameId);
-            item.RefreshStats();
+            item.RefreshStats(settings);
         }
 
         public void SetModifier(Item item, ItemProperty kind, ItemModifier? modifier, GameWorld world)
@@ -368,7 +368,7 @@ namespace Goose
                 title.ApplyStats(item, world);
             }
 
-            item.RefreshStats();
+            item.RefreshStats(world.Settings);
         }
 
         private ItemModifier? CurrentModifier(Item item, ItemProperty kind)

@@ -117,7 +117,7 @@ public static class DimensionCommands
             return;
         }
 
-        world.ItemHandler.ResetModifiers(item);
+        world.ItemHandler.ResetModifiers(item, world.Settings);
         try
         {
             DimensionRolls.Reroll(item, world);

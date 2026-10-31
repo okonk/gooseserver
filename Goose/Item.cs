@@ -14,6 +14,12 @@ namespace Goose
         SurnameId,
         BackpackSlots,
         BackpackColumns,
+        EnchantEarth,
+        EnchantWater,
+        EnchantFire,
+        EnchantAir,
+        EnchantSpirit,
+        EnchantMaxLoss,
     }
 
     /**
@@ -272,12 +278,13 @@ namespace Goose
             return this.ItemProperties.ContainsKey(prop);
         }
 
-        public void RefreshStats()
+        public void RefreshStats(GooseSettings settings)
         {
             var newTotalStats = new AttributeSet();
             newTotalStats += this.Template.BaseStats;
             newTotalStats += this.BaseStats;
             newTotalStats *= this.StatMultiplier;
+            newTotalStats += Enchanting.Stats(this, settings.Enchanting);
 
             this.TotalStats = newTotalStats;
 

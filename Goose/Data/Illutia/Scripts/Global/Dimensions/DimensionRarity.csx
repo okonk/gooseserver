@@ -14,7 +14,7 @@ public class DimensionRarity : BaseItemModifierScript
         // every stat 100x, and under fr-FR/ar-SA it throws a FormatException that
         // ItemModifier.ApplyStats swallows. Same convention as Dimensions.csx's ScaleFormula.
         item.StatMultiplier *= double.Parse(modifier.ScriptParams, System.Globalization.CultureInfo.InvariantCulture);
-        item.RefreshStats();
+        item.RefreshStats(world.Settings);
     }
 }
 
