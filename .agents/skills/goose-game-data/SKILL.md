@@ -319,29 +319,19 @@ Class ids: 1 Commoner, 2 Rogue, 3 Warrior, 4 Magus, 5 Priest, 6 Game Master.
 
 ## Quest mechanics that bite
 
-**A giver opens one window per eligible quest.** `QuestWindow.Handle` builds a window inside its
-loop over the NPC's quests, so an NPC with two prerequisite-free quests opens **two** windows.
-Every window is created at `0,0` (`Packets.cs` `MakeWindow` hardcodes the position), so they
-stack and the player sees only the top one until they drag it aside. Two or three concurrent
-quests per NPC is fine; more than that is a mess.
+**A giver with several eligible quests opens an option list.** `QuestWindow.Handle` collects the
+eligible quests (`GetAvailableQuests`): one opens its quest window directly, two or more open an
+`OptionListWindow` of quest names and the picked line opens that quest. The list shows quest
+`name`s, so keep them short and distinct.
 
-**Order `quest ids` deliberately — an unmet prerequisite aborts the whole list.** The loop does a
-bare `return` (not `continue`) when a prerequisite is unmet, when the player is past `max level` /
-`max experience`, or when `Class.CanUse` fails. So a quest with no prerequisite listed *after* a
-chained one is invisible until that chain is finished. List independent quests first, then the
-chain in prerequisite order:
+**Eligibility is per quest.** `GetAvailableQuests` skips (`continue`) a quest that is completed
+and not repeatable, claimed by another player, missing a prerequisite, past `max level` /
+`max experience`, or blocked by `Class.CanUse`; the rest of the list is still offered. `quest ids`
+order only sets the order of the option list, and per-class quests can share one giver.
 
-```
-quest ids = 41 42 43 44 45    41 is standalone, 42→43→44→45 is the chain
-```
-
-The same `return` means **per-class quests cannot share a giver**: a Warrior who reaches a
-Rogue-only quest aborts the loop before their own is reached. One giver per class.
-
-**Re-clicking a giver leaves stale windows.** There is no server-pushed window-close packet — the
-protocol has only `MakeWindow`, `EndWindow` and `WindowTextLine`, so the server cannot dismiss a
-window the client is showing. `Handle` drops its own records and builds new windows with fresh
-ids, so clicking twice without closing the first leaves orphans on screen.
+**Re-clicking a giver replaces its windows.** `Handle` first closes that NPC's open quest and
+option-list windows (`Window.Close` sends `P.CloseWindow`), so clicking twice does not stack
+orphans.
 
 ### Requirement and reward gotchas
 
