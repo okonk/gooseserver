@@ -301,4 +301,59 @@ public class BackpackUpgradeScriptTests
         Assert.Equal(10, backpack.BackpackSlots);
         Assert.DoesNotContain(player.Sent, s => s.Contains("[Quest Reward]"));
     }
+
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public void Upgrading_into_a_binding_template_binds_the_backpack(bool bindOnEquip, bool bindOnPickup)
+    {
+        using var fixture = new QuestScriptFixture();
+        var script = ShippedScript.Value;
+        var player = PlayerWithBackpack(fixture, 10);
+        var backpack = player.Inventory.EquippedBackpack!;
+        AddTierTemplate(fixture.World, 101, "Tailored Pack", 2);
+        var template = fixture.World.ItemHandler.GetTemplate(101)!;
+        template.IsBindOnEquip = bindOnEquip;
+        template.IsBindOnPickup = bindOnPickup;
+        Assert.False(backpack.IsBound);
+
+        script.GiveReward(Reward("""{"from": 10, "to": 20, "template": 101}"""), null!, player, fixture.World);
+
+        Assert.True(backpack.IsBound);
+    }
+
+    [Fact]
+    public void Upgrading_into_a_non_binding_template_leaves_the_backpack_unbound()
+    {
+        using var fixture = new QuestScriptFixture();
+        var script = ShippedScript.Value;
+        var player = PlayerWithBackpack(fixture, 10);
+        var backpack = player.Inventory.EquippedBackpack!;
+        AddTierTemplate(fixture.World, 101, "Tailored Pack", 2);
+
+        script.GiveReward(Reward("""{"from": 10, "to": 20, "template": 101}"""), null!, player, fixture.World);
+
+        Assert.False(backpack.IsBound);
+    }
+
+    [Fact]
+    public void Upgrading_into_a_template_recomputes_stats_with_the_multiplier()
+    {
+        using var fixture = new QuestScriptFixture();
+        var script = ShippedScript.Value;
+        var player = PlayerWithBackpack(fixture, 10);
+        var backpack = player.Inventory.EquippedBackpack!;
+        player.RemoveStats(backpack.TotalStats, fixture.World);
+        backpack.StatMultiplier = 2;
+        backpack.RefreshStats(fixture.Settings);
+        player.AddStats(backpack.TotalStats, fixture.World);
+        AddTierTemplate(fixture.World, 101, "Tailored Pack", 2);
+        fixture.World.ItemHandler.GetTemplate(101)!.BaseStats = new AttributeSet { Strength = 5 };
+        var strengthBefore = player.MaxStats.Strength;
+
+        script.GiveReward(Reward("""{"from": 10, "to": 20, "template": 101}"""), null!, player, fixture.World);
+
+        Assert.Equal(10, backpack.TotalStats.Strength);
+        Assert.Equal(strengthBefore + 10, player.MaxStats.Strength);
+    }
 }

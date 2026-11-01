@@ -100,7 +100,6 @@ namespace Goose
         private void ChangeBackpackTemplate(Item item, ItemTemplate template, GameWorld world)
         {
             this.player.RemoveStats(item.TotalStats, world);
-            item.TotalStats = item.TotalStats - item.Template.BaseStats + template.BaseStats;
 
             item.Template = template;
             item.TemplateID = template.ID;
@@ -113,6 +112,8 @@ namespace Goose
             item.GraphicB = template.GraphicB;
             item.GraphicA = template.GraphicA;
             item.Value = template.Value;
+            if (template.IsBindOnEquip || template.IsBindOnPickup) item.IsBound = true;
+            item.RefreshStats(world.Settings);
 
             this.player.AddStats(item.TotalStats, world);
         }
@@ -1117,6 +1118,10 @@ namespace Goose
                 if (slot is not null && MatchesFamily(slot, baseTemplateId, minimumDimension)) return true;
             }
             foreach (var slot in this.combineContainer)
+            {
+                if (slot is not null && MatchesFamily(slot, baseTemplateId, minimumDimension)) return true;
+            }
+            foreach (var slot in this.backpackContainer)
             {
                 if (slot is not null && MatchesFamily(slot, baseTemplateId, minimumDimension)) return true;
             }

@@ -111,6 +111,28 @@ public class ItemFamilyInventoryTests
     }
 
     [Fact]
+    public void HasItemFamily_FindsVariantsInBackpack()
+    {
+        var (world, player) = Setup();
+        player.Map = new Map { ID = 1 };
+        world.World.ItemHandler.AddTemplate(new ItemTemplate
+        {
+            ID = 300, Name = "Backpack", Description = "A backpack",
+            BaseStats = new AttributeSet(), StackSize = 1, ScriptParams = "",
+            Slot = ItemTemplate.ItemSlots.Backpack, UseType = ItemTemplate.UseTypes.Armor,
+            Properties = new PropertiesDictionary { ["backpackSlots"] = 5 },
+        });
+        var backpack = Give(player, world.World, T(world, 300), 1).Item;
+        Assert.True(player.Inventory.Equip(backpack, world.World));
+        var slot = Give(player, world.World, T(world, D2Id), 1);
+        player.Inventory.GetInventorySlots()[1] = null;
+        player.Inventory.GetBackpackContainer().SetSlot(1, slot);
+
+        Assert.True(player.Inventory.HasItemFamily(BaseId, 2));
+        Assert.False(player.Inventory.HasItemFamily(UnrelatedId, 0));
+    }
+
+    [Fact]
     public void HasItemFamily_RespectsMinimumDimension()
     {
         var (world, player) = Setup();
