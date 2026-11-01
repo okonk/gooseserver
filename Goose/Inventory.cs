@@ -399,6 +399,14 @@ namespace Goose
             EquipSlots equipslot = this.ItemSlotToEquipSlot(item.Slot);
             if (equipslot == 0) return false;
 
+            if (this.FindEquippedGroupSlot(item) is EquipSlots groupSlot)
+            {
+                if (this.GetEquippedSlot(groupSlot)!.Item.Slot == item.Slot)
+                    equipslot = groupSlot;
+                else if (!this.UnequipCore(groupSlot, world))
+                    return false;
+            }
+
             if (equipslot == EquipSlots.Backpack)
             {
                 if (!this.HasBackpackSlot) return false;
@@ -490,6 +498,18 @@ namespace Goose
         /// the weapon slot to not hold a 2H weapon.
         /// Returns false if a conflicting item could not be unequipped.
         /// </summary>
+        private EquipSlots? FindEquippedGroupSlot(Item item)
+        {
+            string? group = item.Template.EquipGroup;
+            if (group is null) return null;
+            for (int i = 0; i < this.equipped.Length; i++)
+            {
+                if (this.equipped[i]?.Item.Template.EquipGroup == group)
+                    return (EquipSlots)i;
+            }
+            return null;
+        }
+
         private bool UnequipConflictingSlots(Item item, GameWorld world)
         {
             // Equipping a 2H weapon requires the shield slot to be empty.

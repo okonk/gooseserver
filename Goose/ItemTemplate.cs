@@ -121,6 +121,8 @@ namespace Goose
 
         public bool HidesOtherSlots => this.Properties.TryGetValue("hideOtherSlots", out var value) && value is true;
 
+        public string? EquipGroup => this.Properties.TryGetValue("equipGroup", out var value) ? value as string : null;
+
         public Script<IItemScript>? Script { get; set; }
 
         public string ScriptParams { get; set; } = null!;
