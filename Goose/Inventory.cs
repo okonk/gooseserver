@@ -78,7 +78,7 @@ namespace Goose
 
         public const int MaxBackpackSlots = 500;
 
-        public bool UpgradeBackpack(int slots, int columns, GameWorld world)
+        public bool UpgradeBackpack(int slots, int columns, GameWorld world, ItemTemplate? template = null)
         {
             Item? item = this.EquippedBackpack;
             if (item is null) return false;
@@ -86,13 +86,35 @@ namespace Goose
             // GM-authored row would only attempt an absurd allocation.
             if (slots > MaxBackpackSlots) return false;
             if (slots + 1 < this.backpackContainer.MaxSlots) return false;
+            if (template is not null && template.Slot != ItemTemplate.ItemSlots.Backpack) return false;
 
+            if (template is not null) this.ChangeBackpackTemplate(item, template, world);
             item.SetBackpackSize(slots, columns);
             this.backpackContainer.Resize(slots + 1);
             this.SendEquippedSlot(EquipSlots.Backpack, world);
             foreach (var window in this.player.Windows.OfType<BackpackWindow>().ToList())
                 window.Resize(this.player, world);
             return true;
+        }
+
+        private void ChangeBackpackTemplate(Item item, ItemTemplate template, GameWorld world)
+        {
+            this.player.RemoveStats(item.TotalStats, world);
+            item.TotalStats = item.TotalStats - item.Template.BaseStats + template.BaseStats;
+
+            item.Template = template;
+            item.TemplateID = template.ID;
+            item.Name = template.Name;
+            item.GraphicEquipped = template.GraphicEquipped;
+            item.GraphicTile = template.GraphicTile;
+            item.GraphicFile = template.GraphicFile;
+            item.GraphicR = template.GraphicR;
+            item.GraphicG = template.GraphicG;
+            item.GraphicB = template.GraphicB;
+            item.GraphicA = template.GraphicA;
+            item.Value = template.Value;
+
+            this.player.AddStats(item.TotalStats, world);
         }
 
         public ItemSlot?[] GetEquippedSlots()

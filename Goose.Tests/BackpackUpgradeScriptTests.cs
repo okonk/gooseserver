@@ -241,4 +241,64 @@ public class BackpackUpgradeScriptTests
         Assert.Equal(11, fixture.Player.Inventory.GetBackpackContainer().MaxSlots);
         Assert.DoesNotContain(fixture.Player.Sent, m => m.StartsWith("MKW"));
     }
+
+    private static void AddTierTemplate(GameWorld world, int id, string name, int graphic)
+    {
+        var template = BackpackTemplate(id, 20);
+        template.Name = name;
+        template.GraphicFile = 30017;
+        template.GraphicTile = graphic;
+        world.ItemHandler.AddTemplate(template);
+    }
+
+    [Fact]
+    public void Upgrade_with_a_template_turns_the_backpack_into_that_tier_and_keeps_its_items()
+    {
+        using var fixture = new QuestScriptFixture();
+        var script = ShippedScript.Value;
+        var player = PlayerWithBackpack(fixture, 10);
+        var backpack = player.Inventory.EquippedBackpack!;
+        AddTierTemplate(fixture.World, 101, "Tailored Pack", 2);
+        var sword = MakeBackpack(fixture.World, 300, 10);
+        player.Inventory.GetBackpackContainer().SetSlot(3, new ItemSlot { Item = sword, Stack = 1 });
+
+        var reward = Reward("""{"from": 10, "to": 20, "template": 101}""");
+        Assert.Null(script.CanComplete(reward, player, fixture.World));
+        script.GiveReward(reward, null!, player, fixture.World);
+
+        Assert.Same(backpack, player.Inventory.EquippedBackpack);
+        Assert.Equal(101, backpack.TemplateID);
+        Assert.Equal("Tailored Pack", backpack.Name);
+        Assert.Equal(30017, backpack.GraphicFile);
+        Assert.Equal(2, backpack.GraphicTile);
+        Assert.Equal(20, backpack.BackpackSlots);
+        Assert.Same(sword, player.Inventory.GetBackpackContainer().GetSlot(3)?.Item);
+        Assert.Contains(player.Sent, s => s.Contains("[Quest Reward]: Backpack upgraded to Tailored Pack (20 slots)."));
+    }
+
+    [Theory]
+    [InlineData("""{"from": 10, "to": 20, "template": 200}""")]
+    [InlineData("""{"from": 10, "to": 20, "template": 999}""")]
+    [InlineData("""{"from": 10, "to": 20, "template": 0}""")]
+    public void A_template_that_is_not_a_backpack_is_misconfigured(string scriptParams)
+    {
+        using var fixture = new QuestScriptFixture();
+        var script = ShippedScript.Value;
+        var player = PlayerWithBackpack(fixture, 10);
+        var backpack = player.Inventory.EquippedBackpack!;
+        fixture.World.ItemHandler.AddTemplate(new ItemTemplate
+        {
+            ID = 200, Name = "Sword", Description = "A sword", Value = 10,
+            BaseStats = new AttributeSet(), StackSize = 1, ScriptParams = "",
+            Slot = ItemTemplate.ItemSlots.OneHanded,
+        });
+        var reward = Reward(scriptParams);
+
+        Assert.Equal(Misconfigured, script.CanComplete(reward, player, fixture.World));
+        script.GiveReward(reward, null!, player, fixture.World);
+
+        Assert.Equal(100, backpack.TemplateID);
+        Assert.Equal(10, backpack.BackpackSlots);
+        Assert.DoesNotContain(player.Sent, s => s.Contains("[Quest Reward]"));
+    }
 }

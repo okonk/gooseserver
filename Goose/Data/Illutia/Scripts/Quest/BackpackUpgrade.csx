@@ -13,6 +13,7 @@ public class BackpackUpgradeScript : BaseQuestScript
         public int From { get; set; }
         public int To { get; set; }
         public int? Columns { get; set; }
+        public int? Template { get; set; }
     }
 
     // ScriptParams is per-ROW and this instance is shared by every row pointing at the
@@ -21,6 +22,7 @@ public class BackpackUpgradeScript : BaseQuestScript
     {
         var parameters = Parse(reward.ScriptParams);
         if (parameters is null) return MisconfiguredMessage;
+        if (parameters.Template is int templateId && !IsBackpackTemplate(templateId, world)) return MisconfiguredMessage;
 
         var backpack = player.Inventory.EquippedBackpack;
         if (backpack is null) return "You need to be wearing your backpack.";
@@ -43,10 +45,15 @@ public class BackpackUpgradeScript : BaseQuestScript
         var backpack = player.Inventory.EquippedBackpack;
         if (backpack is null || backpack.BackpackSlots != parameters.From) return;
 
-        if (!player.Inventory.UpgradeBackpack(parameters.To, parameters.Columns ?? backpack.BackpackColumns, world))
+        var template = parameters.Template is int templateId ? world.ItemHandler.GetTemplate(templateId) : null;
+        if (parameters.Template is not null && template is null) return;
+
+        if (!player.Inventory.UpgradeBackpack(parameters.To, parameters.Columns ?? backpack.BackpackColumns, world, template))
             return;
 
-        world.Send(player, P.ServerMessage($"[Quest Reward]: Backpack upgraded to {parameters.To} slots."));
+        world.Send(player, P.ServerMessage(template is null
+            ? $"[Quest Reward]: Backpack upgraded to {parameters.To} slots."
+            : $"[Quest Reward]: Backpack upgraded to {template.Name} ({parameters.To} slots)."));
     }
 
     private static Params? Parse(string scriptParams)
@@ -71,6 +78,7 @@ public class BackpackUpgradeScript : BaseQuestScript
             var from = 0;
             var to = 0;
             int? columns = null;
+            int? template = null;
             var hasFrom = false;
             var hasTo = false;
 
@@ -91,6 +99,11 @@ public class BackpackUpgradeScript : BaseQuestScript
                     if (!TryReadPositive(property.Value, out int c)) return null;
                     columns = c;
                 }
+                else if (property.Name == "template")
+                {
+                    if (!TryReadPositive(property.Value, out int t)) return null;
+                    template = t;
+                }
                 else
                 {
                     return null;
@@ -99,9 +112,12 @@ public class BackpackUpgradeScript : BaseQuestScript
 
             if (!hasFrom || !hasTo || to <= from || to > Inventory.MaxBackpackSlots) return null;
 
-            return new Params { From = from, To = to, Columns = columns };
+            return new Params { From = from, To = to, Columns = columns, Template = template };
         }
     }
+
+    private static bool IsBackpackTemplate(int templateId, GameWorld world) =>
+        world.ItemHandler.GetTemplate(templateId)?.Slot == ItemTemplate.ItemSlots.Backpack;
 
     private static bool TryReadPositive(JsonElement value, out int result)
     {
