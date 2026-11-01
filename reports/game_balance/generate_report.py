@@ -724,7 +724,7 @@ def build_report_data(connection: sqlite3.Connection) -> ReportData:
             f"ingredient references unknown combination {combination_id}"
         )
         assert item_id in items, f"combination references unknown item {item_id}"
-        combination_requirements_lists[combination_id].append(item_id)
+        combination_requirements_lists[combination_id].extend([item_id] * int(row.get("quantity") or 1))
     combination_result_lists: defaultdict[int, list[int]] = defaultdict(list)
     for row in table_rows["combination_item_results"]:
         combination_id = int(row["combination_id"])

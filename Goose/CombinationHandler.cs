@@ -43,21 +43,14 @@ namespace Goose
                 comb.RequiredHash = [];
                 comb.RequiredTotal = 0;
 
-                command.CommandText = "SELECT item_template_id FROM combination_item_required " +
+                command.CommandText = "SELECT item_template_id, quantity FROM combination_item_required " +
                     "WHERE combination_id=" + comb.ID;
                 using (var reader = command.ExecuteReader())
                 {
-                count = 0;
                 while (reader.Read())
                 {
-                    count++;
-                    if (count > world.Settings.CombineBagSize)
-                    {
-                        throw new Exception("number of required items exceeds combine bag size. In combination " +
-                            comb.Name);
-                    }
-
                     itemid = reader.GetInt32("item_template_id");
+                    int quantity = reader.GetInt32("quantity");
 
                     template = world.ItemHandler.GetTemplate(itemid);
                     if (template is null)
@@ -66,17 +59,26 @@ namespace Goose
                             " doesn't exist. In combination " + comb.Name);
                     }
 
-                    if (!comb.RequiredHash.ContainsKey(itemid))
+                    if (quantity <= 0)
                     {
-                        comb.RequiredHash[itemid] = 1;
-                    }
-                    else
-                    {
-                        comb.RequiredHash[itemid] = (int)comb.RequiredHash[itemid] + 1;
+                        throw new Exception("required Item ID " + itemid +
+                            " has quantity " + quantity + ". In combination " + comb.Name);
                     }
 
-                    comb.RequiredTotal++;
+                    comb.RequiredHash[itemid] = comb.RequiredHash.GetValueOrDefault(itemid) + quantity;
+                    comb.RequiredTotal += quantity;
                 }
+                }
+
+                int slotsNeeded = comb.RequiredHash.Sum(req =>
+                {
+                    int stackSize = Math.Max(1, world.ItemHandler.GetTemplate(req.Key)!.StackSize);
+                    return (req.Value + stackSize - 1) / stackSize;
+                });
+                if (slotsNeeded > world.Settings.CombineBagSize)
+                {
+                    throw new Exception("required items need " + slotsNeeded +
+                        " combine bag slots, more than the bag holds. In combination " + comb.Name);
                 }
 
                 // Load resulting items

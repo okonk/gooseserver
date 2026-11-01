@@ -6,17 +6,19 @@ namespace Goose.Tests;
 
 public class CombinationHandlerTests
 {
-    private sealed record Recipe(int Id, string Name, int[] Required, int[] Results);
+    private sealed record Recipe(int Id, string Name, int[] Required, int[] Results, int[]? Quantities = null);
 
     private sealed class HandlerFixture : IDisposable
     {
         private readonly TestWorldFixture fixture = new();
 
-        public HandlerFixture(params Recipe[] recipes)
+        public HandlerFixture(params Recipe[] recipes) : this(0, recipes) { }
+
+        public HandlerFixture(int stackSize, params Recipe[] recipes)
         {
             foreach (var recipe in recipes)
                 foreach (var id in recipe.Required.Concat(recipe.Results).Distinct())
-                    fixture.AddBaseItemTemplate(id, "Item " + id, ItemTemplate.UseTypes.NoUse);
+                    fixture.AddBaseItemTemplate(id, "Item " + id, ItemTemplate.UseTypes.NoUse, t => t.StackSize = stackSize);
 
             fixture.World.Database.Start(Path.Combine(fixture.DataDirectory, "test.db"));
             fixture.World.Database.Execute(conn =>
@@ -27,15 +29,29 @@ public class CombinationHandlerTests
                 foreach (var recipe in recipes)
                 {
                     Run(conn, $"INSERT INTO combinations (combination_id, combination_name) VALUES ({recipe.Id}, '{recipe.Name}')");
-                    foreach (var id in recipe.Required)
-                        Run(conn, $"INSERT INTO combination_item_required (combination_id, item_template_id) VALUES ({recipe.Id}, {id})");
+                    for (int i = 0; i < recipe.Required.Length; i++)
+                    {
+                        Run(conn, recipe.Quantities is null
+                            ? $"INSERT INTO combination_item_required (combination_id, item_template_id) VALUES ({recipe.Id}, {recipe.Required[i]})"
+                            : $"INSERT INTO combination_item_required (combination_id, item_template_id, quantity) VALUES ({recipe.Id}, {recipe.Required[i]}, {recipe.Quantities[i]})");
+                    }
                     foreach (var id in recipe.Results)
                         Run(conn, $"INSERT INTO combination_item_results (combination_id, item_template_id) VALUES ({recipe.Id}, {id})");
                 }
             });
 
-            fixture.World.CombinationHandler.LoadCombinations(fixture.World);
+            try
+            {
+                fixture.World.CombinationHandler.LoadCombinations(fixture.World);
+            }
+            catch
+            {
+                fixture.Dispose();
+                throw;
+            }
         }
+
+        public Combination Get(int id) => fixture.World.CombinationHandler.GetAll().Single(c => c.ID == id);
 
         public Combination? Match(params (int TemplateId, long Count)[] bag)
         {
@@ -180,5 +196,46 @@ public class CombinationHandlerTests
 
         Assert.NotNull(match);
         Assert.Equal("Lower", match.Name);
+    }
+
+    [Fact]
+    public void A_quantity_requires_that_many_of_the_ingredient()
+    {
+        using var handler = new HandlerFixture(99, new Recipe(75, "Trappers Pack", [8, 455, 58], [772], [10, 10, 1]));
+
+        Assert.Null(handler.Match((8, 9), (455, 10), (58, 1)));
+        Assert.NotNull(handler.Match((8, 10), (455, 10), (58, 1)));
+        Assert.Equal(21, handler.Get(75).RequiredTotal);
+    }
+
+    [Fact]
+    public void Repeated_rows_add_their_quantities_together()
+    {
+        using var handler = new HandlerFixture(99, new Recipe(75, "Trappers Pack", [438, 438], [772], [1, 1]));
+
+        Assert.Equal(2, handler.Get(75).RequiredHash[438]);
+    }
+
+    [Fact]
+    public void A_recipe_larger_than_the_bag_loads_when_its_ingredients_stack()
+    {
+        int[] required = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+        using var handler = new HandlerFixture(99, new Recipe(75, "Big", required, [772], required.Select(_ => 30).ToArray()));
+
+        Assert.Equal(300, handler.Get(75).RequiredTotal);
+    }
+
+    [Fact]
+    public void A_recipe_needing_more_slots_than_the_bag_holds_fails_to_load()
+    {
+        Assert.ThrowsAny<Exception>(() =>
+            new HandlerFixture(1, new Recipe(75, "Too Big", [1, 2], [772], [6, 5])));
+    }
+
+    [Fact]
+    public void A_quantity_of_zero_fails_to_load()
+    {
+        Assert.ThrowsAny<Exception>(() =>
+            new HandlerFixture(99, new Recipe(75, "Broken", [1], [772], [0])));
     }
 }

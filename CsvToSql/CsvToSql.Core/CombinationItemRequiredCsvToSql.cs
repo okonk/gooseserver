@@ -8,6 +8,7 @@ namespace CsvToSql
         {
             Col.Id("combination_id", SqlType.Int).Ref("Combinations"),
             Col.Id("item_template_id", SqlType.Int).Ref("Items"),
+            Col.Int("quantity", SqlType.Int, def: 1),
         };
     }
 }

@@ -2965,6 +2965,14 @@ var GOOSE_SCHEMA = {
           "required": true,
           "pk": false,
           "ref": "Items"
+        },
+        {
+          "name": "quantity",
+          "kind": "Int",
+          "sql": "INT",
+          "default": "1",
+          "required": false,
+          "pk": false
         }
       ],
       "composites": [],
