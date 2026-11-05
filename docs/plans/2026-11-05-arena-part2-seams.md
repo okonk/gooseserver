@@ -1,14 +1,14 @@
 # Arena Part 2: Server Seams — Implementation Plan
 
 **Goal:** Add the three generic server seams the arena scripts need: a player-death hook with a
-map respawn override, an NPC-script damage-taken intercept, and a public melee path that takes
-a script-supplied base damage.
+map respawn override, an NPC-script damage-taken intercept, and an NPC-script hook that sets
+the melee base damage per target, plus a public pure mitigation function.
 
 **Architecture:** Each seam follows an existing pattern. The death hook copies the global
 `OnNPCKilled` dispatch (`NPC.cs:1381-1396`) and the map hook's try/log style (`Map.cs:197-225`).
-The damage intercept sits next to the buff intercept in `NPC.Attacked`. The melee path splits
-`NPC.Attack` so the formula's base-damage term is a parameter, without changing behaviour for
-normal mobs.
+The damage intercept sits next to the buff intercept in `NPC.Attacked`. The melee hook sits
+in `NPC.Attack` between the base-damage term and the crit roll, so engine targeting and
+mitigation are unchanged.
 Design: `docs/plans/2026-11-05-arena-design.md` (Part 2 of 4).
 
 **Tech Stack:** .NET 10, C#, xUnit.
@@ -156,62 +156,77 @@ and returns the unchanged damage on exception. The result then flows into the ex
 
 ---
 
-### Task 3: Public melee path with a supplied base damage
+### Task 3: NPC-script melee base damage hook and public mitigation
+
+**Why a hook rather than a script-owned attack loop:** `HandleAttackEvent`
+(`NPC.cs:1439-1548`) already handles stun, root, stuck behaviours, main and secondary
+targets, and range, and then calls `Attack(target)`. If the arena only adjusts the **base**
+damage per target, every engine behaviour carries over, and AC/DR/crit still apply on top.
 
 **Files:**
-- Modify: `Goose/NPC.cs:1582-1628`
+- Modify: `Goose/Scripting/INPCScript.cs`, `BaseNPCScript.cs`, `Goose/NPC.cs:1582-1598`
 - Test: `Goose.Tests/NpcMeleeDamageTests.cs`
 
-**Contract (helper extraction):**
+**Contract:**
 
 ```csharp
-public void Attack(ICharacter character, GameWorld world)
-    => this.AttackWithBaseDamage(character,
-           this.MaxStats.Strength + this.WeaponDamage + this.Level + (this.Level - character.Level), world);
+// INPCScript / BaseNPCScript (default returns baseDamage)
+double MeleeBaseDamage(NPC npc, ICharacter target, double baseDamage, GameWorld world);
 
-public void AttackWithBaseDamage(ICharacter character, double baseDamage, GameWorld world);
-
-public double MitigateMelee(ICharacter character, double damage, GameWorld world);
+// NPC
+public double MitigateMelee(ICharacter target, double damage, GameWorld world);
 ```
 
-- `MitigateMelee` is **pure**: no RNG, no packets, no state. It applies, in the original order:
-  `× (1 + MaxStats.MeleeDamage)`, `× (1 − EffectiveDamageReduction(target DR, softCap))`,
-  `× absorb(target AC, ArmorPierce, ACMultiplier, MaxAC)`, `− target AC × ACMultiplier / 25`.
-  It returns the raw double; callers decide what ≤ 0 means.
-- `AttackWithBaseDamage` holds the rest of the old `Attack` body unchanged:
-  `BreakInvisibility`, `damage = baseDamage × CritMultiplier(...)` (**the single RNG roll stays
-  here, so the shared random sequence is unchanged**), `MitigateMelee`, the attack packet,
-  `Attacked`/`OnMeleeHit`/`OnMeleeAttack` or the miss text, and `LastAttackTime`.
-- The arena calls `AttackWithBaseDamage` for real hits and `MitigateMelee` for `/arena preview`
-  (no crit, no side effects).
+`NPC.Attack` becomes:
+1. `BreakInvisibility` (unchanged).
+2. `double damage = Strength + WeaponDamage + Level + (Level − target.Level)` (unchanged).
+3. **New:** `damage = this.MeleeBaseDamageByScript(target, damage, world)`, a private helper
+   with try/catch → `log.Error(e, "NPC MeleeBaseDamage {0} ({1}) Exception", …)` that keeps
+   the unchanged value on exception.
+4. `damage *= Utils.CritMultiplier(...)`. **The single RNG roll stays here, so the shared random
+   sequence is unchanged.**
+5. `damage = this.MitigateMelee(target, damage, world)`.
+6. The rest unchanged: packets, `Attacked`, `OnMeleeHit`/`OnMeleeAttack`, miss text,
+   `LastAttackTime`.
+
+`MitigateMelee` is **pure**: no RNG, no packets, no state. It applies, in the original order:
+`× (1 + MaxStats.MeleeDamage)`, `× (1 − EffectiveDamageReduction(target DR, softCap))`,
+`× absorb(target AC, ArmorPierce, ACMultiplier, MaxAC)`, `− target AC × ACMultiplier / 25`, and
+returns the raw double. The arena uses it for `/arena preview` (no crit, no side effects), and
+it's public because `Utils` is internal.
 
 **Mutation impact:**
-- No state changes. This is a pure refactor plus one new pure function.
-- Invariants: `Attack` damage is bit-identical for the same seed; RNG consumption is
-  unchanged (exactly one `CritMultiplier` roll per attack).
+- No state changes. A behaviour-preserving refactor plus one hook that defaults to identity.
+- Invariants: with no script, `Attack` damage is bit-identical for the same seed, and RNG
+  consumption is unchanged (exactly one `CritMultiplier` roll). The hook sees the actual
+  target, including secondary targets chosen at `NPC.cs:1530-1544`.
 
 **Step 1: Red-before-refactor.** Write characterisation tests **against the current code first**
-and confirm they pass before refactoring:
+(use the `NpcAttackTargetLostTests` harness) and confirm they pass before refactoring:
 - `Attack_damage_matches_formula_without_crit`: NPC Str 100, WeaponDamage 5000, Level 50, target
   level 1, AC 500, `ACMultiplier` 1, DR 0.1, MaxAC 3500, MeleeCrit 0. Compute the expected HP loss
-  by hand from the formula at `NPC.cs:1586-1598` and assert it exactly.
-- `Attack_with_seeded_crit_matches_reference`: MeleeCrit 0.5 with a seeded `Random`
-  (`new TestWorldFixture(configure, new Random(1234))`). Record HP loss over 20 attacks and assert
-  it equals the sequence recorded from the pre-refactor run, pasted into the test.
+  by hand from `NPC.cs:1586-1598` and assert it exactly.
+- `Attack_with_seeded_crit_matches_reference`: MeleeCrit 0.5, world built with a seeded `Random`
+  (`GameWorld` internal constructor, as `TestWorldFixture(configure, random)` does). Record HP loss
+  over 20 attacks on a high-HP target and assert it equals the sequence recorded from the
+  pre-refactor run, pasted into the test.
 
-Then add the new tests (red until implemented):
-- `MitigateMelee_is_deterministic_and_matches_attack_without_crit`: equals the hand-computed value
-  above. Calling it twice doesn't advance `world.Random` (compare `Next()` from two identically
-  seeded worlds).
-- `AttackWithBaseDamage_uses_supplied_base`: base 65,000 with the same target → HP loss equals
-  `MitigateMelee(65000)`, truncated to long.
-- `AttackWithBaseDamage_zero_or_negative_after_mitigation_is_a_miss` (adversarial): tiny base,
-  huge AC → HP unchanged, miss text sent.
+Then the new tests, red until implemented:
+- `MitigateMelee_matches_attack_without_crit_and_consumes_no_random`: equals the hand-computed
+  value. Two identically seeded worlds, one calling `MitigateMelee` 5 times, then both call
+  `world.Random.Next()` → equal.
+- `Script_base_damage_replaces_template_base`: the script returns `65000` → HP loss equals
+  `(long)MitigateMelee(target, 65000)` with crit 0.
+- `Script_sees_the_actual_target_including_secondary_targets` (adversarial): NPC aggro target out
+  of range, a second aggroed player in range → `HandleAttackEvent` → the script's recorded
+  target is the in-range player.
+- `Throwing_script_uses_template_base` (adversarial).
+- `Script_base_mitigated_below_zero_is_a_miss`: base 1 vs AC 3000 → HP unchanged, miss text sent.
 
-**Step 2: Green.** Refactor `Attack` and implement. All tests pass, including both
-characterisation tests unchanged.
+**Step 2: Green.** Refactor and implement. All tests pass, including both characterisation tests
+unchanged.
 
-**Step 3: Commit** `refactor(npc): split melee attack so scripts can supply base damage`
+**Step 3: Commit** `feat(scripting): NPC script melee base damage hook and public MitigateMelee`
 
 ---
 
@@ -221,7 +236,8 @@ characterisation tests unchanged.
 2. `dotnet test Goose.IntegrationTests --no-restore` → all pass. Shipped scripts recompile
    against the changed interfaces.
 3. Update `docs/plans/2026-11-05-arena-design.md`:
-   - server change §5 names `AttackWithBaseDamage` / `MitigateMelee`;
+   - server change §5 becomes "`MeleeBaseDamage` NPC-script hook + public `MitigateMelee`"; the
+     arena mob does **not** own its attack loop (scaling section: "Mob → player" uses the hook);
    - §6 becomes "no server change: the arena map evicts non-participants in
      `OnPlayerEntered`, which also runs on login";
    - §3 states the hook order (map hook first, then globals, before the warp).
@@ -237,5 +253,6 @@ characterisation tests unchanged.
 | Broken scripts never block respawn | `Throwing_map_hook_falls_back_to_bind_point`, `Throwing_global_script_does_not_stop_others_or_the_respawn` |
 | NPC script intercept runs after buffs | `Script_sees_damage_after_buff_intercepts` |
 | Intercepted damage drives the kill | `Lethal_intercepted_damage_kills_and_credits_killer` |
-| Melee refactor is behaviour-preserving, including RNG | `Attack_damage_matches_formula_without_crit`, `Attack_with_seeded_crit_matches_reference` |
-| Preview mitigation has no side effects | `MitigateMelee_is_deterministic_and_matches_attack_without_crit` |
+| Melee change is behaviour-preserving with no script, including RNG | `Attack_damage_matches_formula_without_crit`, `Attack_with_seeded_crit_matches_reference` |
+| Preview mitigation has no side effects | `MitigateMelee_matches_attack_without_crit_and_consumes_no_random` |
+| Hook sees the real (possibly secondary) target | `Script_sees_the_actual_target_including_secondary_targets` |
