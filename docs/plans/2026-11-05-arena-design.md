@@ -68,26 +68,33 @@ A client button may call it later.
 
 ### 3. `OnPlayerDied`
 
-Fired from the player death branch (`Player.Attacked`, before the bind warp) on global
-scripts and the current map's script. The map hook may return a respawn location override
+Fired from the player death branch (`Player.Attacked`, before the bind warp): the current
+map's script first, then every global script. The map hook may return a respawn location override
 so arena deaths land in the lobby rather than at the player's bind point.
 
-### 4. `InterceptDamageTaken` on NPC scripts
+### 4. NPC-script damage hooks
 
-`long InterceptDamageTaken(NPC npc, ICharacter attacker, long damage, GameWorld world)` on
-`INPCScript`, default returns `damage`. Called in `NPC.Attacked` after buff intercepts, so
-buff effects apply first and the NPC script has the final say.
+- `long InterceptDamageTaken(NPC npc, ICharacter attacker, long damage, GameWorld world)`,
+  default returns `damage`. Called in `NPC.Attacked` after buff intercepts, so buff effects
+  apply first and the NPC script has the final say.
+- `double MeleeBaseDamage(NPC npc, ICharacter target, double baseDamage, GameWorld world)`,
+  default returns `baseDamage`. Called in `NPC.Attack` before the crit roll, so engine targeting,
+  stun/root, crit, DR and AC all still apply. Arena mobs don't need their own attack loop.
 
-### 5. Melee damage helper
+### 5. Public `NPC.MitigateMelee`
 
-The body of `NPC.Attack` that turns base damage into mitigated damage (crit, melee damage,
-DR, AC absorb, armor pierce, flat AC) is extracted into a reusable helper taking the base
-damage, so scripted attacks get identical mitigation.
+A pure function (no RNG, no side effects) with the melee mitigation from `NPC.Attack`
+(melee damage, DR, AC absorb, armor pierce, flat AC). `NPC.Attack` uses it, and
+`/arena preview` uses it to show before/after-defence numbers.
 
-### 6. Relog onto a restricted map
+### 6. `OnPlayerClicked` on NPC scripts
 
-A player saved on the arena map who logs in after their run ended must land in the lobby.
-Planning verifies whether `CanPlayerJoin` runs on login and adds handling if not.
+`bool OnPlayerClicked(NPC npc, Player player, GameWorld world)`, called on NPC left-click before
+the community-goal and quest windows. Returning true means handled. The Arena Master hub uses it.
+
+**Not a server change:** relogging onto the arena map. Login fires the map's
+`OnPlayerEntered`, and the arena map script evicts non-participants there, the same way the
+Halloween house does.
 
 ## Scripts (`Scripts/Arena/`)
 
@@ -97,18 +104,23 @@ Scripts/Arena/
   arena.json                 all tuning
   ArenaConfig.csx            load + validate arena.json
   ArenaMath.csx              pure functions: scaling, waves, payouts, ranking
-  ArenaController.csx        global script: schedule, announcements, run state machine, GM commands
-  ArenaMap.csx               arena map script: CanPlayerJoin, OnPlayerLeft, OnPlayerDied
+  ArenaState.csx             run-state DTOs, stored in WorldState as JSON strings
+  ArenaCore.csx              operations shared by every arena script
+  ArenaBoard.csx             leaderboard storage and ranking
+  ArenaController.csx        global script: timer, schedule, announcements, recovery, kills, GM commands
+  ArenaMap.csx               arena map script: CanPlayerJoin, OnPlayerEntered, OnPlayerLeft, OnPlayerDied
   ArenaMob.csx               NPC script on arena mob templates
   ArenaMaster.csx            NPC script on the Arena Master: hub + leaderboards
 ```
 
 Only the top level of `Scripts/Global/` is auto-loaded, so the shim keeps the arena in its
-own folder.
+own folder. Each script compiles its `#load`ed files into its own assembly, so statics are not
+shared between scripts. All shared state goes through `WorldState` as JSON strings.
+`arena.json` re-reads automatically when its modified time changes.
 
 ## Run lifecycle
 
-**Schedule.** `intervalHours` (3) from `anchor` (e.g. 00:00 server time). If a run is still
+**Schedule.** `intervalHours` (3) from `anchorUtc` (e.g. 00:00 UTC). If a run is still
 in progress at a scheduled start, that start is skipped.
 
 **Announcements.** Server-wide at each `announceMinutes` entry (`[15, 10, 5]`) and at start.
@@ -134,8 +146,8 @@ they respawn in the lobby. `ArenaMap.CanPlayerJoin` refuses anyone not in the ru
 update leaderboards, announce the result.
 
 **State and reload.** State is reconstructable, so `/reloadscripts` mid-run resumes:
-- participants = non-GM players on the arena map (the map script guarantees only
-  participants can be there);
+- participants = an explicit id list in run state, saved **before** each warp-in; the arena
+  map evicts anyone else in `OnPlayerEntered` (including on login);
 - mobs = NPCs on the arena map tagged through `npc.Properties` (`arenaRound`, tier, damage
   log);
 - counters (round, deadline, per-player rounds cleared and coins earned this run) in
@@ -143,8 +155,8 @@ update leaderboards, announce the result.
 - timers use the Halloween reload-safe pattern (re-resolve `Script.Object`, invoke
   reflectively, reschedule in `finally`).
 
-After a **server restart** the round deadline is stale; the controller aborts the run
-cleanly on load: despawn arena mobs, move anyone on the arena map to the lobby, pay
+After a **server restart** (`OnLoaded` only runs at process start, and `WorldState` loads after
+it, so this runs from a one-shot timer) the controller aborts the run cleanly: despawn arena mobs, move anyone on the arena map to the lobby, pay
 bonuses, clear run state.
 
 ## Waves
@@ -194,7 +206,7 @@ count in full.
 mobHp(round, tier) = anchorMobHp × hpGrowth^(round − anchorRound) × tierHpMult
 ```
 
-**Mob → player** (`ArenaMob.OnAttackEvent`, own attack loop):
+**Mob → player** (`ArenaMob.MeleeBaseDamage`; engine attack loop):
 
 ```
 weaponDmg = anchorMobWeaponDamage × dmgGrowth^(round − anchorRound) × tierDmgMult × s^b    // b ≈ 0.75
@@ -241,14 +253,14 @@ follow-up.
 ## GM commands
 
 - `/arena start` / `/arena stop` — force or abort a run.
-- `/arena reload` — re-read `arena.json` without a script reload.
+- `/arena status` — phase, round, alive count, next start.
 - `/arena preview <round> [player]` — normal/elite/boss HP for that round, the player's
   effective hit and hits to kill from their real stats, and mob hit before and after their
   real AC/DR.
 
 ## Configuration (`arena.json`)
 
-`lobbyMap`, `arenaMap`, `arenaRect`, `intervalHours`, `anchor`, `announceMinutes`,
+`lobbyMap`, `lobbySpawn`, `arenaMap`, `arenaRect`, `intervalHours`, `anchorUtc`, `announceMinutes`,
 `countdownSeconds`, `breakSeconds`, `roundSeconds`, `timeoutWarningSeconds`,
 `stragglerCount`, `minPlayerDistance`, `baseCount`, `perPlayer`, `bandSize`, `bands[]`
 (`normals[]`, `boss`), `eliteFromRound`, `eliteChance`, `eliteChanceGrowth`,
@@ -265,7 +277,14 @@ follow-up.
   `Goose.IntegrationTests`.
 - Scripts: compiled and exercised like `WanderingChestScriptTests` — `ArenaMath` functions,
   controller state machine with controlled time, config validation.
-- Manual: `/arena start`, `/arena preview`, `/arena reload` on a dev server.
+- Manual: `/arena start`, `/arena preview`, editing `arena.json` live on a dev server.
+
+## Plans
+
+1. `2026-11-05-arena-part1-currencies.md` — data-driven currencies, `/wallet`
+2. `2026-11-05-arena-part2-seams.md` — death hook, NPC damage hooks, `MitigateMelee`
+3. `2026-11-05-arena-part3-core.md` — arena scripts
+4. `2026-11-05-arena-part4-hub-leaderboards.md` — click hook, Arena Master, leaderboards
 
 ## Deferred
 
