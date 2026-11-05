@@ -45,8 +45,9 @@ All generic; none mention the arena.
 
 - New table `currencies(currency_id, name, short_name, icon_sheet, icon_graphic, vendor_buyback)`.
   Each row registers a `DataCurrency : ICurrency` at world load.
-- New table `player_currencies(player_id, currency_id, balance)` holds balances for data
-  currencies. Gold, credits and script currencies (spirit) keep their existing storage.
+- Balances for data currencies live in `Player.Properties["currency.<id>"]`, which already
+  persists as JSON in `players.player_properties` — no new table, saved atomically with the
+  player. Gold, credits and script currencies (spirit) keep their existing storage.
 - `ICurrency` gains an optional icon (default interface member returning `null`).
 - `DataCurrency.GetBuyPrice` = `Value × stack`. `GetSellPrice` = `Value × stack / 2`, or `-1`
   (refuse) when `vendor_buyback = 0` or `Value = 0`.
