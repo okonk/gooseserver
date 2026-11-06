@@ -26,6 +26,9 @@ namespace Goose.Scripting
 
         }
 
+        public virtual long InterceptDamageTaken(NPC npc, ICharacter attacker, long damage, GameWorld world)
+            => damage;
+
         public virtual void OnKilledEvent(NPC npc, ICharacter killer, GameWorld world)
         {
 

@@ -12,6 +12,8 @@ namespace Goose.Scripting
 
         void OnAttackedEvent(NPC npc, ICharacter attacker, long damage, GameWorld world);
 
+        long InterceptDamageTaken(NPC npc, ICharacter attacker, long damage, GameWorld world);
+
         void OnKilledEvent(NPC npc, ICharacter killer, GameWorld world);
 
         void OnPlayerChatEvent(NPC npc, Player player, string message, GameWorld world);

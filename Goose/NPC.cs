@@ -1211,6 +1211,7 @@ namespace Goose
                 }
 
                 damage = DamageIntercept.Apply(this, character, damage, world);
+                damage = this.InterceptDamageTakenByScript(character, damage, world);
 
                 packet = "";
                 if (damage <= 0)
@@ -1371,6 +1372,22 @@ namespace Goose
                 {
                     world.Send(p, packet);
                 }
+            }
+        }
+
+        private long InterceptDamageTakenByScript(ICharacter attacker, long damage, GameWorld world)
+        {
+            var script = this.Script;
+            if (script is null) return damage;
+
+            try
+            {
+                return script.Object.InterceptDamageTaken(this, attacker, damage, world);
+            }
+            catch (Exception e)
+            {
+                log.Error(e, "NPC InterceptDamageTaken {0} ({1}) Exception", this.Name, this.NPCTemplateID);
+                return damage;
             }
         }
 
