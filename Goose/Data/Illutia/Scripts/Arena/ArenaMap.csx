@@ -23,15 +23,20 @@ public class ArenaMap : BaseMapScript
 
     public override RespawnLocation? OnPlayerDied(Map map, Player player, ICharacter killer, GameWorld world)
     {
+        if (ArenaCore.IsParticipant(world, player.PlayerID))
+            ArenaCore.Eliminate(world, player.PlayerID, "slain by " + killer.Name);
         var cfg = ArenaConfig.Get(world);
         if (!cfg.Enabled(world)) return null;
         if (!world.MapHandler.Maps.TryGetValue(cfg.LobbyMap, out var lobby)) return null;
-        // EndRun warps dead participants and the engine warps again after OnPlayerDied;
-        // a second cross-map warp NREs, so attach to the lobby first to make it same-map.
-        player.Map = lobby;
-        player.MapID = lobby.ID;
-        if (ArenaCore.IsParticipant(world, player.PlayerID))
-            ArenaCore.Eliminate(world, player.PlayerID, "slain by " + killer.Name);
+        // Engine warps again after OnPlayerDied, and WarpTo NREs when Map is null.
+        // Do the protocol-complete cross-map warp here (EndRun already did it for the last
+        // participant), then re-attach so the engine's warp is a same-map move.
+        if (player.Map is null) player.Map = lobby;
+        else if (player.Map != lobby)
+        {
+            player.WarpTo(world, lobby, cfg.LobbySpawn[0], cfg.LobbySpawn[1]);
+            player.Map = lobby;
+        }
         map.RemovePlayer(player, world);
         return new RespawnLocation(lobby, cfg.LobbySpawn[0], cfg.LobbySpawn[1]);
     }

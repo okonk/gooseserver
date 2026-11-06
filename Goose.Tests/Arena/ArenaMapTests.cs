@@ -66,11 +66,37 @@ public sealed class ArenaMapTests : IDisposable
         var mob = kit.ArenaMap.NPCs.First();
         mob.Attack(p1, kit.World);
 
+        Assert.Contains(p1.Sent, s => s.Contains(P.SendCurrentMap(kit.LobbyMap)));
         Assert.Equal(ArenaTestKit.LobbyMapId, p1.MapID);
         Assert.Equal(p1.MaxHP / 2, p1.CurrentHP);
         Assert.Null(Run(kit));
         Assert.NotNull(LastRun(kit));
         Assert.Equal(0, (int)Prop(LastResult(kit, "P1"), "RoundsCleared"));
+    }
+
+    [Fact]
+    public void Death_of_non_last_participant_warps_to_lobby_with_map_load()
+    {
+        kit.AttachMapScript();
+        var p1 = kit.LobbyPlayer(70001, "P1");
+        var p2 = kit.LobbyPlayer(70002, "P2");
+        p1.ExperienceSold = 3_000_000_000;
+        p2.ExperienceSold = 3_000_000_000;
+        StartRun(kit, Now);
+        Tick(kit, Now.AddSeconds(11));
+        kit.Enter(kit.ArenaMap, p1);
+        kit.Enter(kit.ArenaMap, p2);
+        p1.CurrentHP = 1;
+        var mob = kit.ArenaMap.NPCs.First();
+        mob.Attack(p1, kit.World);
+
+        Assert.Contains(p1.Sent, s => s.Contains(P.SendCurrentMap(kit.LobbyMap)));
+        Assert.Equal(ArenaTestKit.LobbyMapId, p1.MapID);
+        Assert.Equal(p1.MaxHP / 2, p1.CurrentHP);
+        Assert.DoesNotContain(p1, kit.ArenaMap.Players);
+        var run = Run(kit)!;
+        Assert.NotNull(run);
+        Assert.True((bool)Prop(((System.Collections.IDictionary)Prop(run, "Participants")!)[70002], "Alive")!);
     }
 
     [Fact]
