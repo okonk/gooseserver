@@ -65,6 +65,16 @@ public class CurrencyDataLoadTests : PlayerFirstSaveTestBase
     }
 
     [Fact]
+    public void Data_row_cannot_redefine_spirit()
+    {
+        Insert("INSERT INTO currencies (currency_id, name) VALUES ('spirit', 'Not Spirit')");
+
+        world.CurrencyHandler.LoadDataCurrencies(world);
+
+        Assert.Null(world.CurrencyHandler.Get("spirit"));
+    }
+
+    [Fact]
     public void Missing_currencies_table_is_tolerated()
     {
         Insert("DROP TABLE currencies");

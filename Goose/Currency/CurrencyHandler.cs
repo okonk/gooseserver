@@ -11,6 +11,11 @@ namespace Goose
         private readonly Dictionary<string, ICurrency> currencies =
             new Dictionary<string, ICurrency>(StringComparer.OrdinalIgnoreCase);
 
+        // Registered by a global script after LoadDataCurrencies runs; a data row claiming the id first would make the script's Register throw at startup.
+        // The literal lives here because the id constant (DimensionConstants.SpiritCurrencyId) is inside a Roslyn-compiled .csx script the core cannot reference.
+        private static readonly HashSet<string> ScriptOwnedCurrencyIds =
+            new(StringComparer.OrdinalIgnoreCase) { "spirit" };
+
         /// <summary>Insertion-ordered view beside the dictionary, so /wallet and other
         /// enumerators see registration order, not hash order.</summary>
         private readonly List<ICurrency> all = new List<ICurrency>();
@@ -86,6 +91,10 @@ namespace Goose
                     if (existing is DataCurrency data)
                     {
                         data.Update(name, shortName, icon, vendorBuyback);
+                    }
+                    else if (ScriptOwnedCurrencyIds.Contains(id))
+                    {
+                        log.Error("currencies: row {0} would redefine script-owned currency; skipped", id);
                     }
                     else if (existing is not null)
                     {
