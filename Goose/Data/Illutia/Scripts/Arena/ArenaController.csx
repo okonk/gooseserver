@@ -117,6 +117,11 @@ public class ArenaController : BaseGlobalScript
     {
         var world = ctx.World;
         var cfg = ArenaConfig.Get(world);
+        if (!cfg.Valid)
+        {
+            ctx.Send("The arena is disabled.");
+            return;
+        }
         var next = ArenaMath.NextStartUtc(DateTime.UtcNow, cfg).ToString("HH:mm", CultureInfo.InvariantCulture);
         var run = ArenaState.Load(world);
         if (run is null)

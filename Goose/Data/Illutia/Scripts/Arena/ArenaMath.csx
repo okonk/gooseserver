@@ -112,6 +112,7 @@ public static class ArenaMath
     {
         DateTime anchor = nowUtc.Date + TimeSpan.Parse(c.AnchorUtc);
         TimeSpan interval = TimeSpan.FromHours(c.IntervalHours);
+        if (interval <= TimeSpan.Zero) return anchor;
         while (anchor <= nowUtc) anchor += interval;
         return anchor;
     }

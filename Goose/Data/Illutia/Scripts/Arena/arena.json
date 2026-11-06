@@ -1,6 +1,7 @@
 {
     // Map ids 0 until real arena maps exist; the arena stays disabled until both
-    // are set and present in the world.
+    // are set and present in the world. Band template ids are placeholders until
+    // real arena mobs exist.
     "lobbyMap": 0,
     "lobbySpawn": [0, 0],
     "arenaMap": 0,
@@ -19,7 +20,7 @@
     "baseCount": 4,
     "perPlayer": 2,
     "bandSize": 10,
-    "bands": [],
+    "bands": [{ "normals": [41001, 41002, 41003], "boss": 41101 }],
 
     "eliteFromRound": 3,
     "eliteChance": 0.05,

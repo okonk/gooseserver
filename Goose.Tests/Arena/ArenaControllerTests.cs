@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.Json.Nodes;
 using Goose;
 using Goose.Scripting;
 
@@ -197,5 +198,30 @@ public sealed class ArenaControllerTests : IDisposable
         Assert.Null(Run(kit));
         Assert.NotNull(LastRun(kit));
         Assert.Contains(gm.Sent, s => s.Contains("Arena run stopped."));
+    }
+
+    [Fact]
+    public void Status_with_broken_config_does_not_hang()
+    {
+        kit.SetConfig(j => j["a"] = 3.5);
+        var controller = kit.RegisterController();
+        controller.Object.OnLoaded(kit.World);
+        var gm = kit.LobbyPlayer(70001, "GM", gm: true);
+
+        Assert.True(kit.Fixture.RunCommand(gm, "/arena status"));
+        Assert.Contains(gm.Sent, s => s.Contains("The arena is disabled."));
+    }
+
+    [Fact]
+    public void Empty_bands_config_is_disabled()
+    {
+        kit.SetConfig(j => j["bands"] = new JsonArray());
+        var controller = kit.RegisterController();
+        controller.Object.OnLoaded(kit.World);
+        var gm = kit.LobbyPlayer(70001, "GM", gm: true);
+
+        Assert.False((bool)Call(kit.Host, "Enabled", kit.World)!);
+        Assert.True(kit.Fixture.RunCommand(gm, "/arena status"));
+        Assert.Contains(gm.Sent, s => s.Contains("The arena is disabled."));
     }
 }

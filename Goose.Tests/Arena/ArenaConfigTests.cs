@@ -28,7 +28,8 @@ public sealed class ArenaConfigTests : IDisposable
         Assert.True(Prop<bool>(config, "Valid"));
         Assert.Equal(0, Prop<int>(config, "LobbyMap"));
         Assert.Equal(0, Prop<int>(config, "ArenaMap"));
-        Assert.Empty((System.Collections.IEnumerable)Prop<object>(config, "Bands")!);
+        var bands = (System.Collections.IList)Prop<object>(config, "Bands")!;
+        Assert.Single(bands);
         Assert.False(Enabled(kit));
     }
 
