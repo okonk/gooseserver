@@ -160,6 +160,7 @@ public sealed class ArenaTestKit : IDisposable
         #load "../Arena/ArenaConfig.csx"
         #load "../Arena/ArenaMath.csx"
         #load "../Arena/ArenaState.csx"
+        #load "../Arena/ArenaBoard.csx"
         #load "../Arena/ArenaCore.csx"
         using System;
         using System.Collections.Generic;
@@ -179,6 +180,12 @@ public sealed class ArenaTestKit : IDisposable
             public bool IsParticipant(GameWorld world, int id) => ArenaCore.IsParticipant(world, id);
             public object Run(GameWorld world) => ArenaState.Load(world);
             public object LastRun(GameWorld world) => ArenaState.LoadLastRun(world);
+            public string WeekKey(DateTime utc) => ArenaBoard.WeekKey(utc);
+            public object BoardLoad(GameWorld world) => ArenaBoard.Load(world);
+            public void BoardSave(GameWorld world, object board) => ArenaBoard.Save(world, (ArenaBoard)board);
+            public void BoardRecord(GameWorld world, object run, DateTime now) => ArenaBoard.Record(world, (ArenaRun)run, now);
+            public List<(int Id, long Value)> BoardTop(object board, int kind, bool weekly, string week, int n) => ArenaBoard.Top((ArenaBoard)board, (ArenaBoardKind)kind, weekly, week, n);
+            public (int Rank, long Value)? BoardRankOf(object board, int id, int kind, bool weekly, string week) => ArenaBoard.RankOf((ArenaBoard)board, id, (ArenaBoardKind)kind, weekly, week);
             public void SaveRun(GameWorld world, object run) => ArenaState.Save(world, (ArenaRun)run);
             public Player FindPlayer(GameWorld world, int id) => ArenaCore.FindPlayer(world, id);
             public bool Enabled(GameWorld world) => ArenaConfig.Get(world).Enabled(world);

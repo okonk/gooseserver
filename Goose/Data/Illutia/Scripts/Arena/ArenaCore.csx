@@ -1,3 +1,4 @@
+#load "ArenaBoard.csx"
 #load "ArenaConfig.csx"
 #load "ArenaMath.csx"
 #load "ArenaState.csx"
@@ -344,6 +345,7 @@ public static class ArenaCore
 
     public static void RecordResults(GameWorld world, ArenaRun run)
     {
+        ArenaBoard.Record(world, run, DateTime.UtcNow);
     }
 
     public static Player? FindPlayer(GameWorld world, int playerId)
