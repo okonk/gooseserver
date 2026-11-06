@@ -2788,7 +2788,7 @@ test('the publish check never reads an editor-only sheet', () => {
 
 test('the report reads in SHEET order however the replies interleave', () => {
   // Each reply lands in its own slot and the slots are walked in schema order, so the run is
-  // diffable against the last one. Reversing the queue is the shape of the real hazard: 22 concurrent
+  // diffable against the last one. Reversing the queue is the shape of the real hazard: 23 concurrent
   // reads of very different sizes (NPC Spawns is 4,322 rows, Titles a handful) do not answer in the
   // order they were asked.
   const broken = {

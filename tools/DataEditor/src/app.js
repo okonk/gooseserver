@@ -2078,15 +2078,15 @@ var App = (function () {
   /// Publish check: validate every record on every sheet before telling the user to publish.
   ///
   /// Two phases, because a per-sheet check cannot see the sheets it points at. Phase one reads
-  /// all 22 sheets and builds one id set per sheet; phase two validates every row against that
+  /// all 23 sheets and builds one id set per sheet; phase two validates every row against that
   /// whole map. Checking against whatever sheet happens to be open would validate NPC Drops'
   /// item ids against, say, the Maps id set and report every row as broken.
   function publishCheck() {
     var panel = document.getElementById('publish-results');
-    // Says so, rather than doing nothing: the run is 22 round trips and a whole spreadsheet's worth
+    // Says so, rather than doing nothing: the run is 23 round trips and a whole spreadsheet's worth
     // of rows over the wire, so a user who clicks again after a few seconds of apparent silence
     // gets an answer instead of the same silence.
-    if (state.checking) { status('Still checking all 22 sheets…'); return; }
+    if (state.checking) { status('Still checking all 23 sheets…'); return; }
     state.checking = true;
 
     // Editor-only sheets are never imported, so they cannot break a publish.
@@ -2103,8 +2103,8 @@ var App = (function () {
       problems.push({ sheet: sheet, row: row, message: message });
     }
 
-    // ALL 22 READS AT ONCE, not one after the next. Phase two cannot start until every sheet is in
-    // hand, so ordering them buys nothing and costs 22 serialised round trips end to end — which is
+    // ALL 23 READS AT ONCE, not one after the next. Phase two cannot start until every sheet is in
+    // hand, so ordering them buys nothing and costs 23 serialised round trips end to end — which is
     // most of the wall clock of the whole check, since each reply is only a sheet's rows and the
     // validation itself is local. Fired together, the latencies overlap.
     //
@@ -2116,7 +2116,7 @@ var App = (function () {
     var remaining = sheets.length;
 
     function readAll() {
-      // Not reachable with the shipped schema (22 sheets), but a fan-out of nothing must still
+      // Not reachable with the shipped schema (23 sheets), but a fan-out of nothing must still
       // finish the run rather than wait for a reply that will never come.
       if (!remaining) { collected(); return; }
 
