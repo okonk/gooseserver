@@ -71,6 +71,10 @@ A client button may call it later.
 Fired from the player death branch (`Player.Attacked`, before the bind warp): the current
 map's script first, then every global script. The map hook may return a respawn location override
 so arena deaths land in the lobby rather than at the player's bind point.
+The engine warps the player again after the hook returns, and a second cross-map warp NREs
+(`WarpTo` dereferences `Map`, which the first cross-map warp set to null) — so the arena map
+script performs the protocol-complete cross-map warp to the lobby itself and re-attaches the
+player, leaving the engine's follow-up warp as a same-map move.
 
 ### 4. NPC-script damage hooks
 
@@ -158,6 +162,11 @@ update leaderboards, announce the result.
 After a **server restart** (`OnLoaded` only runs at process start, and `WorldState` loads after
 it, so this runs from a one-shot timer) the controller aborts the run cleanly: despawn arena mobs, move anyone on the arena map to the lobby, pay
 bonuses, clear run state.
+
+**Config breakage mid-run.** If `arena.json` becomes invalid (or the arena/lobby map
+disappears) while a run is active, the next tick ends the run cleanly ("arena unavailable")
+rather than freezing; `EndRun` is null-safe for missing maps, so the arena self-heals and the
+next scheduled start works once the config is fixed.
 
 ## Waves
 
@@ -263,9 +272,10 @@ unison. Timers retire when the NPC dies or respawns, and pick up script reloads.
 
 - `/arena start` / `/arena stop` — force or abort a run.
 - `/arena status` — phase, round, alive count, next start.
-- `/arena preview <round> [player]` — normal/elite/boss HP for that round, the player's
-  effective hit and hits to kill from their real stats, and mob hit before and after their
-  real AC/DR.
+- `/arena preview <round> [raw] [player]` — for the named online player (or the caller):
+  their power fraction `s`, normal/elite/boss HP for that round (alive = participants if a
+  run is active, else 1), their effective hit for a sample raw value (the `raw` arg, default
+  1,000,000), and mob weapon damage before and after `MitigateMelee` for all three tiers.
 
 ## Configuration (`arena.json`)
 
@@ -278,6 +288,11 @@ unison. Timers retire when the NPC dies or respawns, and pick up script reloads.
 `anchorRound`, `anchorMobHp`, `anchorMobWeaponDamage`, `hpGrowth`, `dmgGrowth`,
 `currencyId`, `roundBase`, `roundStep`, `mobBounty`, `eliteBountyMult`, `bossBountyMult`,
 `milestones`.
+
+Validation: `intervalHours > 0`, `anchorUtc` an `HH:mm` time, at least one band with at least
+one normal template, `roundSeconds > timeoutWarningSeconds`, positive growth/anchor values,
+`a`/`b` in `[0, 2]`. A failing config disables the arena and logs once; the arena also stays
+disabled while `lobbyMap`/`arenaMap` are 0 or missing from the world.
 
 ## Testing
 
