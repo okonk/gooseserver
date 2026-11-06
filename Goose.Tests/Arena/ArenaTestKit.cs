@@ -12,6 +12,8 @@ public sealed class ArenaTestKit : IDisposable
     public GameWorld World => Fixture.World;
     public object Host { get; }
     public string ConfigPath { get; }
+    public Map ArenaMap => World.MapHandler.Maps[ArenaMapId];
+    public Map LobbyMap => World.MapHandler.Maps[LobbyMapId];
 
     public const int LobbyMapId = 40001;
     public const int ArenaMapId = 40002;
@@ -43,6 +45,7 @@ public sealed class ArenaTestKit : IDisposable
         File.WriteAllText(ConfigPath, JsonSerializer.Serialize(DefaultConfig()));
         File.WriteAllText(Path.Combine(Fixture.DataDirectory, "Scripts", "Global", "ArenaHost.csx"), HostScript);
         Host = Fixture.World.ScriptHandler.GetScript<IGlobalScript>("Scripts/Global/ArenaHost.csx").Object;
+        Fixture.Settings.MaxAC = 255;
     }
 
     public TestWorldFixture.CapturingPlayer LobbyPlayer(int playerId, string name, bool gm = false)
@@ -64,6 +67,13 @@ public sealed class ArenaTestKit : IDisposable
     }
 
     public Script<IGlobalScript> RegisterController() => World.ScriptHandler.GetScript<IGlobalScript>("Scripts/Global/Arena.csx");
+
+    public Script<IMapScript> AttachMapScript()
+    {
+        var script = Compile<IMapScript>("Arena", "ArenaMap.csx");
+        World.MapHandler.Maps[ArenaMapId].Script = script;
+        return script;
+    }
 
     public long Wallet(Player player) => World.CurrencyHandler.Get("arena_coin")!.GetBalance(player);
 
