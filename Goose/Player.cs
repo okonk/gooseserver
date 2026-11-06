@@ -2146,7 +2146,8 @@ namespace Goose
 
                 world.SendToMap(this.Map, P.ServerMessage(this.Name + " was slain by " + character.Name + "."));
 
-                this.WarpTo(world, this.BoundMap, this.BoundX, this.BoundY);
+                RespawnLocation? respawn = this.NotifyDied(character, world);
+                this.WarpTo(world, respawn?.Map ?? this.BoundMap, respawn?.X ?? this.BoundX, respawn?.Y ?? this.BoundY);
                 this.AddRegenEvent(world);
                 world.Send(this, P.VitalsPercentage(this));
                 world.Send(this, P.StatusInfo(this));
@@ -2188,6 +2189,34 @@ namespace Goose
             }
 
             return;
+        }
+
+        private RespawnLocation? NotifyDied(ICharacter killer, GameWorld world)
+        {
+            RespawnLocation? respawn = null;
+
+            try
+            {
+                respawn = this.Map.Script?.Object.OnPlayerDied(this.Map, this, killer, world);
+            }
+            catch (Exception e)
+            {
+                log.Error(e, "Map OnPlayerDied {0} ({1}) player {2} ({3}) Exception", this.Map.Name, this.Map.ID, this.Name, this.LoginID);
+            }
+
+            foreach (var script in world.ScriptHandler.GetGlobalScripts())
+            {
+                try
+                {
+                    script.Object.OnPlayerDied(this, killer, world);
+                }
+                catch (Exception e)
+                {
+                    log.Error(e, "Global OnPlayerDied {0} player {1} ({2}) Exception", script.FilePath, this.Name, this.LoginID);
+                }
+            }
+
+            return respawn;
         }
 
         /**

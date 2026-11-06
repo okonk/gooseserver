@@ -15,5 +15,10 @@ namespace Goose.Scripting
         {
 
         }
+
+        public virtual void OnPlayerDied(Player player, ICharacter killer, GameWorld world)
+        {
+
+        }
     }
 }

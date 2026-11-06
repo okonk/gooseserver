@@ -117,6 +117,11 @@ namespace Goose.Scripting
         {
 
         }
+
+        public virtual RespawnLocation? OnPlayerDied(Map map, Player player, ICharacter killer, GameWorld world)
+        {
+            return null;
+        }
         public virtual void OnNPCSpawnEvent(Map map, NPC npc, GameWorld world)
         {
 
