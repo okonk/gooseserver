@@ -79,6 +79,8 @@ public sealed class ArenaTestKit : IDisposable
 
     public static object? GetProp(object? obj, string name) => obj?.GetType().GetProperty(name)?.GetValue(obj);
 
+    public static void SetProp(object obj, string name, object? value) => obj.GetType().GetProperty(name)!.SetValue(obj, value);
+
     public void SetConfig(Action<JsonObject> mutate)
     {
         var json = JsonNode.Parse(File.ReadAllText(ConfigPath))!.AsObject();
