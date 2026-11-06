@@ -353,12 +353,38 @@ public class DimensionMapScriptTests
         Assert.DoesNotContain(player.Sent, m => m.Contains("experience to enter"));
     }
 
+    [Fact]
+    public void A_death_override_from_the_delegated_base_script_is_returned_by_the_clone()
+    {
+        using var fixture = new GlobalScriptFixture();
+        var baseMap = fixture.AddBaseMap(1, "Arena", width: 100, height: 100);
+        var inner = new RecordingMapScript { Respawn = new RespawnLocation(baseMap, 5, 6) };
+        baseMap.Script = ScriptStub.For<IMapScript>(inner);
+
+        fixture.CompileShipped().Object.OnLoaded(fixture.World);
+
+        var clone = fixture.World.MapHandler.GetMap(1 + Offset * 3)!;
+        var player = fixture.PlayerOn(clone, 5, 5);
+
+        var respawn = clone.Script!.Object.OnPlayerDied(clone, player, player, fixture.World);
+
+        Assert.Equal(new RespawnLocation(baseMap, 5, 6), respawn);
+        Assert.Same(clone, inner.DiedMap);
+    }
+
     private sealed class RecordingMapScript : BaseMapScript
     {
         public int EnteredCalls;
         public string? Refusal;
+        public RespawnLocation? Respawn;
+        public Map? DiedMap;
 
         public override void OnPlayerEntered(Map map, Player player, GameWorld world) => this.EnteredCalls++;
         public override string? CanPlayerJoin(Map map, Player player, GameWorld world) => this.Refusal;
+        public override RespawnLocation? OnPlayerDied(Map map, Player player, ICharacter killer, GameWorld world)
+        {
+            this.DiedMap = map;
+            return this.Respawn;
+        }
     }
 }
