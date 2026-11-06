@@ -250,6 +250,15 @@ follow-up.
   round and kills, week key + weekly best round and kills. Weekly values reset lazily when
   the stored week key differs from the current ISO week.
 
+## Crowd spectators
+
+The background crowd NPCs on the arena map (templates 291–371, 373–392, 394–440, all ambient
+spawns) use `Scripts/Arena/ArenaCrowd.csx`. Each one shows a random emoticon to nearby players
+every 20–60s and plays the attack animation (`ATT`) every 20–60s. Templates whose
+`script_params` contains `fast` (394, 398, 400, 401, 402, 403, 411) play the attack animation
+every 3–8s. The first action is spread randomly across the window so the crowd doesn't act in
+unison. Timers retire when the NPC dies or respawns, and pick up script reloads.
+
 ## GM commands
 
 - `/arena start` / `/arena stop` — force or abort a run.
