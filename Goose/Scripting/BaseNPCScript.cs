@@ -41,5 +41,8 @@ namespace Goose.Scripting
         {
 
         }
+
+        public virtual bool OnPlayerClicked(NPC npc, Player player, GameWorld world)
+            => false;
     }
 }

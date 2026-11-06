@@ -19,5 +19,7 @@ namespace Goose.Scripting
         void OnKilledEvent(NPC npc, ICharacter killer, GameWorld world);
 
         void OnPlayerChatEvent(NPC npc, Player player, string message, GameWorld world);
+
+        bool OnPlayerClicked(NPC npc, Player player, GameWorld world);
     }
 }
