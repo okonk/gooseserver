@@ -37,10 +37,33 @@ public sealed class ArenaTestKit : IDisposable
         Fixture.AddBaseMap(LobbyMapId, "Arena Lobby", 100, 100);
         Fixture.AddBaseMap(ArenaMapId, "Arena", 100, 100);
 
+        Fixture.World.CurrencyHandler.Register(new DataCurrency("arena_coin", "Arena Coin", "Arena", null, true));
+
         File.WriteAllText(ConfigPath, JsonSerializer.Serialize(DefaultConfig()));
         File.WriteAllText(Path.Combine(Fixture.DataDirectory, "Scripts", "Global", "ArenaHost.csx"), HostScript);
         Host = Fixture.World.ScriptHandler.GetScript<IGlobalScript>("Scripts/Global/ArenaHost.csx").Object;
     }
+
+    public TestWorldFixture.CapturingPlayer LobbyPlayer(int playerId, string name, bool gm = false)
+    {
+        var player = Fixture.CommandPlayerOn(World.MapHandler.Maps[LobbyMapId], 10, 10, name);
+        player.PlayerID = playerId;
+        if (gm) player.Access = Player.AccessStatus.GameMaster;
+        Fixture.AddOnlinePlayer(player);
+        World.MapHandler.Maps[LobbyMapId].Players.Add(player);
+        return player;
+    }
+
+    public void Enter(Map map, Player player)
+    {
+        player.Map = map;
+        player.MapID = map.ID;
+        map.AddPlayer(player, World);
+    }
+
+    public long Wallet(Player player) => World.CurrencyHandler.Get("arena_coin")!.GetBalance(player);
+
+    public static object? GetProp(object? obj, string name) => obj?.GetType().GetProperty(name)?.GetValue(obj);
 
     public void SetConfig(Action<JsonObject> mutate)
     {
@@ -120,6 +143,8 @@ public sealed class ArenaTestKit : IDisposable
     private const string HostScript = """
         #load "../Arena/ArenaConfig.csx"
         #load "../Arena/ArenaMath.csx"
+        #load "../Arena/ArenaState.csx"
+        #load "../Arena/ArenaCore.csx"
         using System;
         using System.Collections.Generic;
         using Goose;
@@ -128,6 +153,16 @@ public sealed class ArenaTestKit : IDisposable
         public class ArenaHost : BaseGlobalScript
         {
             public object Config(GameWorld world) => ArenaConfig.Get(world);
+            public void StartRun(GameWorld world, DateTime now) => ArenaCore.StartRun(world, now);
+            public void Eliminate(GameWorld world, int id, string reason) => ArenaCore.Eliminate(world, id, reason);
+            public void EndIfEmpty(GameWorld world, DateTime now) => ArenaCore.EndIfEmpty(world, now);
+            public void EndRun(GameWorld world, string reason) => ArenaCore.EndRun(world, reason);
+            public void Pay(GameWorld world, int id, long amount, string reason) => ArenaCore.Pay(world, id, amount, reason);
+            public bool IsParticipant(GameWorld world, int id) => ArenaCore.IsParticipant(world, id);
+            public object Run(GameWorld world) => ArenaState.Load(world);
+            public object LastRun(GameWorld world) => ArenaState.LoadLastRun(world);
+            public void SaveRun(GameWorld world, object run) => ArenaState.Save(world, (ArenaRun)run);
+            public Player FindPlayer(GameWorld world, int id) => ArenaCore.FindPlayer(world, id);
             public bool Enabled(GameWorld world) => ArenaConfig.Get(world).Enabled(world);
             public double PowerFraction(long xp, object c) => ArenaMath.PowerFraction(xp, (ArenaConfig)c);
             public long EffectiveDamage(long raw, double s, object c) => ArenaMath.EffectiveDamage(raw, s, (ArenaConfig)c);
