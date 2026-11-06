@@ -113,6 +113,7 @@ public sealed class ArenaRoundTests : IDisposable
 
         var run = Run(kit)!;
         Assert.Equal(1, (int)Prop(Participants(run)[70001], "RoundsCleared")!);
+        Assert.Equal(6, (long)Prop(Participants(run)[70001], "Coins")!);
         Assert.Equal(6, kit.Wallet(p1));
         Assert.Equal(2, (int)Prop(run, "Phase")!);
         Assert.Equal(Now.AddSeconds(26), (DateTime)Prop(run, "PhaseUntilUtc")!);
@@ -240,6 +241,44 @@ public sealed class ArenaRoundTests : IDisposable
 
         Tick(kit, Now.AddSeconds(11));
         Assert.Equal(2, (int)Prop(Run(kit)!, "Phase")!);
+    }
+
+    [Fact]
+    public void Straggler_recall_skipped_when_more_than_straggler_count()
+    {
+        var p1 = kit.LobbyPlayer(70001, "P1");
+        EnterRound1(kit, p1);
+        var until = (DateTime)Prop(Run(kit)!, "PhaseUntilUtc")!;
+
+        foreach (var npc in Mobs(kit).Take(2))
+            npc.Attacked(p1, long.MaxValue / 4, kit.World);
+
+        var remaining = Mobs(kit);
+        Assert.Equal(4, remaining.Count);
+        var before = remaining.ToDictionary(n => n.LoginID, n => (n.MapX, n.MapY));
+
+        Tick(kit, until.AddSeconds(-20));
+
+        Assert.Equal(1, p1.Sent.Count(s => s.Contains("enemies remain")));
+        foreach (var (loginId, pos) in before)
+        {
+            var npc = Mobs(kit).Single(n => n.LoginID == loginId);
+            Assert.Equal(pos, (npc.MapX, npc.MapY));
+        }
+    }
+
+    [Fact]
+    public void Disabled_config_mid_run_ends_the_run()
+    {
+        var p1 = kit.LobbyPlayer(70001, "P1");
+        StartRun(kit, Now);
+        kit.Enter(ArenaMap(kit), p1);
+
+        kit.SetConfig(j => j["a"] = 3.5);
+        Tick(kit, Now.AddSeconds(1));
+
+        Assert.Null(Run(kit));
+        Assert.NotNull(LastRun(kit));
     }
 
     [Fact]

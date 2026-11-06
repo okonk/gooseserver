@@ -63,7 +63,11 @@ public static class ArenaCore
         var run = ArenaState.Load(world);
         if (run is null) return;
         var cfg = ArenaConfig.Get(world);
-        if (!cfg.Enabled(world)) return;
+        if (!cfg.Enabled(world))
+        {
+            EndRun(world, "arena unavailable");
+            return;
+        }
 
         switch (run.Phase)
         {
@@ -114,12 +118,11 @@ public static class ArenaCore
         {
             foreach (var p in run.Participants.Values)
                 if (p.Alive) p.RoundsCleared = run.Round;
-            ArenaState.Save(world, run);
-            foreach (var p in run.Participants.Values)
-                if (p.Alive) Pay(world, p.Id, ArenaMath.RoundPayout(run.Round, cfg), "round " + run.Round + " clear");
             run.Phase = ArenaPhase.Break;
             run.PhaseUntilUtc = nowUtc.AddSeconds(cfg.BreakSeconds);
             ArenaState.Save(world, run);
+            foreach (var p in run.Participants.Values)
+                if (p.Alive) Pay(world, p.Id, ArenaMath.RoundPayout(run.Round, cfg), "round " + run.Round + " clear");
             return;
         }
 
