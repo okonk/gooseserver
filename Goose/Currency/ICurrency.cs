@@ -17,6 +17,10 @@ namespace Goose
         /// <summary>Interpolated into LogHandler entries: "(500 gp)".</summary>
         string ShortName { get; }
 
+        /// <summary>Icon the wallet row shows, or null for no icon. Built-ins ship with none;
+        /// data-driven currencies carry theirs.</summary>
+        CurrencyIcon? Icon => null;
+
         long GetBalance(Player player);
 
         /// <summary>Cost to buy. Negative means this item is not purchasable in this currency.</summary>

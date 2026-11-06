@@ -9,6 +9,12 @@ namespace Goose
         private readonly Dictionary<string, ICurrency> currencies =
             new Dictionary<string, ICurrency>(StringComparer.OrdinalIgnoreCase);
 
+        /// <summary>Insertion-ordered view beside the dictionary, so /wallet and other
+        /// enumerators see registration order, not hash order.</summary>
+        private readonly List<ICurrency> all = new List<ICurrency>();
+
+        public IReadOnlyList<ICurrency> All { get => this.all; }
+
         /// <summary>Throws on a duplicate id. Overwriting would silently repoint every item
         /// priced in that currency at a different wallet.</summary>
         public void Register(ICurrency currency)
@@ -21,6 +27,7 @@ namespace Goose
                 throw new InvalidOperationException($"Currency '{currency.Id}' is already registered.");
 
             this.currencies[currency.Id] = currency;
+            this.all.Add(currency);
         }
 
         /// <summary>The currency with this id, or null if nothing registered it.</summary>
