@@ -144,6 +144,38 @@ public sealed class ArenaCoreTests : IDisposable
     }
 
     [Fact]
+    public void End_run_with_onplayerleft_eliminate_does_not_corrupt_last_run()
+    {
+        var p1 = kit.LobbyPlayer(70001, "Alice");
+        StartRun(kit, Now);
+        var run = Run(kit)!;
+        SetProp(Participants(run)[70001], "RoundsCleared", 10);
+        SaveRun(kit, run);
+
+        File.WriteAllText(Path.Combine(kit.Fixture.DataDirectory, "Scripts", "Arena", "TestLeftMap.csx"),
+            LeftStubMapScript);
+        var stub = kit.World.ScriptHandler.GetScript<IMapScript>("Scripts/Arena/TestLeftMap.csx");
+        var arenaMap = kit.World.MapHandler.Maps[ArenaTestKit.ArenaMapId];
+        arenaMap.Script = stub;
+
+        p1.Map = arenaMap;
+        p1.MapID = ArenaTestKit.ArenaMapId;
+        arenaMap.Players.Add(p1);
+
+        EndRun(kit, "test");
+
+        Assert.Null(Run(kit));
+        var last = LastRun(kit);
+        Assert.NotNull(last);
+        Assert.Equal(10, (int)Prop(last!, "BestRound")!);
+        var results = (System.Collections.IEnumerable)Prop(last, "Results")!;
+        Assert.Equal(60L, (long)Prop(results.Cast<object>().Single(), "Coins")!);
+        Assert.Equal(60, kit.Wallet(p1));
+        Assert.Equal(1, p1.Sent.Count(s => s.Contains("[Arena] The arena is closed")));
+        Assert.DoesNotContain(p1.Sent, s => s.Contains("You were eliminated"));
+    }
+
+    [Fact]
     public void State_round_trips_through_world_state_save_and_load()
     {
         var p1 = kit.LobbyPlayer(70001, "Alice");
@@ -164,6 +196,23 @@ public sealed class ArenaCoreTests : IDisposable
         Assert.Equal((int)Prop(before, "Phase")!, parsed["Phase"].GetInt32());
         Assert.Contains("70001", parsed["Participants"].GetRawText());
     }
+
+    private const string LeftStubMapScript = """
+        #load "ArenaCore.csx"
+        using System;
+        using Goose;
+        using Goose.Scripting;
+
+        public class TestLeftMap : BaseMapScript
+        {
+            public override void OnPlayerLeft(Map map, Player player, GameWorld world)
+            {
+                ArenaCore.Eliminate(world, player.PlayerID, "left the arena");
+            }
+        }
+
+        return typeof(TestLeftMap);
+        """;
 
     private const string StubMapScript = """
         #load "ArenaCore.csx"

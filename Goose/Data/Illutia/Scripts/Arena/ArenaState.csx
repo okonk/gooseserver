@@ -47,6 +47,8 @@ public static class ArenaState
     public const string RunKey = "arena.run";
     public const string LastRunKey = "arena.lastRun";
 
+    private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
+
     public static ArenaRun? Load(GameWorld world) => Load<ArenaRun>(world, RunKey);
 
     public static void Save(GameWorld world, ArenaRun run) => world.WorldState.Set(RunKey, JsonSerializer.Serialize(run));
@@ -65,8 +67,9 @@ public static class ArenaState
         {
             return JsonSerializer.Deserialize<T>(json);
         }
-        catch (JsonException)
+        catch (JsonException e)
         {
+            log.Warn(e, "Failed to parse arena state {0}", key);
             return null;
         }
     }

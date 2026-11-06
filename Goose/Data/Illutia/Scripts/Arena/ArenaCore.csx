@@ -10,6 +10,8 @@ using Goose.Scripting;
 // Each .csx compiles into its own assembly, so statics are not shared between arena scripts; all shared state therefore goes through WorldState JSON strings (ArenaState).
 public static class ArenaCore
 {
+    private const int SpawnAttempts = 50;
+
     private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
     private static string? currencyWarned;
 
@@ -18,6 +20,11 @@ public static class ArenaCore
         if (ArenaState.Load(world) is not null) return;
         var cfg = ArenaConfig.Get(world);
         if (!cfg.Enabled(world)) return;
+        if (cfg.ArenaRect[2] <= 0 || cfg.ArenaRect[3] <= 0)
+        {
+            log.Error("Arena rect {0} has no positive dimensions; run not started", string.Join(",", cfg.ArenaRect));
+            return;
+        }
 
         var lobby = world.PlayerHandler.Players
             .Where(p => !p.IsGM && p.State == Player.States.Ready && p.Map is not null && p.Map.ID == cfg.LobbyMap)
@@ -92,17 +99,21 @@ public static class ArenaCore
         }
 
         foreach (var p in run.Participants.Values)
+            p.Alive = false;
+        ArenaState.Save(world, run);
+
+        foreach (var p in run.Participants.Values)
         {
-            if (!p.Alive) continue;
             var player = FindPlayer(world, p.Id);
             if (player is not null && player.Map is not null && player.Map.ID == cfg.ArenaMap &&
                 world.MapHandler.Maps.TryGetValue(cfg.LobbyMap, out var lobbyMap))
                 player.WarpTo(world, lobbyMap, cfg.LobbySpawn[0], cfg.LobbySpawn[1]);
-            p.Alive = false;
         }
 
         foreach (var p in run.Participants.Values)
             Pay(world, p.Id, ArenaMath.MilestoneBonus(p.RoundsCleared, cfg), "milestone bonus");
+
+        run = ArenaState.Load(world) ?? run;
 
         var bestRound = run.Participants.Values.Select(p => p.RoundsCleared).DefaultIfEmpty(0).Max();
         ArenaState.SaveLastRun(world, new ArenaLastRun
@@ -168,7 +179,7 @@ public static class ArenaCore
 
     private static (int X, int Y) PickFreeTile(GameWorld world, Map map, int[] rect)
     {
-        for (int i = 0; i < 50; i++)
+        for (int i = 0; i < SpawnAttempts; i++)
         {
             int x = rect[0] + world.Random.Next(rect[2]);
             int y = rect[1] + world.Random.Next(rect[3]);
