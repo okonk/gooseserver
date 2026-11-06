@@ -52,6 +52,15 @@ public sealed class ArenaConfigTests : IDisposable
     }
 
     [Fact]
+    public void Malformed_anchor_utc_disables()
+    {
+        kit.SetConfig(json => json["anchorUtc"] = "13.30");
+        var config = Config(kit);
+        Assert.False(Prop<bool>(config, "Valid"));
+        Assert.False(Enabled(kit));
+    }
+
+    [Fact]
     public void Zero_boss_every_disables()
     {
         kit.SetConfig(json => json["bossEvery"] = 0);

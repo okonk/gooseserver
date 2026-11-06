@@ -87,7 +87,7 @@ public static class ArenaMath
     {
         var result = new Dictionary<int, long>();
         if (bounty <= 0) return result;
-        long total = 0;
+        double total = 0;
         foreach (var dmg in damageByPlayer.Values) total += dmg;
         if (total <= 0) return result;
         var shares = new List<(int Id, long Floor, double Frac)>();

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Text.Json;
 using Goose;
@@ -135,6 +136,8 @@ public sealed class ArenaConfig
             throw new JsonException("Arena bossEvery must be >= 1");
         if (c.IntervalHours <= 0)
             throw new JsonException("Arena intervalHours must be > 0");
+        if (!TimeSpan.TryParseExact(c.AnchorUtc, @"hh\:mm", CultureInfo.InvariantCulture, out _))
+            throw new JsonException("Arena anchorUtc must be an HH:mm time");
         foreach (var band in c.Bands ?? new List<ArenaBand>())
             if (band.Normals is null || band.Normals.Length == 0)
                 throw new JsonException("Arena bands entries need at least one normal template");

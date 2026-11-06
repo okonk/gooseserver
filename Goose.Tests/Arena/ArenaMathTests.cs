@@ -132,6 +132,9 @@ public sealed class ArenaMathTests : IDisposable
         Assert.Equal(4, odd[1]);
         Assert.Equal(2, odd[2]);
         Assert.Equal(1, odd[3]);
+
+        var solo = SplitBounty(kit, 100, new Dictionary<int, long> { [7] = 12345 });
+        Assert.Equal(new Dictionary<int, long> { [7] = 100 }, solo);
     }
 
     [Fact]
@@ -178,6 +181,7 @@ public sealed class ArenaMathTests : IDisposable
         Assert.Equal(day.AddHours(3), NextStartUtc(kit, day.AddHours(2).AddMinutes(59)));
         Assert.Equal(day.AddHours(6), NextStartUtc(kit, day.AddHours(3)));
         Assert.Equal(day.AddHours(6), NextStartUtc(kit, day.AddHours(3).AddMinutes(1)));
+        Assert.Equal(day.AddDays(1), NextStartUtc(kit, day.AddHours(23).AddMinutes(30)));
     }
 
     [Fact]
