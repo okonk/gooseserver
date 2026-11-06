@@ -1600,14 +1600,10 @@ namespace Goose
                             this.Level +
                             (this.Level - character.Level);
 
-            double maxac = world.Settings.MaxAC;
-            double absorb = (1 - ((character.MaxStats.AC - this.ArmorPierce) * (double)character.Class.ACMultiplier) / maxac);
+            damage = this.MeleeBaseDamageByScript(character, damage, world);
 
             damage *= Utils.CritMultiplier(this.MaxStats.MeleeCrit, world.Random);
-            damage *= (1 + (double)this.MaxStats.MeleeDamage);
-            damage *= 1 - Utils.EffectiveDamageReduction(character.MaxStats.DamageReduction, world.Settings.DamageReductionSoftCap);
-            damage *= absorb;
-            damage -= (double)(character.MaxStats.AC * character.Class.ACMultiplier / 25);
+            damage = this.MitigateMelee(character, damage, world);
 
             List<Player> range = this.Map.GetPlayersInRange(this);
 
@@ -1638,6 +1634,35 @@ namespace Goose
             }
 
             if (character == this.AggroTarget) this.LastAttackTime = world.TimeNow;
+        }
+
+        public double MitigateMelee(ICharacter target, double damage, GameWorld world)
+        {
+            double maxac = world.Settings.MaxAC;
+            double absorb = (1 - ((target.MaxStats.AC - this.ArmorPierce) * (double)target.Class.ACMultiplier) / maxac);
+
+            damage *= (1 + (double)this.MaxStats.MeleeDamage);
+            damage *= 1 - Utils.EffectiveDamageReduction(target.MaxStats.DamageReduction, world.Settings.DamageReductionSoftCap);
+            damage *= absorb;
+            damage -= (double)(target.MaxStats.AC * target.Class.ACMultiplier / 25);
+
+            return damage;
+        }
+
+        private double MeleeBaseDamageByScript(ICharacter target, double damage, GameWorld world)
+        {
+            var script = this.Script;
+            if (script is null) return damage;
+
+            try
+            {
+                return script.Object.MeleeBaseDamage(this, target, damage, world);
+            }
+            catch (Exception e)
+            {
+                log.Error(e, "NPC MeleeBaseDamage {0} ({1}) Exception", this.Name, this.NPCTemplateID);
+                return damage;
+            }
         }
 
         /**
