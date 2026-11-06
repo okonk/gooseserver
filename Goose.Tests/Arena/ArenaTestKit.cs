@@ -31,9 +31,10 @@ public sealed class ArenaTestKit : IDisposable
         File.Copy(Path.Combine(ShippedDataDirectory, "Scripts", "Global", "Arena.csx"),
             Path.Combine(Fixture.DataDirectory, "Scripts", "Global", "Arena.csx"), overwrite: true);
 
+        var mobScript = Fixture.World.ScriptHandler.GetScript<INPCScript>("Scripts/Arena/ArenaMob.csx");
         foreach (var id in BandNormalIds)
-            Fixture.AddNpcTemplate(id, "Arena Mob " + id);
-        Fixture.AddNpcTemplate(BandBossId, "Arena Boss");
+            Fixture.AddNpcTemplate(id, "Arena Mob " + id, t => t.Script = mobScript);
+        Fixture.AddNpcTemplate(BandBossId, "Arena Boss", t => t.Script = mobScript);
         Fixture.AddBaseMap(LobbyMapId, "Arena Lobby", 100, 100);
         Fixture.AddBaseMap(ArenaMapId, "Arena", 100, 100);
 
@@ -56,10 +57,13 @@ public sealed class ArenaTestKit : IDisposable
 
     public void Enter(Map map, Player player)
     {
+        player.State = Player.States.Ready;
         player.Map = map;
         player.MapID = map.ID;
         map.AddPlayer(player, World);
     }
+
+    public Script<IGlobalScript> RegisterController() => World.ScriptHandler.GetScript<IGlobalScript>("Scripts/Global/Arena.csx");
 
     public long Wallet(Player player) => World.CurrencyHandler.Get("arena_coin")!.GetBalance(player);
 
@@ -154,6 +158,8 @@ public sealed class ArenaTestKit : IDisposable
         {
             public object Config(GameWorld world) => ArenaConfig.Get(world);
             public void StartRun(GameWorld world, DateTime now) => ArenaCore.StartRun(world, now);
+            public void Tick(GameWorld world, DateTime now) => ArenaCore.Tick(world, now);
+            public void OnNpcKilled(NPC npc, ICharacter killer, List<Player> credited, GameWorld world) => ArenaCore.OnNpcKilled(npc, killer, credited, world);
             public void Eliminate(GameWorld world, int id, string reason) => ArenaCore.Eliminate(world, id, reason);
             public void EndIfEmpty(GameWorld world, DateTime now) => ArenaCore.EndIfEmpty(world, now);
             public void EndRun(GameWorld world, string reason) => ArenaCore.EndRun(world, reason);
