@@ -136,6 +136,18 @@ public sealed class ArenaMobTests : IDisposable
     }
 
     [Fact]
+    public void Melee_base_damage_passes_through_for_untagged_and_non_player()
+    {
+        var untagged = SpawnMob(5071, 10, 10, tagged: false);
+        var player = Player(70005, 12, 10, 3_000_000_000);
+        Assert.Equal(123.5, mobScript.Object.MeleeBaseDamage(untagged, player, 123.5, kit.World));
+
+        var tagged = SpawnMob(5072, 14, 10);
+        var other = SpawnMob(5073, 16, 10);
+        Assert.Equal(456.75, mobScript.Object.MeleeBaseDamage(tagged, other, 456.75, kit.World));
+    }
+
+    [Fact]
     public void Damage_from_non_player_is_not_scaled()
     {
         var npc = SpawnMob(5061, 10, 10);

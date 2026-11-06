@@ -14,7 +14,7 @@ public class ArenaMob : BaseNPCScript
         MobTier tier = (MobTier)npc.Properties.GetProperty<int>("arena.tier", 0);
         int alive = npc.Properties.GetProperty<int>("arena.alive", 1);
         npc.TemporaryMaxHP = ArenaMath.MobHp(round, tier, alive, cfg);
-        if (tier == MobTier.Elite)
+        if (tier == MobTier.Elite && cfg.EliteTint is { Length: >= 4 })
         {
             npc.Title = cfg.EliteTitle;
             npc.BodyR = cfg.EliteTint[0];
@@ -29,9 +29,10 @@ public class ArenaMob : BaseNPCScript
         if (attacker is not Player player || !npc.Properties.TryGetProperty<string>("arena.run", out _))
             return damage;
         var cfg = ArenaConfig.Get(world);
+        if (!cfg.Valid) return damage;
         long eff = ArenaMath.EffectiveDamage(damage, ArenaMath.PowerFraction(player.ExperienceSold, cfg), cfg);
         string key = "arena.dmg." + player.PlayerID;
-        npc.Properties[key] = npc.Properties.GetProperty<long>(key, 0) + eff;
+        if (eff > 0) npc.Properties[key] = npc.Properties.GetProperty<long>(key, 0) + eff;
         return eff;
     }
 
@@ -40,6 +41,7 @@ public class ArenaMob : BaseNPCScript
         if (target is not Player player || !npc.Properties.TryGetProperty<string>("arena.run", out _))
             return baseDamage;
         var cfg = ArenaConfig.Get(world);
+        if (!cfg.Valid) return baseDamage;
         int round = npc.Properties.GetProperty<int>("arena.round", 1);
         MobTier tier = (MobTier)npc.Properties.GetProperty<int>("arena.tier", 0);
         return ArenaMath.MobWeaponDamage(round, tier, ArenaMath.PowerFraction(player.ExperienceSold, cfg), cfg);

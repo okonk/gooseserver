@@ -128,6 +128,8 @@ public sealed class ArenaConfig
             throw new JsonException("Arena a and b must be in [0, 2]");
         if (c.HpGrowth <= 0 || c.DmgGrowth <= 0)
             throw new JsonException("Arena hpGrowth and dmgGrowth must be > 0");
+        if (c.AnchorMobHp <= 0 || c.AnchorMobWeaponDamage <= 0)
+            throw new JsonException("Arena anchorMobHp and anchorMobWeaponDamage must be > 0");
         if (c.MinXpSold <= 0 || c.TopXpSold < c.MinXpSold)
             throw new JsonException("Arena minXpSold must be > 0 and topXpSold >= minXpSold");
         if (c.BandSize < 1)
