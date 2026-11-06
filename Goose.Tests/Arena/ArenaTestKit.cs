@@ -182,6 +182,8 @@ public sealed class ArenaTestKit : IDisposable
             public object LastRun(GameWorld world) => ArenaState.LoadLastRun(world);
             public string WeekKey(DateTime utc) => ArenaBoard.WeekKey(utc);
             public object BoardLoad(GameWorld world) => ArenaBoard.Load(world);
+            public object NewBoard() => new ArenaBoard();
+            public object NewEntry() => new ArenaBoardEntry();
             public void BoardSave(GameWorld world, object board) => ArenaBoard.Save(world, (ArenaBoard)board);
             public void BoardRecord(GameWorld world, object run, DateTime now) => ArenaBoard.Record(world, (ArenaRun)run, now);
             public List<(int Id, long Value)> BoardTop(object board, int kind, bool weekly, string week, int n) => ArenaBoard.Top((ArenaBoard)board, (ArenaBoardKind)kind, weekly, week, n);
