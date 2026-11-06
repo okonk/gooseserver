@@ -93,7 +93,7 @@ public sealed class ArenaEndToEndTests : IDisposable
         Assert.False(Run(fixture)["Participants"]!["70001"]!.AsObject()["Alive"]!.GetValue<bool>());
         Assert.True(Run(fixture)["Participants"]!["70002"]!.AsObject()["Alive"]!.GetValue<bool>());
 
-        arenaMap.RemovePlayer(p2, fixture.World);
+        p2.WarpTo(fixture.World, fixture.World.MapHandler.Maps[ArenaFixture.LobbyMapId], 10, 10);
 
         Assert.Null(fixture.World.WorldState.Get<string>("arena.run"));
         var last = JsonSerializer.Deserialize<JsonObject>(

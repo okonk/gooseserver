@@ -136,8 +136,8 @@ public sealed class ArenaConfig
             throw new JsonException("Arena bandSize must be >= 1");
         if (c.BossEvery < 1)
             throw new JsonException("Arena bossEvery must be >= 1");
-        if (c.IntervalHours <= 0)
-            throw new JsonException("Arena intervalHours must be > 0");
+        if (c.IntervalHours <= 0 || 24 % c.IntervalHours != 0)
+            throw new JsonException("Arena intervalHours must be a positive divisor of 24");
         if (!TimeSpan.TryParseExact(c.AnchorUtc, @"hh\:mm", CultureInfo.InvariantCulture, out _))
             throw new JsonException("Arena anchorUtc must be an HH:mm time");
         if (c.Bands is null || c.Bands.Count == 0)

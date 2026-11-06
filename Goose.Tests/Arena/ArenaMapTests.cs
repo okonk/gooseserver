@@ -127,6 +127,9 @@ public sealed class ArenaMapTests : IDisposable
         kit.Enter(kit.ArenaMap, p1);
         kit.ArenaMap.RemovePlayer(p1, kit.World);
 
+        if (!p1.IsGMInvisible) kit.ArenaMap.SetCharacter(null, p1.MapX, p1.MapY);
+        Assert.Same(kit.ArenaMap, p1.Map);
+
         Assert.Null(Run(kit));
         Assert.NotNull(LastRun(kit));
         Assert.Equal(0, (int)Prop(LastResult(kit, "P1"), "RoundsCleared"));

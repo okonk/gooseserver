@@ -16,6 +16,8 @@ public class ArenaController : BaseGlobalScript
     private const string LastTickKey = "arena.lastTickUtc";
     private static readonly TimeSpan TickPeriod = TimeSpan.FromSeconds(1);
     private static readonly TimeSpan StartupDelay = TimeSpan.FromSeconds(2);
+    // First tick must not resume stale run state before the one-shot recovery runs.
+    private static readonly TimeSpan FirstTickDelay = StartupDelay + TickPeriod;
     private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
 
     public override void OnLoaded(GameWorld world)
@@ -35,7 +37,7 @@ public class ArenaController : BaseGlobalScript
             {
                 timer!.Reschedule(TickPeriod, world);
             }
-        }, TickPeriod, world);
+        }, FirstTickDelay, world);
 
         ScriptTimerEvent.Create(() => RecoverCurrent(world), StartupDelay, world);
     }
@@ -46,7 +48,12 @@ public class ArenaController : BaseGlobalScript
     public void Tick(GameWorld world, DateTime nowUtc)
     {
         var cfg = ArenaConfig.Get(world);
-        if (!cfg.Enabled(world)) return;
+        if (!cfg.Enabled(world))
+        {
+            if (ArenaState.Load(world) is not null)
+                ArenaCore.EndRun(world, "arena unavailable");
+            return;
+        }
         var lastTick = ParseLastTick(world, nowUtc);
         Announce(world, cfg, lastTick, nowUtc);
         var next = ArenaMath.NextStartUtc(nowUtc, cfg);

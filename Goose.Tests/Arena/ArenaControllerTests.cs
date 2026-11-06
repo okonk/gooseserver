@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.Json.Nodes;
 using Goose;
+using Goose.Events;
 using Goose.Scripting;
 
 namespace Goose.Tests.Arena;
@@ -16,6 +17,48 @@ public sealed class ArenaControllerTests : IDisposable
     private static object? LastRun(ArenaTestKit kit) => Call(kit.Host, "LastRun", kit.World);
     private static object? Prop(object? obj, string name) => ArenaTestKit.GetProp(obj, name);
     private static System.Collections.IDictionary Participants(object run) => (System.Collections.IDictionary)Prop(run, "Participants")!;
+
+    [Fact]
+    public void First_tick_scheduled_after_recovery()
+    {
+        long now = kit.World.TimeNow;
+        var controller = kit.RegisterController();
+        controller.Object.OnLoaded(kit.World);
+
+        var field = typeof(EventHandler).GetField("events", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+        var queue = field.GetValue(kit.World.EventHandler)!;
+        var nodes = (Array)queue.GetType().GetField("_nodes", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(queue)!;
+        int size = (int)queue.GetType().GetField("_size", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(queue)!;
+        long min = long.MaxValue;
+        int count = 0;
+        for (int i = 0; i < size; i++)
+        {
+            var (evt, tick) = (System.ValueTuple<Event, long>)nodes.GetValue(i)!;
+            if (evt is ScriptTimerEvent)
+            {
+                count++;
+                min = Math.Min(min, tick);
+            }
+        }
+        Assert.Equal(2, count);
+        Assert.True(min >= now + 2 * kit.World.TimerFrequency);
+    }
+
+    [Fact]
+    public void Disabled_config_mid_run_ends_the_run_via_controller()
+    {
+        var controller = kit.RegisterController();
+        var p1 = kit.LobbyPlayer(70001, "P1");
+        p1.ExperienceSold = 3_000_000_000;
+        Call(kit.Host, "StartRun", kit.World, DateTime.UtcNow);
+        Assert.NotNull(Run(kit));
+
+        kit.SetConfig(j => j["a"] = 3.5);
+        Call(controller.Object, "Tick", kit.World, DateTime.UtcNow.AddSeconds(1));
+
+        Assert.Null(Run(kit));
+        Assert.NotNull(LastRun(kit));
+    }
 
     [Fact]
     public void Announces_15_10_5_once_each()
@@ -173,7 +216,7 @@ public sealed class ArenaControllerTests : IDisposable
     [Fact]
     public void Commands_require_gm()
     {
-        kit.SetConfig(j => j["intervalHours"] = 100000);
+        kit.SetConfig(j => j["intervalHours"] = 24);
         var controller = kit.RegisterController();
         controller.Object.OnLoaded(kit.World);
         var gm = kit.LobbyPlayer(70001, "GM", gm: true);

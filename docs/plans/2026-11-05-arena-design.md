@@ -289,7 +289,8 @@ unison. Timers retire when the NPC dies or respawns, and pick up script reloads.
 `currencyId`, `roundBase`, `roundStep`, `mobBounty`, `eliteBountyMult`, `bossBountyMult`,
 `milestones`.
 
-Validation: `intervalHours > 0`, `anchorUtc` an `HH:mm` time, at least one band with at least
+Validation: `intervalHours` a positive divisor of 24 (the daily anchor sequence only stays
+consistent when it divides the day), `anchorUtc` an `HH:mm` time, at least one band with at least
 one normal template, `roundSeconds > timeoutWarningSeconds`, positive growth/anchor values,
 `a`/`b` in `[0, 2]`. A failing config disables the arena and logs once; the arena also stays
 disabled while `lobbyMap`/`arenaMap` are 0 or missing from the world.

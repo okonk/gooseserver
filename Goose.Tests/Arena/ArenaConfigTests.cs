@@ -62,6 +62,16 @@ public sealed class ArenaConfigTests : IDisposable
     }
 
     [Fact]
+    public void Interval_hours_must_divide_24()
+    {
+        kit.SetConfig(j => j["intervalHours"] = 7);
+        Assert.False(Enabled(kit));
+
+        kit.SetConfig(j => j["intervalHours"] = 3);
+        Assert.True(Enabled(kit));
+    }
+
+    [Fact]
     public void Zero_boss_every_disables()
     {
         kit.SetConfig(json => json["bossEvery"] = 0);

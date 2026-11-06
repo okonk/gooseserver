@@ -277,13 +277,11 @@ public static class ArenaCore
             p.Alive = false;
         ArenaState.Save(world, run);
 
-        foreach (var p in run.Participants.Values)
-        {
-            var player = FindPlayer(world, p.Id);
-            if (player is not null && player.Map is not null && player.Map.ID == cfg.ArenaMap &&
-                world.MapHandler.Maps.TryGetValue(cfg.LobbyMap, out var lobbyMap))
-                player.WarpTo(world, lobbyMap, cfg.LobbySpawn[0], cfg.LobbySpawn[1]);
-        }
+        if (world.MapHandler.Maps.TryGetValue(cfg.ArenaMap, out var map) &&
+            world.MapHandler.Maps.TryGetValue(cfg.LobbyMap, out var lobbyMap))
+            foreach (var player in map.Players.ToList())
+                if (!player.IsGM)
+                    player.WarpTo(world, lobbyMap, cfg.LobbySpawn[0], cfg.LobbySpawn[1]);
 
         foreach (var p in run.Participants.Values)
             Pay(world, p.Id, ArenaMath.MilestoneBonus(p.RoundsCleared, cfg), "milestone bonus");
