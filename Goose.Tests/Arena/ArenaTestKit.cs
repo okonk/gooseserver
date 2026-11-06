@@ -119,7 +119,9 @@ public sealed class ArenaTestKit : IDisposable
 
     private const string HostScript = """
         #load "../Arena/ArenaConfig.csx"
+        #load "../Arena/ArenaMath.csx"
         using System;
+        using System.Collections.Generic;
         using Goose;
         using Goose.Scripting;
 
@@ -127,6 +129,19 @@ public sealed class ArenaTestKit : IDisposable
         {
             public object Config(GameWorld world) => ArenaConfig.Get(world);
             public bool Enabled(GameWorld world) => ArenaConfig.Get(world).Enabled(world);
+            public double PowerFraction(long xp, object c) => ArenaMath.PowerFraction(xp, (ArenaConfig)c);
+            public long EffectiveDamage(long raw, double s, object c) => ArenaMath.EffectiveDamage(raw, s, (ArenaConfig)c);
+            public long MobHp(int round, int tier, int alive, object c) => ArenaMath.MobHp(round, (MobTier)tier, alive, (ArenaConfig)c);
+            public double MobWeaponDamage(int round, int tier, double s, object c) => ArenaMath.MobWeaponDamage(round, (MobTier)tier, s, (ArenaConfig)c);
+            public int WaveCount(int round, int alive, object c) => ArenaMath.WaveCount(round, alive, (ArenaConfig)c);
+            public bool IsBossRound(int round, object c) => ArenaMath.IsBossRound(round, (ArenaConfig)c);
+            public double EliteChance(int round, object c) => ArenaMath.EliteChance(round, (ArenaConfig)c);
+            public object BandFor(int round, object c) => ArenaMath.BandFor(round, (ArenaConfig)c);
+            public long RoundPayout(int round, object c) => ArenaMath.RoundPayout(round, (ArenaConfig)c);
+            public long Bounty(int tier, object c) => ArenaMath.Bounty((MobTier)tier, (ArenaConfig)c);
+            public long MilestoneBonus(int rounds, object c) => ArenaMath.MilestoneBonus(rounds, (ArenaConfig)c);
+            public Dictionary<int, long> SplitBounty(long bounty, Dictionary<int, long> dmg) => ArenaMath.SplitBounty(bounty, dmg);
+            public DateTime NextStartUtc(DateTime now, object c) => ArenaMath.NextStartUtc(now, (ArenaConfig)c);
         }
 
         return typeof(ArenaHost);
