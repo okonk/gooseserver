@@ -43,6 +43,7 @@ namespace CsvToSql.Core.Schema
         /// follow the tables they reference.</summary>
         public static IReadOnlyList<TableSchema> Tables { get; } = new[]
         {
+            new TableSchema("Currencies", "currencies", new CurrenciesCsvToSql(), optional: true),
             new TableSchema("Items", "item_templates", new ItemsCsvToSql()),
             new TableSchema("NPCs", "npc_templates", new NpcCsvToSql()),
             new TableSchema("NPC Spawns", "npc_spawns", new NpcSpawnsCsvToSql()),

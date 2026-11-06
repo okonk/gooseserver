@@ -199,7 +199,7 @@ namespace Goose
         public bool CreditDealer { get; set; }
 
         /// <summary>The currency this vendor trades in. Null means gold. Set from the
-        /// credit_dealer column at load (NPCHandler.cs:105).</summary>
+        /// currency_id column at load.</summary>
         public string? CurrencyId { get; set; }
 
         public List<Quest> Quests { get; set; }

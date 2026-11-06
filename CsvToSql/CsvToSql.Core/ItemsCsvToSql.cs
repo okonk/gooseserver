@@ -67,6 +67,7 @@ namespace CsvToSql
             Col.Text("properties", SqlType.Text, "''"),
             Col.Text("script_path", def: "''"),
             Col.Text("script_params", def: "''"),
+            Col.Text("currency_id", def: "''"),
         };
 
         public override Composite[] GetComposites() => new[]
