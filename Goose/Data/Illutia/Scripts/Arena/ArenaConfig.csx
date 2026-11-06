@@ -131,6 +131,10 @@ public sealed class ArenaConfig
             throw new JsonException("Arena minXpSold must be > 0 and topXpSold >= minXpSold");
         if (c.BandSize < 1)
             throw new JsonException("Arena bandSize must be >= 1");
+        if (c.BossEvery < 1)
+            throw new JsonException("Arena bossEvery must be >= 1");
+        if (c.IntervalHours <= 0)
+            throw new JsonException("Arena intervalHours must be > 0");
         foreach (var band in c.Bands ?? new List<ArenaBand>())
             if (band.Normals is null || band.Normals.Length == 0)
                 throw new JsonException("Arena bands entries need at least one normal template");

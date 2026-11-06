@@ -52,6 +52,15 @@ public sealed class ArenaConfigTests : IDisposable
     }
 
     [Fact]
+    public void Zero_boss_every_disables()
+    {
+        kit.SetConfig(json => json["bossEvery"] = 0);
+        var config = Config(kit);
+        Assert.False(Prop<bool>(config, "Valid"));
+        Assert.False(Enabled(kit));
+    }
+
+    [Fact]
     public void Editing_the_file_reloads_without_script_reload()
     {
         Assert.Equal(10, Prop<int>(Config(kit), "CountdownSeconds"));
