@@ -315,9 +315,6 @@ public static class ArenaCore
         var run = ArenaState.Load(world);
         if (run is null || amount <= 0 || !run.Participants.TryGetValue(playerId, out var p)) return;
 
-        p.Coins += amount;
-        ArenaState.Save(world, run);
-
         var player = FindPlayer(world, playerId);
         if (player is null) return;
 
@@ -333,6 +330,8 @@ public static class ArenaCore
             return;
         }
 
+        p.Coins += amount;
+        ArenaState.Save(world, run);
         currency.Add(player, amount, world);
         world.Send(player, P.ServerMessage("+" + amount + " Arena Coins (" + reason + ")"));
     }

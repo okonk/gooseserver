@@ -126,6 +126,25 @@ public sealed class ArenaCoreTests : IDisposable
     }
 
     [Fact]
+    public void Offline_participant_earns_no_coins()
+    {
+        var p1 = kit.LobbyPlayer(70001, "Alice");
+        StartRun(kit, Now);
+        var run = Run(kit)!;
+        SetProp(Participants(run)[70001], "RoundsCleared", 5);
+        SaveRun(kit, run);
+
+        kit.World.PlayerHandler.RemovePlayer(p1);
+        Eliminate(kit, 70001, "test");
+
+        Assert.Null(Run(kit));
+        var last = LastRun(kit);
+        Assert.NotNull(last);
+        var result = ((System.Collections.IEnumerable)Prop(last!, "Results")!).Cast<object>().Single();
+        Assert.Equal(0L, (long)Prop(result, "Coins")!);
+    }
+
+    [Fact]
     public void End_run_despawns_only_this_runs_mobs()
     {
         var p1 = kit.LobbyPlayer(70001, "Alice");
