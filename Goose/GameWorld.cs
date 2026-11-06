@@ -403,6 +403,8 @@ namespace Goose
             if (!this.LoadStep("Spells", () => this.SpellHandler.LoadSpells(this),
                 () => this.SpellHandler.Count)) return;
 
+            if (!this.LoadStep("Currencies", () => this.CurrencyHandler.LoadDataCurrencies(this))) return;
+
             if (!this.LoadStep("Item Templates", () => this.ItemHandler.LoadTemplates(this),
                 () => this.ItemHandler.TemplateCount)) return;
 
@@ -474,6 +476,10 @@ namespace Goose
             }
 
             if (!this.LoadStep("Global Scripts", () => LoadGlobalScripts())) return;
+
+            // Spirit registers in a global script's OnLoaded and dimension clones copy
+            // CurrencyId there, so this must run after Global Scripts and before Players.
+            if (!this.LoadStep("Currency Ids", () => this.CurrencyHandler.ClearUnknownTemplateCurrencies(this))) return;
 
             if (!this.LoadStep("World State", () =>
             {

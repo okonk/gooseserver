@@ -145,11 +145,7 @@ namespace Goose
                         npc.AggroMessage = reader.GetString("aggro_message");
                         npc.StuckMessage = reader.GetString("stuck_message");
 
-                        string currencyId = reader.GetString("currency_id");
-                        // Null (not "gold") so Resolve's fallback chain stays uniform: item
-                        // override, then vendor, then gold.
-                        npc.CurrencyId = string.IsNullOrEmpty(currencyId) ? null : currencyId;
-                        npc.CreditDealer = currencyId == Currency.Credits;
+                        npc.CurrencyId = CurrencyHandler.ParseTemplateCurrencyId(reader.GetString("currency_id"));
 
                         var quests = ResolveQuests(npc.NPCTemplateID, reader.GetString("quest_ids"), world.QuestHandler);
                         npc.Quests.Clear();

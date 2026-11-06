@@ -81,13 +81,11 @@ public sealed class VendorFixture : IDisposable
         return item;
     }
 
-    /// <summary>Marks the vendor as dealing in a currency, the way NPCHandler.cs:104 does
-    /// for credit dealers: the legacy CreditDealer bool flips in step with the registry id
-    /// (true only for credits), and the currency id selects the wallet.</summary>
+    /// <summary>Marks the vendor as dealing in a currency, the way the template loader does
+    /// for credit dealers: the currency id selects the wallet.</summary>
     public void VendorDealsIn(string currencyId)
     {
         Vendor.NPCTemplate.CurrencyId = currencyId;
-        Vendor.NPCTemplate.CreditDealer = currencyId == Currency.Credits;
     }
 
     public void Dispose() { inner.Dispose(); }

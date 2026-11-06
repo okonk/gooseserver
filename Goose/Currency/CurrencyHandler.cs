@@ -6,6 +6,8 @@ namespace Goose
     /// later (GameWorld.cs:355), so the ordering is safe by a wide margin.</summary>
     public class CurrencyHandler
     {
+        private static readonly NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
+
         private readonly Dictionary<string, ICurrency> currencies =
             new Dictionary<string, ICurrency>(StringComparer.OrdinalIgnoreCase);
 
@@ -54,6 +56,83 @@ namespace Goose
                     $"Currency '{id}' is not registered. Scripts must register a currency before stamping it onto templates.");
 
             return currency;
+        }
+
+        public void LoadDataCurrencies(GameWorld world)
+        {
+            world.Database.Execute(conn =>
+            {
+                using var probe = conn.CreateCommand();
+                probe.CommandText = "SELECT 1 FROM sqlite_master WHERE type='table' AND name='currencies'";
+                if (probe.ExecuteScalar() is null)
+                {
+                    log.Warn("currencies table not found; no data currencies loaded");
+                    return;
+                }
+
+                using var command = conn.CreateCommand();
+                command.CommandText = "SELECT * FROM currencies";
+                using var reader = command.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    string id = reader.GetString("currency_id");
+                    string name = reader.GetString("name");
+                    string shortName = reader.GetString("short_name");
+                    var icon = new CurrencyIcon(reader.GetInt32("icon_sheet"), reader.GetInt32("icon_graphic"));
+                    bool vendorBuyback = reader.GetString("vendor_buyback") != "0";
+
+                    var existing = this.Get(id);
+                    if (existing is DataCurrency data)
+                    {
+                        data.Update(name, shortName, icon, vendorBuyback);
+                    }
+                    else if (existing is not null)
+                    {
+                        log.Error("currencies: row {0} would redefine built-in currency {1}; skipped", id, existing.GetType().Name);
+                    }
+                    else
+                    {
+                        this.Register(new DataCurrency(id, name, shortName, icon, vendorBuyback));
+                    }
+                }
+            });
+        }
+
+        public int ClearUnknownTemplateCurrencies(GameWorld world)
+        {
+            int cleared = 0;
+
+            foreach (var template in world.ItemHandler.GetTemplates())
+            {
+                if (!string.IsNullOrEmpty(template.CurrencyId) && this.Get(template.CurrencyId) is null)
+                {
+                    log.Error("item template {0} ({1}) references unregistered currency {2}; cleared", template.Name, template.ID, template.CurrencyId);
+                    template.CurrencyId = null;
+                    cleared++;
+                }
+            }
+
+            foreach (var template in world.NPCHandler.GetTemplates())
+            {
+                if (!string.IsNullOrEmpty(template.CurrencyId) && this.Get(template.CurrencyId) is null)
+                {
+                    log.Error("npc template {0} ({1}) references unregistered currency {2}; cleared", template.Name, template.NPCTemplateID, template.CurrencyId);
+                    template.CurrencyId = null;
+                    cleared++;
+                }
+            }
+
+            return cleared;
+        }
+
+        // Null (not "gold") keeps Resolve's fallback chain uniform: item, vendor, gold.
+        // "0" covers live sheets still holding the old boolean credit_dealer values.
+        internal static string? ParseTemplateCurrencyId(string? raw)
+        {
+            if (raw is null) return null;
+            string id = raw.Trim();
+            return id is "" or "0" ? null : id;
         }
     }
 }

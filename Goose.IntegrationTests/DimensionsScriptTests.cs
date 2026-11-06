@@ -185,7 +185,7 @@ public class DimensionsScriptTests
             {
                 NPCTemplateID = 162, Name = "Credit Dealer", Level = 1, ClassID = 3,
                 NPCType = NPCTemplate.Types.Vendor,
-                CreditDealer = true, CurrencyId = Currency.Credits,
+                CurrencyId = Currency.Credits,
             };
             t.BaseStats = new AttributeSet { HP = 100 };
             f.World.NPCHandler.AddTemplate(t);
@@ -196,7 +196,6 @@ public class DimensionsScriptTests
         {
             var clone = fixture.World.NPCHandler.GetNPCTemplate(162 + 100000 * dim);
             Assert.NotNull(clone);
-            Assert.True(clone!.CreditDealer);
             Assert.Equal(Currency.Credits, clone.CurrencyId);
             Assert.Contains(fixture.World.MapHandler.GetMap(1 + 100000 * dim)!.NPCs,
                             n => n.NPCTemplateID == 162 + 100000 * dim);

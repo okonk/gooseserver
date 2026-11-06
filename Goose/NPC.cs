@@ -368,11 +368,6 @@ namespace Goose
         public long BehaviourTimeout { get => this.NPCTemplate.BehaviourTimeout; }
         public long LastAttackTime { get; set; }
 
-        /// <summary>
-        /// Does this NPC deal in credits instead of gold
-        /// </summary>
-        public bool CreditDealer { get => this.NPCTemplate.CreditDealer; }
-
         public string? CurrencyId { get => this.NPCTemplate.CurrencyId; }
 
         internal List<Quest> Quests { get; set; } = null!;

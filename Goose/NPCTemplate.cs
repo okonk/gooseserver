@@ -193,11 +193,6 @@ namespace Goose
          */
         public NPCVendorSlot[]? VendorItems { get; set; }
 
-        /// <summary>
-        /// Does this NPC deal in credits instead of gold?
-        /// </summary>
-        public bool CreditDealer { get; set; }
-
         /// <summary>The currency this vendor trades in. Null means gold. Set from the
         /// currency_id column at load.</summary>
         public string? CurrencyId { get; set; }
@@ -256,7 +251,6 @@ namespace Goose
             this.EquippedItems = other.EquippedItems;
             this.WeaponDamage = other.WeaponDamage;
             this.AlliesString = other.AlliesString;
-            this.CreditDealer = other.CreditDealer;
             this.CurrencyId = other.CurrencyId;
             this.Script = other.Script;
             this.ScriptParams = other.ScriptParams;

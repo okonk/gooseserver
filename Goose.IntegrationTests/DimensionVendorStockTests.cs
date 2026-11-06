@@ -196,7 +196,7 @@ public class DimensionVendorStockTests
             NPCTemplateID = CreditDealerId, Name = "Credit Dealer", Level = 1, ClassID = 3,
             NPCType = NPCTemplate.Types.Vendor,
             CanBeKilled = false, CanMove = false,
-            CreditDealer = true, CurrencyId = Currency.Credits,
+            CurrencyId = Currency.Credits,
             AttackSpeed = 1.0, MoveSpeed = 1.0,
             AlliesString = "", Allies = new List<NPCTemplate>(), Drops = new List<NPCDropInfo>(),
             BaseStats = new AttributeSet { HP = 100 },
