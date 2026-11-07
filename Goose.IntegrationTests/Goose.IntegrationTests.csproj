@@ -64,6 +64,26 @@
           Link="ItemScripts/CustomTicket.csx" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Goose/Data/Illutia/Scripts/Item/HairDyePotion.csx"
           Link="ItemScripts/HairDyePotion.csx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Goose/Data/Illutia/Scripts/Arena/ArenaConfig.csx"
+          Link="ArenaScripts/ArenaConfig.csx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Goose/Data/Illutia/Scripts/Arena/ArenaMath.csx"
+          Link="ArenaScripts/ArenaMath.csx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Goose/Data/Illutia/Scripts/Arena/ArenaState.csx"
+          Link="ArenaScripts/ArenaState.csx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Goose/Data/Illutia/Scripts/Arena/ArenaBoard.csx"
+          Link="ArenaScripts/ArenaBoard.csx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Goose/Data/Illutia/Scripts/Arena/ArenaCore.csx"
+          Link="ArenaScripts/ArenaCore.csx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Goose/Data/Illutia/Scripts/Arena/ArenaMob.csx"
+          Link="ArenaScripts/ArenaMob.csx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Goose/Data/Illutia/Scripts/Arena/ArenaMap.csx"
+          Link="ArenaScripts/ArenaMap.csx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Goose/Data/Illutia/Scripts/Arena/ArenaController.csx"
+          Link="ArenaScripts/ArenaController.csx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Goose/Data/Illutia/Scripts/Arena/arena.json"
+          Link="ArenaScripts/arena.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Goose/Data/Illutia/Scripts/Global/Arena.csx"
+          Link="ArenaScripts/Arena.csx" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup>
     <Using Include="Xunit" />

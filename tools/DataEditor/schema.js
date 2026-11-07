@@ -2,6 +2,60 @@
 var GOOSE_SCHEMA = {
   "sheets": [
     {
+      "sheet": "Currencies",
+      "table": "currencies",
+      "columns": [
+        {
+          "name": "currency_id",
+          "kind": "Text",
+          "sql": "TEXT",
+          "required": true,
+          "pk": true
+        },
+        {
+          "name": "name",
+          "kind": "Text",
+          "sql": "TEXT",
+          "required": true,
+          "pk": false
+        },
+        {
+          "name": "short_name",
+          "kind": "Text",
+          "sql": "TEXT",
+          "default": "\u0027\u0027",
+          "required": false,
+          "pk": false
+        },
+        {
+          "name": "icon_sheet",
+          "kind": "Int",
+          "sql": "INT",
+          "default": "0",
+          "required": false,
+          "pk": false
+        },
+        {
+          "name": "icon_graphic",
+          "kind": "Int",
+          "sql": "INT",
+          "default": "0",
+          "required": false,
+          "pk": false
+        },
+        {
+          "name": "vendor_buyback",
+          "kind": "Bool",
+          "sql": "CHAR(1)",
+          "default": "\u00270\u0027",
+          "required": false,
+          "pk": false
+        }
+      ],
+      "composites": [],
+      "indexes": []
+    },
+    {
       "sheet": "Items",
       "table": "item_templates",
       "columns": [
@@ -461,6 +515,14 @@ var GOOSE_SCHEMA = {
         },
         {
           "name": "script_params",
+          "kind": "Text",
+          "sql": "TEXT",
+          "default": "\u0027\u0027",
+          "required": false,
+          "pk": false
+        },
+        {
+          "name": "currency_id",
           "kind": "Text",
           "sql": "TEXT",
           "default": "\u0027\u0027",
@@ -1040,11 +1102,11 @@ var GOOSE_SCHEMA = {
           "pk": false
         },
         {
-          "name": "credit_dealer",
-          "header": "credit dealer (0)",
-          "kind": "Bool",
-          "sql": "CHAR(1)",
-          "default": "\u00270\u0027",
+          "name": "currency_id",
+          "header": "currency id",
+          "kind": "Text",
+          "sql": "TEXT",
+          "default": "\u0027\u0027",
           "required": false,
           "pk": false
         },

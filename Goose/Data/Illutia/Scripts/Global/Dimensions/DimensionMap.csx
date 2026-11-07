@@ -154,6 +154,11 @@ public class DimensionMap : BaseMapScript
         return DimensionHelpers.BaseMapScript(map, world)?.CanPlayerPickupItem(map, player, tile, world);
     }
 
+    public override RespawnLocation? OnPlayerDied(Map map, Player player, ICharacter killer, GameWorld world)
+    {
+        return DimensionHelpers.BaseMapScript(map, world)?.OnPlayerDied(map, player, killer, world);
+    }
+
     public override void OnNPCKilledEvent(Map map, NPC npc, ICharacter killer, GameWorld world)
     {
         DimensionHelpers.BaseMapScript(map, world)?.OnNPCKilledEvent(map, npc, killer, world);

@@ -83,7 +83,7 @@ namespace CsvToSql
             Col.Int("stuck_timeout", SqlType.Int, def: 20).HeaderText("stuck timeout (20)"), // Time since last attack to do behaviour in seconds
 
             // Vendor, quests and scripting
-            Col.Bool("credit_dealer", def: false).HeaderText("credit dealer (0)"),
+            Col.Text("currency_id", def: "''").HeaderText("currency id"),
             Col.Text("quest_ids", def: "''").HeaderText("quest ids"),
             Col.Text("script_path", def: "'Scripts/NPC/BaseNPC.csx'").HeaderText("script_path"),
             Col.Text("script_params", def: "''").HeaderText("script params"),

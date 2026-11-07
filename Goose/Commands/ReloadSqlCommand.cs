@@ -32,6 +32,7 @@ namespace Goose.Commands
                 {
                     try
                     {
+                        world.CurrencyHandler.LoadDataCurrencies(world);
                         world.SpellHandler.LoadSpellEffects(world);
                         world.SpellHandler.LoadSpells(world);
                         world.ItemHandler.LoadTemplates(world);
@@ -41,6 +42,7 @@ namespace Goose.Commands
                         //world.MapHandler.LoadMaps(world);
                         //world.ClassHandler.LoadClasses(world);
                         world.NPCHandler.LoadNPCTemplates(world);
+                        world.CurrencyHandler.ClearUnknownTemplateCurrencies(world);
                         //world.NPCHandler.LoadNPCs(world);
                         //world.CombinationHandler.LoadCombinations(world);
 

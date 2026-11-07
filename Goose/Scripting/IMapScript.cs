@@ -22,6 +22,10 @@ namespace Goose.Scripting
         void OnPlayerTurn(Map map, Player player, GameWorld world);
         void OnPlayerChatEvent(Map map, Player player, string message, GameWorld world);
         void OnNPCKilledEvent(Map map, NPC npc, ICharacter killer, GameWorld world);
+
+        /// <summary>Called on the map the player died on, before the respawn warp. Return a location
+        /// to respawn there instead of the bind point, or null for the bind point.</summary>
+        RespawnLocation? OnPlayerDied(Map map, Player player, ICharacter killer, GameWorld world);
         void OnNPCSpawnEvent(Map map, NPC npc, GameWorld world);
         void OnPetMove(Map map, Pet pet, GameWorld world);
     }

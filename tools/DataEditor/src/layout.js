@@ -19,7 +19,7 @@ var Layout = (function () {
           'res_earth'] },
       { title: 'Weapon', columns: ['weapon_damage', 'weapon_delay', 'body_state'] },
       { title: 'Flags', columns: ['lore', 'bindonpickup', 'bindonequip', 'event'] },
-      { title: 'Value', columns: ['item_value', 'credits_value'] },
+      { title: 'Value', columns: ['item_value', 'credits_value', 'currency_id'] },
       { title: 'Effects', columns: ['spell_effect_id', 'spell_effect_chance', 'learn_spell_id'] },
       { title: 'Scripting', columns: ['properties', 'script_path', 'script_params'] },
     ],
@@ -47,7 +47,7 @@ var Layout = (function () {
       { title: 'Regen', columns: ['hp_percent_regen', 'hp_static_regen', 'mp_percent_regen',
           'mp_static_regen'] },
       // experience is the XP reward for killing this NPC, not a combat stat of its own.
-      { title: 'Links', columns: ['class_id', 'quest_ids', 'credit_dealer', 'experience'] },
+      { title: 'Links', columns: ['class_id', 'quest_ids', 'currency_id', 'experience'] },
       { title: 'Scripting', columns: ['script_path', 'script_params'] },
     ],
     'Spell Effects': [

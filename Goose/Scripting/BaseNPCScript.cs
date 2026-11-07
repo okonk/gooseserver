@@ -26,6 +26,12 @@ namespace Goose.Scripting
 
         }
 
+        public virtual long InterceptDamageTaken(NPC npc, ICharacter attacker, long damage, GameWorld world)
+            => damage;
+
+        public virtual double MeleeBaseDamage(NPC npc, ICharacter target, double baseDamage, GameWorld world)
+            => baseDamage;
+
         public virtual void OnKilledEvent(NPC npc, ICharacter killer, GameWorld world)
         {
 
@@ -35,5 +41,8 @@ namespace Goose.Scripting
         {
 
         }
+
+        public virtual bool OnPlayerClicked(NPC npc, Player player, GameWorld world)
+            => false;
     }
 }

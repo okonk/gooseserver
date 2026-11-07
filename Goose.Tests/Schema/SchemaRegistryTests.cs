@@ -5,8 +5,8 @@ namespace Goose.Tests.Schema
     public class SchemaRegistryTests
     {
         /// <summary>The 21 sheet -> table pairs the pre-registry
-        /// CsvToSqlConverter.BuildConverterMapping() carried, plus the new Community Goals
-        /// pair, captured as literals so the
+        /// CsvToSqlConverter.BuildConverterMapping() carried, plus the new Community Goals and
+        /// Currencies pairs, captured as literals so the
         /// registry is pinned against what actually worked rather than against the plan.
         /// Kept deliberately past the migration: it is the only remaining record of which
         /// worksheet feeds which table, and nothing else pins it — the equivalence test sees
@@ -26,6 +26,7 @@ namespace Goose.Tests.Schema
             "Quest Reqs -> quest_requirements",
             "Quest Rewards -> quest_rewards",
             "Community Goals -> community_goals",
+            "Currencies -> currencies",
             "Maps -> maps",
             "Map Required Items -> map_required_items",
             "Combinations -> combinations",
@@ -39,9 +40,9 @@ namespace Goose.Tests.Schema
         };
 
         [Fact]
-        public void Has_twenty_two_tables()
+        public void Has_twenty_three_tables()
         {
-            Assert.Equal(22, SchemaRegistry.Tables.Count);
+            Assert.Equal(23, SchemaRegistry.Tables.Count);
         }
 
         [Fact]
@@ -119,13 +120,16 @@ namespace Goose.Tests.Schema
                     Assert.Contains(c.RefSheet, sheets);
         }
 
-        /// <summary>Columns named *_id that legitimately have no .Ref, with the reason. These
-        /// are sprite indices into the client's graphics, not rows in any worksheet, so there
-        /// is nothing for the editor to offer a picker over.</summary>
+        /// <summary>Columns named *_id that legitimately have no .Ref, with the reason. The
+        /// body/face/hair ids are sprite indices into the client's graphics, not rows in any
+        /// worksheet; the currency_ids reference the optional Currencies sheet, which a
+        /// workbook may lack, so the editor offers no picker over a sheet that may not exist.
+        /// In neither case is there anything for the editor to offer a picker over.</summary>
         private static readonly HashSet<string> NonReferenceIdColumns = new()
         {
             "npc_templates.body_id", "npc_templates.face_id", "npc_templates.hair_id",
             "spell_effects.body_id", "spell_effects.face_id", "spell_effects.hair_id",
+            "npc_templates.currency_id", "item_templates.currency_id",
         };
 
         /// <summary>Every_foreign_key_targets_a_known_sheet only checks references that were

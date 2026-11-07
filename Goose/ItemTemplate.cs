@@ -113,8 +113,8 @@ namespace Goose
         public int Credits { get; set; }
 
         /// <summary>Overrides the vendor's currency for this item. Null means "use whatever
-        /// the vendor deals in". Runtime-only - there is no items column for it, so sheet
-        /// data never sets it.</summary>
+        /// the vendor deals in". Set from the currency_id column at load; scripts may also
+        /// stamp it at runtime.</summary>
         public string? CurrencyId { get; set; }
 
         public PropertiesDictionary Properties { get; set; } = new PropertiesDictionary();

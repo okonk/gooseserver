@@ -1,0 +1,57 @@
+{
+    // Map ids 0 until real arena maps exist; the arena stays disabled until both
+    // are set and present in the world. Band template ids are placeholders until
+    // real arena mobs exist.
+    "lobbyMap": 0,
+    "lobbySpawn": [0, 0],
+    "arenaMap": 0,
+    "arenaRect": [0, 0, 0, 0],
+
+    "intervalHours": 3,
+    "anchorUtc": "00:00",
+    "announceMinutes": [15, 10, 5],
+    "countdownSeconds": 10,
+    "breakSeconds": 15,
+    "roundSeconds": 180,
+    "timeoutWarningSeconds": 30,
+    "stragglerCount": 3,
+    "minPlayerDistance": 3,
+
+    "baseCount": 4,
+    "perPlayer": 2,
+    "bandSize": 10,
+    "bands": [{ "normals": [41001, 41002, 41003], "boss": 41101 }],
+
+    "eliteFromRound": 3,
+    "eliteChance": 0.05,
+    "eliteChanceGrowth": 0.02,
+    "eliteChanceMax": 0.30,
+    "eliteHpMult": 5,
+    "eliteDmgMult": 2,
+    "eliteTitle": "Elite",
+    "eliteTint": [255, 160, 0, 255],
+
+    "bossEvery": 5,
+    "bossRoundAddFraction": 0.5,
+    "bossHpMult": 40,
+    "bossHpPerPlayer": 0.25,
+    "bossDmgMult": 3,
+
+    "minXpSold": 4000000,
+    "topXpSold": 3000000000,
+    "a": 0.75,
+    "b": 0.75,
+    "anchorRound": 20,
+    "anchorMobHp": 12000000,
+    "anchorMobWeaponDamage": 65000,
+    "hpGrowth": 1.10,
+    "dmgGrowth": 1.08,
+
+    "currencyId": "arena_coin",
+    "roundBase": 5,
+    "roundStep": 1,
+    "mobBounty": 1,
+    "eliteBountyMult": 5,
+    "bossBountyMult": 25,
+    "milestones": { "5": 20, "10": 60, "15": 120, "20": 200 },
+}

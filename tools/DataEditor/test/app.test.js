@@ -211,7 +211,17 @@ function boot(sheets, options) {
     },
   };
 
-  if (!opts.hold) handles.settle();
+  if (!opts.hold) {
+    handles.settle();
+    // init opens the schema's first sheet (Currencies, a reference table no test exercises);
+    // put the first sheet the caller named on screen instead.
+    const first = Object.keys(sheets || {})[0];
+    if (first && first !== GOOSE_SCHEMA.sheets[0].sheet) {
+      doc.getElementById('sheet-picker').value = first;
+      fire(doc.getElementById('sheet-picker'), 'change');
+      handles.settle();
+    }
+  }
   return handles;
 }
 
@@ -269,10 +279,11 @@ test('init lists every sheet and opens the first one', () => {
 
   const options = h.get('sheet-picker').getElementsByTagName('option');
   assert.equal(options.length, GOOSE_SCHEMA.sheets.length);
-  assert.equal(options.length, 23);
-  assert.equal(options[0].value, 'Items');
+  assert.equal(options.length, 24);
+  assert.equal(options[0].value, 'Currencies');
 
-  assert.deepEqual(serverCalls(h.run, 'readSheet').map((c) => c.args), [['Items']]);
+  assert.deepEqual(serverCalls(h.run, 'readSheet').map((c) => c.args),
+                   [['Currencies'], ['Items']]);
   assert.equal(h.status(), '2 records');
 });
 
@@ -321,7 +332,7 @@ test('bundlesFor loads parts only for the sheets that draw a character', () => {
 test('the form renders as soon as icons has decoded, without waiting on the parts bundle', () => {
   // THE COST OF THE OTHER ORDER. Waiting on every bundle put a second multi-megabyte PNG decode
   // (parts, 1.98MB, on top of icons' 1.75MB) in front of the FIRST FIELD of the first Items record
-  // of a session — the most-used sheet, and normally the first one opened. The art is not the
+  // of a session — the most-used sheet. The art is not the
   // urgent half: the fields are, and every control that needs a sprite subscribes to
   // onImagesReady, so parts landing afterwards fills its canvas in place.
   const h = boot({ Items: [ITEM(1, 'Gold', { graphic_equip: 5, item_slot: 'Helmet' })] });
@@ -406,8 +417,11 @@ test('a bundle that fails to decode is reported and does not block the sheet', (
   // The failure message is written and then immediately buried: done() runs straight into
   // openSheet's 'Loading …'. That is exactly why the failure is REMEMBERED rather than only
   // announced — the assertion that matters is the one after the sheet has loaded.
-  assert.equal(h.status(), 'Loading Items…');
+  assert.equal(h.status(), 'Loading Currencies…');
 
+  h.settle();
+  h.get('sheet-picker').value = 'Items';
+  fire(h.get('sheet-picker'), 'change');
   h.settle();
   assert.equal(h.get('records').children.length, 1);
   // And it is still on screen after the sheet loads: done() runs straight into openSheet, whose
@@ -419,6 +433,9 @@ test('a bundle that fails to decode is reported and does not block the sheet', (
 test('a failed bundle decode is cached — record opens render at once, with no re-decode', () => {
   const h = boot({ Items: [ITEM(1, 'Gold'), ITEM(2, 'Sword')] }, { hold: true });
   assert.equal(h.img.fail(), 1);       // the boot decode of icons fails
+  h.settle();
+  h.get('sheet-picker').value = 'Items';
+  fire(h.get('sheet-picker'), 'change');
   h.settle();
 
   // The failure is a RESULT: the form renders synchronously off it, which both spares a
@@ -1382,6 +1399,9 @@ test('a save landing after the user opened ANOTHER record leaves that record alo
   // Batching edits: save record A, click record B, start typing. The reply used to force-reopen
   // A, silently discarding everything typed into B.
   const h = boot({ Items: [ITEM(1, 'Gold'), ITEM(2, 'Sword')] }, { hold: true });
+  h.settle();
+  h.get('sheet-picker').value = 'Items';
+  fire(h.get('sheet-picker'), 'change');
   h.settle();
 
   fire(h.get('records').children[0], 'click');
@@ -2362,6 +2382,9 @@ test('both warnings are reported when a bundle and a list both fail', () => {
   const h = boot({ Items: [ITEM(1, 'Gold')] }, { failIndexOn: 'Spell Effects', hold: true });
   h.img.fail();
   h.settle();
+  h.get('sheet-picker').value = 'Items';
+  fire(h.get('sheet-picker'), 'change');
+  h.settle();
 
   assert.match(h.status(), /sprite bundle/);
   assert.match(h.status(), /Could not load Spell Effects/);
@@ -2445,6 +2468,9 @@ test('the record list is emptied the moment a sheet switch is requested', () => 
   // is a row of the OLD sheet under the schema of the NEW one.
   const h = boot({ Items: [ITEM(7, 'Sword')], Maps: [MAP(3, 'Town')] }, { hold: true });
   h.settle();
+  h.get('sheet-picker').value = 'Items';
+  fire(h.get('sheet-picker'), 'change');
+  h.settle();
   assert.equal(h.get('records').children.length, 1);
 
   h.get('sheet-picker').value = 'Maps';
@@ -2508,6 +2534,9 @@ test('a save that answers after a sheet switch does not hijack the new sheet', (
   const h = boot({ Items: [ITEM(7, 'Sword')], Maps: [MAP(3, 'Town'), MAP(4, 'Cave')] },
                  { hold: true });
   h.settle();
+  h.get('sheet-picker').value = 'Items';
+  fire(h.get('sheet-picker'), 'change');
+  h.settle();
 
   fire(h.get('records').children[0], 'click');
   h.settle();
@@ -2533,6 +2562,9 @@ test('a save that FAILS after a sheet switch does not overwrite the new sheet\'s
   // reads as "loading Maps failed", which is a different and untrue thing.
   const h = boot({ Items: [ITEM(7, 'Sword')], Maps: [MAP(3, 'Town')] },
                  { hold: true, writeFails: true });
+  h.settle();
+  h.get('sheet-picker').value = 'Items';
+  fire(h.get('sheet-picker'), 'change');
   h.settle();
   fire(h.get('records').children[0], 'click');
   h.settle();
@@ -2725,9 +2757,9 @@ test('the restart warning names all twelve sheets, whatever the result', () => {
   });
 });
 
-test('the publish check fires all 22 reads at once rather than one after the next', () => {
+test('the publish check fires all 23 reads at once rather than one after the next', () => {
   // Phase two needs every sheet before it can validate anything, so ordering the reads buys nothing
-  // and costs 22 serialised round trips — most of the wall clock of the run. The assertion is made
+  // and costs 23 serialised round trips — most of the wall clock of the run. The assertion is made
   // BEFORE anything is flushed: sequentially there would be exactly one call in flight.
   const h = boot({ Items: [ITEM(1, 'Gold')] });
   const before = serverCalls(h.run, 'readSheet').length;
@@ -2735,7 +2767,7 @@ test('the publish check fires all 22 reads at once rather than one after the nex
   fire(h.get('publish-check'), 'click');
   const imported = GOOSE_SCHEMA.sheets.filter((s) => !s.editorOnly);
   assert.equal(serverCalls(h.run, 'readSheet').length - before, imported.length);
-  assert.equal(imported.length, 22);
+  assert.equal(imported.length, 23);
 
   h.settle();
   assert.match(h.get('publish-results').textContent, /All sheets valid/);
@@ -2756,7 +2788,7 @@ test('the publish check never reads an editor-only sheet', () => {
 
 test('the report reads in SHEET order however the replies interleave', () => {
   // Each reply lands in its own slot and the slots are walked in schema order, so the run is
-  // diffable against the last one. Reversing the queue is the shape of the real hazard: 21 concurrent
+  // diffable against the last one. Reversing the queue is the shape of the real hazard: 23 concurrent
   // reads of very different sizes (NPC Spawns is 4,322 rows, Titles a handful) do not answer in the
   // order they were asked.
   const broken = {

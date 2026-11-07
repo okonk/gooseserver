@@ -123,6 +123,7 @@ namespace Goose
                     template.LearnSpellID = reader.GetInt32("learn_spell_id");
 
                     template.Credits = reader.GetInt32("credits_value");
+                    template.CurrencyId = CurrencyHandler.ParseTemplateCurrencyId(reader.GetString("currency_id"));
                     template.Properties = ParseTemplateProperties(reader.GetString("properties"), template.ID);
 
                     string scriptPath = reader.GetString("script_path");

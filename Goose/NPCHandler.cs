@@ -145,12 +145,7 @@ namespace Goose
                         npc.AggroMessage = reader.GetString("aggro_message");
                         npc.StuckMessage = reader.GetString("stuck_message");
 
-                        npc.CreditDealer = reader.GetString("credit_dealer") != "0";
-
-                        // Credit dealers are the only vendors with a non-gold currency in
-                        // sheet data. Null (not "gold") so Resolve's fallback chain stays
-                        // uniform: item override, then vendor, then gold.
-                        npc.CurrencyId = npc.CreditDealer ? Currency.Credits : null;
+                        npc.CurrencyId = CurrencyHandler.ParseTemplateCurrencyId(reader.GetString("currency_id"));
 
                         var quests = ResolveQuests(npc.NPCTemplateID, reader.GetString("quest_ids"), world.QuestHandler);
                         npc.Quests.Clear();

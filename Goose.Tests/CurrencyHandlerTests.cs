@@ -12,6 +12,7 @@ public class CurrencyHandlerTests
         public string Id { get; }
         public string Name => Id;
         public string ShortName => Id;
+        public CurrencyIcon? Icon => null;
         public long GetBalance(Player player) => 0;
         public long GetBuyPrice(ItemTemplate template, int stack) => 0;
         public long GetSellPrice(Item item, int stack) => 0;
@@ -28,6 +29,23 @@ public class CurrencyHandlerTests
         handler.Register(spirit);
 
         Assert.Same(spirit, handler.Get("spirit"));
+    }
+
+    [Fact]
+    public void All_lists_builtins_then_registered_in_order()
+    {
+        var handler = new CurrencyHandler();
+        handler.Register(new StubCurrency(Currency.Gold));
+        handler.Register(new StubCurrency(Currency.Credits));
+        var spirit = new StubCurrency("spirit");
+        handler.Register(spirit);
+
+        var all = handler.All;
+
+        Assert.Equal(3, all.Count);
+        Assert.Equal(Currency.Gold, all[0].Id);
+        Assert.Equal(Currency.Credits, all[1].Id);
+        Assert.Same(spirit, all[2]);
     }
 
     [Fact]

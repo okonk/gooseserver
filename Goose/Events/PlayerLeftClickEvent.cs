@@ -12,6 +12,8 @@ namespace Goose.Events
      */
     public class PlayerLeftClickEvent : Event
     {
+        private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
+
         public override void Ready(GameWorld world)
         {
             if (this.Player.State == Player.States.Ready)
@@ -51,6 +53,18 @@ namespace Goose.Events
                 {
                     if (npc.MapX != x || npc.MapY != y)
                         continue;
+                    bool handled;
+                    try
+                    {
+                        handled = npc.Script?.Object.OnPlayerClicked(npc, this.Player, world) ?? false;
+                    }
+                    catch (Exception e)
+                    {
+                        log.Error(e, "NPC OnPlayerClicked {0} ({1}) Exception", npc.Name, npc.NPCTemplateID);
+                        handled = false;
+                    }
+                    if (handled)
+                        return;
                     if (world.CommunityGoals.GoalsForNpc(npc.NPCTemplateID).Any())
                     {
                         CommunityGoalWindow.Handle(npc, this.Player, world);
