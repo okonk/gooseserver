@@ -70,6 +70,8 @@
           Link="ArenaScripts/ArenaMath.csx" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Goose/Data/Illutia/Scripts/Arena/ArenaState.csx"
           Link="ArenaScripts/ArenaState.csx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Goose/Data/Illutia/Scripts/Arena/ArenaBoard.csx"
+          Link="ArenaScripts/ArenaBoard.csx" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Goose/Data/Illutia/Scripts/Arena/ArenaCore.csx"
           Link="ArenaScripts/ArenaCore.csx" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Goose/Data/Illutia/Scripts/Arena/ArenaMob.csx"
