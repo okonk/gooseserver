@@ -58,6 +58,7 @@ public sealed class ArenaConfig
     public long MobBounty { get; set; }
     public long EliteBountyMult { get; set; }
     public long BossBountyMult { get; set; }
+    public double KillCreditMinShare { get; set; } = 0.05;
     public Dictionary<int, long> Milestones { get; set; } = new();
     public bool Valid { get; set; } = true;
 
@@ -145,6 +146,8 @@ public sealed class ArenaConfig
         foreach (var band in c.Bands ?? new List<ArenaBand>())
             if (band.Normals is null || band.Normals.Length == 0)
                 throw new JsonException("Arena bands entries need at least one normal template");
+        if (c.KillCreditMinShare is < 0 or > 1)
+            throw new JsonException("Arena killCreditMinShare must be in [0, 1]");
         if (c.RoundSeconds <= c.TimeoutWarningSeconds)
             throw new JsonException("Arena roundSeconds must be > timeoutWarningSeconds");
     }

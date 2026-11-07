@@ -228,6 +228,28 @@ public sealed class ArenaRoundTests : IDisposable
     }
 
     [Fact]
+    public void Kill_credited_to_participants_with_at_least_five_percent_of_damage()
+    {
+        var p1 = kit.LobbyPlayer(70001, "P1");
+        var p2 = kit.LobbyPlayer(70002, "P2");
+        p1.ExperienceSold = 3_000_000_000;
+        p2.ExperienceSold = 3_000_000_000;
+        EnterRound1(kit, p1, p2);
+        kit.RegisterController();
+
+        var mobs = Mobs(kit);
+        mobs[0].Attacked(p2, mobs[0].CurrentHP / 50, kit.World);
+        mobs[0].Attacked(p1, long.MaxValue / 4, kit.World);
+        Assert.Equal(1, (int)Prop(Participants(Run(kit)!)[70001], "Kills")!);
+        Assert.Equal(0, (int)Prop(Participants(Run(kit)!)[70002], "Kills")!);
+
+        mobs[1].Attacked(p2, mobs[1].CurrentHP / 4, kit.World);
+        mobs[1].Attacked(p1, long.MaxValue / 4, kit.World);
+        Assert.Equal(2, (int)Prop(Participants(Run(kit)!)[70001], "Kills")!);
+        Assert.Equal(1, (int)Prop(Participants(Run(kit)!)[70002], "Kills")!);
+    }
+
+    [Fact]
     public void Missing_template_round_does_not_stall()
     {
         kit.SetConfig(j => j["bands"]![0]!["normals"] = new JsonArray(99999));

@@ -55,6 +55,9 @@ public sealed class ArenaMathTests : IDisposable
     private static Dictionary<int, long> SplitBounty(ArenaTestKit kit, long bounty, Dictionary<int, long> dmg)
         => (Dictionary<int, long>)ArenaTestKit.Call(kit.Host, "SplitBounty", bounty, dmg)!;
 
+    private static List<int> KillCredit(ArenaTestKit kit, Dictionary<int, long> dmg, double minShare)
+        => (List<int>)ArenaTestKit.Call(kit.Host, "KillCredit", dmg, minShare)!;
+
     private static DateTime NextStartUtc(ArenaTestKit kit, DateTime now)
         => (DateTime)ArenaTestKit.Call(kit.Host, "NextStartUtc", now, Cfg(kit))!;
 
@@ -143,6 +146,16 @@ public sealed class ArenaMathTests : IDisposable
         Assert.Empty(SplitBounty(kit, 10, new Dictionary<int, long>()));
         Assert.Empty(SplitBounty(kit, 10, new Dictionary<int, long> { [1] = 0, [2] = 0 }));
         Assert.Empty(SplitBounty(kit, 0, new Dictionary<int, long> { [1] = 5 }));
+    }
+
+    [Fact]
+    public void Kill_credit_goes_to_everyone_at_or_above_the_minimum_share()
+    {
+        var dmg = new Dictionary<int, long> { [1] = 900, [2] = 50, [3] = 49, [4] = 1 };
+        Assert.Equal(new List<int> { 1, 2 }, KillCredit(kit, dmg, 0.05));
+        Assert.Equal(new List<int> { 1, 2, 3, 4 }, KillCredit(kit, dmg, 0));
+        Assert.Empty(KillCredit(kit, new Dictionary<int, long>(), 0.05));
+        Assert.Empty(KillCredit(kit, new Dictionary<int, long> { [1] = 0 }, 0));
     }
 
     [Fact]

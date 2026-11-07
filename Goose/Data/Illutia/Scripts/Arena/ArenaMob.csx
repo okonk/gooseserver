@@ -32,7 +32,8 @@ public class ArenaMob : BaseNPCScript
         if (!cfg.Valid) return damage;
         long eff = ArenaMath.EffectiveDamage(damage, ArenaMath.PowerFraction(player.ExperienceSold, cfg), cfg);
         string key = "arena.dmg." + player.PlayerID;
-        if (eff > 0) npc.Properties[key] = npc.Properties.GetProperty<long>(key, 0) + eff;
+        long dealt = Math.Min(eff, Math.Max(0, npc.CurrentHP));
+        if (dealt > 0) npc.Properties[key] = npc.Properties.GetProperty<long>(key, 0) + dealt;
         return eff;
     }
 

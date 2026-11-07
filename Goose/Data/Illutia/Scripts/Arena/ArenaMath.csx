@@ -108,6 +108,19 @@ public static class ArenaMath
         return result;
     }
 
+    public static List<int> KillCredit(IReadOnlyDictionary<int, long> damageByPlayer, double minShare)
+    {
+        var result = new List<int>();
+        double total = 0;
+        foreach (var dmg in damageByPlayer.Values) total += Math.Max(0, dmg);
+        if (total <= 0) return result;
+        foreach (var (id, dmg) in damageByPlayer)
+            if (dmg > 0 && dmg / total >= minShare)
+                result.Add(id);
+        result.Sort();
+        return result;
+    }
+
     public static DateTime NextStartUtc(DateTime nowUtc, ArenaConfig c)
     {
         DateTime anchor = nowUtc.Date + TimeSpan.Parse(c.AnchorUtc);

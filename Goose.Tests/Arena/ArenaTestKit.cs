@@ -203,6 +203,7 @@ public sealed class ArenaTestKit : IDisposable
             public long Bounty(int tier, object c) => ArenaMath.Bounty((MobTier)tier, (ArenaConfig)c);
             public long MilestoneBonus(int rounds, object c) => ArenaMath.MilestoneBonus(rounds, (ArenaConfig)c);
             public Dictionary<int, long> SplitBounty(long bounty, Dictionary<int, long> dmg) => ArenaMath.SplitBounty(bounty, dmg);
+            public List<int> KillCredit(Dictionary<int, long> dmg, double minShare) => ArenaMath.KillCredit(dmg, minShare);
             public DateTime NextStartUtc(DateTime now, object c) => ArenaMath.NextStartUtc(now, (ArenaConfig)c);
         }
 

@@ -53,5 +53,6 @@
     "mobBounty": 1,
     "eliteBountyMult": 5,
     "bossBountyMult": 25,
+    "killCreditMinShare": 0.05,
     "milestones": { "5": 20, "10": 60, "15": 120, "20": 200 },
 }

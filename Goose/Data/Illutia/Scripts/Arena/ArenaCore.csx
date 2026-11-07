@@ -92,11 +92,6 @@ public static class ArenaCore
         var cfg = ArenaConfig.Get(world);
         if (!cfg.Valid) return;
 
-        foreach (var p in credited)
-            if (run.Participants.TryGetValue(p.PlayerID, out var part))
-                part.Kills++;
-        ArenaState.Save(world, run);
-
         const string DmgPrefix = "arena.dmg.";
         var dmg = new Dictionary<int, long>();
         foreach (var key in npc.Properties.Keys)
@@ -106,6 +101,10 @@ public static class ArenaCore
             if (run.Participants.ContainsKey(id))
                 dmg[id] = npc.Properties.GetProperty<long>(key, 0);
         }
+
+        foreach (var id in ArenaMath.KillCredit(dmg, cfg.KillCreditMinShare))
+            run.Participants[id].Kills++;
+        ArenaState.Save(world, run);
 
         var split = ArenaMath.SplitBounty(ArenaMath.Bounty((MobTier)npc.Properties.GetProperty<int>("arena.tier", 0), cfg), dmg);
         foreach (var (id, amount) in split)
