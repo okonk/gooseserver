@@ -253,11 +253,20 @@ follow-up.
   Left-click opens an `OptionListWindow` hub:
   - `Arena Coins: 1,240`
   - `Next run in 1h 42m` / `Run in progress: round 12, 8 alive`
+  - `Last run: round {best} ({n} players)` when a last run exists
+  - `The arena is closed.` when the config is disabled (an active run takes precedence over
+    the closed state)
   - `Leaderboards` → Best round / Total kills → Weekly / All-time → top 10 + own rank.
 - **Arena vendor** (lobby, data-defined): ordinary vendor with `currency_id = 'arena_coin'`.
-- **Leaderboard storage:** `WorldState["arena"]` keyed by player id: name, all-time best
-  round and kills, week key + weekly best round and kills. Weekly values reset lazily when
-  the stored week key differs from the current ISO week.
+- **Leaderboard storage:** `WorldState["arena.board"]` as a JSON string keyed by player id:
+  all-time best round (with the time it was achieved) and total kills, plus an ISO week key
+  with the weekly best round (with time) and weekly kills. No names are stored — names are
+  resolved through `PlayerHandler.GetPlayerName` at display time, so renames are reflected.
+  Weekly values reset lazily when the stored week key differs from the current ISO week, and
+  weekly reads treat a stale week as zero without writing.
+- **Leaderboard ordering:** best round is ranked by value descending, then time achieved
+  ascending (whoever got there first), then player id; kills by value descending, then
+  player id. Zero values are excluded — a player with no value in a view is unranked.
 
 ## Crowd spectators
 
