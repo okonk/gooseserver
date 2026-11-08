@@ -104,26 +104,26 @@ public sealed class ArenaCrowdTests : IDisposable
     }
 
     [Fact]
-    public void Sweaty_npc_punches_in_bursts_and_sweats_once_per_burst()
+    public void Sweaty_npc_does_two_sets_of_four_punches_sweating_on_the_first_of_each()
     {
         var npc = SpawnCrowd(445, "sweat");
         var watcher = Watcher(12, 12);
 
-        for (int burst = 0; burst < 10; burst++)
+        for (int burst = 0; burst < 3; burst++)
         {
-            watcher.Sent.Clear();
-            int hits = 0;
-            TimeSpan wait;
-            do
+            var sweatHits = new List<int>();
+            TimeSpan wait = default;
+            for (int hit = 0; hit < 8; hit++)
             {
+                watcher.Sent.Clear();
                 wait = Call("Attack", npc);
-                hits++;
-            } while (wait == TimeSpan.FromSeconds(0.6));
+                Assert.Single(watcher.Sent, p => p.StartsWith("ATT" + npc.LoginID));
+                if (watcher.Sent.Any(p => p.StartsWith($"EMOT{npc.LoginID},1088,10"))) sweatHits.Add(hit);
+                if (hit < 7) Assert.Equal(TimeSpan.FromSeconds(0.6), wait);
+            }
 
-            Assert.InRange(hits, 3, 5);
+            Assert.Equal(new[] { 0, 4 }, sweatHits);
             Assert.InRange(wait.TotalSeconds, 10, 20);
-            Assert.Equal(hits, watcher.Sent.Count(p => p.StartsWith("ATT" + npc.LoginID)));
-            Assert.Single(watcher.Sent, p => p.StartsWith($"EMOT{npc.LoginID},1088,10"));
         }
     }
 

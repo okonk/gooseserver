@@ -20,7 +20,8 @@ public class ArenaCrowd : BaseNPCScript
     private static readonly (double Min, double Max) EmoteSeconds = (20, 60);
     private static readonly (double Min, double Max) AttackSeconds = (20, 60);
     private static readonly (double Min, double Max) FastAttackSeconds = (3, 8);
-    private static readonly (int Min, int Max) SweatBurstHits = (3, 5);
+    private const int SweatSetHits = 4;
+    private const int SweatSets = 2;
     private static readonly TimeSpan SweatBurstGap = TimeSpan.FromSeconds(0.6);
     private static readonly (double Min, double Max) SweatBurstPause = (10, 20);
 
@@ -48,11 +49,9 @@ public class ArenaCrowd : BaseNPCScript
         if (!IsSweaty(npc)) return Delay(AttackRange(npc), world.Random);
 
         int remaining = npc.Properties.GetProperty<int>(BurstKey, 0);
-        if (remaining == 0)
-        {
+        if (remaining == 0) remaining = SweatSetHits * SweatSets;
+        if (remaining % SweatSetHits == 0)
             SendToRange(npc, $"EMOT{npc.LoginID},{Sweat.Animation},{Sweat.Sheet}", world);
-            remaining = world.Random.Next(SweatBurstHits.Min, SweatBurstHits.Max + 1);
-        }
         npc.Properties[BurstKey] = --remaining;
         return remaining > 0 ? SweatBurstGap : Delay(SweatBurstPause, world.Random);
     }
