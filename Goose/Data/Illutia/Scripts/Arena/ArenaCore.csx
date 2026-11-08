@@ -167,7 +167,7 @@ public static class ArenaCore
                         {
                             int x = player.MapX + world.Random.Next(-2, 3);
                             int y = player.MapY + world.Random.Next(-2, 3);
-                            if (!arenaMap.IsTileBlocked(null, x, y))
+                            if (OnFloor(arenaMap, cfg.ArenaRect, x, y) && !arenaMap.IsTileBlocked(null, x, y))
                             {
                                 npc.Hide(world);
                                 npc.Reveal(world, x, y);
@@ -399,19 +399,18 @@ public static class ArenaCore
     private static (int X, int Y)? PickSpawnTile(GameWorld world, ArenaConfig cfg, ArenaRun run)
     {
         if (!world.MapHandler.Maps.TryGetValue(cfg.ArenaMap, out var map)) return null;
+        var floor = Floor(map, cfg.ArenaRect);
         var players = world.PlayerHandler.Players
             .Where(p => p.MapID == cfg.ArenaMap && IsAliveParticipant(run, p))
             .ToList();
         for (int i = 0; i < SpawnAttempts; i++)
         {
-            int x = cfg.ArenaRect[0] + world.Random.Next(cfg.ArenaRect[2]);
-            int y = cfg.ArenaRect[1] + world.Random.Next(cfg.ArenaRect[3]);
+            var (x, y) = floor[world.Random.Next(floor.Count)];
             if (!map.IsTileBlocked(null, x, y) && FarEnough(x, y)) return (x, y);
         }
         for (int i = 0; i < SpawnAttempts; i++)
         {
-            int x = cfg.ArenaRect[0] + world.Random.Next(cfg.ArenaRect[2]);
-            int y = cfg.ArenaRect[1] + world.Random.Next(cfg.ArenaRect[3]);
+            var (x, y) = floor[world.Random.Next(floor.Count)];
             if (!map.IsTileBlocked(null, x, y)) return (x, y);
         }
         return null;
@@ -425,12 +424,62 @@ public static class ArenaCore
 
     private static (int X, int Y) PickFreeTile(GameWorld world, Map map, int[] rect)
     {
+        var floor = Floor(map, rect);
         for (int i = 0; i < SpawnAttempts; i++)
         {
-            int x = rect[0] + world.Random.Next(rect[2]);
-            int y = rect[1] + world.Random.Next(rect[3]);
+            var (x, y) = floor[world.Random.Next(floor.Count)];
             if (!map.IsTileBlocked(null, x, y)) return (x, y);
         }
-        return (rect[0] + rect[2] / 2, rect[1] + rect[3] / 2);
+        return floor[0];
+    }
+
+    private static List<(int X, int Y)>? floorTiles;
+    private static Map? floorMap;
+    private static string floorRect = "";
+    private static HashSet<(int X, int Y)> floorSet = new();
+
+    private static bool OnFloor(Map map, int[] rect, int x, int y)
+    {
+        Floor(map, rect);
+        return floorSet.Contains((x, y));
+    }
+
+    // The rect is the arena's bounding box; only tiles connected to its centre count, so the corners
+    // of a non-rectangular floor that fall outside its walls are never used.
+    private static List<(int X, int Y)> Floor(Map map, int[] rect)
+    {
+        string key = string.Join(",", rect);
+        if (floorTiles is not null && ReferenceEquals(floorMap, map) && floorRect == key) return floorTiles;
+        int minX = rect[0], minY = rect[1], maxX = rect[0] + rect[2] - 1, maxY = rect[1] + rect[3] - 1;
+        var start = (X: rect[0] + rect[2] / 2, Y: rect[1] + rect[3] / 2);
+        var seen = new HashSet<(int X, int Y)>();
+        var queue = new Queue<(int X, int Y)>();
+        if (!map.IsTileStaticBlocked(start.X, start.Y))
+        {
+            seen.Add(start);
+            queue.Enqueue(start);
+        }
+        while (queue.Count > 0)
+        {
+            var (x, y) = queue.Dequeue();
+            foreach (var next in new[] { (x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1) })
+            {
+                if (next.Item1 < minX || next.Item1 > maxX || next.Item2 < minY || next.Item2 > maxY) continue;
+                if (map.IsTileStaticBlocked(next.Item1, next.Item2) || !seen.Add(next)) continue;
+                queue.Enqueue(next);
+            }
+        }
+        if (seen.Count == 0)
+        {
+            log.Error("Arena rect {0} centre is blocked; using the whole rect", string.Join(",", rect));
+            for (int y = minY; y <= maxY; y++)
+                for (int x = minX; x <= maxX; x++)
+                    seen.Add((x, y));
+        }
+        floorSet = seen;
+        floorTiles = seen.OrderBy(t => t.Y).ThenBy(t => t.X).ToList();
+        floorMap = map;
+        floorRect = key;
+        return floorTiles;
     }
 }

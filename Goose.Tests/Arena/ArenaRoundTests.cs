@@ -68,6 +68,22 @@ public sealed class ArenaRoundTests : IDisposable
     }
 
     [Fact]
+    public void Players_and_mobs_are_only_placed_on_floor_connected_to_the_rect_centre()
+    {
+        for (int y = 1; y <= 100; y++)
+            ArenaMap(kit).SetTile(30, y, new BlockedTile());
+        var players = Enumerable.Range(0, 6).Select(i => kit.LobbyPlayer(70001 + i, "P" + i)).ToArray();
+
+        StartRun(kit, Now);
+        Assert.All(players, p => Assert.True(p.MapX > 30, $"player at {p.MapX},{p.MapY}"));
+        Tick(kit, Now.AddSeconds(10));
+
+        var mobs = Mobs(kit);
+        Assert.NotEmpty(mobs);
+        Assert.All(mobs, m => Assert.True(m.MapX > 30, $"mob at {m.MapX},{m.MapY}"));
+    }
+
+    [Fact]
     public void Spawns_respect_min_player_distance()
     {
         var p1 = kit.LobbyPlayer(70001, "P1");

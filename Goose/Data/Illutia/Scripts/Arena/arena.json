@@ -1,10 +1,11 @@
 {
-    // Map ids 0 until real arena maps exist; the arena stays disabled until both
-    // are set and present in the world.
-    "lobbyMap": 0,
-    "lobbySpawn": [0, 0],
-    "arenaMap": 0,
-    "arenaRect": [0, 0, 0, 0],
+    // Server tile coordinates are 1-based (the map editor's 0-based + 1).
+    // arenaRect is [x, y, width, height]: the floor's bounding box. Only tiles connected
+    // to its centre are used, which excludes the stands in the corners.
+    "lobbyMap": 57,
+    "lobbySpawn": [21, 15],
+    "arenaMap": 56,
+    "arenaRect": [21, 26, 61, 23],
 
     "intervalHours": 3,
     "anchorUtc": "00:00",

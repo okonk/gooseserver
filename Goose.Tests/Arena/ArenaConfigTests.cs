@@ -18,7 +18,7 @@ public sealed class ArenaConfigTests : IDisposable
     private static T Prop<T>(object config, string name) => (T)config.GetType().GetProperty(name)!.GetValue(config)!;
 
     [Fact]
-    public void Shipped_config_parses_and_is_disabled_until_maps_are_set()
+    public void Shipped_config_parses_and_is_disabled_when_its_maps_are_missing()
     {
         var shipped = Path.Combine(ArenaTestKit.ShippedDataDirectory, "Scripts", "Arena", "arena.json");
         File.Copy(shipped, kit.ConfigPath, true);
@@ -26,8 +26,8 @@ public sealed class ArenaConfigTests : IDisposable
 
         var config = Config(kit);
         Assert.True(Prop<bool>(config, "Valid"));
-        Assert.Equal(0, Prop<int>(config, "LobbyMap"));
-        Assert.Equal(0, Prop<int>(config, "ArenaMap"));
+        Assert.Equal(57, Prop<int>(config, "LobbyMap"));
+        Assert.Equal(56, Prop<int>(config, "ArenaMap"));
         var bands = (System.Collections.IList)Prop<object>(config, "Bands")!;
         Assert.NotEmpty(bands);
         Assert.False(Enabled(kit));

@@ -302,7 +302,7 @@ Validation: `intervalHours` a positive divisor of 24 (the daily anchor sequence 
 consistent when it divides the day), `anchorUtc` an `HH:mm` time, at least one band with at least
 one normal template, `roundSeconds > timeoutWarningSeconds`, positive growth/anchor values,
 `a`/`b` in `[0, 2]`. A failing config disables the arena and logs once; the arena also stays
-disabled while `lobbyMap`/`arenaMap` are 0 or missing from the world.
+disabled while `lobbyMap`/`arenaMap` are 0 or missing from the world. `arenaRect` is `[x, y, width, height]` in 1-based server tiles, the floor's bounding box; entry and spawn tiles are limited to tiles connected to its centre, so a non-rectangular floor works.
 
 ## Testing
 
