@@ -23,6 +23,8 @@ namespace Goose
             return settings.MaxLevel - item.GetProperty<int>(ItemProperty.EnchantMaxLoss);
         }
 
+        public static int EssenceCost(Item item) => Level(item) + 1;
+
         public static int FailPercent(Item item, EnchantSettings s)
         {
             int level = Level(item);

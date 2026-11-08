@@ -158,13 +158,20 @@ namespace Goose
                 return;
             }
 
+            int cost = Enchanting.EssenceCost(target);
+            if (player.Inventory.GetSlot(essenceSlotId)!.Stack < cost)
+            {
+                world.Send(player, P.Notice(NoticeType.Info, "You need " + cost + " essence to enchant this to +" + cost + "."));
+                return;
+            }
+
             int levelBefore = Enchanting.Level(target);
             bool protect = protection is not null && Enchanting.FailPercent(target, settings) > 0;
             bool consumed = false;
 
             player.Inventory.SuppressQuestIconRefresh(world, () =>
             {
-                if (player.Inventory.RemoveItem(essence, 1, world) is null)
+                if (player.Inventory.RemoveItem(essence, cost, world) is null)
                 {
                     log.Error("Enchant confirm: essence {0} (template {1}) could not be removed for player {2} ({3}); nothing consumed",
                         essence.Name, essence.TemplateID, player.Name, player.LoginID);
@@ -234,6 +241,8 @@ namespace Goose
                     lines.Add("Next: " + next + " +"
                         + FormatPercent(ElementPercent(next, settings)) + "% " + StatDescription(next));
                 }
+                lines.Add("Essence needed: " + Enchanting.EssenceCost(this.TargetItem)
+                    + (this.EssenceItem is null ? "" : " (have " + this.EssenceStack(player) + ")"));
                 int fail = Enchanting.FailPercent(this.TargetItem, settings);
                 lines.Add(fail > 0 ? "Failure chance: " + fail + "%" : "Failure chance: none");
                 if (fail == 0) lines.Add("Protected: not needed");
@@ -246,10 +255,13 @@ namespace Goose
             }
 
             bool canEnchant = settings.EssenceTemplates.Count > 0
-                && this.TargetItem is not null && this.EssenceItem is not null;
+                && this.TargetItem is not null && this.EssenceItem is not null
+                && this.EssenceStack(player) >= Enchanting.EssenceCost(this.TargetItem);
             world.Send(player, P.EnchantPreview(this.ID, this.ItemSlotId, this.EssenceSlotId,
                 this.ProtectionSlotId, canEnchant ? 1 : 0, lines));
         }
+
+        private long EssenceStack(Player player) => player.Inventory.GetSlot(this.EssenceSlotId)?.Stack ?? 0;
 
         // '|' separates EWP lines, so item names are rendered without it.
         private static string StripPipes(string name) => name.Replace("|", "");

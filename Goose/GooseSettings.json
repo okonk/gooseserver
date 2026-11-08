@@ -190,7 +190,7 @@
         "FireDamageReductionPercent": 0.5,
         "AirMPPercentRegenPercent": 0.04,
         "SpiritHPPercentRegenPercent": 0.04,
-        "EssenceTemplates": {},
-        "ProtectionTemplateId": 0
+        "EssenceTemplates": { "782": "Earth", "783": "Spirit", "784": "Fire", "785": "Water", "786": "Air" },
+        "ProtectionTemplateId": 787
     }
 }

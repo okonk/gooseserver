@@ -38,7 +38,7 @@ public class EnchantWindowConfirmTests
         var npc = fixture.SpawnNpc(map, 5, 5, template, properties: new PropertiesDictionary { ["enchantTable"] = true });
         var sword = fixture.AddBaseItemTemplate(SwordId, "Iron Sword", ItemTemplate.UseTypes.Weapon);
         var essence = fixture.AddBaseItemTemplate(EssenceId, "Earth Essence", ItemTemplate.UseTypes.OneTime,
-            t => t.StackSize = 5);
+            t => t.StackSize = 10);
         var protection = fixture.AddBaseItemTemplate(ProtectionId, "Protection Charm", ItemTemplate.UseTypes.OneTime);
         return (fixture, map, player, npc, sword, essence, protection);
     }
@@ -104,7 +104,7 @@ public class EnchantWindowConfirmTests
             var item = PlaceItem(player, sword, 1);
             item.ItemProperties[ItemProperty.EnchantEarth] = 5;
             item.Name = "Iron Sword +5";
-            var essenceItem = PlaceItem(player, essence, 2, stack: 3);
+            var essenceItem = PlaceItem(player, essence, 2, stack: 8);
             var protectionItem = PlaceItem(player, protection, 3);
             Assert.True(fixture.RunCommand(player, "EWS1,2,3"));
             player.Sent.Clear();
@@ -138,7 +138,7 @@ public class EnchantWindowConfirmTests
             var item = PlaceItem(player, sword, 1);
             item.ItemProperties[ItemProperty.EnchantEarth] = 5;
             item.Name = "Iron Sword +5";
-            var essenceItem = PlaceItem(player, essence, 2, stack: 3);
+            var essenceItem = PlaceItem(player, essence, 2, stack: 8);
             Assert.True(fixture.RunCommand(player, "EWS1,2,0"));
             player.Sent.Clear();
 
@@ -170,7 +170,7 @@ public class EnchantWindowConfirmTests
             var item = PlaceItem(player, sword, 1);
             item.ItemProperties[ItemProperty.EnchantEarth] = 2;
             item.Name = "Iron Sword +2";
-            PlaceItem(player, essence, 2);
+            PlaceItem(player, essence, 2, stack: 3);
             var protectionItem = PlaceItem(player, protection, 3);
             Assert.True(fixture.RunCommand(player, "EWS1,2,3"));
             player.Sent.Clear();
@@ -279,8 +279,52 @@ public class EnchantWindowConfirmTests
                 "EWP" + window.ID + ",1,0,0,0" +
                 "|Iron Sword +1 (max 10)" +
                 "|Earth 1: +1% spell damage" +
+                "|Essence needed: 2" +
                 "|Failure chance: none" +
                 "|Protected: not needed"));
+        }
+    }
+
+    [Fact]
+    public void Ewc_consumes_one_essence_per_level_being_reached()
+    {
+        var (fixture, map, player, npc, sword, essence, protection) = Setup();
+        using (fixture)
+        {
+            var window = OpenWindow(fixture, player, npc);
+            var item = PlaceItem(player, sword, 1);
+            item.ItemProperties[ItemProperty.EnchantEarth] = 3;
+            item.Name = "Iron Sword +3";
+            PlaceItem(player, essence, 2, stack: 6);
+            Assert.True(fixture.RunCommand(player, "EWS1,2,0"));
+
+            Assert.True(fixture.RunCommand(player, "EWC1,2,0"));
+
+            Assert.Equal(4, Enchanting.Level(item));
+            Assert.Equal(2, player.Inventory.GetSlot(2)!.Stack);
+        }
+    }
+
+    [Fact]
+    public void Ewc_refused_without_enough_essence()
+    {
+        var (fixture, map, player, npc, sword, essence, protection) = Setup();
+        using (fixture)
+        {
+            var window = OpenWindow(fixture, player, npc);
+            var item = PlaceItem(player, sword, 1);
+            item.ItemProperties[ItemProperty.EnchantEarth] = 3;
+            item.Name = "Iron Sword +3";
+            PlaceItem(player, essence, 2, stack: 3);
+            Assert.True(fixture.RunCommand(player, "EWS1,2,0"));
+            player.Sent.Clear();
+
+            Assert.True(fixture.RunCommand(player, "EWC1,2,0"));
+
+            Assert.Contains(player.Sent, s => s.Contains("You need 4 essence to enchant this to +4."));
+            Assert.Equal(3, Enchanting.Level(item));
+            Assert.Equal(3, player.Inventory.GetSlot(2)!.Stack);
+            Assert.Empty(fixture.World.LogHandler.Pending);
         }
     }
 }

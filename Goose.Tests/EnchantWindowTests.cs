@@ -33,11 +33,11 @@ public class EnchantWindowTests
         return (fixture, map, player, npc, sword, essence, protection, mount);
     }
 
-    private static Item PlaceItem(TestWorldFixture.CapturingPlayer player, ItemTemplate template, int slot)
+    private static Item PlaceItem(TestWorldFixture.CapturingPlayer player, ItemTemplate template, int slot, long stack = 1)
     {
         var item = new Item();
         item.LoadFromTemplate(template);
-        player.Inventory.SetSlot(slot, new ItemSlot { Item = item, Stack = 1 });
+        player.Inventory.SetSlot(slot, new ItemSlot { Item = item, Stack = stack });
         return item;
     }
 
@@ -135,6 +135,7 @@ public class EnchantWindowTests
                 "EWP" + window.ID + ",1,2,0,1" +
                 "|Iron Sword (max 10)" +
                 "|Next: Earth +1% spell damage" +
+                "|Essence needed: 1 (have 1)" +
                 "|Failure chance: none" +
                 "|Protected: not needed"));
         }
@@ -179,6 +180,7 @@ public class EnchantWindowTests
             Assert.Contains(player.Sent, s => s.StartsWith(
                 "EWP" + window.ID + ",1,0,0,0" +
                 "|Iron Sword (max 10)" +
+                "|Essence needed: 1" +
                 "|Failure chance: none" +
                 "|Protected: not needed"));
         }
@@ -205,6 +207,7 @@ public class EnchantWindowTests
                 "EWP" + window.ID + ",1,2,0,1" +
                 "|Iron Sword (max 10)" +
                 "|Next: Earth +1% spell damage" +
+                "|Essence needed: 1 (have 1)" +
                 "|Failure chance: none" +
                 "|Protected: not needed"));
         }
@@ -221,7 +224,7 @@ public class EnchantWindowTests
             var item = PlaceItem(player, sword, 1);
             item.ItemProperties[ItemProperty.EnchantEarth] = 2;
             item.Name = "Iron Sword +2";
-            PlaceItem(player, essence, 2);
+            PlaceItem(player, essence, 2, stack: 3);
             PlaceItem(player, protection, 3);
 
             Assert.True(fixture.RunCommand(player, "EWS1,2,3"));
@@ -232,6 +235,7 @@ public class EnchantWindowTests
                 "|Iron Sword +2 (max 10)" +
                 "|Earth 2: +2% spell damage" +
                 "|Next: Earth +1% spell damage" +
+                "|Essence needed: 3 (have 3)" +
                 "|Failure chance: none" +
                 "|Protected: not needed"));
         }
@@ -248,7 +252,7 @@ public class EnchantWindowTests
             var item = PlaceItem(player, sword, 1);
             item.ItemProperties[ItemProperty.EnchantEarth] = 5;
             item.Name = "Iron Sword +5";
-            PlaceItem(player, essence, 2);
+            PlaceItem(player, essence, 2, stack: 6);
             PlaceItem(player, protection, 3);
 
             Assert.True(fixture.RunCommand(player, "EWS1,2,3"));
@@ -258,6 +262,7 @@ public class EnchantWindowTests
                 "|Iron Sword +5 (max 10)" +
                 "|Earth 5: +5% spell damage" +
                 "|Next: Earth +1% spell damage" +
+                "|Essence needed: 6 (have 6)" +
                 "|Failure chance: 30%" +
                 "|Protected: yes"));
         }
@@ -309,6 +314,30 @@ public class EnchantWindowTests
             Assert.Contains(player.Sent, s => s.StartsWith(
                 "EWP" + window.ID + ",0,0,0,0" +
                 "|Enchanting is not available."));
+        }
+    }
+
+    [Fact]
+    public void Ews_too_few_essence_for_the_next_level_cannot_enchant()
+    {
+        var (fixture, map, player, npc, sword, essence, protection, mount) = Setup();
+        using (fixture)
+        {
+            var window = OpenWindow(fixture, player, npc);
+            player.Sent.Clear();
+            var item = PlaceItem(player, sword, 1);
+            item.ItemProperties[ItemProperty.EnchantEarth] = 2;
+            item.Name = "Iron Sword +2";
+            PlaceItem(player, essence, 2, stack: 2);
+
+            Assert.True(fixture.RunCommand(player, "EWS1,2,0"));
+
+            Assert.Contains(player.Sent, s => s.StartsWith(
+                "EWP" + window.ID + ",1,2,0,0" +
+                "|Iron Sword +2 (max 10)" +
+                "|Earth 2: +2% spell damage" +
+                "|Next: Earth +1% spell damage" +
+                "|Essence needed: 3 (have 2)"));
         }
     }
 }
