@@ -1,7 +1,6 @@
 {
     // Map ids 0 until real arena maps exist; the arena stays disabled until both
-    // are set and present in the world. Band template ids are placeholders until
-    // real arena mobs exist.
+    // are set and present in the world.
     "lobbyMap": 0,
     "lobbySpawn": [0, 0],
     "arenaMap": 0,
@@ -19,8 +18,27 @@
 
     "baseCount": 4,
     "perPlayer": 2,
-    "bandSize": 10,
-    "bands": [{ "normals": [41001, 41002, 41003], "boss": 41101 }],
+    "bandSize": 5,
+    "bands": [
+        { "normals": [461, 462], "boss": 463 }, // Persecutions
+        { "normals": [464, 465, 452], "boss": 466 }, // Spooks
+        { "normals": [467, 468, 469, 449], "boss": 470 }, // Nagas
+        { "normals": [471, 472, 473, 455], "boss": 474 }, // Hay and Fray
+        { "normals": [475, 476, 477], "boss": 478 }, // Sewers
+        { "normals": [479, 480, 458], "boss": 481 }, // Savages
+        { "normals": [482, 483, 450, 453, 459], "boss": 484 }, // Cavern slimes and hares
+        { "normals": [485, 486], "boss": 487 }, // Hungry and Paranoid
+        { "normals": [488, 489], "boss": 490 }, // Cavern bears and wolves
+        { "normals": [491, 492], "boss": 493 }, // Pancakes
+        { "normals": [494, 456], "boss": 495 }, // Wraiths
+        { "normals": [496, 497], "boss": 498 }, // Giant wraiths
+        { "normals": [499, 457], "boss": 500 }, // Young bears
+        { "normals": [501, 502], "boss": 503 }, // Ancient warriors
+        { "normals": [504, 451], "boss": 505 }, // Simons
+        { "normals": [506], "boss": 507 }, // Ancient defenders
+        { "normals": [508, 454, 460], "boss": 509 }, // Ancient guards
+        { "normals": [510], "boss": 511 }, // Ancient royals
+    ],
 
     "eliteFromRound": 3,
     "eliteChance": 0.05,

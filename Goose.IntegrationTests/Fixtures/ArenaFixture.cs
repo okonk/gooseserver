@@ -56,7 +56,7 @@ public sealed class ArenaFixture : TestWorldFixture
     }
 
     // Call after InstallShippedScripts/Compile*: it overwrites the shipped arena.json, whose
-    // placeholder map ids (0) leave the arena disabled.
+    // placeholder map ids (0) leave the arena disabled, and swaps in the fixture's mob templates.
     public void WriteConfigForTest()
     {
         var options = new JsonDocumentOptions
@@ -69,6 +69,11 @@ public sealed class ArenaFixture : TestWorldFixture
         json["lobbyMap"] = LobbyMapId;
         json["arenaMap"] = ArenaMapId;
         json["arenaRect"] = new JsonArray(10, 10, 80, 80);
+        json["bands"] = new JsonArray(new JsonObject
+        {
+            ["normals"] = new JsonArray(BandNormalIds.Select(id => (JsonNode)id).ToArray()),
+            ["boss"] = BandBossId,
+        });
         File.WriteAllText(Path.Combine(DataDirectory, "Scripts", "Arena", "arena.json"), json.ToJsonString());
     }
 
