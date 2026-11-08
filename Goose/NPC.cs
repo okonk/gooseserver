@@ -1028,9 +1028,6 @@ namespace Goose
          */
         public void AddAggro(Player player, long value, bool wastaunt, GameWorld world)
         {
-            this.AddMoveEvent(world);
-            this.AddAttackEvent(world);
-
             // no target so just add to max/mapping
             if (this.AggroTarget is null)
             {
@@ -1093,7 +1090,9 @@ namespace Goose
                 }
             }
 
-
+            // After the target is set: AddAttackEvent does nothing while AggroTarget is null.
+            this.AddMoveEvent(world);
+            this.AddAttackEvent(world);
         }
 
         /**
