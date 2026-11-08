@@ -66,6 +66,7 @@ public sealed class ArenaLobbyTests : IDisposable
 
         script.Object.OnMoveEvent(nurse, fixture.World);
         Assert.Equal((40, 12), (nurse.MapX, nurse.MapY));
+        Assert.Equal(Direction.Down, nurse.Facing);
 
         for (int tick = 0; tick < 200 && (nurse.MapX, nurse.MapY) != (37, 15); tick++)
         {
