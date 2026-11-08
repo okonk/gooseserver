@@ -13,10 +13,10 @@ public sealed class ArenaBoardTests : IDisposable
     private static object Board(ArenaTestKit kit) => ArenaTestKit.Call(kit.Host, "BoardLoad", kit.World)!;
     private static void BoardSave(ArenaTestKit kit, object board) => ArenaTestKit.Call(kit.Host, "BoardSave", kit.World, board);
     private static void BoardRecord(ArenaTestKit kit, object run, DateTime now) => ArenaTestKit.Call(kit.Host, "BoardRecord", kit.World, run, now);
-    private static List<(int Id, long Value)> BoardTop(ArenaTestKit kit, object board, int kind, bool weekly, string week, int n)
-        => (List<(int Id, long Value)>)ArenaTestKit.Call(kit.Host, "BoardTop", board, kind, weekly, week, n)!;
-    private static (int Rank, long Value)? BoardRankOf(ArenaTestKit kit, object board, int id, int kind, bool weekly, string week)
-        => (ValueTuple<int, long>?)ArenaTestKit.Call(kit.Host, "BoardRankOf", board, id, kind, weekly, week);
+    private static List<(int Id, double Value)> BoardTop(ArenaTestKit kit, object board, int kind, bool weekly, string week, int n)
+        => (List<(int Id, double Value)>)ArenaTestKit.Call(kit.Host, "BoardTop", board, kind, weekly, week, n)!;
+    private static (int Rank, double Value)? BoardRankOf(ArenaTestKit kit, object board, int id, int kind, bool weekly, string week)
+        => (ValueTuple<int, double>?)ArenaTestKit.Call(kit.Host, "BoardRankOf", board, id, kind, weekly, week);
     private static string WeekKey(ArenaTestKit kit, DateTime utc) => (string)ArenaTestKit.Call(kit.Host, "WeekKey", utc)!;
 
     private static object? Prop(object? obj, string name) => ArenaTestKit.GetProp(obj, name);
@@ -33,15 +33,15 @@ public sealed class ArenaBoardTests : IDisposable
         var run = Run(kit);
         var p1 = Participants(run)[70001];
         var p2 = Participants(run)[70002];
-        SetProp(p1, "Kills", 3);
+        SetProp(p1, "Kills", 3.0);
         SetProp(p1, "RoundsCleared", 4);
-        SetProp(p2, "Kills", 2);
+        SetProp(p2, "Kills", 2.0);
         SetProp(p2, "RoundsCleared", 2);
         BoardRecord(kit, run, Now);
 
-        SetProp(p1, "Kills", 1);
+        SetProp(p1, "Kills", 1.0);
         SetProp(p1, "RoundsCleared", 2);
-        SetProp(p2, "Kills", 0);
+        SetProp(p2, "Kills", 0.0);
         BoardRecord(kit, run, Now.AddHours(1));
 
         var board = Board(kit);
@@ -50,12 +50,12 @@ public sealed class ArenaBoardTests : IDisposable
         Assert.Equal(WeekKey(kit, Now), (string)Prop(e1, "Week")!);
         Assert.Equal(4, (int)Prop(e1, "BestRound")!);
         Assert.Equal(Now, (DateTime)Prop(e1, "BestAtUtc")!);
-        Assert.Equal(4L, (long)Prop(e1, "Kills")!);
+        Assert.Equal(4.0, (double)Prop(e1, "Kills")!);
         Assert.Equal(4, (int)Prop(e1, "WeekBestRound")!);
         Assert.Equal(Now, (DateTime)Prop(e1, "WeekBestAtUtc")!);
-        Assert.Equal(4L, (long)Prop(e1, "WeekKills")!);
+        Assert.Equal(4.0, (double)Prop(e1, "WeekKills")!);
         Assert.Equal(2, (int)Prop(e2, "BestRound")!);
-        Assert.Equal(2L, (long)Prop(e2, "Kills")!);
+        Assert.Equal(2.0, (double)Prop(e2, "Kills")!);
     }
 
     [Fact]
@@ -65,7 +65,7 @@ public sealed class ArenaBoardTests : IDisposable
         StartRun(kit, Now);
         var run = Run(kit);
         var p1 = Participants(run)[70001];
-        SetProp(p1, "Kills", 7);
+        SetProp(p1, "Kills", 7.0);
         SetProp(p1, "RoundsCleared", 5);
         BoardRecord(kit, run, Now);
 
@@ -73,17 +73,17 @@ public sealed class ArenaBoardTests : IDisposable
         SetProp(Players(board)[70001], "Week", "2025-W52");
         BoardSave(kit, board);
 
-        SetProp(p1, "Kills", 1);
+        SetProp(p1, "Kills", 1.0);
         SetProp(p1, "RoundsCleared", 3);
         BoardRecord(kit, run, Now);
 
         var e1 = Players(Board(kit))[70001];
         Assert.Equal(WeekKey(kit, Now), (string)Prop(e1, "Week")!);
         Assert.Equal(5, (int)Prop(e1, "BestRound")!);
-        Assert.Equal(8L, (long)Prop(e1, "Kills")!);
+        Assert.Equal(8.0, (double)Prop(e1, "Kills")!);
         Assert.Equal(3, (int)Prop(e1, "WeekBestRound")!);
         Assert.Equal(Now, (DateTime)Prop(e1, "WeekBestAtUtc")!);
-        Assert.Equal(1L, (long)Prop(e1, "WeekKills")!);
+        Assert.Equal(1.0, (double)Prop(e1, "WeekKills")!);
     }
 
     [Fact]
@@ -93,7 +93,7 @@ public sealed class ArenaBoardTests : IDisposable
         StartRun(kit, Now);
         var run = Run(kit);
         var p1 = Participants(run)[70001];
-        SetProp(p1, "Kills", 3);
+        SetProp(p1, "Kills", 3.0);
         SetProp(p1, "RoundsCleared", 5);
         BoardRecord(kit, run, Now);
 
@@ -123,10 +123,10 @@ public sealed class ArenaBoardTests : IDisposable
 
         var board = Board(kit);
         var week = WeekKey(kit, Now);
-        Assert.Equal([(70001, 3L), (70002, 3L)], BoardTop(kit, board, 0, false, week, 10));
-        Assert.Equal([(70001, 3L), (70002, 3L)], BoardTop(kit, board, 0, true, week, 10));
-        Assert.Equal(((int)1, 3L), BoardRankOf(kit, board, 70001, 0, false, week));
-        Assert.Equal(((int)2, 3L), BoardRankOf(kit, board, 70002, 0, false, week));
+        Assert.Equal([(70001, 3.0), (70002, 3.0)], BoardTop(kit, board, 0, false, week, 10));
+        Assert.Equal([(70001, 3.0), (70002, 3.0)], BoardTop(kit, board, 0, true, week, 10));
+        Assert.Equal(((int)1, 3.0), BoardRankOf(kit, board, 70001, 0, false, week));
+        Assert.Equal(((int)2, 3.0), BoardRankOf(kit, board, 70002, 0, false, week));
     }
 
     [Fact]
@@ -137,7 +137,7 @@ public sealed class ArenaBoardTests : IDisposable
         StartRun(kit, Now);
         var run = Run(kit);
         for (int i = 0; i < 15; i++)
-            SetProp(Participants(run)[70001 + i], "Kills", 14 - i);
+            SetProp(Participants(run)[70001 + i], "Kills", (double)(14 - i));
         BoardRecord(kit, run, Now);
 
         var board = Board(kit);
@@ -145,12 +145,12 @@ public sealed class ArenaBoardTests : IDisposable
         var top = BoardTop(kit, board, 1, false, week, 10);
         Assert.Equal(10, top.Count);
         Assert.Equal(70001, top[0].Id);
-        Assert.Equal(14L, top[0].Value);
-        Assert.Equal(5L, top[9].Value);
-        Assert.Equal(((int)1, 14L), BoardRankOf(kit, board, 70001, 1, false, week));
-        Assert.Equal(((int)10, 5L), BoardRankOf(kit, board, 70010, 1, false, week));
-        Assert.Equal(((int)11, 4L), BoardRankOf(kit, board, 70011, 1, false, week));
-        Assert.Equal(((int)14, 1L), BoardRankOf(kit, board, 70014, 1, false, week));
+        Assert.Equal(14.0, top[0].Value);
+        Assert.Equal(5.0, top[9].Value);
+        Assert.Equal(((int)1, 14.0), BoardRankOf(kit, board, 70001, 1, false, week));
+        Assert.Equal(((int)10, 5.0), BoardRankOf(kit, board, 70010, 1, false, week));
+        Assert.Equal(((int)11, 4.0), BoardRankOf(kit, board, 70011, 1, false, week));
+        Assert.Equal(((int)14, 1.0), BoardRankOf(kit, board, 70014, 1, false, week));
         Assert.Null(BoardRankOf(kit, board, 70015, 1, false, week));
         Assert.Null(BoardRankOf(kit, board, 99999, 1, false, week));
     }
@@ -172,9 +172,9 @@ public sealed class ArenaBoardTests : IDisposable
         var run = Run(kit);
         var p1 = Participants(run)[70001];
         var p2 = Participants(run)[70002];
-        SetProp(p1, "Kills", 4);
+        SetProp(p1, "Kills", 4.0);
         SetProp(p1, "RoundsCleared", 3);
-        SetProp(p2, "Kills", 1);
+        SetProp(p2, "Kills", 1.0);
         SetProp(p2, "RoundsCleared", 3);
         ArenaTestKit.Call(kit.Host, "SaveRun", kit.World, run);
 
@@ -186,8 +186,8 @@ public sealed class ArenaBoardTests : IDisposable
         var e1 = players[70001];
         var e2 = players[70002];
         Assert.Equal(3, (int)Prop(e1, "BestRound")!);
-        Assert.Equal(4L, (long)Prop(e1, "Kills")!);
+        Assert.Equal(4.0, (double)Prop(e1, "Kills")!);
         Assert.Equal(3, (int)Prop(e2, "BestRound")!);
-        Assert.Equal(1L, (long)Prop(e2, "Kills")!);
+        Assert.Equal(1.0, (double)Prop(e2, "Kills")!);
     }
 }

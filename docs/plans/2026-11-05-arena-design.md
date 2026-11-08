@@ -33,7 +33,7 @@ generic seams that are useful beyond the arena.
 | Currency | Arena Coins (`arena_coin`), data-defined, untradeable wallet balance. |
 | Earning | Round-clear payout to survivors + kill bounty split by effective damage + end-of-run milestone bonus. |
 | Leaderboards | Best round and total kills, weekly and all-time, top 10 + own rank, at the Arena Master NPC. |
-| Kills | Every participant who dealt at least `killCreditMinShare` (5%) of the mob's tracked effective damage gets a kill. Grouping doesn't matter. Tracked damage is capped at the mob's remaining HP, so overkill doesn't count. |
+| Kills | Every participant who dealt at least `killCreditMinShare` (5%) of the mob's tracked effective damage gets a kill. Grouping doesn't matter. Tracked damage is capped at the mob's remaining HP, so overkill doesn't count. A living participant whose class is in `priestClassIds` (5, Priest) and who didn't earn the kill gets `priestKillShare` (0.5) of a kill if they're grouped with someone who did. Kills are fractional; boards show up to two decimals. |
 | Wallet | Server `/wallet` command listing every currency with icon. |
 | Shop | Ordinary vendor NPC in data with `currency_id = 'arena_coin'`; prices are item `Value`. |
 

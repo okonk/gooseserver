@@ -222,7 +222,7 @@ public sealed class ArenaRoundTests : IDisposable
 
         Assert.Equal(1, kit.Wallet(p1));
         Assert.Contains(p1.Sent, s => s.Contains("+1 Arena Coins (kill bounty)"));
-        Assert.Equal(1, (int)Prop(Participants(Run(kit)!)[70001], "Kills")!);
+        Assert.Equal(1.0, (double)Prop(Participants(Run(kit)!)[70001], "Kills")!);
         Assert.Equal(0, kit.Wallet(p2));
         Assert.DoesNotContain(p2.Sent, s => s.Contains("Arena Coins"));
     }
@@ -240,13 +240,42 @@ public sealed class ArenaRoundTests : IDisposable
         var mobs = Mobs(kit);
         mobs[0].Attacked(p2, mobs[0].CurrentHP / 50, kit.World);
         mobs[0].Attacked(p1, long.MaxValue / 4, kit.World);
-        Assert.Equal(1, (int)Prop(Participants(Run(kit)!)[70001], "Kills")!);
-        Assert.Equal(0, (int)Prop(Participants(Run(kit)!)[70002], "Kills")!);
+        Assert.Equal(1.0, (double)Prop(Participants(Run(kit)!)[70001], "Kills")!);
+        Assert.Equal(0.0, (double)Prop(Participants(Run(kit)!)[70002], "Kills")!);
 
         mobs[1].Attacked(p2, mobs[1].CurrentHP / 4, kit.World);
         mobs[1].Attacked(p1, long.MaxValue / 4, kit.World);
-        Assert.Equal(2, (int)Prop(Participants(Run(kit)!)[70001], "Kills")!);
-        Assert.Equal(1, (int)Prop(Participants(Run(kit)!)[70002], "Kills")!);
+        Assert.Equal(2.0, (double)Prop(Participants(Run(kit)!)[70001], "Kills")!);
+        Assert.Equal(1.0, (double)Prop(Participants(Run(kit)!)[70002], "Kills")!);
+    }
+
+    [Fact]
+    public void Grouped_priest_gets_partial_kill_credit_without_enough_damage()
+    {
+        var killer = kit.LobbyPlayer(70001, "Killer");
+        var priest = kit.LobbyPlayer(70002, "Priest");
+        var loner = kit.LobbyPlayer(70003, "Loner");
+        var friend = kit.LobbyPlayer(70004, "Friend");
+        foreach (var p in new[] { killer, priest, loner, friend }) p.ExperienceSold = 3_000_000_000;
+        priest.ClassID = 5;
+        loner.ClassID = 5;
+        friend.ClassID = 3;
+        var group = new Group();
+        foreach (var p in new Player[] { killer, priest, friend })
+        {
+            p.Group = group;
+            group.Players.Add(p);
+        }
+        EnterRound1(kit, killer, priest, loner, friend);
+        kit.RegisterController();
+
+        Mobs(kit)[0].Attacked(killer, long.MaxValue / 4, kit.World);
+
+        var parts = Participants(Run(kit)!);
+        Assert.Equal(1.0, (double)Prop(parts[70001], "Kills")!);
+        Assert.Equal(0.5, (double)Prop(parts[70002], "Kills")!);
+        Assert.Equal(0.0, (double)Prop(parts[70003], "Kills")!);
+        Assert.Equal(0.0, (double)Prop(parts[70004], "Kills")!);
     }
 
     [Fact]

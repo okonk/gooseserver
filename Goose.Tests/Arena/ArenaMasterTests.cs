@@ -210,9 +210,9 @@ public class ArenaMasterTests : IDisposable
         {
             var entry = ArenaTestKit.Call(kit.Host, "NewEntry")!;
             ArenaTestKit.SetProp(entry, "Id", 101 + i);
-            ArenaTestKit.SetProp(entry, "Kills", 12 - i);
+            ArenaTestKit.SetProp(entry, "Kills", (double)(12 - i));
             ArenaTestKit.SetProp(entry, "Week", week);
-            ArenaTestKit.SetProp(entry, "WeekKills", 12 - i);
+            ArenaTestKit.SetProp(entry, "WeekKills", (double)(12 - i));
             entries[101 + i] = entry;
         }
         ArenaTestKit.Call(kit.Host, "BoardSave", kit.World, board);

@@ -116,13 +116,13 @@ public sealed class ArenaEndToEndTests : IDisposable
         Assert.Equal(2, boardPlayers.Count);
         var b1 = boardPlayers["70001"]!.AsObject();
         Assert.Equal(1, b1["BestRound"]!.GetValue<int>());
-        Assert.Equal(8, b1["Kills"]!.GetValue<long>());
+        Assert.Equal(8, b1["Kills"]!.GetValue<double>());
         Assert.Equal(1, b1["WeekBestRound"]!.GetValue<int>());
-        Assert.Equal(8, b1["WeekKills"]!.GetValue<long>());
+        Assert.Equal(8, b1["WeekKills"]!.GetValue<double>());
         var b2 = boardPlayers["70002"]!.AsObject();
         Assert.Equal(1, b2["BestRound"]!.GetValue<int>());
-        Assert.Equal(0, b2["Kills"]!.GetValue<long>());
+        Assert.Equal(0, b2["Kills"]!.GetValue<double>());
         Assert.Equal(1, b2["WeekBestRound"]!.GetValue<int>());
-        Assert.Equal(0, b2["WeekKills"]!.GetValue<long>());
+        Assert.Equal(0, b2["WeekKills"]!.GetValue<double>());
     }
 }

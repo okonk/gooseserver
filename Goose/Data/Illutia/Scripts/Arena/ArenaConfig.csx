@@ -59,6 +59,8 @@ public sealed class ArenaConfig
     public long EliteBountyMult { get; set; }
     public long BossBountyMult { get; set; }
     public double KillCreditMinShare { get; set; } = 0.05;
+    public int[] PriestClassIds { get; set; } = [];
+    public double PriestKillShare { get; set; }
     public Dictionary<int, long> Milestones { get; set; } = new();
     public bool Valid { get; set; } = true;
 
@@ -148,6 +150,8 @@ public sealed class ArenaConfig
                 throw new JsonException("Arena bands entries need at least one normal template");
         if (c.KillCreditMinShare is < 0 or > 1)
             throw new JsonException("Arena killCreditMinShare must be in [0, 1]");
+        if (c.PriestKillShare is < 0 or > 1)
+            throw new JsonException("Arena priestKillShare must be in [0, 1]");
         if (c.RoundSeconds <= c.TimeoutWarningSeconds)
             throw new JsonException("Arena roundSeconds must be > timeoutWarningSeconds");
     }

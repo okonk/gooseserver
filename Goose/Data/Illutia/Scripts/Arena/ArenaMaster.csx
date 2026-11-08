@@ -79,10 +79,10 @@ public class ArenaMaster : BaseNPCScript
         else
         {
             for (var i = 0; i < top.Count; i++)
-                lines.Add($"{i + 1}. {world.PlayerHandler.GetPlayerName(top[i].Id) ?? "Unknown"} - {top[i].Value:N0}");
+                lines.Add($"{i + 1}. {world.PlayerHandler.GetPlayerName(top[i].Id) ?? "Unknown"} - {top[i].Value:#,0.##}");
             lines.Add("");
             var rank = ArenaBoard.RankOf(board, player.PlayerID, kind, weekly, week);
-            lines.Add(rank is not null ? $"You: #{rank.Value.Rank} - {rank.Value.Value:N0}" : "You: unranked");
+            lines.Add(rank is not null ? $"You: #{rank.Value.Rank} - {rank.Value.Value:#,0.##}" : "You: unranked");
         }
         new OptionListWindow(player, world, "Leaderboards", lines, (_, _, _) => { }, npc, onBack: (p, w) => BoardMenu(npc, p, w));
     }

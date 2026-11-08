@@ -152,6 +152,9 @@ public sealed class ArenaTestKit : IDisposable
             mobBounty = 1,
             eliteBountyMult = 5,
             bossBountyMult = 25,
+            killCreditMinShare = 0.05,
+            priestClassIds = new[] { 5 },
+            priestKillShare = 0.5,
             milestones = new Dictionary<string, long> { ["5"] = 20, ["10"] = 60, ["15"] = 120, ["20"] = 200 },
         };
     }
@@ -186,8 +189,8 @@ public sealed class ArenaTestKit : IDisposable
             public object NewEntry() => new ArenaBoardEntry();
             public void BoardSave(GameWorld world, object board) => ArenaBoard.Save(world, (ArenaBoard)board);
             public void BoardRecord(GameWorld world, object run, DateTime now) => ArenaBoard.Record(world, (ArenaRun)run, now);
-            public List<(int Id, long Value)> BoardTop(object board, int kind, bool weekly, string week, int n) => ArenaBoard.Top((ArenaBoard)board, (ArenaBoardKind)kind, weekly, week, n);
-            public (int Rank, long Value)? BoardRankOf(object board, int id, int kind, bool weekly, string week) => ArenaBoard.RankOf((ArenaBoard)board, id, (ArenaBoardKind)kind, weekly, week);
+            public List<(int Id, double Value)> BoardTop(object board, int kind, bool weekly, string week, int n) => ArenaBoard.Top((ArenaBoard)board, (ArenaBoardKind)kind, weekly, week, n);
+            public (int Rank, double Value)? BoardRankOf(object board, int id, int kind, bool weekly, string week) => ArenaBoard.RankOf((ArenaBoard)board, id, (ArenaBoardKind)kind, weekly, week);
             public void SaveRun(GameWorld world, object run) => ArenaState.Save(world, (ArenaRun)run);
             public Player FindPlayer(GameWorld world, int id) => ArenaCore.FindPlayer(world, id);
             public bool Enabled(GameWorld world) => ArenaConfig.Get(world).Enabled(world);

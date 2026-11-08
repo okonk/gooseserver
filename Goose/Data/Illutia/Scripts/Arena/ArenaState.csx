@@ -12,7 +12,7 @@ public class ArenaParticipant
     public bool Alive { get; set; }
     public int RoundsCleared { get; set; }
     public long Coins { get; set; }
-    public int Kills { get; set; }
+    public double Kills { get; set; }
 }
 
 public class ArenaRun
@@ -31,7 +31,7 @@ public class ArenaResult
     public string Name { get; set; } = "";
     public int RoundsCleared { get; set; }
     public long Coins { get; set; }
-    public int Kills { get; set; }
+    public double Kills { get; set; }
 }
 
 public class ArenaLastRun

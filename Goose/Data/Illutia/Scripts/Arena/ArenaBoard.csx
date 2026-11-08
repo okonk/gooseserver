@@ -12,11 +12,11 @@ public class ArenaBoardEntry
     public int Id { get; set; }
     public int BestRound { get; set; }
     public DateTime BestAtUtc { get; set; }
-    public long Kills { get; set; }
+    public double Kills { get; set; }
     public string Week { get; set; } = "";
     public int WeekBestRound { get; set; }
     public DateTime WeekBestAtUtc { get; set; }
-    public long WeekKills { get; set; }
+    public double WeekKills { get; set; }
 }
 
 public class ArenaBoard
@@ -87,7 +87,7 @@ public class ArenaBoard
         Save(world, board);
     }
 
-    public static List<(int Id, long Value)> Top(ArenaBoard b, ArenaBoardKind kind, bool weekly, string week, int n)
+    public static List<(int Id, double Value)> Top(ArenaBoard b, ArenaBoardKind kind, bool weekly, string week, int n)
         => b.Players.Values
             .Select(e => View(e, kind, weekly, week))
             .Where(v => v.Value != 0)
@@ -98,7 +98,7 @@ public class ArenaBoard
             .Select(v => (v.Id, v.Value))
             .ToList();
 
-    public static (int Rank, long Value)? RankOf(ArenaBoard b, int id, ArenaBoardKind kind, bool weekly, string week)
+    public static (int Rank, double Value)? RankOf(ArenaBoard b, int id, ArenaBoardKind kind, bool weekly, string week)
     {
         if (!b.Players.TryGetValue(id, out var e)) return null;
         var v = View(e, kind, weekly, week);
@@ -107,7 +107,7 @@ public class ArenaBoard
         return (rank, v.Value);
     }
 
-    private static (long Value, DateTime At, int Id) View(ArenaBoardEntry e, ArenaBoardKind kind, bool weekly, string week)
+    private static (double Value, DateTime At, int Id) View(ArenaBoardEntry e, ArenaBoardKind kind, bool weekly, string week)
     {
         if (weekly && e.Week != week) return (0, default, e.Id);
         if (kind == ArenaBoardKind.BestRound)
@@ -115,7 +115,7 @@ public class ArenaBoard
         return (weekly ? e.WeekKills : e.Kills, default, e.Id);
     }
 
-    private static bool Ahead((long Value, DateTime At, int Id) a, (long Value, DateTime At, int Id) b)
+    private static bool Ahead((double Value, DateTime At, int Id) a, (double Value, DateTime At, int Id) b)
     {
         if (a.Value != b.Value) return a.Value > b.Value;
         if (a.At != b.At) return a.At < b.At;

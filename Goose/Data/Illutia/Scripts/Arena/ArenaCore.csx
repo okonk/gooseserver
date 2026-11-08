@@ -102,8 +102,12 @@ public static class ArenaCore
                 dmg[id] = npc.Properties.GetProperty<long>(key, 0);
         }
 
-        foreach (var id in ArenaMath.KillCredit(dmg, cfg.KillCreditMinShare))
+        var creditedIds = ArenaMath.KillCredit(dmg, cfg.KillCreditMinShare);
+        foreach (var id in creditedIds)
             run.Participants[id].Kills++;
+        if (cfg.PriestKillShare > 0)
+            foreach (var id in PriestAssists(world, cfg, run, creditedIds))
+                run.Participants[id].Kills += cfg.PriestKillShare;
         ArenaState.Save(world, run);
 
         var split = ArenaMath.SplitBounty(ArenaMath.Bounty((MobTier)npc.Properties.GetProperty<int>("arena.tier", 0), cfg), dmg);
@@ -345,6 +349,20 @@ public static class ArenaCore
     public static void RecordResults(GameWorld world, ArenaRun run)
     {
         ArenaBoard.Record(world, run, DateTime.UtcNow);
+    }
+
+    private static List<int> PriestAssists(GameWorld world, ArenaConfig cfg, ArenaRun run, List<int> credited)
+    {
+        var result = new List<int>();
+        foreach (var part in run.Participants.Values)
+        {
+            if (!part.Alive || credited.Contains(part.Id)) continue;
+            var player = FindPlayer(world, part.Id);
+            if (player?.Group is null || Array.IndexOf(cfg.PriestClassIds, player.ClassID) < 0) continue;
+            if (player.Group.Players.Any(m => m.PlayerID != part.Id && credited.Contains(m.PlayerID)))
+                result.Add(part.Id);
+        }
+        return result;
     }
 
     public static Player? FindPlayer(GameWorld world, int playerId)
