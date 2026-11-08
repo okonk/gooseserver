@@ -104,6 +104,30 @@ public sealed class ArenaCrowdTests : IDisposable
     }
 
     [Fact]
+    public void Sweaty_npc_punches_in_bursts_and_sweats_once_per_burst()
+    {
+        var npc = SpawnCrowd(445, "sweat");
+        var watcher = Watcher(12, 12);
+
+        for (int burst = 0; burst < 10; burst++)
+        {
+            watcher.Sent.Clear();
+            int hits = 0;
+            TimeSpan wait;
+            do
+            {
+                wait = Call("Attack", npc);
+                hits++;
+            } while (wait == TimeSpan.FromSeconds(0.6));
+
+            Assert.InRange(hits, 3, 5);
+            Assert.InRange(wait.TotalSeconds, 20, 60);
+            Assert.Equal(hits, watcher.Sent.Count(p => p.StartsWith("ATT" + npc.LoginID)));
+            Assert.Single(watcher.Sent, p => p.StartsWith($"EMOT{npc.LoginID},1088,10"));
+        }
+    }
+
+    [Fact]
     public void Fast_spectators_attack_far_more_often()
     {
         var normal = SpawnCrowd(392);

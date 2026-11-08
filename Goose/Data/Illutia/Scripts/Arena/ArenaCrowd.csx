@@ -6,6 +6,7 @@ using Goose.Scripting;
 public class ArenaCrowd : BaseNPCScript
 {
     private const string GenerationKey = "crowd.gen";
+    private const string BurstKey = "crowd.burst";
 
     private static readonly (int Animation, int Sheet)[] Emotes =
     {
@@ -19,19 +20,23 @@ public class ArenaCrowd : BaseNPCScript
     private static readonly (double Min, double Max) EmoteSeconds = (20, 60);
     private static readonly (double Min, double Max) AttackSeconds = (20, 60);
     private static readonly (double Min, double Max) FastAttackSeconds = (3, 8);
+    private static readonly (int Min, int Max) SweatBurstHits = (3, 5);
+    private static readonly TimeSpan SweatBurstGap = TimeSpan.FromSeconds(0.6);
 
     public override void OnSpawnEvent(NPC npc, GameWorld world)
     {
         long generation = npc.Properties.GetProperty<long>(GenerationKey, 0) + 1;
         npc.Properties[GenerationKey] = generation;
 
-        Schedule(npc, generation, nameof(Emote), FirstDelay(EmoteSeconds, world.Random), world);
+        npc.Properties[BurstKey] = 0;
+        if (!IsSweaty(npc))
+            Schedule(npc, generation, nameof(Emote), FirstDelay(EmoteSeconds, world.Random), world);
         Schedule(npc, generation, nameof(Attack), FirstDelay(AttackRange(npc), world.Random), world);
     }
 
     public TimeSpan Emote(NPC npc, GameWorld world)
     {
-        var (animation, sheet) = HasToken(npc, "sweat") ? Sweat : Emotes[world.Random.Next(Emotes.Length)];
+        var (animation, sheet) = IsSweaty(npc) ? Sweat : Emotes[world.Random.Next(Emotes.Length)];
         SendToRange(npc, $"EMOT{npc.LoginID},{animation},{sheet}", world);
         return Delay(EmoteSeconds, world.Random);
     }
@@ -39,10 +44,21 @@ public class ArenaCrowd : BaseNPCScript
     public TimeSpan Attack(NPC npc, GameWorld world)
     {
         SendToRange(npc, P.Attack(npc), world);
-        return Delay(AttackRange(npc), world.Random);
+        if (!IsSweaty(npc)) return Delay(AttackRange(npc), world.Random);
+
+        int remaining = npc.Properties.GetProperty<int>(BurstKey, 0);
+        if (remaining == 0)
+        {
+            SendToRange(npc, $"EMOT{npc.LoginID},{Sweat.Animation},{Sweat.Sheet}", world);
+            remaining = world.Random.Next(SweatBurstHits.Min, SweatBurstHits.Max + 1);
+        }
+        npc.Properties[BurstKey] = --remaining;
+        return remaining > 0 ? SweatBurstGap : Delay(AttackRange(npc), world.Random);
     }
 
     public static bool IsFast(NPC npc) => HasToken(npc, "fast");
+
+    public static bool IsSweaty(NPC npc) => HasToken(npc, "sweat");
 
     private static bool HasToken(NPC npc, string wanted)
     {
