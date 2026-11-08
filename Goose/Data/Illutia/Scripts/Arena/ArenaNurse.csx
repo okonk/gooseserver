@@ -18,9 +18,9 @@ public class ArenaNurse : BaseNPCScript
 
     private static readonly Step[] Patrol =
     {
-        Walk(38, 16), Face(Direction.Right), Wait(2, 4), Punch, Wait(2, 4),
-        Walk(42, 16), Face(Direction.Right), Wait(2, 4), Punch, Wait(2, 4),
-        Walk(44, 16), Face(Direction.Right), Wait(2, 4), Punch, Wait(2, 4),
+        Walk(38, 16), Face(Direction.Right), Wait(4 / 3.0, 8 / 3.0), Punch, Wait(2, 4),
+        Walk(42, 16), Face(Direction.Right), Wait(4 / 3.0, 8 / 3.0), Punch, Wait(2, 4),
+        Walk(44, 16), Face(Direction.Right), Wait(4 / 3.0, 8 / 3.0), Punch, Wait(2, 4),
         Walk(40, 12), Face(Direction.Down), Wait(60, 60),
         Walk(37, 15), Wait(10, 10),
     };
