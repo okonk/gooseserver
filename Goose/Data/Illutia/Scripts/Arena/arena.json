@@ -90,6 +90,6 @@
         "Arcane Blast":      { "damage": 1.5, "cooldown": 6, "range": 5 },
         "Arcane Assault":    { "damage": 1.0, "cooldown": 10, "range": 5 },
         "Frostbite":         { "damage": 0.8, "cooldown": 8, "range": 5 },
-        "Restore Health":    { "heal": 0.05, "healBelow": 0.8, "cooldown": 10, "range": 6 },
+        "Restore Health":    { "heal": 0.2, "healBelow": 0.8, "cooldown": 10, "range": 6 },
     },
 }
