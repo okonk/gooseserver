@@ -22,6 +22,7 @@ public class ArenaCrowd : BaseNPCScript
     private static readonly (double Min, double Max) FastAttackSeconds = (3, 8);
     private static readonly (int Min, int Max) SweatBurstHits = (3, 5);
     private static readonly TimeSpan SweatBurstGap = TimeSpan.FromSeconds(0.6);
+    private static readonly (double Min, double Max) SweatBurstPause = (10, 20);
 
     public override void OnSpawnEvent(NPC npc, GameWorld world)
     {
@@ -53,7 +54,7 @@ public class ArenaCrowd : BaseNPCScript
             remaining = world.Random.Next(SweatBurstHits.Min, SweatBurstHits.Max + 1);
         }
         npc.Properties[BurstKey] = --remaining;
-        return remaining > 0 ? SweatBurstGap : Delay(AttackRange(npc), world.Random);
+        return remaining > 0 ? SweatBurstGap : Delay(SweatBurstPause, world.Random);
     }
 
     public static bool IsFast(NPC npc) => HasToken(npc, "fast");
@@ -68,7 +69,8 @@ public class ArenaCrowd : BaseNPCScript
         return false;
     }
 
-    private static (double Min, double Max) AttackRange(NPC npc) => IsFast(npc) ? FastAttackSeconds : AttackSeconds;
+    private static (double Min, double Max) AttackRange(NPC npc)
+        => IsSweaty(npc) ? SweatBurstPause : IsFast(npc) ? FastAttackSeconds : AttackSeconds;
 
     private static void SendToRange(NPC npc, string packet, GameWorld world)
     {

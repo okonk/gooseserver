@@ -121,7 +121,7 @@ public sealed class ArenaCrowdTests : IDisposable
             } while (wait == TimeSpan.FromSeconds(0.6));
 
             Assert.InRange(hits, 3, 5);
-            Assert.InRange(wait.TotalSeconds, 20, 60);
+            Assert.InRange(wait.TotalSeconds, 10, 20);
             Assert.Equal(hits, watcher.Sent.Count(p => p.StartsWith("ATT" + npc.LoginID)));
             Assert.Single(watcher.Sent, p => p.StartsWith($"EMOT{npc.LoginID},1088,10"));
         }
