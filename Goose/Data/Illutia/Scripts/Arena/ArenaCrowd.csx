@@ -14,6 +14,8 @@ public class ArenaCrowd : BaseNPCScript
         (1088, 10), (1089, 10), (1090, 10), (1091, 10),
     };
 
+    private static readonly (int Animation, int Sheet) Sweat = (1088, 10);
+
     private static readonly (double Min, double Max) EmoteSeconds = (20, 60);
     private static readonly (double Min, double Max) AttackSeconds = (20, 60);
     private static readonly (double Min, double Max) FastAttackSeconds = (3, 8);
@@ -29,7 +31,7 @@ public class ArenaCrowd : BaseNPCScript
 
     public TimeSpan Emote(NPC npc, GameWorld world)
     {
-        var (animation, sheet) = Emotes[world.Random.Next(Emotes.Length)];
+        var (animation, sheet) = HasToken(npc, "sweat") ? Sweat : Emotes[world.Random.Next(Emotes.Length)];
         SendToRange(npc, $"EMOT{npc.LoginID},{animation},{sheet}", world);
         return Delay(EmoteSeconds, world.Random);
     }
@@ -40,11 +42,13 @@ public class ArenaCrowd : BaseNPCScript
         return Delay(AttackRange(npc), world.Random);
     }
 
-    public static bool IsFast(NPC npc)
+    public static bool IsFast(NPC npc) => HasToken(npc, "fast");
+
+    private static bool HasToken(NPC npc, string wanted)
     {
         string parameters = npc.ScriptParams ?? "";
         foreach (var token in parameters.Split(new[] { ',', ' ', ';' }, StringSplitOptions.RemoveEmptyEntries))
-            if (token.Equals("fast", StringComparison.OrdinalIgnoreCase)) return true;
+            if (token.Equals(wanted, StringComparison.OrdinalIgnoreCase)) return true;
         return false;
     }
 

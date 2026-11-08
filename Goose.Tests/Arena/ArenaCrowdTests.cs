@@ -91,6 +91,19 @@ public sealed class ArenaCrowdTests : IDisposable
     }
 
     [Fact]
+    public void Sweat_token_only_uses_the_sweat_emote()
+    {
+        var npc = SpawnCrowd(443, "sweat");
+        var watcher = Watcher(12, 12);
+
+        for (int i = 0; i < 20; i++) Call("Emote", npc);
+
+        var emotes = watcher.Sent.Where(p => p.StartsWith("EMOT")).ToList();
+        Assert.Equal(20, emotes.Count);
+        Assert.All(emotes, p => Assert.StartsWith($"EMOT{npc.LoginID},1088,10", p));
+    }
+
+    [Fact]
     public void Fast_spectators_attack_far_more_often()
     {
         var normal = SpawnCrowd(392);
