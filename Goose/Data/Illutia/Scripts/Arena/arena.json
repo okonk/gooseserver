@@ -16,6 +16,7 @@
     "timeoutWarningSeconds": 30,
     "stragglerCount": 3,
     "minPlayerDistance": 3,
+    "spawnRadius": 7,
 
     "baseCount": 4,
     "perPlayer": 2,
@@ -48,7 +49,7 @@
     "eliteHpMult": 5,
     "eliteDmgMult": 2,
     "eliteTitle": "Elite",
-    "eliteTint": [255, 160, 0, 255],
+    "eliteTint": [255, 120, 120, 255],
 
     "bossEvery": 5,
     "bossRoundAddFraction": 0.5,

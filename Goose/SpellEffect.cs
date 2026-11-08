@@ -914,6 +914,12 @@ namespace Goose
 
             Player player = (Player)caster;
 
+            if (((NPC)target).Properties.GetProperty<bool>("untameable", false))
+            {
+                world.Send(player, P.Notice(NoticeType.Info, target.Name + " can't be tamed."));
+                return false;
+            }
+
             if (player.Pets.Count == world.Settings.PetCountLimit)
             {
                 world.Send(player, P.Notice(NoticeType.Info, "You have reached the maximum amount of pets. Use /petdelete <id> to release one."));

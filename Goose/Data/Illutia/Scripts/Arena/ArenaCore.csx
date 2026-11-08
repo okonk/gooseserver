@@ -75,13 +75,36 @@ public static class ArenaCore
             case ArenaPhase.Countdown when nowUtc >= run.PhaseUntilUtc:
                 StartRound(world, cfg, run, 1, nowUtc);
                 break;
+            case ArenaPhase.Countdown:
+                CountdownNotice(world, cfg, run, 1, nowUtc);
+                break;
             case ArenaPhase.Fighting:
                 TickFighting(world, cfg, run, nowUtc);
                 break;
             case ArenaPhase.Break when nowUtc >= run.PhaseUntilUtc:
                 StartRound(world, cfg, run, run.Round + 1, nowUtc);
                 break;
+            case ArenaPhase.Break:
+                CountdownNotice(world, cfg, run, run.Round + 1, nowUtc);
+                break;
         }
+    }
+
+    private static readonly int[] CountdownSeconds = [10, 5, 3, 2, 1];
+
+    private static void CountdownNotice(GameWorld world, ArenaConfig cfg, ArenaRun run, int nextRound, DateTime nowUtc)
+    {
+        int left = (int)Math.Ceiling((run.PhaseUntilUtc - nowUtc).TotalSeconds);
+        if (left == run.LastCountdown || Array.IndexOf(CountdownSeconds, left) < 0) return;
+        run.LastCountdown = left;
+        ArenaState.Save(world, run);
+        NoticeToMap(world, cfg, "Round " + nextRound + " starts in " + left + "...");
+    }
+
+    private static void NoticeToMap(GameWorld world, ArenaConfig cfg, string text)
+    {
+        if (world.MapHandler.Maps.TryGetValue(cfg.ArenaMap, out var arenaMap))
+            world.SendToMap(arenaMap, P.Notice(NoticeType.Info, text));
     }
 
     public static void OnNpcKilled(NPC npc, ICharacter killer, IReadOnlyList<Player> credited, GameWorld world)
@@ -124,7 +147,9 @@ public static class ArenaCore
                 if (p.Alive) p.RoundsCleared = run.Round;
             run.Phase = ArenaPhase.Break;
             run.PhaseUntilUtc = nowUtc.AddSeconds(cfg.BreakSeconds);
+            run.LastCountdown = 0;
             ArenaState.Save(world, run);
+            NoticeToMap(world, cfg, "Round " + run.Round + " cleared! Round " + (run.Round + 1) + " starts in " + cfg.BreakSeconds + " seconds.");
             foreach (var p in run.Participants.Values)
                 if (p.Alive) Pay(world, p.Id, ArenaMath.RoundPayout(run.Round, cfg), "round " + run.Round + " clear");
             return;
@@ -220,6 +245,7 @@ public static class ArenaCore
                     ["arena.round"] = n,
                     ["arena.tier"] = (int)tier,
                     ["arena.alive"] = alive,
+                    ["untameable"] = true,
                 });
             if (npc is null) continue;
             var nearest = NearestAliveParticipant(world, cfg, run, tile.Value.X, tile.Value.Y);
@@ -337,7 +363,7 @@ public static class ArenaCore
         p.Coins += amount;
         ArenaState.Save(world, run);
         currency.Add(player, amount, world);
-        world.Send(player, P.ServerMessage("+" + amount + " Arena Coins (" + reason + ")"));
+        world.Send(player, P.Notice(NoticeType.Info, "+" + amount + " Arena Coins (" + reason + ")"));
     }
 
     public static bool IsParticipant(GameWorld world, int playerId)
@@ -403,16 +429,21 @@ public static class ArenaCore
         var players = world.PlayerHandler.Players
             .Where(p => p.MapID == cfg.ArenaMap && IsAliveParticipant(run, p))
             .ToList();
+        var near = cfg.SpawnRadius > 0 && players.Count > 0
+            ? floor.Where(t => players.Any(p => Chebyshev(t.X, t.Y, p.MapX, p.MapY) <= cfg.SpawnRadius)).ToList()
+            : floor;
+        if (near.Count == 0) near = floor;
         for (int i = 0; i < SpawnAttempts; i++)
         {
-            var (x, y) = floor[world.Random.Next(floor.Count)];
+            var (x, y) = near[world.Random.Next(near.Count)];
             if (!map.IsTileBlocked(null, x, y) && FarEnough(x, y)) return (x, y);
         }
-        for (int i = 0; i < SpawnAttempts; i++)
-        {
-            var (x, y) = floor[world.Random.Next(floor.Count)];
-            if (!map.IsTileBlocked(null, x, y)) return (x, y);
-        }
+        foreach (var pool in new[] { near, floor })
+            for (int i = 0; i < SpawnAttempts; i++)
+            {
+                var (x, y) = pool[world.Random.Next(pool.Count)];
+                if (!map.IsTileBlocked(null, x, y)) return (x, y);
+            }
         return null;
 
         bool FarEnough(int x, int y)

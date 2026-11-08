@@ -23,6 +23,7 @@ public class ArenaRun
     public DateTime PhaseUntilUtc { get; set; }
     public int Round { get; set; }
     public bool Warned { get; set; }
+    public int LastCountdown { get; set; }
     public Dictionary<int, ArenaParticipant> Participants { get; set; } = new();
 }
 

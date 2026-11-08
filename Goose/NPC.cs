@@ -276,6 +276,9 @@ namespace Goose
          * Is npc invincible
          */
         public bool CanBeKilled { get; set; }
+        // Damage applied by the latest player hit after every interceptor; spell scripts read it
+        // because the formula result they see is the pre-interception value.
+        public long LastDamageTaken { get; private set; }
         /**
          * Attack speed in seconds
          */
@@ -1182,6 +1185,7 @@ namespace Goose
          */
         public void Attacked(ICharacter character, long damage, GameWorld world)
         {
+            this.LastDamageTaken = 0;
             if (this.State == States.Dead || this.Hidden) return;
 
             try
@@ -1212,6 +1216,7 @@ namespace Goose
 
                 damage = DamageIntercept.Apply(this, character, damage, world);
                 damage = this.InterceptDamageTakenByScript(character, damage, world);
+                this.LastDamageTaken = Math.Max(0, damage);
 
                 packet = "";
                 if (damage <= 0)

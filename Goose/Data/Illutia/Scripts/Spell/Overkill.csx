@@ -14,8 +14,8 @@ public class Overkill : BaseSpellEffectScript
         if (!thisEffect.CastFormulaSpell(caster, target, world, out long hpChange, out long critMultiplier))
             return false;
 
-        long damage = -hpChange / Math.Max(1, critMultiplier);
-        if (damage <= 0) return true;
+        long damage = npc.LastDamageTaken / Math.Max(1, critMultiplier);
+        if (hpChange >= 0 || damage <= 0) return true;
 
         cast.TotalDamage += damage;
         cast.UsefulDamage += npc.State == NPC.States.Dead ? Math.Min(hpBefore, damage) : damage;

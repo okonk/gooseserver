@@ -63,6 +63,7 @@ public sealed class ArenaRoundTests : IDisposable
         var runId = (string)Prop(run, "RunId")!;
         Assert.All(mobs, m => Assert.Equal(runId, m.Properties.GetProperty<string>("arena.run")));
         Assert.All(mobs, m => Assert.Equal(1, m.Properties.GetProperty<int>("arena.round")));
+        Assert.All(mobs, m => Assert.True(m.Properties.GetProperty<bool>("untameable", false)));
         foreach (var p in new[] { p1, p2, p3 })
             Assert.Contains(p.Sent, s => s.Contains("[Arena] Round 1!"));
     }
@@ -139,6 +140,50 @@ public sealed class ArenaRoundTests : IDisposable
         Assert.Equal(2, (int)Prop(next, "Round")!);
         Assert.Equal(1, (int)Prop(next, "Phase")!);
         Assert.Equal(6, Mobs(kit).Count);
+    }
+
+    [Fact]
+    public void Clear_and_countdown_and_coins_go_to_notices()
+    {
+        var p1 = kit.LobbyPlayer(70001, "P1");
+        EnterRound1(kit, p1);
+        KillAll(kit, p1);
+        p1.Sent.Clear();
+
+        Tick(kit, Now.AddSeconds(11));
+        Assert.Contains(p1.Sent, s => s.StartsWith("NTF0,Round 1 cleared! Round 2 starts in 15 seconds."));
+        Assert.Contains(p1.Sent, s => s.StartsWith("NTF0,+6 Arena Coins (round 1 clear)"));
+
+        p1.Sent.Clear();
+        for (int second = 12; second < 26; second++)
+            Tick(kit, Now.AddSeconds(second));
+        Tick(kit, Now.AddSeconds(25.5));
+        var countdown = p1.Sent.Where(s => s.StartsWith("NTF0,Round 2 starts in")).Select(s => s.TrimEnd('\x01')).ToList();
+        Assert.Equal(new[]
+        {
+            "NTF0,Round 2 starts in 10...", "NTF0,Round 2 starts in 5...", "NTF0,Round 2 starts in 3...",
+            "NTF0,Round 2 starts in 2...", "NTF0,Round 2 starts in 1...",
+        }, countdown.ToArray());
+    }
+
+    [Fact]
+    public void Mobs_spawn_within_spawn_radius_of_a_participant()
+    {
+        kit.SetConfig(j => j["spawnRadius"] = 6);
+        var p1 = kit.LobbyPlayer(70001, "P1");
+        var p2 = kit.LobbyPlayer(70002, "P2");
+        StartRun(kit, Now);
+        foreach (var p in new[] { p1, p2 }) kit.Enter(ArenaMap(kit), p);
+        p1.WarpTo(kit.World, ArenaMap(kit), 15, 15);
+        p2.WarpTo(kit.World, ArenaMap(kit), 80, 80);
+
+        Tick(kit, Now.AddSeconds(10));
+
+        var mobs = Mobs(kit);
+        Assert.NotEmpty(mobs);
+        Assert.All(mobs, m => Assert.True(
+            Chebyshev(m.MapX, m.MapY, 15, 15) <= 6 || Chebyshev(m.MapX, m.MapY, 80, 80) <= 6,
+            $"mob at {m.MapX},{m.MapY}"));
     }
 
     [Fact]

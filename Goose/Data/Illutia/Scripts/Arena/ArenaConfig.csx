@@ -26,6 +26,7 @@ public sealed class ArenaConfig
     public int TimeoutWarningSeconds { get; set; }
     public int StragglerCount { get; set; }
     public int MinPlayerDistance { get; set; }
+    public int SpawnRadius { get; set; }
     public int BaseCount { get; set; }
     public int PerPlayer { get; set; }
     public int BandSize { get; set; }
@@ -148,6 +149,8 @@ public sealed class ArenaConfig
         foreach (var band in c.Bands ?? new List<ArenaBand>())
             if (band.Normals is null || band.Normals.Length == 0)
                 throw new JsonException("Arena bands entries need at least one normal template");
+        if (c.SpawnRadius < 0)
+            throw new JsonException("Arena spawnRadius must be >= 0");
         if (c.KillCreditMinShare is < 0 or > 1)
             throw new JsonException("Arena killCreditMinShare must be in [0, 1]");
         if (c.PriestKillShare is < 0 or > 1)

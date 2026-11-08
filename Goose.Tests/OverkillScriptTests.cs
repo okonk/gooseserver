@@ -32,6 +32,44 @@ public class OverkillScriptTests
     }
 
     [Fact]
+    public void Waste_is_measured_from_damage_applied_after_the_target_scales_it()
+    {
+        using var fixture = new TestWorldFixture();
+        var map = fixture.AddBaseMap(1, "Test");
+        map.CanCast = true;
+        fixture.Settings.DamageModifier = 1;
+        var player = fixture.CommandPlayerOn(map, 1, 1);
+        var folder = Path.Combine(fixture.DataDirectory, "Scripts", "NPC");
+        Directory.CreateDirectory(folder);
+        File.WriteAllText(Path.Combine(folder, "Times4.csx"), """
+            using Goose;
+            using Goose.Scripting;
+            public class Times4 : BaseNPCScript
+            {
+                public override long InterceptDamageTaken(NPC npc, ICharacter attacker, long damage, GameWorld world) => damage * 4;
+            }
+            return typeof(Times4);
+            """);
+        var template = fixture.AddNpcTemplate(1, "Scaled", t =>
+        {
+            t.BaseStats = new AttributeSet { HP = 1000 };
+            t.Script = fixture.World.ScriptHandler.GetScript<INPCScript>("Scripts/NPC/Times4.csx");
+        });
+        var npc = fixture.SpawnNpc(map, 2, 1, template);
+        var effect = OverkillEffect(fixture, "");
+        effect.HPFormula = "-500";
+        effect.Effected = SpellEffect.SpellEffected.NPC;
+        effect.MaximumLevelEffected = 100;
+        var cast = new SpellCast(new Spell { ID = 1, Name = "Test" }, player);
+
+        Assert.True(effect.Script!.Object.Cast(effect, player, npc, fixture.World, cast));
+
+        Assert.Equal(NPC.States.Dead, npc.State);
+        Assert.Equal(2000, cast.TotalDamage);
+        Assert.Equal(1000, cast.UsefulDamage);
+    }
+
+    [Fact]
     public void Description_shows_the_cap()
     {
         using var fixture = new TestWorldFixture();
