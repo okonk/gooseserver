@@ -702,8 +702,8 @@ def build(next_ids, npc_rows, warp_rows):
                        "bring the Butler counts towards the whole server's haul: +50% Experience at "
                        f"{TIERS[0]:,}, the basement opens at {TIERS[1]:,}, and at {TIERS[2]:,} the party "
                        "spills into town and Experience rises another 50%. Give 100 or more for a Pumpkin "
-                       "Helm and the Trick or Treater title. The top three givers win a stronger Pumpkin "
-                       "Helm and a title of their own.",
+                       "Helm and the Trick or Treater title. The top ten givers win a stronger Pumpkin "
+                       "Helm, and the top three a title of their own.",
         "script_path": "Scripts/CommunityGoal/HalloweenCandyGoal.csx",
         "properties": json.dumps(goal_properties(ids), separators=(",", ":")),
     }))
@@ -756,6 +756,7 @@ def goal_properties(ids):
             {"rank": 1, "rewards": prize("helmTop", "Candy Baron")},
             {"rank": 2, "rewards": prize("helmTop", "Sugar Fiend")},
             {"rank": 3, "rewards": prize("helmTop", "Sweet Tooth")},
+            *({"rank": r, "rewards": prize("helmTop", "Trick or Treater")} for r in range(4, 11)),
             {"minScore": 100, "rewards": prize("helmDyed", "Trick or Treater")},
         ],
     }
