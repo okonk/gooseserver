@@ -77,4 +77,19 @@
     "priestClassIds": [5],
     "priestKillShare": 0.5,
     "milestones": { "5": 20, "10": 60, "15": 120, "20": 200 },
+
+    // Class mobs cast these (template script_params "spells=Name;Name"). damage is a multiple of
+    // the mob's normal melee hit against that player, AC applied the same way. heal is a fraction
+    // of the healed mob's max HP, used on an arena mob below healBelow. range is in tiles for
+    // targeted spells; front shapes (Fearsome Lash etc.) use the spell's own size.
+    "mobSpells": {
+        "Critical Strike":   { "damage": 1.5, "cooldown": 6 },
+        "Fearsome Lash":     { "damage": 2.0, "cooldown": 10 },
+        "Spirit Strike":     { "damage": 1.5, "cooldown": 6 },
+        "Sunder of Spirits": { "damage": 1.2, "cooldown": 10 },
+        "Arcane Blast":      { "damage": 1.5, "cooldown": 6, "range": 5 },
+        "Arcane Assault":    { "damage": 1.0, "cooldown": 10, "range": 5 },
+        "Frostbite":         { "damage": 0.8, "cooldown": 8, "range": 5 },
+        "Restore Health":    { "heal": 0.05, "healBelow": 0.8, "cooldown": 10, "range": 6 },
+    },
 }

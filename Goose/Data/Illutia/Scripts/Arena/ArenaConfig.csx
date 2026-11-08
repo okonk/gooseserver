@@ -11,6 +11,15 @@ public sealed class ArenaBand
     public int Boss { get; set; }
 }
 
+public sealed class ArenaMobSpell
+{
+    public double Damage { get; set; }
+    public double Heal { get; set; }
+    public double HealBelow { get; set; } = 0.8;
+    public double Cooldown { get; set; } = 8;
+    public int Range { get; set; }
+}
+
 public sealed class ArenaConfig
 {
     public int LobbyMap { get; set; }
@@ -63,6 +72,7 @@ public sealed class ArenaConfig
     public int[] PriestClassIds { get; set; } = [];
     public double PriestKillShare { get; set; }
     public Dictionary<int, long> Milestones { get; set; } = new();
+    public Dictionary<string, ArenaMobSpell> MobSpells { get; set; } = new();
     public bool Valid { get; set; } = true;
 
     public bool Enabled(GameWorld world)
@@ -149,6 +159,9 @@ public sealed class ArenaConfig
         foreach (var band in c.Bands ?? new List<ArenaBand>())
             if (band.Normals is null || band.Normals.Length == 0)
                 throw new JsonException("Arena bands entries need at least one normal template");
+        foreach (var (name, spell) in c.MobSpells ?? new Dictionary<string, ArenaMobSpell>())
+            if (spell.Damage < 0 || spell.Heal is < 0 or > 1 || spell.Cooldown < 0 || spell.Range < 0)
+                throw new JsonException("Arena mobSpells entry " + name + " has a negative or out-of-range value");
         if (c.SpawnRadius < 0)
             throw new JsonException("Arena spawnRadius must be >= 0");
         if (c.KillCreditMinShare is < 0 or > 1)

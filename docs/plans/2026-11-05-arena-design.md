@@ -186,6 +186,12 @@ next scheduled start works once the config is fixed.
 - **Targeting:** on spawn, a mob aggroes the nearest participant. Engine aggro (threat,
   taunts) takes over from there. If the target dies or leaves, the mob re-aggroes the nearest
   participant.
+- **Class mobs (spells):** templates list spells in `script_params` (`spells=Fearsome Lash;Critical Strike`).
+  On each attack tick the mob casts the first spell that is off cooldown and has a target, otherwise
+  it melees. Spell data supplies only the shape, size and animation; damage is `mobSpells[name].damage`
+  times the mob's normal melee hit on that player, through the same AC mitigation, so it scales with
+  round, tier and target like melee. Heals restore a fraction of an injured arena mob's max HP.
+  Front shapes turn the caster to whichever side has a player in the area.
 - **Mob stats:** HP set from the formula through `TemporaryMaxHP` at spawn. Damage from the
   formula only. Templates supply looks, speed, ranges, AC and armor pierce; template XP is
   awarded by the engine; template drops should be empty.

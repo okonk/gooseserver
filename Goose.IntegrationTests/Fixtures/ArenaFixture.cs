@@ -20,6 +20,7 @@ public sealed class ArenaFixture : TestWorldFixture
         ("ArenaState.csx",      "Scripts/Arena/ArenaState.csx"),
         ("ArenaBoard.csx",      "Scripts/Arena/ArenaBoard.csx"),
         ("ArenaCore.csx",       "Scripts/Arena/ArenaCore.csx"),
+        ("ArenaSpells.csx",     "Scripts/Arena/ArenaSpells.csx"),
         ("ArenaMob.csx",        "Scripts/Arena/ArenaMob.csx"),
         ("ArenaMap.csx",        "Scripts/Arena/ArenaMap.csx"),
         ("ArenaController.csx", "Scripts/Arena/ArenaController.csx"),

@@ -1,5 +1,6 @@
 #load "ArenaConfig.csx"
 #load "ArenaMath.csx"
+#load "ArenaSpells.csx"
 using System;
 using Goose;
 using Goose.Scripting;
@@ -35,6 +36,20 @@ public class ArenaMob : BaseNPCScript
         long dealt = Math.Min(eff, Math.Max(0, npc.CurrentHP));
         if (dealt > 0) npc.Properties[key] = npc.Properties.GetProperty<long>(key, 0) + dealt;
         return eff;
+    }
+
+    public override void OnAttackEvent(NPC npc, GameWorld world)
+    {
+        if (npc.Properties.TryGetProperty<string>("arena.run", out _) && npc.AggroTarget is not null)
+        {
+            var cfg = ArenaConfig.Get(world);
+            if (cfg.Valid && ArenaSpells.TryCast(npc, world, cfg))
+            {
+                npc.AddAttackEvent(world);
+                return;
+            }
+        }
+        npc.HandleAttackEvent(world);
     }
 
     public override double MeleeBaseDamage(NPC npc, ICharacter target, double baseDamage, GameWorld world)
