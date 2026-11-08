@@ -75,9 +75,14 @@ public sealed class ArenaConfig
     public Dictionary<string, ArenaMobSpell> MobSpells { get; set; } = new();
     public bool Valid { get; set; } = true;
 
+    public const string OpenKey = "arena.open";
+
+    public static bool IsClosed(GameWorld world) => !world.WorldState.Get<bool>(OpenKey);
+
     public bool Enabled(GameWorld world)
     {
         if (!Valid) return false;
+        if (IsClosed(world)) return false;
         if (LobbyMap == 0 || ArenaMap == 0) return false;
         if (LobbySpawn is null || LobbySpawn.Length != 2) return false;
         if (ArenaRect is null || ArenaRect.Length != 4) return false;

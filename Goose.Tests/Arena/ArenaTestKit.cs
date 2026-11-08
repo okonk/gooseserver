@@ -46,6 +46,7 @@ public sealed class ArenaTestKit : IDisposable
         File.WriteAllText(Path.Combine(Fixture.DataDirectory, "Scripts", "Global", "ArenaHost.csx"), HostScript);
         Host = Fixture.World.ScriptHandler.GetScript<IGlobalScript>("Scripts/Global/ArenaHost.csx").Object;
         Fixture.Settings.MaxAC = 255;
+        Fixture.World.WorldState.Set("arena.open", true);
     }
 
     public TestWorldFixture.CapturingPlayer LobbyPlayer(int playerId, string name, bool gm = false)

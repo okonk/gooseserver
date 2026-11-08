@@ -23,7 +23,7 @@ public class ArenaController : BaseGlobalScript
     public override void OnLoaded(GameWorld world)
     {
         world.Commands.Register("/arena ", AccessPrivilege.SpawnNPC, "Arena",
-            "Arena: start, stop, status, preview <round> [raw] [player]",
+            "Arena: start, stop, status, open, close, preview <round> [raw] [player]",
             new Action<CommandContext, string, string[]>(CommandCurrent));
 
         ScriptTimerEvent? timer = null;
@@ -91,8 +91,10 @@ public class ArenaController : BaseGlobalScript
             case "start": Start(ctx); break;
             case "stop": Stop(ctx); break;
             case "status": Status(ctx); break;
+            case "open": Open(ctx); break;
+            case "close": Close(ctx); break;
             case "preview": Preview(ctx, rest); break;
-            default: ctx.Send("Usage: /arena start|stop|status|preview <round> [raw] [player]"); break;
+            default: ctx.Send("Usage: /arena start|stop|status|open|close|preview <round> [raw] [player]"); break;
         }
     }
 
@@ -105,7 +107,9 @@ public class ArenaController : BaseGlobalScript
         }
         ArenaCore.StartRun(ctx.World, DateTime.UtcNow);
         ctx.Send(ArenaState.Load(ctx.World) is null
-            ? "Run not started: no players in the lobby (or the arena is disabled)."
+            ? (ArenaConfig.IsClosed(ctx.World)
+                ? "Run not started: the arena is closed (/arena open to reopen)."
+                : "Run not started: no players in the lobby (or the arena is disabled).")
             : "Arena run started.");
     }
 
@@ -120,10 +124,29 @@ public class ArenaController : BaseGlobalScript
         ctx.Send("Arena run stopped.");
     }
 
+    private void Open(CommandContext ctx)
+    {
+        ctx.World.WorldState.Set(ArenaConfig.OpenKey, true);
+        ctx.Send("The arena is open. Runs start on the normal schedule.");
+    }
+
+    private void Close(CommandContext ctx)
+    {
+        ctx.World.WorldState.Remove(ArenaConfig.OpenKey);
+        if (ArenaState.Load(ctx.World) is not null)
+            ArenaCore.EndRun(ctx.World, "arena closed by a GM");
+        ctx.Send("The arena is closed. No runs will start until /arena open.");
+    }
+
     private void Status(CommandContext ctx)
     {
         var world = ctx.World;
         var cfg = ArenaConfig.Get(world);
+        if (ArenaConfig.IsClosed(world))
+        {
+            ctx.Send("The arena is closed (/arena open to reopen).");
+            return;
+        }
         if (!cfg.Valid)
         {
             ctx.Send("The arena is disabled.");

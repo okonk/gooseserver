@@ -287,6 +287,9 @@ unison. Timers retire when the NPC dies or respawns, and pick up script reloads.
 
 - `/arena start` / `/arena stop` — force or abort a run.
 - `/arena status` — phase, round, alive count, next start.
+- `/arena open` / `/arena close` — the arena starts closed. While closed (WorldState `arena.open`
+  unset) no runs start, scheduled or forced, and there are no announcements; the lobby stays
+  usable. Closing ends an active run.
 - `/arena preview <round> [raw] [player]` — for the named online player (or the caller):
   their power fraction `s`, normal/elite/boss HP for that round (alive = participants if a
   run is active, else 1), their effective hit for a sample raw value (the `raw` arg, default

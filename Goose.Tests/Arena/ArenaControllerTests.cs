@@ -267,4 +267,68 @@ public sealed class ArenaControllerTests : IDisposable
         Assert.True(kit.Fixture.RunCommand(gm, "/arena status"));
         Assert.Contains(gm.Sent, s => s.Contains("The arena is disabled."));
     }
+
+    [Fact]
+    public void Closed_arena_skips_scheduled_starts_and_announcements_until_reopened()
+    {
+        var controller = kit.RegisterController();
+        controller.Object.OnLoaded(kit.World);
+        var gm = kit.LobbyPlayer(70001, "GM", gm: true);
+        var p2 = kit.LobbyPlayer(70002, "P2");
+        p2.ExperienceSold = 3_000_000_000;
+
+        Assert.True(kit.Fixture.RunCommand(gm, "/arena close"));
+        var t0 = DateTime.UtcNow.Date.AddHours(2).AddMinutes(44);
+        for (var t = t0; t <= t0.AddMinutes(17); t = t.AddSeconds(30))
+            Call(controller.Object, "Tick", kit.World, t);
+
+        Assert.Null(Run(kit));
+        Assert.DoesNotContain(gm.Sent, s => s.Contains("opens in"));
+        Assert.Same(kit.World.MapHandler.Maps[ArenaTestKit.LobbyMapId], p2.Map);
+
+        Assert.True(kit.Fixture.RunCommand(gm, "/arena start"));
+        Assert.Null(Run(kit));
+        Assert.Contains(gm.Sent, s => s.Contains("the arena is closed"));
+
+        Assert.True(kit.Fixture.RunCommand(gm, "/arena open"));
+        Assert.True(kit.Fixture.RunCommand(gm, "/arena start"));
+        Assert.NotNull(Run(kit));
+    }
+
+    [Fact]
+    public void Arena_starts_closed_until_a_gm_opens_it()
+    {
+        kit.World.WorldState.Remove("arena.open");
+        var controller = kit.RegisterController();
+        controller.Object.OnLoaded(kit.World);
+        var gm = kit.LobbyPlayer(70001, "GM", gm: true);
+        var p2 = kit.LobbyPlayer(70002, "P2");
+        p2.ExperienceSold = 3_000_000_000;
+
+        Assert.True(kit.Fixture.RunCommand(gm, "/arena start"));
+        Assert.Null(Run(kit));
+
+        Assert.True(kit.Fixture.RunCommand(gm, "/arena open"));
+        Assert.True(kit.Fixture.RunCommand(gm, "/arena start"));
+        Assert.NotNull(Run(kit));
+    }
+
+    [Fact]
+    public void Closing_mid_run_ends_the_run()
+    {
+        var controller = kit.RegisterController();
+        controller.Object.OnLoaded(kit.World);
+        var gm = kit.LobbyPlayer(70001, "GM", gm: true);
+        var p2 = kit.LobbyPlayer(70002, "P2");
+        p2.ExperienceSold = 3_000_000_000;
+        Assert.True(kit.Fixture.RunCommand(gm, "/arena start"));
+        Assert.NotNull(Run(kit));
+
+        Assert.True(kit.Fixture.RunCommand(gm, "/arena close"));
+
+        Assert.Null(Run(kit));
+        Assert.NotNull(LastRun(kit));
+        Assert.True(kit.Fixture.RunCommand(gm, "/arena status"));
+        Assert.Contains(gm.Sent, s => s.Contains("The arena is closed (/arena open to reopen)."));
+    }
 }
