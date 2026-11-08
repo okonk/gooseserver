@@ -55,9 +55,9 @@ namespace Goose.Events
                 {
                     if (npc.MapX == x && npc.MapY == y)
                     {
-                        if (npc.VendorItems is not null)
+                        if (npc.IsVendor)
                         {
-                            npc.OpenVendorWindow(this.Player, world);
+                            npc.OpenVendor(this.Player, world);
                             return;
                         }
 

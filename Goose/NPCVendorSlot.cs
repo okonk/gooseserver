@@ -9,4 +9,10 @@ namespace Goose
         public int Stack { get; set; }
         public bool CanSeeStats { get; set; }
     }
+
+    public class NPCVendorSection
+    {
+        public string Name { get; set; } = "";
+        public NPCVendorSlot?[] Slots { get; set; } = [];
+    }
 }

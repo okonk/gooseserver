@@ -228,30 +228,39 @@ public partial class Dimensions
                                        .Where(t => t.NPCTemplateID < Offset).ToList())
             {
                 var clone = world.NPCHandler.GetNPCTemplate(basic.NPCTemplateID + Offset * dim);
-                if (clone == null || basic.VendorItems == null) continue;
+                if (clone == null) continue;
 
-                var slots = new NPCVendorSlot[basic.VendorItems.Length];
-                for (int i = 0; i < basic.VendorItems.Length; i++)
-                {
-                    var slot = basic.VendorItems[i];
-                    if (slot == null) continue;
-
-                    var dimTemplate = slot.ItemTemplate == null
-                        ? null
-                        : world.ItemHandler.GetTemplate(slot.ItemTemplate.ID + Offset * dim);
-
-                    slots[i] = new NPCVendorSlot
-                    {
-                        Slot = slot.Slot,
-                        ItemTemplate = dimTemplate ?? slot.ItemTemplate,
-                        Stack = slot.Stack,
-                        CanSeeStats = slot.CanSeeStats,
-                    };
-                }
-
-                clone.VendorItems = slots;
+                if (basic.VendorItems != null)
+                    clone.VendorItems = RepointSlots(world, basic.VendorItems, dim);
+                if (basic.VendorSections != null)
+                    clone.VendorSections = basic.VendorSections
+                        .Select(section => new NPCVendorSection { Name = section.Name, Slots = RepointSlots(world, section.Slots, dim) })
+                        .ToList();
             }
         }
+    }
+
+    private NPCVendorSlot[] RepointSlots(GameWorld world, NPCVendorSlot?[] source, int dim)
+    {
+        var slots = new NPCVendorSlot[source.Length];
+        for (int i = 0; i < source.Length; i++)
+        {
+            var slot = source[i];
+            if (slot == null) continue;
+
+            var dimTemplate = slot.ItemTemplate == null
+                ? null
+                : world.ItemHandler.GetTemplate(slot.ItemTemplate.ID + Offset * dim);
+
+            slots[i] = new NPCVendorSlot
+            {
+                Slot = slot.Slot,
+                ItemTemplate = dimTemplate ?? slot.ItemTemplate,
+                Stack = slot.Stack,
+                CanSeeStats = slot.CanSeeStats,
+            };
+        }
+        return slots;
     }
 
     /// <summary>AttributeSet.java:376, with itemType 0 - the flat per-dimension bonus only.

@@ -38,6 +38,7 @@ namespace Goose.Events
                 if (npcid <= 0 || slotid <= 0 || slotid > world.Settings.VendorSlotSize) return;
 
                 NPC? npc = null;
+                NPCVendorSlot?[]? vendorSlots = null;
 
                 foreach (var window in this.Player.Windows)
                 {
@@ -45,6 +46,7 @@ namespace Goose.Events
                         window.NPC!.LoginID == npcid)
                     {
                         npc = window.NPC!;
+                        vendorSlots = window.VendorSlots ?? npc.VendorItems;
                         break;
                     }
                 }
@@ -62,9 +64,9 @@ namespace Goose.Events
                 // log bad npc
                 if (npc is null) return;
 
-                if (npc.VendorItems is null || slotid < 0 || slotid >= npc.VendorItems.Length) return;
+                if (vendorSlots is null || slotid < 0 || slotid >= vendorSlots.Length) return;
 
-                NPCVendorSlot slot = npc.VendorItems[slotid];
+                NPCVendorSlot? slot = vendorSlots[slotid];
 
                 // log bad slot purchase
                 if (slot is null) return;

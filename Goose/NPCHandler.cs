@@ -198,7 +198,9 @@ namespace Goose
 
                         if (reader.HasRows)
                         {
-                            template.VendorItems = new NPCVendorSlot[world.Settings.VendorSlotSize + 1];
+                            bool hasSection = Enumerable.Range(0, reader.FieldCount).Any(i => reader.GetName(i) == "section");
+                            template.VendorItems = null;
+                            template.VendorSections = null;
 
                             while (reader.Read())
                             {
@@ -208,11 +210,28 @@ namespace Goose
                                 int itemId = reader.GetInt32("item_template_id");
                                 vslot.ItemTemplate = world.ItemHandler.GetTemplate(itemId)!;
                                 vslot.CanSeeStats = reader.GetString("stats_visible") != "0";
+                                string sectionName = hasSection ? reader.GetString("section").Trim() : "";
 
                                 if (vslot.ItemTemplate is not null &&
                                     vslot.Slot > 0 && vslot.Slot <= world.Settings.VendorSlotSize)
                                 {
-                                    template.VendorItems[vslot.Slot] = vslot;
+                                    NPCVendorSlot?[] page;
+                                    if (sectionName.Length == 0)
+                                    {
+                                        page = template.VendorItems ??= new NPCVendorSlot[world.Settings.VendorSlotSize + 1];
+                                    }
+                                    else
+                                    {
+                                        template.VendorSections ??= [];
+                                        var section = template.VendorSections.FirstOrDefault(s => s.Name == sectionName);
+                                        if (section is null)
+                                        {
+                                            section = new NPCVendorSection { Name = sectionName, Slots = new NPCVendorSlot?[world.Settings.VendorSlotSize + 1] };
+                                            template.VendorSections.Add(section);
+                                        }
+                                        page = section.Slots;
+                                    }
+                                    page[vslot.Slot] = vslot;
                                 }
                                 else
                                 {

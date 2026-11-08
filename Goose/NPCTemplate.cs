@@ -193,6 +193,8 @@ namespace Goose
          */
         public NPCVendorSlot[]? VendorItems { get; set; }
 
+        public List<NPCVendorSection>? VendorSections { get; set; }
+
         /// <summary>The currency this vendor trades in. Null means gold. Set from the
         /// currency_id column at load.</summary>
         public string? CurrencyId { get; set; }
@@ -256,6 +258,7 @@ namespace Goose
             this.ScriptParams = other.ScriptParams;
             this.ArmorPierce = other.ArmorPierce;
             this.VendorItems = other.VendorItems;
+            this.VendorSections = other.VendorSections;
             this.Allies = other.Allies is null ? null : [.. other.Allies];
             this.Drops = other.Drops is null ? null : [.. other.Drops];
             this.Quests = other.Quests is null ? [] : [.. other.Quests];

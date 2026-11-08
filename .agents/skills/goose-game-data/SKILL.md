@@ -225,7 +225,10 @@ retiring a template means rewriting the alliance list on every NPC that named it
   `A`, `B`, `C` and `E` required. When `D` is greater than `C`, a drop that triggers lands a
   random amount in `[C, D]` (inclusive) instead of exactly `C`.
 - **NPC Vendor Items** — `A npc id` · `B item id` · `C stack` (1) · `D stats visible` (1) ·
-  `E slot number` (required, 0-based). The NPC needs `type = Vendor` to show stock.
+  `E slot number` (required, 1-30) · `F section` (blank = the plain shop). The NPC needs
+  `type = Vendor` to show stock. Rows with a section form named pages: right-clicking the
+  vendor lists its sections (plain stock first as "General"), and each opens its own 30-slot
+  window, so `slot` is the position within that section.
 
 ### Items — `item_templates`
 

@@ -81,6 +81,13 @@ public class DimensionVendorStockTests
             Slot = 5, ItemTemplate = fixture.World.ItemHandler.GetTemplate(SpiritTokenId)!,
             Stack = 1, CanSeeStats = true,
         };
+        var sectionSlots = new NPCVendorSlot?[fixture.Settings.VendorSlotSize + 1];
+        sectionSlots[1] = new NPCVendorSlot
+        {
+            Slot = 1, ItemTemplate = fixture.World.ItemHandler.GetTemplate(SwordId)!,
+            Stack = 1, CanSeeStats = true,
+        };
+        merchant.VendorSections = [new NPCVendorSection { Name = "Weapons", Slots = sectionSlots }];
         fixture.World.NPCHandler.AddTemplate(merchant);
         fixture.World.NPCHandler.SpawnNPC(fixture.World, 1, 20, 20, merchant, shouldRespawn: false);
 
@@ -90,6 +97,19 @@ public class DimensionVendorStockTests
 
     private static NPCVendorSlot[] StockOf(GlobalScriptFixture fixture, int dim)
         => fixture.World.NPCHandler.GetNPCTemplate(MerchantId + Offset * dim)!.VendorItems!;
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(6)]
+    public void Dimension_vendor_sections_point_at_same_dimension_clones_without_touching_the_base(int dim)
+    {
+        using var fixture = Loaded();
+
+        var section = Assert.Single(fixture.World.NPCHandler.GetNPCTemplate(MerchantId + Offset * dim)!.VendorSections!);
+        Assert.Equal("Weapons", section.Name);
+        Assert.Equal(SwordId + Offset * dim, section.Slots[1]!.ItemTemplate.ID);
+        Assert.Equal(SwordId, fixture.World.NPCHandler.GetNPCTemplate(MerchantId)!.VendorSections![0].Slots[1]!.ItemTemplate.ID);
+    }
 
     [Theory]
     [InlineData(1)]

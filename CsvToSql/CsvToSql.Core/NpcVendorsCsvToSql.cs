@@ -11,6 +11,7 @@ namespace CsvToSql
             Col.Int("stack", SqlType.Int, def: 1),
             Col.Bool("stats_visible", def: true),
             Col.Int("slot", SqlType.Int),
+            Col.Text("section", def: "''"),
         };
     }
 }

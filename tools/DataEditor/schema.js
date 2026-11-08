@@ -1341,6 +1341,14 @@ var GOOSE_SCHEMA = {
           "sql": "INT",
           "required": true,
           "pk": false
+        },
+        {
+          "name": "section",
+          "kind": "Text",
+          "sql": "TEXT",
+          "default": "\u0027\u0027",
+          "required": false,
+          "pk": false
         }
       ],
       "composites": [],

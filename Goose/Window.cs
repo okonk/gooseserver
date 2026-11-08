@@ -114,6 +114,9 @@ namespace Goose
 
         public NPC? NPC { get; set; }
 
+        // Vendor windows: the section page shown; null shows the NPC's unsectioned stock.
+        public NPCVendorSlot?[]? VendorSlots { get; set; }
+
         public int ID { get; set; }
 
         public Object? Data { get; set; }
@@ -191,11 +194,12 @@ namespace Goose
                 case WindowTypes.Vendor:
                     world.Send(player, P.ClearVendor());
 
-                    if (this.NPC?.VendorItems is null) return;
+                    var vendorSlots = this.VendorSlots ?? this.NPC?.VendorItems;
+                    if (vendorSlots is null) return;
 
-                    for (int i = 1; i < this.NPC.VendorItems.Length; i++)
+                    for (int i = 1; i < vendorSlots.Length; i++)
                     {
-                        var slot = this.NPC.VendorItems[i];
+                        var slot = vendorSlots[i];
                         if (slot is null) continue;
 
                         world.Send(player, P.VendorSlot(this, slot.ItemTemplate, world, i, 1));

@@ -366,6 +366,8 @@ namespace Goose
         }
 
         public NPCVendorSlot[]? VendorItems { get => this.NPCTemplate.VendorItems; }
+        public List<NPCVendorSection>? VendorSections { get => this.NPCTemplate.VendorSections; }
+        public bool IsVendor { get => this.VendorItems is not null || this.VendorSections is { Count: > 0 }; }
 
         public NPCTemplate.BehaviourTypes Behaviour { get => this.NPCTemplate.Behaviour; }
         public long BehaviourTimeout { get => this.NPCTemplate.BehaviourTimeout; }
@@ -1985,12 +1987,13 @@ namespace Goose
          * OpenVendorWindow, opens vendor window with player if needed
          *
          */
-        public void OpenVendorWindow(Player player, GameWorld world)
+        public void OpenVendorWindow(Player player, GameWorld world, NPCVendorSection? section = null)
         {
             foreach (var window in player.Windows)
             {
                 if (window.Type == Window.WindowTypes.Vendor && window.NPC == this)
                 {
+                    window.VendorSlots = section?.Slots;
                     window.Refresh(player, world);
                     return;
                 }
@@ -1998,13 +2001,31 @@ namespace Goose
 
             Window w = new Window();
             w.Type = Window.WindowTypes.Vendor;
-            w.Title = "Welcome to my shop!";
+            w.Title = section?.Name ?? "Welcome to my shop!";
             w.Buttons = "0,1,0,0,0";
             w.NPC = this;
+            w.VendorSlots = section?.Slots;
 
             player.Windows.Add(w);
 
             w.Create(player, world);
+        }
+
+        // Plain (unsectioned) stock is listed first as "General" when a vendor also has sections.
+        public void OpenVendor(Player player, GameWorld world)
+        {
+            if (this.VendorSections is not { Count: > 0 } sections)
+            {
+                this.OpenVendorWindow(player, world);
+                return;
+            }
+
+            var choices = new List<NPCVendorSection?>();
+            if (this.VendorItems is not null) choices.Add(null);
+            choices.AddRange(sections);
+            var lines = choices.Select(c => c?.Name ?? "General").ToList();
+            _ = new OptionListWindow(player, world, this.Name, lines,
+                (index, p, w) => this.OpenVendorWindow(p, w, choices[index]), this);
         }
 
         /**
