@@ -52,6 +52,7 @@ public sealed class ArenaConfig
     public double BossRoundAddFraction { get; set; }
     public double BossHpMult { get; set; }
     public double BossHpPerPlayer { get; set; }
+    public double BossHpPlayerCurve { get; set; } = 1;
     public double BossDmgMult { get; set; }
     public long MinXpSold { get; set; }
     public long TopXpSold { get; set; }
@@ -61,6 +62,8 @@ public sealed class ArenaConfig
     public long AnchorMobHp { get; set; }
     public long AnchorMobWeaponDamage { get; set; }
     public double HpGrowth { get; set; }
+    public int HpSoftRound { get; set; }
+    public double HpGrowthLate { get; set; }
     public double DmgGrowth { get; set; }
     public string CurrencyId { get; set; } = "";
     public int RoundBase { get; set; }
@@ -147,6 +150,10 @@ public sealed class ArenaConfig
             throw new JsonException("Arena a and b must be in [0, 2]");
         if (c.HpGrowth <= 0 || c.DmgGrowth <= 0)
             throw new JsonException("Arena hpGrowth and dmgGrowth must be > 0");
+        if (c.HpSoftRound > 0 && c.HpGrowthLate <= 0)
+            throw new JsonException("Arena hpGrowthLate must be > 0 when hpSoftRound is set");
+        if (c.BossHpPlayerCurve < 0)
+            throw new JsonException("Arena bossHpPlayerCurve must be >= 0");
         if (c.AnchorMobHp <= 0 || c.AnchorMobWeaponDamage <= 0)
             throw new JsonException("Arena anchorMobHp and anchorMobWeaponDamage must be > 0");
         if (c.MinXpSold <= 0 || c.TopXpSold < c.MinXpSold)

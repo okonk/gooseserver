@@ -218,8 +218,12 @@ count in full.
 **Mob HP:**
 
 ```
-mobHp(round, tier) = anchorMobHp × hpGrowth^(round − anchorRound) × tierHpMult
+mobHp(round, tier) = anchorMobHp × hpCurve(round) × tierHpMult
 ```
+
+`hpCurve` is `hpGrowth^(round − anchorRound)`. With `hpSoftRound` set, `hpGrowth` applies up to
+that round and `hpGrowthLate` after it. The boss multiplier is
+`bossHpMult × (1 + bossHpPerPlayer × (alive − 1)^bossHpPlayerCurve)`; a curve of 1 is linear.
 
 **Mob → player** (`ArenaMob.MeleeBaseDamage`; engine attack loop):
 

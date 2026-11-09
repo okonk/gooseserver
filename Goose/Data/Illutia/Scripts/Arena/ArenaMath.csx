@@ -22,13 +22,22 @@ public static class ArenaMath
         double mult = tier switch
         {
             MobTier.Elite => c.EliteHpMult,
-            MobTier.Boss => c.BossHpMult * (1 + c.BossHpPerPlayer * (alive - 1)),
+            MobTier.Boss => c.BossHpMult * (1 + c.BossHpPerPlayer * Math.Pow(Math.Max(0, alive - 1), c.BossHpPlayerCurve)),
             _ => 1,
         };
-        double hp = c.AnchorMobHp * Math.Pow(c.HpGrowth, round - c.AnchorRound) * mult;
+        double hp = c.AnchorMobHp * HpCurve(round, c) * mult;
         if (hp >= long.MaxValue) return long.MaxValue;
         if (hp <= 0) return 0;
         return (long)hp;
+    }
+
+    public static double HpCurve(int round, ArenaConfig c)
+    {
+        if (c.HpSoftRound <= 0) return Math.Pow(c.HpGrowth, round - c.AnchorRound);
+        int soft = c.HpSoftRound;
+        int early = Math.Min(round, soft) - Math.Min(c.AnchorRound, soft);
+        int late = Math.Max(round, soft) - Math.Max(c.AnchorRound, soft);
+        return Math.Pow(c.HpGrowth, early) * Math.Pow(c.HpGrowthLate, late);
     }
 
     public static double MobWeaponDamage(int round, MobTier tier, double s, ArenaConfig c)
