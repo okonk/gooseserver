@@ -313,8 +313,9 @@ public static class ArenaCore
                 if (!player.IsGM)
                     player.WarpTo(world, lobbyMap, cfg.LobbySpawn[0], cfg.LobbySpawn[1]);
 
-        foreach (var p in run.Participants.Values)
-            Pay(world, p.Id, ArenaMath.MilestoneBonus(p.RoundsCleared, cfg), "milestone bonus");
+        if (!run.Skipped)
+            foreach (var p in run.Participants.Values)
+                Pay(world, p.Id, ArenaMath.MilestoneBonus(p.RoundsCleared, cfg), "milestone bonus");
 
         run = ArenaState.Load(world) ?? run;
 
@@ -374,7 +375,28 @@ public static class ArenaCore
 
     public static void RecordResults(GameWorld world, ArenaRun run)
     {
+        if (run.Skipped) return;
         ArenaBoard.Record(world, run, DateTime.UtcNow);
+    }
+
+    public const int SkipCountdownSeconds = 5;
+
+    public static bool SkipTo(GameWorld world, int round, DateTime nowUtc)
+    {
+        var run = ArenaState.Load(world);
+        if (run is null) return false;
+        var cfg = ArenaConfig.Get(world);
+        foreach (var npc in AliveArenaMobs(world, cfg, run.RunId))
+            npc.Despawn(world);
+        run.Round = round - 1;
+        run.Phase = ArenaPhase.Break;
+        run.PhaseUntilUtc = nowUtc.AddSeconds(SkipCountdownSeconds);
+        run.LastCountdown = 0;
+        run.Warned = false;
+        run.Skipped = true;
+        ArenaState.Save(world, run);
+        NoticeToMap(world, cfg, "A GM skipped ahead. Round " + round + " starts in " + SkipCountdownSeconds + " seconds.");
+        return true;
     }
 
     private static List<int> PriestAssists(GameWorld world, ArenaConfig cfg, ArenaRun run, List<int> credited)

@@ -24,6 +24,7 @@ public class ArenaRun
     public int Round { get; set; }
     public bool Warned { get; set; }
     public int LastCountdown { get; set; }
+    public bool Skipped { get; set; }
     public Dictionary<int, ArenaParticipant> Participants { get; set; } = new();
 }
 

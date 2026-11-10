@@ -331,4 +331,52 @@ public sealed class ArenaControllerTests : IDisposable
         Assert.True(kit.Fixture.RunCommand(gm, "/arena status"));
         Assert.Contains(gm.Sent, s => s.Contains("The arena is closed (/arena open to reopen)."));
     }
+
+    [Fact]
+    public void Skip_jumps_to_the_chosen_round_and_keeps_the_run_off_the_leaderboard()
+    {
+        var controller = kit.RegisterController();
+        controller.Object.OnLoaded(kit.World);
+        var gm = kit.LobbyPlayer(70001, "GM", gm: true);
+        var p2 = kit.LobbyPlayer(70002, "P2");
+        p2.ExperienceSold = 3_000_000_000;
+        Assert.True(kit.Fixture.RunCommand(gm, "/arena start"));
+        var now = DateTime.UtcNow;
+        Call(kit.Host, "Tick", kit.World, now.AddSeconds(30));
+        Assert.Equal(1, (int)Prop(Run(kit), "Round")!);
+
+        Assert.True(kit.Fixture.RunCommand(gm, "/arena skip 12"));
+        Assert.Contains(gm.Sent, s => s.Contains("Skipping to round 12."));
+        Assert.Empty(kit.World.MapHandler.Maps[ArenaTestKit.ArenaMapId].NPCs
+            .Where(n => n.State == NPC.States.Alive && n.Properties.ContainsKey("arena.run")));
+
+        Call(kit.Host, "Tick", kit.World, DateTime.UtcNow.AddSeconds(ArenaRoundSkipSeconds + 1));
+        Assert.Equal(12, (int)Prop(Run(kit), "Round")!);
+        Assert.NotEmpty(kit.World.MapHandler.Maps[ArenaTestKit.ArenaMapId].NPCs
+            .Where(n => n.State == NPC.States.Alive && n.Properties.GetProperty<int>("arena.round", 0) == 12));
+
+        var run = Run(kit)!;
+        ArenaTestKit.SetProp(Participants(run)[70002]!, "RoundsCleared", 12);
+        Call(kit.Host, "SaveRun", kit.World, run);
+        Assert.True(kit.Fixture.RunCommand(gm, "/arena stop"));
+        Assert.Equal(12, (int)Prop(LastRun(kit), "BestRound")!);
+        var board = Call(kit.Host, "BoardLoad", kit.World);
+        var top = (List<(int Id, double Value)>)Call(kit.Host, "BoardTop", board, 0, false, "", 10)!;
+        Assert.Empty(top);
+    }
+
+    [Fact]
+    public void Skip_without_a_run_or_round_explains_itself()
+    {
+        var controller = kit.RegisterController();
+        controller.Object.OnLoaded(kit.World);
+        var gm = kit.LobbyPlayer(70001, "GM", gm: true);
+
+        Assert.True(kit.Fixture.RunCommand(gm, "/arena skip 5"));
+        Assert.Contains(gm.Sent, s => s.Contains("No run is active."));
+        Assert.True(kit.Fixture.RunCommand(gm, "/arena skip"));
+        Assert.Contains(gm.Sent, s => s.Contains("Usage: /arena skip <round>"));
+    }
+
+    private const int ArenaRoundSkipSeconds = 5;
 }

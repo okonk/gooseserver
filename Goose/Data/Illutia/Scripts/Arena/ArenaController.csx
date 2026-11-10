@@ -23,7 +23,7 @@ public class ArenaController : BaseGlobalScript
     public override void OnLoaded(GameWorld world)
     {
         world.Commands.Register("/arena ", AccessPrivilege.SpawnNPC, "Arena",
-            "Arena: start, stop, status, open, close, preview <round> [raw] [player]",
+            "Arena: start, stop, status, open, close, skip <round>, preview <round> [raw] [player]",
             new Action<CommandContext, string, string[]>(CommandCurrent));
 
         ScriptTimerEvent? timer = null;
@@ -93,8 +93,9 @@ public class ArenaController : BaseGlobalScript
             case "status": Status(ctx); break;
             case "open": Open(ctx); break;
             case "close": Close(ctx); break;
+            case "skip": Skip(ctx, rest); break;
             case "preview": Preview(ctx, rest); break;
-            default: ctx.Send("Usage: /arena start|stop|status|open|close|preview <round> [raw] [player]"); break;
+            default: ctx.Send("Usage: /arena start|stop|status|open|close|skip <round>|preview <round> [raw] [player]"); break;
         }
     }
 
@@ -136,6 +137,21 @@ public class ArenaController : BaseGlobalScript
         if (ArenaState.Load(ctx.World) is not null)
             ArenaCore.EndRun(ctx.World, "arena closed by a GM");
         ctx.Send("The arena is closed. No runs will start until /arena open.");
+    }
+
+    private void Skip(CommandContext ctx, string[] rest)
+    {
+        if (rest.Length == 0 || !int.TryParse(rest[0], out var round) || round < 1)
+        {
+            ctx.Send("Usage: /arena skip <round>");
+            return;
+        }
+        if (!ArenaCore.SkipTo(ctx.World, round, DateTime.UtcNow))
+        {
+            ctx.Send("No run is active.");
+            return;
+        }
+        ctx.Send("Skipping to round " + round + ". This run won't count for leaderboards or milestone bonuses.");
     }
 
     private void Status(CommandContext ctx)

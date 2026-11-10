@@ -291,6 +291,8 @@ unison. Timers retire when the NPC dies or respawns, and pick up script reloads.
 
 - `/arena start` / `/arena stop` — force or abort a run.
 - `/arena status` — phase, round, alive count, next start.
+- `/arena skip <round>` — despawns the current wave and starts the chosen round after a 5s
+  countdown. A skipped run is not recorded on the leaderboards and pays no milestone bonus.
 - `/arena open` / `/arena close` — the arena starts closed. While closed (WorldState `arena.open`
   unset) no runs start, scheduled or forced, and there are no announcements; the lobby stays
   usable. Closing ends an active run.
