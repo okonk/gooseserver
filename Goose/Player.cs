@@ -1496,6 +1496,9 @@ namespace Goose
          */
         public void WarpTo(GameWorld world, Map map, int x, int y, bool loseaggro)
         {
+            foreach (var vendor in this.Windows.Where(w => w.Type == Window.WindowTypes.Vendor).ToList())
+                vendor.Close(this, world);
+
             string erc = P.EraseCharacter(this.LoginID);
             foreach (var player in this.Map.GetPlayersInRange(this))
             {

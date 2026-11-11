@@ -48,6 +48,22 @@ public class RejectedMoveFacingSyncTests
     }
 
     [Fact]
+    public void Warp_closes_an_open_vendor_so_the_player_can_move_again()
+    {
+        using var fixture = new TestWorldFixture();
+        var map = fixture.AddBaseMap(1, "Town", 20, 20);
+        var other = fixture.AddBaseMap(2, "Arena", 20, 20);
+        var player = fixture.CommandPlayerOn(map, 5, 5);
+        var vendor = new Window { ID = 7, Type = Window.WindowTypes.Vendor };
+        player.Windows.Add(vendor);
+
+        player.WarpTo(fixture.World, other, 3, 3);
+
+        Assert.DoesNotContain(vendor, player.Windows);
+        Assert.Contains(P.CloseWindow(7) + "\x01", player.Sent);
+    }
+
+    [Fact]
     public void Stunned_move_keeps_facing_and_corrects_the_clients_heading()
     {
         using var fixture = new TestWorldFixture();
