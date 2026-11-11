@@ -28,7 +28,7 @@ generic seams that are useful beyond the arena.
 | Difficulty | Mob HP and damage grow per round; mob count grows with players alive; boss every N rounds; elites ramp in. |
 | Scaling | Per hit, from experience sold. Anchored at top players; everyone below is scaled down. |
 | Defence | Mob damage runs through the engine's normal melee formula, so AC and DR apply. |
-| Experience | Engine default — template XP to whoever the engine credits. |
+| Experience | Per-kill XP set at spawn from round and tier (`xpAnchor`); the engine credits it as usual. |
 | Drops | None. Rewards are currency only. |
 | Currency | Arena Coins (`arena_coin`), data-defined, untradeable wallet balance. |
 | Earning | Round-clear payout to survivors + kill bounty split by effective damage + end-of-run milestone bonus. |
@@ -193,8 +193,9 @@ next scheduled start works once the config is fixed.
   round, tier and target like melee. Heals restore a fraction of an injured arena mob's max HP.
   Front shapes turn the caster to whichever side has a player in the area.
 - **Mob stats:** HP set from the formula through `TemporaryMaxHP` at spawn. Damage from the
-  formula only. Templates supply looks, speed, ranges, AC and armor pierce; template XP is
-  awarded by the engine; template drops should be empty.
+  formula only. Templates supply looks, speed, ranges, AC and armor pierce; XP is
+  `xpAnchor × xpGrowth^(round − anchorRound) × tierXpMult` (`eliteXpMult`, `bossXpMult`),
+  set at spawn; `xpAnchor` 0 keeps template XP. Template drops should be empty.
 
 ## Scaling
 

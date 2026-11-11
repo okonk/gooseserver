@@ -25,6 +25,9 @@ public sealed class ArenaMathTests : IDisposable
     private static long MobHp(ArenaTestKit kit, int round, int tier, int alive)
         => (long)ArenaTestKit.Call(kit.Host, "MobHp", round, tier, alive, Cfg(kit))!;
 
+    private static long MobXp(ArenaTestKit kit, int round, int tier)
+        => (long)ArenaTestKit.Call(kit.Host, "MobXp", round, tier, Cfg(kit))!;
+
     private static double MobWeaponDamage(ArenaTestKit kit, int round, int tier, double s)
         => (double)ArenaTestKit.Call(kit.Host, "MobWeaponDamage", round, tier, s, Cfg(kit))!;
 
@@ -124,6 +127,24 @@ public sealed class ArenaMathTests : IDisposable
         Approx(MobHp(kit, 20, Normal, 1), 15000 * Math.Pow(1.4, 19));
         Approx(MobHp(kit, 21, Normal, 1), 15000 * Math.Pow(1.4, 19) * 1.15);
         Approx(MobHp(kit, 30, Normal, 1), 15000 * Math.Pow(1.4, 19) * Math.Pow(1.15, 10));
+    }
+
+    [Fact]
+    public void Mob_xp_grows_by_round_and_tier()
+    {
+        kit.SetConfig(j =>
+        {
+            j["anchorRound"] = 1;
+            j["xpAnchor"] = 2000;
+            j["xpGrowth"] = 1.18;
+            j["eliteXpMult"] = 2;
+            j["bossXpMult"] = 25;
+        });
+
+        Assert.Equal(2000L, MobXp(kit, 1, Normal));
+        Approx(MobXp(kit, 10, Normal), 2000 * Math.Pow(1.18, 9));
+        Approx(MobXp(kit, 10, Elite), 4000 * Math.Pow(1.18, 9));
+        Approx(MobXp(kit, 10, Boss), 50000 * Math.Pow(1.18, 9));
     }
 
     [Fact]

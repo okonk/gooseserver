@@ -40,6 +40,19 @@ public static class ArenaMath
         return Math.Pow(c.HpGrowth, early) * Math.Pow(c.HpGrowthLate, late);
     }
 
+    public static long MobXp(int round, MobTier tier, ArenaConfig c)
+    {
+        double mult = tier switch
+        {
+            MobTier.Elite => c.EliteXpMult,
+            MobTier.Boss => c.BossXpMult,
+            _ => 1,
+        };
+        double xp = c.XpAnchor * Math.Pow(c.XpGrowth, round - c.AnchorRound) * mult;
+        if (xp >= long.MaxValue) return long.MaxValue;
+        return (long)Math.Max(0, xp);
+    }
+
     public static double MobWeaponDamage(int round, MobTier tier, double s, ArenaConfig c)
     {
         double mult = tier switch

@@ -221,6 +221,10 @@ public class ArenaController : BaseGlobalScript
         ctx.Send("  HP (alive " + alive + "): normal " + ArenaMath.MobHp(round, MobTier.Normal, alive, cfg) +
             ", elite " + ArenaMath.MobHp(round, MobTier.Elite, alive, cfg) +
             ", boss " + ArenaMath.MobHp(round, MobTier.Boss, alive, cfg));
+        if (cfg.XpAnchor > 0)
+            ctx.Send("  XP per kill: normal " + ArenaMath.MobXp(round, MobTier.Normal, cfg) +
+                ", elite " + ArenaMath.MobXp(round, MobTier.Elite, cfg) +
+                ", boss " + ArenaMath.MobXp(round, MobTier.Boss, cfg));
         ctx.Send("  Your effective hit (raw " + raw + ") = " + ArenaMath.EffectiveDamage(raw, s, cfg));
         var band = ArenaMath.BandFor(round, cfg);
         var template = world.NPCHandler.GetNPCTemplate(band.Normals[0]);

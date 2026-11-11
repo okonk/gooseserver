@@ -15,6 +15,7 @@ public class ArenaMob : BaseNPCScript
         MobTier tier = (MobTier)npc.Properties.GetProperty<int>("arena.tier", 0);
         int alive = npc.Properties.GetProperty<int>("arena.alive", 1);
         npc.TemporaryMaxHP = ArenaMath.MobHp(round, tier, alive, cfg);
+        if (cfg.XpAnchor > 0) npc.Experience = ArenaMath.MobXp(round, tier, cfg);
         if (tier == MobTier.Elite && cfg.EliteTint is { Length: >= 4 })
         {
             npc.Title = cfg.EliteTitle;

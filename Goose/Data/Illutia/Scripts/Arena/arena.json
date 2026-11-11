@@ -69,6 +69,12 @@
     "hpSoftRound": 20,
     "hpGrowthLate": 1.15,
     "dmgGrowth": 1.20,
+    // Per-kill XP: xpAnchor * xpGrowth^(round - anchorRound), times the elite or boss
+    // multiplier. xpAnchor 0 keeps each template's own XP.
+    "xpAnchor": 2000,
+    "xpGrowth": 1.18,
+    "eliteXpMult": 2,
+    "bossXpMult": 25,
 
     "currencyId": "arena_coin",
     "roundBase": 5,

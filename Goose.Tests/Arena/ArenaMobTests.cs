@@ -59,6 +59,35 @@ public sealed class ArenaMobTests : IDisposable
     }
 
     [Fact]
+    public void Spawn_sets_xp_from_round_and_tier_when_configured()
+    {
+        kit.SetConfig(j =>
+        {
+            j["xpAnchor"] = 1000;
+            j["xpGrowth"] = 2;
+            j["eliteXpMult"] = 3;
+            j["bossXpMult"] = 10;
+        });
+
+        Assert.Equal(1000, SpawnMob(5004, 10, 10, round: 20).Experience);
+        Assert.Equal(6000, SpawnMob(5005, 12, 10, round: 21, tier: 1).Experience);
+        Assert.Equal(40000, SpawnMob(5006, 14, 10, round: 22, tier: 2).Experience);
+    }
+
+    [Fact]
+    public void Spawn_keeps_template_xp_without_xp_anchor()
+    {
+        var template = kit.Fixture.AddNpcTemplate(5007, "Arena Mob 5007", t => { t.Script = mobScript; t.Experience = 909; });
+        var npc = kit.Fixture.SpawnNpc(map, 10, 10, template, false, new PropertiesDictionary
+        {
+            ["arena.run"] = "r1",
+            ["arena.round"] = 20,
+        });
+
+        Assert.Equal(909, npc.Experience);
+    }
+
+    [Fact]
     public void Elite_gets_title_and_tint()
     {
         var elite = SpawnMob(5011, 10, 10, tier: 1);

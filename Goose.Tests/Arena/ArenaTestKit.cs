@@ -198,6 +198,7 @@ public sealed class ArenaTestKit : IDisposable
             public double PowerFraction(long xp, object c) => ArenaMath.PowerFraction(xp, (ArenaConfig)c);
             public long EffectiveDamage(long raw, double s, object c) => ArenaMath.EffectiveDamage(raw, s, (ArenaConfig)c);
             public long MobHp(int round, int tier, int alive, object c) => ArenaMath.MobHp(round, (MobTier)tier, alive, (ArenaConfig)c);
+            public long MobXp(int round, int tier, object c) => ArenaMath.MobXp(round, (MobTier)tier, (ArenaConfig)c);
             public double MobWeaponDamage(int round, int tier, double s, object c) => ArenaMath.MobWeaponDamage(round, (MobTier)tier, s, (ArenaConfig)c);
             public int WaveCount(int round, int alive, object c) => ArenaMath.WaveCount(round, alive, (ArenaConfig)c);
             public bool IsBossRound(int round, object c) => ArenaMath.IsBossRound(round, (ArenaConfig)c);
