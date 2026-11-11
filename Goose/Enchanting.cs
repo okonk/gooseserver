@@ -31,7 +31,9 @@ namespace Goose
             return level >= Max(item, s) ? 0 : s.FailPercent[level];
         }
 
-        public static bool CanEnchant(Item item, EnchantSettings s, out string reason)
+        public static bool IsMaxed(Item item, EnchantSettings s) => Level(item) >= Max(item, s);
+
+        public static bool CanPlace(Item item, out string reason)
         {
             if (item.UseType is not (ItemTemplate.UseTypes.Armor or ItemTemplate.UseTypes.Weapon))
             {
@@ -43,7 +45,14 @@ namespace Goose
                 reason = "This item cannot be enchanted.";
                 return false;
             }
-            if (Level(item) >= Max(item, s))
+            reason = "";
+            return true;
+        }
+
+        public static bool CanEnchant(Item item, EnchantSettings s, out string reason)
+        {
+            if (!CanPlace(item, out reason)) return false;
+            if (IsMaxed(item, s))
             {
                 reason = "This item has reached its maximum enchant level.";
                 return false;

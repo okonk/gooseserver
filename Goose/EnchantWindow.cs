@@ -80,7 +80,7 @@ namespace Goose
                 {
                     Item? item = player.Inventory.GetSlot(itemSlotId)?.Item;
                     string reason = "";
-                    if (item is not null && Enchanting.CanEnchant(item, settings, out reason))
+                    if (item is not null && Enchanting.CanPlace(item, out reason))
                     {
                         acceptedItem = itemSlotId;
                         target = item;
@@ -220,6 +220,7 @@ namespace Goose
         {
             EnchantSettings settings = world.Settings.Enchanting;
             var lines = new List<string>();
+            int breakPercent = 0;
 
             if (settings.EssenceTemplates.Count == 0)
             {
@@ -235,19 +236,27 @@ namespace Goose
                     lines.Add(element + " " + count + ": +"
                         + FormatPercent(count * ElementPercent(element, settings)) + "% " + StatDescription(element));
                 }
-                if (this.EssenceItem is not null
-                    && settings.EssenceTemplates.TryGetValue(this.EssenceItem.TemplateID, out EnchantElement next))
+                if (Enchanting.IsMaxed(this.TargetItem, settings))
                 {
-                    lines.Add("Next: " + next + " +"
-                        + FormatPercent(ElementPercent(next, settings)) + "% " + StatDescription(next));
+                    lines.Add("Maximum enchant level reached.");
                 }
-                lines.Add("Essence needed: " + Enchanting.EssenceCost(this.TargetItem)
-                    + (this.EssenceItem is null ? "" : " (have " + this.EssenceStack(player) + ")"));
-                int fail = Enchanting.FailPercent(this.TargetItem, settings);
-                lines.Add(fail > 0 ? "Failure chance: " + fail + "%" : "Failure chance: none");
-                if (fail == 0) lines.Add("Protected: not needed");
-                else if (this.ProtectionItem is not null) lines.Add("Protected: yes");
-                else lines.Add("Protected: no");
+                else
+                {
+                    if (this.EssenceItem is not null
+                        && settings.EssenceTemplates.TryGetValue(this.EssenceItem.TemplateID, out EnchantElement next))
+                    {
+                        lines.Add("Next: " + next + " +"
+                            + FormatPercent(ElementPercent(next, settings)) + "% " + StatDescription(next));
+                    }
+                    lines.Add("Essence needed: " + Enchanting.EssenceCost(this.TargetItem)
+                        + (this.EssenceItem is null ? "" : " (have " + this.EssenceStack(player) + ")"));
+                    int fail = Enchanting.FailPercent(this.TargetItem, settings);
+                    lines.Add(fail > 0 ? "Failure chance: " + fail + "%" : "Failure chance: none");
+                    if (fail == 0) lines.Add("Protected: not needed");
+                    else if (this.ProtectionItem is not null) lines.Add("Protected: yes");
+                    else lines.Add("Protected: no");
+                    if (this.ProtectionItem is null) breakPercent = fail;
+                }
             }
             else if (itemReason is not null)
             {
@@ -256,9 +265,10 @@ namespace Goose
 
             bool canEnchant = settings.EssenceTemplates.Count > 0
                 && this.TargetItem is not null && this.EssenceItem is not null
+                && !Enchanting.IsMaxed(this.TargetItem, settings)
                 && this.EssenceStack(player) >= Enchanting.EssenceCost(this.TargetItem);
             world.Send(player, P.EnchantPreview(this.ID, this.ItemSlotId, this.EssenceSlotId,
-                this.ProtectionSlotId, canEnchant ? 1 : 0, lines));
+                this.ProtectionSlotId, canEnchant ? 1 : 0, canEnchant ? breakPercent : 0, lines));
         }
 
         private long EssenceStack(Player player) => player.Inventory.GetSlot(this.EssenceSlotId)?.Stack ?? 0;

@@ -237,6 +237,28 @@ public class EnchantWindowConfirmTests
     }
 
     [Fact]
+    public void Ewc_reaching_max_level_keeps_the_item_in_the_slot()
+    {
+        var (fixture, map, player, npc, sword, essence, protection) = Setup(new EnchantRollRandom(100));
+        using (fixture)
+        {
+            var window = OpenWindow(fixture, player, npc);
+            var item = PlaceItem(player, sword, 1);
+            item.ItemProperties[ItemProperty.EnchantEarth] = 9;
+            item.Name = "Iron Sword +9";
+            PlaceItem(player, essence, 2, stack: 10);
+            Assert.True(fixture.RunCommand(player, "EWS1,2,0"));
+            player.Sent.Clear();
+
+            Assert.True(fixture.RunCommand(player, "EWC1,2,0"));
+
+            Assert.Equal(10, Enchanting.Level(item));
+            Assert.Equal(1, window.ItemSlotId);
+            Assert.Contains(player.Sent, s => s.StartsWith("EWP" + window.ID + ",1,0,0,0,0|Iron Sword +10 (max 10)"));
+        }
+    }
+
+    [Fact]
     public void Ewc_refused_when_ids_differ_from_last_ews()
     {
         var (fixture, map, player, npc, sword, essence, protection) = Setup();
@@ -276,7 +298,7 @@ public class EnchantWindowConfirmTests
             Assert.Null(player.Inventory.GetSlot(2));
             Assert.Equal(1, Enchanting.Count(item, EnchantElement.Earth));
             Assert.Contains(player.Sent, s => s.StartsWith(
-                "EWP" + window.ID + ",1,0,0,0" +
+                "EWP" + window.ID + ",1,0,0,0,0" +
                 "|Iron Sword +1 (max 10)" +
                 "|Earth 1: +1% spell damage" +
                 "|Essence needed: 2" +

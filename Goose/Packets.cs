@@ -773,10 +773,11 @@ namespace Goose
             return "CLW" + windowId;
         };
 
-        public static Func<int, int, int, int, int, List<string>, string> EnchantPreview =
-            (windowId, itemSlot, essenceSlot, protectionSlot, canEnchant, lines) =>
+        // breakPercent is the shatter chance of an unprotected attempt; the client asks before sending EWC when it is above 0.
+        public static Func<int, int, int, int, int, int, List<string>, string> EnchantPreview =
+            (windowId, itemSlot, essenceSlot, protectionSlot, canEnchant, breakPercent, lines) =>
             {
-                var sb = new StringBuilder("EWP" + windowId + "," + itemSlot + "," + essenceSlot + "," + protectionSlot + "," + canEnchant);
+                var sb = new StringBuilder("EWP" + windowId + "," + itemSlot + "," + essenceSlot + "," + protectionSlot + "," + canEnchant + "," + breakPercent);
                 foreach (string line in lines)
                     sb.Append('|').Append(line);
                 return sb.ToString();

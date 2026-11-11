@@ -63,7 +63,7 @@ public class EnchantWindowTests
             Assert.Same(npc, window.NPC);
 
             Assert.Contains(player.Sent, s => s.StartsWith($"MKW{window.ID},33,Enchanting Table,0,1,0,0,1,{npc.LoginID},"));
-            Assert.Contains(player.Sent, s => s.StartsWith("EWP" + window.ID + ",0,0,0,0"));
+            Assert.Contains(player.Sent, s => s.StartsWith("EWP" + window.ID + ",0,0,0,0,0"));
             Assert.Contains(player.Sent, s => s.StartsWith("ENW" + window.ID));
         }
     }
@@ -132,7 +132,7 @@ public class EnchantWindowTests
             Assert.Equal(2, window.EssenceSlotId);
             Assert.Equal(0, window.ProtectionSlotId);
             Assert.Contains(player.Sent, s => s.StartsWith(
-                "EWP" + window.ID + ",1,2,0,1" +
+                "EWP" + window.ID + ",1,2,0,1,0" +
                 "|Iron Sword (max 10)" +
                 "|Next: Earth +1% spell damage" +
                 "|Essence needed: 1 (have 1)" +
@@ -157,7 +157,7 @@ public class EnchantWindowTests
             Assert.Equal(0, window.ItemSlotId);
             Assert.Equal(2, window.EssenceSlotId);
             Assert.Contains(player.Sent, s => s.StartsWith(
-                "EWP" + window.ID + ",0,2,0,0" +
+                "EWP" + window.ID + ",0,2,0,0,0" +
                 "|This item cannot be enchanted."));
         }
     }
@@ -178,7 +178,7 @@ public class EnchantWindowTests
             Assert.Equal(1, window.ItemSlotId);
             Assert.Equal(0, window.EssenceSlotId);
             Assert.Contains(player.Sent, s => s.StartsWith(
-                "EWP" + window.ID + ",1,0,0,0" +
+                "EWP" + window.ID + ",1,0,0,0,0" +
                 "|Iron Sword (max 10)" +
                 "|Essence needed: 1" +
                 "|Failure chance: none" +
@@ -204,7 +204,7 @@ public class EnchantWindowTests
             Assert.Equal(2, window.EssenceSlotId);
             Assert.Equal(0, window.ProtectionSlotId);
             Assert.Contains(player.Sent, s => s.StartsWith(
-                "EWP" + window.ID + ",1,2,0,1" +
+                "EWP" + window.ID + ",1,2,0,1,0" +
                 "|Iron Sword (max 10)" +
                 "|Next: Earth +1% spell damage" +
                 "|Essence needed: 1 (have 1)" +
@@ -231,13 +231,55 @@ public class EnchantWindowTests
 
             Assert.Equal(3, window.ProtectionSlotId);
             Assert.Contains(player.Sent, s => s.StartsWith(
-                "EWP" + window.ID + ",1,2,3,1" +
+                "EWP" + window.ID + ",1,2,3,1,0" +
                 "|Iron Sword +2 (max 10)" +
                 "|Earth 2: +2% spell damage" +
                 "|Next: Earth +1% spell damage" +
                 "|Essence needed: 3 (have 3)" +
                 "|Failure chance: none" +
                 "|Protected: not needed"));
+        }
+    }
+
+    [Fact]
+    public void Ews_risky_item_without_protection_reports_its_break_chance()
+    {
+        var (fixture, map, player, npc, sword, essence, protection, mount) = Setup();
+        using (fixture)
+        {
+            var window = OpenWindow(fixture, player, npc);
+            player.Sent.Clear();
+            var item = PlaceItem(player, sword, 1);
+            item.ItemProperties[ItemProperty.EnchantEarth] = 5;
+            PlaceItem(player, essence, 2, stack: 6);
+
+            Assert.True(fixture.RunCommand(player, "EWS1,2,0"));
+
+            Assert.Contains(player.Sent, s => s.StartsWith("EWP" + window.ID + ",1,2,0,1,30|"));
+        }
+    }
+
+    [Fact]
+    public void Ews_max_level_item_is_accepted_and_shows_its_enchants()
+    {
+        var (fixture, map, player, npc, sword, essence, protection, mount) = Setup();
+        using (fixture)
+        {
+            var window = OpenWindow(fixture, player, npc);
+            player.Sent.Clear();
+            var item = PlaceItem(player, sword, 1);
+            item.ItemProperties[ItemProperty.EnchantEarth] = 10;
+            item.Name = "Iron Sword +10";
+            PlaceItem(player, essence, 2, stack: 20);
+
+            Assert.True(fixture.RunCommand(player, "EWS1,2,0"));
+
+            Assert.Equal(1, window.ItemSlotId);
+            Assert.Contains(player.Sent, s => s ==
+                "EWP" + window.ID + ",1,2,0,0,0" +
+                "|Iron Sword +10 (max 10)" +
+                "|Earth 10: +10% spell damage" +
+                "|Maximum enchant level reached.\x01");
         }
     }
 
@@ -258,7 +300,7 @@ public class EnchantWindowTests
             Assert.True(fixture.RunCommand(player, "EWS1,2,3"));
 
             Assert.Contains(player.Sent, s => s.StartsWith(
-                "EWP" + window.ID + ",1,2,3,1" +
+                "EWP" + window.ID + ",1,2,3,1,0" +
                 "|Iron Sword +5 (max 10)" +
                 "|Earth 5: +5% spell damage" +
                 "|Next: Earth +1% spell damage" +
@@ -312,7 +354,7 @@ public class EnchantWindowTests
 
             Assert.Equal(0, window.ItemSlotId);
             Assert.Contains(player.Sent, s => s.StartsWith(
-                "EWP" + window.ID + ",0,0,0,0" +
+                "EWP" + window.ID + ",0,0,0,0,0" +
                 "|Enchanting is not available."));
         }
     }
@@ -333,7 +375,7 @@ public class EnchantWindowTests
             Assert.True(fixture.RunCommand(player, "EWS1,2,0"));
 
             Assert.Contains(player.Sent, s => s.StartsWith(
-                "EWP" + window.ID + ",1,2,0,0" +
+                "EWP" + window.ID + ",1,2,0,0,0" +
                 "|Iron Sword +2 (max 10)" +
                 "|Earth 2: +2% spell damage" +
                 "|Next: Earth +1% spell damage" +
