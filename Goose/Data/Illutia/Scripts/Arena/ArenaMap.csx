@@ -23,9 +23,12 @@ public class ArenaMap : BaseMapScript
 
     public override RespawnLocation? OnPlayerDied(Map map, Player player, ICharacter killer, GameWorld world)
     {
-        if (ArenaCore.IsParticipant(world, player.PlayerID))
-            ArenaCore.Eliminate(world, player.PlayerID, "slain by " + killer.Name);
         var cfg = ArenaConfig.Get(world);
+        if (ArenaCore.IsParticipant(world, player.PlayerID))
+        {
+            ArenaHype.Mayor(world, cfg, "eliminated", ("player", player.Name), ("killer", killer.Name));
+            ArenaCore.Eliminate(world, player.PlayerID, "slain by " + killer.Name);
+        }
         if (!cfg.Enabled(world)) return null;
         if (!world.MapHandler.Maps.TryGetValue(cfg.LobbyMap, out var lobby)) return null;
         // Engine warps again after OnPlayerDied, and WarpTo NREs when Map is null.

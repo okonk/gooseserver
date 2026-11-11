@@ -19,6 +19,7 @@ public sealed class ArenaFixture : TestWorldFixture
         ("ArenaMath.csx",       "Scripts/Arena/ArenaMath.csx"),
         ("ArenaState.csx",      "Scripts/Arena/ArenaState.csx"),
         ("ArenaBoard.csx",      "Scripts/Arena/ArenaBoard.csx"),
+        ("ArenaHype.csx",       "Scripts/Arena/ArenaHype.csx"),
         ("ArenaCore.csx",       "Scripts/Arena/ArenaCore.csx"),
         ("ArenaSpells.csx",     "Scripts/Arena/ArenaSpells.csx"),
         ("ArenaMob.csx",        "Scripts/Arena/ArenaMob.csx"),
@@ -70,6 +71,8 @@ public sealed class ArenaFixture : TestWorldFixture
         json["lobbyMap"] = LobbyMapId;
         json["arenaMap"] = ArenaMapId;
         json["arenaRect"] = new JsonArray(10, 10, 80, 80);
+        json["baseCount"] = 4;
+        json["perPlayer"] = 2;
         json["bands"] = new JsonArray(new JsonObject
         {
             ["normals"] = new JsonArray(BandNormalIds.Select(id => (JsonNode)id).ToArray()),

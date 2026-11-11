@@ -92,13 +92,93 @@
     // of the healed mob's max HP, used on an arena mob below healBelow. range is in tiles for
     // targeted spells; front shapes (Fearsome Lash etc.) use the spell's own size.
     "mobSpells": {
-        "Critical Strike":   { "damage": 1.5, "cooldown": 6 },
-        "Fearsome Lash":     { "damage": 2.0, "cooldown": 10 },
-        "Spirit Strike":     { "damage": 1.5, "cooldown": 6 },
-        "Sunder of Spirits": { "damage": 1.2, "cooldown": 10 },
-        "Arcane Blast":      { "damage": 1.5, "cooldown": 6, "range": 5 },
-        "Arcane Assault":    { "damage": 1.0, "cooldown": 10, "range": 5 },
-        "Frostbite":         { "damage": 0.8, "cooldown": 8, "range": 5 },
+        "Critical Strike":   { "damage": 4.5, "cooldown": 6 },
+        "Fearsome Lash":     { "damage": 4.0, "cooldown": 10 },
+        "Spirit Strike":     { "damage": 4.5, "cooldown": 6 },
+        "Sunder of Spirits": { "damage": 2.4, "cooldown": 10 },
+        "Arcane Blast":      { "damage": 4.5, "cooldown": 6, "range": 5 },
+        "Arcane Assault":    { "damage": 2.0, "cooldown": 10, "range": 5 },
+        "Frostbite":         { "damage": 2.4, "cooldown": 8, "range": 5 },
         "Restore Health":    { "heal": 0.2, "healBelow": 0.8, "cooldown": 10, "range": 6 },
+    },
+
+    // The mayor (an NPC of templateId standing on the arena map) says a random line from each list
+    // to the whole map. Placeholders: {round}, {boss}, {player}, {killer}, {count}, {seconds}.
+    // "round" and "cleared" fire on roundChance / clearChance of ordinary rounds; the rest always do.
+    "mayor": {
+        "templateId": 290,
+        "roundChance": 0.35,
+        "clearChance": 0.35,
+        "lines": {
+            "start": [
+                "Citizens of Minita! Welcome to the arena! Please keep your limbs inside the sand at all times.",
+                "Ahem! By the authority vested in me by me, I declare this arena OPEN!",
+                "Fighters, the crowd has paid good coin to watch you suffer. Do not disappoint them!",
+            ],
+            "round": [
+                "Round {round}! I've seen tougher fights at the tax office.",
+                "Round {round}! Remember, all medical bills are payable to the Mayor's office.",
+                "On to round {round}! Somebody wake up the gentleman in row three.",
+                "Round {round}! Fight with honour! Or without it, I'm not fussy.",
+            ],
+            "cleared": [
+                "Round {round} cleared! Adequate. Truly, adequate.",
+                "Splendid! Round {round} done, and only a little blood on my boots.",
+                "Round {round} down! The odds-makers are weeping.",
+            ],
+            "milestone": [
+                "Round {round}! Now THIS is the kind of spectacle I put in the brochure!",
+                "{round} rounds survived! I may have to raise ticket prices.",
+            ],
+            "boss": [
+                "Round {round}! Citizens, behold... {boss}! I would say goodbye to your loved ones now.",
+                "And now, the moment you've all paid for! I give you... {boss}!",
+                "Release {boss}! And somebody fetch a very large mop.",
+            ],
+            "bossDown": [
+                "{boss} has fallen! {player}, the city of Minita thanks you. No, there is no reward.",
+                "Unbelievable! {player} has brought down {boss}! Put that on a statue!",
+                "{boss} is down! Cleaners, to the sand!",
+            ],
+            "eliminated": [
+                "Oh! {player} is down! Someone check whether they paid their taxes first.",
+                "{player} has been flattened by {killer}! The crowd goes mild!",
+                "And {player} is out! A moment of silence. Moment over.",
+            ],
+            "hurry": [
+                "{count} left and {seconds} seconds on the clock! Faster, I have a dinner reservation!",
+                "Time is running out! The sand is not going to bleed on itself!",
+            ],
+            "timeout": [
+                "Time! That's time! Boo! Refunds will NOT be issued.",
+            ],
+            "end": [
+                "And that's the show! Best effort today: round {round}. Same time next run, citizens!",
+                "The games are over! Round {round}! Please exit through the gift shop.",
+            ],
+        },
+    },
+
+    // While a round is being fought a crowd NPC near a random participant shouts at them every
+    // everySeconds [min, max]. booChance picks a boo over a cheer; {player} is the participant.
+    "crowd": {
+        "everySeconds": [8, 18],
+        "booChance": 0.35,
+        "nearestCrowd": 8,
+        "cheers": [
+            "GO {player}!",
+            "{player}! {player}! {player}!",
+            "I've got ten gold on {player}!",
+            "We love you {player}!",
+            "Smash 'em {player}!",
+            "That's my {player}!",
+        ],
+        "boos": [
+            "BOOOO {player}!",
+            "My grandmother hits harder than you, {player}!",
+            "Get off the sand, {player}!",
+            "I want my money back, {player}!",
+            "{player} couldn't fight a wet sack!",
+        ],
     },
 }

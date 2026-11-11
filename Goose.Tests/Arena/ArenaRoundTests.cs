@@ -415,4 +415,41 @@ public sealed class ArenaRoundTests : IDisposable
 
         Assert.Same(p2, mob.AggroTarget);
     }
+
+    [Fact]
+    public void Eliminated_participant_gets_no_bounty_for_a_mob_they_damaged()
+    {
+        var p1 = kit.LobbyPlayer(70001, "P1");
+        var p2 = kit.LobbyPlayer(70002, "P2");
+        p1.ExperienceSold = 3_000_000_000;
+        p2.ExperienceSold = 3_000_000_000;
+        EnterRound1(kit, p1, p2);
+        kit.RegisterController();
+
+        var mob = Mobs(kit)[0];
+        mob.Attacked(p2, mob.CurrentHP / 2, kit.World);
+        Eliminate(kit, 70002, "test");
+        mob.Attacked(p1, long.MaxValue / 4, kit.World);
+
+        Assert.Equal(0, kit.Wallet(p2));
+        Assert.Equal(1, kit.Wallet(p1));
+    }
+
+    [Fact]
+    public void Milestone_is_paid_on_elimination_not_when_the_run_ends()
+    {
+        var p1 = kit.LobbyPlayer(70001, "P1");
+        var p2 = kit.LobbyPlayer(70002, "P2");
+        EnterRound1(kit, p1, p2);
+        var run = Run(kit)!;
+        SetProp(Participants(run)[70001], "RoundsCleared", 5);
+        SaveRun(kit, run);
+
+        Eliminate(kit, 70001, "test");
+        Assert.Equal(20, kit.Wallet(p1));
+
+        Eliminate(kit, 70002, "test");
+        Assert.Equal(20, kit.Wallet(p1));
+        Assert.Equal(20L, (long)Prop(((System.Collections.IEnumerable)Prop(LastRun(kit)!, "Results")!).Cast<object>().First(r => (string)Prop(r, "Name")! == "P1"), "Coins")!);
+    }
 }

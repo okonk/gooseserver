@@ -51,6 +51,7 @@ public sealed class ArenaEndToEndTests : IDisposable
         fixture.WriteConfigForTest();
         fixture.World.CurrencyHandler.Register(new DataCurrency("arena_coin", "Arena Coin", "Arena", null, true));
         fixture.Settings.MaxAC = 255;
+        fixture.World.WorldState.Set("arena.open", true);
 
         var p1 = fixture.LobbyPlayer(70001, "P1");
         var p2 = fixture.LobbyPlayer(70002, "P2");

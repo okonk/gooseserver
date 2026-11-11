@@ -1,5 +1,6 @@
 #load "ArenaBoard.csx"
 #load "ArenaConfig.csx"
+#load "ArenaHype.csx"
 #load "ArenaMath.csx"
 #load "ArenaState.csx"
 using System;
@@ -133,10 +134,19 @@ public static class ArenaCore
                 run.Participants[id].Kills += cfg.PriestKillShare;
         ArenaState.Save(world, run);
 
-        var split = ArenaMath.SplitBounty(ArenaMath.Bounty((MobTier)npc.Properties.GetProperty<int>("arena.tier", 0), cfg), dmg);
+        var living = dmg.Where(d => run.Participants[d.Key].Alive).ToDictionary(d => d.Key, d => d.Value);
+        var split = ArenaMath.SplitBounty(ArenaMath.Bounty((MobTier)npc.Properties.GetProperty<int>("arena.tier", 0), cfg), living);
         foreach (var (id, amount) in split)
             Pay(world, id, amount, "kill bounty");
+
+        if ((MobTier)npc.Properties.GetProperty<int>("arena.tier", 0) == MobTier.Boss)
+        {
+            string hero = dmg.Count > 0 ? run.Participants[dmg.MaxBy(d => d.Value).Key].Name : killer.Name;
+            ArenaHype.Mayor(world, cfg, "bossDown", ("boss", BossName(npc.Name)), ("player", hero));
+        }
     }
+
+    private static string BossName(string name) => name.StartsWith("Arena ") ? name.Substring("Arena ".Length) : name;
 
     private static void TickFighting(GameWorld world, ArenaConfig cfg, ArenaRun run, DateTime nowUtc)
     {
@@ -152,14 +162,21 @@ public static class ArenaCore
             NoticeToMap(world, cfg, "Round " + run.Round + " cleared! Round " + (run.Round + 1) + " starts in " + cfg.BreakSeconds + " seconds.");
             foreach (var p in run.Participants.Values)
                 if (p.Alive) Pay(world, p.Id, ArenaMath.RoundPayout(run.Round, cfg), "round " + run.Round + " clear");
+            if (cfg.Milestones.ContainsKey(run.Round))
+                ArenaHype.Mayor(world, cfg, "milestone", ("round", run.Round.ToString()));
+            else if (!ArenaMath.IsBossRound(run.Round, cfg))
+                ArenaHype.MayorMaybe(world, cfg, cfg.Mayor.ClearChance, "cleared", ("round", run.Round.ToString()));
             return;
         }
 
         if (nowUtc >= run.PhaseUntilUtc)
         {
+            ArenaHype.Mayor(world, cfg, "timeout", ("round", run.Round.ToString()));
             EndRun(world, "time ran out on round " + run.Round);
             return;
         }
+
+        ArenaHype.CrowdTick(world, cfg, run, nowUtc);
 
         foreach (var npc in mobs)
         {
@@ -180,6 +197,7 @@ public static class ArenaCore
             if (world.MapHandler.Maps.TryGetValue(cfg.ArenaMap, out var arenaMap))
             {
                 world.SendToMap(arenaMap, P.ServerMessage("[Arena] " + mobs.Count + " enemies remain! " + Math.Max(0, left) + "s left!"));
+                ArenaHype.Mayor(world, cfg, "hurry", ("count", mobs.Count.ToString()), ("seconds", Math.Max(0, left).ToString()));
                 if (mobs.Count <= cfg.StragglerCount)
                 {
                     var alive = run.Participants.Values.Where(p => p.Alive).ToList();
@@ -261,6 +279,14 @@ public static class ArenaCore
 
         if (world.MapHandler.Maps.TryGetValue(cfg.ArenaMap, out var arenaMap))
             world.SendToMap(arenaMap, P.ServerMessage(isBoss ? "[Arena] Boss round!" : "[Arena] Round " + n + "!"));
+
+        var round = ("round", n.ToString());
+        if (isBoss)
+            ArenaHype.Mayor(world, cfg, "boss", round, ("boss", BossName(world.NPCHandler.GetNPCTemplate(band.Boss)?.Name ?? "the champion")));
+        else if (n == 1)
+            ArenaHype.Mayor(world, cfg, "start", round);
+        else
+            ArenaHype.MayorMaybe(world, cfg, cfg.Mayor.RoundChance, "round", round);
     }
 
     public static void Eliminate(GameWorld world, int playerId, string reason)
@@ -269,6 +295,9 @@ public static class ArenaCore
         if (run is null) return;
         if (!run.Participants.TryGetValue(playerId, out var p) || !p.Alive) return;
 
+        PayMilestone(world, ArenaConfig.Get(world), run, p);
+        run = ArenaState.Load(world) ?? run;
+        p = run.Participants[playerId];
         p.Alive = false;
         ArenaState.Save(world, run);
 
@@ -303,6 +332,12 @@ public static class ArenaCore
             }
         }
 
+        ArenaHype.Mayor(world, cfg, "end", ("round", run.Participants.Values.Select(p => p.RoundsCleared).DefaultIfEmpty(0).Max().ToString()));
+
+        foreach (var p in run.Participants.Values)
+            if (p.Alive) PayMilestone(world, cfg, run, p);
+        run = ArenaState.Load(world) ?? run;
+
         foreach (var p in run.Participants.Values)
             p.Alive = false;
         ArenaState.Save(world, run);
@@ -312,12 +347,6 @@ public static class ArenaCore
             foreach (var player in map.Players.ToList())
                 if (!player.IsGM)
                     player.WarpTo(world, lobbyMap, cfg.LobbySpawn[0], cfg.LobbySpawn[1]);
-
-        if (!run.Skipped)
-            foreach (var p in run.Participants.Values)
-                Pay(world, p.Id, ArenaMath.MilestoneBonus(p.RoundsCleared, cfg), "milestone bonus");
-
-        run = ArenaState.Load(world) ?? run;
 
         var bestRound = run.Participants.Values.Select(p => p.RoundsCleared).DefaultIfEmpty(0).Max();
         ArenaState.SaveLastRun(world, new ArenaLastRun
@@ -344,7 +373,7 @@ public static class ArenaCore
     public static void Pay(GameWorld world, int playerId, long amount, string reason)
     {
         var run = ArenaState.Load(world);
-        if (run is null || amount <= 0 || !run.Participants.TryGetValue(playerId, out var p)) return;
+        if (run is null || amount <= 0 || !run.Participants.TryGetValue(playerId, out var p) || !p.Alive) return;
 
         var player = FindPlayer(world, playerId);
         if (player is null) return;
@@ -365,6 +394,11 @@ public static class ArenaCore
         ArenaState.Save(world, run);
         currency.Add(player, amount, world);
         world.Send(player, P.Notice(NoticeType.Info, "+" + amount + " Arena Coins (" + reason + ")"));
+    }
+
+    private static void PayMilestone(GameWorld world, ArenaConfig cfg, ArenaRun run, ArenaParticipant p)
+    {
+        if (!run.Skipped) Pay(world, p.Id, ArenaMath.MilestoneBonus(p.RoundsCleared, cfg), "milestone bonus");
     }
 
     public static bool IsParticipant(GameWorld world, int playerId)

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using Goose;
 
@@ -18,6 +19,23 @@ public sealed class ArenaMobSpell
     public double HealBelow { get; set; } = 0.8;
     public double Cooldown { get; set; } = 8;
     public int Range { get; set; }
+}
+
+public sealed class ArenaMayor
+{
+    public int TemplateId { get; set; }
+    public double RoundChance { get; set; }
+    public double ClearChance { get; set; }
+    public Dictionary<string, string[]> Lines { get; set; } = new();
+}
+
+public sealed class ArenaCrowdShouts
+{
+    public double[] EverySeconds { get; set; } = [];
+    public double BooChance { get; set; }
+    public int NearestCrowd { get; set; } = 8;
+    public string[] Cheers { get; set; } = [];
+    public string[] Boos { get; set; } = [];
 }
 
 public sealed class ArenaConfig
@@ -80,6 +98,8 @@ public sealed class ArenaConfig
     public double PriestKillShare { get; set; }
     public Dictionary<int, long> Milestones { get; set; } = new();
     public Dictionary<string, ArenaMobSpell> MobSpells { get; set; } = new();
+    public ArenaMayor Mayor { get; set; } = new();
+    public ArenaCrowdShouts Crowd { get; set; } = new();
     public bool Valid { get; set; } = true;
 
     public const string OpenKey = "arena.open";
@@ -186,6 +206,11 @@ public sealed class ArenaConfig
             throw new JsonException("Arena killCreditMinShare must be in [0, 1]");
         if (c.PriestKillShare is < 0 or > 1)
             throw new JsonException("Arena priestKillShare must be in [0, 1]");
+        if (c.Mayor is null || c.Mayor.Lines is null || c.Mayor.RoundChance is < 0 or > 1 || c.Mayor.ClearChance is < 0 or > 1)
+            throw new JsonException("Arena mayor needs lines, and roundChance and clearChance in [0, 1]");
+        if (c.Crowd is null || c.Crowd.EverySeconds is null || c.Crowd.EverySeconds is { Length: not (0 or 2) }
+            || c.Crowd.EverySeconds.Any(s => s <= 0) || c.Crowd.BooChance is < 0 or > 1 || c.Crowd.NearestCrowd < 1)
+            throw new JsonException("Arena crowd everySeconds must be empty or [min, max] > 0, booChance in [0, 1], nearestCrowd >= 1");
         if (c.RoundSeconds <= c.TimeoutWarningSeconds)
             throw new JsonException("Arena roundSeconds must be > timeoutWarningSeconds");
     }

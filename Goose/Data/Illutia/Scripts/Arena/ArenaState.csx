@@ -25,6 +25,7 @@ public class ArenaRun
     public bool Warned { get; set; }
     public int LastCountdown { get; set; }
     public bool Skipped { get; set; }
+    public DateTime NextCrowdUtc { get; set; }
     public Dictionary<int, ArenaParticipant> Participants { get; set; } = new();
 }
 
