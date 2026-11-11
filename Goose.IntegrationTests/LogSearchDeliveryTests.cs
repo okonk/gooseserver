@@ -241,9 +241,9 @@ namespace Goose.IntegrationTests
 
         private sealed class CapturingNLogTarget : NLog.Targets.TargetWithLayout
         {
-            public List<NLog.LogEventInfo> Events { get; } = [];
+            public System.Collections.Concurrent.ConcurrentQueue<NLog.LogEventInfo> Events { get; } = new();
 
-            protected override void Write(NLog.LogEventInfo logEvent) => this.Events.Add(logEvent);
+            protected override void Write(NLog.LogEventInfo logEvent) => this.Events.Enqueue(logEvent);
         }
 
         [Fact]
