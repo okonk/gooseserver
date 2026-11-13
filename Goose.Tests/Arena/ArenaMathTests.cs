@@ -130,6 +130,41 @@ public sealed class ArenaMathTests : IDisposable
     }
 
     [Fact]
+    public void Boss_hp_has_its_own_soft_and_late_growth()
+    {
+        kit.SetConfig(j =>
+        {
+            j["anchorRound"] = 1;
+            j["anchorMobHp"] = 1000;
+            j["hpGrowth"] = 1.4;
+            j["hpSoftRound"] = 0;
+            j["bossHpMult"] = 10;
+            j["bossHpGrowth"] = 1.2;
+            j["bossHpSoftRound"] = 10;
+            j["bossHpGrowthLate"] = 1.05;
+        });
+
+        Approx(MobHp(kit, 10, Boss, 1), 10_000 * Math.Pow(1.2, 9));
+        Approx(MobHp(kit, 20, Boss, 1), 10_000 * Math.Pow(1.2, 9) * Math.Pow(1.05, 10));
+        Approx(MobHp(kit, 20, Normal, 1), 1000 * Math.Pow(1.4, 19));
+    }
+
+    [Fact]
+    public void Boss_hp_follows_normal_growth_without_boss_hp_growth()
+    {
+        kit.SetConfig(j =>
+        {
+            j["anchorRound"] = 1;
+            j["anchorMobHp"] = 1000;
+            j["hpGrowth"] = 1.4;
+            j["hpSoftRound"] = 0;
+            j["bossHpMult"] = 10;
+        });
+
+        Approx(MobHp(kit, 20, Boss, 1), 10_000 * Math.Pow(1.4, 19));
+    }
+
+    [Fact]
     public void Mob_xp_grows_by_round_and_tier()
     {
         kit.SetConfig(j =>

@@ -72,6 +72,9 @@ public sealed class ArenaConfig
     public double BossHpPerPlayer { get; set; }
     public double BossHpPlayerCurve { get; set; } = 1;
     public double BossDmgMult { get; set; }
+    public double BossHpGrowth { get; set; }
+    public int BossHpSoftRound { get; set; }
+    public double BossHpGrowthLate { get; set; }
     public long MinXpSold { get; set; }
     public long TopXpSold { get; set; }
     public double A { get; set; }
@@ -176,6 +179,10 @@ public sealed class ArenaConfig
             throw new JsonException("Arena hpGrowth and dmgGrowth must be > 0");
         if (c.HpSoftRound > 0 && c.HpGrowthLate <= 0)
             throw new JsonException("Arena hpGrowthLate must be > 0 when hpSoftRound is set");
+        if (c.BossHpGrowth < 0)
+            throw new JsonException("Arena bossHpGrowth must be >= 0 (0 follows hpGrowth)");
+        if (c.BossHpGrowth > 0 && c.BossHpSoftRound > 0 && c.BossHpGrowthLate <= 0)
+            throw new JsonException("Arena bossHpGrowthLate must be > 0 when bossHpSoftRound is set");
         if (c.BossHpPlayerCurve < 0)
             throw new JsonException("Arena bossHpPlayerCurve must be >= 0");
         if (c.XpAnchor < 0 || c.XpGrowth <= 0 || c.EliteXpMult < 0 || c.BossXpMult < 0)

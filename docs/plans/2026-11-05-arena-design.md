@@ -223,7 +223,8 @@ mobHp(round, tier) = anchorMobHp × hpCurve(round) × tierHpMult
 ```
 
 `hpCurve` is `hpGrowth^(round − anchorRound)`. With `hpSoftRound` set, `hpGrowth` applies up to
-that round and `hpGrowthLate` after it. The boss multiplier is
+that round and `hpGrowthLate` after it. Bosses use their own curve from `bossHpGrowth`,
+`bossHpSoftRound` and `bossHpGrowthLate` (`bossHpGrowth` 0 follows the normal curve), times
 `bossHpMult × (1 + bossHpPerPlayer × (alive − 1)^bossHpPlayerCurve)`; a curve of 1 is linear.
 
 **Mob → player** (`ArenaMob.MeleeBaseDamage`; engine attack loop):

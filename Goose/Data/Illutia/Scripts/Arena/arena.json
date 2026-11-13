@@ -56,6 +56,10 @@
     "bossHpMult": 15,
     "bossHpPerPlayer": 0.25,
     "bossHpPlayerCurve": 0.5,
+    // Boss HP growth, like hpGrowth/hpSoftRound/hpGrowthLate. bossHpGrowth 0 follows normal mobs.
+    "bossHpGrowth": 1.40,
+    "bossHpSoftRound": 20,
+    "bossHpGrowthLate": 1.15,
     "bossDmgMult": 3,
 
     "minXpSold": 20000000,
