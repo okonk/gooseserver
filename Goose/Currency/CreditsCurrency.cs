@@ -7,6 +7,7 @@ namespace Goose
         public string Id { get => Currency.Credits; }
         public string Name { get => "credits"; }
         public string ShortName { get => "cr"; }
+        public CurrencyIcon? Icon { get => new CurrencyIcon(30000, 5); }
 
         public long GetBalance(Player player) { return player.Credits; }
 

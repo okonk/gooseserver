@@ -17,6 +17,7 @@ public class SpiritCurrency : ICurrency
     public string Id { get { return Dimensions.SpiritCurrencyId; } }
     public string Name { get { return "spirit"; } }
     public string ShortName { get { return "sp"; } }
+    public CurrencyIcon? Icon { get { return new CurrencyIcon(30000, 6); } }
 
     public long GetBalance(Player player) { return player.BaseStats.SP; }
 

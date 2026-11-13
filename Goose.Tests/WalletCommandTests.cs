@@ -34,8 +34,8 @@ public class WalletCommandTests
         Assert.Contains(ctx.Player.Sent, s => s.StartsWith("MKW") && s.Contains(",Wallet,"));
         var lines = ctx.Player.Sent.Where(s => s.StartsWith("WNF")).ToArray();
         Assert.Equal(2, lines.Length);
-        Assert.Contains(",Gold: 1,234|0|0|0|0|*", lines[0]);
-        Assert.Contains(",Credits: 7|0|0|0|0|*", lines[1]);
+        Assert.Contains(",Gold: 1,234|0|0|20398|820100|*", lines[0]);
+        Assert.Contains(",Credits: 7|0|0|30000|5|*", lines[1]);
     }
 
     [Fact]
