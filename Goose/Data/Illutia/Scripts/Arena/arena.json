@@ -193,7 +193,7 @@
     "bossMechanics": {
         "animation": 900001,
         "animationFile": 30022,
-        "gapSeconds": [8, 12],
+        "gapSeconds": [20, 30],
         "slam": { "fromRound": 5, "damage": 3, "radius": 5, "windup": 2 },
         "summon": { "fromRound": 5, "atHp": [0.66, 0.33], "base": 2, "perPlayers": 3 },
         "charge": { "fromRound": 15, "damage": 2.5, "length": 8, "windup": 1.5 },

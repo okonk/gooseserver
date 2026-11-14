@@ -208,7 +208,7 @@ boss tier), mitigated like a melee hit. Every warning tile plays `animation` / `
 NPC properties; windups and resolves run on `ScriptTimerEvent`s that check a per-spawn token,
 so a dead or re-pooled boss never resolves a stale mechanic.
 
-The boss picks one of slam, pull, charge, mark and safe zone every `gapSeconds` [min, max],
+The boss picks one of slam, pull, charge, mark and safe zone every `gapSeconds` [min, max] (20–30 s),
 never the same one twice in a row. Swap and summon run on their own triggers. While a busy
 mechanic winds up the boss neither moves nor attacks.
 
