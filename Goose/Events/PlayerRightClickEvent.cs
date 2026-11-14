@@ -67,6 +67,12 @@ namespace Goose.Events
                             return;
                         }
 
+                        if (npc.Properties.GetProperty("stylist", false))
+                        {
+                            StylistWindow.Open(world, this.Player, npc);
+                            return;
+                        }
+
                         if (npc.NPCType == NPCTemplate.Types.Banker)
                         {
                             if (npc.Properties.GetProperty("communityChest", false))
