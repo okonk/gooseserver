@@ -7,7 +7,7 @@ namespace Goose
         public string Id { get => Currency.Gold; }
         public string Name { get => "gold"; }
         public string ShortName { get => "gp"; }
-        public CurrencyIcon? Icon { get => new CurrencyIcon(20398, 820100); }
+        public CurrencyIcon? Icon { get => new CurrencyIcon(30000, 7); }
 
         /// <summary>Carried gold only, ignoring the bank - this is what the purchase check
         /// has always compared against.</summary>
