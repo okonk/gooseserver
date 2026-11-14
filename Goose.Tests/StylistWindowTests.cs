@@ -251,6 +251,45 @@ public class StylistWindowTests
     }
 
     [Fact]
+    public void Stc_packet_changes_hair_and_face()
+    {
+        var (fixture, map, player, npc) = Setup();
+        using (fixture)
+        {
+            OpenWindow(fixture, player, npc);
+
+            Assert.True(fixture.RunCommand(player, "STC12,5"));
+
+            Assert.Equal(12, player.HairID);
+            Assert.Equal(5, player.FaceID);
+            Assert.Equal(6000, player.Gold);
+        }
+    }
+
+    [Theory]
+    [InlineData("STC")]
+    [InlineData("STC12")]
+    [InlineData("STC12,5,1")]
+    [InlineData("STCa,5")]
+    [InlineData("STC12,")]
+    public void Stc_malformed_is_ignored(string command)
+    {
+        var (fixture, map, player, npc) = Setup();
+        using (fixture)
+        {
+            OpenWindow(fixture, player, npc);
+            player.Sent.Clear();
+
+            fixture.RunCommand(player, command);
+
+            Assert.Equal(33, player.HairID);
+            Assert.Equal(2, player.FaceID);
+            Assert.Equal(10000, player.Gold);
+            Assert.DoesNotContain(player.Sent, s => s.StartsWith("CHP"));
+        }
+    }
+
+    [Fact]
     public void Change_logs_old_and_new_ids_and_cost()
     {
         var (fixture, map, player, npc) = Setup();
