@@ -57,7 +57,7 @@
     "bossHpPerPlayer": 0.5,
     "bossHpPlayerCurve": 0.5,
     // Boss HP growth, like hpGrowth/hpSoftRound/hpGrowthLate. bossHpGrowth 0 follows normal mobs.
-    "bossHpGrowth": 1.40,
+    "bossHpGrowth": 1.35,
     "bossHpSoftRound": 20,
     "bossHpGrowthLate": 1.05,
     "bossDmgMult": 4,
@@ -81,15 +81,15 @@
     "bossXpMult": 25,
 
     "currencyId": "arena_coin",
-    "roundBase": 5,
+    "roundBase": 1,
     "roundStep": 1,
-    "mobBounty": 1,
+    "mobBounty": 0,
     "eliteBountyMult": 5,
     "bossBountyMult": 25,
     "killCreditMinShare": 0.40,
     "priestClassIds": [5],
     "priestKillShare": 0.5,
-    "milestones": { "5": 20, "10": 60, "15": 120, "20": 200 },
+    "milestones": { "5": 10, "10": 20, "15": 30, "20": 50 },
 
     // Class mobs cast these (template script_params "spells=Name;Name"). damage is a multiple of
     // the mob's normal melee hit against that player, AC applied the same way. heal is a fraction
