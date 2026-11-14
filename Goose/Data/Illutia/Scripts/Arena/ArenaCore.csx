@@ -134,10 +134,9 @@ public static class ArenaCore
                 run.Participants[id].Kills += cfg.PriestKillShare;
         ArenaState.Save(world, run);
 
-        var living = dmg.Where(d => run.Participants[d.Key].Alive).ToDictionary(d => d.Key, d => d.Value);
-        var split = ArenaMath.SplitBounty(ArenaMath.Bounty((MobTier)npc.Properties.GetProperty<int>("arena.tier", 0), cfg), living);
-        foreach (var (id, amount) in split)
-            Pay(world, id, amount, "kill bounty");
+        long bounty = ArenaMath.Bounty((MobTier)npc.Properties.GetProperty<int>("arena.tier", 0), cfg);
+        foreach (var id in BountyRecipients(world, run, npc, creditedIds))
+            Pay(world, id, bounty, "kill bounty");
 
         if ((MobTier)npc.Properties.GetProperty<int>("arena.tier", 0) == MobTier.Boss)
         {
@@ -445,6 +444,30 @@ public static class ArenaCore
                 result.Add(part.Id);
         }
         return result;
+    }
+
+    // Group members qualify like Group.GainExperience: same map, within range of the mob,
+    // and not more than 9 levels below the group's highest level.
+    private static List<int> BountyRecipients(GameWorld world, ArenaRun run, NPC npc, List<int> credited)
+    {
+        var result = new SortedSet<int>(credited);
+        foreach (var id in credited)
+        {
+            var group = FindPlayer(world, id)?.Group;
+            if (group is null) continue;
+            int highest = group.Players.Max(m => m.Level);
+            foreach (var member in group.Players)
+            {
+                if (!run.Participants.ContainsKey(member.PlayerID)) continue;
+                if (member.Map != npc.Map
+                    || Math.Abs(member.MapX - npc.MapX) > Map.RANGE_X
+                    || Math.Abs(member.MapY - npc.MapY) > Map.RANGE_Y)
+                    continue;
+                if (member.Level + 9 < highest) continue;
+                result.Add(member.PlayerID);
+            }
+        }
+        return result.ToList();
     }
 
     public static Player? FindPlayer(GameWorld world, int playerId)

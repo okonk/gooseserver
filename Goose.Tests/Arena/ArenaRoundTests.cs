@@ -262,7 +262,7 @@ public sealed class ArenaRoundTests : IDisposable
     }
 
     [Fact]
-    public void Bounty_split_by_effective_damage_and_kills_counted_for_credited_group()
+    public void Bounty_goes_to_the_killer_and_not_to_a_participant_under_the_kill_share()
     {
         var p1 = kit.LobbyPlayer(70001, "P1");
         p1.ExperienceSold = 3_000_000_000;
@@ -414,6 +414,50 @@ public sealed class ArenaRoundTests : IDisposable
         Tick(kit, Now.AddSeconds(11));
 
         Assert.Same(p2, mob.AggroTarget);
+    }
+
+    [Fact]
+    public void Killer_group_members_nearby_each_get_the_full_bounty()
+    {
+        var killer = kit.LobbyPlayer(70001, "Killer");
+        var near = kit.LobbyPlayer(70002, "Near");
+        var lowLevel = kit.LobbyPlayer(70003, "LowLevel");
+        var far = kit.LobbyPlayer(70004, "Far");
+        var stranger = kit.LobbyPlayer(70005, "Stranger");
+        foreach (var p in new[] { killer, near, lowLevel, far, stranger })
+        {
+            p.ExperienceSold = 3_000_000_000;
+            p.Level = 50;
+        }
+        lowLevel.Level = 40;
+        var group = new Group();
+        foreach (var p in new Player[] { killer, near, lowLevel, far })
+        {
+            p.Group = group;
+            group.Players.Add(p);
+        }
+        EnterRound1(kit, killer, near, lowLevel, far, stranger);
+        kit.RegisterController();
+
+        var mob = Mobs(kit)[0];
+        var map = ArenaMap(kit);
+        foreach (var (p, dx) in new[] { (near, 2), (lowLevel, 2), (far, Map.RANGE_X + 1) })
+        {
+            map.SetCharacter(null, p.MapX, p.MapY);
+            p.MapX = mob.MapX + dx;
+            p.MapY = mob.MapY;
+        }
+        mob.Attacked(stranger, mob.CurrentHP / 50, kit.World);
+        mob.Attacked(killer, long.MaxValue / 4, kit.World);
+
+        Assert.Equal(1, kit.Wallet(killer));
+        Assert.Equal(1, kit.Wallet(near));
+        Assert.Equal(0, kit.Wallet(lowLevel));
+        Assert.Equal(0, kit.Wallet(far));
+        Assert.Equal(0, kit.Wallet(stranger));
+        var parts = Participants(Run(kit)!);
+        Assert.Equal(1.0, (double)Prop(parts[70001], "Kills")!);
+        Assert.Equal(0.0, (double)Prop(parts[70002], "Kills")!);
     }
 
     [Fact]

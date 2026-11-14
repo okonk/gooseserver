@@ -112,31 +112,6 @@ public static class ArenaMath
         return best;
     }
 
-    public static Dictionary<int, long> SplitBounty(long bounty, IReadOnlyDictionary<int, long> damageByPlayer)
-    {
-        var result = new Dictionary<int, long>();
-        if (bounty <= 0) return result;
-        double total = 0;
-        foreach (var dmg in damageByPlayer.Values) total += dmg;
-        if (total <= 0) return result;
-        var shares = new List<(int Id, long Floor, double Frac)>();
-        long given = 0;
-        foreach (var (id, dmg) in damageByPlayer)
-        {
-            double exact = (double)bounty * dmg / total;
-            long floor = (long)Math.Floor(exact);
-            shares.Add((id, floor, exact - floor));
-            given += floor;
-        }
-        shares.Sort((x, y) => x.Frac != y.Frac ? y.Frac.CompareTo(x.Frac) : x.Id.CompareTo(y.Id));
-        for (int i = 0; i < shares.Count; i++)
-        {
-            long share = shares[i].Floor + (i < bounty - given ? 1 : 0);
-            if (share > 0) result[shares[i].Id] = share;
-        }
-        return result;
-    }
-
     public static List<int> KillCredit(IReadOnlyDictionary<int, long> damageByPlayer, double minShare)
     {
         var result = new List<int>();

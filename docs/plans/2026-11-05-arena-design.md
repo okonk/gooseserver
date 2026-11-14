@@ -31,7 +31,7 @@ generic seams that are useful beyond the arena.
 | Experience | Per-kill XP set at spawn from round and tier (`xpAnchor`); the engine credits it as usual. |
 | Drops | None. Rewards are currency only. |
 | Currency | Arena Coins (`arena_coin`), data-defined, untradeable wallet balance. |
-| Earning | Round-clear payout to survivors + kill bounty split by effective damage + end-of-run milestone bonus. |
+| Earning | Round-clear payout to survivors + full kill bounty to killers and their nearby group + end-of-run milestone bonus. |
 | Leaderboards | Best round and total kills, weekly and all-time, top 10 + own rank, at the Arena Master NPC. |
 | Kills | Every participant who dealt at least `killCreditMinShare` (5%) of the mob's tracked effective damage gets a kill. Grouping doesn't matter. Tracked damage is capped at the mob's remaining HP, so overkill doesn't count. A living participant whose class is in `priestClassIds` (5, Priest) and who didn't earn the kill gets `priestKillShare` (0.5) of a kill if they're grouped with someone who did. Kills are fractional; boards show up to two decimals. |
 | Wallet | Server `/wallet` command listing every currency with icon. |
@@ -251,8 +251,9 @@ follow-up.
 ## Rewards
 
 - **Round clear:** each surviving participant gets `roundBase + roundStep × round` coins.
-- **Kill bounty:** `mobBounty × tierBountyMult`, split by each attacker's share of the
-  effective (post-scaling) damage the mob took, recorded in `ArenaMob`.
+- **Kill bounty:** `mobBounty × tierBountyMult`, paid in full to every living participant who
+  earned the kill (see Kills) and to each of their group members who would get XP from it:
+  same map, within XP range of the mob, and not more than 9 levels below the group's highest.
 - **End-of-run bonus:** highest milestone reached from a table, e.g.
   `{5: 20, 10: 60, 15: 120, 20: 200}`.
 - Round and kill coins are credited live; bonuses at run end.

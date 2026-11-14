@@ -55,8 +55,6 @@ public sealed class ArenaMathTests : IDisposable
     private static long MilestoneBonus(ArenaTestKit kit, int rounds)
         => (long)ArenaTestKit.Call(kit.Host, "MilestoneBonus", rounds, Cfg(kit))!;
 
-    private static Dictionary<int, long> SplitBounty(ArenaTestKit kit, long bounty, Dictionary<int, long> dmg)
-        => (Dictionary<int, long>)ArenaTestKit.Call(kit.Host, "SplitBounty", bounty, dmg)!;
 
     private static List<int> KillCredit(ArenaTestKit kit, Dictionary<int, long> dmg, double minShare)
         => (List<int>)ArenaTestKit.Call(kit.Host, "KillCredit", dmg, minShare)!;
@@ -206,32 +204,6 @@ public sealed class ArenaMathTests : IDisposable
     }
 
     [Fact]
-    public void Split_bounty_sums_exactly_and_is_proportional()
-    {
-        var even = SplitBounty(kit, 10, new Dictionary<int, long> { [1] = 1, [2] = 1, [3] = 1 });
-        Assert.Equal(10, Sum(even));
-        foreach (var share in even.Values)
-            Assert.True(share is 3 or 4, $"share {share}");
-
-        var odd = SplitBounty(kit, 7, new Dictionary<int, long> { [1] = 3, [2] = 2, [3] = 1 });
-        Assert.Equal(7, Sum(odd));
-        Assert.Equal(4, odd[1]);
-        Assert.Equal(2, odd[2]);
-        Assert.Equal(1, odd[3]);
-
-        var solo = SplitBounty(kit, 100, new Dictionary<int, long> { [7] = 12345 });
-        Assert.Equal(new Dictionary<int, long> { [7] = 100 }, solo);
-    }
-
-    [Fact]
-    public void Split_bounty_with_no_damage_is_empty()
-    {
-        Assert.Empty(SplitBounty(kit, 10, new Dictionary<int, long>()));
-        Assert.Empty(SplitBounty(kit, 10, new Dictionary<int, long> { [1] = 0, [2] = 0 }));
-        Assert.Empty(SplitBounty(kit, 0, new Dictionary<int, long> { [1] = 5 }));
-    }
-
-    [Fact]
     public void Kill_credit_goes_to_everyone_at_or_above_the_minimum_share()
     {
         var dmg = new Dictionary<int, long> { [1] = 900, [2] = 50, [3] = 49, [4] = 1 };
@@ -307,12 +279,5 @@ public sealed class ArenaMathTests : IDisposable
         Assert.Equal(1, Bounty(kit, Normal));
         Assert.Equal(5, Bounty(kit, Elite));
         Assert.Equal(25, Bounty(kit, Boss));
-    }
-
-    private static long Sum(Dictionary<int, long> d)
-    {
-        long sum = 0;
-        foreach (var v in d.Values) sum += v;
-        return sum;
     }
 }
