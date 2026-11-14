@@ -196,7 +196,7 @@ next scheduled start works once the config is fixed.
   Front shapes turn the caster to whichever side has a player in the area.
 - **Mob stats:** HP set from the formula through `TemporaryMaxHP` at spawn. Damage from the
   formula only. Templates supply looks, speed, ranges, AC and armor pierce; XP is
-  `xpAnchor × xpGrowth^(round − anchorRound) × tierXpMult` (`eliteXpMult`, `bossXpMult`),
+  `xpAnchor × xpCurve(round) × tierXpMult` (`eliteXpMult`, `bossXpMult`), where `xpCurve` grows by `xpGrowth` per round up to `xpSoftRound` and `xpGrowthLate` after it,
   set at spawn; `xpAnchor` 0 keeps template XP. Template drops should be empty.
 
 ## Boss mechanics
@@ -255,9 +255,11 @@ that round and `hpGrowthLate` after it. Bosses use their own curve from `bossHpG
 **Mob → player** (`ArenaMob.MeleeBaseDamage`; engine attack loop):
 
 ```
-weaponDmg = anchorMobWeaponDamage × dmgGrowth^(round − anchorRound) × tierDmgMult × s^b    // b ≈ 0.75
+weaponDmg = anchorMobWeaponDamage × dmgCurve(round) × tierDmgMult × s^b                  // b ≈ 0.75
 hit       = engine melee mitigation(weaponDmg, target)                                    // crit, DR, AC
 ```
+
+`dmgCurve` grows by `dmgGrowth` per round up to `dmgSoftRound` and `dmgGrowthLate` after it.
 
 **Anchor:** round 20, a 3B player: 12M HP, 65k weapon damage. With `hpGrowth` 1.10 and
 `dmgGrowth` 1.08, round 1 is ~2.0M HP / ~15k weapon damage.

@@ -56,7 +56,7 @@ public static class ArenaMath
             MobTier.Boss => c.BossXpMult,
             _ => 1,
         };
-        double xp = c.XpAnchor * Math.Pow(c.XpGrowth, round - c.AnchorRound) * mult;
+        double xp = c.XpAnchor * Curve(round, c.AnchorRound, c.XpGrowth, c.XpSoftRound, c.XpGrowthLate) * mult;
         if (xp >= long.MaxValue) return long.MaxValue;
         return (long)Math.Max(0, xp);
     }
@@ -69,7 +69,7 @@ public static class ArenaMath
             MobTier.Boss => c.BossDmgMult,
             _ => 1,
         };
-        return c.AnchorMobWeaponDamage * Math.Pow(c.DmgGrowth, round - c.AnchorRound) * mult * Math.Pow(s, c.B);
+        return c.AnchorMobWeaponDamage * Curve(round, c.AnchorRound, c.DmgGrowth, c.DmgSoftRound, c.DmgGrowthLate) * mult * Math.Pow(s, c.B);
     }
 
     public static int WaveCount(int round, int alive, ArenaConfig c)

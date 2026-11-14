@@ -46,7 +46,7 @@
     "eliteChance": 0.05,
     "eliteChanceGrowth": 0.02,
     "eliteChanceMax": 0.30,
-    "eliteHpMult": 2,
+    "eliteHpMult": 1.75,
     "eliteDmgMult": 2,
     "eliteTitle": "Elite",
     "eliteTint": [255, 120, 120, 255],
@@ -59,7 +59,7 @@
     // Boss HP growth, like hpGrowth/hpSoftRound/hpGrowthLate. bossHpGrowth 0 follows normal mobs.
     "bossHpGrowth": 1.35,
     "bossHpSoftRound": 20,
-    "bossHpGrowthLate": 1.05,
+    "bossHpGrowthLate": 1.04,
     "bossDmgMult": 4,
 
     "minXpSold": 20000000,
@@ -73,10 +73,14 @@
     "hpSoftRound": 20,
     "hpGrowthLate": 1.15,
     "dmgGrowth": 1.20,
-    // Per-kill XP: xpAnchor * xpGrowth^(round - anchorRound), times the elite or boss
-    // multiplier. xpAnchor 0 keeps each template's own XP.
+    "dmgSoftRound": 25,
+    "dmgGrowthLate": 1.11,
+    // Per-kill XP: xpAnchor * xpGrowth per round up to xpSoftRound, xpGrowthLate after it,
+    // times the elite or boss multiplier. xpAnchor 0 keeps each template's own XP.
     "xpAnchor": 2000,
-    "xpGrowth": 1.18,
+    "xpGrowth": 1.14,
+    "xpSoftRound": 20,
+    "xpGrowthLate": 1.06,
     "eliteXpMult": 2,
     "bossXpMult": 25,
 

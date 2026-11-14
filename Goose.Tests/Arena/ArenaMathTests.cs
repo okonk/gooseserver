@@ -181,6 +181,22 @@ public sealed class ArenaMathTests : IDisposable
     }
 
     [Fact]
+    public void Mob_xp_slows_after_the_soft_round()
+    {
+        kit.SetConfig(j =>
+        {
+            j["anchorRound"] = 1;
+            j["xpAnchor"] = 2000;
+            j["xpGrowth"] = 1.18;
+            j["xpSoftRound"] = 20;
+            j["xpGrowthLate"] = 1.05;
+        });
+
+        Approx(MobXp(kit, 20, Normal), 2000 * Math.Pow(1.18, 19));
+        Approx(MobXp(kit, 30, Normal), 2000 * Math.Pow(1.18, 19) * Math.Pow(1.05, 10));
+    }
+
+    [Fact]
     public void Boss_player_curve_flattens_big_groups()
     {
         kit.SetConfig(j => j["bossHpPlayerCurve"] = 0.5);
@@ -195,6 +211,20 @@ public sealed class ArenaMathTests : IDisposable
     {
         Approx(MobWeaponDamage(kit, 20, Normal, 0.1), 11_559);
         Approx(MobWeaponDamage(kit, 20, Normal, 1.0), 65_000);
+    }
+
+    [Fact]
+    public void Weapon_damage_slows_after_the_soft_round()
+    {
+        kit.SetConfig(j =>
+        {
+            j["dmgSoftRound"] = 20;
+            j["dmgGrowthLate"] = 1.05;
+        });
+
+        double at20 = MobWeaponDamage(kit, 20, Normal, 1.0);
+        Approx(at20, 65_000);
+        Approx(MobWeaponDamage(kit, 30, Normal, 1.0), at20 * Math.Pow(1.05, 10));
     }
 
     [Fact]

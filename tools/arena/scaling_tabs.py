@@ -18,8 +18,9 @@ BOSS_EVERY, BOSS_FRAC, BOSS_HP, BOSS_PER, BOSS_CURVE = I(19), I(20), I(21), I(22
 BOSS_GROW, BOSS_SOFT, BOSS_LATE, BOSS_DMG = I(24), I(25), I(26), I(27)
 MIN_XP, TOP_XP, A, B, ANCHOR = I(33), I(34), I(35), I(36), I(37)
 ANCHOR_HP, ANCHOR_DMG, HP_GROW, SOFT, LATE, DMG_GROW = I(38), I(39), I(40), I(41), I(42), I(43)
-XP_ANCHOR, XP_GROW, ELITE_XP, BOSS_XP = I(67), I(68), I(69), I(70)
-TOP_ROW = 76
+DMG_SOFT, DMG_LATE = I(44), I(45)
+XP_ANCHOR, XP_GROW, XP_SOFT, XP_LATE, ELITE_XP, BOSS_XP = I(69), I(70), I(71), I(72), I(73), I(74)
+TOP_ROW = 80
 
 
 def hp_curve(r):
@@ -42,11 +43,13 @@ def boss_base_hp(r):
 
 
 def weapon(r):
-    return f"{ANCHOR_DMG}*{DMG_GROW}^({r}-{ANCHOR})"
+    return (f"{ANCHOR_DMG}*{DMG_GROW}^(MIN({r},{DMG_SOFT})-MIN({ANCHOR},{DMG_SOFT}))"
+            f"*{DMG_LATE}^(MAX({r},{DMG_SOFT})-MAX({ANCHOR},{DMG_SOFT}))")
 
 
 def normal_xp(r):
-    return f"{XP_ANCHOR}*{XP_GROW}^({r}-{ANCHOR})"
+    return (f"{XP_ANCHOR}*{XP_GROW}^(MIN({r},{XP_SOFT})-MIN({ANCHOR},{XP_SOFT}))"
+            f"*{XP_LATE}^(MAX({r},{XP_SOFT})-MAX({ANCHOR},{XP_SOFT}))")
 
 
 def is_boss(r):
