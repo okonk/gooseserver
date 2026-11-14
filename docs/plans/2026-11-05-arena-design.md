@@ -141,7 +141,8 @@ in progress at a scheduled start, that start is skipped.
 2. **Clear** (all wave mobs dead): survivors get the round payout and +1 rounds cleared;
    `breakSeconds` pause; next round.
 3. **Timeout** (`roundSeconds`): warning at 30s left with the remaining count. Straggler
-   recall teleports the last few mobs near a living participant. If time runs out, the run
+   recall teleports the last `stragglerCount` mobs near a living participant (0, the default,
+   turns it off; mobs without a target already walk to the nearest one). If time runs out, the run
    fails: all remaining participants are eliminated, rounds cleared credited.
 
 **Elimination.** Death, or leaving the arena map for any reason (warp, teleport,
@@ -215,7 +216,7 @@ mechanic winds up the boss neither moves nor attacks.
 | Mechanic | Default round | What it does |
 |---|---|---|
 | Slam | 5 | Marks a ring at `radius` (5) around the boss; after `windup` (2 s) hits everyone within the radius. |
-| Summon | 5 | At each `atHp` fraction (66%, 33%) the boss calls `base + players / perPlayers` elite guards from its band and can't be damaged until they die. Damage is capped at the threshold so a big hit can't skip it. A pulse of the animation plays on the boss while it's shielded. |
+| Summon | 5 | At each `atHp` fraction (once, at 60%) the boss calls `base + players / perPlayers` elite guards from its band and can't be damaged until they die. Damage is capped at the threshold so a big hit can't skip it. A pulse of `shieldAnimation` / `shieldAnimationFile` (900002 / 30023) plays on the boss every second while it's shielded. |
 | Charge | 15 | Turns towards its target and marks a straight line of `length` (8) tiles; after 1.5 s hits everyone on it and dashes to the furthest free tile. |
 | Mark | 15 | Marks the `size`×`size` (3×3) tiles around a random player where they stand; after 3 s hits anyone still on them. The boss keeps fighting meanwhile. |
 | Safe zone | 25 | Splits the floor into `blockWidth`×`blockHeight` (15×8) blocks, picks one within `maxDistance` (20) of the boss and marks its edge; after 6 s hits everyone outside it. |

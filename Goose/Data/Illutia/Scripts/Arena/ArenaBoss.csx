@@ -454,7 +454,7 @@ public static class ArenaBoss
             return;
         }
         var m = cfg.BossMechanics;
-        world.SendToMap(npc.Map, P.SpellPlayer(npc.LoginID, m.Animation, m.AnimationFile));
+        world.SendToMap(npc.Map, P.SpellPlayer(npc.LoginID, m.Summon?.ShieldAnimation ?? m.Animation, m.Summon?.ShieldAnimationFile ?? m.AnimationFile));
         ScriptTimerEvent.Create(() => ShieldPulse(npc, world, cfg, token), TimeSpan.FromSeconds(1), world);
     }
 }

@@ -108,6 +108,8 @@ public sealed class ArenaSummon
     public double[] AtHp { get; set; } = [0.66, 0.33];
     public int Base { get; set; } = 2;
     public int PerPlayers { get; set; } = 3;
+    public int ShieldAnimation { get; set; } = 900002;
+    public int ShieldAnimationFile { get; set; } = 30023;
 }
 
 public sealed class ArenaConfig
