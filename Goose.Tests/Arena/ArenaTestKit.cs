@@ -166,6 +166,7 @@ public sealed class ArenaTestKit : IDisposable
         #load "../Arena/ArenaState.csx"
         #load "../Arena/ArenaBoard.csx"
         #load "../Arena/ArenaCore.csx"
+        #load "../Arena/ArenaBoss.csx"
         using System;
         using System.Collections.Generic;
         using Goose;
@@ -209,6 +210,14 @@ public sealed class ArenaTestKit : IDisposable
             public long MilestoneBonus(int rounds, object c) => ArenaMath.MilestoneBonus(rounds, (ArenaConfig)c);
             public List<int> KillCredit(Dictionary<int, long> dmg, double minShare) => ArenaMath.KillCredit(dmg, minShare);
             public DateTime NextStartUtc(DateTime now, object c) => ArenaMath.NextStartUtc(now, (ArenaConfig)c);
+            public object BossStart(string kind, NPC npc, GameWorld world) => ArenaBoss.Start(kind, npc, world, ArenaConfig.Get(world));
+            public void BossResolve(object t) => ((ArenaTelegraph)t).Resolve();
+            public List<(int X, int Y)> BossTiles(object t) => ((ArenaTelegraph)t).LiveTiles?.Invoke() ?? ((ArenaTelegraph)t).Tiles;
+            public List<NPC> BossSummon(NPC npc, GameWorld world) => ArenaBoss.Summon(npc, world, ArenaConfig.Get(world));
+            public void BossHold(NPC npc, GameWorld world) => ArenaBoss.HoldTarget(npc, world);
+            public bool BossThink(NPC npc, GameWorld world) => ArenaBoss.Think(npc, world, ArenaConfig.Get(world));
+            public bool BossBusy(NPC npc, GameWorld world) => ArenaBoss.IsBusy(npc, world);
+            public bool BossShielded(NPC npc) => ArenaBoss.IsShielded(npc);
         }
 
         return typeof(ArenaHost);

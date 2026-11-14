@@ -38,6 +38,78 @@ public sealed class ArenaCrowdShouts
     public string[] Boos { get; set; } = [];
 }
 
+public sealed class ArenaBossMechanics
+{
+    public int Animation { get; set; } = 900001;
+    public int AnimationFile { get; set; } = 30022;
+    public double[] GapSeconds { get; set; } = [8, 12];
+    public ArenaSlam? Slam { get; set; }
+    public ArenaPull? Pull { get; set; }
+    public ArenaCharge? Charge { get; set; }
+    public ArenaMark? Mark { get; set; }
+    public ArenaSafeZone? SafeZone { get; set; }
+    public ArenaSwap? Swap { get; set; }
+    public ArenaSummon? Summon { get; set; }
+}
+
+public sealed class ArenaSlam
+{
+    public int FromRound { get; set; }
+    public double Damage { get; set; } = 3;
+    public double Radius { get; set; } = 5;
+    public double Windup { get; set; } = 2;
+}
+
+public sealed class ArenaPull
+{
+    public int FromRound { get; set; }
+    public int Range { get; set; } = 8;
+    public double Windup { get; set; } = 2.5;
+}
+
+public sealed class ArenaCharge
+{
+    public int FromRound { get; set; }
+    public double Damage { get; set; } = 2.5;
+    public int Length { get; set; } = 8;
+    public double Windup { get; set; } = 1.5;
+}
+
+public sealed class ArenaMark
+{
+    public int FromRound { get; set; }
+    public double Damage { get; set; } = 4;
+    public int Size { get; set; } = 3;
+    public double Windup { get; set; } = 3;
+}
+
+public sealed class ArenaSafeZone
+{
+    public int FromRound { get; set; }
+    public double Damage { get; set; } = 6;
+    public int BlockWidth { get; set; } = 15;
+    public int BlockHeight { get; set; } = 8;
+    public int MaxDistance { get; set; } = 20;
+    public double Windup { get; set; } = 6;
+}
+
+public sealed class ArenaSwap
+{
+    public int FromRound { get; set; }
+    public double[] EverySeconds { get; set; } = [45, 60];
+    public double Windup { get; set; } = 1.5;
+    public double LockSeconds { get; set; } = 10;
+    public int[] Emote { get; set; } = [1081, 8];
+}
+
+public sealed class ArenaSummon
+{
+    public int FromRound { get; set; }
+    public double[] AtHp { get; set; } = [0.66, 0.33];
+    public int Base { get; set; } = 2;
+    public int PerPlayers { get; set; } = 3;
+}
+
 public sealed class ArenaConfig
 {
     public int LobbyMap { get; set; }
@@ -101,6 +173,7 @@ public sealed class ArenaConfig
     public double PriestKillShare { get; set; }
     public Dictionary<int, long> Milestones { get; set; } = new();
     public Dictionary<string, ArenaMobSpell> MobSpells { get; set; } = new();
+    public ArenaBossMechanics BossMechanics { get; set; } = new();
     public ArenaMayor Mayor { get; set; } = new();
     public ArenaCrowdShouts Crowd { get; set; } = new();
     public bool Valid { get; set; } = true;
@@ -207,6 +280,17 @@ public sealed class ArenaConfig
         foreach (var (name, spell) in c.MobSpells ?? new Dictionary<string, ArenaMobSpell>())
             if (spell.Damage < 0 || spell.Heal is < 0 or > 1 || spell.Cooldown < 0 || spell.Range < 0)
                 throw new JsonException("Arena mobSpells entry " + name + " has a negative or out-of-range value");
+        var m = c.BossMechanics ?? throw new JsonException("Arena bossMechanics must be an object");
+        if (m.GapSeconds is not { Length: 2 } || m.GapSeconds[0] <= 0 || m.GapSeconds[1] < m.GapSeconds[0])
+            throw new JsonException("Arena bossMechanics.gapSeconds must be [min, max] with 0 < min <= max");
+        if (m.Swap is not null && (m.Swap.EverySeconds is not { Length: 2 } || m.Swap.EverySeconds[0] <= 0
+            || m.Swap.EverySeconds[1] < m.Swap.EverySeconds[0] || m.Swap.Emote is not { Length: 2 }))
+            throw new JsonException("Arena bossMechanics.swap needs everySeconds [min, max] and emote [animation, sheet]");
+        if (m.Summon is not null && (m.Summon.AtHp is null || m.Summon.AtHp.Any(f => f is <= 0 or >= 1) || m.Summon.PerPlayers < 1))
+            throw new JsonException("Arena bossMechanics.summon.atHp values must be in (0, 1) and perPlayers >= 1");
+        foreach (var windup in new double?[] { m.Slam?.Windup, m.Pull?.Windup, m.Charge?.Windup, m.Mark?.Windup, m.SafeZone?.Windup, m.Swap?.Windup })
+            if (windup is <= 0)
+                throw new JsonException("Arena bossMechanics windups must be > 0");
         if (c.SpawnRadius < 0)
             throw new JsonException("Arena spawnRadius must be >= 0");
         if (c.KillCreditMinShare is < 0 or > 1)

@@ -114,6 +114,8 @@ Scripts/Arena/
   ArenaController.csx        global script: timer, schedule, announcements, recovery, kills, GM commands
   ArenaMap.csx               arena map script: CanPlayerJoin, OnPlayerEntered, OnPlayerLeft, OnPlayerDied
   ArenaMob.csx               NPC script on arena mob templates
+  ArenaBoss.csx              boss mechanics, loaded by ArenaMob
+  ArenaFloor.csx             the arena's connected floor tiles
   ArenaMaster.csx            NPC script on the Arena Master: hub + leaderboards
 ```
 
@@ -196,6 +198,29 @@ next scheduled start works once the config is fixed.
   formula only. Templates supply looks, speed, ranges, AC and armor pierce; XP is
   `xpAnchor × xpGrowth^(round − anchorRound) × tierXpMult` (`eliteXpMult`, `bossXpMult`),
   set at spawn; `xpAnchor` 0 keeps template XP. Template drops should be empty.
+
+## Boss mechanics
+
+Set in `bossMechanics` in `arena.json`. Each mechanic unlocks at its `fromRound`; leaving one
+out turns it off. Damage is a multiple of the boss's weapon damage (`MobWeaponDamage` for the
+boss tier), mitigated like a melee hit. Every warning tile plays `animation` / `animationFile`
+(900001 / 30022, one second long), re-sent each second of the windup. State lives in the boss's
+NPC properties; windups and resolves run on `ScriptTimerEvent`s that check a per-spawn token,
+so a dead or re-pooled boss never resolves a stale mechanic.
+
+The boss picks one of slam, pull, charge, mark and safe zone every `gapSeconds` [min, max],
+never the same one twice in a row. Swap and summon run on their own triggers. While a busy
+mechanic winds up the boss neither moves nor attacks.
+
+| Mechanic | Default round | What it does |
+|---|---|---|
+| Slam | 5 | Marks a ring at `radius` (5) around the boss; after `windup` (2 s) hits everyone within the radius. |
+| Summon | 5 | At each `atHp` fraction (66%, 33%) the boss calls `base + players / perPlayers` elite guards from its band and can't be damaged until they die. Damage is capped at the threshold so a big hit can't skip it. A pulse of the animation plays on the boss while it's shielded. |
+| Charge | 15 | Turns towards its target and marks a straight line of `length` (8) tiles; after 1.5 s hits everyone on it and dashes to the furthest free tile. |
+| Mark | 15 | Marks the `size`×`size` (3×3) tiles around a random player where they stand; after 3 s hits anyone still on them. The boss keeps fighting meanwhile. |
+| Safe zone | 25 | Splits the floor into `blockWidth`×`blockHeight` (15×8) blocks, picks one within `maxDistance` (20) of the boss and marks its edge; after 6 s hits everyone outside it. |
+| Pull | 25 | Pulls every player within `range` (8) tiles onto the free tiles next to the boss, then starts a slam with a 2.5 s windup. |
+| Swap | 25 | Every `everySeconds` (45–60 s) plays `emote` on the boss and marks the tile under the player with the most damage on it (the next one if that's already its target). After 1.5 s it teleports behind them and stays on them for `lockSeconds` (10), ignoring taunt. |
 
 ## Scaling
 
