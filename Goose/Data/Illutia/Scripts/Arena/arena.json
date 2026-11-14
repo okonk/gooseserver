@@ -86,7 +86,7 @@
     "mobBounty": 1,
     "eliteBountyMult": 5,
     "bossBountyMult": 25,
-    "killCreditMinShare": 0.05,
+    "killCreditMinShare": 0.40,
     "priestClassIds": [5],
     "priestKillShare": 0.5,
     "milestones": { "5": 20, "10": 60, "15": 120, "20": 200 },
