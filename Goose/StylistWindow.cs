@@ -59,8 +59,9 @@ namespace Goose
                 return;
             }
 
-            int cost = settings.StylistChangeCost
+            long cost = (long)settings.StylistChangeCost
                 * ((hair != player.HairID ? 1 : 0) + (face != player.FaceID ? 1 : 0));
+            if (cost < 0) return;
             if (cost == 0)
             {
                 world.Send(player, P.Notice(NoticeType.Info, "Nothing changed."));

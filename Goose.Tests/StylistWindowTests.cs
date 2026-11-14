@@ -189,6 +189,25 @@ public class StylistWindowTests
     }
 
     [Fact]
+    public void Change_with_negative_cost_setting_changes_nothing()
+    {
+        var (fixture, map, player, npc) = Setup();
+        using (fixture)
+        {
+            OpenWindow(fixture, player, npc);
+            fixture.World.Settings.StylistChangeCost = -2000;
+            player.Sent.Clear();
+
+            StylistWindow.Change(fixture.World, player, 12, 2);
+
+            Assert.Equal(33, player.HairID);
+            Assert.Equal(2, player.FaceID);
+            Assert.Equal(10000, player.Gold);
+            Assert.DoesNotContain(player.Sent, s => s.StartsWith("CHP"));
+        }
+    }
+
+    [Fact]
     public void Change_out_of_range_notices_and_changes_nothing()
     {
         var (fixture, map, player, npc) = Setup();
