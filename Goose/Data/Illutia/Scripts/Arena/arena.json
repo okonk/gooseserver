@@ -88,7 +88,7 @@
     "bossBountyMult": 25,
     "killCreditMinShare": 0.40,
     "priestClassIds": [5],
-    "priestKillShare": 0.5,
+    "priestKillShare": 0.1,
     "milestones": { "5": 10, "10": 20, "15": 30, "20": 50 },
 
     // Class mobs cast these (template script_params "spells=Name;Name"). damage is a multiple of
