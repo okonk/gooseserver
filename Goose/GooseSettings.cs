@@ -150,6 +150,9 @@ namespace Goose
         public int StartingBodyA { get; set; }
         public int HairdyeCommandCost { get; set; }
         public int HairDyePotionId { get; set; }
+        public int StylistChangeCost { get; set; } = 2000;
+        public int StylistMaxHairID { get; set; } = 46;
+        public int StylistMaxFaceID { get; set; } = 18;
         public int CustomTicketId { get; set; }
         public int RippedCustomTicketId { get; set; }
         public double RespawnTimeBackoff { get; set; }

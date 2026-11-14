@@ -35,6 +35,7 @@ namespace Goose
             GiveSpirit,
             ResetItem,
             Enchant,
+            Stylist = 26,
 
             // GM-related logs
             GetItem = 10001,

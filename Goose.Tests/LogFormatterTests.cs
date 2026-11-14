@@ -383,6 +383,15 @@ namespace Goose.Tests
         }
 
         [Theory]
+        [InlineData(26, 1, 0, "Stylist: hair 33 -> 12 face 2 -> 2 cost 2000", 0, "Alice changed hair 33 -> 12, face 2 -> 2 for 2000 gold")]
+        [InlineData(26, 1, 0, "Stylist: hair x -> 12 face 2 -> 2 cost 2000", 0, "Stylist: Stylist: hair x -> 12 face 2 -> 2 cost 2000")]
+        [InlineData(26, 1, 0, "Stylist: hair 33 -> 12", 0, "Stylist: Stylist: hair 33 -> 12")]
+        public void Stylist_summaries(long type, long player, long other, string text, long map, string expected)
+        {
+            Assert.Equal(expected, LogFormatter.Project(Row(type, player, other, text, map)).Summary);
+        }
+
+        [Theory]
         [InlineData(10001, 7, 0, "Iron Sword 77 3", 0, "GM gave Iron Sword ×3")]
         [InlineData(10002, 7, 2, "2 3 2.5", 0, "GM changed Bob's class to 3 (rate 2.5)")]
         [InlineData(10003, 7, 2, "5000 to 2", 0, "GM gave Bob 5000 experience")]

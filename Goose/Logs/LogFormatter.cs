@@ -92,6 +92,7 @@ namespace Goose.Logs
             23 => GiveSpirit(c),
             24 => ResetItem(c),
             25 => Enchant(c),
+            26 => Stylist(c),
             10001 => GetItemSummary(c),
             10002 => ClassChange(c),
             10003 => GiveAmount(c, "experience"),
@@ -328,6 +329,22 @@ namespace Goose.Logs
             return t[12] == "ProtectedFailure"
                 ? $"{Player(c)} failed (protected), max now {max}"
                 : $"{Player(c)} enchanted an item (template {tid}) {t[2]} +{oldLevel} -> +{newLevel}";
+        }
+
+        private static string Stylist(LogFormatContext c)
+        {
+            const string prefix = "Stylist: hair ";
+            if (!c.Text.StartsWith(prefix, StringComparison.Ordinal)) return Fallback(c);
+            var t = c.Text[prefix.Length..].Split(' ');
+            if (t.Length != 9 || t[1] != "->" || t[3] != "face" || t[5] != "->" || t[7] != "cost" ||
+                !TryLong(t[0], out long oldHair) || !TryLong(t[2], out long newHair) ||
+                !TryLong(t[4], out long oldFace) || !TryLong(t[6], out long newFace) ||
+                !TryLong(t[8], out long cost))
+            {
+                return Fallback(c);
+            }
+
+            return $"{Player(c)} changed hair {oldHair} -> {newHair}, face {oldFace} -> {newFace} for {cost} gold";
         }
 
         private static string GetItemSummary(LogFormatContext c)
