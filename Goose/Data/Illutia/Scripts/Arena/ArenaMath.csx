@@ -1,6 +1,7 @@
 #load "ArenaConfig.csx"
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 public enum MobTier { Normal, Elite, Boss }
 
@@ -121,6 +122,8 @@ public static class ArenaMath
         foreach (var (id, dmg) in damageByPlayer)
             if (dmg > 0 && dmg / total >= minShare)
                 result.Add(id);
+        if (result.Count == 0)
+            result.Add(damageByPlayer.Where(d => d.Value > 0).OrderByDescending(d => d.Value).ThenBy(d => d.Key).First().Key);
         result.Sort();
         return result;
     }

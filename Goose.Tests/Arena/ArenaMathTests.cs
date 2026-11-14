@@ -204,12 +204,14 @@ public sealed class ArenaMathTests : IDisposable
     }
 
     [Fact]
-    public void Kill_credit_goes_to_everyone_at_or_above_the_minimum_share()
+    public void Kill_credit_goes_to_everyone_at_or_above_the_minimum_share_or_else_the_top_damage()
     {
         var dmg = new Dictionary<int, long> { [1] = 900, [2] = 50, [3] = 49, [4] = 1 };
         Assert.Equal(new List<int> { 1, 2 }, KillCredit(kit, dmg, 0.05));
         Assert.Equal(new List<int> { 1, 2, 3, 4 }, KillCredit(kit, dmg, 0));
         Assert.Empty(KillCredit(kit, new Dictionary<int, long>(), 0.05));
+        Assert.Equal(new List<int> { 3 }, KillCredit(kit, new Dictionary<int, long> { [1] = 10, [2] = 25, [3] = 35, [4] = 30 }, 0.4));
+        Assert.Equal(new List<int> { 2 }, KillCredit(kit, new Dictionary<int, long> { [1] = 30, [2] = 35, [3] = 35 }, 0.4));
         Assert.Empty(KillCredit(kit, new Dictionary<int, long> { [1] = 0 }, 0));
     }
 
