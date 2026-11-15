@@ -135,6 +135,8 @@ public class ReviveDeathTests
         var other = kit.Fixture.AddBaseMap(3, "Far", 40, 40);
 
         p.WarpTo(kit.World, other, 9, 9);
+        Assert.Null(p.Map);
+        Assert.Equal(Player.States.LoadingMap, p.State);
 
         p.PendingRespawnTimeout!.Ready(kit.World);
 
@@ -144,6 +146,11 @@ public class ReviveDeathTests
         Assert.Equal(9, p.MapX);
         Assert.Equal(9, p.MapY);
         Assert.Equal(50, p.CurrentHP);
+
+        new DoneLoadingMapEvent { Player = p }.Ready(kit.World);
+
+        Assert.Same(other, p.Map);
+        Assert.Equal(Player.States.Ready, p.State);
     }
 
     [Fact]
@@ -155,6 +162,8 @@ public class ReviveDeathTests
         var other = kit.Fixture.AddBaseMap(3, "Far", 40, 40);
 
         p.WarpTo(kit.World, other, 9, 9);
+        Assert.Null(p.Map);
+        Assert.Equal(Player.States.LoadingMap, p.State);
         p.Respawn(kit.World);
 
         Assert.False(p.IsDead);
