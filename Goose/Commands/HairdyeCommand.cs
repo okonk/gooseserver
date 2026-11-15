@@ -58,6 +58,7 @@ namespace Goose.Commands
                     b + "," +
                     a + "," +
                     "0" + "," + // Invis thing
+                    "0" + "," + // HideName
                     ctx.Player.FaceID + "," +
                     ctx.Player.CalculateMoveSpeed() + "," + // Move Speed
                     "0" + "," + // Player Name Color

@@ -117,6 +117,7 @@ namespace Goose.Commands
                     ctx.Player.HairB + "," +
                     ctx.Player.HairA + "," +
                     "0" + "," + // Invis thing
+                    "0" + "," + // HideName
                     ctx.Player.FaceID + "," +
                     ctx.Player.CalculateMoveSpeed() + "," + // Move Speed
                     "0" + "," + // Player Name Color
