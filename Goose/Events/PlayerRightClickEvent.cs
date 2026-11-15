@@ -55,6 +55,7 @@ namespace Goose.Events
                 {
                     if (npc.MapX == x && npc.MapY == y)
                     {
+                        if (this.Player.RefuseWhileDead(world)) return;
                         if (npc.IsVendor)
                         {
                             npc.OpenVendor(this.Player, world);

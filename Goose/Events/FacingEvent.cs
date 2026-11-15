@@ -22,7 +22,7 @@ namespace Goose.Events
 
         public override void Ready(GameWorld world)
         {
-            if (this.Player.State == Player.States.Ready)
+            if (this.Player.State == Player.States.Ready && !this.Player.IsDead)
             {
                 foreach (var b in this.Player.Buffs)
                 {

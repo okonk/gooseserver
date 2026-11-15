@@ -53,6 +53,7 @@ namespace Goose.Events
                 {
                     if (npc.MapX != x || npc.MapY != y)
                         continue;
+                    if (this.Player.RefuseWhileDead(world)) return;
                     bool handled;
                     try
                     {

@@ -12,6 +12,7 @@ namespace Goose.Events
     {
         public override void Ready(GameWorld world)
         {
+            if (this.Player.RefuseWhileDead(world)) return;
             if (this.Player.State == Player.States.Ready)
             {
                 int npcid = 0;

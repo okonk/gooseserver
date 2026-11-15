@@ -7,6 +7,8 @@ namespace Goose.Commands
         {
             var world = ctx.World;
 
+            if (ctx.Player.RefuseWhileDead(world)) return;
+
             if (gold <= 0) return;
 
             if (gold > ctx.Player.Gold) return;

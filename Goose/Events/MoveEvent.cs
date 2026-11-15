@@ -17,7 +17,7 @@ namespace Goose.Events
     {
         public override void Ready(GameWorld world)
         {
-            if (this.Player.State == Player.States.Ready)
+            if (this.Player.State == Player.States.Ready && !this.Player.IsDead)
             {
                 this.Player.UpdateIdleStatus(world);
 

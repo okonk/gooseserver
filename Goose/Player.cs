@@ -2273,6 +2273,14 @@ namespace Goose
             world.Send(this, P.Notice(NoticeType.Info, reviver.Name + " revived you."));
         }
 
+        public bool RefuseWhileDead(GameWorld world)
+        {
+            if (!this.IsDead) return false;
+
+            world.Send(this, P.Notice(NoticeType.Info, "You can't do that while dead."));
+            return true;
+        }
+
         private bool MapAllowsRevive(Map map, ICharacter killer, GameWorld world)
         {
             try
