@@ -56,7 +56,7 @@ namespace Goose
             }
 
             GooseSettings settings = world.Settings;
-            if (hair < 1 || hair > settings.StylistMaxHairID
+            if (hair < 0 || hair > settings.StylistMaxHairID
                 || face < 1 || face > settings.StylistMaxFaceID
                 || (body != player.BodyID && body != MaleBodyID && body != FemaleBodyID))
             {

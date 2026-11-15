@@ -82,6 +82,21 @@ public class StylistWindowTests
     }
 
     [Fact]
+    public void Change_hair_to_bald_is_allowed()
+    {
+        var (fixture, map, player, npc) = Setup();
+        using (fixture)
+        {
+            OpenWindow(fixture, player, npc);
+
+            StylistWindow.Change(fixture.World, player, 0, 2, StylistWindow.MaleBodyID);
+
+            Assert.Equal(0, player.HairID);
+            Assert.Equal(9000, player.Gold);
+        }
+    }
+
+    [Fact]
     public void Change_face_only_costs_one_slot()
     {
         var (fixture, map, player, npc) = Setup();
@@ -248,7 +263,6 @@ public class StylistWindowTests
     }
 
     [Theory]
-    [InlineData(0, 2)]
     [InlineData(47, 2)]
     [InlineData(33, 0)]
     [InlineData(33, 19)]
