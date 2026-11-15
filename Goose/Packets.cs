@@ -98,7 +98,7 @@ namespace Goose
          * MKCid,character type,name,title,surname,guild,x,y,facing,hp percent,body,
          * body pose,hair id,chest id,chest r,g,b,a,helm id,helm r,g,b,a,
          * pants id,pants r,g,b,a,shoes id,shoes r,g,b,a,
-         * shield id,shield r,g,b,a,weapon id,weapon r,g,b,a,hair_r,hair_g,hair_b,hair_a,invis,hide_name,head
+         * shield id,shield r,g,b,a,weapon id,weapon r,g,b,a,hair_r,hair_g,hair_b,hair_a,invis,hide_name,head,respawn_seconds
          *
          * character type = 1 for player, 2 for regular npc, some others for banker and vendors will find later
          * hair id = 20ish for the normal hairs
