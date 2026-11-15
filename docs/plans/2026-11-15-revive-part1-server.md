@@ -1120,6 +1120,47 @@ git commit -m "feat(revive): respawn seconds on player MKC/CHP and base body whi
 
 ---
 
+### Task 4b: hide_name token on hand-built preview MKCs
+
+Part 2 removes the client's "server omitted hide_name" MKC fallback. The only MKCs still
+omitting it are the hand-built previews in the Illutia branches of `HairdyeCommand`
+(`Goose/Commands/HairdyeCommand.cs:34-63`) and `CustomCommand`
+(`Goose/Commands/CustomCommand.cs`, the Illutia branch ending `this.MountDisplay(...)` ~line 123).
+`GmHaxCommand` and `BodyStealerNPC.csx` build CHPs, which have no hide_name field — leave them.
+The non-Illutia `else` branches target another client and are left alone.
+
+**Files:**
+- Modify: `Goose/Commands/HairdyeCommand.cs`, `Goose/Commands/CustomCommand.cs`
+- Test: `Goose.Tests/PreviewMkcHideNameTests.cs` (create) — or extend the existing hairdye/custom command tests if they already capture the preview MKC (search `Goose.Tests` for `"MKC9000"` / `"Hairdye Preview"` first and add the assertion there).
+
+**Step 1: Failing test** — capture the preview MKC sent to the player and assert the token after
+the invis `0` is a hide_name `0` followed by the face id:
+
+```csharp
+Assert.Contains(",0,0," + player.FaceID + ",", previewMkc);
+```
+
+(`FaceID` set to a distinctive value such as `71`, so the match is unambiguous.)
+
+**Step 2:** Run it → FAIL.
+
+**Step 3:** In both Illutia branches, after `"0" + "," + // Invis thing` insert:
+
+```csharp
+                    "0" + "," + // HideName
+```
+
+**Step 4:** Run the filter and the full suite → PASS.
+
+**Step 5: Commit**
+
+```bash
+git add Goose Goose.Tests
+git commit -m "fix(preview): hand-built preview MKCs send hide_name"
+```
+
+---
+
 ### Task 5: Block actions while dead
 
 **Files:**

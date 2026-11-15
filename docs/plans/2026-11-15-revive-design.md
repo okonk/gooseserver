@@ -265,7 +265,8 @@ Client (`tests/Goose2Client.Tests`):
 - G1: Party frames show a dead member only as 0 HP; no dead indicator.
 - G2: Old clients ignore the trailing field and draw corpses standing; the server still
   blocks their input.
-- G3: Hand-built MKCs in GM/cosmetic commands and `BodyStealerNPC.csx` don't carry the
-  dead field (shown as alive if used on a corpse).
+- G3: Hand-built MKC/CHPs in GM/cosmetic commands and `BodyStealerNPC.csx` don't carry the
+  dead field (shown as alive if used on a corpse). The two hand-built preview MKCs (Hairdye,
+  Custom) gain a `hide_name` 0 token so the client can drop its no-hide_name fallback.
 - G4: Assumes all player base bodies are layered; a non-layered base body would render
   nothing while dead.
