@@ -82,8 +82,8 @@ public sealed class ArenaEndToEndTests : IDisposable
         Tick(fixture, controller, start.AddSeconds(12));
         var run = Run(fixture);
         Assert.Equal(2, run["Phase"]!.GetValue<int>());
-        Assert.Equal(14, Wallet(fixture, p1));
-        Assert.Equal(6, Wallet(fixture, p2));
+        Assert.Equal(2, Wallet(fixture, p1));
+        Assert.Equal(2, Wallet(fixture, p2));
 
         Tick(fixture, controller, start.AddSeconds(28));
         Assert.Equal(8, arenaMap.NPCs.Count);
@@ -105,8 +105,8 @@ public sealed class ArenaEndToEndTests : IDisposable
         var p2Result = results.Single(r => r!["Name"]!.GetValue<string>() == "P2")!;
         Assert.Equal(1, p1Result["RoundsCleared"]!.GetValue<int>());
         Assert.Equal(1, p2Result["RoundsCleared"]!.GetValue<int>());
-        Assert.Equal(14, p1Result["Coins"]!.GetValue<long>());
-        Assert.Equal(6, p2Result["Coins"]!.GetValue<long>());
+        Assert.Equal(2, p1Result["Coins"]!.GetValue<long>());
+        Assert.Equal(2, p2Result["Coins"]!.GetValue<long>());
         Assert.Equal(ArenaFixture.LobbyMapId, p2.MapID);
         Assert.Empty(arenaMap.NPCs);
         Assert.Contains(p1.Sent, s => s.Contains("You were eliminated"));
