@@ -2254,6 +2254,22 @@ namespace Goose
             world.Send(this, P.StatusInfo(this));
         }
 
+        public void Revive(ICharacter reviver, GameWorld world)
+        {
+            if (!this.IsDead) return;
+
+            this.CancelRespawnTimeout(world);
+            this.IsDead = false;
+            this.DeathRespawn = null;
+            this.CurrentHP = this.MaxHP / 2;
+            this.CurrentMP = this.MaxMP / 2;
+
+            this.AddRegenEvent(world);
+            this.SendCHPString(world);
+            this.SendVitals(world);
+            world.Send(this, P.Notice(NoticeType.Info, reviver.Name + " revived you."));
+        }
+
         private bool MapAllowsRevive(Map map, ICharacter killer, GameWorld world)
         {
             try

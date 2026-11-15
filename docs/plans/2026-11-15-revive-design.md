@@ -99,9 +99,11 @@ Single gate at the top of `SpellEffect.CastSpell`:
 - Target is a dead `Player` → only `Revive` proceeds; every other effect type (formula,
   buffs, teleport, script, …) returns false. AoE spells therefore skip corpses.
 - `EffectTypes.Revive when target is Player { IsDead: true }` → `CastReviveSpell` →
-  `target.Revive(world)`, returns true.
+  `target.Revive(caster, world)`, returns true.
 - Revive on a living player, NPC or pet returns false. Mana is spent as with any other
   failed cast (existing behaviour, unchanged).
+
+Spell data must set `WorksNotInPVP = true` (and `WorksInPVP` as desired); `CanCastSpell` rejects player→player casts on non-PvP maps otherwise.
 
 Formula fields are ignored for Revive; HP/MP are always half max.
 

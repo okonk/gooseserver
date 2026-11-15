@@ -89,7 +89,8 @@ namespace Goose
             PetDestroy,
             PetFollow,
             PetNeutral = 20,
-            Script
+            Script,
+            Revive
         }
 
         /**
@@ -698,6 +699,27 @@ namespace Goose
             return true;
         }
 
+        public bool CastReviveSpell(ICharacter caster, Player target, GameWorld world)
+        {
+            if (!this.CanCastSpell(caster, target)) return false;
+
+            target.Revive(caster, world);
+
+            List<string> packets = [];
+            if (this.Animation != 0) packets.Add(P.SpellPlayer(target.LoginID, this.Animation, this.AnimationFile));
+            if (this.DoCastAnimation) packets.Add(P.Cast(caster));
+            if (packets.Count == 0) return true;
+
+            string packet = string.Join("\x1", packets);
+            world.Send(target, packet);
+            foreach (var player in target.Map.GetPlayersInRange(target))
+            {
+                world.Send(player, packet);
+            }
+
+            return true;
+        }
+
         /**
          * CastPermanentSpell
          *
@@ -1047,6 +1069,9 @@ namespace Goose
          */
         public bool CastSpell(ICharacter caster, ICharacter target, GameWorld world, SpellCast? cast = null)
         {
+            if (target is Player { IsDead: true } corpse)
+                return this.EffectType == EffectTypes.Revive && this.CastReviveSpell(caster, corpse, world);
+
             return this.EffectType switch
             {
                 // Script effects delegate entirely to the script.
