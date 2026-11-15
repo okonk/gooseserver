@@ -2059,7 +2059,8 @@ var GOOSE_SCHEMA = {
             "PetDestroy",
             "PetFollow",
             "PetNeutral",
-            "Script"
+            "Script",
+            "Revive"
           ],
           "enumValues": [
             0,
@@ -2083,7 +2084,8 @@ var GOOSE_SCHEMA = {
             18,
             19,
             20,
-            21
+            21,
+            22
           ]
         },
         {

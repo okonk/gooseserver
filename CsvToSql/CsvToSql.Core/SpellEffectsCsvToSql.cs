@@ -187,6 +187,7 @@ namespace CsvToSql
             PetFollow,
             PetNeutral = 20,
             Script,
+            Revive,
         }
 
         /**
