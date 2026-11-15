@@ -46,6 +46,7 @@ public sealed class ArenaTestKit : IDisposable
         File.WriteAllText(Path.Combine(Fixture.DataDirectory, "Scripts", "Global", "ArenaHost.csx"), HostScript);
         Host = Fixture.World.ScriptHandler.GetScript<IGlobalScript>("Scripts/Global/ArenaHost.csx").Object;
         Fixture.Settings.MaxAC = 255;
+        Fixture.Settings.IdleTimeout = 600;
         Fixture.World.WorldState.Set("arena.open", true);
     }
 
@@ -53,6 +54,7 @@ public sealed class ArenaTestKit : IDisposable
     {
         var player = Fixture.CommandPlayerOn(World.MapHandler.Maps[LobbyMapId], 10, 10, name);
         player.PlayerID = playerId;
+        player.LastActive = World.TimeNow;
         if (gm) player.Access = Player.AccessStatus.GameMaster;
         Fixture.AddOnlinePlayer(player);
         World.MapHandler.Maps[LobbyMapId].Players.Add(player);

@@ -29,9 +29,12 @@ public static class ArenaCore
             return;
         }
 
-        var lobby = world.PlayerHandler.Players
+        var waiting = world.PlayerHandler.Players
             .Where(p => !p.IsGM && p.State == Player.States.Ready && p.Map is not null && p.Map.ID == cfg.LobbyMap)
             .ToList();
+        var lobby = waiting.Where(p => !p.IsIdle(world)).ToList();
+        foreach (var afk in waiting.Where(p => p.IsIdle(world)))
+            world.Send(afk, P.ServerMessage("[Arena] You were left out of this run for being AFK."));
         if (lobby.Count == 0) return;
 
         var run = new ArenaRun

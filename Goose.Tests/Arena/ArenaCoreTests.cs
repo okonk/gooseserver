@@ -60,6 +60,35 @@ public sealed class ArenaCoreTests : IDisposable
     }
 
     [Fact]
+    public void Start_leaves_afk_lobby_players_behind()
+    {
+        var active = kit.LobbyPlayer(70001, "Alice");
+        var afk = kit.LobbyPlayer(70002, "Bob");
+        afk.LastActive = kit.World.TimeNow - 601L * kit.World.TimerFrequency;
+
+        StartRun(kit, Now);
+
+        var participants = Participants(Run(kit)!);
+        Assert.Equal(1, participants.Count);
+        Assert.True(participants.Contains(70001));
+        Assert.Equal(ArenaTestKit.ArenaMapId, active.MapID);
+        Assert.Equal(ArenaTestKit.LobbyMapId, afk.MapID);
+        Assert.Contains(afk.Sent, s => s.Contains("AFK"));
+    }
+
+    [Fact]
+    public void Start_with_only_afk_players_creates_no_run()
+    {
+        var afk = kit.LobbyPlayer(70001, "Alice");
+        afk.LastActive = kit.World.TimeNow - 601L * kit.World.TimerFrequency;
+
+        StartRun(kit, Now);
+
+        Assert.Null(Run(kit));
+        Assert.Equal(ArenaTestKit.LobbyMapId, afk.MapID);
+    }
+
+    [Fact]
     public void Participant_is_saved_before_warp()
     {
         var p1 = kit.LobbyPlayer(70001, "Alice");

@@ -99,6 +99,8 @@ public sealed class ArenaFixture : TestWorldFixture
     {
         var player = CommandPlayerOn(World.MapHandler.Maps[LobbyMapId], 10, 10, name);
         player.PlayerID = playerId;
+        Settings.IdleTimeout = 600;
+        player.LastActive = World.TimeNow;
         AddOnlinePlayer(player);
         World.MapHandler.Maps[LobbyMapId].Players.Add(player);
         return player;
