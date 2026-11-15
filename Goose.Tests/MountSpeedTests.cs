@@ -108,8 +108,8 @@ public class MountSpeedTests
     {
         using var fixture = new Fixture();
 
-        Assert.EndsWith("273,255,255,255,100", fixture.MakeCharacter());
-        Assert.EndsWith("273,255,255,255,100", P.UpdateCharacter(fixture.Player));
+        Assert.EndsWith("273,255,255,255,100,0", fixture.MakeCharacter());
+        Assert.EndsWith("273,255,255,255,100,0", P.UpdateCharacter(fixture.Player));
     }
 
     [Fact]
@@ -118,8 +118,8 @@ public class MountSpeedTests
         using var fixture = new Fixture();
         fixture.Player.Mounted = false;
 
-        Assert.EndsWith("0,*", fixture.MakeCharacter());
-        Assert.EndsWith("0,*", P.UpdateCharacter(fixture.Player));
+        Assert.EndsWith("0,*,0", fixture.MakeCharacter());
+        Assert.EndsWith("0,*,0", P.UpdateCharacter(fixture.Player));
     }
 
     [Fact]
@@ -302,7 +302,7 @@ public class MountSpeedTests
         Assert.False(fixture.Player.IsMounted(fixture.World.World));
         Assert.Equal(BaseSpeed, fixture.Player.CalculateMoveSpeed());
         var chp = fixture.Player.Sent.Single(s => s.StartsWith("CHP"));
-        Assert.EndsWith("0,*", chp);
+        Assert.EndsWith("0,*,0", chp);
 
         fixture.Player.Sent.Clear();
         fixture.World.World.EventHandler.AddEvent(fixture.Player, "MNT");
@@ -311,7 +311,7 @@ public class MountSpeedTests
         Assert.True(fixture.Player.Mounted);
         Assert.Equal(MountSpeed, fixture.Player.CalculateMoveSpeed());
         var chp2 = fixture.Player.Sent.Single(s => s.StartsWith("CHP"));
-        Assert.EndsWith("273,255,255,255,100", chp2);
+        Assert.EndsWith("273,255,255,255,100,0", chp2);
     }
 
     [Fact]
@@ -368,7 +368,7 @@ public class MountSpeedTests
         Assert.True(fixture.Player.IsMounted(fixture.World.World));
         Assert.Empty(fixture.Player.Buffs);
         Assert.Equal(BaseSpeed, fixture.Player.CalculateMoveSpeed());
-        Assert.EndsWith("300,255,255,255,100", fixture.MakeCharacter());
+        Assert.EndsWith("300,255,255,255,100,0", fixture.MakeCharacter());
 
         fixture.Player.Sent.Clear();
         fixture.World.World.EventHandler.AddEvent(fixture.Player, "MNT");
@@ -377,7 +377,7 @@ public class MountSpeedTests
         Assert.False(fixture.Player.Mounted);
         Assert.False(fixture.Player.IsMounted(fixture.World.World));
         var chp = fixture.Player.Sent.Single(s => s.StartsWith("CHP"));
-        Assert.EndsWith("0,*", chp);
+        Assert.EndsWith("0,*,0", chp);
     }
 
     [Fact]

@@ -107,6 +107,7 @@ namespace Goose
          * body = values 100-166 are illusions, 1 is male, 11 is female. 2/12 are naga. 3 is skeleton
          * invis = 1 while the character currently has an Invisible buff (IsInvisible)
          * hide_name = 1 for NPCs with the hide_name flag set (HideName), always 0 for players/pets
+         * respawn_seconds = seconds until a dead player respawns, 0 while alive (players only)
          *
          * For item r,g,b,a of 0,0,0,0 you can use * instead
          *
@@ -123,7 +124,9 @@ namespace Goose
                 pose = weapon.Item.BodyState;
             }
 
-            bool layered = BodyClassification.IsLayered(player.CurrentBodyID);
+            int body = player.IsDead ? player.BodyID : player.CurrentBodyID;
+
+            bool layered = BodyClassification.IsLayered(body);
 
             return "MKC" + player.LoginID + "," +
                            "1," +
@@ -135,7 +138,7 @@ namespace Goose
                           player.MapY + "," +
                           (int)player.Facing + "," +
                           (int)(((float)player.CurrentHP / player.MaxHP) * 100) + "," + // HP %
-                          player.CurrentBodyID + "," +
+                          body + "," +
                           player.BodyR + "," + // Body Color R
                           player.BodyG + "," + // Body Color G
                           player.BodyB + "," + // Body Color B
@@ -149,7 +152,8 @@ namespace Goose
                           (layered ? player.FaceID + "," : "") +
                           player.CalculateMoveSpeed() + "," + // Move Speed
                           (player.Access > Player.AccessStatus.Normal ? "1" : "0") + "," + // Is GM
-                          (layered ? player.Inventory.MountDisplay() : ""); // Mount
+                          (layered ? player.Inventory.MountDisplay() + "," : "") + // Mount
+                          player.RespawnSeconds; // Respawn seconds, 0 = alive
         };
 
         public static Func<Player, string> UpdateCharacter = (player) =>
@@ -163,11 +167,13 @@ namespace Goose
                 pose = weapon.Item.BodyState;
             }
 
-            bool layered = BodyClassification.IsLayered(player.CurrentBodyID);
+            int body = player.IsDead ? player.BodyID : player.CurrentBodyID;
+
+            bool layered = BodyClassification.IsLayered(body);
 
             return "CHP" +
                    player.LoginID + "," +
-                   player.CurrentBodyID + "," +
+                   body + "," +
                    player.BodyR + "," + // Body Color R
                    player.BodyG + "," + // Body Color G
                    player.BodyB + "," + // Body Color B
@@ -182,7 +188,8 @@ namespace Goose
                    (player.IsInvisible ? "1" : "0") + "," + // Invisible
                    (layered ? player.FaceID + "," : "") +
                    player.CalculateMoveSpeed() + "," + // Move Speed
-                   (layered ? player.Inventory.MountDisplay() : ""); // Mount
+                   (layered ? player.Inventory.MountDisplay() + "," : "") + // Mount
+                   player.RespawnSeconds; // Respawn seconds, 0 = alive
         };
 
         public static Func<NPC, string> UpdateNPC = (npc) =>

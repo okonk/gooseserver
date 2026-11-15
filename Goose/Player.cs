@@ -69,6 +69,9 @@ namespace Goose
         public bool IsDead { get; private set; }
         public RespawnLocation? DeathRespawn { get; private set; }
         public long RespawnDeadline { get; private set; }
+        public int RespawnSeconds => this.IsDead
+            ? (int)Math.Max(1, Math.Ceiling((this.RespawnDeadline - System.Diagnostics.Stopwatch.GetTimestamp()) / (double)System.Diagnostics.Stopwatch.Frequency))
+            : 0;
         internal RespawnTimeoutEvent? PendingRespawnTimeout { get; private set; }
 
         /**

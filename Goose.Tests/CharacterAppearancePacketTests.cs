@@ -77,7 +77,7 @@ namespace Goose.Tests
             {
                 Assert.Equal(
                     "MKC7,1,Hax,T,S,,1,2,2,50,10001,10,20,30,40,4,11," +
-                    LayeredEquipped + LayeredHairColor + "1,0,70,0,1," + LayeredMount,
+                    LayeredEquipped + LayeredHairColor + "1,0,70,0,1," + LayeredMount + ",0",
                     P.MakeCharacter(player));
             }
         }
@@ -88,7 +88,7 @@ namespace Goose.Tests
             var (world, player) = NewPlayer(10100);
             using (world)
             {
-                Assert.Equal("MKC7,1,Hax,T,S,,1,2,2,50,10100,10,20,30,40,3,1,0,0,1,", P.MakeCharacter(player));
+                Assert.Equal("MKC7,1,Hax,T,S,,1,2,2,50,10100,10,20,30,40,3,1,0,0,1,0", P.MakeCharacter(player));
             }
         }
 
@@ -100,7 +100,7 @@ namespace Goose.Tests
             {
                 Assert.Equal(
                     "CHP7,10001,10,20,30,40,4,11," +
-                    LayeredEquipped + LayeredHairColor + "1,70,0," + LayeredMount,
+                    LayeredEquipped + LayeredHairColor + "1,70,0," + LayeredMount + ",0",
                     P.UpdateCharacter(player));
             }
         }
@@ -111,7 +111,7 @@ namespace Goose.Tests
             var (world, player) = NewPlayer(10100);
             using (world)
             {
-                Assert.Equal("CHP7,10100,10,20,30,40,3,1,0,", P.UpdateCharacter(player));
+                Assert.Equal("CHP7,10100,10,20,30,40,3,1,0,0", P.UpdateCharacter(player));
             }
         }
 
