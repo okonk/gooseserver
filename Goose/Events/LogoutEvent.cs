@@ -40,6 +40,8 @@ namespace Goose.Events
             }
             else
             {
+                if (player.IsDead) player.Respawn(world);
+
                 if (player.Map is not null)
                 {
                     List<Player> range = player.Map.GetPlayersInRange(player);
