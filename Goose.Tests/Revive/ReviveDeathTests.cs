@@ -127,6 +127,42 @@ public class ReviveDeathTests
     }
 
     [Fact]
+    public void Timeout_during_cross_map_load_respawns_at_the_warp_destination()
+    {
+        using var kit = new ReviveTestKit();
+        var p = kit.PlayerAt(5, 5);
+        kit.Kill(p);
+        var other = kit.Fixture.AddBaseMap(3, "Far", 40, 40);
+
+        p.WarpTo(kit.World, other, 9, 9);
+
+        p.PendingRespawnTimeout!.Ready(kit.World);
+
+        Assert.False(p.IsDead);
+        Assert.Null(p.PendingRespawnTimeout);
+        Assert.Equal(other.ID, p.MapID);
+        Assert.Equal(9, p.MapX);
+        Assert.Equal(9, p.MapY);
+        Assert.Equal(50, p.CurrentHP);
+    }
+
+    [Fact]
+    public void Respawn_during_cross_map_load_does_not_throw()
+    {
+        using var kit = new ReviveTestKit();
+        var p = kit.PlayerAt(5, 5);
+        kit.Kill(p);
+        var other = kit.Fixture.AddBaseMap(3, "Far", 40, 40);
+
+        p.WarpTo(kit.World, other, 9, 9);
+        p.Respawn(kit.World);
+
+        Assert.False(p.IsDead);
+        Assert.Equal(other.ID, p.MapID);
+        Assert.Equal(50, p.CurrentHP);
+    }
+
+    [Fact]
     public void Stale_timeout_does_nothing()
     {
         using var kit = new ReviveTestKit();

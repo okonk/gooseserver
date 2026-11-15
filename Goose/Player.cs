@@ -2250,7 +2250,9 @@ namespace Goose
 
             RespawnLocation? respawn = this.DeathRespawn;
             this.DeathRespawn = null;
-            this.WarpTo(world, respawn?.Map ?? this.BoundMap, respawn?.X ?? this.BoundX, respawn?.Y ?? this.BoundY);
+            // Map is null only mid cross-map load; the in-progress warp completes the move
+            if (this.Map is not null)
+                this.WarpTo(world, respawn?.Map ?? this.BoundMap, respawn?.X ?? this.BoundX, respawn?.Y ?? this.BoundY);
 
             this.AddRegenEvent(world);
             world.Send(this, P.VitalsPercentage(this));
