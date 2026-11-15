@@ -94,6 +94,7 @@ namespace Goose
         public long ExperienceCap { get; set; }
         public bool LockdownModeEnabled { get; set; }
         public int LogoutLagTime { get; set; }
+        public int ReviveTimeout { get; set; } = 60;
         public int GuildCreationCost { get; set; }
         public string DefaultGuildMOTD { get; set; } = null!;
         public int GuildSavePeriod { get; set; }

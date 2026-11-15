@@ -31,7 +31,7 @@ public class MountSpeedTests
 
         public Fixture(bool equipMount = true, bool seedBaseSpeed = true)
         {
-            this.World = new TestWorldFixture();
+            this.World = new TestWorldFixture(s => s.ReviveTimeout = 0);
             var map = this.World.AddBaseMap(1, "Test");
             map.CanUseItems = true;
             this.OtherMap = this.World.AddBaseMap(2, "Test2");

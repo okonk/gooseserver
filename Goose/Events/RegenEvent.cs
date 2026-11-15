@@ -65,7 +65,7 @@ namespace Goose.Events
             {
                 Player player = (Player)this.Data;
 
-                if (player.State == Player.States.Ready)
+                if (player.State == Player.States.Ready && !player.IsDead)
                 {
                     player.CurrentHP = Math.Max(1,
                         player.CurrentHP

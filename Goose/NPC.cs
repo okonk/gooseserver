@@ -1030,6 +1030,8 @@ namespace Goose
          */
         public void AddAggro(Player player, long value, bool wastaunt, GameWorld world)
         {
+            if (player.IsDead) return;
+
             // no target so just add to max/mapping
             if (this.AggroTarget is null)
             {
@@ -1131,6 +1133,7 @@ namespace Goose
          */
         public void AggroIfInRange(Player player, GameWorld world)
         {
+            if (player.IsDead) return;
             if (this.AggroRange == 0) return;
             if (this.AggroTarget is not null) return;
             if (player.IsInvisible && !this.CanSeeInvisible) return;

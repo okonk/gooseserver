@@ -122,6 +122,12 @@ namespace Goose.Scripting
         {
             return null;
         }
+
+        public virtual bool AllowsRevive(Map map, Player player, ICharacter killer, GameWorld world)
+        {
+            return true;
+        }
+
         public virtual void OnNPCSpawnEvent(Map map, NPC npc, GameWorld world)
         {
 

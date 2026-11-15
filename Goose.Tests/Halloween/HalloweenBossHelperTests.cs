@@ -108,6 +108,7 @@ public class HalloweenBossHelperTests
     public void Bleed_tick_that_kills_target_drops_entry()
     {
         var ctx = Setup();
+        ctx.Kit.Fixture.Settings.ReviveTimeout = 0;
         ctx.Target.MaxStats.HP = 10_000;
         ctx.Target.CurrentHP = 50;
         ctx.World.Settings.MaxDodgeChance = 0;

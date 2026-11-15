@@ -159,6 +159,11 @@ public class DimensionMap : BaseMapScript
         return DimensionHelpers.BaseMapScript(map, world)?.OnPlayerDied(map, player, killer, world);
     }
 
+    public override bool AllowsRevive(Map map, Player player, ICharacter killer, GameWorld world)
+    {
+        return DimensionHelpers.BaseMapScript(map, world)?.AllowsRevive(map, player, killer, world) ?? true;
+    }
+
     public override void OnNPCKilledEvent(Map map, NPC npc, ICharacter killer, GameWorld world)
     {
         DimensionHelpers.BaseMapScript(map, world)?.OnNPCKilledEvent(map, npc, killer, world);

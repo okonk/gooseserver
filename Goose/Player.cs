@@ -66,6 +66,10 @@ namespace Goose
             Ready
         }
         public States State { get; set; }
+        public bool IsDead { get; private set; }
+        public RespawnLocation? DeathRespawn { get; private set; }
+        public long RespawnDeadline { get; private set; }
+        internal RespawnTimeoutEvent? PendingRespawnTimeout { get; private set; }
 
         /**
          * Player account access status
@@ -2098,7 +2102,7 @@ namespace Goose
          */
         public virtual void Attacked(ICharacter character, long damage, GameWorld world)
         {
-            if (this.State != States.Ready) return;
+            if (this.State != States.Ready || this.IsDead) return;
 
             // pvp 1/3 damage
             if (damage > 0 && character is Player) damage /= 3;
@@ -2144,30 +2148,8 @@ namespace Goose
 
             if (this.CurrentHP <= 0)
             {
-                this.CurrentHP = (long)(this.MaxHP * 0.5);
-                this.CurrentMP = (long)(this.MaxMP * 0.1);
-
                 world.SendToMap(this.Map, P.ServerMessage(this.Name + " was slain by " + character.Name + "."));
-
-                RespawnLocation? respawn = this.NotifyDied(character, world);
-                this.WarpTo(world, respawn?.Map ?? this.BoundMap, respawn?.X ?? this.BoundX, respawn?.Y ?? this.BoundY);
-                this.AddRegenEvent(world);
-                world.Send(this, P.VitalsPercentage(this));
-                world.Send(this, P.StatusInfo(this));
-
-                // Remove all buffs on death
-                List<Buff> removebuff = [];
-                foreach (var b in this.Buffs)
-                {
-                    if (!b.ItemBuff) removebuff.Add(b);
-                }
-
-                foreach (var b in removebuff)
-                {
-                    this.RemoveBuff(b, world, false, updateCharacter: true);
-                }
-
-                this.SendBuffBar(world);
+                this.Die(character, world);
             }
             else
             {
@@ -2220,6 +2202,106 @@ namespace Goose
             }
 
             return respawn;
+        }
+
+        private void Die(ICharacter killer, GameWorld world)
+        {
+            Map deathMap = this.Map;
+            this.DeathRespawn = this.NotifyDied(killer, world);
+
+            if (world.Settings.ReviveTimeout <= 0 || !this.MapAllowsRevive(deathMap, killer, world))
+            {
+                this.Respawn(world);
+                this.RemoveDeathBuffs(world);
+                return;
+            }
+
+            this.IsDead = true;
+            this.CurrentHP = 0;
+            this.CurrentMP = 0;
+
+            this.RemoveDeathBuffs(world);
+            this.Dismount(world);
+
+            foreach (var pet in this.Pets.Where(p => p.IsAlive).ToList())
+                pet.Destroy(world);
+            foreach (var npc in this.Map.GetNPCsInRange(this))
+                npc.RemoveAggro(this);
+            foreach (var window in this.Windows.ToList())
+                window.Close(this, world);
+
+            this.RespawnDeadline = world.TimeNow + world.Settings.ReviveTimeout * world.TimerFrequency;
+            this.PendingRespawnTimeout = new RespawnTimeoutEvent { Ticks = this.RespawnDeadline, Data = this };
+            world.EventHandler.AddEvent(this.PendingRespawnTimeout);
+
+            this.SendCHPString(world);
+            this.SendVitals(world);
+        }
+
+        public void Respawn(GameWorld world)
+        {
+            this.CancelRespawnTimeout(world);
+            this.IsDead = false;
+            this.CurrentHP = (long)(this.MaxHP * 0.5);
+            this.CurrentMP = (long)(this.MaxMP * 0.1);
+
+            RespawnLocation? respawn = this.DeathRespawn;
+            this.DeathRespawn = null;
+            this.WarpTo(world, respawn?.Map ?? this.BoundMap, respawn?.X ?? this.BoundX, respawn?.Y ?? this.BoundY);
+
+            this.AddRegenEvent(world);
+            world.Send(this, P.VitalsPercentage(this));
+            world.Send(this, P.StatusInfo(this));
+        }
+
+        private bool MapAllowsRevive(Map map, ICharacter killer, GameWorld world)
+        {
+            try
+            {
+                return map.Script?.Object.AllowsRevive(map, this, killer, world) ?? true;
+            }
+            catch (Exception e)
+            {
+                log.Error(e, "Map AllowsRevive {0} ({1}) player {2} ({3}) Exception", map.Name, map.ID, this.Name, this.LoginID);
+                return false;
+            }
+        }
+
+        private void CancelRespawnTimeout(GameWorld world)
+        {
+            if (this.PendingRespawnTimeout is null) return;
+            world.EventHandler.RemoveEvent(this.PendingRespawnTimeout);
+            this.PendingRespawnTimeout = null;
+        }
+
+        private void RemoveDeathBuffs(GameWorld world)
+        {
+            foreach (var b in this.Buffs.Where(b => !b.ItemBuff).ToList())
+            {
+                this.RemoveBuff(b, world, false, updateCharacter: true);
+            }
+
+            this.SendBuffBar(world);
+        }
+
+        private void Dismount(GameWorld world)
+        {
+            if (!this.Mounted) return;
+
+            this.Mounted = false;
+            ItemSlot? mount = this.Inventory.GetEquippedSlot(Inventory.EquipSlots.Mount);
+            if (mount is not null) this.Inventory.RemoveMountBuff(mount.Item, world);
+        }
+
+        private void SendVitals(GameWorld world)
+        {
+            string vitals = P.VitalsPercentage(this);
+            world.Send(this, vitals);
+            world.Send(this, P.StatusInfo(this));
+            foreach (var player in this.Map.GetPlayersInRange(this))
+            {
+                world.Send(player, vitals);
+            }
         }
 
         /**

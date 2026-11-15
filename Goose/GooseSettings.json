@@ -62,6 +62,7 @@
     "BaseSPPercentRegen": 0.0,
     "BaseSPStaticRegen": 0,
     "SpRespawnPercentage": 1,
+    "ReviveTimeout": 60,
     "StartingHP": 0,
     "StartingMP": 0,
     "StartingSP": 0,

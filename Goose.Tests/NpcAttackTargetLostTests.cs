@@ -19,7 +19,7 @@ public class NpcAttackTargetLostTests : IDisposable
         Directory.CreateDirectory(Path.Combine(dataDirectory, "Scripts", "Quest"));
         world = new GameWorld(new GooseSettings
         {
-            DataPath = dataDirectory, ExperienceModifier = 1,
+            DataPath = dataDirectory, ExperienceModifier = 1, ReviveTimeout = 0,
             InventorySize = 30, EquippedSize = 20, CombineBagSize = 10, SpellbookSize = 30,
             MaxAC = 3500, MaxPlayers = 200, MaxNPCs = 15000, DamageModifier = 1,
         });
