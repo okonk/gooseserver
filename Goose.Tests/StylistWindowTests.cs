@@ -16,6 +16,8 @@ public class StylistWindowTests
         fixture.AddOnlinePlayer(player);
         player.HairID = 33;
         player.FaceID = 2;
+        player.BodyID = StylistWindow.MaleBodyID;
+        player.CurrentBodyID = StylistWindow.MaleBodyID;
         player.Gold = 10000;
         var template = fixture.AddNpcTemplate(StylistId, "Stylist", t => t.NPCType = NPCTemplate.Types.Ambient);
         var npc = fixture.SpawnNpc(map, 5, 5, template, properties: new PropertiesDictionary { ["stylist"] = true });
@@ -71,11 +73,11 @@ public class StylistWindowTests
         {
             OpenWindow(fixture, player, npc);
 
-            StylistWindow.Change(fixture.World, player, 12, 2);
+            StylistWindow.Change(fixture.World, player, 12, 2, StylistWindow.MaleBodyID);
 
             Assert.Equal(12, player.HairID);
             Assert.Equal(2, player.FaceID);
-            Assert.Equal(8000, player.Gold);
+            Assert.Equal(9000, player.Gold);
         }
     }
 
@@ -87,11 +89,11 @@ public class StylistWindowTests
         {
             OpenWindow(fixture, player, npc);
 
-            StylistWindow.Change(fixture.World, player, 33, 5);
+            StylistWindow.Change(fixture.World, player, 33, 5, StylistWindow.MaleBodyID);
 
             Assert.Equal(33, player.HairID);
             Assert.Equal(5, player.FaceID);
-            Assert.Equal(8000, player.Gold);
+            Assert.Equal(9000, player.Gold);
         }
     }
 
@@ -104,11 +106,11 @@ public class StylistWindowTests
             OpenWindow(fixture, player, npc);
             int r = player.HairR, g = player.HairG, b = player.HairB, a = player.HairA;
 
-            StylistWindow.Change(fixture.World, player, 12, 5);
+            StylistWindow.Change(fixture.World, player, 12, 5, StylistWindow.MaleBodyID);
 
             Assert.Equal(12, player.HairID);
             Assert.Equal(5, player.FaceID);
-            Assert.Equal(6000, player.Gold);
+            Assert.Equal(8000, player.Gold);
             Assert.Equal((r, g, b, a), (player.HairR, player.HairG, player.HairB, player.HairA));
         }
     }
@@ -122,7 +124,7 @@ public class StylistWindowTests
             OpenWindow(fixture, player, npc);
             player.Sent.Clear();
 
-            StylistWindow.Change(fixture.World, player, 33, 2);
+            StylistWindow.Change(fixture.World, player, 33, 2, StylistWindow.MaleBodyID);
 
             Assert.Equal(10000, player.Gold);
             Assert.Contains(player.Sent, s => s.Contains("Nothing changed."));
@@ -142,7 +144,7 @@ public class StylistWindowTests
             player.Sent.Clear();
             nearby.Sent.Clear();
 
-            StylistWindow.Change(fixture.World, player, 12, 5);
+            StylistWindow.Change(fixture.World, player, 12, 5, StylistWindow.MaleBodyID);
 
             Assert.Contains(player.Sent, s => s.StartsWith("CHP" + player.LoginID + ","));
             Assert.Contains(nearby.Sent, s => s.StartsWith("CHP" + player.LoginID + ","));
@@ -156,15 +158,15 @@ public class StylistWindowTests
         using (fixture)
         {
             OpenWindow(fixture, player, npc);
-            player.Gold = 1999;
+            player.Gold = 999;
             player.Sent.Clear();
 
-            StylistWindow.Change(fixture.World, player, 12, 2);
+            StylistWindow.Change(fixture.World, player, 12, 2, StylistWindow.MaleBodyID);
 
             Assert.Equal(33, player.HairID);
             Assert.Equal(2, player.FaceID);
-            Assert.Equal(1999, player.Gold);
-            Assert.Contains(player.Sent, s => s.Contains("You need 2000 gold."));
+            Assert.Equal(999, player.Gold);
+            Assert.Contains(player.Sent, s => s.Contains("You need 1000 gold."));
             Assert.DoesNotContain(player.Sent, s => s.StartsWith("CHP"));
         }
     }
@@ -176,14 +178,14 @@ public class StylistWindowTests
         using (fixture)
         {
             OpenWindow(fixture, player, npc);
-            player.Gold = 3000;
+            player.Gold = 1500;
             player.Sent.Clear();
 
-            StylistWindow.Change(fixture.World, player, 12, 5);
+            StylistWindow.Change(fixture.World, player, 12, 5, StylistWindow.MaleBodyID);
 
             Assert.Equal(33, player.HairID);
             Assert.Equal(2, player.FaceID);
-            Assert.Equal(3000, player.Gold);
+            Assert.Equal(1500, player.Gold);
             Assert.DoesNotContain(player.Sent, s => s.StartsWith("CHP"));
         }
     }
@@ -195,10 +197,10 @@ public class StylistWindowTests
         using (fixture)
         {
             OpenWindow(fixture, player, npc);
-            fixture.World.Settings.StylistChangeCost = -2000;
+            fixture.World.Settings.StylistChangeCost = -1000;
             player.Sent.Clear();
 
-            StylistWindow.Change(fixture.World, player, 12, 2);
+            StylistWindow.Change(fixture.World, player, 12, 2, StylistWindow.MaleBodyID);
 
             Assert.Equal(33, player.HairID);
             Assert.Equal(2, player.FaceID);
@@ -217,7 +219,7 @@ public class StylistWindowTests
             player.MapX = 30;
             player.Sent.Clear();
 
-            StylistWindow.Change(fixture.World, player, 12, 5);
+            StylistWindow.Change(fixture.World, player, 12, 5, StylistWindow.MaleBodyID);
 
             Assert.Equal(33, player.HairID);
             Assert.Equal(2, player.FaceID);
@@ -235,7 +237,7 @@ public class StylistWindowTests
         {
             player.Sent.Clear();
 
-            StylistWindow.Change(fixture.World, player, 12, 5);
+            StylistWindow.Change(fixture.World, player, 12, 5, StylistWindow.MaleBodyID);
 
             Assert.Equal(33, player.HairID);
             Assert.Equal(2, player.FaceID);
@@ -259,7 +261,7 @@ public class StylistWindowTests
             OpenWindow(fixture, player, npc);
             player.Sent.Clear();
 
-            StylistWindow.Change(fixture.World, player, hair, face);
+            StylistWindow.Change(fixture.World, player, hair, face, StylistWindow.MaleBodyID);
 
             Assert.Equal(33, player.HairID);
             Assert.Equal(2, player.FaceID);
@@ -277,20 +279,23 @@ public class StylistWindowTests
         {
             OpenWindow(fixture, player, npc);
 
-            Assert.True(fixture.RunCommand(player, "STC12,5"));
+            Assert.True(fixture.RunCommand(player, "STC12,5,11"));
 
             Assert.Equal(12, player.HairID);
             Assert.Equal(5, player.FaceID);
-            Assert.Equal(6000, player.Gold);
+            Assert.Equal(StylistWindow.FemaleBodyID, player.BodyID);
+            Assert.Equal(7000, player.Gold);
         }
     }
 
     [Theory]
     [InlineData("STC")]
     [InlineData("STC12")]
-    [InlineData("STC12,5,1")]
-    [InlineData("STCa,5")]
-    [InlineData("STC12,")]
+    [InlineData("STC12,5")]
+    [InlineData("STC12,5,1,1")]
+    [InlineData("STCa,5,1")]
+    [InlineData("STC12,5,a")]
+    [InlineData("STC12,,1")]
     public void Stc_malformed_is_ignored(string command)
     {
         var (fixture, map, player, npc) = Setup();
@@ -316,10 +321,95 @@ public class StylistWindowTests
         {
             OpenWindow(fixture, player, npc);
 
-            StylistWindow.Change(fixture.World, player, 12, 5);
+            StylistWindow.Change(fixture.World, player, 12, 5, StylistWindow.MaleBodyID);
 
             var log = Assert.Single(fixture.World.LogHandler.Pending, l => l.Type == Log.Types.Stylist);
-            Assert.Equal("Stylist: hair 33 -> 12 face 2 -> 5 cost 4000", log.Text);
+            Assert.Equal("Stylist: hair 33 -> 12 face 2 -> 5 body 1 -> 1 cost 2000", log.Text);
+        }
+    }
+
+    [Fact]
+    public void Change_gender_only_costs_one_slot()
+    {
+        var (fixture, map, player, npc) = Setup();
+        using (fixture)
+        {
+            OpenWindow(fixture, player, npc);
+
+            StylistWindow.Change(fixture.World, player, 33, 2, StylistWindow.FemaleBodyID);
+
+            Assert.Equal(StylistWindow.FemaleBodyID, player.BodyID);
+            Assert.Equal(StylistWindow.FemaleBodyID, player.CurrentBodyID);
+            Assert.Equal(9000, player.Gold);
+        }
+    }
+
+    [Fact]
+    public void Change_all_three_costs_three_slots()
+    {
+        var (fixture, map, player, npc) = Setup();
+        using (fixture)
+        {
+            OpenWindow(fixture, player, npc);
+
+            StylistWindow.Change(fixture.World, player, 12, 5, StylistWindow.FemaleBodyID);
+
+            Assert.Equal(7000, player.Gold);
+        }
+    }
+
+    [Fact]
+    public void Change_gender_while_transformed_keeps_transform_body()
+    {
+        var (fixture, map, player, npc) = Setup();
+        using (fixture)
+        {
+            OpenWindow(fixture, player, npc);
+            player.CurrentBodyID = 150;
+
+            StylistWindow.Change(fixture.World, player, 33, 2, StylistWindow.FemaleBodyID);
+
+            Assert.Equal(StylistWindow.FemaleBodyID, player.BodyID);
+            Assert.Equal(150, player.CurrentBodyID);
+        }
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(2)]
+    [InlineData(150)]
+    public void Change_to_non_gender_body_is_ignored(int body)
+    {
+        var (fixture, map, player, npc) = Setup();
+        using (fixture)
+        {
+            OpenWindow(fixture, player, npc);
+            player.Sent.Clear();
+
+            StylistWindow.Change(fixture.World, player, 12, 5, body);
+
+            Assert.Equal(StylistWindow.MaleBodyID, player.BodyID);
+            Assert.Equal(33, player.HairID);
+            Assert.Equal(10000, player.Gold);
+            Assert.Empty(player.Sent);
+        }
+    }
+
+    [Fact]
+    public void Change_keeps_unchanged_non_gender_body()
+    {
+        var (fixture, map, player, npc) = Setup();
+        using (fixture)
+        {
+            OpenWindow(fixture, player, npc);
+            player.BodyID = 150;
+            player.CurrentBodyID = 150;
+
+            StylistWindow.Change(fixture.World, player, 12, 2, 150);
+
+            Assert.Equal(12, player.HairID);
+            Assert.Equal(150, player.BodyID);
+            Assert.Equal(9000, player.Gold);
         }
     }
 }

@@ -386,6 +386,8 @@ namespace Goose.Tests
         [InlineData(26, 1, 0, "Stylist: hair 33 -> 12 face 2 -> 2 cost 2000", 0, "Alice changed hair 33 -> 12, face 2 -> 2 for 2000 gold")]
         [InlineData(26, 1, 0, "Stylist: hair x -> 12 face 2 -> 2 cost 2000", 0, "Stylist: Stylist: hair x -> 12 face 2 -> 2 cost 2000")]
         [InlineData(26, 1, 0, "Stylist: hair 33 -> 12", 0, "Stylist: Stylist: hair 33 -> 12")]
+        [InlineData(26, 1, 0, "Stylist: hair 33 -> 12 face 2 -> 2 body 1 -> 11 cost 2000", 0, "Alice changed hair 33 -> 12, face 2 -> 2, body 1 -> 11 for 2000 gold")]
+        [InlineData(26, 1, 0, "Stylist: hair 33 -> 12 face 2 -> 2 body x -> 11 cost 2000", 0, "Stylist: Stylist: hair 33 -> 12 face 2 -> 2 body x -> 11 cost 2000")]
         public void Stylist_summaries(long type, long player, long other, string text, long map, string expected)
         {
             Assert.Equal(expected, LogFormatter.Project(Row(type, player, other, text, map)).Summary);

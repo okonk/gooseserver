@@ -2,6 +2,9 @@ namespace Goose
 {
     public class StylistWindow : Window
     {
+        public const int MaleBodyID = 1;
+        public const int FemaleBodyID = 11;
+
         public StylistWindow(GameWorld world, Player player, NPC npc)
         {
             this.ID = ++player.LastWindowID;
@@ -41,7 +44,7 @@ namespace Goose
         {
         }
 
-        public static void Change(GameWorld world, Player player, int hair, int face)
+        public static void Change(GameWorld world, Player player, int hair, int face, int body)
         {
             StylistWindow? window = FindOpen(player);
             if (window is null) return;
@@ -54,13 +57,14 @@ namespace Goose
 
             GooseSettings settings = world.Settings;
             if (hair < 1 || hair > settings.StylistMaxHairID
-                || face < 1 || face > settings.StylistMaxFaceID)
+                || face < 1 || face > settings.StylistMaxFaceID
+                || (body != player.BodyID && body != MaleBodyID && body != FemaleBodyID))
             {
                 return;
             }
 
             long cost = (long)settings.StylistChangeCost
-                * ((hair != player.HairID ? 1 : 0) + (face != player.FaceID ? 1 : 0));
+                * ((hair != player.HairID ? 1 : 0) + (face != player.FaceID ? 1 : 0) + (body != player.BodyID ? 1 : 0));
             if (cost < 0) return;
             if (cost == 0)
             {
@@ -76,9 +80,12 @@ namespace Goose
 
             int oldHair = player.HairID;
             int oldFace = player.FaceID;
+            int oldBody = player.BodyID;
             player.RemoveGold(cost, world);
             player.HairID = hair;
             player.FaceID = face;
+            if (player.CurrentBodyID == player.BodyID) player.CurrentBodyID = body;
+            player.BodyID = body;
 
             string packet = P.UpdateCharacter(player);
             world.Send(player, packet);
@@ -89,7 +96,7 @@ namespace Goose
 
             world.Send(player, P.Notice(NoticeType.Info, "Your new look cost " + cost + " gold."));
             world.LogHandler.Log(Log.Types.Stylist, player,
-                "Stylist: hair " + oldHair + " -> " + hair + " face " + oldFace + " -> " + face + " cost " + cost);
+                "Stylist: hair " + oldHair + " -> " + hair + " face " + oldFace + " -> " + face + " body " + oldBody + " -> " + body + " cost " + cost);
         }
     }
 }

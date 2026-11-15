@@ -7,22 +7,24 @@ namespace Goose.Events
             if (this.Player.State == Player.States.Ready)
             {
                 string[] t = ((string)this.Data).Substring(3).Split(',');
-                if (t.Length != 2) return;
+                if (t.Length != 3) return;
 
                 int hair = 0;
                 int face = 0;
+                int body = 0;
 
                 try
                 {
                     hair = Convert.ToInt32(t[0]);
                     face = Convert.ToInt32(t[1]);
+                    body = Convert.ToInt32(t[2]);
                 }
                 catch (Exception)
                 {
                     return;
                 }
 
-                StylistWindow.Change(world, this.Player, hair, face);
+                StylistWindow.Change(world, this.Player, hair, face, body);
             }
         }
     }

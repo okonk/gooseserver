@@ -157,7 +157,7 @@
     "StartingBodyB": 0,
     "StartingBodyA": 0,
     "HairdyeCommandCost": 5000,
-    "StylistChangeCost": 2000,
+    "StylistChangeCost": 1000,
     "StylistMaxHairID": 46,
     "StylistMaxFaceID": 18,
     "RespawnTimeBackoff": 1.05,

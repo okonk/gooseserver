@@ -336,15 +336,28 @@ namespace Goose.Logs
             const string prefix = "Stylist: hair ";
             if (!c.Text.StartsWith(prefix, StringComparison.Ordinal)) return Fallback(c);
             var t = c.Text[prefix.Length..].Split(' ');
-            if (t.Length != 9 || t[1] != "->" || t[3] != "face" || t[5] != "->" || t[7] != "cost" ||
+            bool hasBody = t.Length == 13;
+            if ((t.Length != 9 && !hasBody) || t[1] != "->" || t[3] != "face" || t[5] != "->" ||
+                t[^2] != "cost" ||
                 !TryLong(t[0], out long oldHair) || !TryLong(t[2], out long newHair) ||
                 !TryLong(t[4], out long oldFace) || !TryLong(t[6], out long newFace) ||
-                !TryLong(t[8], out long cost))
+                !TryLong(t[^1], out long cost))
             {
                 return Fallback(c);
             }
 
-            return $"{Player(c)} changed hair {oldHair} -> {newHair}, face {oldFace} -> {newFace} for {cost} gold";
+            string looks = $"hair {oldHair} -> {newHair}, face {oldFace} -> {newFace}";
+            if (hasBody)
+            {
+                if (t[7] != "body" || t[9] != "->" ||
+                    !TryLong(t[8], out long oldBody) || !TryLong(t[10], out long newBody))
+                {
+                    return Fallback(c);
+                }
+                looks += $", body {oldBody} -> {newBody}";
+            }
+
+            return $"{Player(c)} changed {looks} for {cost} gold";
         }
 
         private static string GetItemSummary(LogFormatContext c)
