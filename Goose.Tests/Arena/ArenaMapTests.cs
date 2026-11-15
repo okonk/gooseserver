@@ -54,6 +54,15 @@ public sealed class ArenaMapTests : IDisposable
     }
 
     [Fact]
+    public void Arena_does_not_allow_revive()
+    {
+        var script = kit.AttachMapScript();
+        var p1 = kit.LobbyPlayer(70001, "P1");
+
+        Assert.False(script.Object.AllowsRevive(kit.ArenaMap, p1, p1, kit.World));
+    }
+
+    [Fact]
     public void Death_eliminates_and_respawns_in_lobby()
     {
         kit.AttachMapScript();

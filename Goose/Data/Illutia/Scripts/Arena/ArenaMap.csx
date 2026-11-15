@@ -44,6 +44,8 @@ public class ArenaMap : BaseMapScript
         return new RespawnLocation(lobby, cfg.LobbySpawn[0], cfg.LobbySpawn[1]);
     }
 
+    public override bool AllowsRevive(Map map, Player player, ICharacter killer, GameWorld world) => false;
+
     public override void OnPlayerLeft(Map map, Player player, GameWorld world)
     {
         if (ArenaCore.IsParticipant(world, player.PlayerID))
