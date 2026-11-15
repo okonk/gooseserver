@@ -67,7 +67,7 @@ namespace Goose.Tests
 
         private const string LayeredEquipped = "0,*,0,*,0,*,0,*,0,*,101,1,2,3,4,";
         private const string LayeredHairColor = "5,6,7,8,";
-        private const string LayeredMount = "202,5,6,7,8,";
+        private const string LayeredMount = "202,5,6,7,8";
 
         [Fact]
         public void MakeCharacter_layered_body_sends_full_shape_with_weapon_pose()

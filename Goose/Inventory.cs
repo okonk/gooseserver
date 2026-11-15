@@ -984,7 +984,7 @@ namespace Goose
                             item.Item.GraphicR + "," +
                             item.Item.GraphicG + "," +
                             item.Item.GraphicB + "," +
-                            item.Item.GraphicA + ",";
+                            item.Item.GraphicA;
                 }
             }
             else
