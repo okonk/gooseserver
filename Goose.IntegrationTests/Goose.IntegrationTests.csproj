@@ -80,6 +80,10 @@
           Link="ArenaScripts/ArenaSpells.csx" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Goose/Data/Illutia/Scripts/Arena/ArenaMob.csx"
           Link="ArenaScripts/ArenaMob.csx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Goose/Data/Illutia/Scripts/Arena/ArenaBoss.csx"
+          Link="ArenaScripts/ArenaBoss.csx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Goose/Data/Illutia/Scripts/Arena/ArenaFloor.csx"
+          Link="ArenaScripts/ArenaFloor.csx" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Goose/Data/Illutia/Scripts/Arena/ArenaMap.csx"
           Link="ArenaScripts/ArenaMap.csx" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Goose/Data/Illutia/Scripts/Arena/ArenaController.csx"
