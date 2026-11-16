@@ -79,8 +79,6 @@ public class WanderingChest : BaseGlobalScript
         [146] = ["Those who passed and returned have brought something back with them."],
         [151] = ["High on the winter heights, Richard after Richard guards a chest."],
         [153] = ["Simon says: climb the winter heights once more and look for gold."],
-        [168] = ["In a grove of gourds, the chiefs have carved out a treasure for themselves."],
-        [166] = ["Among the pumpkins of the grove, one is not a pumpkin at all."],
         [130] = ["In a rugged valley where young bears play, a chest is the new toy."],
         [129] = ["Bears on patrol in their kingdom have walked straight past something golden."],
         [158] = ["In the pits, the starving bears would eat anything except this."],
