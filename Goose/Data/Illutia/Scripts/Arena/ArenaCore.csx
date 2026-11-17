@@ -341,6 +341,13 @@ public static class ArenaCore
             if (p.Alive) PayMilestone(world, cfg, run, p);
         run = ArenaState.Load(world) ?? run;
 
+        foreach (var p in run.Participants.Values.Where(p => p.Alive))
+        {
+            var survivor = FindPlayer(world, p.Id);
+            if (survivor is not null)
+                world.Send(survivor, P.ServerMessage("[Arena] The run is over (" + reason + "). Rounds cleared: " + p.RoundsCleared + ". Arena Coins: " + p.Coins + "."));
+        }
+
         foreach (var p in run.Participants.Values)
             p.Alive = false;
         ArenaState.Save(world, run);
