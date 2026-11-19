@@ -147,9 +147,9 @@ public sealed class ArenaBossTests : IDisposable
     {
         var boss = Boss(40, 40);
         var zone = Call("BossStart", "safeZone", boss, kit.World)!;
-        var edge = Tiles(zone);
-        int minX = edge.Min(t => t.X) + 1, minY = edge.Min(t => t.Y) + 1;
-        int maxX = edge.Max(t => t.X) - 1, maxY = edge.Max(t => t.Y) - 1;
+        var safeTiles = (List<(int X, int Y)>)Call("BossSafeTiles", zone)!;
+        int minX = safeTiles.Min(t => t.X), minY = safeTiles.Min(t => t.Y);
+        int maxX = safeTiles.Max(t => t.X), maxY = safeTiles.Max(t => t.Y);
         Assert.Equal(15, maxX - minX + 1);
         Assert.Equal(8, maxY - minY + 1);
 
@@ -162,15 +162,14 @@ public sealed class ArenaBossTests : IDisposable
     }
 
     [Fact]
-    public void Safe_zone_shows_its_block_with_the_green_target()
+    public void Safe_zone_shows_only_its_block_with_the_green_target()
     {
         var boss = Boss(40, 40);
         var watcher = Player(10, 10);
         var zone = Call("BossStart", "safeZone", boss, kit.World)!;
-        var edge = Tiles(zone);
         var safe = (List<(int X, int Y)>)Call("BossSafeTiles", zone)!;
         Assert.Equal(15 * 8, safe.Count);
-        Assert.Empty(safe.Intersect(edge));
+        Assert.Empty(Tiles(zone));
 
         watcher.Sent.Clear();
         Call("BossRun", boss, kit.World, zone);
@@ -178,8 +177,7 @@ public sealed class ArenaBossTests : IDisposable
         var sent = string.Join("\x1", watcher.Sent);
         foreach (var (x, y) in safe)
             Assert.Contains(P.SpellTile(x, y, 900003, 30025), sent);
-        foreach (var (x, y) in edge)
-            Assert.Contains(P.SpellTile(x, y, 900001, 30022), sent);
+        Assert.DoesNotContain(",900001,", sent);
     }
 
     [Fact]

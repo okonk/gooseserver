@@ -194,7 +194,7 @@
     // multiple of the boss's weapon damage, mitigated by armor like a melee hit. Every warning
     // tile plays animation/animationFile (1 second, re-sent each second of the windup). The boss
     // uses one mechanic every gapSeconds [min, max]; swap and summon run on their own triggers.
-    // safeZone tiles players must stand on play safeZone.animation/animationFile instead.
+    // safeZone marks only the tiles players must stand on, with safeZone.animation/animationFile.
     "bossMechanics": {
         "animation": 900001,
         "animationFile": 30022,
@@ -204,7 +204,7 @@
         "charge": { "fromRound": 15, "damage": 2.5, "length": 8, "windup": 1.5 },
         "mark": { "fromRound": 15, "damage": 4, "size": 3, "windup": 3 },
         "safeZone": { "fromRound": 25, "damage": 3, "blockWidth": 15, "blockHeight": 8, "maxDistance": 8, "windup": 9, "animation": 900003, "animationFile": 30025 },
-        "pull": { "fromRound": 25, "range": 8, "windup": 2.5 },
+        "pull": { "fromRound": 25, "range": 8, "windup": 4 },
         "swap": { "fromRound": 25, "everySeconds": [45, 60], "windup": 1.5, "lockSeconds": 10, "emote": [1081, 8] },
     },
 }

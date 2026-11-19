@@ -298,16 +298,14 @@ public static class ArenaBoss
         var safe = near[world.Random.Next(near.Count)];
         bool Inside(int x, int y) => x >= safe.X && x < safe.X + safe.W && y >= safe.Y && y < safe.Y + safe.H;
 
-        var edge = new List<(int X, int Y)>();
         var inside = new List<(int X, int Y)>();
-        for (int x = safe.X - 1; x <= safe.X + safe.W; x++)
-            for (int y = safe.Y - 1; y <= safe.Y + safe.H; y++)
-                if (ArenaFloor.OnFloor(npc.Map, rect, x, y)) (Inside(x, y) ? inside : edge).Add((x, y));
+        for (int x = safe.X; x < safe.X + safe.W; x++)
+            for (int y = safe.Y; y < safe.Y + safe.H; y++)
+                if (ArenaFloor.OnFloor(npc.Map, rect, x, y)) inside.Add((x, y));
 
         Notice(npc, world, Name(npc) + " gathers its power! Get inside the marked zone!");
         return new ArenaTelegraph
         {
-            Tiles = edge,
             SafeTiles = inside,
             Windup = z.Windup,
             Busy = true,
