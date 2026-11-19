@@ -11,6 +11,7 @@ public sealed class ArenaTelegraph
 {
     public List<(int X, int Y)> Tiles { get; set; } = new();
     public Func<List<(int X, int Y)>>? LiveTiles { get; set; }
+    public List<(int X, int Y)> SafeTiles { get; set; } = new();
     public double Windup { get; set; }
     public bool Busy { get; set; }
     public Action Resolve { get; set; } = () => { };
@@ -123,11 +124,11 @@ public static class ArenaBoss
         string token = npc.Properties.GetProperty<string>(TokenKey, "");
         if (t.Busy) npc.Properties[BusyUntilKey] = world.TimeNow + Ticks(world, t.Windup);
         world.SendToMap(npc.Map, P.Cast(npc));
-        Show(npc, world, cfg, t.LiveTiles?.Invoke() ?? t.Tiles);
+        Show(npc, world, cfg, t);
         for (int second = 1; second < t.Windup; second++)
             ScriptTimerEvent.Create(() =>
             {
-                if (Same(npc, token)) Show(npc, world, cfg, t.LiveTiles?.Invoke() ?? t.Tiles);
+                if (Same(npc, token)) Show(npc, world, cfg, t);
             }, TimeSpan.FromSeconds(second), world);
         ScriptTimerEvent.Create(() =>
         {
@@ -138,11 +139,15 @@ public static class ArenaBoss
     private static bool Same(NPC npc, string token)
         => npc.State == NPC.States.Alive && npc.Properties.GetProperty<string>(TokenKey, "") == token;
 
-    private static void Show(NPC npc, GameWorld world, ArenaConfig cfg, List<(int X, int Y)> tiles)
+    private static void Show(NPC npc, GameWorld world, ArenaConfig cfg, ArenaTelegraph t)
     {
-        if (tiles.Count == 0) return;
         var m = cfg.BossMechanics;
-        world.SendToMap(npc.Map, string.Join("\x1", tiles.Select(t => P.SpellTile(t.X, t.Y, m.Animation, m.AnimationFile))));
+        var packets = (t.LiveTiles?.Invoke() ?? t.Tiles).Select(p => P.SpellTile(p.X, p.Y, m.Animation, m.AnimationFile));
+        if (m.SafeZone is { } z)
+            packets = packets.Concat(t.SafeTiles.Select(p => P.SpellTile(p.X, p.Y, z.Animation, z.AnimationFile)));
+        var all = packets.ToList();
+        if (all.Count == 0) return;
+        world.SendToMap(npc.Map, string.Join("\x1", all));
     }
 
     private static void Notice(NPC npc, GameWorld world, string text)
@@ -294,14 +299,16 @@ public static class ArenaBoss
         bool Inside(int x, int y) => x >= safe.X && x < safe.X + safe.W && y >= safe.Y && y < safe.Y + safe.H;
 
         var edge = new List<(int X, int Y)>();
+        var inside = new List<(int X, int Y)>();
         for (int x = safe.X - 1; x <= safe.X + safe.W; x++)
             for (int y = safe.Y - 1; y <= safe.Y + safe.H; y++)
-                if (!Inside(x, y) && ArenaFloor.OnFloor(npc.Map, rect, x, y)) edge.Add((x, y));
+                if (ArenaFloor.OnFloor(npc.Map, rect, x, y)) (Inside(x, y) ? inside : edge).Add((x, y));
 
         Notice(npc, world, Name(npc) + " gathers its power! Get inside the marked zone!");
         return new ArenaTelegraph
         {
             Tiles = edge,
+            SafeTiles = inside,
             Windup = z.Windup,
             Busy = true,
             Resolve = () => Hit(npc, world, cfg, Targets(npc).Where(p => !Inside(p.MapX, p.MapY)), z.Damage),

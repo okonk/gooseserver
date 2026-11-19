@@ -215,6 +215,8 @@ public sealed class ArenaTestKit : IDisposable
             public object BossStart(string kind, NPC npc, GameWorld world) => ArenaBoss.Start(kind, npc, world, ArenaConfig.Get(world));
             public void BossResolve(object t) => ((ArenaTelegraph)t).Resolve();
             public List<(int X, int Y)> BossTiles(object t) => ((ArenaTelegraph)t).LiveTiles?.Invoke() ?? ((ArenaTelegraph)t).Tiles;
+            public List<(int X, int Y)> BossSafeTiles(object t) => ((ArenaTelegraph)t).SafeTiles;
+            public void BossRun(NPC npc, GameWorld world, object t) => ArenaBoss.Run(npc, world, ArenaConfig.Get(world), (ArenaTelegraph)t);
             public List<NPC> BossSummon(NPC npc, GameWorld world) => ArenaBoss.Summon(npc, world, ArenaConfig.Get(world));
             public void BossHold(NPC npc, GameWorld world) => ArenaBoss.HoldTarget(npc, world);
             public bool BossThink(NPC npc, GameWorld world) => ArenaBoss.Think(npc, world, ArenaConfig.Get(world));

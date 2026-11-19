@@ -91,6 +91,8 @@ public sealed class ArenaSafeZone
     public int BlockHeight { get; set; } = 8;
     public int MaxDistance { get; set; } = 20;
     public double Windup { get; set; } = 6;
+    public int Animation { get; set; } = 900003;
+    public int AnimationFile { get; set; } = 30025;
 }
 
 public sealed class ArenaSwap

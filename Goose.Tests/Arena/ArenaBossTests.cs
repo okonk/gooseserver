@@ -162,6 +162,27 @@ public sealed class ArenaBossTests : IDisposable
     }
 
     [Fact]
+    public void Safe_zone_shows_its_block_with_the_green_target()
+    {
+        var boss = Boss(40, 40);
+        var watcher = Player(10, 10);
+        var zone = Call("BossStart", "safeZone", boss, kit.World)!;
+        var edge = Tiles(zone);
+        var safe = (List<(int X, int Y)>)Call("BossSafeTiles", zone)!;
+        Assert.Equal(15 * 8, safe.Count);
+        Assert.Empty(safe.Intersect(edge));
+
+        watcher.Sent.Clear();
+        Call("BossRun", boss, kit.World, zone);
+
+        var sent = string.Join("\x1", watcher.Sent);
+        foreach (var (x, y) in safe)
+            Assert.Contains(P.SpellTile(x, y, 900003, 30025), sent);
+        foreach (var (x, y) in edge)
+            Assert.Contains(P.SpellTile(x, y, 900001, 30022), sent);
+    }
+
+    [Fact]
     public void Swap_teleports_behind_the_top_damage_dealer_and_holds_them_despite_taunt()
     {
         var boss = Boss(40, 40);
