@@ -15,7 +15,7 @@ damages or heals whoever stands on its tiles, and it can hold a buff on anyone s
 | Overlap | Default *exclusive*: the newest exclusive zone owns a tile, of **any** spell or caster; older exclusive zones go quiet on that tile. `zone_overlaps = 1` keeps a zone out of ownership entirely: it always ticks on all its tiles and never suppresses or is suppressed. |
 | Duration | `effect_duration` (seconds). |
 | Caster gone | The zone lasts its full duration. It holds the `Caster` reference like `Buff.Caster` does, so formulas use live caster stats, same as existing DoTs. |
-| Zone buffs | `zone_buff_effect_id` links a Buff/Snare/TickBuff effect, held while standing on an active tile and removed on leaving. Stun/Root rejected at load. |
+| Zone buffs | `zone_buff_effect_id` links a Buff/TickBuff/Snare/Stun/Root effect, held while standing on an active tile and removed on leaving. A stun/root zone holds you until it expires. |
 | Shapes | Reuse `target_type`/`target_size`. `Random` rejected for zones at load. |
 | Visual | New persistent `ZADD`/`ZDEL` packets with a tile list; the client loops the animation. No per-tick packets. |
 | Schema | New columns go in CsvToSql schema/data only — no `onetimeupdates.sql` entries. |
@@ -36,13 +36,15 @@ damages or heals whoever stands on its tiles, and it can hold a buff on anyone s
 **`spells`**
 - `ground_targetable` (bool, default 0). Only meaningful with `spell_target = Target`.
 
-**Load validation (warn and skip):** a GroundZone with `target_type = Random`; a zone buff whose effect is
-Stun or Root; an unknown `zone_buff_effect_id`.
+**Load validation (warn and skip):** a GroundZone with `target_type = Random`; a zone buff whose effect isn't
+Buff, TickBuff, Snare, Stun or Root; an unknown `zone_buff_effect_id`.
 
 **Examples**
 - *Fire Patch* — Target + ground_targetable, Area 1 (3×3), 8s, 1000ms, HP `-(INT*0.4)`, Effected NPC|Player.
 - *Sanctuary* — Self, Area 2 (5×5), 10s, 2000ms, HP `+(INT*0.3)`, +AC zone buff, `zone_overlaps = 1`.
 - *Tar Pit* — Target, Area 1, 6s, no formula, 40% snare zone buff.
+- *Binding Glyph* — an NPC's `OnAttack`/`OnMeleeHit` reaction spell, Target, Area 1, 5s, Root zone buff,
+  `zone_overlaps = 1` so a player's newer zone can't free whoever is caught in it.
 
 ## 2. Server runtime
 
@@ -162,7 +164,10 @@ Recorded in the part plans; listed here so the design stays the single overview.
 
 - **Zone tick interval** is clamped to at least 100 ms in code rather than validated at load.
 - **Zone buffs can't be clicked off** (the design said they'd come back on the next step).
-- **Allowed zone buff types:** Buff, TickBuff, Snare. TickBuff zone buffs don't replay their tick animation.
+- **Allowed zone buff types:** Buff, TickBuff, Snare, Stun, Root. TickBuff/Stun/Root zone buffs don't replay
+  their tick animation. Stun/Root zone buffs show the usual battle text on entry.
+- **An exclusive zone frees whoever an older stun/root zone holds** on the tiles it takes over. Trap zones
+  should set `zone_overlaps = 1`.
 - **A timed copy of the same buff is left alone;** the zone copy appears on the next step after it expires.
 - **Zone-buff eligibility** checks both the zone's and the buff's `CanCastSpell`; Snare stays NPC-only.
 - **Group-target ground zone spells** are rejected at load.

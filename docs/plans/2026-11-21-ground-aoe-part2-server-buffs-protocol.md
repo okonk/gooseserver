@@ -66,8 +66,11 @@ line numbers below for files Part 1 touches (`SpellEffect.cs`, `GroundZones.cs`)
 
 1. **Zone buffs can't be clicked off.** The design said "ignore `buff_removable`; it comes back on the
    next step". Blocking the click in `KillBuffEvent` is simpler and avoids a buff that flickers back.
-2. **Allowed zone buff types are `Buff`, `TickBuff` and `Snare`.** Anything else (including Stun and Root)
-   rejects the zone at load. `TickBuff` zone buffs show their stats but don't replay their tick animation,
+2. **Allowed zone buff types are `Buff`, `TickBuff`, `Snare`, `Stun` and `Root`.** Anything else rejects
+   the zone at load. A stun or root zone holds its target until the zone expires or a newer exclusive zone
+   takes the tile; NPC immunities (`CanBeStunned`, `CanBeRooted`) still apply. Adding a Stun/Root zone buff
+   shows the same "Stunned"/"Rooted" battle text as a cast, through `SpellEffect.AnnounceDisable`, extracted
+   from `CastBuffSpell` (`Goose/SpellEffect.cs:791-812`). `TickBuff` zone buffs show their stats but don't replay their tick animation,
    because `BuffTickEvent` only runs for buffs with an expiry event (`BuffTickEvent.cs:14`).
 3. **A zone doesn't replace a timed copy of the same buff.** If the character already has that buff from
    an ordinary cast (or anything in its stacking lists), the zone leaves it alone. When the timed copy
@@ -117,11 +120,12 @@ Append to `Goose.Tests/Spells/GroundZoneValidationTests.cs`:
     [InlineData(SpellEffect.EffectTypes.Buff, true)]
     [InlineData(SpellEffect.EffectTypes.TickBuff, true)]
     [InlineData(SpellEffect.EffectTypes.Snare, true)]
-    [InlineData(SpellEffect.EffectTypes.Stun, false)]
-    [InlineData(SpellEffect.EffectTypes.Root, false)]
+    [InlineData(SpellEffect.EffectTypes.Stun, true)]
+    [InlineData(SpellEffect.EffectTypes.Root, true)]
     [InlineData(SpellEffect.EffectTypes.Formula, false)]
+    [InlineData(SpellEffect.EffectTypes.Tick, false)]
     [InlineData(SpellEffect.EffectTypes.GroundZone, false)]
-    public void Only_buff_snare_and_tickbuff_can_be_zone_buffs(SpellEffect.EffectTypes type, bool allowed)
+    public void Only_buff_like_effects_can_be_zone_buffs(SpellEffect.EffectTypes type, bool allowed)
     {
         var buff = new SpellEffect { ID = 99, EffectType = type };
 
@@ -147,12 +151,17 @@ Append to `Goose.IntegrationTests/GroundZoneLoadTests.cs`:
                "effect_duration, target_type, target_size, zone_buff_effect_id) VALUES (13, 'Stun Field', 6, 23, 8, 5, 1, 11)");
         Insert("INSERT INTO spell_effects (spell_effect_id, spell_effect_name, spell_effected, effect_type, " +
                "effect_duration, target_type, target_size, zone_buff_effect_id) VALUES (14, 'Ghost Field', 6, 23, 8, 5, 1, 404)");
+        Insert("INSERT INTO spell_effects (spell_effect_id, spell_effect_name, spell_effected, effect_type) " +
+               "VALUES (15, 'Bolt', 6, 0)");
+        Insert("INSERT INTO spell_effects (spell_effect_id, spell_effect_name, spell_effected, effect_type, " +
+               "effect_duration, target_type, target_size, zone_buff_effect_id) VALUES (16, 'Bolt Field', 6, 23, 8, 5, 1, 15)");
 
         Load();
 
         Assert.Same(world.SpellHandler.GetSpellEffect(10), world.SpellHandler.GetSpellEffect(12)!.ZoneBuffEffect);
-        Assert.Null(world.SpellHandler.GetSpellEffect(13));
+        Assert.Same(world.SpellHandler.GetSpellEffect(11), world.SpellHandler.GetSpellEffect(13)!.ZoneBuffEffect);
         Assert.Null(world.SpellHandler.GetSpellEffect(14));
+        Assert.Null(world.SpellHandler.GetSpellEffect(16));
     }
 ```
 
@@ -209,8 +218,10 @@ and in the copy ctor after `this.ZoneOverlaps = other.ZoneOverlaps;`:
         {
             if (zone.ZoneBuffEffectID == 0) return null;
             if (buff is null) return "unknown zone_buff_effect_id " + zone.ZoneBuffEffectID;
-            if (buff.EffectType is not (SpellEffect.EffectTypes.Buff or SpellEffect.EffectTypes.TickBuff or SpellEffect.EffectTypes.Snare))
-                return "zone buffs must be Buff, TickBuff or Snare, not " + buff.EffectType;
+            if (buff.EffectType is not (SpellEffect.EffectTypes.Buff or SpellEffect.EffectTypes.TickBuff or
+                                        SpellEffect.EffectTypes.Snare or SpellEffect.EffectTypes.Stun or
+                                        SpellEffect.EffectTypes.Root))
+                return "zone buffs must be Buff, TickBuff, Snare, Stun or Root, not " + buff.EffectType;
             return null;
         }
 ```
@@ -416,7 +427,7 @@ git commit -m "feat(spells): zone-held buffs don't expire and can't be clicked o
 ### Task 3: `RecheckBuffs`, driven by zone creation and removal
 
 **Files:**
-- Modify: `Goose/GroundZones.cs`
+- Modify: `Goose/GroundZones.cs`, `Goose/SpellEffect.cs` (`CastBuffSpell`, `:791-812`)
 - Create: `Goose.Tests/GroundZones/ZoneBuffTests.cs`
 
 **Step 1: Write the failing tests**
@@ -560,6 +571,38 @@ public class ZoneBuffTests
     }
 
     [Fact]
+    public void A_stun_zone_holds_its_target_until_it_expires()
+    {
+        using var kit = new GroundZoneTestKit();
+        var stun = Buff(kit, 50, SpellEffect.EffectTypes.Stun);
+        var p = kit.PlayerAt(10, 10, "Walker");
+
+        var zone = kit.Map.GroundZones.Create(BuffZone(kit, 1, stun), Caster(kit), 10, 10, kit.World);
+
+        Assert.NotNull(Held(p, stun));
+        Assert.Contains("BT" + p.LoginID + ",50", string.Concat(p.Sent));
+
+        kit.Map.GroundZones.Tick(zone, zone.ExpiresAt, kit.World);
+
+        Assert.Null(Held(p, stun));
+    }
+
+    [Fact]
+    public void Root_zones_respect_npc_immunity()
+    {
+        using var kit = new GroundZoneTestKit();
+        var root = Buff(kit, 50, SpellEffect.EffectTypes.Root);
+        var immune = kit.NpcAt(10, 10);
+        var rootable = kit.Fixture.SpawnNpc(kit.Map, 11, 10,
+            kit.Fixture.AddNpcTemplate(501, "Rootable", t => { t.AggroRange = 0; t.CanBeRooted = true; }));
+
+        kit.Map.GroundZones.Create(BuffZone(kit, 1, root), Caster(kit), 10, 10, kit.World);
+
+        Assert.Null(Held(immune, root));
+        Assert.NotNull(Held(rootable, root));
+    }
+
+    [Fact]
     public void A_timed_copy_of_the_buff_is_left_alone()
     {
         using var kit = new GroundZoneTestKit();
@@ -611,6 +654,7 @@ In `Goose/GroundZones.cs` add:
                     CasterMPAtCast = zone.Caster.CurrentMP,
                     SourceZone = zone,
                 }, world);
+                effect.AnnounceDisable(character, world);
             }
         }
 
@@ -648,6 +692,24 @@ In `Goose/GroundZones.cs` add:
 `zones` is in creation order, so for two zones with the same buff the newer one wins `wanted[buff]` and
 becomes the `SourceZone`.
 
+In `Goose/SpellEffect.cs`, replace the Stun/Root battle-text block at the top of `CastBuffSpell`
+(`:791-812`, the `if (this.EffectType == EffectTypes.Stun) … else if (… Root) …` pair) with
+`this.AnnounceDisable(target, world);`, and add next to `CastBuffSpell`:
+
+```csharp
+        internal void AnnounceDisable(ICharacter target, GameWorld world)
+        {
+            string packet;
+            if (this.EffectType == EffectTypes.Stun) packet = P.BattleTextStunned(target);
+            else if (this.EffectType == EffectTypes.Root) packet = P.BattleTextRooted(target);
+            else return;
+
+            if (target is Player self) world.Send(self, packet);
+            foreach (var player in target.Map.GetPlayersInRange(target))
+                world.Send(player, packet);
+        }
+```
+
 Call `RecheckTiles`:
 - in `Create`, after the ownership loop and before `this.Apply(zone, world);`
 - in `Remove`, as its last statement, for overlapping zones too — so change `Remove` to:
@@ -683,7 +745,7 @@ Expected: PASS.
 **Step 5: Commit**
 
 ```bash
-git add Goose/GroundZones.cs Goose.Tests/GroundZones/ZoneBuffTests.cs
+git add Goose/GroundZones.cs Goose/SpellEffect.cs Goose.Tests/GroundZones/ZoneBuffTests.cs
 git commit -m "feat(spells): ground zones hold buffs on whoever stands in them"
 ```
 
