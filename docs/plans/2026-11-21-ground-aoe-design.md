@@ -155,3 +155,19 @@ join.
 - **To verify in planning:** kill credit/XP from a zone whose caster has logged out; client handling of
   unknown packet prefixes (old clients and `ZADD`); `PacketParser` tolerating extra trailing `SSS` fields;
   empty-ground clicks not clashing with click-to-move.
+
+## Changes made during planning
+
+Recorded in the part plans; listed here so the design stays the single overview.
+
+- **Zone tick interval** is clamped to at least 100 ms in code rather than validated at load.
+- **Zone buffs can't be clicked off** (the design said they'd come back on the next step).
+- **Allowed zone buff types:** Buff, TickBuff, Snare. TickBuff zone buffs don't replay their tick animation.
+- **A timed copy of the same buff is left alone;** the zone copy appears on the next step after it expires.
+- **Zone-buff eligibility** checks both the zone's and the buff's `CanCastSpell`; Snare stays NPC-only.
+- **Group-target ground zone spells** are rejected at load.
+- **Previews** show for every targeted spell with a predictable area shape, not only ground zones.
+- **The `ZADD` animation file** is ignored by the client, as with `SPA`.
+- **Heal zones for other players** need `works_not_in_pvp = 1` on normal maps, as targeted heals do today.
+- **Dimension clones grow `target_size` by the dimension number**, so a 3×3 zone becomes 15×15 at dimension 6.
+  Not changed; needs a balance decision.
