@@ -703,6 +703,8 @@ namespace Goose
 
         public bool TryConsumeItem(Item item, long count, GameWorld world)
         {
+            if (count <= 0) return false;
+
             for (int i = 1; i <= this.settings.InventorySize; i++)
             {
                 var slot = this.inventory[i];

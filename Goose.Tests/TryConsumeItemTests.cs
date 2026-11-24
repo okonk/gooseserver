@@ -67,6 +67,26 @@ public class TryConsumeItemTests
         Assert.Equal(3, player.Inventory.GetSlot(2)!.Stack);
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void NonPositiveCount_ReturnsFalse_InventoryUnchanged(long count)
+    {
+        var (fixture, player) = Setup();
+        var item = NewItem(fixture, TemplateId);
+        player.Inventory.AddItem(item, 3, fixture.World);
+
+        bool consumed = player.Inventory.TryConsumeItem(item, count, fixture.World);
+
+        Assert.False(consumed);
+        var slot = player.Inventory.GetSlot(1);
+        Assert.NotNull(slot);
+        Assert.Equal(3, slot!.Stack);
+        Assert.Same(item, slot.Item);
+        for (int i = 2; i <= 30; i++)
+            Assert.Null(player.Inventory.GetSlot(i));
+    }
+
     [Fact]
     public void NoStacks_ReturnsFalse_InventoryUnchanged()
     {
