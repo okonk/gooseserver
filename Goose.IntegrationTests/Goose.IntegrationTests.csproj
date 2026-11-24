@@ -66,6 +66,8 @@
           Link="ItemScripts/HairDyePotion.csx" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Goose/Data/Illutia/Scripts/Item/PetSlotItem.csx"
           Link="ItemScripts/PetSlotItem.csx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Goose/Data/Illutia/Scripts/Item/PetNameTag.csx"
+          Link="ItemScripts/PetNameTag.csx" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Goose/Data/Illutia/Scripts/Arena/ArenaConfig.csx"
           Link="ArenaScripts/ArenaConfig.csx" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Goose/Data/Illutia/Scripts/Arena/ArenaMath.csx"
