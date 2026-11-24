@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace Goose
 {
     public static class PetMenu
@@ -40,6 +42,70 @@ namespace Goose
 
         internal static void OpenPet(Player owner, int petId, GameWorld world)
         {
+            var pet = PetOperations.Find(owner, petId);
+            if (pet is null)
+            {
+                world.Send(owner, P.Notice(NoticeType.Info, "That pet is no longer yours."));
+                Open(owner, world);
+                return;
+            }
+
+            string ModeLine(Pet.Modes mode) =>
+                pet.IsAlive && pet.Mode == mode ? $"* Mode: {mode}" : $"Mode: {mode}";
+
+            var lines = new List<string>
+            {
+                "Details",
+                pet.IsAlive ? "Despawn" : "Spawn",
+                ModeLine(Pet.Modes.Neutral),
+                ModeLine(Pet.Modes.Follow),
+                ModeLine(Pet.Modes.Defend),
+                PetOperations.IsMaxLevel(pet)
+                    ? $"Buy HP (next: {PetOperations.NextVitaCost(pet, world.Settings).ToString("N0", CultureInfo.InvariantCulture)} exp)"
+                    : "Buy HP (max level only)",
+                PetOperations.IsMaxLevel(pet)
+                    ? $"Buy Damage (next: {PetOperations.NextDamageCost(pet, world.Settings).ToString("N0", CultureInfo.InvariantCulture)} exp)"
+                    : "Buy Damage (max level only)",
+                "Release",
+            };
+
+            new OptionListWindow(owner, world, pet.Name, lines, (index, p, w) =>
+            {
+                var target = PetOperations.Find(p, petId);
+                if (target is null)
+                {
+                    w.Send(p, P.Notice(NoticeType.Info, "That pet is no longer yours."));
+                    Open(p, w);
+                    return;
+                }
+
+                switch (index)
+                {
+                    case 0:
+                        PetOperations.ShowInfo(p, target, w);
+                        OpenPet(p, petId, w);
+                        break;
+                    case 1:
+                    {
+                        var r = target.IsAlive
+                            ? PetOperations.TryDespawn(target, w)
+                            : PetOperations.TrySpawn(p, target, w);
+                        w.Send(p, P.Notice(NoticeType.Info, r.Message));
+                        OpenPet(p, petId, w);
+                        break;
+                    }
+                    case 2:
+                    case 3:
+                    case 4:
+                    {
+                        var mode = (Pet.Modes)(index - 2);
+                        var r = PetOperations.SetMode(target, mode);
+                        w.Send(p, P.Notice(NoticeType.Info, r.Message));
+                        OpenPet(p, petId, w);
+                        break;
+                    }
+                }
+            }, onBack: (p, w) => Open(p, w));
         }
     }
 }
