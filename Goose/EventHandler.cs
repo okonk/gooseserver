@@ -159,6 +159,7 @@ namespace Goose
                 ("STC", Open(typeof(StylistWindowChangeEvent))),
                 ("RSPN", Open(typeof(RespawnRequestEvent))),
                 ("AMT", Open(typeof(AmountWindowSubmitEvent))),
+                ("TXT", Open(typeof(TextInputSubmitEvent))),
                 ("VPI", Open(typeof(VendorPurchaseInventoryEvent))),
                 ("VSI", Open(typeof(VendorSellInventoryEvent))),
                 ("WTW", Open(typeof(WindowToWindowEvent))),

@@ -157,6 +157,89 @@ public class TextInputWindowTests
     }
 
     [Fact]
+    public void Submit_event_valid_text_reaches_on_confirm_with_commas_preserved()
+    {
+        var (fixture, player, window, confirmed) = Setup();
+        using (fixture)
+        {
+            Assert.True(fixture.RunCommand(player, $"TXT{window.ID},Sir, Fluff"));
+
+            Assert.Equal(["Sir, Fluff"], confirmed);
+            Assert.Contains(window, player.Windows);
+            Assert.DoesNotContain(player.Sent, s => s.StartsWith("CLW"));
+        }
+    }
+
+    [Theory]
+    [InlineData("TXT12345")]
+    [InlineData("TXTabc,Sir")]
+    [InlineData("TXT-1,Sir")]
+    [InlineData("TXT")]
+    public void Submit_event_missing_comma_or_non_numeric_id_never_invokes_callback(string command)
+    {
+        var (fixture, player, window, confirmed) = Setup();
+        using (fixture)
+        {
+            fixture.RunCommand(player, command);
+
+            Assert.Empty(confirmed);
+            Assert.Contains(window, player.Windows);
+        }
+    }
+
+    [Fact]
+    public void Submit_event_unknown_window_id_never_invokes_callback()
+    {
+        var (fixture, player, window, confirmed) = Setup();
+        using (fixture)
+        {
+            fixture.RunCommand(player, $"TXT{window.ID + 999},Sir");
+
+            Assert.Empty(confirmed);
+            Assert.Contains(window, player.Windows);
+        }
+    }
+
+    [Fact]
+    public void Submit_event_second_submit_after_on_confirm_closes_invokes_callback_only_once()
+    {
+        var fixture = new TestWorldFixture();
+        using (fixture)
+        {
+            var map = fixture.AddBaseMap(1, "Test");
+            var player = fixture.CommandPlayerOn(map, 5, 5, "Tester");
+            var confirmed = new List<string>();
+            TextInputWindow window = null!;
+            window = new TextInputWindow(player, fixture.World, "Rename", "Enter a name:", "OK", "", 20,
+                (text, p, _) =>
+                {
+                    confirmed.Add(text);
+                    p.Windows.Remove(window);
+                });
+
+            fixture.RunCommand(player, $"TXT{window.ID},Sir");
+            fixture.RunCommand(player, $"TXT{window.ID},Sir");
+
+            Assert.Equal(["Sir"], confirmed);
+            Assert.DoesNotContain(window, player.Windows);
+        }
+    }
+
+    [Fact]
+    public void Submit_event_player_not_ready_never_invokes_callback()
+    {
+        var (fixture, player, window, confirmed) = Setup();
+        using (fixture)
+        {
+            player.State = Player.States.NotLoggedIn;
+            fixture.RunCommand(player, $"TXT{window.ID},Sir");
+
+            Assert.Empty(confirmed);
+            Assert.Contains(window, player.Windows);
+        }
+    }
+
+    [Fact]
     public void Clicked_exit_or_close_removes_window()
     {
         var (fixture, player, window, _) = Setup();
