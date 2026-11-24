@@ -36,6 +36,7 @@ namespace Goose
             ResetItem,
             Enchant,
             Stylist = 26,
+            PetRename = 27,
 
             // GM-related logs
             GetItem = 10001,

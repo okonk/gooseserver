@@ -34,6 +34,7 @@ namespace Goose.Tests
         [InlineData(24, "ResetItem", LogEventGroup.ItemsEconomy, LogOtherIdKind.Item)]
         [InlineData(25, "Enchant", LogEventGroup.ItemsEconomy, LogOtherIdKind.Item)]
         [InlineData(26, "Stylist", LogEventGroup.ItemsEconomy, LogOtherIdKind.Unused)]
+        [InlineData(27, "PetRename", LogEventGroup.Social, LogOtherIdKind.Unused)]
         [InlineData(10001, "GetItem", LogEventGroup.GmActions, LogOtherIdKind.Unused)]
         [InlineData(10002, "ClassChange", LogEventGroup.GmActions, LogOtherIdKind.Player)]
         [InlineData(10003, "GiveExperience", LogEventGroup.GmActions, LogOtherIdKind.Player)]
@@ -92,7 +93,7 @@ namespace Goose.Tests
 
         [Theory]
         [InlineData(-1)]
-        [InlineData(27)]
+        [InlineData(28)]
         [InlineData(10000)]
         [InlineData(10014)]
         [InlineData(2147483648L)]

@@ -234,6 +234,37 @@ namespace Goose
             w.Create(owner, world);
         }
 
+        public static PetResult Rename(Player owner, Pet pet, string name, GameWorld world)
+        {
+            if (!NameRules.IsValidPetName(name))
+            {
+                return new PetResult(false, "Pet names must be 3-16 letters, with single spaces between words.");
+            }
+
+            string old = pet.Name;
+            pet.Name = name;
+            pet.SaveToDatabase(world);
+
+            if (pet.IsAlive)
+            {
+                string erase = P.EraseCharacter(pet.LoginID);
+                string make = P.MakePetCharacter(pet);
+                foreach (var p in pet.Map.GetPlayersInRange(pet))
+                {
+                    world.Send(p, erase);
+                    world.Send(p, make);
+                }
+            }
+
+            foreach (var w in owner.Windows.Where(w => w.Type == Window.WindowTypes.PetInfo && w.Data == pet).ToList())
+            {
+                w.Refresh(owner, world);
+            }
+
+            world.LogHandler.Log(Log.Types.PetRename, owner, $"pet {pet.PetID}: {old} -> {name}");
+            return new PetResult(true, $"{old} is now known as {name}.");
+        }
+
         public static PetResult SetMode(Pet pet, Pet.Modes mode)
         {
             if (mode == Pet.Modes.Attack)
