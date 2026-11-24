@@ -312,5 +312,254 @@ namespace Goose.Tests
                 Assert.False(third.IsAlive);
             }
         }
+
+        [Fact]
+        public void IsMaxLevel_true_when_level_experience_is_zero()
+        {
+            var (fixture, player, _) = WorldAndPlayer();
+            using (fixture)
+            {
+                var pet = MakePet(fixture, player, 1, "Rex");
+
+                Assert.True(PetOperations.IsMaxLevel(pet));
+            }
+        }
+
+        [Fact]
+        public void IsMaxLevel_false_when_level_experience_is_nonzero()
+        {
+            var (fixture, player, _) = WorldAndPlayer();
+            using (fixture)
+            {
+                fixture.World.ClassHandler.GetClass(0)!.GetLevel(1)!.Experience = 100;
+                var pet = MakePet(fixture, player, 1, "Rex");
+
+                Assert.False(PetOperations.IsMaxLevel(pet));
+            }
+        }
+
+        [Fact]
+        public void IsMaxLevel_false_when_level_is_missing()
+        {
+            var (fixture, player, _) = WorldAndPlayer();
+            using (fixture)
+            {
+                var pet = MakePet(fixture, player, 1, "Rex");
+                pet.Level = 999;
+
+                Assert.False(PetOperations.IsMaxLevel(pet));
+            }
+        }
+
+        [Fact]
+        public void MaxAffordableVita_agrees_with_buy_loop_around_cost_boundaries()
+        {
+            var (fixture, player, _) = WorldAndPlayer();
+            using (fixture)
+            {
+                fixture.Settings.PetVitaCost = 100;
+                fixture.Settings.PetVitaBuyAmount = 10;
+                fixture.Settings.IncreasePetVitaBuyCost = 10;
+
+                foreach (long exp in new[] { 99L, 100, 119, 359, 1000 })
+                {
+                    var pet = MakePet(fixture, player, 1, "Rex");
+                    pet.Experience = exp;
+
+                    long max = PetOperations.MaxAffordableVita(pet, fixture.Settings);
+
+                    long simExp = exp, simHp = 0, simCost = 0, simCount = 0;
+                    while (true)
+                    {
+                        long cost = Utils.MultiplyAndTruncate(100, (simHp / 10) * 0.2 + 1);
+                        if (simExp < cost) break;
+                        simExp -= cost;
+                        simHp += 10;
+                        simCost += cost;
+                        simCount++;
+                    }
+
+                    Assert.Equal(simCount, max);
+
+                    var r = PetOperations.BuyVita(pet, max, fixture.World);
+                    if (max == 0)
+                    {
+                        Assert.False(r.Ok);
+                        Assert.Equal("Rex doesn't have enough experience.", r.Message);
+                        Assert.Equal(exp, pet.Experience);
+                        Assert.Equal(0, pet.BaseStats.HP);
+                    }
+                    else
+                    {
+                        Assert.True(r.Ok);
+                        Assert.Equal("Bought " + max * 10 + " hp for " + simCost + " experience.", r.Message);
+                        Assert.Equal(simExp, pet.Experience);
+                        Assert.Equal(simHp, pet.BaseStats.HP);
+                        Assert.True(pet.Experience < PetOperations.NextVitaCost(pet, fixture.Settings));
+                    }
+                }
+            }
+        }
+
+        [Fact]
+        public void MaxAffordableDamage_agrees_with_buy_loop_around_cost_boundaries()
+        {
+            var (fixture, player, _) = WorldAndPlayer();
+            using (fixture)
+            {
+                fixture.Settings.PetDamageCost = 100;
+                fixture.Settings.PetDamageBuyAmount = 5;
+                fixture.Settings.IncreasePetDamageBuyCost = 10;
+
+                foreach (long exp in new[] { 99L, 100, 109, 219, 1000 })
+                {
+                    var pet = MakePet(fixture, player, 1, "Rex");
+                    pet.Experience = exp;
+
+                    long max = PetOperations.MaxAffordableDamage(pet, fixture.Settings);
+
+                    long simExp = exp, simDmg = 0, simCost = 0, simCount = 0;
+                    while (true)
+                    {
+                        long cost = Utils.MultiplyAndTruncate(100, (simDmg / 10) * 0.2 + 1);
+                        if (simExp < cost) break;
+                        simExp -= cost;
+                        simDmg += 5;
+                        simCost += cost;
+                        simCount++;
+                    }
+
+                    Assert.Equal(simCount, max);
+
+                    var r = PetOperations.BuyDamage(pet, max, fixture.World);
+                    if (max == 0)
+                    {
+                        Assert.False(r.Ok);
+                        Assert.Equal("Rex doesn't have enough experience.", r.Message);
+                        Assert.Equal(exp, pet.Experience);
+                        Assert.Equal(0, pet.WeaponDamage);
+                    }
+                    else
+                    {
+                        Assert.True(r.Ok);
+                        Assert.Equal("Bought " + max * 5 + " damage for " + simCost + " experience.", r.Message);
+                        Assert.Equal(simExp, pet.Experience);
+                        Assert.Equal(simDmg, pet.WeaponDamage);
+                        Assert.True(pet.Experience < PetOperations.NextDamageCost(pet, fixture.Settings));
+                    }
+                }
+            }
+        }
+
+        [Fact]
+        public void NotMaxLevel_zero_affordable_and_buys_refused()
+        {
+            var (fixture, player, _) = WorldAndPlayer();
+            using (fixture)
+            {
+                fixture.World.ClassHandler.GetClass(0)!.GetLevel(1)!.Experience = 100;
+                var pet = MakePet(fixture, player, 1, "Rex");
+                pet.Experience = 5000;
+
+                Assert.Equal(0, PetOperations.MaxAffordableVita(pet, fixture.Settings));
+                Assert.Equal(0, PetOperations.MaxAffordableDamage(pet, fixture.Settings));
+
+                var v = PetOperations.BuyVita(pet, 5, fixture.World);
+                Assert.False(v.Ok);
+                Assert.Equal("Rex must be max level to buy stats.", v.Message);
+
+                var d = PetOperations.BuyDamage(pet, 5, fixture.World);
+                Assert.False(d.Ok);
+                Assert.Equal("Rex must be max level to buy stats.", d.Message);
+
+                Assert.Equal(5000, pet.Experience);
+                Assert.Equal(0, pet.BaseStats.HP);
+                Assert.Equal(0, pet.WeaponDamage);
+            }
+        }
+
+        [Fact]
+        public void ZeroVitaCost_hits_max_affordable_cap()
+        {
+            var fixture = new TestWorldFixture(s => s.PetVitaCost = 0);
+            var map = fixture.AddBaseMap(1, "Test");
+            var player = fixture.CommandPlayerOn(map, 1, 2, "Tester");
+            using (fixture)
+            {
+                fixture.Settings.IncreasePetVitaBuyCost = 10;
+                var pet = MakePet(fixture, player, 1, "Rex");
+                pet.Experience = 1000;
+
+                Assert.Equal(PetOperations.MaxAffordableBuyCap, PetOperations.MaxAffordableVita(pet, fixture.Settings));
+            }
+        }
+
+        [Fact]
+        public void ZeroDamageCost_hits_max_affordable_cap()
+        {
+            var fixture = new TestWorldFixture(s => s.PetDamageCost = 0);
+            var map = fixture.AddBaseMap(1, "Test");
+            var player = fixture.CommandPlayerOn(map, 1, 2, "Tester");
+            using (fixture)
+            {
+                fixture.Settings.IncreasePetDamageBuyCost = 10;
+                var pet = MakePet(fixture, player, 1, "Rex");
+                pet.Experience = 1000;
+
+                Assert.Equal(PetOperations.MaxAffordableBuyCap, PetOperations.MaxAffordableDamage(pet, fixture.Settings));
+            }
+        }
+
+        [Fact]
+        public void PetVita_command_sends_max_level_message()
+        {
+            var (fixture, player, _) = WorldAndPlayer();
+            using (fixture)
+            {
+                fixture.World.ClassHandler.GetClass(0)!.GetLevel(1)!.Experience = 100;
+                var pet = MakePet(fixture, player, 1, "Rex");
+                pet.Experience = 500;
+
+                Assert.True(fixture.RunCommand(player, "/petvita 1"));
+
+                Assert.Contains(player.Sent, s => s.Contains("Rex must be max level to buy stats."));
+                Assert.Equal(500, pet.Experience);
+            }
+        }
+
+        [Fact]
+        public void PetVita_command_sends_not_enough_experience_message()
+        {
+            var (fixture, player, _) = WorldAndPlayer();
+            using (fixture)
+            {
+                fixture.Settings.PetVitaCost = 100;
+                fixture.Settings.IncreasePetVitaBuyCost = 10;
+                var pet = MakePet(fixture, player, 1, "Rex");
+                pet.Experience = 50;
+
+                Assert.True(fixture.RunCommand(player, "/petvita 1"));
+
+                Assert.Contains(player.Sent, s => s.Contains("Rex doesn't have enough experience."));
+                Assert.Equal(50, pet.Experience);
+            }
+        }
+
+        [Fact]
+        public void PetDamage_command_sends_max_level_message()
+        {
+            var (fixture, player, _) = WorldAndPlayer();
+            using (fixture)
+            {
+                fixture.World.ClassHandler.GetClass(0)!.GetLevel(1)!.Experience = 100;
+                var pet = MakePet(fixture, player, 1, "Rex");
+                pet.Experience = 500;
+
+                Assert.True(fixture.RunCommand(player, "/petdamage 1"));
+
+                Assert.Contains(player.Sent, s => s.Contains("Rex must be max level to buy stats."));
+                Assert.Equal(500, pet.Experience);
+            }
+        }
     }
 }

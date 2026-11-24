@@ -4,6 +4,147 @@ namespace Goose
 
     public static class PetOperations
     {
+        public const int MaxAffordableBuyCap = 100_000;
+
+        public static bool IsMaxLevel(Pet pet)
+        {
+            return pet.Class.GetLevel(pet.Level)?.Experience == 0;
+        }
+
+        private static long VitaCost(long hp, GooseSettings s)
+        {
+            double buyrate = (hp / s.IncreasePetVitaBuyCost) * 0.2 + 1;
+            return Utils.MultiplyAndTruncate(s.PetVitaCost, buyrate);
+        }
+
+        private static long DamageCost(long damage, GooseSettings s)
+        {
+            double buyrate = (damage / s.IncreasePetDamageBuyCost) * 0.2 + 1;
+            return Utils.MultiplyAndTruncate(s.PetDamageCost, buyrate);
+        }
+
+        public static long NextVitaCost(Pet pet, GooseSettings s)
+        {
+            return VitaCost(pet.BaseStats.HP, s);
+        }
+
+        public static long NextDamageCost(Pet pet, GooseSettings s)
+        {
+            return DamageCost(pet.WeaponDamage, s);
+        }
+
+        public static long MaxAffordableVita(Pet pet, GooseSettings s)
+        {
+            if (!IsMaxLevel(pet)) return 0;
+
+            long exp = pet.Experience;
+            long hp = pet.BaseStats.HP;
+            long count = 0;
+            while (count < MaxAffordableBuyCap)
+            {
+                long cost = VitaCost(hp, s);
+                if (exp < cost) break;
+                exp -= cost;
+                hp += s.PetVitaBuyAmount;
+                count++;
+            }
+            return count;
+        }
+
+        public static long MaxAffordableDamage(Pet pet, GooseSettings s)
+        {
+            if (!IsMaxLevel(pet)) return 0;
+
+            long exp = pet.Experience;
+            long damage = pet.WeaponDamage;
+            long count = 0;
+            while (count < MaxAffordableBuyCap)
+            {
+                long cost = DamageCost(damage, s);
+                if (exp < cost) break;
+                exp -= cost;
+                damage += s.PetDamageBuyAmount;
+                count++;
+            }
+            return count;
+        }
+
+        public static PetResult BuyVita(Pet pet, long buys, GameWorld world)
+        {
+            if (!IsMaxLevel(pet))
+            {
+                return new PetResult(false, pet.Name + " must be max level to buy stats.");
+            }
+
+            long bought = 0;
+            long soldexp = 0;
+
+            pet.RemoveStats(pet.BaseStats, world, false);
+
+            for (long i = 1; i <= buys; i++)
+            {
+                long expcost = NextVitaCost(pet, world.Settings);
+
+                if (pet.Experience >= expcost)
+                {
+                    pet.Experience -= expcost;
+                    pet.ExperienceSold += expcost;
+                    pet.BaseStats.HP += world.Settings.PetVitaBuyAmount;
+                    bought += world.Settings.PetVitaBuyAmount;
+                    soldexp += expcost;
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            pet.AddStats(pet.BaseStats, world);
+
+            if (bought == 0)
+            {
+                return new PetResult(false, pet.Name + " doesn't have enough experience.");
+            }
+
+            return new PetResult(true, "Bought " + bought + " hp for " + soldexp + " experience.");
+        }
+
+        public static PetResult BuyDamage(Pet pet, long buys, GameWorld world)
+        {
+            if (!IsMaxLevel(pet))
+            {
+                return new PetResult(false, pet.Name + " must be max level to buy stats.");
+            }
+
+            long bought = 0;
+            long soldexp = 0;
+
+            for (long i = 1; i <= buys; i++)
+            {
+                long expcost = NextDamageCost(pet, world.Settings);
+
+                if (pet.Experience >= expcost)
+                {
+                    pet.Experience -= expcost;
+                    pet.ExperienceSold += expcost;
+                    pet.WeaponDamage += world.Settings.PetDamageBuyAmount;
+                    bought += world.Settings.PetDamageBuyAmount;
+                    soldexp += expcost;
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            if (bought == 0)
+            {
+                return new PetResult(false, pet.Name + " doesn't have enough experience.");
+            }
+
+            return new PetResult(true, "Bought " + bought + " damage for " + soldexp + " experience.");
+        }
+
         public static Pet? Find(Player owner, int petId)
         {
             foreach (var pet in owner.Pets)
