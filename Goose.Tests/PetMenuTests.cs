@@ -548,5 +548,12 @@ namespace Goose.Tests
                 Assert.Empty(pet.Windows);
             }
         }
+
+        [Fact]
+        public void pet_menu_effect_type_values_are_persisted_and_stable()
+        {
+            Assert.Equal(22, (int)SpellEffect.EffectTypes.Revive);
+            Assert.Equal(23, (int)SpellEffect.EffectTypes.PetMenu);
+        }
     }
 }
