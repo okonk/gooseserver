@@ -68,7 +68,7 @@ do nothing and send an Info notice.
 ### Pet menu (`Goose/PetMenu.cs`)
 
 Opened by `/pets` (Help entry in the Pets section) and by a new spell effect type
-`EffectTypes.PetMenu = 22` (self-cast, no target). Opening closes the player's existing non-NPC
+`EffectTypes.PetMenu = 23` (`Revive` already holds 22) (self-cast, no target). Opening closes the player's existing non-NPC
 option list windows (same pattern as `/titles`, `/quests`).
 
 **Root window** — title `Pets (<count>/<MaxPets>)`, one line per pet, paged by
@@ -164,7 +164,7 @@ The plan lists exact column values for:
 
 - Item template: Pet Name Tag (script `Item/PetNameTag.csx`).
 - Item template: Pet Slot (script `Item/PetSlotItem.csx`, `ScriptParams` `1`).
-- Spell + spell effect: Pet Menu (effect type `PetMenu` = 22, self-cast).
+- Spell + spell effect: Pet Menu (effect type `PetMenu` = 23, self-cast).
 
 ## Testing
 
@@ -199,4 +199,4 @@ The plan lists exact column values for:
 - Confirm the client's `AmountInput` focus handling to mirror for the text input.
 - Confirm `EraseCharacter` + `MakePetCharacter` renders a renamed pet correctly on the client.
 - Pick an existing log type for renames or add `Log.Types.PetRename`.
-- Whether `.csx` item scripts can be loaded in unit tests (decides where script logic lives).
+- Resolved: shipped `.csx` item scripts are compiled in `Goose.IntegrationTests` (see `HairDyePotionScriptTests`).
