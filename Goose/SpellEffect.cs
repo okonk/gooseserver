@@ -90,7 +90,8 @@ namespace Goose
             PetFollow,
             PetNeutral = 20,
             Script,
-            Revive
+            Revive,
+            PetMenu = 23
         }
 
         /**
@@ -1052,6 +1053,13 @@ namespace Goose
             return true;
         }
 
+        private bool CastPetMenuSpell(Player owner, GameWorld world)
+        {
+            PetMenu.Open(owner, world);
+
+            return true;
+        }
+
         /**
          * CastSpell, dispatches to the correct cast method for this effect type.
          *
@@ -1098,6 +1106,7 @@ namespace Goose
                 EffectTypes.PetFollow when target is Pet => this.CastPetFollowSpell(caster, target, world),
                 EffectTypes.PetNeutral when target is Pet => this.CastPetNeutralSpell(caster, target, world),
                 EffectTypes.PetAttack => this.CastPetAttackSpell(caster, target, world),
+                EffectTypes.PetMenu when caster is Player owner && caster is not Pet => this.CastPetMenuSpell(owner, world),
 
                 // Unrecognised type or target mismatch (e.g. Bind cast on an NPC).
                 _ => false

@@ -508,5 +508,45 @@ namespace Goose.Tests
                 Assert.StartsWith("Pets (", OptionListOf(player).Title);
             }
         }
+
+        [Fact]
+        public void pets_command_opens_root()
+        {
+            var (fixture, player, _) = WorldAndPlayer();
+            using (fixture)
+            {
+                Assert.True(fixture.RunCommand(player, "/pets"));
+
+                Assert.StartsWith("Pets (", OptionListOf(player).Title);
+            }
+        }
+
+        [Fact]
+        public void pet_menu_spell_opens_root()
+        {
+            var (fixture, player, _) = WorldAndPlayer();
+            using (fixture)
+            {
+                var effect = new SpellEffect { EffectType = SpellEffect.EffectTypes.PetMenu };
+
+                Assert.True(effect.CastSpell(player, player, fixture.World));
+                Assert.StartsWith("Pets (", OptionListOf(player).Title);
+            }
+        }
+
+        [Fact]
+        public void pet_menu_spell_pet_caster_rejected()
+        {
+            var (fixture, player, _) = WorldAndPlayer();
+            using (fixture)
+            {
+                var pet = MakePet(fixture, player, 1, "Rex");
+                pet.Windows = [];
+                var effect = new SpellEffect { EffectType = SpellEffect.EffectTypes.PetMenu };
+
+                Assert.False(effect.CastSpell(pet, pet, fixture.World));
+                Assert.Empty(pet.Windows);
+            }
+        }
     }
 }
