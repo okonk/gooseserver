@@ -980,10 +980,7 @@ namespace Goose
             Pet pet = (Pet)target;
             if (pet.Owner != caster) return false;
 
-            pet.Target = null;
-            pet.Mode = Pet.Modes.Defend;
-
-            return true;
+            return PetOperations.SetMode(pet, Pet.Modes.Defend).Ok;
         }
 
         /// <summary>
@@ -998,9 +995,7 @@ namespace Goose
             Pet pet = (Pet)target;
             if (pet.Owner != caster) return false;
 
-            pet.DestroyWithCooldown(world);
-
-            return true;
+            return PetOperations.TryDespawn(pet, world).Ok;
         }
 
         /// <summary>
@@ -1015,10 +1010,7 @@ namespace Goose
             Pet pet = (Pet)target;
             if (pet.Owner != caster) return false;
 
-            pet.Target = null;
-            pet.Mode = Pet.Modes.Follow;
-
-            return true;
+            return PetOperations.SetMode(pet, Pet.Modes.Follow).Ok;
         }
 
         /// <summary>
@@ -1033,10 +1025,7 @@ namespace Goose
             Pet pet = (Pet)target;
             if (pet.Owner != caster) return false;
 
-            pet.Target = null;
-            pet.Mode = Pet.Modes.Neutral;
-
-            return true;
+            return PetOperations.SetMode(pet, Pet.Modes.Neutral).Ok;
         }
 
         /// <summary>

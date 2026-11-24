@@ -7,27 +7,13 @@ namespace Goose.Commands
         {
             var world = ctx.World;
 
-            if (!ctx.Player.Map.CanSpawnPets)
-            {
-                world.Send(ctx.Player, P.ServerMessage("Pets are disabled in this map."));
-                return;
-            }
-
             if (id <= 0)
             {
                 world.Send(ctx.Player, P.ServerMessage("Invalid pet ID."));
                 return;
             }
 
-            Pet? match = null;
-            foreach (var pet in ctx.Player.Pets)
-            {
-                if (pet.PetID == id)
-                {
-                    match = pet;
-                    break;
-                }
-            }
+            Pet? match = PetOperations.Find(ctx.Player, id);
 
             if (match is null)
             {
@@ -35,21 +21,11 @@ namespace Goose.Commands
                 return;
             }
 
-            if (match.IsAlive)
+            var result = PetOperations.TrySpawn(ctx.Player, match, world);
+            if (!result.Ok)
             {
-                world.Send(ctx.Player, P.ServerMessage("That pet is already spawned."));
-                return;
+                world.Send(ctx.Player, P.ServerMessage(result.Message));
             }
-
-            long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            if (match.NextRespawnTime > now)
-            {
-                long wait = match.NextRespawnTime - now;
-                world.Send(ctx.Player, P.ServerMessage("You must wait " + wait + " seconds to spawn this pet."));
-                return;
-            }
-
-            match.Spawn(world);
         }
     }
 }
