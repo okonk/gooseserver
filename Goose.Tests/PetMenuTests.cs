@@ -411,6 +411,93 @@ namespace Goose.Tests
         }
 
         [Fact]
+        public void OpenPet_release_line_opens_confirmation_window()
+        {
+            var (fixture, player, _, _, window) = OpenPetWindow();
+            using (fixture)
+            {
+                window.LineClicked(7, 0, player, fixture.World);
+
+                var confirm = OptionListOf(player);
+                Assert.Equal("Release Rex?", confirm.Title);
+                Assert.Equal(["Yes, release Rex forever", "No, keep Rex"], LinesOf(player, confirm));
+            }
+        }
+
+        private static void StartPetDatabase(TestWorldFixture fixture)
+        {
+            fixture.World.Database.Start(Path.Combine(fixture.DataDirectory, "test.db"));
+            fixture.World.Database.Execute(conn =>
+            {
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "sql", "pets.sql"));
+                cmd.ExecuteNonQuery();
+            });
+        }
+
+        [Fact]
+        public void OpenPet_release_yes_releases_pet_and_opens_root()
+        {
+            var (fixture, player, _, pet, window) = OpenPetWindow();
+            using (fixture)
+            {
+                StartPetDatabase(fixture);
+                window.LineClicked(7, 0, player, fixture.World);
+                OptionListOf(player).LineClicked(0, 0, player, fixture.World);
+
+                Assert.DoesNotContain(pet, player.Pets);
+                Assert.Contains(player.Sent, s => s.StartsWith("NTF0,") && s.Contains("Rex has been released."));
+                Assert.StartsWith("Pets (", OptionListOf(player).Title);
+            }
+        }
+
+        [Fact]
+        public void OpenPet_release_no_keeps_pet_and_opens_pet_window()
+        {
+            var (fixture, player, _, pet, window) = OpenPetWindow();
+            using (fixture)
+            {
+                window.LineClicked(7, 0, player, fixture.World);
+                OptionListOf(player).LineClicked(1, 0, player, fixture.World);
+
+                Assert.Contains(pet, player.Pets);
+                Assert.Equal("Rex", OptionListOf(player).Title);
+            }
+        }
+
+        [Fact]
+        public void OpenPet_release_back_reopens_pet_window()
+        {
+            var (fixture, player, _, pet, window) = OpenPetWindow();
+            using (fixture)
+            {
+                window.LineClicked(7, 0, player, fixture.World);
+                OptionListOf(player).Clicked(Window.ButtonTypes.Back, 0, 0, 0, player, fixture.World);
+
+                Assert.Contains(pet, player.Pets);
+                Assert.Equal("Rex", OptionListOf(player).Title);
+            }
+        }
+
+        [Fact]
+        public void OpenPet_release_yes_pet_released_elsewhere_notices_and_opens_root()
+        {
+            var (fixture, player, _, pet, window) = OpenPetWindow();
+            using (fixture)
+            {
+                StartPetDatabase(fixture);
+                window.LineClicked(7, 0, player, fixture.World);
+                PetOperations.Release(player, pet, fixture.World);
+
+                OptionListOf(player).LineClicked(0, 0, player, fixture.World);
+
+                Assert.DoesNotContain(pet, player.Pets);
+                Assert.Contains(player.Sent, s => s.StartsWith("NTF0,") && s.Contains("That pet is no longer yours."));
+                Assert.StartsWith("Pets (", OptionListOf(player).Title);
+            }
+        }
+
+        [Fact]
         public void OpenPet_back_reopens_root()
         {
             var (fixture, player, _, _, window) = OpenPetWindow();

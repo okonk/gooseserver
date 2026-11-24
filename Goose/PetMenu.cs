@@ -139,6 +139,33 @@ namespace Goose
                             });
                         break;
                     }
+                    case 7:
+                    {
+                        new OptionListWindow(p, w, $"Release {target.Name}?",
+                            [$"Yes, release {target.Name} forever", $"No, keep {target.Name}"],
+                            (confirm, pl, wd) =>
+                            {
+                                if (confirm == 0)
+                                {
+                                    var released = PetOperations.Find(pl, petId);
+                                    if (released is null)
+                                    {
+                                        wd.Send(pl, P.Notice(NoticeType.Info, "That pet is no longer yours."));
+                                        Open(pl, wd);
+                                        return;
+                                    }
+                                    var r = PetOperations.Release(pl, released, wd);
+                                    wd.Send(pl, P.Notice(NoticeType.Info, r.Message));
+                                    Open(pl, wd);
+                                }
+                                else
+                                {
+                                    OpenPet(pl, petId, wd);
+                                }
+                            },
+                            onBack: (pl, wd) => OpenPet(pl, petId, wd));
+                        break;
+                    }
                 }
             }, onBack: (p, w) => Open(p, w));
         }
