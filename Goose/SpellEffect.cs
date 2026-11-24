@@ -942,9 +942,9 @@ namespace Goose
                 return false;
             }
 
-            if (player.Pets.Count == world.Settings.PetCountLimit)
+            if (player.Pets.Count >= player.MaxPets(world.Settings))
             {
-                world.Send(player, P.Notice(NoticeType.Info, "You have reached the maximum amount of pets. Use /petdelete <id> to release one."));
+                world.Send(player, P.Notice(NoticeType.Info, "You have reached the maximum amount of pets. Use /pets to release one."));
                 return false;
             }
 
