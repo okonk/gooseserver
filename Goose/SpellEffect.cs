@@ -519,6 +519,9 @@ namespace Goose
                 case EffectTypes.PetAttack:
                     yield return "Tell pet to attack";
                     break;
+                case EffectTypes.PetMenu:
+                    yield return "Open the pet menu";
+                    break;
                 case EffectTypes.Formula:
                     if (!string.IsNullOrWhiteSpace(this.HPFormula) && this.HPFormula != "0")
                         yield return GetFormulaDescription(this.HPFormula, "HP", "");
