@@ -305,6 +305,111 @@ namespace Goose.Tests
             }
         }
 
+        private static (TestWorldFixture fixture, TestWorldFixture.CapturingPlayer player, Pet pet, OptionListWindow window) OpenMaxLevelPetWindow(long exp)
+        {
+            var (fixture, player, map) = WorldAndPlayer();
+            map.CanSpawnPets = true;
+            fixture.Settings.IncreasePetVitaBuyCost = 100000;
+            fixture.Settings.PetVitaCost = 100;
+            fixture.Settings.PetVitaBuyAmount = 1000;
+            fixture.Settings.IncreasePetDamageBuyCost = 100000;
+            fixture.Settings.PetDamageCost = 100;
+            fixture.Settings.PetDamageBuyAmount = 500;
+            var pet = MakePet(fixture, player, 1, "Rex");
+            pet.Experience = exp;
+            PetMenu.Open(player, fixture.World);
+            OptionListOf(player).LineClicked(0, 0, player, fixture.World);
+            return (fixture, player, pet, OptionListOf(player));
+        }
+
+        [Fact]
+        public void OpenPet_buy_hp_not_max_level_notices_and_opens_no_amount_window()
+        {
+            var (fixture, player, _, _, window) = OpenPetWindow();
+            using (fixture)
+            {
+                window.LineClicked(5, 0, player, fixture.World);
+
+                Assert.Contains(player.Sent, s => s.StartsWith("NTF0,") && s.Contains("Rex must be max level to buy stats."));
+                Assert.DoesNotContain(player.Windows, w => w.Type == Window.WindowTypes.Amount);
+                Assert.Equal("Rex", OptionListOf(player).Title);
+            }
+        }
+
+        [Fact]
+        public void OpenPet_buy_hp_max_level_without_exp_notices_and_opens_no_amount_window()
+        {
+            var (fixture, player, _, window) = OpenMaxLevelPetWindow(0);
+            using (fixture)
+            {
+                window.LineClicked(5, 0, player, fixture.World);
+
+                Assert.Contains(player.Sent, s => s.StartsWith("NTF0,") && s.Contains("Rex doesn't have enough experience."));
+                Assert.DoesNotContain(player.Windows, w => w.Type == Window.WindowTypes.Amount);
+                Assert.Equal("Rex", OptionListOf(player).Title);
+            }
+        }
+
+        [Fact]
+        public void OpenPet_buy_hp_confirm_buys_and_reopens_pet_window()
+        {
+            var (fixture, player, pet, window) = OpenMaxLevelPetWindow(250);
+            using (fixture)
+            {
+                window.LineClicked(5, 0, player, fixture.World);
+
+                Assert.Contains(player.Sent, s => s.Contains("How many HP buys for Rex? (max 2)"));
+                var amount = (AmountWindow)Assert.Single(player.Windows, w => w.Type == Window.WindowTypes.Amount);
+                amount.Submit(2, player, fixture.World);
+
+                Assert.Equal(2000, pet.BaseStats.HP);
+                Assert.Equal(50, pet.Experience);
+                Assert.Contains(player.Sent, s => s.StartsWith("NTF0,") && s.Contains("Bought 2000 hp for 200 experience."));
+                Assert.DoesNotContain(player.Windows, w => w.Type == Window.WindowTypes.Amount);
+                Assert.Equal("Rex", OptionListOf(player).Title);
+            }
+        }
+
+        [Fact]
+        public void OpenPet_buy_damage_confirm_buys_and_reopens_pet_window()
+        {
+            var (fixture, player, pet, window) = OpenMaxLevelPetWindow(250);
+            using (fixture)
+            {
+                window.LineClicked(6, 0, player, fixture.World);
+
+                Assert.Contains(player.Sent, s => s.Contains("How many damage buys for Rex? (max 2)"));
+                var amount = (AmountWindow)Assert.Single(player.Windows, w => w.Type == Window.WindowTypes.Amount);
+                amount.Submit(2, player, fixture.World);
+
+                Assert.Equal(1000, pet.WeaponDamage);
+                Assert.Equal(50, pet.Experience);
+                Assert.Contains(player.Sent, s => s.StartsWith("NTF0,") && s.Contains("Bought 1000 damage for 200 experience."));
+                Assert.DoesNotContain(player.Windows, w => w.Type == Window.WindowTypes.Amount);
+                Assert.Equal("Rex", OptionListOf(player).Title);
+            }
+        }
+
+        [Fact]
+        public void OpenPet_buy_hp_pet_released_between_open_and_confirm_notices_and_buys_nothing()
+        {
+            var (fixture, player, pet, window) = OpenMaxLevelPetWindow(250);
+            using (fixture)
+            {
+                window.LineClicked(5, 0, player, fixture.World);
+                var amount = (AmountWindow)Assert.Single(player.Windows, w => w.Type == Window.WindowTypes.Amount);
+                player.Pets.Remove(pet);
+
+                amount.Submit(2, player, fixture.World);
+
+                Assert.Equal(0, pet.BaseStats.HP);
+                Assert.Equal(250, pet.Experience);
+                Assert.Contains(player.Sent, s => s.StartsWith("NTF0,") && s.Contains("That pet is no longer yours."));
+                Assert.StartsWith("Pets (", OptionListOf(player).Title);
+                Assert.DoesNotContain(player.Windows, w => w.Type == Window.WindowTypes.Amount);
+            }
+        }
+
         [Fact]
         public void OpenPet_back_reopens_root()
         {

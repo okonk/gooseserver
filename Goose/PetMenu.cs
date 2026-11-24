@@ -104,6 +104,41 @@ namespace Goose
                         OpenPet(p, petId, w);
                         break;
                     }
+                    case 5:
+                    case 6:
+                    {
+                        long max = index == 5
+                            ? PetOperations.MaxAffordableVita(target, w.Settings)
+                            : PetOperations.MaxAffordableDamage(target, w.Settings);
+                        if (max == 0)
+                        {
+                            string msg = PetOperations.IsMaxLevel(target)
+                                ? target.Name + " doesn't have enough experience."
+                                : target.Name + " must be max level to buy stats.";
+                            w.Send(p, P.Notice(NoticeType.Info, msg));
+                            OpenPet(p, petId, w);
+                            break;
+                        }
+                        string stat = index == 5 ? "HP" : "damage";
+                        new AmountWindow(p, w, index == 5 ? "Buy HP" : "Buy Damage",
+                            $"How many {stat} buys for {target.Name}? (max {max.ToString(CultureInfo.InvariantCulture)})",
+                            (0, 0, 0, 0, 0, 0), 1, max, 1, (n, pl, wd) =>
+                            {
+                                var bought = PetOperations.Find(pl, petId);
+                                if (bought is null)
+                                {
+                                    wd.Send(pl, P.Notice(NoticeType.Info, "That pet is no longer yours."));
+                                    Open(pl, wd);
+                                    return;
+                                }
+                                var r = index == 5
+                                    ? PetOperations.BuyVita(bought, n, wd)
+                                    : PetOperations.BuyDamage(bought, n, wd);
+                                wd.Send(pl, P.Notice(NoticeType.Info, r.Message));
+                                OpenPet(pl, petId, wd);
+                            });
+                        break;
+                    }
                 }
             }, onBack: (p, w) => Open(p, w));
         }
