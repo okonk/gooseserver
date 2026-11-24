@@ -93,6 +93,7 @@ namespace Goose.Logs
             24 => ResetItem(c),
             25 => Enchant(c),
             26 => Stylist(c),
+            27 => Fallback(c),
             10001 => GetItemSummary(c),
             10002 => ClassChange(c),
             10003 => GiveAmount(c, "experience"),
