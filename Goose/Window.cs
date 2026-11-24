@@ -58,6 +58,7 @@ namespace Goose
             GridContainer = 32,
             Enchant = 33,
             Stylist = 34,
+            TextInput = 35,
         }
         public WindowFrames Frame { get; set; }
 
@@ -92,6 +93,7 @@ namespace Goose
             Backpack,
             Enchant,
             Stylist,
+            TextInput,
         }
         public WindowTypes Type { get; set; }
 
