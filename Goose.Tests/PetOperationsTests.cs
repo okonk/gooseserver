@@ -292,6 +292,66 @@ namespace Goose.Tests
         }
 
         [Fact]
+        public void Release_spawned_pet_destroys_removes_and_marks_deleted()
+        {
+            var (fixture, player, map) = WorldAndPlayer();
+            using (fixture)
+            {
+                fixture.World.Database.Start(Path.Combine(fixture.DataDirectory, "test.db"));
+                fixture.World.Database.Execute(conn =>
+                {
+                    using var cmd = conn.CreateCommand();
+                    cmd.CommandText = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "sql", "pets.sql"));
+                    cmd.ExecuteNonQuery();
+                });
+
+                map.CanSpawnPets = true;
+                var pet = MakePet(fixture, player, 1, "Rex");
+                pet.Spawn(fixture.World);
+
+                var r = PetOperations.Release(player, pet, fixture.World);
+
+                Assert.True(r.Ok);
+                Assert.Equal("Rex has been released.", r.Message);
+                Assert.False(pet.IsAlive);
+                Assert.Empty(player.Pets);
+                Assert.True(pet.Delete);
+            }
+        }
+
+        [Fact]
+        public void Release_closes_open_petinfo_window_and_sends_clw()
+        {
+            var (fixture, player, map) = WorldAndPlayer();
+            using (fixture)
+            {
+                fixture.World.Database.Start(Path.Combine(fixture.DataDirectory, "test.db"));
+                fixture.World.Database.Execute(conn =>
+                {
+                    using var cmd = conn.CreateCommand();
+                    cmd.CommandText = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "sql", "pets.sql"));
+                    cmd.ExecuteNonQuery();
+                });
+
+                map.CanSpawnPets = true;
+                var pet = MakePet(fixture, player, 1, "Rex");
+                pet.Spawn(fixture.World);
+
+                Window w = new Window();
+                w.Title = "Pet Info For ID 1";
+                w.Type = Window.WindowTypes.PetInfo;
+                w.Data = pet;
+                player.Windows.Add(w);
+
+                var r = PetOperations.Release(player, pet, fixture.World);
+
+                Assert.True(r.Ok);
+                Assert.DoesNotContain(player.Windows, x => x.Type == Window.WindowTypes.PetInfo && x.Data == pet);
+                Assert.Contains(player.Sent, s => s.StartsWith("CLW"));
+            }
+        }
+
+        [Fact]
         public void PetSpawn_command_at_active_limit_sends_limit_message()
         {
             var fixture = new TestWorldFixture(s => s.ActivePetLimit = 2);

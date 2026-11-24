@@ -13,15 +13,7 @@ namespace Goose.Commands
                 return;
             }
 
-            Pet? match = null;
-            foreach (var pet in ctx.Player.Pets)
-            {
-                if (pet.PetID == id)
-                {
-                    match = pet;
-                    break;
-                }
-            }
+            Pet? match = PetOperations.Find(ctx.Player, id);
 
             if (match is null)
             {
@@ -29,23 +21,7 @@ namespace Goose.Commands
                 return;
             }
 
-            foreach (var window in ctx.Player.Windows)
-            {
-                if (window.Type == Window.WindowTypes.PetInfo && window.Data == match)
-                {
-                    window.Refresh(ctx.Player, world);
-                    return;
-                }
-            }
-
-            Window w = new Window();
-            w.Title = "Pet Info For ID " + match.PetID;
-            w.Type = Window.WindowTypes.PetInfo;
-            w.Buttons = "0,0,0,0,0";
-            w.Data = match;
-
-            ctx.Player.Windows.Add(w);
-            w.Create(ctx.Player, world);
+            PetOperations.ShowInfo(ctx.Player, match, world);
         }
     }
 }

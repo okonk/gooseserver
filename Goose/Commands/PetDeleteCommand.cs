@@ -13,15 +13,7 @@ namespace Goose.Commands
                 return;
             }
 
-            Pet? match = null;
-            foreach (var pet in ctx.Player.Pets)
-            {
-                if (pet.PetID == id)
-                {
-                    match = pet;
-                    break;
-                }
-            }
+            Pet? match = PetOperations.Find(ctx.Player, id);
 
             if (match is null)
             {
@@ -29,10 +21,7 @@ namespace Goose.Commands
                 return;
             }
 
-            match.Destroy(world);
-            ctx.Player.Pets.Remove(match);
-            match.Delete = true;
-            match.SaveToDatabase(world);
+            PetOperations.Release(ctx.Player, match, world);
         }
     }
 }

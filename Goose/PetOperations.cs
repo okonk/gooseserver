@@ -198,6 +198,42 @@ namespace Goose
             return new PetResult(true, pet.Name + " has been dismissed.");
         }
 
+        public static PetResult Release(Player owner, Pet pet, GameWorld world)
+        {
+            pet.Destroy(world);
+            owner.Pets.Remove(pet);
+            pet.Delete = true;
+            pet.SaveToDatabase(world);
+
+            foreach (var w in owner.Windows.Where(w => w.Type == Window.WindowTypes.PetInfo && w.Data == pet).ToList())
+            {
+                w.Close(owner, world);
+            }
+
+            return new PetResult(true, pet.Name + " has been released.");
+        }
+
+        public static void ShowInfo(Player owner, Pet pet, GameWorld world)
+        {
+            foreach (var window in owner.Windows)
+            {
+                if (window.Type == Window.WindowTypes.PetInfo && window.Data == pet)
+                {
+                    window.Refresh(owner, world);
+                    return;
+                }
+            }
+
+            Window w = new Window();
+            w.Title = "Pet Info For ID " + pet.PetID;
+            w.Type = Window.WindowTypes.PetInfo;
+            w.Buttons = "0,0,0,0,0";
+            w.Data = pet;
+
+            owner.Windows.Add(w);
+            w.Create(owner, world);
+        }
+
         public static PetResult SetMode(Pet pet, Pet.Modes mode)
         {
             if (mode == Pet.Modes.Attack)
