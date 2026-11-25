@@ -275,6 +275,7 @@ namespace Goose
                 if (spell.SpellEffect is null)
                 {
                     log.Warn("spell {0} ({1}): bad spell effect id {2}", spell.Name, spell.ID, spell.SpellEffectID);
+                    this.spells.Remove(spell.ID);
                     continue;
                 }
 
