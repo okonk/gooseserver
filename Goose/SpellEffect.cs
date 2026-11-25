@@ -678,6 +678,13 @@ namespace Goose
                         foreach (var line in this.OnMeleeAttackSpell.GetItemDescription(world)) yield return line;
                     }
                     break;
+                case EffectTypes.GroundZone:
+                    yield return $"Ground zone for {this.Duration}s, ticks every {Math.Max(GroundZones.MinTickMs, this.ZoneTickMs) / 1000.0:0.#}s";
+                    if (!string.IsNullOrWhiteSpace(this.HPFormula) && this.HPFormula != "0")
+                        yield return GetFormulaDescription(this.HPFormula, "HP", "Zone> ");
+                    if (!string.IsNullOrWhiteSpace(this.MPFormula) && this.MPFormula != "0")
+                        yield return GetFormulaDescription(this.MPFormula, "MP", "Zone> ");
+                    break;
                 default:
                     foreach (var line in GetBuffDescription("")) yield return line;
                     break;
@@ -1287,6 +1294,9 @@ namespace Goose
 
             caster.BreakInvisibility(world);
 
+            if (this.EffectType == EffectTypes.GroundZone)
+                return this.CastGroundZone(caster, target, world);
+
             if (this.TargetType == TargetTypes.Target)
             {
                 return this.CastSpell(caster, target, world, cast);
@@ -1335,6 +1345,24 @@ namespace Goose
                 }
             }
 
+
+            return true;
+        }
+
+        private bool CastGroundZone(ICharacter caster, ICharacter anchor, GameWorld world)
+        {
+            var map = anchor.Map;
+            if (!MapAllowsCasting(caster, map)) return false;
+
+            map.GroundZones.Create(this, caster, anchor.MapX, anchor.MapY, world);
+
+            if (this.DoCastAnimation)
+            {
+                string packet = P.Cast(caster);
+                if (caster is Player player) world.Send(player, packet);
+                foreach (var p in map.GetPlayersInRange(caster))
+                    world.Send(p, packet);
+            }
 
             return true;
         }
