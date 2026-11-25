@@ -540,9 +540,9 @@ namespace Goose
                 npc.RemoveAggro(this);
             }
 
-            this.Map.RemovePlayer(this, world);
-
             this.State = States.NotLoggedIn;
+
+            this.Map.RemovePlayer(this, world);
 
             Pet.LoginIDToPet.Remove(this.LoginID);
             this.Map.SetCharacter(null, this.MapX, this.MapY);
@@ -679,6 +679,7 @@ namespace Goose
             this.MapY = y;
             // move onto this square so this
             this.Map.SetCharacter(this, this.MapX, this.MapY);
+            this.Map.GroundZones.RecheckBuffs(this, world);
 
             try
             {
@@ -744,6 +745,7 @@ namespace Goose
             this.MapY = this.Owner.MapY;
             this.Map.PlaceCharacter(this);
             this.Map.SetCharacter(this, this.MapX, this.MapY);
+            this.Map.GroundZones.RecheckBuffs(this, world);
 
             this.Facing = this.Owner.Facing;
 

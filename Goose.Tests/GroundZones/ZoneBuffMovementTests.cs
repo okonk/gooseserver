@@ -41,6 +41,32 @@ public class ZoneBuffMovementTests
     private static bool HasZoneBuff(ICharacter c, SpellEffect ward) =>
         c.Buffs.Any(b => b.SpellEffect == ward && b.SourceZone is not null);
 
+    private static Pet PetAt(GroundZoneTestKit kit, int x, int y, Player owner)
+    {
+        var pet = new Pet
+        {
+            LoginID = 1001,
+            Name = "Pet",
+            Owner = owner,
+            Class = kit.World.ClassHandler.GetClass(0)!,
+            BaseStats = new AttributeSet { HP = 100 },
+            MaxStats = new AttributeSet { HP = 100 },
+            HairA = 255,
+            FaceID = 70,
+            State = Player.States.Ready,
+            Map = kit.Map,
+            MapID = kit.Map.ID,
+            MapX = x,
+            MapY = y,
+        };
+        pet.CurrentHP = 100;
+        pet.Level = 1;
+        kit.Map.AddPlayer(pet, kit.World);
+        kit.Map.PlaceCharacter(pet);
+        kit.Map.SetCharacter(pet, x, y);
+        return pet;
+    }
+
     [Fact]
     public void Walking_in_and_out_adds_and_removes_the_buff()
     {
@@ -146,5 +172,35 @@ public class ZoneBuffMovementTests
 
         npc.Reveal(kit.World, 11, 10);
         Assert.True(HasZoneBuff(npc, ward));
+    }
+
+    [Fact]
+    public void A_destroyed_pet_keeps_no_zone_buff()
+    {
+        using var kit = new GroundZoneTestKit();
+        var (ward, zone) = Effects(kit.Fixture);
+        var owner = kit.PlayerAt(30, 30, "Owner");
+        var pet = PetAt(kit, 10, 10, owner);
+        kit.Map.GroundZones.Create(zone, Caster(kit.Fixture, kit.Map), 10, 10, kit.World);
+        Assert.True(HasZoneBuff(pet, ward));
+
+        pet.Destroy(kit.World);
+
+        Assert.False(HasZoneBuff(pet, ward));
+    }
+
+    [Fact]
+    public void A_pet_walking_out_of_the_zone_loses_the_buff()
+    {
+        using var kit = new GroundZoneTestKit();
+        var (ward, zone) = Effects(kit.Fixture);
+        var owner = kit.PlayerAt(30, 30, "Owner");
+        var pet = PetAt(kit, 10, 10, owner);
+        kit.Map.GroundZones.Create(zone, Caster(kit.Fixture, kit.Map), 10, 10, kit.World);
+        Assert.True(HasZoneBuff(pet, ward));
+
+        pet.MoveTo(kit.World, 12, 10);
+
+        Assert.False(HasZoneBuff(pet, ward));
     }
 }
