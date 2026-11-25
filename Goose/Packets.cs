@@ -719,7 +719,10 @@ namespace Goose
                     spell.Graphic + "," +
                     spell.GraphicFile + "," +
                     spell.Aether + "," +
-                    remainingMs;
+                    remainingMs + "," +
+                    (spell.GroundTargetable ? 1 : 0) + "," +
+                    (int)spell.SpellEffect.TargetType + "," +
+                    spell.SpellEffect.TargetSize;
         };
 
         public static Func<int, long, string> SpellCooldownRemaining = (slotId, remainingMs) =>
