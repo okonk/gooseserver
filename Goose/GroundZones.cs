@@ -32,6 +32,7 @@ namespace Goose
                 Effect = effect,
                 Caster = caster,
                 Map = this.map,
+                Overlaps = effect.ZoneOverlaps,
                 Tiles = SpellEffect.ShapeTiles(effect.TargetType, effect.TargetSize, x, y, caster.Facing)
                     .Where(t => t.X >= 1 && t.X <= this.map.Width && t.Y >= 1 && t.Y <= this.map.Height)
                     .ToHashSet(),

@@ -10,6 +10,6 @@ namespace Goose
         public long CreatedAt { get; init; }
         public long ExpiresAt { get; init; }
 
-        public bool Overlaps => this.Effect.ZoneOverlaps;
+        public bool Overlaps { get; init; }
     }
 }

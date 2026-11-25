@@ -192,6 +192,23 @@ public class GroundZonesTests
     }
 
     [Fact]
+    public void A_zone_that_became_overlapping_on_reload_still_releases_its_tiles()
+    {
+        using var kit = new GroundZoneTestKit();
+        var caster = kit.PlayerAt(30, 30);
+        var effect = kit.Zone(1, e => e.Duration = 1);
+        var zone = kit.Map.GroundZones.Create(effect, caster, 10, 10, kit.World);
+
+        Assert.NotNull(kit.Map.GroundZones.OwnerAt(10, 10));
+        effect.ZoneOverlaps = true;
+
+        kit.Map.GroundZones.Tick(zone, zone.ExpiresAt, kit.World);
+
+        Assert.Null(kit.Map.GroundZones.OwnerAt(10, 10));
+        Assert.Empty(kit.Map.GroundZones.All);
+    }
+
+    [Fact]
     public void A_removed_zone_ignores_stale_tick_events()
     {
         using var kit = new GroundZoneTestKit();
