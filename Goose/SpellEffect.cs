@@ -308,6 +308,10 @@ namespace Goose
                 ? [] : [.. other.BuffDoesntStackOver];
         }
 
+        public bool HasFormula => IsFormulaSet(this.HPFormula) || IsFormulaSet(this.MPFormula);
+
+        private static bool IsFormulaSet(string? formula) => !string.IsNullOrWhiteSpace(formula) && formula != "0";
+
         public static List<(int X, int Y)> ShapeTiles(TargetTypes shape, int size, int ox, int oy, Direction facing)
         {
             var tiles = new List<(int X, int Y)>();

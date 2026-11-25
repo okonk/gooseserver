@@ -60,6 +60,8 @@ namespace Goose
 
         public object? ScriptStore { get; set; }
 
+        public GroundZones GroundZones { get; }
+
         // Field block: when adding a field to Map, mirror it in CloneAs below or clones
         // will silently diverge from the maps they were copied from.
         public ICharacter?[] characters = null!;
@@ -91,6 +93,7 @@ namespace Goose
             this.requiredItems = [];
             this.npcs = [];
             this.items = [];
+            this.GroundZones = new GroundZones(this);
         }
 
         /// <summary>Item template ids a player must carry to enter. Read-only - use

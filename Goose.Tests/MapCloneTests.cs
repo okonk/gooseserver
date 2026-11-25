@@ -73,4 +73,14 @@ public class MapCloneTests
         Assert.NotSame(basic.tiles, clone.tiles);
         Assert.Same(basic.GetTile(3, 3), clone.GetTile(3, 3));
     }
+
+    [Fact]
+    public void Clone_gets_its_own_ground_zones()
+    {
+        var basic = MakeBase();
+
+        var clone = basic.CloneAs(100001, "Town (1)");
+
+        Assert.NotSame(basic.GroundZones, clone.GroundZones);
+    }
 }

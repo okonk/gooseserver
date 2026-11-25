@@ -91,6 +91,10 @@ public class SpellCloneTests
 
     private const int Marker = 4242;
 
+    // Derived from other properties, so the copy constructor carries the inputs and has
+    // nothing to copy. Any other read-only property still fails the guard below.
+    private static readonly HashSet<string> DerivedProperties = ["HasFormula"];
+
     private static readonly Dictionary<Type, object> SampleValues = new()
     {
         [typeof(int)] = 7,
@@ -114,8 +118,12 @@ public class SpellCloneTests
         foreach (var property in target.GetType()
                      .GetProperties(BindingFlags.Public | BindingFlags.Instance))
         {
-            Assert.True(property.CanWrite,
-                $"{property.Name} is read-only. Decide what the copy constructor does with it, then teach this test.");
+            if (!property.CanWrite)
+            {
+                Assert.True(DerivedProperties.Contains(property.Name),
+                    $"{property.Name} is read-only. Decide what the copy constructor does with it, then teach this test.");
+                continue;
+            }
 
             var type = property.PropertyType;
             object value;
@@ -147,7 +155,7 @@ public class SpellCloneTests
         foreach (var property in copy.GetType()
                      .GetProperties(BindingFlags.Public | BindingFlags.Instance))
         {
-            var want = expected[property.Name];
+            if (!expected.TryGetValue(property.Name, out var want)) continue;
             var actual = property.GetValue(copy);
 
             switch (actual)
