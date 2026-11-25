@@ -612,7 +612,7 @@ namespace Goose
 
         public Player()
         {
-
+            this.Buffs = [];
         }
 
         public void OnLogin()
@@ -1414,6 +1414,7 @@ namespace Goose
             // move onto this square so this
             if (!IsGMInvisible)
                 this.Map.SetCharacter(this, this.MapX, this.MapY);
+            this.Map.GroundZones.RecheckBuffs(this, world);
 
             try
             {
@@ -1544,6 +1545,7 @@ namespace Goose
                     // move onto this square so this
                     this.Map.SetCharacter(this, this.MapX, this.MapY);
                 }
+                this.Map.GroundZones.RecheckBuffs(this, world);
 
                 world.Send(this, P.SetYourPosition(this));
 
@@ -2281,6 +2283,7 @@ namespace Goose
             this.SendCHPString(world);
             this.SendVitals(world);
             world.Send(this, P.Notice(NoticeType.Info, reviver.Name + " revived you."));
+            this.Map.GroundZones.RecheckBuffs(this, world);
         }
 
         public bool RefuseWhileDead(GameWorld world)

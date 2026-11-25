@@ -200,6 +200,7 @@ namespace Goose
         public void AddPlayer(Player player, GameWorld world)
         {
             this.players.Add(player);
+            this.GroundZones.RecheckBuffs(player, world);
 
             try
             {
@@ -218,6 +219,7 @@ namespace Goose
         public void RemovePlayer(Player player, GameWorld world)
         {
             this.players.Remove(player);
+            this.GroundZones.RecheckBuffs(player, world);
 
             try
             {

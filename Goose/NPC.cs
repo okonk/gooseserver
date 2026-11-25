@@ -568,6 +568,7 @@ namespace Goose
             this.MapY = y;
             // moveto this square so this
             this.Map.SetCharacter(this, this.MapX, this.MapY);
+            this.Map.GroundZones.RecheckBuffs(this, world);
 
             List<Player> afterRange = this.Map.GetPlayersInRange(this);
 
@@ -770,6 +771,7 @@ namespace Goose
                     this.AggroIfInRange(player, world);
             }
 
+            this.Map.GroundZones.RecheckBuffs(this, world);
             this.AddMoveEvent(world);
         }
 
@@ -782,6 +784,7 @@ namespace Goose
                 world.Send(player, packet);
             this.LeaveTile();
             this.Hidden = true;
+            this.Map.GroundZones.RecheckBuffs(this, world);
         }
 
         public void Reveal(GameWorld world, int x, int y)
@@ -793,6 +796,7 @@ namespace Goose
             this.Map.PlaceCharacter(this);
             this.Map.SetCharacter(this, this.MapX, this.MapY);
             this.Hidden = false;
+            this.Map.GroundZones.RecheckBuffs(this, world);
 
             string packet = P.MakeNPCCharacter(this);
             foreach (var player in this.Map.GetPlayersInRange(this))
