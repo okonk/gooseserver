@@ -64,6 +64,26 @@ public class GroundZoneLoadTests : IDisposable
         Assert.False(world.SpellHandler.GetSpell(2)!.GroundTargetable);
     }
 
+    [Fact]
+    public void Skips_invalid_zones_and_the_spells_that_use_them()
+    {
+        Insert("INSERT INTO spell_effects (spell_effect_id, spell_effect_name, spell_effected, effect_type, " +
+               "effect_duration, target_type, target_size) VALUES (3, 'Random Zone', 6, 24, 8, 4, 1)");
+        Insert("INSERT INTO spell_effects (spell_effect_id, spell_effect_name, spell_effected, effect_type, " +
+               "effect_duration, target_type, target_size) VALUES (4, 'Good Zone', 6, 24, 8, 5, 1)");
+        Insert("INSERT INTO spells (spell_id, spell_name, spell_target, spellbook_graphic, spell_effect_id) " +
+               "VALUES (3, 'Random Zone', 0, 1, 3)");
+        Insert("INSERT INTO spells (spell_id, spell_name, spell_target, spellbook_graphic, spell_effect_id) " +
+               "VALUES (4, 'Group Zone', 2, 1, 4)");
+
+        Load();
+
+        Assert.Null(world.SpellHandler.GetSpellEffect(3));
+        Assert.Null(world.SpellHandler.GetSpell(3));
+        Assert.NotNull(world.SpellHandler.GetSpellEffect(4));
+        Assert.Null(world.SpellHandler.GetSpell(4));
+    }
+
     private static void RunSql(SQLiteConnection conn, string sql)
     {
         using var cmd = conn.CreateCommand();

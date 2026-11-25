@@ -145,6 +145,13 @@ namespace Goose
                     effect.ScriptParams = reader.GetString("script_params");
                 }
 
+                if (GroundZoneProblem(effect) is string problem)
+                {
+                    log.Warn("spell effect {0} ({1}): {2}", effect.Name, effect.ID, problem);
+                    this.effects.Remove(effect.ID);
+                    continue;
+                }
+
                 this.effects[effect.ID] = effect;
             }
 
@@ -271,9 +278,32 @@ namespace Goose
                     continue;
                 }
 
+                if (SpellProblem(spell) is string problem)
+                {
+                    log.Warn("spell {0} ({1}): {2}", spell.Name, spell.ID, problem);
+                    this.spells.Remove(spell.ID);
+                    continue;
+                }
+
                 this.spells[spell.ID] = spell;
             }
             });
+        }
+
+        internal static string? GroundZoneProblem(SpellEffect effect)
+        {
+            if (effect.EffectType != SpellEffect.EffectTypes.GroundZone) return null;
+            if (effect.TargetType == SpellEffect.TargetTypes.Random) return "ground zones can't use the Random shape";
+            if (effect.Duration <= 0) return "ground zones need an effect_duration above 0";
+            return null;
+        }
+
+        internal static string? SpellProblem(Spell spell)
+        {
+            if (spell.SpellEffect.EffectType == SpellEffect.EffectTypes.GroundZone &&
+                spell.Target == Spell.SpellTargets.Group)
+                return "ground zone spells can't target Group";
+            return null;
         }
 
         /**
