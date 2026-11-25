@@ -922,28 +922,7 @@ namespace Goose
             }
 
 
-            if (this.EffectType == EffectTypes.Stun)
-            {
-                List<Player> range = target.Map.GetPlayersInRange(target);
-                string packet = P.BattleTextStunned(target);
-
-                if (target is Player) world.Send((Player)target, packet);
-                foreach (var player in range)
-                {
-                    world.Send(player, packet);
-                }
-            }
-            else if (this.EffectType == EffectTypes.Root)
-            {
-                List<Player> range = target.Map.GetPlayersInRange(target);
-                string packet = P.BattleTextRooted(target);
-
-                if (target is Player) world.Send((Player)target, packet);
-                foreach (var player in range)
-                {
-                    world.Send(player, packet);
-                }
-            }
+            this.AnnounceDisable(target, world);
             Buff buff = new Buff();
             buff.Target = target;
             buff.Caster = caster;
@@ -955,6 +934,18 @@ namespace Goose
             target.AddBuff(buff, world);
 
             return true;
+        }
+
+        internal void AnnounceDisable(ICharacter target, GameWorld world)
+        {
+            string packet;
+            if (this.EffectType == EffectTypes.Stun) packet = P.BattleTextStunned(target);
+            else if (this.EffectType == EffectTypes.Root) packet = P.BattleTextRooted(target);
+            else return;
+
+            if (target is Player self) world.Send(self, packet);
+            foreach (var player in target.Map.GetPlayersInRange(target))
+                world.Send(player, packet);
         }
 
         /**

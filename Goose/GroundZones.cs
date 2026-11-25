@@ -45,6 +45,7 @@ namespace Goose
                 foreach (var tile in zone.Tiles)
                     this.owners[tile] = zone;
 
+            this.RecheckTiles(zone, world);
             this.Apply(zone, world);
             this.Schedule(zone, now, world);
             return zone;
@@ -56,7 +57,7 @@ namespace Goose
 
             if (now >= zone.ExpiresAt)
             {
-                this.Remove(zone);
+                this.Remove(zone, world);
                 return;
             }
 
@@ -64,19 +65,83 @@ namespace Goose
             this.Schedule(zone, now, world);
         }
 
-        private void Remove(GroundZone zone)
+        private void Remove(GroundZone zone, GameWorld world)
         {
             this.zones.Remove(zone);
-            if (zone.Overlaps) return;
 
-            foreach (var tile in zone.Tiles)
+            if (!zone.Overlaps)
             {
-                if (this.owners.GetValueOrDefault(tile) != zone) continue;
+                foreach (var tile in zone.Tiles)
+                {
+                    if (this.owners.GetValueOrDefault(tile) != zone) continue;
 
-                var next = this.zones.LastOrDefault(z => !z.Overlaps && z.Tiles.Contains(tile));
-                if (next is null) this.owners.Remove(tile);
-                else this.owners[tile] = next;
+                    var next = this.zones.LastOrDefault(z => !z.Overlaps && z.Tiles.Contains(tile));
+                    if (next is null) this.owners.Remove(tile);
+                    else this.owners[tile] = next;
+                }
             }
+
+            this.RecheckTiles(zone, world);
+        }
+
+        public void RecheckBuffs(ICharacter character, GameWorld world)
+        {
+            var wanted = this.WantedBuffs(character);
+
+            foreach (var held in character.Buffs.Where(b => b.SourceZone?.Map == this.map).ToList())
+            {
+                if (wanted.Remove(held.SpellEffect, out var zone)) held.SourceZone = zone;
+                else character.RemoveBuff(held, world);
+            }
+
+            foreach (var (effect, zone) in wanted)
+            {
+                if (character.Buffs.Any(b => b.SpellEffect == effect ||
+                                             effect.BuffStacksOver.Contains(b.SpellEffect) ||
+                                             effect.BuffDoesntStackOver.Contains(b.SpellEffect)))
+                    continue;
+
+                character.AddBuff(new Buff
+                {
+                    Target = character,
+                    Caster = zone.Caster,
+                    SpellEffect = effect,
+                    TimeCast = world.TimeNow,
+                    CasterMPAtCast = zone.Caster.CurrentMP,
+                    SourceZone = zone,
+                }, world);
+                effect.AnnounceDisable(character, world);
+            }
+        }
+
+        private Dictionary<SpellEffect, GroundZone> WantedBuffs(ICharacter character)
+        {
+            var wanted = new Dictionary<SpellEffect, GroundZone>();
+            if (character.Map != this.map || !IsAlive(character)) return wanted;
+
+            int x = character.MapX;
+            int y = character.MapY;
+            if (this.map.GetCharacterAt(x, y) != character) return wanted;
+
+            foreach (var zone in this.zones)
+            {
+                if (zone.Effect.ZoneBuffEffect is not SpellEffect buff) continue;
+                if (!zone.Tiles.Contains((x, y)) || !this.IsActiveAt(zone, x, y)) continue;
+                if (!zone.Effect.CanCastSpell(zone.Caster, character, this.map)) continue;
+                if (!buff.CanCastSpell(zone.Caster, character, this.map)) continue;
+                if (buff.EffectType == SpellEffect.EffectTypes.Snare && character is not NPC) continue;
+
+                wanted[buff] = zone;
+            }
+
+            return wanted;
+        }
+
+        private void RecheckTiles(GroundZone zone, GameWorld world)
+        {
+            foreach (var (x, y) in zone.Tiles)
+                if (this.map.GetCharacterAt(x, y) is ICharacter character)
+                    this.RecheckBuffs(character, world);
         }
 
         private void Apply(GroundZone zone, GameWorld world)
