@@ -2224,8 +2224,8 @@ namespace Goose
 
             if (world.Settings.ReviveTimeout <= 0 || !this.MapAllowsRevive(deathMap, killer, world))
             {
-                this.Respawn(world);
                 this.RemoveDeathBuffs(world);
+                this.Respawn(world);
                 return;
             }
 

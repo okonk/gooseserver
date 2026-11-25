@@ -160,6 +160,27 @@ public class ZoneBuffMovementTests
     }
 
     [Fact]
+    public void No_revive_respawn_keeps_the_zone_buff()
+    {
+        using var kit = new GroundZoneTestKit();
+        kit.World.Settings.ReviveTimeout = 0;
+        var (ward, zone) = Effects(kit.Fixture);
+        var p = kit.PlayerAt(10, 10, "Walker");
+        p.BoundMap = kit.Map;
+        p.BoundX = 10;
+        p.BoundY = 10;
+        var killer = kit.Fixture.SpawnNpc(kit.Map, 20, 20, kit.Template);
+
+        kit.Map.GroundZones.Create(zone, Caster(kit.Fixture, kit.Map), 10, 10, kit.World);
+        Assert.True(HasZoneBuff(p, ward));
+
+        p.Attacked(killer, p.CurrentHP + 1000, kit.World);
+
+        Assert.False(p.IsDead);
+        Assert.True(HasZoneBuff(p, ward));
+    }
+
+    [Fact]
     public void Hidden_npcs_lose_the_buff_and_get_it_back_when_revealed_inside()
     {
         using var kit = new GroundZoneTestKit();
