@@ -91,7 +91,8 @@ namespace Goose
             PetNeutral = 20,
             Script,
             Revive,
-            PetMenu = 23
+            PetMenu = 23,
+            GroundZone
         }
 
         /**
@@ -145,6 +146,10 @@ namespace Goose
         public bool WorksNotInPVP { get; set; }
 
         public bool OnlyHitsOneNPC { get; set; }
+
+        public int ZoneTickMs { get; set; }
+        public int ZoneBuffEffectID { get; set; }
+        public bool ZoneOverlaps { get; set; }
 
         /**
          * If spell is a buff, can it be removed from buff bar by clicking it
@@ -271,6 +276,9 @@ namespace Goose
             this.WorksInPVP = other.WorksInPVP;
             this.WorksNotInPVP = other.WorksNotInPVP;
             this.OnlyHitsOneNPC = other.OnlyHitsOneNPC;
+            this.ZoneTickMs = other.ZoneTickMs;
+            this.ZoneBuffEffectID = other.ZoneBuffEffectID;
+            this.ZoneOverlaps = other.ZoneOverlaps;
             this.BuffCanBeRemoved = other.BuffCanBeRemoved;
             this.BuffGraphic = other.BuffGraphic;
             this.BuffGraphicFile = other.BuffGraphicFile;

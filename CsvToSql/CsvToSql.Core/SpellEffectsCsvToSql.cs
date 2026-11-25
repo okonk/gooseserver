@@ -104,6 +104,10 @@ namespace CsvToSql
 
             Col.Text("script_path", def: "''"),
             Col.Text("script_params", def: "''"),
+
+            Col.Int("zone_tick_ms", SqlType.Int, def: 1000),
+            Col.Id("zone_buff_effect_id", SqlType.Int, def: 0).Ref("Spell Effects"),
+            Col.Bool("zone_overlaps", def: false),
         };
 
         public override Composite[] GetComposites() => new[]
@@ -189,6 +193,7 @@ namespace CsvToSql
             Script,
             Revive,
             PetMenu = 23,
+            GroundZone,
         }
 
         /**

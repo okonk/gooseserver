@@ -19,6 +19,7 @@ namespace Goose
         public string Name { get; set; } = null!;
         public string Description { get; set; } = null!;
         public SpellTargets Target { get; set; }
+        public bool GroundTargetable { get; set; }
         public long ClassRestrictions { get; set; }
         /**
          * Aether in milliseconds
@@ -47,6 +48,7 @@ namespace Goose
             this.Name = other.Name;
             this.Description = other.Description;
             this.Target = other.Target;
+            this.GroundTargetable = other.GroundTargetable;
             this.ClassRestrictions = other.ClassRestrictions;
             this.Aether = other.Aether;
             this.Graphic = other.Graphic;

@@ -23,6 +23,7 @@ namespace CsvToSql
             Col.Double("sp_percent_cost", scale: 4, max: 99999.9999, def: "0"),
 
             Col.Id("spell_effect_id", SqlType.Int).Ref("Spell Effects"),
+            Col.Bool("ground_targetable", def: false),
         };
 
         public override Composite[] GetComposites() => new[]

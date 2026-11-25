@@ -134,6 +134,9 @@ namespace Goose
                 effect.BuffDoesntStackOver = [];
 
                 effect.OnlyHitsOneNPC = reader.GetString("only_hits_one_npc") != "0";
+                effect.ZoneTickMs = reader.GetInt32("zone_tick_ms");
+                effect.ZoneBuffEffectID = reader.GetInt32("zone_buff_effect_id");
+                effect.ZoneOverlaps = reader.GetString("zone_overlaps") != "0";
 
                 string scriptPath = reader.GetString("script_path");
                 if (!string.IsNullOrEmpty(scriptPath))
@@ -257,6 +260,7 @@ namespace Goose
                 spell.MPStaticCost = reader.GetInt32("mp_static_cost");
                 spell.SPPercentCost = reader.GetDouble("sp_percent_cost");
                 spell.SPStaticCost = reader.GetInt32("sp_static_cost");
+                spell.GroundTargetable = reader.GetString("ground_targetable") != "0";
 
                 spell.SpellEffectID = reader.GetInt32("spell_effect_id");
                 spell.SpellEffect = this.GetSpellEffect(spell.SpellEffectID)!;

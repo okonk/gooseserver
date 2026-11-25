@@ -1886,6 +1886,14 @@ var GOOSE_SCHEMA = {
           "required": true,
           "pk": false,
           "ref": "Spell Effects"
+        },
+        {
+          "name": "ground_targetable",
+          "kind": "Bool",
+          "sql": "CHAR(1)",
+          "default": "\u00270\u0027",
+          "required": false,
+          "pk": false
         }
       ],
       "composites": [
@@ -2061,7 +2069,8 @@ var GOOSE_SCHEMA = {
             "PetNeutral",
             "Script",
             "Revive",
-            "PetMenu"
+            "PetMenu",
+            "GroundZone"
           ],
           "enumValues": [
             0,
@@ -2087,7 +2096,8 @@ var GOOSE_SCHEMA = {
             20,
             21,
             22,
-            23
+            23,
+            24
           ]
         },
         {
@@ -2650,6 +2660,31 @@ var GOOSE_SCHEMA = {
           "kind": "Text",
           "sql": "TEXT",
           "default": "\u0027\u0027",
+          "required": false,
+          "pk": false
+        },
+        {
+          "name": "zone_tick_ms",
+          "kind": "Int",
+          "sql": "INT",
+          "default": "1000",
+          "required": false,
+          "pk": false
+        },
+        {
+          "name": "zone_buff_effect_id",
+          "kind": "Id",
+          "sql": "INT",
+          "default": "0",
+          "required": false,
+          "pk": false,
+          "ref": "Spell Effects"
+        },
+        {
+          "name": "zone_overlaps",
+          "kind": "Bool",
+          "sql": "CHAR(1)",
+          "default": "\u00270\u0027",
           "required": false,
           "pk": false
         }
