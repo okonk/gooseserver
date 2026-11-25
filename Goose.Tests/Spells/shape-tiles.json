@@ -1,0 +1,17 @@
+[
+  { "name": "Target",         "shape": "Target",        "size": 0, "facing": "Down",  "legacy": false, "tiles": [[10,10]] },
+  { "name": "Area 1",         "shape": "Area",          "size": 1, "facing": "Down",  "legacy": true,
+    "tiles": [[9,9],[10,9],[11,9],[9,10],[10,10],[11,10],[9,11],[10,11],[11,11]] },
+  { "name": "Plus 2",         "shape": "Plus",          "size": 2, "facing": "Down",  "legacy": true,
+    "tiles": [[10,8],[10,9],[8,10],[9,10],[10,10],[11,10],[12,10],[10,11],[10,12]] },
+  { "name": "Cross 2",        "shape": "Cross",         "size": 2, "facing": "Down",  "legacy": true,
+    "tiles": [[8,8],[12,8],[9,9],[11,9],[10,10],[9,11],[11,11],[8,12],[12,12]] },
+  { "name": "Line 3 up",      "shape": "LineFront",     "size": 3, "facing": "Up",    "legacy": true, "tiles": [[10,9],[10,8],[10,7]] },
+  { "name": "Line 3 right",   "shape": "LineFront",     "size": 3, "facing": "Right", "legacy": true, "tiles": [[11,10],[12,10],[13,10]] },
+  { "name": "Line 3 down",    "shape": "LineFront",     "size": 3, "facing": "Down",  "legacy": true, "tiles": [[10,11],[10,12],[10,13]] },
+  { "name": "Line 3 left",    "shape": "LineFront",     "size": 3, "facing": "Left",  "legacy": true, "tiles": [[9,10],[8,10],[7,10]] },
+  { "name": "Triangle 2 up",  "shape": "TriangleFront", "size": 2, "facing": "Up",    "legacy": true, "tiles": [[10,9],[9,8],[10,8],[11,8]] },
+  { "name": "Triangle 2 right","shape": "TriangleFront","size": 2, "facing": "Right", "legacy": true, "tiles": [[11,10],[12,9],[12,10],[12,11]] },
+  { "name": "Triangle 2 down","shape": "TriangleFront","size": 2, "facing": "Down",  "legacy": true, "tiles": [[10,11],[9,12],[10,12],[11,12]] },
+  { "name": "Triangle 2 left","shape": "TriangleFront","size": 2, "facing": "Left",  "legacy": true, "tiles": [[9,10],[8,9],[8,10],[8,11]] }
+]
