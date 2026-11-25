@@ -119,6 +119,14 @@ public partial class Dimensions
                     basic.OnMeleeHitSpellID + Offset * dim);
                 clone.OnMeleeHitSpellID = clone.OnMeleeHitSpell == null
                     ? 0 : clone.OnMeleeHitSpell.ID;
+
+                if (basic.ZoneBuffEffectID != 0)
+                {
+                    clone.ZoneBuffEffect = world.SpellHandler.GetSpellEffect(
+                        basic.ZoneBuffEffectID + Offset * dim);
+                    clone.ZoneBuffEffectID = clone.ZoneBuffEffect == null
+                        ? 0 : clone.ZoneBuffEffect.ID;
+                }
             }
         }
 

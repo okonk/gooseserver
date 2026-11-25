@@ -57,4 +57,34 @@ public class GroundZoneValidationTests
 
         Assert.Null(SpellHandler.SpellProblem(spell));
     }
+
+    [Fact]
+    public void A_zone_without_a_buff_link_is_fine()
+    {
+        Assert.Null(SpellHandler.ZoneBuffProblem(Zone(), null));
+    }
+
+    [Fact]
+    public void An_unknown_zone_buff_is_rejected()
+    {
+        Assert.NotNull(SpellHandler.ZoneBuffProblem(Zone(e => e.ZoneBuffEffectID = 99), null));
+    }
+
+    [Theory]
+    [InlineData(SpellEffect.EffectTypes.Buff, true)]
+    [InlineData(SpellEffect.EffectTypes.TickBuff, true)]
+    [InlineData(SpellEffect.EffectTypes.Snare, true)]
+    [InlineData(SpellEffect.EffectTypes.Stun, true)]
+    [InlineData(SpellEffect.EffectTypes.Root, true)]
+    [InlineData(SpellEffect.EffectTypes.Formula, false)]
+    [InlineData(SpellEffect.EffectTypes.Tick, false)]
+    [InlineData(SpellEffect.EffectTypes.GroundZone, false)]
+    public void Only_buff_like_effects_can_be_zone_buffs(SpellEffect.EffectTypes type, bool allowed)
+    {
+        var buff = new SpellEffect { ID = 99, EffectType = type };
+
+        var problem = SpellHandler.ZoneBuffProblem(Zone(e => e.ZoneBuffEffectID = 99), buff);
+
+        Assert.Equal(allowed, problem is null);
+    }
 }

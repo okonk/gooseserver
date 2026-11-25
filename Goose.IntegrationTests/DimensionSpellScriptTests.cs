@@ -508,4 +508,28 @@ public class DimensionSpellScriptTests
         Assert.Empty(npc.Buffs);
         Assert.Equal(0, npc.MaxStats.HP);   // back to base, not 100 - 1600 = -1500
     }
+
+    [Fact]
+    public void Zone_buffs_point_at_the_same_dimensions_buff()
+    {
+        using var fixture = Run(f =>
+        {
+            f.AddBaseMap(1, "Town", width: 100, height: 100);
+            f.AddBaseSpellEffect(9, "Ward", e => e.EffectType = SpellEffect.EffectTypes.Buff);
+            f.AddBaseSpellEffect(42, "Sanctuary", e =>
+            {
+                e.EffectType = SpellEffect.EffectTypes.GroundZone;
+                e.ZoneBuffEffectID = 9;
+                e.ZoneBuffEffect = f.World.SpellHandler.GetSpellEffect(9);
+            });
+        });
+
+        var dim3 = fixture.World.SpellHandler.GetSpellEffect(42 + Offset * 3)!;
+
+        Assert.Equal(9 + Offset * 3, dim3.ZoneBuffEffectID);
+        Assert.Same(fixture.World.SpellHandler.GetSpellEffect(9 + Offset * 3), dim3.ZoneBuffEffect);
+        Assert.Same(fixture.World.SpellHandler.GetSpellEffect(9),
+                    fixture.World.SpellHandler.GetSpellEffect(42)!.ZoneBuffEffect);
+    }
+
 }

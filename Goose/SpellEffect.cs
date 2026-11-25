@@ -151,6 +151,8 @@ namespace Goose
         public int ZoneBuffEffectID { get; set; }
         public bool ZoneOverlaps { get; set; }
 
+        public SpellEffect? ZoneBuffEffect { get; set; }
+
         /**
          * If spell is a buff, can it be removed from buff bar by clicking it
          *
@@ -279,6 +281,7 @@ namespace Goose
             this.ZoneTickMs = other.ZoneTickMs;
             this.ZoneBuffEffectID = other.ZoneBuffEffectID;
             this.ZoneOverlaps = other.ZoneOverlaps;
+            this.ZoneBuffEffect = other.ZoneBuffEffect;
             this.BuffCanBeRemoved = other.BuffCanBeRemoved;
             this.BuffGraphic = other.BuffGraphic;
             this.BuffGraphicFile = other.BuffGraphicFile;

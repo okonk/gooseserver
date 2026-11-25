@@ -104,6 +104,32 @@ public class GroundZoneLoadTests : IDisposable
         Assert.Null(world.SpellHandler.GetSpell(3));
     }
 
+    [Fact]
+    public void Links_zone_buffs_and_drops_zones_with_a_bad_one()
+    {
+        Insert("INSERT INTO spell_effects (spell_effect_id, spell_effect_name, spell_effected, effect_type, effect_duration) " +
+               "VALUES (10, 'Ward', 6, 1, 30)");
+        Insert("INSERT INTO spell_effects (spell_effect_id, spell_effect_name, spell_effected, effect_type, effect_duration) " +
+               "VALUES (11, 'Stun', 6, 7, 3)");
+        Insert("INSERT INTO spell_effects (spell_effect_id, spell_effect_name, spell_effected, effect_type, " +
+               "effect_duration, target_type, target_size, zone_buff_effect_id) VALUES (12, 'Sanctuary', 6, 24, 8, 5, 1, 10)");
+        Insert("INSERT INTO spell_effects (spell_effect_id, spell_effect_name, spell_effected, effect_type, " +
+               "effect_duration, target_type, target_size, zone_buff_effect_id) VALUES (13, 'Stun Field', 6, 24, 8, 5, 1, 11)");
+        Insert("INSERT INTO spell_effects (spell_effect_id, spell_effect_name, spell_effected, effect_type, " +
+               "effect_duration, target_type, target_size, zone_buff_effect_id) VALUES (14, 'Ghost Field', 6, 24, 8, 5, 1, 404)");
+        Insert("INSERT INTO spell_effects (spell_effect_id, spell_effect_name, spell_effected, effect_type) " +
+               "VALUES (15, 'Bolt', 6, 0)");
+        Insert("INSERT INTO spell_effects (spell_effect_id, spell_effect_name, spell_effected, effect_type, " +
+               "effect_duration, target_type, target_size, zone_buff_effect_id) VALUES (16, 'Bolt Field', 6, 24, 8, 5, 1, 15)");
+
+        Load();
+
+        Assert.Same(world.SpellHandler.GetSpellEffect(10), world.SpellHandler.GetSpellEffect(12)!.ZoneBuffEffect);
+        Assert.Same(world.SpellHandler.GetSpellEffect(11), world.SpellHandler.GetSpellEffect(13)!.ZoneBuffEffect);
+        Assert.Null(world.SpellHandler.GetSpellEffect(14));
+        Assert.Null(world.SpellHandler.GetSpellEffect(16));
+    }
+
     private static void RunSql(SQLiteConnection conn, string sql)
     {
         using var cmd = conn.CreateCommand();

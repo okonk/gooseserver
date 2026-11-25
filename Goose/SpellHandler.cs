@@ -159,6 +159,7 @@ namespace Goose
             {
                 s.OnMeleeAttackSpell = this.GetSpellEffect(s.OnMeleeAttackSpellID);
                 s.OnMeleeHitSpell = this.GetSpellEffect(s.OnMeleeHitSpellID);
+                s.ZoneBuffEffect = this.GetSpellEffect(s.ZoneBuffEffectID);
 
                 // Both columns default to '' in the schema: without RemoveEmptyEntries the empty
                 // token would reach the catch below and log an error for every effect on startup.
@@ -200,6 +201,16 @@ namespace Goose
                         log.Error(ex, "spell {0} ({1}): bad spell effect token '{2}' in buff-doesnt-stack-over", s.Name, s.ID, effectid);
                     }
                 }
+            }
+
+            foreach (var bad in this.effects.Values
+                         .Where(e => e.EffectType == SpellEffect.EffectTypes.GroundZone)
+                         .Select(e => (Effect: e, Problem: ZoneBuffProblem(e, e.ZoneBuffEffect)))
+                         .Where(p => p.Problem is not null)
+                         .ToList())
+            {
+                log.Warn("spell effect {0} ({1}): {2}", bad.Effect.Name, bad.Effect.ID, bad.Problem);
+                this.effects.Remove(bad.Effect.ID);
             }
             });
         }
@@ -289,6 +300,17 @@ namespace Goose
                 this.spells[spell.ID] = spell;
             }
             });
+        }
+
+        internal static string? ZoneBuffProblem(SpellEffect zone, SpellEffect? buff)
+        {
+            if (zone.ZoneBuffEffectID == 0) return null;
+            if (buff is null) return "unknown zone_buff_effect_id " + zone.ZoneBuffEffectID;
+            if (buff.EffectType is not (SpellEffect.EffectTypes.Buff or SpellEffect.EffectTypes.TickBuff or
+                                        SpellEffect.EffectTypes.Snare or SpellEffect.EffectTypes.Stun or
+                                        SpellEffect.EffectTypes.Root))
+                return "zone buffs must be Buff, TickBuff, Snare, Stun or Root, not " + buff.EffectType;
+            return null;
         }
 
         internal static string? GroundZoneProblem(SpellEffect effect)
