@@ -188,6 +188,7 @@ namespace CsvToSql
             PetNeutral = 20,
             Script,
             Revive,
+            PetMenu = 23,
         }
 
         /**
