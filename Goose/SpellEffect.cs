@@ -695,6 +695,13 @@ namespace Goose
             hpCritMultiplier = 1;
             if (!this.CanCastSpell(caster, target)) return false;
 
+            this.ApplyFormula(caster, target, world, animate: true, out hpChange, out hpCritMultiplier);
+            return true;
+        }
+
+        internal void ApplyFormula(ICharacter caster, ICharacter target, GameWorld world, bool animate,
+            out long hpChange, out long hpCritMultiplier)
+        {
             var range = target.Map.GetPlayersInRange(target);
             var packets = new List<string>();
 
@@ -716,8 +723,8 @@ namespace Goose
                 }
             }
 
-            if (this.Animation != 0) packets.Add(P.SpellPlayer(target.LoginID, this.Animation, this.AnimationFile));
-            if (this.DoCastAnimation) packets.Add(P.Cast(caster));
+            if (animate && this.Animation != 0) packets.Add(P.SpellPlayer(target.LoginID, this.Animation, this.AnimationFile));
+            if (animate && this.DoCastAnimation) packets.Add(P.Cast(caster));
 
             if (target is NPC && this.TauntAggro > 0)
             {
@@ -727,7 +734,7 @@ namespace Goose
             }
 
             if (packets.Count == 0)
-                return true;
+                return;
 
             var packet = string.Join("\x1", packets);
 
@@ -736,8 +743,6 @@ namespace Goose
             {
                 world.Send(player, packet);
             }
-
-            return true;
         }
 
         public (long HP, long MP) CalculateFormulaResults(
@@ -989,10 +994,10 @@ namespace Goose
             return true;
         }
 
-        public bool CanCastSpell(ICharacter caster, ICharacter target)
+        public bool CanCastSpell(ICharacter caster, ICharacter target, Map? castMap = null)
         {
             if (target is null) return false;
-            if ((caster.Map is not null && !caster.Map.CanCast) && (caster is Player && !((caster as Player)!.HasPrivilege(AccessPrivilege.CastSpellsWhileBlocked)))) return false;
+            if (!MapAllowsCasting(caster, castMap ?? caster.Map)) return false;
             if (caster == target)
             {
                 if (((int)this.Effected & (int)SpellEffected.Self) == 0) return false;
@@ -1037,6 +1042,11 @@ namespace Goose
 
             return false;
         }
+
+        private static bool MapAllowsCasting(ICharacter caster, Map? map)
+            => map is null || map.CanCast ||
+               (caster is not Player) ||
+               ((Player)caster).HasPrivilege(AccessPrivilege.CastSpellsWhileBlocked);
 
         /// <summary>
         /// Pet Taming spell
