@@ -701,6 +701,35 @@ namespace Goose
             if (removed) this.RefreshQuestIcons(world);
         }
 
+        public bool TryConsumeItem(Item item, long count, GameWorld world)
+        {
+            if (count <= 0) return false;
+
+            for (int i = 1; i <= this.settings.InventorySize; i++)
+            {
+                var slot = this.inventory[i];
+                if (slot is null) continue;
+                if (slot.Item == item && slot.Stack >= count)
+                {
+                    this.RemoveItem(item, count, world);
+                    return true;
+                }
+            }
+
+            for (int i = 1; i <= this.settings.InventorySize; i++)
+            {
+                var slot = this.inventory[i];
+                if (slot is null) continue;
+                if (slot.Item.TemplateID == item.TemplateID && slot.Stack >= count)
+                {
+                    this.RemoveItem(slot.Item, count, world);
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         /**
          * Unequip, unequips equipped item at equip slot
          *

@@ -151,6 +151,21 @@ public class PetCooldownTests : IDisposable
         Assert.Equal(knownExpiry, pet.NextRespawnTime);
     }
 
+    [Fact]
+    public void Rename_persists_and_reloads_name()
+    {
+        var pet = CreatePersistedPet(spawn: false);
+
+        Assert.True(PetOperations.Rename(owner, pet, "Barkley", fixture.World).Ok);
+        fixture.World.Database.Execute(_ => { });
+
+        var reloadedOwner = new Player(0) { PlayerID = owner.PlayerID };
+        reloadedOwner.LoadPets(fixture.World);
+
+        var reloadedPet = Assert.Single(reloadedOwner.Pets);
+        Assert.Equal("Barkley", reloadedPet.Name);
+    }
+
     private Pet CreatePersistedPet(bool spawn = true, long nextRespawnTime = 0)
     {
         var pet = new Pet

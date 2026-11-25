@@ -331,6 +331,8 @@ namespace Goose.Tests
         [InlineData(8, 1, 42, "", 0, "Alice invited Carol to a group")]
         [InlineData(9, 42, 1, "", 0, "Carol left a group, removed by Alice")]
         [InlineData(9, 42, 0, "", 0, "Carol left a group")]
+        [InlineData(27, 1, 0, "pet 5: Rex -> Barkley", 0, "PetRename: pet 5: Rex -> Barkley")]
+        [InlineData(27, 1, 0, "", 0, "PetRename")]
         public void Social_membership_summaries(long type, long player, long other, string text, long map, string expected)
         {
             Assert.Equal(expected, LogFormatter.Project(Row(type, player, other, text, map)).Summary);

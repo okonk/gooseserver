@@ -796,5 +796,12 @@ namespace Goose
             {
                 return $"AMI{windowId}|{icon.Sheet}|{icon.Graphic}|{icon.R}|{icon.G}|{icon.B}|{icon.A}|{min}|{max}|{def}|{prompt}";
             };
+
+        // Button and default text are pipe-stripped; prompt is the last field so it may contain '|'.
+        public static Func<int, int, string, string, string, string> TextInputInfo =
+            (windowId, maxLength, buttonText, defaultText, prompt) =>
+            {
+                return $"TXI{windowId}|{maxLength}|{buttonText.Replace("|", "")}|{defaultText.Replace("|", "")}|{prompt}";
+            };
     }
 }

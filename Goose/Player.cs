@@ -439,6 +439,14 @@ namespace Goose
         /// </summary>
         public List<Pet> Pets { get; set; } = null!;
 
+        public const string PetSlotsBonusKey = "pet_slots_bonus";
+        public int PetSlotsBonus
+        {
+            get => this.Properties.GetProperty<int>(PetSlotsBonusKey, 0);
+            set => this.Properties[PetSlotsBonusKey] = value;
+        }
+        public int MaxPets(GooseSettings settings) => Math.Min(settings.PetCountLimit + this.PetSlotsBonus, settings.PetSlotsMax);
+
         /// <summary>
         /// The last time we received a movement, chat, spell, or spacebar attack
         /// </summary>

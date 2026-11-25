@@ -90,7 +90,8 @@ namespace Goose
             PetFollow,
             PetNeutral = 20,
             Script,
-            Revive
+            Revive,
+            PetMenu = 23
         }
 
         /**
@@ -518,6 +519,9 @@ namespace Goose
                 case EffectTypes.PetAttack:
                     yield return "Tell pet to attack";
                     break;
+                case EffectTypes.PetMenu:
+                    yield return "Open the pet menu";
+                    break;
                 case EffectTypes.Formula:
                     if (!string.IsNullOrWhiteSpace(this.HPFormula) && this.HPFormula != "0")
                         yield return GetFormulaDescription(this.HPFormula, "HP", "");
@@ -942,9 +946,9 @@ namespace Goose
                 return false;
             }
 
-            if (player.Pets.Count == world.Settings.PetCountLimit)
+            if (player.Pets.Count >= player.MaxPets(world.Settings))
             {
-                world.Send(player, P.Notice(NoticeType.Info, "You have reached the maximum amount of pets. Use /petdelete <id> to release one."));
+                world.Send(player, P.Notice(NoticeType.Info, "You have reached the maximum amount of pets. Use /pets to release one."));
                 return false;
             }
 
@@ -980,10 +984,7 @@ namespace Goose
             Pet pet = (Pet)target;
             if (pet.Owner != caster) return false;
 
-            pet.Target = null;
-            pet.Mode = Pet.Modes.Defend;
-
-            return true;
+            return PetOperations.SetMode(pet, Pet.Modes.Defend).Ok;
         }
 
         /// <summary>
@@ -998,9 +999,7 @@ namespace Goose
             Pet pet = (Pet)target;
             if (pet.Owner != caster) return false;
 
-            pet.DestroyWithCooldown(world);
-
-            return true;
+            return PetOperations.TryDespawn(pet, world).Ok;
         }
 
         /// <summary>
@@ -1015,10 +1014,7 @@ namespace Goose
             Pet pet = (Pet)target;
             if (pet.Owner != caster) return false;
 
-            pet.Target = null;
-            pet.Mode = Pet.Modes.Follow;
-
-            return true;
+            return PetOperations.SetMode(pet, Pet.Modes.Follow).Ok;
         }
 
         /// <summary>
@@ -1033,10 +1029,7 @@ namespace Goose
             Pet pet = (Pet)target;
             if (pet.Owner != caster) return false;
 
-            pet.Target = null;
-            pet.Mode = Pet.Modes.Neutral;
-
-            return true;
+            return PetOperations.SetMode(pet, Pet.Modes.Neutral).Ok;
         }
 
         /// <summary>
@@ -1059,6 +1052,13 @@ namespace Goose
             pet.Mode = Pet.Modes.Attack;
             pet.Target = target;
             pet.AddAttackEvent(world);
+
+            return true;
+        }
+
+        private bool CastPetMenuSpell(Player owner, GameWorld world)
+        {
+            PetMenu.Open(owner, world);
 
             return true;
         }
@@ -1109,6 +1109,7 @@ namespace Goose
                 EffectTypes.PetFollow when target is Pet => this.CastPetFollowSpell(caster, target, world),
                 EffectTypes.PetNeutral when target is Pet => this.CastPetNeutralSpell(caster, target, world),
                 EffectTypes.PetAttack => this.CastPetAttackSpell(caster, target, world),
+                EffectTypes.PetMenu when caster is Player owner && caster is not Pet => this.CastPetMenuSpell(owner, world),
 
                 // Unrecognised type or target mismatch (e.g. Bind cast on an NPC).
                 _ => false

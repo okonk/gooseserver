@@ -71,6 +71,23 @@ public class PlayerPropertiesPersistenceTests : IDisposable
             ReloadProperties(conn, 1).GetProperty<List<string>>("titles"));
     }
 
+    [Fact]
+    public void A_pet_slots_bonus_round_trips_through_the_real_save_path()
+    {
+        using var conn = OpenWithPlayersTable();
+
+        var player = MakeMinimalPlayer(playerId: 1);
+        player.PetSlotsBonus = 4;
+        RunInsert(player, conn);
+
+        Assert.Equal(4, ReloadProperties(conn, 1).GetProperty<int>(Player.PetSlotsBonusKey));
+
+        player.PetSlotsBonus = 7;
+        RunUpdate(player, conn);
+
+        Assert.Equal(7, ReloadProperties(conn, 1).GetProperty<int>(Player.PetSlotsBonusKey));
+    }
+
     private static PropertiesDictionary ReloadProperties(SQLiteConnection conn, int playerId)
     {
         using var cmd = conn.CreateCommand();

@@ -7,9 +7,6 @@ namespace Goose.Commands
         {
             var world = ctx.World;
 
-            long bought = 0;
-            long soldexp = 0;
-
             if (buys <= 0)
             {
                 world.Send(ctx.Player, P.ServerMessage("Invalid buy amount."));
@@ -21,15 +18,7 @@ namespace Goose.Commands
                 return;
             }
 
-            Pet? match = null;
-            foreach (var pet in ctx.Player.Pets)
-            {
-                if (pet.PetID == petid)
-                {
-                    match = pet;
-                    break;
-                }
-            }
+            var match = PetOperations.Find(ctx.Player, petid);
 
             if (match is null)
             {
@@ -37,38 +26,8 @@ namespace Goose.Commands
                 return;
             }
 
-            if (match.Class.GetLevel(match.Level)?.Experience != 0) return;
-
-            match.RemoveStats(match.BaseStats, world, false);
-
-            double buyrate = 0;
-            long expcost;
-
-            for (int i = 1; i <= buys; i++)
-            {
-                buyrate =
-                    ((match.BaseStats.HP / world.Settings.IncreasePetVitaBuyCost) * 0.2) + 1;
-                expcost = Utils.MultiplyAndTruncate(world.Settings.PetVitaCost, buyrate);
-
-                if (match.Experience >= expcost)
-                {
-                    match.Experience -= expcost;
-                    match.ExperienceSold += expcost;
-                    match.BaseStats.HP += world.Settings.PetVitaBuyAmount;
-                    bought += world.Settings.PetVitaBuyAmount;
-                    soldexp += expcost;
-                }
-                else
-                {
-                    break;
-                }
-            }
-
-            match.AddStats(match.BaseStats, world);
-
-            if (bought == 0) return;
-
-            world.Send(ctx.Player, P.ServerMessage("Bought " + bought + " hp for " + soldexp + " experience."));
+            var result = PetOperations.BuyVita(match, buys, world);
+            world.Send(ctx.Player, P.ServerMessage(result.Message));
         }
     }
 }

@@ -140,6 +140,8 @@ namespace Goose
         public int IncreasePetDamageBuyCost { get; set; }
         public int PetDamageCost { get; set; }
         public int PetCountLimit { get; set; }
+        public int PetSlotsMax { get; set; } = 30;
+        public int ActivePetLimit { get; set; } = 3;
         public int IdleTimeout { get; set; }
         public int PlayerCountExperienceModifierInterval { get; set; }
         public double PlayerCountExperienceModifier { get; set; }
