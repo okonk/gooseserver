@@ -57,6 +57,12 @@ namespace Goose
                 animationFile;
         };
 
+        public static Func<GroundZone, long, string> ZoneAdd = (zone, remainingMs) =>
+            "ZADD" + zone.Id + "," + zone.Effect.Animation + "," + zone.Effect.AnimationFile + "," + remainingMs + "," +
+            string.Join(",", zone.Tiles.OrderBy(t => t.Y).ThenBy(t => t.X).Select(t => t.X + "," + t.Y));
+
+        public static Func<int, string> ZoneDelete = (id) => "ZDEL" + id;
+
         public static Func<Player, string> ExpBar = (player) =>
         {
             if (player.Class.GetLevel(player.Level) is null) return "TNL0,0,0," + player.ExperienceSold;

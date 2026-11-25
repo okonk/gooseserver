@@ -41,6 +41,7 @@ namespace Goose
             };
 
             this.zones.Add(zone);
+            world.SendToMap(this.map, P.ZoneAdd(zone, effect.Duration * 1000));
             if (!zone.Overlaps)
                 foreach (var tile in zone.Tiles)
                     this.owners[tile] = zone;
@@ -68,6 +69,7 @@ namespace Goose
         private void Remove(GroundZone zone, GameWorld world)
         {
             this.zones.Remove(zone);
+            world.SendToMap(this.map, P.ZoneDelete(zone.Id));
 
             if (!zone.Overlaps)
             {
@@ -82,6 +84,13 @@ namespace Goose
             }
 
             this.RecheckTiles(zone, world);
+        }
+
+        public void SendAll(Player player, GameWorld world)
+        {
+            long now = world.TimeNow;
+            foreach (var zone in this.zones)
+                world.Send(player, P.ZoneAdd(zone, Math.Max(0, (zone.ExpiresAt - now) * 1000 / world.TimerFrequency)));
         }
 
         public void RecheckBuffs(ICharacter character, GameWorld world)

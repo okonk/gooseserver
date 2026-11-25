@@ -201,6 +201,7 @@ namespace Goose
         {
             this.players.Add(player);
             this.GroundZones.RecheckBuffs(player, world);
+            this.GroundZones.SendAll(player, world);
 
             try
             {
