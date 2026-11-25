@@ -5,7 +5,7 @@ namespace Goose.Events
     /**
      * PlayerCastSpellEvent, event for "CAST" packet
      *
-     * Syntax: CASTspellbookid,targetid
+     * Syntax: CASTspellbookid,targetid or CASTspellbookid,0,x,y
      *
      */
     public class PlayerCastSpellEvent : Event
@@ -24,6 +24,18 @@ namespace Goose.Events
 
                 string packet = ((string)this.Data).Substring(4);
                 string[] t = packet.Split(',');
+
+                if (t.Length == 4)
+                {
+                    if (int.TryParse(t[0], out int slot) && t[1] == "0" &&
+                        int.TryParse(t[2], out int x) && int.TryParse(t[3], out int y) &&
+                        slot >= 1 && slot <= world.Settings.SpellbookSize &&
+                        this.Player.CastSpellAt(slot, x, y, world))
+                        return;
+
+                    this.SuspectMacro(world);
+                    return;
+                }
 
                 int spellid = 0;
                 int target = 0;
@@ -71,17 +83,22 @@ namespace Goose.Events
                             }
                         }
 
-                        this.Player.SuspectedMacroCount++;
-                        if (this.Player.SuspectedMacroCount > 10000)
-                        {
-                            world.LostConnection(this.Player.Sock);
-                        }
-
-                        if (this.Player.SuspectedMacroCount > 100)
-                            log.Info("SUSPECTED MACRO: " + this.Player.Name);
+                        this.SuspectMacro(world);
                     }
                 }
             }
+        }
+
+        private void SuspectMacro(GameWorld world)
+        {
+            this.Player.SuspectedMacroCount++;
+            if (this.Player.SuspectedMacroCount > 10000)
+            {
+                world.LostConnection(this.Player.Sock);
+            }
+
+            if (this.Player.SuspectedMacroCount > 100)
+                log.Info("SUSPECTED MACRO: " + this.Player.Name);
         }
     }
 }

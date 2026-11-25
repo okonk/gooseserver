@@ -1289,7 +1289,7 @@ namespace Goose
             caster.BreakInvisibility(world);
 
             if (this.EffectType == EffectTypes.GroundZone)
-                return this.CastGroundZone(caster, target, world);
+                return this.CastGroundZone(caster, target.Map, target.MapX, target.MapY, world);
 
             if (this.TargetType == TargetTypes.Target)
             {
@@ -1343,12 +1343,20 @@ namespace Goose
             return true;
         }
 
-        private bool CastGroundZone(ICharacter caster, ICharacter anchor, GameWorld world)
+        public bool CastAt(ICharacter caster, Map map, int x, int y, GameWorld world)
         {
-            var map = anchor.Map;
+            if (this.EffectType != EffectTypes.GroundZone) return false;
+            if (!this.WorksInPVP && map.CanPVP) return false;
+
+            caster.BreakInvisibility(world);
+            return this.CastGroundZone(caster, map, x, y, world);
+        }
+
+        private bool CastGroundZone(ICharacter caster, Map map, int x, int y, GameWorld world)
+        {
             if (!MapAllowsCasting(caster, map)) return false;
 
-            map.GroundZones.Create(this, caster, anchor.MapX, anchor.MapY, world);
+            map.GroundZones.Create(this, caster, x, y, world);
 
             if (this.DoCastAnimation)
             {

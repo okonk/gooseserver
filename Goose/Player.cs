@@ -2395,6 +2395,23 @@ namespace Goose
          *
          */
         public void CastSpell(int spellslot, ICharacter target, GameWorld world)
+            => this.CastSpell(spellslot, target, null, world);
+
+        public bool CastSpellAt(int spellslot, int x, int y, GameWorld world)
+        {
+            Spell? spell = this.Spellbook.GetSlot(spellslot);
+            if (spell is null || !spell.GroundTargetable || spell.Target != Spell.SpellTargets.Target ||
+                spell.SpellEffect.EffectType != SpellEffect.EffectTypes.GroundZone)
+                return false;
+            if (x < 1 || x > this.Map.Width || y < 1 || y > this.Map.Height) return false;
+            if (Math.Abs(x - this.MapX) >= Map.RANGE_X || Math.Abs(y - this.MapY) >= Map.RANGE_Y) return false;
+
+            this.CastSpell(spellslot, this, (x, y), world);
+
+            return true;
+        }
+
+        private void CastSpell(int spellslot, ICharacter target, (int X, int Y)? tile, GameWorld world)
         {
             Spell? spell = this.Spellbook.GetSlot(spellslot);
             if (spell is null) return;
@@ -2443,7 +2460,11 @@ namespace Goose
                 {
                     var cast = new SpellCast(spell, this);
 
-                    if (spell.Target == Spell.SpellTargets.Group)
+                    if (tile is { } at)
+                    {
+                        spell.SpellEffect.CastAt(this, this.Map, at.X, at.Y, world);
+                    }
+                    else if (spell.Target == Spell.SpellTargets.Group)
                     {
                         if (this.Group is not null)
                         {
