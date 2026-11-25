@@ -308,17 +308,120 @@ namespace Goose
                 ? [] : [.. other.BuffDoesntStackOver];
         }
 
-        // Used in random spell
-        struct Point
+        public static List<(int X, int Y)> ShapeTiles(TargetTypes shape, int size, int ox, int oy, Direction facing)
         {
-            public int x;
-            public int y;
+            var tiles = new List<(int X, int Y)>();
 
-            public Point(int x, int y)
+            switch (shape)
             {
-                this.x = x;
-                this.y = y;
+                case TargetTypes.Target:
+                    tiles.Add((ox, oy));
+                    break;
+
+                case TargetTypes.LineFront:
+                {
+                    int x = ox;
+                    int y = oy;
+                    for (int i = 1; i <= size; i++)
+                    {
+                        (x, y) = facing switch
+                        {
+                            Direction.Up => (x, y - 1),
+                            Direction.Right => (x + 1, y),
+                            Direction.Down => (x, y + 1),
+                            Direction.Left => (x - 1, y),
+                            _ => (x, y),
+                        };
+                        tiles.Add((x, y));
+                    }
+                    break;
+                }
+
+                case TargetTypes.Area:
+                    for (int y = oy - size; y <= oy + size; y++)
+                        for (int x = ox - size; x <= ox + size; x++)
+                            tiles.Add((x, y));
+                    break;
+
+                case TargetTypes.Cross:
+                    for (int y = oy - size; y <= oy + size; y++)
+                        for (int x = ox - size; x <= ox + size; x++)
+                            if (x == ox - (y - oy) || x == ox + (y - oy))
+                                tiles.Add((x, y));
+                    break;
+
+                case TargetTypes.Plus:
+                    for (int y = oy - size; y <= oy + size; y++)
+                        for (int x = ox - size; x <= ox + size; x++)
+                            if (x == ox || y == oy)
+                                tiles.Add((x, y));
+                    break;
+
+                case TargetTypes.TriangleFront:
+                {
+                    int x = ox;
+                    int y = oy;
+                    for (int i = 1; i <= size; i++)
+                    {
+                        (x, y) = facing switch
+                        {
+                            Direction.Up => (ox - i, y - 1),
+                            Direction.Right => (x + 1, oy - i),
+                            Direction.Down => (ox - i, y + 1),
+                            Direction.Left => (x - 1, oy - i),
+                            _ => (x, y),
+                        };
+
+                        for (int j = 0; j < i * 2 - 1; j++)
+                        {
+                            (x, y) = facing switch
+                            {
+                                Direction.Up => (x + 1, y),
+                                Direction.Right => (x, y + 1),
+                                Direction.Down => (x + 1, y),
+                                Direction.Left => (x, y + 1),
+                                _ => (x, y),
+                            };
+                            tiles.Add((x, y));
+                        }
+                    }
+                    break;
+                }
             }
+
+            return tiles;
+        }
+
+        public List<(int X, int Y)> RandomTiles(int ox, int oy, Random random)
+        {
+            var points = new List<(int X, int Y)> { (ox, oy) };
+            var done = new List<(int X, int Y)>();
+
+            while (points.Count > 0)
+            {
+                var point = points[0];
+                points.RemoveAt(0);
+
+                if (point.X >= ox - this.TargetSize &&
+                    point.X <= ox + this.TargetSize &&
+                    point.Y >= oy - this.TargetSize &&
+                    point.Y <= oy + this.TargetSize &&
+                    !done.Contains(point))
+                {
+                    done.Add(point);
+
+                    if (random.Next(1, 10001) <= Utils.ExactProduct(this.RandomJoinChance, 100))
+                        points.Add((point.X - 1, point.Y));
+                    if (random.Next(1, 10001) <= Utils.ExactProduct(this.RandomJoinChance, 100))
+                        points.Add((point.X + 1, point.Y));
+                    if (random.Next(1, 10001) <= Utils.ExactProduct(this.RandomJoinChance, 100))
+                        points.Add((point.X, point.Y - 1));
+                    if (random.Next(1, 10001) <= Utils.ExactProduct(this.RandomJoinChance, 100))
+                        points.Add((point.X, point.Y + 1));
+                }
+            }
+
+            return done;
         }
 
         private string GetPercentageDescription(string label, double value, string prefix)
@@ -1188,209 +1291,24 @@ namespace Goose
                 if (this.DoAttackAnimation) packet += P.Attack(caster);
                 if (this.DoCastAnimation) packet += "\x1" + P.Cast(caster);
 
-                if (this.TargetType == TargetTypes.LineFront)
+                var tiles = this.TargetType == TargetTypes.Random
+                    ? this.RandomTiles(ox, oy, world.Random)
+                    : ShapeTiles(this.TargetType, this.TargetSize, ox, oy, caster.Facing);
+
+                foreach (var (x, y) in tiles)
                 {
-                    int x = ox;
-                    int y = oy;
-
-                    for (int i = 1; i <= this.TargetSize; i++)
+                    if ((hit = map.GetCharacterAt(x, y)) is not null)
                     {
-                        (x, y) = caster.Facing switch
-                        {
-                            Direction.Up => (x, y - 1),
-                            Direction.Right => (x + 1, y),
-                            Direction.Down => (x, y + 1),
-                            Direction.Left => (x - 1, y),
-                            _ => (x, y),
-                        };
+                        this.CastSpell(caster, hit, world, cast);
 
-                        if ((hit = map.GetCharacterAt(x, y)) is not null)
-                        {
-                            this.CastSpell(caster, hit, world, cast);
-
-                            if (this.OnlyHitsOneNPC && hit is NPC) hitone = true;
-                        }
-                        if (this.Display == SpellDisplays.Tile && this.Animation != 0)
-                        {
-                            packet += "\x1" + P.SpellTile(x, y, this.Animation, this.AnimationFile);
-                        }
-
-                        if (hitone) break;
+                        if (this.OnlyHitsOneNPC && hit is NPC) hitone = true;
                     }
-                }
-                else if (this.TargetType == TargetTypes.Area)
-                {
-                    for (int y = oy - this.TargetSize; y <= oy + this.TargetSize; y++)
+                    if (this.Display == SpellDisplays.Tile && this.Animation != 0)
                     {
-                        for (int x = ox - this.TargetSize; x <= ox + this.TargetSize; x++)
-                        {
-                            if ((hit = map.GetCharacterAt(x, y)) is not null)
-                            {
-                                this.CastSpell(caster, hit, world, cast);
-
-                                if (this.OnlyHitsOneNPC && hit is NPC) hitone = true;
-                            }
-                            if (this.Display == SpellDisplays.Tile && this.Animation != 0)
-                            {
-                                packet += "\x1" + P.SpellTile(x, y, this.Animation, this.AnimationFile);
-                            }
-
-                            if (hitone) break;
-                        }
-
-                        if (hitone) break;
-                    }
-                }
-                else if (this.TargetType == TargetTypes.Cross)
-                {
-                    for (int y = oy - this.TargetSize; y <= oy + this.TargetSize; y++)
-                    {
-                        for (int x = ox - this.TargetSize; x <= ox + this.TargetSize; x++)
-                        {
-                            if (x == ox - (y - oy) || x == ox + (y - oy))
-                            {
-                                if ((hit = map.GetCharacterAt(x, y)) is not null)
-                                {
-                                    this.CastSpell(caster, hit, world, cast);
-
-                                    if (this.OnlyHitsOneNPC && hit is NPC) hitone = true;
-                                }
-                                if (this.Display == SpellDisplays.Tile && this.Animation != 0)
-                                {
-                                    packet += "\x1" + P.SpellTile(x, y, this.Animation, this.AnimationFile);
-                                }
-                            }
-                            if (hitone) break;
-                        }
-                        if (hitone) break;
-                    }
-                }
-                else if (this.TargetType == TargetTypes.Plus)
-                {
-                    for (int y = oy - this.TargetSize; y <= oy + this.TargetSize; y++)
-                    {
-                        for (int x = ox - this.TargetSize; x <= ox + this.TargetSize; x++)
-                        {
-                            if (x == ox || y == oy)
-                            {
-                                if ((hit = map.GetCharacterAt(x, y)) is not null)
-                                {
-                                    this.CastSpell(caster, hit, world, cast);
-
-                                    if (this.OnlyHitsOneNPC && hit is NPC) hitone = true;
-                                }
-                                if (this.Display == SpellDisplays.Tile && this.Animation != 0)
-                                {
-                                    packet += "\x1" + P.SpellTile(x, y, this.Animation, this.AnimationFile);
-                                }
-                            }
-                            if (hitone) break;
-                        }
-                        if (hitone) break;
-                    }
-                }
-                else if (this.TargetType == TargetTypes.Random)
-                {
-                    List<Point> points = [];
-                    List<Point> done = [];
-
-                    Point point;
-
-                    points.Add(new Point(ox, oy));
-                    while (points.Count > 0)
-                    {
-                        point = points[0];
-                        points.RemoveAt(0);
-
-                        if (point.x >= ox - this.TargetSize &&
-                            point.x <= ox + this.TargetSize &&
-                            point.y >= oy - this.TargetSize &&
-                            point.y <= oy + this.TargetSize)
-                        {
-                            if (!done.Contains(point))
-                            {
-                                done.Add(point);
-
-                                if (world.Random.Next(1, 10001) <= Utils.ExactProduct(this.RandomJoinChance, 100))
-                                {
-                                    points.Add(new Point(point.x - 1, point.y));
-                                }
-                                if (world.Random.Next(1, 10001) <= Utils.ExactProduct(this.RandomJoinChance, 100))
-                                {
-                                    points.Add(new Point(point.x + 1, point.y));
-                                }
-                                if (world.Random.Next(1, 10001) <= Utils.ExactProduct(this.RandomJoinChance, 100))
-                                {
-                                    points.Add(new Point(point.x, point.y - 1));
-                                }
-                                if (world.Random.Next(1, 10001) <= Utils.ExactProduct(this.RandomJoinChance, 100))
-                                {
-                                    points.Add(new Point(point.x, point.y + 1));
-                                }
-                            }
-                        }
+                        packet += "\x1" + P.SpellTile(x, y, this.Animation, this.AnimationFile);
                     }
 
-                    foreach (var p in done)
-                    {
-                        if ((hit = map.GetCharacterAt(p.x, p.y)) is not null)
-                        {
-                            this.CastSpell(caster, hit, world, cast);
-
-                            if (this.OnlyHitsOneNPC && hit is NPC) hitone = true;
-                        }
-                        if (this.Display == SpellDisplays.Tile && this.Animation != 0)
-                        {
-                            packet += "\x1" + P.SpellTile(p.x, p.y, this.Animation, this.AnimationFile);
-                        }
-                        if (hitone) break;
-                    }
-                }
-
-                else if (this.TargetType == TargetTypes.TriangleFront)
-                {
-                    int x = ox;
-                    int y = oy;
-
-                    for (int i = 1; i <= this.TargetSize; i++)
-                    {
-                        (x, y) = caster.Facing switch
-                        {
-                            Direction.Up => (ox - i, y - 1),
-                            Direction.Right => (x + 1, oy - i),
-                            Direction.Down => (ox - i, y + 1),
-                            Direction.Left => (x - 1, oy - i),
-                            _ => (x, y),
-                        };
-
-                        for (int j = 0; j < i * 2 - 1; j++)
-                        {
-                            (x, y) = caster.Facing switch
-                            {
-                                Direction.Up => (x + 1, y),
-                                Direction.Right => (x, y + 1),
-                                Direction.Down => (x + 1, y),
-                                Direction.Left => (x, y + 1),
-                                _ => (x, y),
-                            };
-
-                            if ((hit = map.GetCharacterAt(x, y)) is not null)
-                            {
-                                this.CastSpell(caster, hit, world, cast);
-
-                                if (this.OnlyHitsOneNPC && hit is NPC) hitone = true;
-                            }
-
-                            if (this.Display == SpellDisplays.Tile && this.Animation != 0)
-                            {
-                                packet += "\x1" + P.SpellTile(x, y, this.Animation, this.AnimationFile);
-                            }
-
-                            if (hitone) break;
-                        }
-
-                        if (hitone) break;
-                    }
+                    if (hitone) break;
                 }
 
                 packet.TrimStart('\x1');

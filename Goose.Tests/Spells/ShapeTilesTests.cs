@@ -71,4 +71,18 @@ public class ShapeTilesTests
         Assert.All(tiles, t => Assert.InRange(t.Y, 8, 12));
         Assert.Equal(25, tiles.Distinct().Count());
     }
+
+    [Fact]
+    public void ShapeTiles_matches_every_recorded_case()
+    {
+        foreach (var c in Cases)
+            Assert.True(c.Expected.SequenceEqual(SpellEffect.ShapeTiles(c.TargetType, c.Size, 10, 10, c.Direction)),
+                $"{c.Name}: got {string.Join(" ", SpellEffect.ShapeTiles(c.TargetType, c.Size, 10, 10, c.Direction))}");
+    }
+
+    [Fact]
+    public void ShapeTiles_returns_nothing_for_random()
+    {
+        Assert.Empty(SpellEffect.ShapeTiles(SpellEffect.TargetTypes.Random, 2, 10, 10, Direction.Down));
+    }
 }
