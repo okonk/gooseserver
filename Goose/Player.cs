@@ -2570,7 +2570,7 @@ namespace Goose
 
             var packetBuilder = new StringBuilder();
 
-            if (buff.SpellEffect.Duration > 0)
+            if (buff.SpellEffect.Duration > 0 && buff.SourceZone is null)
             {
                 // else we don't have the buff. add it
                 var ev = new BuffExpireEvent();

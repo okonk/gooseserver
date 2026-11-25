@@ -34,7 +34,7 @@ namespace Goose.Events
 
                 Buff buff = buffs[id - 1];
                 // I dunno if I should make item buffs able to be removed or not..
-                if (!buff.SpellEffect.BuffCanBeRemoved) return;
+                if (!buff.SpellEffect.BuffCanBeRemoved || buff.SourceZone is not null) return;
 
                 this.Player.RemoveBuff(buff, world, true);
             }
