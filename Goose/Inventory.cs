@@ -585,6 +585,13 @@ namespace Goose
                 }
             }
 
+            if (item.SpellEffect?.EffectType == SpellEffect.EffectTypes.PetTame
+                && this.player.Pets.Count >= this.player.MaxPets(world.Settings))
+            {
+                world.Send(this.player, P.Notice(NoticeType.Info, "You have reached the maximum amount of pets. Use /pets to release one."));
+                return;
+            }
+
             bool remove = true;
 
             if (item.SpellEffect is not null && world.Random.Next(1, 100001) <= Utils.ExactProduct(item.SpellEffectChance, 1000))
