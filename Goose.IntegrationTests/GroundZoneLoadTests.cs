@@ -130,6 +130,23 @@ public class GroundZoneLoadTests : IDisposable
         Assert.Null(world.SpellHandler.GetSpellEffect(16));
     }
 
+    [Fact]
+    public void Reads_the_zone_style_and_defaults_it_to_empty()
+    {
+        Insert("INSERT INTO spell_effects (spell_effect_id, spell_effect_name, spell_effected, effect_type, " +
+               "effect_duration, target_type, target_size, zone_style) VALUES (20, 'Sanctuary', 6, 24, 8, 5, 3, 'heal')");
+        Insert("INSERT INTO spell_effects (spell_effect_id, spell_effect_name, spell_effected, effect_type, " +
+               "effect_duration, target_type, target_size) VALUES (21, 'Plain Zone', 6, 24, 8, 5, 3)");
+        Insert("INSERT INTO spell_effects (spell_effect_id, spell_effect_name, spell_effected, effect_type, " +
+               "effect_duration, target_type, target_size, zone_style) VALUES (22, 'Bad Style', 6, 24, 8, 5, 3, 'a,b')");
+
+        Load();
+
+        Assert.Equal("heal", world.SpellHandler.GetSpellEffect(20)!.ZoneStyle);
+        Assert.Equal("", world.SpellHandler.GetSpellEffect(21)!.ZoneStyle);
+        Assert.Null(world.SpellHandler.GetSpellEffect(22));
+    }
+
     private static void RunSql(SQLiteConnection conn, string sql)
     {
         using var cmd = conn.CreateCommand();

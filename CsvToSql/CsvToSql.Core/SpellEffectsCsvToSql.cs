@@ -108,6 +108,7 @@ namespace CsvToSql
             Col.Int("zone_tick_ms", SqlType.Int, def: 1000),
             Col.Id("zone_buff_effect_id", SqlType.Int, def: 0).Ref("Spell Effects"),
             Col.Bool("zone_overlaps", def: false),
+            Col.Text("zone_style", def: "''"),
         };
 
         public override Composite[] GetComposites() => new[]

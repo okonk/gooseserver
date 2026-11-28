@@ -150,6 +150,7 @@ namespace Goose
         public int ZoneTickMs { get; set; }
         public int ZoneBuffEffectID { get; set; }
         public bool ZoneOverlaps { get; set; }
+        public string ZoneStyle { get; set; } = "";
 
         public SpellEffect? ZoneBuffEffect { get; set; }
 
@@ -281,6 +282,7 @@ namespace Goose
             this.ZoneTickMs = other.ZoneTickMs;
             this.ZoneBuffEffectID = other.ZoneBuffEffectID;
             this.ZoneOverlaps = other.ZoneOverlaps;
+            this.ZoneStyle = other.ZoneStyle;
             this.ZoneBuffEffect = other.ZoneBuffEffect;
             this.BuffCanBeRemoved = other.BuffCanBeRemoved;
             this.BuffGraphic = other.BuffGraphic;

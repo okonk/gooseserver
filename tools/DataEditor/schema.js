@@ -2687,6 +2687,14 @@ var GOOSE_SCHEMA = {
           "default": "\u00270\u0027",
           "required": false,
           "pk": false
+        },
+        {
+          "name": "zone_style",
+          "kind": "Text",
+          "sql": "TEXT",
+          "default": "\u0027\u0027",
+          "required": false,
+          "pk": false
         }
       ],
       "composites": [

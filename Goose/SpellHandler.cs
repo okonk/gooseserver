@@ -137,6 +137,7 @@ namespace Goose
                 effect.ZoneTickMs = reader.GetInt32("zone_tick_ms");
                 effect.ZoneBuffEffectID = reader.GetInt32("zone_buff_effect_id");
                 effect.ZoneOverlaps = reader.GetString("zone_overlaps") != "0";
+                effect.ZoneStyle = reader.GetString("zone_style");
 
                 string scriptPath = reader.GetString("script_path");
                 if (!string.IsNullOrEmpty(scriptPath))
@@ -318,6 +319,7 @@ namespace Goose
             if (effect.EffectType != SpellEffect.EffectTypes.GroundZone) return null;
             if (effect.TargetType == SpellEffect.TargetTypes.Random) return "ground zones can't use the Random shape";
             if (effect.Duration <= 0) return "ground zones need an effect_duration above 0";
+            if (effect.ZoneStyle.Contains(',')) return "zone_style can't contain a comma";
             return null;
         }
 

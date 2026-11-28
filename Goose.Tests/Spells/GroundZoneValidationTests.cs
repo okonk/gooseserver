@@ -41,6 +41,18 @@ public class GroundZoneValidationTests
     }
 
     [Fact]
+    public void A_style_with_a_comma_is_rejected()
+    {
+        Assert.NotNull(SpellHandler.GroundZoneProblem(Zone(e => e.ZoneStyle = "heal,big")));
+    }
+
+    [Fact]
+    public void A_plain_style_name_is_fine()
+    {
+        Assert.Null(SpellHandler.GroundZoneProblem(Zone(e => e.ZoneStyle = "heal")));
+    }
+
+    [Fact]
     public void Group_target_zone_spell_is_rejected()
     {
         var spell = new Spell { ID = 1, Name = "Zone", Target = Spell.SpellTargets.Group, SpellEffect = Zone() };
