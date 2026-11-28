@@ -9,6 +9,7 @@ namespace Goose.Tests
         [InlineData(0)]
         [InlineData(1)]
         [InlineData(99)]
+        [InlineData(221)]
         [InlineData(10000)]
         [InlineData(10050)]
         [InlineData(10099)]
@@ -19,6 +20,8 @@ namespace Goose.Tests
 
         [Theory]
         [InlineData(100)]
+        [InlineData(220)]
+        [InlineData(222)]
         [InlineData(9999)]
         [InlineData(10100)]
         [InlineData(109999)]
