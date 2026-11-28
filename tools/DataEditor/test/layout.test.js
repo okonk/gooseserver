@@ -9,6 +9,7 @@ const { Layout } = await import('../src/layout.js');
 // its values: the parts atlas is keyed by those names, so anything else is a preview that is blank
 // forever and a browser with no tiles, and nothing on screen would say why.
 const { Appearance } = await import('../src/appearance.js');
+globalThis.Appearance = Appearance;
 
 // The authoritative column list, loaded the same way Task 5 loads a sprite bundle.
 const schemaPath = fileURLToPath(new URL('../schema.js', import.meta.url));
@@ -369,7 +370,7 @@ test('every wearable gate names real columns and real enum values', () => {
 
 test('monsterBodyGate answers for NPCs and nothing else', () => {
   assert.deepEqual(Layout.monsterBodyGate('NPCs'), {
-    column: 'body_id', from: 100,
+    column: 'body_id',
     columns: ['face_id', 'hair_id', 'hair_r', 'equipped_items'],
     clear: ['face_id', 'hair_id', 'equipped_items'],
   });
@@ -401,7 +402,7 @@ test('the gate does not hide the cell it reads, or the body tint that survives',
     .forEach((c) => assert.ok(!gate.columns.includes(c), `${c} must stay visible`));
 });
 
-test('isMonsterBody is the client\'s own >= 100 test, on a spreadsheet cell', () => {
+test('isMonsterBody is the client\'s IsLayered test, on a spreadsheet cell', () => {
   const at = (body) => Layout.isMonsterBody('NPCs', { body_id: body });
 
   // 100 ITSELF IS A MONSTER. Character.cs:218 is `>= 100` and Appearance.layers ports it verbatim,
@@ -410,6 +411,9 @@ test('isMonsterBody is the client\'s own >= 100 test, on a spreadsheet cell', ()
   assert.equal(at(100), true);
   assert.equal(at(99), false);
   assert.equal(at(10113), true);
+  assert.equal(at(221), false);
+  assert.equal(at(220), true);
+  assert.equal(at(10001), false);
 
   // A CELL, so a string is the normal case, and parseInt is what Appearance.num uses.
   assert.equal(at('100'), true);
@@ -427,7 +431,7 @@ test('isMonsterBody is the client\'s own >= 100 test, on a spreadsheet cell', ()
 });
 
 test('the monster-body table cannot be mutated by a consumer', () => {
-  assert.throws(() => { Layout.MONSTER_BODY.NPCs.from = 0; }, TypeError);
+  assert.throws(() => { Layout.MONSTER_BODY.NPCs.column = 'x'; }, TypeError);
   assert.throws(() => Layout.MONSTER_BODY.NPCs.clear.push('body_id'), TypeError);
 });
 

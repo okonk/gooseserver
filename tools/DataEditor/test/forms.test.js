@@ -9,6 +9,8 @@ installFakeDom();
 
 const { Layout } = await import('../src/layout.js');
 globalThis.Layout = Layout;
+const { Appearance } = await import('../src/appearance.js');
+globalThis.Appearance = Appearance;
 
 // Composites is Task 10 and does not exist yet. forms.js resolves it as a free global at CALL
 // time, exactly as the built page does (Editor.html includes composites.html first), so a stub

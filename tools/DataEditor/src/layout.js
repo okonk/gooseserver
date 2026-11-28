@@ -163,13 +163,12 @@ var Layout = (function () {
   };
 
   // A MONSTER OR MORPH BODY RENDERS ALONE, and this is the cell that decides plus everything that
-  // decision makes dead. Character.cs:218-223 drops the hair id, the face id and all six equipment
-  // slots for a body >= 100, and the server does not even send equipment for such a row
-  // (Goose/Packets.cs:161) — so those cells are not "usually ignored", they are unreachable.
+  // decision makes dead. The client drops the hair id, the face id and all six equipment slots for
+  // a body that is not layered (BodyClassification.IsLayered), and the server does not even send
+  // equipment for such a row — so those cells are not "usually ignored", they are unreachable.
   //
-  // >= 100, NOT > 100. The client's test is `CurrentBodyID >= 100` and Appearance.layers already
-  // ports it verbatim, so anything else here would put the form and the preview beside it into
-  // disagreement about body 100 itself.
+  // The test is Appearance.isLayeredBody, the one the preview uses, so the form and the preview
+  // beside it cannot disagree about any body.
   //
   // TWO LISTS, because hiding and clearing are different promises:
   //   `columns` are HIDDEN, the way the wearable gate hides its rows — the cells keep their stored
@@ -183,7 +182,7 @@ var Layout = (function () {
   //     colour rather than a thing that renders.
   var MONSTER_BODY = {
     NPCs: {
-      column: 'body_id', from: 100,
+      column: 'body_id',
       columns: ['face_id', 'hair_id', 'hair_r', 'equipped_items'],
       clear: ['face_id', 'hair_id', 'equipped_items'],
     },
@@ -290,7 +289,7 @@ var Layout = (function () {
     return gate === undefined ? null : gate;
   }
 
-  /// The sheet's monster-body rule — `{ column, from, columns, clear }` — or null when the sheet has
+  /// The sheet's monster-body rule — `{ column, columns, clear }` — or null when the sheet has
   /// no such cell. One accessor for all three consumers (forms.js hides the rows, app.js clears the
   /// cells on save, and both go through isMonsterBody below for the test itself) so no two of them
   /// can disagree about which cells a monster body kills.
@@ -311,7 +310,7 @@ var Layout = (function () {
     var gate = monsterBodyGate(sheet);
     if (!gate) return false;
     var n = parseInt((values || {})[gate.column], 10);
-    return !isNaN(n) && n >= gate.from;
+    return !isNaN(n) && !Appearance.isLayeredBody(n);
   }
 
   /// Which sprite bundle the graphic browser should show for one column. Never null: 'icons' is the

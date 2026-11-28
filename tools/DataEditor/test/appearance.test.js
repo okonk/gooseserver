@@ -69,6 +69,14 @@ test('the monster cutoff is exactly >= 100', () => {
   assert.deepEqual(slotsOf(Appearance.layers({ ...base, bodyId: 101, equippedItems: eq })), ['Body']);
 });
 
+test('body 221 and imported 10000-10099 bodies are layered', () => {
+  const eq = '5,*,6,*,7,*,8,*,9,*,10,*';
+  [221, 10000, 10099].forEach((bodyId) =>
+    assert.ok(slotsOf(Appearance.layers({ ...base, bodyId, equippedItems: eq })).length > 1, String(bodyId)));
+  [220, 222, 10100].forEach((bodyId) =>
+    assert.deepEqual(slotsOf(Appearance.layers({ ...base, bodyId, equippedItems: eq })), ['Body'], String(bodyId)));
+});
+
 test('a monster body keeps its own tint', () => {
   // Character.cs:220 zeroes the other ids; bodyR..bodyA are untouched.
   const layers = Appearance.layers({

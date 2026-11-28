@@ -132,10 +132,10 @@ var Appearance = (function () {
     var hairId = a.hairId;
     var faceId = a.faceId;
 
-    // Character.cs:218-223 — a monster or morph body (>= 100) renders the body alone. The server
-    // does not even send equipment for those rows (Goose/Packets.cs:161). The body's OWN tint
-    // survives: only the ids are zeroed.
-    if (bodyId >= 100) {
+    // Character.cs — a body that is not layered (BodyClassification.IsLayered) renders alone. The
+    // server does not send equipment for those rows. The body's OWN tint survives: only the ids
+    // are zeroed.
+    if (!isLayeredBody(bodyId)) {
       hairId = 0;
       faceId = 0;
       // Fresh object per slot: sharing one would make the underwear rewrite below ambiguous and
@@ -186,6 +186,11 @@ var Appearance = (function () {
     return out;
   }
 
+  // Must match BodyClassification.IsLayered in the client and server.
+  function isLayeredBody(bodyId) {
+    return bodyId < 100 || bodyId === 221 || (bodyId >= 10000 && bodyId <= 10099);
+  }
+
   function underwear(graphic) {
     return { graphic: graphic, r: 0, g: 0, b: 0, a: 0, tinted: false };
   }
@@ -196,6 +201,7 @@ var Appearance = (function () {
   // and CATEGORY because the draw order and folder for it are still facts about the client.
   return {
     layers: layers, layer: layer, offsetY: offsetY, sortOrder: sortOrder, slotFor: slotFor,
+    isLayeredBody: isLayeredBody,
     CATEGORY: CATEGORY, EQUIP_SLOT: EQUIP_SLOT,
   };
 })();
