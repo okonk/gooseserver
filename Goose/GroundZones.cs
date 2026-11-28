@@ -1,3 +1,4 @@
+using System.Globalization;
 using Goose.Events;
 
 namespace Goose
@@ -30,6 +31,7 @@ namespace Goose
             {
                 Id = ++nextId,
                 Effect = effect,
+                TickEffect = Snapshot(effect, caster),
                 Caster = caster,
                 Map = this.map,
                 Overlaps = effect.ZoneOverlaps,
@@ -165,11 +167,26 @@ namespace Goose
                 if (target is null || !IsAlive(target)) continue;
                 if (!zone.Effect.CanCastSpell(zone.Caster, target, this.map)) continue;
 
-                zone.Effect.ApplyFormula(zone.Caster, target, world, animate: false, out _, out _);
+                zone.TickEffect.ApplyFormula(zone.Caster, target, world, animate: false, out _, out _);
             }
         }
 
-        private static bool IsAlive(ICharacter character) => character switch
+        private static SpellEffect Snapshot(SpellEffect effect, ICharacter caster)
+        {
+            string Pin(string formula) => formula?
+                .Replace("%cchp", caster.CurrentHP.ToString(CultureInfo.InvariantCulture))
+                .Replace("%ccmp", caster.CurrentMP.ToString(CultureInfo.InvariantCulture))
+                .Replace("%ccsp", caster.CurrentSP.ToString(CultureInfo.InvariantCulture))!;
+
+            return new SpellEffect(effect)
+            {
+                HPFormula = Pin(effect.HPFormula),
+                MPFormula = Pin(effect.MPFormula),
+                SPFormula = Pin(effect.SPFormula),
+            };
+        }
+
+                private static bool IsAlive(ICharacter character) => character switch
         {
             Player player => player.State == Player.States.Ready && !player.IsDead,
             NPC npc => npc.State == NPC.States.Alive,

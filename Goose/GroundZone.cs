@@ -4,6 +4,7 @@ namespace Goose
     {
         public int Id { get; init; }
         public SpellEffect Effect { get; init; } = null!;
+        public SpellEffect TickEffect { get; init; } = null!;
         public ICharacter Caster { get; init; } = null!;
         public Map Map { get; init; } = null!;
         public HashSet<(int X, int Y)> Tiles { get; init; } = [];

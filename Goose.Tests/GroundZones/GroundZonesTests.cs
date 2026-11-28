@@ -41,6 +41,23 @@ public class GroundZonesTests
     }
 
     [Fact]
+    public void Caster_current_stats_are_snapshotted_at_cast()
+    {
+        using var kit = new GroundZoneTestKit();
+        var caster = kit.PlayerAt(30, 30);
+        var npc = kit.NpcAt(10, 10);
+        long full = npc.CurrentHP;
+        var zone = kit.Map.GroundZones.Create(kit.Zone(1, e => e.HPFormula = "-0.2 * %cchp - %ccmp"),
+            caster, 10, 10, kit.World);
+
+        caster.CurrentHP = 50;
+        caster.CurrentMP = 0;
+        kit.Map.GroundZones.Tick(zone, kit.At(zone, 1), kit.World);
+
+        Assert.Equal(full - 2 * (20 + 100), npc.CurrentHP);
+    }
+
+    [Fact]
     public void Create_schedules_the_next_tick_one_interval_later()
     {
         using var kit = new GroundZoneTestKit();
