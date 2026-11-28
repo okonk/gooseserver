@@ -58,7 +58,8 @@ namespace Goose
         };
 
         public static Func<GroundZone, long, string> ZoneAdd = (zone, remainingMs) =>
-            "ZADD" + zone.Id + "," + zone.Effect.Animation + "," + zone.Effect.AnimationFile + "," + remainingMs + "," +
+            "ZADD" + zone.Id + "," + zone.Effect.Animation + "," + zone.Effect.AnimationFile + "," +
+            zone.Effect.ZoneStyle + "," + remainingMs + "," +
             string.Join(",", zone.Tiles.OrderBy(t => t.Y).ThenBy(t => t.X).Select(t => t.X + "," + t.Y));
 
         public static Func<int, string> ZoneDelete = (id) => "ZDEL" + id;
@@ -722,7 +723,8 @@ namespace Goose
                     remainingMs + "," +
                     (spell.GroundTargetable ? 1 : 0) + "," +
                     (int)spell.SpellEffect.TargetType + "," +
-                    spell.SpellEffect.TargetSize;
+                    spell.SpellEffect.TargetSize + "," +
+                    spell.SpellEffect.ZoneStyle;
         };
 
         public static Func<int, long, string> SpellCooldownRemaining = (slotId, remainingMs) =>

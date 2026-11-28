@@ -11,12 +11,20 @@ public class ZonePacketTests
         var zone = new GroundZone
         {
             Id = 7,
-            Effect = new SpellEffect { Animation = 120, AnimationFile = 4 },
+            Effect = new SpellEffect { Animation = 120, AnimationFile = 4, ZoneStyle = "heal" },
             Tiles = [(11, 10), (10, 11), (10, 10)],
         };
 
-        Assert.Equal("ZADD7,120,4,8000,10,10,11,10,10,11", P.ZoneAdd(zone, 8000));
+        Assert.Equal("ZADD7,120,4,heal,8000,10,10,11,10,10,11", P.ZoneAdd(zone, 8000));
         Assert.Equal("ZDEL7", P.ZoneDelete(7));
+    }
+
+    [Fact]
+    public void ZoneAdd_sends_an_empty_style_when_unset()
+    {
+        var zone = new GroundZone { Id = 3, Effect = new SpellEffect(), Tiles = [(5, 5)] };
+
+        Assert.Equal("ZADD3,0,0,,1000,5,5", P.ZoneAdd(zone, 1000));
     }
 
     [Fact]
@@ -53,7 +61,7 @@ public class ZonePacketTests
         kit.Map.AddPlayer(arriving, kit.World);
 
         var add = Assert.Single(Packets(arriving), s => s.StartsWith("ZADD"));
-        long remaining = long.Parse(add.Substring(4).Split(',')[3]);
+        long remaining = long.Parse(add.Substring(4).Split(',')[4]);
         Assert.InRange(remaining, 7000, 8000);
     }
 }

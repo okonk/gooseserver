@@ -58,7 +58,7 @@ namespace Goose.Tests
             var packet = payload.Split('\x1').LastOrDefault(s => s.StartsWith("SSS"));
             if (packet is null) return null;
 
-            return long.Parse(packet.Substring(3).Split(',')[^4]);
+            return long.Parse(packet.Substring(3).Split(',')[^5]);
         }
 
         [Fact]
@@ -76,7 +76,7 @@ namespace Goose.Tests
 
             var packet = P.SpellSlot(spell, 1, 0, 0);
 
-            Assert.EndsWith("," + spell.Aether + ",0,0,0,0", packet);
+            Assert.EndsWith("," + spell.Aether + ",0,0,0,0,", packet);
         }
 
         [Fact]
@@ -84,7 +84,7 @@ namespace Goose.Tests
         {
             var packet = P.SpellSlot(NewSpell(), 1, 0, 1500);
 
-            Assert.EndsWith(",10000,1500,0,0,0", packet);
+            Assert.EndsWith(",10000,1500,0,0,0,", packet);
         }
 
         [Fact]
@@ -95,7 +95,22 @@ namespace Goose.Tests
             spell.SpellEffect.TargetType = SpellEffect.TargetTypes.Area;
             spell.SpellEffect.TargetSize = 2;
 
-            Assert.EndsWith(",10000,0,1,5,2", P.SpellSlot(spell, 1, 0, 0));
+            Assert.EndsWith(",10000,0,1,5,2,", P.SpellSlot(spell, 1, 0, 0));
+        }
+
+        [Fact]
+        public void SpellSlot_AppendsZoneStyle()
+        {
+            var spell = NewSpell();
+            spell.SpellEffect.ZoneStyle = "poison";
+
+            Assert.EndsWith(",0,0,0,poison", P.SpellSlot(spell, 1, 0, 0));
+        }
+
+        [Fact]
+        public void SpellSlot_EmptySlotIsUnchanged()
+        {
+            Assert.Equal("SSS4,,0,0,0,0,0,0,0", P.SpellSlot(null, 4, 0, 0));
         }
 
         [Fact]
